@@ -12,17 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generic command handler architecture to eliminate code duplication
 - New command_handlers.go file with centralized logic
 - Comprehensive refactoring documentation
+- Translation of all Russian text to English throughout project
+- Pre-built filedo.exe (3.7MB) available in repository root
 
 ### Changed
 - **MAJOR REFACTORING**: Eliminated ~300 lines of duplicated code in main.go
 - Restructured command handlers using interface-based design
 - Improved code maintainability and extensibility
 - Enhanced cross-platform compatibility with complete stub implementations
+- **DOCUMENTATION**: Translated all Russian documentation and comments to English
+- **README**: Updated installation instructions to reflect available pre-built executable
 
 ### Fixed
 - Fixed function signature mismatches in *_unsupported.go files
 - Added missing function stubs for cross-platform builds
 - Resolved code duplication issues in command handling
+- Corrected README installation instructions (removed non-existent releases page reference)
 
 ### Technical Improvements
 - Reduced main.go from ~400 to 135 lines (-66%)

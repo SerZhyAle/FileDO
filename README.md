@@ -14,31 +14,53 @@
 
 ## 📦 Installation
 
-### Download Release
-1. Download the latest `filedo.exe` from the [Releases](https://github.com/yourusername/FileDO/releases) page
-2. Place it in a directory in your PATH or run directly
+### Option 1: Use Pre-built Binary (Recommended)
 
-### Build from Source
+A pre-built `filedo.exe` is available in the repository root:
+
+1. **Download directly from GitHub:**
+   - Clone the repository: `git clone https://github.com/yourusername/FileDO.git`
+   - Use the included `filedo.exe` (3.7MB, latest build)
+   
+2. **Or download just the executable:**
+   - Navigate to the repository files on GitHub
+   - Download `filedo.exe` directly
+   - Place it anywhere and run from command line
+
+### Option 2: Build from Source
+
 ```bash
 git clone https://github.com/yourusername/FileDO.git
 cd FileDO
 go build -o filedo.exe
 ```
 
+### Requirements
+
+- **Windows OS** (primary target platform)
+- **For building from source**: Go 1.19+ installed
+- **For pre-built binary**: No additional requirements
+
 ## 🎯 Quick Start
 
-```bash
-# Get device information
-filedo.exe device C: info
+**Ready to use immediately!** Download the repository and run:
 
-# Test USB drive for fake capacity
-filedo.exe device E: test
+```cmd
+# Clone repository
+git clone https://github.com/yourusername/FileDO.git
+cd FileDO
 
-# Test network share performance  
-filedo.exe network \\server\share speed 100
+# Use pre-built executable directly (no compilation needed)
+.\filedo.exe device C: info          # Get device information
+.\filedo.exe device E: test          # Test USB drive for fake capacity  
+.\filedo.exe folder C:\temp speed 100 # Test folder write speed
+.\filedo.exe folder C:\temp clean    # Clean up test files
+```
 
-# Clean up test files
-filedo.exe folder C:\temp clean
+**Or download just the executable:**
+1. Go to the repository on GitHub
+2. Download `filedo.exe` (3.7MB)
+3. Run from any location
 ```
 
 ## 📚 Usage Examples
