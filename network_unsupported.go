@@ -199,7 +199,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	localFileName := fmt.Sprintf("speedtest_%d_%d.txt", sizeMB, time.Now().Unix())
 
 	startCreate := time.Now()
-	err = createRandomFile(localFileName, sizeMB)
+	err = createRandomFile(localFileName, sizeMB, true)
 	if err != nil {
 		return fmt.Errorf("failed to create test file: %w", err)
 	}
@@ -213,7 +213,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	fmt.Printf("Target: %s\n", networkFileName)
 
 	startUpload := time.Now()
-	bytesUploaded, err := copyFileWithProgress(localFileName, networkFileName)
+	bytesUploaded, err := copyFileWithProgress(localFileName, networkFileName, true)
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFileName)
@@ -236,7 +236,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	fmt.Printf("Target: %s\n", downloadFileName)
 
 	startDownload := time.Now()
-	bytesDownloaded, err := copyFileWithProgress(networkFileName, downloadFileName)
+	bytesDownloaded, err := copyFileWithProgress(networkFileName, downloadFileName, true)
 	if err != nil {
 		// Clean up files before returning error
 		os.Remove(localFileName)
@@ -287,4 +287,16 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	fmt.Printf("Download time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", downloadDuration, downloadSpeedMBps, downloadSpeedMbps)
 
 	return nil
+}
+
+func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
+	return fmt.Errorf("network fill operation is not supported on this operating system")
+}
+
+func runNetworkFillClean(networkPath string) error {
+	return fmt.Errorf("network fill clean operation is not supported on this operating system")
+}
+
+func runNetworkTest(networkPath string, autoDelete bool) error {
+	return fmt.Errorf("network test operation is not supported on this operating system")
 }

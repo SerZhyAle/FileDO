@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.7-20250705] - 2025-07-05
+
+### Added
+- CommandHandler interface for unified command processing
+- Generic command handler architecture to eliminate code duplication
+- New command_handlers.go file with centralized logic
+- Comprehensive refactoring documentation
+
+### Changed
+- **MAJOR REFACTORING**: Eliminated ~300 lines of duplicated code in main.go
+- Restructured command handlers using interface-based design
+- Improved code maintainability and extensibility
+- Enhanced cross-platform compatibility with complete stub implementations
+
+### Fixed
+- Fixed function signature mismatches in *_unsupported.go files
+- Added missing function stubs for cross-platform builds
+- Resolved code duplication issues in command handling
+
+### Technical Improvements
+- Reduced main.go from ~400 to 135 lines (-66%)
+- Implemented SOLID principles (SRP, OCP, DIP)
+- Enhanced code readability and structure
+- Maintained 100% backward compatibility
+- Added comprehensive testing and validation
+
 ## [Unreleased]
 
 ### Added

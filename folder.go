@@ -30,9 +30,9 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 			if err != nil {
 				if os.IsPermission(err) {
 					accessErrors = true
-					return nil // Подавить ошибку прав доступа и продолжить
+					return nil
 				}
-				return err // Распространить другие ошибки
+				return err
 			}
 			if d.IsDir() {
 				if p != path {
@@ -44,9 +44,9 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 				if err != nil {
 					if os.IsPermission(err) {
 						accessErrors = true
-						return nil // Подавить ошибку прав доступа и продолжить
+						return nil
 					}
-					return err // Распространить другие ошибки
+					return err 
 				}
 				size += uint64(info.Size())
 			}
@@ -62,10 +62,10 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 				folderCount++
 			} else {
 				fileCount++
-			}
-			info, err := entry.Info()
-			if err == nil {
-				size += uint64(info.Size())
+				info, err := entry.Info()
+				if err == nil {
+					size += uint64(info.Size())
+				}
 			}
 		}
 	}
