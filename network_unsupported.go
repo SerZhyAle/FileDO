@@ -204,7 +204,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 		return fmt.Errorf("failed to create test file: %w", err)
 	}
 	createDuration := time.Since(startCreate)
-	fmt.Printf("✓ Test file created in %v\n\n", createDuration)
+	fmt.Printf("✓ Test file created in %s\n\n", formatDuration(createDuration))
 
 	// Step 3: Upload Speed Test - Copy file to network location
 	networkFileName := filepath.Join(networkPath, localFileName)
@@ -226,7 +226,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	uploadSpeedMbps := uploadSpeedMBps * 8 // Convert to megabits per second
 
 	fmt.Printf("\n✓ File uploaded successfully\n")
-	fmt.Printf("Upload completed in %v\n", uploadDuration)
+	fmt.Printf("Upload completed in %s\n", formatDuration(uploadDuration))
 	fmt.Printf("Upload Speed: %.2f MB/s (%.2f Mbps)\n\n", uploadSpeedMBps, uploadSpeedMbps)
 
 	// Step 4: Download Speed Test - Copy file back from network location
@@ -250,7 +250,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	downloadSpeedMbps := downloadSpeedMBps * 8 // Convert to megabits per second
 
 	fmt.Printf("\n✓ File downloaded successfully\n")
-	fmt.Printf("Download completed in %v\n", downloadDuration)
+	fmt.Printf("Download completed in %s\n", formatDuration(downloadDuration))
 	fmt.Printf("Download Speed: %.2f MB/s (%.2f Mbps)\n\n", downloadSpeedMBps, downloadSpeedMbps)
 
 	// Step 5: Clean up files
@@ -283,8 +283,8 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 
 	fmt.Printf("\nSpeed Test Summary:\n")
 	fmt.Printf("File size: %d MB\n", sizeMB)
-	fmt.Printf("Upload time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", uploadDuration, uploadSpeedMBps, uploadSpeedMbps)
-	fmt.Printf("Download time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", downloadDuration, downloadSpeedMBps, downloadSpeedMbps)
+	fmt.Printf("Upload time: %s, Speed: %.2f MB/s (%.2f Mbps)\n", formatDuration(uploadDuration), uploadSpeedMBps, uploadSpeedMbps)
+	fmt.Printf("Download time: %s, Speed: %.2f MB/s (%.2f Mbps)\n", formatDuration(downloadDuration), downloadSpeedMBps, downloadSpeedMbps)
 
 	return nil
 }

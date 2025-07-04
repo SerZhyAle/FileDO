@@ -46,7 +46,7 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 						accessErrors = true
 						return nil
 					}
-					return err 
+					return err
 				}
 				size += uint64(info.Size())
 			}
@@ -166,7 +166,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 	createDuration := time.Since(startCreate)
 
 	if !shortFormat {
-		fmt.Printf("✓ Test file created in %v\n\n", createDuration)
+		fmt.Printf("✓ Test file created in %s\n\n", formatDuration(createDuration))
 
 		// Step 3: Upload Speed Test - Copy file to folder
 		folderFileName := filepath.Join(folderPath, localFileName)
@@ -193,7 +193,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 
 	if !shortFormat {
 		fmt.Printf("\n✓ File uploaded successfully\n")
-		fmt.Printf("Upload completed in %v\n", uploadDuration)
+		fmt.Printf("Upload completed in %s\n", formatDuration(uploadDuration))
 		fmt.Printf("Upload Speed: %.2f MB/s (%.2f Mbps)\n\n", uploadSpeedMBps, uploadSpeedMbps)
 
 		// Step 4: Download Speed Test - Copy file back from folder
@@ -230,7 +230,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 			formatDuration(downloadDuration), downloadSpeedMBps, downloadSpeedMbps)
 	} else {
 		fmt.Printf("\n✓ File downloaded successfully\n")
-		fmt.Printf("Download completed in %v\n", downloadDuration)
+		fmt.Printf("Download completed in %s\n", formatDuration(downloadDuration))
 		fmt.Printf("Download Speed: %.2f MB/s (%.2f Mbps)\n\n", downloadSpeedMBps, downloadSpeedMbps)
 
 		// Step 5: Clean up files
@@ -268,8 +268,8 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 	if !shortFormat {
 		fmt.Printf("\nSpeed Test Summary:\n")
 		fmt.Printf("File size: %d MB\n", sizeMB)
-		fmt.Printf("Upload time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", uploadDuration, uploadSpeedMBps, uploadSpeedMbps)
-		fmt.Printf("Download time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", downloadDuration, downloadSpeedMBps, downloadSpeedMbps)
+		fmt.Printf("Upload time: %s, Speed: %.2f MB/s (%.2f Mbps)\n", formatDuration(uploadDuration), uploadSpeedMBps, uploadSpeedMbps)
+		fmt.Printf("Download time: %s, Speed: %.2f MB/s (%.2f Mbps)\n", formatDuration(downloadDuration), downloadSpeedMBps, downloadSpeedMbps)
 	}
 
 	return nil
@@ -370,7 +370,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 		return fmt.Errorf("failed to create template file: %w", err)
 	}
 	templateDuration := time.Since(startTemplate)
-	fmt.Printf("✓ Template file created in %v\n\n", templateDuration)
+	fmt.Printf("✓ Template file created in %s\n\n", formatDuration(templateDuration))
 
 	// Get timestamp for file naming (ddHHmmss format)
 	now := time.Now()
@@ -418,7 +418,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 	fmt.Printf("\n\nFill Operation Complete!\n")
 	fmt.Printf("Files created: %d\n", filesCreated)
 	fmt.Printf("Total data written: %.2f GB\n", float64(totalBytesWritten)/(1024*1024*1024))
-	fmt.Printf("Total time: %v\n", fillDuration)
+	fmt.Printf("Total time: %s\n", formatDuration(fillDuration))
 
 	if fillDuration.Seconds() > 0 {
 		avgSpeedMBps := float64(totalBytesWritten) / (1024 * 1024) / fillDuration.Seconds()
@@ -466,9 +466,9 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 }
 
 func runFolderFillClean(folderPath string) error {
-	fmt.Printf("Folder Fill Clean Operation\n")
+	fmt.Printf("Folder Clean Operation\n")
 	fmt.Printf("Target: %s\n", folderPath)
-	fmt.Printf("Searching for FILL_*.tmp files...\n\n")
+	fmt.Printf("Searching for test files (FILL_*.tmp and speedtest_*.txt)...\n\n")
 
 	// Check if folder exists and is accessible
 	stat, err := os.Stat(folderPath)
@@ -480,22 +480,37 @@ func runFolderFillClean(folderPath string) error {
 	}
 
 	// Find all FILL_*.tmp files
-	pattern := filepath.Join(folderPath, "FILL_*.tmp")
-	matches, err := filepath.Glob(pattern)
+	fillPattern := filepath.Join(folderPath, "FILL_*.tmp")
+	fillMatches, err := filepath.Glob(fillPattern)
 	if err != nil {
 		return fmt.Errorf("failed to search for FILL files: %w", err)
 	}
 
-	if len(matches) == 0 {
-		fmt.Printf("No FILL_*.tmp files found in %s\n", folderPath)
+	// Find all speedtest_*.txt files
+	speedtestPattern := filepath.Join(folderPath, "speedtest_*.txt")
+	speedtestMatches, err := filepath.Glob(speedtestPattern)
+	if err != nil {
+		return fmt.Errorf("failed to search for speedtest files: %w", err)
+	}
+
+	// Combine all matches
+	var allMatches []string
+	allMatches = append(allMatches, fillMatches...)
+	allMatches = append(allMatches, speedtestMatches...)
+
+	if len(allMatches) == 0 {
+		fmt.Printf("No test files found in %s\n", folderPath)
+		fmt.Printf("Searched for: FILL_*.tmp and speedtest_*.txt\n")
 		return nil
 	}
 
-	fmt.Printf("Found %d FILL_*.tmp files\n", len(matches))
+	fmt.Printf("Found %d test files:\n", len(allMatches))
+	fmt.Printf("  FILL files: %d\n", len(fillMatches))
+	fmt.Printf("  Speedtest files: %d\n", len(speedtestMatches))
 
 	// Calculate total size before deletion
 	var totalSize int64
-	for _, filePath := range matches {
+	for _, filePath := range allMatches {
 		if info, err := os.Stat(filePath); err == nil {
 			totalSize += info.Size()
 		}
@@ -508,7 +523,7 @@ func runFolderFillClean(folderPath string) error {
 	deletedCount := 0
 	deletedSize := int64(0)
 
-	for i, filePath := range matches {
+	for i, filePath := range allMatches {
 		info, err := os.Stat(filePath)
 		if err == nil {
 			fileSize := info.Size()
@@ -521,19 +536,19 @@ func runFolderFillClean(folderPath string) error {
 				deletedSize += fileSize
 
 				// Show progress every 100 files
-				if (i+1)%100 == 0 || i == len(matches)-1 {
-					fmt.Printf("Deleted %d/%d files - %.2f GB freed\r", deletedCount, len(matches), float64(deletedSize)/(1024*1024*1024))
+				if (i+1)%100 == 0 || i == len(allMatches)-1 {
+					fmt.Printf("Deleted %d/%d files - %.2f GB freed\r", deletedCount, len(allMatches), float64(deletedSize)/(1024*1024*1024))
 				}
 			}
 		}
 	}
 
 	fmt.Printf("\n\nClean Operation Complete!\n")
-	fmt.Printf("Files deleted: %d out of %d\n", deletedCount, len(matches))
+	fmt.Printf("Files deleted: %d out of %d\n", deletedCount, len(allMatches))
 	fmt.Printf("Space freed: %.2f GB\n", float64(deletedSize)/(1024*1024*1024))
 
-	if deletedCount < len(matches) {
-		fmt.Printf("Warning: %d files could not be deleted\n", len(matches)-deletedCount)
+	if deletedCount < len(allMatches) {
+		fmt.Printf("Warning: %d files could not be deleted\n", len(allMatches)-deletedCount)
 	}
 
 	return nil

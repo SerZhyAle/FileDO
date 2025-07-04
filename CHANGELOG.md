@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.8-20250705] - 2025-07-05
+
+### Enhanced
+
+- **CLEAN COMMAND**: Enhanced clean command to remove both `FILL_*.tmp` AND `speedtest_*.txt` files
+- **UNIFIED CLEANUP**: All clean operations (device, folder, network) now handle both file types in one command
+- **BETTER REPORTING**: Improved progress reporting with separate counts for different file types
+
+### Changed
+
+- Updated clean functionality across all modules (device_windows.go, folder.go, network_windows.go)
+- Enhanced user feedback showing counts of FILL files vs speedtest files found and deleted
+- Improved command descriptions to reflect expanded cleanup capability
+
+### Technical Improvements
+
+- Unified file pattern matching logic across all clean functions
+- Enhanced error handling during cleanup operations
+- Better progress tracking and user feedback during deletion
+
 ## [2.5.7-20250705] - 2025-07-05
 
 ### Added
@@ -22,12 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced cross-platform compatibility with complete stub implementations
 - **DOCUMENTATION**: Translated all Russian documentation and comments to English
 - **README**: Updated installation instructions to reflect available pre-built executable
+- **DURATION FORMATTING**: Standardized all duration output to 3 decimal places using formatDuration()
 
 ### Fixed
+
 - Fixed function signature mismatches in *_unsupported.go files
 - Added missing function stubs for cross-platform builds
 - Resolved code duplication issues in command handling
 - Corrected README installation instructions (removed non-existent releases page reference)
+- **DURATION OUTPUT**: Fixed all duration formatting in device_windows.go, network_windows.go, network_unsupported.go, and folder.go to use formatDuration() for consistent 3-decimal precision (e.g., "created in 1.037s")
 
 ### Technical Improvements
 - Reduced main.go from ~400 to 135 lines (-66%)
@@ -35,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced code readability and structure
 - Maintained 100% backward compatibility
 - Added comprehensive testing and validation
+- **FORMATTING CONSISTENCY**: All duration/time outputs now consistently show 3 decimal places across all modules
 
 ## [Unreleased]
 
