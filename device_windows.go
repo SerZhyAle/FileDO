@@ -50,7 +50,7 @@ func getWMIPhysicalDiskInfo(logicalDiskID string) (model, serial, iface string) 
 	query := fmt.Sprintf("SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition WHERE Dependent = \"Win32_LogicalDisk.DeviceID='%s'\"", logicalDiskID)
 	err := wmi.Query(query, &logicalDiskToPartitions)
 	if err != nil {
-		// fmt.Printf("WMI Error (LogicalDiskToPartition): %v\n", err) // For debugging
+		// Silent failure - WMI info is supplementary
 		return
 	}
 
@@ -61,12 +61,26 @@ func getWMIPhysicalDiskInfo(logicalDiskID string) (model, serial, iface string) 
 	// The Antecedent contains the path to Win32_DiskPartition, e.g., "Win32_DiskPartition.DeviceID='Disk #0, Partition #0'"
 	partitionPath := logicalDiskToPartitions[0].Antecedent
 
-	// 2. Find the physical disk associated with the partition
+	// Extract the DeviceID from the partition path
+	// The path format is typically: Win32_DiskPartition.DeviceID="Disk #0, Partition #0"
+	var partitionDeviceID string
+	if idx := strings.Index(partitionPath, "DeviceID=\""); idx != -1 {
+		start := idx + len("DeviceID=\"")
+		if end := strings.Index(partitionPath[start:], "\""); end != -1 {
+			partitionDeviceID = partitionPath[start : start+end]
+		}
+	}
+
+	if partitionDeviceID == "" {
+		return
+	}
+
+	// 2. Find the physical disk associated with the partition using DeviceID
 	var diskDriveToPartitions []Win32_DiskDriveToDiskPartition
-	query = fmt.Sprintf("SELECT Antecedent, Dependent FROM Win32_DiskDriveToDiskPartition WHERE Dependent = \"%s\"", partitionPath)
+	query = fmt.Sprintf("SELECT Antecedent, Dependent FROM Win32_DiskDriveToDiskPartition WHERE Dependent = \"Win32_DiskPartition.DeviceID='%s'\"", partitionDeviceID)
 	err = wmi.Query(query, &diskDriveToPartitions)
 	if err != nil {
-		// fmt.Printf("WMI Error (DiskDriveToDiskPartition): %v\n", err) // For debugging
+		// Silent failure - WMI info is supplementary
 		return
 	}
 
@@ -77,26 +91,26 @@ func getWMIPhysicalDiskInfo(logicalDiskID string) (model, serial, iface string) 
 	// The Antecedent contains the path to Win32_DiskDrive, e.g., "Win32_DiskDrive.DeviceID='\\\\.\\PHYSICALDRIVE0'"
 	diskDrivePath := diskDriveToPartitions[0].Antecedent
 
-	// Extract DeviceID from the path, e.g., 'Win32_DiskDrive.DeviceID="\\\\.\\PHYSICALDRIVE0"'
-	// This is a bit fragile, but common for WMI association queries.
-	// A more robust way would be to parse the string or query Win32_DiskDrive directly with LIKE.
-	start := strings.Index(diskDrivePath, "DeviceID=\"")
-	if start == -1 {
+	// Extract DeviceID from the disk drive path
+	// The path format is typically: Win32_DiskDrive.DeviceID="\\\\.\\PHYSICALDRIVE0"
+	var physicalDiskDeviceID string
+	if idx := strings.Index(diskDrivePath, "DeviceID=\""); idx != -1 {
+		start := idx + len("DeviceID=\"")
+		if end := strings.Index(diskDrivePath[start:], "\""); end != -1 {
+			physicalDiskDeviceID = diskDrivePath[start : start+end]
+		}
+	}
+
+	if physicalDiskDeviceID == "" {
 		return
 	}
-	start += len("DeviceID=\"")
-	end := strings.LastIndex(diskDrivePath, "\"")
-	if end == -1 || end <= start {
-		return
-	}
-	physicalDiskDeviceID := diskDrivePath[start:end]
 
 	// 3. Get details of the physical disk
 	var diskDrives []Win32_DiskDrive
 	query = fmt.Sprintf("SELECT Model, SerialNumber, InterfaceType FROM Win32_DiskDrive WHERE DeviceID = \"%s\"", physicalDiskDeviceID)
 	err = wmi.Query(query, &diskDrives)
 	if err != nil {
-		// fmt.Printf("WMI Error (DiskDrive): %v\n", err) // For debugging
+		// Silent failure - WMI info is supplementary
 		return
 	}
 
