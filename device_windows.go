@@ -4,14 +4,15 @@ package main
 
 import (
 	"fmt"
-	"unicode"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"unicode"
 
 	"golang.org/x/sys/windows"
 )
 
-func getDeviceInfo(path string) (DeviceInfo, error) {
+func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 	pathWithSlash := path
 	if len(pathWithSlash) == 1 && unicode.IsLetter(rune(pathWithSlash[0])) {
 		pathWithSlash += ":"
@@ -42,22 +43,33 @@ func getDeviceInfo(path string) (DeviceInfo, error) {
 	}
 
 	var fileCount, folderCount int64
-	filepath.WalkDir(rootPath, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if d != nil && d.IsDir() {
-				return filepath.SkipDir
+	if fullScan {
+		filepath.WalkDir(rootPath, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				if p != rootPath {
+					folderCount++
+				}
+			} else {
+				fileCount++
 			}
 			return nil
+		})
+	} else {
+		entries, err := os.ReadDir(rootPath)
+		if err != nil {
+			return DeviceInfo{}, fmt.Errorf("failed to read root directory '%s': %w", rootPath, err)
 		}
-		if d.IsDir() {
-			if p != rootPath {
+		for _, entry := range entries {
+			if entry.IsDir() {
 				folderCount++
+			} else {
+				fileCount++
 			}
-		} else {
-			fileCount++
 		}
-		return nil
-	})
+	}
 
 	return DeviceInfo{
 		Path: path, VolumeName: windows.UTF16ToString(volName[:]), SerialNumber: serialNumber, FileSystem: windows.UTF16ToString(fsName[:]),
