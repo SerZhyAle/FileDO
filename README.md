@@ -244,6 +244,73 @@ This device appears to be counterfeit with false capacity reporting.
 Real capacity is approximately 32 GB, not the reported 128 GB.
 ```
 
+### 4. Secure Free Space Wiping
+
+Prevent recovery of deleted files by filling free space with test data:
+
+```bash
+# Fill entire free space on C: drive to prevent data recovery
+filedo.exe device C: fill 1000 del
+
+# Fill folder's drive free space 
+filedo.exe folder C:\sensitive fill 500 del
+
+# Fill network share free space
+filedo.exe network \\server\secure fill 1000 del
+```
+
+**Real-world example - Security Wiping:**
+```bash
+C:\> filedo.exe device C: fill 1000 del
+
+Device Fill Operation
+Target: C:\
+File size: 1000 MB
+Available space: 15.23 GB
+Maximum files to create: 15
+
+Creating template file (1000 MB)...
+✓ Template file created in 2.8s
+
+Starting fill operation...
+Fill C:\: 13% 2/15 files (  85.2 MB/s) -   2.00 GB
+Fill C:\: 27% 4/15 files (  87.1 MB/s) -   4.00 GB  
+Fill C:\: 40% 6/15 files (  86.8 MB/s) -   6.00 GB
+Fill C:\: 53% 8/15 files (  85.9 MB/s) -   8.00 GB
+Fill C:\: 67% 10/15 files ( 86.4 MB/s) -  10.00 GB
+Fill C:\: 80% 12/15 files ( 86.2 MB/s) -  12.00 GB
+Fill C:\: 93% 14/15 files ( 85.8 MB/s) -  14.00 GB
+Fill C:\: 100% 15/15 files ( 86.1 MB/s) -  14.68 GB
+
+Fill Operation Complete!
+Files created: 15
+Total data written: 14.68 GB
+Total time: 2m52.3s
+Average write speed: 86.1 MB/s
+
+Auto-delete enabled - Deleting all created files...
+Deleted 15/15 files - 14.68 GB freed
+Auto-delete complete: 15 files deleted, 14.68 GB freed
+
+✅ SECURITY OPERATION COMPLETED
+Free space has been overwritten to prevent data recovery.
+All temporary files automatically cleaned up.
+```
+
+**Security Benefits:**
+- **Data Recovery Prevention**: Overwrites free space where deleted files might reside
+- **Complete Coverage**: Fills all available free space with random data
+- **Automatic Cleanup**: Auto-deletes test files after completion (with `del` flag)
+- **No Traces Left**: No temporary files remain after operation
+- **Enterprise Ready**: Works on drives, folders, and network shares
+
+**Use Cases:**
+- Before disposing of computers or hard drives
+- After deleting sensitive documents from Recycle Bin
+- Preparing systems for resale or transfer
+- Compliance with data destruction policies
+- Forensic counter-measures for sensitive environments
+
 ## 🔧 Command Reference
 
 ### Device Commands

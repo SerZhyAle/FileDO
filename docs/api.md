@@ -68,11 +68,21 @@ Fill target with test data until full.
 filedo.exe device E: fill 100     # Fill with 100MB files
 filedo.exe folder C:\temp fill 50 # Fill with 50MB files  
 filedo.exe device D: fill 100 del # Auto-delete after completion
+
+# Security use case - Prevent data recovery
+filedo.exe device C: fill 1000 del # Fill free space to prevent deleted file recovery
 ```
 
 #### Parameters
 - `<size_mb>`: Size of each test file in megabytes
 - `del`: Automatically delete files after successful completion
+
+#### Security Use Case
+The fill operation with auto-delete can be used for security purposes:
+- **Data Recovery Prevention**: Overwrites free space where deleted files might reside
+- **Forensic Counter-measures**: Prevents recovery of sensitive deleted data
+- **Compliance**: Helps meet data destruction policy requirements
+- **Clean Disposal**: Secures drives before disposal or transfer
 
 ### Test Operations
 Advanced fake capacity detection.

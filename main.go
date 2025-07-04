@@ -20,13 +20,13 @@ Usage:
 Commands:
   device <path> [info|i|short|s] Show information about a disk volume. Use 'short' for concise output.
   device <path> speed <size_mb|max> [no|nodel|nodelete] [short|s] Test device write speed. Use 'max' for 10GB test.
-  device <path> fill <size_mb> [del] Fill device with test files of specified size until full.
+  device <path> fill <size_mb> [del] Fill device with test files of specified size until full. Use with 'del' for secure wiping of free space to prevent data recovery.
   device <path> <cln|clean|c> Delete all FILL_*.tmp files from device.
   device <path> test [del|delete|d] Test device for fake capacity by writing 100 files (1%% each). Use 'del' to auto-delete files after successful test.
   
   folder <path> [info|i|short|s] Show information about a folder and its size. Use 'short' for concise output.
   folder <path> speed <size_mb|max> [no|nodel|nodelete] [short|s] Test folder write speed. Use 'max' for 10GB test.
-  folder <path> fill <size_mb> [del] Fill folder with test files of specified size until full.
+  folder <path> fill <size_mb> [del] Fill folder with test files of specified size until full. Use with 'del' for secure wiping of free space to prevent data recovery.
   folder <path> <cln|clean|c> Delete all FILL_*.tmp files from folder.
   folder <path> test [del|delete|d] Test folder for fake capacity by writing 100 files (1%% each). Use 'del' to auto-delete files after successful test.
   
@@ -34,7 +34,7 @@ Commands:
   
   network <path> [info|i] Show information about a network path.
   network <path> speed <size_mb|max> [no|nodel|nodelete] [short|s] Test network speed. Use 'max' for 10GB test.
-  network <path> fill <size_mb> [del] Fill network path with test files of specified size until full.
+  network <path> fill <size_mb> [del] Fill network path with test files of specified size until full. Use with 'del' for secure wiping of free space to prevent data recovery.
   network <path> <cln|clean|c> Delete all FILL_*.tmp files from network path.
   network <path> test [del|delete|d] Test network path for fake capacity by writing 100 files (1%% each). Use 'del' to auto-delete files after successful test.
 
@@ -43,6 +43,8 @@ Note: Use short|s with speed tests to show only final upload/download results.
 Note: Fill creates files named FILL_#####_ddHHmmss.tmp until available space is used.
 Note: Use cln|clean|c with fill to delete all FILL_*.tmp files from the specified location.
 Note: Use del with fill to automatically delete all created files after successful completion.
+Security: Use 'fill <size> del' to securely overwrite free space and prevent recovery of deleted files.
+Example: filedo.exe device C: fill 1000 del
 
 Flags:
   ?    Show this help message.`, version)

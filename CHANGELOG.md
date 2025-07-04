@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic cleanup options to prevent disk clutter
 - Safe error handling for access permissions
 - Verification of file integrity during testing
+- **Secure Free Space Wiping**: Use `fill <size> del` to overwrite free space and prevent data recovery
+- Data recovery prevention for secure disposal and compliance
+- Example: `filedo C: fill 1000 del` - securely wipes free space on C: drive
 
 ### Performance
 - Optimized for large file operations
