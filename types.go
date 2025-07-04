@@ -143,6 +143,39 @@ func (fi FolderInfo) String() string {
 	return b.String()
 }
 
+func (fi FolderInfo) StringShort() string {
+	var b strings.Builder
+
+	// Access status
+	var accessStatus []string
+	if fi.CanRead {
+		accessStatus = append(accessStatus, "Readable")
+	}
+	if fi.CanWrite {
+		accessStatus = append(accessStatus, "Writable")
+	}
+	if len(accessStatus) == 0 {
+		accessStatus = append(accessStatus, "Not accessible")
+	}
+
+	// Creation time
+	createdStr := ""
+	if !fi.CreationTime.IsZero() {
+		createdStr = ", Created: " + fi.CreationTime.Format("2006-01-02 15:04:05")
+	}
+
+	b.WriteString(fmt.Sprintf("%s%s\n", strings.Join(accessStatus, ", "), createdStr))
+
+	// Size and contains information
+	sizeFormatted := formatBytesShort(fi.Size)
+	// Always show "Full Contains" for short format
+	containsLabel := "Full Contains:"
+
+	b.WriteString(fmt.Sprintf("Total Size: %s  %s %d files, %d folders", sizeFormatted, containsLabel, fi.FileCount, fi.FolderCount))
+
+	return b.String()
+}
+
 type FileInfo struct {
 	Path         string
 	Size         uint64
@@ -208,6 +241,62 @@ func (fi FileInfo) String() string {
 		b.WriteString(fmt.Sprintf("  Created:    %s\n", fi.CreationTime.Format("2006-01-02 15:04:05")))
 	}
 	b.WriteString(fmt.Sprintf("  Modified:   %s\n", fi.ModTime.Format("2006-01-02 15:04:05")))
+	return b.String()
+}
+
+func (fi FileInfo) StringShort() string {
+	var b strings.Builder
+
+	// File attributes (only show if present)
+	var attributes []string
+	if fi.IsExecutable {
+		attributes = append(attributes, "Executable")
+	}
+	if fi.IsHidden {
+		attributes = append(attributes, "Hidden")
+	}
+	if fi.IsReadOnly {
+		attributes = append(attributes, "Read-Only")
+	}
+	if fi.IsSystem {
+		attributes = append(attributes, "System")
+	}
+	if fi.IsArchive {
+		attributes = append(attributes, "Archive")
+	}
+	if fi.IsTemporary {
+		attributes = append(attributes, "Temporary")
+	}
+	if fi.IsCompressed {
+		attributes = append(attributes, "Compressed")
+	}
+	if fi.IsEncrypted {
+		attributes = append(attributes, "Encrypted")
+	}
+
+	// Attributes and size on first line
+	attributesStr := ""
+	if len(attributes) > 0 {
+		attributesStr = strings.Join(attributes, ", ") + ", "
+	}
+
+	sizeFormatted := formatBytesShort(fi.Size)
+	b.WriteString(fmt.Sprintf("%sSize: %s\n", attributesStr, sizeFormatted))
+
+	// Creation and modification times on second line
+	createdStr := ""
+	if !fi.CreationTime.IsZero() {
+		createdStr = "Created: " + fi.CreationTime.Format("2006-01-02 15:04:05")
+	}
+
+	modifiedStr := "Modified: " + fi.ModTime.Format("2006-01-02 15:04:05")
+
+	if createdStr != "" {
+		b.WriteString(fmt.Sprintf("%s, %s", createdStr, modifiedStr))
+	} else {
+		b.WriteString(modifiedStr)
+	}
+
 	return b.String()
 }
 

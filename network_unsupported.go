@@ -166,7 +166,7 @@ func isNetworkError(err error) bool {
 	return false
 }
 
-func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete bool) error {
+func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bool) error {
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {

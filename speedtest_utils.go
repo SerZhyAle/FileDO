@@ -6,7 +6,21 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
+
+// formatDuration formats a duration for short output with consistent spacing
+func formatDuration(d time.Duration) string {
+	if d < time.Microsecond {
+		return fmt.Sprintf("%6.1fns", float64(d.Nanoseconds()))
+	} else if d < time.Millisecond {
+		return fmt.Sprintf("%6.1fμs", float64(d.Nanoseconds())/1000.0)
+	} else if d < time.Second {
+		return fmt.Sprintf("%6.1fms", float64(d.Nanoseconds())/1000000.0)
+	} else {
+		return fmt.Sprintf("%6.1fs", d.Seconds())
+	}
+}
 
 // parseSize parses a size string and returns the size in MB
 func parseSize(sizeStr string) (int, error) {
@@ -30,7 +44,7 @@ func parseSize(sizeStr string) (int, error) {
 }
 
 // createRandomFile creates a test file with the specified size in MB
-func createRandomFile(fileName string, sizeMB int) error {
+func createRandomFile(fileName string, sizeMB int, showProgress bool) error {
 	file, err := os.Create(fileName)
 	if err != nil {
 		return err
@@ -67,13 +81,13 @@ func createRandomFile(fileName string, sizeMB int) error {
 		blockNumber++
 
 		// Show progress for large files
-		if sizeMB >= 10 && written%(1024*1024*10) == 0 { // Every 10MB
+		if showProgress && sizeMB >= 10 && written%(1024*1024*10) == 0 { // Every 10MB
 			progress := float64(written) / float64(sizeBytes) * 100
 			fmt.Printf("  Creating file: %.1f%%\r", progress)
 		}
 	}
 
-	if sizeMB >= 10 {
+	if showProgress && sizeMB >= 10 {
 		fmt.Printf("  Creating file: 100.0%%\n")
 	}
 
@@ -146,7 +160,7 @@ func createNumberedBlock(blockNum int, basePattern []byte, targetSize int) []byt
 }
 
 // copyFileWithProgress copies a file from src to dst with progress reporting
-func copyFileWithProgress(src, dst string) (int64, error) {
+func copyFileWithProgress(src, dst string, showProgress bool) (int64, error) {
 	sourceFile, err := os.Open(src)
 	if err != nil {
 		return 0, err
@@ -168,7 +182,9 @@ func copyFileWithProgress(src, dst string) (int64, error) {
 	buffer := make([]byte, 64*1024) // 64KB buffer
 	var totalCopied int64
 
-	fmt.Printf("  Progress: 0.0%%")
+	if showProgress {
+		fmt.Printf("  Progress: 0.0%%")
+	}
 
 	for {
 		n, err := sourceFile.Read(buffer)
@@ -180,8 +196,10 @@ func copyFileWithProgress(src, dst string) (int64, error) {
 			totalCopied += int64(written)
 
 			// Show progress
-			progress := float64(totalCopied) / float64(totalSize) * 100
-			fmt.Printf("\r  Progress: %.1f%%", progress)
+			if showProgress {
+				progress := float64(totalCopied) / float64(totalSize) * 100
+				fmt.Printf("\r  Progress: %.1f%%", progress)
+			}
 		}
 
 		if err == io.EOF {
@@ -192,6 +210,8 @@ func copyFileWithProgress(src, dst string) (int64, error) {
 		}
 	}
 
-	fmt.Printf("\r  Progress: 100.0%%")
+	if showProgress {
+		fmt.Printf("\r  Progress: 100.0%%")
+	}
 	return totalCopied, nil
 }
