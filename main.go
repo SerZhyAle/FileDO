@@ -19,18 +19,15 @@ Usage:
   filedo.exe <command> [arguments]
 
 Commands:
-  device <path> [info|i] Show information about a disk volume.
-  device <path> speed <size_mb> [no|nodel|nodelete] Test device write speed.
-  device <path> max [no|nodel|nodelete] Test device write speed with maximum file size (10GB).
+  device <path> [info|i|short|s] Show information about a disk volume. Use 'short' for concise output.
+  device <path> speed <size_mb|max> [no|nodel|nodelete] Test device write speed. Use 'max' for 10GB test.
   folder <path> [info|i] Show information about a folder and its size.
-  folder <path> speed <size_mb> [no|nodel|nodelete] Test folder write speed.
-  folder <path> max [no|nodel|nodelete] Test folder write speed with maximum file size (10GB).
+  folder <path> speed <size_mb|max> [no|nodel|nodelete] Test folder write speed. Use 'max' for 10GB test.
   file <path>            Show information about a file.
   network <path> [info|i] Show information about a network path.
-  network <path> speed <size_mb> [no|nodel|nodelete] Test network speed with specified file size in MB.
-  network <path> max [no|nodel|nodelete] Test network speed with maximum file size (10GB).
+  network <path> speed <size_mb|max> [no|nodel|nodelete] Test network speed. Use 'max' for 10GB test.
 
-Note: Use no|nodel|nodelete to keep the test file on the network destination.
+Note: Use no|nodel|nodelete to keep the test file on the destination.
 
 Flags:
   ?    Show this help message.`, version)
@@ -123,7 +120,7 @@ func main() {
 		cmd.Parse(add_args)
 		if cmd.NArg() < 1 {
 			fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
-			fmt.Fprintf(os.Stderr, "Usage: %s network <path> [info|i] or %s network <path> speed <size_mb> [no|nodel|nodelete] or %s network <path> max [no|nodel|nodelete]\n", os.Args[0], os.Args[0], os.Args[0])
+			fmt.Fprintf(os.Stderr, "Usage: %s network <path> [info|i] or %s network <path> speed <size_mb|max> [no|nodel|nodelete]\n", os.Args[0], os.Args[0])
 			os.Exit(1)
 		}
 
@@ -131,29 +128,20 @@ func main() {
 
 		// Check if this is a speed test
 		if cmd.NArg() >= 3 && strings.ToLower(cmd.Arg(1)) == "speed" {
+			sizeParam := cmd.Arg(2)
 			// Check for no-delete option
 			noDelete := false
 			if cmd.NArg() >= 4 {
 				deleteFlag := strings.ToLower(cmd.Arg(3))
 				noDelete = deleteFlag == "no" || deleteFlag == "nodel" || deleteFlag == "nodelete"
 			}
-			err := runNetworkSpeedTest(path, cmd.Arg(2), noDelete)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			return
-		}
 
-		// Check if this is a max speed test
-		if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "max" {
-			// Check for no-delete option
-			noDelete := false
-			if cmd.NArg() >= 3 {
-				deleteFlag := strings.ToLower(cmd.Arg(2))
-				noDelete = deleteFlag == "no" || deleteFlag == "nodel" || deleteFlag == "nodelete"
+			// Handle "max" as size parameter
+			if strings.ToLower(sizeParam) == "max" {
+				sizeParam = "10240" // 10GB
 			}
-			err := runNetworkSpeedTest(path, "10240", noDelete) // Maximum size: 10GB
+
+			err := runNetworkSpeedTest(path, sizeParam, noDelete)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
@@ -175,7 +163,7 @@ func main() {
 		cmd.Parse(add_args)
 		if cmd.NArg() < 1 {
 			fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
-			fmt.Fprintf(os.Stderr, "Usage: %s device <path> [info|i] or %s device <path> speed <size_mb> [no|nodel|nodelete] or %s device <path> max [no|nodel|nodelete]\n", os.Args[0], os.Args[0], os.Args[0])
+			fmt.Fprintf(os.Stderr, "Usage: %s device <path> [info|i|short|s] or %s device <path> speed <size_mb|max> [no|nodel|nodelete]\n", os.Args[0], os.Args[0])
 			os.Exit(1)
 		}
 
@@ -183,29 +171,20 @@ func main() {
 
 		// Check if this is a speed test
 		if cmd.NArg() >= 3 && strings.ToLower(cmd.Arg(1)) == "speed" {
+			sizeParam := cmd.Arg(2)
 			// Check for no-delete option
 			noDelete := false
 			if cmd.NArg() >= 4 {
 				deleteFlag := strings.ToLower(cmd.Arg(3))
 				noDelete = deleteFlag == "no" || deleteFlag == "nodel" || deleteFlag == "nodelete"
 			}
-			err := runDeviceSpeedTest(path, cmd.Arg(2), noDelete)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			return
-		}
 
-		// Check if this is a max speed test
-		if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "max" {
-			// Check for no-delete option
-			noDelete := false
-			if cmd.NArg() >= 3 {
-				deleteFlag := strings.ToLower(cmd.Arg(2))
-				noDelete = deleteFlag == "no" || deleteFlag == "nodel" || deleteFlag == "nodelete"
+			// Handle "max" as size parameter
+			if strings.ToLower(sizeParam) == "max" || strings.ToLower(sizeParam) == "m" {
+				sizeParam = "10240" // 10GB
 			}
-			err := runDeviceSpeedTest(path, "10240", noDelete) // Maximum size: 10GB
+
+			err := runDeviceSpeedTest(path, sizeParam, noDelete)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
@@ -215,19 +194,26 @@ func main() {
 
 		// Regular device info
 		fullScan := cmd.NArg() > 1 && (strings.ToLower(cmd.Arg(1)) == "info" || strings.ToLower(cmd.Arg(1)) == "i")
+		shortFormat := cmd.NArg() > 1 && (strings.ToLower(cmd.Arg(1)) == "short" || strings.ToLower(cmd.Arg(1)) == "s")
+
 		info, err := getDeviceInfo(path, fullScan)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Print(info)
+
+		if shortFormat {
+			fmt.Print(info.StringShort())
+		} else {
+			fmt.Print(info)
+		}
 	}
 
 	runFolderCommand := func(cmd *flag.FlagSet) {
 		cmd.Parse(add_args)
 		if cmd.NArg() < 1 {
 			fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
-			fmt.Fprintf(os.Stderr, "Usage: %s folder <path> [info|i] or %s folder <path> speed <size_mb> [no|nodel|nodelete] or %s folder <path> max [no|nodel|nodelete]\n", os.Args[0], os.Args[0], os.Args[0])
+			fmt.Fprintf(os.Stderr, "Usage: %s folder <path> [info|i] or %s folder <path> speed <size_mb|max> [no|nodel|nodelete]\n", os.Args[0], os.Args[0])
 			os.Exit(1)
 		}
 
@@ -235,29 +221,20 @@ func main() {
 
 		// Check if this is a speed test
 		if cmd.NArg() >= 3 && strings.ToLower(cmd.Arg(1)) == "speed" {
+			sizeParam := cmd.Arg(2)
 			// Check for no-delete option
 			noDelete := false
 			if cmd.NArg() >= 4 {
 				deleteFlag := strings.ToLower(cmd.Arg(3))
 				noDelete = deleteFlag == "no" || deleteFlag == "nodel" || deleteFlag == "nodelete"
 			}
-			err := runFolderSpeedTest(path, cmd.Arg(2), noDelete)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			return
-		}
 
-		// Check if this is a max speed test
-		if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "max" {
-			// Check for no-delete option
-			noDelete := false
-			if cmd.NArg() >= 3 {
-				deleteFlag := strings.ToLower(cmd.Arg(2))
-				noDelete = deleteFlag == "no" || deleteFlag == "nodel" || deleteFlag == "nodelete"
+			// Handle "max" as size parameter
+			if strings.ToLower(sizeParam) == "max" {
+				sizeParam = "10240" // 10GB
 			}
-			err := runFolderSpeedTest(path, "10240", noDelete) // Maximum size: 10GB
+
+			err := runFolderSpeedTest(path, sizeParam, noDelete)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)

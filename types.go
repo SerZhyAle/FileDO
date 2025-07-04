@@ -22,11 +22,27 @@ type DeviceInfo struct {
 	DiskSerialNumber string
 	DiskInterface    string
 	AccessErrors     bool
+	CanRead          bool
+	CanWrite         bool
 }
 
 func (di DeviceInfo) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("Information for device: %s\n", di.Path))
+
+	// Access status
+	var accessStatus []string
+	if di.CanRead {
+		accessStatus = append(accessStatus, "Readable")
+	}
+	if di.CanWrite {
+		accessStatus = append(accessStatus, "Writable")
+	}
+	if len(accessStatus) == 0 {
+		accessStatus = append(accessStatus, "Not accessible")
+	}
+	b.WriteString(fmt.Sprintf("  Access:        %s\n", strings.Join(accessStatus, ", ")))
+
 	b.WriteString(fmt.Sprintf("  Volume Name:   %s\n", di.VolumeName))
 	b.WriteString(fmt.Sprintf("  Serial Number: %d\n", di.SerialNumber))
 	b.WriteString(fmt.Sprintf("  File System:   %s\n", di.FileSystem))
@@ -58,6 +74,22 @@ func (di DeviceInfo) String() string {
 	return b.String()
 }
 
+func (di DeviceInfo) StringShort() string {
+	var b strings.Builder
+
+	// Format volume name and file system
+	b.WriteString(fmt.Sprintf("Volume:   %s (%s)\n", di.VolumeName, di.FileSystem))
+
+	// Format total size without full bytes, free space, and usage percentage
+	totalFormatted := formatBytesShort(di.TotalBytes)
+	freeFormatted := formatBytesShort(di.FreeBytes)
+	usage := float64(di.TotalBytes-di.FreeBytes) * 100 / float64(di.TotalBytes)
+
+	b.WriteString(fmt.Sprintf("Total:  %s, Free:  %s (Usage: %.1f%%)", totalFormatted, freeFormatted, usage))
+
+	return b.String()
+}
+
 type FolderInfo struct {
 	Path         string
 	Size         uint64
@@ -68,11 +100,27 @@ type FolderInfo struct {
 	Mode         fs.FileMode
 	FullScan     bool
 	AccessErrors bool
+	CanRead      bool
+	CanWrite     bool
 }
 
 func (fi FolderInfo) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("Information for folder: %s\n", fi.Path))
+
+	// Access status
+	var accessStatus []string
+	if fi.CanRead {
+		accessStatus = append(accessStatus, "Readable")
+	}
+	if fi.CanWrite {
+		accessStatus = append(accessStatus, "Writable")
+	}
+	if len(accessStatus) == 0 {
+		accessStatus = append(accessStatus, "Not accessible")
+	}
+	b.WriteString(fmt.Sprintf("  Access:     %s\n", strings.Join(accessStatus, ", ")))
+
 	b.WriteString(fmt.Sprintf("  Mode:       %s\n", formatMode(fi.Mode)))
 	if !fi.CreationTime.IsZero() {
 		b.WriteString(fmt.Sprintf("  Created:    %s\n", fi.CreationTime.Format("2006-01-02 15:04:05")))
@@ -234,37 +282,36 @@ func formatMode(m fs.FileMode) string {
 		desc = append(desc, "regular file")
 	}
 
-	// Owner permissions
-	if m&0400 != 0 {
-		permissions = append(permissions, "owner can read")
-	}
-	if m&0200 != 0 {
-		permissions = append(permissions, "owner can write")
-	}
-	if m&0100 != 0 {
-		permissions = append(permissions, "owner can execute")
-	}
-
-	// Group permissions
+	// Group permissions - simplified format
+	var groupPerms []string
 	if m&0040 != 0 {
-		permissions = append(permissions, "group can read")
+		groupPerms = append(groupPerms, "read")
 	}
 	if m&0020 != 0 {
-		permissions = append(permissions, "group can write")
+		groupPerms = append(groupPerms, "write")
 	}
 	if m&0010 != 0 {
-		permissions = append(permissions, "group can execute")
+		groupPerms = append(groupPerms, "execute")
 	}
 
-	// Other permissions
+	if len(groupPerms) > 0 {
+		permissions = append(permissions, "group can "+strings.Join(groupPerms, ", "))
+	}
+
+	// Other permissions - simplified format
+	var otherPerms []string
 	if m&0004 != 0 {
-		permissions = append(permissions, "others can read")
+		otherPerms = append(otherPerms, "read")
 	}
 	if m&0002 != 0 {
-		permissions = append(permissions, "others can write")
+		otherPerms = append(otherPerms, "write")
 	}
 	if m&0001 != 0 {
-		permissions = append(permissions, "others can execute")
+		otherPerms = append(otherPerms, "execute")
+	}
+
+	if len(otherPerms) > 0 {
+		permissions = append(permissions, "others can "+strings.Join(otherPerms, ", "))
 	}
 
 	// Special permissions
@@ -299,4 +346,18 @@ func formatBytes(b uint64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.2f %ciB (%d bytes)", float64(b)/float64(div), "KMGTPE"[exp], b)
+}
+
+// formatBytesShort formats bytes without showing the full byte count in parentheses
+func formatBytesShort(b uint64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }

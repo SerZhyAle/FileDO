@@ -72,9 +72,27 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 
 	creationTime := getCreationTime(stat)
 
+	// Test read access
+	canRead := false
+	_, readErr := os.ReadDir(path)
+	if readErr == nil {
+		canRead = true
+	}
+
+	// Test write access
+	canWrite := false
+	testFileName := fmt.Sprintf("__filedo_access_test_%d.tmp", time.Now().UnixNano())
+	testFilePath := filepath.Join(path, testFileName)
+	if testFile, writeErr := os.Create(testFilePath); writeErr == nil {
+		testFile.Close()
+		os.Remove(testFilePath) // Clean up test file
+		canWrite = true
+	}
+
 	return FolderInfo{
 		Path: path, Size: size, FileCount: fileCount, FolderCount: folderCount, ModTime: stat.ModTime(),
 		CreationTime: creationTime, Mode: stat.Mode(), FullScan: fullScan, AccessErrors: accessErrors,
+		CanRead: canRead, CanWrite: canWrite,
 	}, nil
 }
 
@@ -82,11 +100,13 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete bool) error {
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {
-		return fmt.Errorf("invalid size '%s': %w", sizeMBStr, err)
+		sizeMB = 1 // Default to 1 MB if parsing fails
+		//return fmt.Errorf("invalid size '%s': %w", sizeMBStr, err)
 	}
 
 	if sizeMB < 1 || sizeMB > 10240 { // Limit to 10GB
-		return fmt.Errorf("size must be between 1 and 10240 MB")
+		sizeMB = 1 // Default to 1 MB if out of range
+		//return fmt.Errorf("size must be between 1 and 10240 MB")
 	}
 
 	fmt.Printf("Folder Speed Test\n")
@@ -137,37 +157,69 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete bool) error {
 	createDuration := time.Since(startCreate)
 	fmt.Printf("✓ Test file created in %v\n\n", createDuration)
 
-	// Step 3: Copy file to folder
+	// Step 3: Upload Speed Test - Copy file to folder
 	folderFileName := filepath.Join(folderPath, localFileName)
-	fmt.Printf("Step 3: Copying file to folder...\n")
+	fmt.Printf("Step 3: Upload Speed Test - Copying file to folder...\n")
 	fmt.Printf("Source: %s\n", localFilePath)
 	fmt.Printf("Target: %s\n", folderFileName)
 
-	startCopy := time.Now()
-	bytesCopied, err := copyFileWithProgress(localFilePath, folderFileName)
+	startUpload := time.Now()
+	bytesUploaded, err := copyFileWithProgress(localFilePath, folderFileName)
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFilePath)
 		return fmt.Errorf("failed to copy file to folder: %w", err)
 	}
-	copyDuration := time.Since(startCopy)
+	uploadDuration := time.Since(startUpload)
 
-	// Calculate speed
-	speedMBps := float64(bytesCopied) / (1024 * 1024) / copyDuration.Seconds()
-	speedMbps := speedMBps * 8 // Convert to megabits per second
+	// Calculate upload speed
+	uploadSpeedMBps := float64(bytesUploaded) / (1024 * 1024) / uploadDuration.Seconds()
+	uploadSpeedMbps := uploadSpeedMBps * 8 // Convert to megabits per second
 
-	fmt.Printf("\n✓ File copied successfully\n")
-	fmt.Printf("Transfer completed in %v\n", copyDuration)
-	fmt.Printf("Speed: %.2f MB/s (%.2f Mbps)\n\n", speedMBps, speedMbps)
+	fmt.Printf("\n✓ File uploaded successfully\n")
+	fmt.Printf("Upload completed in %v\n", uploadDuration)
+	fmt.Printf("Upload Speed: %.2f MB/s (%.2f Mbps)\n\n", uploadSpeedMBps, uploadSpeedMbps)
 
-	// Step 4: Clean up files
-	fmt.Printf("Step 4: Cleaning up test files...\n")
+	// Step 4: Download Speed Test - Copy file back from folder
+	downloadFileName := fmt.Sprintf("speedtest_download_%d_%d.txt", sizeMB, time.Now().Unix())
+	downloadFilePath := filepath.Join(currentDir, downloadFileName)
+	fmt.Printf("Step 4: Download Speed Test - Copying file from folder...\n")
+	fmt.Printf("Source: %s\n", folderFileName)
+	fmt.Printf("Target: %s\n", downloadFilePath)
 
-	// Remove local file
+	startDownload := time.Now()
+	bytesDownloaded, err := copyFileWithProgress(folderFileName, downloadFilePath)
+	if err != nil {
+		// Clean up files before returning error
+		os.Remove(localFilePath)
+		os.Remove(folderFileName)
+		return fmt.Errorf("failed to copy file from folder: %w", err)
+	}
+	downloadDuration := time.Since(startDownload)
+
+	// Calculate download speed
+	downloadSpeedMBps := float64(bytesDownloaded) / (1024 * 1024) / downloadDuration.Seconds()
+	downloadSpeedMbps := downloadSpeedMBps * 8 // Convert to megabits per second
+
+	fmt.Printf("\n✓ File downloaded successfully\n")
+	fmt.Printf("Download completed in %v\n", downloadDuration)
+	fmt.Printf("Download Speed: %.2f MB/s (%.2f Mbps)\n\n", downloadSpeedMBps, downloadSpeedMbps)
+
+	// Step 5: Clean up files
+	fmt.Printf("Step 5: Cleaning up test files...\n")
+
+	// Remove original local file
 	if err := os.Remove(localFilePath); err != nil {
-		fmt.Printf("⚠ Warning: Could not remove local file: %v\n", err)
+		fmt.Printf("⚠ Warning: Could not remove original local file: %v\n", err)
 	} else {
-		fmt.Printf("✓ Local test file removed\n")
+		fmt.Printf("✓ Original local test file removed\n")
+	}
+
+	// Remove downloaded file
+	if err := os.Remove(downloadFilePath); err != nil {
+		fmt.Printf("⚠ Warning: Could not remove downloaded file: %v\n", err)
+	} else {
+		fmt.Printf("✓ Downloaded test file removed\n")
 	}
 
 	// Remove folder file (unless noDelete flag is set)
@@ -183,8 +235,8 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete bool) error {
 
 	fmt.Printf("\nSpeed Test Summary:\n")
 	fmt.Printf("File size: %d MB\n", sizeMB)
-	fmt.Printf("Transfer time: %v\n", copyDuration)
-	fmt.Printf("Average speed: %.2f MB/s (%.2f Mbps)\n", speedMBps, speedMbps)
+	fmt.Printf("Upload time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", uploadDuration, uploadSpeedMBps, uploadSpeedMbps)
+	fmt.Printf("Download time: %v, Speed: %.2f MB/s (%.2f Mbps)\n", downloadDuration, downloadSpeedMBps, downloadSpeedMbps)
 
 	return nil
 }
