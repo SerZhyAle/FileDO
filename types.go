@@ -17,6 +17,7 @@ type DeviceInfo struct {
 	AvailableBytes uint64
 	FileCount      int64
 	FolderCount    int64
+	FullScan       bool
 }
 
 func (di DeviceInfo) String() string {
@@ -27,7 +28,11 @@ func (di DeviceInfo) String() string {
 	b.WriteString(fmt.Sprintf("  File System:   %s\n", di.FileSystem))
 	b.WriteString(fmt.Sprintf("  Total Size:    %s\n", formatBytes(di.TotalBytes)))
 	b.WriteString(fmt.Sprintf("  Free Space:    %s\n", formatBytes(di.FreeBytes)))
-	b.WriteString(fmt.Sprintf("  Contains:      %d files, %d folders\n", di.FileCount, di.FolderCount))
+	containsLabel := "Contains:"
+	if di.FullScan {
+		containsLabel = "Full Contains:"
+	}
+	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, di.FileCount, di.FolderCount))
 	b.WriteString(fmt.Sprintf("  Usage:         %.2f%%\n", float64(di.TotalBytes-di.FreeBytes)*100/float64(di.TotalBytes)))
 	return b.String()
 }
@@ -40,6 +45,7 @@ type FolderInfo struct {
 	ModTime      time.Time
 	CreationTime time.Time
 	Mode         fs.FileMode
+	FullScan     bool
 }
 
 func (fi FolderInfo) String() string {
@@ -51,7 +57,11 @@ func (fi FolderInfo) String() string {
 	}
 	b.WriteString(fmt.Sprintf("  Modified:   %s\n", fi.ModTime.Format("2006-01-02 15:04:05")))
 	b.WriteString(fmt.Sprintf("  Total Size: %s\n", formatBytes(fi.Size)))
-	b.WriteString(fmt.Sprintf("  Contains:   %d files, %d folders\n", fi.FileCount, fi.FolderCount))
+	containsLabel := "Contains:"
+	if fi.FullScan {
+		containsLabel = "Full Contains:"
+	}
+	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, fi.FileCount, fi.FolderCount))
 	return b.String()
 }
 
@@ -63,7 +73,7 @@ func formatMode(m fs.FileMode) string {
 		desc = append(desc, "file")
 	}
 
-	if m&0200 != 0 { // User write permission
+	if m&0200 != 0 {
 		desc = append(desc, "writable")
 	} else {
 		desc = append(desc, "read-only")

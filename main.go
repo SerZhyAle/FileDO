@@ -23,7 +23,7 @@ Commands:
   file <path>          Show information about a file.
 
 Flags:
-  /?    Show this help message.`, version)
+  ?    Show this help message.`, version)
 
 func main() {
 	if len(os.Args) < 2 || os.Args[1] == "/?" || os.Args[1] == "?" || strings.ToLower(os.Args[1]) == "help" {
@@ -56,10 +56,10 @@ func main() {
 	case "device", "dev", "disk", "d":
 		deviceCmd := flag.NewFlagSet("device", flag.ExitOnError)
 		runCommand(deviceCmd, func(p string, f bool) (fmt.Stringer, error) { return getDeviceInfo(p, f) })
-	case "folder", "fold", "dir", "fld":
+	case "folder", "fold", "dir", "fld", "f":
 		folderCmd := flag.NewFlagSet("folder", flag.ExitOnError)
 		runCommand(folderCmd, func(p string, f bool) (fmt.Stringer, error) { return getFolderInfo(p, f) })
-	case "file", "f":
+	//case "file" or the direct filename
 
 	default:
 		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n\n", os.Args[1])

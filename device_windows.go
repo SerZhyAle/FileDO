@@ -74,6 +74,6 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 	return DeviceInfo{
 		Path: path, VolumeName: windows.UTF16ToString(volName[:]), SerialNumber: serialNumber, FileSystem: windows.UTF16ToString(fsName[:]),
 		TotalBytes: totalBytes, FreeBytes: totalFreeBytes, AvailableBytes: freeBytesAvailable,
-		FileCount: fileCount, FolderCount: folderCount,
+		FileCount: fileCount, FolderCount: folderCount, FullScan: fullScan,
 	}, nil
 }

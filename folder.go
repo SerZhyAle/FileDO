@@ -64,6 +64,6 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 
 	return FolderInfo{
 		Path: path, Size: size, FileCount: fileCount, FolderCount: folderCount, ModTime: stat.ModTime(),
-		CreationTime: creationTime, Mode: stat.Mode(),
+		CreationTime: creationTime, Mode: stat.Mode(), FullScan: fullScan,
 	}, nil
 }
