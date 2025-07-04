@@ -1,3 +1,4 @@
+// sza250407
 package main
 
 import (
@@ -8,7 +9,7 @@ import (
 	"time"
 )
 
-const version = "2507041230"
+const version = "2507041500"
 
 var usage = fmt.Sprintf(`FileDO %s sza@ukr.net
 
@@ -26,16 +27,29 @@ Flags:
   ?    Show this help message.`, version)
 
 func main() {
-	if len(os.Args) < 2 || os.Args[1] == "/?" || os.Args[1] == "?" || strings.ToLower(os.Args[1]) == "help" {
+	args := os.Args
+
+	if len(args) < 2 || args[1] == "/?" || args[1] == "?" || strings.ToLower(args[1]) == "help" {
 		fmt.Println(usage)
 		return
 	}
 
-	command := strings.ToLower(os.Args[1])
-	args := os.Args[2:]
+	var command string
+	var add_args []string
+
+	firstArg := os.Args[1]
+
+	// For drive C can be used as "C:" or "C:\"
+	if len(firstArg) > 1  && len(firstArg) < 4 && string([]rune(firstArg)[1]) == ":" {
+		command = "device"
+		add_args = args[1:]
+	} else {
+		command = strings.ToLower(os.Args[1])
+		add_args = args[2:]
+	}
 
 	runCommand := func(cmd *flag.FlagSet, getInfoFunc func(string, bool) (fmt.Stringer, error)) {
-		cmd.Parse(args)
+		cmd.Parse(add_args)
 		if cmd.NArg() < 1 {
 			fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
 			fmt.Fprintf(os.Stderr, "Usage: %s %s <path> [full]\n", os.Args[0], cmd.Name())

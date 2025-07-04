@@ -8,16 +8,20 @@ import (
 )
 
 type DeviceInfo struct {
-	Path           string
-	VolumeName     string
-	SerialNumber   uint32
-	FileSystem     string
-	TotalBytes     uint64
-	FreeBytes      uint64
-	AvailableBytes uint64
-	FileCount      int64
-	FolderCount    int64
-	FullScan       bool
+	Path             string
+	VolumeName       string
+	SerialNumber     uint32
+	FileSystem       string
+	TotalBytes       uint64
+	FreeBytes        uint64
+	AvailableBytes   uint64
+	FileCount        int64
+	FolderCount      int64
+	FullScan         bool
+	DiskModel        string
+	DiskSerialNumber string
+	DiskInterface    string
+	AccessErrors     bool
 }
 
 func (di DeviceInfo) String() string {
@@ -26,6 +30,19 @@ func (di DeviceInfo) String() string {
 	b.WriteString(fmt.Sprintf("  Volume Name:   %s\n", di.VolumeName))
 	b.WriteString(fmt.Sprintf("  Serial Number: %d\n", di.SerialNumber))
 	b.WriteString(fmt.Sprintf("  File System:   %s\n", di.FileSystem))
+	if di.FullScan && (di.DiskModel != "" || di.DiskSerialNumber != "" || di.DiskInterface != "") {
+		b.WriteString("  --- Physical Disk Info ---\n")
+		if di.DiskModel != "" {
+			b.WriteString(fmt.Sprintf("  Model:         %s\n", di.DiskModel))
+		}
+		if di.DiskSerialNumber != "" {
+			b.WriteString(fmt.Sprintf("  Serial Number: %s\n", di.DiskSerialNumber))
+		}
+		if di.DiskInterface != "" {
+			b.WriteString(fmt.Sprintf("  Interface:     %s\n", di.DiskInterface))
+		}
+		b.WriteString("  --------------------------\n")
+	}
 	b.WriteString(fmt.Sprintf("  Total Size:    %s\n", formatBytes(di.TotalBytes)))
 	b.WriteString(fmt.Sprintf("  Free Space:    %s\n", formatBytes(di.FreeBytes)))
 	containsLabel := "Contains:"
@@ -34,6 +51,10 @@ func (di DeviceInfo) String() string {
 	}
 	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, di.FileCount, di.FolderCount))
 	b.WriteString(fmt.Sprintf("  Usage:         %.2f%%\n", float64(di.TotalBytes-di.FreeBytes)*100/float64(di.TotalBytes)))
+	if di.AccessErrors {
+		b.WriteString("\nWarning: Some information could not be gathered due to access restrictions.\n")
+		b.WriteString("         Run as administrator for a complete scan.\n")
+	}
 	return b.String()
 }
 
@@ -46,6 +67,7 @@ type FolderInfo struct {
 	CreationTime time.Time
 	Mode         fs.FileMode
 	FullScan     bool
+	AccessErrors bool
 }
 
 func (fi FolderInfo) String() string {
@@ -62,6 +84,10 @@ func (fi FolderInfo) String() string {
 		containsLabel = "Full Contains:"
 	}
 	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, fi.FileCount, fi.FolderCount))
+	if fi.AccessErrors {
+		b.WriteString("\nWarning: Some information could not be gathered due to access restrictions.\n")
+		b.WriteString("         Run as administrator for a complete scan.\n")
+	}
 	return b.String()
 }
 
