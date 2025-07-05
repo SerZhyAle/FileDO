@@ -767,24 +767,21 @@ func (dt *DeviceTester) CreateTestFile(fileName string, fileSize int64) (string,
 }
 
 func (dt *DeviceTester) VerifyTestFile(filePath string) error {
-	// For device files, we check if the file can be opened and read
-	// since they use random content, not the header line
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("could not open file: %v", err)
 	}
 	defer file.Close()
 
-	// Read first line to ensure file is readable
 	scanner := bufio.NewScanner(file)
-	if !scanner.Scan() {
-		return fmt.Errorf("file appears to be empty or corrupted")
+	var firstLine string
+	if scanner.Scan() {
+		firstLine = scanner.Text()
 	}
 
-	firstLine := scanner.Text()
-	// Device test files have format "=== BLOCK 000001 === START ==="
-	if !strings.Contains(firstLine, "=== BLOCK") || !strings.Contains(firstLine, "START ===") {
-		return fmt.Errorf("file corruption detected - invalid file format")
+	expectedLine := "FILL_TEST_HEADER_LINE"
+	if firstLine != expectedLine {
+		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'", expectedLine, firstLine)
 	}
 
 	return nil

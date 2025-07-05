@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const version = "2507050400"
+const version = "2507050402"
 
 type HistoryEntry struct {
 	Timestamp  time.Time              `json:"timestamp"`
@@ -123,45 +123,184 @@ func saveToHistory(entry HistoryEntry) error {
 	return os.WriteFile(historyFile, data, 0644)
 }
 
-var usage = fmt.Sprintf(`FileDO %s sza@ukr.net
-Processes files on devices/folders/networks.
-Usage:
-  filedo.exe <command> [arguments]
+var usage = fmt.Sprintf(`
+═══════════════════════════════════════════════════════════════════════════════
+                            FileDO v%s
+                    Advanced File & Storage Operations Tool
+                           Created by sza@ukr.net
+═══════════════════════════════════════════════════════════════════════════════
 
-Commands:
-  device <path> [info|i|short|s] Show information about a disk volume. Use 'short' for concise output.
-  device <path> speed <size_mb|max> [no|nodel|nodelete] [short|s] Test device write speed. Use 'max' for 10GB test.
-  device <path> fill <size_mb> [del] Fill device with test files of specified size until full. Use with 'del' for secure wiping of free space to prevent data recovery.
-  device <path> <cln|clean|c> Delete all test files (FILL_*.tmp and speedtest_*.txt) from device.
-  device <path> test [del|delete|d] Test device for fake capacity by writing 100 files (1%% each). Use 'del' to auto-delete files after successful test.
-  
-  folder <path> [info|i|short|s] Show information about a folder and its size. Use 'short' for concise output.
-  folder <path> speed <size_mb|max> [no|nodel|nodelete] [short|s] Test folder write speed. Use 'max' for 10GB test.
-  folder <path> fill <size_mb> [del] Fill folder with test files of specified size until full. Use with 'del' for secure wiping of free space to prevent data recovery.
-  folder <path> <cln|clean|c> Delete all test files (FILL_*.tmp and speedtest_*.txt) from folder.
-  folder <path> test [del|delete|d] Test folder for fake capacity by writing 100 files (1%% each). Use 'del' to auto-delete files after successful test.
-  
-  file <path> [info|i|short|s] Show information about a file. Use 'short' for concise output.
-  
-  network <path> [info|i] Show information about a network path.
-  network <path> speed <size_mb|max> [no|nodel|nodelete] [short|s] Test network speed. Use 'max' for 10GB test.
-  network <path> fill <size_mb> [del] Fill network path with test files of specified size until full. Use with 'del' for secure wiping of free space to prevent data recovery.
-  network <path> <cln|clean|c> Delete all test files (FILL_*.tmp and speedtest_*.txt) from network path.
-  network <path> test [del|delete|d] Test network path for fake capacity by writing 100 files (1%% each). Use 'del' to auto-delete files after successful test.
-  
-  from <filepath> Execute commands from file (one command per line). Empty lines and lines starting with # are ignored.
-  hist Show last 10 history entries in user-friendly format.
+OVERVIEW:
+  FileDO is a comprehensive tool for testing, analyzing, and managing files on
+  devices, folders, and network paths. It specializes in storage capacity
+  verification, performance testing, and secure data wiping.
 
-Note: Use no|nodel|nodelete to keep the test file on the destination.
-Note: Use short|s with speed tests to show only final upload/download results.
-Note: Fill creates files named FILL_#####_ddHHmmss.tmp until available space is used.
-Note: Use cln|clean|c to delete all test files (FILL_*.tmp and speedtest_*.txt) from the specified location.
-Note: Use del with fill to automatically delete all created files after successful completion.
-Security: Use 'fill <size> del' to securely overwrite free space and prevent recovery of deleted files.
-Example: filedo.exe device C: fill 1000 del
+BASIC USAGE:
+  filedo.exe <target> [operation] [options]
+  filedo.exe <command> <target> [operation] [options]
 
-Flags:
-  ?    Show this help message.`, version)
+═══════════════════════════════════════════════════════════════════════════════
+DEVICE OPERATIONS (Hard drives, USB drives, SD cards)
+═══════════════════════════════════════════════════════════════════════════════
+
+Information & Analysis:
+  filedo.exe C:                    → Show detailed device information
+  filedo.exe device D: info        → Show detailed device information  
+  filedo.exe device E: short       → Show brief device summary
+
+Performance Testing:
+  filedo.exe C: speed 100          → Test write speed with 100MB file
+  filedo.exe device D: speed max   → Test write speed with 10GB file
+  filedo.exe device E: speed 500 short → Quick speed test (results only)
+  filedo.exe device F: speed 1000 nodel → Test but keep the test file
+
+Capacity & Integrity Testing:
+  filedo.exe C: test               → Test for fake capacity (100 files, 1%% each)
+  filedo.exe device D: test del    → Test capacity and auto-delete files
+  
+Space Management:
+  filedo.exe C: fill 500           → Fill device with 500MB files until full
+  filedo.exe device D: fill 1000 del → Fill and auto-delete (secure wipe)
+  filedo.exe device E: clean       → Delete all test files (FILL_*, speedtest_*)
+
+═══════════════════════════════════════════════════════════════════════════════
+FOLDER OPERATIONS (Local directories)
+═══════════════════════════════════════════════════════════════════════════════
+
+Information & Analysis:
+  filedo.exe .                     → Show current folder information
+  filedo.exe C:\Temp info          → Show detailed folder information
+  filedo.exe folder D:\Data short  → Show brief folder summary
+
+Performance Testing:
+  filedo.exe C:\Temp speed 100     → Test folder write speed with 100MB
+  filedo.exe folder D:\Data speed max → Test with 10GB file
+  filedo.exe folder . speed 200 short → Quick test (results only)
+
+Capacity Testing:
+  filedo.exe C:\Temp test          → Test folder capacity (100 files)
+  filedo.exe folder D:\Data test del → Test and auto-delete files
+
+Space Management:
+  filedo.exe C:\Temp fill 1000     → Fill folder with test files
+  filedo.exe folder D:\Data fill 500 del → Fill and secure delete
+  filedo.exe folder C:\Temp clean  → Clean all test files
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE OPERATIONS (Individual files)
+═══════════════════════════════════════════════════════════════════════════════
+
+File Analysis:
+  filedo.exe readme.txt            → Show detailed file information
+  filedo.exe file data.zip info    → Show detailed file information
+  filedo.exe file document.pdf short → Show brief file summary
+
+═══════════════════════════════════════════════════════════════════════════════
+NETWORK OPERATIONS (SMB shares, network drives)
+═══════════════════════════════════════════════════════════════════════════════
+
+Information & Analysis:
+  filedo.exe \\server\share        → Show network path information
+  filedo.exe network \\pc\folder info → Detailed network info
+
+Performance Testing:
+  filedo.exe \\server\share speed 100 → Test network speed with 100MB
+  filedo.exe network \\pc\data speed max → Test with 10GB transfer
+  filedo.exe network \\server\temp speed 500 short → Quick network test
+
+Capacity Testing:
+  filedo.exe \\server\share test   → Test network storage capacity
+  filedo.exe network \\pc\backup test del → Test and auto-cleanup
+
+Space Management:
+  filedo.exe \\server\share fill 1000 → Fill network storage
+  filedo.exe network \\pc\temp clean → Clean test files from network
+
+═══════════════════════════════════════════════════════════════════════════════
+BATCH OPERATIONS & HISTORY
+═══════════════════════════════════════════════════════════════════════════════
+
+Batch Processing:
+  filedo.exe from commands.txt     → Execute commands from file
+  filedo.exe batch script.lst      → Same as 'from' command
+  
+History & Monitoring:
+  filedo.exe hist                  → Show last 10 operations
+  filedo.exe history               → Show command history
+
+═══════════════════════════════════════════════════════════════════════════════
+COMMAND OPTIONS & MODIFIERS
+═══════════════════════════════════════════════════════════════════════════════
+
+Output Control:
+  short, s        → Show brief/summary output only
+  info, i         → Show detailed information (default)
+
+File Management:
+  del, delete, d  → Auto-delete test files after successful operation
+  nodel, nodelete → Keep test files on target (don't delete)
+  clean, cln, c   → Delete all existing test files
+
+Size Specifications:
+  <number>        → Size in megabytes (e.g., 100, 500, 1000)
+  max             → Use maximum size (10GB for speed tests)
+
+═══════════════════════════════════════════════════════════════════════════════
+PRACTICAL EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+Quick Device Check:
+  filedo.exe D: short              → Fast overview of drive D:
+
+USB Drive Verification:
+  filedo.exe E: test del           → Check if USB is fake, auto-cleanup
+
+Network Speed Test:
+  filedo.exe \\server\backup speed max short → Max speed test, brief results
+
+Secure Space Wiping:
+  filedo.exe C: fill 5000 del      → Fill 5GB then secure delete (data recovery prevention)
+
+Batch Testing Multiple Locations:
+  Create file 'test_all.txt' with:
+    # Test script for multiple devices
+    device C: info
+    device D: test del
+    folder C:\Temp speed 100
+    network \\server\share info
+  
+  Run: filedo.exe from test_all.txt
+
+═══════════════════════════════════════════════════════════════════════════════
+IMPORTANT NOTES
+═══════════════════════════════════════════════════════════════════════════════
+
+• Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
+  total capacity, to detect counterfeit storage devices that report false sizes.
+
+• Secure Wiping: Use 'fill <size> del' to overwrite free space and prevent
+  recovery of previously deleted files.
+
+• Test Files: Operations create files named FILL_#####_ddHHmmss.tmp and
+  speedtest_*.txt. Use 'clean' to remove them.
+
+• Batch Files: Commands in batch files support # comments and empty lines.
+  Each line should contain one complete filedo command.
+
+• Path Detection: FileDO automatically detects path types:
+  - C:, D:, etc. → Device operations
+  - \\server\share → Network operations  
+  - C:\folder, ./dir → Folder operations
+  - file.txt → File operations
+
+• History: All operations are logged. Use 'hist' flag with any command to
+  enable detailed history logging: filedo.exe C: info hist
+
+Help & Support:
+  filedo.exe ?                     → Show this help
+  filedo.exe help                  → Show this help
+
+═══════════════════════════════════════════════════════════════════════════════`, version)
 
 var list_of_flags_for_device = []string{"device", "dev", "disk", "d"}
 var list_of_flags_for_folder = []string{"folder", "fold", "dir", "fld"}
@@ -181,20 +320,20 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func executeFromFile(filePath string, historyLogger *HistoryLogger) {
+func executeFromFile(filePath string, historyLogger *HistoryLogger) error {
 	historyLogger.SetCommand("from", filePath, "batch")
 
 	file, err := os.Open(filePath)
 	if err != nil {
 		historyLogger.SetError(fmt.Errorf("failed to open file: %w", err))
-		fmt.Fprintf(os.Stderr, "Error: Cannot open file '%s': %v\n", filePath, err)
-		os.Exit(1)
+		return fmt.Errorf("cannot open file '%s': %w", filePath, err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	commandCount := 0
 	successCount := 0
+	var errors []string
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -230,23 +369,33 @@ func executeFromFile(filePath string, historyLogger *HistoryLogger) {
 		}
 
 		if err != nil {
-			fmt.Printf("Command failed with error: %v\n", err)
+			errorMsg := fmt.Sprintf("Command %d failed: %v", commandCount, err)
+			fmt.Printf("%s\n", errorMsg)
+			errors = append(errors, errorMsg)
 		} else {
 			successCount++
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		historyLogger.SetError(fmt.Errorf("error reading file: %w", err))
-		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-		os.Exit(1)
+		readErr := fmt.Errorf("error reading file: %w", err)
+		historyLogger.SetError(readErr)
+		return readErr
 	}
 
 	fmt.Printf("\nBatch execution complete: %d/%d commands succeeded\n", successCount, commandCount)
 
 	historyLogger.SetResult("totalCommands", commandCount)
 	historyLogger.SetResult("successfulCommands", successCount)
+
+	if len(errors) > 0 {
+		batchErr := fmt.Errorf("batch execution failed: %d out of %d commands failed", len(errors), commandCount)
+		historyLogger.SetError(batchErr)
+		return batchErr
+	}
+
 	historyLogger.SetSuccess()
+	return nil
 }
 
 func executeInternalCommand(args []string) error {
@@ -532,7 +681,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: Missing file path for 'from' command\n")
 			os.Exit(1)
 		}
-		executeFromFile(add_args[0], historyLogger)
+		if err := executeFromFile(add_args[0], historyLogger); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case contains(list_of_flags_for_hist, command):
 		ShowLastHistory(10)
 		return

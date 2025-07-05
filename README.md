@@ -1,16 +1,26 @@
-# FileDO - File and Device Operations Tool
+# FileDO - Advanced File & Storage Operations Tool
 
-**FileDO** is a powerful command-line utility for Windows that provides comprehensive file, folder, device, and network operations. It's designed for system administrators, developers, and power users who need reliable tools for storage testing, capacity verification, and performance analysis.
+**FileDO v2507050402** is a comprehensive command-line utility for Windows that provides advanced file, folder, device, and network operations. It specializes in storage capacity verification, performance testing, secure data wiping, and counterfeit storage device detection.
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Device Analysis**: Get detailed information about disk drives, including physical disk properties
-- **Folder Operations**: Comprehensive folder analysis with size calculations and file counting
-- **Network Testing**: Test network storage performance and capacity
-- **Fake Capacity Detection**: Advanced testing to detect counterfeit USB drives and SD cards
-- **Speed Testing**: Measure real-world read/write performance
-- **Fill Operations**: Fill devices/folders with test data for capacity testing
-- **Cross-Platform Ready**: Windows-focused with extensible architecture
+### Core Capabilities
+
+- **Multi-Platform Storage Analysis**: Devices, folders, files, and network paths
+- **Fake Capacity Detection**: Advanced 100-file testing to detect counterfeit USB drives and SD cards
+- **Performance Testing**: Real-world read/write speed measurement with configurable file sizes
+- **Secure Data Wiping**: Fill and delete operations for preventing data recovery
+- **Batch Operations**: Execute multiple commands from script files
+- **Command History**: Comprehensive logging with 1000-entry history
+- **Auto-Detection**: Intelligent path type detection (device/folder/file/network)
+
+### Advanced Features
+
+- **Memory-Optimized**: Streaming file writing for large capacity tests
+- **Unified Architecture**: Single interface for all storage types via `FakeCapacityTester`
+- **Error Handling**: Robust batch execution with detailed error reporting
+- **User-Friendly Help**: Comprehensive 79-line help with practical examples
+- **Verification System**: First-line file content verification for integrity testing
 
 ## 📦 Installation
 
@@ -19,9 +29,13 @@
 A pre-built `filedo.exe` is available in the repository root:
 
 1. **Download directly from GitHub:**
-   - Clone the repository: `git clone https://github.com/yourusername/FileDO.git`
-   - Use the included `filedo.exe` (3.7MB, latest build)
-   
+
+   ```cmd
+   git clone https://github.com/yourusername/FileDO.git
+   cd FileDO
+   # Use the included filedo.exe (latest build v2507050402)
+   ```
+
 2. **Or download just the executable:**
    - Navigate to the repository files on GitHub
    - Download `filedo.exe` directly
@@ -29,7 +43,7 @@ A pre-built `filedo.exe` is available in the repository root:
 
 ### Option 2: Build from Source
 
-```bash
+```cmd
 git clone https://github.com/yourusername/FileDO.git
 cd FileDO
 go build -o filedo.exe
@@ -58,392 +72,325 @@ cd FileDO
 ```
 
 **Or download just the executable:**
+
 1. Go to the repository on GitHub
-2. Download `filedo.exe` (3.7MB)
+2. Download `filedo.exe` (latest build)
 3. Run from any location
-```
 
 ## 📚 Usage Examples
 
-### 1. Test Internal Network Speed and Quality
+### 1. Device Operations (Hard drives, USB drives, SD cards)
 
-Test your internal network storage performance:
+**Basic Information:**
 
-```bash
-# Basic network speed test (100MB)
-filedo.exe network \\fileserver\shared speed 100
-
-# Comprehensive network test with detailed output
-filedo.exe network \\nas\backup speed max
-
-# Test network path for fake capacity issues
-filedo.exe network \\server\storage test
-
-# Get network path information
-filedo.exe network \\fileserver\data info
+```cmd
+filedo.exe C:                    # Show detailed device information
+filedo.exe device D: info        # Show detailed device information  
+filedo.exe device E: short       # Show brief device summary
 ```
 
-**Real-world example:**
-```bash
-C:\> filedo.exe network \\corp-nas\engineering speed 500
+**Performance Testing:**
 
-Network Speed Test
-Target: \\corp-nas\engineering
-Testing with 500 MB file...
-
-Upload Test:
-Writing test file (500 MB)...  ████████████████████ 100%
-Upload completed in 12.3s
-Upload speed: 40.7 MB/s
-
-Download Test: 
-Reading test file (500 MB)...  ████████████████████ 100%
-Download completed in 8.9s
-Download speed: 56.2 MB/s
-
-✅ Network performance test completed successfully
-Average speed: 48.4 MB/s
-Test file deleted automatically
+```cmd
+filedo.exe C: speed 100          # Test write speed with 100MB file
+filedo.exe device D: speed max   # Test write speed with 10GB file
+filedo.exe device E: speed 500 short # Quick speed test (results only)
+filedo.exe device F: speed 1000 nodel # Test but keep the test file
 ```
 
-### 2. Test Hard Drive Speed and Quality
+**Fake Capacity Detection:**
 
-Comprehensive hard drive testing:
-
-```bash
-# Basic drive information
-filedo.exe device C: info
-
-# Speed test with 1GB file
-filedo.exe device D: speed 1024
-
-# Maximum speed test (10GB)
-filedo.exe device D: speed max
-
-# Advanced fake capacity test
-filedo.exe device D: test
-
-# Fill drive to test capacity
-filedo.exe device D: fill 100 del
+```cmd
+filedo.exe C: test               # Test for fake capacity (100 files, 1% each)
+filedo.exe device D: test del    # Test capacity and auto-delete files
 ```
 
-**Real-world example:**
-```bash
-C:\> filedo.exe device D: info
+**Space Management:**
 
-Information for device: D:\
-  Access:        Readable, Writable
-  Volume Name:   Data Drive
-  Serial Number: 1234567890
-  File System:   NTFS
-  --- Physical Disk Info ---
-  Model:         Samsung SSD 980 PRO 1TB
-  Serial Number: S6B2NS0R123456
-  Interface:     NVMe
-  --------------------------
-  Total Size:    931.51 GiB (1000204886016 bytes)
-  Free Space:    456.78 GiB (490234568704 bytes)
-  Full Contains: 15,432 files, 892 folders
-  Usage:         51.02%
-
-C:\> filedo.exe device D: speed 1024
-
-Device Write Speed Test
-Target: D:\
-File size: 1024 MB
-Creating test file... ████████████████████ 100%
-Write completed in 3.2s - Speed: 320.0 MB/s
-
-Read Speed Test
-Reading test file... ████████████████████ 100%  
-Read completed in 2.1s - Speed: 487.6 MB/s
-
-✅ Speed test completed
-Average speed: 403.8 MB/s
-Test file deleted
+```cmd
+filedo.exe C: fill 500           # Fill device with 500MB files until full
+filedo.exe device D: fill 1000 del # Fill and auto-delete (secure wipe)
+filedo.exe device E: clean       # Delete all test files (FILL_*, speedtest_*)
 ```
 
-### 3. Test USB Drive/SD Card for Fake Capacity
+### 2. Folder Operations (Local directories)
 
-Detect counterfeit storage devices:
+**Information & Analysis:**
 
-```bash
-# Quick fake capacity test
-filedo.exe device E: test
-
-# Test with auto-cleanup on success
-filedo.exe device E: test del
-
-# Get detailed device info first
-filedo.exe device E: info
-
-# Manual capacity fill test
-filedo.exe device E: fill 50
+```cmd
+filedo.exe .                     # Show current folder information
+filedo.exe C:\Temp info          # Show detailed folder information
+filedo.exe folder D:\Data short  # Show brief folder summary
 ```
 
-**Real-world example - Genuine Device:**
-```bash
-C:\> filedo.exe device E: test
+**Performance Testing:**
 
-Device Fake Capacity Test
-Target: E:\
-Testing for fake capacity by writing 100 files...
-Available space: 29.54 GB
-Test file size: 295 MB (1% of free space)
-Will create 100 files for capacity test
-
-Creating template file (295 MB)...
-✓ Template file created in 2.1s
-
-Starting capacity test - writing 100 files...
-File   1: 45.2 MB/s - establishing baseline  
-File   2: 44.8 MB/s - establishing baseline
-File   3: 45.1 MB/s - establishing baseline
-Normal speed established: 45.0 MB/s
-File   4: 44.9 MB/s ( 99% of normal)
-File   5: 45.3 MB/s (100% of normal)
-...
-File  98: 44.7 MB/s ( 99% of normal)
-File  99: 45.1 MB/s (100% of normal)  
-File 100: 44.8 MB/s ( 99% of normal)
-
-Capacity Test Phase Complete!
-Files created: 100 out of 100
-Total data written: 28.80 GB
-✅ Capacity test passed - no fake capacity detected
-
-Starting verification phase...
-Verified 100/100 files
-✅ All files verified successfully
-
-============================================================
-FAKE CAPACITY TEST SUMMARY
-============================================================
-Device: E:\
-Reported capacity: 29.54 GB
-Available space: 29.54 GB
-Test file size: 295 MB each
-Files created: 100 out of 100
-Data written: 28.80 GB
-Normal write speed: 45.0 MB/s
-✅ OVERALL RESULT: DEVICE APPEARS GENUINE
-No fake capacity detected. Device seems to have legitimate storage.
+```cmd
+filedo.exe C:\Temp speed 100     # Test folder write speed with 100MB
+filedo.exe folder D:\Data speed max # Test with 10GB file
+filedo.exe folder . speed 200 short # Quick test (results only)
 ```
 
-**Real-world example - Fake Device Detected:**
-```bash
-C:\> filedo.exe device F: test
+**Capacity Testing:**
 
-Device Fake Capacity Test
-Target: F:\
-Testing for fake capacity by writing 100 files...
-Available space: 128.00 GB
-Test file size: 1.28 GB (1% of free space)
-Will create 100 files for capacity test
-
-Starting capacity test - writing 100 files...
-File   1: 42.1 MB/s - establishing baseline
-File   2: 41.8 MB/s - establishing baseline  
-File   3: 42.3 MB/s - establishing baseline
-Normal speed established: 42.1 MB/s
-File   4: 41.9 MB/s ( 99% of normal)
-...
-File  32: 41.7 MB/s ( 99% of normal)
-File  33: 2.1 MB/s ( 5% of normal)
-
-❌ TEST FAILED: Speed dropped to 2.1 MB/s (less than 10% of baseline 42.1 MB/s)
-This indicates potential fake capacity - device may be full or failing.
-Keeping 33 test files for analysis.
-
-============================================================
-FAKE CAPACITY TEST SUMMARY  
-============================================================
-Device: F:\
-Reported capacity: 128.00 GB
-Actual capacity: ~32 GB (test failed at file 33)
-❌ OVERALL RESULT: FAKE CAPACITY DETECTED
-This device appears to be counterfeit with false capacity reporting.
-Real capacity is approximately 32 GB, not the reported 128 GB.
+```cmd
+filedo.exe C:\Temp test          # Test folder capacity (100 files)
+filedo.exe folder D:\Data test del # Test and auto-delete files
 ```
 
-### 4. Secure Free Space Wiping
+### 3. Network Operations (SMB shares, network drives)
 
-Prevent recovery of deleted files by filling free space with test data:
+**Information & Analysis:**
 
-```bash
-# Fill entire free space on C: drive to prevent data recovery
-filedo.exe device C: fill 1000 del
-
-# Fill folder's drive free space 
-filedo.exe folder C:\sensitive fill 500 del
-
-# Fill network share free space
-filedo.exe network \\server\secure fill 1000 del
+```cmd
+filedo.exe \\server\share        # Show network path information
+filedo.exe network \\pc\folder info # Detailed network info
 ```
 
-**Real-world example - Security Wiping:**
-```bash
-C:\> filedo.exe device C: fill 1000 del
+**Performance Testing:**
 
-Device Fill Operation
-Target: C:\
-File size: 1000 MB
-Available space: 15.23 GB
-Maximum files to create: 15
-
-Creating template file (1000 MB)...
-✓ Template file created in 2.8s
-
-Starting fill operation...
-Fill C:\: 13% 2/15 files (  85.2 MB/s) -   2.00 GB
-Fill C:\: 27% 4/15 files (  87.1 MB/s) -   4.00 GB  
-Fill C:\: 40% 6/15 files (  86.8 MB/s) -   6.00 GB
-Fill C:\: 53% 8/15 files (  85.9 MB/s) -   8.00 GB
-Fill C:\: 67% 10/15 files ( 86.4 MB/s) -  10.00 GB
-Fill C:\: 80% 12/15 files ( 86.2 MB/s) -  12.00 GB
-Fill C:\: 93% 14/15 files ( 85.8 MB/s) -  14.00 GB
-Fill C:\: 100% 15/15 files ( 86.1 MB/s) -  14.68 GB
-
-Fill Operation Complete!
-Files created: 15
-Total data written: 14.68 GB
-Total time: 2m52.3s
-Average write speed: 86.1 MB/s
-
-Auto-delete enabled - Deleting all created files...
-Deleted 15/15 files - 14.68 GB freed
-Auto-delete complete: 15 files deleted, 14.68 GB freed
-
-✅ SECURITY OPERATION COMPLETED
-Free space has been overwritten to prevent data recovery.
-All temporary files automatically cleaned up.
+```cmd
+filedo.exe \\server\share speed 100 # Test network speed with 100MB
+filedo.exe network \\pc\data speed max # Test with 10GB transfer
+filedo.exe network \\server\temp speed 500 short # Quick network test
 ```
 
-**Security Benefits:**
-- **Data Recovery Prevention**: Overwrites free space where deleted files might reside
-- **Complete Coverage**: Fills all available free space with random data
-- **Automatic Cleanup**: Auto-deletes test files after completion (with `del` flag)
-- **No Traces Left**: No temporary files remain after operation
-- **Enterprise Ready**: Works on drives, folders, and network shares
+**Capacity Testing:**
+
+```cmd
+filedo.exe \\server\share test   # Test network storage capacity
+filedo.exe network \\pc\backup test del # Test and auto-cleanup
+```
+
+### 4. Batch Operations
+
+**Creating Batch Scripts:**
+
+Create a file `test_all.txt` with:
+
+```text
+# Test script for multiple devices
+device C: info
+device D: test del
+folder C:\Temp speed 100
+network \\server\share info
+```
+
+**Running Batch Scripts:**
+
+```cmd
+filedo.exe from test_all.txt     # Execute commands from file
+filedo.exe batch script.lst      # Same as 'from' command
+```
+
+### 5. History & Monitoring
+
+```cmd
+filedo.exe hist                  # Show last 10 operations
+filedo.exe history               # Show command history
+```
+
+## 🔧 Command Options & Modifiers
+
+### Output Control
+
+- `short`, `s` → Show brief/summary output only
+- `info`, `i` → Show detailed information (default)
+
+### File Management
+
+- `del`, `delete`, `d` → Auto-delete test files after successful operation
+- `nodel`, `nodelete` → Keep test files on target (don't delete)
+- `clean`, `cln`, `c` → Delete all existing test files
+
+### Size Specifications
+
+- `<number>` → Size in megabytes (e.g., 100, 500, 1000)
+- `max` → Use maximum size (10GB for speed tests)
+
+## 🛡️ Security Features
+
+### Secure Data Wiping
+
+FileDO provides secure data wiping capabilities to prevent data recovery:
+
+```cmd
+# Fill device with data then securely delete
+filedo.exe C: fill 5000 del      # Fill 5GB then secure delete
+
+# Clean existing space
+filedo.exe device D: clean       # Remove all test files
+```
 
 **Use Cases:**
+
 - Before disposing of computers or hard drives
-- After deleting sensitive documents from Recycle Bin
-- Preparing systems for resale or transfer
-- Compliance with data destruction policies
-- Forensic counter-measures for sensitive environments
+- After deleting sensitive files
+- Preparing storage devices for resale
+- Compliance with data protection regulations
 
-## 🔧 Command Reference
+## 🔍 Fake Capacity Detection
 
-### Device Commands
-```bash
-filedo.exe device <path> [info|i|short|s]           # Device information
-filedo.exe device <path> speed <size_mb|max>        # Speed test
-filedo.exe device <path> fill <size_mb> [del]       # Fill with test data  
-filedo.exe device <path> <cln|clean|c>              # Clean test files
-filedo.exe device <path> test [del|delete|d]        # Fake capacity test
+### How It Works
+
+FileDO's fake capacity detection creates 100 test files, each representing 1% of the reported storage capacity. This method effectively detects counterfeit storage devices that report false sizes.
+
+**Detection Process:**
+
+1. **Analysis Phase**: Calculate 1% of reported capacity
+2. **Write Phase**: Create 100 files with unique content
+3. **Verification Phase**: Read and verify each file's first line
+4. **Report Phase**: Identify any corruption or write failures
+
+### Common Scenarios
+
+```cmd
+# Test USB drive authenticity
+filedo.exe E: test del           # Check if USB is fake, auto-cleanup
+
+# Test SD card capacity
+filedo.exe F: test               # Check SD card, keep files for manual review
+
+# Network storage verification
+filedo.exe \\server\backup test  # Verify network storage capacity
 ```
 
-### Folder Commands  
-```bash
-filedo.exe folder <path> [info|i|short|s]           # Folder information
-filedo.exe folder <path> speed <size_mb|max>        # Speed test
-filedo.exe folder <path> fill <size_mb> [del]       # Fill with test data
-filedo.exe folder <path> <cln|clean|c>              # Clean test files  
-filedo.exe folder <path> test [del|delete|d]        # Fake capacity test
+## 📋 Practical Examples
+
+### Quick Device Check
+
+```cmd
+filedo.exe D: short              # Fast overview of drive D:
 ```
 
-### Network Commands
-```bash
-filedo.exe network <path> [info|i]                  # Network path info
-filedo.exe network <path> speed <size_mb|max>       # Network speed test
-filedo.exe network <path> fill <size_mb> [del]      # Fill with test data
-filedo.exe network <path> <cln|clean|c>             # Clean test files
-filedo.exe network <path> test [del|delete|d]       # Fake capacity test
+### USB Drive Verification
+
+```cmd
+filedo.exe E: test del           # Check if USB is fake, auto-cleanup
 ```
 
-### File Commands
-```bash
-filedo.exe file <path> [info|i|short|s]             # File information
+### Network Speed Test
+
+```cmd
+filedo.exe \\server\backup speed max short # Max speed test, brief results
 ```
 
-## 🛡️ Safety Features
+### Secure Space Wiping
 
-- **Non-destructive testing**: All tests use temporary files that can be automatically cleaned
-- **Automatic cleanup**: Use `del` flag to auto-delete test files after successful completion
-- **Progress monitoring**: Real-time progress indicators for all operations
-- **Error handling**: Graceful handling of access permissions and disk errors
-- **Verification**: File integrity checking during capacity tests
+```cmd
+filedo.exe C: fill 5000 del      # Fill 5GB then secure delete (data recovery prevention)
+```
 
-## 🎛️ Advanced Options
+### Batch Testing Multiple Locations
 
-### Speed Test Options
-- `max` or `10240`: Use 10GB test file for maximum accuracy
-- `no|nodel|nodelete`: Keep test files after completion
-- `short|s`: Show only final results without progress
+Create file 'test_all.txt' with:
 
-### Fill Options  
-- `del`: Automatically delete created files after successful completion
-- `<cln|clean|c>`: Clean up existing FILL_*.tmp files
+```text
+# Test script for multiple devices
+device C: info
+device D: test del
+folder C:\Temp speed 100
+network \\server\share info
+```
 
-### Test Options
-- `del|delete|d`: Auto-delete test files if test passes
-- Automatic baseline calculation from first 3 files
-- Speed deviation detection (fails if <10% or >1000% of baseline)
-- File integrity verification with custom headers
+Run:
 
-## 🔍 How Fake Capacity Detection Works
+```cmd
+filedo.exe from test_all.txt
+```
 
-FileDO's fake capacity detection uses a sophisticated multi-phase approach:
+## 📖 Important Notes
 
-1. **Baseline Establishment**: First 3 files establish normal write speed
-2. **Continuous Monitoring**: Each subsequent file is monitored for speed anomalies  
-3. **Anomaly Detection**: Test fails if speed drops below 10% or exceeds 1000% of baseline
-4. **Data Verification**: All files are verified for data integrity
-5. **Comprehensive Reporting**: Detailed analysis of results with clear recommendations
+### Fake Capacity Detection
 
-This method can detect:
-- **Fake capacity**: When device reports more storage than actually available
-- **Write caching fraud**: When device falsely reports successful writes
-- **Data corruption**: When stored data becomes corrupted or inaccessible
+The 'test' command creates 100 files, each 1% of total capacity, to detect counterfeit storage devices that report false sizes.
 
-## 📊 Output Formats
+### Secure Wiping
 
-### Standard Output
-Detailed information with full context and explanations
+Use 'fill <size> del' to overwrite free space and prevent recovery of previously deleted files.
 
-### Short Output (`short|s`)
-Concise format perfect for scripts and automation
+### Test Files
 
-### Progress Indicators
-Real-time progress bars and percentage completion for long operations
+Operations create files named FILL_#####_ddHHmmss.tmp and speedtest_*.txt. Use 'clean' to remove them.
 
-## 🤝 Contributing
+### Batch Files
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Commands in batch files support # comments and empty lines. Each line should contain one complete filedo command.
+
+### Path Detection
+
+FileDO automatically detects path types:
+
+- C:, D:, etc. → Device operations
+- \\server\share → Network operations  
+- C:\folder, ./dir → Folder operations
+- file.txt → File operations
+
+### History
+
+All operations are logged. Use 'hist' flag with any command to enable detailed history logging: `filedo.exe C: info hist`
+
+## 🆘 Help & Support
+
+```cmd
+filedo.exe ?                     # Show comprehensive help
+filedo.exe help                  # Show comprehensive help
+```
+
+## 🏗️ Architecture
+
+### Core Components
+
+- **Unified Interface**: `FakeCapacityTester` interface for all storage types
+- **Memory Optimization**: Streaming file operations for large capacity tests
+- **Error Handling**: Comprehensive error reporting and batch execution recovery
+- **History System**: JSON-based operation logging with 1000-entry limit
+
+### File Structure
+
+```text
+FileDO/
+├── main.go                 # Main entry point and CLI parsing
+├── types.go               # Core interfaces and unified test logic
+├── device_windows.go      # Device-specific operations
+├── folder.go             # Folder operations
+├── network_windows.go    # Network operations  
+├── command_handlers.go   # Command routing and execution
+├── progress.go           # Progress reporting
+├── interrupt.go          # Interrupt handling
+├── speedtest_utils.go    # Speed testing utilities
+├── history.json          # Operation history
+└── docs/                 # Documentation
+```
+
+## 🔄 Version History
+
+### v2507050402 (Current)
+
+- **User-Friendly Help**: Complete rewrite of help system with 79-line comprehensive guide
+- **Enhanced Documentation**: Updated all documentation to reflect current functionality
+- **Code Cleanup**: Removed redundant files (error_test.lst, filedo_test.exe, sample_output.txt)
+
+### v2507050401
+
+- **Unified Architecture**: Implemented `FakeCapacityTester` interface
+- **Memory Optimization**: Streaming file writing for large capacity tests
+- **File Verification**: First-line content verification for all test files
+- **Error Handling**: Enhanced `executeFromFile` with proper error returns
+- **Code Refactoring**: Eliminated duplicate code in fake capacity tests
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 👨‍💻 Author
 
-**sza** - [sza@ukr.net](mailto:sza@ukr.net)
+Created by **sza@ukr.net**
 
-## 🐛 Bug Reports & Feature Requests
+## 🤝 Contributing
 
-Please use the [GitHub Issues](https://github.com/yourusername/FileDO/issues) page to report bugs or request features.
-
-## ⭐ Star History
-
-If you find FileDO useful, please consider giving it a star on GitHub!
+Contributions are welcome! Please read CONTRIBUTING.md for guidelines.
 
 ---
 
-**Version**: 2507050100  
-**Platform**: Windows  
-**Language**: Go
+**FileDO v2507050402** - Advanced File & Storage Operations Tool
