@@ -25,6 +25,22 @@ func NewProgressTracker(totalItems, totalBytes int64) *ProgressTracker {
 	}
 }
 
+// NewProgressTrackerWithInterval creates a new progress tracker with custom update interval
+func NewProgressTrackerWithInterval(totalItems, totalBytes int64, interval time.Duration) *ProgressTracker {
+	return &ProgressTracker{
+		startTime:      time.Now(),
+		totalItems:     totalItems,
+		totalBytes:     totalBytes,
+		lastUpdate:     time.Now(),
+		updateInterval: interval,
+	}
+}
+
+// SetUpdateInterval changes the update interval
+func (pt *ProgressTracker) SetUpdateInterval(interval time.Duration) {
+	pt.updateInterval = interval
+}
+
 func (pt *ProgressTracker) Update(itemsDone, bytesDone int64) {
 	pt.currentItem = itemsDone
 	pt.currentBytes = bytesDone
@@ -32,6 +48,11 @@ func (pt *ProgressTracker) Update(itemsDone, bytesDone int64) {
 
 func (pt *ProgressTracker) ShouldUpdate() bool {
 	return time.Since(pt.lastUpdate) >= pt.updateInterval
+}
+
+// GetTimeSinceLastUpdate returns time since last update
+func (pt *ProgressTracker) GetTimeSinceLastUpdate() time.Duration {
+	return time.Since(pt.lastUpdate)
 }
 
 func (pt *ProgressTracker) GetETA() time.Duration {
@@ -89,6 +110,21 @@ func (pt *ProgressTracker) PrintProgress(operation string) {
 
 	fmt.Printf("%s: %d/%d (%6.1f MB/s) - %6.2f GB %s\r",
 		operation, pt.currentItem, pt.totalItems, speedMBps, gbProcessed, etaStr)
+}
+
+// PrintProgressCustom prints custom progress format without ETA (for network operations)
+func (pt *ProgressTracker) PrintProgressCustom(format string, args ...interface{}) {
+	if !pt.ShouldUpdate() {
+		return
+	}
+
+	pt.lastUpdate = time.Now()
+	fmt.Printf(format, args...)
+}
+
+// ForceUpdate marks the tracker for immediate update
+func (pt *ProgressTracker) ForceUpdate() {
+	pt.lastUpdate = time.Now().Add(-pt.updateInterval)
 }
 
 func (pt *ProgressTracker) Finish(operation string) {

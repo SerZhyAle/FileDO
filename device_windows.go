@@ -249,7 +249,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Test file size: %d MB\n\n", sizeMB)
 
 		// Step 1: Check if device is accessible and writable
-		fmt.Printf("Step 1: Checking device accessibility...\n")
+		fmt.Printf("Step 1: Checking device accessibility..\n")
 	}
 
 	// Check if we can stat the device path
@@ -273,7 +273,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("✓ Device is accessible and writable\n\n")
 
 		// Step 2: Create test file in current directory
-		fmt.Printf("Step 2: Creating test file (%d MB)...\n", sizeMB)
+		fmt.Printf("Step 2: Creating test file (%d MB)..\n", sizeMB)
 	}
 
 	currentDir, err := os.Getwd()
@@ -296,7 +296,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 
 		// Step 3: Upload Speed Test - Copy file to device
 		deviceFileName := filepath.Join(normalizedPath, localFileName)
-		fmt.Printf("Step 3: Upload Speed Test - Copying file to device...\n")
+		fmt.Printf("Step 3: Upload Speed Test - Copying file to device..\n")
 		fmt.Printf("Source: %s\n", localFilePath)
 		fmt.Printf("Target: %s\n", deviceFileName)
 	}
@@ -325,7 +325,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 		// Step 4: Download Speed Test - Copy file back from device
 		downloadFileName := fmt.Sprintf("speedtest_download_%d_%d.txt", sizeMB, time.Now().Unix())
 		downloadFilePath := filepath.Join(currentDir, downloadFileName)
-		fmt.Printf("Step 4: Download Speed Test - Copying file from device...\n")
+		fmt.Printf("Step 4: Download Speed Test - Copying file from device..\n")
 		fmt.Printf("Source: %s\n", deviceFileName)
 		fmt.Printf("Target: %s\n", downloadFilePath)
 	}
@@ -360,7 +360,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Download Speed: %.2f MB/s (%.2f Mbps)\n\n", downloadSpeedMBps, downloadSpeedMbps)
 
 		// Step 5: Clean up files
-		fmt.Printf("Step 5: Cleaning up test files...\n")
+		fmt.Printf("Step 5: Cleaning up test files..\n")
 	}
 
 	// Clean up files (always done, but only show progress if not short format)
@@ -492,7 +492,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	templateFileName := fmt.Sprintf("fill_template_%d_%d.txt", sizeMB, time.Now().Unix())
 	templateFilePath = filepath.Join(currentDir, templateFileName)
 
-	fmt.Printf("Creating template file (%d MB)...\n", sizeMB)
+	fmt.Printf("Creating template file (%d MB)..\n", sizeMB)
 	startTemplate := time.Now()
 	err = createRandomFile(templateFilePath, sizeMB, false) // No progress for template
 	if err != nil {
@@ -506,8 +506,8 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	timestamp := now.Format("021504") // ddHHmmss
 
 	// Start filling
-	fmt.Printf("Starting fill operation...\n")
-	progress := NewProgressTracker(maxFiles, maxFiles*fileSizeBytes)
+	fmt.Printf("Starting fill operation..\n")
+	progress := NewProgressTrackerWithInterval(maxFiles, maxFiles*fileSizeBytes, 2*time.Second)
 	filesCreated := int64(0)
 	totalBytesWritten := int64(0)
 
@@ -543,7 +543,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 
 	// Auto-delete if requested
 	if autoDelete && filesCreated > 0 {
-		fmt.Printf("\nAuto-delete enabled - Deleting all created files...\n")
+		fmt.Printf("\nAuto-delete enabled - Deleting all created files..\n")
 
 		// Find all FILL_*.tmp files in the device
 		pattern := filepath.Join(normalizedPath, "FILL_*.tmp")
@@ -590,7 +590,7 @@ func runDeviceFillClean(devicePath string) error {
 
 	fmt.Printf("Device Clean Operation\n")
 	fmt.Printf("Target: %s\n", normalizedPath)
-	fmt.Printf("Searching for test files (FILL_*.tmp and speedtest_*.txt)...\n\n")
+	fmt.Printf("Searching for test files (FILL_*.tmp and speedtest_*.txt)..\n\n")
 
 	// Check if device is accessible
 	if _, err := os.Stat(normalizedPath); err != nil {
@@ -635,7 +635,7 @@ func runDeviceFillClean(devicePath string) error {
 	}
 
 	fmt.Printf("Total size to delete: %.2f GB\n", float64(totalSize)/(1024*1024*1024))
-	fmt.Printf("Deleting files...\n\n")
+	fmt.Printf("Deleting files..\n\n")
 
 	// Delete files
 	deletedCount := 0
@@ -811,7 +811,7 @@ func runDeviceTestOld(devicePath string, autoDelete bool) error {
 
 	fmt.Printf("Device Fake Capacity Test\n")
 	fmt.Printf("Target: %s\n", normalizedPath)
-	fmt.Printf("Testing for fake capacity by writing 100 files...\n\n")
+	fmt.Printf("Testing for fake capacity by writing 100 files..\n\n")
 
 	// Check if device is accessible and writable
 	if _, err := os.Stat(normalizedPath); err != nil {
@@ -860,7 +860,7 @@ func runDeviceTestOld(devicePath string, autoDelete bool) error {
 	templateFileName := fmt.Sprintf("test_template_%d_%d.txt", fileSizeMB, time.Now().Unix())
 	templateFilePath := filepath.Join(currentDir, templateFileName)
 
-	fmt.Printf("Creating template file (%d MB)...\n", fileSizeMB)
+	fmt.Printf("Creating template file (%d MB)..\n", fileSizeMB)
 	startTemplate := time.Now()
 	err = createRandomFile(templateFilePath, int(fileSizeMB), false)
 	if err != nil {
@@ -874,8 +874,8 @@ func runDeviceTestOld(devicePath string, autoDelete bool) error {
 	timestamp := now.Format("021504") // ddHHmmss
 
 	// Start capacity test
-	fmt.Printf("Starting capacity test - writing 100 files...\n")
-	progress := NewProgressTracker(100, 100*fileSizeBytes)
+	fmt.Printf("Starting capacity test - writing 100 files..\n")
+	progress := NewProgressTrackerWithInterval(100, 100*fileSizeBytes, 2*time.Second)
 	filesCreated := 0
 	totalBytesWritten := int64(0)
 	writeSpeeds := make([]float64, 0, 100)
@@ -957,7 +957,7 @@ func runDeviceTestOld(devicePath string, autoDelete bool) error {
 	}
 
 	// Verification phase - check file integrity
-	fmt.Printf("Starting verification phase - checking file integrity...\n")
+	fmt.Printf("Starting verification phase - checking file integrity..\n")
 
 	verificationFailed := false
 	verificationFailureFile := ""
@@ -1051,7 +1051,7 @@ func runDeviceTestOld(devicePath string, autoDelete bool) error {
 
 		// Auto-delete if requested and test passed
 		if autoDelete {
-			fmt.Printf("\nAuto-delete enabled - Deleting all test files...\n")
+			fmt.Printf("\nAuto-delete enabled - Deleting all test files..\n")
 			deletedCount := 0
 			deletedSize := int64(0)
 

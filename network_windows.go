@@ -458,7 +458,7 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool, logger *Hist
 	// For network, we estimate a high number of files since we don't know the target capacity
 	fileSizeBytes := int64(sizeMB) * 1024 * 1024
 	estimatedMaxFiles := int64(10000) // Conservative estimate
-	progress := NewProgressTracker(estimatedMaxFiles, estimatedMaxFiles*fileSizeBytes)
+	progress := NewProgressTrackerWithInterval(estimatedMaxFiles, estimatedMaxFiles*fileSizeBytes, 2*time.Second)
 	filesCreated := int64(0)
 	totalBytesWritten := int64(0)
 	for i := int64(1); i <= 99999; i++ { // Reasonable upper limit
@@ -483,13 +483,12 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool, logger *Hist
 		totalBytesWritten += bytesCopied
 
 		// Update progress - for network we don't show percentage since we don't know the total
-		if i%10 == 0 || time.Since(progress.lastUpdate) > progress.updateInterval {
+		if i%10 == 0 {
 			progress.Update(filesCreated, totalBytesWritten)
 			speedMBps := progress.GetCurrentSpeed()
 			gbWritten := float64(totalBytesWritten) / (1024 * 1024 * 1024)
-			fmt.Printf("Fill %s: %d files (%6.1f MB/s) - %6.2f GB\r",
+			progress.PrintProgressCustom("Fill %s: %d files (%6.1f MB/s) - %6.2f GB\r",
 				networkPath, filesCreated, speedMBps, gbWritten)
-			progress.lastUpdate = time.Now()
 		}
 	}
 
@@ -830,7 +829,7 @@ func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogge
 	testContent = headerLine + testContent[len(headerLine):]
 
 	// Create files and monitor speed
-	progress := NewProgressTracker(int64(maxFiles), int64(maxFiles)*fileSize)
+	progress := NewProgressTrackerWithInterval(int64(maxFiles), int64(maxFiles)*fileSize, 2*time.Second)
 
 	for i := 1; i <= maxFiles; i++ {
 		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))

@@ -29,7 +29,7 @@ func NewInterruptHandler() *InterruptHandler {
 
 	go func() {
 		<-sigChan
-		fmt.Printf("\n\n⚠ Interrupt signal received (Ctrl+C). Cleaning up...\n")
+		fmt.Printf("\n\n⚠ Interrupt signal received (Ctrl+C). Cleaning up..\n")
 		handler.Interrupt()
 	}()
 

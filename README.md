@@ -2,6 +2,25 @@
 
 **FileDO v2507050402** is a comprehensive command-line utility for Windows that provides advanced file, folder, device, and network operations. It specializes in storage capacity verification, performance testing, secure data wiping, and counterfeit storage device detection.
 
+## 📊 GUI Application
+
+**FileDO GUI** (`filedo_win.exe`) provides a user-friendly Windows interface for FileDO operations:
+
+- **VB.NET Framework 4.8** - Stable native Windows interface
+- **Checkbox-based selection** - Intuitive target and operation selection
+- **Real-time command preview** - See the exact command before execution
+- **Smart operation filtering** - Only shows valid operations for selected target
+- **Auto path defaults** - C:\ for device/folder, empty for file/network
+- **Additional flags support** - max, help, hist, short options
+- **Debug logging** - Detailed logging when launched with `-debug`
+
+### GUI Usage
+
+```cmd
+filedo_win.exe              # Normal mode
+filedo_win.exe -debug       # Debug mode with logging
+```
+
 ## 🚀 Key Features
 
 ### Core Capabilities
@@ -26,29 +45,47 @@
 
 ## 📦 Installation
 
-### Option 1: Use Pre-built Binary (Recommended)
+### Option 1: Use Pre-built Binaries (Recommended)
 
-A pre-built `filedo.exe` is available in the repository root:
+Pre-built executables are available in the repository:
 
-1. **Download directly from GitHub:**
+1. **Download from GitHub:**
 
    ```cmd
    git clone https://github.com/yourusername/FileDO.git
    cd FileDO
    # Use the included filedo.exe (latest build v2507050402)
+   # Use the included filedo_win.exe (GUI application)
    ```
 
-2. **Or download just the executable:**
+2. **Or download executables directly:**
    - Navigate to the repository files on GitHub
-   - Download `filedo.exe` directly
-   - Place it anywhere and run from command line
+   - Download `filedo.exe` (command-line tool)
+   - Download `filedo_win.exe` (GUI application)
+   - Place them in the same directory and run
+
+### GUI Application Setup
+
+The GUI application (`filedo_win.exe`) requires:
+- **.NET Framework 4.8** (pre-installed on Windows 10/11)
+- `filedo.exe` in the same directory
+- Optional: `-debug` parameter for detailed logging
 
 ### Option 2: Build from Source
 
+#### Command-line tool:
 ```cmd
 git clone https://github.com/yourusername/FileDO.git
 cd FileDO
 go build -o filedo.exe
+```
+
+#### GUI application:
+```cmd
+cd filedo_win_vb
+msbuild FileDOGUI.vbproj /p:Configuration=Release
+# Output: bin\Release\filedo_win.exe
+```
 ```
 
 ### Requirements
@@ -66,18 +103,35 @@ go build -o filedo.exe
 git clone https://github.com/yourusername/FileDO.git
 cd FileDO
 
-# Use pre-built executable directly (no compilation needed)
+# Command-line usage (filedo.exe)
 .\filedo.exe device C: info          # Get device information
 .\filedo.exe device E: test          # Test USB drive for fake capacity  
 .\filedo.exe folder C:\temp speed 100 # Test folder write speed
 .\filedo.exe folder C:\temp clean    # Clean up test files
+
+# GUI usage (filedo_win.exe)
+.\filedo_win.exe                     # Launch GUI interface
+.\filedo_win.exe -debug              # Launch with debug logging
 ```
 
-**Or download just the executable:**
+**Or download executables only:**
 
 1. Go to the repository on GitHub
-2. Download `filedo.exe` (latest build)
-3. Run from any location
+2. Download `filedo.exe` (command-line tool)
+3. Download `filedo_win.exe` (GUI application)  
+4. Place both files in the same directory and run
+
+### GUI Interface
+
+The GUI application provides an intuitive interface with:
+
+- **Target selection**: Device, Folder, Network, File (checkboxes)
+- **Operation selection**: None, Info, Speed, Fill, Test, Clean
+- **Path input**: Manual entry or Browse button
+- **Size configuration**: For speed/fill operations (default: 100MB)
+- **Flags**: max, help, hist, short options
+- **Command preview**: Real-time command display
+- **One-click execution**: RUN button launches command in terminal
 
 ## 📚 Usage Examples
 

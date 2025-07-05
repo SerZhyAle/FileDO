@@ -182,7 +182,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	fmt.Printf("Test file size: %d MB\n\n", sizeMB)
 
 	// Step 1: Check if network address is reachable and writable
-	fmt.Printf("Step 1: Checking network accessibility...\n")
+	fmt.Printf("Step 1: Checking network accessibility\n")
 	canRead := testNetworkRead(networkPath)
 	canWrite := testNetworkWrite(networkPath)
 

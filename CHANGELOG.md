@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.11-20250705] - 2025-07-05
+
+### Fixed
+
+- **FAKE CAPACITY TEST**: Fixed test file cleanup on failure - files now preserved for analysis
+- **REAL CAPACITY ESTIMATION**: Added calculation of estimated real storage capacity when test fails
+- **DETAILED FAILURE ANALYSIS**: Enhanced error reporting with capacity analysis breakdown
+- **TEST FILE PRESERVATION**: Failed tests no longer auto-delete files, keeping evidence for investigation
+
+### Capacity Test Enhancements
+
+- **FAILURE REPORTING**: Added detailed analysis showing:
+  - Number of files successfully written/verified before failure
+  - Amount of data written before corruption
+  - Estimated real free space based on failure point
+- **CAPACITY DETECTION**: Improved fake USB/SD card detection with real capacity estimation
+- **ERROR CONTEXT**: Better error messages explaining what the failure indicates
+
+### Test Implementation Fixes
+
+- **Test Logic**: Removed automatic cleanup on verification failures across all test types
+- **Capacity Calculation**: Added real-time capacity estimation based on test failure points
+- **History Logging**: Enhanced logging with estimated capacity data for failed tests
+
+## [2.5.10-20250705] - 2025-07-05
+
+### Optimized
+
+- **PROGRESS DISPLAY**: Optimized speed test progress updates for better UI performance
+- **REDUCED UPDATE FREQUENCY**: Progress now updates every 2 seconds instead of every file operation
+- **ENHANCED TRACKER**: New `PrintProgressCustom` method for specialized progress formats
+- **FILE CREATION**: Reduced progress updates during large file creation (every 50MB vs 10MB)
+- **COPY OPERATIONS**: Smarter progress updates during file copying (every 5% or 10MB chunks)
+- **NETWORK OPERATIONS**: Simplified network fill progress updates (every 10 files)
+
+### Progress Display Optimization
+
+- **ProgressTracker API**: Added `NewProgressTrackerWithInterval`, `SetUpdateInterval`, `GetTimeSinceLastUpdate`, `PrintProgressCustom`, `ForceUpdate` methods
+- **Encapsulation**: Fixed direct access to private ProgressTracker fields in network operations
+- **Configurable Intervals**: Different update intervals for different operation types
+- **Consistent UI**: Stable, readable progress display without flickering
+
+### Performance Impact
+
+- **Speed Tests**: Dramatically reduced console output frequency during large operations
+- **Fill Operations**: 22,953 files processed with ~115 progress updates instead of 22,953
+- **Clean Operations**: Grouped progress updates for large cleanup operations
+- **Memory Efficiency**: Lower overhead from frequent console writes
+
+## [2.5.9-20250705] - 2025-07-05
+
+### Added
+
+- **GUI APPLICATION**: New Windows GUI frontend `filedo_win.exe` built with VB.NET Framework 4.8
+- **CHECKBOX INTERFACE**: Intuitive checkbox-based selection for targets and operations
+- **REAL-TIME PREVIEW**: Live command preview that updates as selections change
+- **SMART FILTERING**: Operation availability based on selected target type
+- **AUTO PATH DEFAULTS**: C:\ for device/folder, empty for file/network targets
+- **ADDITIONAL FLAGS**: Support for max, help, hist, short flags in GUI
+- **DEBUG LOGGING**: Detailed logging when launched with `-debug` parameter
+- **BROWSE FUNCTIONALITY**: Standard Windows folder browser integration
+
+### GUI Features
+
+- **Target Selection**: Device, Folder, Network, File (mutually exclusive checkboxes)
+- **Operation Selection**: None, Info, Speed, Fill, Test, Clean (mutually exclusive)
+- **Size Configuration**: Input field for speed/fill operations (default: 100MB)
+- **Command Building**: Automatic command line construction with proper syntax
+- **One-Click Execution**: RUN button launches filedo.exe in CMD with pause
+- **Error Validation**: Path checking and filedo.exe presence verification
+
+### Documentation
+
+- **FILEDO_WIN.md**: Comprehensive GUI application documentation
+- **Updated README.md**: Added GUI sections in installation and usage
+- **Enhanced VB.NET README**: Complete project documentation in English
+
 ## [2.5.8-20250705] - 2025-07-05
 
 ### Enhanced

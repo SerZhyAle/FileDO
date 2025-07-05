@@ -546,7 +546,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 	baselineSet := false
 
 	// Create progress tracker
-	progress := NewProgressTracker(maxFiles, maxFiles*fileSize)
+	progress := NewProgressTrackerWithInterval(maxFiles, maxFiles*fileSize, 2*time.Second)
 
 	// Write phase
 	fmt.Printf("Starting capacity test - writing %d files...\n", maxFiles)
@@ -557,12 +557,25 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		start := time.Now()
 		filePath, err := tester.CreateTestFile(fileName, fileSize)
 		if err != nil {
-			// Clean up on error
-			cleanupGenericTestFiles(tester, result.CreatedFiles)
+			// DON'T clean up on creation error - keep files for analysis
 			result.FailureReason = fmt.Sprintf("Failed to create file %d: %v", i, err)
+
+			// Calculate estimated real capacity
+			realCapacity := fileSize * int64(i-1)
+
+			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
+			fmt.Printf("This indicates storage device failure or fake capacity.\n")
+			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+			fmt.Printf("  Files successfully created: %d out of %d\n", i-1, maxFiles)
+			fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
+			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
+			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
+
 			err = fmt.Errorf("failed to create file %s: %v", fileName, err)
 			if logger != nil {
 				logger.SetError(err)
+				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+				logger.SetResult("filesSuccessfullyCreated", i-1)
 			}
 			return result, err
 		}
@@ -575,19 +588,29 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		// Verify file immediately after creation
 		err = tester.VerifyTestFile(filePath)
 		if err != nil {
-			// Clean up on verification error
-			cleanupGenericTestFiles(tester, result.CreatedFiles)
+			// DON'T clean up on verification error - keep files for analysis
 			result.TestPassed = false
 			result.FailureReason = fmt.Sprintf("File verification failed immediately after creation at file %d (%s): %v", i, fileName, err)
+
+			// Calculate estimated real capacity
+			// Real capacity = space that was already verified + space before test started
+			realCapacity := fileSize * int64(i-1) // Only count successfully written files
+
 			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
 			fmt.Printf("This indicates data corruption, device failure, or fake capacity.\n")
 			fmt.Printf("File: %s\n", filePath)
 			fmt.Printf("Error details: %v\n", err)
-			fmt.Printf("All %d created files have been cleaned up.\n", len(result.CreatedFiles))
+			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+			fmt.Printf("  Files successfully written: %d out of %d\n", i-1, maxFiles)
+			fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
+			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
+			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
 			err = fmt.Errorf("test failed during immediate file verification")
 			if logger != nil {
 				logger.SetError(err)
+				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+				logger.SetResult("filesSuccessfullyWritten", i-1)
 			}
 			return result, err
 		}
@@ -611,33 +634,53 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 				baselineSpeed = sum / float64(baselineFileCount)
 				result.BaselineSpeedMBps = baselineSpeed
 				baselineSet = true
-				fmt.Printf("Baseline speed established: %.2f MB/s\n", baselineSpeed)
+				fmt.Printf("Baseline speed established: %.2f MB/s", baselineSpeed)
 			}
 		} else if baselineSet {
 			// Check for abnormal speed after baseline is set
 			if speed < baselineSpeed*0.1 { // Less than 10% of baseline
 				result.TestPassed = false
 				result.FailureReason = fmt.Sprintf("Speed dropped to %.2f MB/s (less than 10%% of baseline %.2f MB/s) at file %d", speed, baselineSpeed, i)
+
+				// Calculate estimated real capacity
+				realCapacity := fileSize * int64(i-1)
+
 				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
 				fmt.Printf("This indicates potential fake capacity or device failure.\n")
-				fmt.Printf("Keeping %d test files for analysis.\n", len(result.CreatedFiles))
+				fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+				fmt.Printf("  Files successfully written: %d out of %d\n", i-1, maxFiles)
+				fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
+				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
+				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
 				err = fmt.Errorf("test failed due to abnormally slow write speed")
 				if logger != nil {
 					logger.SetError(err)
+					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+					logger.SetResult("filesSuccessfullyWritten", i-1)
 				}
 				return result, err
 			}
 			if speed > baselineSpeed*10 { // More than 10x baseline
 				result.TestPassed = false
 				result.FailureReason = fmt.Sprintf("Speed jumped to %.2f MB/s (more than 1000%% of baseline %.2f MB/s) at file %d", speed, baselineSpeed, i)
+
+				// Calculate estimated real capacity
+				realCapacity := fileSize * int64(i-1)
+
 				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
 				fmt.Printf("This indicates potential fake writing or caching issues.\n")
-				fmt.Printf("Keeping %d test files for analysis.\n", len(result.CreatedFiles))
+				fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+				fmt.Printf("  Files successfully written: %d out of %d\n", i-1, maxFiles)
+				fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
+				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
+				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
 				err = fmt.Errorf("test failed due to abnormally fast write speed")
 				if logger != nil {
 					logger.SetError(err)
+					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+					logger.SetResult("filesSuccessfullyWritten", i-1)
 				}
 				return result, err
 			}
@@ -655,13 +698,23 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 			fmt.Printf("Verifying %s - ❌ FAILED\n", fileName)
 			result.TestPassed = false
 			result.FailureReason = fmt.Sprintf("File verification failed at %s: %v", fileName, err)
+
+			// Calculate estimated real capacity
+			realCapacity := fileSize * int64(i)
+
 			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
 			fmt.Printf("This indicates data corruption or fake capacity.\n")
-			fmt.Printf("Keeping %d test files for analysis.\n", len(result.CreatedFiles))
+			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+			fmt.Printf("  Files successfully verified: %d out of %d\n", i, len(result.CreatedFiles))
+			fmt.Printf("  Data verified before failure: %.2f GB\n", float64(fileSize*int64(i))/(1024*1024*1024))
+			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
+			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
 			err = fmt.Errorf("test failed during verification - file corruption detected")
 			if logger != nil {
 				logger.SetError(err)
+				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+				logger.SetResult("filesSuccessfullyVerified", i)
 			}
 			return result, err
 		}
@@ -730,13 +783,6 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 	}
 
 	return result, nil
-}
-
-// cleanupGenericTestFiles removes test files using the tester interface
-func cleanupGenericTestFiles(tester FakeCapacityTester, files []string) {
-	for _, filePath := range files {
-		tester.CleanupTestFile(filePath) // Ignore errors during cleanup
-	}
 }
 
 // writeTestFileContent writes test content to a file in chunks to avoid memory issues

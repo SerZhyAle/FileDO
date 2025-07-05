@@ -80,8 +80,8 @@ func createRandomFile(fileName string, sizeMB int, showProgress bool) error {
 		written += int64(n)
 		blockNumber++
 
-		// Show progress for large files
-		if showProgress && sizeMB >= 10 && written%(1024*1024*10) == 0 { // Every 10MB
+		// Show progress for large files - less frequent updates
+		if showProgress && sizeMB >= 10 && written%(1024*1024*50) == 0 { // Every 50MB instead of 10MB
 			progress := float64(written) / float64(sizeBytes) * 100
 			fmt.Printf("  Creating file: %.1f%%\r", progress)
 		}
@@ -181,6 +181,7 @@ func copyFileWithProgress(src, dst string, showProgress bool) (int64, error) {
 	totalSize := sourceInfo.Size()
 	buffer := make([]byte, 64*1024) // 64KB buffer
 	var totalCopied int64
+	var lastProgressUpdate int64
 
 	if showProgress {
 		fmt.Printf("  Progress: 0.0%%")
@@ -195,10 +196,18 @@ func copyFileWithProgress(src, dst string, showProgress bool) (int64, error) {
 			}
 			totalCopied += int64(written)
 
-			// Show progress
+			// Show progress less frequently - only every 5% or 10MB
 			if showProgress {
-				progress := float64(totalCopied) / float64(totalSize) * 100
-				fmt.Printf("\r  Progress: %.1f%%", progress)
+				progressThreshold := int64(1024 * 1024 * 10) // 10MB
+				if totalSize < progressThreshold {
+					progressThreshold = totalSize / 20 // 5% for smaller files
+				}
+
+				if totalCopied-lastProgressUpdate >= progressThreshold {
+					progress := float64(totalCopied) / float64(totalSize) * 100
+					fmt.Printf("\r  Progress: %.1f%%", progress)
+					lastProgressUpdate = totalCopied
+				}
 			}
 		}
 

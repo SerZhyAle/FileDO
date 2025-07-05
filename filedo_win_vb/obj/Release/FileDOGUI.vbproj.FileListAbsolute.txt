@@ -1,0 +1,10 @@
+C:\GIT\FileDo\filedo_win_vb\bin\Release\filedo_win.exe
+C:\GIT\FileDo\filedo_win_vb\bin\Release\filedo_win.pdb
+C:\GIT\FileDo\filedo_win_vb\bin\Release\FileDOGUI.xml
+C:\GIT\FileDo\filedo_win_vb\obj\Release\FileDOGUI.vbproj.AssemblyReference.cache
+C:\GIT\FileDo\filedo_win_vb\obj\Release\FileDOGUI.MainForm.resources
+C:\GIT\FileDo\filedo_win_vb\obj\Release\FileDOGUI.vbproj.GenerateResource.cache
+C:\GIT\FileDo\filedo_win_vb\obj\Release\FileDOGUI.vbproj.CoreCompileInputs.cache
+C:\GIT\FileDo\filedo_win_vb\obj\Release\filedo_win.exe
+C:\GIT\FileDo\filedo_win_vb\obj\Release\FileDOGUI.xml
+C:\GIT\FileDo\filedo_win_vb\obj\Release\filedo_win.pdb

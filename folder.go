@@ -121,7 +121,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Test file size: %d MB\n\n", sizeMB)
 
 		// Step 1: Check if folder is accessible and writable
-		fmt.Printf("Step 1: Checking folder accessibility...\n")
+		fmt.Printf("Step 1: Checking folder accessibility..\n")
 	}
 
 	// Check if folder exists and is accessible
@@ -149,7 +149,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("✓ Folder is accessible and writable\n\n")
 
 		// Step 2: Create test file in current directory
-		fmt.Printf("Step 2: Creating test file (%d MB)...\n", sizeMB)
+		fmt.Printf("Step 2: Creating test file (%d MB)..\n", sizeMB)
 	}
 
 	currentDir, err := os.Getwd()
@@ -172,7 +172,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 
 		// Step 3: Upload Speed Test - Copy file to folder
 		folderFileName := filepath.Join(folderPath, localFileName)
-		fmt.Printf("Step 3: Upload Speed Test - Copying file to folder...\n")
+		fmt.Printf("Step 3: Upload Speed Test - Copying file to folder..\n")
 		fmt.Printf("Source: %s\n", localFilePath)
 		fmt.Printf("Target: %s\n", folderFileName)
 	}
@@ -201,7 +201,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 		// Step 4: Download Speed Test - Copy file back from folder
 		downloadFileName := fmt.Sprintf("speedtest_download_%d_%d.txt", sizeMB, time.Now().Unix())
 		downloadFilePath := filepath.Join(currentDir, downloadFileName)
-		fmt.Printf("Step 4: Download Speed Test - Copying file from folder...\n")
+		fmt.Printf("Step 4: Download Speed Test - Copying file from folder..\n")
 		fmt.Printf("Source: %s\n", folderFileName)
 		fmt.Printf("Target: %s\n", downloadFilePath)
 	}
@@ -236,7 +236,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Download Speed: %.2f MB/s (%.2f Mbps)\n\n", downloadSpeedMBps, downloadSpeedMbps)
 
 		// Step 5: Clean up files
-		fmt.Printf("Step 5: Cleaning up test files...\n")
+		fmt.Printf("Step 5: Cleaning up test files..\n")
 	}
 
 	// Clean up files (always done, but only show progress if not short format)
@@ -378,7 +378,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 	templateFileName := fmt.Sprintf("fill_template_%d_%d.txt", sizeMB, time.Now().Unix())
 	templateFilePath = filepath.Join(currentDir, templateFileName)
 
-	fmt.Printf("Creating template file (%d MB)...\n", sizeMB)
+	fmt.Printf("Creating template file (%d MB)..\n", sizeMB)
 	startTemplate := time.Now()
 	err = createRandomFile(templateFilePath, sizeMB, false) // No progress for template
 	if err != nil {
@@ -392,8 +392,8 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 	timestamp := now.Format("021504") // ddHHmmss
 
 	// Start filling
-	fmt.Printf("Starting fill operation...\n")
-	progress := NewProgressTracker(maxFiles, maxFiles*fileSizeBytes)
+	fmt.Printf("Starting fill operation..\n")
+	progress := NewProgressTrackerWithInterval(maxFiles, maxFiles*fileSizeBytes, 2*time.Second)
 	filesCreated := int64(0)
 	totalBytesWritten := int64(0)
 
@@ -429,7 +429,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 
 	// Auto-delete if requested
 	if autoDelete && filesCreated > 0 {
-		fmt.Printf("\nAuto-delete enabled - Deleting all created files...\n")
+		fmt.Printf("\nAuto-delete enabled - Deleting all created files..\n")
 
 		// Find all FILL_*.tmp files in the folder
 		pattern := filepath.Join(folderPath, "FILL_*.tmp")
@@ -470,7 +470,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 func runFolderFillClean(folderPath string) error {
 	fmt.Printf("Folder Clean Operation\n")
 	fmt.Printf("Target: %s\n", folderPath)
-	fmt.Printf("Searching for test files (FILL_*.tmp and speedtest_*.txt)...\n\n")
+	fmt.Printf("Searching for test files (FILL_*.tmp and speedtest_*.txt)..\n\n")
 
 	// Check if folder exists and is accessible
 	stat, err := os.Stat(folderPath)
@@ -519,7 +519,7 @@ func runFolderFillClean(folderPath string) error {
 	}
 
 	fmt.Printf("Total size to delete: %.2f GB\n", float64(totalSize)/(1024*1024*1024))
-	fmt.Printf("Deleting files...\n\n")
+	fmt.Printf("Deleting files..\n\n")
 
 	// Delete files
 	deletedCount := 0
@@ -643,7 +643,7 @@ func runFolderTestOld(folderPath string, autoDelete bool) error {
 	// Add cleanup for created files
 	handler.AddCleanup(func() {
 		if len(createdFiles) > 0 {
-			fmt.Printf("✓ Cleaning up %d test files...\n", len(createdFiles))
+			fmt.Printf("✓ Cleaning up %d test files..\n", len(createdFiles))
 			for _, filePath := range createdFiles {
 				os.Remove(filePath)
 			}
@@ -673,7 +673,7 @@ func runFolderTestOld(folderPath string, autoDelete bool) error {
 	fmt.Printf("Starting fake capacity test for folder: %s\n", folderPath)
 	fmt.Printf("Free space: %d MB\n", freeSpace/(1024*1024))
 	fmt.Printf("Test file size: %d MB (1%% of free space)\n", fileSize/(1024*1024))
-	fmt.Printf("Will create 100 test files...\n")
+	fmt.Printf("Will create 100 test files..\n")
 	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
 
 	var speeds []float64
@@ -694,7 +694,7 @@ func runFolderTestOld(folderPath string, autoDelete bool) error {
 	testContent = headerLine + testContent[len(headerLine):]
 
 	// Create files and monitor speed
-	progress := NewProgressTracker(maxFiles, maxFiles*fileSize)
+	progress := NewProgressTrackerWithInterval(maxFiles, maxFiles*fileSize, 2*time.Second)
 
 	for i := 1; i <= maxFiles; i++ {
 		// Check for interruption
@@ -796,7 +796,7 @@ func runFolderTestOld(folderPath string, autoDelete bool) error {
 	}
 
 	fmt.Printf("\n✅ Write phase completed successfully!\n")
-	fmt.Printf("Now verifying file integrity...\n")
+	fmt.Printf("Now verifying file integrity..\n")
 
 	// Verify files in creation order
 	for i, filePath := range createdFiles {
@@ -861,7 +861,7 @@ func runFolderTestOld(folderPath string, autoDelete bool) error {
 
 	// Delete files if requested and test passed
 	if autoDelete {
-		fmt.Printf("\n🗑️  Auto-delete enabled, cleaning up test files...\n")
+		fmt.Printf("\n🗑️  Auto-delete enabled, cleaning up test files..\n")
 		deletedCount := 0
 		for _, filePath := range createdFiles {
 			if err := os.Remove(filePath); err != nil {
@@ -886,5 +886,3 @@ func cleanupFiles(files []string) {
 		os.Remove(filePath) // Ignore errors during cleanup
 	}
 }
-
-// ...existing code...
