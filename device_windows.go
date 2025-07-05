@@ -159,11 +159,12 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 	if fullScan {
 		walkErr := filepath.WalkDir(rootPath, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
-				if os.IsPermission(err) {
+				if os.IsPermission(err) || strings.Contains(err.Error(), "being used by another process") || strings.Contains(err.Error(), "cannot access the file") {
 					accessErrors = true
 					return nil
 				}
-				return err
+				accessErrors = true
+				return nil
 			}
 			if d.IsDir() {
 				if p != rootPath {
@@ -174,7 +175,7 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 			}
 			return nil
 		})
-		if walkErr != nil {
+		if walkErr != nil && !accessErrors {
 			return DeviceInfo{}, fmt.Errorf("failed to walk directory '%s': %w", rootPath, walkErr)
 		}
 	} else {
@@ -401,6 +402,18 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 }
 
 func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
+	// Setup interrupt handler
+	handler := NewInterruptHandler()
+	templateFilePath := ""
+
+	// Add cleanup for template file
+	handler.AddCleanup(func() {
+		if templateFilePath != "" {
+			os.Remove(templateFilePath)
+			fmt.Printf("✓ Template file cleaned up\n")
+		}
+	})
+
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {
@@ -418,6 +431,9 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	}
 
 	fmt.Printf("Device Fill Operation\n")
+	fmt.Printf("Target: %s\n", normalizedPath)
+	fmt.Printf("File size: %d MB\n", sizeMB)
+	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
 	fmt.Printf("Target: %s\n", normalizedPath)
 	fmt.Printf("File size: %d MB\n\n", sizeMB)
 
@@ -474,7 +490,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	}
 
 	templateFileName := fmt.Sprintf("fill_template_%d_%d.txt", sizeMB, time.Now().Unix())
-	templateFilePath := filepath.Join(currentDir, templateFileName)
+	templateFilePath = filepath.Join(currentDir, templateFileName)
 
 	fmt.Printf("Creating template file (%d MB)...\n", sizeMB)
 	startTemplate := time.Now()
@@ -491,52 +507,39 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 
 	// Start filling
 	fmt.Printf("Starting fill operation...\n")
-	startFill := time.Now()
+	progress := NewProgressTracker(maxFiles, maxFiles*fileSizeBytes)
 	filesCreated := int64(0)
 	totalBytesWritten := int64(0)
 
 	for i := int64(1); i <= maxFiles; i++ {
+		// Check for interruption
+		if handler.IsCancelled() {
+			fmt.Printf("\n⚠ Operation cancelled by user\n")
+			break
+		}
+
 		// Generate file name: FILL_00001_ddHHmmss.tmp
 		fileName := fmt.Sprintf("FILL_%05d_%s.tmp", i, timestamp)
 		targetFilePath := filepath.Join(normalizedPath, fileName)
 
 		// Copy template file to target
-		startCopy := time.Now()
 		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false) // No progress for individual files
 		if err != nil {
 			fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", i, err)
 			break
 		}
-		copyDuration := time.Since(startCopy)
 
 		filesCreated++
 		totalBytesWritten += bytesCopied
-
-		// Show progress every 10 files or every second
-		if i%10 == 0 || copyDuration > time.Second {
-			copySpeedMBps := float64(bytesCopied) / (1024 * 1024) / copyDuration.Seconds()
-			percentComplete := float64(filesCreated) / float64(maxFiles) * 100
-			gbWritten := float64(totalBytesWritten) / (1024 * 1024 * 1024)
-			fmt.Printf("Fill %s: %3.0f%% %d/%d files (%6.1f MB/s) - %6.2f GB\r",
-				normalizedPath, percentComplete, filesCreated, maxFiles, copySpeedMBps, gbWritten)
-		}
+		progress.Update(filesCreated, totalBytesWritten)
+		progress.PrintProgress("Fill")
 	}
-
-	fillDuration := time.Since(startFill)
 
 	// Clean up template file
 	os.Remove(templateFilePath)
 
 	// Final summary
-	fmt.Printf("\n\nFill Operation Complete!\n")
-	fmt.Printf("Files created: %d\n", filesCreated)
-	fmt.Printf("Total data written: %.2f GB\n", float64(totalBytesWritten)/(1024*1024*1024))
-	fmt.Printf("Total time: %s\n", formatDuration(fillDuration))
-
-	if fillDuration.Seconds() > 0 {
-		avgSpeedMBps := float64(totalBytesWritten) / (1024 * 1024) / fillDuration.Seconds()
-		fmt.Printf("Average write speed: %.2f MB/s\n", avgSpeedMBps)
-	}
+	progress.Finish("Fill Operation")
 
 	// Auto-delete if requested
 	if autoDelete && filesCreated > 0 {
@@ -742,7 +745,7 @@ func runDeviceTest(devicePath string, autoDelete bool) error {
 
 	// Start capacity test
 	fmt.Printf("Starting capacity test - writing 100 files...\n")
-	startTest := time.Now()
+	progress := NewProgressTracker(100, 100*fileSizeBytes)
 	filesCreated := 0
 	totalBytesWritten := int64(0)
 	writeSpeeds := make([]float64, 0, 100)
@@ -767,6 +770,10 @@ func runDeviceTest(devicePath string, autoDelete bool) error {
 
 		filesCreated++
 		totalBytesWritten += bytesCopied
+
+		// Update progress
+		progress.Update(int64(filesCreated), totalBytesWritten)
+		progress.PrintProgress("Test")
 
 		// Calculate write speed for this file
 		copySpeedMBps := float64(bytesCopied) / (1024 * 1024) / copyDuration.Seconds()
@@ -803,7 +810,7 @@ func runDeviceTest(devicePath string, autoDelete bool) error {
 		}
 	}
 
-	testDuration := time.Since(startTest)
+	testDuration := time.Since(progress.startTime)
 
 	// Clean up template file
 	os.Remove(templateFilePath)
@@ -883,9 +890,9 @@ func runDeviceTest(devicePath string, autoDelete bool) error {
 	}
 
 	// Final summary
-	fmt.Printf("\n" + strings.Repeat("=", 60) + "\n")
+	fmt.Print("\n" + strings.Repeat("=", 60) + "\n")
 	fmt.Printf("FAKE CAPACITY TEST SUMMARY\n")
-	fmt.Printf(strings.Repeat("=", 60) + "\n")
+	fmt.Print(strings.Repeat("=", 60) + "\n")
 	fmt.Printf("Device: %s\n", normalizedPath)
 	fmt.Printf("Reported capacity: %.2f GB\n", float64(totalBytes)/(1024*1024*1024))
 	fmt.Printf("Available space: %.2f GB\n", float64(freeBytesAvailable)/(1024*1024*1024))

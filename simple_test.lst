@@ -1,0 +1,5 @@
+# Simple test commands that should work
+folder . info
+file main.go info
+folder . short
+file main.go short

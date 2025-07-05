@@ -166,7 +166,7 @@ func isNetworkError(err error) bool {
 	return false
 }
 
-func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bool) error {
+func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bool, logger *HistoryLogger) error {
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {
@@ -289,14 +289,14 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	return nil
 }
 
-func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
+func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool, logger *HistoryLogger) error {
 	return fmt.Errorf("network fill operation is not supported on this operating system")
 }
 
-func runNetworkFillClean(networkPath string) error {
+func runNetworkFillClean(networkPath string, logger *HistoryLogger) error {
 	return fmt.Errorf("network fill clean operation is not supported on this operating system")
 }
 
-func runNetworkTest(networkPath string, autoDelete bool) error {
+func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
 	return fmt.Errorf("network test operation is not supported on this operating system")
 }

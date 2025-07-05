@@ -167,7 +167,15 @@ func isNetworkError(err error) bool {
 	return false
 }
 
-func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bool) error {
+func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bool, logger *HistoryLogger) error {
+	// Setup history logging
+	if logger != nil {
+		logger.SetCommand("network", networkPath, "speed")
+		logger.SetParameter("size", sizeMBStr)
+		logger.SetParameter("noDelete", noDelete)
+		logger.SetParameter("shortFormat", shortFormat)
+	}
+
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {
@@ -193,10 +201,18 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	canWrite := testNetworkWrite(networkPath)
 
 	if !canRead {
-		return fmt.Errorf("network path is not readable")
+		err := fmt.Errorf("network path is not readable")
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	if !canWrite {
-		return fmt.Errorf("network path is not writable")
+		err := fmt.Errorf("network path is not writable")
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	if !shortFormat {
@@ -211,7 +227,11 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	startCreate := time.Now()
 	err = createRandomFile(localFileName, sizeMB, !shortFormat)
 	if err != nil {
-		return fmt.Errorf("failed to create test file: %w", err)
+		err = fmt.Errorf("failed to create test file: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	createDuration := time.Since(startCreate)
 
@@ -232,7 +252,11 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFileName)
-		return fmt.Errorf("failed to copy file to network: %w", err)
+		err = fmt.Errorf("failed to copy file to network: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	uploadDuration := time.Since(startUpload)
 
@@ -262,7 +286,11 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 		// Clean up files before returning error
 		os.Remove(localFileName)
 		os.Remove(networkFileName)
-		return fmt.Errorf("failed to copy file from network: %w", err)
+		err = fmt.Errorf("failed to copy file from network: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	downloadDuration := time.Since(startDownload)
 
@@ -320,10 +348,39 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 		fmt.Printf("Download time: %s, Speed: %.2f MB/s (%.2f Mbps)\n", formatDuration(downloadDuration), downloadSpeedMBps, downloadSpeedMbps)
 	}
 
+	// Log results
+	if logger != nil {
+		logger.SetResult("fileSizeMB", sizeMB)
+		logger.SetResult("uploadSpeedMBps", uploadSpeedMBps)
+		logger.SetResult("downloadSpeedMBps", downloadSpeedMBps)
+		logger.SetResult("uploadTimeSec", uploadDuration.Seconds())
+		logger.SetResult("downloadTimeSec", downloadDuration.Seconds())
+		logger.SetSuccess()
+	}
+
 	return nil
 }
 
-func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
+func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool, logger *HistoryLogger) error {
+	// Setup history logging
+	if logger != nil {
+		logger.SetCommand("network", networkPath, "fill")
+		logger.SetParameter("size", sizeMBStr)
+		logger.SetParameter("autoDelete", autoDelete)
+	}
+
+	// Setup interrupt handler
+	handler := NewInterruptHandler()
+	templateFilePath := ""
+
+	// Add cleanup for template file
+	handler.AddCleanup(func() {
+		if templateFilePath != "" {
+			os.Remove(templateFilePath)
+			fmt.Printf("✓ Template file cleaned up\n")
+		}
+	})
+
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {
@@ -336,17 +393,26 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
 
 	fmt.Printf("Network Fill Operation\n")
 	fmt.Printf("Target: %s\n", networkPath)
-	fmt.Printf("File size: %d MB\n\n", sizeMB)
+	fmt.Printf("File size: %d MB\n", sizeMB)
+	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
 
 	// Test if the network path exists and is accessible
 	canRead := testNetworkRead(networkPath)
 	canWrite := testNetworkWrite(networkPath)
 
 	if !canRead {
-		return fmt.Errorf("network path is not readable")
+		err := fmt.Errorf("network path is not readable")
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	if !canWrite {
-		return fmt.Errorf("network path is not writable")
+		err := fmt.Errorf("network path is not writable")
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	fmt.Printf("✓ Network path is accessible and writable\n")
@@ -358,17 +424,25 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
 	// Create template file first
 	currentDir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
+		err = fmt.Errorf("failed to get current directory: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	templateFileName := fmt.Sprintf("fill_template_%d_%d.txt", sizeMB, time.Now().Unix())
-	templateFilePath := filepath.Join(currentDir, templateFileName)
+	templateFilePath = filepath.Join(currentDir, templateFileName)
 
 	fmt.Printf("Creating template file (%d MB)...\n", sizeMB)
 	startTemplate := time.Now()
 	err = createRandomFile(templateFilePath, sizeMB, false) // No progress for template
 	if err != nil {
-		return fmt.Errorf("failed to create template file: %w", err)
+		err = fmt.Errorf("failed to create template file: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	templateDuration := time.Since(startTemplate)
 	fmt.Printf("✓ Template file created in %s\n\n", formatDuration(templateDuration))
@@ -380,52 +454,52 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
 	// Start filling
 	fmt.Printf("Starting fill operation...\n")
 	fmt.Printf("(Note: For network paths, will fill until disk full)\n\n")
-	startFill := time.Now()
+
+	// For network, we estimate a high number of files since we don't know the target capacity
+	fileSizeBytes := int64(sizeMB) * 1024 * 1024
+	estimatedMaxFiles := int64(10000) // Conservative estimate
+	progress := NewProgressTracker(estimatedMaxFiles, estimatedMaxFiles*fileSizeBytes)
 	filesCreated := int64(0)
 	totalBytesWritten := int64(0)
-
 	for i := int64(1); i <= 99999; i++ { // Reasonable upper limit
+		// Check for interruption
+		if handler.IsCancelled() {
+			fmt.Printf("\n⚠ Operation cancelled by user\n")
+			break
+		}
+
 		// Generate file name: FILL_00001_ddHHmmss.tmp
 		fileName := fmt.Sprintf("FILL_%05d_%s.tmp", i, timestamp)
 		targetFilePath := filepath.Join(networkPath, fileName)
 
 		// Copy template file to target
-		startCopy := time.Now()
 		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false) // No progress for individual files
 		if err != nil {
 			fmt.Printf("\n⚠ Stopping: Failed to create file %d: %v\n", i, err)
 			break
 		}
-		copyDuration := time.Since(startCopy)
 
 		filesCreated++
 		totalBytesWritten += bytesCopied
 
-		// Show progress every 10 files or every second
-		if i%10 == 0 || copyDuration > time.Second {
-			copySpeedMBps := float64(bytesCopied) / (1024 * 1024) / copyDuration.Seconds()
-			// For network, we don't know the total so we'll show files created without percentage
+		// Update progress - for network we don't show percentage since we don't know the total
+		if i%10 == 0 || time.Since(progress.lastUpdate) > progress.updateInterval {
+			progress.Update(filesCreated, totalBytesWritten)
+			speedMBps := progress.GetCurrentSpeed()
 			gbWritten := float64(totalBytesWritten) / (1024 * 1024 * 1024)
-			fmt.Printf("Fill %s: --- %d files (%6.1f MB/s) - %6.2f GB\r",
-				networkPath, filesCreated, copySpeedMBps, gbWritten)
+			fmt.Printf("Fill %s: %d files (%6.1f MB/s) - %6.2f GB\r",
+				networkPath, filesCreated, speedMBps, gbWritten)
+			progress.lastUpdate = time.Now()
 		}
 	}
-
-	fillDuration := time.Since(startFill)
 
 	// Clean up template file
 	os.Remove(templateFilePath)
 
-	// Final summary
-	fmt.Printf("\n\nFill Operation Complete!\n")
-	fmt.Printf("Files created: %d\n", filesCreated)
-	fmt.Printf("Total data written: %.2f GB\n", float64(totalBytesWritten)/(1024*1024*1024))
-	fmt.Printf("Total time: %s\n", formatDuration(fillDuration))
-
-	if fillDuration.Seconds() > 0 {
-		avgSpeedMBps := float64(totalBytesWritten) / (1024 * 1024) / fillDuration.Seconds()
-		fmt.Printf("Average write speed: %.2f MB/s\n", avgSpeedMBps)
-	}
+	// Final summary using progress tracker
+	progress.currentItem = filesCreated
+	progress.currentBytes = totalBytesWritten
+	progress.Finish("Fill Operation")
 
 	// Auto-delete if requested
 	if autoDelete && filesCreated > 0 {
@@ -464,10 +538,23 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool) error {
 		}
 	}
 
+	// Log results
+	if logger != nil {
+		logger.SetResult("filesCreated", filesCreated)
+		logger.SetResult("totalGBWritten", float64(totalBytesWritten)/(1024*1024*1024))
+		logger.SetResult("autoDeleteUsed", autoDelete)
+		logger.SetSuccess()
+	}
+
 	return nil
 }
 
-func runNetworkFillClean(networkPath string) error {
+func runNetworkFillClean(networkPath string, logger *HistoryLogger) error {
+	// Setup history logging
+	if logger != nil {
+		logger.SetCommand("network", networkPath, "clean")
+	}
+
 	fmt.Printf("Network Clean Operation\n")
 	fmt.Printf("Target: %s\n", networkPath)
 	fmt.Printf("Searching for test files (FILL_*.tmp and speedtest_*.txt)...\n\n")
@@ -477,24 +564,40 @@ func runNetworkFillClean(networkPath string) error {
 	canWrite := testNetworkWrite(networkPath)
 
 	if !canRead {
-		return fmt.Errorf("network path is not readable")
+		err := fmt.Errorf("network path is not readable")
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 	if !canWrite {
-		return fmt.Errorf("network path is not writable")
+		err := fmt.Errorf("network path is not writable")
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	// Find all FILL_*.tmp files
 	fillPattern := filepath.Join(networkPath, "FILL_*.tmp")
 	fillMatches, err := filepath.Glob(fillPattern)
 	if err != nil {
-		return fmt.Errorf("failed to search for FILL files: %w", err)
+		err = fmt.Errorf("failed to search for FILL files: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	// Find all speedtest_*.txt files
 	speedtestPattern := filepath.Join(networkPath, "speedtest_*.txt")
 	speedtestMatches, err := filepath.Glob(speedtestPattern)
 	if err != nil {
-		return fmt.Errorf("failed to search for speedtest files: %w", err)
+		err = fmt.Errorf("failed to search for speedtest files: %w", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	// Combine all matches
@@ -555,10 +658,23 @@ func runNetworkFillClean(networkPath string) error {
 		fmt.Printf("Warning: %d files could not be deleted\n", len(allMatches)-deletedCount)
 	}
 
+	// Log results
+	if logger != nil {
+		logger.SetResult("filesDeleted", deletedCount)
+		logger.SetResult("totalGBFreed", float64(deletedSize)/(1024*1024*1024))
+		logger.SetSuccess()
+	}
+
 	return nil
 }
 
-func runNetworkTest(networkPath string, autoDelete bool) error {
+func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
+	// Setup history logging
+	if logger != nil {
+		logger.SetCommand("network", networkPath, "test")
+		logger.SetParameter("autoDelete", autoDelete)
+	}
+
 	// Normalize the network path
 	normalizedPath := strings.ReplaceAll(networkPath, "/", "\\")
 	if !strings.HasPrefix(normalizedPath, "\\\\") {
@@ -567,7 +683,11 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 
 	// Check if the network path exists and is accessible
 	if _, err := os.Stat(normalizedPath); err != nil {
-		return fmt.Errorf("network path not accessible: %v", err)
+		err = fmt.Errorf("network path not accessible: %v", err)
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	// For network paths, we'll estimate available space by trying to create a test file
@@ -586,7 +706,11 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 
 	// Check if we have at least 100MB free space
 	if freeSpace < 100*1024*1024 {
-		return fmt.Errorf("insufficient free space. At least 100MB required, but only %d MB available", freeSpace/(1024*1024))
+		err := fmt.Errorf("insufficient free space. At least 100MB required, but only %d MB available", freeSpace/(1024*1024))
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return err
 	}
 
 	// Calculate file size as 1% of free space
@@ -615,11 +739,12 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 	testContent = headerLine + testContent[len(headerLine):]
 
 	// Create files and monitor speed
+	progress := NewProgressTracker(int64(maxFiles), int64(maxFiles)*fileSize)
+
 	for i := 1; i <= maxFiles; i++ {
 		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))
 		filePath := filepath.Join(normalizedPath, fileName)
 
-		fmt.Printf("Writing file %d/100: %s", i, fileName)
 		start := time.Now()
 
 		// Write file
@@ -627,7 +752,11 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 		if err != nil {
 			// Clean up on error
 			cleanupNetworkFiles(createdFiles)
-			return fmt.Errorf("failed to create file %s: %v", fileName, err)
+			err = fmt.Errorf("failed to create file %s: %v", fileName, err)
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return err
 		}
 
 		_, err = file.WriteString(testContent)
@@ -636,7 +765,11 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 		if err != nil {
 			// Clean up on error
 			cleanupNetworkFiles(createdFiles)
-			return fmt.Errorf("failed to write file %s: %v", fileName, err)
+			err = fmt.Errorf("failed to write file %s: %v", fileName, err)
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return err
 		}
 
 		duration := time.Since(start)
@@ -644,7 +777,9 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 		speeds = append(speeds, speed)
 		createdFiles = append(createdFiles, filePath)
 
-		fmt.Printf(" - %.2f MB/s\n", speed)
+		// Update progress
+		progress.Update(int64(i), int64(i)*fileSize)
+		progress.PrintProgress("Test")
 
 		// Set baseline speed from first 3 files
 		if i <= baselineFileCount {
@@ -664,13 +799,21 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 				fmt.Printf("\n❌ TEST FAILED: Speed dropped to %.2f MB/s (less than 10%% of baseline %.2f MB/s)\n", speed, baselineSpeed)
 				fmt.Printf("This indicates potential network issues or fake capacity.\n")
 				fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-				return fmt.Errorf("test failed due to abnormally slow write speed")
+				err := fmt.Errorf("test failed due to abnormally slow write speed")
+				if logger != nil {
+					logger.SetError(err)
+				}
+				return err
 			}
 			if speed > baselineSpeed*10 { // More than 10x baseline
 				fmt.Printf("\n❌ TEST FAILED: Speed jumped to %.2f MB/s (more than 1000%% of baseline %.2f MB/s)\n", speed, baselineSpeed)
 				fmt.Printf("This indicates potential fake writing or caching issues.\n")
 				fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-				return fmt.Errorf("test failed due to abnormally fast write speed")
+				err := fmt.Errorf("test failed due to abnormally fast write speed")
+				if logger != nil {
+					logger.SetError(err)
+				}
+				return err
 			}
 		}
 	}
@@ -690,7 +833,11 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 			fmt.Printf("\n❌ TEST FAILED: Could not open file %s for verification: %v\n", fileName, err)
 			fmt.Printf("This indicates data corruption or network issues.\n")
 			fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-			return fmt.Errorf("test failed during verification - file corruption detected")
+			err = fmt.Errorf("test failed during verification - file corruption detected")
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return err
 		}
 
 		scanner := bufio.NewScanner(file)
@@ -707,7 +854,11 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 			fmt.Printf("Found: '%s'\n", firstLine)
 			fmt.Printf("This indicates data corruption or fake capacity.\n")
 			fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-			return fmt.Errorf("test failed during verification - data corruption detected")
+			err := fmt.Errorf("test failed during verification - data corruption detected")
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return err
 		}
 
 		fmt.Printf(" - ✅ OK\n")
@@ -755,6 +906,18 @@ func runNetworkTest(networkPath string, autoDelete bool) error {
 		fmt.Printf("   Location: %s\n", normalizedPath)
 		fmt.Printf("   Files: FILL_001_*.tmp to FILL_100_*.tmp\n")
 		fmt.Printf("   Use 'filedo network %s fill clean' to remove them later.\n", normalizedPath)
+	}
+
+	// Log results
+	if logger != nil {
+		logger.SetResult("testPassed", true)
+		logger.SetResult("averageSpeedMBps", avgSpeed)
+		logger.SetResult("minSpeedMBps", minSpeed)
+		logger.SetResult("maxSpeedMBps", maxSpeed)
+		logger.SetResult("baselineSpeedMBps", baselineSpeed)
+		logger.SetResult("totalDataMB", (fileSize*maxFiles)/(1024*1024))
+		logger.SetResult("filesDeleted", autoDelete)
+		logger.SetSuccess()
 	}
 
 	return nil

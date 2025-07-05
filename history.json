@@ -1,0 +1,419 @@
+[
+  {
+    "timestamp": "2025-07-05T01:50:50.9146593+02:00",
+    "command": "folder",
+    "target": ".",
+    "operation": "speed",
+    "parameters": {
+      "args": [
+        ".",
+        "speed",
+        "1",
+        "history"
+      ],
+      "size": "1"
+    },
+    "results": {},
+    "duration": "  11.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T01:51:30.0413174+02:00",
+    "command": "network",
+    "target": "\\\\localhost\\c$\\git\\filedo\\test_share",
+    "operation": "speed",
+    "parameters": {
+      "args": [
+        "\\\\localhost\\c$\\git\\filedo\\test_share",
+        "speed",
+        "1",
+        "history"
+      ],
+      "noDelete": false,
+      "shortFormat": false,
+      "size": "1"
+    },
+    "results": {
+      "downloadSpeedMBps": 105.63901037375082,
+      "downloadTimeSec": 0.0094662,
+      "fileSizeMB": 1,
+      "uploadSpeedMBps": 317.0878650474046,
+      "uploadTimeSec": 0.0031537
+    },
+    "duration": "  30.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T01:51:40.831286+02:00",
+    "command": "network",
+    "target": "./test_share",
+    "operation": "fill",
+    "parameters": {
+      "args": [
+        "./test_share",
+        "fill",
+        "10",
+        "del",
+        "hist"
+      ],
+      "autoDelete": true,
+      "size": "10"
+    },
+    "results": {
+      "autoDeleteUsed": true,
+      "filesCreated": 4742,
+      "totalGBWritten": 46.30859375
+    },
+    "duration": "  26.4s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T01:52:52.5147986+02:00",
+    "command": "network",
+    "target": "\\\\localhost\\c$\\git\\filedo\\test_share",
+    "operation": "clean",
+    "parameters": {
+      "args": [
+        "\\\\localhost\\c$\\git\\filedo\\test_share",
+        "clean",
+        "hist"
+      ]
+    },
+    "results": {
+      "filesDeleted": 16,
+      "totalGBFreed": 25.836068719625473
+    },
+    "duration": "   1.9s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:06.4933643+02:00",
+    "command": "folder",
+    "target": ".",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        ".",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  18.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:06.5149718+02:00",
+    "command": "file",
+    "target": "main.go",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "main.go",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  50.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:06.5659105+02:00",
+    "command": "network",
+    "target": "\\\\localhost\\c$\\git\\filedo\\test_share",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "\\\\localhost\\c$\\git\\filedo\\test_share",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   5.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:06.4923447+02:00",
+    "command": "from",
+    "target": "example_list_of_connamds.lst",
+    "operation": "batch",
+    "parameters": {},
+    "results": {
+      "successfulCommands": 3,
+      "totalCommands": 3
+    },
+    "duration": "  79.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:52.1504005+02:00",
+    "command": "folder",
+    "target": ".",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        ".",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  13.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:52.1643964+02:00",
+    "command": "file",
+    "target": "main.go",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "main.go",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  35.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:52.2003944+02:00",
+    "command": "network",
+    "target": "\\\\localhost\\c$\\git\\filedo\\test_share",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "\\\\localhost\\c$\\git\\filedo\\test_share",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   9.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:57.3499051+02:00",
+    "command": "folder",
+    "target": ".",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        ".",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   3.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:57.3545928+02:00",
+    "command": "file",
+    "target": "main.go",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "main.go",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  28.3ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:57.383459+02:00",
+    "command": "network",
+    "target": "\\\\localhost\\c$\\git\\filedo\\test_share",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "\\\\localhost\\c$\\git\\filedo\\test_share",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   2.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:05:57.349388+02:00",
+    "command": "from",
+    "target": "example_list_of_connamds.lst",
+    "operation": "batch",
+    "parameters": {},
+    "results": {
+      "successfulCommands": 3,
+      "totalCommands": 3
+    },
+    "duration": "  37.2ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:06:50.1648373+02:00",
+    "command": "from",
+    "target": "simple_test.lst",
+    "operation": "batch",
+    "parameters": {},
+    "results": {
+      "successfulCommands": 4,
+      "totalCommands": 4
+    },
+    "duration": "  47.4ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:14:18.7933009+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.1ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T02:14:27.0562125+02:00",
+    "command": "folder",
+    "target": ".",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        ".",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   7.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:14:32.8902208+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.3ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T02:16:15.3125815+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T02:17:07.3401299+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.7ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T02:17:37.8297119+02:00",
+    "command": "folder",
+    "target": ".",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        ".",
+        "short",
+        "hist"
+      ],
+      "shortFormat": true
+    },
+    "results": {},
+    "duration": "   7.4ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:17:44.3522995+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T02:24:14.401856+02:00",
+    "command": "device",
+    "target": "c:",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "c:",
+        "info",
+        "hist"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  18.3s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:24:54.0192868+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.8ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T02:25:02.5716678+02:00",
+    "command": "device",
+    "target": "c:",
+    "operation": "info",
+    "parameters": {
+      "args": [
+        "c:",
+        "short",
+        "hist"
+      ],
+      "shortFormat": true
+    },
+    "results": {},
+    "duration": "   6.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T02:25:34.8631254+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.6ms",
+    "success": false
+  }
+]

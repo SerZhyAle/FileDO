@@ -1,0 +1,5 @@
+# Test file with valid and invalid commands
+folder . info
+invalid_command this should fail
+file main.go info
+folder . short

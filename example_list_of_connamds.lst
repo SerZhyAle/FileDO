@@ -1,0 +1,5 @@
+# Example batch commands for FileDO
+# Lines starting with # are comments
+folder . info hist
+file main.go info hist
+network \\localhost\c$\GIT\FileDo\test_share info hist

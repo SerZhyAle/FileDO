@@ -28,11 +28,12 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 	if fullScan {
 		err = filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
-				if os.IsPermission(err) {
+				if os.IsPermission(err) || strings.Contains(err.Error(), "being used by another process") || strings.Contains(err.Error(), "cannot access the file") {
 					accessErrors = true
 					return nil
 				}
-				return err
+				accessErrors = true
+				return nil
 			}
 			if d.IsDir() {
 				if p != path {
@@ -42,11 +43,12 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 				fileCount++
 				info, err := d.Info()
 				if err != nil {
-					if os.IsPermission(err) {
+					if os.IsPermission(err) || strings.Contains(err.Error(), "being used by another process") || strings.Contains(err.Error(), "cannot access the file") {
 						accessErrors = true
 						return nil
 					}
-					return err
+					accessErrors = true
+					return nil
 				}
 				size += uint64(info.Size())
 			}
@@ -70,7 +72,7 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 		}
 	}
 
-	if err != nil {
+	if err != nil && !accessErrors {
 		return FolderInfo{}, fmt.Errorf("failed to walk directory '%s': %w", path, err)
 	}
 
@@ -276,6 +278,18 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 }
 
 func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
+	// Setup interrupt handler
+	handler := NewInterruptHandler()
+	templateFilePath := ""
+
+	// Add cleanup for template file
+	handler.AddCleanup(func() {
+		if templateFilePath != "" {
+			os.Remove(templateFilePath)
+			fmt.Printf("✓ Template file cleaned up\n")
+		}
+	})
+
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
 	if err != nil {
@@ -288,7 +302,8 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 
 	fmt.Printf("Folder Fill Operation\n")
 	fmt.Printf("Target: %s\n", folderPath)
-	fmt.Printf("File size: %d MB\n\n", sizeMB)
+	fmt.Printf("File size: %d MB\n", sizeMB)
+	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
 
 	// Check if folder exists and is accessible
 	stat, err := os.Stat(folderPath)
@@ -361,7 +376,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 
 	// Create template file first
 	templateFileName := fmt.Sprintf("fill_template_%d_%d.txt", sizeMB, time.Now().Unix())
-	templateFilePath := filepath.Join(currentDir, templateFileName)
+	templateFilePath = filepath.Join(currentDir, templateFileName)
 
 	fmt.Printf("Creating template file (%d MB)...\n", sizeMB)
 	startTemplate := time.Now()
@@ -378,52 +393,39 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 
 	// Start filling
 	fmt.Printf("Starting fill operation...\n")
-	startFill := time.Now()
+	progress := NewProgressTracker(maxFiles, maxFiles*fileSizeBytes)
 	filesCreated := int64(0)
 	totalBytesWritten := int64(0)
 
 	for i := int64(1); i <= maxFiles; i++ {
+		// Check for interruption
+		if handler.IsCancelled() {
+			fmt.Printf("\n⚠ Operation cancelled by user\n")
+			break
+		}
+
 		// Generate file name: FILL_00001_ddHHmmss.tmp
 		fileName := fmt.Sprintf("FILL_%05d_%s.tmp", i, timestamp)
 		targetFilePath := filepath.Join(folderPath, fileName)
 
 		// Copy template file to target
-		startCopy := time.Now()
 		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false) // No progress for individual files
 		if err != nil {
 			fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", i, err)
 			break
 		}
-		copyDuration := time.Since(startCopy)
 
 		filesCreated++
 		totalBytesWritten += bytesCopied
-
-		// Show progress every 10 files or every second
-		if i%10 == 0 || copyDuration > time.Second {
-			copySpeedMBps := float64(bytesCopied) / (1024 * 1024) / copyDuration.Seconds()
-			percentComplete := float64(filesCreated) / float64(maxFiles) * 100
-			gbWritten := float64(totalBytesWritten) / (1024 * 1024 * 1024)
-			fmt.Printf("Fill %s: %3.0f%% %d/%d files (%6.1f MB/s) - %6.2f GB\r",
-				folderPath, percentComplete, filesCreated, maxFiles, copySpeedMBps, gbWritten)
-		}
+		progress.Update(filesCreated, totalBytesWritten)
+		progress.PrintProgress("Fill")
 	}
-
-	fillDuration := time.Since(startFill)
 
 	// Clean up template file
 	os.Remove(templateFilePath)
 
 	// Final summary
-	fmt.Printf("\n\nFill Operation Complete!\n")
-	fmt.Printf("Files created: %d\n", filesCreated)
-	fmt.Printf("Total data written: %.2f GB\n", float64(totalBytesWritten)/(1024*1024*1024))
-	fmt.Printf("Total time: %s\n", formatDuration(fillDuration))
-
-	if fillDuration.Seconds() > 0 {
-		avgSpeedMBps := float64(totalBytesWritten) / (1024 * 1024) / fillDuration.Seconds()
-		fmt.Printf("Average write speed: %.2f MB/s\n", avgSpeedMBps)
-	}
+	progress.Finish("Fill Operation")
 
 	// Auto-delete if requested
 	if autoDelete && filesCreated > 0 {
@@ -555,6 +557,19 @@ func runFolderFillClean(folderPath string) error {
 }
 
 func runFolderTest(folderPath string, autoDelete bool) error {
+	// Setup interrupt handler
+	handler := NewInterruptHandler()
+	var createdFiles []string
+
+	// Add cleanup for created files
+	handler.AddCleanup(func() {
+		if len(createdFiles) > 0 {
+			fmt.Printf("✓ Cleaning up %d test files...\n", len(createdFiles))
+			for _, filePath := range createdFiles {
+				os.Remove(filePath)
+			}
+		}
+	})
 	// Get available space on the drive where the folder is located
 	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
 	folderPathUTF16, err := windows.UTF16PtrFromString(folderPath)
@@ -579,9 +594,9 @@ func runFolderTest(folderPath string, autoDelete bool) error {
 	fmt.Printf("Starting fake capacity test for folder: %s\n", folderPath)
 	fmt.Printf("Free space: %d MB\n", freeSpace/(1024*1024))
 	fmt.Printf("Test file size: %d MB (1%% of free space)\n", fileSize/(1024*1024))
-	fmt.Printf("Will create 100 test files...\n\n")
+	fmt.Printf("Will create 100 test files...\n")
+	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
 
-	var createdFiles []string
 	var speeds []float64
 	baselineSpeed := 0.0
 	baselineSet := false
@@ -600,11 +615,18 @@ func runFolderTest(folderPath string, autoDelete bool) error {
 	testContent = headerLine + testContent[len(headerLine):]
 
 	// Create files and monitor speed
+	progress := NewProgressTracker(maxFiles, maxFiles*fileSize)
+
 	for i := 1; i <= maxFiles; i++ {
+		// Check for interruption
+		if handler.IsCancelled() {
+			fmt.Printf("\n⚠ Operation cancelled by user\n")
+			return fmt.Errorf("test cancelled by user")
+		}
+
 		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))
 		filePath := filepath.Join(folderPath, fileName)
 
-		fmt.Printf("Writing file %d/100: %s", i, fileName)
 		start := time.Now()
 
 		// Write file
@@ -629,7 +651,9 @@ func runFolderTest(folderPath string, autoDelete bool) error {
 		speeds = append(speeds, speed)
 		createdFiles = append(createdFiles, filePath)
 
-		fmt.Printf(" - %.2f MB/s\n", speed)
+		// Update progress tracker
+		progress.Update(int64(i), int64(i)*fileSize)
+		progress.PrintProgress("Test")
 
 		// Set baseline speed from first 3 files
 		if i <= baselineFileCount {
@@ -641,7 +665,7 @@ func runFolderTest(folderPath string, autoDelete bool) error {
 				}
 				baselineSpeed = sum / float64(baselineFileCount)
 				baselineSet = true
-				fmt.Printf("Baseline speed established: %.2f MB/s\n", baselineSpeed)
+				fmt.Printf("\nBaseline speed established: %.2f MB/s\n", baselineSpeed)
 			}
 		} else if baselineSet {
 			// Check for abnormal speed after baseline is set
