@@ -14,7 +14,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2507051800"
+const version = "2507052100"
 
 type HistoryEntry struct {
 	Timestamp  time.Time              `json:"timestamp"`
@@ -594,6 +594,10 @@ func ShowLastHistory(count int) {
 }
 
 func main() {
+
+	hi_message := "\n" + time.Now().Format("2006-01-02 15:04:05") + " sza@ukr.net " + version
+	fmt.Print(hi_message)
+
 	args := os.Args
 
 	// Initialize history logger

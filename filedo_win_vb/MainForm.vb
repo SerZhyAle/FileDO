@@ -52,13 +52,24 @@ Public Class MainForm
         Dim isFile As Boolean = chkFile.Checked
         Dim isNetwork As Boolean = chkNetwork.Checked
         
+        ' Operation availability
         chkFill.Enabled = Not isFile
         chkClean.Enabled = Not isFile And Not isNetwork
         chkTest.Enabled = Not isNetwork
         
+        ' Clear disabled operations
         If Not chkFill.Enabled And chkFill.Checked Then chkFill.Checked = False
         If Not chkClean.Enabled And chkClean.Checked Then chkClean.Checked = False
         If Not chkTest.Enabled And chkTest.Checked Then chkTest.Checked = False
+        
+        ' Flag availability based on operation
+        Dim operation As String = GetSelectedOperation()
+        chkDelete.Enabled = (operation = "test" Or operation = "fill")
+        chkMax.Enabled = (operation = "speed" Or operation = "fill")
+        
+        ' Clear disabled flags
+        If Not chkDelete.Enabled And chkDelete.Checked Then chkDelete.Checked = False
+        If Not chkMax.Enabled And chkMax.Checked Then chkMax.Checked = False
     End Sub
 
     Private Sub LogMessage(message As String)
@@ -88,7 +99,7 @@ Public Class MainForm
         End If
         If Not String.IsNullOrEmpty(flags) Then cmd &= " " & flags
         
-        lblCommand.Text = cmd
+        txtCommand.Text = cmd
         LogMessage($"Final command: '{cmd}'")
     End Sub
 
@@ -112,6 +123,7 @@ Public Class MainForm
     Private Function GetSelectedFlags() As String
         Dim flags As New List(Of String)
         If chkMax.Checked Then flags.Add("max")
+        If chkDelete.Checked Then flags.Add("del")
         If chkHelp.Checked Then flags.Add("help")
         If chkHist.Checked Then flags.Add("hist")
         If chkShort.Checked Then flags.Add("short")
@@ -208,10 +220,15 @@ Public Class MainForm
         If except <> "fill" Then chkFill.Checked = False
         If except <> "test" Then chkTest.Checked = False
         If except <> "clean" Then chkClean.Checked = False
+        UpdateOperationsAvailability()
     End Sub
 
-    Private Sub chkMax_CheckedChanged(sender As Object, e As EventArgs) Handles chkMax.CheckedChanged, chkHelp.CheckedChanged, chkHist.CheckedChanged, chkShort.CheckedChanged
+    Private Sub chkMax_CheckedChanged(sender As Object, e As EventArgs) Handles chkMax.CheckedChanged, chkHelp.CheckedChanged, chkHist.CheckedChanged, chkShort.CheckedChanged, chkDelete.CheckedChanged
         UpdateCommand()
+    End Sub
+
+    Private Sub txtCommand_TextChanged(sender As Object, e As EventArgs) Handles txtCommand.TextChanged
+        LogMessage("Command text manually changed")
     End Sub
 
     Private Sub txtPath_TextChanged(sender As Object, e As EventArgs) Handles txtPath.TextChanged
@@ -254,30 +271,28 @@ Public Class MainForm
             Return
         End If
         
-        Dim command As String = lblCommand.Text
+        Dim command As String = txtCommand.Text.Trim()
         LogMessage($"Executing command: {command}")
         
         Try
-            Dim parts As String() = command.Split(" "c)
-            If parts.Length < 2 Then
-                MessageBox.Show("Invalid command", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
+            If command.StartsWith("filedo.exe ") Then
+                Dim args As String = command.Substring(11) ' Remove "filedo.exe "
+                Dim fullCmd As String = $"cmd /c ""filedo.exe {args} & pause"""
+                
+                LogMessage($"Full command: {fullCmd}")
+                
+                Dim psi As New ProcessStartInfo() With {
+                    .FileName = "cmd",
+                    .Arguments = "/c """ & "filedo.exe " & args & " & pause""",
+                    .UseShellExecute = True,
+                    .CreateNoWindow = False
+                }
+                
+                Process.Start(psi)
+                LogMessage("Process started successfully")
+            Else
+                MessageBox.Show("Command must start with 'filedo.exe'", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End If
-            
-            Dim args As String = String.Join(" ", parts.Skip(1))
-            Dim fullCmd As String = $"cmd /c ""filedo.exe {args} & pause"""
-            
-            LogMessage($"Full command: {fullCmd}")
-            
-            Dim psi As New ProcessStartInfo() With {
-                .FileName = "cmd",
-                .Arguments = "/c """ & "filedo.exe " & args & " & pause""",
-                .UseShellExecute = True,
-                .CreateNoWindow = False
-            }
-            
-            Process.Start(psi)
-            LogMessage("Process started successfully")
             
         Catch ex As Exception
             MessageBox.Show($"Error starting process: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
