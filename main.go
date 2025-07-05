@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const version = "2507050300"
+const version = "2507050400"
 
 type HistoryEntry struct {
 	Timestamp  time.Time              `json:"timestamp"`

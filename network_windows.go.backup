@@ -753,21 +753,16 @@ func (nt *NetworkTester) GetCleanupCommand() string {
 
 // runNetworkTest now uses the generic test function
 func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
-	// tester := NewNetworkTester(networkPath)
-	// TODO: Replace with generic test function
-	// _, err := runGenericFakeCapacityTest(tester, autoDelete, logger)
-	// return err
-
-	// Temporary: call original function until refactoring is complete
-	return runNetworkTestOld(networkPath, autoDelete, logger)
+	tester := NewNetworkTester(networkPath)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, logger)
+	return err
 }
 
-func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogger) error {
-	// Setup history logging
-	if logger != nil {
-		logger.SetCommand("network", networkPath, "test")
-		logger.SetParameter("autoDelete", autoDelete)
+func cleanupNetworkFiles(files []string) {
+	for _, filePath := range files {
+		os.Remove(filePath) // Ignore errors during cleanup
 	}
+}
 
 	// Normalize the network path
 	normalizedPath := strings.ReplaceAll(networkPath, "/", "\\")

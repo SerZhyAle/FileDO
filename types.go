@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"strings"
 	"time"
 )
@@ -15,8 +16,8 @@ type FakeCapacityTester interface {
 	// GetAvailableSpace returns the available space in bytes for testing
 	GetAvailableSpace() (int64, error)
 
-	// CreateTestFile creates a test file with the given content and returns the file path
-	CreateTestFile(fileName, content string) (filePath string, err error)
+	// CreateTestFile creates a test file with the given size and returns the file path
+	CreateTestFile(fileName string, fileSize int64) (filePath string, err error)
 
 	// VerifyTestFile verifies that a test file contains the expected header
 	VerifyTestFile(filePath string) error
@@ -536,17 +537,6 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 	var baselineSpeed float64
 	baselineSet := false
 
-	// Generate test content
-	testContent := strings.Repeat("FILL_TEST_DATA_", int(fileSize)/15)
-	if len(testContent) < int(fileSize) {
-		testContent += strings.Repeat("X", int(fileSize)-len(testContent))
-	}
-	testContent = testContent[:fileSize]
-
-	// Add header line to identify the file
-	headerLine := "FILL_TEST_HEADER_LINE\n"
-	testContent = headerLine + testContent[len(headerLine):]
-
 	// Create progress tracker
 	progress := NewProgressTracker(maxFiles, maxFiles*fileSize)
 
@@ -557,7 +547,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))
 
 		start := time.Now()
-		filePath, err := tester.CreateTestFile(fileName, testContent)
+		filePath, err := tester.CreateTestFile(fileName, fileSize)
 		if err != nil {
 			// Clean up on error
 			cleanupGenericTestFiles(tester, result.CreatedFiles)
@@ -721,4 +711,58 @@ func cleanupGenericTestFiles(tester FakeCapacityTester, files []string) {
 	for _, filePath := range files {
 		tester.CleanupTestFile(filePath) // Ignore errors during cleanup
 	}
+}
+
+// writeTestFileContent writes test content to a file in chunks to avoid memory issues
+func writeTestFileContent(filePath string, fileSize int64) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Write header line first
+	headerLine := "FILL_TEST_HEADER_LINE\n"
+	written, err := file.WriteString(headerLine)
+	if err != nil {
+		return err
+	}
+	remaining := fileSize - int64(written)
+
+	// Generate test pattern
+	pattern := "FILL_TEST_DATA_"
+	patternBytes := []byte(pattern)
+	patternLen := int64(len(patternBytes))
+
+	// Write in chunks to avoid memory allocation
+	const chunkSize = 1024 * 1024 // 1MB chunks
+	chunk := make([]byte, chunkSize)
+
+	for remaining > 0 {
+		// Fill chunk with pattern
+		chunkWriteSize := chunkSize
+		if remaining < chunkSize {
+			chunkWriteSize = int(remaining)
+			chunk = chunk[:chunkWriteSize]
+		}
+
+		// Fill chunk with repeating pattern
+		for i := 0; i < chunkWriteSize; {
+			copyLen := patternLen
+			if int64(i)+copyLen > int64(chunkWriteSize) {
+				copyLen = int64(chunkWriteSize) - int64(i)
+			}
+			copy(chunk[i:i+int(copyLen)], patternBytes[:copyLen])
+			i += int(copyLen)
+		}
+
+		// Write chunk to file
+		n, err := file.Write(chunk)
+		if err != nil {
+			return err
+		}
+		remaining -= int64(n)
+	}
+
+	return file.Sync()
 }

@@ -635,7 +635,7 @@ func runFolderTest(folderPath string, autoDelete bool) error {
 	return err
 }
 
-func runFolderTestOld(folderPath string, autoDelete bool) error {
+func cleanupFiles(files []string) {
 	// Setup interrupt handler
 	handler := NewInterruptHandler()
 	var createdFiles []string

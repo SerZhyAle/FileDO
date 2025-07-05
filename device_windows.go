@@ -718,7 +718,7 @@ func (dt *DeviceTester) GetAvailableSpace() (int64, error) {
 	return int64(freeBytesAvailable), nil
 }
 
-func (dt *DeviceTester) CreateTestFile(fileName, content string) (string, error) {
+func (dt *DeviceTester) CreateTestFile(fileName string, fileSize int64) (string, error) {
 	// Get timestamp for file naming (ddHHmmss format)
 	now := time.Now()
 	timestamp := now.Format("021504") // ddHHmmss
@@ -738,8 +738,8 @@ func (dt *DeviceTester) CreateTestFile(fileName, content string) (string, error)
 		return "", fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// Calculate size in MB from content length
-	fileSizeMB := len(content) / (1024 * 1024)
+	// Calculate size in MB from file size
+	fileSizeMB := int(fileSize / (1024 * 1024))
 	if fileSizeMB == 0 {
 		fileSizeMB = 1 // Minimum 1MB
 	}
@@ -747,8 +747,8 @@ func (dt *DeviceTester) CreateTestFile(fileName, content string) (string, error)
 	templateFileName := fmt.Sprintf("test_template_%d_%d.txt", fileSizeMB, time.Now().Unix())
 	templateFilePath := filepath.Join(currentDir, templateFileName)
 
-	// Create template file with random content
-	err = createRandomFile(templateFilePath, fileSizeMB, false)
+	// Create template file with streaming content to avoid memory issues
+	err = writeTestFileContent(templateFilePath, fileSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to create template file: %w", err)
 	}

@@ -118,5 +118,43 @@ The `FakeCapacityTester` interface abstracts the differences between:
 - All tests compile and run successfully
 - Backward compatibility maintained
 
+## Memory Optimization
+
+In addition to eliminating code duplication, the refactoring also addressed a critical memory issue:
+
+### Problem
+
+The original implementation generated large test file content in memory as strings before writing to disk. For files several gigabytes in size, this caused:
+
+- Excessive RAM consumption
+- Potential application crashes
+- Poor performance on systems with limited memory
+
+### Solution
+
+Replaced in-memory string generation with streaming file writes:
+
+- **Before**: Generate entire file content in memory as a string, then write to disk
+- **After**: Write content in 1MB chunks directly to the file
+- **Function**: `writeTestFileContent()` in `types.go` handles streaming writes
+- **Benefits**: Constant memory usage regardless of file size
+
+### Implementation
+
+The `CreateTestFile` method signature was changed from:
+
+```go
+CreateTestFile(fileName, content string) (string, error)
+```
+
+to:
+
+```go
+CreateTestFile(fileName string, fileSize int64) (string, error)
+```
+
+All tester implementations now use `writeTestFileContent()` for memory-efficient file creation.
+
 ## Conclusion
-The refactoring successfully eliminates code duplication while maintaining all functionality. The interface-based approach provides a clean separation of concerns and makes the codebase more maintainable and extensible.
+
+The refactoring successfully eliminates code duplication while maintaining all functionality. The interface-based approach provides a clean separation of concerns and makes the codebase more maintainable and extensible. The memory optimization ensures the application can handle large files without excessive RAM usage.
