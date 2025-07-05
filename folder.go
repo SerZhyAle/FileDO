@@ -556,7 +556,91 @@ func runFolderFillClean(folderPath string) error {
 	return nil
 }
 
+// FolderTester implements FakeCapacityTester for folder testing
+type FolderTester struct {
+	folderPath string
+}
+
+// NewFolderTester creates a new folder tester
+func NewFolderTester(folderPath string) *FolderTester {
+	return &FolderTester{folderPath: folderPath}
+}
+
+func (ft *FolderTester) GetTestInfo() (string, string) {
+	return "Folder", ft.folderPath
+}
+
+func (ft *FolderTester) GetAvailableSpace() (int64, error) {
+	// Get available space on the drive where the folder is located
+	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
+	folderPathUTF16, err := windows.UTF16PtrFromString(ft.folderPath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert path to UTF16: %v", err)
+	}
+
+	err = windows.GetDiskFreeSpaceEx(folderPathUTF16, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get disk space: %v", err)
+	}
+
+	return int64(freeBytesAvailableToCaller), nil
+}
+
+func (ft *FolderTester) CreateTestFile(fileName, content string) (string, error) {
+	filePath := filepath.Join(ft.folderPath, fileName)
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file %s: %v", fileName, err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to write file %s: %v", fileName, err)
+	}
+
+	return filePath, nil
+}
+
+func (ft *FolderTester) VerifyTestFile(filePath string) error {
+	// Temporary implementation until generic function is available
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("could not open file: %v", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var firstLine string
+	if scanner.Scan() {
+		firstLine = scanner.Text()
+	}
+
+	expectedLine := "FILL_TEST_HEADER_LINE"
+	if firstLine != expectedLine {
+		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'", expectedLine, firstLine)
+	}
+
+	return nil
+}
+
+func (ft *FolderTester) CleanupTestFile(filePath string) error {
+	return os.Remove(filePath)
+}
+
+func (ft *FolderTester) GetCleanupCommand() string {
+	return fmt.Sprintf("filedo folder %s fill clean", ft.folderPath)
+}
+
+// runFolderTest now uses the generic test function
 func runFolderTest(folderPath string, autoDelete bool) error {
+	tester := NewFolderTester(folderPath)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, nil)
+	return err
+}
+
+func runFolderTestOld(folderPath string, autoDelete bool) error {
 	// Setup interrupt handler
 	handler := NewInterruptHandler()
 	var createdFiles []string

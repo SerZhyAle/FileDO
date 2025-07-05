@@ -7,6 +7,40 @@ import (
 	"time"
 )
 
+// FakeCapacityTester interface defines the operations needed for fake capacity testing
+type FakeCapacityTester interface {
+	// GetTestInfo returns the test type name and target path for display
+	GetTestInfo() (testType, targetPath string)
+
+	// GetAvailableSpace returns the available space in bytes for testing
+	GetAvailableSpace() (int64, error)
+
+	// CreateTestFile creates a test file with the given content and returns the file path
+	CreateTestFile(fileName, content string) (filePath string, err error)
+
+	// VerifyTestFile verifies that a test file contains the expected header
+	VerifyTestFile(filePath string) error
+
+	// CleanupTestFile removes a test file
+	CleanupTestFile(filePath string) error
+
+	// GetCleanupCommand returns the command to clean test files manually
+	GetCleanupCommand() string
+}
+
+// FakeCapacityTestResult holds the results of a fake capacity test
+type FakeCapacityTestResult struct {
+	TestPassed        bool
+	FilesCreated      int
+	TotalDataBytes    int64
+	BaselineSpeedMBps float64
+	AverageSpeedMBps  float64
+	MinSpeedMBps      float64
+	MaxSpeedMBps      float64
+	FailureReason     string
+	CreatedFiles      []string
+}
+
 type DeviceInfo struct {
 	Path             string
 	VolumeName       string
@@ -449,4 +483,242 @@ func formatBytesShort(b uint64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+// Generic fake capacity testing functions
+
+// runGenericFakeCapacityTest performs a generic fake capacity test using the provided tester interface
+func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logger *HistoryLogger) (*FakeCapacityTestResult, error) {
+	testType, targetPath := tester.GetTestInfo()
+
+	// Setup history logging if provided
+	if logger != nil {
+		logger.SetCommand(strings.ToLower(testType), targetPath, "test")
+		logger.SetParameter("autoDelete", autoDelete)
+	}
+
+	result := &FakeCapacityTestResult{
+		CreatedFiles: make([]string, 0, 100),
+	}
+
+	// Get available space
+	freeSpace, err := tester.GetAvailableSpace()
+	if err != nil {
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return result, err
+	}
+
+	// Check minimum space requirement (100MB)
+	minSpaceBytes := int64(100 * 1024 * 1024) // 100MB
+	if freeSpace < minSpaceBytes {
+		err = fmt.Errorf("insufficient free space. At least 100MB required, but only %d MB available", freeSpace/(1024*1024))
+		if logger != nil {
+			logger.SetError(err)
+		}
+		return result, err
+	}
+
+	// Calculate file size (1% of free space)
+	fileSize := freeSpace / 100
+	fileSizeMB := fileSize / (1024 * 1024)
+
+	fmt.Printf("%s Fake Capacity Test\n", testType)
+	fmt.Printf("Target: %s\n", targetPath)
+	fmt.Printf("Available space: %.2f GB\n", float64(freeSpace)/(1024*1024*1024))
+	fmt.Printf("Test file size: %d MB (1%% of free space)\n", fileSizeMB)
+	fmt.Printf("Will create 100 test files...\n\n")
+
+	const maxFiles = 100
+	const baselineFileCount = 3
+	var speeds []float64
+	var baselineSpeed float64
+	baselineSet := false
+
+	// Generate test content
+	testContent := strings.Repeat("FILL_TEST_DATA_", int(fileSize)/15)
+	if len(testContent) < int(fileSize) {
+		testContent += strings.Repeat("X", int(fileSize)-len(testContent))
+	}
+	testContent = testContent[:fileSize]
+
+	// Add header line to identify the file
+	headerLine := "FILL_TEST_HEADER_LINE\n"
+	testContent = headerLine + testContent[len(headerLine):]
+
+	// Create progress tracker
+	progress := NewProgressTracker(maxFiles, maxFiles*fileSize)
+
+	// Write phase
+	fmt.Printf("Starting capacity test - writing %d files...\n", maxFiles)
+
+	for i := 1; i <= maxFiles; i++ {
+		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))
+
+		start := time.Now()
+		filePath, err := tester.CreateTestFile(fileName, testContent)
+		if err != nil {
+			// Clean up on error
+			cleanupGenericTestFiles(tester, result.CreatedFiles)
+			result.FailureReason = fmt.Sprintf("Failed to create file %d: %v", i, err)
+			err = fmt.Errorf("failed to create file %s: %v", fileName, err)
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return result, err
+		}
+		duration := time.Since(start)
+
+		result.FilesCreated++
+		result.TotalDataBytes += fileSize
+		result.CreatedFiles = append(result.CreatedFiles, filePath)
+
+		// Calculate write speed
+		speed := float64(fileSize) / duration.Seconds() / (1024 * 1024) // MB/s
+		speeds = append(speeds, speed)
+
+		// Update progress
+		progress.Update(int64(result.FilesCreated), result.TotalDataBytes)
+		progress.PrintProgress("Test")
+
+		// Set baseline speed from first 3 files
+		if i <= baselineFileCount {
+			if i == baselineFileCount {
+				// Calculate average of first 3 files as baseline
+				sum := 0.0
+				for _, s := range speeds[:baselineFileCount] {
+					sum += s
+				}
+				baselineSpeed = sum / float64(baselineFileCount)
+				result.BaselineSpeedMBps = baselineSpeed
+				baselineSet = true
+				fmt.Printf("Baseline speed established: %.2f MB/s\n", baselineSpeed)
+			}
+		} else if baselineSet {
+			// Check for abnormal speed after baseline is set
+			if speed < baselineSpeed*0.1 { // Less than 10% of baseline
+				result.TestPassed = false
+				result.FailureReason = fmt.Sprintf("Speed dropped to %.2f MB/s (less than 10%% of baseline %.2f MB/s) at file %d", speed, baselineSpeed, i)
+				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
+				fmt.Printf("This indicates potential fake capacity or device failure.\n")
+				fmt.Printf("Keeping %d test files for analysis.\n", len(result.CreatedFiles))
+
+				err = fmt.Errorf("test failed due to abnormally slow write speed")
+				if logger != nil {
+					logger.SetError(err)
+				}
+				return result, err
+			}
+			if speed > baselineSpeed*10 { // More than 10x baseline
+				result.TestPassed = false
+				result.FailureReason = fmt.Sprintf("Speed jumped to %.2f MB/s (more than 1000%% of baseline %.2f MB/s) at file %d", speed, baselineSpeed, i)
+				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
+				fmt.Printf("This indicates potential fake writing or caching issues.\n")
+				fmt.Printf("Keeping %d test files for analysis.\n", len(result.CreatedFiles))
+
+				err = fmt.Errorf("test failed due to abnormally fast write speed")
+				if logger != nil {
+					logger.SetError(err)
+				}
+				return result, err
+			}
+		}
+	}
+
+	fmt.Printf("\n✅ Write phase completed successfully!\n")
+	fmt.Printf("Now verifying file integrity...\n\n")
+
+	// Verification phase
+	for i, filePath := range result.CreatedFiles {
+		fileName := fmt.Sprintf("file %d/%d", i+1, len(result.CreatedFiles))
+		fmt.Printf("Verifying %s", fileName)
+
+		err := tester.VerifyTestFile(filePath)
+		if err != nil {
+			fmt.Printf(" - ❌ FAILED\n")
+			result.TestPassed = false
+			result.FailureReason = fmt.Sprintf("File verification failed at %s: %v", fileName, err)
+			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
+			fmt.Printf("This indicates data corruption or fake capacity.\n")
+			fmt.Printf("Keeping %d test files for analysis.\n", len(result.CreatedFiles))
+
+			err = fmt.Errorf("test failed during verification - file corruption detected")
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return result, err
+		}
+
+		fmt.Printf(" - ✅ OK\n")
+	}
+
+	// Calculate statistics
+	if len(speeds) > 0 {
+		result.MinSpeedMBps = speeds[0]
+		result.MaxSpeedMBps = speeds[0]
+		sum := 0.0
+
+		for _, speed := range speeds {
+			if speed < result.MinSpeedMBps {
+				result.MinSpeedMBps = speed
+			}
+			if speed > result.MaxSpeedMBps {
+				result.MaxSpeedMBps = speed
+			}
+			sum += speed
+		}
+		result.AverageSpeedMBps = sum / float64(len(speeds))
+	}
+
+	result.TestPassed = true
+
+	fmt.Printf("\n✅ TEST PASSED SUCCESSFULLY!\n")
+	fmt.Printf("All %d files were written and verified successfully.\n", result.FilesCreated)
+	fmt.Printf("\n📊 Speed Statistics:\n")
+	fmt.Printf("  Baseline speed (first 3 files): %.2f MB/s\n", result.BaselineSpeedMBps)
+	fmt.Printf("  Average speed: %.2f MB/s\n", result.AverageSpeedMBps)
+	fmt.Printf("  Minimum speed: %.2f MB/s\n", result.MinSpeedMBps)
+	fmt.Printf("  Maximum speed: %.2f MB/s\n", result.MaxSpeedMBps)
+	fmt.Printf("  Total data written: %.2f MB\n", float64(result.TotalDataBytes)/(1024*1024))
+
+	// Auto-delete if requested and test passed
+	if autoDelete {
+		fmt.Printf("\n🗑️  Auto-delete enabled, cleaning up test files...\n")
+		deletedCount := 0
+		for _, filePath := range result.CreatedFiles {
+			if err := tester.CleanupTestFile(filePath); err != nil {
+				fmt.Printf("Warning: Failed to delete file: %v\n", err)
+			} else {
+				deletedCount++
+			}
+		}
+		fmt.Printf("Successfully deleted %d/%d test files.\n", deletedCount, len(result.CreatedFiles))
+	} else {
+		fmt.Printf("\n📁 Test files kept for manual inspection:\n")
+		fmt.Printf("   Location: %s\n", targetPath)
+		fmt.Printf("   Files: FILL_001_*.tmp to FILL_%03d_*.tmp\n", result.FilesCreated)
+		fmt.Printf("   Use '%s' to remove them later.\n", tester.GetCleanupCommand())
+	}
+
+	// Log results if logger provided
+	if logger != nil {
+		logger.SetResult("testPassed", result.TestPassed)
+		logger.SetResult("averageSpeedMBps", result.AverageSpeedMBps)
+		logger.SetResult("minSpeedMBps", result.MinSpeedMBps)
+		logger.SetResult("maxSpeedMBps", result.MaxSpeedMBps)
+		logger.SetResult("baselineSpeedMBps", result.BaselineSpeedMBps)
+		logger.SetResult("totalDataMB", float64(result.TotalDataBytes)/(1024*1024))
+		logger.SetResult("filesDeleted", autoDelete)
+		logger.SetSuccess()
+	}
+
+	return result, nil
+}
+
+// cleanupGenericTestFiles removes test files using the tester interface
+func cleanupGenericTestFiles(tester FakeCapacityTester, files []string) {
+	for _, filePath := range files {
+		tester.CleanupTestFile(filePath) // Ignore errors during cleanup
+	}
 }

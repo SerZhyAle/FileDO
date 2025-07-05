@@ -672,7 +672,140 @@ func runDeviceFillClean(devicePath string) error {
 	return nil
 }
 
+// DeviceTester implements FakeCapacityTester for device testing
+type DeviceTester struct {
+	devicePath string
+}
+
+// NewDeviceTester creates a new device tester
+func NewDeviceTester(devicePath string) *DeviceTester {
+	// Normalize device path
+	normalizedPath := devicePath
+	if len(normalizedPath) == 2 && normalizedPath[1] == ':' {
+		normalizedPath += "\\"
+	}
+	return &DeviceTester{devicePath: normalizedPath}
+}
+
+func (dt *DeviceTester) GetTestInfo() (string, string) {
+	return "Device", dt.devicePath
+}
+
+func (dt *DeviceTester) GetAvailableSpace() (int64, error) {
+	// Check if device is accessible
+	if _, err := os.Stat(dt.devicePath); err != nil {
+		return 0, fmt.Errorf("device path is not accessible: %w", err)
+	}
+
+	// Test write access
+	testFileName := fmt.Sprintf("__filedo_test_%d.tmp", time.Now().UnixNano())
+	testFilePath := filepath.Join(dt.devicePath, testFileName)
+	testFile, err := os.Create(testFilePath)
+	if err != nil {
+		return 0, fmt.Errorf("device path is not writable: %w", err)
+	}
+	testFile.WriteString("test")
+	testFile.Close()
+	os.Remove(testFilePath) // Clean up test file
+
+	// Get available space using Windows API
+	var freeBytesAvailable, totalBytes, totalFreeBytes uint64
+	err = windows.GetDiskFreeSpaceEx(windows.StringToUTF16Ptr(dt.devicePath), &freeBytesAvailable, &totalBytes, &totalFreeBytes)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get disk space information: %w", err)
+	}
+
+	return int64(freeBytesAvailable), nil
+}
+
+func (dt *DeviceTester) CreateTestFile(fileName, content string) (string, error) {
+	// Get timestamp for file naming (ddHHmmss format)
+	now := time.Now()
+	timestamp := now.Format("021504") // ddHHmmss
+
+	// Override filename with timestamp format: FILL_001_ddHHmmss.tmp
+	parts := strings.Split(fileName, "_")
+	if len(parts) >= 2 {
+		fileName = fmt.Sprintf("FILL_%s_%s.tmp", parts[1], timestamp)
+	}
+
+	filePath := filepath.Join(dt.devicePath, fileName)
+
+	// For device testing, we create a template file first and copy it
+	// This matches the original device test behavior
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Calculate size in MB from content length
+	fileSizeMB := len(content) / (1024 * 1024)
+	if fileSizeMB == 0 {
+		fileSizeMB = 1 // Minimum 1MB
+	}
+
+	templateFileName := fmt.Sprintf("test_template_%d_%d.txt", fileSizeMB, time.Now().Unix())
+	templateFilePath := filepath.Join(currentDir, templateFileName)
+
+	// Create template file with random content
+	err = createRandomFile(templateFilePath, fileSizeMB, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to create template file: %w", err)
+	}
+
+	// Copy template to target
+	_, err = copyFileWithProgress(templateFilePath, filePath, false)
+	if err != nil {
+		os.Remove(templateFilePath) // Clean up template on error
+		return "", err
+	}
+
+	// Clean up template file
+	os.Remove(templateFilePath)
+
+	return filePath, nil
+}
+
+func (dt *DeviceTester) VerifyTestFile(filePath string) error {
+	// For device files, we check if the file can be opened and read
+	// since they use random content, not the header line
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("could not open file: %v", err)
+	}
+	defer file.Close()
+
+	// Read first line to ensure file is readable
+	scanner := bufio.NewScanner(file)
+	if !scanner.Scan() {
+		return fmt.Errorf("file appears to be empty or corrupted")
+	}
+
+	firstLine := scanner.Text()
+	// Device test files have format "=== BLOCK 000001 === START ==="
+	if !strings.Contains(firstLine, "=== BLOCK") || !strings.Contains(firstLine, "START ===") {
+		return fmt.Errorf("file corruption detected - invalid file format")
+	}
+
+	return nil
+}
+
+func (dt *DeviceTester) CleanupTestFile(filePath string) error {
+	return os.Remove(filePath)
+}
+
+func (dt *DeviceTester) GetCleanupCommand() string {
+	return fmt.Sprintf("filedo device %s fill clean", dt.devicePath)
+}
+
+// runDeviceTest now uses the generic test function
 func runDeviceTest(devicePath string, autoDelete bool) error {
+	tester := NewDeviceTester(devicePath)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, nil)
+	return err
+}
+
+func runDeviceTestOld(devicePath string, autoDelete bool) error {
 	// Normalize device path
 	normalizedPath := devicePath
 	if len(normalizedPath) == 2 && normalizedPath[1] == ':' {

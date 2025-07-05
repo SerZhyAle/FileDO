@@ -668,7 +668,106 @@ func runNetworkFillClean(networkPath string, logger *HistoryLogger) error {
 	return nil
 }
 
+// NetworkTester implements FakeCapacityTester for network testing
+type NetworkTester struct {
+	networkPath string
+}
+
+// NewNetworkTester creates a new network tester
+func NewNetworkTester(networkPath string) *NetworkTester {
+	// Normalize the network path
+	normalizedPath := strings.ReplaceAll(networkPath, "/", "\\")
+	if !strings.HasPrefix(normalizedPath, "\\\\") {
+		normalizedPath = "\\\\" + strings.TrimPrefix(normalizedPath, "\\")
+	}
+	return &NetworkTester{networkPath: normalizedPath}
+}
+
+func (nt *NetworkTester) GetTestInfo() (string, string) {
+	return "Network", nt.networkPath
+}
+
+func (nt *NetworkTester) GetAvailableSpace() (int64, error) {
+	// Check if the network path exists and is accessible
+	if _, err := os.Stat(nt.networkPath); err != nil {
+		return 0, fmt.Errorf("network path not accessible: %v", err)
+	}
+
+	// For network paths, we'll estimate available space by trying to create a test file
+	// Since GetDiskFreeSpaceEx might not work reliably on network paths
+	var freeSpace int64 = 1024 * 1024 * 1024 // Default to 1GB if we can't detect
+
+	// Convert to UTF16 for Windows API
+	if pathUTF16, err := windows.UTF16PtrFromString(nt.networkPath); err == nil {
+		var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
+		if err := windows.GetDiskFreeSpaceEx(pathUTF16, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes); err == nil {
+			freeSpace = int64(freeBytesAvailableToCaller)
+		}
+	}
+
+	return freeSpace, nil
+}
+
+func (nt *NetworkTester) CreateTestFile(fileName, content string) (string, error) {
+	filePath := filepath.Join(nt.networkPath, fileName)
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file %s: %v", fileName, err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to write file %s: %v", fileName, err)
+	}
+
+	return filePath, nil
+}
+
+func (nt *NetworkTester) VerifyTestFile(filePath string) error {
+	// Temporary implementation until generic function is available
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("could not open file: %v", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var firstLine string
+	if scanner.Scan() {
+		firstLine = scanner.Text()
+	}
+	file.Close()
+
+	expectedLine := "FILL_TEST_HEADER_LINE"
+	if firstLine != expectedLine {
+		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'", expectedLine, firstLine)
+	}
+
+	return nil
+}
+
+func (nt *NetworkTester) CleanupTestFile(filePath string) error {
+	return os.Remove(filePath)
+}
+
+func (nt *NetworkTester) GetCleanupCommand() string {
+	return fmt.Sprintf("filedo network %s fill clean", nt.networkPath)
+}
+
+// runNetworkTest now uses the generic test function
 func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
+	// tester := NewNetworkTester(networkPath)
+	// TODO: Replace with generic test function
+	// _, err := runGenericFakeCapacityTest(tester, autoDelete, logger)
+	// return err
+
+	// Temporary: call original function until refactoring is complete
+	return runNetworkTestOld(networkPath, autoDelete, logger)
+}
+
+func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogger) error {
 	// Setup history logging
 	if logger != nil {
 		logger.SetCommand("network", networkPath, "test")
@@ -689,9 +788,6 @@ func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) 
 		}
 		return err
 	}
-
-	// For network paths, we'll estimate available space by trying to create a test file
-	// Since GetDiskFreeSpaceEx might not work reliably on network paths, we'll use a different approach
 
 	// Try to get disk space info, but don't fail if it doesn't work
 	var freeSpace int64 = 1024 * 1024 * 1024 // Default to 1GB if we can't detect
@@ -866,19 +962,21 @@ func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) 
 
 	// Calculate statistics
 	var minSpeed, maxSpeed, avgSpeed float64
-	minSpeed = speeds[0]
-	maxSpeed = speeds[0]
-	sum := 0.0
-	for _, speed := range speeds {
-		if speed < minSpeed {
-			minSpeed = speed
+	if len(speeds) > 0 {
+		minSpeed = speeds[0]
+		maxSpeed = speeds[0]
+		sum := 0.0
+		for _, speed := range speeds {
+			if speed < minSpeed {
+				minSpeed = speed
+			}
+			if speed > maxSpeed {
+				maxSpeed = speed
+			}
+			sum += speed
 		}
-		if speed > maxSpeed {
-			maxSpeed = speed
-		}
-		sum += speed
+		avgSpeed = sum / float64(len(speeds))
 	}
-	avgSpeed = sum / float64(len(speeds))
 
 	fmt.Printf("\n✅ TEST PASSED SUCCESSFULLY!\n")
 	fmt.Printf("All 100 files were written and verified successfully.\n")
