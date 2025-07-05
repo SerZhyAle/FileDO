@@ -1,0 +1,13 @@
+# Memory Optimization and Large File Tests
+# Tests memory-optimized streaming file writing
+# Run with: filedo.exe from test_memory_optimization.txt
+
+# Test Memory-Optimized large file operations
+folder C:\temp\filedo_memory_test speed max
+
+# Test large capacity test (memory optimization)
+# Choose small partition here
+folder F:\temp\filedo_memory_test test del
+
+# Clean up
+folder C:\temp\filedo_memory_test clean

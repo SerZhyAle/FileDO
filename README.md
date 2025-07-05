@@ -18,9 +18,11 @@
 
 - **Memory-Optimized**: Streaming file writing for large capacity tests
 - **Unified Architecture**: Single interface for all storage types via `FakeCapacityTester`
-- **Error Handling**: Robust batch execution with detailed error reporting
+- **Two-Stage Verification**: Immediate verification during file creation + final integrity check
+- **Smart Error Handling**: Automatic test termination and cleanup on verification failures
+- **Real-Time Progress**: Live progress display with format "Test: X/Y (speed) - data ETA: time"
+- **Detailed Diagnostics**: Comprehensive error reporting with file paths and corruption details
 - **User-Friendly Help**: Comprehensive 79-line help with practical examples
-- **Verification System**: First-line file content verification for integrity testing
 
 ## 📦 Installation
 
@@ -233,14 +235,31 @@ filedo.exe device D: clean       # Remove all test files
 
 ### How It Works
 
-FileDO's fake capacity detection creates 100 test files, each representing 1% of the reported storage capacity. This method effectively detects counterfeit storage devices that report false sizes.
+FileDO's fake capacity detection creates 100 test files, each representing around 1% of the free storage capacity. This method effectively detects counterfeit storage devices that report false sizes.
 
 **Detection Process:**
 
-1. **Analysis Phase**: Calculate 1% of reported capacity
-2. **Write Phase**: Create 100 files with unique content
-3. **Verification Phase**: Read and verify each file's first line
-4. **Report Phase**: Identify any corruption or write failures
+1. **Analysis Phase**: Calculate file size based on available storage
+2. **Write Phase**: Create 100 files with unique content and immediate verification
+3. **Final Verification Phase**: Complete integrity check of all created files
+4. **Report Phase**: Display results with detailed diagnostics if needed
+
+**Advanced Verification System:**
+
+- **Two-Stage Verification**: Each file is verified immediately after creation, then all files undergo final verification
+- **Immediate Error Detection**: Test stops immediately if any file fails verification during creation
+- **Auto-Cleanup on Errors**: All created files are automatically deleted if test fails
+- **Progress Format**: Real-time progress display as "Test: X/Y (speed) - data ETA: time"
+- **Final Output**: Single summary line "Verified N files - ✅ OK" on success, or detailed error information on failure
+
+**Error Handling & Diagnostics:**
+
+When verification fails, FileDO provides comprehensive diagnostics:
+
+- Exact file path where error occurred
+- Expected vs. actual file header content
+- Detailed error description (corruption, device failure, fake capacity)
+- Information about automatic cleanup performed
 
 ### Common Scenarios
 

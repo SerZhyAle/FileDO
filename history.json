@@ -415,5 +415,81 @@
     "results": {},
     "duration": "   2.6ms",
     "success": false
+  },
+  {
+    "timestamp": "2025-07-05T12:57:06.0673971+02:00",
+    "command": "device",
+    "target": "f:",
+    "operation": "test",
+    "parameters": {
+      "args": [
+        "f:",
+        "test",
+        "del",
+        "hist"
+      ],
+      "autoDelete": true
+    },
+    "results": {},
+    "duration": "  40.4s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T13:02:00.641262+02:00",
+    "command": "device",
+    "target": "f:",
+    "operation": "test",
+    "parameters": {
+      "args": [
+        "f:",
+        "test",
+        "del",
+        "hist"
+      ],
+      "autoDelete": true
+    },
+    "results": {},
+    "duration": "  37.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-05T13:48:05.602378+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T13:54:44.4827335+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T14:04:16.5388046+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   3.1ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-07-05T14:10:17.0215969+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "parameters": {},
+    "results": {},
+    "duration": "   7.2ms",
+    "success": false
   }
 ]

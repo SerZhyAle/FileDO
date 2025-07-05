@@ -863,6 +863,46 @@ func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogge
 			return err
 		}
 
+		// Verify file immediately after creation
+		file, err = os.Open(filePath)
+		if err != nil {
+			// Clean up on verification error
+			cleanupNetworkFiles(createdFiles)
+			fmt.Printf("\n❌ TEST FAILED: Could not open file %s for immediate verification: %v\n", fileName, err)
+			fmt.Printf("This indicates data corruption, network issues, or device failure.\n")
+			fmt.Printf("File: %s\n", filePath)
+			fmt.Printf("Error details: %v\n", err)
+			fmt.Printf("All %d created files have been cleaned up.\n", len(createdFiles))
+			err = fmt.Errorf("test failed during immediate file verification - could not open file")
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return err
+		}
+
+		scanner := bufio.NewScanner(file)
+		var firstLine string
+		if scanner.Scan() {
+			firstLine = scanner.Text()
+		}
+		file.Close()
+
+		if firstLine != "FILL_TEST_HEADER_LINE" {
+			// Clean up on verification error
+			cleanupNetworkFiles(createdFiles)
+			fmt.Printf("\n❌ TEST FAILED: File %s is corrupted immediately after creation\n", fileName)
+			fmt.Printf("Expected header: 'FILL_TEST_HEADER_LINE'\n")
+			fmt.Printf("Found header: '%s'\n", firstLine)
+			fmt.Printf("This indicates data corruption, fake capacity, or network issues.\n")
+			fmt.Printf("File: %s\n", filePath)
+			fmt.Printf("All %d created files have been cleaned up.\n", len(createdFiles))
+			err = fmt.Errorf("test failed during immediate file verification - data corruption detected")
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return err
+		}
+
 		duration := time.Since(start)
 		speed := float64(fileSize) / duration.Seconds() / (1024 * 1024) // MB/s
 		speeds = append(speeds, speed)
@@ -910,17 +950,17 @@ func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogge
 	}
 
 	fmt.Printf("\n✅ Write phase completed successfully!\n")
-	fmt.Printf("Now verifying file integrity...\n\n")
+	fmt.Printf("Now verifying file integrity...\n")
 
 	// Verify files in creation order
 	for i, filePath := range createdFiles {
 		fileName := filepath.Base(filePath)
-		fmt.Printf("Verifying file %d/100: %s", i+1, fileName)
 
 		// Read and verify file
 		file, err := os.Open(filePath)
 		if err != nil {
-			fmt.Printf(" - ❌ FAILED to open\n")
+			fileNum := fmt.Sprintf("file %d/%d", i+1, len(createdFiles))
+			fmt.Printf("Verifying %s - ❌ FAILED\n", fileNum)
 			fmt.Printf("\n❌ TEST FAILED: Could not open file %s for verification: %v\n", fileName, err)
 			fmt.Printf("This indicates data corruption or network issues.\n")
 			fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
@@ -939,7 +979,8 @@ func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogge
 		file.Close()
 
 		if firstLine != "FILL_TEST_HEADER_LINE" {
-			fmt.Printf(" - ❌ CORRUPTED\n")
+			fileNum := fmt.Sprintf("file %d/%d", i+1, len(createdFiles))
+			fmt.Printf("Verifying %s - ❌ FAILED\n", fileNum)
 			fmt.Printf("\n❌ TEST FAILED: File %s is corrupted (expected header not found)\n", fileName)
 			fmt.Printf("Expected: 'FILL_TEST_HEADER_LINE'\n")
 			fmt.Printf("Found: '%s'\n", firstLine)
@@ -951,9 +992,9 @@ func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogge
 			}
 			return err
 		}
-
-		fmt.Printf(" - ✅ OK\n")
 	}
+
+	fmt.Printf("Verified %d files - ✅ OK\n", len(createdFiles))
 
 	// Calculate statistics
 	var minSpeed, maxSpeed, avgSpeed float64

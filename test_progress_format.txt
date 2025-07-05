@@ -1,0 +1,19 @@
+# Progress Format and Output Testing
+# Tests the specific progress format: "Test: X/Y (speed) - data ETA: time"
+# Run with: filedo.exe from test_progress_format.txt
+# Use small partition here
+
+# Test Progress Format during capacity test
+folder F:\temp\filedo_progress_test test
+
+# Test Progress Format during speed test
+folder F:\temp\filedo_progress_test speed 200
+
+# Test Progress Format during fill operation
+folder F:\temp\filedo_progress_test fill 100
+
+# Test Final Output Format - should show "Verified N files - ✅ OK"
+folder F:\temp\filedo_progress_test test del
+
+# Clean up
+folder F:\temp\filedo_progress_test clean

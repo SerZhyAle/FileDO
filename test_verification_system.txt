@@ -1,0 +1,19 @@
+# Advanced Verification System Test
+# Tests the Two-Stage Verification and Error Handling features
+# Run with: filedo.exe from test_verification_system.txt
+
+# Test Two-Stage Verification System
+folder C:\temp\filedo_verification_test test
+
+# Test Error Handling & Auto-Cleanup
+folder C:\temp\filedo_verification_test test del
+
+# Test Real-Time Progress Display
+folder C:\temp\filedo_verification_test speed 100
+
+# Test Detailed Diagnostics (if errors occur)
+folder C:\temp\filedo_verification_test fill 100
+folder C:\temp\filedo_verification_test test
+
+# Clean up
+folder C:\temp\filedo_verification_test clean

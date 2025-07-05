@@ -1,0 +1,20 @@
+# Device-Specific Features Test
+# Tests device operations as declared in README.md
+# Run with: filedo.exe from test_device_features.txt
+
+# Basic Device Information
+device C: info
+device C: short
+device C:
+
+# Performance Testing
+device C: speed 100
+device C: speed 100 short
+device C: speed 100 nodel
+
+# Clean up any test files
+device C: clean
+
+# Test help functionality
+?
+help

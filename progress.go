@@ -70,7 +70,6 @@ func (pt *ProgressTracker) PrintProgress(operation string) {
 
 	pt.lastUpdate = time.Now()
 
-	percentComplete := float64(pt.currentItem) / float64(pt.totalItems) * 100
 	speedMBps := pt.GetCurrentSpeed()
 	eta := pt.GetETA()
 	gbProcessed := float64(pt.currentBytes) / (1024 * 1024 * 1024)
@@ -88,8 +87,8 @@ func (pt *ProgressTracker) PrintProgress(operation string) {
 		etaStr = "ETA: --"
 	}
 
-	fmt.Printf("%s: %3.0f%% %d/%d items (%6.1f MB/s) - %6.2f GB %s\r",
-		operation, percentComplete, pt.currentItem, pt.totalItems, speedMBps, gbProcessed, etaStr)
+	fmt.Printf("%s: %d/%d (%6.1f MB/s) - %6.2f GB %s\r",
+		operation, pt.currentItem, pt.totalItems, speedMBps, gbProcessed, etaStr)
 }
 
 func (pt *ProgressTracker) Finish(operation string) {

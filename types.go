@@ -521,17 +521,25 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		return result, err
 	}
 
-	// Calculate file size (1% of free space)
-	fileSize := freeSpace / 100
+	// Calculate file size to use 95% of available space for 100 files
+	const maxFiles = 100
+	totalDataTarget := int64(float64(freeSpace) * 0.95) // Use 95% of available space
+	fileSize := totalDataTarget / maxFiles
 	fileSizeMB := fileSize / (1024 * 1024)
+
+	// Ensure minimum file size of 1MB
+	if fileSize < 1024*1024 {
+		fileSize = 1024 * 1024 // 1MB minimum
+		fileSizeMB = 1
+	}
 
 	fmt.Printf("%s Fake Capacity Test\n", testType)
 	fmt.Printf("Target: %s\n", targetPath)
 	fmt.Printf("Available space: %.2f GB\n", float64(freeSpace)/(1024*1024*1024))
-	fmt.Printf("Test file size: %d MB (1%% of free space)\n", fileSizeMB)
-	fmt.Printf("Will create 100 test files...\n\n")
+	fmt.Printf("Test file size: %d MB (%.1f%% of available space for %d files)\n",
+		fileSizeMB, float64(totalDataTarget)/float64(freeSpace)*100, maxFiles)
+	fmt.Printf("Will create %d test files...\n\n", maxFiles)
 
-	const maxFiles = 100
 	const baselineFileCount = 3
 	var speeds []float64
 	var baselineSpeed float64
@@ -563,6 +571,26 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		result.FilesCreated++
 		result.TotalDataBytes += fileSize
 		result.CreatedFiles = append(result.CreatedFiles, filePath)
+
+		// Verify file immediately after creation
+		err = tester.VerifyTestFile(filePath)
+		if err != nil {
+			// Clean up on verification error
+			cleanupGenericTestFiles(tester, result.CreatedFiles)
+			result.TestPassed = false
+			result.FailureReason = fmt.Sprintf("File verification failed immediately after creation at file %d (%s): %v", i, fileName, err)
+			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
+			fmt.Printf("This indicates data corruption, device failure, or fake capacity.\n")
+			fmt.Printf("File: %s\n", filePath)
+			fmt.Printf("Error details: %v\n", err)
+			fmt.Printf("All %d created files have been cleaned up.\n", len(result.CreatedFiles))
+
+			err = fmt.Errorf("test failed during immediate file verification")
+			if logger != nil {
+				logger.SetError(err)
+			}
+			return result, err
+		}
 
 		// Calculate write speed
 		speed := float64(fileSize) / duration.Seconds() / (1024 * 1024) // MB/s
@@ -617,16 +645,14 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 	}
 
 	fmt.Printf("\n✅ Write phase completed successfully!\n")
-	fmt.Printf("Now verifying file integrity...\n\n")
+	fmt.Printf("Now verifying file integrity...\n")
 
 	// Verification phase
 	for i, filePath := range result.CreatedFiles {
-		fileName := fmt.Sprintf("file %d/%d", i+1, len(result.CreatedFiles))
-		fmt.Printf("Verifying %s", fileName)
-
 		err := tester.VerifyTestFile(filePath)
 		if err != nil {
-			fmt.Printf(" - ❌ FAILED\n")
+			fileName := fmt.Sprintf("file %d/%d", i+1, len(result.CreatedFiles))
+			fmt.Printf("Verifying %s - ❌ FAILED\n", fileName)
 			result.TestPassed = false
 			result.FailureReason = fmt.Sprintf("File verification failed at %s: %v", fileName, err)
 			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
@@ -639,9 +665,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 			}
 			return result, err
 		}
-
-		fmt.Printf(" - ✅ OK\n")
 	}
+
+	fmt.Printf("Verified %d files - ✅ OK\n", len(result.CreatedFiles))
 
 	// Calculate statistics
 	if len(speeds) > 0 {
