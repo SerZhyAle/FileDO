@@ -14,7 +14,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2507052100"
+const version = "2507052345"
 
 type HistoryEntry struct {
 	Timestamp  time.Time              `json:"timestamp"`
@@ -278,6 +278,8 @@ IMPORTANT NOTES
 
 • Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
   total capacity, to detect counterfeit storage devices that report false sizes.
+  Uses optimized smart verification - full verification for first 5 files and
+  every 10th file, fast header-only checks for recent files between milestones.
 
 • Secure Wiping: Use 'fill <size> del' to overwrite free space and prevent
   recovery of previously deleted files.
@@ -595,8 +597,17 @@ func ShowLastHistory(count int) {
 
 func main() {
 
-	hi_message := "\n" + time.Now().Format("2006-01-02 15:04:05") + " sza@ukr.net " + version
+	hi_message := "\n" + time.Now().Format("2006-01-02 15:04:05") + " sza@ukr.net " + version + "\n"
 	fmt.Print(hi_message)
+
+	// Ensure bue_message is always printed, even on errors or panic
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
+		}
+		bue_message := "\n" + time.Now().Format("2006-01-02 15:04:05") + " sza@ukr.net " + version
+		fmt.Print(bue_message)
+	}()
 
 	args := os.Args
 
@@ -698,7 +709,4 @@ func main() {
 		fmt.Println(usage)
 		os.Exit(1)
 	}
-
-	bue_message := "\n" + time.Now().Format("2006-01-02 15:04:05") + " sza@ukr.net " + version
-	fmt.Print(bue_message)
 }

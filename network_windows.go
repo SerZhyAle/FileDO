@@ -248,7 +248,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	}
 
 	startUpload := time.Now()
-	bytesUploaded, err := copyFileWithProgress(localFileName, networkFileName, !shortFormat)
+	bytesUploaded, err := copyFileOptimized(localFileName, networkFileName)
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFileName)
@@ -281,7 +281,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 	}
 
 	startDownload := time.Now()
-	bytesDownloaded, err := copyFileWithProgress(networkFileName, downloadFileName, !shortFormat)
+	bytesDownloaded, err := copyFileOptimized(networkFileName, downloadFileName)
 	if err != nil {
 		// Clean up files before returning error
 		os.Remove(localFileName)
@@ -473,7 +473,7 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool, logger *Hist
 		targetFilePath := filepath.Join(networkPath, fileName)
 
 		// Copy template file to target
-		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false) // No progress for individual files
+		bytesCopied, err := copyFileOptimized(templateFilePath, targetFilePath)
 		if err != nil {
 			fmt.Printf("\n⚠ Stopping: Failed to create file %d: %v\n", i, err)
 			break
@@ -710,8 +710,8 @@ func (nt *NetworkTester) GetAvailableSpace() (int64, error) {
 func (nt *NetworkTester) CreateTestFile(fileName string, fileSize int64) (string, error) {
 	filePath := filepath.Join(nt.networkPath, fileName)
 
-	// Use streaming write to avoid memory issues
-	err := writeTestFileContent(filePath, fileSize)
+	// Use optimized direct write for network paths too
+	err := writeTestFileContentOptimized(filePath, fileSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file %s: %v", fileName, err)
 	}
@@ -720,26 +720,7 @@ func (nt *NetworkTester) CreateTestFile(fileName string, fileSize int64) (string
 }
 
 func (nt *NetworkTester) VerifyTestFile(filePath string) error {
-	// Temporary implementation until generic function is available
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("could not open file: %v", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var firstLine string
-	if scanner.Scan() {
-		firstLine = scanner.Text()
-	}
-	file.Close()
-
-	expectedLine := "FILL_TEST_HEADER_LINE"
-	if firstLine != expectedLine {
-		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'", expectedLine, firstLine)
-	}
-
-	return nil
+	return verifyFileHeaderFast(filePath)
 }
 
 func (nt *NetworkTester) CleanupTestFile(filePath string) error {

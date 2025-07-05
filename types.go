@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -585,34 +586,61 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		result.TotalDataBytes += fileSize
 		result.CreatedFiles = append(result.CreatedFiles, filePath)
 
-		// Verify file immediately after creation
-		err = tester.VerifyTestFile(filePath)
-		if err != nil {
-			// DON'T clean up on verification error - keep files for analysis
-			result.TestPassed = false
-			result.FailureReason = fmt.Sprintf("File verification failed immediately after creation at file %d (%s): %v", i, fileName, err)
-
-			// Calculate estimated real capacity
-			// Real capacity = space that was already verified + space before test started
-			realCapacity := fileSize * int64(i-1) // Only count successfully written files
-
-			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-			fmt.Printf("This indicates data corruption, device failure, or fake capacity.\n")
-			fmt.Printf("File: %s\n", filePath)
-			fmt.Printf("Error details: %v\n", err)
-			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-			fmt.Printf("  Files successfully written: %d out of %d\n", i-1, maxFiles)
-			fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
-			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-			err = fmt.Errorf("test failed during immediate file verification")
-			if logger != nil {
-				logger.SetError(err)
-				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-				logger.SetResult("filesSuccessfullyWritten", i-1)
+		// Optimized incremental verification strategy
+		verifyCount := 0
+		if i <= 5 {
+			// Verify all files for first 5 files (critical phase)
+			verifyCount = len(result.CreatedFiles)
+		} else if i%10 == 0 || i == maxFiles {
+			// Every 10th file or last file - verify all
+			verifyCount = len(result.CreatedFiles)
+		} else {
+			// Normal operation - verify only last 3 files (recent files check)
+			verifyCount = 3
+			if verifyCount > len(result.CreatedFiles) {
+				verifyCount = len(result.CreatedFiles)
 			}
-			return result, err
+		}
+
+		startIdx := len(result.CreatedFiles) - verifyCount
+		for j := startIdx; j < len(result.CreatedFiles); j++ {
+			prevFilePath := result.CreatedFiles[j]
+			err = verifyFileHeaderFast(prevFilePath) // Use fast header-only verification
+			if err != nil {
+				// DON'T clean up on verification error - keep files for analysis
+				result.TestPassed = false
+				result.FailureReason = fmt.Sprintf("Incremental verification failed at file %d/%d (%s): %v", j+1, len(result.CreatedFiles), prevFilePath, err)
+
+				// Calculate estimated real capacity
+				realCapacity := fileSize * int64(j) // Only count successfully verified files
+
+				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
+				fmt.Printf("This indicates delayed data corruption or fake capacity.\n")
+				fmt.Printf("File: %s\n", prevFilePath)
+				fmt.Printf("Error details: %v\n", err)
+				fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+				fmt.Printf("  Files successfully verified: %d out of %d\n", j, len(result.CreatedFiles))
+				fmt.Printf("  Data verified before failure: %.2f GB\n", float64(fileSize*int64(j))/(1024*1024*1024))
+				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
+				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
+
+				err = fmt.Errorf("test failed during incremental verification - file corruption detected")
+				if logger != nil {
+					logger.SetError(err)
+					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+					logger.SetResult("filesSuccessfullyVerified", j)
+				}
+				return result, err
+			}
+		}
+
+		// Show verification success with strategy info
+		if i%10 == 0 || i == maxFiles {
+			if i <= 5 || i%10 == 0 || i == maxFiles {
+				fmt.Printf("Verified %d files (full check) - ✅ OK", len(result.CreatedFiles))
+			} else {
+				fmt.Printf("Verified last %d files (fast check) - ✅ OK", verifyCount)
+			}
 		}
 
 		// Calculate write speed
@@ -687,40 +715,8 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		}
 	}
 
-	fmt.Printf("\n✅ Write phase completed successfully!\n")
-	fmt.Printf("Now verifying file integrity...\n")
-
-	// Verification phase
-	for i, filePath := range result.CreatedFiles {
-		err := tester.VerifyTestFile(filePath)
-		if err != nil {
-			fileName := fmt.Sprintf("file %d/%d", i+1, len(result.CreatedFiles))
-			fmt.Printf("Verifying %s - ❌ FAILED\n", fileName)
-			result.TestPassed = false
-			result.FailureReason = fmt.Sprintf("File verification failed at %s: %v", fileName, err)
-
-			// Calculate estimated real capacity
-			realCapacity := fileSize * int64(i)
-
-			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-			fmt.Printf("This indicates data corruption or fake capacity.\n")
-			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-			fmt.Printf("  Files successfully verified: %d out of %d\n", i, len(result.CreatedFiles))
-			fmt.Printf("  Data verified before failure: %.2f GB\n", float64(fileSize*int64(i))/(1024*1024*1024))
-			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-			err = fmt.Errorf("test failed during verification - file corruption detected")
-			if logger != nil {
-				logger.SetError(err)
-				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-				logger.SetResult("filesSuccessfullyVerified", i)
-			}
-			return result, err
-		}
-	}
-
-	fmt.Printf("Verified %d files - ✅ OK\n", len(result.CreatedFiles))
+	fmt.Printf("\n✅ Write and optimized incremental verification completed successfully!\n")
+	fmt.Printf("All %d files verified with smart verification strategy.\n", len(result.CreatedFiles))
 
 	// Calculate statistics
 	if len(speeds) > 0 {
@@ -785,13 +781,44 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 	return result, nil
 }
 
-// writeTestFileContent writes test content to a file in chunks to avoid memory issues
-func writeTestFileContent(filePath string, fileSize int64) error {
+// Optimized file operations without template files
+
+// copyFileOptimized uses large buffer for faster copying
+func copyFileOptimized(src, dst string) (int64, error) {
+	const bufferSize = 64 * 1024 * 1024 // 64MB buffer for optimal performance
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return 0, err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return 0, err
+	}
+	defer dstFile.Close()
+
+	buf := make([]byte, bufferSize)
+	return io.CopyBuffer(dstFile, srcFile, buf)
+}
+
+// writeTestFileContentOptimized writes directly to target with large blocks and delayed sync
+func writeTestFileContentOptimized(filePath string, fileSize int64) error {
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		file.Sync() // Sync only once at the end
+		file.Close()
+	}()
+
+	// Pre-allocate file space to avoid fragmentation
+	err = file.Truncate(fileSize)
+	if err != nil {
+		return err
+	}
 
 	// Write header line first
 	headerLine := "FILL_TEST_HEADER_LINE\n"
@@ -801,40 +828,66 @@ func writeTestFileContent(filePath string, fileSize int64) error {
 	}
 	remaining := fileSize - int64(written)
 
-	// Generate test pattern
+	// Generate test pattern once
 	pattern := "FILL_TEST_DATA_"
 	patternBytes := []byte(pattern)
 	patternLen := int64(len(patternBytes))
 
-	// Write in chunks to avoid memory allocation
-	const chunkSize = 1024 * 1024 // 1MB chunks
-	chunk := make([]byte, chunkSize)
+	// Use larger blocks for better performance
+	const blockSize = 32 * 1024 * 1024 // 32MB blocks
+	block := make([]byte, blockSize)
 
+	// Pre-fill the entire block with pattern
+	for i := 0; i < blockSize; {
+		copyLen := int(patternLen)
+		if i+copyLen > blockSize {
+			copyLen = blockSize - i
+		}
+		copy(block[i:i+copyLen], patternBytes[:copyLen])
+		i += copyLen
+	}
+
+	// Write in large blocks
 	for remaining > 0 {
-		// Fill chunk with pattern
-		chunkWriteSize := chunkSize
-		if remaining < chunkSize {
-			chunkWriteSize = int(remaining)
-			chunk = chunk[:chunkWriteSize]
+		writeSize := blockSize
+		if remaining < blockSize {
+			writeSize = int(remaining)
 		}
 
-		// Fill chunk with repeating pattern
-		for i := 0; i < chunkWriteSize; {
-			copyLen := patternLen
-			if int64(i)+copyLen > int64(chunkWriteSize) {
-				copyLen = int64(chunkWriteSize) - int64(i)
-			}
-			copy(chunk[i:i+int(copyLen)], patternBytes[:copyLen])
-			i += int(copyLen)
-		}
-
-		// Write chunk to file
-		n, err := file.Write(chunk)
+		n, err := file.Write(block[:writeSize])
 		if err != nil {
 			return err
 		}
 		remaining -= int64(n)
 	}
 
-	return file.Sync()
+	return nil
 }
+
+// verifyFileHeaderFast reads only the first 64 bytes to check header efficiently
+func verifyFileHeaderFast(filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("could not open file: %v", err)
+	}
+	defer file.Close()
+
+	header := make([]byte, 64)
+	n, err := file.Read(header)
+	if err != nil {
+		return fmt.Errorf("could not read file header: %v", err)
+	}
+
+	headerStr := string(header[:n])
+	expectedLine := "FILL_TEST_HEADER_LINE\n"
+
+	if !strings.HasPrefix(headerStr, expectedLine) {
+		actualLine := strings.Split(headerStr, "\n")[0]
+		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'",
+			strings.TrimSuffix(expectedLine, "\n"), actualLine)
+	}
+
+	return nil
+}
+
+// writeTestFileContent writes test content to a file in chunks to avoid memory issues

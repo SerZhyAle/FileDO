@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io/fs"
 	"os"
@@ -181,7 +180,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 	folderFileName := filepath.Join(folderPath, localFileName)
 
 	startUpload := time.Now()
-	bytesUploaded, err := copyFileWithProgress(localFilePath, folderFileName, !shortFormat)
+	bytesUploaded, err := copyFileOptimized(localFilePath, folderFileName)
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFilePath)
@@ -211,7 +210,7 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 	downloadFilePath := filepath.Join(currentDir, downloadFileName)
 
 	startDownload := time.Now()
-	bytesDownloaded, err := copyFileWithProgress(folderFileName, downloadFilePath, !shortFormat)
+	bytesDownloaded, err := copyFileOptimized(folderFileName, downloadFilePath)
 	if err != nil {
 		// Clean up files before returning error
 		os.Remove(localFilePath)
@@ -409,7 +408,7 @@ func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
 		targetFilePath := filepath.Join(folderPath, fileName)
 
 		// Copy template file to target
-		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false) // No progress for individual files
+		bytesCopied, err := copyFileOptimized(templateFilePath, targetFilePath)
 		if err != nil {
 			fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", i, err)
 			break
@@ -589,8 +588,8 @@ func (ft *FolderTester) GetAvailableSpace() (int64, error) {
 func (ft *FolderTester) CreateTestFile(fileName string, fileSize int64) (string, error) {
 	filePath := filepath.Join(ft.folderPath, fileName)
 
-	// Use streaming write to avoid memory issues
-	err := writeTestFileContent(filePath, fileSize)
+	// Use optimized direct write instead of streaming
+	err := writeTestFileContentOptimized(filePath, fileSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file %s: %v", fileName, err)
 	}
@@ -599,25 +598,7 @@ func (ft *FolderTester) CreateTestFile(fileName string, fileSize int64) (string,
 }
 
 func (ft *FolderTester) VerifyTestFile(filePath string) error {
-	// Temporary implementation until generic function is available
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("could not open file: %v", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var firstLine string
-	if scanner.Scan() {
-		firstLine = scanner.Text()
-	}
-
-	expectedLine := "FILL_TEST_HEADER_LINE"
-	if firstLine != expectedLine {
-		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'", expectedLine, firstLine)
-	}
-
-	return nil
+	return verifyFileHeaderFast(filePath)
 }
 
 func (ft *FolderTester) CleanupTestFile(filePath string) error {
@@ -633,256 +614,4 @@ func runFolderTest(folderPath string, autoDelete bool) error {
 	tester := NewFolderTester(folderPath)
 	_, err := runGenericFakeCapacityTest(tester, autoDelete, nil)
 	return err
-}
-
-func runFolderTestOld(folderPath string, autoDelete bool) error {
-	// Setup interrupt handler
-	handler := NewInterruptHandler()
-	var createdFiles []string
-
-	// Add cleanup for created files
-	handler.AddCleanup(func() {
-		if len(createdFiles) > 0 {
-			fmt.Printf("✓ Cleaning up %d test files..\n", len(createdFiles))
-			for _, filePath := range createdFiles {
-				os.Remove(filePath)
-			}
-		}
-	})
-	// Get available space on the drive where the folder is located
-	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
-	folderPathUTF16, err := windows.UTF16PtrFromString(folderPath)
-	if err != nil {
-		return fmt.Errorf("failed to convert path to UTF16: %v", err)
-	}
-
-	err = windows.GetDiskFreeSpaceEx(folderPathUTF16, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes)
-	if err != nil {
-		return fmt.Errorf("failed to get disk space: %v", err)
-	}
-
-	freeSpace := int64(freeBytesAvailableToCaller)
-
-	// Check if we have at least 100MB free space
-	if freeSpace < 100*1024*1024 {
-		return fmt.Errorf("insufficient free space. At least 100MB required, but only %d MB available", freeSpace/(1024*1024))
-	}
-
-	// Calculate file size as 1% of free space
-	fileSize := freeSpace / 100
-	fmt.Printf("Starting fake capacity test for folder: %s\n", folderPath)
-	fmt.Printf("Free space: %d MB\n", freeSpace/(1024*1024))
-	fmt.Printf("Test file size: %d MB (1%% of free space)\n", fileSize/(1024*1024))
-	fmt.Printf("Will create 100 test files..\n")
-	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
-
-	var speeds []float64
-	baselineSpeed := 0.0
-	baselineSet := false
-	const maxFiles = 100
-	const baselineFileCount = 3
-
-	// Generate test content
-	testContent := strings.Repeat("FILL_TEST_DATA_", int(fileSize)/15)
-	if len(testContent) < int(fileSize) {
-		testContent += strings.Repeat("X", int(fileSize)-len(testContent))
-	}
-	testContent = testContent[:fileSize]
-
-	// Add header line to identify the file
-	headerLine := "FILL_TEST_HEADER_LINE\n"
-	testContent = headerLine + testContent[len(headerLine):]
-
-	// Create files and monitor speed
-	progress := NewProgressTrackerWithInterval(maxFiles, maxFiles*fileSize, 2*time.Second)
-
-	for i := 1; i <= maxFiles; i++ {
-		// Check for interruption
-		if handler.IsCancelled() {
-			fmt.Printf("\n⚠ Operation cancelled by user\n")
-			return fmt.Errorf("test cancelled by user")
-		}
-
-		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))
-		filePath := filepath.Join(folderPath, fileName)
-
-		start := time.Now()
-
-		// Write file
-		file, err := os.Create(filePath)
-		if err != nil {
-			// Clean up on error
-			cleanupFiles(createdFiles)
-			return fmt.Errorf("failed to create file %s: %v", fileName, err)
-		}
-
-		_, err = file.WriteString(testContent)
-		file.Close()
-
-		if err != nil {
-			// Clean up on error
-			cleanupFiles(createdFiles)
-			return fmt.Errorf("failed to write file %s: %v", fileName, err)
-		}
-
-		// Verify file immediately after creation
-		file, err = os.Open(filePath)
-		if err != nil {
-			// Clean up on verification error
-			cleanupFiles(createdFiles)
-			fmt.Printf("\n❌ TEST FAILED: Could not open file %s for immediate verification: %v\n", fileName, err)
-			fmt.Printf("This indicates data corruption, device failure, or filesystem issues.\n")
-			fmt.Printf("File: %s\n", filePath)
-			fmt.Printf("Error details: %v\n", err)
-			fmt.Printf("All %d created files have been cleaned up.\n", len(createdFiles))
-			return fmt.Errorf("test failed during immediate file verification - could not open file")
-		}
-
-		scanner := bufio.NewScanner(file)
-		var firstLine string
-		if scanner.Scan() {
-			firstLine = scanner.Text()
-		}
-		file.Close()
-
-		if firstLine != "FILL_TEST_HEADER_LINE" {
-			// Clean up on verification error
-			cleanupFiles(createdFiles)
-			fmt.Printf("\n❌ TEST FAILED: File %s is corrupted immediately after creation\n", fileName)
-			fmt.Printf("Expected header: 'FILL_TEST_HEADER_LINE'\n")
-			fmt.Printf("Found header: '%s'\n", firstLine)
-			fmt.Printf("This indicates data corruption, fake capacity, or device failure.\n")
-			fmt.Printf("File: %s\n", filePath)
-			fmt.Printf("All %d created files have been cleaned up.\n", len(createdFiles))
-			return fmt.Errorf("test failed during immediate file verification - data corruption detected")
-		}
-
-		duration := time.Since(start)
-		speed := float64(fileSize) / duration.Seconds() / (1024 * 1024) // MB/s
-		speeds = append(speeds, speed)
-		createdFiles = append(createdFiles, filePath)
-
-		// Update progress tracker
-		progress.Update(int64(i), int64(i)*fileSize)
-		progress.PrintProgress("Test")
-
-		// Set baseline speed from first 3 files
-		if i <= baselineFileCount {
-			if i == baselineFileCount {
-				// Calculate average of first 3 files as baseline
-				sum := 0.0
-				for _, s := range speeds[:baselineFileCount] {
-					sum += s
-				}
-				baselineSpeed = sum / float64(baselineFileCount)
-				baselineSet = true
-				fmt.Printf("\nBaseline speed established: %.2f MB/s\n", baselineSpeed)
-			}
-		} else if baselineSet {
-			// Check for abnormal speed after baseline is set
-			if speed < baselineSpeed*0.1 { // Less than 10% of baseline
-				fmt.Printf("\n❌ TEST FAILED: Speed dropped to %.2f MB/s (less than 10%% of baseline %.2f MB/s)\n", speed, baselineSpeed)
-				fmt.Printf("This indicates potential fake capacity - device may be full or failing.\n")
-				fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-				return fmt.Errorf("test failed due to abnormally slow write speed")
-			}
-			if speed > baselineSpeed*10 { // More than 10x baseline
-				fmt.Printf("\n❌ TEST FAILED: Speed jumped to %.2f MB/s (more than 1000%% of baseline %.2f MB/s)\n", speed, baselineSpeed)
-				fmt.Printf("This indicates potential fake writing - device may not be actually writing data.\n")
-				fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-				return fmt.Errorf("test failed due to abnormally fast write speed")
-			}
-		}
-	}
-
-	fmt.Printf("\n✅ Write phase completed successfully!\n")
-	fmt.Printf("Now verifying file integrity..\n")
-
-	// Verify files in creation order
-	for i, filePath := range createdFiles {
-		fileName := filepath.Base(filePath)
-
-		// Read and verify file
-		file, err := os.Open(filePath)
-		if err != nil {
-			fileNum := fmt.Sprintf("file %d/%d", i+1, len(createdFiles))
-			fmt.Printf("Verifying %s - ❌ FAILED\n", fileNum)
-			fmt.Printf("\n❌ TEST FAILED: Could not open file %s for verification: %v\n", fileName, err)
-			fmt.Printf("This indicates data corruption or device failure.\n")
-			fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-			return fmt.Errorf("test failed during verification - file corruption detected")
-		}
-
-		scanner := bufio.NewScanner(file)
-		var firstLine string
-		if scanner.Scan() {
-			firstLine = scanner.Text()
-		}
-		file.Close()
-
-		if firstLine != "FILL_TEST_HEADER_LINE" {
-			fileNum := fmt.Sprintf("file %d/%d", i+1, len(createdFiles))
-			fmt.Printf("Verifying %s - ❌ FAILED\n", fileNum)
-			fmt.Printf("\n❌ TEST FAILED: File %s is corrupted (expected header not found)\n", fileName)
-			fmt.Printf("Expected: 'FILL_TEST_HEADER_LINE'\n")
-			fmt.Printf("Found: '%s'\n", firstLine)
-			fmt.Printf("This indicates data corruption or fake capacity.\n")
-			fmt.Printf("Keeping %d test files for analysis.\n", len(createdFiles))
-			return fmt.Errorf("test failed during verification - data corruption detected")
-		}
-	}
-
-	fmt.Printf("Verified %d files - ✅ OK\n", len(createdFiles))
-
-	// Calculate statistics
-	var minSpeed, maxSpeed, avgSpeed float64
-	minSpeed = speeds[0]
-	maxSpeed = speeds[0]
-	sum := 0.0
-	for _, speed := range speeds {
-		if speed < minSpeed {
-			minSpeed = speed
-		}
-		if speed > maxSpeed {
-			maxSpeed = speed
-		}
-		sum += speed
-	}
-	avgSpeed = sum / float64(len(speeds))
-
-	fmt.Printf("\n✅ TEST PASSED SUCCESSFULLY!\n")
-	fmt.Printf("All 100 files were written and verified successfully.\n")
-	fmt.Printf("\n📊 Speed Statistics:\n")
-	fmt.Printf("  Baseline speed (first 3 files): %.2f MB/s\n", baselineSpeed)
-	fmt.Printf("  Average speed: %.2f MB/s\n", avgSpeed)
-	fmt.Printf("  Minimum speed: %.2f MB/s\n", minSpeed)
-	fmt.Printf("  Maximum speed: %.2f MB/s\n", maxSpeed)
-	fmt.Printf("  Total data written: %d MB\n", (fileSize*maxFiles)/(1024*1024))
-
-	// Delete files if requested and test passed
-	if autoDelete {
-		fmt.Printf("\n🗑️  Auto-delete enabled, cleaning up test files..\n")
-		deletedCount := 0
-		for _, filePath := range createdFiles {
-			if err := os.Remove(filePath); err != nil {
-				fmt.Printf("Warning: Failed to delete %s: %v\n", filepath.Base(filePath), err)
-			} else {
-				deletedCount++
-			}
-		}
-		fmt.Printf("Successfully deleted %d/%d test files.\n", deletedCount, len(createdFiles))
-	} else {
-		fmt.Printf("\n📁 Test files kept for manual inspection:\n")
-		fmt.Printf("   Location: %s\n", folderPath)
-		fmt.Printf("   Files: FILL_001_*.tmp to FILL_100_*.tmp\n")
-		fmt.Printf("   Use 'filedo folder %s fill clean' to remove them later.\n", folderPath)
-	}
-
-	return nil
-}
-
-func cleanupFiles(files []string) {
-	for _, filePath := range files {
-		os.Remove(filePath) // Ignore errors during cleanup
-	}
 }

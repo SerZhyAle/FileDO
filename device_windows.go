@@ -3,12 +3,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -305,7 +303,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 	deviceFileName := filepath.Join(normalizedPath, localFileName)
 
 	startUpload := time.Now()
-	bytesUploaded, err := copyFileWithProgress(localFilePath, deviceFileName, !shortFormat)
+	bytesUploaded, err := copyFileOptimized(localFilePath, deviceFileName)
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFilePath)
@@ -335,7 +333,7 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 	downloadFilePath := filepath.Join(currentDir, downloadFileName)
 
 	startDownload := time.Now()
-	bytesDownloaded, err := copyFileWithProgress(deviceFileName, downloadFilePath, !shortFormat)
+	bytesDownloaded, err := copyFileOptimized(deviceFileName, downloadFilePath)
 	if err != nil {
 		// Clean up files before returning error
 		os.Remove(localFilePath)
@@ -404,15 +402,6 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	// Setup interrupt handler
 	handler := NewInterruptHandler()
-	templateFilePath := ""
-
-	// Add cleanup for template file
-	handler.AddCleanup(func() {
-		if templateFilePath != "" {
-			os.Remove(templateFilePath)
-			fmt.Printf("✓ Template file cleaned up\n")
-		}
-	})
 
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
@@ -483,24 +472,6 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	fmt.Printf("Maximum files to create: %d\n", maxFiles)
 	fmt.Printf("Total space to fill: %.2f GB\n\n", float64(maxFiles*fileSizeBytes)/(1024*1024*1024))
 
-	// Create template file first
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	templateFileName := fmt.Sprintf("fill_template_%d_%d.txt", sizeMB, time.Now().Unix())
-	templateFilePath = filepath.Join(currentDir, templateFileName)
-
-	fmt.Printf("Creating template file (%d MB)..\n", sizeMB)
-	startTemplate := time.Now()
-	err = createRandomFile(templateFilePath, sizeMB, false) // No progress for template
-	if err != nil {
-		return fmt.Errorf("failed to create template file: %w", err)
-	}
-	templateDuration := time.Since(startTemplate)
-	fmt.Printf("✓ Template file created in %s\n\n", formatDuration(templateDuration))
-
 	// Get timestamp for file naming (ddHHmmss format)
 	now := time.Now()
 	timestamp := now.Format("021504") // ddHHmmss
@@ -522,21 +493,18 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 		fileName := fmt.Sprintf("FILL_%05d_%s.tmp", i, timestamp)
 		targetFilePath := filepath.Join(normalizedPath, fileName)
 
-		// Copy template file to target
-		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false) // No progress for individual files
+		// Create file directly with optimized function
+		err := writeTestFileContentOptimized(targetFilePath, fileSizeBytes)
 		if err != nil {
 			fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", i, err)
 			break
 		}
 
 		filesCreated++
-		totalBytesWritten += bytesCopied
+		totalBytesWritten += fileSizeBytes
 		progress.Update(filesCreated, totalBytesWritten)
 		progress.PrintProgress("Fill")
 	}
-
-	// Clean up template file
-	os.Remove(templateFilePath)
 
 	// Final summary
 	progress.Finish("Fill Operation")
@@ -731,60 +699,17 @@ func (dt *DeviceTester) CreateTestFile(fileName string, fileSize int64) (string,
 
 	filePath := filepath.Join(dt.devicePath, fileName)
 
-	// For device testing, we create a template file first and copy it
-	// This matches the original device test behavior
-	currentDir, err := os.Getwd()
+	// Use optimized direct write instead of template file approach
+	err := writeTestFileContentOptimized(filePath, fileSize)
 	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
+		return "", fmt.Errorf("failed to create test file: %w", err)
 	}
-
-	// Calculate size in MB from file size
-	fileSizeMB := int(fileSize / (1024 * 1024))
-	if fileSizeMB == 0 {
-		fileSizeMB = 1 // Minimum 1MB
-	}
-
-	templateFileName := fmt.Sprintf("test_template_%d_%d.txt", fileSizeMB, time.Now().Unix())
-	templateFilePath := filepath.Join(currentDir, templateFileName)
-
-	// Create template file with streaming content to avoid memory issues
-	err = writeTestFileContent(templateFilePath, fileSize)
-	if err != nil {
-		return "", fmt.Errorf("failed to create template file: %w", err)
-	}
-
-	// Copy template to target
-	_, err = copyFileWithProgress(templateFilePath, filePath, false)
-	if err != nil {
-		os.Remove(templateFilePath) // Clean up template on error
-		return "", err
-	}
-
-	// Clean up template file
-	os.Remove(templateFilePath)
 
 	return filePath, nil
 }
 
 func (dt *DeviceTester) VerifyTestFile(filePath string) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("could not open file: %v", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var firstLine string
-	if scanner.Scan() {
-		firstLine = scanner.Text()
-	}
-
-	expectedLine := "FILL_TEST_HEADER_LINE"
-	if firstLine != expectedLine {
-		return fmt.Errorf("file corruption detected - expected '%s' but found '%s'", expectedLine, firstLine)
-	}
-
-	return nil
+	return verifyFileHeaderFast(filePath)
 }
 
 func (dt *DeviceTester) CleanupTestFile(filePath string) error {
@@ -800,284 +725,4 @@ func runDeviceTest(devicePath string, autoDelete bool) error {
 	tester := NewDeviceTester(devicePath)
 	_, err := runGenericFakeCapacityTest(tester, autoDelete, nil)
 	return err
-}
-
-func runDeviceTestOld(devicePath string, autoDelete bool) error {
-	// Normalize device path
-	normalizedPath := devicePath
-	if len(normalizedPath) == 2 && normalizedPath[1] == ':' {
-		normalizedPath += "\\"
-	}
-
-	fmt.Printf("Device Fake Capacity Test\n")
-	fmt.Printf("Target: %s\n", normalizedPath)
-	fmt.Printf("Testing for fake capacity by writing 100 files..\n\n")
-
-	// Check if device is accessible and writable
-	if _, err := os.Stat(normalizedPath); err != nil {
-		return fmt.Errorf("device path is not accessible: %w", err)
-	}
-
-	// Test write access
-	testFileName := fmt.Sprintf("__filedo_test_%d.tmp", time.Now().UnixNano())
-	testFilePath := filepath.Join(normalizedPath, testFileName)
-	testFile, err := os.Create(testFilePath)
-	if err != nil {
-		return fmt.Errorf("device path is not writable: %w", err)
-	}
-	testFile.WriteString("test")
-	testFile.Close()
-	os.Remove(testFilePath) // Clean up test file
-
-	// Get available space
-	var freeBytesAvailable, totalBytes, totalFreeBytes uint64
-	err = windows.GetDiskFreeSpaceEx(windows.StringToUTF16Ptr(normalizedPath), &freeBytesAvailable, &totalBytes, &totalFreeBytes)
-	if err != nil {
-		return fmt.Errorf("failed to get disk space information: %w", err)
-	}
-
-	// Check minimum space requirement (100MB)
-	minSpaceBytes := int64(100 * 1024 * 1024) // 100MB
-	if int64(freeBytesAvailable) < minSpaceBytes {
-		return fmt.Errorf("insufficient space: need at least 100MB free, but only %.2f MB available",
-			float64(freeBytesAvailable)/(1024*1024))
-	}
-
-	// Calculate file size (1% of free space)
-	fileSizeBytes := int64(freeBytesAvailable) / 100
-	fileSizeMB := fileSizeBytes / (1024 * 1024)
-
-	fmt.Printf("Available space: %.2f GB\n", float64(freeBytesAvailable)/(1024*1024*1024))
-	fmt.Printf("Test file size: %d MB (1%% of free space)\n", fileSizeMB)
-	fmt.Printf("Will create 100 files for capacity test\n\n")
-
-	// Create template file first
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	templateFileName := fmt.Sprintf("test_template_%d_%d.txt", fileSizeMB, time.Now().Unix())
-	templateFilePath := filepath.Join(currentDir, templateFileName)
-
-	fmt.Printf("Creating template file (%d MB)..\n", fileSizeMB)
-	startTemplate := time.Now()
-	err = createRandomFile(templateFilePath, int(fileSizeMB), false)
-	if err != nil {
-		return fmt.Errorf("failed to create template file: %w", err)
-	}
-	templateDuration := time.Since(startTemplate)
-	fmt.Printf("✓ Template file created in %s\n\n", formatDuration(templateDuration))
-
-	// Get timestamp for file naming (ddHHmmss format)
-	now := time.Now()
-	timestamp := now.Format("021504") // ddHHmmss
-
-	// Start capacity test
-	fmt.Printf("Starting capacity test - writing 100 files..\n")
-	progress := NewProgressTrackerWithInterval(100, 100*fileSizeBytes, 2*time.Second)
-	filesCreated := 0
-	totalBytesWritten := int64(0)
-	writeSpeeds := make([]float64, 0, 100)
-	var normalSpeed float64
-	testFailed := false
-	failureReason := ""
-
-	for i := 1; i <= 100; i++ {
-		// Generate file name: FILL_001_ddHHmmss.tmp
-		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, timestamp)
-		targetFilePath := filepath.Join(normalizedPath, fileName)
-
-		// Copy template file to target
-		startCopy := time.Now()
-		bytesCopied, err := copyFileWithProgress(templateFilePath, targetFilePath, false)
-		if err != nil {
-			testFailed = true
-			failureReason = fmt.Sprintf("Failed to create file %d: %v", i, err)
-			break
-		}
-		copyDuration := time.Since(startCopy)
-
-		filesCreated++
-		totalBytesWritten += bytesCopied
-
-		// Update progress
-		progress.Update(int64(filesCreated), totalBytesWritten)
-		progress.PrintProgress("Test")
-
-		// Calculate write speed for this file
-		copySpeedMBps := float64(bytesCopied) / (1024 * 1024) / copyDuration.Seconds()
-		writeSpeeds = append(writeSpeeds, copySpeedMBps)
-
-		// Establish normal speed from first 3 files
-		if i <= 3 {
-			// For first 3 files, just collect speeds
-			fmt.Printf("File %3d: %.1f MB/s - establishing baseline\n", i, copySpeedMBps)
-		} else if i == 4 {
-			// Calculate normal speed as average of first 3 files
-			normalSpeed = (writeSpeeds[0] + writeSpeeds[1] + writeSpeeds[2]) / 3
-			fmt.Printf("Normal speed established: %.1f MB/s\n", normalSpeed)
-			fmt.Printf("File %3d: %.1f MB/s\n", i, copySpeedMBps)
-		} else {
-			// Check speed against normal speed
-			speedRatio := copySpeedMBps / normalSpeed
-
-			// Check for abnormal speeds
-			if copySpeedMBps < normalSpeed*0.1 { // Less than 10% of normal speed
-				testFailed = true
-				failureReason = fmt.Sprintf("Write speed dropped to %.1f MB/s (%.1f%% of normal %.1f MB/s) at file %d - possible fake capacity detected",
-					copySpeedMBps, speedRatio*100, normalSpeed, i)
-				break
-			} else if copySpeedMBps > normalSpeed*10 { // More than 10x normal speed
-				testFailed = true
-				failureReason = fmt.Sprintf("Write speed jumped to %.1f MB/s (%.1fx normal %.1f MB/s) at file %d - unrealistic speed, possible fake writing",
-					copySpeedMBps, speedRatio, normalSpeed, i)
-				break
-			}
-
-			// Show progress
-			fmt.Printf("File %3d: %.1f MB/s (%3.0f%% of normal)\n", i, copySpeedMBps, speedRatio*100)
-		}
-	}
-
-	testDuration := time.Since(progress.startTime)
-
-	// Clean up template file
-	os.Remove(templateFilePath)
-
-	fmt.Printf("\nCapacity Test Phase Complete!\n")
-	fmt.Printf("Files created: %d out of 100\n", filesCreated)
-	fmt.Printf("Total data written: %.2f GB\n", float64(totalBytesWritten)/(1024*1024*1024))
-	fmt.Printf("Test duration: %s\n", formatDuration(testDuration))
-
-	if testFailed {
-		fmt.Printf("❌ TEST FAILED: %s\n\n", failureReason)
-	} else {
-		fmt.Printf("✅ Capacity test passed - no fake capacity detected\n\n")
-	}
-
-	// Verification phase - check file integrity
-	fmt.Printf("Starting verification phase - checking file integrity..\n")
-
-	verificationFailed := false
-	verificationFailureFile := ""
-	verifiedCount := 0
-
-	// Find all FILL_*.tmp files we created
-	pattern := filepath.Join(normalizedPath, fmt.Sprintf("FILL_*_%s.tmp", timestamp))
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		fmt.Printf("⚠ Warning: Failed to search for test files: %v\n", err)
-	} else {
-		// Sort matches to check in order
-		sort.Strings(matches)
-
-		for i, filePath := range matches {
-			// Read first line of file
-			file, err := os.Open(filePath)
-			if err != nil {
-				verificationFailed = true
-				verificationFailureFile = filepath.Base(filePath)
-				break
-			}
-
-			scanner := bufio.NewScanner(file)
-			if scanner.Scan() {
-				firstLine := scanner.Text()
-				expectedLine := "=== BLOCK 000001 === START ==="
-
-				if firstLine != expectedLine {
-					verificationFailed = true
-					verificationFailureFile = filepath.Base(filePath)
-					file.Close()
-					break
-				}
-			} else {
-				verificationFailed = true
-				verificationFailureFile = filepath.Base(filePath)
-				file.Close()
-				break
-			}
-			file.Close()
-
-			verifiedCount++
-
-			// Show progress every 10 files
-			if (i+1)%10 == 0 || i == len(matches)-1 {
-				fmt.Printf("Verified %d/%d files\n", verifiedCount, len(matches))
-			}
-		}
-	}
-
-	fmt.Printf("\nVerification Phase Complete!\n")
-	if verificationFailed {
-		fmt.Printf("❌ VERIFICATION FAILED: File corruption detected at %s\n", verificationFailureFile)
-		fmt.Printf("Files verified: %d out of %d\n", verifiedCount, len(matches))
-		testFailed = true
-	} else {
-		fmt.Printf("✅ All files verified successfully\n")
-		fmt.Printf("Files verified: %d\n", verifiedCount)
-	}
-
-	// Final summary
-	fmt.Print("\n" + strings.Repeat("=", 60) + "\n")
-	fmt.Printf("FAKE CAPACITY TEST SUMMARY\n")
-	fmt.Print(strings.Repeat("=", 60) + "\n")
-	fmt.Printf("Device: %s\n", normalizedPath)
-	fmt.Printf("Reported capacity: %.2f GB\n", float64(totalBytes)/(1024*1024*1024))
-	fmt.Printf("Available space: %.2f GB\n", float64(freeBytesAvailable)/(1024*1024*1024))
-	fmt.Printf("Test file size: %d MB each\n", fileSizeMB)
-	fmt.Printf("Files created: %d out of 100\n", filesCreated)
-	fmt.Printf("Data written: %.2f GB\n", float64(totalBytesWritten)/(1024*1024*1024))
-
-	if len(writeSpeeds) >= 3 {
-		fmt.Printf("Normal write speed: %.1f MB/s\n", normalSpeed)
-	}
-
-	if testFailed {
-		fmt.Printf("\n❌ OVERALL RESULT: FAKE CAPACITY DETECTED\n")
-		if failureReason != "" {
-			fmt.Printf("Reason: %s\n", failureReason)
-		}
-		if verificationFailed {
-			fmt.Printf("Additional issue: File corruption at %s\n", verificationFailureFile)
-		}
-		fmt.Printf("\n⚠ WARNING: This device appears to have fake capacity!\n")
-		fmt.Printf("The actual capacity is likely much smaller than reported.\n")
-		fmt.Printf("Test files have been preserved for analysis.\n")
-	} else {
-		fmt.Printf("\n✅ OVERALL RESULT: DEVICE APPEARS GENUINE\n")
-		fmt.Printf("No fake capacity detected. Device seems to have legitimate storage.\n")
-
-		// Auto-delete if requested and test passed
-		if autoDelete {
-			fmt.Printf("\nAuto-delete enabled - Deleting all test files..\n")
-			deletedCount := 0
-			deletedSize := int64(0)
-
-			for i, filePath := range matches {
-				info, err := os.Stat(filePath)
-				if err == nil {
-					fileSize := info.Size()
-
-					err = os.Remove(filePath)
-					if err != nil {
-						fmt.Printf("⚠ Warning: Failed to delete %s: %v\n", filepath.Base(filePath), err)
-					} else {
-						deletedCount++
-						deletedSize += fileSize
-
-						// Show progress every 10 files
-						if (i+1)%10 == 0 || i == len(matches)-1 {
-							fmt.Printf("Deleted %d/%d files - %.2f GB freed\n", deletedCount, len(matches), float64(deletedSize)/(1024*1024*1024))
-						}
-					}
-				}
-			}
-
-			fmt.Printf("Auto-delete complete: %d files deleted\n", deletedCount)
-		}
-	}
-
-	return nil
 }
