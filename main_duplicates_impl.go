@@ -32,13 +32,17 @@ func NewHashWorker(workerCount int) *HashWorker {
 
 // Add a hash job to the pool
 func (hw *HashWorker) AddJob(file DuplicateFileInfo, mode FileHashType) {
-	select {
-	case hw.jobs <- hashJob{file: file, mode: mode}:
-		hw.wg.Add(1)
-	default:
-		// Если канал заполнен, подождем немного
-		time.Sleep(10 * time.Millisecond)
-		hw.AddJob(file, mode) // Рекурсивная попытка
+	// Use a loop instead of recursion to avoid stack overflow
+	for {
+		select {
+		case hw.jobs <- hashJob{file: file, mode: mode}:
+			hw.wg.Add(1)
+			return
+		default:
+			// If channel is full, wait a little bit
+			time.Sleep(10 * time.Millisecond)
+			// Continue the loop and try again
+		}
 	}
 }
 

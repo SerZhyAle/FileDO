@@ -16,7 +16,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2507111111"
+const version = "2507111730"
 
 var start_time time.Time
 

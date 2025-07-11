@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -15,6 +16,135 @@ import (
 
 	"golang.org/x/sys/windows"
 )
+
+// NetworkTester implements FakeCapacityTester for network paths
+type NetworkTester struct {
+	networkPath string
+}
+
+// NewNetworkTester creates a new NetworkTester
+func NewNetworkTester(networkPath string) *NetworkTester {
+	// Normalize the network path
+	normalizedPath := strings.ReplaceAll(networkPath, "/", "\\")
+	if !strings.HasPrefix(normalizedPath, "\\\\") {
+		normalizedPath = "\\\\" + strings.TrimPrefix(normalizedPath, "\\")
+	}
+	return &NetworkTester{
+		networkPath: normalizedPath,
+	}
+}
+
+// GetTestInfo returns the test type name and target path for display
+func (t *NetworkTester) GetTestInfo() (testType, targetPath string) {
+	return "Network", t.networkPath
+}
+
+// GetAvailableSpace returns the available space in bytes for testing
+func (t *NetworkTester) GetAvailableSpace() (int64, error) {
+	// Try to get disk space info using Windows API
+	var freeSpace int64 = 1024 * 1024 * 1024 // Default to 1GB if we can't detect
+
+	// Convert to UTF16 for Windows API
+	if pathUTF16, err := windows.UTF16PtrFromString(t.networkPath); err == nil {
+		var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
+		if err := windows.GetDiskFreeSpaceEx(pathUTF16, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes); err == nil {
+			freeSpace = int64(freeBytesAvailableToCaller)
+		}
+	}
+
+	return freeSpace, nil
+}
+
+// CreateTestFile creates a test file with the given size and returns the file path
+func (t *NetworkTester) CreateTestFile(fileName string, fileSize int64) (filePath string, err error) {
+	filePath = filepath.Join(t.networkPath, fileName)
+
+	// Create file with the specified size
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// Write header for identification
+	timestamp := time.Now().Format("20060102-150405")
+	headerLine := fmt.Sprintf("FILEDO_TEST_%s_%s\n", fileName, timestamp)
+	if _, err := file.WriteString(headerLine); err != nil {
+		return "", err
+	}
+
+	// Calculate remaining size
+	remainingSize := fileSize - int64(len(headerLine))
+
+	// Reserve space for footer (same as header)
+	footerSpace := int64(len(headerLine))
+	dataSize := remainingSize - footerSpace
+
+	// Write data in chunks to avoid excessive memory usage
+	const chunkSize = 1024 * 1024 // 1MB chunks
+	chunkSizeToUse := int(chunkSize)
+	if dataSize < int64(chunkSize) {
+		chunkSizeToUse = int(dataSize)
+	}
+	chunk := make([]byte, chunkSizeToUse)
+
+	// Create pattern content for chunks
+	dataPattern := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+	patternBytes := []byte(dataPattern)
+
+	// Fill the chunk with repeating pattern
+	for i := 0; i < len(chunk); i++ {
+		chunk[i] = patternBytes[i%len(patternBytes)]
+	}
+
+	// Write content in chunks
+	var written int64 = 0
+	for written < dataSize {
+		writeSize := int64(len(chunk))
+		if dataSize-written < writeSize {
+			writeSize = dataSize - written
+		}
+		if _, err := file.Write(chunk[:writeSize]); err != nil {
+			return filePath, err
+		}
+		written += writeSize
+	}
+
+	// Write footer (same as header) for verification
+	if _, err := file.WriteString(headerLine); err != nil {
+		return filePath, err
+	}
+
+	return filePath, nil
+}
+
+// CreateTestFileContext creates a test file with context for cancellation support
+func (t *NetworkTester) CreateTestFileContext(ctx context.Context, fileName string, fileSize int64) (filePath string, err error) {
+	// Check if context is cancelled
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		// Continue with file creation
+	}
+
+	return t.CreateTestFile(fileName, fileSize)
+}
+
+// VerifyTestFile verifies that a test file contains the expected header
+func (t *NetworkTester) VerifyTestFile(filePath string) error {
+	return verifyTestFileStartEnd(filePath)
+}
+
+// CleanupTestFile removes a test file
+func (t *NetworkTester) CleanupTestFile(filePath string) error {
+	return os.Remove(filePath)
+}
+
+// GetCleanupCommand returns the command to clean test files manually
+func (t *NetworkTester) GetCleanupCommand() string {
+	return fmt.Sprintf("network %s clean", t.networkPath)
+}
 
 func getNetworkInfo(path string, fullScan bool) (NetworkInfo, error) {
 	// Normalize the path
@@ -708,13 +838,9 @@ DeletionComplete:
 }
 
 func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
-	// tester := NewNetworkTester(networkPath)
-	// TODO: Replace with generic test function
-	// _, err := runGenericFakeCapacityTest(tester, autoDelete, logger)
-	// return err
-
-	// Temporary: call original function until refactoring is complete
-	return runNetworkTestOld(networkPath, autoDelete, logger)
+	tester := NewNetworkTester(networkPath)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, logger)
+	return err
 }
 
 func runNetworkTestOld(networkPath string, autoDelete bool, logger *HistoryLogger) error {

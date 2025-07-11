@@ -31,13 +31,17 @@ func NewHashWorker(workerCount int) *HashWorker {
 
 // Add a hash job to the pool
 func (hw *HashWorker) AddJob(file DuplicateFileInfo, mode FileHashType) {
-	select {
-	case hw.jobs <- hashJob{file: file, mode: mode}:
-		hw.wg.Add(1)
-	default:
-		// If channel is full, wait a little bit
-		time.Sleep(10 * time.Millisecond)
-		hw.AddJob(file, mode) // Recursive retry
+	// Use a loop instead of recursion to avoid stack overflow
+	for {
+		select {
+		case hw.jobs <- hashJob{file: file, mode: mode}:
+			hw.wg.Add(1)
+			return
+		default:
+			// If channel is full, wait a little bit
+			time.Sleep(10 * time.Millisecond)
+			// Continue the loop and try again
+		}
 	}
 }
 
@@ -70,22 +74,10 @@ func (hw *HashWorker) worker() {
 			}
 		}
 
-		// Try to send the result with retries
-		maxRetries := 5
-		for i := 0; i < maxRetries; i++ {
-			select {
-			case hw.results <- result:
-				hw.wg.Done()
-				break
-			default:
-				// If channel is full, wait a bit
-				time.Sleep(10 * time.Millisecond)
-				if i == maxRetries-1 {
-					fmt.Fprintf(os.Stderr, "Warning: Failed to send hash result for %s after %d attempts\n", job.file.Path, maxRetries)
-					hw.wg.Done()
-				}
-			}
-		}
+		// Send the result to the results channel, blocking if necessary
+		// This ensures we never lose results even if the channel is temporarily full
+		hw.results <- result
+		hw.wg.Done()
 	}
 }
 
