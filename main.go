@@ -14,7 +14,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2507111830"
+const version = "2507112115"
 
 var start_time time.Time
 
@@ -194,12 +194,10 @@ func saveToHistory(entry HistoryEntry) error {
 }
 
 var usage = fmt.Sprintf(`
-═══════════════════════════════════════════════════════════════════════════════
                             FileDO v%s
                     Advanced File & Storage Operations Tool
                            Created by sza@ukr.net
 ═══════════════════════════════════════════════════════════════════════════════
-
 OVERVIEW:
   FileDO is a comprehensive tool for testing, analyzing, and managing files on
   devices, folders, and network paths. It specializes in storage capacity
@@ -211,7 +209,6 @@ BASIC USAGE:
 
 ═══════════════════════════════════════════════════════════════════════════════
 DEVICE OPERATIONS (Hard drives, USB drives, SD cards)
-═══════════════════════════════════════════════════════════════════════════════
 
 Information & Analysis:
   filedo.exe C:                    → Show detailed device information
@@ -243,7 +240,6 @@ File Organization:
 
 ═══════════════════════════════════════════════════════════════════════════════
 FOLDER OPERATIONS (Local directories)
-═══════════════════════════════════════════════════════════════════════════════
 
 Information & Analysis:
   filedo.exe .                     → Show current folder information
@@ -272,7 +268,6 @@ File Organization:
 
 ═══════════════════════════════════════════════════════════════════════════════
 FILE OPERATIONS (Individual files)
-═══════════════════════════════════════════════════════════════════════════════
 
 File Analysis:
   filedo.exe readme.txt            → Show detailed file information
@@ -281,7 +276,6 @@ File Analysis:
 
 ═══════════════════════════════════════════════════════════════════════════════
 NETWORK OPERATIONS (SMB shares, network drives)
-═══════════════════════════════════════════════════════════════════════════════
 
 Information & Analysis:
   filedo.exe \\server\share        → Show network path information
@@ -307,7 +301,6 @@ File Organization:
 
 ═══════════════════════════════════════════════════════════════════════════════
 BATCH OPERATIONS & HISTORY
-═══════════════════════════════════════════════════════════════════════════════
 
 Batch Processing:
   filedo.exe from commands.txt     → Execute commands from file
@@ -319,7 +312,6 @@ History & Monitoring:
 
 ═══════════════════════════════════════════════════════════════════════════════
 COMMAND OPTIONS & MODIFIERS
-═══════════════════════════════════════════════════════════════════════════════
 
 Output Control:
   short, s        → Show brief/summary output only
@@ -336,7 +328,6 @@ Size Specifications:
 
 ═══════════════════════════════════════════════════════════════════════════════
 PRACTICAL EXAMPLES
-═══════════════════════════════════════════════════════════════════════════════
 
 Quick Device Check:
   filedo.exe D: short              → Fast overview of drive D:
@@ -365,7 +356,6 @@ Batch Testing Multiple Locations:
 
 ═══════════════════════════════════════════════════════════════════════════════
 IMPORTANT NOTES
-═══════════════════════════════════════════════════════════════════════════════
 
 • Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
   total capacity, to detect counterfeit storage devices that report false sizes.
@@ -393,8 +383,7 @@ IMPORTANT NOTES
 Help & Support:
   filedo.exe ?                     → Show this help
   filedo.exe help                  → Show this help
-
-═══════════════════════════════════════════════════════════════════════════════`, version)
+`, version)
 
 var list_of_flags_for_device = []string{"device", "dev", "disk", "d"}
 var list_of_flags_for_folder = []string{"folder", "fold", "dir", "fld"}

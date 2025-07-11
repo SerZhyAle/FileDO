@@ -2,10 +2,24 @@
 
 <div align="center">
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/sza/FileDO)](https://goreportcard.com/report/github.com/sza/FileDO)
+[![Go Report Card](https://goreportcard.### 🔍 **Duplicate File Management**
+- **Built-in duplicate detection** - integrated into main application
+- **Multiple selection modes** (oldest/newest/alphabetical)
+- **Flexible actions** (delete/move duplicates)
+- **MD5 hash-based reliable identification**
+- **Hash caching** for faster repeated scans
+- **Save/load duplicate lists** for batch processing
+- **Modular architecture** with dedicated fileduplicates package
+
+### 🛡️ **Security Features**
+- **High-speed secure data wiping** to prevent recovery
+- **Fill operations** with optimized buffer management
+- **Batch processing** for multiple targets
+- **Comprehensive operation history** with JSON logging
+- **Context-aware interruption** - graceful cancellation supportthub.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2507082120-blue.svg)](https://github.com/sza/FileDO)
-[![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/sza/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2507112115-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Capacity Detection • 📁 Duplicate Management**
 
@@ -27,10 +41,9 @@ filedo C: speed 100
 # Secure wipe free space
 filedo D: fill 1000 del
 
-
-
 # Find and manage duplicate files
-filedo_cd D: old del
+filedo C: check-duplicates
+filedo D: cd old del
 
 # Show device info
 filedo C: info
@@ -39,11 +52,8 @@ filedo C: info
 ### 📥 Installation
 
 1. **Download**: Get `filedo.exe` from releases
-2. **GUI Option**: Also download `filedo_win.exe` for visual interface
-
-
-5. **Duplicate Tool**: Download `filedo_cd.exe` for finding and managing duplicate files
-6. **Run**: Place all files in same folder and execute
+2. **GUI Option**: Also download `filedo_win.exe` for visual interface (VB.NET)
+3. **Run**: Execute from command line or GUI
 
 
 
@@ -87,6 +97,14 @@ filedo . short
 # Performance testing
 filedo C:\data speed 100
 filedo folder . speed max
+
+# Network operations
+filedo \\server\share test
+filedo network \\nas\backup speed 100
+
+# Batch operations
+filedo from commands.txt
+filedo batch script.lst
 
 # Cleanup
 filedo C:\temp clean
@@ -144,9 +162,12 @@ filedo C:\temp clean
 | `short` | Brief summary | `filedo D: short` |
 | `test` | Fake capacity detection | `filedo E: test del` |
 | `speed <size>` | Performance testing | `filedo C: speed 500` |
-| `fill [size]` | Fill with test data (default 100MB) | `filedo D: fill`, `filedo D: f` |
+| `fill [size]` | Fill with test data | `filedo D: fill 1000` |
 | `clean` | Remove test files | `filedo C: clean` |
-| `cd [mode] [action]` | Check duplicates | `filedo C: cd old del` |
+| `check-duplicates` | Find duplicate files | `filedo C: check-duplicates` |
+| `cd [mode] [action]` | Check duplicates (short) | `filedo C: cd old del` |
+| `from <file>` | Execute batch commands | `filedo from script.txt` |
+| `hist` | Show operation history | `filedo hist` |
 
 #### Fill Command Shortcuts
 | Command | Equivalent | Purpose |
@@ -174,19 +195,26 @@ filedo C:\temp clean
 
 ## 🖥️ GUI Application
 
-**FileDO GUI** (`filedo_win.exe`) provides point-and-click interface:
+**FileDO GUI** (`filedo_win.exe`) - VB.NET Windows Forms application provides user-friendly interface:
 
-- ✅ **Visual target selection** (checkboxes for Device/Folder/Network/File)
+- ✅ **Visual target selection** with radio buttons (Device/Folder/Network/File)
 - ✅ **Operation dropdown** (Info, Speed, Fill, Test, Clean, Check Duplicates)
-- ✅ **Duplicate file management** (selection modes: old/new/abc/xyz, actions: delete/move)
-- ✅ **Real-time command preview**
-- ✅ **Browse button** for path selection
-- ✅ **One-click execution**
+- ✅ **Parameter input** with validation
+- ✅ **Real-time command preview** showing equivalent CLI command
+- ✅ **Browse button** for easy path selection
+- ✅ **Progress tracking** with real-time output
+- ✅ **One-click execution** with output display
 
 ```bash
-filedo_win.exe          # Normal mode
-filedo_win.exe -debug   # Debug logging
+# Run from filedo_win_vb folder
+filedo_win.exe          # Windows GUI interface
 ```
+
+**Features:**
+- Built with VB.NET Windows Forms for native Windows experience
+- Automatic command validation and parameter checking
+- Real-time output display with color coding
+- Integration with main CLI application
 
 ---
 
@@ -206,8 +234,16 @@ Run: `filedo from commands.txt`
 
 ### History Tracking
 ```bash
-filedo hist            # Show last 10 operations
-filedo C: info hist    # Run command with history logging
+filedo hist              # Show last 10 operations
+filedo history           # Show command history
+# History automatically logged for all operations
+```
+
+### Interruption Support
+```bash
+# All long-running operations support Ctrl+C interruption
+# Graceful cancellation with cleanup
+# Context-aware interruption at optimal points
 ```
 
 ### Network Operations
@@ -222,13 +258,15 @@ filedo network \\pc\share info
 
 ## ⚠️ Important Notes
 
-> **🎯 Fake Capacity Detection**: Creates 100 files (1% capacity each) with **random position verification**. Each file checked at unique random internal positions every time, defeating sophisticated controllers that preserve predictable data locations.
+> **🎯 Fake Capacity Detection**: Creates 100 files (1% capacity each) with **context-aware interruption support**. Uses modern random verification patterns and optimized buffer management for reliable detection.
 
-> **🟡 High-Speed Secure Wiping**: `fill <size> del` overwrites free space at 4.7+ GB/s with parallel writing to prevent data recovery. Use before disposing drives or after deleting sensitive data.
+> **🔥 Enhanced Interruption**: All long-running operations support **Ctrl+C graceful cancellation** with automatic cleanup. Context-aware interruption checks at optimal points for immediate responsiveness.
 
-> **🟢 Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. Use `clean` command to remove them.
+> **�️ Secure Wiping**: `fill <size> del` overwrites free space with optimized buffer management and context-aware writing for secure data deletion.
 
-> **🔵 System Drive Protection**: When targeting the system drive (`C:`), operations are automatically redirected to `C:\TEMP` to prevent root folder access issues. The directory is created if it doesn't exist.
+> **🟢 Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. Use `clean` command to remove them automatically.
+
+> **🔵 Modular Architecture**: Refactored with separate `capacitytest` and `fileduplicates` packages for better maintainability and extensibility.
 
 ---
 
@@ -283,22 +321,20 @@ filedo E: fill max del
 <summary><b>🔍 Find & Manage Duplicates</b></summary>
 
 ```bash
-# Find duplicates in folder
-filedo_cd C:\data
+# Find duplicates in current directory
+filedo . check-duplicates
 
 # Find and delete older duplicates
 filedo C: cd old del
-filedo_cd D: old del
 
 # Find and move newer duplicates to backup
 filedo E: cd new move E:\Backup
-filedo_cd F: new move F:\Archive
 
 # Save duplicates list for later processing
-filedo_cd D: list duplicates.lst
+filedo D: cd list duplicates.lst
 
 # Process saved list with specific action
-filedo_cd from list duplicates.lst xyz del
+filedo cd from list duplicates.lst xyz del
 ```
 </details>
 
@@ -307,57 +343,89 @@ filedo_cd from list duplicates.lst xyz del
 ## 🏗️ Technical Details
 
 ### Architecture
-- **Unified Interface**: `FakeCapacityTester` for all storage types
-- **Memory Optimization**: Streaming operations for large files
-- **Cross-Platform**: Primary Windows support, portable Go codebase
+- **Modular Design**: Separated into specialized packages for better maintainability
+- **Context-Aware Operations**: All long-running operations support graceful cancellation
+- **Unified Interface**: Common `Tester` interface for all storage types
+- **Memory Optimization**: Streaming operations with optimized buffer management
+- **Cross-Platform**: Primary Windows support with portable Go codebase
 
-### File Structure
+### Package Structure
 ```
 FileDO/
-├── filedo.exe           # Main CLI application
-
-
-├── filedo_cd.exe        # Dedicated duplicates checking tool
-├── filedo_win.exe       # GUI application
-├── cmd/                 # Command entry points
-│   ├── filedo/          # Main CLI source
-
-
-│   └── filedo_cd/       # Duplicates tool source
-├── main.go              # Legacy entry point
-├── types.go             # Core interfaces and logic
-├── device_windows.go    # Device operations
-├── folder.go            # Folder operations
-├── duplicates.go        # Duplicates operations
-├── network_windows.go   # Network operations
-├── history.json         # Operation history
-└── hash_cache.json      # Hash cache for duplicate detection
+├── main.go                    # Application entry point
+├── capacitytest/             # Capacity testing module
+│   ├── types.go              # Core interfaces and types
+│   ├── test.go               # Main testing logic
+│   └── utils.go              # Utility functions and verification
+├── fileduplicates/           # Duplicate file management
+│   ├── types.go              # Duplicate detection interfaces
+│   ├── duplicates.go         # Core duplicate logic
+│   ├── duplicates_impl.go    # Implementation details
+│   └── worker.go             # Background processing
+├── filedo_win_vb/           # VB.NET GUI application
+│   ├── FileDOGUI.sln        # Visual Studio solution
+│   ├── MainForm.vb          # Main form logic
+│   └── bin/                 # Compiled GUI executable
+├── command_handlers.go       # Command processing
+├── device_windows.go         # Device-specific operations
+├── folder.go                 # Folder operations
+├── network_windows.go        # Network storage operations
+├── interrupt.go              # Interruption handling
+├── progress.go               # Progress tracking
+├── main_types.go             # Legacy type definitions
+├── history.json              # Operation history
+└── hash_cache.json           # Hash cache for duplicates
 ```
+
+### Key Features
+- **Enhanced InterruptHandler**: Thread-safe interruption with context support
+- **Optimized Buffer Management**: Dynamic buffer sizing for optimal performance
+- **Comprehensive Testing**: Fake capacity detection with random verification
+- **Duplicate Detection**: MD5-based file comparison with caching
+- **Batch Processing**: Script execution with error handling
+- **History Logging**: JSON-based operation tracking
 
 ---
 
 ## 🔄 Version History
 
-**v2507082120** (Current)
-- Added duplicate file detection and management (filedo_cd)
+**v2507112115** (Current)
+- **Major Refactoring**: Extracted capacity testing logic into dedicated `capacitytest` package
+- **Enhanced Interruption**: Added context-aware cancellation with thread-safe `InterruptHandler`
+- **Improved Performance**: Optimized buffer management and verification algorithms
+- **Better Architecture**: Modular design with clear separation of concerns
+- **VB.NET GUI**: Updated Windows Forms GUI application with better integration
+
+**v2507082120** (Previous)
+- Added duplicate file detection and management
 - Multiple duplicate selection modes (old/new/abc/xyz)
-- Duplicate management in GUI application
 - Hash caching for faster duplicate scanning
 - Support for saving/loading duplicate lists
+- GUI application with duplicate management features
 
-**v2507062220**
+**v2507062220** (Earlier)
 - Enhanced verification system with multi-position checking
 - Readable text patterns for corruption detection
-- Improved progress display and Chinese controller protection
+- Improved progress display and protection mechanisms
 - Bug fixes and error handling improvements
 
 ---
 
 <div align="center">
 
-**FileDO v2507062220** - Advanced File & Storage Operations Tool
+**FileDO v2507112115** - Advanced File & Storage Operations Tool
 
-Created by **sza@ukr.net** | [MIT License](LICENSE) | [Contributing Guidelines](CONTRIBUTING.md)
+Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO)
+
+---
+
+### 🚀 Recent Improvements
+
+- **🔧 Modular Architecture**: Refactored into specialized packages (`capacitytest`, `fileduplicates`)
+- **⚡ Enhanced Interruption**: Context-aware cancellation with graceful cleanup
+- **🛡️ Thread-Safe Operations**: Improved `InterruptHandler` with mutex protection
+- **📊 Better Performance**: Optimized buffer management and verification algorithms
+- **🖥️ Updated GUI**: VB.NET Windows Forms application with improved integration
 
 </div>
 

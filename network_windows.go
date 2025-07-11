@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"filedo/capacitytest"
 	"fmt"
 	"io/fs"
 	"os"
@@ -128,7 +129,17 @@ func (t *NetworkTester) CreateTestFileContext(ctx context.Context, fileName stri
 		// Continue with file creation
 	}
 
-	return t.CreateTestFile(fileName, fileSize)
+	filePath = filepath.Join(t.networkPath, fileName)
+
+	// Use optimal buffer size with context support
+	optimalBuffer := capacitytest.CalibrateOptimalBufferSize(t.networkPath)
+
+	// Create file with context-aware writing
+	if err := capacitytest.WriteTestFileWithBufferContext(ctx, filePath, fileSize, optimalBuffer); err != nil {
+		return "", fmt.Errorf("failed to create test file: %v", err)
+	}
+
+	return filePath, nil
 }
 
 // VerifyTestFile verifies that a test file contains the expected header

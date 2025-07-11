@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 )
 
 type InterruptHandler struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
-	cleanupFns []func()
+	ctx         context.Context
+	cancel      context.CancelFunc
+	cleanupFns  []func()
+	interrupted bool
+	mu          sync.Mutex
 }
 
 func NewInterruptHandler() *InterruptHandler {
@@ -37,10 +41,21 @@ func NewInterruptHandler() *InterruptHandler {
 }
 
 func (ih *InterruptHandler) AddCleanup(fn func()) {
+	ih.mu.Lock()
+	defer ih.mu.Unlock()
 	ih.cleanupFns = append(ih.cleanupFns, fn)
 }
 
 func (ih *InterruptHandler) Interrupt() {
+	ih.mu.Lock()
+	defer ih.mu.Unlock()
+
+	if ih.interrupted {
+		return // Already interrupted
+	}
+
+	ih.interrupted = true
+
 	// Run cleanup functions in reverse order
 	for i := len(ih.cleanupFns) - 1; i >= 0; i-- {
 		ih.cleanupFns[i]()
@@ -59,4 +74,25 @@ func (ih *InterruptHandler) IsCancelled() bool {
 	default:
 		return false
 	}
+}
+
+func (ih *InterruptHandler) IsInterrupted() bool {
+	ih.mu.Lock()
+	defer ih.mu.Unlock()
+	return ih.interrupted
+}
+
+// CheckContext returns error if context is cancelled
+func (ih *InterruptHandler) CheckContext() error {
+	select {
+	case <-ih.ctx.Done():
+		return ih.ctx.Err()
+	default:
+		return nil
+	}
+}
+
+// WithTimeoutContext creates a context with timeout based on the interrupt handler's context
+func (ih *InterruptHandler) WithTimeoutContext(timeout time.Duration) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ih.ctx, timeout)
 }
