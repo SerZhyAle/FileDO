@@ -1,0 +1,128 @@
+# FileDO Comprehensive Test Suite
+# This file contains tests for all major functionalities of FileDO
+# Created: July 11, 2025
+# For use with: filedo.exe from .\test\test_list.lst
+# =====================================================================
+
+# =====================================================================
+# SECTION 1: DEVICE OPERATIONS
+# =====================================================================
+
+# Device Information
+device D: info
+device D: short
+# Non-existent device (should handle gracefully)
+device Z: info
+
+device D: clean
+
+# Device Speed Testing
+device D: speed 10 short
+device D: speed 50 nodel
+device D: clean
+
+# Device Test (Fake Capacity Detection)
+# Test with small size for quick testing, normally would use full capacity
+device D: test del
+
+# Device Fill Operations
+device D: fill 10
+device D: clean
+device D: fill 20 del
+
+# Device Duplicate Detection
+# First create some test duplicates
+folder D:\TestDuplicates info
+device D: cd short
+device D: cd list D:\TestDuplicates\duplicates.lst
+
+# =====================================================================
+# SECTION 2: FOLDER OPERATIONS
+# =====================================================================
+
+# Folder Information
+folder D:\TestFolder info
+folder D:\TestFolder short
+# Non-existent folder (should handle gracefully)
+folder D:\NonExistentFolder info
+
+folder D:\TestFolder clean
+
+# Folder Speed Testing
+folder D:\TestFolder speed 10 short
+folder D:\TestFolder speed 20 nodel
+folder D:\TestFolder clean
+
+# Folder Test (Capacity)
+folder D:\TestFolder test short
+folder D:\TestFolder clean
+
+# Folder Fill Operations
+folder D:\TestFolder fill 10
+folder D:\TestFolder clean
+folder D:\TestFolder fill 20 del
+
+# Folder Duplicate Detection
+folder D:\TestFolder cd short
+folder D:\TestFolder cd list D:\TestFolder\folder_duplicates.lst
+
+# =====================================================================
+# SECTION 3: FILE OPERATIONS
+# =====================================================================
+
+# File Information (First create a test file)
+file D:\TestFolder\testfile.txt info
+file D:\TestFolder\testfile.txt short
+# Non-existent file (should handle gracefully)
+file D:\TestFolder\nonexistent.txt info
+
+# =====================================================================
+# SECTION 4: NETWORK OPERATIONS (if available)
+# =====================================================================
+
+# Comment out if network share not available
+# Replace with valid network path if testing network operations
+network \\localhost\share info
+network \\localhost\share short
+network \\localhost\share clean
+network \\localhost\share speed 10 short
+network \\localhost\share test short
+network \\localhost\share clean
+network \\localhost\share fill 10 del
+network \\localhost\share cd short
+network \\localhost\share clean
+
+# Non-existent network path (should handle gracefully)
+network \\nonexistent\share info
+
+# =====================================================================
+# SECTION 5: DUPLICATE FILE MANAGEMENT
+# =====================================================================
+
+# Process duplicates with different selection modes and actions
+# Test with the previously saved list files
+cd from list D:\TestDuplicates\duplicates.lst old
+cd from list D:\TestFolder\folder_duplicates.lst new
+
+# Non-existent list file (should handle gracefully)
+cd from list D:\nonexistent_list.lst
+
+# =====================================================================
+# SECTION 6: HISTORY & INFORMATION
+# =====================================================================
+
+# View history of operations
+hist
+
+# =====================================================================
+# SECTION 7: CLEANUP
+# =====================================================================
+
+# Final cleanup
+device D: clean
+folder D:\TestFolder clean
+network \\localhost\share clean
+
+# =====================================================================
+# End of test suite
+# =====================================================================

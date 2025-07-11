@@ -134,10 +134,20 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 		pathWithSlash += `\`
 	}
 
+	// First check if drive letter exists
+	if len(pathWithSlash) >= 2 && pathWithSlash[1] == ':' {
+		driveLetter := unicode.ToUpper(rune(pathWithSlash[0]))
+		// Check if drive exists by attempting to get drive type
+		driveType := windows.GetDriveType(windows.StringToUTF16Ptr(string(driveLetter) + `:\`))
+		if driveType == windows.DRIVE_NO_ROOT_DIR {
+			return DeviceInfo{}, fmt.Errorf("device '%s' does not exist", path)
+		}
+	}
+
 	volumePathName := make([]uint16, windows.MAX_PATH)
 	err := windows.GetVolumePathName(windows.StringToUTF16Ptr(pathWithSlash), &volumePathName[0], windows.MAX_PATH)
 	if err != nil {
-		return DeviceInfo{}, fmt.Errorf("failed to get volume path name for '%s': %w", path, err)
+		return DeviceInfo{}, fmt.Errorf("device '%s' is not accessible: %w", path, err)
 	}
 	rootPath := windows.UTF16ToString(volumePathName)
 

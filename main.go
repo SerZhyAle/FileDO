@@ -464,6 +464,7 @@ func executeInternalCommand(args []string) error {
 			command = "network"
 			add_args = lowerArgs
 		} else {
+			// Check if the path exists
 			if info, err := os.Stat(args[0]); err == nil {
 				if info.IsDir() {
 					command = "folder"
@@ -473,7 +474,18 @@ func executeInternalCommand(args []string) error {
 					add_args = lowerArgs
 				}
 			} else {
-				return fmt.Errorf("unknown command or path: %s", args[0])
+				// Path doesn't exist - determine if it looks like a folder or file path
+				// and provide a more helpful message
+				if strings.HasSuffix(args[0], "/") || strings.HasSuffix(args[0], "\\") {
+					fmt.Printf("Info: The folder \"%s\" does not exist.\n", args[0])
+					return nil
+				} else if strings.Contains(args[0], ".") {
+					fmt.Printf("Info: The file \"%s\" does not exist.\n", args[0])
+					return nil
+				} else {
+					fmt.Printf("Info: The path \"%s\" does not exist.\n", args[0])
+					return nil
+				}
 			}
 		}
 	}
@@ -516,6 +528,7 @@ func isValidPath(path string) bool {
 	if _, err := os.Stat(path); err == nil {
 		return true
 	}
+	// For batch processing, we also consider paths that might not exist yet as valid syntax
 	return false
 }
 
@@ -698,8 +711,21 @@ func main() {
 						add_args = args[1:]
 					}
 				} else {
-					command = os.Args[1]
-					add_args = args[2:]
+					// Path doesn't exist - try to determine what it might be
+					if strings.HasPrefix(args[1], "folder") || strings.HasPrefix(args[1], "dir") {
+						command = args[1]
+						add_args = args[2:]
+					} else if strings.HasSuffix(args[1], "/") || strings.HasSuffix(args[1], "\\") {
+						fmt.Printf("Info: The folder \"%s\" does not exist.\n", args[1])
+						return
+					} else if strings.Contains(args[1], ".") {
+						fmt.Printf("Info: The file \"%s\" does not exist.\n", args[1])
+						return
+					} else {
+						// Could be a command or non-existent path
+						command = os.Args[1]
+						add_args = args[2:]
+					}
 				}
 			}
 		}

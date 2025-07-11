@@ -7,6 +7,55 @@ import (
 	"strings"
 )
 
+// isPathAccessible checks if a path exists and is accessible
+func isPathAccessible(path string) bool {
+	// Check for network paths specially
+	if len(path) > 2 && (path[0:2] == "\\" || path[0:2] == "//") {
+		// For network paths, we need to check if they are accessible
+		// If it's a UNC path, just check if we can stat it
+		_, err := os.Stat(path)
+		return err == nil
+	}
+
+	// For local paths
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// handleErrorWithUserMessage handles errors with user-friendly messages
+// and returns true if the error was handled
+func handleErrorWithUserMessage(err error, path string, historyLogger *HistoryLogger) bool {
+	if err == nil {
+		return false
+	}
+
+	historyLogger.SetError(err)
+	errMsg := err.Error()
+
+	// Handle common error patterns with user-friendly messages
+	if strings.Contains(errMsg, "device") && strings.Contains(errMsg, "does not exist") {
+		fmt.Printf("Info: Device \"%s\" does not exist.\n", path)
+		return true
+	} else if strings.Contains(errMsg, "file") && strings.Contains(errMsg, "not found") ||
+		strings.Contains(errMsg, "system cannot find the file") {
+		fmt.Printf("Info: File \"%s\" does not exist or is not accessible.\n", path)
+		return true
+	} else if strings.Contains(errMsg, "folder") && strings.Contains(errMsg, "not found") ||
+		strings.Contains(errMsg, "directory") && strings.Contains(errMsg, "not found") ||
+		strings.Contains(errMsg, "system cannot find the path") {
+		fmt.Printf("Info: Folder \"%s\" does not exist or is not accessible.\n", path)
+		return true
+	} else if strings.Contains(errMsg, "network") && strings.Contains(errMsg, "not accessible") {
+		fmt.Printf("Info: Network path \"%s\" is not accessible.\n", path)
+		return true
+	}
+
+	// Default error handling
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	os.Exit(1)
+	return true
+}
+
 // redirectSystemDrive redirects C: to C:\TEMP for write operations
 func redirectSystemDrive(path string) string {
 	if strings.ToLower(path) == "c:" {
@@ -195,6 +244,20 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 	path := cmd.Arg(0)
 
+	// First check if the path exists (for folders, files and network paths)
+	if cmdType != CommandDevice && !isPathAccessible(path) {
+		resourceType := "Path"
+		if cmdType == CommandFolder {
+			resourceType = "Folder"
+		} else if cmdType == CommandFile {
+			resourceType = "File"
+		} else if cmdType == CommandNetwork {
+			resourceType = "Network path"
+		}
+		fmt.Printf("Info: %s \"%s\" does not exist or is not accessible.\n", resourceType, path)
+		return
+	}
+
 	// Redirect system drive for write operations (speed, fill, test)
 	if cmd.NArg() >= 2 {
 		operation := strings.ToLower(cmd.Arg(1))
@@ -225,16 +288,20 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			if cmdTypeName == "network" {
 				err := runNetworkFillClean(path, historyLogger)
 				if err != nil {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					if !handleErrorWithUserMessage(err, path, historyLogger) {
+						historyLogger.SetError(err)
+						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+						os.Exit(1)
+					}
 				}
 			} else {
 				err := handler.FillClean(path)
 				if err != nil {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					if !handleErrorWithUserMessage(err, path, historyLogger) {
+						historyLogger.SetError(err)
+						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+						os.Exit(1)
+					}
 				}
 			}
 			historyLogger.SetSuccess()
@@ -254,9 +321,11 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 			err := handler.CheckDuplicates(path, dupArgs)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 			historyLogger.SetSuccess()
 			return
@@ -293,16 +362,20 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cmdTypeName == "network" {
 			err := runNetworkSpeedTest(path, sizeParam, noDelete, shortFormat, historyLogger)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		} else {
 			err := handler.SpeedTest(path, sizeParam, noDelete, shortFormat)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		}
 		historyLogger.SetSuccess()
@@ -341,16 +414,20 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cmdTypeName == "network" {
 			err := runNetworkFill(path, sizeParam, autoDelete, historyLogger)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		} else {
 			err := handler.Fill(path, sizeParam, autoDelete)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		}
 		historyLogger.SetSuccess()
@@ -375,16 +452,20 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cmdTypeName == "network" {
 			err := runNetworkTest(path, autoDelete, historyLogger)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		} else {
 			err := handler.Test(path, autoDelete)
 			if err != nil {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		}
 		historyLogger.SetSuccess()
@@ -410,9 +491,12 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 	result, err := handler.Info(path, fullScan)
 	if err != nil {
-		historyLogger.SetError(err)
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		if !handleErrorWithUserMessage(err, path, historyLogger) {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	// Special handling for folder and device short format
