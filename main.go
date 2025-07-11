@@ -11,8 +11,6 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-
-	"filedo/helpers"
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
@@ -21,39 +19,66 @@ const version = "2507111830"
 var start_time time.Time
 
 type HistoryEntry struct {
-	Timestamp  time.Time              `json:"timestamp"`
-	Command    string                 `json:"command"`
-	Target     string                 `json:"target"`
-	Operation  string                 `json:"operation"`
-	Parameters map[string]interface{} `json:"parameters"`
-	Results    map[string]interface{} `json:"results"`
-	Duration   string                 `json:"duration"`
-	Success    bool                   `json:"success"`
-	ErrorMsg   string                 `json:"error,omitempty"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Command       string                 `json:"command"`
+	Target        string                 `json:"target"`
+	Operation     string                 `json:"operation"`
+	FullCommand   string                 `json:"fullCommand"`
+	Parameters    map[string]interface{} `json:"parameters"`
+	Results       map[string]interface{} `json:"results"`
+	ResultSummary string                 `json:"resultSummary,omitempty"`
+	Duration      string                 `json:"duration"`
+	Success       bool                   `json:"success"`
+	ErrorMsg      string                 `json:"error,omitempty"`
 }
 
 type HistoryLogger struct {
-	enabled   bool
-	startTime time.Time
-	entry     HistoryEntry
+	enabled      bool
+	startTime    time.Time
+	entry        HistoryEntry
+	originalArgs []string
+	historyFile  string
+	canWriteHist bool
 }
 
 func NewHistoryLogger(args []string) *HistoryLogger {
-	enabled := false
+	// Check for nohist/no_history flags to disable history logging
+	enabled := true
 	for _, arg := range args {
-		if arg == "history" || arg == "hist" {
-			enabled = true
+		if arg == "nohist" || arg == "no_history" {
+			enabled = false
 			break
 		}
 	}
 
+	historyFile := "history.json"
+	canWriteHist := true
+
+	// Check if we can write to the history file
+	if enabled {
+		// Try to open the file for writing to check permissions
+		if file, err := os.OpenFile(historyFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
+			canWriteHist = false
+			// Don't disable entirely, just note we can't write
+		} else {
+			file.Close()
+		}
+	}
+
+	// Create full command string from args
+	fullCommand := strings.Join(args, " ")
+
 	return &HistoryLogger{
-		enabled:   enabled,
-		startTime: time.Now(),
+		enabled:      enabled && canWriteHist,
+		startTime:    time.Now(),
+		originalArgs: args,
+		historyFile:  historyFile,
+		canWriteHist: canWriteHist,
 		entry: HistoryEntry{
-			Timestamp:  time.Now(),
-			Parameters: make(map[string]interface{}),
-			Results:    make(map[string]interface{}),
+			Timestamp:   time.Now(),
+			FullCommand: fullCommand,
+			Parameters:  make(map[string]interface{}),
+			Results:     make(map[string]interface{}),
 		},
 	}
 }
@@ -96,6 +121,13 @@ func (hl *HistoryLogger) SetSuccess() {
 	hl.entry.Success = true
 }
 
+func (hl *HistoryLogger) SetResultSummary(summary string) {
+	if !hl.enabled {
+		return
+	}
+	hl.entry.ResultSummary = summary
+}
+
 func (hl *HistoryLogger) Finish() {
 	if !hl.enabled {
 		return
@@ -103,7 +135,40 @@ func (hl *HistoryLogger) Finish() {
 
 	hl.entry.Duration = formatDuration(time.Since(hl.startTime))
 
+	// Generate result summary if not already set
+	if hl.entry.ResultSummary == "" && hl.entry.Success {
+		hl.entry.ResultSummary = hl.generateResultSummary()
+	}
+
 	saveToHistory(hl.entry)
+}
+
+// generateResultSummary creates a short summary of the operation results
+func (hl *HistoryLogger) generateResultSummary() string {
+	var details []string
+
+	if size, ok := hl.entry.Results["totalSize"].(string); ok {
+		details = append(details, "Size: "+size)
+	}
+	if files, ok := hl.entry.Results["fileCount"].(float64); ok {
+		details = append(details, fmt.Sprintf("Files: %.0f", files))
+	}
+	if speed, ok := hl.entry.Results["uploadSpeed"].(string); ok {
+		details = append(details, "Speed: "+speed)
+	}
+	if totalCmds, ok := hl.entry.Results["totalCommands"].(float64); ok {
+		if successCmds, ok2 := hl.entry.Results["successfulCommands"].(float64); ok2 {
+			details = append(details, fmt.Sprintf("Batch: %.0f/%.0f", successCmds, totalCmds))
+		}
+	}
+	if duplicates, ok := hl.entry.Results["duplicatesFound"].(float64); ok {
+		details = append(details, fmt.Sprintf("Duplicates: %.0f", duplicates))
+	}
+	if freed, ok := hl.entry.Results["spaceFreed"].(string); ok {
+		details = append(details, "Freed: "+freed)
+	}
+
+	return strings.Join(details, ", ")
 }
 
 func saveToHistory(entry HistoryEntry) error {
@@ -439,7 +504,7 @@ func executeInternalCommand(args []string) error {
 
 	// Parse command similar to main function logic
 	command := ""
-	add_args := []string{}
+	var add_args []string
 
 	// Convert to lowercase for comparison
 	lowerArgs := make([]string, len(args))
@@ -508,6 +573,36 @@ func executeInternalCommand(args []string) error {
 		networkCmd := flag.NewFlagSet("network", flag.ContinueOnError)
 		networkCmd.SetOutput(os.Stdout)
 		runGenericCommand(networkCmd, CommandNetwork, add_args, internalLogger)
+	case contains(list_of_flags_for_duplicates, command):
+		// Обработка команды проверки дубликатов
+		if len(lowerArgs) > 1 && lowerArgs[1] == "from" {
+			internalLogger.SetCommand(command, "from", "check-duplicates")
+			err := handleCheckDuplicatesCommand(args)
+			if err != nil {
+				internalLogger.SetError(err)
+				return err
+			}
+			internalLogger.SetSuccess()
+		} else {
+			return fmt.Errorf("invalid format for duplicate command: %s", strings.Join(args, " "))
+		}
+	case contains(list_of_flags_for_hist, command):
+		// Обработка команды истории
+		internalLogger.SetCommand(command, "", "history")
+		handleHistoryCommand(args)
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_from, command):
+		// Обработка команды из файла (вложенный вызов)
+		if len(args) < 2 {
+			return fmt.Errorf("missing file path for 'from' command")
+		}
+		internalLogger.SetCommand(command, args[1], "batch")
+		err := executeFromFile(args[1], internalLogger)
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
 	default:
 		return fmt.Errorf("unknown command: %s", command)
 	}
@@ -572,60 +667,90 @@ func ShowLastHistory(count int) {
 		}
 
 		timeStr := entry.Timestamp.Format("15:04:05")
-		cmd := entry.Command
-		if entry.Target != "" {
-			cmd += " " + entry.Target
-		}
-		if entry.Operation != "" && entry.Operation != "info" {
-			cmd += " " + entry.Operation
-		}
 
-		if params, ok := entry.Parameters["args"].([]interface{}); ok && len(params) > 2 {
-			for _, p := range params[2:] {
-				if str, ok := p.(string); ok && str != "hist" && str != "history" {
-					cmd += " " + str
-				}
+		// Use full command if available, otherwise reconstruct from parts
+		var cmdDisplay string
+		if entry.FullCommand != "" {
+			cmdDisplay = entry.FullCommand
+			// Remove "filedo" prefix if present
+			if strings.HasPrefix(cmdDisplay, "filedo ") {
+				cmdDisplay = cmdDisplay[7:]
 			}
-		}
+			if strings.HasPrefix(cmdDisplay, "filedo.exe ") {
+				cmdDisplay = cmdDisplay[11:]
+			}
+			if strings.HasPrefix(cmdDisplay, "./filedo.exe ") {
+				cmdDisplay = cmdDisplay[13:]
+			}
+		} else {
+			// Fallback to old reconstruction method
+			cmd := entry.Command
+			if entry.Target != "" {
+				cmd += " " + entry.Target
+			}
+			if entry.Operation != "" && entry.Operation != "info" {
+				cmd += " " + entry.Operation
+			}
 
-		// Fallback for empty commands - try to reconstruct from args
-		if cmd == "" && entry.Parameters != nil {
-			if params, ok := entry.Parameters["args"].([]interface{}); ok && len(params) > 0 {
-				var parts []string
-				for _, p := range params {
+			if params, ok := entry.Parameters["args"].([]interface{}); ok && len(params) > 2 {
+				for _, p := range params[2:] {
 					if str, ok := p.(string); ok && str != "hist" && str != "history" {
-						parts = append(parts, str)
+						cmd += " " + str
 					}
 				}
-				cmd = strings.Join(parts, " ")
 			}
+
+			// Fallback for empty commands - try to reconstruct from args
+			if cmd == "" && entry.Parameters != nil {
+				if params, ok := entry.Parameters["args"].([]interface{}); ok && len(params) > 0 {
+					var parts []string
+					for _, p := range params {
+						if str, ok := p.(string); ok && str != "hist" && str != "history" {
+							parts = append(parts, str)
+						}
+					}
+					cmd = strings.Join(parts, " ")
+				}
+			}
+			cmdDisplay = cmd
 		}
 
-		fmt.Printf("[%d] %s %s %s (%s)\n", num, status, timeStr, cmd, entry.Duration)
+		fmt.Printf("[%d] %s %s %s (%s)\n", num, status, timeStr, cmdDisplay, entry.Duration)
 
 		if !entry.Success && entry.ErrorMsg != "" {
 			fmt.Printf("    Error: %s\n", entry.ErrorMsg)
 		}
 
-		if entry.Success && len(entry.Results) > 0 {
-			var details []string
-			if size, ok := entry.Results["totalSize"].(string); ok {
-				details = append(details, "Size: "+size)
-			}
-			if files, ok := entry.Results["fileCount"].(float64); ok {
-				details = append(details, fmt.Sprintf("Files: %.0f", files))
-			}
-			if speed, ok := entry.Results["uploadSpeed"].(string); ok {
-				details = append(details, "Speed: "+speed)
-			}
-			if totalCmds, ok := entry.Results["totalCommands"].(float64); ok {
-				if successCmds, ok2 := entry.Results["successfulCommands"].(float64); ok2 {
-					details = append(details, fmt.Sprintf("Batch: %.0f/%.0f", successCmds, totalCmds))
+		if entry.Success {
+			// Use result summary if available, otherwise show individual results
+			if entry.ResultSummary != "" {
+				fmt.Printf("    %s\n", entry.ResultSummary)
+			} else if len(entry.Results) > 0 {
+				var details []string
+				if size, ok := entry.Results["totalSize"].(string); ok {
+					details = append(details, "Size: "+size)
 				}
-			}
+				if files, ok := entry.Results["fileCount"].(float64); ok {
+					details = append(details, fmt.Sprintf("Files: %.0f", files))
+				}
+				if speed, ok := entry.Results["uploadSpeed"].(string); ok {
+					details = append(details, "Speed: "+speed)
+				}
+				if totalCmds, ok := entry.Results["totalCommands"].(float64); ok {
+					if successCmds, ok2 := entry.Results["successfulCommands"].(float64); ok2 {
+						details = append(details, fmt.Sprintf("Batch: %.0f/%.0f", successCmds, totalCmds))
+					}
+				}
+				if duplicates, ok := entry.Results["duplicatesFound"].(float64); ok {
+					details = append(details, fmt.Sprintf("Duplicates: %.0f", duplicates))
+				}
+				if freed, ok := entry.Results["spaceFreed"].(string); ok {
+					details = append(details, "Freed: "+freed)
+				}
 
-			if len(details) > 0 {
-				fmt.Printf("    %s\n", strings.Join(details, ", "))
+				if len(details) > 0 {
+					fmt.Printf("    %s\n", strings.Join(details, ", "))
+				}
 			}
 		}
 
@@ -653,7 +778,7 @@ func main() {
 	args := os.Args
 
 	// Initialize history logger
-	historyLogger := NewHistoryLogger(args)
+	historyLogger := NewHistoryLogger(os.Args)
 	defer historyLogger.Finish()
 
 	for i := range args {
@@ -666,10 +791,10 @@ func main() {
 	}
 
 	// Check for direct cd from command (without device/folder/network context)
-	if args[1] == "cd" && len(args) > 2 && args[2] == "from" {
-		historyLogger.SetCommand("cd", "from", "check-duplicates")
-		// Pass all arguments after "cd", i.e. "from list file.lst [options]"
-		err := helpers.CheckDuplicatesFromFile(args[2:])
+	if contains(list_of_flags_for_duplicates, args[1]) && len(args) > 2 && args[2] == "from" {
+		historyLogger.SetCommand(args[1], "from", "check-duplicates")
+		// Pass command to handler
+		err := handleCheckDuplicatesCommand(args[1:])
 		if err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -770,7 +895,7 @@ func main() {
 			os.Exit(1)
 		}
 	case contains(list_of_flags_for_hist, command):
-		ShowLastHistory(10)
+		handleHistoryCommand(os.Args[1:])
 		return
 	default:
 		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n\n", os.Args[1])

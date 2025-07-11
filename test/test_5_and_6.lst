@@ -1,0 +1,19 @@
+# =====================================================================
+# SECTION 5: DUPLICATE FILE MANAGEMENT
+# =====================================================================
+
+# Process duplicates with different selection modes and actions
+# Test with the previously saved list files
+folder test_dups cd list .\test_dups\duplicates.lst
+cd from list .\test_dups\duplicates.lst old
+cd from list .\test_dups\duplicates.lst new
+
+# Non-existent list file (should handle gracefully)
+cd from list .\test_dups\duplicates.lst
+
+# =====================================================================
+# SECTION 6: HISTORY & INFORMATION
+# =====================================================================
+
+# View history of operations
+hist

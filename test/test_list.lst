@@ -101,11 +101,12 @@ network \\nonexistent\share info
 
 # Process duplicates with different selection modes and actions
 # Test with the previously saved list files
-cd from list D:\TestDuplicates\duplicates.lst old
-cd from list D:\TestFolder\folder_duplicates.lst new
+folder test_dups cd list .\test_dups\duplicates.lst
+cd from list .\test_dups\duplicates.lst old
+cd from list .\test_dups\duplicates.lst new
 
 # Non-existent list file (should handle gracefully)
-cd from list D:\nonexistent_list.lst
+cd from list .\test_dups\duplicates.lst
 
 # =====================================================================
 # SECTION 6: HISTORY & INFORMATION

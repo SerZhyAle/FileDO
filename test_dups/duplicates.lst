@@ -1,0 +1,12 @@
+# Duplicate files report
+# Date: Fri, 11 Jul 2025 19:45:18 CEST
+# Root path: .\test_dups\duplicates.lst
+# Total files: 5
+# Duplicate groups: 1
+# Duplicate files: 1
+# Wasted space: 0.01 MB
+
+# Group 1 (2 files, 0.01 MB each)
+* test_dups\test_file2.bin
+  test_dups\test_file1.bin
+
