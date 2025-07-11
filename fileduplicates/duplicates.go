@@ -485,6 +485,8 @@ func ParseArguments(args []string) DuplicateOptions {
 				options.Action = MoveAction
 				options.TargetDir = args[i+1]
 				i++ // Skip the next argument as it's the target directory
+			} else {
+				fmt.Fprintf(os.Stderr, "Warning: 'move' option specified without a target directory\n")
 			}
 		case "delete", "del":
 			options.Action = DeleteAction
@@ -502,21 +504,30 @@ func ParseArguments(args []string) DuplicateOptions {
 func LoadFileList(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open file list: %w", err)
 	}
 	defer file.Close()
 
 	var files []string
+	lineCount := 0
+	validLines := 0
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
+		lineCount++
 		line := strings.TrimSpace(scanner.Text())
 		if line != "" && !strings.HasPrefix(line, "#") {
 			files = append(files, line)
+			validLines++
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading file list: %w", err)
+	}
+
+	if validLines == 0 {
+		return nil, fmt.Errorf("no valid entries found in file list (total lines: %d)", lineCount)
 	}
 
 	return files, nil
@@ -526,7 +537,11 @@ func LoadFileList(filePath string) ([]string, error) {
 func ProcessDuplicateGroupsFromList(duplicateGroups map[string][]DuplicateFileInfo, options DuplicateOptions) error {
 	// Convert map of groups to slice for processing
 	var groupsSlice [][]DuplicateFileInfo
+	skippedFiles := 0
+	totalFiles := 0
+
 	for _, group := range duplicateGroups {
+		totalFiles += len(group)
 		// Verify files actually exist before processing
 		var validFiles []DuplicateFileInfo
 		for _, file := range group {
@@ -537,6 +552,7 @@ func ProcessDuplicateGroupsFromList(duplicateGroups map[string][]DuplicateFileIn
 				validFiles = append(validFiles, file)
 			} else {
 				fmt.Printf("Warning: File not found: %s, skipping\n", file.Path)
+				skippedFiles++
 			}
 		}
 
@@ -547,10 +563,14 @@ func ProcessDuplicateGroupsFromList(duplicateGroups map[string][]DuplicateFileIn
 	}
 
 	if len(groupsSlice) == 0 {
+		if skippedFiles > 0 {
+			return fmt.Errorf("no valid duplicate groups found (%d files were skipped due to errors)", skippedFiles)
+		}
 		return fmt.Errorf("no valid duplicate groups found")
 	}
 
-	fmt.Printf("Found %d duplicate groups from list\n", len(groupsSlice))
+	fmt.Printf("Found %d duplicate groups from list (%d of %d files are valid)\n",
+		len(groupsSlice), totalFiles-skippedFiles, totalFiles)
 
 	// Process the groups
 	ProcessDuplicateGroups(groupsSlice, options)

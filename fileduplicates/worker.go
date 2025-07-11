@@ -93,7 +93,7 @@ func (hw *HashWorker) worker() {
 func calculateQuickHash(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to open file for quick hash: %w", err)
 	}
 	defer file.Close()
 
@@ -102,7 +102,7 @@ func calculateQuickHash(filePath string) (string, error) {
 
 	n, err := file.Read(buffer)
 	if err != nil && err != io.EOF {
-		return "", err
+		return "", fmt.Errorf("failed to read file for quick hash: %w", err)
 	}
 
 	hasher.Write(buffer[:n])
@@ -113,13 +113,13 @@ func calculateQuickHash(filePath string) (string, error) {
 func calculateFullHash(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to open file for full hash: %w", err)
 	}
 	defer file.Close()
 
 	hasher := md5.New()
 	if _, err := io.Copy(hasher, file); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read file for full hash: %w", err)
 	}
 
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
@@ -136,11 +136,14 @@ func LoadHashCache() (*HashCache, error) {
 		if os.IsNotExist(err) {
 			return cache, nil // Not an error if file doesn't exist
 		}
-		return cache, err
+		return cache, fmt.Errorf("failed to read hash cache file: %w", err)
 	}
 
-	err = json.Unmarshal(data, &cache.Entries)
-	return cache, err
+	if err = json.Unmarshal(data, &cache.Entries); err != nil {
+		return cache, fmt.Errorf("failed to parse hash cache file: %w", err)
+	}
+
+	return cache, nil
 }
 
 // Get a hash from cache or calculate it

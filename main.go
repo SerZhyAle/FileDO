@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"filedo/src/helpers"
+	"filedo/helpers"
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM

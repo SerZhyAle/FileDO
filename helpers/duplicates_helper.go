@@ -2,10 +2,11 @@ package helpers
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"filedo/src/fileduplicates"
+	"filedo/fileduplicates"
 )
 
 // CheckDuplicatesFromFile handles duplicate checking from a file list
@@ -71,9 +72,11 @@ func CheckDuplicatesFromFile(args []string) error {
 
 		// Try to parse size if available
 		if len(parts) > 2 {
-			var size int64
-			fmt.Sscanf(parts[2], "%d", &size)
-			fileInfo.Size = size
+			if size, err := strconv.ParseInt(parts[2], 10, 64); err == nil {
+				fileInfo.Size = size
+			} else {
+				fmt.Printf("Warning: Invalid size format in %s: %v\n", filePath, err)
+			}
 		}
 
 		// Try to parse modtime if available
@@ -82,6 +85,8 @@ func CheckDuplicatesFromFile(args []string) error {
 			modTime, err := time.Parse("2006-01-02 15:04:05", parts[3])
 			if err == nil {
 				fileInfo.ModTime = modTime
+			} else {
+				fmt.Printf("Warning: Invalid modtime format in %s: %v\n", filePath, err)
 			}
 		}
 
