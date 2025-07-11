@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -157,6 +158,9 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 
 	// Submit jobs to calculate quick hashes
 	resultsMutex := sync.Mutex{}
+	processedCount := int64(0)
+	totalCount := int64(len(potentialDuplicates))
+
 	for _, file := range potentialDuplicates {
 		// Use a copy of file to avoid race condition in the closure
 		fileCopy := file
@@ -168,6 +172,13 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			resultsMutex.Lock()
 			filesByQuickHash[quickHash] = append(filesByQuickHash[quickHash], fileCopy)
 			resultsMutex.Unlock()
+
+			// Update progress for cached files
+			processed := atomic.AddInt64(&processedCount, 1)
+			if options.Verbose && processed%100 == 0 {
+				fmt.Printf("Quick hash progress: %d/%d (%.1f%%)\r",
+					processed, totalCount, float64(processed)/float64(totalCount)*100)
+			}
 		} else {
 			// Submit for calculation
 			worker.AddJob(fileCopy, QuickHash)
@@ -183,11 +194,24 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 					filesByQuickHash[result.file.QuickHash], result.file)
 				resultsMutex.Unlock()
 			}
+
+			// Update progress for calculated files
+			processed := atomic.AddInt64(&processedCount, 1)
+			if options.Verbose && processed%100 == 0 {
+				fmt.Printf("Quick hash progress: %d/%d (%.1f%%)\r",
+					processed, totalCount, float64(processed)/float64(totalCount)*100)
+			}
 		}
 	}()
 
 	// Wait for all quick hashes to complete
 	worker.Wait()
+
+	// Final progress update
+	if options.Verbose {
+		fmt.Printf("Quick hash progress: %d/%d (100.0%%) - Complete\n",
+			totalCount, totalCount)
+	}
 
 	// Process files with matching quick hashes for full hash comparison
 	var duplicateGroups [][]DuplicateFileInfo
@@ -195,6 +219,19 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	// New worker for full hashes
 	worker = NewHashWorker(MAX_WORKERS)
 	filesByFullHash := make(map[string][]DuplicateFileInfo)
+
+	// Count files that need full hash calculation
+	fullHashCount := int64(0)
+	for _, files := range filesByQuickHash {
+		if len(files) > 1 {
+			fullHashCount += int64(len(files))
+		}
+	}
+
+	fullHashProcessed := int64(0)
+	if options.Verbose && fullHashCount > 0 {
+		fmt.Printf("Found %d files requiring full hash calculation...\n", fullHashCount)
+	}
 
 	// Find groups with matching quick hashes
 	for _, files := range filesByQuickHash {
@@ -210,6 +247,13 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 					resultsMutex.Lock()
 					filesByFullHash[fullHash] = append(filesByFullHash[fullHash], fileCopy)
 					resultsMutex.Unlock()
+
+					// Update progress for cached files
+					processed := atomic.AddInt64(&fullHashProcessed, 1)
+					if options.Verbose && processed%50 == 0 {
+						fmt.Printf("Full hash progress: %d/%d (%.1f%%)\r",
+							processed, fullHashCount, float64(processed)/float64(fullHashCount)*100)
+					}
 				} else {
 					// Submit for calculation
 					worker.AddJob(fileCopy, FullHash)
@@ -227,11 +271,24 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 					filesByFullHash[result.file.FullHash], result.file)
 				resultsMutex.Unlock()
 			}
+
+			// Update progress for calculated files
+			processed := atomic.AddInt64(&fullHashProcessed, 1)
+			if options.Verbose && processed%50 == 0 {
+				fmt.Printf("Full hash progress: %d/%d (%.1f%%)\r",
+					processed, fullHashCount, float64(processed)/float64(fullHashCount)*100)
+			}
 		}
 	}()
 
 	// Wait for all full hashes to complete
 	worker.Wait()
+
+	// Final progress update
+	if options.Verbose && fullHashCount > 0 {
+		fmt.Printf("Full hash progress: %d/%d (100.0%%) - Complete\n",
+			fullHashCount, fullHashCount)
+	}
 
 	// Find true duplicates by full hash
 	for fullHash, files := range filesByFullHash {
