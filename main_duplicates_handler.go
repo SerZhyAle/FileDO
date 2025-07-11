@@ -7,21 +7,21 @@ import (
 	"filedo/helpers"
 )
 
-// handleCheckDuplicatesCommand обрабатывает команду проверки дубликатов,
-// когда она используется как самостоятельная команда без контекста устройства/папки/сети
+// handleCheckDuplicatesCommand handles the check-duplicates command,
+// including processing from a file list.
 func handleCheckDuplicatesCommand(args []string) error {
 	if len(args) < 3 {
-		return fmt.Errorf("недостаточно аргументов для команды. Используйте: cd from list <file_path> [options]")
+		return fmt.Errorf("not enough arguments for the command. Usage: cd from list <file_path> [options]")
 	}
 
 	cmd := strings.ToLower(args[0])
 	if cmd != "cd" && cmd != "check-duplicates" && cmd != "duplicate" {
-		return fmt.Errorf("неизвестная команда: %s", args[0])
+		return fmt.Errorf("unknown command: %s", args[0])
 	}
 
 	// Проверяем, что команда имеет формат "cd from list file.lst [options]"
 	if strings.ToLower(args[1]) != "from" || strings.ToLower(args[2]) != "list" {
-		return fmt.Errorf("неверный формат команды. Используйте: cd from list <file_path> [options]")
+		return fmt.Errorf("invalid command format. Usage: cd from list <file_path> [options]")
 	}
 
 	// Передаем все аргументы после "cd", т.е. "from list file.lst [options]"

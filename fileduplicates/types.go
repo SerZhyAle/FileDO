@@ -2,6 +2,7 @@
 package fileduplicates
 
 import (
+	"runtime"
 	"sync"
 	"time"
 )
@@ -9,8 +10,8 @@ import (
 // Constants for duplicate file processing
 const (
 	MIN_DUPLICATE_FILE_SIZE = 16                // Minimum file size to consider (in bytes)
-	QUICK_HASH_SIZE         = 8192              // Size for quick hash sample (8KB)
-	MAX_WORKERS             = 5                 // Maximum concurrent hash workers
+	QUICK_HASH_SIZE         = 4096              // Size for quick hash sample (4KB)
+	MAX_WORKERS             = 24                // Maximum concurrent hash workers
 	HASH_CACHE_FILE         = "hash_cache.json" // Filename for hash cache
 )
 
@@ -110,4 +111,17 @@ func DefaultOptions() DuplicateOptions {
 		IsDevice:            false,
 		BatchMode:           false,
 	}
+}
+
+// GetOptimalWorkerCount returns optimal number of workers based on CPU cores
+func GetOptimalWorkerCount() int {
+	cores := runtime.NumCPU()
+	workers := cores - 1
+	if workers < 2 {
+		workers = 2
+	}
+	if workers > MAX_WORKERS {
+		workers = MAX_WORKERS
+	}
+	return workers
 }

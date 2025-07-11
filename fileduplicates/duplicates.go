@@ -52,7 +52,12 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	}
 
 	// Create worker pool for hash calculation
-	worker := NewHashWorker(MAX_WORKERS)
+	workerCount := GetOptimalWorkerCount()
+	worker := NewHashWorker(workerCount)
+
+	if options.Verbose {
+		fmt.Printf("Using %d workers for hash calculation\n", workerCount)
+	}
 
 	// First scan to estimate total file count (for progress reporting)
 	totalFiles := 0
@@ -160,6 +165,7 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	resultsMutex := sync.Mutex{}
 	processedCount := int64(0)
 	totalCount := int64(len(potentialDuplicates))
+	quickHashStartTime := time.Now()
 
 	for _, file := range potentialDuplicates {
 		// Use a copy of file to avoid race condition in the closure
@@ -176,8 +182,17 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			// Update progress for cached files
 			processed := atomic.AddInt64(&processedCount, 1)
 			if options.Verbose && processed%100 == 0 {
-				fmt.Printf("Quick hash progress: %d/%d (%.1f%%)\r",
-					processed, totalCount, float64(processed)/float64(totalCount)*100)
+				elapsed := time.Since(quickHashStartTime)
+				percent := float64(processed) / float64(totalCount) * 100
+				eta := "unknown"
+				if processed > 0 {
+					timePerFile := elapsed.Seconds() / float64(processed)
+					remainingFiles := totalCount - processed
+					remainingSeconds := int(timePerFile * float64(remainingFiles))
+					eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+				}
+				fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
+					processed, totalCount, percent, eta)
 			}
 		} else {
 			// Submit for calculation
@@ -198,8 +213,17 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			// Update progress for calculated files
 			processed := atomic.AddInt64(&processedCount, 1)
 			if options.Verbose && processed%100 == 0 {
-				fmt.Printf("Quick hash progress: %d/%d (%.1f%%)\r",
-					processed, totalCount, float64(processed)/float64(totalCount)*100)
+				elapsed := time.Since(quickHashStartTime)
+				percent := float64(processed) / float64(totalCount) * 100
+				eta := "unknown"
+				if processed > 0 {
+					timePerFile := elapsed.Seconds() / float64(processed)
+					remainingFiles := totalCount - processed
+					remainingSeconds := int(timePerFile * float64(remainingFiles))
+					eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+				}
+				fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
+					processed, totalCount, percent, eta)
 			}
 		}
 	}()
@@ -217,7 +241,7 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	var duplicateGroups [][]DuplicateFileInfo
 
 	// New worker for full hashes
-	worker = NewHashWorker(MAX_WORKERS)
+	worker = NewHashWorker(workerCount)
 	filesByFullHash := make(map[string][]DuplicateFileInfo)
 
 	// Count files that need full hash calculation
@@ -229,6 +253,7 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	}
 
 	fullHashProcessed := int64(0)
+	fullHashStartTime := time.Now()
 	if options.Verbose && fullHashCount > 0 {
 		fmt.Printf("Found %d files requiring full hash calculation...\n", fullHashCount)
 	}
@@ -251,8 +276,17 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 					// Update progress for cached files
 					processed := atomic.AddInt64(&fullHashProcessed, 1)
 					if options.Verbose && processed%50 == 0 {
-						fmt.Printf("Full hash progress: %d/%d (%.1f%%)\r",
-							processed, fullHashCount, float64(processed)/float64(fullHashCount)*100)
+						elapsed := time.Since(fullHashStartTime)
+						percent := float64(processed) / float64(fullHashCount) * 100
+						eta := "unknown"
+						if processed > 0 {
+							timePerFile := elapsed.Seconds() / float64(processed)
+							remainingFiles := fullHashCount - processed
+							remainingSeconds := int(timePerFile * float64(remainingFiles))
+							eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+						}
+						fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
+							processed, fullHashCount, percent, eta)
 					}
 				} else {
 					// Submit for calculation
@@ -275,8 +309,17 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			// Update progress for calculated files
 			processed := atomic.AddInt64(&fullHashProcessed, 1)
 			if options.Verbose && processed%50 == 0 {
-				fmt.Printf("Full hash progress: %d/%d (%.1f%%)\r",
-					processed, fullHashCount, float64(processed)/float64(fullHashCount)*100)
+				elapsed := time.Since(fullHashStartTime)
+				percent := float64(processed) / float64(fullHashCount) * 100
+				eta := "unknown"
+				if processed > 0 {
+					timePerFile := elapsed.Seconds() / float64(processed)
+					remainingFiles := fullHashCount - processed
+					remainingSeconds := int(timePerFile * float64(remainingFiles))
+					eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+				}
+				fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
+					processed, fullHashCount, percent, eta)
 			}
 		}
 	}()

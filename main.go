@@ -1,5 +1,5 @@
-// sza250407
-// sza2504072115
+// sza250707
+// sza250712
 package main
 
 import (
@@ -14,7 +14,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2507112340"
+const version = "2507120020"
 
 var start_time time.Time
 
@@ -563,7 +563,7 @@ func executeInternalCommand(args []string) error {
 		networkCmd.SetOutput(os.Stdout)
 		runGenericCommand(networkCmd, CommandNetwork, add_args, internalLogger)
 	case contains(list_of_flags_for_duplicates, command):
-		// Обработка команды проверки дубликатов
+		// Handle check-duplicates command
 		if len(lowerArgs) > 1 && lowerArgs[1] == "from" {
 			internalLogger.SetCommand(command, "from", "check-duplicates")
 			err := handleCheckDuplicatesCommand(args)
@@ -576,12 +576,12 @@ func executeInternalCommand(args []string) error {
 			return fmt.Errorf("invalid format for duplicate command: %s", strings.Join(args, " "))
 		}
 	case contains(list_of_flags_for_hist, command):
-		// Обработка команды истории
+		// Handle history command
 		internalLogger.SetCommand(command, "", "history")
 		handleHistoryCommand(args)
 		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_from, command):
-		// Обработка команды из файла (вложенный вызов)
+		// Handle from file command (nested call)
 		if len(args) < 2 {
 			return fmt.Errorf("missing file path for 'from' command")
 		}
