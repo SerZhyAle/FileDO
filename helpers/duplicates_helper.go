@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"filedo/pkg/fileduplicates"
+	"filedo/src/fileduplicates"
 )
 
 // CheckDuplicatesFromFile handles duplicate checking from a file list
