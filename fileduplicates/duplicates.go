@@ -353,7 +353,7 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	}
 
 	// Process duplicate groups - mark original files and apply actions
-	ProcessDuplicateGroups(duplicateGroups, options)
+	options.BatchMode = ProcessDuplicateGroups(duplicateGroups, options)
 
 	// Calculate statistics
 	result.TotalFiles = filesScanned
@@ -381,7 +381,8 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 }
 
 // ProcessDuplicateGroups marks original files and processes duplicates according to options
-func ProcessDuplicateGroups(duplicateGroups [][]DuplicateFileInfo, options DuplicateOptions) {
+// It returns a boolean indicating if the batch mode was enabled during processing.
+func ProcessDuplicateGroups(duplicateGroups [][]DuplicateFileInfo, options DuplicateOptions) bool {
 	// Process each group
 	for i := range duplicateGroups {
 		group := duplicateGroups[i]
@@ -467,6 +468,7 @@ func ProcessDuplicateGroups(duplicateGroups [][]DuplicateFileInfo, options Dupli
 		// Update the group in case files were moved/deleted
 		duplicateGroups[i] = group
 	}
+	return options.BatchMode
 }
 
 // Sort a group of duplicate files according to selection mode
