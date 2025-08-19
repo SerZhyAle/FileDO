@@ -1,0 +1,40 @@
+[
+  {
+    "timestamp": "2025-07-26T18:50:05.0905501+02:00",
+    "command": "device",
+    "target": "d:",
+    "operation": "fill",
+    "fullCommand": "filedo d: fill del",
+    "parameters": {
+      "args": [
+        "d:",
+        "fill",
+        "del"
+      ],
+      "autoDelete": true,
+      "size": "100"
+    },
+    "results": {},
+    "duration": "   6.9s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-07-26T18:50:23.2905695+02:00",
+    "command": "device",
+    "target": "e:",
+    "operation": "fill",
+    "fullCommand": "filedo e: fill del",
+    "parameters": {
+      "args": [
+        "e:",
+        "fill",
+        "del"
+      ],
+      "autoDelete": true,
+      "size": "100"
+    },
+    "results": {},
+    "duration": "10553.1s",
+    "success": true
+  }
+]

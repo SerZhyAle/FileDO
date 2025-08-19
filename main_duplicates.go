@@ -30,20 +30,8 @@ func findDuplicatesUsingPackage(rootPath string, args []string) error {
 			float64(result.DuplicateSize)/(1024*1024*1024))
 	}
 
-	// Process duplicates according to options
-	if options.Action != fileduplicates.NoAction && result.DuplicateFiles > 0 {
-		// Convert map to array of arrays for processing
-		var duplicateGroups [][]fileduplicates.DuplicateFileInfo
-
-		for _, group := range result.Groups {
-			if len(group) > 1 {
-				duplicateGroups = append(duplicateGroups, group)
-			}
-		}
-
-		// Process the duplicate groups
-		fileduplicates.ProcessDuplicateGroups(duplicateGroups, options)
-	}
+	// Processing is already handled by FindDuplicates function
+	// No additional processing needed here
 
 	return nil
 }

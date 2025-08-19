@@ -400,6 +400,12 @@ func ProcessDuplicateGroups(duplicateGroups [][]DuplicateFileInfo, options Dupli
 			for j := 1; j < len(group); j++ {
 				file := group[j]
 
+				// Check if file still exists before processing
+				if _, err := os.Stat(file.Path); os.IsNotExist(err) {
+					// File doesn't exist anymore (already processed), skip
+					continue
+				}
+
 				switch options.Action {
 				case DeleteAction:
 					// Check if we're in interactive mode
