@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -64,8 +65,8 @@ func NewFastCopyConfig() FastCopyConfig {
 		PreallocateSpace:   true,
 		UseMemoryMapping:   true,                // Enable memory mapping for very large files
 		MemoryMapThreshold: 500 * 1024 * 1024, // 500MB - use mmap for files larger than this
-		SmallFileThreshold: 1024 * 1024,       // 1MB - files smaller than this are batched
-		SmallFileBatchSize: 10,                 // Process 10 small files per goroutine
+		SmallFileThreshold: 2 * 1024 * 1024,   // 2MB - files smaller than this are batched (increased for images)
+		SmallFileBatchSize: 25,                 // Process 25 small files per goroutine (increased for images)
 	}
 }
 
@@ -82,10 +83,148 @@ type FastCopyProgress struct {
 	BufferPoolHits     int64 // Number of buffer pool reuses
 	CurrentFile        string // Currently processing file name
 	CurrentFileMux     sync.RWMutex // Mutex for CurrentFile access
+	ActiveFilesList    []ActiveFileInfo // List of currently processing files with sizes
+	ActiveFilesMux     sync.RWMutex // Mutex for ActiveFilesList access
+	LargeFilesList     []ActiveFileInfo // List of large files currently processing (priority display)
+	LargeFilesMux      sync.RWMutex // Mutex for LargeFilesList access
+	LastDisplayedFile  int    // Index for rotating displayed file
 	MemoryMappedFiles  int64 // Number of files copied using memory mapping
 	MemoryMappedBytes  int64 // Total bytes copied using memory mapping
 	SmallFileBatches   int64 // Number of small file batches processed
 	BatchedFiles       int64 // Total number of files processed in batches
+}
+
+// ActiveFileInfo stores information about currently processing file
+type ActiveFileInfo struct {
+	Path string
+	Size int64
+}
+
+// addActiveFile adds a file to the active files list for progress display
+func (progress *FastCopyProgress) addActiveFile(filepath string, filesize int64) {
+	progress.ActiveFilesMux.Lock()
+	defer progress.ActiveFilesMux.Unlock()
+	
+	// Remove duplicates and add new file
+	filtered := make([]ActiveFileInfo, 0, len(progress.ActiveFilesList))
+	for _, file := range progress.ActiveFilesList {
+		if file.Path != filepath {
+			filtered = append(filtered, file)
+		}
+	}
+	progress.ActiveFilesList = append(filtered, ActiveFileInfo{Path: filepath, Size: filesize})
+	
+	// Keep only last 10 active files to prevent memory growth
+	if len(progress.ActiveFilesList) > 10 {
+		progress.ActiveFilesList = progress.ActiveFilesList[len(progress.ActiveFilesList)-10:]
+	}
+}
+
+// addLargeFile adds a large file to priority display list
+func (progress *FastCopyProgress) addLargeFile(filepath string, filesize int64) {
+	progress.LargeFilesMux.Lock()
+	defer progress.LargeFilesMux.Unlock()
+	
+	// Remove duplicates and add new large file
+	filtered := make([]ActiveFileInfo, 0, len(progress.LargeFilesList))
+	for _, file := range progress.LargeFilesList {
+		if file.Path != filepath {
+			filtered = append(filtered, file)
+		}
+	}
+	progress.LargeFilesList = append(filtered, ActiveFileInfo{Path: filepath, Size: filesize})
+	
+	// Keep only last 5 large files for priority display
+	if len(progress.LargeFilesList) > 5 {
+		progress.LargeFilesList = progress.LargeFilesList[len(progress.LargeFilesList)-5:]
+	}
+}
+
+// removeActiveFile removes a file from the active files list
+func (progress *FastCopyProgress) removeActiveFile(filepath string) {
+	progress.ActiveFilesMux.Lock()
+	defer progress.ActiveFilesMux.Unlock()
+	
+	filtered := make([]ActiveFileInfo, 0, len(progress.ActiveFilesList))
+	for _, file := range progress.ActiveFilesList {
+		if file.Path != filepath {
+			filtered = append(filtered, file)
+		}
+	}
+	progress.ActiveFilesList = filtered
+}
+
+// removeLargeFile removes a large file from priority display list
+func (progress *FastCopyProgress) removeLargeFile(filepath string) {
+	progress.LargeFilesMux.Lock()
+	defer progress.LargeFilesMux.Unlock()
+	
+	filtered := make([]ActiveFileInfo, 0, len(progress.LargeFilesList))
+	for _, file := range progress.LargeFilesList {
+		if file.Path != filepath {
+			filtered = append(filtered, file)
+		}
+	}
+	progress.LargeFilesList = filtered
+}
+
+// getDisplayFile returns the most relevant file to display in progress
+func (progress *FastCopyProgress) getDisplayFile() (string, int64) {
+	// Priority 1: Show large files currently being processed (they take longer)
+	progress.LargeFilesMux.RLock()
+	if len(progress.LargeFilesList) > 0 {
+		// Show the most recently added large file
+		largeFile := progress.LargeFilesList[len(progress.LargeFilesList)-1]
+		progress.LargeFilesMux.RUnlock()
+		return largeFile.Path, largeFile.Size
+	}
+	progress.LargeFilesMux.RUnlock()
+	
+	// Priority 2: Show regular active files
+	progress.ActiveFilesMux.RLock()
+	defer progress.ActiveFilesMux.RUnlock()
+	
+	if len(progress.ActiveFilesList) == 0 {
+		// Fallback to old CurrentFile system
+		progress.CurrentFileMux.RLock()
+		currentFile := progress.CurrentFile
+		progress.CurrentFileMux.RUnlock()
+		return currentFile, 0 // Unknown size for fallback
+	}
+	
+	// Show the most recently added file (currently being processed)
+	activeFile := progress.ActiveFilesList[len(progress.ActiveFilesList)-1]
+	return activeFile.Path, activeFile.Size
+}
+
+// truncateFilePath truncates file path for display to prevent line wrapping
+func truncateFilePath(path string, maxLength int) string {
+	if len(path) <= maxLength {
+		return path
+	}
+	
+	// Try to show beginning and end of path
+	if maxLength > 20 {
+		prefixLen := maxLength/2 - 3
+		suffixLen := maxLength - prefixLen - 3
+		return path[:prefixLen] + "..." + path[len(path)-suffixLen:]
+	}
+	
+	return path[:maxLength-3] + "..."
+}
+
+// formatFileSize formats file size in human readable format
+func formatFileSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 // calculateBufferSize determines optimal buffer size based on file size
@@ -343,11 +482,29 @@ type SmallFileBatch struct {
 }
 
 // copyFileSingle copies a single file with optimizations (used by workers)
-func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig) error {
+func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig, handler *InterruptHandler) error {
+	// Check for interruption before starting
+	if handler.IsCancelled() {
+		return fmt.Errorf("operation cancelled by user")
+	}
+	
 	atomic.AddInt64(&progress.ActiveFiles, 1)
 	defer atomic.AddInt64(&progress.ActiveFiles, -1)
 	
-	// Set current file in progress
+	fileSize := sourceInfo.Size()
+	isLargeFile := fileSize >= config.LargeFileThreshold // 100MB+
+	
+	// Add to active files list for progress display
+	progress.addActiveFile(sourcePath, fileSize)
+	defer progress.removeActiveFile(sourcePath)
+	
+	// Add large files to priority display list
+	if isLargeFile {
+		progress.addLargeFile(sourcePath, fileSize)
+		defer progress.removeLargeFile(sourcePath)
+	}
+	
+	// Set current file in progress (backward compatibility)
 	progress.CurrentFileMux.Lock()
 	progress.CurrentFile = sourcePath
 	progress.CurrentFileMux.Unlock()
@@ -356,10 +513,9 @@ func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progr
 	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
 		fmt.Printf("Skipping existing file: %s\n", targetPath)
 		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		atomic.AddInt64(&progress.CopiedSize, fileSize) // Add file size to copied total
 		return nil
 	}
-	
-	fileSize := sourceInfo.Size()
 	
 	// Use memory mapping for very large files
 	if config.UseMemoryMapping && fileSize >= config.MemoryMapThreshold {
@@ -464,7 +620,12 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 }
 
 // copyDirectoryOptimized copies a directory with fast pre-scan and immediate copying
-func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyProgress, config FastCopyConfig) error {
+func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyProgress, config FastCopyConfig, handler *InterruptHandler) error {
+	// Check for interruption before starting
+	if handler.IsCancelled() {
+		return fmt.Errorf("operation cancelled by user")
+	}
+	
 	fmt.Printf("Fast scanning for totals...\n")
 	
 	// Phase 1: Fast scan for totals only (no file collection)
@@ -528,7 +689,7 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 			batchWg.Add(1)
 			go func() {
 				defer batchWg.Done()
-				if err := copySmallFileBatch(batch, progress, config); err != nil {
+				if err := copySmallFileBatch(batch, progress, config, handler); err != nil {
 					fmt.Printf("Warning: Failed to copy batch: %v\n", err)
 				}
 			}()
@@ -544,7 +705,11 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		go func() {
 			defer wg.Done()
 			for job := range largeFileChannel {
-				if err := copyFileSingle(job.SourcePath, job.TargetPath, job.Info, progress, config); err != nil {
+				// Check for interruption in worker
+				if handler.IsCancelled() {
+					return
+				}
+				if err := copyFileSingle(job.SourcePath, job.TargetPath, job.Info, progress, config, handler); err != nil {
 					fmt.Printf("Warning: Failed to copy %s: %v\n", job.SourcePath, err)
 				}
 			}
@@ -558,6 +723,11 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		defer close(copyComplete)
 		
 		scanErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+			// Check for interruption during scanning
+			if handler.IsCancelled() {
+				return fmt.Errorf("operation cancelled by user")
+			}
+			
 			if err != nil {
 				fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
 				return nil
@@ -648,7 +818,12 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 }
 
 // copySmallFileBatch copies a batch of small files sequentially in one goroutine
-func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config FastCopyConfig) error {
+func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config FastCopyConfig, handler *InterruptHandler) error {
+	// Check for interruption before processing batch
+	if handler.IsCancelled() {
+		return fmt.Errorf("operation cancelled by user")
+	}
+	
 	atomic.AddInt64(&progress.ActiveFiles, 1)
 	defer atomic.AddInt64(&progress.ActiveFiles, -1)
 	
@@ -661,7 +836,15 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 	defer pool.Put(&buffer)
 	
 	for _, job := range batch.Jobs {
-		// Update current file
+		// Check for interruption during batch processing
+		if handler.IsCancelled() {
+			return fmt.Errorf("operation cancelled by user")
+		}
+		
+		// Add to active files list for progress display
+		progress.addActiveFile(job.SourcePath, job.Info.Size())
+		
+		// Update current file (backward compatibility)
 		progress.CurrentFileMux.Lock()
 		progress.CurrentFile = job.SourcePath
 		progress.CurrentFileMux.Unlock()
@@ -670,13 +853,22 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 		if _, err := statWithTimeout(job.TargetPath, FileOperationTimeout); err == nil {
 			fmt.Printf("Skipping existing file: %s\n", job.TargetPath)
 			atomic.AddInt64(&progress.ProcessedFiles, 1)
+			atomic.AddInt64(&progress.CopiedSize, job.Info.Size()) // Add file size to copied total
 			continue
 		}
 		
 		// Copy single small file
 		if err := copySmallFileDirect(job.SourcePath, job.TargetPath, job.Info, progress, buffer); err != nil {
-			fmt.Printf("Warning: Failed to copy small file %s: %v\n", job.SourcePath, err)
+			// Check if it's a device hardware error
+			if strings.Contains(err.Error(), "device hardware error") {
+				fmt.Printf("Hardware error on %s - skipping\n", job.SourcePath)
+			} else {
+				fmt.Printf("Warning: Failed to copy small file %s: %v\n", job.SourcePath, err)
+			}
 		}
+		
+		// Remove from active files list when processing is complete
+		progress.removeActiveFile(job.SourcePath)
 	}
 	
 	return nil
@@ -739,10 +931,8 @@ func showFastProgress(progress *FastCopyProgress) {
 	totalSize := atomic.LoadInt64(&progress.TotalSize)
 	activeFiles := atomic.LoadInt64(&progress.ActiveFiles)
 	
-	// Get current file safely
-	progress.CurrentFileMux.RLock()
-	currentFile := progress.CurrentFile
-	progress.CurrentFileMux.RUnlock()
+	// Get display file with size using priority system
+	displayFilePath, displayFileSize := progress.getDisplayFile()
 	
 	elapsed := time.Since(progress.StartTime)
 	
@@ -776,17 +966,25 @@ func showFastProgress(progress *FastCopyProgress) {
 		sizePercent = float64(copiedSize) / float64(totalSize) * 100
 	}
 	
-	// Don't truncate filename - show full path
-	displayFile := currentFile
-	
-	fmt.Printf("\r%d/%d %s (%.1f%%) | %.2f/%.2f GB (%.1f%%) | %.2f MB/s | %d | ETA: %s",
-		processedFiles, totalFiles, displayFile, filePercent,
+	// Show progress with rotating active file display
+	// Clear line first to prevent overlapping text and truncate filename
+	truncatedFile := truncateFilePath(displayFilePath, 70) // Limit filename to 70 chars
+	fileSizeStr := ""
+	if displayFileSize > 0 {
+		fileSizeStr = fmt.Sprintf(" [%s]", formatFileSize(displayFileSize))
+	}
+	fmt.Printf("\r%s\r%d/%d %s%s (%.1f%%) | %.2f/%.2f GB (%.1f%%) | %.2f MB/s | %d | ETA: %s",
+		strings.Repeat(" ", 160), // Clear previous line (increased for size info)
+		processedFiles, totalFiles, truncatedFile, fileSizeStr, filePercent,
 		float64(copiedSize)/(1024*1024*1024), float64(totalSize)/(1024*1024*1024), sizePercent,
 		progress.BytesPerSecond, activeFiles, eta)
 }
 
 // FastCopy performs optimized copying with single-pass directory scanning
 func FastCopy(sourcePath, targetPath string) error {
+	// Create interrupt handler for graceful shutdown
+	handler := NewInterruptHandler()
+	
 	config := NewFastCopyConfig()
 	progress := &FastCopyProgress{
 		StartTime:       time.Now(),
@@ -801,11 +999,11 @@ func FastCopy(sourcePath, targetPath string) error {
 	
 	if sourceInfo.IsDir() {
 		// Directory copy with optimization
-		return copyDirectoryOptimized(sourcePath, targetPath, progress, config)
+		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
 	} else {
 		// Single file copy
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
-		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config)
+		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
 	}
 }
