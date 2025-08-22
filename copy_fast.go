@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,7 +8,31 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
+	"unsafe"
+)
+
+// Buffer pools for different sizes to reduce GC pressure
+var (
+	smallBufferPool = sync.Pool{
+		New: func() interface{} {
+			buf := make([]byte, 1024*1024) // 1MB
+			return &buf
+		},
+	}
+	mediumBufferPool = sync.Pool{
+		New: func() interface{} {
+			buf := make([]byte, 16*1024*1024) // 16MB
+			return &buf
+		},
+	}
+	largeBufferPool = sync.Pool{
+		New: func() interface{} {
+			buf := make([]byte, 64*1024*1024) // 64MB
+			return &buf
+		},
+	}
 )
 
 // FastCopyConfig contains configuration for optimized copying
@@ -18,48 +41,258 @@ type FastCopyConfig struct {
 	MinBufferSize      int     // Minimum buffer size (1MB)
 	MaxBufferSize      int     // Maximum buffer size (64MB)
 	LargeFileThreshold int64   // Files larger than this use large buffers (100MB)
-	UseMemoryMapping   bool    // Use memory mapping for large files
-	PreallocateSpace   bool    // Preallocate space for large files
+	PreallocateSpace   bool    // Whether to preallocate space for large files
+	UseMemoryMapping   bool    // Use memory mapping for large files (>LargeFileThreshold)
+	MemoryMapThreshold int64   // Files larger than this use memory mapping (500MB)
+	SmallFileThreshold int64   // Files smaller than this are batched together (1MB)
+	SmallFileBatchSize int     // Number of small files to process in one batch (10)
 }
 
-// getOptimalCopyConfig returns optimized config based on system capabilities
-func getOptimalCopyConfig() FastCopyConfig {
-	numCPU := runtime.NumCPU()
-	
-	// For slow HDDs, limit concurrency to avoid seek thrashing
-	maxConcurrent := numCPU
-	if maxConcurrent > 4 {
-		maxConcurrent = 4 // Don't overwhelm slow HDDs
-	}
-	
+// NewFastCopyConfig creates optimized configuration for different scenarios
+func NewFastCopyConfig() FastCopyConfig {
 	return FastCopyConfig{
-		MaxConcurrentFiles: maxConcurrent,
+		MaxConcurrentFiles: runtime.NumCPU(),
 		MinBufferSize:      1024 * 1024,      // 1MB
 		MaxBufferSize:      64 * 1024 * 1024, // 64MB
 		LargeFileThreshold: 100 * 1024 * 1024, // 100MB
-		UseMemoryMapping:   true,
 		PreallocateSpace:   true,
+		UseMemoryMapping:   true,                // Enable memory mapping for very large files
+		MemoryMapThreshold: 500 * 1024 * 1024, // 500MB - use mmap for files larger than this
+		SmallFileThreshold: 1024 * 1024,       // 1MB - files smaller than this are batched
+		SmallFileBatchSize: 10,                 // Process 10 small files per goroutine
 	}
 }
 
-// getOptimalBufferSize returns optimal buffer size based on file size
-func getOptimalBufferSize(fileSize int64, config FastCopyConfig) int {
-	if fileSize < 1024*1024 { // < 1MB
-		return config.MinBufferSize
-	} else if fileSize < config.LargeFileThreshold {
-		// Scale buffer size with file size, up to 16MB for medium files
-		bufferSize := int(fileSize / 64) // 1/64th of file size
-		if bufferSize < config.MinBufferSize {
-			bufferSize = config.MinBufferSize
-		}
-		if bufferSize > 16*1024*1024 {
-			bufferSize = 16 * 1024 * 1024 // 16MB max for medium files
-		}
-		return bufferSize
-	} else {
-		// Large files use maximum buffer
+// FastCopyProgress extends Progress with additional metrics
+type FastCopyProgress struct {
+	TotalFiles         int64
+	ProcessedFiles     int64
+	TotalSize          int64
+	CopiedSize         int64
+	StartTime          time.Time
+	ActiveFiles        int64
+	BytesPerSecond     float64
+	LastSpeedUpdate    time.Time
+	BufferPoolHits     int64 // Number of buffer pool reuses
+	CurrentFile        string // Currently processing file name
+	CurrentFileMux     sync.RWMutex // Mutex for CurrentFile access
+	MemoryMappedFiles  int64 // Number of files copied using memory mapping
+	MemoryMappedBytes  int64 // Total bytes copied using memory mapping
+	SmallFileBatches   int64 // Number of small file batches processed
+	BatchedFiles       int64 // Total number of files processed in batches
+}
+
+// calculateBufferSize determines optimal buffer size based on file size
+func calculateBufferSize(fileSize int64, config FastCopyConfig) int {
+	if fileSize >= config.LargeFileThreshold {
 		return config.MaxBufferSize
 	}
+	
+	// Scale buffer size based on file size
+	ratio := float64(fileSize) / float64(config.LargeFileThreshold)
+	bufferSize := int(float64(config.MinBufferSize) + ratio*float64(config.MaxBufferSize-config.MinBufferSize))
+	
+	if bufferSize < config.MinBufferSize {
+		return config.MinBufferSize
+	}
+	if bufferSize > config.MaxBufferSize {
+		return config.MaxBufferSize
+	}
+	
+	return bufferSize
+}
+
+// getBufferFromPool retrieves a buffer from the appropriate pool and updates statistics
+func getBufferFromPool(requiredSize int, progress *FastCopyProgress) ([]byte, *sync.Pool) {
+	atomic.AddInt64(&progress.BufferPoolHits, 1)
+	
+	if requiredSize <= 1024*1024 { // 1MB
+		buf := smallBufferPool.Get().(*[]byte)
+		return *buf, &smallBufferPool
+	} else if requiredSize <= 16*1024*1024 { // 16MB
+		buf := mediumBufferPool.Get().(*[]byte)
+		return (*buf)[:requiredSize], &mediumBufferPool
+	} else { // Large files
+		buf := largeBufferPool.Get().(*[]byte)
+		return (*buf)[:requiredSize], &largeBufferPool
+	}
+}
+
+// putBuffer returns a buffer to the appropriate pool
+func putBuffer(buf []byte, pool *sync.Pool) {
+	// Reset the slice capacity to avoid holding references
+	pool.Put(&buf)
+}
+
+// Windows-specific memory mapping functions
+var (
+	kernel32            = syscall.NewLazyDLL("kernel32.dll")
+	procCreateFileMapping = kernel32.NewProc("CreateFileMappingW")
+	procMapViewOfFile    = kernel32.NewProc("MapViewOfFile")
+	procUnmapViewOfFile  = kernel32.NewProc("UnmapViewOfFile")
+	procCloseHandle      = kernel32.NewProc("CloseHandle")
+)
+
+// copyFileWithMemoryMapping copies a file using Windows memory mapping
+func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress) error {
+	if runtime.GOOS != "windows" {
+		// Fallback to regular copying on non-Windows systems
+		return copyFileRegular(sourcePath, targetPath, sourceInfo, progress)
+	}
+	
+	// Open source file
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %v", err)
+	}
+	defer sourceFile.Close()
+	
+	// Create target file
+	targetFile, err := os.Create(targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to create target file: %v", err)
+	}
+	defer targetFile.Close()
+	
+	fileSize := sourceInfo.Size()
+	
+	// Preallocate space for target file
+	if err := preallocateFile(targetFile, fileSize); err != nil {
+		fmt.Printf("Warning: Failed to preallocate space: %v\n", err)
+	}
+	
+	// Get Windows handles
+	sourceHandle := syscall.Handle(sourceFile.Fd())
+	targetHandle := syscall.Handle(targetFile.Fd())
+	
+	const chunkSize = 1024 * 1024 * 1024 // 1GB chunks for very large files
+	
+	for offset := int64(0); offset < fileSize; offset += chunkSize {
+		remainingSize := fileSize - offset
+		mapSize := chunkSize
+		if remainingSize < chunkSize {
+			mapSize = int(remainingSize)
+		}
+		
+		// Create file mapping for source
+		sourceMappingHandle, _, err := procCreateFileMapping.Call(
+			uintptr(sourceHandle),
+			0, // default security
+			syscall.PAGE_READONLY,
+			uintptr((offset+int64(mapSize))>>32), // high-order DWORD of size
+			uintptr(offset+int64(mapSize)),       // low-order DWORD of size
+			0, // unnamed mapping
+		)
+		
+		if sourceMappingHandle == 0 {
+			return fmt.Errorf("failed to create source file mapping: %v", err)
+		}
+		
+		// Map source view
+		sourceView, _, err := procMapViewOfFile.Call(
+			sourceMappingHandle,
+			syscall.FILE_MAP_READ,
+			uintptr(offset>>32), // high-order DWORD of offset
+			uintptr(offset),     // low-order DWORD of offset
+			uintptr(mapSize),
+		)
+		
+		if sourceView == 0 {
+			procCloseHandle.Call(sourceMappingHandle)
+			return fmt.Errorf("failed to map source view: %v", err)
+		}
+		
+		// Create file mapping for target
+		targetMappingHandle, _, err := procCreateFileMapping.Call(
+			uintptr(targetHandle),
+			0, // default security
+			syscall.PAGE_READWRITE,
+			uintptr((offset+int64(mapSize))>>32),
+			uintptr(offset+int64(mapSize)),
+			0, // unnamed mapping
+		)
+		
+		if targetMappingHandle == 0 {
+			procUnmapViewOfFile.Call(sourceView)
+			procCloseHandle.Call(sourceMappingHandle)
+			return fmt.Errorf("failed to create target file mapping: %v", err)
+		}
+		
+		// Map target view
+		targetView, _, err := procMapViewOfFile.Call(
+			targetMappingHandle,
+			syscall.FILE_MAP_WRITE,
+			uintptr(offset>>32),
+			uintptr(offset),
+			uintptr(mapSize),
+		)
+		
+		if targetView == 0 {
+			procCloseHandle.Call(targetMappingHandle)
+			procUnmapViewOfFile.Call(sourceView)
+			procCloseHandle.Call(sourceMappingHandle)
+			return fmt.Errorf("failed to map target view: %v", err)
+		}
+		
+		// Perform memory copy
+		sourceSlice := (*[1 << 30]byte)(unsafe.Pointer(sourceView))[:mapSize:mapSize]
+		targetSlice := (*[1 << 30]byte)(unsafe.Pointer(targetView))[:mapSize:mapSize]
+		
+		copy(targetSlice, sourceSlice)
+		
+		// Update progress
+		atomic.AddInt64(&progress.CopiedSize, int64(mapSize))
+		
+		// Cleanup for this chunk
+		procUnmapViewOfFile.Call(targetView)
+		procCloseHandle.Call(targetMappingHandle)
+		procUnmapViewOfFile.Call(sourceView)
+		procCloseHandle.Call(sourceMappingHandle)
+	}
+	
+	return nil
+}
+
+// copyFileRegular copies a file using regular I/O (fallback)
+func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress) error {
+	// This is the existing copyFileSingle logic without memory mapping
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %v", err)
+	}
+	defer sourceFile.Close()
+	
+	targetFile, err := os.Create(targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to create target file: %v", err)
+	}
+	defer targetFile.Close()
+	
+	if err := preallocateFile(targetFile, sourceInfo.Size()); err != nil {
+		fmt.Printf("Warning: Failed to preallocate space: %v\n", err)
+	}
+	
+	buffer := make([]byte, 64*1024*1024) // 64MB buffer for regular copying
+	
+	for {
+		bytesRead, readErr := sourceFile.Read(buffer)
+		if bytesRead > 0 {
+			_, writeErr := targetFile.Write(buffer[:bytesRead])
+			if writeErr != nil {
+				return fmt.Errorf("failed to write to target: %v", writeErr)
+			}
+			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
+		}
+		
+		if readErr != nil {
+			if readErr == io.EOF {
+				break
+			}
+			return fmt.Errorf("failed to read from source: %v", readErr)
+		}
+	}
+	
+	return nil
 }
 
 // preallocateFile preallocates space for the target file to reduce fragmentation
@@ -91,267 +324,409 @@ func preallocateFile(file *os.File, size int64) error {
 	return err
 }
 
-// FastCopyProgress extends CopyProgress with additional metrics
-type FastCopyProgress struct {
-	CopyProgress
-	ActiveFiles     int64
-	BytesPerSecond  float64
-	LastSpeedUpdate time.Time
+// FileJob represents a file copy job
+type FileJob struct {
+	SourcePath string
+	TargetPath string
+	Info       os.FileInfo
 }
 
-// copyFileParallel copies a single file with optimizations
-func copyFileParallel(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	
+// SmallFileBatch represents a batch of small files to be processed together
+type SmallFileBatch struct {
+	Jobs []FileJob
+}
+
+// copyFileSingle copies a single file with optimizations (used by workers)
+func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig) error {
 	atomic.AddInt64(&progress.ActiveFiles, 1)
 	defer atomic.AddInt64(&progress.ActiveFiles, -1)
 	
+	// Set current file in progress
+	progress.CurrentFileMux.Lock()
+	progress.CurrentFile = sourcePath
+	progress.CurrentFileMux.Unlock()
+	
 	// Check if target file already exists
 	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
-		// Update counters and skip
+		fmt.Printf("Skipping existing file: %s\n", targetPath)
 		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		atomic.AddInt64(&progress.CopiedSize, sourceInfo.Size())
 		return nil
 	}
+	
+	fileSize := sourceInfo.Size()
+	
+	// Use memory mapping for very large files
+	if config.UseMemoryMapping && fileSize >= config.MemoryMapThreshold {
+		atomic.AddInt64(&progress.MemoryMappedFiles, 1)
+		atomic.AddInt64(&progress.MemoryMappedBytes, fileSize)
+		
+		err := copyFileWithMemoryMapping(sourcePath, targetPath, sourceInfo, progress)
+		if err != nil {
+			// Rollback statistics if memory mapping failed
+			atomic.AddInt64(&progress.MemoryMappedFiles, -1)
+			atomic.AddInt64(&progress.MemoryMappedBytes, -fileSize)
+			
+			// Fallback to regular copying if memory mapping fails
+			fmt.Printf("Memory mapping failed for %s, falling back to regular copy: %v\n", sourcePath, err)
+			err = copyFileRegular(sourcePath, targetPath, sourceInfo, progress)
+		}
+		
+		if err == nil {
+			// Set file permissions and timestamps
+			if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
+				fmt.Printf("Warning: Failed to set permissions for %s: %v\n", targetPath, err)
+			}
+			
+			if err := os.Chtimes(targetPath, sourceInfo.ModTime(), sourceInfo.ModTime()); err != nil {
+				fmt.Printf("Warning: Failed to set timestamps for %s: %v\n", targetPath, err)
+			}
+			
+			atomic.AddInt64(&progress.ProcessedFiles, 1)
+		}
+		
+		return err
+	}
+	
+	// Regular buffered copying for smaller files
+	return copyFileWithBuffers(sourcePath, targetPath, sourceInfo, progress, config)
+}
 
+// copyFileWithBuffers uses the existing buffer pool method for smaller files
+func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig) error {
 	// Open source file
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		return fmt.Errorf("failed to open source: %v", err)
+		return fmt.Errorf("failed to open source file: %v", err)
 	}
 	defer sourceFile.Close()
-
+	
 	// Create target file
 	targetFile, err := os.Create(targetPath)
 	if err != nil {
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		return fmt.Errorf("failed to create target: %v", err)
+		return fmt.Errorf("failed to create target file: %v", err)
 	}
-	defer targetFile.Close()
-
-	fileSize := sourceInfo.Size()
-	
-	// Preallocate space for large files to reduce fragmentation
-	if config.PreallocateSpace && fileSize > config.LargeFileThreshold {
-		if err := preallocateFile(targetFile, fileSize); err != nil {
-			// Not critical, continue without preallocation
-			fmt.Printf("Warning: Could not preallocate space for %s: %v\n", targetPath, err)
+	defer func() {
+		if closeErr := targetFile.Close(); closeErr != nil {
+			fmt.Printf("Warning: Failed to close target file %s: %v\n", targetPath, closeErr)
 		}
-	}
-
-	// Determine optimal buffer size
-	bufferSize := getOptimalBufferSize(fileSize, config)
+	}()
 	
-	// Copy file content with optimized buffer
-	copiedBytes, err := copyWithOptimizedBuffer(targetFile, sourceFile, bufferSize, FileOperationTimeout)
-	if err != nil {
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		return fmt.Errorf("copy failed: %v", err)
-	}
-
-	// Update progress
-	atomic.AddInt64(&progress.CopiedSize, copiedBytes)
-	atomic.AddInt64(&progress.ProcessedFiles, 1)
-
-	// Set file permissions and timestamps
-	if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
-		fmt.Printf("Warning: Could not set permissions for %s: %v\n", targetPath, err)
+	// Preallocate space to reduce fragmentation
+	if err := preallocateFile(targetFile, sourceInfo.Size()); err != nil {
+		fmt.Printf("Warning: Failed to preallocate space for %s: %v\n", targetPath, err)
 	}
 	
-	if err := os.Chtimes(targetPath, sourceInfo.ModTime(), sourceInfo.ModTime()); err != nil {
-		fmt.Printf("Warning: Could not set timestamps for %s: %v\n", targetPath, err)
-	}
-
-	return nil
-}
-
-// copyWithOptimizedBuffer performs optimized file copying with custom buffer size
-func copyWithOptimizedBuffer(dst io.Writer, src io.Reader, bufferSize int, timeout time.Duration) (int64, error) {
-	type copyResult struct {
-		written int64
-		err     error
-	}
-
-	ch := make(chan copyResult, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	// Determine optimal buffer size and get buffer from pool
+	bufferSize := calculateBufferSize(sourceInfo.Size(), config)
+	buffer, bufferPool := getBufferFromPool(bufferSize, progress)
+	defer putBuffer(buffer, bufferPool)
 	
-	go func() {
-		defer close(ch)
-		var totalWritten int64
-		buffer := make([]byte, bufferSize)
-		
-		for {
-			select {
-			case <-ctx.Done():
-				ch <- copyResult{totalWritten, ctx.Err()}
-				return
-			default:
-			}
-			
-			n, readErr := src.Read(buffer)
-			if readErr != nil && readErr != io.EOF {
-				ch <- copyResult{totalWritten, readErr}
-				return
-			}
-			if n == 0 {
-				break
-			}
-			
-			written, writeErr := dst.Write(buffer[:n])
+	// Ensure we use only the required buffer size
+	buffer = buffer[:bufferSize]
+	
+	// Copy file with progress tracking
+	for {
+		bytesRead, readErr := sourceFile.Read(buffer)
+		if bytesRead > 0 {
+			_, writeErr := targetFile.Write(buffer[:bytesRead])
 			if writeErr != nil {
-				ch <- copyResult{totalWritten, writeErr}
-				return
+				return fmt.Errorf("failed to write to target: %v", writeErr)
 			}
 			
-			totalWritten += int64(written)
-			
+			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
+		}
+		
+		if readErr != nil {
 			if readErr == io.EOF {
 				break
 			}
+			return fmt.Errorf("failed to read from source: %v", readErr)
 		}
-		
-		ch <- copyResult{totalWritten, nil}
-	}()
-
-	select {
-	case res := <-ch:
-		return res.written, res.err
-	case <-ctx.Done():
-		return 0, fmt.Errorf("copy operation timed out after %v", timeout)
 	}
-}
-
-// handleFastCopyCommand processes optimized copy operations
-func handleFastCopyCommand(sourcePath, targetPath string) error {
-	config := getOptimalCopyConfig()
 	
-	// Check if source exists
-	sourceInfo, err := os.Stat(sourcePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("source path does not exist: %s", sourcePath)
-		}
-		return fmt.Errorf("error accessing source path: %v", err)
+	// Set file permissions and timestamps
+	if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
+		fmt.Printf("Warning: Failed to set permissions for %s: %v\n", targetPath, err)
 	}
-
-	fmt.Printf("Fast copying from %s to %s\n", sourcePath, targetPath)
-	fmt.Printf("Config: %d concurrent files, buffer %d-%d MB, large file threshold: %d MB\n", 
-		config.MaxConcurrentFiles, 
-		config.MinBufferSize/(1024*1024), 
-		config.MaxBufferSize/(1024*1024),
-		config.LargeFileThreshold/(1024*1024))
-
-	progress := &FastCopyProgress{
-		CopyProgress: CopyProgress{
-			StartTime: time.Now(),
-		},
-		LastSpeedUpdate: time.Now(),
+	
+	if err := os.Chtimes(targetPath, sourceInfo.ModTime(), sourceInfo.ModTime()); err != nil {
+		fmt.Printf("Warning: Failed to set timestamps for %s: %v\n", targetPath, err)
 	}
-
-	if !sourceInfo.IsDir() {
-		// Single file copy
-		progress.TotalFiles = 1
-		progress.TotalSize = sourceInfo.Size()
-		
-		var wg sync.WaitGroup
-		wg.Add(1)
-		
-		err := copyFileParallel(sourcePath, targetPath, sourceInfo, progress, config, &wg)
-		wg.Wait()
-		return err
-	}
-
-	// Directory copy with parallel processing
-	return copyDirectoryOptimized(sourcePath, targetPath, progress, config)
+	
+	atomic.AddInt64(&progress.ProcessedFiles, 1)
+	return nil
 }
 
 // copyDirectoryOptimized copies a directory with parallel file processing
 func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyProgress, config FastCopyConfig) error {
-	// First pass: scan and count files
+	// Phase 1: Complete directory scan to get accurate totals
 	fmt.Printf("Scanning directory structure...\n")
-	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !info.IsDir() {
-			progress.TotalFiles++
-			progress.TotalSize += info.Size()
-		}
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("error scanning directory: %v", err)
-	}
-
-	fmt.Printf("Found %d files, total size: %.2f GB\n", 
-		progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
-
-	// Create worker pool
-	semaphore := make(chan struct{}, config.MaxConcurrentFiles)
-	var wg sync.WaitGroup
+	var fileJobs []FileJob
 	
-	// Progress monitoring goroutine
-	progressTicker := time.NewTicker(1 * time.Second)
-	defer progressTicker.Stop()
-	
-	go func() {
-		for range progressTicker.C {
-			showFastProgress(progress)
-		}
-	}()
-
-	// Second pass: copy files with parallelism
-	err = filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	scanErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
 			return nil
 		}
-
+		
 		relPath, err := filepath.Rel(sourcePath, path)
 		if err != nil {
 			return nil
 		}
 		
 		targetFilePath := filepath.Join(targetPath, relPath)
-
+		
 		if info.IsDir() {
+			// Create target directory immediately
 			return os.MkdirAll(targetFilePath, info.Mode())
 		}
-
-		// Acquire semaphore (limits concurrent file operations)
-		semaphore <- struct{}{}
-		wg.Add(1)
 		
-		go func(src, dst string, srcInfo os.FileInfo) {
-			defer func() { <-semaphore }()
-			
-			if err := copyFileParallel(src, dst, srcInfo, progress, config, &wg); err != nil {
-				fmt.Printf("Warning: Failed to copy %s: %v\n", src, err)
-			}
-		}(path, targetFilePath, info)
-
+		// Collect file jobs and update totals
+		fileJobs = append(fileJobs, FileJob{
+			SourcePath: path,
+			TargetPath: targetFilePath,
+			Info:       info,
+		})
+		
+		progress.TotalFiles++
+		progress.TotalSize += info.Size()
+		
 		return nil
 	})
-
+	
+	if scanErr != nil {
+		return fmt.Errorf("directory scan failed: %v", scanErr)
+	}
+	
+	fmt.Printf("Found %d files, total size: %.2f GB\n", 
+		progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
+	
+	// Phase 2: Separate small and large files for optimized processing
+	var smallFiles []FileJob
+	var largeFiles []FileJob
+	
+	for _, job := range fileJobs {
+		if job.Info.Size() < config.SmallFileThreshold {
+			smallFiles = append(smallFiles, job)
+		} else {
+			largeFiles = append(largeFiles, job)
+		}
+	}
+	
+	fmt.Printf("Small files (<1MB): %d, Large files (≥1MB): %d\n", len(smallFiles), len(largeFiles))
+	
+	// Create batches for small files
+	var smallFileBatches []SmallFileBatch
+	for i := 0; i < len(smallFiles); i += config.SmallFileBatchSize {
+		end := i + config.SmallFileBatchSize
+		if end > len(smallFiles) {
+			end = len(smallFiles)
+		}
+		batch := SmallFileBatch{
+			Jobs: smallFiles[i:end],
+		}
+		smallFileBatches = append(smallFileBatches, batch)
+	}
+	
+	// Channels for different job types
+	smallBatchJobs := make(chan SmallFileBatch, len(smallFileBatches))
+	largeSingleJobs := make(chan FileJob, len(largeFiles))
+	done := make(chan bool)
+	
+	// Progress monitoring goroutine
+	progressTicker := time.NewTicker(1 * time.Second)
+	defer progressTicker.Stop()
+	
+	go func() {
+		for {
+			select {
+			case <-progressTicker.C:
+				showFastProgress(progress)
+			case <-done:
+				return
+			}
+		}
+	}()
+	
+	// Start worker goroutines
+	var wg sync.WaitGroup
+	for i := 0; i < config.MaxConcurrentFiles; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case batch, ok := <-smallBatchJobs:
+					if !ok {
+						smallBatchJobs = nil
+					} else {
+						if err := copySmallFileBatch(batch, progress, config); err != nil {
+							fmt.Printf("Warning: Failed to copy batch: %v\n", err)
+						}
+					}
+				case job, ok := <-largeSingleJobs:
+					if !ok {
+						largeSingleJobs = nil
+					} else {
+						if err := copyFileSingle(job.SourcePath, job.TargetPath, job.Info, progress, config); err != nil {
+							fmt.Printf("Warning: Failed to copy %s: %v\n", job.SourcePath, err)
+						}
+					}
+				}
+				
+				// Exit when both channels are closed
+				if smallBatchJobs == nil && largeSingleJobs == nil {
+					return
+				}
+			}
+		}()
+	}
+	
+	// Send jobs to workers
+	go func() {
+		// Send small file batches
+		for _, batch := range smallFileBatches {
+			smallBatchJobs <- batch
+		}
+		close(smallBatchJobs)
+		
+		// Send large file jobs
+		for _, job := range largeFiles {
+			largeSingleJobs <- job
+		}
+		close(largeSingleJobs)
+	}()
+	
+	// Wait for completion
 	wg.Wait()
+	done <- true
 	
 	duration := time.Since(progress.StartTime)
 	avgSpeed := float64(progress.CopiedSize) / duration.Seconds() / (1024 * 1024) // MB/s
 	
 	fmt.Printf("\nFast copy completed in %v\n", duration)
 	fmt.Printf("Average speed: %.2f MB/s\n", avgSpeed)
+	fmt.Printf("Total files processed: %d\n", progress.TotalFiles)
+	fmt.Printf("Buffer pool reuses: %d (%.1f%% memory savings)\n", 
+		atomic.LoadInt64(&progress.BufferPoolHits), 
+		float64(atomic.LoadInt64(&progress.BufferPoolHits))/float64(progress.TotalFiles)*100)
 	
-	return err
+	memoryMappedFiles := atomic.LoadInt64(&progress.MemoryMappedFiles)
+	memoryMappedBytes := atomic.LoadInt64(&progress.MemoryMappedBytes)
+	if memoryMappedFiles > 0 {
+		fmt.Printf("Memory-mapped files: %d (%.2f GB) - %.1f%% of total size\n",
+			memoryMappedFiles,
+			float64(memoryMappedBytes)/(1024*1024*1024),
+			float64(memoryMappedBytes)/float64(progress.TotalSize)*100)
+	}
+	
+	smallFileBatchCount := atomic.LoadInt64(&progress.SmallFileBatches)
+	batchedFiles := atomic.LoadInt64(&progress.BatchedFiles)
+	if smallFileBatchCount > 0 {
+		fmt.Printf("Small file batches: %d (avg %.1f files/batch) - %d files optimized\n",
+			smallFileBatchCount,
+			float64(batchedFiles)/float64(smallFileBatchCount),
+			batchedFiles)
+	}
+	
+	return nil
 }
 
-// showFastProgress displays enhanced progress information
+// copySmallFileBatch copies a batch of small files sequentially in one goroutine
+func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config FastCopyConfig) error {
+	atomic.AddInt64(&progress.ActiveFiles, 1)
+	defer atomic.AddInt64(&progress.ActiveFiles, -1)
+	
+	atomic.AddInt64(&progress.SmallFileBatches, 1)
+	atomic.AddInt64(&progress.BatchedFiles, int64(len(batch.Jobs)))
+	
+	// Use a small buffer for small files (256KB)
+	bufferSize := 256 * 1024 // 256KB buffer for small files
+	buffer := make([]byte, bufferSize)
+	
+	for _, job := range batch.Jobs {
+		// Update current file
+		progress.CurrentFileMux.Lock()
+		progress.CurrentFile = job.SourcePath
+		progress.CurrentFileMux.Unlock()
+		
+		// Check if target file already exists
+		if _, err := statWithTimeout(job.TargetPath, FileOperationTimeout); err == nil {
+			fmt.Printf("Skipping existing file: %s\n", job.TargetPath)
+			atomic.AddInt64(&progress.ProcessedFiles, 1)
+			continue
+		}
+		
+		// Copy single small file
+		if err := copySmallFileDirect(job.SourcePath, job.TargetPath, job.Info, progress, buffer); err != nil {
+			fmt.Printf("Warning: Failed to copy small file %s: %v\n", job.SourcePath, err)
+		}
+	}
+	
+	return nil
+}
+
+// copySmallFileDirect copies a small file directly without goroutine overhead
+func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, buffer []byte) error {
+	// Open source file
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %v", err)
+	}
+	defer sourceFile.Close()
+	
+	// Create target file
+	targetFile, err := os.Create(targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to create target file: %v", err)
+	}
+	defer targetFile.Close()
+	
+	// Copy file content using provided buffer
+	for {
+		bytesRead, readErr := sourceFile.Read(buffer)
+		if bytesRead > 0 {
+			_, writeErr := targetFile.Write(buffer[:bytesRead])
+			if writeErr != nil {
+				return fmt.Errorf("failed to write to target: %v", writeErr)
+			}
+			
+			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
+		}
+		
+		if readErr != nil {
+			if readErr == io.EOF {
+				break
+			}
+			return fmt.Errorf("failed to read from source: %v", readErr)
+		}
+	}
+	
+	// Set file permissions and timestamps
+	if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
+		fmt.Printf("Warning: Failed to set permissions for %s: %v\n", targetPath, err)
+	}
+	
+	if err := os.Chtimes(targetPath, sourceInfo.ModTime(), sourceInfo.ModTime()); err != nil {
+		fmt.Printf("Warning: Failed to set timestamps for %s: %v\n", targetPath, err)
+	}
+	
+	atomic.AddInt64(&progress.ProcessedFiles, 1)
+	return nil
+}
+
+// showFastProgress displays enhanced progress information with current file
 func showFastProgress(progress *FastCopyProgress) {
 	processedFiles := atomic.LoadInt64(&progress.ProcessedFiles)
 	copiedSize := atomic.LoadInt64(&progress.CopiedSize)
+	totalFiles := atomic.LoadInt64(&progress.TotalFiles)
+	totalSize := atomic.LoadInt64(&progress.TotalSize)
 	activeFiles := atomic.LoadInt64(&progress.ActiveFiles)
+	
+	// Get current file safely
+	progress.CurrentFileMux.RLock()
+	currentFile := progress.CurrentFile
+	progress.CurrentFileMux.RUnlock()
 	
 	elapsed := time.Since(progress.StartTime)
 	
@@ -365,25 +740,56 @@ func showFastProgress(progress *FastCopyProgress) {
 	
 	// Calculate ETA
 	eta := "unknown"
-	if copiedSize > 0 {
-		remainingSize := progress.TotalSize - copiedSize
+	if copiedSize > 0 && totalSize > 0 {
+		remainingSize := totalSize - copiedSize
 		if remainingSize > 0 && progress.BytesPerSecond > 0 {
-			etaSeconds := int64(float64(remainingSize) / (progress.BytesPerSecond * 1024 * 1024))
-			eta = formatETA(time.Duration(etaSeconds) * time.Second)
-		} else {
-			eta = "0s"
+			etaSeconds := float64(remainingSize) / (progress.BytesPerSecond * 1024 * 1024)
+			eta = formatETA(time.Duration(etaSeconds * float64(time.Second)))
 		}
 	}
-
-	copiedGB := float64(copiedSize) / (1024 * 1024 * 1024)
-	totalGB := float64(progress.TotalSize) / (1024 * 1024 * 1024)
 	
-	fmt.Printf("\rFast Copy: [%d/%d files] [%.2f/%.2f GB] [%d active] [%.1f MB/s] [ETA: %s]",
-		processedFiles,
-		progress.TotalFiles,
-		copiedGB,
-		totalGB,
-		activeFiles,
-		progress.BytesPerSecond,
-		eta)
+	// Calculate percentages
+	filePercent := float64(0)
+	sizePercent := float64(0)
+	
+	if totalFiles > 0 {
+		filePercent = float64(processedFiles) / float64(totalFiles) * 100
+	}
+	
+	if totalSize > 0 {
+		sizePercent = float64(copiedSize) / float64(totalSize) * 100
+	}
+	
+	// Don't truncate filename - show full path
+	displayFile := currentFile
+	
+	fmt.Printf("\r%d/%d %s (%.1f%%) | %.2f/%.2f GB (%.1f%%) | %.2f MB/s | %d | ETA: %s",
+		processedFiles, totalFiles, displayFile, filePercent,
+		float64(copiedSize)/(1024*1024*1024), float64(totalSize)/(1024*1024*1024), sizePercent,
+		progress.BytesPerSecond, activeFiles, eta)
+}
+
+// FastCopy performs optimized copying with single-pass directory scanning
+func FastCopy(sourcePath, targetPath string) error {
+	config := NewFastCopyConfig()
+	progress := &FastCopyProgress{
+		StartTime:       time.Now(),
+		LastSpeedUpdate: time.Now(),
+	}
+	
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path error: %v", err)
+	}
+	
+	if sourceInfo.IsDir() {
+		// Directory copy with optimization
+		return copyDirectoryOptimized(sourcePath, targetPath, progress, config)
+	} else {
+		// Single file copy
+		progress.TotalFiles = 1
+		progress.TotalSize = sourceInfo.Size()
+		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config)
+	}
 }

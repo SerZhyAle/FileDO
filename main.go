@@ -655,6 +655,11 @@ func executeInternalCommand(args []string) error {
 	return nil
 }
 
+// handleFastCopyCommand handles the fastcopy command with optimized performance
+func handleFastCopyCommand(sourcePath, targetPath string) error {
+	return FastCopy(sourcePath, targetPath)
+}
+
 func isValidPath(path string) bool {
 	// Check if it's a drive letter
 	if (len(path) == 1) || (len(path) > 1 && len(path) < 4 && string([]rune(path)[1]) == ":") {
