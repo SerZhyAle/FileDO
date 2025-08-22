@@ -1099,5 +1099,16 @@
     "results": {},
     "duration": "   2.0ms",
     "success": true
+  },
+  {
+    "timestamp": "2025-08-23T00:07:30.3068382+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo.exe help",
+    "parameters": {},
+    "results": {},
+    "duration": "   4.1ms",
+    "success": false
   }
 ]

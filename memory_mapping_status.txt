@@ -1,0 +1,38 @@
+Memory Mapping Implementation Status
+========================================
+
+✅ РЕАЛИЗОВАНО И РАБОТАЕТ!
+
+1. 4-уровневая buffer pool система:
+   - tinyBufferPool: 256KB для мелких файлов 
+   - smallBufferPool: 1MB для средних файлов
+   - mediumBufferPool: 16MB для больших файлов  
+   - largeBufferPool: 64MB для очень больших файлов
+
+2. Windows Memory Mapping для гигантских файлов:
+   - Автоматически активируется для файлов >500MB
+   - Использует Windows CreateFileMappingW API
+   - Обрабатывает файлы чанками по 1GB
+   - Прямая memory-to-memory копия через unsafe.Pointer
+
+3. Адаптивные стратегии копирования:
+   - Мелкие файлы (<1MB): батчирование в группы по 10
+   - Средние файлы (1-100MB): буферизованное копирование
+   - Большие файлы (100-500MB): увеличенные буферы
+   - Гигантские файлы (>500MB): memory mapping
+
+4. Полная интеграция с FastCopy:
+   - Команды: fastcopy, fcopy, fc
+   - Parallel processing с NumCPU горутинами  
+   - Preallocation пространства для уменьшения фрагментации
+   - Статистика использования buffer pools
+
+Настройки по умолчанию:
+- UseMemoryMapping: true  
+- MemoryMapThreshold: 500MB
+- MaxConcurrentFiles: NumCPU
+- SmallFileThreshold: 1MB (батчирование)
+
+Пример использования:
+filedo.exe fastcopy D:\LargeFiles E:\Backup
+filedo.exe fc C:\Source D:\Target

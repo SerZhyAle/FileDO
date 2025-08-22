@@ -33,6 +33,12 @@ var (
 			return &buf
 		},
 	}
+	tinyBufferPool = sync.Pool{
+		New: func() interface{} {
+			buf := make([]byte, 256*1024) // 256KB for small files
+			return &buf
+		},
+	}
 )
 
 // FastCopyConfig contains configuration for optimized copying
@@ -106,9 +112,12 @@ func calculateBufferSize(fileSize int64, config FastCopyConfig) int {
 func getBufferFromPool(requiredSize int, progress *FastCopyProgress) ([]byte, *sync.Pool) {
 	atomic.AddInt64(&progress.BufferPoolHits, 1)
 	
-	if requiredSize <= 1024*1024 { // 1MB
+	if requiredSize <= 256*1024 { // 256KB
+		buf := tinyBufferPool.Get().(*[]byte)
+		return (*buf)[:requiredSize], &tinyBufferPool
+	} else if requiredSize <= 1024*1024 { // 1MB
 		buf := smallBufferPool.Get().(*[]byte)
-		return *buf, &smallBufferPool
+		return (*buf)[:requiredSize], &smallBufferPool
 	} else if requiredSize <= 16*1024*1024 { // 16MB
 		buf := mediumBufferPool.Get().(*[]byte)
 		return (*buf)[:requiredSize], &mediumBufferPool
@@ -116,12 +125,6 @@ func getBufferFromPool(requiredSize int, progress *FastCopyProgress) ([]byte, *s
 		buf := largeBufferPool.Get().(*[]byte)
 		return (*buf)[:requiredSize], &largeBufferPool
 	}
-}
-
-// putBuffer returns a buffer to the appropriate pool
-func putBuffer(buf []byte, pool *sync.Pool) {
-	// Reset the slice capacity to avoid holding references
-	pool.Put(&buf)
 }
 
 // Windows-specific memory mapping functions
@@ -272,7 +275,10 @@ func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, prog
 		fmt.Printf("Warning: Failed to preallocate space: %v\n", err)
 	}
 	
-	buffer := make([]byte, 64*1024*1024) // 64MB buffer for regular copying
+	// Use buffer pool for 64MB buffer
+	const bufferSize = 64 * 1024 * 1024 // 64MB
+	buffer, pool := getBufferFromPool(bufferSize, progress)
+	defer pool.Put(&buffer)
 	
 	for {
 		bytesRead, readErr := sourceFile.Read(buffer)
@@ -419,7 +425,7 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	// Determine optimal buffer size and get buffer from pool
 	bufferSize := calculateBufferSize(sourceInfo.Size(), config)
 	buffer, bufferPool := getBufferFromPool(bufferSize, progress)
-	defer putBuffer(buffer, bufferPool)
+	defer bufferPool.Put(&buffer)
 	
 	// Ensure we use only the required buffer size
 	buffer = buffer[:bufferSize]
@@ -457,81 +463,43 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	return nil
 }
 
-// copyDirectoryOptimized copies a directory with parallel file processing
+// copyDirectoryOptimized copies a directory with fast pre-scan and immediate copying
 func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyProgress, config FastCopyConfig) error {
-	// Phase 1: Complete directory scan to get accurate totals
-	fmt.Printf("Scanning directory structure...\n")
-	var fileJobs []FileJob
+	fmt.Printf("Fast scanning for totals...\n")
 	
-	scanErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
-			return nil
-		}
-		
-		relPath, err := filepath.Rel(sourcePath, path)
+	// Phase 1: Fast scan for totals only (no file collection)
+	scanStart := time.Now()
+	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
-		
-		targetFilePath := filepath.Join(targetPath, relPath)
 		
 		if info.IsDir() {
-			// Create target directory immediately
-			return os.MkdirAll(targetFilePath, info.Mode())
+			return nil
 		}
 		
-		// Collect file jobs and update totals
-		fileJobs = append(fileJobs, FileJob{
-			SourcePath: path,
-			TargetPath: targetFilePath,
-			Info:       info,
-		})
-		
+		// Only count files and size
 		progress.TotalFiles++
 		progress.TotalSize += info.Size()
-		
 		return nil
 	})
 	
-	if scanErr != nil {
-		return fmt.Errorf("directory scan failed: %v", scanErr)
+	if err != nil {
+		return fmt.Errorf("directory scan failed: %v", err)
 	}
 	
-	fmt.Printf("Found %d files, total size: %.2f GB\n", 
-		progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
+	scanDuration := time.Since(scanStart)
+	fmt.Printf("Scan completed in %v: %d files, %.2f GB\n", 
+		scanDuration, progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
 	
-	// Phase 2: Separate small and large files for optimized processing
-	var smallFiles []FileJob
-	var largeFiles []FileJob
-	
-	for _, job := range fileJobs {
-		if job.Info.Size() < config.SmallFileThreshold {
-			smallFiles = append(smallFiles, job)
-		} else {
-			largeFiles = append(largeFiles, job)
-		}
-	}
-	
-	fmt.Printf("Small files (<1MB): %d, Large files (≥1MB): %d\n", len(smallFiles), len(largeFiles))
-	
-	// Create batches for small files
-	var smallFileBatches []SmallFileBatch
-	for i := 0; i < len(smallFiles); i += config.SmallFileBatchSize {
-		end := i + config.SmallFileBatchSize
-		if end > len(smallFiles) {
-			end = len(smallFiles)
-		}
-		batch := SmallFileBatch{
-			Jobs: smallFiles[i:end],
-		}
-		smallFileBatches = append(smallFileBatches, batch)
-	}
+	// Phase 2: Immediate copying with streaming processing
+	fmt.Printf("Starting optimized copy with streaming pipeline...\n")
 	
 	// Channels for different job types
-	smallBatchJobs := make(chan SmallFileBatch, len(smallFileBatches))
-	largeSingleJobs := make(chan FileJob, len(largeFiles))
+	smallBatchChannel := make(chan FileJob, config.SmallFileBatchSize*10) // Buffer for small files
+	largeFileChannel := make(chan FileJob, config.MaxConcurrentFiles*2)   // Buffer for large files
 	done := make(chan bool)
+	copyComplete := make(chan bool)
 	
 	// Progress monitoring goroutine
 	progressTicker := time.NewTicker(1 * time.Second)
@@ -548,63 +516,110 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		}
 	}()
 	
-	// Start worker goroutines
+	// Small file batch processor
+	var currentBatch []FileJob
+	var batchWg sync.WaitGroup
+	
+	processBatch := func() {
+		if len(currentBatch) > 0 {
+			batch := SmallFileBatch{Jobs: make([]FileJob, len(currentBatch))}
+			copy(batch.Jobs, currentBatch)
+			
+			batchWg.Add(1)
+			go func() {
+				defer batchWg.Done()
+				if err := copySmallFileBatch(batch, progress, config); err != nil {
+					fmt.Printf("Warning: Failed to copy batch: %v\n", err)
+				}
+			}()
+			
+			currentBatch = currentBatch[:0] // Clear batch
+		}
+	}
+	
+	// Start worker goroutines for large files
 	var wg sync.WaitGroup
 	for i := 0; i < config.MaxConcurrentFiles; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for {
-				select {
-				case batch, ok := <-smallBatchJobs:
-					if !ok {
-						smallBatchJobs = nil
-					} else {
-						if err := copySmallFileBatch(batch, progress, config); err != nil {
-							fmt.Printf("Warning: Failed to copy batch: %v\n", err)
-						}
-					}
-				case job, ok := <-largeSingleJobs:
-					if !ok {
-						largeSingleJobs = nil
-					} else {
-						if err := copyFileSingle(job.SourcePath, job.TargetPath, job.Info, progress, config); err != nil {
-							fmt.Printf("Warning: Failed to copy %s: %v\n", job.SourcePath, err)
-						}
-					}
-				}
-				
-				// Exit when both channels are closed
-				if smallBatchJobs == nil && largeSingleJobs == nil {
-					return
+			for job := range largeFileChannel {
+				if err := copyFileSingle(job.SourcePath, job.TargetPath, job.Info, progress, config); err != nil {
+					fmt.Printf("Warning: Failed to copy %s: %v\n", job.SourcePath, err)
 				}
 			}
 		}()
 	}
 	
-	// Send jobs to workers
+	// Second-pass scanner and dispatcher (now with known totals)
 	go func() {
-		// Send small file batches
-		for _, batch := range smallFileBatches {
-			smallBatchJobs <- batch
-		}
-		close(smallBatchJobs)
+		defer close(smallBatchChannel)
+		defer close(largeFileChannel)
+		defer close(copyComplete)
 		
-		// Send large file jobs
-		for _, job := range largeFiles {
-			largeSingleJobs <- job
+		scanErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
+				return nil
+			}
+			
+			relPath, err := filepath.Rel(sourcePath, path)
+			if err != nil {
+				return nil
+			}
+			
+			targetFilePath := filepath.Join(targetPath, relPath)
+			
+			if info.IsDir() {
+				// Create target directory immediately
+				return os.MkdirAll(targetFilePath, info.Mode())
+			}
+			
+			job := FileJob{
+				SourcePath: path,
+				TargetPath: targetFilePath,
+				Info:       info,
+			}
+			
+			// Route to appropriate processor
+			if info.Size() < config.SmallFileThreshold {
+				// Batch small files
+				currentBatch = append(currentBatch, job)
+				if len(currentBatch) >= config.SmallFileBatchSize {
+					processBatch()
+				}
+			} else {
+				// Send large files directly to workers
+				largeFileChannel <- job
+			}
+			
+			return nil
+		})
+		
+		// Process remaining small files in the last batch
+		processBatch()
+		
+		if scanErr != nil {
+			fmt.Printf("Warning: Directory scan encountered errors: %v\n", scanErr)
 		}
-		close(largeSingleJobs)
+		
+		// Wait for all small file batches to complete
+		batchWg.Wait()
 	}()
 	
-	// Wait for completion
+	// Wait for copy to complete
+	<-copyComplete
+	
+	// Close large file channel and wait for workers
 	wg.Wait()
 	done <- true
 	
 	duration := time.Since(progress.StartTime)
-	avgSpeed := float64(progress.CopiedSize) / duration.Seconds() / (1024 * 1024) // MB/s
+	copyDuration := duration - scanDuration
+	avgSpeed := float64(atomic.LoadInt64(&progress.CopiedSize)) / duration.Seconds() / (1024 * 1024) // MB/s
 	
-	fmt.Printf("\nFast copy completed in %v\n", duration)
+	fmt.Printf("\nOptimized copy completed in %v (scan: %v + copy: %v)\n", 
+		duration, scanDuration, copyDuration)
 	fmt.Printf("Average speed: %.2f MB/s\n", avgSpeed)
 	fmt.Printf("Total files processed: %d\n", progress.TotalFiles)
 	fmt.Printf("Buffer pool reuses: %d (%.1f%% memory savings)\n", 
@@ -640,9 +655,10 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 	atomic.AddInt64(&progress.SmallFileBatches, 1)
 	atomic.AddInt64(&progress.BatchedFiles, int64(len(batch.Jobs)))
 	
-	// Use a small buffer for small files (256KB)
-	bufferSize := 256 * 1024 // 256KB buffer for small files
-	buffer := make([]byte, bufferSize)
+	// Use buffer pool for 256KB buffer
+	const bufferSize = 256 * 1024 // 256KB buffer for small files
+	buffer, pool := getBufferFromPool(bufferSize, progress)
+	defer pool.Put(&buffer)
 	
 	for _, job := range batch.Jobs {
 		// Update current file
