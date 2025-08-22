@@ -2,7 +2,32 @@
 
 <div align="center">
 
-[![Go Report Card](https://goreportcard.### 🔍 **Duplicate File Management**
+[![Go Report Card](https://goreportcard.### 🔍 **Duplicate Fil### 🔍 **Duplicate File Management**
+- Multiple selection modes (oldest/newest/alphabetical)
+- Flexible actions (delete/move duplicates)
+- MD5 hash-based reliable identification
+- Hash caching for faster repeated scans
+- Support for saving/loading duplicate lists
+
+### 📋 **Copy Operations**
+- **Progress tracking** with detailed ETA calculations
+- **Timeout protection** for corrupted/slow filesystems (3-second timeout)
+- **Preserves metadata** - file permissions and timestamps
+- **Robust error handling** - continues copying even if individual files fail
+- **Universal support** - works with devices, folders, network shares, and individual files
+
+### 🧹 **Fast Wipe Operations**
+- **Ultra-fast method** - delete entire folder and recreate (milliseconds)
+- **Standard fallback** - file-by-file deletion with progress for restricted folders
+- **Metadata preservation** - maintains original folder permissions and timestamps
+- **Smart error handling** - works with system folders and access restrictions
+- **Universal compatibility** - supports devices, folders, and network shares
+
+### 🛡️ **Security Features**
+- High-speed secure data wiping to prevent recovery (4.7+ GB/s)
+- Fill operations with parallel writing and automatic cleanup
+- Batch processing for multiple targets
+- Comprehensive operation history**
 - **Built-in duplicate detection** - integrated into main application
 - **Multiple selection modes** (oldest/newest/alphabetical)
 - **Flexible actions** (delete/move duplicates)
@@ -44,6 +69,14 @@ filedo D: fill 1000 del
 # Find and manage duplicate files
 filedo C: check-duplicates
 filedo D: cd old del
+
+# Copy files with progress tracking
+filedo folder C:\Source copy D:\Backup
+filedo device E: copy F:\Archive
+
+# Fast wipe folder contents
+filedo folder C:\Temp wipe
+filedo folder D:\Cache w
 
 # Show device info
 filedo C: info
@@ -166,6 +199,8 @@ filedo C:\temp clean
 | `clean` | Remove test files | `filedo C: clean` |
 | `check-duplicates` | Find duplicate files | `filedo C: check-duplicates` |
 | `cd [mode] [action]` | Check duplicates (short) | `filedo C: cd old del` |
+| `copy <target>` | Copy files with progress | `filedo C: copy D:\backup` |
+| `wipe` | Fast wipe folder contents | `filedo folder C:\temp wipe` |
 | `from <file>` | Execute batch commands | `filedo from script.txt` |
 | `hist` | Show operation history | `filedo hist` |
 
@@ -176,6 +211,13 @@ filedo C:\temp clean
 | `filedo D: f` | `filedo D: fill 100` | Short form |
 | `filedo D: f del` | `filedo D: fill 100 del` | With auto-delete |
 | `filedo D: f d` | `filedo D: fill 100 delete` | Short auto-delete |
+
+#### Copy & Wipe Shortcuts
+| Command | Equivalent | Purpose |
+|---------|------------|---------|
+| `filedo copy A B` | `filedo folder A copy B` | Generic copy command |
+| `filedo A cp B` | `filedo A copy B` | Short copy form |
+| `filedo A w` | `filedo A wipe` | Short wipe form |
 
 
 

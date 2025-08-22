@@ -92,6 +92,8 @@ type CommandHandler interface {
 	FillClean(path string) error
 	Test(path string, autoDelete bool) error
 	CheckDuplicates(path string, args []string) error
+	Copy(sourcePath, targetPath string) error
+	Wipe(path string) error
 }
 
 // DeviceHandler implements CommandHandler for devices
@@ -125,6 +127,15 @@ func (h DeviceHandler) CheckDuplicates(path string, args []string) error {
 	return runDeviceCheckDuplicates(path, args)
 }
 
+func (h DeviceHandler) Copy(sourcePath, targetPath string) error {
+	// For device operations, delegate to handleCopyCommand
+	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
+}
+
+func (h DeviceHandler) Wipe(path string) error {
+	return handleWipeCommand([]string{path})
+}
+
 // FolderHandler implements CommandHandler for folders
 type FolderHandler struct{}
 
@@ -154,6 +165,15 @@ func (h FolderHandler) Test(path string, autoDelete bool) error {
 
 func (h FolderHandler) CheckDuplicates(path string, args []string) error {
 	return runFolderCheckDuplicates(path, args)
+}
+
+func (h FolderHandler) Copy(sourcePath, targetPath string) error {
+	// For folder operations, delegate to handleCopyCommand
+	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
+}
+
+func (h FolderHandler) Wipe(path string) error {
+	return handleWipeCommand([]string{path})
 }
 
 // NetworkHandler implements CommandHandler for network
@@ -187,6 +207,15 @@ func (h NetworkHandler) CheckDuplicates(path string, args []string) error {
 	return runNetworkCheckDuplicates(path, args, nil)
 }
 
+func (h NetworkHandler) Copy(sourcePath, targetPath string) error {
+	// For network operations, delegate to handleCopyCommand
+	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
+}
+
+func (h NetworkHandler) Wipe(path string) error {
+	return handleWipeCommand([]string{path})
+}
+
 // FileHandler implements CommandHandler for files
 type FileHandler struct{}
 
@@ -216,6 +245,16 @@ func (h FileHandler) Test(path string, autoDelete bool) error {
 
 func (h FileHandler) CheckDuplicates(path string, args []string) error {
 	return fmt.Errorf("check-duplicates operation is not supported for individual files")
+}
+
+func (h FileHandler) Copy(sourcePath, targetPath string) error {
+	// For individual files, delegate to handleCopyCommand
+	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
+}
+
+func (h FileHandler) Wipe(path string) error {
+	// For files, wipe doesn't make sense - you can only delete the file
+	return fmt.Errorf("wipe command is not applicable to individual files - use delete instead")
 }
 
 // getCommandHandler returns the appropriate command handler
@@ -470,6 +509,46 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		}
 		historyLogger.SetSuccess()
 		return
+	}
+
+	// Check if this is a copy command
+	if cmd.NArg() >= 3 {
+		copyParam := strings.ToLower(cmd.Arg(1))
+		if copyParam == "copy" || copyParam == "cp" || copyParam == "c" {
+			historyLogger.SetCommand(cmdTypeName, path, "copy")
+			targetPath := cmd.Arg(2)
+			historyLogger.SetParameter("targetPath", targetPath)
+
+			err := handler.Copy(path, targetPath)
+			if err != nil {
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
+			}
+			historyLogger.SetSuccess()
+			return
+		}
+	}
+
+	// Check if this is a wipe command
+	if cmd.NArg() >= 2 {
+		wipeParam := strings.ToLower(cmd.Arg(1))
+		if wipeParam == "wipe" || wipeParam == "w" {
+			historyLogger.SetCommand(cmdTypeName, path, "wipe")
+
+			err := handler.Wipe(path)
+			if err != nil {
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
+			}
+			historyLogger.SetSuccess()
+			return
+		}
 	}
 
 	// Regular info command

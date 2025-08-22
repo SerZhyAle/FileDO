@@ -31,6 +31,14 @@ filedo D: fill 1000 del
 filedo C: check-duplicates
 filedo D: cd old del
 
+# Copie avec suivi de progression
+filedo folder C:\Source copy D:\Backup
+filedo device E: copy F:\Archive
+
+# Nettoyage rapide des dossiers
+filedo folder C:\Temp wipe
+filedo folder D:\Cache w
+
 # Afficher les informations du disque
 filedo C: info
 ```

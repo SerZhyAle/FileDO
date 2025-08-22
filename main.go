@@ -14,7 +14,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2507120020"
+const version = "2508222220"
 
 var start_time time.Time
 
@@ -300,6 +300,22 @@ File Organization:
   filedo.exe network \\server\share cd xyz del → Delete alphabetically first duplicates (any param order)
 
 ═══════════════════════════════════════════════════════════════════════════════
+COPY & WIPE OPERATIONS
+
+File & Folder Copy:
+  filedo.exe device C: copy D:\Backup     → Copy device contents to folder
+  filedo.exe folder D:\Source copy E:\Target → Copy folder to another location
+  filedo.exe network \\server\share copy C:\Local → Copy network share locally
+  filedo.exe file document.txt copy backup.txt → Copy individual file
+  filedo.exe copy D:\Source E:\Target     → Generic copy command
+
+Fast Content Wiping:
+  filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
+  filedo.exe device D: wipe               → Wipe device contents (standard method for system folders)
+  filedo.exe network \\server\temp wipe   → Wipe network folder contents
+  filedo.exe folder C:\Cache w            → Short form of wipe command
+
+═══════════════════════════════════════════════════════════════════════════════
 BATCH OPERATIONS & HISTORY
 
 Batch Processing:
@@ -343,6 +359,12 @@ Process Saved Duplicate List:
 
 Secure Space Wiping:
   filedo.exe C: fill 5000 del      → Fill 5GB then secure delete (data recovery prevention)
+
+Fast Backup & Cleanup:
+  filedo.exe folder C:\ImportantData copy D:\Backup → Copy folder with progress tracking
+  filedo.exe device D: copy \\server\archive → Copy entire device to network storage
+  filedo.exe folder D:\TempFiles wipe      → Fast wipe temporary folder (delete & recreate)
+  filedo.exe network \\server\temp w       → Quick wipe of network temp folder
 
 Batch Testing Multiple Locations:
   Create file 'test_all.txt' with:
@@ -392,8 +414,10 @@ var list_of_flags_for_network = []string{"network", "net", "n"}
 var list_of_flags_for_from = []string{"from", "batch", "script"}
 var list_of_flags_for_hist = []string{"hist", "history"}
 var list_of_flags_for_duplicates = []string{"check-duplicates", "cd", "duplicate"}
+var list_of_flags_for_copy = []string{"copy", "cp"}
+var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
-var list_of_flags_for_all = append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -579,6 +603,18 @@ func executeInternalCommand(args []string) error {
 		// Handle history command
 		internalLogger.SetCommand(command, "", "history")
 		handleHistoryCommand(args)
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_copy, command):
+		// Handle copy command
+		if len(args) < 3 {
+			return fmt.Errorf("copy command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "copy")
+		err := handleCopyCommand(args)
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
 		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_from, command):
 		// Handle from file command (nested call)
@@ -799,6 +835,13 @@ func main() {
 	if contains(list_of_flags_for_all, args[1]) {
 		command = args[1]
 		add_args = args[2:]
+		
+		// Special handling for short copy command 'c'
+		// If 'c' is used with 3+ arguments, treat it as copy
+		if args[1] == "c" && len(args) >= 4 {
+			command = "copy"
+			add_args = args[2:]
+		}
 	} else {
 		firstArg := args[1]
 
@@ -885,6 +928,19 @@ func main() {
 		}
 	case contains(list_of_flags_for_hist, command):
 		handleHistoryCommand(os.Args[1:])
+		return
+	case contains(list_of_flags_for_copy, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "copy")
+		if err := handleCopyCommand(os.Args[1:]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
 		return
 	default:
 		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n\n", os.Args[1])

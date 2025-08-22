@@ -125,5 +125,19 @@ folder D:\TestFolder clean
 network \\localhost\share clean
 
 # =====================================================================
+# SECTION 8: COPY & WIPE
+# =====================================================================
+
+# Copy
+folder .\test_dups copy .\test_target2
+
+# Wipe folder contents (fast deletion)
+folder .\test_target2 wipe
+folder .\test_wipe_folder w
+
+# Test wipe on file (should show error)
+file .\main.go wipe
+
+# =====================================================================
 # End of test suite
 # =====================================================================
