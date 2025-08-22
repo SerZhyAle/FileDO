@@ -162,7 +162,7 @@ func showWipeProgress(progress *WipeProgress) {
 	if itemsPerSecond > 0 {
 		remainingItems := progress.TotalItems - progress.ProcessedItems
 		etaSeconds := int64(float64(remainingItems) / itemsPerSecond)
-		eta = formatDuration(time.Duration(etaSeconds) * time.Second)
+		eta = formatETA(time.Duration(etaSeconds) * time.Second)
 	} else {
 		eta = "unknown"
 	}

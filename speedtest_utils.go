@@ -22,6 +22,28 @@ func formatDuration(d time.Duration) string {
 	}
 }
 
+// formatETA formats duration for ETA display in human-readable format
+func formatETA(d time.Duration) string {
+	if d <= 0 {
+		return "0s"
+	}
+
+	totalSeconds := int64(d.Seconds())
+	
+	if totalSeconds < 60 {
+		return fmt.Sprintf("%ds", totalSeconds)
+	} else if totalSeconds < 3600 {
+		minutes := totalSeconds / 60
+		seconds := totalSeconds % 60
+		return fmt.Sprintf("%dm %ds", minutes, seconds)
+	} else {
+		hours := totalSeconds / 3600
+		minutes := (totalSeconds % 3600) / 60
+		seconds := totalSeconds % 60
+		return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
+	}
+}
+
 // parseSize parses a size string and returns the size in MB
 func parseSize(sizeStr string) (int, error) {
 	var size int

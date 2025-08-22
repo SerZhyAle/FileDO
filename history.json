@@ -1054,5 +1054,50 @@
     "results": {},
     "duration": "   5.1ms",
     "success": true
+  },
+  {
+    "timestamp": "2025-08-22T23:07:02.8874966+02:00",
+    "command": "copy",
+    "target": "filedo_win_vb",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy filedo_win_vb test_eta_demo",
+    "parameters": {},
+    "results": {},
+    "duration": "  30.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-22T23:15:25.0389405+02:00",
+    "command": "folder",
+    "target": "f:\\media\\apeflac",
+    "operation": "info",
+    "fullCommand": "filedo folder f:\\MEDIA\\apeflac fcopy c:\\temp_test",
+    "parameters": {
+      "args": [
+        "f:\\media\\apeflac",
+        "fcopy",
+        "c:\\temp_test"
+      ]
+    },
+    "results": {},
+    "duration": "  66.4ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-22T23:15:42.407517+02:00",
+    "command": "folder",
+    "target": "f:\\media\\apeflac",
+    "operation": "info",
+    "fullCommand": "filedo folder f:\\MEDIA\\apeflac fc c:\\temp_test",
+    "parameters": {
+      "args": [
+        "f:\\media\\apeflac",
+        "fc",
+        "c:\\temp_test"
+      ]
+    },
+    "results": {},
+    "duration": "   2.0ms",
+    "success": true
   }
 ]

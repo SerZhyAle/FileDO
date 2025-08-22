@@ -249,7 +249,7 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 			if remainingSize > 0 {
 				speed := float64(currentSize) / elapsed.Seconds() // bytes per second
 				etaSeconds := int64(float64(remainingSize) / speed)
-				eta = formatDuration(time.Duration(etaSeconds) * time.Second)
+				eta = formatETA(time.Duration(etaSeconds) * time.Second)
 			} else {
 				eta = "0s"
 			}
@@ -316,7 +316,7 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 			if remainingSize > 0 {
 				speed := float64(currentSize) / elapsed.Seconds()
 				etaSeconds := int64(float64(remainingSize) / speed)
-				eta = formatDuration(time.Duration(etaSeconds) * time.Second)
+				eta = formatETA(time.Duration(etaSeconds) * time.Second)
 			} else {
 				eta = "0s"
 			}
@@ -367,7 +367,7 @@ func showProgress(progress *CopyProgress) {
 		if remainingSize > 0 {
 			speed := float64(copiedSize) / elapsed.Seconds() // bytes per second
 			etaSeconds := int64(float64(remainingSize) / speed)
-			eta = formatDuration(time.Duration(etaSeconds) * time.Second)
+			eta = formatETA(time.Duration(etaSeconds) * time.Second)
 		} else {
 			eta = "0s"
 		}

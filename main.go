@@ -309,6 +309,11 @@ File & Folder Copy:
   filedo.exe file document.txt copy backup.txt → Copy individual file
   filedo.exe copy D:\Source E:\Target     → Generic copy command
 
+High-Speed Copy (Optimized for large datasets):
+  filedo.exe fastcopy D:\LargeFolder E:\Backup → Optimized parallel copy
+  filedo.exe fcopy D:\SlowHDD F:\FastSSD    → Fast copy with adaptive buffers
+  filedo.exe fc \\server\data C:\Local      → Multi-threaded network copy
+
 Fast Content Wiping:
   filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
   filedo.exe device D: wipe               → Wipe device contents (standard method for system folders)
@@ -363,6 +368,8 @@ Secure Space Wiping:
 Fast Backup & Cleanup:
   filedo.exe folder C:\ImportantData copy D:\Backup → Copy folder with progress tracking
   filedo.exe device D: copy \\server\archive → Copy entire device to network storage
+  filedo.exe fastcopy D:\SlowHDD E:\FastSSD → Optimized parallel copy for large datasets
+  filedo.exe fc \\NAS\Photos C:\LocalBackup → High-speed copy from slow network/extFAT drives
   filedo.exe folder D:\TempFiles wipe      → Fast wipe temporary folder (delete & recreate)
   filedo.exe network \\server\temp w       → Quick wipe of network temp folder
 
@@ -415,9 +422,10 @@ var list_of_flags_for_from = []string{"from", "batch", "script"}
 var list_of_flags_for_hist = []string{"hist", "history"}
 var list_of_flags_for_duplicates = []string{"check-duplicates", "cd", "duplicate"}
 var list_of_flags_for_copy = []string{"copy", "cp"}
+var list_of_flags_for_fastcopy = []string{"fastcopy", "fcopy", "fc"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_wipe...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -611,6 +619,18 @@ func executeInternalCommand(args []string) error {
 		}
 		internalLogger.SetCommand(command, args[1], "copy")
 		err := handleCopyCommand(args)
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_fastcopy, command):
+		// Handle fast copy command
+		if len(args) < 3 {
+			return fmt.Errorf("fastcopy command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "fastcopy")
+		err := handleFastCopyCommand(args[1], args[2])
 		if err != nil {
 			internalLogger.SetError(err)
 			return err
@@ -936,6 +956,19 @@ func main() {
 		}
 		historyLogger.SetCommand(command, add_args[0], "copy")
 		if err := handleCopyCommand(os.Args[1:]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_fastcopy, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Fast copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "fastcopy")
+		if err := handleFastCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
