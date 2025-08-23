@@ -1110,5 +1110,1710 @@
     "results": {},
     "duration": "   4.1ms",
     "success": false
+  },
+  {
+    "timestamp": "2025-08-23T00:53:11.976376+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T00:54:15.6856033+02:00",
+    "command": "fc",
+    "target": "f:\\media\\apeflac\\",
+    "operation": "fastcopy",
+    "fullCommand": "filedo fc f:\\MEDIA\\apeflac\\ e:\\MEDIA\\HiRes_Audio\\",
+    "parameters": {},
+    "results": {},
+    "duration": " 313.2s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:04:00.9555702+02:00",
+    "command": "file",
+    "target": "TestFile_CaseSensitive.txt",
+    "operation": "info",
+    "fullCommand": "filedo.exe TestFile_CaseSensitive.txt",
+    "parameters": {
+      "args": [
+        "TestFile_CaseSensitive.txt"
+      ]
+    },
+    "results": {},
+    "duration": "  39.7ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:04:17.7400189+02:00",
+    "command": "copy",
+    "target": "TestFile_CaseSensitive.txt",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy TestFile_CaseSensitive.txt TestFolder_CasePreserved\\CopiedFile_CasePreserved.txt",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:05:45.0857952+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo.exe",
+    "parameters": {},
+    "results": {},
+    "duration": "   6.2ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:08:13.8169643+02:00",
+    "command": "device",
+    "target": "C:\\Users\\serzh\\AppData\\Local\\Temp\\FileDO_Operations",
+    "operation": "speed",
+    "fullCommand": "filedo.exe C: speed 1 short",
+    "parameters": {
+      "args": [
+        "C:",
+        "speed",
+        "1",
+        "short"
+      ],
+      "shortFormat": true,
+      "size": "1"
+    },
+    "results": {},
+    "duration": "   9.7s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:08:57.9580098+02:00",
+    "command": "device",
+    "target": "C:\\Users\\serzh\\AppData\\Local\\Temp\\FileDO_Operations",
+    "operation": "speed",
+    "fullCommand": "filedo.exe C: speed 1 short",
+    "parameters": {
+      "args": [
+        "C:",
+        "speed",
+        "1",
+        "short"
+      ],
+      "shortFormat": true,
+      "size": "1"
+    },
+    "results": {},
+    "duration": "   4.2s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:09:08.2290176+02:00",
+    "command": "device",
+    "target": "C:\\Users\\serzh\\AppData\\Local\\Temp\\FileDO_Operations",
+    "operation": "speed",
+    "fullCommand": "filedo.exe C: speed 1 short",
+    "parameters": {
+      "args": [
+        "C:",
+        "speed",
+        "1",
+        "short"
+      ],
+      "shortFormat": true,
+      "size": "1"
+    },
+    "results": {},
+    "duration": " 468.7ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:10:59.3443486+02:00",
+    "command": "device",
+    "target": "C:\\Users\\serzh\\AppData\\Local\\Temp\\FileDO_Operations",
+    "operation": "speed",
+    "fullCommand": "filedo.exe C: speed 1 short",
+    "parameters": {
+      "args": [
+        "C:",
+        "speed",
+        "1",
+        "short"
+      ],
+      "shortFormat": true,
+      "size": "1"
+    },
+    "results": {},
+    "duration": "   3.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:20:08.2706223+02:00",
+    "command": "copy",
+    "target": "test_source",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy test_source test_destination",
+    "parameters": {},
+    "results": {},
+    "duration": "   4.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:20:38.4633185+02:00",
+    "command": "copy",
+    "target": "test_source",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy test_source test_destination",
+    "parameters": {},
+    "results": {},
+    "duration": "   3.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:20:55.4716142+02:00",
+    "command": "copy",
+    "target": "test_source",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy test_source C:\\TestPermissionDenied\\test_destination",
+    "parameters": {},
+    "results": {},
+    "duration": "   5.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:21:12.8005559+02:00",
+    "command": "copy",
+    "target": "C:\\Windows\\System32\\drivers\\etc",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy C:\\Windows\\System32\\drivers\\etc test_destination_etc",
+    "parameters": {},
+    "results": {},
+    "duration": "  22.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:21:59.8237582+02:00",
+    "command": "copy",
+    "target": "test_source",
+    "operation": "copy",
+    "fullCommand": "filedo.exe copy test_source C:\\FileDo_Test_NoPermission",
+    "parameters": {},
+    "results": {},
+    "duration": "   6.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:51.9533178+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "info",
+    "fullCommand": "filedo device D: info",
+    "parameters": {
+      "args": [
+        "D:",
+        "info"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  82.3ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.0366392+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "info",
+    "fullCommand": "filedo device D: short",
+    "parameters": {
+      "args": [
+        "D:",
+        "short"
+      ],
+      "shortFormat": true
+    },
+    "results": {},
+    "duration": " 508.3μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.0381661+02:00",
+    "command": "device",
+    "target": "Z:",
+    "operation": "info",
+    "fullCommand": "filedo device Z: info",
+    "parameters": {
+      "args": [
+        "Z:",
+        "info"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false,
+    "error": "device 'Z:' does not exist"
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.0391819+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.0412196+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "speed",
+    "fullCommand": "filedo device D: speed 10 short",
+    "parameters": {
+      "args": [
+        "D:",
+        "speed",
+        "10",
+        "short"
+      ],
+      "shortFormat": true,
+      "size": "10"
+    },
+    "results": {},
+    "duration": " 483.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.5261197+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "speed",
+    "fullCommand": "filedo device D: speed 50 nodel",
+    "parameters": {
+      "args": [
+        "D:",
+        "speed",
+        "50",
+        "nodel"
+      ],
+      "noDelete": true,
+      "size": "50"
+    },
+    "results": {},
+    "duration": " 105.3ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.6324286+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   3.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:30:52.6370382+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "test",
+    "fullCommand": "filedo device D: test del",
+    "parameters": {
+      "args": [
+        "D:",
+        "test",
+        "del"
+      ],
+      "autoDelete": true
+    },
+    "results": {},
+    "duration": "   9.7s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:02.2925362+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "fill",
+    "fullCommand": "filedo device D: fill 10",
+    "parameters": {
+      "args": [
+        "D:",
+        "fill",
+        "10"
+      ],
+      "size": "10"
+    },
+    "results": {},
+    "duration": "   7.2s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:09.4898767+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   1.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:10.9594831+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "fill",
+    "fullCommand": "filedo device D: fill 20 del",
+    "parameters": {
+      "args": [
+        "D:",
+        "fill",
+        "20",
+        "del"
+      ],
+      "autoDelete": true,
+      "size": "20"
+    },
+    "results": {},
+    "duration": "  11.0s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9731509+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestDuplicates info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9736604+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo device D: cd short",
+    "parameters": {
+      "args": [
+        "D:",
+        "cd",
+        "short"
+      ]
+    },
+    "results": {},
+    "duration": " 508.7μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.975187+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo device D: cd list D:\\TestDuplicates\\duplicates.lst",
+    "parameters": {
+      "args": [
+        "D:",
+        "cd",
+        "list",
+        "D:\\TestDuplicates\\duplicates.lst"
+      ]
+    },
+    "results": {},
+    "duration": " 509.6μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9767118+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9777283+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9787486+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\NonExistentFolder info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9797717+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9807909+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder speed 10 short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9813009+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder speed 20 nodel",
+    "parameters": {},
+    "results": {},
+    "duration": " 508.3μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9823177+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": " 511.1μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9833377+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder test short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9843591+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9853963+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder fill 10",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9859039+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": " 507.9μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9869192+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder fill 20 del",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9879371+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder cd short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9889529+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder cd list D:\\TestFolder\\folder_duplicates.lst",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9894606+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo file D:\\TestFolder\\testfile.txt info",
+    "parameters": {},
+    "results": {},
+    "duration": " 507.5μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9904749+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo file D:\\TestFolder\\testfile.txt short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9914883+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo file D:\\TestFolder\\nonexistent.txt info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:21.9925065+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share info",
+    "parameters": {},
+    "results": {},
+    "duration": "   9.7ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0031968+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0047222+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.006758+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share speed 10 short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0082779+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share test short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0103092+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0123489+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share fill 10 del",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0143829+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share cd short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0169544+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:22.0189933+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\nonexistent\\share info",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.3s",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.2875865+02:00",
+    "command": "folder",
+    "target": "test_dups",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo folder test_dups cd list .\\test_dups\\duplicates.lst",
+    "parameters": {
+      "args": [
+        "test_dups",
+        "cd",
+        "list",
+        ".\\test_dups\\duplicates.lst"
+      ]
+    },
+    "results": {},
+    "duration": "   4.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.2936712+02:00",
+    "command": "cd",
+    "target": "from",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo cd from list .\\test_dups\\duplicates.lst old",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.2957033+02:00",
+    "command": "cd",
+    "target": "from",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo cd from list .\\test_dups\\duplicates.lst new",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.2972234+02:00",
+    "command": "cd",
+    "target": "from",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo cd from list .\\test_dups\\duplicates.lst",
+    "parameters": {},
+    "results": {},
+    "duration": " 506.3μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.2992489+02:00",
+    "command": "hist",
+    "target": "",
+    "operation": "history",
+    "fullCommand": "filedo hist",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.3023376+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.3048713+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.3064276+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.3099998+02:00",
+    "command": "folder",
+    "target": ".\\test_dups",
+    "operation": "copy",
+    "fullCommand": "filedo folder .\\test_dups copy .\\test_target2",
+    "parameters": {
+      "args": [
+        ".\\test_dups",
+        "copy",
+        ".\\test_target2"
+      ],
+      "targetPath": ".\\test_target2"
+    },
+    "results": {},
+    "duration": "   5.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.3171426+02:00",
+    "command": "folder",
+    "target": ".\\test_target2",
+    "operation": "wipe",
+    "fullCommand": "filedo folder .\\test_target2 wipe",
+    "parameters": {
+      "args": [
+        ".\\test_target2",
+        "wipe"
+      ]
+    },
+    "results": {},
+    "duration": "   2.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:31:24.3201757+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder .\\test_wipe_folder w",
+    "parameters": {},
+    "results": {},
+    "duration": " 505.2μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:27.5604618+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "info",
+    "fullCommand": "filedo device D: info",
+    "parameters": {
+      "args": [
+        "D:",
+        "info"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  80.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:27.6424591+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "info",
+    "fullCommand": "filedo device D: short",
+    "parameters": {
+      "args": [
+        "D:",
+        "short"
+      ],
+      "shortFormat": true
+    },
+    "results": {},
+    "duration": " 509.9μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:27.6444955+02:00",
+    "command": "device",
+    "target": "Z:",
+    "operation": "info",
+    "fullCommand": "filedo device Z: info",
+    "parameters": {
+      "args": [
+        "Z:",
+        "info"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false,
+    "error": "device 'Z:' does not exist"
+  },
+  {
+    "timestamp": "2025-08-23T01:32:27.6455115+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:27.6480564+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "speed",
+    "fullCommand": "filedo device D: speed 10 short",
+    "parameters": {
+      "args": [
+        "D:",
+        "speed",
+        "10",
+        "short"
+      ],
+      "shortFormat": true,
+      "size": "10"
+    },
+    "results": {},
+    "duration": " 460.3ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:28.1098644+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "speed",
+    "fullCommand": "filedo device D: speed 50 nodel",
+    "parameters": {
+      "args": [
+        "D:",
+        "speed",
+        "50",
+        "nodel"
+      ],
+      "noDelete": true,
+      "size": "50"
+    },
+    "results": {},
+    "duration": " 111.8ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:28.2237467+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   4.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:28.2293723+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "test",
+    "fullCommand": "filedo device D: test del",
+    "parameters": {
+      "args": [
+        "D:",
+        "test",
+        "del"
+      ],
+      "autoDelete": true
+    },
+    "results": {},
+    "duration": "  10.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:38.7386077+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "fill",
+    "fullCommand": "filedo device D: fill 10",
+    "parameters": {
+      "args": [
+        "D:",
+        "fill",
+        "10"
+      ],
+      "size": "10"
+    },
+    "results": {},
+    "duration": "   7.2s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:45.9425823+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   1.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:47.4468438+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "fill",
+    "fullCommand": "filedo device D: fill 20 del",
+    "parameters": {
+      "args": [
+        "D:",
+        "fill",
+        "20",
+        "del"
+      ],
+      "autoDelete": true,
+      "size": "20"
+    },
+    "results": {},
+    "duration": "   7.0s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.4933955+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestDuplicates info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.4944133+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo device D: cd short",
+    "parameters": {
+      "args": [
+        "D:",
+        "cd",
+        "short"
+      ]
+    },
+    "results": {},
+    "duration": " 509.0μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.4959374+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo device D: cd list D:\\TestDuplicates\\duplicates.lst",
+    "parameters": {
+      "args": [
+        "D:",
+        "cd",
+        "list",
+        "D:\\TestDuplicates\\duplicates.lst"
+      ]
+    },
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.4979786+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.4995025+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5005167+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\NonExistentFolder info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5015326+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5030585+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder speed 10 short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5040758+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder speed 20 nodel",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.505094+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": " 508.7μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5066191+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder test short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5076437+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": " 509.1μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5091669+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder fill 10",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5101837+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5112011+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder fill 20 del",
+    "parameters": {},
+    "results": {},
+    "duration": " 511.1μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5127313+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder cd short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5137449+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder cd list D:\\TestFolder\\folder_duplicates.lst",
+    "parameters": {},
+    "results": {},
+    "duration": " 512.1μs",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5157916+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo file D:\\TestFolder\\testfile.txt info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5173244+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo file D:\\TestFolder\\testfile.txt short",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5188585+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo file D:\\TestFolder\\nonexistent.txt info",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5198724+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share info",
+    "parameters": {},
+    "results": {},
+    "duration": "   3.1ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5239523+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5264924+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5285272+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share speed 10 short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5310685+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share test short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5330967+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5351283+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share fill 10 del",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.537687+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share cd short",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.539719+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:54.5417545+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\nonexistent\\share info",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.3s",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.817176+02:00",
+    "command": "folder",
+    "target": "test_dups",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo folder test_dups cd list .\\test_dups\\duplicates.lst",
+    "parameters": {
+      "args": [
+        "test_dups",
+        "cd",
+        "list",
+        ".\\test_dups\\duplicates.lst"
+      ]
+    },
+    "results": {},
+    "duration": "   4.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8222529+02:00",
+    "command": "cd",
+    "target": "from",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo cd from list .\\test_dups\\duplicates.lst old",
+    "parameters": {},
+    "results": {},
+    "duration": " 506.7μs",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8237719+02:00",
+    "command": "cd",
+    "target": "from",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo cd from list .\\test_dups\\duplicates.lst new",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.825293+02:00",
+    "command": "cd",
+    "target": "from",
+    "operation": "check-duplicates",
+    "fullCommand": "filedo cd from list .\\test_dups\\duplicates.lst",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8268128+02:00",
+    "command": "hist",
+    "target": "",
+    "operation": "history",
+    "fullCommand": "filedo hist",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8298669+02:00",
+    "command": "device",
+    "target": "D:",
+    "operation": "clean",
+    "fullCommand": "filedo device D: clean",
+    "parameters": {
+      "args": [
+        "D:",
+        "clean"
+      ]
+    },
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.831894+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder D:\\TestFolder clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8329063+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo network \\\\localhost\\share clean",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.835946+02:00",
+    "command": "folder",
+    "target": ".\\test_dups",
+    "operation": "copy",
+    "fullCommand": "filedo folder .\\test_dups copy .\\test_target2",
+    "parameters": {
+      "args": [
+        ".\\test_dups",
+        "copy",
+        ".\\test_target2"
+      ],
+      "targetPath": ".\\test_target2"
+    },
+    "results": {},
+    "duration": "   3.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8405908+02:00",
+    "command": "folder",
+    "target": ".\\test_target2",
+    "operation": "wipe",
+    "fullCommand": "filedo folder .\\test_target2 wipe",
+    "parameters": {
+      "args": [
+        ".\\test_target2",
+        "wipe"
+      ]
+    },
+    "results": {},
+    "duration": "   1.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:32:56.8441847+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo folder .\\test_wipe_folder w",
+    "parameters": {},
+    "results": {},
+    "duration": "   0.0ns",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:33:08.900463+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo hist",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.0ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:33:21.117584+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo hist 50",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.6ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T01:33:58.9191444+02:00",
+    "command": "fc",
+    "target": "f:\\MEDIA\\apeflac\\",
+    "operation": "fastcopy",
+    "fullCommand": "filedo fc f:\\MEDIA\\apeflac\\ e:\\MEDIA\\HiRes_Audio\\",
+    "parameters": {},
+    "results": {},
+    "duration": " 407.6s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:45:21.1900426+02:00",
+    "command": "fc",
+    "target": "f:\\MEDIA\\apeflac\\",
+    "operation": "fastcopy",
+    "fullCommand": "filedo fc f:\\MEDIA\\apeflac\\ e:\\MEDIA\\HiRes_Audio\\",
+    "parameters": {},
+    "results": {},
+    "duration": "  49.3s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:46:38.5939813+02:00",
+    "command": "fc",
+    "target": "f:\\MEDIA\\apeflac\\",
+    "operation": "fastcopy",
+    "fullCommand": "filedo fc f:\\MEDIA\\apeflac\\ e:\\MEDIA\\HiRes_Audio\\",
+    "parameters": {},
+    "results": {},
+    "duration": " 311.9s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T01:52:23.750952+02:00",
+    "command": "fc",
+    "target": "f:\\MEDIA\\apeflac\\",
+    "operation": "fastcopy",
+    "fullCommand": "filedo fc f:\\MEDIA\\apeflac\\ e:\\MEDIA\\HiRes_Audio\\",
+    "parameters": {},
+    "results": {},
+    "duration": "1118.0s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T02:13:33.5225842+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo.exe help",
+    "parameters": {},
+    "results": {},
+    "duration": "   7.6ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T02:14:09.8446734+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": ".\\filedo.exe help",
+    "parameters": {},
+    "results": {},
+    "duration": "   7.1ms",
+    "success": false
+  },
+  {
+    "timestamp": "2025-08-23T02:14:52.6833347+02:00",
+    "command": "copy",
+    "target": "test_file.txt",
+    "operation": "smart-copy",
+    "fullCommand": ".\\filedo.exe copy test_file.txt test_copy.txt",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.6ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T02:12:55.3442481+02:00",
+    "command": "copy",
+    "target": "f:\\MEDIA\\apeflac\\",
+    "operation": "smart-copy",
+    "fullCommand": "filedo copy f:\\MEDIA\\apeflac\\ e:\\MEDIA\\HiRes_Audio\\",
+    "parameters": {},
+    "results": {},
+    "duration": " 146.0s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T02:15:49.1542188+02:00",
+    "command": "copy",
+    "target": "test_file.txt",
+    "operation": "smart-copy",
+    "fullCommand": ".\\filedo.exe copy test_file.txt test_copy2.txt",
+    "parameters": {},
+    "results": {},
+    "duration": "   3.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T02:16:36.0733288+02:00",
+    "command": "copy",
+    "target": "test_dups",
+    "operation": "smart-copy",
+    "fullCommand": ".\\filedo.exe copy test_dups test_target3",
+    "parameters": {},
+    "results": {},
+    "duration": "   8.2ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T02:17:46.6033984+02:00",
+    "command": "copy",
+    "target": "\\\\localhost\\share",
+    "operation": "smart-copy",
+    "fullCommand": ".\\filedo.exe copy \\\\localhost\\share test_network_copy",
+    "parameters": {},
+    "results": {},
+    "duration": "   9.2ms",
+    "success": true
   }
 ]

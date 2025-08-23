@@ -295,6 +295,13 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 	localFileName := fmt.Sprintf("speedtest_%d_%d.txt", sizeMB, time.Now().Unix())
 	localFilePath := filepath.Join(currentDir, localFileName)
 
+	// Setup cleanup for local file
+	defer func() {
+		if err := os.Remove(localFilePath); err != nil && !shortFormat {
+			fmt.Printf("⚠ Warning: Could not remove local file: %v\n", err)
+		}
+	}()
+
 	startCreate := time.Now()
 	err = createRandomFile(localFilePath, sizeMB, !shortFormat)
 	if err != nil {
@@ -315,11 +322,18 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 	// Step 3: Upload Speed Test - Copy file to device
 	deviceFileName := filepath.Join(normalizedPath, localFileName)
 
+	// Setup cleanup for device file
+	defer func() {
+		if !noDelete {
+			if err := os.Remove(deviceFileName); err != nil && !shortFormat {
+				fmt.Printf("⚠ Warning: Could not remove device file: %v\n", err)
+			}
+		}
+	}()
+
 	startUpload := time.Now()
 	bytesUploaded, err := copyFileOptimized(localFilePath, deviceFileName)
 	if err != nil {
-		// Clean up local file before returning error
-		os.Remove(localFilePath)
 		return fmt.Errorf("failed to copy file to device: %w", err)
 	}
 	uploadDuration := time.Since(startUpload)
@@ -345,12 +359,16 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 	downloadFileName := fmt.Sprintf("speedtest_download_%d_%d.txt", sizeMB, time.Now().Unix())
 	downloadFilePath := filepath.Join(currentDir, downloadFileName)
 
+	// Setup cleanup for download file
+	defer func() {
+		if err := os.Remove(downloadFilePath); err != nil && !shortFormat {
+			fmt.Printf("⚠ Warning: Could not remove downloaded file: %v\n", err)
+		}
+	}()
+
 	startDownload := time.Now()
 	bytesDownloaded, err := copyFileOptimized(deviceFileName, downloadFilePath)
 	if err != nil {
-		// Clean up files before returning error
-		os.Remove(localFilePath)
-		os.Remove(deviceFileName)
 		return fmt.Errorf("failed to copy file from device: %w", err)
 	}
 	downloadDuration := time.Since(startDownload)
@@ -370,35 +388,14 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Download completed in %s\n", formatDuration(downloadDuration))
 		fmt.Printf("Download Speed: %.2f MB/s (%.2f Mbps)\n\n", downloadSpeedMBps, downloadSpeedMbps)
 
-		// Step 5: Clean up files
+		// Step 5: Clean up files (handled by defer statements)
 		fmt.Printf("Step 5: Cleaning up test files..\n")
-	}
-
-	// Clean up files (always done, but only show progress if not short format)
-	// Remove original local file
-	if err := os.Remove(localFilePath); err != nil && !shortFormat {
-		fmt.Printf("⚠ Warning: Could not remove original local file: %v\n", err)
-	} else if !shortFormat {
-		fmt.Printf("✓ Original local test file removed\n")
-	}
-
-	// Remove downloaded file
-	if err := os.Remove(downloadFilePath); err != nil && !shortFormat {
-		fmt.Printf("⚠ Warning: Could not remove downloaded file: %v\n", err)
-	} else if !shortFormat {
-		fmt.Printf("✓ Downloaded test file removed\n")
-	}
-
-	// Remove device file (unless noDelete flag is set)
-	if noDelete {
-		if !shortFormat {
+		fmt.Printf("✓ Original local test file will be removed\n")
+		fmt.Printf("✓ Downloaded test file will be removed\n")
+		if noDelete {
 			fmt.Printf("✓ Device test file kept: %s\n", deviceFileName)
-		}
-	} else {
-		if err := os.Remove(deviceFileName); err != nil && !shortFormat {
-			fmt.Printf("⚠ Warning: Could not remove device file: %v\n", err)
-		} else if !shortFormat {
-			fmt.Printf("✓ Device test file removed\n")
+		} else {
+			fmt.Printf("✓ Device test file will be removed\n")
 		}
 	}
 
@@ -508,8 +505,10 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 		fileName := fmt.Sprintf("FILL_%05d_%s.tmp", i, timestamp)
 		filePathList[i-1] = filepath.Join(normalizedPath, fileName)
 	}
-	// Use worker pool for parallel file creation
+	// Use worker pool for parallel file creation with context for cancellation
 	parallelism := 12 // Create 12 files concurrently
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Create channel for work
 	jobs := make(chan int64, maxFiles)
@@ -518,27 +517,53 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 		err       error
 	}, maxFiles)
 
+	// Track critical errors (disk full, hardware failures, etc.)
+	var criticalErrorCount int64
+
 	// Launch workers
 	for w := 0; w < parallelism; w++ {
 		go func() {
-			for i := range jobs {
-				if handler.IsCancelled() {
+			for {
+				select {
+				case <-ctx.Done():
+					// Context cancelled - exit immediately
+					return
+				case i, ok := <-jobs:
+					if !ok {
+						return
+					}
+
+					if handler.IsCancelled() {
+						results <- struct {
+							fileIndex int64
+							err       error
+						}{i, fmt.Errorf("cancelled")}
+						continue
+					}
+
+					// Use pre-computed file path
+					targetFilePath := filePathList[i-1]
+
+					// Create file directly with optimized function
+					err := writeTestFileWithBuffer(targetFilePath, fileSizeBytes, optimalBuffer)
+					
+					// Check for critical errors that should stop all operations
+					if err != nil && isCriticalError(err) {
+						atomic.AddInt64(&criticalErrorCount, 1)
+						// Cancel context to stop all other workers
+						cancel()
+						results <- struct {
+							fileIndex int64
+							err       error
+						}{i, fmt.Errorf("critical error: %w", err)}
+						return
+					}
+					
 					results <- struct {
 						fileIndex int64
 						err       error
-					}{i, fmt.Errorf("cancelled")}
-					continue
+					}{i, err}
 				}
-
-				// Use pre-computed file path
-				targetFilePath := filePathList[i-1]
-
-				// Create file directly with optimized function
-				err := writeTestFileWithBuffer(targetFilePath, fileSizeBytes, optimalBuffer)
-				results <- struct {
-					fileIndex int64
-					err       error
-				}{i, err}
 			}
 		}()
 	}
@@ -549,33 +574,62 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	}
 	close(jobs)
 
-	// Collect results
+	// Collect results with improved error handling
+	var consecutiveErrors int64
 	for i := int64(1); i <= maxFiles; i++ {
-		// Check for interruption
+		// Check for interruption or critical error context cancellation
 		if handler.IsCancelled() {
 			fmt.Printf("\n⚠ Operation cancelled by user\n")
 			break
 		}
+		
+		select {
+		case <-ctx.Done():
+			fmt.Printf("\n⚠ Operation stopped due to critical error\n")
+			goto fillComplete
+		case result := <-results:
+			if result.err != nil {
+				if result.err.Error() != "cancelled" {
+					if strings.Contains(result.err.Error(), "critical error") {
+						fmt.Printf("\n❌ Critical error on file %d: %v\n", result.fileIndex, result.err)
+						fmt.Printf("Stopping all operations to prevent further issues\n")
+						goto fillComplete
+					} else {
+						fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", result.fileIndex, result.err)
+						atomic.AddInt64(&consecutiveErrors, 1)
+						
+						// Stop if too many consecutive errors (likely disk full or hardware issue)
+						if consecutiveErrors >= 3 {
+							fmt.Printf("Too many consecutive errors - stopping operation\n")
+							cancel() // Cancel remaining workers
+							goto fillComplete
+						}
+					}
+				}
+				if result.fileIndex <= 1 {
+					goto fillComplete
+				}
+			} else {
+				// Success - reset consecutive error counter
+				atomic.StoreInt64(&consecutiveErrors, 0)
+				filesCreated++
+				totalBytesWritten += fileSizeBytes
 
-		result := <-results
-		if result.err != nil {
-			if result.err.Error() != "cancelled" {
-				fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", result.fileIndex, result.err)
+				// Update progress less frequently (every 4 files or at least once every 2 seconds)
+				if filesCreated%4 == 0 || filesCreated == 1 || progress.ShouldUpdate() {
+					progress.Update(filesCreated, totalBytesWritten)
+					progress.PrintProgress("Fill")
+				}
 			}
-			if result.fileIndex <= 1 {
-				break
-			}
-		} else {
-			filesCreated++
-			totalBytesWritten += fileSizeBytes
-
-			// Update progress less frequently (every 4 files or at least once every 2 seconds)
-			if filesCreated%4 == 0 || filesCreated == 1 || progress.ShouldUpdate() {
-				progress.Update(filesCreated, totalBytesWritten)
-				progress.PrintProgress("Fill")
-			}
+		case <-time.After(30 * time.Second):
+			// Timeout protection - if no result in 30 seconds, something is wrong
+			fmt.Printf("\n⚠ Warning: Operation timeout - stopping\n")
+			cancel()
+			goto fillComplete
 		}
 	}
+
+fillComplete:
 
 	// Final summary
 	progress.Finish("Fill Operation")
@@ -644,6 +698,38 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	}
 
 	return nil
+}
+
+// isCriticalError determines if an error is critical enough to stop all operations
+func isCriticalError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errStr := strings.ToLower(err.Error())
+	
+	// Critical errors that should stop all operations
+	criticalPatterns := []string{
+		"no space left on device",
+		"disk full",
+		"device hardware error",
+		"i/o error",
+		"device not ready",
+		"access denied",
+		"insufficient disk space",
+		"write fault",
+		"device offline",
+		"bad sectors",
+		"device error",
+	}
+	
+	for _, pattern := range criticalPatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	
+	return false
 }
 
 func runDeviceFillClean(devicePath string) error {

@@ -7,22 +7,109 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
 // CopyProgress tracks the progress of copy operations
 type CopyProgress struct {
-	TotalFiles      int64
-	ProcessedFiles  int64
-	TotalSize       int64
-	CopiedSize      int64
-	StartTime       time.Time
-	CurrentFile     string
+	TotalFiles      int64        // Use atomic operations
+	ProcessedFiles  int64        // Use atomic operations  
+	TotalSize       int64        // Use atomic operations
+	CopiedSize      int64        // Use atomic operations
+	StartTime       time.Time    // Read-only after initialization
+	CurrentFile     string       // Protected by CurrentFileMutex
+	CurrentFileMutex sync.RWMutex // Mutex for CurrentFile access
+	SkippedFiles    int64        // Use atomic operations
+	Errors          []string     // Protected by ErrorsMutex
+	ErrorsMutex     sync.Mutex   // Mutex for thread-safe error logging
 }
 
 // FileOperationTimeout defines timeout for file operations with broken sources
 const FileOperationTimeout = 3 * time.Second
+
+// Atomic helper methods for CopyProgress
+func (p *CopyProgress) AddTotalFiles(delta int64) {
+	atomic.AddInt64(&p.TotalFiles, delta)
+}
+
+func (p *CopyProgress) AddTotalSize(delta int64) {
+	atomic.AddInt64(&p.TotalSize, delta)
+}
+
+func (p *CopyProgress) GetTotalFiles() int64 {
+	return atomic.LoadInt64(&p.TotalFiles)
+}
+
+func (p *CopyProgress) GetTotalSize() int64 {
+	return atomic.LoadInt64(&p.TotalSize)
+}
+
+func (p *CopyProgress) GetProcessedFiles() int64 {
+	return atomic.LoadInt64(&p.ProcessedFiles)
+}
+
+func (p *CopyProgress) GetCopiedSize() int64 {
+	return atomic.LoadInt64(&p.CopiedSize)
+}
+
+func (p *CopyProgress) GetSkippedFiles() int64 {
+	return atomic.LoadInt64(&p.SkippedFiles)
+}
+
+func (p *CopyProgress) SetCurrentFile(filename string) {
+	p.CurrentFileMutex.Lock()
+	defer p.CurrentFileMutex.Unlock()
+	p.CurrentFile = filename
+}
+
+func (p *CopyProgress) GetCurrentFile() string {
+	p.CurrentFileMutex.RLock()
+	defer p.CurrentFileMutex.RUnlock()
+	return p.CurrentFile
+}
+
+// logError safely logs an error to the progress structure
+func (p *CopyProgress) logError(path string, err error) {
+	p.ErrorsMutex.Lock()
+	defer p.ErrorsMutex.Unlock()
+	
+	errorMsg := fmt.Sprintf("%s: %v", path, err)
+	p.Errors = append(p.Errors, errorMsg)
+	atomic.AddInt64(&p.SkippedFiles, 1)
+	
+	// Also log to stderr for immediate visibility
+	fmt.Fprintf(os.Stderr, "Warning: %s\n", errorMsg)
+}
+
+// printErrorSummary prints a summary of all errors encountered
+func (p *CopyProgress) printErrorSummary() {
+	p.ErrorsMutex.Lock()
+	defer p.ErrorsMutex.Unlock()
+	
+	if len(p.Errors) > 0 {
+		fmt.Printf("\n⚠️  COPY OPERATION COMPLETED WITH ERRORS:\n")
+		fmt.Printf("   %d files were skipped due to access errors:\n\n", len(p.Errors))
+		
+		// Show first 10 errors, then summarize if more
+		maxShow := 10
+		for i, errMsg := range p.Errors {
+			if i < maxShow {
+				fmt.Printf("   • %s\n", errMsg)
+			} else {
+				fmt.Printf("   ... and %d more errors\n", len(p.Errors)-maxShow)
+				break
+			}
+		}
+		
+		fmt.Printf("\nRecommendations:\n")
+		fmt.Printf("• Check file permissions for skipped files\n")
+		fmt.Printf("• Run as administrator if accessing system files\n")
+		fmt.Printf("• Some files may be in use by other applications\n")
+		fmt.Printf("• Consider using 'fastcopy' for better error handling\n\n")
+	}
+}
 
 // statWithTimeout performs os.Stat with timeout
 func statWithTimeout(path string, timeout time.Duration) (os.FileInfo, error) {
@@ -139,7 +226,7 @@ func copyDirectory(sourcePath, targetPath string) error {
 	fmt.Println("Scanning directory structure...")
 	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Error accessing %s: %v\n", path, err)
+			progress.logError(path, fmt.Errorf("error accessing during scan: %v", err))
 			return nil // Skip files with errors
 		}
 		
@@ -148,15 +235,15 @@ func copyDirectory(sourcePath, targetPath string) error {
 			// Re-stat with timeout if info is nil
 			timeoutInfo, statErr := statWithTimeout(path, FileOperationTimeout)
 			if statErr != nil {
-				fmt.Fprintf(os.Stderr, "Warning: Stat timeout for %s: %v - skipping\n", path, statErr)
+				progress.logError(path, fmt.Errorf("stat timeout during scan: %v", statErr))
 				return nil
 			}
 			info = timeoutInfo
 		}
 		
 		if !info.IsDir() {
-			progress.TotalFiles++
-			progress.TotalSize += info.Size()
+			progress.AddTotalFiles(1)
+			progress.AddTotalSize(info.Size())
 		}
 		return nil
 	})
@@ -166,12 +253,12 @@ func copyDirectory(sourcePath, targetPath string) error {
 	}
 
 	fmt.Printf("Found %d files, total size: %.2f MB\n", 
-		progress.TotalFiles, float64(progress.TotalSize)/(1024*1024))
+		progress.GetTotalFiles(), float64(progress.GetTotalSize())/(1024*1024))
 
 	// Now perform the actual copy
-	return filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	copyErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Error accessing %s: %v - skipping\n", path, err)
+			progress.logError(path, fmt.Errorf("error accessing during copy: %v", err))
 			return nil // Continue with other files
 		}
 
@@ -180,7 +267,7 @@ func copyDirectory(sourcePath, targetPath string) error {
 			// Re-stat with timeout if info is nil
 			timeoutInfo, statErr := statWithTimeout(path, FileOperationTimeout)
 			if statErr != nil {
-				fmt.Fprintf(os.Stderr, "Warning: Stat timeout for %s: %v - skipping\n", path, statErr)
+				progress.logError(path, fmt.Errorf("stat timeout during copy: %v", statErr))
 				return nil
 			}
 			info = timeoutInfo
@@ -189,7 +276,7 @@ func copyDirectory(sourcePath, targetPath string) error {
 		// Calculate relative path
 		relPath, err := filepath.Rel(sourcePath, path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error calculating relative path for %s: %v - skipping\n", path, err)
+			progress.logError(path, fmt.Errorf("error calculating relative path: %v", err))
 			return nil
 		}
 
@@ -199,15 +286,20 @@ func copyDirectory(sourcePath, targetPath string) error {
 			// Create directory
 			err := os.MkdirAll(targetFilePath, info.Mode())
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating directory %s: %v\n", targetFilePath, err)
+				progress.logError(targetFilePath, fmt.Errorf("error creating directory: %v", err))
 			}
 			return nil
 		}
 
 		// Copy file with progress and timeout handling
-		progress.CurrentFile = path
+		progress.SetCurrentFile(path)
 		return copyFileWithCopyProgress(path, targetFilePath, info, progress)
 	})
+	
+	// Print error summary at the end
+	progress.printErrorSummary()
+	
+	return copyErr
 }
 
 // copyFile copies a single file
@@ -218,11 +310,13 @@ func copyFile(sourcePath, targetPath string) error {
 	}
 
 	progress := &CopyProgress{
-		TotalFiles: 1,
-		TotalSize:  sourceInfo.Size(),
 		StartTime:  time.Now(),
-		CurrentFile: sourcePath,
 	}
+	
+	// Initialize atomic fields
+	progress.AddTotalFiles(1)
+	progress.AddTotalSize(sourceInfo.Size())
+	progress.SetCurrentFile(sourcePath)
 
 	// Create target directory if it doesn't exist
 	targetDir := filepath.Dir(targetPath)
@@ -269,16 +363,9 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
 		// Update counters even on error for progress consistency
-		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
-		currentSize := atomic.LoadInt64(&progress.CopiedSize)
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
 		
-		fmt.Fprintf(os.Stderr, "Error: (%d/%d) %s (%.2f / %.2f MB) - %v\n", 
-			currentFile,
-			progress.TotalFiles,
-			sourcePath,
-			float64(currentSize)/(1024*1024),
-			float64(progress.TotalSize)/(1024*1024),
-			err)
+		progress.logError(sourcePath, fmt.Errorf("cannot open source file: %v", err))
 		return nil // Continue with other files
 	}
 	defer sourceFile.Close()
@@ -287,16 +374,9 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 	targetFile, err := os.Create(targetPath)
 	if err != nil {
 		// Update counters even on error for progress consistency
-		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
-		currentSize := atomic.LoadInt64(&progress.CopiedSize)
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
 		
-		fmt.Fprintf(os.Stderr, "Error: (%d/%d) %s (%.2f / %.2f MB) - cannot create target: %v\n", 
-			currentFile,
-			progress.TotalFiles,
-			sourcePath,
-			float64(currentSize)/(1024*1024),
-			float64(progress.TotalSize)/(1024*1024),
-			err)
+		progress.logError(targetPath, fmt.Errorf("cannot create target file: %v", err))
 		return nil // Continue with other files
 	}
 	defer targetFile.Close()
@@ -305,31 +385,9 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 	copiedBytes, err := copyWithTimeout(targetFile, sourceFile, FileOperationTimeout)
 	if err != nil {
 		// Update counters even on timeout/error
-		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
-		currentSize := atomic.LoadInt64(&progress.CopiedSize)
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
 		
-		// Calculate ETA
-		elapsed := time.Since(progress.StartTime)
-		eta := "unknown"
-		if currentSize > 0 {
-			remainingSize := progress.TotalSize - currentSize
-			if remainingSize > 0 {
-				speed := float64(currentSize) / elapsed.Seconds()
-				etaSeconds := int64(float64(remainingSize) / speed)
-				eta = formatETA(time.Duration(etaSeconds) * time.Second)
-			} else {
-				eta = "0s"
-			}
-		}
-		
-		fmt.Fprintf(os.Stderr, "Error: (%d/%d) %s (%.2f / %.2f MB) ETA: %s - copy timeout: %v\n", 
-			currentFile,
-			progress.TotalFiles,
-			sourcePath,
-			float64(currentSize)/(1024*1024),
-			float64(progress.TotalSize)/(1024*1024),
-			eta,
-			err)
+		progress.logError(sourcePath, fmt.Errorf("copy timeout/error: %v", err))
 		return nil // Continue with other files
 	}
 	
@@ -355,15 +413,17 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 
 // showProgress displays current copy progress
 func showProgress(progress *CopyProgress) {
-	processedFiles := atomic.LoadInt64(&progress.ProcessedFiles)
-	copiedSize := atomic.LoadInt64(&progress.CopiedSize)
+	processedFiles := progress.GetProcessedFiles()
+	copiedSize := progress.GetCopiedSize()
+	totalSize := progress.GetTotalSize()
+	totalFiles := progress.GetTotalFiles()
 	
 	elapsed := time.Since(progress.StartTime)
 	
 	// Calculate ETA
 	eta := "unknown"
 	if copiedSize > 0 {
-		remainingSize := progress.TotalSize - copiedSize
+		remainingSize := totalSize - copiedSize
 		if remainingSize > 0 {
 			speed := float64(copiedSize) / elapsed.Seconds() // bytes per second
 			etaSeconds := int64(float64(remainingSize) / speed)
@@ -374,7 +434,7 @@ func showProgress(progress *CopyProgress) {
 	}
 
 	// Get short filename for display
-	currentFile := progress.CurrentFile
+	currentFile := progress.GetCurrentFile()
 	if len(currentFile) > 50 {
 		parts := strings.Split(currentFile, string(os.PathSeparator))
 		if len(parts) > 2 {
@@ -383,12 +443,12 @@ func showProgress(progress *CopyProgress) {
 	}
 
 	copiedMB := float64(copiedSize) / (1024 * 1024)
-	totalMB := float64(progress.TotalSize) / (1024 * 1024)
+	totalMB := float64(totalSize) / (1024 * 1024)
 	
 	fmt.Printf("\rCopying: %s [%d/%d files, %.1f/%.1f MB, ETA: %s]",
 		currentFile,
 		processedFiles,
-		progress.TotalFiles,
+		totalFiles,
 		copiedMB,
 		totalMB,
 		eta)

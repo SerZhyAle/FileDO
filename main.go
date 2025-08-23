@@ -14,7 +14,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2508222220"
+const version = "2508230100"
 
 var start_time time.Time
 
@@ -302,17 +302,24 @@ File Organization:
 ═══════════════════════════════════════════════════════════════════════════════
 COPY & WIPE OPERATIONS
 
-File & Folder Copy:
+Smart Copy (Automatic Strategy Selection):
+  filedo.exe copy D:\Source E:\Target     → Smart copy with automatic strategy selection (15s analysis)
+  filedo.exe folder D:\Source copy E:\Target → Copy folder with auto-optimized strategy
+  filedo.exe network \\server\share copy C:\Local → Copy network share with optimal method
+  filedo.exe file document.txt copy backup.txt → Copy individual file with best approach
+
+Manual Copy Strategies:
   filedo.exe device C: copy D:\Backup     → Copy device contents to folder
-  filedo.exe folder D:\Source copy E:\Target → Copy folder to another location
-  filedo.exe network \\server\share copy C:\Local → Copy network share locally
-  filedo.exe file document.txt copy backup.txt → Copy individual file
-  filedo.exe copy D:\Source E:\Target     → Generic copy command
 
 High-Speed Copy (Optimized for large datasets):
   filedo.exe fastcopy D:\LargeFolder E:\Backup → Optimized parallel copy
   filedo.exe fcopy D:\SlowHDD F:\FastSSD    → Fast copy with adaptive buffers
   filedo.exe fc \\server\data C:\Local      → Multi-threaded network copy
+
+Synchronized Copy (Debug mode for I/O analysis):
+  filedo.exe synccopy D:\Source E:\Target   → Single-threaded sync copy (reduced caching)  
+  filedo.exe scopy D:\HDD1 D:\HDD2         → For analyzing real read/write speeds
+  filedo.exe sc \\server\data C:\Local     → Bypass cache effects in copy operations
 
 Fast Content Wiping:
   filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
@@ -370,6 +377,7 @@ Fast Backup & Cleanup:
   filedo.exe device D: copy \\server\archive → Copy entire device to network storage
   filedo.exe fastcopy D:\SlowHDD E:\FastSSD → Optimized parallel copy for large datasets
   filedo.exe fc \\NAS\Photos C:\LocalBackup → High-speed copy from slow network/extFAT drives
+  filedo.exe synccopy D:\HDD1 D:\HDD2       → Synchronized copy for diagnosing I/O speeds
   filedo.exe folder D:\TempFiles wipe      → Fast wipe temporary folder (delete & recreate)
   filedo.exe network \\server\temp w       → Quick wipe of network temp folder
 
@@ -409,6 +417,12 @@ IMPORTANT NOTES
 • History: All operations are logged. Use 'hist' flag with any command to
   enable detailed history logging: filedo.exe C: info hist
 
+• System Drive Protection: Write operations on C: are automatically redirected
+  to safe temporary locations (%TEMP%\FileDO_Operations) with user confirmation.
+  Environment variables:
+  - FILEDO_DISABLE_REDIRECT=1 → Disable redirection (advanced users only)
+  - FILEDO_AUTO_CONFIRM=1 → Auto-confirm redirections (for scripts/testing)
+
 Help & Support:
   filedo.exe ?                     → Show this help
   filedo.exe help                  → Show this help
@@ -423,9 +437,10 @@ var list_of_flags_for_hist = []string{"hist", "history"}
 var list_of_flags_for_duplicates = []string{"check-duplicates", "cd", "duplicate"}
 var list_of_flags_for_copy = []string{"copy", "cp"}
 var list_of_flags_for_fastcopy = []string{"fastcopy", "fcopy", "fc"}
+var list_of_flags_for_synccopy = []string{"synccopy", "scopy", "sc"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_wipe...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -527,37 +542,54 @@ func executeInternalCommand(args []string) error {
 	command := ""
 	var add_args []string
 
-	// Convert to lowercase for comparison
+	// Convert only commands to lowercase for comparison, preserve paths
 	lowerArgs := make([]string, len(args))
-	for i, arg := range args {
-		lowerArgs[i] = strings.ToLower(arg)
+	copy(lowerArgs, args)
+	
+	// Convert first argument (command) to lowercase for comparison
+	if len(lowerArgs) >= 1 {
+		arg := lowerArgs[0]
+		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && !strings.Contains(arg, ".") {
+			lowerArgs[0] = strings.ToLower(lowerArgs[0])
+		}
+	}
+	
+	// Convert potential operation arguments to lowercase (but preserve paths)
+	for i := 1; i < len(lowerArgs); i++ {
+		arg := lowerArgs[i]
+		// Only convert to lowercase if it doesn't look like a path
+		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && 
+		   !strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
+			lowerArgs[i] = strings.ToLower(lowerArgs[i])
+		}
 	}
 
-	firstArg := lowerArgs[0]
+	firstArg := args[0] // Use original arg to preserve case in paths
 
-	if contains(list_of_flags_for_all, firstArg) {
-		command = firstArg
-		add_args = lowerArgs[1:]
+	if contains(list_of_flags_for_all, lowerArgs[0]) {
+		command = lowerArgs[0]
+		add_args = args[1:] // Use original args to preserve paths
 	} else {
 		// Auto-detect based on path
-		if (len(firstArg) == 1) || (len(firstArg) > 1 && len(firstArg) < 4 && string([]rune(firstArg)[1]) == ":") {
+		firstArgLower := strings.ToLower(firstArg) // Only for comparison
+		if len(firstArgLower) > 0 && ((len(firstArgLower) == 1) || (len(firstArgLower) > 1 && len(firstArgLower) < 4 && string([]rune(firstArgLower)[1]) == ":")) {
 			if len(firstArg) == 1 {
-				lowerArgs[0] += ":"
+				args[0] += ":" // Modify original
 			}
 			command = "device"
-			add_args = lowerArgs
+			add_args = args // Use original args
 		} else if len(firstArg) > 2 && (firstArg[0:2] == "\\" || firstArg[0:2] == "//") {
 			command = "network"
-			add_args = lowerArgs
+			add_args = args // Use original args
 		} else {
 			// Check if the path exists
 			if info, err := os.Stat(args[0]); err == nil {
 				if info.IsDir() {
 					command = "folder"
-					add_args = lowerArgs
+					add_args = args // Use original args
 				} else {
 					command = "file"
-					add_args = lowerArgs
+					add_args = args // Use original args
 				}
 			} else {
 				// Path doesn't exist - determine if it looks like a folder or file path
@@ -596,7 +628,7 @@ func executeInternalCommand(args []string) error {
 		runGenericCommand(networkCmd, CommandNetwork, add_args, internalLogger)
 	case contains(list_of_flags_for_duplicates, command):
 		// Handle check-duplicates command
-		if len(lowerArgs) > 1 && lowerArgs[1] == "from" {
+		if len(args) > 1 && strings.ToLower(args[1]) == "from" {
 			internalLogger.SetCommand(command, "from", "check-duplicates")
 			err := handleCheckDuplicatesCommand(args)
 			if err != nil {
@@ -613,12 +645,12 @@ func executeInternalCommand(args []string) error {
 		handleHistoryCommand(args)
 		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_copy, command):
-		// Handle copy command
+		// Handle intelligent copy command with automatic strategy selection
 		if len(args) < 3 {
 			return fmt.Errorf("copy command requires source and target paths")
 		}
-		internalLogger.SetCommand(command, args[1], "copy")
-		err := handleCopyCommand(args)
+		internalLogger.SetCommand(command, args[1], "smart-copy")
+		err := handleSmartCopyCommand(args[1], args[2])
 		if err != nil {
 			internalLogger.SetError(err)
 			return err
@@ -631,6 +663,18 @@ func executeInternalCommand(args []string) error {
 		}
 		internalLogger.SetCommand(command, args[1], "fastcopy")
 		err := handleFastCopyCommand(args[1], args[2])
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_synccopy, command):
+		// Handle synchronized copy command  
+		if len(args) < 3 {
+			return fmt.Errorf("synccopy command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "synccopy")
+		err := handleSyncCopyCommand(args[1], args[2])
 		if err != nil {
 			internalLogger.SetError(err)
 			return err
@@ -660,9 +704,26 @@ func handleFastCopyCommand(sourcePath, targetPath string) error {
 	return FastCopy(sourcePath, targetPath)
 }
 
+// handleSyncCopyCommand handles the synccopy command with synchronized I/O
+func handleSyncCopyCommand(sourcePath, targetPath string) error {
+	return FastCopySync(sourcePath, targetPath)
+}
+
+// handleSmartCopyCommand analyzes source/target and selects optimal copy strategy  
+func handleSmartCopyCommand(sourcePath, targetPath string) error {
+	// Perform strategy analysis (max 15 seconds)
+	analysis, err := AnalyzeCopyStrategy(sourcePath, targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to analyze copy strategy: %v", err)
+	}
+	
+	// Execute selected strategy
+	return ExecuteSelectedStrategy(analysis, sourcePath, targetPath)
+}
+
 func isValidPath(path string) bool {
 	// Check if it's a drive letter
-	if (len(path) == 1) || (len(path) > 1 && len(path) < 4 && string([]rune(path)[1]) == ":") {
+	if len(path) > 0 && ((len(path) == 1) || (len(path) > 1 && len(path) < 4 && string([]rune(path)[1]) == ":")) {
 		return true
 	}
 	// Check if it's a network path
@@ -831,19 +892,43 @@ func main() {
 	historyLogger := NewHistoryLogger(os.Args)
 	defer historyLogger.Finish()
 
-	for i := range args {
-		args[i] = strings.ToLower(args[i])
+	// Convert only the first few arguments (commands/flags) to lowercase, preserve paths
+	lowerArgs := make([]string, len(args))
+	copy(lowerArgs, args)
+	
+	// Convert first argument (command) to lowercase for comparison
+	if len(lowerArgs) >= 2 {
+		lowerArgs[1] = strings.ToLower(lowerArgs[1])
+	}
+	
+	// Convert potential second command/flag to lowercase
+	if len(lowerArgs) >= 3 {
+		// Check if it looks like a command/flag, not a path
+		arg := lowerArgs[2]
+		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && !strings.Contains(arg, ".") {
+			lowerArgs[2] = strings.ToLower(lowerArgs[2])
+		}
+	}
+	
+	// Convert operation arguments to lowercase (but preserve paths)
+	for i := 3; i < len(lowerArgs); i++ {
+		arg := lowerArgs[i]
+		// Only convert to lowercase if it doesn't look like a path
+		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && 
+		   !strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
+			lowerArgs[i] = strings.ToLower(lowerArgs[i])
+		}
 	}
 
-	if len(args) < 2 || contains(list_fo_flags_for_help, args[1]) {
+	if len(args) < 2 || contains(list_fo_flags_for_help, lowerArgs[1]) {
 		fmt.Println(usage)
 		return
 	}
 
 	// Check for direct cd from command (without device/folder/network context)
-	if contains(list_of_flags_for_duplicates, args[1]) && len(args) > 2 && args[2] == "from" {
-		historyLogger.SetCommand(args[1], "from", "check-duplicates")
-		// Pass command to handler
+	if contains(list_of_flags_for_duplicates, lowerArgs[1]) && len(args) > 2 && lowerArgs[2] == "from" {
+		historyLogger.SetCommand(lowerArgs[1], "from", "check-duplicates")
+		// Pass original command to handler (preserve case in paths)
 		err := handleCheckDuplicatesCommand(args[1:])
 		if err != nil {
 			historyLogger.SetError(err)
@@ -857,21 +942,21 @@ func main() {
 	var command string
 	var add_args []string
 
-	if contains(list_of_flags_for_all, args[1]) {
-		command = args[1]
-		add_args = args[2:]
+	if contains(list_of_flags_for_all, lowerArgs[1]) {
+		command = lowerArgs[1]
+		add_args = args[2:] // Use original args to preserve case in paths
 		
 		// Special handling for short copy command 'c'
 		// If 'c' is used with 3+ arguments, treat it as copy
-		if args[1] == "c" && len(args) >= 4 {
+		if lowerArgs[1] == "c" && len(args) >= 4 {
 			command = "copy"
-			add_args = args[2:]
+			add_args = args[2:] // Use original args
 		}
 	} else {
-		firstArg := args[1]
+		firstArg := args[1] // Use original arg to preserve case in paths
 
 		// For drive C can be used as "C:" or "C:\"
-		if (len(firstArg) == 1) || (len(firstArg) > 1 && len(firstArg) < 4 && string([]rune(firstArg)[1]) == ":") {
+		if len(firstArg) > 0 && ((len(firstArg) == 1) || (len(firstArg) > 1 && len(firstArg) < 4 && string([]rune(firstArg)[1]) == ":")) {
 			if len(firstArg) == 1 {
 				args[1] += ":"
 			}
@@ -894,8 +979,8 @@ func main() {
 					}
 				} else {
 					// Path doesn't exist - try to determine what it might be
-					if strings.HasPrefix(args[1], "folder") || strings.HasPrefix(args[1], "dir") {
-						command = args[1]
+					if strings.HasPrefix(lowerArgs[1], "folder") || strings.HasPrefix(lowerArgs[1], "dir") {
+						command = lowerArgs[1]
 						add_args = args[2:]
 					} else if strings.HasSuffix(args[1], "/") || strings.HasSuffix(args[1], "\\") {
 						fmt.Printf("Info: The folder \"%s\" does not exist.\n", args[1])
@@ -905,7 +990,7 @@ func main() {
 						return
 					} else {
 						// Could be a command or non-existent path
-						command = os.Args[1]
+						command = lowerArgs[1] // Use lowercase for command comparison
 						add_args = args[2:]
 					}
 				}
@@ -959,8 +1044,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: Copy command requires source and target paths\n")
 			os.Exit(1)
 		}
-		historyLogger.SetCommand(command, add_args[0], "copy")
-		if err := handleCopyCommand(os.Args[1:]); err != nil {
+		historyLogger.SetCommand(command, add_args[0], "smart-copy")
+		if err := handleSmartCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -974,6 +1059,19 @@ func main() {
 		}
 		historyLogger.SetCommand(command, add_args[0], "fastcopy")
 		if err := handleFastCopyCommand(add_args[0], add_args[1]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_synccopy, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Sync copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "synccopy")
+		if err := handleSyncCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

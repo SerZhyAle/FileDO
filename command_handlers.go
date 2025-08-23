@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -56,20 +57,64 @@ func handleErrorWithUserMessage(err error, path string, historyLogger *HistoryLo
 	return true
 }
 
-// redirectSystemDrive redirects C: to C:\TEMP for write operations
+// redirectSystemDrive redirects C: to user's temp directory for write operations with user confirmation
 func redirectSystemDrive(path string) string {
 	if strings.ToLower(path) == "c:" {
-		tempDir := "C:\\TEMP"
-		// Create C:\TEMP if it doesn't exist
-		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-			if err := os.MkdirAll(tempDir, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: Could not create %s: %v\n", tempDir, err)
-				return path // Return original path if creation fails
-			}
-			fmt.Printf("Created directory: %s\n", tempDir)
+		// Check if redirection is disabled by environment variable
+		if os.Getenv("FILEDO_DISABLE_REDIRECT") == "1" {
+			fmt.Printf("⚠️  System drive redirection disabled by FILEDO_DISABLE_REDIRECT=1\n")
+			fmt.Printf("   WARNING: Writing directly to C: - use with caution!\n")
+			return path
 		}
-		fmt.Printf("Redirecting C: to %s for write operations\n", tempDir)
-		return tempDir
+		
+		// Get user's temp directory from environment
+		tempDir := os.Getenv("TEMP")
+		if tempDir == "" {
+			tempDir = os.Getenv("TMP") // Fallback to TMP
+		}
+		if tempDir == "" {
+			tempDir = "C:\\TEMP" // Final fallback
+		}
+		
+		// Create subdirectory for FileDO operations
+		fileDoTempDir := filepath.Join(tempDir, "FileDO_Operations")
+		
+		// Show warning and ask for confirmation
+		fmt.Printf("⚠️  WARNING: Write operation requested on system drive C:\n")
+		fmt.Printf("   For safety, redirecting to temporary directory:\n")
+		fmt.Printf("   %s\n\n", fileDoTempDir)
+		fmt.Printf("   This protects your system from potential issues during testing.\n")
+		fmt.Printf("   Test files will be created in this safe location instead.\n\n")
+		
+		var response string
+		// Check for auto-confirm environment variable for testing
+		if os.Getenv("FILEDO_AUTO_CONFIRM") == "1" {
+			fmt.Printf("Auto-confirming redirection (FILEDO_AUTO_CONFIRM=1)\n")
+			response = "y"
+		} else {
+			fmt.Printf("Continue with redirection? (Y/n): ")
+			fmt.Scanln(&response)
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+		
+		// Default to Yes if empty input or 'y'
+		if response == "" || response == "y" || response == "yes" {
+			// Create the directory if it doesn't exist
+			if _, err := os.Stat(fileDoTempDir); os.IsNotExist(err) {
+				if err := os.MkdirAll(fileDoTempDir, 0755); err != nil {
+					fmt.Fprintf(os.Stderr, "Error: Could not create %s: %v\n", fileDoTempDir, err)
+					fmt.Fprintf(os.Stderr, "Falling back to original path (use at your own risk).\n")
+					return path
+				}
+				fmt.Printf("✓ Created safe directory: %s\n", fileDoTempDir)
+			}
+			fmt.Printf("✓ Using safe location: %s\n", fileDoTempDir)
+			return fileDoTempDir
+		} else {
+			fmt.Printf("⚠️  User chose to proceed with system drive C: directly.\n")
+			fmt.Printf("   WARNING: This may affect system stability or performance.\n")
+			return path
+		}
 	}
 	return path
 }

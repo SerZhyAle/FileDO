@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -53,6 +54,9 @@ type FastCopyConfig struct {
 	MemoryMapThreshold int64   // Files larger than this use memory mapping (500MB)
 	SmallFileThreshold int64   // Files smaller than this are batched together (1MB)
 	SmallFileBatchSize int     // Number of small files to process in one batch (10)
+	DirectIO           bool    // Use direct I/O to bypass OS cache (reduce speed differences)
+	ForceFlush         bool    // Force immediate flush to disk after each file
+	SyncReadWrite      bool    // Synchronize read and write operations (reduce cache effects)
 }
 
 // NewFastCopyConfig creates optimized configuration for different scenarios
@@ -67,6 +71,27 @@ func NewFastCopyConfig() FastCopyConfig {
 		MemoryMapThreshold: 500 * 1024 * 1024, // 500MB - use mmap for files larger than this
 		SmallFileThreshold: 2 * 1024 * 1024,   // 2MB - files smaller than this are batched (increased for images)
 		SmallFileBatchSize: 25,                 // Process 25 small files per goroutine (increased for images)
+		DirectIO:           false,               // Disable by default (may reduce performance)
+		ForceFlush:         false,               // Disable by default (may reduce performance) 
+		SyncReadWrite:      false,               // Disable by default (may reduce performance)
+	}
+}
+
+// NewSyncCopyConfig creates configuration for synchronized copying to match read/write speeds
+func NewSyncCopyConfig() FastCopyConfig {
+	return FastCopyConfig{
+		MaxConcurrentFiles: 1,                   // Single-threaded for synchronized operation
+		MinBufferSize:      4 * 1024 * 1024,   // 4MB - smaller buffers for more frequent progress updates
+		MaxBufferSize:      16 * 1024 * 1024,  // 16MB - reduced buffer to avoid excessive caching
+		LargeFileThreshold: 50 * 1024 * 1024,  // 50MB - lower threshold for immediate processing
+		PreallocateSpace:   false,              // Disable preallocation to reduce cache effects
+		UseMemoryMapping:   false,              // Disable memory mapping to force direct I/O
+		MemoryMapThreshold: 0,                  // Never use memory mapping in sync mode
+		SmallFileThreshold: 1024 * 1024,       // 1MB - smaller batching
+		SmallFileBatchSize: 5,                  // Smaller batches for more regular progress
+		DirectIO:           true,               // Enable direct I/O to bypass cache
+		ForceFlush:         true,               // Force immediate flush to disk
+		SyncReadWrite:      true,               // Synchronize read/write operations
 	}
 }
 
@@ -76,6 +101,11 @@ type FastCopyProgress struct {
 	ProcessedFiles     int64
 	TotalSize          int64
 	CopiedSize         int64
+	ActualCopiedSize   int64 // Size of files actually copied (excluding skipped files)
+	SkippedFiles       int64 // Number of skipped files (already exist)
+	SkippedSize        int64 // Size of skipped files
+	ActualFiles        int64 // Files that need to be copied (TotalFiles - SkippedFiles)
+	ActualSize         int64 // Size that needs to be copied (TotalSize - SkippedSize)
 	StartTime          time.Time
 	ActiveFiles        int64
 	BytesPerSecond     float64
@@ -382,10 +412,9 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 		
 		copy(targetSlice, sourceSlice)
 		
-		// Update progress
-		atomic.AddInt64(&progress.CopiedSize, int64(mapSize))
-		
-		// Cleanup for this chunk
+	// Update progress
+	atomic.AddInt64(&progress.CopiedSize, int64(mapSize))
+	atomic.AddInt64(&progress.ActualCopiedSize, int64(mapSize))		// Cleanup for this chunk
 		procUnmapViewOfFile.Call(targetView)
 		procCloseHandle.Call(targetMappingHandle)
 		procUnmapViewOfFile.Call(sourceView)
@@ -427,8 +456,9 @@ func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, prog
 				return fmt.Errorf("failed to write to target: %v", writeErr)
 			}
 			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
+			atomic.AddInt64(&progress.ActualCopiedSize, int64(bytesRead))
 		}
-		
+	
 		if readErr != nil {
 			if readErr == io.EOF {
 				break
@@ -513,7 +543,12 @@ func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progr
 	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
 		fmt.Printf("Skipping existing file: %s\n", targetPath)
 		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		atomic.AddInt64(&progress.SkippedFiles, 1)
+		atomic.AddInt64(&progress.SkippedSize, fileSize)
 		atomic.AddInt64(&progress.CopiedSize, fileSize) // Add file size to copied total
+		// Update actual values
+		atomic.AddInt64(&progress.ActualFiles, -1)
+		atomic.AddInt64(&progress.ActualSize, -fileSize)
 		return nil
 	}
 	
@@ -595,7 +630,15 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 				return fmt.Errorf("failed to write to target: %v", writeErr)
 			}
 			
+			// Force immediate flush in sync mode
+			if config.ForceFlush {
+				if err := targetFile.Sync(); err != nil {
+					fmt.Printf("Warning: Failed to sync target file: %v\n", err)
+				}
+			}
+			
 			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
+			atomic.AddInt64(&progress.ActualCopiedSize, int64(bytesRead))
 		}
 		
 		if readErr != nil {
@@ -652,6 +695,10 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 	scanDuration := time.Since(scanStart)
 	fmt.Printf("Scan completed in %v: %d files, %.2f GB\n", 
 		scanDuration, progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
+	
+	// Initialize actual values (will be updated as files are skipped)
+	progress.ActualFiles = progress.TotalFiles
+	progress.ActualSize = progress.TotalSize
 	
 	// Phase 2: Immediate copying with streaming processing
 	fmt.Printf("Starting optimized copy with streaming pipeline...\n")
@@ -792,6 +839,13 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		duration, scanDuration, copyDuration)
 	fmt.Printf("Average speed: %.2f MB/s\n", avgSpeed)
 	fmt.Printf("Total files processed: %d\n", progress.TotalFiles)
+	if progress.SkippedFiles > 0 {
+		fmt.Printf("Files skipped (already exist): %d (%.2f GB)\n", 
+			progress.SkippedFiles, float64(progress.SkippedSize)/(1024*1024*1024))
+		fmt.Printf("Files actually copied: %d (%.2f GB)\n", 
+			progress.TotalFiles-progress.SkippedFiles, 
+			float64(progress.TotalSize-progress.SkippedSize)/(1024*1024*1024))
+	}
 	fmt.Printf("Buffer pool reuses: %d (%.1f%% memory savings)\n", 
 		atomic.LoadInt64(&progress.BufferPoolHits), 
 		float64(atomic.LoadInt64(&progress.BufferPoolHits))/float64(progress.TotalFiles)*100)
@@ -853,7 +907,12 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 		if _, err := statWithTimeout(job.TargetPath, FileOperationTimeout); err == nil {
 			fmt.Printf("Skipping existing file: %s\n", job.TargetPath)
 			atomic.AddInt64(&progress.ProcessedFiles, 1)
+			atomic.AddInt64(&progress.SkippedFiles, 1)
+			atomic.AddInt64(&progress.SkippedSize, job.Info.Size())
 			atomic.AddInt64(&progress.CopiedSize, job.Info.Size()) // Add file size to copied total
+			// Update actual values
+			atomic.AddInt64(&progress.ActualFiles, -1)
+			atomic.AddInt64(&progress.ActualSize, -job.Info.Size())
 			continue
 		}
 		
@@ -900,6 +959,7 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 			}
 			
 			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
+			atomic.AddInt64(&progress.ActualCopiedSize, int64(bytesRead))
 		}
 		
 		if readErr != nil {
@@ -926,7 +986,6 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 // showFastProgress displays enhanced progress information with current file
 func showFastProgress(progress *FastCopyProgress) {
 	processedFiles := atomic.LoadInt64(&progress.ProcessedFiles)
-	copiedSize := atomic.LoadInt64(&progress.CopiedSize)
 	totalFiles := atomic.LoadInt64(&progress.TotalFiles)
 	totalSize := atomic.LoadInt64(&progress.TotalSize)
 	activeFiles := atomic.LoadInt64(&progress.ActiveFiles)
@@ -936,34 +995,69 @@ func showFastProgress(progress *FastCopyProgress) {
 	
 	elapsed := time.Since(progress.StartTime)
 	
-	// Calculate current speed
+	// Calculate current speed based on actually copied data (excluding skipped)
 	now := time.Now()
 	if now.Sub(progress.LastSpeedUpdate) > time.Second {
-		currentSpeed := float64(copiedSize) / elapsed.Seconds() / (1024 * 1024) // MB/s
-		progress.BytesPerSecond = currentSpeed
+		actualCopiedSize := atomic.LoadInt64(&progress.ActualCopiedSize)
+		if actualCopiedSize > 0 {
+			// Use average speed over total elapsed time, but with minimum realistic time
+			minElapsed := 5.0 // Minimum 5 seconds to avoid unrealistic speeds
+			elapsedForSpeed := math.Max(elapsed.Seconds(), minElapsed)
+			currentSpeed := float64(actualCopiedSize) / elapsedForSpeed / (1024 * 1024) // MB/s
+			
+			// Cap maximum displayed speed to prevent unrealistic values
+			maxReasonableSpeed := 2000.0 // 2 GB/s is very fast but realistic for NVMe
+			if currentSpeed > maxReasonableSpeed {
+				currentSpeed = maxReasonableSpeed
+			}
+			
+			progress.BytesPerSecond = currentSpeed
+		}
 		progress.LastSpeedUpdate = now
 	}
 	
-	// Calculate ETA
+	// Calculate ETA based on actual files to copy (excluding skipped)
 	eta := "unknown"
-	if copiedSize > 0 && totalSize > 0 {
-		remainingSize := totalSize - copiedSize
+	actualSizeToCopy := progress.ActualSize
+	if actualSizeToCopy == 0 { // Fallback if ActualSize not set yet
+		actualSizeToCopy = totalSize - progress.SkippedSize
+	}
+	
+	actualCopiedSize := atomic.LoadInt64(&progress.ActualCopiedSize)
+	if actualCopiedSize > 0 && actualSizeToCopy > 0 {
+		remainingSize := actualSizeToCopy - actualCopiedSize
 		if remainingSize > 0 && progress.BytesPerSecond > 0 {
-			etaSeconds := float64(remainingSize) / (progress.BytesPerSecond * 1024 * 1024)
+			// Use conservative speed estimate (80% of current speed) for ETA
+			conservativeSpeed := progress.BytesPerSecond * 0.8
+			etaSeconds := float64(remainingSize) / (conservativeSpeed * 1024 * 1024)
+			
+			// Add minimum ETA to prevent unrealistic short times
+			minEtaSeconds := 10.0 // At least 10 seconds for any substantial copy
+			if remainingSize > 1024*1024*1024 { // If more than 1GB remaining
+				minEtaSeconds = 30.0 // At least 30 seconds
+			}
+			
+			etaSeconds = math.Max(etaSeconds, minEtaSeconds)
 			eta = formatETA(time.Duration(etaSeconds * float64(time.Second)))
 		}
 	}
 	
-	// Calculate percentages
+	// Calculate percentages based on actual files to copy
 	filePercent := float64(0)
 	sizePercent := float64(0)
 	
-	if totalFiles > 0 {
-		filePercent = float64(processedFiles) / float64(totalFiles) * 100
+	actualFilesToCopy := progress.ActualFiles
+	if actualFilesToCopy == 0 { // Fallback if ActualFiles not set yet
+		actualFilesToCopy = totalFiles - progress.SkippedFiles
 	}
 	
-	if totalSize > 0 {
-		sizePercent = float64(copiedSize) / float64(totalSize) * 100
+	if actualFilesToCopy > 0 {
+		filePercent = float64(processedFiles - progress.SkippedFiles) / float64(actualFilesToCopy) * 100
+	}
+	
+	if actualSizeToCopy > 0 {
+		actualCopiedSize := atomic.LoadInt64(&progress.ActualCopiedSize)
+		sizePercent = float64(actualCopiedSize) / float64(actualSizeToCopy) * 100
 	}
 	
 	// Show progress with rotating active file display
@@ -973,10 +1067,12 @@ func showFastProgress(progress *FastCopyProgress) {
 	if displayFileSize > 0 {
 		fileSizeStr = fmt.Sprintf(" [%s]", formatFileSize(displayFileSize))
 	}
+	// Display actual copied vs actual total (excluding skipped files)
+	actualCopiedSizeDisplay := atomic.LoadInt64(&progress.ActualCopiedSize)
 	fmt.Printf("\r%s\r%d/%d %s%s (%.1f%%) | %.2f/%.2f GB (%.1f%%) | %.2f MB/s | %d | ETA: %s",
 		strings.Repeat(" ", 160), // Clear previous line (increased for size info)
-		processedFiles, totalFiles, truncatedFile, fileSizeStr, filePercent,
-		float64(copiedSize)/(1024*1024*1024), float64(totalSize)/(1024*1024*1024), sizePercent,
+		processedFiles-progress.SkippedFiles, actualFilesToCopy, truncatedFile, fileSizeStr, filePercent,
+		float64(actualCopiedSizeDisplay)/(1024*1024*1024), float64(actualSizeToCopy)/(1024*1024*1024), sizePercent,
 		progress.BytesPerSecond, activeFiles, eta)
 }
 
@@ -1004,6 +1100,41 @@ func FastCopy(sourcePath, targetPath string) error {
 		// Single file copy
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
+		progress.ActualFiles = 1
+		progress.ActualSize = sourceInfo.Size()
+		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+	}
+}
+
+// FastCopySync performs synchronized copying to match read/write speeds and reduce cache effects
+func FastCopySync(sourcePath, targetPath string) error {
+	// Create interrupt handler for graceful shutdown
+	handler := NewInterruptHandler()
+	
+	config := NewSyncCopyConfig() // Use synchronized configuration
+	progress := &FastCopyProgress{
+		StartTime:       time.Now(),
+		LastSpeedUpdate: time.Now(),
+	}
+	
+	fmt.Printf("🔄 Starting synchronized copy mode (single-threaded, reduced caching)...\n")
+	fmt.Printf("This mode is designed to match read and write speeds for diagnostic purposes.\n")
+	
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path error: %v", err)
+	}
+	
+	if sourceInfo.IsDir() {
+		// Directory copy with synchronization
+		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+	} else {
+		// Single file copy with synchronization
+		progress.TotalFiles = 1
+		progress.TotalSize = sourceInfo.Size()
+		progress.ActualFiles = 1
+		progress.ActualSize = sourceInfo.Size()
 		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
 	}
 }
