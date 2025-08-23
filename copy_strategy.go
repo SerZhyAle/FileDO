@@ -12,9 +12,11 @@ import (
 type CopyStrategy int
 
 const (
-	StrategyRegular CopyStrategy = iota // Regular copy for simple cases
-	StrategyFast                        // FastCopy for optimal performance
-	StrategySync                        // SyncCopy for cache-heavy scenarios
+	StrategyRegular  CopyStrategy = iota // Regular copy for simple cases
+	StrategyFast                         // FastCopy for optimal performance
+	StrategySync                         // SyncCopy for cache-heavy scenarios
+	StrategyBalanced                     // Balanced copy for HDD-to-HDD operations
+	StrategyMax                          // Maximum performance copy
 )
 
 // CopyAnalysis contains analysis results for copy strategy selection
@@ -99,7 +101,9 @@ func analyzeLocation(path string) (os.FileInfo, string) {
 			return nil, "Network Share"
 		}
 		if len(path) >= 2 && path[1] == ':' {
-			return nil, fmt.Sprintf("Drive %s (Unknown)", strings.ToUpper(string(path[0])))
+			driveLetter := strings.ToUpper(string(path[0]))
+			driveType := analyzeDriveType(driveLetter)
+			return nil, driveType
 		}
 		return nil, "Unknown Location"
 	}
@@ -109,7 +113,15 @@ func analyzeLocation(path string) (os.FileInfo, string) {
 		return info, "Network Share"
 	}
 	
-	// Drive analysis for Windows
+	// Determine drive from absolute path
+	absPath, _ := filepath.Abs(path)
+	if len(absPath) >= 2 && absPath[1] == ':' {
+		driveLetter := strings.ToUpper(string(absPath[0]))
+		driveType := analyzeDriveType(driveLetter)
+		return info, driveType
+	}
+	
+	// Explicit drive path (like D:\file.txt)
 	if len(path) >= 2 && path[1] == ':' {
 		driveLetter := strings.ToUpper(string(path[0]))
 		driveType := analyzeDriveType(driveLetter)
@@ -121,16 +133,30 @@ func analyzeLocation(path string) (os.FileInfo, string) {
 
 // analyzeDriveType attempts to determine drive type (SSD/HDD/USB/etc.)
 func analyzeDriveType(driveLetter string) string {
-	// Basic drive type detection based on common patterns
-	// This is a simplified version - in reality you'd use WMI or other Windows APIs
+	// Enhanced drive type detection with better heuristics
 	
-	switch driveLetter {
-	case "C":
+	// System drive (C:) is usually SSD in modern systems
+	if driveLetter == "C" {
 		return "System Drive (likely SSD)"
-	case "D", "E", "F":
-		return "Data Drive (HDD/SSD)"
+	}
+	
+	// Common data drive patterns
+	switch driveLetter {
+	case "D":
+		// D: is commonly a data HDD in dual-drive systems
+		return "Data Drive D: (likely HDD)"
+	case "E":
+		// E: could be HDD or external drive
+		return "Data Drive E: (HDD/External)"
+	case "F", "G", "H":
+		// Later letters often indicate external/USB drives
+		return fmt.Sprintf("External Drive %s: (USB/HDD)", driveLetter)
 	default:
-		return fmt.Sprintf("Drive %s (Unknown Type)", driveLetter)
+		// For other drives, assume HDD unless proven otherwise
+		if driveLetter >= "I" {
+			return fmt.Sprintf("External Drive %s: (likely USB)", driveLetter)
+		}
+		return fmt.Sprintf("Data Drive %s: (HDD)", driveLetter)
 	}
 }
 
@@ -210,6 +236,20 @@ func selectOptimalStrategy(sourceType, targetType string, estimatedSize, estimat
 		return StrategyFast, "fastcopy", "Network transfer detected - using optimized parallel copy"
 	}
 	
+	// Very large dataset scenarios - use maximum performance
+	if estimatedSize > 50*1024*1024*1024 || estimatedFiles > 50000 { // >50GB or >50k files
+		return StrategyMax, "maxcopy", fmt.Sprintf("Very large dataset detected (%.2f GB, %d files) - using maximum performance mode", 
+			float64(estimatedSize)/(1024*1024*1024), estimatedFiles)
+	}
+	
+	// HDD-to-HDD scenarios - use balanced mode for optimal I/O
+	if strings.Contains(sourceType, "HDD") && strings.Contains(targetType, "HDD") {
+		if estimatedSize > 1024*1024*1024 { // >1GB
+			return StrategyBalanced, "balanced", fmt.Sprintf("HDD-to-HDD transfer detected (%.2f GB) - using balanced mode for optimal I/O", 
+				float64(estimatedSize)/(1024*1024*1024))
+		}
+	}
+	
 	// Large dataset scenarios
 	if estimatedSize > 10*1024*1024*1024 || estimatedFiles > 10000 { // >10GB or >10k files
 		return StrategyFast, "fastcopy", fmt.Sprintf("Large dataset detected (%.2f GB, %d files) - using parallel copy", 
@@ -220,6 +260,12 @@ func selectOptimalStrategy(sourceType, targetType string, estimatedSize, estimat
 	if sourceType == targetType && strings.Contains(sourceType, "Drive") && 
 		estimatedSize > 1024*1024*1024 && estimatedSize < 10*1024*1024*1024 { // 1-10GB
 		return StrategySync, "synccopy", "Same drive type detected with moderate size - using sync copy to avoid cache effects"
+	}
+	
+	// SSD scenarios with large data - use maximum performance
+	if (strings.Contains(sourceType, "SSD") || strings.Contains(targetType, "SSD")) &&
+		estimatedSize > 5*1024*1024*1024 { // >5GB on SSD
+		return StrategyMax, "maxcopy", "SSD with large dataset detected - using maximum performance mode"
 	}
 	
 	// SSD scenarios
@@ -247,6 +293,10 @@ func ExecuteSelectedStrategy(analysis *CopyAnalysis, sourcePath, targetPath stri
 		return handleFastCopyCommand(sourcePath, targetPath)
 	case StrategySync:
 		return handleSyncCopyCommand(sourcePath, targetPath)
+	case StrategyBalanced:
+		return handleBalancedCopyCommand(sourcePath, targetPath)
+	case StrategyMax:
+		return handleMaxCopyCommand(sourcePath, targetPath)
 	default:
 		return fmt.Errorf("unknown copy strategy: %v", analysis.Strategy)
 	}

@@ -35,6 +35,12 @@ var (
 			return &buf
 		},
 	}
+	superLargeBufferPool = sync.Pool{
+		New: func() interface{} {
+			buf := make([]byte, 128*1024*1024) // 128MB for maximum performance
+			return &buf
+		},
+	}
 	tinyBufferPool = sync.Pool{
 		New: func() interface{} {
 			buf := make([]byte, 256*1024) // 256KB for small files
@@ -62,18 +68,18 @@ type FastCopyConfig struct {
 // NewFastCopyConfig creates optimized configuration for different scenarios
 func NewFastCopyConfig() FastCopyConfig {
 	return FastCopyConfig{
-		MaxConcurrentFiles: runtime.NumCPU(),
-		MinBufferSize:      1024 * 1024,      // 1MB
-		MaxBufferSize:      64 * 1024 * 1024, // 64MB
-		LargeFileThreshold: 100 * 1024 * 1024, // 100MB
+		MaxConcurrentFiles: 8,                      // Limited to 8 threads for better balance with HDD
+		MinBufferSize:      1024 * 1024,            // 1MB
+		MaxBufferSize:      64 * 1024 * 1024,       // 64MB
+		LargeFileThreshold: 100 * 1024 * 1024,      // 100MB
 		PreallocateSpace:   true,
-		UseMemoryMapping:   true,                // Enable memory mapping for very large files
-		MemoryMapThreshold: 500 * 1024 * 1024, // 500MB - use mmap for files larger than this
-		SmallFileThreshold: 2 * 1024 * 1024,   // 2MB - files smaller than this are batched (increased for images)
-		SmallFileBatchSize: 25,                 // Process 25 small files per goroutine (increased for images)
-		DirectIO:           false,               // Disable by default (may reduce performance)
-		ForceFlush:         false,               // Disable by default (may reduce performance) 
-		SyncReadWrite:      false,               // Disable by default (may reduce performance)
+		UseMemoryMapping:   true,                   // Enable memory mapping for very large files
+		MemoryMapThreshold: 500 * 1024 * 1024,     // 500MB - use mmap for files larger than this
+		SmallFileThreshold: 2 * 1024 * 1024,       // 2MB - files smaller than this are batched (increased for images)
+		SmallFileBatchSize: 25,                     // Process 25 small files per goroutine (increased for images)
+		DirectIO:           false,                  // Disable by default (may reduce performance)
+		ForceFlush:         false,                  // Disable by default (may reduce performance) 
+		SyncReadWrite:      false,                  // Disable by default (may reduce performance)
 	}
 }
 
@@ -92,6 +98,42 @@ func NewSyncCopyConfig() FastCopyConfig {
 		DirectIO:           true,               // Enable direct I/O to bypass cache
 		ForceFlush:         true,               // Force immediate flush to disk
 		SyncReadWrite:      true,               // Synchronize read/write operations
+	}
+}
+
+// NewBalancedCopyConfig creates configuration optimized for HDD-to-HDD copying
+func NewBalancedCopyConfig() FastCopyConfig {
+	return FastCopyConfig{
+		MaxConcurrentFiles: 4,                      // Very limited threads for HDD operations
+		MinBufferSize:      16 * 1024 * 1024,       // 16MB - larger buffers for HDD efficiency
+		MaxBufferSize:      64 * 1024 * 1024,       // 64MB - optimal for HDD sequential access
+		LargeFileThreshold: 50 * 1024 * 1024,       // 50MB - lower threshold
+		PreallocateSpace:   true,                   // Preallocation helps with HDD fragmentation
+		UseMemoryMapping:   false,                  // Disable mmap for better control over I/O
+		MemoryMapThreshold: 0,                      // Never use memory mapping
+		SmallFileThreshold: 4 * 1024 * 1024,       // 4MB - larger threshold for less threading
+		SmallFileBatchSize: 10,                     // Smaller batches for HDD
+		DirectIO:           false,                  // Keep caching enabled for HDD
+		ForceFlush:         false,                  // Let OS manage flushing
+		SyncReadWrite:      false,                  // Async for better performance
+	}
+}
+
+// NewMaxPerformanceConfig creates configuration for maximum CPU utilization
+func NewMaxPerformanceConfig() FastCopyConfig {
+	return FastCopyConfig{
+		MaxConcurrentFiles: 16,                      // Limited to 16 threads for optimal balance
+		MinBufferSize:      8 * 1024 * 1024,        // 8MB - larger buffers for efficiency
+		MaxBufferSize:      128 * 1024 * 1024,      // 128MB - maximum buffer size with super large pool
+		LargeFileThreshold: 50 * 1024 * 1024,       // 50MB - lower threshold for more parallel files
+		PreallocateSpace:   true,                    // Enable preallocation for performance
+		UseMemoryMapping:   true,                    // Enable memory mapping for large files
+		MemoryMapThreshold: 100 * 1024 * 1024,      // 100MB - lower threshold for more mmap usage
+		SmallFileThreshold: 512 * 1024,             // 512KB - smaller batching for more parallelism
+		SmallFileBatchSize: 50,                     // Larger batches for efficiency
+		DirectIO:           false,                   // Disable DirectIO for maximum speed
+		ForceFlush:         false,                   // Disable ForceFlush for maximum speed
+		SyncReadWrite:      false,                   // Disable sync for maximum speed
 	}
 }
 
@@ -281,6 +323,12 @@ func calculateBufferSize(fileSize int64, config FastCopyConfig) int {
 func getBufferFromPool(requiredSize int, progress *FastCopyProgress) ([]byte, *sync.Pool) {
 	atomic.AddInt64(&progress.BufferPoolHits, 1)
 	
+	// Ensure requiredSize doesn't exceed maximum buffer capacity
+	const maxBufferCapacity = 128 * 1024 * 1024 // 128MB - our largest pool
+	if requiredSize > maxBufferCapacity {
+		requiredSize = maxBufferCapacity
+	}
+	
 	if requiredSize <= 256*1024 { // 256KB
 		buf := tinyBufferPool.Get().(*[]byte)
 		return (*buf)[:requiredSize], &tinyBufferPool
@@ -290,9 +338,16 @@ func getBufferFromPool(requiredSize int, progress *FastCopyProgress) ([]byte, *s
 	} else if requiredSize <= 16*1024*1024 { // 16MB
 		buf := mediumBufferPool.Get().(*[]byte)
 		return (*buf)[:requiredSize], &mediumBufferPool
-	} else { // Large files
+	} else if requiredSize <= 64*1024*1024 { // 64MB
 		buf := largeBufferPool.Get().(*[]byte)
 		return (*buf)[:requiredSize], &largeBufferPool
+	} else { // Super large files - 128MB
+		buf := superLargeBufferPool.Get().(*[]byte)
+		actualSize := requiredSize
+		if actualSize > 128*1024*1024 {
+			actualSize = 128*1024*1024
+		}
+		return (*buf)[:actualSize], &superLargeBufferPool
 	}
 }
 
@@ -306,10 +361,10 @@ var (
 )
 
 // copyFileWithMemoryMapping copies a file using Windows memory mapping
-func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress) error {
+func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, handler *InterruptHandler) error {
 	if runtime.GOOS != "windows" {
 		// Fallback to regular copying on non-Windows systems
-		return copyFileRegular(sourcePath, targetPath, sourceInfo, progress)
+		return copyFileRegular(sourcePath, targetPath, sourceInfo, progress, handler)
 	}
 	
 	// Open source file
@@ -425,7 +480,7 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 }
 
 // copyFileRegular copies a file using regular I/O (fallback)
-func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress) error {
+func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, handler *InterruptHandler) error {
 	// This is the existing copyFileSingle logic without memory mapping
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
@@ -449,6 +504,16 @@ func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, prog
 	defer pool.Put(&buffer)
 	
 	for {
+		// Check for forced exit (double Ctrl+C)
+		if handler != nil && handler.IsForceExit() {
+			return fmt.Errorf("operation terminated by user (force exit)")
+		}
+		
+		// Check for graceful interruption
+		if handler != nil && handler.IsInterrupted() {
+			return fmt.Errorf("operation interrupted by user")
+		}
+		
 		bytesRead, readErr := sourceFile.Read(buffer)
 		if bytesRead > 0 {
 			_, writeErr := targetFile.Write(buffer[:bytesRead])
@@ -557,7 +622,7 @@ func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progr
 		atomic.AddInt64(&progress.MemoryMappedFiles, 1)
 		atomic.AddInt64(&progress.MemoryMappedBytes, fileSize)
 		
-		err := copyFileWithMemoryMapping(sourcePath, targetPath, sourceInfo, progress)
+		err := copyFileWithMemoryMapping(sourcePath, targetPath, sourceInfo, progress, handler)
 		if err != nil {
 			// Rollback statistics if memory mapping failed
 			atomic.AddInt64(&progress.MemoryMappedFiles, -1)
@@ -565,7 +630,7 @@ func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progr
 			
 			// Fallback to regular copying if memory mapping fails
 			fmt.Printf("Memory mapping failed for %s, falling back to regular copy: %v\n", sourcePath, err)
-			err = copyFileRegular(sourcePath, targetPath, sourceInfo, progress)
+			err = copyFileRegular(sourcePath, targetPath, sourceInfo, progress, handler)
 		}
 		
 		if err == nil {
@@ -585,11 +650,11 @@ func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progr
 	}
 	
 	// Regular buffered copying for smaller files
-	return copyFileWithBuffers(sourcePath, targetPath, sourceInfo, progress, config)
+	return copyFileWithBuffers(sourcePath, targetPath, sourceInfo, progress, config, handler)
 }
 
 // copyFileWithBuffers uses the existing buffer pool method for smaller files
-func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig) error {
+func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, config FastCopyConfig, handler *InterruptHandler) error {
 	// Open source file
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
@@ -623,6 +688,16 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	
 	// Copy file with progress tracking
 	for {
+		// Check for forced exit (double Ctrl+C)
+		if handler != nil && handler.IsForceExit() {
+			return fmt.Errorf("operation terminated by user (force exit)")
+		}
+		
+		// Check for graceful interruption
+		if handler != nil && handler.IsInterrupted() {
+			return fmt.Errorf("operation interrupted by user")
+		}
+		
 		bytesRead, readErr := sourceFile.Read(buffer)
 		if bytesRead > 0 {
 			_, writeErr := targetFile.Write(buffer[:bytesRead])
@@ -676,6 +751,16 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
+		}
+		
+		// Check for forced exit during scan
+		if handler != nil && handler.IsForceExit() {
+			return fmt.Errorf("scan terminated by user (force exit)")
+		}
+		
+		// Check for graceful interruption during scan
+		if handler != nil && handler.IsInterrupted() {
+			return fmt.Errorf("scan interrupted by user")
 		}
 		
 		if info.IsDir() {
@@ -770,9 +855,14 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		defer close(copyComplete)
 		
 		scanErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-			// Check for interruption during scanning
-			if handler.IsCancelled() {
-				return fmt.Errorf("operation cancelled by user")
+			// Check for forced exit during scanning
+			if handler != nil && handler.IsForceExit() {
+				return fmt.Errorf("copy terminated by user (force exit)")
+			}
+			
+			// Check for graceful interruption during scanning
+			if handler != nil && handler.IsInterrupted() {
+				return fmt.Errorf("copy interrupted by user")
 			}
 			
 			if err != nil {
@@ -917,7 +1007,7 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 		}
 		
 		// Copy single small file
-		if err := copySmallFileDirect(job.SourcePath, job.TargetPath, job.Info, progress, buffer); err != nil {
+		if err := copySmallFileDirect(job.SourcePath, job.TargetPath, job.Info, progress, buffer, handler); err != nil {
 			// Check if it's a device hardware error
 			if strings.Contains(err.Error(), "device hardware error") {
 				fmt.Printf("Hardware error on %s - skipping\n", job.SourcePath)
@@ -934,7 +1024,7 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 }
 
 // copySmallFileDirect copies a small file directly without goroutine overhead
-func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, buffer []byte) error {
+func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *FastCopyProgress, buffer []byte, handler *InterruptHandler) error {
 	// Open source file
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
@@ -951,6 +1041,16 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	
 	// Copy file content using provided buffer
 	for {
+		// Check for forced exit (double Ctrl+C)
+		if handler != nil && handler.IsForceExit() {
+			return fmt.Errorf("operation terminated by user (force exit)")
+		}
+		
+		// Check for graceful interruption
+		if handler != nil && handler.IsInterrupted() {
+			return fmt.Errorf("operation interrupted by user")
+		}
+		
 		bytesRead, readErr := sourceFile.Read(buffer)
 		if bytesRead > 0 {
 			_, writeErr := targetFile.Write(buffer[:bytesRead])
@@ -1078,8 +1178,11 @@ func showFastProgress(progress *FastCopyProgress) {
 
 // FastCopy performs optimized copying with single-pass directory scanning
 func FastCopy(sourcePath, targetPath string) error {
-	// Create interrupt handler for graceful shutdown
-	handler := NewInterruptHandler()
+	// Use global interrupt handler
+	handler := globalInterruptHandler
+	if handler == nil {
+		handler = NewInterruptHandler()
+	}
 	
 	config := NewFastCopyConfig()
 	progress := &FastCopyProgress{
@@ -1108,8 +1211,11 @@ func FastCopy(sourcePath, targetPath string) error {
 
 // FastCopySync performs synchronized copying to match read/write speeds and reduce cache effects
 func FastCopySync(sourcePath, targetPath string) error {
-	// Create interrupt handler for graceful shutdown
-	handler := NewInterruptHandler()
+	// Use global interrupt handler
+	handler := globalInterruptHandler
+	if handler == nil {
+		handler = NewInterruptHandler()
+	}
 	
 	config := NewSyncCopyConfig() // Use synchronized configuration
 	progress := &FastCopyProgress{
@@ -1131,6 +1237,79 @@ func FastCopySync(sourcePath, targetPath string) error {
 		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
 	} else {
 		// Single file copy with synchronization
+		progress.TotalFiles = 1
+		progress.TotalSize = sourceInfo.Size()
+		progress.ActualFiles = 1
+		progress.ActualSize = sourceInfo.Size()
+		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+	}
+}
+
+// FastCopyMax performs maximum performance copying with aggressive CPU utilization
+func FastCopyMax(sourcePath, targetPath string) error {
+	// Use global interrupt handler
+	handler := globalInterruptHandler
+	if handler == nil {
+		handler = NewInterruptHandler()
+	}
+	
+	config := NewMaxPerformanceConfig() // Use maximum performance configuration
+	progress := &FastCopyProgress{
+		StartTime:       time.Now(),
+		LastSpeedUpdate: time.Now(),
+	}
+	
+	fmt.Printf("🚀 Starting MAXIMUM PERFORMANCE copy mode (%dx CPU threads, 128MB buffers)...\n", config.MaxConcurrentFiles)
+	fmt.Printf("This mode uses aggressive parallelism and maximum system resources.\n")
+	
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path error: %v", err)
+	}
+	
+	if sourceInfo.IsDir() {
+		// Directory copy with maximum performance
+		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+	} else {
+		// Single file copy with maximum performance
+		progress.TotalFiles = 1
+		progress.TotalSize = sourceInfo.Size()
+		progress.ActualFiles = 1
+		progress.ActualSize = sourceInfo.Size()
+		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+	}
+}
+
+// FastCopyBalanced performs balanced copying optimized for HDD-to-HDD operations
+func FastCopyBalanced(sourcePath, targetPath string) error {
+	// Use global interrupt handler
+	handler := globalInterruptHandler
+	if handler == nil {
+		handler = NewInterruptHandler()
+	}
+	
+	config := NewBalancedCopyConfig() // Use balanced configuration for HDD
+	progress := &FastCopyProgress{
+		StartTime:       time.Now(),
+		LastSpeedUpdate: time.Now(),
+	}
+	
+	fmt.Printf("⚖️ Starting BALANCED copy mode (%d threads, %dMB buffers)...\n", 
+		config.MaxConcurrentFiles, config.MaxBufferSize/(1024*1024))
+	fmt.Printf("This mode is optimized for HDD-to-HDD operations with better I/O balance.\n")
+	
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path error: %v", err)
+	}
+	
+	if sourceInfo.IsDir() {
+		// Directory copy with balanced performance
+		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+	} else {
+		// Single file copy with balanced performance
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
 		progress.ActualFiles = 1

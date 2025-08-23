@@ -17,6 +17,7 @@ import (
 const version = "2508230100"
 
 var start_time time.Time
+var globalInterruptHandler *InterruptHandler
 
 type HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
@@ -321,6 +322,16 @@ Synchronized Copy (Debug mode for I/O analysis):
   filedo.exe scopy D:\HDD1 D:\HDD2         → For analyzing real read/write speeds
   filedo.exe sc \\server\data C:\Local     → Bypass cache effects in copy operations
 
+Balanced Copy (Optimized for HDD-to-HDD):
+  filedo.exe balanced D:\Source E:\Target   → 4 threads, 64MB buffers, optimized for HDD
+  filedo.exe bcopy D:\HDD1 D:\HDD2         → Balanced performance for mechanical drives
+  filedo.exe bc \\server\data C:\Local     → Optimal for network-to-HDD operations
+
+Maximum Performance Copy (Aggressive CPU utilization):
+  filedo.exe maxcopy D:\Source E:\Target    → 16 threads, 128MB buffers, maximum speed
+  filedo.exe mcopy D:\LargeData E:\Fast     → Turbo mode for maximum system utilization
+  filedo.exe turbo \\server\data C:\Local  → Maximum parallelism for fastest possible copy
+
 Fast Content Wiping:
   filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
   filedo.exe device D: wipe               → Wipe device contents (standard method for system folders)
@@ -438,9 +449,11 @@ var list_of_flags_for_duplicates = []string{"check-duplicates", "cd", "duplicate
 var list_of_flags_for_copy = []string{"copy", "cp"}
 var list_of_flags_for_fastcopy = []string{"fastcopy", "fcopy", "fc"}
 var list_of_flags_for_synccopy = []string{"synccopy", "scopy", "sc"}
+var list_of_flags_for_balanced = []string{"balanced", "bcopy", "bc"}
+var list_of_flags_for_maxcopy = []string{"maxcopy", "mcopy", "max", "turbo"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_wipe...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -680,6 +693,30 @@ func executeInternalCommand(args []string) error {
 			return err
 		}
 		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_balanced, command):
+		// Handle balanced copy command optimized for HDD-to-HDD
+		if len(args) < 3 {
+			return fmt.Errorf("balanced command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "balanced")
+		err := handleBalancedCopyCommand(args[1], args[2])
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_maxcopy, command):
+		// Handle maximum performance copy command  
+		if len(args) < 3 {
+			return fmt.Errorf("maxcopy command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "maxcopy")
+		err := handleMaxCopyCommand(args[1], args[2])
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_from, command):
 		// Handle from file command (nested call)
 		if len(args) < 2 {
@@ -707,6 +744,16 @@ func handleFastCopyCommand(sourcePath, targetPath string) error {
 // handleSyncCopyCommand handles the synccopy command with synchronized I/O
 func handleSyncCopyCommand(sourcePath, targetPath string) error {
 	return FastCopySync(sourcePath, targetPath)
+}
+
+// handleBalancedCopyCommand handles the balanced copy command optimized for HDD-to-HDD
+func handleBalancedCopyCommand(sourcePath, targetPath string) error {
+	return FastCopyBalanced(sourcePath, targetPath)
+}
+
+// handleMaxCopyCommand handles the maxcopy command with maximum CPU utilization
+func handleMaxCopyCommand(sourcePath, targetPath string) error {
+	return FastCopyMax(sourcePath, targetPath)
 }
 
 // handleSmartCopyCommand analyzes source/target and selects optimal copy strategy  
@@ -873,6 +920,9 @@ func ShowLastHistory(count int) {
 
 func main() {
 	start_time = time.Now()
+
+	// Initialize global interrupt handler first
+	globalInterruptHandler = NewInterruptHandler()
 
 	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " sza@ukr.net " + version + "\n"
 	fmt.Print(hi_message)
@@ -1072,6 +1122,32 @@ func main() {
 		}
 		historyLogger.SetCommand(command, add_args[0], "synccopy")
 		if err := handleSyncCopyCommand(add_args[0], add_args[1]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_balanced, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Balanced copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "balanced")
+		if err := handleBalancedCopyCommand(add_args[0], add_args[1]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_maxcopy, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Max copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "maxcopy")
+		if err := handleMaxCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
