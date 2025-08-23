@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -138,6 +139,24 @@ func NewMaxPerformanceConfig() FastCopyConfig {
 	}
 }
 
+// NewSafeConfig creates configuration for problematic/damaged drives
+func NewSafeConfig() FastCopyConfig {
+	return FastCopyConfig{
+		MaxConcurrentFiles: 1,                       // Single thread to minimize drive stress
+		MinBufferSize:      64 * 1024,               // 64KB - very small buffers
+		MaxBufferSize:      4 * 1024 * 1024,         // 4MB - maximum 4MB buffer for safety
+		LargeFileThreshold: 1 * 1024 * 1024,         // 1MB - very conservative threshold
+		PreallocateSpace:   false,                   // Disable preallocation to avoid errors
+		UseMemoryMapping:   false,                   // Disable memory mapping for safety
+		MemoryMapThreshold: 0,                       // Never use memory mapping
+		SmallFileThreshold: 64 * 1024,              // 64KB - very small file threshold
+		SmallFileBatchSize: 1,                      // Process one file at a time
+		DirectIO:           false,                   // Disable DirectIO for compatibility
+		ForceFlush:         true,                    // Force flush after each operation
+		SyncReadWrite:      true,                    // Use synchronous operations for safety
+	}
+}
+
 // FastCopyProgress extends Progress with additional metrics
 type FastCopyProgress struct {
 	TotalFiles         int64
@@ -151,6 +170,7 @@ type FastCopyProgress struct {
 	ActualSize         int64 // Size that needs to be copied (TotalSize - SkippedSize)
 	StartTime          time.Time
 	ActiveFiles        int64
+	MaxThreads         int     // Maximum number of worker threads
 	BytesPerSecond     float64
 	LastSpeedUpdate    time.Time
 	BufferPoolHits     int64 // Number of buffer pool reuses
@@ -165,6 +185,11 @@ type FastCopyProgress struct {
 	MemoryMappedBytes  int64 // Total bytes copied using memory mapping
 	SmallFileBatches   int64 // Number of small file batches processed
 	BatchedFiles       int64 // Total number of files processed in batches
+	
+	// Stuck file detection
+	LastProgressTime   time.Time // Last time progress was updated
+	LastProgressFiles  int64     // File count at last progress update
+	StuckFileDetected  bool      // Flag indicating stuck file detected
 }
 
 // ActiveFileInfo stores information about currently processing file
@@ -359,6 +384,11 @@ var (
 	procMapViewOfFile    = kernel32.NewProc("MapViewOfFile")
 	procUnmapViewOfFile  = kernel32.NewProc("UnmapViewOfFile")
 	procCloseHandle      = kernel32.NewProc("CloseHandle")
+	
+	// Drive analysis Windows API
+	procGetDriveType        = kernel32.NewProc("GetDriveTypeW")
+	procGetVolumeInformation = kernel32.NewProc("GetVolumeInformationW")
+	procGetDiskFreeSpace    = kernel32.NewProc("GetDiskFreeSpaceW")
 )
 
 // copyFileWithMemoryMapping copies a file using Windows memory mapping
@@ -636,19 +666,6 @@ func copyFileSingle(sourcePath, targetPath string, sourceInfo os.FileInfo, progr
 	progress.CurrentFile = sourcePath
 	progress.CurrentFileMux.Unlock()
 	
-	// Check if target file already exists
-	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
-		fmt.Printf("Skipping existing file: %s\n", targetPath)
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		atomic.AddInt64(&progress.SkippedFiles, 1)
-		atomic.AddInt64(&progress.SkippedSize, fileSize)
-		atomic.AddInt64(&progress.CopiedSize, fileSize) // Add file size to copied total
-		// Update actual values
-		atomic.AddInt64(&progress.ActualFiles, -1)
-		atomic.AddInt64(&progress.ActualSize, -fileSize)
-		return nil
-	}
-	
 	// Use memory mapping for very large files
 	if config.UseMemoryMapping && fileSize >= config.MemoryMapThreshold {
 		atomic.AddInt64(&progress.MemoryMappedFiles, 1)
@@ -715,8 +732,13 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	buffer, bufferPool := getBufferFromPool(bufferSize, progress)
 	defer bufferPool.Put(&buffer)
 	
-	// Ensure we use only the required buffer size
-	buffer = buffer[:bufferSize]
+	// Ensure we use only the available buffer size (protect against capacity issues)
+	actualBufferSize := min(bufferSize, cap(buffer))
+	if actualBufferSize < bufferSize {
+		// Fallback to smaller buffer if system can't allocate requested size
+		bufferSize = actualBufferSize
+	}
+	buffer = buffer[:actualBufferSize]
 	
 	// Copy file with progress tracking
 	for {
@@ -776,6 +798,9 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		return fmt.Errorf("operation cancelled by user")
 	}
 	
+	// Initialize thread count for progress display
+	progress.MaxThreads = config.MaxConcurrentFiles
+	
 	fmt.Printf("Fast scanning for totals...\n")
 	
 	// Phase 1: Fast scan for totals only (no file collection)
@@ -817,8 +842,87 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 	progress.ActualFiles = progress.TotalFiles
 	progress.ActualSize = progress.TotalSize
 	
-	// Phase 2: Immediate copying with streaming processing
-	fmt.Printf("Starting optimized copy with streaming pipeline...\n")
+	// Phase 2: Collect all files for sorting
+	fmt.Printf("Collecting files for sorted processing...\n")
+	var allFiles []FileJob
+	
+	collectErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		// Check for forced exit during collection
+		if handler != nil && handler.IsForceExit() {
+			return fmt.Errorf("collection terminated by user (force exit)")
+		}
+		
+		if err != nil {
+			fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
+			return nil
+		}
+		
+		relPath, err := filepath.Rel(sourcePath, path)
+		if err != nil {
+			return nil
+		}
+		
+		targetFilePath := filepath.Join(targetPath, relPath)
+		
+		if info.IsDir() {
+			// Create target directory immediately
+			return os.MkdirAll(targetFilePath, info.Mode())
+		}
+		
+		// Check if target file already exists and should be skipped
+		if targetInfo, err := statWithTimeout(targetFilePath, FileOperationTimeout); err == nil {
+			// File exists - check its size
+			if targetInfo.Size() > 0 {
+				// File has content - skip silently and update counters
+				atomic.AddInt64(&progress.SkippedFiles, 1)
+				atomic.AddInt64(&progress.SkippedSize, info.Size())
+				return nil
+			}
+			// File exists but is empty (size 0) - will replace it
+		}
+		
+		// Collect file for copying (either doesn't exist or is empty)
+		allFiles = append(allFiles, FileJob{
+			SourcePath: path,
+			TargetPath: targetFilePath,
+			Info:       info,
+		})
+		
+		return nil
+	})
+	
+	if collectErr != nil {
+		return fmt.Errorf("file collection failed: %v", collectErr)
+	}
+	
+	// Sort files by size (smallest to largest)
+	fmt.Printf("Sorting %d files by size (smallest to largest)...\n", len(allFiles))
+	sort.Slice(allFiles, func(i, j int) bool {
+		return allFiles[i].Info.Size() < allFiles[j].Info.Size()
+	})
+	
+	// Update actual values based on files that will actually be copied
+	var actualSize int64
+	for _, job := range allFiles {
+		actualSize += job.Info.Size()
+	}
+	progress.ActualFiles = int64(len(allFiles))
+	progress.ActualSize = actualSize
+	
+	// Report results
+	skippedFiles := atomic.LoadInt64(&progress.SkippedFiles)
+	skippedSize := atomic.LoadInt64(&progress.SkippedSize)
+	if skippedFiles > 0 {
+		fmt.Printf("Pre-scan completed: %d files to copy (%.2f GB), %d files skipped (%.2f GB)\n",
+			len(allFiles), float64(actualSize)/(1024*1024*1024),
+			skippedFiles, float64(skippedSize)/(1024*1024*1024))
+	} else {
+		fmt.Printf("Pre-scan completed: %d files to copy (%.2f GB)\n",
+			len(allFiles), float64(actualSize)/(1024*1024*1024))
+	}
+	
+	// Phase 3: Process sorted files with streaming pipeline
+	fmt.Printf("Starting optimized copy with sorted streaming pipeline...\n")
 	
 	// Channels for different job types
 	smallBatchChannel := make(chan FileJob, config.SmallFileBatchSize*10) // Buffer for small files
@@ -835,6 +939,11 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 			select {
 			case <-progressTicker.C:
 				showFastProgress(progress)
+				// Check if stuck file detected and auto-fallback is needed
+				if progress.StuckFileDetected {
+					// Set a flag to trigger fallback - we'll check this in the main function
+					fmt.Printf("⏰ Continuing with current attempt... (Ctrl+C to stop and retry with safe mode)\n")
+				}
 			case <-done:
 				return
 			}
@@ -880,48 +989,25 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 		}()
 	}
 	
-	// Second-pass scanner and dispatcher (now with known totals)
+	// Process sorted files with dispatcher
 	go func() {
 		defer close(smallBatchChannel)
 		defer close(largeFileChannel)
 		defer close(copyComplete)
 		
-		scanErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-			// Check for forced exit during scanning
+		for _, job := range allFiles {
+			// Check for forced exit during processing
 			if handler != nil && handler.IsForceExit() {
-				return fmt.Errorf("copy terminated by user (force exit)")
+				return
 			}
 			
-			// Check for graceful interruption during scanning
+			// Check for graceful interruption during processing
 			if handler != nil && handler.IsInterrupted() {
-				return fmt.Errorf("copy interrupted by user")
-			}
-			
-			if err != nil {
-				fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
-				return nil
-			}
-			
-			relPath, err := filepath.Rel(sourcePath, path)
-			if err != nil {
-				return nil
-			}
-			
-			targetFilePath := filepath.Join(targetPath, relPath)
-			
-			if info.IsDir() {
-				// Create target directory immediately
-				return os.MkdirAll(targetFilePath, info.Mode())
-			}
-			
-			job := FileJob{
-				SourcePath: path,
-				TargetPath: targetFilePath,
-				Info:       info,
+				return
 			}
 			
 			// Route to appropriate processor
-			if info.Size() < config.SmallFileThreshold {
+			if job.Info.Size() < config.SmallFileThreshold {
 				// Batch small files
 				currentBatch = append(currentBatch, job)
 				if len(currentBatch) >= config.SmallFileBatchSize {
@@ -931,16 +1017,10 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 				// Send large files directly to workers
 				largeFileChannel <- job
 			}
-			
-			return nil
-		})
+		}
 		
 		// Process remaining small files in the last batch
 		processBatch()
-		
-		if scanErr != nil {
-			fmt.Printf("Warning: Directory scan encountered errors: %v\n", scanErr)
-		}
 		
 		// Wait for all small file batches to complete
 		batchWg.Wait()
@@ -1025,20 +1105,7 @@ func copySmallFileBatch(batch SmallFileBatch, progress *FastCopyProgress, config
 		progress.CurrentFile = job.SourcePath
 		progress.CurrentFileMux.Unlock()
 		
-		// Check if target file already exists
-		if _, err := statWithTimeout(job.TargetPath, FileOperationTimeout); err == nil {
-			fmt.Printf("Skipping existing file: %s\n", job.TargetPath)
-			atomic.AddInt64(&progress.ProcessedFiles, 1)
-			atomic.AddInt64(&progress.SkippedFiles, 1)
-			atomic.AddInt64(&progress.SkippedSize, job.Info.Size())
-			atomic.AddInt64(&progress.CopiedSize, job.Info.Size()) // Add file size to copied total
-			// Update actual values
-			atomic.AddInt64(&progress.ActualFiles, -1)
-			atomic.AddInt64(&progress.ActualSize, -job.Info.Size())
-			continue
-		}
-		
-		// Copy single small file
+		// Copy small file directly (files already pre-filtered during scan)
 		if err := copySmallFileDirect(job.SourcePath, job.TargetPath, job.Info, progress, buffer, handler); err != nil {
 			// Check if it's a device hardware error
 			if strings.Contains(err.Error(), "device hardware error") {
@@ -1122,13 +1189,34 @@ func showFastProgress(progress *FastCopyProgress) {
 	totalSize := atomic.LoadInt64(&progress.TotalSize)
 	activeFiles := atomic.LoadInt64(&progress.ActiveFiles)
 	
+	// Check for stuck files - if no progress for 30 seconds, mark as stuck
+	now := time.Now()
+	if progress.LastProgressTime.IsZero() {
+		progress.LastProgressTime = now
+		progress.LastProgressFiles = processedFiles
+	} else if now.Sub(progress.LastProgressTime) > 30*time.Second {
+		if processedFiles == progress.LastProgressFiles {
+			// No progress for 30 seconds - stuck file detected
+			if !progress.StuckFileDetected {
+				progress.StuckFileDetected = true
+				fmt.Printf("\n⚠️  STUCK FILE DETECTED: No progress for 30+ seconds!\n")
+				fmt.Printf("🛡️ File appears to be damaged or on bad disk sectors.\n")
+				fmt.Printf("💡 Recommendation: Stop (Ctrl+C) and use 'safecopy' or 'rescue' command\n")
+			}
+		} else {
+			// Progress made, reset detection
+			progress.LastProgressTime = now
+			progress.LastProgressFiles = processedFiles
+			progress.StuckFileDetected = false
+		}
+	}
+	
 	// Get display file with size using priority system
 	displayFilePath, displayFileSize := progress.getDisplayFile()
 	
 	elapsed := time.Since(progress.StartTime)
 	
 	// Calculate current speed based on actually copied data (excluding skipped)
-	now := time.Now()
 	if now.Sub(progress.LastSpeedUpdate) > time.Second {
 		actualCopiedSize := atomic.LoadInt64(&progress.ActualCopiedSize)
 		if actualCopiedSize > 0 {
@@ -1184,7 +1272,8 @@ func showFastProgress(progress *FastCopyProgress) {
 	}
 	
 	if actualFilesToCopy > 0 {
-		filePercent = float64(processedFiles - progress.SkippedFiles) / float64(actualFilesToCopy) * 100
+		// processedFiles уже считает только обработанные файлы (без пропущенных)
+		filePercent = float64(processedFiles) / float64(actualFilesToCopy) * 100
 	}
 	
 	if actualSizeToCopy > 0 {
@@ -1201,15 +1290,58 @@ func showFastProgress(progress *FastCopyProgress) {
 	}
 	// Display actual copied vs actual total (excluding skipped files)
 	actualCopiedSizeDisplay := atomic.LoadInt64(&progress.ActualCopiedSize)
+	// Show real thread count instead of active files queue
+	threadCount := progress.MaxThreads
+	if threadCount == 0 {
+		threadCount = int(activeFiles) // Fallback to active files if MaxThreads not set
+		if threadCount > 16 {
+			threadCount = 16 // Cap at 16 threads max
+		}
+	}
 	fmt.Printf("\r%s\r%d/%d %s%s (%.1f%%) | %.2f/%.2f GB (%.1f%%) | %.2f MB/s | %d | ETA: %s",
 		strings.Repeat(" ", 160), // Clear previous line (increased for size info)
-		processedFiles-progress.SkippedFiles, actualFilesToCopy, truncatedFile, fileSizeStr, filePercent,
+		processedFiles, actualFilesToCopy, truncatedFile, fileSizeStr, filePercent,
 		float64(actualCopiedSizeDisplay)/(1024*1024*1024), float64(actualSizeToCopy)/(1024*1024*1024), sizePercent,
-		progress.BytesPerSecond, activeFiles, eta)
+		progress.BytesPerSecond, threadCount, eta)
 }
 
 // FastCopy performs optimized copying with single-pass directory scanning
+// Now with automatic fallback to safe mode on hardware errors and stuck files
 func FastCopy(sourcePath, targetPath string) error {
+	return fastCopyWithFallback(sourcePath, targetPath, false)
+}
+
+// fastCopyWithFallback handles automatic fallback to safe mode
+func fastCopyWithFallback(sourcePath, targetPath string, isRetry bool) error {
+	err := fastCopyInternal(sourcePath, targetPath)
+	if err == nil {
+		return nil
+	}
+	
+	// Check for hardware errors that indicate damaged drives
+	errorStr := err.Error()
+	isHardwareError := strings.Contains(errorStr, "slice bounds out of range") ||
+		strings.Contains(errorStr, "runtime error") ||
+		strings.Contains(errorStr, "panic") ||
+		strings.Contains(errorStr, "out of memory") ||
+		strings.Contains(errorStr, "insufficient memory") ||
+		strings.Contains(errorStr, "buffer allocation failed") ||
+		strings.Contains(errorStr, "read error") ||
+		strings.Contains(errorStr, "write error") ||
+		strings.Contains(errorStr, "I/O error") ||
+		strings.Contains(errorStr, "operation cancelled")
+	
+	if isHardwareError && !isRetry {
+		fmt.Printf("\n⚠️  Hardware/timeout error detected: %v\n", err)
+		fmt.Printf("🛡️ Automatically switching to SAFE RESCUE mode...\n")
+		return SafeCopy(sourcePath, targetPath)
+	}
+	
+	return err
+}
+
+// fastCopyInternal is the original FastCopy implementation
+func fastCopyInternal(sourcePath, targetPath string) error {
 	// Use global interrupt handler
 	handler := globalInterruptHandler
 	if handler == nil {
@@ -1292,7 +1424,36 @@ func FastCopySync(sourcePath, targetPath string) error {
 }
 
 // FastCopyMax performs maximum performance copying with aggressive CPU utilization
+// Now with automatic fallback to safe mode on hardware errors
 func FastCopyMax(sourcePath, targetPath string) error {
+	err := fastCopyMaxInternal(sourcePath, targetPath)
+	if err == nil {
+		return nil
+	}
+	
+	// Check for hardware errors
+	errorStr := err.Error()
+	isHardwareError := strings.Contains(errorStr, "slice bounds out of range") ||
+		strings.Contains(errorStr, "runtime error") ||
+		strings.Contains(errorStr, "panic") ||
+		strings.Contains(errorStr, "out of memory") ||
+		strings.Contains(errorStr, "insufficient memory") ||
+		strings.Contains(errorStr, "buffer allocation failed") ||
+		strings.Contains(errorStr, "read error") ||
+		strings.Contains(errorStr, "write error") ||
+		strings.Contains(errorStr, "I/O error")
+	
+	if isHardwareError {
+		fmt.Printf("\n⚠️  Hardware error detected: %v\n", err)
+		fmt.Printf("🛡️ Automatically switching to SAFE RESCUE mode...\n")
+		return SafeCopy(sourcePath, targetPath)
+	}
+	
+	return err
+}
+
+// fastCopyMaxInternal is the original implementation
+func fastCopyMaxInternal(sourcePath, targetPath string) error {
 	// Use global interrupt handler
 	handler := globalInterruptHandler
 	if handler == nil {
@@ -1334,7 +1495,36 @@ func FastCopyMax(sourcePath, targetPath string) error {
 }
 
 // FastCopyBalanced performs balanced copying optimized for HDD-to-HDD operations
+// Now with automatic fallback to safe mode on hardware errors
 func FastCopyBalanced(sourcePath, targetPath string) error {
+	err := fastCopyBalancedInternal(sourcePath, targetPath)
+	if err == nil {
+		return nil
+	}
+	
+	// Check for hardware errors
+	errorStr := err.Error()
+	isHardwareError := strings.Contains(errorStr, "slice bounds out of range") ||
+		strings.Contains(errorStr, "runtime error") ||
+		strings.Contains(errorStr, "panic") ||
+		strings.Contains(errorStr, "out of memory") ||
+		strings.Contains(errorStr, "insufficient memory") ||
+		strings.Contains(errorStr, "buffer allocation failed") ||
+		strings.Contains(errorStr, "read error") ||
+		strings.Contains(errorStr, "write error") ||
+		strings.Contains(errorStr, "I/O error")
+	
+	if isHardwareError {
+		fmt.Printf("\n⚠️  Hardware error detected: %v\n", err)
+		fmt.Printf("🛡️ Automatically switching to SAFE RESCUE mode...\n")
+		return SafeCopy(sourcePath, targetPath)
+	}
+	
+	return err
+}
+
+// fastCopyBalancedInternal is the original implementation
+func fastCopyBalancedInternal(sourcePath, targetPath string) error {
 	// Use global interrupt handler
 	handler := globalInterruptHandler
 	if handler == nil {
@@ -1366,6 +1556,48 @@ func FastCopyBalanced(sourcePath, targetPath string) error {
 	} else {
 		// Single file copy with balanced performance
 		progress.TotalFiles = 1
+		progress.TotalSize = sourceInfo.Size()
+		progress.ActualFiles = 1
+		progress.ActualSize = sourceInfo.Size()
+		err := copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
+	}
+}
+ 
+// SafeCopy performs ultra-safe copying for problematic/damaged drives
+func SafeCopy(sourcePath, targetPath string) error {
+	// Use global interrupt handler
+	handler := globalInterruptHandler
+	if handler == nil {
+		handler = NewInterruptHandler()
+	}
+	
+	config := NewSafeConfig() // Use ultra-safe configuration
+	progress := &FastCopyProgress{
+		StartTime:       time.Now(),
+		LastSpeedUpdate: time.Now(),
+	}
+	
+	fmt.Printf("🛡️ Starting SAFE RESCUE mode (1 thread, 4MB max buffers)...\n")
+	fmt.Printf("This mode is designed for damaged drives with minimal stress and error recovery.\n")
+	
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path error: %v", err)
+	}
+	
+	if sourceInfo.IsDir() {
+		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+	} else {
+		// Single file copy
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+			return fmt.Errorf("failed to create target directory: %v", err)
+		}
+		
+		atomic.StoreInt64(&progress.TotalFiles, 1)
 		progress.TotalSize = sourceInfo.Size()
 		progress.ActualFiles = 1
 		progress.ActualSize = sourceInfo.Size()

@@ -1,0 +1,41 @@
+// SafeCopy performs ultra-safe copying for problematic/damaged drives
+func SafeCopy(sourcePath, targetPath string) error {
+	// Use global interrupt handler
+	handler := globalInterruptHandler
+	if handler == nil {
+		handler = NewInterruptHandler()
+	}
+	
+	config := NewSafeConfig() // Use ultra-safe configuration
+	progress := &FastCopyProgress{
+		StartTime:       time.Now(),
+		LastSpeedUpdate: time.Now(),
+	}
+	
+	fmt.Printf("🛡️ Starting SAFE RESCUE mode (1 thread, 4MB max buffers)...\n")
+	fmt.Printf("This mode is designed for damaged drives with minimal stress and error recovery.\n")
+	
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path error: %v", err)
+	}
+	
+	if sourceInfo.IsDir() {
+		return copyDirectoryOptimized(sourcePath, targetPath, config, progress, handler)
+	} else {
+		// Single file copy
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+			return fmt.Errorf("failed to create target directory: %v", err)
+		}
+		
+		atomic.StoreInt64(&progress.TotalFiles, 1)
+		progress.TotalSize = sourceInfo.Size()
+		progress.ActualFiles = 1
+		progress.ActualSize = sourceInfo.Size()
+		err := copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
+	}
+}

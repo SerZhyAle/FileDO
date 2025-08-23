@@ -26,6 +26,9 @@ type CopyAnalysis struct {
 	Reason            string
 	SourceType        string
 	TargetType        string
+	SourceDriveInfo   *DriveInfo // Enhanced drive information
+	TargetDriveInfo   *DriveInfo // Enhanced drive information
+	OptimalConfig     *OptimalCopyConfig // Optimal copy configuration
 	EstimatedFileCount int64
 	EstimatedSize     int64
 	AnalysisDuration  time.Duration
@@ -131,7 +134,198 @@ func analyzeLocation(path string) (os.FileInfo, string) {
 	return info, "Local Storage"
 }
 
-// analyzeDriveType attempts to determine drive type (SSD/HDD/USB/etc.)
+// AnalyzeCopyStrategyAdvanced performs comprehensive copy strategy analysis with drive detection
+func AnalyzeCopyStrategyAdvanced(sourcePath, targetPath string) (*CopyAnalysis, error) {
+	return analyzeCopyStrategyAdvancedWithOutput(sourcePath, targetPath, true)
+}
+
+// AnalyzeCopyStrategyQuiet performs quiet copy strategy analysis for basic copy command
+func AnalyzeCopyStrategyQuiet(sourcePath, targetPath string) (*CopyAnalysis, error) {
+	return analyzeCopyStrategyAdvancedWithOutput(sourcePath, targetPath, false)
+}
+
+// analyzeCopyStrategyAdvancedWithOutput performs comprehensive analysis with optional output
+func analyzeCopyStrategyAdvancedWithOutput(sourcePath, targetPath string, verbose bool) (*CopyAnalysis, error) {
+	startTime := time.Now()
+	
+	if verbose {
+		fmt.Printf("🔍 Performing advanced drive analysis...\n")
+	}
+	
+	// Extract drive letters
+	sourceDrive := extractDriveLetter(sourcePath)
+	targetDrive := extractDriveLetter(targetPath)
+	
+	if sourceDrive == "" || targetDrive == "" {
+		// Fallback to basic analysis if drive letters can't be extracted
+		if verbose {
+			fmt.Printf("⚠️ Could not extract drive letters, using basic analysis\n")
+		}
+		return AnalyzeCopyStrategy(sourcePath, targetPath)
+	}
+	
+	// Analyze source drive
+	sourceInfo, err := AnalyzeDrive(sourceDrive)
+	if err != nil {
+		if verbose {
+			fmt.Printf("⚠️ Failed to analyze source drive %s: %v, using basic analysis\n", sourceDrive, err)
+		}
+		return AnalyzeCopyStrategy(sourcePath, targetPath)
+	}
+	
+	// Analyze target drive
+	targetInfo, err := AnalyzeDrive(targetDrive)
+	if err != nil {
+		if verbose {
+			fmt.Printf("⚠️ Failed to analyze target drive %s: %v, using basic analysis\n", targetDrive, err)
+		}
+		return AnalyzeCopyStrategy(sourcePath, targetPath)
+	}
+	
+	// Display drive analysis results only if verbose
+	if verbose {
+		displayDriveAnalysis(sourceInfo, targetInfo)
+	}
+	
+	// Get optimal configuration
+	optimalConfig := GetOptimalCopyConfig(sourceInfo, targetInfo)
+	
+	// Quick size estimation (limit to 3 seconds for quiet mode, 5 for verbose)
+	estimationTime := 3 * time.Second
+	if verbose {
+		estimationTime = 5 * time.Second
+	}
+	estimatedSize, estimatedFiles := quickDirectorySizeEstimate(sourcePath, estimationTime)
+	
+	// Determine strategy based on comprehensive analysis
+	strategy, strategyName, reason := determineAdvancedStrategy(&optimalConfig, sourceInfo, targetInfo, estimatedSize)
+	
+	analysis := &CopyAnalysis{
+		Strategy:          strategy,
+		StrategyName:      strategyName,
+		Reason:            reason,
+		SourceType:        fmt.Sprintf("%s (%s, %s)", sourceInfo.DriveType, sourceInfo.FileSystem, formatSize(sourceInfo.TotalSize)),
+		TargetType:        fmt.Sprintf("%s (%s, %s)", targetInfo.DriveType, targetInfo.FileSystem, formatSize(targetInfo.TotalSize)),
+		SourceDriveInfo:   sourceInfo,
+		TargetDriveInfo:   targetInfo,
+		OptimalConfig:     &optimalConfig,
+		EstimatedFileCount: estimatedFiles,
+		EstimatedSize:     estimatedSize,
+		AnalysisDuration:  time.Since(startTime),
+	}
+	
+	if verbose {
+		fmt.Printf("🎯 Selected strategy: %s\n", strategyName)
+		fmt.Printf("📊 Optimal threads: %d, Buffer: %s, Small file threshold: %s\n", 
+			optimalConfig.OptimalThreadCount,
+			formatSize(uint64(optimalConfig.OptimalBufferSize)),
+			formatSize(uint64(optimalConfig.SmallFileThreshold)))
+		fmt.Printf("⏱️  Analysis completed in %v\n\n", analysis.AnalysisDuration)
+	}
+	
+	return analysis, nil
+}
+
+// displayDriveAnalysis shows detailed drive information
+func displayDriveAnalysis(source, target *DriveInfo) {
+	fmt.Printf("📁 Source Drive %s: %s | %s | Cluster: %s | %s / %s\n",
+		source.DriveLetter,
+		source.DriveType,
+		source.FileSystem,
+		formatSize(uint64(source.ClusterSize)),
+		formatSize(source.FreeSize),
+		formatSize(source.TotalSize))
+	
+	fmt.Printf("📁 Target Drive %s: %s | %s | Cluster: %s | %s / %s\n",
+		target.DriveLetter,
+		target.DriveType,
+		target.FileSystem,
+		formatSize(uint64(target.ClusterSize)),
+		formatSize(target.FreeSize),
+		formatSize(target.TotalSize))
+}
+
+// determineAdvancedStrategy selects strategy based on comprehensive drive analysis
+func determineAdvancedStrategy(config *OptimalCopyConfig, source, target *DriveInfo, estimatedSize int64) (CopyStrategy, string, string) {
+	sourceType := source.DriveType
+	targetType := target.DriveType
+	
+	// Check for specific optimizations based on drive combination
+	switch {
+	case sourceType == DriveTypeSSD && targetType == DriveTypeSSD:
+		// SSD to SSD: Use maximum performance
+		return StrategyMax, "Maximum Performance (SSD → SSD)", 
+			fmt.Sprintf("Both drives are SSDs with %d threads, %s buffers for maximum throughput", 
+				config.OptimalThreadCount, formatSize(uint64(config.OptimalBufferSize)))
+	
+	case sourceType == DriveTypeHDD && targetType == DriveTypeHDD:
+		// HDD to HDD: Use balanced approach
+		return StrategyBalanced, "Balanced (HDD → HDD)", 
+			fmt.Sprintf("Both drives are HDDs, using %d threads with %s buffers for optimal sequential access", 
+				config.OptimalThreadCount, formatSize(uint64(config.OptimalBufferSize)))
+	
+	case sourceType == DriveTypeUSB || targetType == DriveTypeUSB:
+		// USB involved: Use conservative approach
+		if sourceType == DriveTypeUSB && targetType == DriveTypeUSB {
+			return StrategySync, "Conservative (USB → USB)", 
+				fmt.Sprintf("USB to USB transfer, using single thread with %s buffers to minimize disconnection risk", 
+					formatSize(uint64(config.OptimalBufferSize)))
+		} else if sourceType == DriveTypeUSB {
+			return StrategyFast, "Fast (USB → Internal)", 
+				fmt.Sprintf("USB source detected, using %d threads with %s buffers", 
+					config.OptimalThreadCount, formatSize(uint64(config.OptimalBufferSize)))
+		} else {
+			return StrategyFast, "Fast (Internal → USB)", 
+				fmt.Sprintf("USB target detected, using %d threads with %s buffers to minimize wear", 
+					config.OptimalThreadCount, formatSize(uint64(config.OptimalBufferSize)))
+		}
+	
+	case (sourceType == DriveTypeSSD && targetType == DriveTypeHDD):
+		// SSD to HDD: Balanced approach favoring read speed
+		return StrategyFast, "Fast (SSD → HDD)", 
+			fmt.Sprintf("SSD source with HDD target, using %d threads optimized for fast reads and sequential writes", 
+				config.OptimalThreadCount)
+	
+	case (sourceType == DriveTypeHDD && targetType == DriveTypeSSD):
+		// HDD to SSD: Balanced approach favoring write speed  
+		return StrategyFast, "Fast (HDD → SSD)", 
+			fmt.Sprintf("HDD source with SSD target, using %d threads optimized for sequential reads and fast writes", 
+				config.OptimalThreadCount)
+	
+	case sourceType == DriveTypeNetwork || targetType == DriveTypeNetwork:
+		// Network involved: Conservative approach
+		return StrategySync, "Network Transfer", 
+			fmt.Sprintf("Network drive detected, using single thread with %s buffers to handle latency", 
+				formatSize(uint64(config.OptimalBufferSize)))
+	
+	default:
+		// Default to fast copy with determined configuration
+		return StrategyFast, "Fast (Auto-detected)", 
+			fmt.Sprintf("Auto-detected configuration: %d threads, %s buffers", 
+				config.OptimalThreadCount, formatSize(uint64(config.OptimalBufferSize)))
+	}
+}
+
+// formatSize formats bytes into human-readable format
+func formatSize(bytes uint64) string {
+	if bytes < 1024 {
+		return fmt.Sprintf("%d B", bytes)
+	} else if bytes < 1024*1024 {
+		return fmt.Sprintf("%.1f KB", float64(bytes)/1024)
+	} else if bytes < 1024*1024*1024 {
+		return fmt.Sprintf("%.1f MB", float64(bytes)/(1024*1024))
+	} else {
+		return fmt.Sprintf("%.2f GB", float64(bytes)/(1024*1024*1024))
+	}
+}
+
+// extractDriveLetter extracts drive letter from a path
+func extractDriveLetter(path string) string {
+	if len(path) >= 2 && path[1] == ':' {
+		return strings.ToUpper(string(path[0]))
+	}
+	return ""
+}
 func analyzeDriveType(driveLetter string) string {
 	// Enhanced drive type detection with better heuristics
 	
@@ -286,6 +480,12 @@ func selectOptimalStrategy(sourceType, targetType string, estimatedSize, estimat
 func ExecuteSelectedStrategy(analysis *CopyAnalysis, sourcePath, targetPath string) error {
 	fmt.Printf("\n🚀 Executing %s strategy...\n", analysis.StrategyName)
 	
+	// Use advanced execution if optimal configuration is available
+	if analysis.OptimalConfig != nil {
+		return ExecuteOptimalStrategy(analysis, sourcePath, targetPath)
+	}
+	
+	// Fallback to basic strategy execution
 	switch analysis.Strategy {
 	case StrategyRegular:
 		return handleCopyCommand([]string{"copy", sourcePath, targetPath})
@@ -300,4 +500,9 @@ func ExecuteSelectedStrategy(analysis *CopyAnalysis, sourcePath, targetPath stri
 	default:
 		return fmt.Errorf("unknown copy strategy: %v", analysis.Strategy)
 	}
+}
+
+// ExecuteOptimalStrategy runs copy with optimal configuration based on drive analysis
+func ExecuteOptimalStrategy(analysis *CopyAnalysis, sourcePath, targetPath string) error {
+	return FastCopyOptimal(sourcePath, targetPath, analysis.OptimalConfig)
 }

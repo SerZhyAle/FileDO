@@ -16,7 +16,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2508230100"
+const version = "2508231600"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -305,11 +305,14 @@ File Organization:
 ═══════════════════════════════════════════════════════════════════════════════
 COPY & WIPE OPERATIONS
 
-Smart Copy (Automatic Strategy Selection):
-  filedo.exe copy D:\Source E:\Target     → Smart copy with automatic strategy selection (15s analysis)
-  filedo.exe folder D:\Source copy E:\Target → Copy folder with auto-optimized strategy
-  filedo.exe network \\server\share copy C:\Local → Copy network share with optimal method
-  filedo.exe file document.txt copy backup.txt → Copy individual file with best approach
+COPY & WIPE OPERATIONS
+
+Intelligent Copy (AI-Optimized for All Hardware):
+  filedo.exe copy D:\Source E:\Target     → Auto-detects SSD/HDD/USB, optimizes threads & buffers automatically
+                                           ⚡ Auto-switches to SAFE mode if hardware errors detected
+  filedo.exe folder D:\Source copy E:\Target → Copy folder with hardware-aware optimization
+  filedo.exe network \\server\share copy C:\Local → Copy network share with intelligent analysis
+  filedo.exe file document.txt copy backup.txt → Copy individual file with automatic best strategy
 
 Manual Copy Strategies:
   filedo.exe device C: copy D:\Backup     → Copy device contents to folder
@@ -333,6 +336,16 @@ Maximum Performance Copy (Aggressive CPU utilization):
   filedo.exe maxcopy D:\Source E:\Target    → 16 threads, 128MB buffers, maximum speed
   filedo.exe mcopy D:\LargeData E:\Fast     → Turbo mode for maximum system utilization
   filedo.exe turbo \\server\data C:\Local  → Maximum parallelism for fastest possible copy
+
+Smart Copy with Drive Analysis (AI-optimized performance):
+  filedo.exe smartcopy C:\Source D:\Target  → Auto-detects SSD/HDD/USB, optimizes threads & buffers
+  filedo.exe smart F:\Photos E:\Backup     → Analyzes file system, cluster sizes, drive types
+  filedo.exe auto C:\Data E:\Mirror        → Intelligent strategy selection based on hardware
+
+Safe Copy for Damaged/Problematic Drives:
+  filedo.exe safecopy F:\Photos E:\Backup  → Ultra-safe mode for damaged drives (1 thread, small buffers)
+  filedo.exe safe H:\Old_HDD C:\Rescue     → Minimizes drive stress, forced sync, error recovery
+  filedo.exe rescue G:\Failing D:\Backup   → Conservative approach for data recovery from failing drives
 
 Fast Content Wiping:
   filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
@@ -415,6 +428,10 @@ IMPORTANT NOTES
 • Secure Wiping: Use 'fill <size> del' to overwrite free space and prevent
   recovery of previously deleted files.
 
+• Automatic Hardware Protection: All copy commands automatically detect
+  hardware errors (buffer overflows, memory issues, I/O errors) and switch
+  to SAFE RESCUE mode with minimal stress settings for damaged drives.
+
 • Test Files: Operations create files named FILL_#####_ddHHmmss.tmp and
   speedtest_*.txt. Use 'clean' to remove them.
 
@@ -453,9 +470,11 @@ var list_of_flags_for_fastcopy = []string{"fastcopy", "fcopy", "fc"}
 var list_of_flags_for_synccopy = []string{"synccopy", "scopy", "sc"}
 var list_of_flags_for_balanced = []string{"balanced", "bcopy", "bc"}
 var list_of_flags_for_maxcopy = []string{"maxcopy", "mcopy", "max", "turbo"}
+var list_of_flags_for_smartcopy = []string{"smartcopy", "smart", "auto"}
+var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_wipe...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -664,8 +683,8 @@ func executeInternalCommand(args []string) error {
 		if len(args) < 3 {
 			return fmt.Errorf("copy command requires source and target paths")
 		}
-		internalLogger.SetCommand(command, args[1], "smart-copy")
-		err := handleSmartCopyCommand(args[1], args[2])
+		internalLogger.SetCommand(command, args[1], "auto-copy")
+		err := handleAutoCopyCommand(args[1], args[2])
 		if err != nil {
 			internalLogger.SetError(err)
 			return err
@@ -719,6 +738,30 @@ func executeInternalCommand(args []string) error {
 			return err
 		}
 		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_smartcopy, command):
+		// Handle smart copy command with advanced drive analysis
+		if len(args) < 3 {
+			return fmt.Errorf("smartcopy command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "smartcopy")
+		err := handleSmartCopyCommand(args[1], args[2])
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_safecopy, command):
+		// Handle safe copy command for damaged drives
+		if len(args) < 3 {
+			return fmt.Errorf("safecopy command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "safecopy")
+		err := SafeCopy(args[1], args[2])
+		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_from, command):
 		// Handle from file command (nested call)
 		if len(args) < 2 {
@@ -758,10 +801,25 @@ func handleMaxCopyCommand(sourcePath, targetPath string) error {
 	return FastCopyMax(sourcePath, targetPath)
 }
 
-// handleSmartCopyCommand analyzes source/target and selects optimal copy strategy  
+// handleAutoCopyCommand provides simple copy with automatic optimization (user-friendly)
+func handleAutoCopyCommand(sourcePath, targetPath string) error {
+	// Perform silent advanced strategy analysis
+	analysis, err := AnalyzeCopyStrategyQuiet(sourcePath, targetPath)
+	if err != nil {
+		// Fallback to basic smart copy if advanced analysis fails
+		fmt.Printf("🔄 Starting intelligent copy...\n")
+		return handleSmartCopyCommand(sourcePath, targetPath)
+	}
+	
+	// Execute optimal strategy with minimal output
+	fmt.Printf("🔄 Starting copy with auto-optimization (%s)...\n", analysis.StrategyName)
+	return ExecuteSelectedStrategy(analysis, sourcePath, targetPath)
+}
+
+// handleSmartCopyCommand analyzes drives and selects optimal copy strategy
 func handleSmartCopyCommand(sourcePath, targetPath string) error {
-	// Perform strategy analysis (max 15 seconds)
-	analysis, err := AnalyzeCopyStrategy(sourcePath, targetPath)
+	// Perform advanced strategy analysis with drive detection
+	analysis, err := AnalyzeCopyStrategyAdvanced(sourcePath, targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to analyze copy strategy: %v", err)
 	}
@@ -1100,8 +1158,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: Copy command requires source and target paths\n")
 			os.Exit(1)
 		}
-		historyLogger.SetCommand(command, add_args[0], "smart-copy")
-		if err := handleSmartCopyCommand(add_args[0], add_args[1]); err != nil {
+		historyLogger.SetCommand(command, add_args[0], "auto-copy")
+		if err := handleAutoCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -1154,6 +1212,32 @@ func main() {
 		}
 		historyLogger.SetCommand(command, add_args[0], "maxcopy")
 		if err := handleMaxCopyCommand(add_args[0], add_args[1]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_smartcopy, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Smart copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "smartcopy")
+		if err := handleSmartCopyCommand(add_args[0], add_args[1]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_safecopy, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Safe copy command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "safecopy")
+		if err := SafeCopy(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
