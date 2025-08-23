@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -73,8 +74,8 @@ func NewFastCopyConfig() FastCopyConfig {
 		MaxBufferSize:      64 * 1024 * 1024,       // 64MB
 		LargeFileThreshold: 100 * 1024 * 1024,      // 100MB
 		PreallocateSpace:   true,
-		UseMemoryMapping:   true,                   // Enable memory mapping for very large files
-		MemoryMapThreshold: 500 * 1024 * 1024,     // 500MB - use mmap for files larger than this
+		UseMemoryMapping:   false,                  // Disable memory mapping for stability
+		MemoryMapThreshold: 0,                      // Never use memory mapping
 		SmallFileThreshold: 2 * 1024 * 1024,       // 2MB - files smaller than this are batched (increased for images)
 		SmallFileBatchSize: 25,                     // Process 25 small files per goroutine (increased for images)
 		DirectIO:           false,                  // Disable by default (may reduce performance)
@@ -127,8 +128,8 @@ func NewMaxPerformanceConfig() FastCopyConfig {
 		MaxBufferSize:      128 * 1024 * 1024,      // 128MB - maximum buffer size with super large pool
 		LargeFileThreshold: 50 * 1024 * 1024,       // 50MB - lower threshold for more parallel files
 		PreallocateSpace:   true,                    // Enable preallocation for performance
-		UseMemoryMapping:   true,                    // Enable memory mapping for large files
-		MemoryMapThreshold: 100 * 1024 * 1024,      // 100MB - lower threshold for more mmap usage
+		UseMemoryMapping:   false,                   // Disable memory mapping due to stability issues
+		MemoryMapThreshold: 0,                       // Never use memory mapping for safety
 		SmallFileThreshold: 512 * 1024,             // 512KB - smaller batching for more parallelism
 		SmallFileBatchSize: 50,                     // Larger batches for efficiency
 		DirectIO:           false,                   // Disable DirectIO for maximum speed
@@ -392,7 +393,15 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 	sourceHandle := syscall.Handle(sourceFile.Fd())
 	targetHandle := syscall.Handle(targetFile.Fd())
 	
-	const chunkSize = 1024 * 1024 * 1024 // 1GB chunks for very large files
+	// Use smaller chunks to avoid memory mapping issues
+	const chunkSize = 256 * 1024 * 1024 // 256MB chunks - safer for large files
+	const maxMappingSize = 2 * 1024 * 1024 * 1024 // 2GB absolute maximum
+	
+	// For very large files, fall back to regular copy
+	if fileSize > maxMappingSize {
+		fmt.Printf("File too large for memory mapping (%d MB), falling back to regular copy\n", fileSize/(1024*1024))
+		return copyFileRegular(sourcePath, targetPath, sourceInfo, progress, handler)
+	}
 	
 	for offset := int64(0); offset < fileSize; offset += chunkSize {
 		remainingSize := fileSize - offset
@@ -461,15 +470,38 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 			return fmt.Errorf("failed to map target view: %v", err)
 		}
 		
-		// Perform memory copy
-		sourceSlice := (*[1 << 30]byte)(unsafe.Pointer(sourceView))[:mapSize:mapSize]
-		targetSlice := (*[1 << 30]byte)(unsafe.Pointer(targetView))[:mapSize:mapSize]
+		// Validate pointers before unsafe operations
+		if sourceView == 0 || targetView == 0 {
+			procUnmapViewOfFile.Call(targetView)
+			procCloseHandle.Call(targetMappingHandle)
+			procUnmapViewOfFile.Call(sourceView)
+			procCloseHandle.Call(sourceMappingHandle)
+			return fmt.Errorf("invalid memory mapping pointers")
+		}
+		
+		// Perform memory copy with safety checks
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Printf("Memory mapping panic recovered: %v - falling back to regular copy\n", r)
+			}
+		}()
+		
+		// Use smaller slice limits for safety
+		maxSliceSize := 1 << 28 // 256MB max slice size instead of 1GB
+		if mapSize > maxSliceSize {
+			mapSize = maxSliceSize
+		}
+		
+		sourceSlice := (*[1 << 28]byte)(unsafe.Pointer(sourceView))[:mapSize:mapSize]
+		targetSlice := (*[1 << 28]byte)(unsafe.Pointer(targetView))[:mapSize:mapSize]
 		
 		copy(targetSlice, sourceSlice)
 		
-	// Update progress
-	atomic.AddInt64(&progress.CopiedSize, int64(mapSize))
-	atomic.AddInt64(&progress.ActualCopiedSize, int64(mapSize))		// Cleanup for this chunk
+		// Update progress
+		atomic.AddInt64(&progress.CopiedSize, int64(mapSize))
+		atomic.AddInt64(&progress.ActualCopiedSize, int64(mapSize))
+		
+		// Cleanup for this chunk
 		procUnmapViewOfFile.Call(targetView)
 		procCloseHandle.Call(targetMappingHandle)
 		procUnmapViewOfFile.Call(sourceView)
@@ -1198,14 +1230,22 @@ func FastCopy(sourcePath, targetPath string) error {
 	
 	if sourceInfo.IsDir() {
 		// Directory copy with optimization
-		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		err := copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		// Force garbage collection after directory operations
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	} else {
 		// Single file copy
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
 		progress.ActualFiles = 1
 		progress.ActualSize = sourceInfo.Size()
-		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		err := copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		// Force garbage collection after file operations
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	}
 }
 
@@ -1234,14 +1274,20 @@ func FastCopySync(sourcePath, targetPath string) error {
 	
 	if sourceInfo.IsDir() {
 		// Directory copy with synchronization
-		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		err := copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	} else {
 		// Single file copy with synchronization
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
 		progress.ActualFiles = 1
 		progress.ActualSize = sourceInfo.Size()
-		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		err := copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	}
 }
 
@@ -1270,14 +1316,20 @@ func FastCopyMax(sourcePath, targetPath string) error {
 	
 	if sourceInfo.IsDir() {
 		// Directory copy with maximum performance
-		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		err := copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	} else {
 		// Single file copy with maximum performance
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
 		progress.ActualFiles = 1
 		progress.ActualSize = sourceInfo.Size()
-		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		err := copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	}
 }
 
@@ -1307,13 +1359,19 @@ func FastCopyBalanced(sourcePath, targetPath string) error {
 	
 	if sourceInfo.IsDir() {
 		// Directory copy with balanced performance
-		return copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		err := copyDirectoryOptimized(sourcePath, targetPath, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	} else {
 		// Single file copy with balanced performance
 		progress.TotalFiles = 1
 		progress.TotalSize = sourceInfo.Size()
 		progress.ActualFiles = 1
 		progress.ActualSize = sourceInfo.Size()
-		return copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		err := copyFileSingle(sourcePath, targetPath, sourceInfo, progress, config, handler)
+		runtime.GC()
+		debug.FreeOSMemory()
+		return err
 	}
 }

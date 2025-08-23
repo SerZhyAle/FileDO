@@ -3079,5 +3079,49 @@
     "results": {},
     "duration": " 116.4s",
     "success": true
+  },
+  {
+    "timestamp": "2025-08-23T13:39:21.1356528+02:00",
+    "command": "bcopy",
+    "target": "f:/c",
+    "operation": "balanced",
+    "fullCommand": "filedo bcopy f:/c e:/c",
+    "parameters": {},
+    "results": {},
+    "duration": "   5.0s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T13:39:49.9500076+02:00",
+    "command": "bcopy",
+    "target": "f:/c",
+    "operation": "balanced",
+    "fullCommand": "filedo bcopy f:/c e:/c",
+    "parameters": {},
+    "results": {},
+    "duration": " 724.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T13:39:55.5378256+02:00",
+    "command": "copy",
+    "target": "f:/c",
+    "operation": "smart-copy",
+    "fullCommand": "filedo copy f:/c e:/c",
+    "parameters": {},
+    "results": {},
+    "duration": " 394.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-23T13:40:28.2384449+02:00",
+    "command": "copy",
+    "target": "f:/media/apeflac",
+    "operation": "smart-copy",
+    "fullCommand": "filedo copy f:/media/apeflac e:/media/apeflac",
+    "parameters": {},
+    "results": {},
+    "duration": " 305.8s",
+    "success": true
   }
 ]

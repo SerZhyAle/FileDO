@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -920,6 +922,10 @@ func ShowLastHistory(count int) {
 
 func main() {
 	start_time = time.Now()
+
+	// Optimize GC settings for better performance and less memory overhead
+	debug.SetGCPercent(50)      // More frequent GC to reduce memory usage
+	runtime.GOMAXPROCS(0)       // Use all available CPUs
 
 	// Initialize global interrupt handler first
 	globalInterruptHandler = NewInterruptHandler()
