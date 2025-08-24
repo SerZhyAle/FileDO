@@ -16,7 +16,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2508231600"
+const version = "2508241500"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -344,8 +344,9 @@ Smart Copy with Drive Analysis (AI-optimized performance):
 
 Safe Copy for Damaged/Problematic Drives:
   filedo.exe safecopy F:\Photos E:\Backup  → Ultra-safe mode for damaged drives (1 thread, small buffers)
-  filedo.exe safe H:\Old_HDD C:\Rescue     → Minimizes drive stress, forced sync, error recovery
-  filedo.exe rescue G:\Failing D:\Backup   → Conservative approach for data recovery from failing drives
+  filedo.exe safe H:\Old_HDD C:\Rescue     → Minimizes drive stress, 10s timeout, skip damaged files
+  filedo.exe rescue G:\Failing D:\Backup   → Conservative approach with damage logging and recovery
+  filedo.exe damaged C:\Problem E:\Safe    → Automatic damaged file detection and skip list
 
 Fast Content Wiping:
   filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
@@ -420,6 +421,12 @@ Batch Testing Multiple Locations:
 ═══════════════════════════════════════════════════════════════════════════════
 IMPORTANT NOTES
 
+• Damaged Disk Protection: All copy operations now include damaged disk
+  protection. Files that can't be read within 10 seconds are automatically
+  skipped and logged to 'damaged_files.log'. Next copy run will skip these 
+  files using 'skip_files.list'. Use 'safecopy'/'rescue'/'damaged' commands
+  for maximum protection on problematic drives.
+
 • Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
   total capacity, to detect counterfeit storage devices that report false sizes.
   Uses optimized smart verification - full verification for first 5 files and
@@ -471,7 +478,7 @@ var list_of_flags_for_synccopy = []string{"synccopy", "scopy", "sc"}
 var list_of_flags_for_balanced = []string{"balanced", "bcopy", "bc"}
 var list_of_flags_for_maxcopy = []string{"maxcopy", "mcopy", "max", "turbo"}
 var list_of_flags_for_smartcopy = []string{"smartcopy", "smart", "auto"}
-var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue"}
+var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue", "damaged"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
 var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_wipe...)

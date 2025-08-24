@@ -488,7 +488,7 @@ func ExecuteSelectedStrategy(analysis *CopyAnalysis, sourcePath, targetPath stri
 	// Fallback to basic strategy execution
 	switch analysis.Strategy {
 	case StrategyRegular:
-		return handleCopyCommand([]string{"copy", sourcePath, targetPath})
+		return handleCopyCommandNoDamage([]string{"copy", sourcePath, targetPath})
 	case StrategyFast:
 		return handleFastCopyCommand(sourcePath, targetPath)
 	case StrategySync:

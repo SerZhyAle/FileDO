@@ -22,12 +22,13 @@ type CopyProgress struct {
 	CurrentFile     string       // Protected by CurrentFileMutex
 	CurrentFileMutex sync.RWMutex // Mutex for CurrentFile access
 	SkippedFiles    int64        // Use atomic operations
+	DamagedFiles    int64        // Use atomic operations - files that couldn't be read
 	Errors          []string     // Protected by ErrorsMutex
 	ErrorsMutex     sync.Mutex   // Mutex for thread-safe error logging
 }
 
 // FileOperationTimeout defines timeout for file operations with broken sources
-const FileOperationTimeout = 3 * time.Second
+const FileOperationTimeout = 10 * time.Second // Increased to 10 seconds for damaged disks
 
 // Atomic helper methods for CopyProgress
 func (p *CopyProgress) AddTotalFiles(delta int64) {
@@ -192,7 +193,8 @@ func copyWithTimeout(dst io.Writer, src io.Reader, timeout time.Duration) (int64
 	}
 }
 
-// handleCopyCommand processes the copy command
+// handleCopyCommand processes the copy command with damaged disk handling
+// handleCopyCommand - regular copy with damaged disk protection (for safety commands)
 func handleCopyCommand(args []string) error {
 	if len(args) < 3 {
 		return fmt.Errorf("copy command requires source and target paths")
@@ -207,7 +209,47 @@ func handleCopyCommand(args []string) error {
 		return fmt.Errorf("source path does not exist: %s", sourcePath)
 	}
 
-	fmt.Printf("Copying from %s to %s\n", sourcePath, targetPath)
+	fmt.Printf("🔄 Starting copy with damaged disk protection from %s to %s\n", sourcePath, targetPath)
+
+	// Initialize damaged disk handler
+	damagedHandler, err := NewDamagedDiskHandler()
+	if err != nil {
+		fmt.Printf("Warning: Could not initialize damaged disk handler: %v\n", err)
+		// Continue without damage handling
+		if sourceInfo.IsDir() {
+			return copyDirectory(sourcePath, targetPath)
+		} else {
+			return copyFile(sourcePath, targetPath)
+		}
+	}
+	defer func() {
+		damagedHandler.PrintSummary()
+		damagedHandler.Close()
+	}()
+
+	if sourceInfo.IsDir() {
+		return copyDirectoryWithDamageHandling(sourcePath, targetPath, damagedHandler)
+	} else {
+		return copyFileWithDamageHandling(sourcePath, targetPath, sourceInfo, damagedHandler)
+	}
+}
+
+// handleCopyCommandNoDamage - regular copy without damaged disk protection (for normal operation)
+func handleCopyCommandNoDamage(args []string) error {
+	if len(args) < 3 {
+		return fmt.Errorf("copy command requires source and target paths")
+	}
+
+	sourcePath := args[1]
+	targetPath := args[2]
+
+	// Check if source exists
+	sourceInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return fmt.Errorf("source path does not exist: %s", sourcePath)
+	}
+
+	fmt.Printf("🔄 Starting regular copy from %s to %s\n", sourcePath, targetPath)
 
 	if sourceInfo.IsDir() {
 		return copyDirectory(sourcePath, targetPath)
@@ -417,6 +459,7 @@ func showProgress(progress *CopyProgress) {
 	copiedSize := progress.GetCopiedSize()
 	totalSize := progress.GetTotalSize()
 	totalFiles := progress.GetTotalFiles()
+	damagedFiles := atomic.LoadInt64(&progress.DamagedFiles)
 	
 	elapsed := time.Since(progress.StartTime)
 	
@@ -445,11 +488,182 @@ func showProgress(progress *CopyProgress) {
 	copiedMB := float64(copiedSize) / (1024 * 1024)
 	totalMB := float64(totalSize) / (1024 * 1024)
 	
-	fmt.Printf("\rCopying: %s [%d/%d files, %.1f/%.1f MB, ETA: %s]",
+	// Show damaged files count if any
+	damagedInfo := ""
+	if damagedFiles > 0 {
+		damagedInfo = fmt.Sprintf(", %d damaged", damagedFiles)
+	}
+	
+	fmt.Printf("\rCopying: %s [%d/%d files, %.1f/%.1f MB, ETA: %s%s]",
 		currentFile,
 		processedFiles,
 		totalFiles,
 		copiedMB,
 		totalMB,
-		eta)
+		eta,
+		damagedInfo)
+}
+
+// copyDirectoryWithDamageHandling copies entire directory structure with damage handling
+func copyDirectoryWithDamageHandling(sourcePath, targetPath string, handler *DamagedDiskHandler) error {
+	// First, scan directory to calculate total files and size
+	progress := &CopyProgress{
+		StartTime: time.Now(),
+	}
+
+	fmt.Println("🔍 Scanning directory structure...")
+	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			progress.logError(path, fmt.Errorf("error accessing during scan: %v", err))
+			return nil // Skip files with errors
+		}
+		
+		// For broken sources, use timeout for stat operations during scanning
+		if info == nil {
+			// Re-stat with timeout if info is nil
+			timeoutInfo, statErr := statWithTimeout(path, FileOperationTimeout)
+			if statErr != nil {
+				progress.logError(path, fmt.Errorf("stat timeout during scan: %v", statErr))
+				return nil
+			}
+			info = timeoutInfo
+		}
+		
+		if !info.IsDir() {
+			progress.AddTotalFiles(1)
+			progress.AddTotalSize(info.Size())
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("error scanning directory: %v", err)
+	}
+
+	fmt.Printf("📁 Found %d files, total size: %.2f MB\n", 
+		progress.GetTotalFiles(), float64(progress.GetTotalSize())/(1024*1024))
+
+	// Now perform the actual copy with damage handling
+	copyErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			progress.logError(path, fmt.Errorf("error accessing during copy: %v", err))
+			return nil // Continue with other files
+		}
+
+		// For broken sources, handle cases where info might be corrupted
+		if info == nil {
+			// Re-stat with timeout if info is nil
+			timeoutInfo, statErr := statWithTimeout(path, FileOperationTimeout)
+			if statErr != nil {
+				progress.logError(path, fmt.Errorf("stat timeout during copy: %v", statErr))
+				return nil
+			}
+			info = timeoutInfo
+		}
+
+		// Calculate relative path
+		relPath, err := filepath.Rel(sourcePath, path)
+		if err != nil {
+			progress.logError(path, fmt.Errorf("error calculating relative path: %v", err))
+			return nil
+		}
+
+		targetFilePath := filepath.Join(targetPath, relPath)
+
+		if info.IsDir() {
+			// Create directory
+			err := os.MkdirAll(targetFilePath, info.Mode())
+			if err != nil {
+				progress.logError(targetFilePath, fmt.Errorf("error creating directory: %v", err))
+			}
+			return nil
+		}
+
+		// Copy file with damage handling and progress tracking
+		progress.SetCurrentFile(path)
+		return copyFileWithDamageHandlingAndProgress(path, targetFilePath, info, progress, handler)
+	})
+	
+	// Print error summary at the end
+	progress.printErrorSummary()
+	
+	return copyErr
+}
+
+// copyFileWithDamageHandling copies a single file with damage handling
+func copyFileWithDamageHandling(sourcePath, targetPath string, sourceInfo os.FileInfo, handler *DamagedDiskHandler) error {
+	progress := &CopyProgress{
+		StartTime:  time.Now(),
+	}
+	
+	// Initialize atomic fields
+	progress.AddTotalFiles(1)
+	progress.AddTotalSize(sourceInfo.Size())
+	progress.SetCurrentFile(sourcePath)
+
+	// Create target directory if it doesn't exist
+	targetDir := filepath.Dir(targetPath)
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return fmt.Errorf("error creating target directory: %v", err)
+	}
+
+	return copyFileWithDamageHandlingAndProgress(sourcePath, targetPath, sourceInfo, progress, handler)
+}
+
+// copyFileWithDamageHandlingAndProgress copies a single file with damage handling and updates progress
+func copyFileWithDamageHandlingAndProgress(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *CopyProgress, handler *DamagedDiskHandler) error {
+	// Check if target file already exists (with timeout for broken filesystems)
+	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
+		// Update counters and show skip message
+		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
+		currentSize := atomic.AddInt64(&progress.CopiedSize, sourceInfo.Size())
+		
+		// Calculate ETA
+		elapsed := time.Since(progress.StartTime)
+		eta := "unknown"
+		if currentSize > 0 {
+			remainingSize := progress.TotalSize - currentSize
+			if remainingSize > 0 {
+				speed := float64(currentSize) / elapsed.Seconds() // bytes per second
+				etaSeconds := int64(float64(remainingSize) / speed)
+				eta = formatETA(time.Duration(etaSeconds) * time.Second)
+			} else {
+				eta = "0s"
+			}
+		}
+
+		fmt.Printf("⏭️ Skipped: (%d/%d) %s (%.2f / %.2f MB) ETA: %s - already exists\n", 
+			currentFile,
+			progress.TotalFiles,
+			sourcePath,
+			float64(currentSize)/(1024*1024),
+			float64(progress.TotalSize)/(1024*1024),
+			eta)
+		return nil
+	}
+
+	// Use damage handler to copy the file
+	err := handler.CopyFileWithDamageHandling(sourcePath, targetPath, sourceInfo, nil)
+	if err != nil {
+		// This is a critical error, not a damage issue
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		progress.logError(sourcePath, fmt.Errorf("copy error: %v", err))
+		return nil // Continue with other files
+	}
+	
+	// Check if file was actually copied (not skipped due to damage)
+	if _, statErr := os.Stat(targetPath); statErr == nil {
+		// File was successfully copied
+		atomic.AddInt64(&progress.CopiedSize, sourceInfo.Size())
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		
+		// Show progress after successful copy
+		showProgress(progress)
+	} else {
+		// File was skipped due to damage
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		atomic.AddInt64(&progress.DamagedFiles, 1)
+	}
+
+	return nil
 }
