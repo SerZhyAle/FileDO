@@ -82,7 +82,41 @@ filedo folder D:\Cache w
 filedo C: info
 ```
 
-### 📥 Installation
+### � Compare & Cleanup
+
+```bash
+# Compare two folders and show summary + save report
+filedo compare D:\Data E:\Backup
+
+# Compare and delete (permanent, no confirmation)
+filedo cmp D:\Data E:\Backup del source  # delete in Source if also exists in Target
+filedo cmp D:\Data E:\Backup del target  # delete in Target if also exists in Source
+filedo cmp D:\Data E:\Backup del old     # delete older side (by mtime), equal time: skip
+filedo cmp D:\Data E:\Backup del new     # delete newer side (by mtime), equal time: skip
+filedo cmp D:\Data E:\Backup del small   # delete smaller side, equal size: skip
+filedo cmp D:\Data E:\Backup del big     # delete bigger side, equal size: skip
+
+# Optional side qualifier (only apply when that side matches)
+filedo cmp D:\Data E:\Backup del small source  # only if smaller is on Source
+filedo cmp D:\Data E:\Backup del big target    # only if bigger is on Target
+filedo cmp D:\Data E:\Backup del old target    # only if older is on Target
+filedo cmp D:\Data E:\Backup del new source    # only if newer is on Source
+```
+
+Notes: matching by relative path, size-only equality; optional side qualifier for old/new/small/big; mtime used for old/new; Windows compare is case-insensitive; logs: compare_report_*.log, delete_report_<mode>_*.log.
+
+### 🧪 Health CHECK (fast read check)
+
+```bash
+# Check folder by reading files; mark as damaged if initial read delay > 2.0s
+filedo check F:\Mov
+```
+
+- One-time warm-up allowance up to 10.0s before the first read (spin-up)
+- Uses skip_files.list for immediate, persistent recording (no damaged_files.log)
+- Skips paths already in skip_files.list; parallel workers; Ctrl+C supported
+
+### �📥 Installation
 
 1. **Download**: Get `filedo.exe` from releases
 2. **GUI Option**: Also download `filedo_win.exe` for visual interface (VB.NET)
@@ -309,6 +343,8 @@ filedo network \\pc\share info
 > **🟢 Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. Use `clean` command to remove them automatically.
 
 > **🔵 Modular Architecture**: Refactored with separate `capacitytest` and `fileduplicates` packages for better maintainability and extensibility.
+
+> **🧪 CHECK Command**: Marks a file as damaged if initial read delay exceeds 2.0s. Allows a one-time warm-up up to 10.0s. Writes immediately to `skip_files.list` and respects existing entries. No `damaged_files.log`.
 
 ---
 

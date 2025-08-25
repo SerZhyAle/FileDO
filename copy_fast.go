@@ -191,6 +191,11 @@ type FastCopyProgress struct {
 	LastProgressTime   time.Time // Last time progress was updated
 	LastProgressFiles  int64     // File count at last progress update
 	StuckFileDetected  bool      // Flag indicating stuck file detected
+
+	// Stuck file details and immediate logging control
+	SuspectedStuckFile string
+	SuspectedStuckSince time.Time
+	StuckLogged        bool
 	
 	// Current file progress tracking
 	CurrentFileBytes   int64     // Bytes copied for current file
@@ -303,9 +308,9 @@ func (progress *FastCopyProgress) getDisplayFile() (string, int64) {
 	progress.LargeFilesMux.RUnlock()
 	
 	// Priority 2: Show regular active files
-	progress.ActiveFilesMux.RLock()
-	defer progress.ActiveFilesMux.RUnlock()
-	
+	progress.ActiveFilesMux.Lock()
+	defer progress.ActiveFilesMux.Unlock()
+
 	if len(progress.ActiveFilesList) == 0 {
 		// Fallback to old CurrentFile system
 		progress.CurrentFileMux.RLock()
@@ -313,9 +318,10 @@ func (progress *FastCopyProgress) getDisplayFile() (string, int64) {
 		progress.CurrentFileMux.RUnlock()
 		return currentFile, 0 // Unknown size for fallback
 	}
-	
-	// Show the most recently added file (currently being processed)
-	activeFile := progress.ActiveFilesList[len(progress.ActiveFilesList)-1]
+
+	// Rotate displayed file to avoid showing the same path every tick
+	progress.LastDisplayedFile = (progress.LastDisplayedFile + 1) % len(progress.ActiveFilesList)
+	activeFile := progress.ActiveFilesList[progress.LastDisplayedFile]
 	return activeFile.Path, activeFile.Size
 }
 
@@ -435,6 +441,23 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 		return fmt.Errorf("failed to create target file: %v", err)
 	}
 	defer targetFile.Close()
+
+	// Register cleanup hooks
+	completed := false
+	if handler != nil {
+		localTarget := targetPath
+		// Unblock I/O on interrupt
+		handler.AddCleanup(func() {
+			sourceFile.Close()
+			targetFile.Close()
+		})
+		// Remove partial target on force-exit
+		handler.AddCleanup(func() {
+			if handler.IsForceExit() && !completed {
+				_ = os.Remove(localTarget)
+			}
+		})
+	}
 	
 	fileSize := sourceInfo.Size()
 	
@@ -458,6 +481,9 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 	}
 	
 	for offset := int64(0); offset < fileSize; offset += chunkSize {
+		if handler != nil && handler.IsInterrupted() {
+			return fmt.Errorf("operation interrupted by user")
+		}
 		remainingSize := fileSize - offset
 		mapSize := chunkSize
 		if remainingSize < chunkSize {
@@ -562,6 +588,7 @@ func copyFileWithMemoryMapping(sourcePath, targetPath string, sourceInfo os.File
 		procCloseHandle.Call(sourceMappingHandle)
 	}
 	
+	completed = true
 	return nil
 }
 
@@ -579,6 +606,23 @@ func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, prog
 		return fmt.Errorf("failed to create target file: %v", err)
 	}
 	defer targetFile.Close()
+
+	// Register cleanup hooks
+	completed := false
+	if handler != nil {
+		localTarget := targetPath
+		// On any interrupt: close files to unblock pending I/O immediately
+		handler.AddCleanup(func() {
+			sourceFile.Close()
+			targetFile.Close()
+		})
+		// On force-exit: remove partial target
+		handler.AddCleanup(func() {
+			if handler.IsForceExit() && !completed {
+				_ = os.Remove(localTarget)
+			}
+		})
+	}
 	
 	if err := preallocateFile(targetFile, sourceInfo.Size()); err != nil {
 		fmt.Printf("Warning: Failed to preallocate space: %v\n", err)
@@ -614,10 +658,14 @@ func copyFileRegular(sourcePath, targetPath string, sourceInfo os.FileInfo, prog
 			if readErr == io.EOF {
 				break
 			}
+			if handler != nil && handler.IsInterrupted() {
+				return fmt.Errorf("operation interrupted by user")
+			}
 			return fmt.Errorf("failed to read from source: %v", readErr)
 		}
 	}
 	
+	completed = true
 	return nil
 }
 
@@ -735,19 +783,16 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 		return nil
 	}
 
-	// Enable damaged-disk progress timeout only in safe/rescue-like configs
-	// Heuristics: single-threaded, sync I/O, forced flush, and very small buffers (<=128KB)
-	enableProgressTimeout := config.SyncReadWrite && config.ForceFlush && config.MaxConcurrentFiles == 1 && config.MinBufferSize <= 128*1024
+	// Enable progress-timeout for all modes. Timeout value can be overridden via FILEDO_TIMEOUT_NOPROGRESS_SECONDS
+	timeoutCfg := NewDamagedDiskConfig()
 	var damagedHandler *DamagedDiskHandler
-	if enableProgressTimeout {
-		if h, _ := NewDamagedDiskHandler(); h != nil {
-			damagedHandler = h
-			defer damagedHandler.Close()
-		}
-	}
 	
-	// Use context for cancellation control
-	ctx, cancel := context.WithCancel(context.Background())
+	// Use context for cancellation control; derive from interrupt handler to react to Ctrl+C
+	parentCtx := context.Background()
+	if handler != nil {
+		parentCtx = handler.Context()
+	}
+	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 	
 	// Channels for copy result and progress tracking
@@ -759,26 +804,34 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	}()
 	
 
-	if !enableProgressTimeout {
-		// Normal/fast modes: no damaged-disk timeout here; just wait for completion
-		err := <-copyResult
-		if err == nil {
-			atomic.AddInt64(&progress.ProcessedFiles, 1)
-		}
-		return err
-	}
-
-	// Safe/rescue: Track progress-based timeout - only timeout if no bytes read for 10 seconds
+	// Track progress-based timeout - only timeout if no bytes read for configured duration
 	lastProgressTime := time.Now()
 	var lastBytesRead int64 = 0
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
+	timedOut := false
 
 	for {
 		select {
 		case err := <-copyResult:
 			if err == nil {
 				atomic.AddInt64(&progress.ProcessedFiles, 1)
+				return nil
+			}
+			// If context was cancelled, decide if by timeout or by user interrupt
+			if ctx.Err() != nil {
+				if timedOut {
+					if damagedHandler == nil {
+						if h, _ := NewDamagedDiskHandlerQuiet(); h != nil { damagedHandler = h; defer damagedHandler.Close() }
+					}
+					if damagedHandler != nil {
+						damagedHandler.LogDamagedFile(sourcePath, "timeout", sourceInfo.Size(), 1, "file copy timeout without progress")
+					}
+					_ = os.Remove(targetPath)
+					atomic.AddInt64(&progress.ProcessedFiles, 1)
+					return nil
+				}
+				return fmt.Errorf("operation interrupted by user")
 			}
 			return err
 		case bytesRead := <-progressChan:
@@ -787,14 +840,9 @@ func copyFileWithBuffers(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 				lastBytesRead = bytesRead
 			}
 		case <-ticker.C:
-			if time.Since(lastProgressTime) > 10*time.Second {
+			if time.Since(lastProgressTime) > timeoutCfg.FileTimeout {
+				timedOut = true
 				cancel()
-				if damagedHandler != nil {
-					damagedHandler.LogDamagedFile(sourcePath, "timeout", sourceInfo.Size(), 1, "file copy timeout after 10s without progress")
-				}
-				fmt.Printf("⚠️ SKIPPED stuck file: %s (timeout)\n", sourcePath)
-				atomic.AddInt64(&progress.ProcessedFiles, 1)
-				return nil
 			}
 		}
 	}
@@ -815,6 +863,28 @@ func copyFileWithBuffersInternalProgress(ctx context.Context, sourcePath, target
 		return fmt.Errorf("failed to create target file: %v", err)
 	}
 	defer targetFile.Close()
+
+	// Register cleanup to remove partial target on force-exit
+	completed := false
+	if handler != nil {
+		localTarget := targetPath
+		handler.AddCleanup(func() {
+			if handler.IsForceExit() && !completed {
+				targetFile.Close()
+				_ = os.Remove(localTarget)
+			}
+		})
+	}
+
+	// Unblock on cancellation by closing files
+	cancelOnce := sync.Once{}
+	go func() {
+		<-ctx.Done()
+		cancelOnce.Do(func() {
+			sourceFile.Close()
+			targetFile.Close()
+		})
+	}()
 
 	// Get buffer from pool
 	bufferSize := config.MaxBufferSize
@@ -859,12 +929,18 @@ func copyFileWithBuffersInternalProgress(ctx context.Context, sourcePath, target
 			default:
 			}
 
+			// Update current file progress for display fallback
+			if progress != nil {
+				progress.setCurrentFileProgress(sourcePath, sourceInfo.Size(), totalBytesRead)
+			}
+
 			if _, writeErr := targetFile.Write(buffer[:n]); writeErr != nil {
 				return fmt.Errorf("failed to write to target file: %v", writeErr)
 			}
 
 			// Update global progress
 			atomic.AddInt64(&progress.CopiedSize, int64(n))
+			atomic.AddInt64(&progress.ActualCopiedSize, int64(n))
 		}
 
 		if readErr == io.EOF {
@@ -886,6 +962,7 @@ func copyFileWithBuffersInternalProgress(ctx context.Context, sourcePath, target
 		fmt.Printf("Warning: failed to set permissions: %v\n", err)
 	}
 
+	completed = true
 	return nil
 }
 
@@ -1044,11 +1121,6 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 			select {
 			case <-progressTicker.C:
 				showFastProgress(progress)
-				// Check if stuck file detected and auto-fallback is needed
-				if progress.StuckFileDetected {
-					// Set a flag to trigger fallback - we'll check this in the main function
-					fmt.Printf("⏰ Continuing with current attempt... (Ctrl+C to stop and retry with safe mode)\n")
-				}
 			case <-done:
 				return
 			}
@@ -1246,6 +1318,21 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 		return fmt.Errorf("failed to create target file: %v", err)
 	}
 	defer targetFile.Close()
+
+	// Register cleanup to remove partial target and unblock I/O
+	completed := false
+	if handler != nil {
+		localTarget := targetPath
+		handler.AddCleanup(func() {
+			sourceFile.Close()
+			targetFile.Close()
+		})
+		handler.AddCleanup(func() {
+			if handler.IsForceExit() && !completed {
+				_ = os.Remove(localTarget)
+			}
+		})
+	}
 	
 	// Copy file content using provided buffer
 	for {
@@ -1254,8 +1341,10 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 			return fmt.Errorf("operation terminated by user (force exit)")
 		}
 		
-		// Skip graceful interruption check - let files complete or timeout naturally
-		// The timeout wrapper in copyFileWithBuffers will handle stuck files
+		// React to graceful interruption immediately for small files
+		if handler != nil && handler.IsInterrupted() {
+			return fmt.Errorf("operation interrupted by user")
+		}
 		
 		bytesRead, readErr := sourceFile.Read(buffer)
 		if bytesRead > 0 {
@@ -1264,6 +1353,9 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 				return fmt.Errorf("failed to write to target: %v", writeErr)
 			}
 			
+			// Update current file progress for display fallback
+			progress.setCurrentFileProgress(sourcePath, sourceInfo.Size(), int64(bytesRead))
+
 			atomic.AddInt64(&progress.CopiedSize, int64(bytesRead))
 			atomic.AddInt64(&progress.ActualCopiedSize, int64(bytesRead))
 		}
@@ -1271,6 +1363,9 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 		if readErr != nil {
 			if readErr == io.EOF {
 				break
+			}
+			if handler != nil && handler.IsInterrupted() {
+				return fmt.Errorf("operation interrupted by user")
 			}
 			return fmt.Errorf("failed to read from source: %v", readErr)
 		}
@@ -1286,6 +1381,7 @@ func copySmallFileDirect(sourcePath, targetPath string, sourceInfo os.FileInfo, 
 	}
 	
 	atomic.AddInt64(&progress.ProcessedFiles, 1)
+	completed = true
 	return nil
 }
 
@@ -1295,7 +1391,10 @@ func showFastProgress(progress *FastCopyProgress) {
 	totalFiles := atomic.LoadInt64(&progress.TotalFiles)
 	totalSize := atomic.LoadInt64(&progress.TotalSize)
 	activeFiles := atomic.LoadInt64(&progress.ActiveFiles)
-	
+    
+	// Determine current display file early for stuck diagnostics
+	displayFilePath, displayFileSize := progress.getDisplayFile()
+
 	// Check for stuck files - if no progress for 10 seconds, mark as stuck
 	now := time.Now()
 	if progress.LastProgressTime.IsZero() {
@@ -1306,33 +1405,40 @@ func showFastProgress(progress *FastCopyProgress) {
 			// No progress for 10 seconds - stuck file detected
 			if !progress.StuckFileDetected {
 				progress.StuckFileDetected = true
-				fmt.Printf("\n⚠️  STUCK FILE DETECTED: No progress for 10+ seconds!\n")
-				fmt.Printf("🛡️ File appears to be damaged or on bad disk sectors.\n")
-				fmt.Printf("💡 Auto-switching to RESCUE mode in 5 seconds...\n")
-				
-				// Set a flag that will be checked by the main copy loop
-				// We'll use the global interrupt handler to signal this condition
-				if globalInterruptHandler != nil {
-					// Trigger a graceful interruption after 15 total seconds
-					go func() {
-						time.Sleep(5 * time.Second)
-						if processedFiles == progress.LastProgressFiles {
-							fmt.Printf("🔄 Triggering auto-rescue mode...\n")
-							globalInterruptHandler.Interrupt()
+				progress.SuspectedStuckFile = displayFilePath
+				progress.SuspectedStuckSince = now
+				progress.StuckLogged = false
+				truncated := truncateFilePath(displayFilePath, 90)
+				fmt.Printf("\n⚠️  STUCK FILE DETECTED: %s\n", truncated)
+				fmt.Printf("🛡️ No progress for 10+ seconds (possible bad sectors)\n")
+				fmt.Printf("💡 Recording to skip list immediately and will auto-skip.\n")
+				// Immediate append to skip list to avoid future attempts in next runs
+				if progress.SuspectedStuckFile != "" && !progress.StuckLogged {
+					if h, _ := NewDamagedDiskHandlerQuiet(); h != nil {
+						size := displayFileSize
+						if size <= 0 {
+							if info, err := os.Stat(progress.SuspectedStuckFile); err == nil {
+								size = info.Size()
+							}
 						}
-					}()
+						h.LogDamagedFile(progress.SuspectedStuckFile, "stuck-detected", size, 1, "no progress for 10+ seconds")
+						h.Close()
+						progress.StuckLogged = true
+					}
 				}
 			}
+			// Already logged immediately above; do nothing here
 		} else {
 			// Progress made, reset detection
 			progress.LastProgressTime = now
 			progress.LastProgressFiles = processedFiles
 			progress.StuckFileDetected = false
+			progress.SuspectedStuckFile = ""
+			progress.StuckLogged = false
 		}
 	}
-	
-	// Get display file with size using priority system
-	displayFilePath, displayFileSize := progress.getDisplayFile()
+    
+	// Get display file with size using priority system (computed earlier)
 	
 	elapsed := time.Since(progress.StartTime)
 	
@@ -1440,6 +1546,12 @@ func fastCopyWithFallback(sourcePath, targetPath string, isRetry bool) error {
 	
 	// Check for hardware errors that indicate damaged drives
 	errorStr := err.Error()
+	// If user interrupted, don't fallback to safe mode; just propagate
+	if globalInterruptHandler != nil && globalInterruptHandler.IsInterrupted() {
+		if strings.Contains(errorStr, "interrupted") || strings.Contains(errorStr, "cancelled") {
+			return err
+		}
+	}
 	isHardwareError := strings.Contains(errorStr, "slice bounds out of range") ||
 		strings.Contains(errorStr, "runtime error") ||
 		strings.Contains(errorStr, "panic") ||

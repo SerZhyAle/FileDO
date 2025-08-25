@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ type DamagedDiskConfig struct {
 	UseSkipList       bool          // Использовать ли список пропуска при следующих запусках
 	LogDetailedErrors bool          // Логировать ли детальные ошибки
 	BufferSize        int           // Размер буфера для чтения (меньший для безопасности)
+	Quiet             bool          // Тихий режим (без лишних сообщений в консоль)
 }
 
 // DamagedFileInfo содержит информацию о повреждённом файле
@@ -38,23 +40,38 @@ type DamagedDiskHandler struct {
 	config      DamagedDiskConfig
 	damagedFiles []DamagedFileInfo
 	skipSet     map[string]bool
+	persistedSkipSet map[string]bool
 	mutex       sync.RWMutex
-	logFile     *os.File
 	workingDir  string
+
+	// Session stats
+	sessionSkippedCount int
+	sessionLastSkipped  string
 }
 
 // NewDamagedDiskConfig создаёт конфигурацию по умолчанию для повреждённых дисков
 func NewDamagedDiskConfig() DamagedDiskConfig {
+	// Allow override via environment variable (seconds)
+	timeout := 10 * time.Second
+	if v := os.Getenv("FILEDO_TIMEOUT_NOPROGRESS_SECONDS"); v != "" {
+		if n, err := time.ParseDuration(v + "s"); err == nil && n > 0 {
+			timeout = n
+		}
+	}
 	return DamagedDiskConfig{
-		FileTimeout:       10 * time.Second,
+		FileTimeout:       timeout,
 		DamagedLogFile:    "damaged_files.log",
 		SkipListFile:      "skip_files.list",
 		RetryCount:        1,
 		UseSkipList:       true,
 		LogDetailedErrors: true,
 		BufferSize:        64 * 1024, // 64KB буфер для безопасности
+		Quiet:             false,
 	}
 }
+
+// global flag to avoid repeated prints about loaded skip list
+var skipListLoadedPrinted bool
 
 // NewDamagedDiskHandler создаёт новый обработчик для повреждённых дисков
 func NewDamagedDiskHandler() (*DamagedDiskHandler, error) {
@@ -73,6 +90,7 @@ func NewDamagedDiskHandler() (*DamagedDiskHandler, error) {
 	handler := &DamagedDiskHandler{
 		config:     config,
 		skipSet:    make(map[string]bool),
+	persistedSkipSet: make(map[string]bool),
 		workingDir: workingDir,
 	}
 	
@@ -81,19 +99,35 @@ func NewDamagedDiskHandler() (*DamagedDiskHandler, error) {
 		fmt.Printf("Warning: Could not load skip list: %v\n", err)
 	}
 	
-	// Открываем лог-файл для записи
-	if err := handler.openLogFile(); err != nil {
-		fmt.Printf("Warning: Could not open log file: %v\n", err)
+	return handler, nil
+}
+
+// NewDamagedDiskHandlerQuiet создаёт обработчик в тихом режиме (без информационных сообщений)
+func NewDamagedDiskHandlerQuiet() (*DamagedDiskHandler, error) {
+	config := NewDamagedDiskConfig()
+	config.Quiet = true
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		workingDir = "."
 	}
-	
+	config.DamagedLogFile = filepath.Join(workingDir, config.DamagedLogFile)
+	config.SkipListFile = filepath.Join(workingDir, config.SkipListFile)
+
+	handler := &DamagedDiskHandler{
+		config:     config,
+		skipSet:    make(map[string]bool),
+		persistedSkipSet: make(map[string]bool),
+		workingDir: workingDir,
+	}
+	if err := handler.loadSkipList(); err != nil && !config.Quiet {
+		fmt.Printf("Warning: Could not load skip list: %v\n", err)
+	}
 	return handler, nil
 }
 
 // Close закрывает обработчик и сохраняет данные
 func (h *DamagedDiskHandler) Close() error {
-	if h.logFile != nil {
-		h.logFile.Close()
-	}
 	return h.saveSkipList()
 }
 
@@ -121,13 +155,16 @@ func (h *DamagedDiskHandler) loadSkipList() error {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line != "" && !strings.HasPrefix(line, "#") {
-			h.skipSet[line] = true
+			norm := h.normalizePath(line)
+			h.skipSet[norm] = true
+			h.persistedSkipSet[norm] = true
 			count++
 		}
 	}
 	
-	if count > 0 {
+	if count > 0 && !h.config.Quiet && !skipListLoadedPrinted {
 		fmt.Printf("📋 Loaded %d previously damaged files from skip list\n", count)
+		skipListLoadedPrinted = true
 	}
 	
 	return scanner.Err()
@@ -138,50 +175,54 @@ func (h *DamagedDiskHandler) saveSkipList() error {
 	if !h.config.UseSkipList {
 		return nil
 	}
-	
+	// Собираем список новых (за текущую сессию) путей и дописываем в файл без заголовков
 	h.mutex.RLock()
-	defer h.mutex.RUnlock()
-	
-	if len(h.skipSet) == 0 {
+	damagedSnapshot := make([]DamagedFileInfo, len(h.damagedFiles))
+	copy(damagedSnapshot, h.damagedFiles)
+	h.mutex.RUnlock()
+
+	if len(damagedSnapshot) == 0 {
 		return nil
 	}
-	
-	file, err := os.Create(h.config.SkipListFile)
+
+	// Откроем файл в режиме append
+	file, err := os.OpenFile(h.config.SkipListFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	
+
 	writer := bufio.NewWriter(file)
-	
-	// Заголовок файла
-	fmt.Fprintf(writer, "# FileDO Damaged Files Skip List\n")
-	fmt.Fprintf(writer, "# Generated: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(writer, "# Total files: %d\n\n", len(h.skipSet))
-	
-	// Записываем пути файлов
-	for filePath := range h.skipSet {
-		fmt.Fprintf(writer, "%s\n", filePath)
+	sessionWritten := make(map[string]bool)
+
+	for _, info := range damagedSnapshot {
+		norm := h.normalizePath(info.FilePath)
+		// Пропускаем уже сохранённые ранее или уже записанные в этой сессии
+		if h.persistedSkipSet[norm] || sessionWritten[norm] {
+			continue
+		}
+		if _, err := fmt.Fprintf(writer, "%s\n", norm); err != nil {
+			return err
+		}
+		sessionWritten[norm] = true
 	}
-	
-	return writer.Flush()
+
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+
+	// Обновляем persistedSkipSet новыми записями
+	h.mutex.Lock()
+	for norm := range sessionWritten {
+		h.persistedSkipSet[norm] = true
+		h.skipSet[norm] = true
+	}
+	h.mutex.Unlock()
+	return nil
 }
 
 // openLogFile открывает лог-файл для записи
-func (h *DamagedDiskHandler) openLogFile() error {
-	var err error
-	h.logFile, err = os.OpenFile(h.config.DamagedLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	
-	// Записываем заголовок сессии
-	fmt.Fprintf(h.logFile, "\n=== FileDO Damaged Files Log Session ===\n")
-	fmt.Fprintf(h.logFile, "Started: %s\n", time.Now().Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(h.logFile, "Timeout: %v\n\n", h.config.FileTimeout)
-	
-	return nil
-}
+// openLogFile removed: damaged_files.log is no longer used
 
 // ShouldSkipFile проверяет, нужно ли пропустить файл
 func (h *DamagedDiskHandler) ShouldSkipFile(filePath string) bool {
@@ -192,7 +233,7 @@ func (h *DamagedDiskHandler) ShouldSkipFile(filePath string) bool {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 	
-	return h.skipSet[filePath]
+	return h.skipSet[h.normalizePath(filePath)]
 }
 
 // LogDamagedFile записывает информацию о повреждённом файле
@@ -205,31 +246,38 @@ func (h *DamagedDiskHandler) LogDamagedFile(filePath, reason string, size int64,
 		AttemptNum:  attemptNum,
 		ErrorDetail: errorDetail,
 	}
-	
+    
+	// Немедленно фиксируем в памяти и (если включено) дописываем в skip_files.list без дубликатов
 	h.mutex.Lock()
 	h.damagedFiles = append(h.damagedFiles, info)
-	h.skipSet[filePath] = true // Добавляем в список пропуска
+	norm := h.normalizePath(filePath)
+	h.skipSet[norm] = true
+	if h.config.UseSkipList && !h.persistedSkipSet[norm] {
+		if f, err := os.OpenFile(h.config.SkipListFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err == nil {
+			// Каждую запись с новой строки, без заголовков
+			fmt.Fprintf(f, "%s\n", norm)
+			f.Close()
+			h.persistedSkipSet[norm] = true
+		} else {
+			fmt.Printf("Warning: failed to append to skip list: %v\n", err)
+		}
+	}
 	h.mutex.Unlock()
 	
-	// Выводим в консоль
-	fmt.Printf("⚠️ SKIPPED: %s (%s)\n", filePath, reason)
-	
-	// Записываем в лог-файл
-	if h.logFile != nil {
-		logEntry := fmt.Sprintf("[%s] SKIPPED: %s\n", 
-			time.Now().Format("2006-01-02 15:04:05"), filePath)
-		logEntry += fmt.Sprintf("  Reason: %s\n", reason)
-		logEntry += fmt.Sprintf("  Size: %d bytes\n", size)
-		logEntry += fmt.Sprintf("  Attempt: %d\n", attemptNum)
-		
-		if errorDetail != "" && h.config.LogDetailedErrors {
-			logEntry += fmt.Sprintf("  Error: %s\n", errorDetail)
-		}
-		logEntry += "\n"
-		
-		h.logFile.WriteString(logEntry)
-		h.logFile.Sync()
+	// Обновляем сессионные счетчики
+	h.mutex.Lock()
+	h.sessionSkippedCount++
+	h.sessionLastSkipped = filePath
+	sc := h.sessionSkippedCount
+	ls := h.sessionLastSkipped
+	h.mutex.Unlock()
+
+	// Выводим компактно, если не тихий режим
+	if !h.config.Quiet {
+		fmt.Printf("⚠️ SKIPPED: %s (%s) | session: %d, last: %s\n", filePath, reason, sc, ls)
 	}
+	
+	// damaged_files.log disabled; rely on skip_files.list and console output only
 }
 
 // GetDamagedStats возвращает статистику повреждённых файлов
@@ -270,7 +318,7 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 	
 	// Пытаемся скопировать файл с таймаутом
 	for attempt := 1; attempt <= h.config.RetryCount; attempt++ {
-		err := h.copyFileWithTimeoutAndProgress(sourcePath, targetPath, sourceInfo, attempt, progress)
+	err := h.copyFileWithTimeoutAndProgress(sourcePath, targetPath, sourceInfo, attempt, progress)
 		
 		if err == nil {
 			// Успешно скопировали
@@ -293,6 +341,11 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 			reason = "read error"
 		}
 		
+		// Если это была отмена пользователем — прерываем без логирования как повреждённый
+		if strings.Contains(errorStr, "interrupted by user") {
+			return fmt.Errorf("operation interrupted by user")
+		}
+
 		// Если это последняя попытка, логируем как повреждённый
 		if attempt >= h.config.RetryCount {
 			h.LogDamagedFile(sourcePath, reason, sourceInfo.Size(), attempt, errorStr)
@@ -308,7 +361,12 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 
 // copyFileWithTimeoutAndProgress копирует файл с таймаутом на основе отсутствия прогресса и обновлением внешнего прогресса
 func (h *DamagedDiskHandler) copyFileWithTimeoutAndProgress(sourcePath, targetPath string, sourceInfo os.FileInfo, attemptNum int, externalProgress interface{}) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Derive from global interrupt context if available to support Ctrl+C
+	parentCtx := context.Background()
+	if globalInterruptHandler != nil {
+		parentCtx = globalInterruptHandler.Context()
+	}
+	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
 	
 	// Канал для результата операции
@@ -330,6 +388,10 @@ func (h *DamagedDiskHandler) copyFileWithTimeoutAndProgress(sourcePath, targetPa
 	for {
 		select {
 		case err := <-done:
+			// If cancelled due to interrupt, return a specific error
+			if err != nil && ctx.Err() != nil && time.Since(lastProgressTime) <= h.config.FileTimeout {
+				return fmt.Errorf("operation interrupted by user")
+			}
 			return err
 		case bytesRead := <-progressChan:
 			// Получили прогресс - обновляем время последнего чтения
@@ -403,6 +465,16 @@ func (h *DamagedDiskHandler) copyFileInternalWithProgress(ctx context.Context, s
 		return fmt.Errorf("failed to create target file: %v", err)
 	}
 	defer targetFile.Close()
+
+	// Unblock stuck Read/Write on cancellation by closing files when context is done
+	cancelOnce := sync.Once{}
+	go func() {
+		<-ctx.Done()
+		cancelOnce.Do(func() {
+			sourceFile.Close()
+			targetFile.Close()
+		})
+	}()
 	
 	// Используем небольшой буфер для безопасности
 	buffer := make([]byte, h.config.BufferSize)
@@ -468,6 +540,22 @@ func (h *DamagedDiskHandler) copyFileInternal(sourcePath, targetPath string, sou
 	return h.copyFileInternalWithProgress(context.Background(), sourcePath, targetPath, sourceInfo, progressChan, nil)
 }
 
+// normalizePath нормализует путь для Windows/Unix (кейс и разделители)
+func (h *DamagedDiskHandler) normalizePath(p string) string {
+	if p == "" {
+		return p
+	}
+	abs := p
+	if ap, err := filepath.Abs(p); err == nil {
+		abs = ap
+	}
+	clean := filepath.Clean(abs)
+	if runtime.GOOS == "windows" {
+		return strings.ToLower(clean)
+	}
+	return clean
+}
+
 // PrintSummary выводит итоговую сводку
 func (h *DamagedDiskHandler) PrintSummary() {
 	damagedCount, damagedSize := h.GetDamagedStats()
@@ -489,7 +577,6 @@ func (h *DamagedDiskHandler) PrintSummary() {
 	if damagedCount > 0 {
 		fmt.Printf("⚠️ Newly damaged files found: %d\n", damagedCount)
 		fmt.Printf("💽 Total size of damaged files: %s\n", formatDiskFileSize(damagedSize))
-		fmt.Printf("📁 Damaged files log: %s\n", h.config.DamagedLogFile)
 		fmt.Printf("📋 Skip list updated: %s\n", h.config.SkipListFile)
 	}
 	

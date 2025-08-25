@@ -86,5 +86,479 @@
     "results": {},
     "duration": " 853.0ms",
     "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:11:28.5696073+02:00",
+    "command": "compare",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe compare test_dups test_dups",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:11:52.4749393+02:00",
+    "command": "compare",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe compare test_dups test_dups",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:26:14.6017635+02:00",
+    "command": "cmp",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe cmp test_dups test_dups del small",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:26:23.1817439+02:00",
+    "command": "cmp",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe cmp test_dups test_dups del source",
+    "parameters": {},
+    "results": {},
+    "duration": "   6.2ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:29:18.9485315+02:00",
+    "command": "cmp",
+    "target": "e:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo cmp e:/mov f:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "  63.4ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:30:05.8723302+02:00",
+    "command": "compare",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe compare test_dups test_dups del source",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:33:04.3012617+02:00",
+    "command": "cmp",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": "  49.3s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:37:57.2447205+02:00",
+    "command": "cmp",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/photo e:/photo delete small",
+    "parameters": {},
+    "results": {},
+    "duration": "  66.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:39:20.3015212+02:00",
+    "command": "cmp",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/mov e:/mov delete small",
+    "parameters": {},
+    "results": {},
+    "duration": " 710.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:44:59.5122344+02:00",
+    "command": "compare",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe compare test_dups test_dups del small source",
+    "parameters": {},
+    "results": {},
+    "duration": "   4.8ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:47:51.4334036+02:00",
+    "command": "cmp",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/mov e:/mov delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": " 109.2ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:48:14.5956941+02:00",
+    "command": "cmp",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": " 401.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T16:48:28.1173462+02:00",
+    "command": "device",
+    "target": "c:",
+    "operation": "info",
+    "fullCommand": "filedo c f:/photo e:/photo",
+    "parameters": {
+      "args": [
+        "c:",
+        "f:/photo",
+        "e:/photo"
+      ]
+    },
+    "results": {},
+    "duration": "   1.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:00:04.1023941+02:00",
+    "command": "compare",
+    "target": "test_dups",
+    "operation": "compare",
+    "fullCommand": "filedo.exe compare test_dups test_dups",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:00:13.7572686+02:00",
+    "command": "device",
+    "target": "C:",
+    "operation": "info",
+    "fullCommand": "filedo.exe C: info",
+    "parameters": {
+      "args": [
+        "C:",
+        "info"
+      ],
+      "fullScan": true
+    },
+    "results": {},
+    "duration": "  30.6s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:17:45.64796+02:00",
+    "command": "compare",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.8s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:18:32.5268169+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": "  15.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:19:23.4692696+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": "   2.9s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:19:45.9144299+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": " 203.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:28:00.9979997+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": " 217.2ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:32:56.6796262+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.3s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T17:42:35.7218788+02:00",
+    "command": "safecopy",
+    "target": "f:/photo",
+    "operation": "safecopy",
+    "fullCommand": "filedo safecopy f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": "1448.8s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:17:09.7018472+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": "  10.6s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:17:41.8720331+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.6s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:21:00.2802482+02:00",
+    "command": "compare",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "   3.6s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:31:23.9994845+02:00",
+    "command": "compare",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.9s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:31:37.6489769+02:00",
+    "command": "compare",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/mov e:/mov delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": " 483.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:32:57.733247+02:00",
+    "command": "compare",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "  54.0ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:33:09.3332152+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": "  10.7s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:41:06.675792+02:00",
+    "command": "cmp",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:41:34.2874461+02:00",
+    "command": "cmp",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/mov e:/mov delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": " 499.5ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:41:53.4104893+02:00",
+    "command": "cmp",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": "   9.5s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:51:35.1172376+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": " 212.4ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:51:56.9793298+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo ddelete small target",
+    "parameters": {},
+    "results": {},
+    "duration": " 212.4ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-24T18:52:17.9260438+02:00",
+    "command": "compare",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo compare f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": "   1.3s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T17:25:35.4025334+02:00",
+    "command": "safecopy",
+    "target": "f:/photo",
+    "operation": "safecopy",
+    "fullCommand": "filedo safecopy f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": " 524.9s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T17:34:57.158274+02:00",
+    "command": "safecopy",
+    "target": "f:/mov",
+    "operation": "safecopy",
+    "fullCommand": "filedo safecopy f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": " 639.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T17:35:11.4142989+02:00",
+    "command": "cmp",
+    "target": "f:/mov",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": "  51.7ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T17:35:34.3393634+02:00",
+    "command": "cmp",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/photo e:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": " 617.9ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T17:36:11.3124849+02:00",
+    "command": "cmp",
+    "target": "f:/photo",
+    "operation": "compare",
+    "fullCommand": "filedo cmp f:/photo e:/photo delete small target",
+    "parameters": {},
+    "results": {},
+    "duration": "   5.8s",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T17:36:43.0205264+02:00",
+    "command": "copy",
+    "target": "f:/mov",
+    "operation": "auto-copy",
+    "fullCommand": "filedo copy f:/mov e:/mov",
+    "parameters": {},
+    "results": {},
+    "duration": " 129.1ms",
+    "success": true
+  },
+  {
+    "timestamp": "2025-08-25T19:37:59.2911847+02:00",
+    "command": "check",
+    "target": "f:/photo",
+    "operation": "check",
+    "fullCommand": "filedo check f:/photo",
+    "parameters": {},
+    "results": {},
+    "duration": " 382.8s",
+    "success": true
   }
 ]

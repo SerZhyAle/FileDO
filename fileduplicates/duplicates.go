@@ -112,8 +112,20 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 					if filesScanned > 0 && percentDone > 0 {
 						timePerFile := elapsed.Seconds() / float64(filesScanned)
 						remainingFiles := totalFiles - filesScanned
-						remainingSeconds := int(timePerFile * float64(remainingFiles))
-						eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+						remainingSeconds := timePerFile * float64(remainingFiles)
+						if remainingSeconds < 60 {
+							eta = fmt.Sprintf("%.1fs", remainingSeconds)
+						} else if remainingSeconds < 3600 {
+							m := int64(remainingSeconds) / 60
+							s := remainingSeconds - float64(m*60)
+							eta = fmt.Sprintf("%dm %.1fs", m, s)
+						} else {
+							h := int64(remainingSeconds) / 3600
+							rem := remainingSeconds - float64(h*3600)
+							m := int64(rem) / 60
+							s := rem - float64(m*60)
+							eta = fmt.Sprintf("%dh %dm %.1fs", h, m, s)
+						}
 					}
 				}
 
@@ -188,8 +200,20 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 				if processed > 0 {
 					timePerFile := elapsed.Seconds() / float64(processed)
 					remainingFiles := totalCount - processed
-					remainingSeconds := int(timePerFile * float64(remainingFiles))
-					eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+					rs := timePerFile * float64(remainingFiles)
+					if rs < 60 {
+						eta = fmt.Sprintf("%.1fs", rs)
+					} else if rs < 3600 {
+						m := int64(rs) / 60
+						s := rs - float64(m*60)
+						eta = fmt.Sprintf("%dm %.1fs", m, s)
+					} else {
+						h := int64(rs) / 3600
+						rem := rs - float64(h*3600)
+						m := int64(rem) / 60
+						s := rem - float64(m*60)
+						eta = fmt.Sprintf("%dh %dm %.1fs", h, m, s)
+					}
 				}
 				fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
 					processed, totalCount, percent, eta)
@@ -219,8 +243,20 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 				if processed > 0 {
 					timePerFile := elapsed.Seconds() / float64(processed)
 					remainingFiles := totalCount - processed
-					remainingSeconds := int(timePerFile * float64(remainingFiles))
-					eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+					rs := timePerFile * float64(remainingFiles)
+					if rs < 60 {
+						eta = fmt.Sprintf("%.1fs", rs)
+					} else if rs < 3600 {
+						m := int64(rs) / 60
+						s := rs - float64(m*60)
+						eta = fmt.Sprintf("%dm %.1fs", m, s)
+					} else {
+						h := int64(rs) / 3600
+						rem := rs - float64(h*3600)
+						m := int64(rem) / 60
+						s := rem - float64(m*60)
+						eta = fmt.Sprintf("%dh %dm %.1fs", h, m, s)
+					}
 				}
 				fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
 					processed, totalCount, percent, eta)
@@ -282,8 +318,20 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 						if processed > 0 {
 							timePerFile := elapsed.Seconds() / float64(processed)
 							remainingFiles := fullHashCount - processed
-							remainingSeconds := int(timePerFile * float64(remainingFiles))
-							eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+							rs := timePerFile * float64(remainingFiles)
+							if rs < 60 {
+								eta = fmt.Sprintf("%.1fs", rs)
+							} else if rs < 3600 {
+								m := int64(rs) / 60
+								s := rs - float64(m*60)
+								eta = fmt.Sprintf("%dm %.1fs", m, s)
+							} else {
+								h := int64(rs) / 3600
+								rem := rs - float64(h*3600)
+								m := int64(rem) / 60
+								s := rem - float64(m*60)
+								eta = fmt.Sprintf("%dh %dm %.1fs", h, m, s)
+							}
 						}
 						fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
 							processed, fullHashCount, percent, eta)
@@ -315,8 +363,20 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 				if processed > 0 {
 					timePerFile := elapsed.Seconds() / float64(processed)
 					remainingFiles := fullHashCount - processed
-					remainingSeconds := int(timePerFile * float64(remainingFiles))
-					eta = fmt.Sprintf("%dm%ds", remainingSeconds/60, remainingSeconds%60)
+					rs := timePerFile * float64(remainingFiles)
+					if rs < 60 {
+						eta = fmt.Sprintf("%.1fs", rs)
+					} else if rs < 3600 {
+						m := int64(rs) / 60
+						s := rs - float64(m*60)
+						eta = fmt.Sprintf("%dm %.1fs", m, s)
+					} else {
+						h := int64(rs) / 3600
+						rem := rs - float64(h*3600)
+						m := int64(rem) / 60
+						s := rem - float64(m*60)
+						eta = fmt.Sprintf("%dh %dm %.1fs", h, m, s)
+					}
 				}
 				fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
 					processed, fullHashCount, percent, eta)

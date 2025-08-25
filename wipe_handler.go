@@ -48,7 +48,7 @@ func handleWipeCommand(args []string) error {
 	}
 
 	duration := time.Since(startTime)
-	fmt.Printf("\nWipe completed in %v\n", duration)
+	fmt.Printf("\nWipe completed in %s\n", formatDuration(duration))
 	return nil
 }
 

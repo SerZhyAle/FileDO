@@ -113,7 +113,7 @@ func (di DeviceInfo) String() string {
 		containsLabel = "Full Contains:"
 	}
 	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, di.FileCount, di.FolderCount))
-	b.WriteString(fmt.Sprintf("  Usage:         %.2f%%\n", float64(di.TotalBytes-di.FreeBytes)*100/float64(di.TotalBytes)))
+	b.WriteString(fmt.Sprintf("  Usage:         %.1f%%\n", float64(di.TotalBytes-di.FreeBytes)*100/float64(di.TotalBytes)))
 	if di.AccessErrors {
 		b.WriteString("\nWarning: Some information could not be gathered due to access restrictions.\n")
 		b.WriteString("         Run as administrator for a complete scan.\n")

@@ -387,7 +387,7 @@ func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileI
 				etaSeconds := int64(float64(remainingSize) / speed)
 				eta = formatETA(time.Duration(etaSeconds) * time.Second)
 			} else {
-				eta = "0s"
+				eta = "0.0s"
 			}
 		}
 
@@ -472,7 +472,7 @@ func showProgress(progress *CopyProgress) {
 			etaSeconds := int64(float64(remainingSize) / speed)
 			eta = formatETA(time.Duration(etaSeconds) * time.Second)
 		} else {
-			eta = "0s"
+			eta = "0.0s"
 		}
 	}
 
@@ -628,7 +628,7 @@ func copyFileWithDamageHandlingAndProgress(sourcePath, targetPath string, source
 				etaSeconds := int64(float64(remainingSize) / speed)
 				eta = formatETA(time.Duration(etaSeconds) * time.Second)
 			} else {
-				eta = "0s"
+				eta = "0.0s"
 			}
 		}
 

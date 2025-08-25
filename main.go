@@ -16,7 +16,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "2508241500"
+const version = "250825"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -354,6 +354,24 @@ Fast Content Wiping:
   filedo.exe network \\server\temp wipe   → Wipe network folder contents
   filedo.exe folder C:\Cache w            → Short form of wipe command
 
+Folder Compare:
+	filedo.exe compare D:\Source E:\Target   → Compare directory trees and report differences
+	filedo.exe cmp D:\Source E:\Target del source → Delete files in Source that also exist in Target
+	filedo.exe cmp D:\Source E:\Target del target → Delete files in Target that also exist in Source
+		filedo.exe cmp D:\Source E:\Target del old           → Delete older file of each pair (equal time: skip)
+		filedo.exe cmp D:\Source E:\Target del new           → Delete newer file of each pair (equal time: skip)
+		filedo.exe cmp D:\Source E:\Target del small         → Delete smaller file of each pair (equal size: skip)
+		filedo.exe cmp D:\Source E:\Target del big           → Delete bigger file of each pair (equal size: skip)
+		filedo.exe cmp D:\Source E:\Target del small source  → Delete only when smaller side is Source
+		filedo.exe cmp D:\Source E:\Target del big target    → Delete only when bigger side is Target
+		filedo.exe cmp D:\Source E:\Target del old target    → Delete only when older side is Target
+		filedo.exe cmp D:\Source E:\Target del new source    → Delete only when newer side is Source
+	Notes: matching by relative path; size-only comparison; mtime used for old/new; permanent delete; no confirmation
+
+Folder Health Check:
+	filedo.exe check D:\Data                 → Read-check all files; mark damaged on read delay > 2.0s
+	Notes: one-time warm-up up to 10.0s before first read; uses 'skip_files.list' immediately; parallel workers; Ctrl+C supported
+
 ═══════════════════════════════════════════════════════════════════════════════
 BATCH OPERATIONS & HISTORY
 
@@ -421,11 +439,9 @@ Batch Testing Multiple Locations:
 ═══════════════════════════════════════════════════════════════════════════════
 IMPORTANT NOTES
 
-• Damaged Disk Protection: All copy operations now include damaged disk
-  protection. Files that can't be read within 10 seconds are automatically
-  skipped and logged to 'damaged_files.log'. Next copy run will skip these 
-  files using 'skip_files.list'. Use 'safecopy'/'rescue'/'damaged' commands
-  for maximum protection on problematic drives.
+• Damaged Disk Protection (safe/rescue): Files that show no read progress for
+	10 seconds are skipped and appended immediately to 'skip_files.list'.
+	Timeout can be overridden via env var FILEDO_TIMEOUT_NOPROGRESS_SECONDS.
 
 • Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
   total capacity, to detect counterfeit storage devices that report false sizes.
@@ -472,6 +488,7 @@ var list_of_flags_for_network = []string{"network", "net", "n"}
 var list_of_flags_for_from = []string{"from", "batch", "script"}
 var list_of_flags_for_hist = []string{"hist", "history"}
 var list_of_flags_for_duplicates = []string{"check-duplicates", "cd", "duplicate"}
+var list_of_flags_for_compare = []string{"compare", "cmp"}
 var list_of_flags_for_copy = []string{"copy", "cp"}
 var list_of_flags_for_fastcopy = []string{"fastcopy", "fcopy", "fc"}
 var list_of_flags_for_synccopy = []string{"synccopy", "scopy", "sc"}
@@ -479,9 +496,10 @@ var list_of_flags_for_balanced = []string{"balanced", "bcopy", "bc"}
 var list_of_flags_for_maxcopy = []string{"maxcopy", "mcopy", "max", "turbo"}
 var list_of_flags_for_smartcopy = []string{"smartcopy", "smart", "auto"}
 var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue", "damaged"}
+var list_of_flags_for_check = []string{"check"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_wipe...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -685,6 +703,16 @@ func executeInternalCommand(args []string) error {
 		internalLogger.SetCommand(command, "", "history")
 		handleHistoryCommand(args)
 		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_compare, command):
+		if len(args) < 3 {
+			return fmt.Errorf("compare command requires source and target paths")
+		}
+		internalLogger.SetCommand(command, args[1], "compare")
+	if err := handleCompareCommand(args[1], args[2], args[3:]...); err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_copy, command):
 		// Handle intelligent copy command with automatic strategy selection
 		if len(args) < 3 {
@@ -765,6 +793,17 @@ func executeInternalCommand(args []string) error {
 		internalLogger.SetCommand(command, args[1], "safecopy")
 		err := SafeCopy(args[1], args[2])
 		if err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_check, command):
+		// Handle check command
+		if len(args) < 2 {
+			return fmt.Errorf("check command requires folder path")
+		}
+		internalLogger.SetCommand(command, args[1], "check")
+		if err := CheckFolder(args[1]); err != nil {
 			internalLogger.SetError(err)
 			return err
 		}
@@ -1160,6 +1199,19 @@ func main() {
 	case contains(list_of_flags_for_hist, command):
 		handleHistoryCommand(os.Args[1:])
 		return
+	case contains(list_of_flags_for_compare, command):
+		if len(add_args) < 2 {
+			fmt.Fprintf(os.Stderr, "Error: Compare command requires source and target paths\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "compare")
+	if err := handleCompareCommand(add_args[0], add_args[1], add_args[2:]...); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
 	case contains(list_of_flags_for_copy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Copy command requires source and target paths\n")
@@ -1245,6 +1297,19 @@ func main() {
 		}
 		historyLogger.SetCommand(command, add_args[0], "safecopy")
 		if err := SafeCopy(add_args[0], add_args[1]); err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_check, command):
+		if len(add_args) < 1 {
+			fmt.Fprintf(os.Stderr, "Error: CHECK command requires folder path\n")
+			os.Exit(1)
+		}
+		historyLogger.SetCommand(command, add_args[0], "check")
+		if err := CheckFolder(add_args[0]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

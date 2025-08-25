@@ -200,6 +200,30 @@ filedo_win.exe          # Windows GUI Interface
 
 ## 🔍 Erweiterte Funktionen
 
+### Ordnervergleich & Bereinigung
+
+```bash
+# Zwei Ordner vergleichen und Bericht speichern
+filedo compare D:\Data E:\Backup
+
+# Vergleichen und löschen (permanent, ohne Rückfrage)
+filedo cmp D:\Data E:\Backup del source  # in Source löschen, wenn in Target vorhanden
+filedo cmp D:\Data E:\Backup del target  # in Target löschen, wenn in Source vorhanden
+filedo cmp D:\Data E:\Backup del old     # ältere Seite löschen (mtime), Gleichheit: überspringen
+filedo cmp D:\Data E:\Backup del new     # neuere Seite löschen (mtime), Gleichheit: überspringen
+filedo cmp D:\Data E:\Backup del small   # kleinere Seite löschen, Gleichheit: überspringen
+filedo cmp D:\Data E:\Backup del big     # größere Seite löschen, Gleichheit: überspringen
+ 
+# Optionale Seiten-Einschränkung
+filedo cmp D:\Data E:\Backup del small source  # nur wenn kleiner auf Source
+filedo cmp D:\Data E:\Backup del big target    # nur wenn größer auf Target
+filedo cmp D:\Data E:\Backup del old target    # nur wenn älter auf Target
+filedo cmp D:\Data E:\Backup del new source    # nur wenn neuer auf Source
+```
+
+Hinweise: Abgleich per relativem Pfad; Gleichheit nur nach Größe; mtime für old/new; Windows ohne Groß-/Kleinschreibung; Logs: compare_report_*.log, delete_report_<mode>_*.log.
+
+
 ### Stapelverarbeitung
 `commands.txt` erstellen:
 ```text

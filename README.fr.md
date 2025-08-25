@@ -234,6 +234,29 @@ filedo \\nas\storage test del
 filedo network \\pc\share info
 ```
 
+### Comparaison de dossiers & Nettoyage
+
+```bash
+# Comparer deux dossiers et enregistrer un rapport
+filedo compare D:\Data E:\Backup
+
+# Comparer et supprimer (permanent, sans confirmation)
+filedo cmp D:\Data E:\Backup del source  # supprimer dans Source si présent dans Target
+filedo cmp D:\Data E:\Backup del target  # supprimer dans Target si présent dans Source
+filedo cmp D:\Data E:\Backup del old     # supprimer le plus ancien (mtime), égal: ignorer
+filedo cmp D:\Data E:\Backup del new     # supprimer le plus récent (mtime), égal: ignorer
+filedo cmp D:\Data E:\Backup del small   # supprimer le plus petit, égal: ignorer
+filedo cmp D:\Data E:\Backup del big     # supprimer le plus grand, égal: ignorer
+ 
+# Qualificateur de côté (facultatif)
+filedo cmp D:\Data E:\Backup del small source  # seulement si le plus petit est côté Source
+filedo cmp D:\Data E:\Backup del big target    # seulement si le plus grand est côté Target
+filedo cmp D:\Data E:\Backup del old target    # seulement si le plus ancien est côté Target
+filedo cmp D:\Data E:\Backup del new source    # seulement si le plus récent est côté Source
+```
+
+Notes: appariement par chemin relatif; égalité par taille seulement; mtime pour old/new; Windows insensible à la casse; logs: compare_report_*.log, delete_report_<mode>_*.log.
+
 ---
 
 ## ⚠️ Notes Importantes

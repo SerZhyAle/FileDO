@@ -22,6 +22,28 @@
 filedo E: test del
 
 # Тест продуктивності диска
+### Порівняння тек і очищення
+
+```bash
+# Порівняти дві теки і зберегти звіт
+filedo compare D:\Data E:\Backup
+
+# Порівняти і видалити (перманентно, без підтвердження)
+filedo cmp D:\Data E:\Backup del source  # видалити в Source, якщо є в Target
+filedo cmp D:\Data E:\Backup del target  # видалити в Target, якщо є в Source
+filedo cmp D:\Data E:\Backup del old     # видалити старіший (mtime), рівні: пропустити
+filedo cmp D:\Data E:\Backup del new     # видалити новіший (mtime), рівні: пропустити
+filedo cmp D:\Data E:\Backup del small   # видалити менший, рівні: пропустити
+filedo cmp D:\Data E:\Backup del big     # видалити більший, рівні: пропустити
+ 
+# Необов'язковий бік (обмеження за стороною)
+filedo cmp D:\Data E:\Backup del small source  # тільки якщо менший на Source
+filedo cmp D:\Data E:\Backup del big target    # тільки якщо більший на Target
+filedo cmp D:\Data E:\Backup del old target    # тільки якщо старіший на Target
+filedo cmp D:\Data E:\Backup del new source    # тільки якщо новіший на Source
+```
+
+Примітки: зіставлення за відносним шляхом; рівність — тільки за розміром; mtime для old/new; у Windows без урахування регістру; логи: compare_report_*.log, delete_report_<mode>_*.log.
 filedo C: speed 100
 
 # Безпечне очищення вільного місця

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"runtime"
 )
 
 type InterruptHandler struct {
@@ -31,7 +32,12 @@ func NewInterruptHandler() *InterruptHandler {
 
 	// Setup signal handling
 	sigChan := make(chan os.Signal, 2)
+	// Always listen for Ctrl+C (os.Interrupt) and SIGTERM
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	// On Windows, also listen for Ctrl+Break if available
+	if s := sigBreakSignal(); s != nil {
+		signal.Notify(sigChan, s)
+	}
 
 	go func() {
 		for sig := range sigChan {
@@ -76,20 +82,39 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 			// Second Ctrl+C within 3 seconds - immediate exit
 			ih.forceExit = true
 			fmt.Printf("\n🔥 Force exit requested! Terminating all processes immediately...\n")
+			// Execute cleanup functions to allow partial file cleanup
+			for i := len(ih.cleanupFns) - 1; i >= 0; i-- {
+				ih.cleanupFns[i]()
+			}
 			os.Exit(1)
 		} else {
 			// Ctrl+C after grace period - treat as new first Ctrl+C
 			ih.firstCtrlC = now
 			fmt.Printf("\n⚠ Interrupt signal received. Press Ctrl+C again within 3 seconds to force exit.\n")
 		}
-	} else if sig == syscall.SIGTERM {
+	} else if sig == syscall.SIGTERM || (func() bool { sb := sigBreakSignal(); return sb != nil && sig == sb })() {
 		// SIGTERM - graceful shutdown
 		ih.interrupted = true
 		for i := len(ih.cleanupFns) - 1; i >= 0; i-- {
 			ih.cleanupFns[i]()
 		}
 		ih.cancel()
+	} else {
+		// Other signals ignored
 	}
+}
+
+// isWindows helper
+func isWindows() bool {
+	return runtime.GOOS == "windows"
+}
+
+// sigBreakSignal returns the OS signal for Ctrl+Break on Windows, or nil elsewhere
+func sigBreakSignal() os.Signal {
+	if isWindows() {
+		return syscall.Signal(21) // syscall.SIGBREAK value on Windows
+	}
+	return nil
 }
 
 func (ih *InterruptHandler) AddCleanup(fn func()) {

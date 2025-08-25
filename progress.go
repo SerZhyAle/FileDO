@@ -97,13 +97,7 @@ func (pt *ProgressTracker) PrintProgress(operation string) {
 
 	var etaStr string
 	if eta > 0 && pt.currentItem < pt.totalItems {
-		if eta < time.Minute {
-			etaStr = fmt.Sprintf("ETA: %ds", int(eta.Seconds()))
-		} else if eta < time.Hour {
-			etaStr = fmt.Sprintf("ETA: %dm%ds", int(eta.Minutes()), int(eta.Seconds())%60)
-		} else {
-			etaStr = fmt.Sprintf("ETA: %dh%dm", int(eta.Hours()), int(eta.Minutes())%60)
-		}
+		etaStr = "ETA: " + formatETA(eta)
 	} else {
 		etaStr = "ETA: --"
 	}
