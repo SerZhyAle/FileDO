@@ -280,10 +280,10 @@ func CheckFolder(root string) error {
     }
     if !cfg.quiet {
         if fi, err := os.Stat(goodFile); err == nil && !fi.IsDir() {
-            fmt.Printf("Using good list: %s\n", goodFile)
+            fmt.Printf("Using good list: %s : %d\n", goodFile, len(goodSet))
         }
         if fi, err := os.Stat(damaged.config.SkipListFile); err == nil && !fi.IsDir() {
-            fmt.Printf("Using good list: %s\n", damaged.config.SkipListFile)
+            fmt.Printf("Using damaged list: %s : %d\n", damaged.config.SkipListFile, damaged.GetSkippedStats())
         }
     }
 
