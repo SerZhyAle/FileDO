@@ -76,6 +76,58 @@ filedo check F:\Mov
 - Запись сразу в `skip_files.list` (без `damaged_files.log`); повторные — пропуск
 - Параллельные воркеры; поддержка Ctrl+C
 
+#### Флаги CHECK (флаги имеют приоритет над переменными окружения)
+
+Флаги дублируют FILEDO_CHECK_* и удобны для интерактивного запуска.
+
+- Общие
+	- `--threshold <sec>` (FILEDO_CHECK_THRESHOLD_SECONDS)
+	- `--warmup <sec>` (FILEDO_CHECK_WARMUP_SECONDS)
+	- `--warmup-idle <sec>` (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)
+	- `--workers <int>` (FILEDO_CHECK_WORKERS)
+	- `--buf-kb <int>` (FILEDO_CHECK_BUF_KB)
+	- `--mode quick|balanced|deep` (FILEDO_CHECK_MODE)
+	- `--balanced-min-mb <int>` (FILEDO_CHECK_BALANCED_MIN_MB)
+	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB/MAX_MB)
+	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"`
+- Ограничения
+	- `--max-files <int>` (FILEDO_CHECK_MAX_FILES)
+	- `--max-seconds <float>` (FILEDO_CHECK_MAX_DURATION_SEC)
+	- `--precount` / `--no-precount` (FILEDO_CHECK_PRECOUNT)
+- Поведение и вывод
+	- `--dry-run` (FILEDO_CHECK_DRYRUN)
+	- `--verbose` (FILEDO_CHECK_VERBOSE)
+	- `--quiet` (FILEDO_CHECK_QUIET)
+	- `--resume` (FILEDO_CHECK_RESUME)
+- Отчёты
+	- `--report csv|json` (FILEDO_CHECK_REPORT)
+	- `--report-file <path>` (FILEDO_CHECK_REPORT_FILE)
+- Кэш «хороших» файлов
+	- `--good-list <path>` (FILEDO_CHECK_GOODLIST)
+- Режим single-reader и адаптивная пауза (для HDD/USB)
+	- `--single-reader auto|on|off` (FILEDO_CHECK_SINGLE_READER)
+	- `--ewma-alpha <float>` (FILEDO_CHECK_EWMA_ALPHA)
+	- `--ewma-high-frac <float>` (FILEDO_CHECK_EWMA_HIGH_FRAC)
+	- `--ewma-low-frac <float>` (FILEDO_CHECK_EWMA_LOW_FRAC)
+	- `--max-sleep-ms <int>` (FILEDO_CHECK_MAX_SLEEP_MS)
+	- `--sleep-step-ms <int>` (FILEDO_CHECK_SLEEP_STEP_MS)
+
+Примеры:
+
+```bash
+# Balanced-режим, фикс кол-ва потоков, подсчёт для стабильной ETA
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Принудительно один читатель + адаптивная пауза по EWMA
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Фильтрация по расширениям, лимит по кол-ву и CSV-отчёт
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Свой список «хороших» файлов и тихий вывод
+filedo check D:\Data --good-list D:\check_files.list --quiet
+```
+
 ### 📥 Установка
 
 1. **Скачать**: Получите `filedo.exe` из релизов

@@ -798,12 +798,12 @@ func executeInternalCommand(args []string) error {
 		}
 		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_check, command):
-		// Handle check command
+		// Handle check command with flags
 		if len(args) < 2 {
 			return fmt.Errorf("check command requires folder path")
 		}
 		internalLogger.SetCommand(command, args[1], "check")
-		if err := CheckFolder(args[1]); err != nil {
+		if err := HandleCheckArgs(args[1], args[2:]); err != nil {
 			internalLogger.SetError(err)
 			return err
 		}
@@ -1309,7 +1309,7 @@ func main() {
 			os.Exit(1)
 		}
 		historyLogger.SetCommand(command, add_args[0], "check")
-		if err := CheckFolder(add_args[0]); err != nil {
+		if err := HandleCheckArgs(add_args[0], add_args[1:]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
