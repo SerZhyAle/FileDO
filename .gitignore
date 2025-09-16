@@ -1,0 +1,88 @@
+# Compiled binaries and executables
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+/filedo
+/filedo.exe
+/filedo_fill
+/filedo_fill.exe
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace sum files
+go.work.sum
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Visual Studio / VB.NET
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.pdb
+*.resources
+
+# Runtime generated files
+history.json
+hash_cache.json
+damaged_files.log
+skip_files.list
+*.tmp
+
+# Test files created by FileDO
+FILL_*_*.tmp
+speedtest_*.txt
+test_source*/
+test_target*/
+test_problematic*/
+test_*_damaged/
+test_*_rescue*/
+test_*_safe/
+
+# FileDO specific temporary directories
+FileDO_Operations/
+
+# System files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk

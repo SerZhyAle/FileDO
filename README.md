@@ -112,6 +112,58 @@ Notes: matching by relative path, size-only equality; optional side qualifier fo
 filedo check F:\Mov
 ```
 
+### CHECK: CLI flags (flags override env)
+
+Flags mirror FILEDO_CHECK_* environment variables and have precedence. Use them after `check <path>`.
+
+- General
+	- `--threshold <sec>` (FILEDO_CHECK_THRESHOLD_SECONDS)
+	- `--warmup <sec>` (FILEDO_CHECK_WARMUP_SECONDS)
+	- `--warmup-idle <sec>` (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)
+	- `--workers <int>` (FILEDO_CHECK_WORKERS)
+	- `--buf-kb <int>` (FILEDO_CHECK_BUF_KB)
+	- `--mode quick|balanced|deep` (FILEDO_CHECK_MODE)
+	- `--balanced-min-mb <int>` (FILEDO_CHECK_BALANCED_MIN_MB)
+	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB/MAX_MB)
+	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"`
+- Limits
+	- `--max-files <int>` (FILEDO_CHECK_MAX_FILES)
+	- `--max-seconds <float>` (FILEDO_CHECK_MAX_DURATION_SEC)
+	- `--precount` / `--no-precount` (FILEDO_CHECK_PRECOUNT)
+- Behavior & output
+	- `--dry-run` (FILEDO_CHECK_DRYRUN)
+	- `--verbose` (FILEDO_CHECK_VERBOSE)
+	- `--quiet` (FILEDO_CHECK_QUIET)
+	- `--resume` (FILEDO_CHECK_RESUME)
+- Reporting
+	- `--report csv|json` (FILEDO_CHECK_REPORT)
+	- `--report-file <path>` (FILEDO_CHECK_REPORT_FILE)
+- Good files cache
+	- `--good-list <path>` (FILEDO_CHECK_GOODLIST)
+- HDD‑friendly I/O (single-reader + adaptive throttling)
+	- `--single-reader auto|on|off` (FILEDO_CHECK_SINGLE_READER)
+	- `--ewma-alpha <float>` (FILEDO_CHECK_EWMA_ALPHA)
+	- `--ewma-high-frac <float>` (FILEDO_CHECK_EWMA_HIGH_FRAC)
+	- `--ewma-low-frac <float>` (FILEDO_CHECK_EWMA_LOW_FRAC)
+	- `--max-sleep-ms <int>` (FILEDO_CHECK_MAX_SLEEP_MS)
+	- `--sleep-step-ms <int>` (FILEDO_CHECK_SLEEP_STEP_MS)
+
+Examples:
+
+```bash
+# Balanced mode, worker override, ETA precount
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Force single-reader for HDD/USB with adaptive throttling
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Filter by extensions, cap files, save CSV report
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Use custom good files cache list and quiet output
+filedo check D:\Data --good-list D:\check_files.list --quiet
+```
+
 - One-time warm-up allowance up to 10.0s before the first read (spin-up)
 - Uses skip_files.list for immediate, persistent recording (no damaged_files.log)
 - Skips paths already in skip_files.list; parallel workers; Ctrl+C supported
