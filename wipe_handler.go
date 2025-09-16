@@ -167,7 +167,7 @@ func showWipeProgress(progress *WipeProgress) {
 		eta = "unknown"
 	}
 
-	fmt.Printf("\rWiping: %s [%d/%d items, %.1f items/sec, ETA: %s]",
+	fmt.Printf("\rWiping: %s [%d/%d items, %.0f items/sec, ETA: %s]",
 		currentItem,
 		progress.ProcessedItems,
 		progress.TotalItems,

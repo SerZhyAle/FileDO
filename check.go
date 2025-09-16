@@ -532,7 +532,7 @@ func CheckFolder(root string) error {
                         atomic.StoreInt32(&warmupUsed, 1)
                         // treat as ok due to warmup, continue to extra probes
                     } else {
-                        damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.1fs read delay (%.1fs)", cfg.threshold.Seconds(), e1.Seconds()))
+                        damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.0fs read delay (%.0fs)", cfg.threshold.Seconds(), e1.Seconds()))
                         lastDamaged.Store(p)
                         damagedMark = true
                         status = "delay-first"
@@ -557,7 +557,7 @@ func CheckFolder(root string) error {
                             if off > size-int64(len(buf)) { off = size - int64(len(buf)) }
                             e, bad := probe("p", off)
                             if bad {
-                                damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.1fs read delay mid (%.1fs)", cfg.threshold.Seconds(), e.Seconds()))
+                                damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.0fs read delay mid (%.0fs)", cfg.threshold.Seconds(), e.Seconds()))
                                 lastDamaged.Store(p)
                                 damagedMark = true
                                 status = "delay-probe"

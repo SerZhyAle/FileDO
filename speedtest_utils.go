@@ -11,35 +11,31 @@ import (
 
 // formatDuration formats a duration for short output with consistent spacing
 func formatDuration(d time.Duration) string {
-	if d < time.Microsecond {
-		return fmt.Sprintf("%6.1fns", float64(d.Nanoseconds()))
-	} else if d < time.Millisecond {
-		return fmt.Sprintf("%6.1fμs", float64(d.Nanoseconds())/1000.0)
-	} else if d < time.Second {
-		return fmt.Sprintf("%6.1fms", float64(d.Nanoseconds())/1000000.0)
+	if d < time.Second {
+		return "0s"
 	} else {
-		return fmt.Sprintf("%6.1fs", d.Seconds())
+		return fmt.Sprintf("%.0fs", d.Seconds())
 	}
 }
 
 // formatETA formats duration for ETA display in human-readable format
 func formatETA(d time.Duration) string {
 	if d <= 0 {
-		return "0.0s"
+		return "0s"
 	}
 	secs := d.Seconds()
 	if secs < 60 {
-		return fmt.Sprintf("%.1fs", secs)
+		return fmt.Sprintf("%.0fs", secs)
 	} else if secs < 3600 {
 		m := int64(secs) / 60
 		s := secs - float64(m*60)
-		return fmt.Sprintf("%dm %.1fs", m, s)
+		return fmt.Sprintf("%dm %.0fs", m, s)
 	} else {
 		h := int64(secs) / 3600
 		rem := secs - float64(h*3600)
 		m := int64(rem) / 60
 		s := rem - float64(m*60)
-		return fmt.Sprintf("%dh %dm %.1fs", h, m, s)
+		return fmt.Sprintf("%dh %dm %.0fs", h, m, s)
 	}
 }
 

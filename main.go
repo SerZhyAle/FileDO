@@ -16,7 +16,7 @@ import (
 )
 
 // the version collected from the current datetime in format YYMMDDHHMM
-const version = "250825"
+const version = "250916"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -195,6 +195,55 @@ func saveToHistory(entry HistoryEntry) error {
 
 	return os.WriteFile(historyFile, data, 0644)
 }
+
+var shortUsage = fmt.Sprintf(`
+                            FileDO v%s
+                    Advanced File & Storage Operations Tool
+═══════════════════════════════════════════════════════════════════════════════
+BASIC USAGE:
+  filedo.exe <target> [operation] [options]
+
+MAIN OPERATIONS:
+  info     → Show device/folder information
+  speed    → Test read/write speed 
+  test     → Test storage capacity (detect fake devices)
+  fill     → Fill storage with test files
+  clean    → Delete test files
+  cd       → Check for duplicate files
+  copy     → Copy files/folders with optimization
+  wipe     → Fast wipe folder contents
+  compare  → Compare directory trees
+  check    → Check files for corruption
+
+TARGETS:
+  C:, D:   → Device operations (drives)
+  C:\path  → Folder operations
+  \\pc\sh  → Network share operations
+  file.txt → File operations
+
+EXAMPLES:
+  filedo.exe D: info              → Show drive info
+  filedo.exe E: speed 100         → Test speed with 100MB
+  filedo.exe F: test del          → Test capacity, auto-cleanup
+  filedo.exe C:\temp cd           → Find duplicates
+  filedo.exe copy C:\src D:\dst   → Smart copy with optimization
+  filedo.exe C:\temp wipe         → Fast wipe folder
+
+COPY MODES:
+  copy      → Smart auto-detection (recommended)
+  fastcopy  → High-speed parallel copy
+  safecopy  → Safe mode for damaged drives
+  maxcopy   → Maximum performance mode
+
+OPTIONS:
+  short     → Brief output only
+  del       → Auto-delete test files
+  max       → Maximum size (10GB)
+
+MORE INFO:
+  filedo.exe help                 → Show detailed help
+  filedo.exe /help                → Show detailed help
+`, version)
 
 var usage = fmt.Sprintf(`
                             FileDO v%s
@@ -477,8 +526,9 @@ IMPORTANT NOTES
   - FILEDO_AUTO_CONFIRM=1 → Auto-confirm redirections (for scripts/testing)
 
 Help & Support:
-  filedo.exe ?                     → Show this help
-  filedo.exe help                  → Show this help
+  filedo.exe ?                     → Show quick help summary
+  filedo.exe help                  → Show detailed help (this screen)
+  filedo.exe /help                 → Show detailed help (this screen)
 `, version)
 
 var list_of_flags_for_device = []string{"device", "dev", "disk", "d"}
@@ -498,7 +548,9 @@ var list_of_flags_for_smartcopy = []string{"smartcopy", "smart", "auto"}
 var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue", "damaged"}
 var list_of_flags_for_check = []string{"check"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
-var list_fo_flags_for_help = []string{"?", "help", "h", "?"}
+var list_fo_flags_for_help = []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
+var list_fo_flags_for_short_help = []string{"?", "/?", "-?", "--help"}
+var list_fo_flags_for_full_help = []string{"help", "h", "/help"}
 var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...)
 
 func contains(slice []string, item string) bool {
@@ -1042,7 +1094,7 @@ func main() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
 		}
-		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + time.Since(start_time).String() + "\n"
+		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + fmt.Sprintf("%.0fs", time.Since(start_time).Seconds()) + "\n"
 		fmt.Print(bue_message)
 	}()
 
@@ -1080,8 +1132,17 @@ func main() {
 		}
 	}
 
-	if len(args) < 2 || contains(list_fo_flags_for_help, lowerArgs[1]) {
-		fmt.Println(usage)
+	if len(args) < 2 {
+		fmt.Println(shortUsage)
+		return
+	}
+	
+	if contains(list_fo_flags_for_help, lowerArgs[1]) {
+		if contains(list_fo_flags_for_short_help, lowerArgs[1]) {
+			fmt.Println(shortUsage)
+		} else {
+			fmt.Println(usage)
+		}
 		return
 	}
 
