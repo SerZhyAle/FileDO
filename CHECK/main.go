@@ -15,8 +15,14 @@ const version = "250916_check"
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
 
-// HistoryEntry структура для логирования
-type HistoryEntry struct {
+// HistoryEntry structure for logg	err := handleCheckOperation(targetPath, checkMode, checkOptions, historyLogger)
+
+	if err != nil {
+		historyLogger.SetError(err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		// Don't use os.Exit(1) to allow defer cleanup message
+		return
+	}pe HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	Command       string                 `json:"command"`
 	Target        string                 `json:"target"`
@@ -30,7 +36,7 @@ type HistoryEntry struct {
 	ErrorMsg      string                 `json:"error,omitempty"`
 }
 
-// HistoryLogger для совместимости с основным проектом
+// HistoryLogger for compatibility with main project
 type HistoryLogger struct {
 	enabled      bool
 	startTime    time.Time
@@ -140,7 +146,7 @@ func (hl *HistoryLogger) Finish() {
 	saveToHistory(hl.entry)
 }
 
-// generateResultSummary создает краткое описание результата операции
+// generateResultSummary creates brief description of operation result
 func (hl *HistoryLogger) generateResultSummary() string {
 	var details []string
 
@@ -185,17 +191,17 @@ func saveToHistory(entry HistoryEntry) error {
 func main() {
 	start_time = time.Now()
 
-	// Оптимизация GC для лучшей производительности
+	// GC optimization for better performance
 	debug.SetGCPercent(50)
 	runtime.GOMAXPROCS(0)
 
-	// Инициализация глобального обработчика прерываний
+	// Initialize global interrupt handler
 	globalInterruptHandler = NewInterruptHandler()
 
 	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " FileDO CHECK v" + version + " sza@ukr.net\n"
 	fmt.Print(hi_message)
 
-	// Обеспечение всегда печати сообщения завершения
+	// Ensure always printing completion message
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
@@ -206,7 +212,7 @@ func main() {
 
 	args := os.Args
 
-	// Инициализация логгера истории
+	// Initialize history logger
 	historyLogger := NewHistoryLogger(os.Args)
 	defer historyLogger.Finish()
 
@@ -215,23 +221,23 @@ func main() {
 		return
 	}
 
-	// Проверка справки
+	// Check for help
 	if isHelpFlag(args[1]) {
 		showUsage()
 		return
 	}
 
-	// Парсинг аргументов для команды CHECK
-	// Ожидаемый формат: filedo_check.exe C: [mode] [options]
-	// Должно работать как: filedo.exe C: check [mode] [options]
+	// Parse arguments for CHECK command
+	// Expected format: filedo_check.exe C: [mode] [options]
+	// Should work as: filedo.exe C: check [mode] [options]
 	
 	targetPath := args[1]
 	
-	// Значения по умолчанию
+	// Default values
 	checkMode := "balanced" // default mode
 	var checkOptions []string
 	
-	// Парсинг дополнительных аргументов
+	// Parse additional arguments
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(strings.TrimSpace(args[i]))
 		

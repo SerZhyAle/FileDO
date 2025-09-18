@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-// Глобальный кеш оптимальных буферов
+// Global cache for optimal buffers
 var optimalBuffers = make(map[string]int)
 
-// Tester interface для тестирования fake capacity
+// Tester interface for fake capacity testing
 type Tester interface {
 	GetTestInfo() (testType, targetPath string)
 	GetAvailableSpace() (int64, error)
@@ -23,7 +23,7 @@ type Tester interface {
 	GetCleanupCommand() string
 }
 
-// TestResult содержит результаты тестирования fake capacity
+// TestResult contains fake capacity testing results
 type TestResult struct {
 	TestPassed        bool
 	FilesCreated      int
@@ -36,7 +36,7 @@ type TestResult struct {
 	CreatedFiles      []string
 }
 
-// RunGenericTest выполняет тест fake capacity используя предоставленный tester
+// RunGenericTest performs fake capacity test using provided tester
 func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, interruptHandler *InterruptHandler, progressTracker func(maxItems int, maxBytes int64, interval time.Duration) *ProgressTracker) (*TestResult, error) {
 	testType, targetPath := tester.GetTestInfo()
 
@@ -50,7 +50,23 @@ func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, inter
 		CreatedFiles: make([]string, 0, 100),
 	}
 
-	// Получение доступного места
+	// Add cleanup function to clean created files on interruption
+	if interruptHandler != nil {
+		interruptHandler.AddCleanup(func() {
+			if len(result.CreatedFiles) > 0 {
+				fmt.Printf("Cleaning up %d test files...\n", len(result.CreatedFiles))
+				deletedCount := 0
+				for _, filePath := range result.CreatedFiles {
+					if err := tester.CleanupTestFile(filePath); err == nil {
+						deletedCount++
+					}
+				}
+				fmt.Printf("✓ Cleaned up %d/%d test files during interrupt\n", deletedCount, len(result.CreatedFiles))
+			}
+		})
+	}
+
+	// Get available space
 	freeSpace, err := tester.GetAvailableSpace()
 	if err != nil {
 		if logger != nil {
@@ -59,7 +75,7 @@ func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, inter
 		return result, err
 	}
 
-	// Проверка минимального объема места (100MB)
+	// Check minimum space volume (100MB)
 	minSpaceBytes := int64(100 * 1024 * 1024) // 100MB
 	if freeSpace < minSpaceBytes {
 		err = fmt.Errorf("insufficient free space. At least 100MB required, but only %d MB available", freeSpace/(1024*1024))
@@ -69,9 +85,9 @@ func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, inter
 		return result, err
 	}
 
-	// Расчет размера файла для использования 95% доступного места для 100 файлов
+	// Calculate file size to use 95% of available space for 100 files
 	const maxFiles = 100
-	totalDataTarget := int64(float64(freeSpace) * 0.95) // Используем 95% доступного места
+	totalDataTarget := int64(float64(freeSpace) * 0.95) // Use 95% of available space
 	fileSize := totalDataTarget / maxFiles
 	fileSizeMB := fileSize / (1024 * 1024)
 
@@ -189,15 +205,19 @@ func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, inter
 		result.TotalDataBytes += fileSize
 		result.CreatedFiles = append(result.CreatedFiles, filePath)
 
-		// Верификация ВСЕХ ранее созданных файлов (включая новый) с контекстом
+		// Smart file verification with context (always use interrupt handler context if available)
+		ctx := context.Background()
 		if interruptHandler != nil {
-			if err := VerifyAllTestFilesContext(interruptHandler.Context(), result.CreatedFiles); err != nil {
-				// НЕ очищаем при ошибке верификации - сохраняем файлы для анализа
-				result.TestPassed = false
-				result.FailureReason = fmt.Sprintf("Verification failed after creating file %d: %v", i, err)
+			ctx = interruptHandler.Context()
+		}
+		
+		if err := VerifySmartTestFilesContext(ctx, result.CreatedFiles, i); err != nil {
+			// Do NOT clean on verification error - preserve files for analysis
+			result.TestPassed = false
+			result.FailureReason = fmt.Sprintf("Verification failed after creating file %d: %v", i, err)
 
-				// Расчет предполагаемой реальной емкости
-				realCapacity := fileSize * int64(i-1) // Считаем файлы до неудавшегося
+			// Calculate estimated real capacity
+			realCapacity := fileSize * int64(i-1) // Count files before failed one
 
 				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
 				fmt.Printf("This indicates delayed data corruption or fake capacity.\n")
@@ -253,35 +273,6 @@ func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, inter
 				}
 				return result, err
 			}
-		} else {
-			// Используем обычную верификацию без контекста
-			if err := VerifyAllTestFiles(result.CreatedFiles); err != nil {
-				// НЕ очищаем при ошибке верификации - сохраняем файлы для анализа
-				result.TestPassed = false
-				result.FailureReason = fmt.Sprintf("Verification failed after creating file %d: %v", i, err)
-
-				// Расчет предполагаемой реальной емкости
-				realCapacity := fileSize * int64(i-1) // Считаем файлы до неудавшегося
-
-				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-				fmt.Printf("This indicates delayed data corruption or fake capacity.\n")
-				fmt.Printf("Error details: %v\n", err)
-
-				fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-				fmt.Printf("  Files successfully verified: %d out of %d\n", i-1, len(result.CreatedFiles))
-				fmt.Printf("  Data verified before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
-				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-				err = fmt.Errorf("test failed during verification - file corruption detected")
-				if logger != nil {
-					logger.SetError(err)
-					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-					logger.SetResult("filesSuccessfullyVerified", i-1)
-				}
-				return result, err
-			}
-		}
 
 		// Расчет скорости записи
 		speed := float64(fileSize) / duration.Seconds() / (1024 * 1024) // MB/s
@@ -357,8 +348,8 @@ func RunGenericTest(tester Tester, autoDelete bool, logger *HistoryLogger, inter
 		}
 	}
 
-	fmt.Printf("\n✅ Write and optimized incremental verification completed successfully!\n")
-	fmt.Printf("All %d files verified with smart verification strategy.\n", len(result.CreatedFiles))
+	fmt.Printf("\n✅ Write and smart incremental verification completed successfully!\n")
+	fmt.Printf("All %d files verified with optimized smart verification strategy.\n", len(result.CreatedFiles))
 
 	// Расчет статистики
 	if len(speeds) > 0 {

@@ -15,7 +15,7 @@ const version = "250916_test"
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
 
-// HistoryEntry структура для логирования
+// HistoryEntry structure for logging
 type HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	Command       string                 `json:"command"`
@@ -30,7 +30,7 @@ type HistoryEntry struct {
 	ErrorMsg      string                 `json:"error,omitempty"`
 }
 
-// HistoryLogger для совместимости с основным проектом
+// HistoryLogger for compatibility with main project
 type HistoryLogger struct {
 	enabled      bool
 	startTime    time.Time
@@ -41,7 +41,7 @@ type HistoryLogger struct {
 }
 
 func NewHistoryLogger(args []string) *HistoryLogger {
-	// Проверка флагов отключения истории
+	// Check flags for disabling history
 	enabled := true
 	for _, arg := range args {
 		if arg == "nohist" || arg == "no_history" {
@@ -53,7 +53,7 @@ func NewHistoryLogger(args []string) *HistoryLogger {
 	historyFile := "history.json"
 	canWriteHist := true
 
-	// Проверка возможности записи в файл истории
+	// Check possibility to write to history file
 	if enabled {
 		if file, err := os.OpenFile(historyFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
 			canWriteHist = false
@@ -62,7 +62,7 @@ func NewHistoryLogger(args []string) *HistoryLogger {
 		}
 	}
 
-	// Создание строки полной команды
+	// Create full command string
 	fullCommand := strings.Join(args, " ")
 
 	return &HistoryLogger{
@@ -140,7 +140,7 @@ func (hl *HistoryLogger) Finish() {
 	saveToHistory(hl.entry)
 }
 
-// generateResultSummary создает краткое описание результата операции
+// generateResultSummary creates brief description of operation result
 func (hl *HistoryLogger) generateResultSummary() string {
 	var details []string
 
@@ -189,28 +189,28 @@ func saveToHistory(entry HistoryEntry) error {
 func main() {
 	start_time = time.Now()
 
-	// Оптимизация GC для лучшей производительности
+	// GC optimization for better performance
 	debug.SetGCPercent(50)
 	runtime.GOMAXPROCS(0)
 
-	// Инициализация глобального обработчика прерываний
+	// Initialize global interrupt handler
 	globalInterruptHandler = NewInterruptHandler()
 
 	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " FileDO TEST v" + version + " sza@ukr.net\n"
 	fmt.Print(hi_message)
 
-	// Обеспечение всегда печати сообщения завершения
+	// Ensure always printing completion message
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
 		}
-		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + fmt.Sprintf("%.0fs", time.Since(start_time).Seconds()) + "\n"
+		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + formatDuration(time.Since(start_time)) + "\n"
 		fmt.Print(bue_message)
 	}()
 
 	args := os.Args
 
-	// Инициализация логгера истории
+	// Initialize history logger
 	historyLogger := NewHistoryLogger(os.Args)
 	defer historyLogger.Finish()
 
@@ -219,26 +219,26 @@ func main() {
 		return
 	}
 
-	// Проверка справки
+	// Check for help
 	if isHelpFlag(args[1]) {
 		showUsage()
 		return
 	}
 
-	// Парсинг аргументов для команды TEST
-	// Ожидаемый формат: filedo_test.exe C:
-	// Должно работать как: filedo.exe C: test
+	// Parse arguments for TEST command
+	// Expected format: filedo_test.exe C:
+	// Should work as: filedo.exe C: test
 	
 	targetPath := args[1]
 	
-	// Значения по умолчанию
+	// Default values
 	autoDelete := false
 	
-	// Парсинг дополнительных аргументов
+	// Parse additional arguments
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(strings.TrimSpace(args[i]))
 		
-		// Проверка флагов автоудаления
+		// Check auto-delete flags
 		if arg == "del" || arg == "delete" || arg == "d" {
 			autoDelete = true
 			continue
@@ -250,7 +250,8 @@ func main() {
 	if err != nil {
 		historyLogger.SetError(err)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		// Don't use os.Exit(1) to allow defer cleanup message
+		return
 	}
 	
 	historyLogger.SetSuccess()
@@ -321,25 +322,25 @@ func handleTestOperation(targetPath string, autoDelete bool, logger *HistoryLogg
 		return runDeviceCapacityTest(targetPath, autoDelete, logger)
 	}
 	
-	// Проверка, является ли это сетевым путем
+	// Check if this is a network path
 	if len(targetPath) > 2 && (targetPath[0:2] == "\\" || targetPath[0:2] == "//") {
-		// Сетевая операция
+		// Network operation
 		logger.SetCommand("network", targetPath, "test")
 		logger.SetParameter("autoDelete", autoDelete)
 		
 		return runNetworkCapacityTest(targetPath, autoDelete, logger)
 	}
 	
-	// Проверка, является ли это существующей папкой
+	// Check if this is an existing folder
 	if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
-		// Операция с папкой
+		// Folder operation
 		logger.SetCommand("folder", targetPath, "test")
 		logger.SetParameter("autoDelete", autoDelete)
 		
 		return runFolderCapacityTest(targetPath, autoDelete, logger)
 	}
 	
-	// Путь не существует или является файлом
+	// Path does not exist or is a file
 	if strings.HasSuffix(targetPath, "/") || strings.HasSuffix(targetPath, "\\") {
 		return fmt.Errorf("folder \"%s\" does not exist", targetPath)
 	} else {
@@ -347,7 +348,7 @@ func handleTestOperation(targetPath string, autoDelete bool, logger *HistoryLogg
 	}
 }
 
-// Вспомогательные функции
+// Helper functions
 
 func isHelpFlag(arg string) bool {
 	helpFlags := []string{"?", "/?", "-?", "--help", "help", "h", "/help"}

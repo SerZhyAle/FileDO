@@ -53,7 +53,6 @@ func handleErrorWithUserMessage(err error, path string, historyLogger *HistoryLo
 
 	// Default error handling
 	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-	os.Exit(1)
 	return true
 }
 
@@ -323,7 +322,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	cmd.Parse(args)
 	if cmd.NArg() < 1 {
 		fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
-		os.Exit(1)
+		return
 	}
 
 	path := cmd.Arg(0)
@@ -375,7 +374,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 					if !handleErrorWithUserMessage(err, path, historyLogger) {
 						historyLogger.SetError(err)
 						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-						os.Exit(1)
+						return
 					}
 				}
 			} else {
@@ -384,7 +383,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 					if !handleErrorWithUserMessage(err, path, historyLogger) {
 						historyLogger.SetError(err)
 						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-						os.Exit(1)
+						return
 					}
 				}
 			}
@@ -408,7 +407,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 			historyLogger.SetSuccess()
@@ -417,15 +416,23 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	}
 
 	// Check if this is a speed test
-	if cmd.NArg() >= 3 && strings.ToLower(cmd.Arg(1)) == "speed" {
+	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "speed" {
 		historyLogger.SetCommand(cmdTypeName, path, "speed")
-		sizeParam := cmd.Arg(2)
+		sizeParam := "100" // Default size
+		if cmd.NArg() >= 3 {
+			sizeParam = cmd.Arg(2)
+		}
 		historyLogger.SetParameter("size", sizeParam)
 
 		// Check for no-delete option and short format
 		noDelete := false
 		shortFormat := false
-		for i := 3; i < cmd.NArg(); i++ {
+		startIndex := 3
+		if cmd.NArg() == 2 {
+			// No size parameter provided, check from index 2
+			startIndex = 2
+		}
+		for i := startIndex; i < cmd.NArg(); i++ {
 			arg := strings.ToLower(cmd.Arg(i))
 			if arg == "no" || arg == "nodel" || arg == "nodelete" {
 				noDelete = true
@@ -449,7 +456,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 		} else {
@@ -458,7 +465,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 		}
@@ -501,7 +508,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 		} else {
@@ -510,7 +517,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 		}
@@ -539,7 +546,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 		} else {
@@ -548,7 +555,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 		}
@@ -569,7 +576,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 			historyLogger.SetSuccess()
@@ -588,7 +595,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+					return
 				}
 			}
 			historyLogger.SetSuccess()
@@ -618,7 +625,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if !handleErrorWithUserMessage(err, path, historyLogger) {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		return
 	}

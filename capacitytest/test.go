@@ -161,9 +161,9 @@ func RunGenericTest(tester Tester, autoDelete bool, logger HistoryLogger, interr
 		result.TotalDataBytes += fileSize
 		result.CreatedFiles = append(result.CreatedFiles, filePath)
 
-		// Verify ALL previously created files (including the new one) with context
+		// Smart verification with new strategy and context
 		if interruptHandler != nil {
-			if err := VerifyAllTestFilesContext(interruptHandler.Context(), result.CreatedFiles); err != nil {
+			if err := VerifySmartTestFilesContext(interruptHandler.Context(), result.CreatedFiles, i); err != nil {
 				// DON'T clean up on verification error - keep files for analysis
 				result.TestPassed = false
 				result.FailureReason = fmt.Sprintf("Verification failed after creating file %d: %v", i, err)
@@ -226,8 +226,8 @@ func RunGenericTest(tester Tester, autoDelete bool, logger HistoryLogger, interr
 				return result, err
 			}
 		} else {
-			// Use regular verification without context
-			if err := VerifyAllTestFiles(result.CreatedFiles); err != nil {
+			// Use smart verification without context
+			if err := VerifySmartTestFiles(result.CreatedFiles, i); err != nil {
 				// DON'T clean up on verification error - keep files for analysis
 				result.TestPassed = false
 				result.FailureReason = fmt.Sprintf("Verification failed after creating file %d: %v", i, err)

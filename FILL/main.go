@@ -15,7 +15,7 @@ const version = "250916_fill"
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
 
-// HistoryEntry структура для логирования
+// HistoryEntry structure for logging
 type HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	Command       string                 `json:"command"`
@@ -30,7 +30,7 @@ type HistoryEntry struct {
 	ErrorMsg      string                 `json:"error,omitempty"`
 }
 
-// HistoryLogger для совместимости с основным проектом
+// HistoryLogger for compatibility with main project
 type HistoryLogger struct {
 	enabled      bool
 	startTime    time.Time
@@ -140,7 +140,7 @@ func (hl *HistoryLogger) Finish() {
 	saveToHistory(hl.entry)
 }
 
-// generateResultSummary создает краткое описание результата операции
+// generateResultSummary creates brief description of operation result
 func (hl *HistoryLogger) generateResultSummary() string {
 	var details []string
 
@@ -185,17 +185,17 @@ func saveToHistory(entry HistoryEntry) error {
 func main() {
 	start_time = time.Now()
 
-	// Оптимизация GC для лучшей производительности
+	// GC optimization for better performance
 	debug.SetGCPercent(50)
 	runtime.GOMAXPROCS(0)
 
-	// Инициализация глобального обработчика прерываний
+	// Initialize global interrupt handler
 	globalInterruptHandler = NewInterruptHandler()
 
 	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " FileDO FILL v" + version + " sza@ukr.net\n"
 	fmt.Print(hi_message)
 
-	// Обеспечение всегда печати сообщения завершения
+	// Ensure always printing completion message
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
@@ -206,7 +206,7 @@ func main() {
 
 	args := os.Args
 
-	// Инициализация логгера истории
+	// Initialize history logger
 	historyLogger := NewHistoryLogger(os.Args)
 	defer historyLogger.Finish()
 
@@ -215,40 +215,40 @@ func main() {
 		return
 	}
 
-	// Проверка справки
+	// Check for help
 	if isHelpFlag(args[1]) {
 		showUsage()
 		return
 	}
 
-	// Парсинг аргументов для команды FILL
-	// Ожидаемый формат: filedo_fill.exe C: 1000 del
-	// Должно работать как: filedo.exe C: fill 1000 del
+	// Parse arguments for FILL command
+	// Expected format: filedo_fill.exe C: 1000 del
+	// Should work as: filedo.exe C: fill 1000 del
 	
 	targetPath := args[1]
 	
-	// Значения по умолчанию
+	// Default values
 	sizeMBStr := "100"
 	autoDelete := false
 	cleanMode := false
 	
-	// Парсинг дополнительных аргументов
+	// Parse additional arguments
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(strings.TrimSpace(args[i]))
 		
-		// Проверка операции очистки
+		// Check clean operation
 		if arg == "clean" || arg == "c" {
 			cleanMode = true
 			continue
 		}
 		
-		// Проверка флагов автоудаления
+		// Check auto-delete flags
 		if arg == "del" || arg == "delete" || arg == "d" {
 			autoDelete = true
 			continue
 		}
 		
-		// Если не флаг, то это размер
+		// If not a flag, it's a size
 		if !isFlag(arg) {
 			sizeMBStr = arg
 		}
@@ -265,7 +265,8 @@ func main() {
 	if err != nil {
 		historyLogger.SetError(err)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		// Don't use os.Exit(1) to allow defer cleanup message
+		return
 	}
 	
 	historyLogger.SetSuccess()

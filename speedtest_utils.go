@@ -18,6 +18,29 @@ func formatDuration(d time.Duration) string {
 	}
 }
 
+// formatDurationDetailed formats duration in days/hours:minutes:seconds format
+func formatDurationDetailed(d time.Duration) string {
+	if d < time.Second {
+		return "0s"
+	}
+	
+	totalSeconds := int64(d.Seconds())
+	days := totalSeconds / 86400
+	hours := (totalSeconds % 86400) / 3600
+	minutes := (totalSeconds % 3600) / 60
+	seconds := totalSeconds % 60
+	
+	if days > 0 {
+		return fmt.Sprintf("%dd/%02d:%02d:%02d", days, hours, minutes, seconds)
+	} else if hours > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%d:%02d", minutes, seconds)
+	} else {
+		return fmt.Sprintf("%ds", seconds)
+	}
+}
+
 // formatETA formats duration for ETA display in human-readable format
 func formatETA(d time.Duration) string {
 	if d <= 0 {

@@ -897,5 +897,16 @@
     "results": {},
     "duration": "0s",
     "success": true
+  },
+  {
+    "timestamp": "2025-09-18T18:03:02.4988428+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
   }
 ]

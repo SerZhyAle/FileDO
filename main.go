@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-// the version collected from the current datetime in format YYMMDDHHMM
-const version = "250916"
+// This version string is automatically set by the build script
+var version = "dev"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -1094,7 +1094,7 @@ func main() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
 		}
-		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + fmt.Sprintf("%.0fs", time.Since(start_time).Seconds()) + "\n"
+		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + formatDurationDetailed(time.Since(start_time)) + "\n"
 		fmt.Print(bue_message)
 	}()
 
@@ -1154,7 +1154,7 @@ func main() {
 		if err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
@@ -1251,11 +1251,11 @@ func main() {
 	case contains(list_of_flags_for_from, command):
 		if len(add_args) < 1 {
 			fmt.Fprintf(os.Stderr, "Error: Missing file path for 'from' command\n")
-			os.Exit(1)
+			return
 		}
 		if err := executeFromFile(add_args[0], historyLogger); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 	case contains(list_of_flags_for_hist, command):
 		handleHistoryCommand(os.Args[1:])
@@ -1263,123 +1263,123 @@ func main() {
 	case contains(list_of_flags_for_compare, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Compare command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "compare")
 	if err := handleCompareCommand(add_args[0], add_args[1], add_args[2:]...); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_copy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "auto-copy")
 		if err := handleAutoCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_fastcopy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Fast copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "fastcopy")
 		if err := handleFastCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_synccopy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Sync copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "synccopy")
 		if err := handleSyncCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_balanced, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Balanced copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "balanced")
 		if err := handleBalancedCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_maxcopy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Max copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "maxcopy")
 		if err := handleMaxCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_smartcopy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Smart copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "smartcopy")
 		if err := handleSmartCopyCommand(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_safecopy, command):
 		if len(add_args) < 2 {
 			fmt.Fprintf(os.Stderr, "Error: Safe copy command requires source and target paths\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "safecopy")
 		if err := SafeCopy(add_args[0], add_args[1]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_check, command):
 		if len(add_args) < 1 {
 			fmt.Fprintf(os.Stderr, "Error: CHECK command requires folder path\n")
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "check")
 		if err := HandleCheckArgs(add_args[0], add_args[1:]); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
 	default:
 		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n\n", os.Args[1])
 		fmt.Println(usage)
-		os.Exit(1)
+		return
 	}
 }
