@@ -1,0 +1,40 @@
+# =====================================================================
+# SECTION 5: DUPLICATE FILE MANAGEMENT
+# =====================================================================
+
+# Process duplicates with different selection modes and actions
+# Test with the previously saved list files
+folder test_dups cd list .\test_dups\duplicates.lst
+cd from list .\test_dups\duplicates.lst old
+cd from list .\test_dups\duplicates.lst new
+
+# Non-existent list file (should handle gracefully)
+cd from list .\test_dups\duplicates.lst
+
+# =====================================================================
+# SECTION 6: HISTORY & INFORMATION
+# =====================================================================
+
+# View history of operations
+hist
+
+# =====================================================================
+# SECTION 7: CLEANUP
+# =====================================================================
+
+# Final cleanup
+device D: clean
+folder D:\TestFolder clean
+network \\localhost\share clean
+
+# =====================================================================
+# SECTION 8: COPY & WIPE
+# =====================================================================
+
+# Copy
+folder .\test_dups copy .\test_target2
+folder .\test_target2 wipe
+
+# =====================================================================
+# End of test suite
+# =====================================================================

@@ -842,5 +842,60 @@
     "results": {},
     "duration": "   8.9s",
     "success": true
+  },
+  {
+    "timestamp": "2025-09-18T12:23:57.2029494+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo ?",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2025-09-18T12:24:04.3624907+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "filedo /?",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2025-09-18T12:58:01.2335429+02:00",
+    "command": "device",
+    "target": "f:",
+    "operation": "info",
+    "fullCommand": "filedo f: speed",
+    "parameters": {
+      "args": [
+        "f:",
+        "speed"
+      ]
+    },
+    "results": {},
+    "duration": "0s",
+    "success": false,
+    "error": "device 'f:' does not exist"
+  },
+  {
+    "timestamp": "2025-09-18T12:58:19.3807548+02:00",
+    "command": "device",
+    "target": "e:",
+    "operation": "info",
+    "fullCommand": "filedo e: speed",
+    "parameters": {
+      "args": [
+        "e:",
+        "speed"
+      ]
+    },
+    "results": {},
+    "duration": "0s",
+    "success": true
   }
 ]
