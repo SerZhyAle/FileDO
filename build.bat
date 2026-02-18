@@ -24,7 +24,8 @@ if "!GIT_VERSION!"=="" (
 
 echo Building filedo.exe with version: !GIT_VERSION!
 
-go build -ldflags="-X 'main.version=!GIT_VERSION!'" -o filedo.exe .
+set CGO_ENABLED=1
+go build -race -ldflags="-X 'main.version=!GIT_VERSION!'" -o filedo.exe .
 
 echo.
 echo Build complete.

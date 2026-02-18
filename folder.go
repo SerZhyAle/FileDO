@@ -179,13 +179,15 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Step 3: Upload Speed Test - Copying file to folder..\n")
 		fmt.Printf("Source: %s\n", localFilePath)
 		fmt.Printf("Target: %s\n", folderFileName)
+		fmt.Printf("Mode: unbuffered write (FILE_FLAG_NO_BUFFERING|WRITE_THROUGH — bypasses OS page cache)\n")
 	}
 
 	// Step 3: Upload Speed Test - Copy file to folder
+	// Use unbuffered write so the OS page cache does not hide the real device write speed.
 	folderFileName := filepath.Join(folderPath, localFileName)
 
 	startUpload := time.Now()
-	bytesUploaded, err := copyFileOptimized(localFilePath, folderFileName)
+	bytesUploaded, err := copySpeedTestUpload(localFilePath, folderFileName)
 	if err != nil {
 		// Clean up local file before returning error
 		os.Remove(localFilePath)
@@ -208,14 +210,16 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 		fmt.Printf("Step 4: Download Speed Test - Copying file from folder..\n")
 		fmt.Printf("Source: %s\n", folderFileName)
 		fmt.Printf("Target: %s\n", downloadFilePath)
+		fmt.Printf("Mode: unbuffered read (FILE_FLAG_NO_BUFFERING — bypasses OS page cache)\n")
 	}
 
 	// Step 4: Download Speed Test - Copy file back from folder
+	// Use unbuffered read so the OS page cache does not serve the just-uploaded file from RAM.
 	downloadFileName := fmt.Sprintf("speedtest_download_%d_%d.txt", sizeMB, time.Now().Unix())
 	downloadFilePath := filepath.Join(currentDir, downloadFileName)
 
 	startDownload := time.Now()
-	bytesDownloaded, err := copyFileOptimized(folderFileName, downloadFilePath)
+	bytesDownloaded, err := copySpeedTestDownload(folderFileName, downloadFilePath)
 	if err != nil {
 		// Clean up files before returning error
 		os.Remove(localFilePath)

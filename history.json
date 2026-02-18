@@ -908,5 +908,86 @@
     "results": {},
     "duration": "0s",
     "success": false
+  },
+  {
+    "timestamp": "2026-02-18T02:49:52.9833499+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T02:50:12.1140721+01:00",
+    "command": "folder",
+    "target": "c:\\temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe c:\\temp speed",
+    "parameters": {
+      "args": [
+        "c:\\temp",
+        "speed"
+      ],
+      "size": "100"
+    },
+    "results": {},
+    "duration": "0s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T02:50:20.4470755+01:00",
+    "command": "folder",
+    "target": "r:\\temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe r:\\temp speed",
+    "parameters": {
+      "args": [
+        "r:\\temp",
+        "speed"
+      ],
+      "size": "100"
+    },
+    "results": {},
+    "duration": "0s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T02:50:45.7152221+01:00",
+    "command": "folder",
+    "target": "r:\\temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe r:\\temp speed 1000",
+    "parameters": {
+      "args": [
+        "r:\\temp",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "3s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T02:50:54.9653611+01:00",
+    "command": "folder",
+    "target": "c:\\temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe c:\\temp speed 1000",
+    "parameters": {
+      "args": [
+        "c:\\temp",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "3s",
+    "success": true
   }
 ]

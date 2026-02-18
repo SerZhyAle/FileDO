@@ -450,6 +450,7 @@ func CheckFolder(root string) error {
     var lastDamaged atomic.Value // string
     var warmupUsed int32 = 0
     var stopFlag int32 = 0
+    var stopMu sync.Mutex
 
     // Resume support
     var resumeUntil string
@@ -467,10 +468,13 @@ func CheckFolder(root string) error {
         walkerErrCh <- filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
             if err != nil { return nil }
             if fi.IsDir() { return nil }
-            if ih.IsForceExit() || ih.IsInterrupted() { return fmt.Errorf("interrupted") }
-            if atomic.LoadInt32(&stopFlag) != 0 { return fmt.Errorf("stopped") }
-
-            // Filters
+        if ih.IsForceExit() || ih.IsInterrupted() { return fmt.Errorf("interrupted") }
+        stopMu.Lock()
+        if atomic.LoadInt32(&stopFlag) != 0 {
+            stopMu.Unlock()
+            return fmt.Errorf("stopped")
+        }
+        stopMu.Unlock()            // Filters
             sz := fi.Size()
             if sz == 0 { return nil }
             if cfg.minSizeBytes > 0 && sz < cfg.minSizeBytes { return nil }
@@ -594,7 +598,12 @@ func CheckFolder(root string) error {
             sleepMs := 0
             for job := range jobs {
                 if ih.IsForceExit() || ih.IsInterrupted() { return }
-                if atomic.LoadInt32(&stopFlag) != 0 { return }
+                stopMu.Lock()
+                if atomic.LoadInt32(&stopFlag) != 0 {
+                    stopMu.Unlock()
+                    return
+                }
+                stopMu.Unlock()
                 p := job.path
                 size := job.size
                 if size == 0 { continue }
@@ -730,8 +739,18 @@ func CheckFolder(root string) error {
                     goodAppend(p)
                 }
 
-                if cfg.maxFiles > 0 && atomic.LoadInt64(&processedFiles) >= cfg.maxFiles { atomic.StoreInt32(&stopFlag, 1); return }
-                if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration { atomic.StoreInt32(&stopFlag, 1); return }
+                if cfg.maxFiles > 0 && atomic.LoadInt64(&processedFiles) >= cfg.maxFiles {
+                    stopMu.Lock()
+                    atomic.StoreInt32(&stopFlag, 1)
+                    stopMu.Unlock()
+                    return
+                }
+                if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration {
+                    stopMu.Lock()
+                    atomic.StoreInt32(&stopFlag, 1)
+                    stopMu.Unlock()
+                    return
+                }
 
                 if sleepMs > 0 { time.Sleep(time.Duration(sleepMs) * time.Millisecond) }
             }
@@ -748,7 +767,12 @@ func CheckFolder(root string) error {
                 vw := make(map[string]*volumeWarmup)
                 for job := range jobs {
                     if ih.IsForceExit() || ih.IsInterrupted() { return }
-                    if atomic.LoadInt32(&stopFlag) != 0 { return }
+                    stopMu.Lock()
+                    if atomic.LoadInt32(&stopFlag) != 0 {
+                        stopMu.Unlock()
+                        return
+                    }
+                    stopMu.Unlock()
                     p := job.path
                     size := job.size
                     if size == 0 { continue }
@@ -828,8 +852,18 @@ func CheckFolder(root string) error {
                     close(done)
                     f.Close()
                     if damagedMark { atomic.AddInt64(&damagedFiles, 1); atomic.AddInt64(&processedFiles, 1); if rep != nil { rep.Write(p, size, firstElapsed, status) } } else { atomic.AddInt64(&processedFiles, 1); if rep != nil { rep.Write(p, size, firstElapsed, "ok") }; goodAppend(p) }
-                    if cfg.maxFiles > 0 && atomic.LoadInt64(&processedFiles) >= cfg.maxFiles { atomic.StoreInt32(&stopFlag, 1); return }
-                    if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration { atomic.StoreInt32(&stopFlag, 1); return }
+                    if cfg.maxFiles > 0 && atomic.LoadInt64(&processedFiles) >= cfg.maxFiles {
+                        stopMu.Lock()
+                        atomic.StoreInt32(&stopFlag, 1)
+                        stopMu.Unlock()
+                        return
+                    }
+                    if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration {
+                        stopMu.Lock()
+                        atomic.StoreInt32(&stopFlag, 1)
+                        stopMu.Unlock()
+                        return
+                    }
                     if cfg.hddSleepMs > 0 { time.Sleep(time.Duration(cfg.hddSleepMs) * time.Millisecond) }
                 }
             }()
