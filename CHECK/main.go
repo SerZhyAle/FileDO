@@ -15,14 +15,8 @@ const version = "250916_check"
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
 
-// HistoryEntry structure for logg	err := handleCheckOperation(targetPath, checkMode, checkOptions, historyLogger)
-
-	if err != nil {
-		historyLogger.SetError(err)
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		// Don't use os.Exit(1) to allow defer cleanup message
-		return
-	}pe HistoryEntry struct {
+// HistoryEntry structure for logging
+type HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	Command       string                 `json:"command"`
 	Target        string                 `json:"target"`

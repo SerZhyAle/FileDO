@@ -989,5 +989,194 @@
     "results": {},
     "duration": "3s",
     "success": true
+  },
+  {
+    "timestamp": "2026-02-18T03:01:23.9355666+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:01:49.8898892+01:00",
+    "command": "folder",
+    "target": "c:/temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe c:/temp speed 1000",
+    "parameters": {
+      "args": [
+        "c:/temp",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "3s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T03:01:58.1079824+01:00",
+    "command": "folder",
+    "target": "r:/temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe r:/temp speed 1000",
+    "parameters": {
+      "args": [
+        "r:/temp",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "3s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T03:03:10.9716285+01:00",
+    "command": "folder",
+    "target": "c:\\temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe c:\\temp speed 1000",
+    "parameters": {
+      "args": [
+        "c:\\temp",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "2s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T03:03:18.1390672+01:00",
+    "command": "folder",
+    "target": "r:\\temp",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe r:\\temp speed 1000",
+    "parameters": {
+      "args": [
+        "r:\\temp",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "2s",
+    "success": true
+  },
+  {
+    "timestamp": "2026-02-18T03:05:03.3375029+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe //192.168.1.110/media speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:05:13.6545082+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe 192.168.1.110/media speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:05:17.8977764+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe 192.168.1.110/media speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:05:42.8382265+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe //192.168.1.110/common speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:06:05.0836731+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe \\\\192.168.1.110/common speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:06:09.3207479+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe \\\\192.168.1.110\\common speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:06:15.2690132+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe 192.168.1.110\\common speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:06:29.8389168+01:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe 192.168.1.110\\common speed 1000",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
+  },
+  {
+    "timestamp": "2026-02-18T03:06:38.2093309+01:00",
+    "command": "folder",
+    "target": "\\\\SZAMEDIA\\Common\\",
+    "operation": "speed",
+    "fullCommand": "C:\\GIT\\FileDo\\filedo.exe \\\\SZAMEDIA\\Common\\ speed 1000",
+    "parameters": {
+      "args": [
+        "\\\\SZAMEDIA\\Common\\",
+        "speed",
+        "1000"
+      ],
+      "size": "1000"
+    },
+    "results": {},
+    "duration": "22s",
+    "success": true
   }
 ]

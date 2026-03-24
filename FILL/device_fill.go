@@ -232,8 +232,8 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 					progress.PrintProgress("Fill")
 				}
 			}
-		case <-time.After(30 * time.Second):
-			// Защита от таймаута - если нет результата в течение 30 секунд, что-то не так
+		case <-time.After(time.Duration(sizeMB*2) * time.Second):
+			// Защита от таймаута - если нет результата в течение 2*sizeMB секунд, что-то не так
 			fmt.Printf("\n⚠ Warning: Operation timeout - stopping\n")
 			cancel()
 			goto fillComplete
