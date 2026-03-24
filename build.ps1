@@ -1,12 +1,8 @@
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 
-# Get version from git
-$version = git log -1 --format="%cd" --date=format:"%y%m%d%H%M" 2>$null
-if (-not $version) {
-    $version = Get-Date -Format "yyMMddHHmm"
-    Write-Host "Warning: git version failed, using current time: $version"
-}
+# Version = current build date/time in yyMMddHHmm format
+$version = Get-Date -Format "yyMMddHHmm"
 
 Write-Host "Version: $version"
 Write-Host ""

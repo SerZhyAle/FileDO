@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	cryptoRand "crypto/rand"
 	"fmt"
 	"io"
 	"io/fs"
@@ -504,8 +503,8 @@ func formatBytesShort(b uint64) string {
 func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logger *HistoryLogger) (*FakeCapacityTestResult, error) {
 	testType, targetPath := tester.GetTestInfo()
 
-	// Setup interrupt handler
-	interruptHandler := NewInterruptHandler()
+	// Use global interrupt handler (avoid duplicate signal registration)
+	interruptHandler := globalInterruptHandler
 
 	// Setup history logging if provided
 	if logger != nil {
@@ -555,29 +554,8 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		fileSizeMB, float64(totalDataTarget)/float64(freeSpace)*100, maxFiles)
 	fmt.Printf("Will create %d test files...\n\n", maxFiles)
 
-	// Pre-calibrate optimal buffer for this target
-	dir := targetPath
-	if !filepath.IsAbs(dir) {
-		if abs, err := filepath.Abs(dir); err == nil {
-			dir = abs
-		}
-	}
-	if _, exists := optimalBuffers[dir]; !exists {
-		// Check for interrupt during calibration
-		if interruptHandler.IsCancelled() {
-			fmt.Printf("\n\n⚠ Operation interrupted by user during optimization.\n")
-			err := fmt.Errorf("operation interrupted by user")
-			if logger != nil {
-				logger.SetError(err)
-				logger.SetResult("interrupted", true)
-			}
-			return result, err
-		}
-
-		optimalBuffer := calibrateOptimalBufferSize(dir)
-		optimalBuffers[dir] = optimalBuffer
-		fmt.Printf("Buffer optimized: %dMB\n", optimalBuffer/(1024*1024))
-	}
+	// Write buffer is fixedBufferSize (64 MB) — set in writeTestFileContentOptimized.
+	// No upfront calibration: eliminates 300 MB of wasted writes before the test.
 
 	const baselineFileCount = 3
 	var speeds []float64
@@ -850,18 +828,10 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 
 // Optimized file operations without template files
 
-// copyFileOptimized uses calibrated buffer for faster copying
+const fixedBufferSize = 64 * 1024 * 1024 // 64 MB — good for all device types
+
+// copyFileOptimized copies src→dst with a fixed 64 MB buffer.
 func copyFileOptimized(src, dst string) (int64, error) {
-	// Get directory for calibration (use destination directory)
-	dir := filepath.Dir(dst)
-
-	// Check if we already have optimal buffer size for this path
-	optimalBuffer, exists := optimalBuffers[dir]
-	if !exists {
-		optimalBuffer = calibrateOptimalBufferSize(dir)
-		optimalBuffers[dir] = optimalBuffer
-	}
-
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return 0, err
@@ -874,27 +844,17 @@ func copyFileOptimized(src, dst string) (int64, error) {
 	}
 	defer dstFile.Close()
 
-	buf := make([]byte, optimalBuffer)
+	buf := make([]byte, fixedBufferSize)
 	return io.CopyBuffer(dstFile, srcFile, buf)
 }
 
-// writeTestFileContentOptimized writes directly to target with calibrated buffer size
+// writeTestFileContentOptimized writes a test file with a fixed 64 MB buffer.
 func writeTestFileContentOptimized(filePath string, fileSize int64) error {
 	return writeTestFileContentOptimizedContext(context.Background(), filePath, fileSize)
 }
 
 func writeTestFileContentOptimizedContext(ctx context.Context, filePath string, fileSize int64) error {
-	// Get directory for calibration
-	dir := filepath.Dir(filePath)
-
-	// Check if we already have optimal buffer size for this path
-	optimalBuffer, exists := optimalBuffers[dir]
-	if !exists {
-		optimalBuffer = calibrateOptimalBufferSize(dir)
-		optimalBuffers[dir] = optimalBuffer
-	}
-
-	return writeTestFileWithBufferContext(ctx, filePath, fileSize, optimalBuffer)
+	return writeTestFileWithBufferContext(ctx, filePath, fileSize, fixedBufferSize)
 }
 
 // verifyTestFileStartEnd verifies file has correct header at start and end
@@ -1054,245 +1014,164 @@ func verifyTestFileComplete(filePath string) error {
 			strings.TrimSuffix(expectedHeader, "\n"), strings.TrimSuffix(actualFooter, "\n"))
 	}
 
-	// Check data integrity at multiple random positions
-	dataPattern := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-	patternBytes := []byte(dataPattern)
+	// Extract the file-specific body tag from the header.
+	// Header: "FILEDO_TEST_FILL_001_ddHHmmss.tmp_timestamp" → tag "F001_"
+	// Body written as "F001_ABCDE... F001_ABCDE..." repeating.
+	// A fake controller that overwrites file 001's middle with file 042's body
+	// will have "F042_" instead of "F001_" → detected immediately.
+	bodyTag := ""
+	const hdrPrefix = "FILEDO_TEST_FILL_"
+	hdr := strings.TrimSuffix(string(expectedHeader), "\n")
+	if strings.HasPrefix(hdr, hdrPrefix) {
+		rest := hdr[len(hdrPrefix):]
+		if idx := strings.IndexByte(rest, '_'); idx > 0 {
+			bodyTag = "F" + rest[:idx] + "_"
+		}
+	}
 
-	// Define check positions: start of data, end of data, and random positions
+	// Define check positions: just after header, near footer, and 3 random middle spots
 	dataStart := headerLen
 	dataEnd := footerStart
 	dataLength := dataEnd - dataStart
 
-	if dataLength < int64(len(patternBytes)*3) {
-		// File too small for pattern verification, just check headers
+	if dataLength < 64 || bodyTag == "" {
 		return nil
 	}
 
-	// Generate 3 random positions within the data area for each file verification
-	var checkPositions []int64
-	checkPositions = append(checkPositions, dataStart)                          // Right after header
-	checkPositions = append(checkPositions, dataEnd-int64(len(patternBytes)*2)) // Near end of data
-
-	// Add 3 truly random positions within the data area
-	// Seed with crypto random for better randomness
-	var seed int64
-	seedBytes := make([]byte, 8)
-	if _, err := cryptoRand.Read(seedBytes); err == nil {
-		for i, b := range seedBytes {
-			seed |= int64(b) << (i * 8)
-		}
-	} else {
-		seed = time.Now().UnixNano()
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	checkPositions := []int64{
+		dataStart,
+		dataEnd - int64(len(bodyTag)*4),
 	}
-	rand.Seed(seed)
-
 	for i := 0; i < 3; i++ {
-		minPos := dataStart + int64(len(patternBytes))
-		maxPos := dataEnd - int64(len(patternBytes)*2)
-		if maxPos > minPos {
-			randomPos := minPos + rand.Int63n(maxPos-minPos)
-			checkPositions = append(checkPositions, randomPos)
+		minP := dataStart + int64(len(bodyTag))
+		maxP := dataEnd - int64(len(bodyTag)*4)
+		if maxP > minP {
+			checkPositions = append(checkPositions, minP+rng.Int63n(maxP-minP))
 		}
 	}
 
-	readBuffer := make([]byte, len(patternBytes)*4) // Read extra to catch patterns
+	readBuffer := make([]byte, 256)
 
 	for _, pos := range checkPositions {
-		if pos < dataStart || pos >= dataEnd-int64(len(patternBytes)) {
+		if pos < dataStart || pos+int64(len(bodyTag)) >= dataEnd {
 			continue
 		}
-
-		_, err := file.Seek(pos, 0)
-		if err != nil {
+		if _, err := file.Seek(pos, 0); err != nil {
 			return fmt.Errorf("could not seek to position %d: %v", pos, err)
 		}
-
 		n, err := file.Read(readBuffer)
 		if err != nil && err != io.EOF {
 			return fmt.Errorf("could not read at position %d: %v", pos, err)
 		}
-
-		if n < len(patternBytes) {
-			continue
-		}
-
-		// Look for pattern in the read chunk
-		found := false
-		for i := 0; i <= n-len(patternBytes); i++ {
-			if string(readBuffer[i:i+len(patternBytes)]) == dataPattern {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			// Also check if we have valid pattern characters (>80% match)
-			validChars := 0
-			totalChars := min(n, len(patternBytes)*2)
-
-			for i := 0; i < totalChars; i++ {
-				ch := readBuffer[i]
-				// Check if character is from our pattern
-				if (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == ' ' {
-					validChars++
-				}
-			}
-
-			validRatio := float64(validChars) / float64(totalChars)
-			if validRatio < 0.8 {
-				return fmt.Errorf("data corruption detected at position %d - found invalid data pattern (%.1f%% valid chars)", pos, validRatio*100)
-			}
+		if !strings.Contains(string(readBuffer[:n]), bodyTag) {
+			return fmt.Errorf("body corruption at offset %d: expected tag %q not found (wrong file's data?)", pos, bodyTag)
 		}
 	}
 
 	return nil
 }
 
-// verifyPatternQuick performs quick pattern verification (one random middle position)
+// verifyPatternQuick checks one random middle position for the file-specific body tag.
 func verifyPatternQuick(file *os.File, fileSize int64, firstLine string) error {
-	dataPattern := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-	patternBytes := []byte(dataPattern)
+	// Extract the body tag written into this file's body: "FILL_001_..." → "F001_"
+	bodyTag := ""
+	const hdrPrefix = "FILEDO_TEST_FILL_"
+	if strings.HasPrefix(firstLine, hdrPrefix) {
+		rest := firstLine[len(hdrPrefix):]
+		if idx := strings.IndexByte(rest, '_'); idx > 0 {
+			bodyTag = "F" + rest[:idx] + "_"
+		}
+	}
+	if bodyTag == "" {
+		return nil
+	}
 
-	// Calculate data area boundaries
 	headerSize := int64(len(firstLine) + 1)
-	footerSize := headerSize
 	dataStart := headerSize
-	dataEnd := fileSize - footerSize
-
-	if dataEnd-dataStart < int64(len(patternBytes)*4) {
+	dataEnd := fileSize - headerSize
+	if dataEnd-dataStart < int64(len(bodyTag)*4) {
 		return nil
 	}
 
-	// Generate one random position in middle of file
+	// One random position in the middle quarter of the file
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	minPos := dataStart + (dataEnd-dataStart)/4  // Start at 1/4 of file
-	maxPos := dataEnd - (dataEnd-dataStart)/4    // End at 3/4 of file
-	
+	minPos := dataStart + (dataEnd-dataStart)/4
+	maxPos := dataEnd - (dataEnd-dataStart)/4
 	if maxPos <= minPos {
-		// File too small, check middle
-		minPos = dataStart + int64(len(patternBytes))
-		maxPos = dataEnd - int64(len(patternBytes)*2)
-	}
-	
-	if maxPos <= minPos {
-		return nil // File too small for checking
-	}
-
-	randomPos := minPos + rng.Int63n(maxPos-minPos)
-	
-	// Seek to random position
-	_, err := file.Seek(randomPos, 0)
-	if err != nil {
-		return fmt.Errorf("could not seek to position %d: %v", randomPos, err)
-	}
-
-	readBuffer := make([]byte, len(patternBytes)*4)
-	n, err := file.Read(readBuffer)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("could not read at position %d: %v", randomPos, err)
-	}
-
-	if n < len(patternBytes) {
 		return nil
 	}
+	pos := minPos + rng.Int63n(maxPos-minPos)
 
-	// Search for pattern in read chunk
-	found := false
-	for j := 0; j <= n-len(patternBytes); j++ {
-		if string(readBuffer[j:j+len(patternBytes)]) == dataPattern {
-			found = true
-			break
-		}
+	if _, err := file.Seek(pos, 0); err != nil {
+		return fmt.Errorf("could not seek to position %d: %v", pos, err)
 	}
-
-	if !found {
-		// Check if we have valid pattern characters
-		validChars := 0
-		totalChars := min(n, len(patternBytes)*2)
-
-		for j := 0; j < totalChars; j++ {
-			ch := readBuffer[j]
-			if (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == ' ' {
-				validChars++
-			}
-		}
-
-		validRatio := float64(validChars) / float64(totalChars)
-		if validRatio < 0.8 {
-			return fmt.Errorf("data corruption detected at position %d - found invalid data pattern (%.1f%% valid chars)", randomPos, validRatio*100)
-		}
+	buf := make([]byte, 256)
+	n, err := file.Read(buf)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("could not read at position %d: %v", pos, err)
 	}
-
+	if !strings.Contains(string(buf[:n]), bodyTag) {
+		return fmt.Errorf("body corruption at offset %d: tag %q not found", pos, bodyTag)
+	}
 	return nil
 }
 
-// verifySmartTestFiles performs smart verification according to new strategy:
-// - Full verification every 5th file
-// - After every 5th file (5,10,15,20..) check 1st file  
-// - After every 10th file (10,20,30..) check 5th file
-// - After every 20th file (20,40,60..) check 10th file
+// verifySmartTestFiles checks key files after each write to detect fake capacity early.
+//
+// Strategy:
+//   - Current file: always quick-verified (catches write errors immediately)
+//   - File 1: quick-verified after EVERY write — detects the moment a fake
+//     controller overwrites the first file's middle blocks with later data
+//   - File 5 and 10: quick-verified every 10th / 20th write (secondary anchors)
+//   - Every 5th write: full (body-tag) verification of the current file
 func verifySmartTestFiles(filePaths []string, currentIndex int) error {
 	if len(filePaths) == 0 {
 		return nil
 	}
 
-	// Determine which files to verify
-	filesToVerify := make(map[int]bool) // map[index]fullVerification
+	// map[arrayIndex] → true=full, false=quick
+	filesToVerify := make(map[int]bool)
 
-	// Always verify current file
+	// Current file: full every 5th, quick otherwise
 	if currentIndex%5 == 0 {
-		// Every 5th file - full verification
-		filesToVerify[currentIndex-1] = true // currentIndex starts at 1, array at 0
+		filesToVerify[currentIndex-1] = true
 	} else {
-		// Other files - quick verification  
 		filesToVerify[currentIndex-1] = false
 	}
 
-	// Additional control checks
-	if currentIndex%5 == 0 {
-		// After every 5th file check 1st file (quick)
-		if len(filePaths) >= 1 {
-			filesToVerify[0] = false
-		}
+	// File 1: quick after EVERY write — earliest possible fake detection
+	if len(filePaths) > 1 {
+		filesToVerify[0] = false
 	}
 
-	if currentIndex%10 == 0 {
-		// After every 10th file check 5th file (quick)
-		if len(filePaths) >= 5 {
-			filesToVerify[4] = false // 5th file has index 4
-		}
+	// File 5: quick every 10th write
+	if currentIndex%10 == 0 && len(filePaths) >= 5 {
+		filesToVerify[4] = false
 	}
 
-	if currentIndex%20 == 0 {
-		// After every 20th file check 10th file (quick)
-		if len(filePaths) >= 10 {
-			filesToVerify[9] = false // 10th file has index 9
-		}
+	// File 10: quick every 20th write
+	if currentIndex%20 == 0 && len(filePaths) >= 10 {
+		filesToVerify[9] = false
 	}
 
-	// Perform verification of selected files
 	for fileIndex, fullVerification := range filesToVerify {
 		if fileIndex >= len(filePaths) {
 			continue
 		}
-
 		filePath := filePaths[fileIndex]
 		var err error
-
 		if fullVerification {
-			// Full verification
 			err = verifyTestFileComplete(filePath)
 		} else {
-			// Quick verification
 			err = verifyTestFileQuick(filePath)
 		}
-
 		if err != nil {
 			verifyType := "quick"
 			if fullVerification {
 				verifyType = "full"
 			}
-			return fmt.Errorf("file %d/%d (%s) %s verification failed: %v", 
+			return fmt.Errorf("file %d/%d (%s) %s verification failed: %v",
 				fileIndex+1, len(filePaths), filePath, verifyType, err)
 		}
 	}
@@ -1327,48 +1206,6 @@ func min(a, b int) int {
 	return b
 }
 
-// Buffer calibration for optimal performance
-func calibrateOptimalBufferSize(testPath string) int {
-	// Test different buffer sizes (4MB to 128MB)
-	bufferSizes := []int{
-		4 * 1024 * 1024,   // 4MB
-		8 * 1024 * 1024,   // 8MB
-		16 * 1024 * 1024,  // 16MB
-		32 * 1024 * 1024,  // 32MB
-		64 * 1024 * 1024,  // 64MB
-		128 * 1024 * 1024, // 128MB
-	}
-
-	testFileSize := 50 * 1024 * 1024 // 50MB test file
-	bestBuffer := bufferSizes[2]     // Default to 16MB
-	bestSpeed := 0.0
-
-	for _, bufferSize := range bufferSizes {
-		// Create test file
-		testFileName := fmt.Sprintf("__buffer_test_%d.tmp", time.Now().UnixNano())
-		testFilePath := filepath.Join(testPath, testFileName)
-
-		start := time.Now()
-		err := writeTestFileWithBuffer(testFilePath, int64(testFileSize), bufferSize)
-		duration := time.Since(start)
-
-		if err != nil {
-			os.Remove(testFilePath)
-			continue
-		}
-
-		speed := float64(testFileSize) / (1024 * 1024) / duration.Seconds()
-
-		if speed > bestSpeed {
-			bestSpeed = speed
-			bestBuffer = bufferSize
-		}
-
-		os.Remove(testFilePath)
-	}
-
-	return bestBuffer
-}
 
 func writeTestFileWithBuffer(filePath string, fileSize int64, bufferSize int) error {
 	return writeTestFileWithBufferContext(context.Background(), filePath, fileSize, bufferSize)
@@ -1396,8 +1233,18 @@ func writeTestFileWithBufferContext(ctx context.Context, filePath string, fileSi
 	// Calculate remaining space for data and footer
 	remaining := fileSize - int64(written) - int64(len(headerLine)) // Reserve space for footer (same as header)
 
-	// Fill with readable pattern
-	pattern := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+	// Build body pattern: embed file sequence number so middle reads are file-specific.
+	// A fake controller overwriting file 002's middle with file 042's body is caught
+	// because "F042_" != "F002_" when verifying.
+	// Extract sequence number from filename: FILL_00001_... → "00001"
+	seqTag := ""
+	if strings.HasPrefix(fileName, "FILL_") {
+		parts := strings.SplitN(fileName, "_", 3)
+		if len(parts) >= 2 {
+			seqTag = "F" + parts[1] + "_"
+		}
+	}
+	pattern := seqTag + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
 	patternBytes := []byte(pattern)
 	block := make([]byte, bufferSize)
 
@@ -1409,7 +1256,7 @@ func writeTestFileWithBufferContext(ctx context.Context, filePath string, fileSi
 	}
 
 	// Write data blocks in larger chunks
-	for remaining > int64(len(headerLine)) {
+	for remaining > 0 {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -1417,8 +1264,8 @@ func writeTestFileWithBufferContext(ctx context.Context, filePath string, fileSi
 		}
 
 		writeSize := bufferSize
-		if remaining-int64(len(headerLine)) < int64(bufferSize) {
-			writeSize = int(remaining - int64(len(headerLine)))
+		if remaining < int64(bufferSize) {
+			writeSize = int(remaining)
 		}
 
 		n, err := file.Write(block[:writeSize])
@@ -1439,7 +1286,6 @@ func writeTestFileWithBufferContext(ctx context.Context, filePath string, fileSi
 }
 
 // Global variable to cache optimal buffer sizes per path
-var optimalBuffers = make(map[string]int)
 
 // Helper function to get enhanced target info
 func getEnhancedTargetInfo(tester FakeCapacityTester) string {

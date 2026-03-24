@@ -286,8 +286,8 @@ func runFolderSpeedTest(folderPath, sizeMBStr string, noDelete, shortFormat bool
 }
 
 func runFolderFill(folderPath, sizeMBStr string, autoDelete bool) error {
-	// Setup interrupt handler
-	handler := NewInterruptHandler()
+	// Use global interrupt handler (avoid duplicate signal registration)
+	handler := globalInterruptHandler
 	templateFilePath := ""
 
 	// Add cleanup for template file

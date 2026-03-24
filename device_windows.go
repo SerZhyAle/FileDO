@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -410,8 +411,8 @@ func runDeviceSpeedTest(devicePath, sizeMBStr string, noDelete, shortFormat bool
 }
 
 func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
-	// Setup interrupt handler
-	handler := NewInterruptHandler()
+	// Use global interrupt handler (avoid duplicate signal registration)
+	handler := globalInterruptHandler
 
 	// Parse size
 	sizeMB, err := parseSize(sizeMBStr)
@@ -484,14 +485,8 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	now := time.Now()
 	timestamp := now.Format("021504") // ddHHmmss
 
-	// Pre-calibrate optimal buffer for faster operations
-	dir := normalizedPath
-	optimalBuffer := calibrateOptimalBufferSize(dir)
-	optimalBuffers[dir] = optimalBuffer
-
-	// Use larger bufferSize for fill operations (4x the calibrated buffer)
-	optimalBuffer = min(optimalBuffer*4, 128*1024*1024) // Max 128MB buffer
-	optimalBuffers[dir] = optimalBuffer
+	// 128 MB buffer for fill — large sequential writes saturate most devices
+	optimalBuffer := 128 * 1024 * 1024
 
 	// Start filling
 	fmt.Printf("Starting fill operation..\n")
@@ -856,6 +851,160 @@ DeletionComplete:
 
 	if deletedCount < int64(len(allMatches)) {
 		fmt.Printf("Warning: %d files could not be deleted\n", int64(len(allMatches))-deletedCount)
+	}
+
+	return nil
+}
+
+// runDeviceFillVerify verifies FILL test files to detect fake/counterfeit storage.
+// Fake controllers silently accept writes beyond actual capacity (data wraps or is
+// dropped), so early FILL files get overwritten by later ones. Reading back a file
+// and finding a different file's name in the header exposes the fraud.
+func runDeviceFillVerify(devicePath string) error {
+	normalizedPath := devicePath
+	if len(normalizedPath) == 2 && normalizedPath[1] == ':' {
+		normalizedPath += "\\"
+	}
+
+	fmt.Printf("Fill Verify Operation (Fake Capacity Detection)\n")
+	fmt.Printf("Target: %s\n", getEnhancedDeviceInfo(normalizedPath))
+	fmt.Printf("How it works: each FILL file embeds its own name in the header.\n")
+	fmt.Printf("  A fake controller overwrites early blocks with later writes,\n")
+	fmt.Printf("  so FILL_00001 ends up containing FILL_00500's header — caught.\n\n")
+
+	pattern := filepath.Join(normalizedPath, "FILL_*.tmp")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return fmt.Errorf("failed to search for FILL files: %w", err)
+	}
+	if len(matches) == 0 {
+		fmt.Printf("No FILL test files found on %s\n", normalizedPath)
+		fmt.Printf("Run 'filedo %s fill' first to write test data across the full capacity.\n", devicePath)
+		return nil
+	}
+
+	// Sort: FILL_00001_... before FILL_00002_... (lexicographic order works here)
+	sort.Strings(matches)
+	totalFiles := len(matches)
+
+	// Determine file size from first file for capacity estimates
+	var fileSize int64
+	if info, err := os.Stat(matches[0]); err == nil {
+		fileSize = info.Size()
+	}
+
+	fmt.Printf("Found %d FILL files (%.2f GB of test data)\n", totalFiles,
+		float64(totalFiles)*float64(fileSize)/(1024*1024*1024))
+	fmt.Printf("Verifying headers..\n\n")
+
+	type result struct {
+		index        int
+		actualName   string
+		embeddedName string // name found inside the file
+		good         bool
+		readErr      bool
+	}
+
+	results := make([]result, totalFiles)
+	jobs := make(chan int, totalFiles)
+	var wg sync.WaitGroup
+
+	workers := 16
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			buf := make([]byte, 512)
+			for i := range jobs {
+				filePath := matches[i]
+				actualName := filepath.Base(filePath)
+
+				f, err := os.Open(filePath)
+				if err != nil {
+					results[i] = result{i, actualName, "", false, true}
+					continue
+				}
+				n, _ := f.Read(buf)
+				f.Close()
+
+				// Header format: "FILEDO_TEST_FILL_00001_021504.tmp_20260324_012341\n"
+				// Extract embedded filename: between "FILEDO_TEST_" and the last timestamp "_YYYYMMDD_HHMMSS"
+				line := strings.SplitN(string(buf[:n]), "\n", 2)[0]
+				const prefix = "FILEDO_TEST_"
+				embeddedName := ""
+				if strings.HasPrefix(line, prefix) {
+					rest := line[len(prefix):]
+					// Filename ends at ".tmp" — everything after is the build timestamp
+					if idx := strings.Index(rest, ".tmp"); idx >= 0 {
+						embeddedName = rest[:idx] + ".tmp"
+					}
+				}
+
+				// Strip path prefix from actualName for comparison (already bare)
+				good := embeddedName != "" && embeddedName == actualName
+				results[i] = result{i, actualName, embeddedName, good, false}
+			}
+		}()
+	}
+
+	for i := range matches {
+		jobs <- i
+	}
+	close(jobs)
+	wg.Wait()
+
+	// Count outcomes
+	goodCount, badCount, readErrCount := 0, 0, 0
+	var badExamples []result
+	for _, r := range results {
+		switch {
+		case r.readErr:
+			readErrCount++
+		case r.good:
+			goodCount++
+		default:
+			badCount++
+			if len(badExamples) < 5 {
+				badExamples = append(badExamples, r)
+			}
+		}
+	}
+
+	fmt.Printf("Results:\n")
+	fmt.Printf("  Total files:    %d\n", totalFiles)
+	fmt.Printf("  Headers OK:     %d\n", goodCount)
+	fmt.Printf("  Headers WRONG:  %d\n", badCount)
+	if readErrCount > 0 {
+		fmt.Printf("  Unreadable:     %d\n", readErrCount)
+	}
+	fmt.Printf("\n")
+
+	if badCount == 0 && readErrCount == 0 {
+		fmt.Printf("✓ GENUINE: All %d file headers match — storage capacity appears real.\n", totalFiles)
+		return nil
+	}
+
+	// Real capacity = files that survived intact = goodCount × fileSize
+	// (The last N written files stay intact; earlier ones get overwritten when
+	//  the controller wraps its address space.)
+	realGB := float64(goodCount) * float64(fileSize) / (1024 * 1024 * 1024)
+	claimedGB := float64(totalFiles) * float64(fileSize) / (1024 * 1024 * 1024)
+
+	fmt.Printf("⚠ FAKE CAPACITY DETECTED!\n")
+	fmt.Printf("  Claimed capacity: ~%.1f GB (%d × %d MB files)\n",
+		claimedGB, totalFiles, fileSize/(1024*1024))
+	fmt.Printf("  Real capacity:    ~%.1f GB (%d files with intact data)\n",
+		realGB, goodCount)
+	fmt.Printf("  Overwritten:       %d files (%.1f GB of data is LOST)\n\n",
+		badCount, float64(badCount)*float64(fileSize)/(1024*1024*1024))
+
+	fmt.Printf("Examples of corrupted files (contain another file's data):\n")
+	for _, r := range badExamples {
+		embedded := r.embeddedName
+		if embedded == "" {
+			embedded = "(no valid header)"
+		}
+		fmt.Printf("  %-30s → contains: %s\n", r.actualName, embedded)
 	}
 
 	return nil

@@ -516,8 +516,8 @@ func runNetworkFill(networkPath, sizeMBStr string, autoDelete bool, logger *Hist
 		logger.SetParameter("autoDelete", autoDelete)
 	}
 
-	// Setup interrupt handler
-	handler := NewInterruptHandler()
+	// Use global interrupt handler (avoid duplicate signal registration)
+	handler := globalInterruptHandler
 	templateFilePath := ""
 
 	// Add cleanup for template file

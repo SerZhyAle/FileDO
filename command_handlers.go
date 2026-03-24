@@ -134,6 +134,7 @@ type CommandHandler interface {
 	SpeedTest(path, size string, noDelete, shortFormat bool) error
 	Fill(path, size string, autoDelete bool) error
 	FillClean(path string) error
+	FillVerify(path string) error
 	Test(path string, autoDelete bool) error
 	CheckDuplicates(path string, args []string) error
 	Copy(sourcePath, targetPath string) error
@@ -161,6 +162,10 @@ func (h DeviceHandler) Fill(path, size string, autoDelete bool) error {
 
 func (h DeviceHandler) FillClean(path string) error {
 	return runDeviceFillClean(path)
+}
+
+func (h DeviceHandler) FillVerify(path string) error {
+	return runDeviceFillVerify(path)
 }
 
 func (h DeviceHandler) Test(path string, autoDelete bool) error {
@@ -203,6 +208,10 @@ func (h FolderHandler) FillClean(path string) error {
 	return runFolderFillClean(path)
 }
 
+func (h FolderHandler) FillVerify(path string) error {
+	return runDeviceFillVerify(path) // same logic: scan FILL_*.tmp in directory
+}
+
 func (h FolderHandler) Test(path string, autoDelete bool) error {
 	return runFolderTest(path, autoDelete)
 }
@@ -243,6 +252,10 @@ func (h NetworkHandler) FillClean(path string) error {
 	return runNetworkFillClean(path, nil)
 }
 
+func (h NetworkHandler) FillVerify(path string) error {
+	return runDeviceFillVerify(path) // same logic: scan FILL_*.tmp in directory
+}
+
 func (h NetworkHandler) Test(path string, autoDelete bool) error {
 	return runNetworkTest(path, autoDelete, nil)
 }
@@ -281,6 +294,10 @@ func (h FileHandler) Fill(path, size string, autoDelete bool) error {
 
 func (h FileHandler) FillClean(path string) error {
 	return fmt.Errorf("fill clean operation is not supported for files")
+}
+
+func (h FileHandler) FillVerify(path string) error {
+	return fmt.Errorf("fill verify operation is not supported for files")
 }
 
 func (h FileHandler) Test(path string, autoDelete bool) error {
@@ -468,6 +485,21 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 					return
 				}
 			}
+		}
+		historyLogger.SetSuccess()
+		return
+	}
+
+	// Check if this is a fill verify command: filedo D: fill verify
+	if cmd.NArg() >= 3 &&
+		(strings.ToLower(cmd.Arg(1)) == "fill" || strings.ToLower(cmd.Arg(1)) == "f") &&
+		(strings.ToLower(cmd.Arg(2)) == "verify" || strings.ToLower(cmd.Arg(2)) == "v") {
+		historyLogger.SetCommand(cmdTypeName, path, "fill-verify")
+		err := handler.FillVerify(path)
+		if err != nil {
+			historyLogger.SetError(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return
 		}
 		historyLogger.SetSuccess()
 		return

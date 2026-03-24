@@ -21,6 +21,10 @@ func runDeviceFillClean(devicePath string) error {
 	return fmt.Errorf("device fill clean operation is not supported on this operating system")
 }
 
+func runDeviceFillVerify(devicePath string) error {
+	return fmt.Errorf("device fill verify operation is not supported on this operating system")
+}
+
 func runDeviceTest(devicePath string, autoDelete bool) error {
 	return fmt.Errorf("device test operation is not supported on this operating system")
 }
