@@ -852,9 +852,9 @@ DeletionComplete:
 	return nil
 }
 
-func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
+func runNetworkTest(networkPath string, autoDelete bool, maxFiles int, logger *HistoryLogger) error {
 	tester := NewNetworkTester(networkPath)
-	_, err := runGenericFakeCapacityTest(tester, autoDelete, logger)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, maxFiles, logger)
 	return err
 }
 

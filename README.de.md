@@ -110,6 +110,7 @@ filedo C:\temp clean
 - **Zufällige Positionsprüfung** - jede Datei wird an eindeutigen zufälligen Positionen überprüft
 - **Schutz vor raffinierten Fälschungen** - schlägt Controller, die Daten an vorhersagbaren Positionen speichern
 - **Lesbare Muster** - verwendet `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789` für einfache Korruptionserkennung
+- **Schnelles Raw-Sondieren** (`probe`) - 32 Marker per direktem LBA-Zugriff, fertig in ~1 Min (Admin erforderlich)
 
 ### ⚡ **Leistungstest**
 - Messung der tatsächlichen Lese-/Schreibgeschwindigkeit
@@ -151,6 +152,8 @@ filedo C:\temp clean
 | `info` | Detaillierte Informationen anzeigen | `filedo C: info` |
 | `short` | Kurze Zusammenfassung | `filedo D: short` |
 | `test` | Fake-Kapazität-Erkennung | `filedo E: test del` |
+| `test N` | Test mit N Dateien (Standard 100) | `filedo D: test 1000` |
+| `probe` | Schnelles Raw-I/O-Probe (~1 Min, Admin erforderlich) | `filedo D: probe` |
 | `speed <größe>` | Leistungstest | `filedo C: speed 500` |
 | `fill [größe]` | Mit Testdaten füllen | `filedo D: fill 1000` |
 | `clean` | Testdateien löschen | `filedo C: clean` |

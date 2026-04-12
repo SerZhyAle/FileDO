@@ -485,8 +485,8 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	now := time.Now()
 	timestamp := now.Format("021504") // ddHHmmss
 
-	// 128 MB buffer for fill — large sequential writes saturate most devices
-	optimalBuffer := 128 * 1024 * 1024
+	// 4 MB buffer per worker — keeps 12 workers within 32-bit process address space
+	optimalBuffer := 4 * 1024 * 1024
 
 	// Start filling
 	fmt.Printf("Starting fill operation..\n")
@@ -541,7 +541,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 
 					// Create file directly with optimized function
 					err := writeTestFileWithBuffer(targetFilePath, fileSizeBytes, optimalBuffer)
-					
+
 					// Check for critical errors that should stop all operations
 					if err != nil && isCriticalError(err) {
 						atomic.AddInt64(&criticalErrorCount, 1)
@@ -553,7 +553,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 						}{i, fmt.Errorf("critical error: %w", err)}
 						return
 					}
-					
+
 					results <- struct {
 						fileIndex int64
 						err       error
@@ -577,7 +577,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 			fmt.Printf("\n⚠ Operation cancelled by user\n")
 			break
 		}
-		
+
 		select {
 		case <-ctx.Done():
 			fmt.Printf("\n⚠ Operation stopped due to critical error\n")
@@ -592,7 +592,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 					} else {
 						fmt.Printf("\n⚠ Warning: Failed to create file %d: %v\n", result.fileIndex, result.err)
 						atomic.AddInt64(&consecutiveErrors, 1)
-						
+
 						// Stop if too many consecutive errors (likely disk full or hardware issue)
 						if consecutiveErrors >= 3 {
 							fmt.Printf("Too many consecutive errors - stopping operation\n")
@@ -700,9 +700,9 @@ func isCriticalError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	errStr := strings.ToLower(err.Error())
-	
+
 	// Critical errors that should stop all operations
 	criticalPatterns := []string{
 		"no space left on device",
@@ -717,13 +717,13 @@ func isCriticalError(err error) bool {
 		"bad sectors",
 		"device error",
 	}
-	
+
 	for _, pattern := range criticalPatterns {
 		if strings.Contains(errStr, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -1113,9 +1113,9 @@ func (dt *DeviceTester) GetCleanupCommand() string {
 }
 
 // runDeviceTest now uses the generic test function
-func runDeviceTest(devicePath string, autoDelete bool) error {
+func runDeviceTest(devicePath string, autoDelete bool, maxFiles int) error {
 	tester := NewDeviceTester(devicePath)
-	_, err := runGenericFakeCapacityTest(tester, autoDelete, nil)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, maxFiles, nil)
 	return err
 }
 

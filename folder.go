@@ -669,8 +669,8 @@ func (ft *FolderTester) CreateTestFileContext(ctx context.Context, fileName stri
 }
 
 // runFolderTest now uses the generic test function
-func runFolderTest(folderPath string, autoDelete bool) error {
+func runFolderTest(folderPath string, autoDelete bool, maxFiles int) error {
 	tester := NewFolderTester(folderPath)
-	_, err := runGenericFakeCapacityTest(tester, autoDelete, nil)
+	_, err := runGenericFakeCapacityTest(tester, autoDelete, maxFiles, nil)
 	return err
 }

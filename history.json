@@ -1178,5 +1178,16 @@
     "results": {},
     "duration": "22s",
     "success": true
+  },
+  {
+    "timestamp": "2026-04-12T02:08:51.7468105+02:00",
+    "command": "",
+    "target": "",
+    "operation": "",
+    "fullCommand": "C:\\GD\\tc\\SZA\\_APP\\filedo.exe",
+    "parameters": {},
+    "results": {},
+    "duration": "0s",
+    "success": false
   }
 ]

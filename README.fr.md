@@ -110,6 +110,7 @@ filedo C:\temp clean
 - **Vérification positionnelle aléatoire** - chaque fichier vérifié à des positions aléatoires uniques
 - **Protection contre les contrefaçons sophistiquées** - bat les contrôleurs qui préservent les données à des positions prévisibles
 - **Motifs lisibles** - utilise `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789` pour une détection facile de la corruption
+- **Sondage rapide brut** (`probe`) - 32 marqueurs par accès LBA direct, terminé en ~1 min (Admin requis)
 
 ### ⚡ **Test de Performance**
 - Mesure de la vitesse réelle de lecture/écriture
@@ -151,6 +152,8 @@ filedo C:\temp clean
 | `info` | Afficher informations détaillées | `filedo C: info` |
 | `short` | Résumé bref | `filedo D: short` |
 | `test` | Détection de fausse capacité | `filedo E: test del` |
+| `test N` | Test avec N fichiers (défaut 100) | `filedo D: test 1000` |
+| `probe` | Sondage rapide en I/O brut (~1 min, Admin requis) | `filedo D: probe` |
 | `speed <taille>` | Test de performance | `filedo C: speed 500` |
 | `fill [taille]` | Remplir avec données de test | `filedo D: fill 1000` |
 | `clean` | Supprimer fichiers de test | `filedo C: clean` |

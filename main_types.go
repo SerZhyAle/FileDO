@@ -500,7 +500,7 @@ func formatBytesShort(b uint64) string {
 // Generic fake capacity testing functions
 
 // runGenericFakeCapacityTest performs a generic fake capacity test using the provided tester interface
-func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logger *HistoryLogger) (*FakeCapacityTestResult, error) {
+func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxFiles int, logger *HistoryLogger) (*FakeCapacityTestResult, error) {
 	testType, targetPath := tester.GetTestInfo()
 
 	// Use global interrupt handler (avoid duplicate signal registration)
@@ -535,10 +535,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 		return result, err
 	}
 
-	// Calculate file size to use 95% of available space for 100 files
-	const maxFiles = 100
+	// Calculate file size to use 95% of available space for the given number of files
 	totalDataTarget := int64(float64(freeSpace) * 0.95) // Use 95% of available space
-	fileSize := totalDataTarget / maxFiles
+	fileSize := totalDataTarget / int64(maxFiles)
 	fileSizeMB := fileSize / (1024 * 1024)
 
 	// Ensure minimum file size of 1MB
@@ -563,7 +562,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, logg
 	baselineSet := false
 
 	// Create progress tracker
-	progress := NewProgressTrackerWithInterval(maxFiles, maxFiles*fileSize, 2*time.Second)
+	progress := NewProgressTrackerWithInterval(int64(maxFiles), int64(maxFiles)*fileSize, 2*time.Second)
 
 	// Write phase
 	fmt.Printf("Starting capacity test - writing %d files...\n", maxFiles)
@@ -1038,23 +1037,24 @@ func verifyTestFileComplete(filePath string) error {
 		return nil
 	}
 
+	const readBufSize = 256
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	checkPositions := []int64{
 		dataStart,
-		dataEnd - int64(len(bodyTag)*4),
+		dataEnd - readBufSize,
 	}
 	for i := 0; i < 3; i++ {
-		minP := dataStart + int64(len(bodyTag))
-		maxP := dataEnd - int64(len(bodyTag)*4)
+		minP := dataStart + readBufSize
+		maxP := dataEnd - readBufSize
 		if maxP > minP {
 			checkPositions = append(checkPositions, minP+rng.Int63n(maxP-minP))
 		}
 	}
 
-	readBuffer := make([]byte, 256)
+	readBuffer := make([]byte, readBufSize)
 
 	for _, pos := range checkPositions {
-		if pos < dataStart || pos+int64(len(bodyTag)) >= dataEnd {
+		if pos < dataStart || pos+readBufSize > dataEnd {
 			continue
 		}
 		if _, err := file.Seek(pos, 0); err != nil {
@@ -1205,7 +1205,6 @@ func min(a, b int) int {
 	}
 	return b
 }
-
 
 func writeTestFileWithBuffer(filePath string, fileSize int64, bufferSize int) error {
 	return writeTestFileWithBufferContext(context.Background(), filePath, fileSize, bufferSize)

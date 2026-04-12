@@ -297,6 +297,6 @@ func runNetworkFillClean(networkPath string, logger *HistoryLogger) error {
 	return fmt.Errorf("network fill clean operation is not supported on this operating system")
 }
 
-func runNetworkTest(networkPath string, autoDelete bool, logger *HistoryLogger) error {
+func runNetworkTest(networkPath string, autoDelete bool, maxFiles int, logger *HistoryLogger) error {
 	return fmt.Errorf("network test operation is not supported on this operating system")
 }

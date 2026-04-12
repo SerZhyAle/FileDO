@@ -47,3 +47,9 @@ if ($failed.Count -eq 0) {
     Write-Host "Failed: $($failed -join ', ')"
     exit 1
 }
+
+$deploy = "C:\GD\tc\SZA\_APP"
+Write-Host ""
+Write-Host "Copying to $deploy ..." -NoNewline
+Copy-Item "$out\*" $deploy -Force
+Write-Host " OK"

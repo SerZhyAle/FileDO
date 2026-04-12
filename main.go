@@ -243,6 +243,8 @@ OPTIONS:
 MORE INFO:
   filedo.exe help                 → Show detailed help
   filedo.exe /help                → Show detailed help
+
+  GitHub: https://github.com/SerZhyAle/FileDO
 `, version)
 
 var usage = fmt.Sprintf(`
@@ -274,8 +276,12 @@ Performance Testing:
   filedo.exe device F: speed 1000 nodel → Test but keep the test file
 
 Capacity & Integrity Testing:
-  filedo.exe C: test               → Test for fake capacity (100 files, 1%% each)
+  filedo.exe C: test               → Test for fake capacity (100 files, 95%% of space)
+  filedo.exe C: test 1000          → Test with 1000 files (95%% of space)
   filedo.exe device D: test del    → Test capacity and auto-delete files
+  filedo.exe device D: test 500 del → Test with 500 files and auto-delete
+  filedo.exe D: probe              → Fast probe (raw I/O, requires Administrator, ~1 min)
+	filedo.exe D: recover            → Recover drive after probe (chkdsk + optional quick format)
   
 Space Management:
   filedo.exe C: fill 500           → Fill device with 500MB files until full
@@ -529,6 +535,8 @@ Help & Support:
   filedo.exe ?                     → Show quick help summary
   filedo.exe help                  → Show detailed help (this screen)
   filedo.exe /help                 → Show detailed help (this screen)
+
+  GitHub: https://github.com/SerZhyAle/FileDO
 `, version)
 
 var list_of_flags_for_device = []string{"device", "dev", "disk", "d"}
@@ -656,7 +664,7 @@ func executeInternalCommand(args []string) error {
 	// Convert only commands to lowercase for comparison, preserve paths
 	lowerArgs := make([]string, len(args))
 	copy(lowerArgs, args)
-	
+
 	// Convert first argument (command) to lowercase for comparison
 	if len(lowerArgs) >= 1 {
 		arg := lowerArgs[0]
@@ -664,13 +672,13 @@ func executeInternalCommand(args []string) error {
 			lowerArgs[0] = strings.ToLower(lowerArgs[0])
 		}
 	}
-	
+
 	// Convert potential operation arguments to lowercase (but preserve paths)
 	for i := 1; i < len(lowerArgs); i++ {
 		arg := lowerArgs[i]
 		// Only convert to lowercase if it doesn't look like a path
-		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && 
-		   !strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
+		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") &&
+			!strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
 			lowerArgs[i] = strings.ToLower(lowerArgs[i])
 		}
 	}
@@ -760,7 +768,7 @@ func executeInternalCommand(args []string) error {
 			return fmt.Errorf("compare command requires source and target paths")
 		}
 		internalLogger.SetCommand(command, args[1], "compare")
-	if err := handleCompareCommand(args[1], args[2], args[3:]...); err != nil {
+		if err := handleCompareCommand(args[1], args[2], args[3:]...); err != nil {
 			internalLogger.SetError(err)
 			return err
 		}
@@ -790,7 +798,7 @@ func executeInternalCommand(args []string) error {
 		}
 		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_synccopy, command):
-		// Handle synchronized copy command  
+		// Handle synchronized copy command
 		if len(args) < 3 {
 			return fmt.Errorf("synccopy command requires source and target paths")
 		}
@@ -814,7 +822,7 @@ func executeInternalCommand(args []string) error {
 		}
 		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_maxcopy, command):
-		// Handle maximum performance copy command  
+		// Handle maximum performance copy command
 		if len(args) < 3 {
 			return fmt.Errorf("maxcopy command requires source and target paths")
 		}
@@ -908,7 +916,7 @@ func handleAutoCopyCommand(sourcePath, targetPath string) error {
 		fmt.Printf("🔄 Starting intelligent copy...\n")
 		return handleSmartCopyCommand(sourcePath, targetPath)
 	}
-	
+
 	// Execute optimal strategy with minimal output
 	fmt.Printf("🔄 Starting copy with auto-optimization (%s)...\n", analysis.StrategyName)
 	return ExecuteSelectedStrategy(analysis, sourcePath, targetPath)
@@ -921,7 +929,7 @@ func handleSmartCopyCommand(sourcePath, targetPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to analyze copy strategy: %v", err)
 	}
-	
+
 	// Execute selected strategy
 	return ExecuteSelectedStrategy(analysis, sourcePath, targetPath)
 }
@@ -1080,8 +1088,8 @@ func main() {
 	start_time = time.Now()
 
 	// Optimize GC settings for better performance and less memory overhead
-	debug.SetGCPercent(50)      // More frequent GC to reduce memory usage
-	runtime.GOMAXPROCS(0)       // Use all available CPUs
+	debug.SetGCPercent(50) // More frequent GC to reduce memory usage
+	runtime.GOMAXPROCS(0)  // Use all available CPUs
 
 	// Initialize global interrupt handler first
 	globalInterruptHandler = NewInterruptHandler()
@@ -1107,12 +1115,12 @@ func main() {
 	// Convert only the first few arguments (commands/flags) to lowercase, preserve paths
 	lowerArgs := make([]string, len(args))
 	copy(lowerArgs, args)
-	
+
 	// Convert first argument (command) to lowercase for comparison
 	if len(lowerArgs) >= 2 {
 		lowerArgs[1] = strings.ToLower(lowerArgs[1])
 	}
-	
+
 	// Convert potential second command/flag to lowercase
 	if len(lowerArgs) >= 3 {
 		// Check if it looks like a command/flag, not a path
@@ -1121,13 +1129,13 @@ func main() {
 			lowerArgs[2] = strings.ToLower(lowerArgs[2])
 		}
 	}
-	
+
 	// Convert operation arguments to lowercase (but preserve paths)
 	for i := 3; i < len(lowerArgs); i++ {
 		arg := lowerArgs[i]
 		// Only convert to lowercase if it doesn't look like a path
-		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && 
-		   !strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
+		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") &&
+			!strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
 			lowerArgs[i] = strings.ToLower(lowerArgs[i])
 		}
 	}
@@ -1136,7 +1144,7 @@ func main() {
 		fmt.Println(shortUsage)
 		return
 	}
-	
+
 	if contains(list_fo_flags_for_help, lowerArgs[1]) {
 		if contains(list_fo_flags_for_short_help, lowerArgs[1]) {
 			fmt.Println(shortUsage)
@@ -1166,7 +1174,7 @@ func main() {
 	if contains(list_of_flags_for_all, lowerArgs[1]) {
 		command = lowerArgs[1]
 		add_args = args[2:] // Use original args to preserve case in paths
-		
+
 		// Special handling for short copy command 'c'
 		// If 'c' is used with 3+ arguments, treat it as copy
 		if lowerArgs[1] == "c" && len(args) >= 4 {
@@ -1266,7 +1274,7 @@ func main() {
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "compare")
-	if err := handleCompareCommand(add_args[0], add_args[1], add_args[2:]...); err != nil {
+		if err := handleCompareCommand(add_args[0], add_args[1], add_args[2:]...); err != nil {
 			historyLogger.SetError(err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			return

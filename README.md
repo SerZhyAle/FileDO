@@ -242,6 +242,7 @@ filedo C:\temp clean
 - **Random position verification** - each file checked at unique random positions every time
 - **Anti-sophisticated fake protection** - defeats controllers that preserve predictable data positions  
 - **Readable patterns** - uses `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789` for easy corruption detection
+- **Fast raw probe** (`probe`) - writes 32 markers via direct LBA access, completes in ~1 min (requires Admin)
 
 ### ⚡ **Performance Testing**
 - Real-world read/write speed measurement
@@ -280,6 +281,8 @@ filedo C:\temp clean
 | `info` | Show detailed information | `filedo C: info` |
 | `short` | Brief summary | `filedo D: short` |
 | `test` | Fake capacity detection | `filedo E: test del` |
+| `test N` | Test with N files (default 100) | `filedo D: test 1000` |
+| `probe` | Fast raw-I/O probe (~1 min, needs Admin) | `filedo D: probe` |
 | `speed <size>` | Performance testing | `filedo C: speed 500` |
 | `fill [size]` | Fill with test data | `filedo D: fill 1000` |
 | `clean` | Remove test files | `filedo C: clean` |

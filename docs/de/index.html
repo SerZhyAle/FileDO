@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FileDO – Erweiterte Datei- und Speicher-Tools</title>
+  <meta name="description" content="FileDO: Windows CLI-Tool zur Erkennung falscher Kapazitäten, Geschwindigkeitstests, sicherem Löschen, Duplikatverwaltung und Kopiervorgängen." />
+  <style>
+    :root { --bg:#0d1117; --surface:#161b22; --border:#30363d; --accent:#58a6ff; --accent2:#3fb950; --text:#e6edf3; --muted:#8b949e; --code-bg:#1f2937; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height:1.6; }
+    a { color:var(--accent); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .lang-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:8px 24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:0.85rem; }
+    .lang-bar span { color:var(--muted); }
+    .lang-bar a { padding:3px 10px; border-radius:20px; border:1px solid var(--border); transition:background 0.2s; }
+    .lang-bar a.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
+    .lang-bar a:hover:not(.active) { background:var(--border); text-decoration:none; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:48px 24px 40px; text-align:center; }
+    header h1 { font-size:2.8rem; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    header .tagline { margin-top:10px; font-size:1.05rem; color:var(--muted); }
+    .badges { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .badges img { height:20px; }
+    .btn-group { margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .btn { padding:10px 22px; border-radius:6px; font-weight:600; font-size:0.95rem; cursor:pointer; border:none; }
+    .btn-primary { background:var(--accent); color:#000; }
+    .btn-secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn:hover { opacity:0.85; }
+    main { max-width:960px; margin:40px auto; padding:0 24px 60px; }
+    h2 { font-size:1.6rem; font-weight:600; margin:48px 0 20px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    h3 { font-size:1.1rem; font-weight:600; margin:24px 0 10px; color:var(--accent); }
+    .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-top:8px; }
+    .feature-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; }
+    .feature-card .icon { font-size:1.8rem; margin-bottom:10px; }
+    .feature-card h3 { margin-top:0; font-size:1rem; color:var(--text); }
+    .feature-card ul { color:var(--muted); font-size:0.875rem; padding-left:16px; }
+    .feature-card li { margin-bottom:4px; }
+    pre { background:var(--code-bg); border:1px solid var(--border); border-radius:6px; padding:16px; overflow-x:auto; font-size:0.875rem; line-height:1.55; margin:12px 0; }
+    code { font-family:'Cascadia Code','Fira Code',Consolas,monospace; color:var(--accent2); }
+    pre code { color:var(--text); }
+    .comment { color:var(--muted); }
+    table { width:100%; border-collapse:collapse; font-size:0.9rem; margin:12px 0; }
+    th { background:var(--surface); text-align:left; padding:10px 12px; border:1px solid var(--border); color:var(--muted); font-weight:600; }
+    td { padding:9px 12px; border:1px solid var(--border); }
+    tr:nth-child(even) td { background:#12171e; }
+    td code { background:var(--code-bg); padding:2px 6px; border-radius:4px; font-size:0.8rem; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media (max-width:640px) { .two-col { grid-template-columns:1fr; } header h1 { font-size:1.9rem; } }
+    footer { text-align:center; padding:32px 24px; border-top:1px solid var(--border); color:var(--muted); font-size:0.85rem; }
+    footer a { color:var(--muted); }
+    footer a:hover { color:var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="lang-bar">
+  <span>&#127760;</span>
+  <a href="../">English</a>
+  <a href="." class="active">Deutsch</a>
+  <a href="../fr/">Français</a>
+  <a href="../ru/">Русский</a>
+  <a href="../ua/">Українська</a>
+</div>
+
+<header>
+  <h1>FileDO</h1>
+  <p class="tagline">🔍 Speicher-Tests &nbsp;•&nbsp; 🚀 Leistungsanalyse &nbsp;•&nbsp; 🛡️ Sicheres Löschen &nbsp;•&nbsp; 🎯 Fake-Kapazität Erkennung &nbsp;•&nbsp; 📁 Duplikat-Verwaltung</p>
+  <div class="badges">
+    <img src="https://goreportcard.com/badge/github.com/SerZhyAle/FileDO" alt="Go Report Card" />
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="Lizenz: MIT" />
+    <img src="https://img.shields.io/badge/Platform-Windows-lightgrey.svg" alt="Windows" />
+    <img src="https://img.shields.io/badge/Language-Go-00ADD8.svg" alt="Go" />
+  </div>
+  <div class="btn-group">
+    <a class="btn btn-primary" href="https://github.com/SerZhyAle/FileDO/releases">&#8595; Herunterladen</a>
+    <a class="btn btn-secondary" href="https://github.com/SerZhyAle/FileDO">&#128196; Auf GitHub</a>
+  </div>
+</header>
+
+<main>
+
+  <h2>&#127919; Hauptfunktionen</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="icon">🎯</div>
+      <h3>Fake-Kapazität Erkennung</h3>
+      <ul>
+        <li>100-Dateien-Prüfung (je 1% der Kapazität)</li>
+        <li>Zufällige Positionsprüfung bei jedem Scan</li>
+        <li>Erkennt auch ausgefeilte Fake-Controller</li>
+        <li>Schneller Raw-Probe via direktem LBA-Zugriff (~1 Min.)</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="icon">⚡</div>
+      <h3>Leistungstest</h3>
+      <ul>
+        <li>Reale Lese-/Schreibgeschwindigkeitsmessung</li>
+        <li>Speicheroptimiertes Streaming für große Dateien</li>
+        <li>Fortschrittsanzeige mit ETA-Berechnung</li>
+        <li>Konfigurierbare Dateigrößen (1 MB – 10 GB)</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🔍</div>
+      <h3>Duplikat-Verwaltung</h3>
+      <ul>
+        <li>MD5-Hash-basierte Identifikation</li>
+        <li>Mehrere Auswahlmodi (älteste/neueste/abc)</li>
+        <li>Flexible Aktionen (löschen / verschieben)</li>
+        <li>Hash-Caching für schnellere Wiederholungsscans</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="icon">📋</div>
+      <h3>Kopiervorgänge</h3>
+      <ul>
+        <li>Fortschrittsanzeige mit ETA</li>
+        <li>Timeout-Schutz für beschädigte Dateisysteme</li>
+        <li>Metadaten erhalten (Berechtigungen &amp; Zeitstempel)</li>
+        <li>Unterstützt Laufwerke, Ordner und Netzwerkfreigaben</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🧹</div>
+      <h3>Schnelles Löschen</h3>
+      <ul>
+        <li>Ultra-schnell: Ordner löschen &amp; neu erstellen (ms)</li>
+        <li>Standard-Fallback mit Fortschrittsanzeige</li>
+        <li>Bewahrt Originalberechtigungen &amp; Zeitstempel</li>
+        <li>Funktioniert mit Systemordnern &amp; eingeschränktem Zugriff</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🛡️</div>
+      <h3>Sicherheitsfunktionen</h3>
+      <ul>
+        <li>Hochgeschwindigkeits-Sicherheitslöschung (4,7+ GB/s)</li>
+        <li>Fülloperationen mit parallelem Schreiben</li>
+        <li>Stapelverarbeitung für mehrere Ziele</li>
+        <li>Vollständige Operationshistorie (JSON-Log)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>&#9889; Schnellstart</h2>
+  <div class="two-col">
+    <div>
+      <h3>Häufigste Aufgaben</h3>
+      <pre><code><span class="comment"># USB/SD-Karte auf Fälschung prüfen</span>
+filedo E: test del
+
+<span class="comment"># Festplatten-Leistungstest</span>
+filedo C: speed 100
+
+<span class="comment"># Sicheres Löschen des freien Speicherplatzes</span>
+filedo D: fill 1000 del
+
+<span class="comment"># Duplikate suchen und verwalten</span>
+filedo C: check-duplicates
+filedo D: cd old del</code></pre>
+    </div>
+    <div>
+      <h3>Kopieren &amp; Löschen</h3>
+      <pre><code><span class="comment"># Kopieren mit Fortschrittsanzeige</span>
+filedo folder C:\Source copy D:\Backup
+filedo device E: copy F:\Archive
+
+<span class="comment"># Schnelle Ordnerreinigung</span>
+filedo folder C:\Temp wipe
+
+<span class="comment"># Laufwerk-Informationen anzeigen</span>
+filedo C: info
+filedo D: short</code></pre>
+    </div>
+  </div>
+
+  <h2>&#128190; Befehlsreferenz</h2>
+  <h3>Zieltypen (automatisch erkannt)</h3>
+  <table>
+    <tr><th>Muster</th><th>Typ</th><th>Beispiel</th></tr>
+    <tr><td><code>C:</code>, <code>D:</code></td><td>Gerät</td><td><code>filedo C: test</code></td></tr>
+    <tr><td><code>C:\ordner</code></td><td>Ordner</td><td><code>filedo C:\temp speed 100</code></td></tr>
+    <tr><td><code>\\server\freigabe</code></td><td>Netzwerk</td><td><code>filedo \\nas\backup test</code></td></tr>
+    <tr><td><code>datei.txt</code></td><td>Datei</td><td><code>filedo dokument.pdf info</code></td></tr>
+  </table>
+
+  <h3>Operationen</h3>
+  <table>
+    <tr><th>Befehl</th><th>Zweck</th><th>Beispiel</th></tr>
+    <tr><td><code>info</code></td><td>Detaillierte Informationen anzeigen</td><td><code>filedo C: info</code></td></tr>
+    <tr><td><code>short</code></td><td>Kurzzusammenfassung</td><td><code>filedo D: short</code></td></tr>
+    <tr><td><code>test</code></td><td>Fake-Kapazität erkennen</td><td><code>filedo E: test del</code></td></tr>
+    <tr><td><code>speed &lt;Größe&gt;</code></td><td>Leistungstest</td><td><code>filedo C: speed 500</code></td></tr>
+    <tr><td><code>fill [Größe]</code></td><td>Mit Testdaten füllen</td><td><code>filedo D: fill 1000</code></td></tr>
+    <tr><td><code>clean</code></td><td>Testdateien entfernen</td><td><code>filedo C: clean</code></td></tr>
+    <tr><td><code>check-duplicates</code></td><td>Duplikate finden</td><td><code>filedo C: check-duplicates</code></td></tr>
+    <tr><td><code>copy &lt;Ziel&gt;</code></td><td>Dateien kopieren</td><td><code>filedo C: copy D:\sicherung</code></td></tr>
+    <tr><td><code>wipe</code></td><td>Ordnerinhalt schnell löschen</td><td><code>filedo folder C:\temp wipe</code></td></tr>
+    <tr><td><code>compare A B</code></td><td>Zwei Ordner vergleichen</td><td><code>filedo compare D:\Daten E:\Backup</code></td></tr>
+  </table>
+
+  <h2>&#128229; Installation</h2>
+  <ol style="padding-left:20px; color:var(--muted); line-height:2;">
+    <li>Laden Sie <code>filedo.exe</code> von der <a href="https://github.com/SerZhyAle/FileDO/releases">Releases-Seite</a> herunter</li>
+    <li>Optional: <code>filedo_win.exe</code> für die VB.NET-Benutzeroberfläche</li>
+    <li>Von der Kommandozeile ausführen: <code>filedo &lt;Ziel&gt; &lt;Operation&gt;</code></li>
+  </ol>
+
+  <h2>&#128279; Links</h2>
+  <ul style="padding-left:20px; line-height:2.2; color:var(--muted);">
+    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub-Repository</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Releases &amp; Downloads</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Fehlerberichte &amp; Feature-Anfragen</a></li>
+  </ul>
+
+</main>
+
+<footer>
+  <p>FileDO &copy; <a href="https://github.com/SerZhyAle">SerZhyAle</a> &nbsp;|&nbsp; <a href="https://opensource.org/licenses/MIT">MIT-Lizenz</a> &nbsp;|&nbsp; <a href="https://github.com/SerZhyAle/FileDO">GitHub</a></p>
+</footer>
+
+</body>
+</html>

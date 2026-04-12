@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -65,7 +66,7 @@ func redirectSystemDrive(path string) string {
 			fmt.Printf("   WARNING: Writing directly to C: - use with caution!\n")
 			return path
 		}
-		
+
 		// Get user's temp directory from environment
 		tempDir := os.Getenv("TEMP")
 		if tempDir == "" {
@@ -74,17 +75,17 @@ func redirectSystemDrive(path string) string {
 		if tempDir == "" {
 			tempDir = "C:\\TEMP" // Final fallback
 		}
-		
+
 		// Create subdirectory for FileDO operations
 		fileDoTempDir := filepath.Join(tempDir, "FileDO_Operations")
-		
+
 		// Show warning and ask for confirmation
 		fmt.Printf("⚠️  WARNING: Write operation requested on system drive C:\n")
 		fmt.Printf("   For safety, redirecting to temporary directory:\n")
 		fmt.Printf("   %s\n\n", fileDoTempDir)
 		fmt.Printf("   This protects your system from potential issues during testing.\n")
 		fmt.Printf("   Test files will be created in this safe location instead.\n\n")
-		
+
 		var response string
 		// Check for auto-confirm environment variable for testing
 		if os.Getenv("FILEDO_AUTO_CONFIRM") == "1" {
@@ -95,7 +96,7 @@ func redirectSystemDrive(path string) string {
 			fmt.Scanln(&response)
 		}
 		response = strings.TrimSpace(strings.ToLower(response))
-		
+
 		// Default to Yes if empty input or 'y'
 		if response == "" || response == "y" || response == "yes" {
 			// Create the directory if it doesn't exist
@@ -135,7 +136,8 @@ type CommandHandler interface {
 	Fill(path, size string, autoDelete bool) error
 	FillClean(path string) error
 	FillVerify(path string) error
-	Test(path string, autoDelete bool) error
+	Test(path string, autoDelete bool, maxFiles int) error
+	Probe(path string, assumeYes bool, autoRepair bool) error
 	CheckDuplicates(path string, args []string) error
 	Copy(sourcePath, targetPath string) error
 	Wipe(path string) error
@@ -168,8 +170,12 @@ func (h DeviceHandler) FillVerify(path string) error {
 	return runDeviceFillVerify(path)
 }
 
-func (h DeviceHandler) Test(path string, autoDelete bool) error {
-	return runDeviceTest(path, autoDelete)
+func (h DeviceHandler) Test(path string, autoDelete bool, maxFiles int) error {
+	return runDeviceTest(path, autoDelete, maxFiles)
+}
+
+func (h DeviceHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
+	return runDeviceProbeCheck(path, assumeYes, autoRepair)
 }
 
 func (h DeviceHandler) CheckDuplicates(path string, args []string) error {
@@ -212,8 +218,12 @@ func (h FolderHandler) FillVerify(path string) error {
 	return runDeviceFillVerify(path) // same logic: scan FILL_*.tmp in directory
 }
 
-func (h FolderHandler) Test(path string, autoDelete bool) error {
-	return runFolderTest(path, autoDelete)
+func (h FolderHandler) Test(path string, autoDelete bool, maxFiles int) error {
+	return runFolderTest(path, autoDelete, maxFiles)
+}
+
+func (h FolderHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
+	return fmt.Errorf("probe requires a drive letter, not a folder path")
 }
 
 func (h FolderHandler) CheckDuplicates(path string, args []string) error {
@@ -256,8 +266,12 @@ func (h NetworkHandler) FillVerify(path string) error {
 	return runDeviceFillVerify(path) // same logic: scan FILL_*.tmp in directory
 }
 
-func (h NetworkHandler) Test(path string, autoDelete bool) error {
-	return runNetworkTest(path, autoDelete, nil)
+func (h NetworkHandler) Test(path string, autoDelete bool, maxFiles int) error {
+	return runNetworkTest(path, autoDelete, maxFiles, nil)
+}
+
+func (h NetworkHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
+	return fmt.Errorf("probe is only supported for local drive letters (e.g. D:)")
 }
 
 func (h NetworkHandler) CheckDuplicates(path string, args []string) error {
@@ -300,8 +314,12 @@ func (h FileHandler) FillVerify(path string) error {
 	return fmt.Errorf("fill verify operation is not supported for files")
 }
 
-func (h FileHandler) Test(path string, autoDelete bool) error {
+func (h FileHandler) Test(path string, autoDelete bool, maxFiles int) error {
 	return fmt.Errorf("test operation is not supported for files")
+}
+
+func (h FileHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
+	return fmt.Errorf("probe is only supported for local drive letters (e.g. D:)")
 }
 
 func (h FileHandler) CheckDuplicates(path string, args []string) error {
@@ -561,19 +579,29 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "test" {
 		historyLogger.SetCommand(cmdTypeName, path, "test")
 
-		// Check for "del" option
+		// Parse additional arguments: optional N (number of files) and optional "del"
+		// Supported forms: test | test N | test del | test N del
+		const defaultMaxFiles = 100
+		maxFiles := defaultMaxFiles
 		autoDelete := false
-		if cmd.NArg() >= 3 {
-			delParam := strings.ToLower(cmd.Arg(2))
-			autoDelete = delParam == "del" || delParam == "delete" || delParam == "d"
-			if autoDelete {
-				historyLogger.SetParameter("autoDelete", true)
+		for i := 2; i < cmd.NArg(); i++ {
+			arg := strings.ToLower(strings.TrimSpace(cmd.Arg(i)))
+			if arg == "del" || arg == "delete" || arg == "d" {
+				autoDelete = true
+			} else if n, err := strconv.Atoi(arg); err == nil && n > 0 {
+				maxFiles = n
 			}
+		}
+		if autoDelete {
+			historyLogger.SetParameter("autoDelete", true)
+		}
+		if maxFiles != defaultMaxFiles {
+			historyLogger.SetParameter("maxFiles", maxFiles)
 		}
 
 		// Special handling for network test to pass logger
 		if cmdTypeName == "network" {
-			err := runNetworkTest(path, autoDelete, historyLogger)
+			err := runNetworkTest(path, autoDelete, maxFiles, historyLogger)
 			if err != nil {
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
@@ -582,7 +610,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				}
 			}
 		} else {
-			err := handler.Test(path, autoDelete)
+			err := handler.Test(path, autoDelete, maxFiles)
 			if err != nil {
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)
@@ -593,6 +621,90 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		}
 		historyLogger.SetSuccess()
 		return
+	}
+
+	// Check if this is a probe command
+	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "probe" {
+		historyLogger.SetCommand(cmdTypeName, path, "probe")
+
+		// Optional flags:
+		//  yes|y|allright|force -> skip interactive confirmations
+		//  fix|repair|format     -> offer/perform quick format if drive becomes unreadable after probe
+		assumeYes := false
+		autoRepair := false
+		for i := 2; i < cmd.NArg(); i++ {
+			arg := strings.ToLower(strings.TrimSpace(cmd.Arg(i)))
+			switch arg {
+			case "yes", "y", "allright", "force":
+				assumeYes = true
+			case "fix", "repair", "format":
+				autoRepair = true
+			}
+		}
+		if assumeYes {
+			historyLogger.SetParameter("assumeYes", true)
+		}
+		if autoRepair {
+			historyLogger.SetParameter("autoRepair", true)
+		}
+
+		err := handler.Probe(path, assumeYes, autoRepair)
+		if err != nil {
+			if !handleErrorWithUserMessage(err, path, historyLogger) {
+				historyLogger.SetError(err)
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				return
+			}
+		}
+		historyLogger.SetSuccess()
+		return
+	}
+
+	// Check if this is a recover command (device only)
+	if cmd.NArg() >= 2 {
+		recoverParam := strings.ToLower(cmd.Arg(1))
+		if recoverParam == "recover" || recoverParam == "repair" {
+			historyLogger.SetCommand(cmdTypeName, path, "recover")
+
+			if cmdTypeName != "device" {
+				err := fmt.Errorf("recover command is only supported for local drive letters (e.g. D:)")
+				historyLogger.SetError(err)
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				return
+			}
+
+			// Optional flags:
+			//  yes|y|allright|force -> skip interactive confirmations
+			//  format|fmt|forceformat -> force quick format path
+			assumeYes := false
+			forceFormat := false
+			for i := 2; i < cmd.NArg(); i++ {
+				arg := strings.ToLower(strings.TrimSpace(cmd.Arg(i)))
+				switch arg {
+				case "yes", "y", "allright", "force":
+					assumeYes = true
+				case "format", "fmt", "forceformat":
+					forceFormat = true
+				}
+			}
+			if assumeYes {
+				historyLogger.SetParameter("assumeYes", true)
+			}
+			if forceFormat {
+				historyLogger.SetParameter("forceFormat", true)
+			}
+
+			err := runDeviceRecoverCheck(path, assumeYes, forceFormat)
+			if err != nil {
+				if !handleErrorWithUserMessage(err, path, historyLogger) {
+					historyLogger.SetError(err)
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					return
+				}
+			}
+			historyLogger.SetSuccess()
+			return
+		}
 	}
 
 	// Check if this is a copy command
