@@ -1,88 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FileDO – Advanced File & Storage Operations Tool</title>
-  <meta name="description" content="FileDO: Windows CLI tool for fake capacity detection, speed testing, secure wiping, duplicate management, and copy operations." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FileDO - Advanced File & Storage Operations</title>
   <style>
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --border: #30363d;
-      --accent: #58a6ff;
-      --accent2: #3fb950;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --code-bg: #1f2937;
-      --warn: #d29922;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
-    a { color: var(--accent); text-decoration: none; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d1117; color: #e6edf3; font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; }
+    a { color: #58a6ff; text-decoration: none; }
     a:hover { text-decoration: underline; }
-
-    /* Lang bar */
-    .lang-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 0.85rem; }
-    .lang-bar span { color: var(--muted); }
-    .lang-bar a { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); transition: background 0.2s; }
-    .lang-bar a.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
-    .lang-bar a:hover:not(.active) { background: var(--border); text-decoration: none; }
-
-    /* Header */
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 48px 24px 40px; text-align: center; }
-    header h1 { font-size: 2.8rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    header .tagline { margin-top: 10px; font-size: 1.05rem; color: var(--muted); }
-    .badges { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-    .badges img { height: 20px; }
-    .btn-group { margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .btn { padding: 10px 22px; border-radius: 6px; font-weight: 600; font-size: 0.95rem; cursor: pointer; border: none; }
-    .btn-primary { background: var(--accent); color: #000; }
-    .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn:hover { opacity: 0.85; }
-
-    /* Main layout */
-    main { max-width: 960px; margin: 40px auto; padding: 0 24px 60px; }
-
-    /* Section headings */
-    h2 { font-size: 1.6rem; font-weight: 600; margin: 48px 0 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-    h3 { font-size: 1.1rem; font-weight: 600; margin: 24px 0 10px; color: var(--accent); }
-
-    /* Feature grid */
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 8px; }
-    .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
-    .feature-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
-    .feature-card h3 { margin-top: 0; font-size: 1rem; color: var(--text); }
-    .feature-card ul { color: var(--muted); font-size: 0.875rem; padding-left: 16px; }
-    .feature-card li { margin-bottom: 4px; }
-
-    /* Code block */
-    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; overflow-x: auto; font-size: 0.875rem; line-height: 1.55; margin: 12px 0; }
-    code { font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; color: var(--accent2); }
-    pre code { color: var(--text); }
-    .comment { color: var(--muted); }
-
-    /* Table */
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 12px 0; }
-    th { background: var(--surface); text-align: left; padding: 10px 12px; border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
-    td { padding: 9px 12px; border: 1px solid var(--border); }
-    tr:nth-child(even) td { background: #12171e; }
-    td code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
-
-    /* Two-column layout */
+    .lang-bar { background: #161b22; padding: 10px 20px; border-bottom: 1px solid #30363d; font-size: 0.9rem; }
+    .lang-bar a { margin: 0 8px; padding: 4px 12px; border-radius: 16px; border: 1px solid #30363d; display: inline-block; }
+    .lang-bar a.active { background: #58a6ff; color: #000; }
+    header { text-align: center; padding: 40px 20px; background: #161b22; border-bottom: 1px solid #30363d; }
+    h1 { font-size: 2.5rem; margin-bottom: 10px; color: #58a6ff; }
+    .subtitle { color: #8b949e; font-size: 0.95rem; margin-bottom: 20px; }
+    .tagline-emoji { display: block; font-size: 0.9rem; color: #8b949e; margin-bottom: 20px; }
+    .btn { display: inline-block; padding: 8px 20px; margin: 4px; border-radius: 6px; border: 1px solid #30363d; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #58a6ff; color: #000; border-color: #58a6ff; }
+    .btn-secondary { background: transparent; color: #58a6ff; }
+    .btn:hover { opacity: 0.8; }
+    main { max-width: 960px; margin: 40px auto; padding: 0 20px 60px; }
+    h2 { font-size: 1.5rem; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d; color: #58a6ff; }
+    h3 { color: #58a6ff; margin-top: 0; font-size: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 20px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+    .card ul { list-style: none; margin-top: 10px; font-size: 0.9rem; color: #8b949e; }
+    .card li { margin: 6px 0; }
+    .code-block { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; font-size: 0.85rem; margin: 12px 0; font-family: Consolas, monospace; color: #79c0ff; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th { background: #161b22; text-align: left; padding: 10px; border: 1px solid #30363d; font-weight: 600; color: #8b949e; }
+    td { padding: 8px 10px; border: 1px solid #30363d; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } header h1 { font-size: 1.9rem; } }
-
-    /* Footer */
-    footer { text-align: center; padding: 32px 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
-    footer a { color: var(--muted); }
-    footer a:hover { color: var(--accent); }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.8rem; } }
+    footer { text-align: center; padding: 30px 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; }
   </style>
 </head>
 <body>
 
 <div class="lang-bar">
-  <span>&#127760;</span>
+  🌐 &nbsp;
   <a href="." class="active">English</a>
   <a href="de/">Deutsch</a>
   <a href="fr/">Français</a>
@@ -92,177 +49,146 @@
 
 <header>
   <h1>FileDO</h1>
-  <p class="tagline">Advanced File & Storage Operations Tool</p>
-  <p style="font-size:0.95rem; color:var(--muted); margin:12px 0;">
-    🔍 Storage Testing &nbsp;•&nbsp; 🚀 Performance Analysis &nbsp;•&nbsp; 🛡️ Security Wiping &nbsp;•&nbsp; 🎯 Fake Capacity Detection &nbsp;•&nbsp; 📁 Duplicates
-  </p>
-  <div class="btn-group">
-    <a class="btn btn-primary" href="https://github.com/SerZhyAle/FileDO/releases">&#8595; Download</a>
-    <a class="btn btn-secondary" href="https://github.com/SerZhyAle/FileDO">&#128196; View Source</a>
+  <p class="subtitle">Advanced File & Storage Operations Tool</p>
+  <p class="tagline-emoji">🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Detection • 📁 Duplicates</p>
+  <div>
+    <a href="https://github.com/SerZhyAle/FileDO/releases" class="btn btn-primary">📥 Download</a>
+    <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-secondary">⭐ GitHub</a>
   </div>
 </header>
 
 <main>
 
-  <h2>&#127919; Key Features</h2>
-  <div class="feature-grid">
-    <div class="feature-card">
-      <div class="icon">🎯</div>
-      <h3>Fake Capacity Detection</h3>
+  <h2>✨ Key Features</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>🎯 Fake Detection</h3>
       <ul>
-        <li>100-file verification (1% capacity each)</li>
-        <li>Random position verification every scan</li>
-        <li>Defeats sophisticated fake controllers</li>
-        <li>Fast raw probe via direct LBA access (~1 min)</li>
+        <li>100-file verification</li>
+        <li>Random position checks</li>
+        <li>Defeats fake controllers</li>
+        <li>Fast raw probe (~1 min)</li>
       </ul>
     </div>
-    <div class="feature-card">
-      <div class="icon">⚡</div>
-      <h3>Performance Testing</h3>
+    <div class="card">
+      <h3>⚡ Speed Testing</h3>
       <ul>
-        <li>Real-world read/write speed measurement</li>
-        <li>Memory-optimized streaming for large files</li>
-        <li>Progress tracking with ETA calculations</li>
-        <li>Configurable file sizes (1 MB – 10 GB)</li>
+        <li>Real read/write speed</li>
+        <li>Memory-optimized</li>
+        <li>Progress with ETA</li>
+        <li>1MB to 10GB files</li>
       </ul>
     </div>
-    <div class="feature-card">
-      <div class="icon">🔍</div>
-      <h3>Duplicate Management</h3>
+    <div class="card">
+      <h3>🔍 Duplicates</h3>
       <ul>
-        <li>MD5 hash-based identification</li>
-        <li>Multiple selection modes (oldest/newest/abc)</li>
-        <li>Flexible actions (delete / move)</li>
-        <li>Hash caching for faster repeated scans</li>
+        <li>MD5 hash identification</li>
+        <li>Multiple selection modes</li>
+        <li>Flexible actions</li>
+        <li>Hash caching</li>
       </ul>
     </div>
-    <div class="feature-card">
-      <div class="icon">📋</div>
-      <h3>Copy Operations</h3>
+    <div class="card">
+      <h3>📋 Copy Ops</h3>
       <ul>
-        <li>Progress tracking with ETA</li>
-        <li>Timeout protection for damaged filesystems</li>
-        <li>Preserves metadata (permissions & timestamps)</li>
-        <li>Works with devices, folders, network shares</li>
+        <li>Progress tracking</li>
+        <li>Timeout protection</li>
+        <li>Metadata preserved</li>
+        <li>Universal support</li>
       </ul>
     </div>
-    <div class="feature-card">
-      <div class="icon">🧹</div>
-      <h3>Fast Wipe</h3>
+    <div class="card">
+      <h3>🧹 Fast Wipe</h3>
       <ul>
-        <li>Ultra-fast: delete &amp; recreate folder (ms)</li>
-        <li>Standard fallback with progress display</li>
-        <li>Preserves original permissions &amp; timestamps</li>
-        <li>Works with system folders &amp; restricted access</li>
+        <li>Ultra-fast delete</li>
+        <li>Progress display</li>
+        <li>Permissions kept</li>
+        <li>System folders</li>
       </ul>
     </div>
-    <div class="feature-card">
-      <div class="icon">🛡️</div>
-      <h3>Security Features</h3>
+    <div class="card">
+      <h3>🛡️ Security</h3>
       <ul>
-        <li>High-speed secure wiping (4.7+ GB/s)</li>
-        <li>Fill operations with parallel writing</li>
-        <li>Batch processing for multiple targets</li>
-        <li>Full operation history (JSON log)</li>
+        <li>High-speed wiping</li>
+        <li>Parallel writing</li>
+        <li>Batch processing</li>
+        <li>Full history</li>
       </ul>
     </div>
   </div>
 
-  <h2>&#9889; Quick Start</h2>
+  <h2>🚀 Quick Start</h2>
   <div class="two-col">
     <div>
-      <h3>Most Common Tasks</h3>
-      <pre><code><span class="comment"># Check if USB/SD card is fake</span>
+      <h3>Common Tasks</h3>
+      <div class="code-block">
+# Check if USB is fake
 filedo E: test del
 
-<span class="comment"># Test drive performance</span>
+# Test drive speed
 filedo C: speed 100
 
-<span class="comment"># Secure wipe free space</span>
+# Secure wipe
 filedo D: fill 1000 del
 
-<span class="comment"># Find &amp; manage duplicates</span>
+# Find duplicates
 filedo C: check-duplicates
-filedo D: cd old del</code></pre>
+      </div>
     </div>
     <div>
-      <h3>Copy &amp; Wipe</h3>
-      <pre><code><span class="comment"># Copy with progress tracking</span>
-filedo folder C:\Source copy D:\Backup
-filedo device E: copy F:\Archive
+      <h3>Copy & Cleanup</h3>
+      <div class="code-block">
+# Copy with progress
+filedo C:\Source copy D:\Backup
 
-<span class="comment"># Fast wipe folder contents</span>
-filedo folder C:\Temp wipe
+# Fast wipe folder
+filedo C:\Temp wipe
 
-<span class="comment"># Show device info</span>
+# Show device info
 filedo C: info
-filedo D: short</code></pre>
+      </div>
     </div>
   </div>
 
-  <h2>&#128190; Command Reference</h2>
-  <h3>Target Types (Auto-detected)</h3>
+  <h2>📖 Targets & Commands</h2>
   <table>
-    <tr><th>Pattern</th><th>Type</th><th>Example</th></tr>
-    <tr><td><code>C:</code>, <code>D:</code></td><td>Device</td><td><code>filedo C: test</code></td></tr>
-    <tr><td><code>C:\folder</code></td><td>Folder</td><td><code>filedo C:\temp speed 100</code></td></tr>
-    <tr><td><code>\\server\share</code></td><td>Network</td><td><code>filedo \\nas\backup test</code></td></tr>
-    <tr><td><code>file.txt</code></td><td>File</td><td><code>filedo document.pdf info</code></td></tr>
+    <tr><th>Target</th><th>Type</th><th>Example</th></tr>
+    <tr><td><code>C:</code></td><td>Device</td><td><code>filedo C: test</code></td></tr>
+    <tr><td><code>C:\path</code></td><td>Folder</td><td><code>filedo C:\temp speed</code></td></tr>
+    <tr><td><code>\\server\sh</code></td><td>Network</td><td><code>filedo \\nas\data info</code></td></tr>
+    <tr><td><code>file.txt</code></td><td>File</td><td><code>filedo doc.pdf info</code></td></tr>
   </table>
 
-  <h3>Operations</h3>
-  <table>
-    <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
-    <tr><td><code>info</code></td><td>Show detailed information</td><td><code>filedo C: info</code></td></tr>
-    <tr><td><code>short</code></td><td>Brief summary</td><td><code>filedo D: short</code></td></tr>
-    <tr><td><code>test</code></td><td>Fake capacity detection</td><td><code>filedo E: test del</code></td></tr>
-    <tr><td><code>test N</code></td><td>Test with N files (default 100)</td><td><code>filedo D: test 1000</code></td></tr>
-    <tr><td><code>probe</code></td><td>Fast raw-I/O probe (~1 min, Admin)</td><td><code>filedo D: probe</code></td></tr>
-    <tr><td><code>speed &lt;size&gt;</code></td><td>Performance testing</td><td><code>filedo C: speed 500</code></td></tr>
-    <tr><td><code>fill [size]</code></td><td>Fill with test data</td><td><code>filedo D: fill 1000</code></td></tr>
-    <tr><td><code>clean</code></td><td>Remove test files</td><td><code>filedo C: clean</code></td></tr>
-    <tr><td><code>check-duplicates</code></td><td>Find duplicate files</td><td><code>filedo C: check-duplicates</code></td></tr>
-    <tr><td><code>cd [mode] [action]</code></td><td>Check duplicates (short)</td><td><code>filedo C: cd old del</code></td></tr>
-    <tr><td><code>copy &lt;target&gt;</code></td><td>Copy files with progress</td><td><code>filedo C: copy D:\backup</code></td></tr>
-    <tr><td><code>wipe</code></td><td>Fast wipe folder contents</td><td><code>filedo folder C:\temp wipe</code></td></tr>
-    <tr><td><code>compare A B</code></td><td>Compare two folders</td><td><code>filedo compare D:\Data E:\Backup</code></td></tr>
-    <tr><td><code>from &lt;file&gt;</code></td><td>Execute batch commands</td><td><code>filedo from script.txt</code></td></tr>
-    <tr><td><code>hist</code></td><td>Show operation history</td><td><code>filedo hist</code></td></tr>
+  <table style="margin-top:30px;">
+    <tr><th>Command</th><th>Purpose</th></tr>
+    <tr><td><code>info</code></td><td>Show details</td></tr>
+    <tr><td><code>test</code></td><td>Detect fake</td></tr>
+    <tr><td><code>speed</code></td><td>Test speed</td></tr>
+    <tr><td><code>fill</code></td><td>Fill with data</td></tr>
+    <tr><td><code>cd</code></td><td>Check duplicates</td></tr>
+    <tr><td><code>copy</code></td><td>Copy files</td></tr>
+    <tr><td><code>wipe</code></td><td>Fast wipe</td></tr>
+    <tr><td><code>compare</code></td><td>Compare folders</td></tr>
   </table>
 
-  <h2>&#128229; Installation</h2>
-  <ol style="padding-left:20px; color:var(--muted); line-height:2;">
-    <li>Download <code>filedo.exe</code> from the <a href="https://github.com/SerZhyAle/FileDO/releases">Releases page</a></li>
-    <li>Optionally download <code>filedo_win.exe</code> for the VB.NET GUI</li>
-    <li>Run from the command line: <code>filedo &lt;target&gt; &lt;operation&gt;</code></li>
-  </ol>
-
-  <h2>&#128187; GUI Application</h2>
-  <p style="color:var(--muted);">
-    <strong style="color:var(--text);">FileDO GUI</strong> (<code>filedo_win.exe</code>) is a VB.NET Windows Forms application providing a user-friendly interface with visual target selection, operation dropdowns, real-time output, and browse dialogs — all backed by the same CLI engine.
+  <h2>📥 Get Started</h2>
+  <p style="color: #8b949e; line-height: 2;">
+    Download <code style="background: #161b22; padding: 2px 6px; border-radius: 3px;">filedo.exe</code> from 
+    <a href="https://github.com/SerZhyAle/FileDO/releases">GitHub Releases</a>,
+    then run: <code style="background: #161b22; padding: 2px 6px; border-radius: 3px;">filedo &lt;target&gt; &lt;operation&gt;</code>
   </p>
 
-  <h2>&#128196; Compare &amp; Cleanup</h2>
-  <pre><code><span class="comment"># Compare two folders and save report</span>
-filedo compare D:\Data E:\Backup
-
-<span class="comment"># Compare and delete (permanent, no confirmation)</span>
-filedo cmp D:\Data E:\Backup del source   <span class="comment"># delete in Source if exists in Target</span>
-filedo cmp D:\Data E:\Backup del old      <span class="comment"># delete older side (by mtime)</span>
-filedo cmp D:\Data E:\Backup del small    <span class="comment"># delete smaller side</span></code></pre>
-
-  <h2>&#128279; Links</h2>
-  <ul style="padding-left:20px; line-height:2.2; color:var(--muted);">
-    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub Repository</a></li>
-    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Releases &amp; Downloads</a></li>
-    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Bug Reports &amp; Feature Requests</a></li>
-    <li><a href="https://goreportcard.com/report/github.com/SerZhyAle/FileDO">Go Report Card</a></li>
+  <h2>🔗 Resources</h2>
+  <ul style="margin-left: 20px; line-height: 2.2; color: #8b949e;">
+    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Releases</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Issues</a></li>
   </ul>
 
 </main>
 
 <footer>
-  <p>FileDO &copy; <a href="https://github.com/SerZhyAle">SerZhyAle</a> &nbsp;|&nbsp; <a href="https://opensource.org/licenses/MIT">MIT License</a> &nbsp;|&nbsp; <a href="https://github.com/SerZhyAle/FileDO">GitHub</a></p>
+  <p>FileDO © <a href="https://github.com/SerZhyAle">SerZhyAle</a> | <a href="https://opensource.org/licenses/MIT">MIT License</a></p>
 </footer>
 
 </body>
