@@ -1,60 +1,45 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FileDO – Продвинутый инструмент для работы с файлами и накопителями</title>
-  <meta name="description" content="FileDO: Windows CLI-инструмент для обнаружения поддельной ёмкости, тестирования скорости, безопасного удаления, управления дубликатами и копирования файлов." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FileDO - Продвинутый инструмент для файлов</title>
   <style>
-    :root { --bg:#0d1117; --surface:#161b22; --border:#30363d; --accent:#58a6ff; --accent2:#3fb950; --text:#e6edf3; --muted:#8b949e; --code-bg:#1f2937; }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height:1.6; }
-    a { color:var(--accent); text-decoration:none; }
-    a:hover { text-decoration:underline; }
-    .lang-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:8px 24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:0.85rem; }
-    .lang-bar span { color:var(--muted); }
-    .lang-bar a { padding:3px 10px; border-radius:20px; border:1px solid var(--border); transition:background 0.2s; }
-    .lang-bar a.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
-    .lang-bar a:hover:not(.active) { background:var(--border); text-decoration:none; }
-    header { background:var(--surface); border-bottom:1px solid var(--border); padding:48px 24px 40px; text-align:center; }
-    header h1 { font-size:2.8rem; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    header .tagline { margin-top:10px; font-size:1.05rem; color:var(--muted); }
-    .badges { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-    .badges img { height:20px; }
-    .btn-group { margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-    .btn { padding:10px 22px; border-radius:6px; font-weight:600; font-size:0.95rem; cursor:pointer; border:none; }
-    .btn-primary { background:var(--accent); color:#000; }
-    .btn-secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
-    .btn:hover { opacity:0.85; }
-    main { max-width:960px; margin:40px auto; padding:0 24px 60px; }
-    h2 { font-size:1.6rem; font-weight:600; margin:48px 0 20px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-    h3 { font-size:1.1rem; font-weight:600; margin:24px 0 10px; color:var(--accent); }
-    .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-top:8px; }
-    .feature-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; }
-    .feature-card .icon { font-size:1.8rem; margin-bottom:10px; }
-    .feature-card h3 { margin-top:0; font-size:1rem; color:var(--text); }
-    .feature-card ul { color:var(--muted); font-size:0.875rem; padding-left:16px; }
-    .feature-card li { margin-bottom:4px; }
-    pre { background:var(--code-bg); border:1px solid var(--border); border-radius:6px; padding:16px; overflow-x:auto; font-size:0.875rem; line-height:1.55; margin:12px 0; }
-    code { font-family:'Cascadia Code','Fira Code',Consolas,monospace; color:var(--accent2); }
-    pre code { color:var(--text); }
-    .comment { color:var(--muted); }
-    table { width:100%; border-collapse:collapse; font-size:0.9rem; margin:12px 0; }
-    th { background:var(--surface); text-align:left; padding:10px 12px; border:1px solid var(--border); color:var(--muted); font-weight:600; }
-    td { padding:9px 12px; border:1px solid var(--border); }
-    tr:nth-child(even) td { background:#12171e; }
-    td code { background:var(--code-bg); padding:2px 6px; border-radius:4px; font-size:0.8rem; }
-    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    @media (max-width:640px) { .two-col { grid-template-columns:1fr; } header h1 { font-size:1.9rem; } }
-    footer { text-align:center; padding:32px 24px; border-top:1px solid var(--border); color:var(--muted); font-size:0.85rem; }
-    footer a { color:var(--muted); }
-    footer a:hover { color:var(--accent); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d1117; color: #e6edf3; font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .lang-bar { background: #161b22; padding: 10px 20px; border-bottom: 1px solid #30363d; font-size: 0.9rem; }
+    .lang-bar a { margin: 0 8px; padding: 4px 12px; border-radius: 16px; border: 1px solid #30363d; display: inline-block; }
+    .lang-bar a.active { background: #58a6ff; color: #000; }
+    header { text-align: center; padding: 40px 20px; background: #161b22; border-bottom: 1px solid #30363d; }
+    h1 { font-size: 2.5rem; margin-bottom: 10px; color: #58a6ff; }
+    .subtitle { color: #8b949e; font-size: 0.95rem; margin-bottom: 20px; }
+    .tagline-emoji { display: block; font-size: 0.9rem; color: #8b949e; margin-bottom: 20px; }
+    .btn { display: inline-block; padding: 8px 20px; margin: 4px; border-radius: 6px; border: 1px solid #30363d; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #58a6ff; color: #000; border-color: #58a6ff; }
+    .btn-secondary { background: transparent; color: #58a6ff; }
+    .btn:hover { opacity: 0.8; }
+    main { max-width: 960px; margin: 40px auto; padding: 0 20px 60px; }
+    h2 { font-size: 1.5rem; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d; color: #58a6ff; }
+    h3 { color: #58a6ff; margin-top: 0; font-size: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 20px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+    .card ul { list-style: none; margin-top: 10px; font-size: 0.9rem; color: #8b949e; }
+    .card li { margin: 6px 0; }
+    .code-block { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; font-size: 0.85rem; margin: 12px 0; font-family: Consolas, monospace; color: #79c0ff; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th { background: #161b22; text-align: left; padding: 10px; border: 1px solid #30363d; font-weight: 600; color: #8b949e; }
+    td { padding: 8px 10px; border: 1px solid #30363d; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.8rem; } }
+    footer { text-align: center; padding: 30px 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; }
   </style>
 </head>
 <body>
 
 <div class="lang-bar">
-  <span>&#127760;</span>
+  🌐 &nbsp;
   <a href="../">English</a>
   <a href="../de/">Deutsch</a>
   <a href="../fr/">Français</a>
@@ -64,157 +49,76 @@
 
 <header>
   <h1>FileDO</h1>
-  <p class="tagline">Продвинутый инструмент для файлов и накопителей</p>
-  <p style="font-size:0.95rem; color:var(--muted); margin:12px 0;">
-    🔍 Тестирование &nbsp;•&nbsp; 🚀 Анализ производительности &nbsp;•&nbsp; 🛡️ Безопасное удаление &nbsp;•&nbsp; 🎯 Подделки &nbsp;•&nbsp; 📁 Дубликаты
-  </p>
-  <div class="btn-group">
-    <a class="btn btn-primary" href="https://github.com/SerZhyAle/FileDO/releases">&#8595; Скачать</a>
-    <a class="btn btn-secondary" href="https://github.com/SerZhyAle/FileDO">&#128196; Исходный код</a>
+  <p class="subtitle">Продвинутый инструмент для файлов</p>
+  <p class="tagline-emoji">🔍 Тест • 🚀 Анализ • 🛡️ Удаление • 🎯 Проверка • 📁 Дубликаты</p>
+  <div>
+    <a href="https://github.com/SerZhyAle/FileDO/releases" class="btn btn-primary">📥 Скачать</a>
+    <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-secondary">⭐ GitHub</a>
   </div>
 </header>
 
 <main>
-
-  <h2>&#127919; Ключевые возможности</h2>
-  <div class="feature-grid">
-    <div class="feature-card">
-      <div class="icon">🎯</div>
-      <h3>Обнаружение поддельной ёмкости</h3>
-      <ul>
-        <li>Проверка 100 файлами (по 1% ёмкости каждый)</li>
-        <li>Случайные позиции проверки при каждом сканировании</li>
-        <li>Выявляет изощрённые поддельные контроллеры</li>
-        <li>Быстрый сырой зонд через прямой LBA-доступ (~1 мин.)</li>
-      </ul>
-    </div>
-    <div class="feature-card">
-      <div class="icon">⚡</div>
-      <h3>Тестирование производительности</h3>
-      <ul>
-        <li>Реальное измерение скорости чтения/записи</li>
-        <li>Оптимизированный стриминг для больших файлов</li>
-        <li>Отслеживание прогресса с расчётом ETA</li>
-        <li>Настраиваемые размеры файлов (1 МБ – 10 ГБ)</li>
-      </ul>
-    </div>
-    <div class="feature-card">
-      <div class="icon">🔍</div>
-      <h3>Управление дубликатами</h3>
-      <ul>
-        <li>Идентификация по хешу MD5</li>
-        <li>Несколько режимов выбора (старейшие/новейшие/abc)</li>
-        <li>Гибкие действия (удалить / переместить)</li>
-        <li>Кэширование хешей для ускорения повторных сканирований</li>
-      </ul>
-    </div>
-    <div class="feature-card">
-      <div class="icon">📋</div>
-      <h3>Операции копирования</h3>
-      <ul>
-        <li>Отслеживание прогресса с ETA</li>
-        <li>Защита от таймаутов для повреждённых файловых систем</li>
-        <li>Сохранение метаданных (права и временны́е метки)</li>
-        <li>Поддержка устройств, папок и сетевых ресурсов</li>
-      </ul>
-    </div>
-    <div class="feature-card">
-      <div class="icon">🧹</div>
-      <h3>Быстрая очистка</h3>
-      <ul>
-        <li>Ультра-быстро: удалить и пересоздать папку (мс)</li>
-        <li>Стандартный резервный метод с отображением прогресса</li>
-        <li>Сохранение исходных прав и временны́х меток</li>
-        <li>Работает с системными папками и ограниченным доступом</li>
-      </ul>
-    </div>
-    <div class="feature-card">
-      <div class="icon">🛡️</div>
-      <h3>Функции безопасности</h3>
-      <ul>
-        <li>Высокоскоростное безопасное удаление (4,7+ ГБ/с)</li>
-        <li>Операции заполнения с параллельной записью</li>
-        <li>Пакетная обработка нескольких целей</li>
-        <li>Полная история операций (JSON-лог)</li>
-      </ul>
-    </div>
+  <h2>✨ Функции</h2>
+  <div class="grid">
+    <div class="card"><h3>🎯 Проверка</h3><ul><li>100 файлов</li><li>Случайные позиции</li><li>Вычисляет подделки</li><li>Быстрое сканирование</li></ul></div>
+    <div class="card"><h3>⚡ Тест скорости</h3><ul><li>Реальная скорость</li><li>Оптимизированно</li><li>Прогресс+ETA</li><li>1MB-10GB</li></ul></div>
+    <div class="card"><h3>🔍 Дубликаты</h3><ul><li>Хеширование MD5</li><li>Разные режимы</li><li>Гибкие действия</li><li>Кеш хеша</li></ul></div>
+    <div class="card"><h3>📋 Копирование</h3><ul><li>С прогрессом</li><li>Защита timeout</li><li>Метаданные</li><li>Универсально</li></ul></div>
+    <div class="card"><h3>🧹 Быстрое удаление</h3><ul><li>Сверхбыстро</li><li>Отображение</li><li>Разрешения</li><li>Системные папки</li></ul></div>
+    <div class="card"><h3>🛡️ Безопасность</h3><ul><li>Высокая скорость</li><li>Параллельно</li><li>Пакетная обработка</li><li>Полная история</li></ul></div>
   </div>
 
-  <h2>&#9889; Быстрый старт</h2>
+  <h2>🚀 Быстрый старт</h2>
   <div class="two-col">
     <div>
-      <h3>Наиболее частые задачи</h3>
-      <pre><code><span class="comment"># Проверить поддельность USB/SD карты</span>
+      <h3>Частые задачи</h3>
+      <div class="code-block">
+# Тестирование USB
 filedo E: test del
 
-<span class="comment"># Тест производительности диска</span>
+# Тест скорости
 filedo C: speed 100
 
-<span class="comment"># Безопасная очистка свободного места</span>
+# Безопасное удаление
 filedo D: fill 1000 del
 
-<span class="comment"># Поиск и управление дубликатами</span>
+# Найти дубликаты
 filedo C: check-duplicates
-filedo D: cd old del</code></pre>
+      </div>
     </div>
     <div>
-      <h3>Копирование &amp; Очистка</h3>
-      <pre><code><span class="comment"># Копирование с отслеживанием прогресса</span>
-filedo folder C:\Source copy D:\Backup
-filedo device E: copy F:\Archive
+      <h3>Копирование и очистка</h3>
+      <div class="code-block">
+# С прогрессом
+filedo C:\Source copy D:\Backup
 
-<span class="comment"># Быстрая очистка содержимого папки</span>
-filedo folder C:\Temp wipe
+# Быстрое удаление
+filedo C:\Temp wipe
 
-<span class="comment"># Информация об устройстве</span>
+# Информация о диске
 filedo C: info
-filedo D: short</code></pre>
+      </div>
     </div>
   </div>
 
-  <h2>&#128190; Справочник команд</h2>
-  <h3>Типы целей (автоопределение)</h3>
+  <h2>📖 Команды</h2>
   <table>
-    <tr><th>Шаблон</th><th>Тип</th><th>Пример</th></tr>
-    <tr><td><code>C:</code>, <code>D:</code></td><td>Устройство</td><td><code>filedo C: test</code></td></tr>
-    <tr><td><code>C:\папка</code></td><td>Папка</td><td><code>filedo C:\temp speed 100</code></td></tr>
-    <tr><td><code>\\сервер\ресурс</code></td><td>Сеть</td><td><code>filedo \\nas\backup test</code></td></tr>
-    <tr><td><code>файл.txt</code></td><td>Файл</td><td><code>filedo документ.pdf info</code></td></tr>
+    <tr><th>Цель</th><th>Тип</th><th>Пример</th></tr>
+    <tr><td><code>C:</code></td><td>Диск</td><td><code>filedo C: test</code></td></tr>
+    <tr><td><code>C:\path</code></td><td>Папка</td><td><code>filedo C:\temp speed</code></td></tr>
+    <tr><td><code>\\server\sh</code></td><td>Сеть</td><td><code>filedo \\nas\data info</code></td></tr>
   </table>
 
-  <h3>Операции</h3>
-  <table>
-    <tr><th>Команда</th><th>Назначение</th><th>Пример</th></tr>
-    <tr><td><code>info</code></td><td>Подробная информация</td><td><code>filedo C: info</code></td></tr>
-    <tr><td><code>short</code></td><td>Краткая сводка</td><td><code>filedo D: short</code></td></tr>
-    <tr><td><code>test</code></td><td>Обнаружение поддельной ёмкости</td><td><code>filedo E: test del</code></td></tr>
-    <tr><td><code>speed &lt;размер&gt;</code></td><td>Тест производительности</td><td><code>filedo C: speed 500</code></td></tr>
-    <tr><td><code>fill [размер]</code></td><td>Заполнить тестовыми данными</td><td><code>filedo D: fill 1000</code></td></tr>
-    <tr><td><code>clean</code></td><td>Удалить тестовые файлы</td><td><code>filedo C: clean</code></td></tr>
-    <tr><td><code>check-duplicates</code></td><td>Найти дубликаты файлов</td><td><code>filedo C: check-duplicates</code></td></tr>
-    <tr><td><code>copy &lt;цель&gt;</code></td><td>Копировать файлы с прогрессом</td><td><code>filedo C: copy D:\backup</code></td></tr>
-    <tr><td><code>wipe</code></td><td>Быстрая очистка содержимого папки</td><td><code>filedo folder C:\temp wipe</code></td></tr>
-    <tr><td><code>compare A B</code></td><td>Сравнить две папки</td><td><code>filedo compare D:\Data E:\Backup</code></td></tr>
-  </table>
-
-  <h2>&#128229; Установка</h2>
-  <ol style="padding-left:20px; color:var(--muted); line-height:2;">
-    <li>Скачайте <code>filedo.exe</code> со <a href="https://github.com/SerZhyAle/FileDO/releases">страницы Releases</a></li>
-    <li>Опционально: <code>filedo_win.exe</code> для графического интерфейса VB.NET</li>
-    <li>Запускайте из командной строки: <code>filedo &lt;цель&gt; &lt;операция&gt;</code></li>
-  </ol>
-
-  <h2>&#128279; Ссылки</h2>
-  <ul style="padding-left:20px; line-height:2.2; color:var(--muted);">
-    <li><a href="https://github.com/SerZhyAle/FileDO">Репозиторий GitHub</a></li>
-    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Releases и загрузки</a></li>
-    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Баги и запросы функций</a></li>
+  <h2>🔗 Ресурсы</h2>
+  <ul style="margin-left: 20px; line-height: 2.2;">
+    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Загрузки</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Вопросы</a></li>
   </ul>
-
 </main>
 
 <footer>
-  <p>FileDO &copy; <a href="https://github.com/SerZhyAle">SerZhyAle</a> &nbsp;|&nbsp; <a href="https://opensource.org/licenses/MIT">Лицензия MIT</a> &nbsp;|&nbsp; <a href="https://github.com/SerZhyAle/FileDO">GitHub</a></p>
+  <p>FileDO © <a href="https://github.com/SerZhyAle">SerZhyAle</a> | <a href="https://opensource.org/licenses/MIT">MIT</a></p>
 </footer>
 
 </body>

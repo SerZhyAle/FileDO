@@ -1,6 +1,129 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FileDO - Outil Avancé pour Fichiers & Stockage</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d1117; color: #e6edf3; font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .lang-bar { background: #161b22; padding: 10px 20px; border-bottom: 1px solid #30363d; font-size: 0.9rem; }
+    .lang-bar a { margin: 0 8px; padding: 4px 12px; border-radius: 16px; border: 1px solid #30363d; display: inline-block; }
+    .lang-bar a.active { background: #58a6ff; color: #000; }
+    header { text-align: center; padding: 40px 20px; background: #161b22; border-bottom: 1px solid #30363d; }
+    h1 { font-size: 2.5rem; margin-bottom: 10px; color: #58a6ff; }
+    .subtitle { color: #8b949e; font-size: 0.95rem; margin-bottom: 20px; }
+    .tagline-emoji { display: block; font-size: 0.9rem; color: #8b949e; margin-bottom: 20px; }
+    .btn { display: inline-block; padding: 8px 20px; margin: 4px; border-radius: 6px; border: 1px solid #30363d; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #58a6ff; color: #000; border-color: #58a6ff; }
+    .btn-secondary { background: transparent; color: #58a6ff; }
+    .btn:hover { opacity: 0.8; }
+    main { max-width: 960px; margin: 40px auto; padding: 0 20px 60px; }
+    h2 { font-size: 1.5rem; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d; color: #58a6ff; }
+    h3 { color: #58a6ff; margin-top: 0; font-size: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 20px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+    .card ul { list-style: none; margin-top: 10px; font-size: 0.9rem; color: #8b949e; }
+    .card li { margin: 6px 0; }
+    .code-block { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; font-size: 0.85rem; margin: 12px 0; font-family: Consolas, monospace; color: #79c0ff; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th { background: #161b22; text-align: left; padding: 10px; border: 1px solid #30363d; font-weight: 600; color: #8b949e; }
+    td { padding: 8px 10px; border: 1px solid #30363d; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.8rem; } }
+    footer { text-align: center; padding: 30px 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<div class="lang-bar">
+  🌐 &nbsp;
+  <a href="../">English</a>
+  <a href="../de/">Deutsch</a>
+  <a href="." class="active">Français</a>
+  <a href="../ru/">Русский</a>
+  <a href="../ua/">Українська</a>
+</div>
+
+<header>
+  <h1>FileDO</h1>
+  <p class="subtitle">Outil Avancé pour Fichiers & Stockage</p>
+  <p class="tagline-emoji">🔍 Test • 🚀 Analyse • 🛡️ Suppression • 🎯 Détection • 📁 Doublons</p>
+  <div>
+    <a href="https://github.com/SerZhyAle/FileDO/releases" class="btn btn-primary">📥 Télécharger</a>
+    <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-secondary">⭐ GitHub</a>
+  </div>
+</header>
+
+<main>
+  <h2>✨ Fonctionnalités</h2>
+  <div class="grid">
+    <div class="card"><h3>🎯 Détection</h3><ul><li>100 fichiers testés</li><li>Positions aléatoires</li><li>Détecte les faux</li><li>Sonde rapide</li></ul></div>
+    <div class="card"><h3>⚡ Test Vitesse</h3><ul><li>Vitesse réelle</li><li>Optimisé</li><li>Progrès+ETA</li><li>1MB-10GB</li></ul></div>
+    <div class="card"><h3>🔍 Doublons</h3><ul><li>Hachage MD5</li><li>Plusieurs modes</li><li>Actions flexibles</li><li>Cache hachage</li></ul></div>
+    <div class="card"><h3>📋 Copie</h3><ul><li>Progression</li><li>Protection timeout</li><li>Métadonnées</li><li>Universel</li></ul></div>
+    <div class="card"><h3>🧹 Suppression Rapide</h3><ul><li>Ultra-rapide</li><li>Affichage</li><li>Permissions</li><li>Dossiers système</li></ul></div>
+    <div class="card"><h3>🛡️ Sécurité</h3><ul><li>Haute vitesse</li><li>Parallèle</li><li>Traitement par lot</li><li>Historique complet</li></ul></div>
+  </div>
+
+  <h2>🚀 Démarrage Rapide</h2>
+  <div class="two-col">
+    <div>
+      <h3>Tâches Courantes</h3>
+      <div class="code-block">
+# Tester USB
+filedo E: test del
+
+# Test vitesse
+filedo C: speed 100
+
+# Suppression sécurisée
+filedo D: fill 1000 del
+
+# Trouver doublons
+filedo C: check-duplicates
+      </div>
+    </div>
+    <div>
+      <h3>Copie & Nettoyage</h3>
+      <div class="code-block">
+# Avec progression
+filedo C:\Source copy D:\Backup
+
+# Suppression rapide
+filedo C:\Temp wipe
+
+# Infos disque
+filedo C: info
+      </div>
+    </div>
+  </div>
+
+  <h2>📖 Commandes</h2>
+  <table>
+    <tr><th>Cible</th><th>Type</th><th>Exemple</th></tr>
+    <tr><td><code>C:</code></td><td>Disque</td><td><code>filedo C: test</code></td></tr>
+    <tr><td><code>C:\path</code></td><td>Dossier</td><td><code>filedo C:\temp speed</code></td></tr>
+    <tr><td><code>\\server\sh</code></td><td>Réseau</td><td><code>filedo \\nas\data info</code></td></tr>
+  </table>
+
+  <h2>🔗 Ressources</h2>
+  <ul style="margin-left: 20px; line-height: 2.2;">
+    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Téléchargements</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Questions</a></li>
+  </ul>
+</main>
+
+<footer>
+  <p>FileDO © <a href="https://github.com/SerZhyAle">SerZhyAle</a> | <a href="https://opensource.org/licenses/MIT">MIT</a></p>
+</footer>
+
+</body>
+</html>
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FileDO – Outil Avancé pour Fichiers et Stockage</title>
