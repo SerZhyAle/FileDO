@@ -1,57 +1,129 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FileDO – Erweiterte Datei- und Speicher-Tools</title>
-  <meta name="description" content="FileDO: Windows CLI-Tool zur Erkennung falscher Kapazitäten, Geschwindigkeitstests, sicherem Löschen, Duplikatverwaltung und Kopiervorgängen." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FileDO - Erweiterte Datei- & Speicher-Tools</title>
   <style>
-    :root { --bg:#0d1117; --surface:#161b22; --border:#30363d; --accent:#58a6ff; --accent2:#3fb950; --text:#e6edf3; --muted:#8b949e; --code-bg:#1f2937; }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height:1.6; }
-    a { color:var(--accent); text-decoration:none; }
-    a:hover { text-decoration:underline; }
-    .lang-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:8px 24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:0.85rem; }
-    .lang-bar span { color:var(--muted); }
-    .lang-bar a { padding:3px 10px; border-radius:20px; border:1px solid var(--border); transition:background 0.2s; }
-    .lang-bar a.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
-    .lang-bar a:hover:not(.active) { background:var(--border); text-decoration:none; }
-    header { background:var(--surface); border-bottom:1px solid var(--border); padding:48px 24px 40px; text-align:center; }
-    header h1 { font-size:2.8rem; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    header .tagline { margin-top:10px; font-size:1.05rem; color:var(--muted); }
-    .badges { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-    .badges img { height:20px; }
-    .btn-group { margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-    .btn { padding:10px 22px; border-radius:6px; font-weight:600; font-size:0.95rem; cursor:pointer; border:none; }
-    .btn-primary { background:var(--accent); color:#000; }
-    .btn-secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
-    .btn:hover { opacity:0.85; }
-    main { max-width:960px; margin:40px auto; padding:0 24px 60px; }
-    h2 { font-size:1.6rem; font-weight:600; margin:48px 0 20px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-    h3 { font-size:1.1rem; font-weight:600; margin:24px 0 10px; color:var(--accent); }
-    .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-top:8px; }
-    .feature-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; }
-    .feature-card .icon { font-size:1.8rem; margin-bottom:10px; }
-    .feature-card h3 { margin-top:0; font-size:1rem; color:var(--text); }
-    .feature-card ul { color:var(--muted); font-size:0.875rem; padding-left:16px; }
-    .feature-card li { margin-bottom:4px; }
-    pre { background:var(--code-bg); border:1px solid var(--border); border-radius:6px; padding:16px; overflow-x:auto; font-size:0.875rem; line-height:1.55; margin:12px 0; }
-    code { font-family:'Cascadia Code','Fira Code',Consolas,monospace; color:var(--accent2); }
-    pre code { color:var(--text); }
-    .comment { color:var(--muted); }
-    table { width:100%; border-collapse:collapse; font-size:0.9rem; margin:12px 0; }
-    th { background:var(--surface); text-align:left; padding:10px 12px; border:1px solid var(--border); color:var(--muted); font-weight:600; }
-    td { padding:9px 12px; border:1px solid var(--border); }
-    tr:nth-child(even) td { background:#12171e; }
-    td code { background:var(--code-bg); padding:2px 6px; border-radius:4px; font-size:0.8rem; }
-    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    @media (max-width:640px) { .two-col { grid-template-columns:1fr; } header h1 { font-size:1.9rem; } }
-    footer { text-align:center; padding:32px 24px; border-top:1px solid var(--border); color:var(--muted); font-size:0.85rem; }
-    footer a { color:var(--muted); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d1117; color: #e6edf3; font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .lang-bar { background: #161b22; padding: 10px 20px; border-bottom: 1px solid #30363d; font-size: 0.9rem; }
+    .lang-bar a { margin: 0 8px; padding: 4px 12px; border-radius: 16px; border: 1px solid #30363d; display: inline-block; }
+    .lang-bar a.active { background: #58a6ff; color: #000; }
+    header { text-align: center; padding: 40px 20px; background: #161b22; border-bottom: 1px solid #30363d; }
+    h1 { font-size: 2.5rem; margin-bottom: 10px; color: #58a6ff; }
+    .subtitle { color: #8b949e; font-size: 0.95rem; margin-bottom: 20px; }
+    .tagline-emoji { display: block; font-size: 0.9rem; color: #8b949e; margin-bottom: 20px; }
+    .btn { display: inline-block; padding: 8px 20px; margin: 4px; border-radius: 6px; border: 1px solid #30363d; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #58a6ff; color: #000; border-color: #58a6ff; }
+    .btn-secondary { background: transparent; color: #58a6ff; }
+    .btn:hover { opacity: 0.8; }
+    main { max-width: 960px; margin: 40px auto; padding: 0 20px 60px; }
+    h2 { font-size: 1.5rem; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d; color: #58a6ff; }
+    h3 { color: #58a6ff; margin-top: 0; font-size: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 20px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+    .card ul { list-style: none; margin-top: 10px; font-size: 0.9rem; color: #8b949e; }
+    .card li { margin: 6px 0; }
+    .code-block { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; font-size: 0.85rem; margin: 12px 0; font-family: Consolas, monospace; color: #79c0ff; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th { background: #161b22; text-align: left; padding: 10px; border: 1px solid #30363d; font-weight: 600; color: #8b949e; }
+    td { padding: 8px 10px; border: 1px solid #30363d; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.8rem; } }
+    footer { text-align: center; padding: 30px 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; }
     footer a:hover { color:var(--accent); }
   </style>
 </head>
 <body>
+
+<div class="lang-bar">
+  🌐 &nbsp;
+  <a href="../">English</a>
+  <a href="." class="active">Deutsch</a>
+  <a href="../fr/" >Français</a>
+  <a href="../ru/">Русский</a>
+  <a href="../ua/">Українська</a>
+</div>
+
+<header>
+  <h1>FileDO</h1>
+  <p class="subtitle">Erweiterte Datei- & Speicher-Tools</p>
+  <p class="tagline-emoji">🔍 Tests • 🚀 Analyse • 🛡️ Löschen • 🎯 Fake-Check • 📁 Duplikate</p>
+  <div>
+    <a href="https://github.com/SerZhyAle/FileDO/releases" class="btn btn-primary">📥 Download</a>
+    <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-secondary">⭐ GitHub</a>
+  </div>
+</header>
+
+<main>
+  <h2>✨ Funktionen</h2>
+  <div class="grid">
+    <div class="card"><h3>🎯 Fake-Check</h3><ul><li>100-Datei-Prüfung</li><li>Zufällige Positionen</li><li>Erkennt Fakes</li><li>Schneller Probe</li></ul></div>
+    <div class="card"><h3>⚡ Speed-Test</h3><ul><li>Real-Geschwindigkeit</li><li>Optimiert</li><li>Fortschritt+ETA</li><li>1MB-10GB</li></ul></div>
+    <div class="card"><h3>🔍 Duplikate</h3><ul><li>MD5-Hash</li><li>Mehrere Modi</li><li>Flexible Aktionen</li><li>Hash-Caching</li></ul></div>
+    <div class="card"><h3>📋 Kopieren</h3><ul><li>Fortschritt</li><li>Timeout-Schutz</li><li>Metadaten</li><li>Universal</li></ul></div>
+    <div class="card"><h3>🧹 Schnell Löschen</h3><ul><li>Ultra-schnell</li><li>Anzeige</li><li>Berechtigungen</li><li>Systemordner</li></ul></div>
+    <div class="card"><h3>🛡️ Sicherheit</h3><ul><li>Hochgeschwindigkeit</li><li>Parallel</li><li>Stapelverarbeitung</li><li>Vollständige Historie</li></ul></div>
+  </div>
+
+  <h2>🚀 Schnellstart</h2>
+  <div class="two-col">
+    <div>
+      <h3>Häufige Aufgaben</h3>
+      <div class="code-block">
+# USB Fake-Check
+filedo E: test del
+
+# Speed-Test
+filedo C: speed 100
+
+# Secure Wipe
+filedo D: fill 1000 del
+
+# Duplikate finden
+filedo C: check-duplicates
+      </div>
+    </div>
+    <div>
+      <h3>Kopieren & Reinigung</h3>
+      <div class="code-block">
+# Mit Fortschritt
+filedo C:\Source copy D:\Backup
+
+# Schneller Löschen
+filedo C:\Temp wipe
+
+# Info anzeigen
+filedo C: info
+      </div>
+    </div>
+  </div>
+
+  <h2>📖 Befehle</h2>
+  <table>
+    <tr><th>Ziel</th><th>Typ</th><th>Beispiel</th></tr>
+    <tr><td><code>C:</code></td><td>Gerät</td><td><code>filedo C: test</code></td></tr>
+    <tr><td><code>C:\path</code></td><td>Ordner</td><td><code>filedo C:\temp speed</code></td></tr>
+    <tr><td><code>\\server\sh</code></td><td>Netzwerk</td><td><code>filedo \\nas\data info</code></td></tr>
+  </table>
+
+  <h2>🔗 Links</h2>
+  <ul style="margin-left: 20px; line-height: 2.2;">
+    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Downloads</a></li>
+    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Issues</a></li>
+  </ul>
+</main>
+
+<footer>
+  <p>FileDO © <a href="https://github.com/SerZhyAle">SerZhyAle</a> | <a href="https://opensource.org/licenses/MIT">MIT</a></p>
+</footer>
+
+</body>
+</html>
 
 <div class="lang-bar">
   <span>&#127760;</span>
