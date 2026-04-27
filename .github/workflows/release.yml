@@ -34,10 +34,27 @@ jobs:
         run: |
           $tag = "${{ github.event.inputs.tag || github.ref_name }}"
           $version = $tag -replace '^v',''
-          "tag=$tag"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "Tag: $tag"
-          Write-Host "Version: $version"
+          # Parse yyMMddHHmm into Major.Minor.Patch.Build for VS_VERSIONINFO
+          if ($version -match '^(\d{2})(\d{2})(\d{2})(\d{4})$') {
+            $vMaj = [int]$Matches[1]; $vMin = [int]$Matches[2]
+            $vPat = [int]$Matches[3]; $vBld = [int]$Matches[4]
+          } else {
+            $vMaj = 0; $vMin = 0; $vPat = 0; $vBld = 0
+          }
+          "tag=$tag"           | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version=$version"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vMaj=$vMaj"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vMin=$vMin"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vPat=$vPat"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vBld=$vBld"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Tag: $tag  Version: $version  ($vMaj.$vMin.$vPat.$vBld)"
+
+      - name: Install goversioninfo
+        shell: pwsh
+        run: |
+          go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1
+          # Add Go bin to PATH for subsequent steps
+          "$(go env GOPATH)\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Build binaries
         shell: pwsh
@@ -45,6 +62,10 @@ jobs:
           CGO_ENABLED: '0'
         run: |
           $version = "${{ steps.ver.outputs.version }}"
+          $vMaj = "${{ steps.ver.outputs.vMaj }}"
+          $vMin = "${{ steps.ver.outputs.vMin }}"
+          $vPat = "${{ steps.ver.outputs.vPat }}"
+          $vBld = "${{ steps.ver.outputs.vBld }}"
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
@@ -58,10 +79,26 @@ jobs:
           foreach ($b in $builds) {
             Push-Location $b.Dir
             try {
+              # Embed PE version info + Windows app manifest. resource.syso
+              # is auto-linked by `go build` from the package directory.
+              goversioninfo `
+                -64 `
+                -ver-major $vMaj -ver-minor $vMin `
+                -ver-patch $vPat -ver-build $vBld `
+                -product-ver-major $vMaj -product-ver-minor $vMin `
+                -product-ver-patch $vPat -product-ver-build $vBld `
+                -file-version "$vMaj.$vMin.$vPat.$vBld" `
+                -product-version "$vMaj.$vMin.$vPat.$vBld" `
+                -o resource.syso `
+                versioninfo.json
+              if ($LASTEXITCODE -ne 0) { throw "goversioninfo failed in $($b.Dir)" }
+
+              # Keep symbols (-s -w stripping correlates with higher AV
+              # heuristic false-positive rates for Go binaries).
               if ($b.UseVersion) {
-                go build -trimpath -ldflags "-s -w -X main.version=$version" -o $b.Out .
+                go build -trimpath -ldflags "-X main.version=$version" -o $b.Out .
               } else {
-                go build -trimpath -ldflags "-s -w" -o $b.Out .
+                go build -trimpath -o $b.Out .
               }
               if ($LASTEXITCODE -ne 0) { throw "build failed in $($b.Dir)" }
             } finally {

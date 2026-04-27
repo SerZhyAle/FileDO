@@ -19,6 +19,10 @@
 # Go workspace sum files
 go.work.sum
 
+# Generated PE resource objects (versioninfo + manifest)
+*.syso
+resource.syso
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

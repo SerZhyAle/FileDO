@@ -1,0 +1,30 @@
+{
+  "FixedFileInfo": {
+    "FileVersion":    { "Major": 26, "Minor": 4, "Patch": 27, "Build": 0 },
+    "ProductVersion": { "Major": 26, "Minor": 4, "Patch": 27, "Build": 0 },
+    "FileFlagsMask": "3f",
+    "FileFlags ":    "00",
+    "FileOS":        "040004",
+    "FileType":      "01",
+    "FileSubType":   "00"
+  },
+  "StringFileInfo": {
+    "Comments":         "https://github.com/SerZhyAle/FileDO",
+    "CompanyName":      "SZA",
+    "FileDescription":  "FileDO Test - Storage capacity and speed test utility",
+    "FileVersion":      "26.4.27.0",
+    "InternalName":     "filedo_test",
+    "LegalCopyright":   "Copyright (c) 2025 sza. MIT License.",
+    "LegalTrademarks":  "",
+    "OriginalFilename": "filedo_test.exe",
+    "PrivateBuild":     "",
+    "ProductName":      "FileDO",
+    "ProductVersion":   "26.4.27.0",
+    "SpecialBuild":     ""
+  },
+  "VarFileInfo": {
+    "Translation": { "LangID": "0409", "CharsetID": "04B0" }
+  },
+  "IconPath":     "",
+  "ManifestPath": "app.manifest"
+}
