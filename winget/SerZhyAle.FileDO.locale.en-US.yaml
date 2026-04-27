@@ -1,8 +1,8 @@
-# Created with winget-pkgs schema v1.10.0
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+# Created using wingetcreate 1.12.8.0
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 
 PackageIdentifier: SerZhyAle.FileDO
-PackageVersion: 2604271301
+PackageVersion: "2604271301"
 PackageLocale: en-US
 Publisher: SZA
 PublisherUrl: https://github.com/SerZhyAle
@@ -22,21 +22,21 @@ Description: |-
   large trees with progress and timeout protection.
 Moniker: filedo
 Tags:
-  - benchmark
-  - cli
-  - disk
-  - duplicates
-  - fake-capacity
-  - file-manager
-  - hash
-  - md5
-  - portable
-  - sd-card
-  - secure-erase
-  - speed-test
-  - storage
-  - usb
-  - wipe
+- benchmark
+- cli
+- disk
+- duplicates
+- fake-capacity
+- file-manager
+- hash
+- md5
+- portable
+- sd-card
+- secure-erase
+- speed-test
+- storage
+- usb
+- wipe
 ReleaseNotesUrl: https://github.com/SerZhyAle/FileDO/releases/tag/v2604271301
 ManifestType: defaultLocale
-ManifestVersion: 1.10.0
+ManifestVersion: 1.12.0
