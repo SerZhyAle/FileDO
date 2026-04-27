@@ -168,11 +168,45 @@ filedo check D:\Data --good-list D:\check_files.list --quiet
 - Uses skip_files.list for immediate, persistent recording (no damaged_files.log)
 - Skips paths already in skip_files.list; parallel workers; Ctrl+C supported
 
-### �📥 Installation
+### 📥 Installation
 
-1. **Download**: Get `filedo.exe` from releases
-2. **GUI Option**: Also download `filedo_win.exe` for visual interface (VB.NET)
-3. **Run**: Execute from command line or GUI
+#### Option 1 — winget (recommended)
+
+```powershell
+winget install SerZhyAle.FileDO
+# short form (works once Microsoft indexes the moniker):
+winget install filedo
+```
+
+This installs all four CLI tools (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) and adds them to your `PATH`. To upgrade later:
+
+```powershell
+winget upgrade SerZhyAle.FileDO
+```
+
+To uninstall:
+
+```powershell
+winget uninstall SerZhyAle.FileDO
+```
+
+#### Option 2 — Manual download
+
+1. **Download**: Grab the latest `FileDO-<version>-windows-x64.zip` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest)
+2. **Extract** anywhere (e.g. `C:\Tools\FileDO`)
+3. **Optional**: add the folder to your `PATH` so you can call `filedo` from any directory
+4. **GUI Option**: also download `filedo_win.exe` from `exe_to_download/` for the VB.NET visual interface
+5. **Run**: execute from command line or GUI
+
+#### Option 3 — Build from source
+
+```powershell
+git clone https://github.com/SerZhyAle/FileDO.git
+cd FileDO
+.\build.ps1   # or build.bat
+```
+
+Requires Go 1.24+. Builds all four executables into `exe_to_download/`.
 
 
 
