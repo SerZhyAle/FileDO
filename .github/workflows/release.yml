@@ -141,10 +141,12 @@ jobs:
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
           $msiName = "FileDO-$version-windows-x64.msi"
           $msiPath = Join-Path $env:GITHUB_WORKSPACE "dist\$msiName"
+          $iconFile = Join-Path $env:GITHUB_WORKSPACE 'assets\icon.ico'
           wix build packaging\wix\FileDO.wxs `
             -arch x64 `
             -d "ProductVersion=$productVersion" `
             -d "StageDir=$stage" `
+            -d "IconFile=$iconFile" `
             -o $msiPath
           if ($LASTEXITCODE -ne 0) { throw "wix build failed" }
           $sha = (Get-FileHash -Algorithm SHA256 $msiPath).Hash

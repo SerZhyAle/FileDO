@@ -15,7 +15,7 @@
     <MajorUpgrade DowngradeErrorMessage="A newer version of FileDO is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
-    <Icon Id="MainIcon" SourceFile="..\..\assets\icon.ico" />
+    <Icon Id="MainIcon" SourceFile="$(var.IconFile)" />
     <Property Id="ARPPRODUCTICON" Value="MainIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/SerZhyAle/FileDO/issues" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/SerZhyAle/FileDO" />
