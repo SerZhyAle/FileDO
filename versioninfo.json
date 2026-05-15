@@ -25,6 +25,6 @@
   "VarFileInfo": {
     "Translation": { "LangID": "0409", "CharsetID": "04B0" }
   },
-  "IconPath":     "",
+  "IconPath":     "assets/icon.ico",
   "ManifestPath": "app.manifest"
 }
