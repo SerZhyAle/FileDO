@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" alt="FileDO" width="128" height="128" /></p>
+
 # FileDO - Advanced File & Storage Operations Tool
 
 <div align="center">
