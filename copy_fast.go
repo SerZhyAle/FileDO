@@ -983,74 +983,46 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 	// Initialize thread count for progress display
 	progress.MaxThreads = config.MaxConcurrentFiles
 	
-	fmt.Printf("Fast scanning for totals...\n")
-	
-	// Phase 1: Fast scan for totals only (no file collection)
+	fmt.Printf("Scanning and collecting files...\n")
+
+	// Single pass: count totals, create directories and collect files to copy.
+	// (Previously this was two separate Walk passes; merging them halves the
+	// up-front tree traversal and lets real copying start sooner.)
 	scanStart := time.Now()
-	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		
+	var allFiles []FileJob
+
+	collectErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		// Check for forced exit during scan
 		if handler != nil && handler.IsForceExit() {
 			return fmt.Errorf("scan terminated by user (force exit)")
 		}
-		
+
 		// Check for graceful interruption during scan
 		if handler != nil && handler.IsInterrupted() {
 			return fmt.Errorf("scan interrupted by user")
 		}
-		
-		if info.IsDir() {
-			return nil
-		}
-		
-		// Only count files and size
-		progress.TotalFiles++
-		progress.TotalSize += info.Size()
-		return nil
-	})
-	
-	if err != nil {
-		return fmt.Errorf("directory scan failed: %v", err)
-	}
-	
-	scanDuration := time.Since(scanStart)
-	fmt.Printf("Scan completed in %v: %d files, %.2f GB\n", 
-		scanDuration, progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
-	
-	// Initialize actual values (will be updated as files are skipped)
-	progress.ActualFiles = progress.TotalFiles
-	progress.ActualSize = progress.TotalSize
-	
-	// Phase 2: Collect all files for sorting
-	fmt.Printf("Collecting files for sorted processing...\n")
-	var allFiles []FileJob
-	
-	collectErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-		// Check for forced exit during collection
-		if handler != nil && handler.IsForceExit() {
-			return fmt.Errorf("collection terminated by user (force exit)")
-		}
-		
+
 		if err != nil {
 			fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
 			return nil
 		}
-		
+
 		relPath, err := filepath.Rel(sourcePath, path)
 		if err != nil {
 			return nil
 		}
-		
+
 		targetFilePath := filepath.Join(targetPath, relPath)
-		
+
 		if info.IsDir() {
 			// Create target directory immediately
 			return os.MkdirAll(targetFilePath, info.Mode())
 		}
-		
+
+		// Count every file towards the grand totals (used for progress display).
+		progress.TotalFiles++
+		progress.TotalSize += info.Size()
+
 		// Check if target file already exists and should be skipped
 		if targetInfo, err := statWithTimeout(targetFilePath, FileOperationTimeout); err == nil {
 			// File exists - check its size
@@ -1062,21 +1034,25 @@ func copyDirectoryOptimized(sourcePath, targetPath string, progress *FastCopyPro
 			}
 			// File exists but is empty (size 0) - will replace it
 		}
-		
+
 		// Collect file for copying (either doesn't exist or is empty)
 		allFiles = append(allFiles, FileJob{
 			SourcePath: path,
 			TargetPath: targetFilePath,
 			Info:       info,
 		})
-		
+
 		return nil
 	})
-	
+
 	if collectErr != nil {
 		return fmt.Errorf("file collection failed: %v", collectErr)
 	}
-	
+
+	scanDuration := time.Since(scanStart)
+	fmt.Printf("Scan completed in %v: %d files, %.2f GB\n",
+		scanDuration, progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
+
 	// Sort files by size (smallest to largest)
 	fmt.Printf("Sorting %d files by size (smallest to largest)...\n", len(allFiles))
 	sort.Slice(allFiles, func(i, j int) bool {
@@ -1919,74 +1895,47 @@ func copyDirectoryOptimizedWithDamageHandling(sourcePath, targetPath string, pro
 	// Initialize thread count for progress display
 	progress.MaxThreads = config.MaxConcurrentFiles
 	
-	fmt.Printf("🔍 Fast scanning for totals (with damaged file detection)...\n")
-	
-	// Phase 1: Fast scan for totals only (no file collection)
+	fmt.Printf("🔍 Scanning and collecting files (with damaged file detection)...\n")
+
+	// Single pass: count totals, create directories, apply the damaged-file skip
+	// list and collect files to copy. (Previously this was two separate Walk
+	// passes; merging them halves the up-front traversal without changing the
+	// damaged-disk handling.)
 	scanStart := time.Now()
-	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		
+	var allFiles []FileJob
+
+	collectErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		// Check for forced exit during scan
 		if handler != nil && handler.IsForceExit() {
 			return fmt.Errorf("scan terminated by user (force exit)")
 		}
-		
+
 		// Check for graceful interruption during scan
 		if handler != nil && handler.IsInterrupted() {
 			return fmt.Errorf("scan interrupted by user")
 		}
-		
-		if info.IsDir() {
-			return nil
-		}
-		
-		// Only count files and size
-		progress.TotalFiles++
-		progress.TotalSize += info.Size()
-		return nil
-	})
-	
-	if err != nil {
-		return fmt.Errorf("directory scan failed: %v", err)
-	}
-	
-	scanDuration := time.Since(scanStart)
-	fmt.Printf("📁 Scan completed in %v: %d files, %.2f GB\n", 
-		scanDuration, progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
-	
-	// Initialize actual values (will be updated as files are skipped)
-	progress.ActualFiles = progress.TotalFiles
-	progress.ActualSize = progress.TotalSize
-	
-	// Phase 2: Collect all files for processing with damaged file detection
-	fmt.Printf("🔧 Collecting files for safe processing...\n")
-	var allFiles []FileJob
-	
-	collectErr := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-		// Check for forced exit during collection
-		if handler != nil && handler.IsForceExit() {
-			return fmt.Errorf("collection terminated by user (force exit)")
-		}
-		
+
 		if err != nil {
 			fmt.Printf("Warning: Error accessing %s: %v - skipping\n", path, err)
 			return nil
 		}
-		
+
 		relPath, err := filepath.Rel(sourcePath, path)
 		if err != nil {
 			return nil
 		}
-		
+
 		targetFilePath := filepath.Join(targetPath, relPath)
-		
+
 		if info.IsDir() {
 			// Create target directory immediately
 			return os.MkdirAll(targetFilePath, info.Mode())
 		}
-		
+
+		// Count every file towards the grand totals (used for progress display).
+		progress.TotalFiles++
+		progress.TotalSize += info.Size()
+
 		// Check if this file should be skipped due to previous damage
 		if damagedHandler.ShouldSkipFile(path) {
 			fmt.Printf("📋 Skipping previously damaged file: %s\n", path)
@@ -1994,7 +1943,7 @@ func copyDirectoryOptimizedWithDamageHandling(sourcePath, targetPath string, pro
 			atomic.AddInt64(&progress.SkippedSize, info.Size())
 			return nil
 		}
-		
+
 		// Check if target file already exists and should be skipped
 		if targetInfo, err := statWithTimeout(targetFilePath, FileOperationTimeout); err == nil {
 			// File exists - check its size
@@ -2006,21 +1955,25 @@ func copyDirectoryOptimizedWithDamageHandling(sourcePath, targetPath string, pro
 			}
 			// File exists but is empty (size 0) - will replace it
 		}
-		
+
 		// Collect file for copying
 		allFiles = append(allFiles, FileJob{
 			SourcePath: path,
 			TargetPath: targetFilePath,
 			Info:       info,
 		})
-		
+
 		return nil
 	})
-	
+
 	if collectErr != nil {
 		return fmt.Errorf("file collection failed: %v", collectErr)
 	}
-	
+
+	scanDuration := time.Since(scanStart)
+	fmt.Printf("📁 Scan completed in %v: %d files, %.2f GB\n",
+		scanDuration, progress.TotalFiles, float64(progress.TotalSize)/(1024*1024*1024))
+
 	// Update actual values based on files that will actually be copied
 	var actualSize int64
 	for _, job := range allFiles {

@@ -161,75 +161,68 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			len(potentialDuplicates))
 	}
 
-	// Submit jobs to calculate quick hashes
+	// Submit jobs to calculate quick hashes.
+	// Flow: cache lookup (read-only) -> misses go to the worker pool ->
+	// results are stored in the cache and aggregated by a consumer goroutine.
 	resultsMutex := sync.Mutex{}
 	processedCount := int64(0)
 	totalCount := int64(len(potentialDuplicates))
 	quickHashStartTime := time.Now()
 
-	for _, file := range potentialDuplicates {
-		// Use a copy of file to avoid race condition in the closure
-		fileCopy := file
-
-		// Try to get hash from cache first
-		quickHash, err := cache.GetHash(fileCopy, QuickHash)
-		if err == nil && quickHash != "" {
-			fileCopy.QuickHash = quickHash
-			resultsMutex.Lock()
-			filesByQuickHash[quickHash] = append(filesByQuickHash[quickHash], fileCopy)
-			resultsMutex.Unlock()
-
-			// Update progress for cached files
-			processed := atomic.AddInt64(&processedCount, 1)
-			if options.Verbose && processed%100 == 0 {
-				elapsed := time.Since(quickHashStartTime)
-				percent := float64(processed) / float64(totalCount) * 100
-				eta := "unknown"
-				if processed > 0 {
-					timePerFile := elapsed.Seconds() / float64(processed)
-					remainingFiles := totalCount - processed
-					rs := timePerFile * float64(remainingFiles)
-					eta = formatETA(time.Duration(rs) * time.Second)
-				}
-				fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
-					processed, totalCount, percent, eta)
+	reportQuick := func() {
+		processed := atomic.AddInt64(&processedCount, 1)
+		if options.Verbose && processed%100 == 0 {
+			elapsed := time.Since(quickHashStartTime)
+			percent := float64(processed) / float64(totalCount) * 100
+			eta := "unknown"
+			if processed > 0 {
+				timePerFile := elapsed.Seconds() / float64(processed)
+				remainingFiles := totalCount - processed
+				rs := timePerFile * float64(remainingFiles)
+				eta = formatETA(time.Duration(rs) * time.Second)
 			}
-		} else {
-			// Submit for calculation
-			worker.AddJob(fileCopy, QuickHash)
+			fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
+				processed, totalCount, percent, eta)
 		}
 	}
 
-	// Process results as they come in
+	// Consumer goroutine: started BEFORE submitting so workers never block on a
+	// full results channel (which would otherwise deadlock the submit loop).
+	quickConsumerDone := make(chan struct{})
 	go func() {
+		defer close(quickConsumerDone)
 		for result := range worker.results {
 			if result.err == nil {
+				cache.StoreHash(result.file, QuickHash)
 				resultsMutex.Lock()
 				filesByQuickHash[result.file.QuickHash] = append(
 					filesByQuickHash[result.file.QuickHash], result.file)
 				resultsMutex.Unlock()
 			}
-
-			// Update progress for calculated files
-			processed := atomic.AddInt64(&processedCount, 1)
-			if options.Verbose && processed%100 == 0 {
-				elapsed := time.Since(quickHashStartTime)
-				percent := float64(processed) / float64(totalCount) * 100
-				eta := "unknown"
-				if processed > 0 {
-					timePerFile := elapsed.Seconds() / float64(processed)
-					remainingFiles := totalCount - processed
-					rs := timePerFile * float64(remainingFiles)
-					eta = formatETA(time.Duration(rs) * time.Second)
-				}
-				fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
-					processed, totalCount, percent, eta)
-			}
+			reportQuick()
 		}
 	}()
 
-	// Wait for all quick hashes to complete
+	for _, file := range potentialDuplicates {
+		// Use a copy of file to avoid race condition in the closure
+		fileCopy := file
+
+		// Read-only cache lookup; never compute on the main goroutine.
+		if quickHash, found := cache.LookupHash(fileCopy, QuickHash); found {
+			fileCopy.QuickHash = quickHash
+			resultsMutex.Lock()
+			filesByQuickHash[quickHash] = append(filesByQuickHash[quickHash], fileCopy)
+			resultsMutex.Unlock()
+			reportQuick()
+		} else {
+			// Cache miss: let a worker compute the hash.
+			worker.AddJob(fileCopy, QuickHash)
+		}
+	}
+
+	// Wait for all queued jobs, then for the consumer to drain all results.
 	worker.Wait()
+	<-quickConsumerDone
 
 	// Final progress update
 	if options.Verbose {
@@ -258,6 +251,39 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 		fmt.Printf("Found %d files requiring full hash calculation...\n", fullHashCount)
 	}
 
+	reportFull := func() {
+		processed := atomic.AddInt64(&fullHashProcessed, 1)
+		if options.Verbose && processed%50 == 0 {
+			elapsed := time.Since(fullHashStartTime)
+			percent := float64(processed) / float64(fullHashCount) * 100
+			eta := "unknown"
+			if processed > 0 {
+				timePerFile := elapsed.Seconds() / float64(processed)
+				remainingFiles := fullHashCount - processed
+				rs := timePerFile * float64(remainingFiles)
+				eta = formatETA(time.Duration(rs) * time.Second)
+			}
+			fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
+				processed, fullHashCount, percent, eta)
+		}
+	}
+
+	// Consumer goroutine: started BEFORE submitting (see quick-hash stage).
+	fullConsumerDone := make(chan struct{})
+	go func() {
+		defer close(fullConsumerDone)
+		for result := range worker.results {
+			if result.err == nil {
+				cache.StoreHash(result.file, FullHash)
+				resultsMutex.Lock()
+				filesByFullHash[result.file.FullHash] = append(
+					filesByFullHash[result.file.FullHash], result.file)
+				resultsMutex.Unlock()
+			}
+			reportFull()
+		}
+	}()
+
 	// Find groups with matching quick hashes
 	for _, files := range filesByQuickHash {
 		if len(files) > 1 {
@@ -265,67 +291,24 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			for _, file := range files {
 				fileCopy := file
 
-				// Try cache first
-				fullHash, err := cache.GetHash(fileCopy, FullHash)
-				if err == nil && fullHash != "" {
+				// Read-only cache lookup; never compute on the main goroutine.
+				if fullHash, found := cache.LookupHash(fileCopy, FullHash); found {
 					fileCopy.FullHash = fullHash
 					resultsMutex.Lock()
 					filesByFullHash[fullHash] = append(filesByFullHash[fullHash], fileCopy)
 					resultsMutex.Unlock()
-
-					// Update progress for cached files
-					processed := atomic.AddInt64(&fullHashProcessed, 1)
-					if options.Verbose && processed%50 == 0 {
-						elapsed := time.Since(fullHashStartTime)
-						percent := float64(processed) / float64(fullHashCount) * 100
-						eta := "unknown"
-						if processed > 0 {
-							timePerFile := elapsed.Seconds() / float64(processed)
-							remainingFiles := fullHashCount - processed
-							rs := timePerFile * float64(remainingFiles)
-							eta = formatETA(time.Duration(rs) * time.Second)
-						}
-						fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
-							processed, fullHashCount, percent, eta)
-					}
+					reportFull()
 				} else {
-					// Submit for calculation
+					// Cache miss: let a worker compute the hash.
 					worker.AddJob(fileCopy, FullHash)
 				}
 			}
 		}
 	}
 
-	// Process full hash results
-	go func() {
-		for result := range worker.results {
-			if result.err == nil {
-				resultsMutex.Lock()
-				filesByFullHash[result.file.FullHash] = append(
-					filesByFullHash[result.file.FullHash], result.file)
-				resultsMutex.Unlock()
-			}
-
-			// Update progress for calculated files
-			processed := atomic.AddInt64(&fullHashProcessed, 1)
-			if options.Verbose && processed%50 == 0 {
-				elapsed := time.Since(fullHashStartTime)
-				percent := float64(processed) / float64(fullHashCount) * 100
-				eta := "unknown"
-				if processed > 0 {
-					timePerFile := elapsed.Seconds() / float64(processed)
-					remainingFiles := fullHashCount - processed
-					rs := timePerFile * float64(remainingFiles)
-					eta = formatETA(time.Duration(rs) * time.Second)
-				}
-				fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
-					processed, fullHashCount, percent, eta)
-			}
-		}
-	}()
-
-	// Wait for all full hashes to complete
+	// Wait for all queued jobs, then for the consumer to drain all results.
 	worker.Wait()
+	<-fullConsumerDone
 
 	// Final progress update
 	if options.Verbose && fullHashCount > 0 {

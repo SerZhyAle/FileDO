@@ -1,12 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+// wipeCountCap bounds the pre-wipe object count so the confirmation prompt
+// stays fast even on very large trees.
+const wipeCountCap = 100000
 
 // WipeProgress tracks wipe operation progress
 type WipeProgress struct {
@@ -22,8 +27,28 @@ func handleWipeCommand(args []string) error {
 		return fmt.Errorf("no target specified for wipe operation")
 	}
 
-	targetPath := args[0]
-	
+	// Parse optional automation flags; the first non-flag argument is the target.
+	// --yes / -y / --force / --force-wipe skip the interactive prompt for normal
+	// targets, but never bypass the dangerous-target guardrails below.
+	force := false
+	targetPath := ""
+	for _, a := range args {
+		switch strings.ToLower(a) {
+		case "--yes", "-y", "--force", "--force-wipe", "/y":
+			force = true
+		default:
+			if targetPath == "" {
+				targetPath = a
+			}
+		}
+	}
+	if targetPath == "" {
+		return fmt.Errorf("no target specified for wipe operation")
+	}
+	if os.Getenv("FILEDO_AUTO_CONFIRM") == "1" {
+		force = true
+	}
+
 	// Check if target exists
 	info, err := os.Stat(targetPath)
 	if err != nil {
@@ -35,6 +60,11 @@ func handleWipeCommand(args []string) error {
 
 	if !info.IsDir() {
 		return fmt.Errorf("target must be a directory: %s", targetPath)
+	}
+
+	// Safety guardrails: require explicit confirmation before any destruction.
+	if err := confirmWipe(targetPath, force); err != nil {
+		return err
 	}
 
 	fmt.Printf("Wiping contents of: %s\n", targetPath)
@@ -173,6 +203,117 @@ func showWipeProgress(progress *WipeProgress) {
 		progress.TotalItems,
 		itemsPerSecond,
 		eta)
+}
+
+// confirmWipe shows the target, a best-effort object count and requires explicit
+// confirmation before a wipe proceeds. Dangerous targets (drive/share roots,
+// reparse points, system TEMP) always require strong, interactive confirmation
+// and are never bypassed by the --force flag.
+func confirmWipe(targetPath string, force bool) error {
+	dangerous, reason := classifyWipeTarget(targetPath)
+
+	fmt.Printf("\nWIPE will permanently delete the contents of:\n  %s\n", targetPath)
+
+	// Best-effort, bounded count so huge trees do not stall the prompt.
+	if count, capped := quickCountWipeItems(targetPath); count >= 0 {
+		suffix := ""
+		if capped {
+			suffix = "+"
+		}
+		fmt.Printf("Found %d%s item(s) to delete.\n", count, suffix)
+	}
+
+	if dangerous {
+		fmt.Printf("\n!!! DANGEROUS TARGET: %s\n", reason)
+		fmt.Printf("This is a high-risk location. Extra confirmation is required.\n")
+		// --force intentionally does NOT bypass the dangerous-target guardrail.
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf("Type WIPE to continue: ")
+		line, _ := reader.ReadString('\n')
+		if strings.TrimSpace(line) != "WIPE" {
+			return fmt.Errorf("wipe cancelled by user")
+		}
+		fmt.Printf("Type the exact target path to confirm: ")
+		line, _ = reader.ReadString('\n')
+		if strings.TrimSpace(line) != strings.TrimSpace(targetPath) {
+			return fmt.Errorf("wipe cancelled: target path confirmation did not match")
+		}
+		return nil
+	}
+
+	if force {
+		fmt.Printf("Confirmation skipped (--yes/--force).\n")
+		return nil
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("Type WIPE to continue: ")
+	line, _ := reader.ReadString('\n')
+	if strings.TrimSpace(line) != "WIPE" {
+		return fmt.Errorf("wipe cancelled by user")
+	}
+	return nil
+}
+
+// classifyWipeTarget reports whether a wipe target is a high-risk location and
+// why. It flags drive roots (C:\), network share roots (\\server\share),
+// reparse points (junctions/symlinks/mount points) and the system TEMP dir.
+func classifyWipeTarget(targetPath string) (dangerous bool, reason string) {
+	abs, err := filepath.Abs(targetPath)
+	if err != nil {
+		abs = targetPath
+	}
+	clean := filepath.Clean(abs)
+
+	// Reparse point / junction / symlink / mount point.
+	if hasReparsePoint(clean) {
+		return true, "target is a reparse point (junction/symlink/mount point)"
+	}
+
+	// Drive root (C:\, D:\) or network share root (\\server\share).
+	vol := filepath.VolumeName(clean)
+	if vol != "" && (clean == vol || clean == vol+string(os.PathSeparator)) {
+		if strings.HasPrefix(vol, `\\`) {
+			return true, "target is the root of a network share"
+		}
+		return true, "target is the root of a drive"
+	}
+
+	// System TEMP directory (wiping it can break the OS and FileDO itself).
+	if tmp := os.TempDir(); tmp != "" && pathsEqual(clean, filepath.Clean(tmp)) {
+		return true, "target is the system TEMP directory"
+	}
+
+	return false, ""
+}
+
+// pathsEqual compares two paths, case-insensitively on Windows.
+func pathsEqual(a, b string) bool {
+	if os.PathSeparator == '\\' {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
+}
+
+// quickCountWipeItems returns a bounded count of items under targetPath. The
+// count is capped at wipeCountCap so the confirmation prompt stays responsive on
+// very large trees; capped is true when the cap was reached.
+func quickCountWipeItems(targetPath string) (count int, capped bool) {
+	_ = filepath.Walk(targetPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // ignore errors while counting
+		}
+		if path == targetPath {
+			return nil // don't count the root itself
+		}
+		count++
+		if count >= wipeCountCap {
+			capped = true
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	return count, capped
 }
 
 // checkWritePermission checks if we have write permission to a directory

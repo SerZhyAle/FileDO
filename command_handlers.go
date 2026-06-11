@@ -140,7 +140,7 @@ type CommandHandler interface {
 	Probe(path string, assumeYes bool, autoRepair bool) error
 	CheckDuplicates(path string, args []string) error
 	Copy(sourcePath, targetPath string) error
-	Wipe(path string) error
+	Wipe(path string, args []string) error
 }
 
 // DeviceHandler implements CommandHandler for devices
@@ -187,8 +187,8 @@ func (h DeviceHandler) Copy(sourcePath, targetPath string) error {
 	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
 }
 
-func (h DeviceHandler) Wipe(path string) error {
-	return handleWipeCommand([]string{path})
+func (h DeviceHandler) Wipe(path string, args []string) error {
+	return handleWipeCommand(append([]string{path}, args...))
 }
 
 // FolderHandler implements CommandHandler for folders
@@ -235,8 +235,8 @@ func (h FolderHandler) Copy(sourcePath, targetPath string) error {
 	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
 }
 
-func (h FolderHandler) Wipe(path string) error {
-	return handleWipeCommand([]string{path})
+func (h FolderHandler) Wipe(path string, args []string) error {
+	return handleWipeCommand(append([]string{path}, args...))
 }
 
 // NetworkHandler implements CommandHandler for network
@@ -283,8 +283,8 @@ func (h NetworkHandler) Copy(sourcePath, targetPath string) error {
 	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
 }
 
-func (h NetworkHandler) Wipe(path string) error {
-	return handleWipeCommand([]string{path})
+func (h NetworkHandler) Wipe(path string, args []string) error {
+	return handleWipeCommand(append([]string{path}, args...))
 }
 
 // FileHandler implements CommandHandler for files
@@ -331,7 +331,7 @@ func (h FileHandler) Copy(sourcePath, targetPath string) error {
 	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
 }
 
-func (h FileHandler) Wipe(path string) error {
+func (h FileHandler) Wipe(path string, args []string) error {
 	// For files, wipe doesn't make sense - you can only delete the file
 	return fmt.Errorf("wipe command is not applicable to individual files - use delete instead")
 }
@@ -734,7 +734,13 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if wipeParam == "wipe" || wipeParam == "w" {
 			historyLogger.SetCommand(cmdTypeName, path, "wipe")
 
-			err := handler.Wipe(path)
+			// Collect trailing arguments (e.g. --yes / --force) if any
+			var wipeArgs []string
+			if cmd.NArg() > 2 {
+				wipeArgs = cmd.Args()[2:]
+			}
+
+			err := handler.Wipe(path, wipeArgs)
 			if err != nil {
 				if !handleErrorWithUserMessage(err, path, historyLogger) {
 					historyLogger.SetError(err)

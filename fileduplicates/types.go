@@ -60,10 +60,14 @@ type HashCache struct {
 	mutex   sync.RWMutex
 }
 
-// CacheEntry represents a single cached hash entry
+// CacheEntry represents a single cached hash entry.
+// A cached hash is only valid when both Size and ModTime still match the file
+// on disk, so a file that changed but kept the same size cannot reuse a stale
+// hash (which could otherwise cause false duplicate matches).
 type CacheEntry struct {
 	Path      string
 	Size      int64
+	ModTime   time.Time
 	QuickHash string
 	FullHash  string
 	LastSeen  time.Time

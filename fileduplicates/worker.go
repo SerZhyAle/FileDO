@@ -31,11 +31,14 @@ func NewHashWorker(workerCount int) *HashWorker {
 
 // Add a hash job to the pool
 func (hw *HashWorker) AddJob(file DuplicateFileInfo, mode FileHashType) {
+	// Register the job BEFORE sending it so a worker can never call wg.Done()
+	// (after processing) before this Add runs, which would drive the WaitGroup
+	// counter negative and panic.
+	hw.wg.Add(1)
 	// Use a loop instead of recursion to avoid stack overflow
 	for {
 		select {
 		case hw.jobs <- hashJob{file: file, mode: mode}:
-			hw.wg.Add(1)
 			return
 		default:
 			// If channel is full, wait a little bit
@@ -123,7 +126,7 @@ func LoadHashCache() (*HashCache, error) {
 		Entries: make(map[string]CacheEntry),
 	}
 
-	data, err := os.ReadFile(HASH_CACHE_FILE)
+	data, err := os.ReadFile(GetHashCachePath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return cache, nil // Not an error if file doesn't exist
@@ -136,60 +139,6 @@ func LoadHashCache() (*HashCache, error) {
 	}
 
 	return cache, nil
-}
-
-// Get a hash from cache or calculate it
-func (cache *HashCache) GetHash(file DuplicateFileInfo, hashType FileHashType) (string, error) {
-	cacheKey := fmt.Sprintf("%s:%d", file.Path, file.Size)
-
-	cache.mutex.RLock()
-	entry, exists := cache.Entries[cacheKey]
-	cache.mutex.RUnlock()
-
-	// Check if we have a valid cache entry
-	if exists {
-		if hashType == QuickHash && entry.QuickHash != "" {
-			return entry.QuickHash, nil
-		}
-		if hashType == FullHash && entry.FullHash != "" {
-			return entry.FullHash, nil
-		}
-	}
-
-	// Need to calculate the hash
-	var hash string
-	var err error
-
-	if hashType == QuickHash {
-		hash, err = calculateQuickHash(file.Path)
-	} else {
-		hash, err = calculateFullHash(file.Path)
-	}
-
-	if err != nil {
-		return "", err
-	}
-
-	// Update cache
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
-
-	if !exists {
-		entry = CacheEntry{
-			Path:     file.Path,
-			Size:     file.Size,
-			LastSeen: time.Now(),
-		}
-	}
-
-	if hashType == QuickHash {
-		entry.QuickHash = hash
-	} else {
-		entry.FullHash = hash
-	}
-
-	cache.Entries[cacheKey] = entry
-	return hash, nil
 }
 
 // Get file information for duplicate detection

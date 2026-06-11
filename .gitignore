@@ -68,6 +68,9 @@ desktop.ini
 *.swo
 *~
 
+# Claude Code local config
+.claude/
+
 # Logs
 *.log
 

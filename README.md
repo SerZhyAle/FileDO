@@ -24,6 +24,11 @@
 - **Metadata preservation** - maintains original folder permissions and timestamps
 - **Smart error handling** - works with system folders and access restrictions
 - **Universal compatibility** - supports devices, folders, and network shares
+- **Confirmation guardrails** - `wipe` always asks `Type WIPE to continue` before
+  deleting. Add `--force` (or `-y`) to skip the prompt in automation. Dangerous
+  targets — drive/share roots, reparse points (junctions/symlinks) and the system
+  TEMP folder — always require interactive confirmation and are never bypassed by
+  `--force`.
 
 ### 🛡️ **Security Features**
 - High-speed secure data wiping to prevent recovery (4.7+ GB/s)
@@ -34,7 +39,10 @@
 - **Multiple selection modes** (oldest/newest/alphabetical)
 - **Flexible actions** (delete/move duplicates)
 - **MD5 hash-based reliable identification**
-- **Hash caching** for faster repeated scans
+- **Hash caching** for faster repeated scans - the cache (`hash_cache.json`) lives
+  next to the executable and is read and written from the same location on every
+  run. A cached hash is only reused when the file's size **and** modification time
+  still match, so a changed file never produces a false duplicate match.
 - **Save/load duplicate lists** for batch processing
 - **Modular architecture** with dedicated fileduplicates package
 

@@ -408,6 +408,11 @@ Fast Content Wiping:
   filedo.exe device D: wipe               → Wipe device contents (standard method for system folders)
   filedo.exe network \\server\temp wipe   → Wipe network folder contents
   filedo.exe folder C:\Cache w            → Short form of wipe command
+  filedo.exe folder D:\Temp wipe --force  → Skip the interactive prompt (automation)
+  Note: wipe always asks "Type WIPE to continue" before deleting. --force (or -y)
+        skips that prompt for normal targets only. Drive/share roots, reparse
+        points (junctions/symlinks) and the system TEMP folder ALWAYS require
+        interactive confirmation and are never bypassed by --force.
 
 Folder Compare:
 	filedo.exe compare D:\Source E:\Target   → Compare directory trees and report differences
