@@ -1,6 +1,6 @@
 # Спецификация: попадание FileDO в GitHub-Store
 
-Цель: сделать FileDO видимым и устанавливаемым в каталоге [OpenHub-Store / GitHub-Store](https://github.com/OpenHub-Store/GitHub-Store) — open-source app store для Android и Desktop (Linux/macOS/Windows) на Kotlin + Compose Multiplatform.
+Цель: сделать FileDO видимым и устанавливаемым в каталоге [OpenHub-Store / GitHub-Store](https://github.com/OpenHub-Store/GitHub-Store) - open-source app store для Android и Desktop (Linux/macOS/Windows) на Kotlin + Compose Multiplatform.
 
 ## 1. Как работает GitHub-Store (ресерч)
 
@@ -27,8 +27,8 @@
   - Android: `android`, `mobile`, `apk`
 - `language` репозитория.
 - `description` репозитория (попадает в полнотекстовый поиск).
-- Звёзды (`stargazers_count`) — попадание в bucket'ы ранжирования.
-- Сигнал «has APK assets in last 5 releases» (по аналогии для desktop — наличие совместимых ассетов в последних релизах).
+- Звёзды (`stargazers_count`) - попадание в bucket'ы ранжирования.
+- Сигнал «has APK assets in last 5 releases» (по аналогии для desktop - наличие совместимых ассетов в последних релизах).
 - Свежесть `published_at`.
 
 ## 2. Аудит текущего состояния FileDO
@@ -53,36 +53,36 @@
 
 Изменения сгруппированы по приоритету.
 
-### P0 — обязательные для попадания в каталог
+### P0 - обязательные для попадания в каталог
 
-1. **Публиковать MSI рядом с ZIP.** В `.github/workflows/release.yml` добавить шаг, который собирает MSI из стейджа `dist/FileDO/` (WiX или `dotnet tool install -g wix` / готовый action). Файл должен называться по схеме `FileDO-<version>-windows-x64.msi`. Прицепить к релизу. Соответствует уже существующему winget-флоу (см. [docs/how-i-posted-this-project-to-winget.md](docs/how-i-posted-this-project-to-winget.md)) — пакет идентичный, переиспользуется.
+1. **Публиковать MSI рядом с ZIP.** В `.github/workflows/release.yml` добавить шаг, который собирает MSI из стейджа `dist/FileDO/` (WiX или `dotnet tool install -g wix` / готовый action). Файл должен называться по схеме `FileDO-<version>-windows-x64.msi`. Прицепить к релизу. Соответствует уже существующему winget-флоу (см. [docs/how-i-posted-this-project-to-winget.md](docs/how-i-posted-this-project-to-winget.md)) - пакет идентичный, переиспользуется.
 2. **Добавить repo description** через GitHub UI / API. Один абзац, ≤ 200 символов: что делает (file/disk operations, capacity test, fill, check, duplicates), под какую платформу, что CLI. Описание попадает в поиск.
 3. **Проставить repo topics** через GitHub UI (Settings → About → Topics) или API:
-   - `windows`, `desktop`, `cli` — для платформенного матчинга в сторе
-   - `file-management`, `disk-utility`, `capacity-test`, `duplicate-finder`, `go`, `golang` — для тем/поиска
+   - `windows`, `desktop`, `cli` - для платформенного матчинга в сторе
+   - `file-management`, `disk-utility`, `capacity-test`, `duplicate-finder`, `go`, `golang` - для тем/поиска
    - Минимум: `windows`, `desktop`, `cli`.
 
-### P1 — улучшают ранжирование и UX в каталоге
+### P1 - улучшают ранжирование и UX в каталоге
 
 4. **Гарантировать SHA-256 в `digest` ассета.** Уже есть (`"digest": "sha256:..."` приходит из GitHub автоматически для крупных ассетов). Проверять, что MSI тоже его получает.
-5. **Не помечать релизы `prerelease`.** Сейчас `false` — оставить так.
+5. **Не помечать релизы `prerelease`.** Сейчас `false` - оставить так.
 6. **README с иконкой и скриншотами.** GitHub-Store не парсит manifest, но при отображении карточки приложения может тянуть README/OpenGraph. Добавить:
    - PNG-иконку 256×256 в `assets/icon.png` (если её нет в репо) и ссылку из README.
-   - Один-два скриншота интерфейса (для CLI — скрин терминала с типичной командой) в `docs/screenshots/`.
-   - В верх README — одну строку с описанием (тот же текст, что и repo description), это часто используется агрегаторами как fallback.
-7. **GitHub social preview image** (Settings → Social preview) — карточка 1280×640. Некоторые сторы используют её как hero для карточки приложения.
+   - Один-два скриншота интерфейса (для CLI - скрин терминала с типичной командой) в `docs/screenshots/`.
+   - В верх README - одну строку с описанием (тот же текст, что и repo description), это часто используется агрегаторами как fallback.
+7. **GitHub social preview image** (Settings → Social preview) - карточка 1280×640. Некоторые сторы используют её как hero для карточки приложения.
 
-### P2 — опциональные ускорения попадания
+### P2 - опциональные ускорения попадания
 
-8. **Подать репо вручную через бэкенд `/v1/external-match`** (если у стора есть форма submission на сайте `github-store.org`) — это сократит время до индексации с цикла кэша до минут. Если формы нет — пропустить, индексер найдёт через 1–2 цикла кэша.
-9. **Кода-сигнатура MSI** (sigstore / signtool с самоподписью) — для будущей политики стора по доверию.
+8. **Подать репо вручную через бэкенд `/v1/external-match`** (если у стора есть форма submission на сайте `github-store.org`) - это сократит время до индексации с цикла кэша до минут. Если формы нет - пропустить, индексер найдёт через 1-2 цикла кэша.
+9. **Кода-сигнатура MSI** (sigstore / signtool с самоподписью) - для будущей политики стора по доверию.
 
 ## 4. План реализации и статус
 
 | # | Шаг | Статус |
 |---|---|---|
 | 1 | Repo description + topics (`windows`, `desktop`, `cli`, `file-management`, `disk-utility`, `capacity-test`, `duplicate-finder`, `sd-card`, `usb`, `golang`) | **Сделано** через `gh repo edit` |
-| 2 | WiX-манифест [packaging/wix/FileDO.wxs](../packaging/wix/FileDO.wxs) — 4 exe, 5 bat, LICENSE, README; добавляет `INSTALLFOLDER` в системный `PATH`; per-machine install в `C:\Program Files\FileDO\`; ARP-метаданные | **Сделано** |
+| 2 | WiX-манифест [packaging/wix/FileDO.wxs](../packaging/wix/FileDO.wxs) - 4 exe, 5 bat, LICENSE, README; добавляет `INSTALLFOLDER` в системный `PATH`; per-machine install в `C:\Program Files\FileDO\`; ARP-метаданные | **Сделано** |
 | 3 | Шаги `Install WiX` + `Build MSI` в [.github/workflows/release.yml](../.github/workflows/release.yml) после `Package zip`; MSI прицепляется к релизу вместе с `.sha256` файлом, SHA-256 пишется в release body | **Сделано** |
 | 4 | Иконка (`assets/icon.png` 256×256) и скриншоты в README | TODO |
 | 5 | GitHub social preview (1280×640) | TODO (только через UI: Settings → Social preview) |
@@ -90,12 +90,12 @@
 
 ### Детали реализации MSI
 
-- **Версия MSI** — `vMaj.vMin.vPat.vBld`, например `26.4.27.2228` (парсится из тега `v2604272228` существующим шагом `Resolve version`).
-- **UpgradeCode** — фиксированный GUID `4d6b3b1f-7c8e-4a25-9f1d-8e3b2c5a7d91`, не меняется между релизами; ProductCode авто-генерируется WiX каждой сборкой → `MajorUpgrade` работает.
-- **Caveat:** MSI учитывает только `Major.Minor.Build` для апгрейда; две сборки в один день (одинаковый `vPat=dd`) различаются только Revision и `MajorUpgrade` их не отличит. Релизы обычно реже — приемлемо. Если станет проблемой, поменять маппинг версии в шаге `Resolve version` (например `vMin = MM*100+dd`).
-- **PATH** — компонент `EnvPath` добавляет `[INSTALLFOLDER]` в системный `PATH` (`Part="last" Action="set" System="yes"`). Деинсталляция возвращает PATH в исходное состояние.
-- **Зависимости рантайма** — нет, Go-бинари статичны (`CGO_ENABLED=0`).
-- **WiX** — версия 5.x, ставится `dotnet tool install --global wix --version 5.*` в свежем шаге workflow.
+- **Версия MSI** - `vMaj.vMin.vPat.vBld`, например `26.4.27.2228` (парсится из тега `v2604272228` существующим шагом `Resolve version`).
+- **UpgradeCode** - фиксированный GUID `4d6b3b1f-7c8e-4a25-9f1d-8e3b2c5a7d91`, не меняется между релизами; ProductCode авто-генерируется WiX каждой сборкой → `MajorUpgrade` работает.
+- **Caveat:** MSI учитывает только `Major.Minor.Build` для апгрейда; две сборки в один день (одинаковый `vPat=dd`) различаются только Revision и `MajorUpgrade` их не отличит. Релизы обычно реже - приемлемо. Если станет проблемой, поменять маппинг версии в шаге `Resolve version` (например `vMin = MM*100+dd`).
+- **PATH** - компонент `EnvPath` добавляет `[INSTALLFOLDER]` в системный `PATH` (`Part="last" Action="set" System="yes"`). Деинсталляция возвращает PATH в исходное состояние.
+- **Зависимости рантайма** - нет, Go-бинари статичны (`CGO_ENABLED=0`).
+- **WiX** - версия 5.x, ставится `dotnet tool install --global wix --version 5.*` в свежем шаге workflow.
 
 ### Как проверить локально
 
@@ -111,9 +111,9 @@ wix build packaging\wix\FileDO.wxs -arch x64 -d "ProductVersion=26.4.27.2228" -d
 - [ ] `GET https://api.github.com/repos/SerZhyAle/FileDO` возвращает непустые `description` и `topics`, содержащие хотя бы `windows` и `desktop`.
 - [ ] MSI ставится двойным кликом на чистой Windows 11, добавляет `filedo` в `PATH` (или хотя бы кладёт в Program Files).
 - [ ] SHA-256 MSI совпадает между release body, `*.sha256` файлом и `digest` поля ассета GitHub API.
-- [ ] Через 24–48 часов после релиза репо находится в клиенте GitHub-Store по запросу «filedo» или «disk capacity».
+- [ ] Через 24-48 часов после релиза репо находится в клиенте GitHub-Store по запросу «filedo» или «disk capacity».
 
 ## 6. Открытые вопросы
 
-- Поддерживает ли GitHub-Store портативные `.zip` через какой-то отдельный канал? По текущей доке — **нет**, но может появиться (см. их roadmap). Если появится — `.zip` можно оставить как есть, а MSI всё равно сделать ради winget/обычных пользователей.
+- Поддерживает ли GitHub-Store портативные `.zip` через какой-то отдельный канал? По текущей доке - **нет**, но может появиться (см. их roadmap). Если появится - `.zip` можно оставить как есть, а MSI всё равно сделать ради winget/обычных пользователей.
 - Нужна ли подпись MSI Authenticode для попадания? В текущей доке требований к подписи ассетов приложений нет (подписан только сам клиент стора).

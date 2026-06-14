@@ -421,7 +421,7 @@ FileDO/
 
 **FileDO v2507112115** - Outil Avancé pour Fichiers et Stockage
 
-Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO)
+Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
 ---
 

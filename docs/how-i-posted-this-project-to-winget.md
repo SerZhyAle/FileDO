@@ -1,6 +1,6 @@
 # How I posted FileDO to winget
 
-A walkthrough of getting **FileDO** into the official Windows Package Manager, with every command, every blocker, and every fix — written so you can do the same for your own project.
+A walkthrough of getting **FileDO** into the official Windows Package Manager, with every command, every blocker, and every fix - written so you can do the same for your own project.
 
 The end result: anyone on Windows can now run
 
@@ -14,9 +14,9 @@ and get all four FileDO binaries on their `PATH`, with no admin opt-in, no manua
 
 ## 1. What winget actually is
 
-The Windows Package Manager (`winget`) ships with Windows 10 1809+ and Windows 11. It pulls its package catalog from a single curated GitHub repository: **[microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)**. To get a package listed, you submit a pull request adding three small YAML files describing your release. Microsoft moderators review and merge. Once merged, every winget client on the planet sees your package on the next index rebuild (~30–60 minutes).
+The Windows Package Manager (`winget`) ships with Windows 10 1809+ and Windows 11. It pulls its package catalog from a single curated GitHub repository: **[microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)**. To get a package listed, you submit a pull request adding three small YAML files describing your release. Microsoft moderators review and merge. Once merged, every winget client on the planet sees your package on the next index rebuild (~30-60 minutes).
 
-There is no developer account, no signing certificate requirement, no annual fee — just a GitHub PR.
+There is no developer account, no signing certificate requirement, no annual fee - just a GitHub PR.
 
 ---
 
@@ -24,16 +24,16 @@ There is no developer account, no signing certificate requirement, no annual fee
 
 FileDO ships **four** independent executables, not one:
 
-- `filedo.exe` — main CLI
-- `filedo_check.exe` — health scanner
-- `filedo_fill.exe` — fill / wipe operations
-- `filedo_test.exe` — speed/capacity test
+- `filedo.exe` - main CLI
+- `filedo_check.exe` - health scanner
+- `filedo_fill.exe` - fill / wipe operations
+- `filedo_test.exe` - speed/capacity test
 
 That ruled out the simplest packaging type (`InstallerType: portable` with a single `.exe`). Three viable options remained:
 
-1. **Single portable EXE** — easiest, but only ships one binary.
-2. **Portable zip** (`InstallerType: zip` + `NestedInstallerType: portable`) — ships all binaries, each registered as a separate command alias.
-3. **Real installer** (Inno Setup / WiX MSI) — cleaner uninstall and Start Menu integration, but heavyweight for a CLI tool.
+1. **Single portable EXE** - easiest, but only ships one binary.
+2. **Portable zip** (`InstallerType: zip` + `NestedInstallerType: portable`) - ships all binaries, each registered as a separate command alias.
+3. **Real installer** (Inno Setup / WiX MSI) - cleaner uninstall and Start Menu integration, but heavyweight for a CLI tool.
 
 I picked **option 2**. Each binary becomes a `PortableCommandAlias`, so users can call `filedo`, `filedo_check`, `filedo_fill`, and `filedo_test` from any shell after install.
 
@@ -85,7 +85,7 @@ jobs:
 A couple of details worth noting:
 
 - The four `main` packages each have their own `go.mod`. They use slightly different Go versions (1.21 and 1.24.4). Setting `go-version-file: go.mod` reads the root module's `go 1.24.4`, which satisfies all four.
-- I set `CGO_ENABLED=0` for the release builds. The local `build.bat` uses `-race` (needs CGO), but that's a development setting — never ship `-race` builds.
+- I set `CGO_ENABLED=0` for the release builds. The local `build.bat` uses `-race` (needs CGO), but that's a development setting - never ship `-race` builds.
 - `-trimpath -s -w` strips local paths and debug info from the binaries. This shrinks the artifacts and avoids leaking my username.
 - `workflow_dispatch` is included so I can re-run a release for an existing tag manually if something goes wrong.
 
@@ -99,9 +99,9 @@ git tag v2604271301
 git push origin v2604271301
 ```
 
-I use the `yyMMddHHmm` date-time format for tags — same convention used elsewhere in the project. Anything that's a valid SemVer-ish string works for winget; it just has to be unique per release.
+I use the `yyMMddHHmm` date-time format for tags - same convention used elsewhere in the project. Anything that's a valid SemVer-ish string works for winget; it just has to be unique per release.
 
-### Blocker #1 — the empty `build.yml`
+### Blocker #1 - the empty `build.yml`
 
 I pushed the tag, then waited. And waited. The Release workflow had `total_count: 0` runs.
 
@@ -115,7 +115,7 @@ The fix was three steps:
    git commit -m "Remove empty build.yml workflow"
    git push
    ```
-2. **Re-enable Actions** in the repo settings (browser): https://github.com/SerZhyAle/FileDO/actions → "Enable Actions on this repository". This had to be done manually — there is no API for it on a free account.
+2. **Re-enable Actions** in the repo settings (browser): https://github.com/SerZhyAle/FileDO/actions → "Enable Actions on this repository". This had to be done manually - there is no API for it on a free account.
 3. Re-cut the tag. Tag pushes that fire **before** Actions is enabled don't get retried. I deleted and re-pushed:
    ```bash
    git push origin :refs/tags/v2604271256   # delete remote tag
@@ -149,7 +149,7 @@ The folder path uses the publisher's first-letter as a sharding directory (`s/` 
 
 ### Version manifest (`SerZhyAle.FileDO.yaml`)
 
-The "index" file. Tiny — it just points at which locale is the default and declares the schema version.
+The "index" file. Tiny - it just points at which locale is the default and declares the schema version.
 
 ```yaml
 PackageIdentifier: SerZhyAle.FileDO
@@ -186,7 +186,7 @@ ManifestVersion: 1.12.0
 ReleaseDate: 2026-04-27
 ```
 
-The `NestedInstallerFiles` list with multiple portable entries is a feature of schema **1.12.0** (which is why the schema version matters — see Blocker #3 below).
+The `NestedInstallerFiles` list with multiple portable entries is a feature of schema **1.12.0** (which is why the schema version matters - see Blocker #3 below).
 
 ### Locale manifest (`SerZhyAle.FileDO.locale.en-US.yaml`)
 
@@ -251,7 +251,7 @@ Output:
 Manifest validation succeeded.
 ```
 
-That checks YAML syntax, required fields, schema version compatibility, and field formats. It does **not** download the URL or verify the hash — that happens later in CI.
+That checks YAML syntax, required fields, schema version compatibility, and field formats. It does **not** download the URL or verify the hash - that happens later in CI.
 
 The full local install test (which I'd recommend) needs an admin opt-in:
 
@@ -273,7 +273,7 @@ The official microsoft/winget-pkgs repo is one of the largest on GitHub by file 
 winget install Microsoft.WingetCreate
 ```
 
-It also needs a GitHub Personal Access Token. Generate one at https://github.com/settings/tokens/new with **only** the `public_repo` scope (nothing else — the principle of least privilege matters here, and you'll see why below).
+It also needs a GitHub Personal Access Token. Generate one at https://github.com/settings/tokens/new with **only** the `public_repo` scope (nothing else - the principle of least privilege matters here, and you'll see why below).
 
 Then submit:
 
@@ -298,15 +298,15 @@ Behind the scenes, `wingetcreate`:
 5. Commits with a standard message format.
 6. Opens a PR titled `<PackageId> version <version>` against `microsoft/winget-pkgs:master`.
 
-### Blocker #2 — the leaked token
+### Blocker #2 - the leaked token
 
 `wingetcreate`'s output explicitly warned:
 
 > Warning: Using the `--token` argument may result in the token being logged.
 
-I'd already pasted the token to my AI assistant in the chat to run the submit, which means it's now in transcript history. The right response: **revoke the token immediately** at https://github.com/settings/tokens after the PR is open. With `public_repo` scope only, the blast radius if the token leaked publicly is push-access to my own public repos — annoying, not catastrophic. If I'd granted broader scope (e.g. `repo` for private), the impact would have been much worse. Always grant the minimum needed scope, and revoke any token that's been pasted into a place you don't fully control.
+I'd already pasted the token to my AI assistant in the chat to run the submit, which means it's now in transcript history. The right response: **revoke the token immediately** at https://github.com/settings/tokens after the PR is open. With `public_repo` scope only, the blast radius if the token leaked publicly is push-access to my own public repos - annoying, not catastrophic. If I'd granted broader scope (e.g. `repo` for private), the impact would have been much worse. Always grant the minimum needed scope, and revoke any token that's been pasted into a place you don't fully control.
 
-The cleaner alternative `wingetcreate` supports is interactive browser auth — it opens a device-code flow and you log in once. No token in your shell history.
+The cleaner alternative `wingetcreate` supports is interactive browser auth - it opens a device-code flow and you log in once. No token in your shell history.
 
 ---
 
@@ -324,11 +324,11 @@ The PR template that microsoft/winget-pkgs auto-applies includes:
 
 That last line was a problem.
 
-### Blocker #3 — wrong schema version
+### Blocker #3 - wrong schema version
 
 I'd written my manifests against schema **1.10.0** based on what I thought was the current version. The actual current schema is **1.12.0**, listed in `microsoft/winget-pkgs/doc/manifest/schema/1.12.0/`. The PR template explicitly asks for 1.12.
 
-`wingetcreate` had silently written `ManifestVersion: 1.10.0` into the files even though it's a 1.12-aware tool — it appears to honor whatever version you put in the input. So I needed to bump.
+`wingetcreate` had silently written `ManifestVersion: 1.10.0` into the files even though it's a 1.12-aware tool - it appears to honor whatever version you put in the input. So I needed to bump.
 
 ### The surgical fix
 
@@ -350,7 +350,7 @@ git checkout -q FETCH_HEAD
 
 Done in seconds. Only the three manifest files were materialized.
 
-The next subtlety: the original files used **CRLF** line endings (Windows convention; what `wingetcreate` produces). My local edits had reproduced them with **LF** endings. If I'd just overwritten the files, every line would show as changed in the PR diff — a noise-fest that reviewers hate.
+The next subtlety: the original files used **CRLF** line endings (Windows convention; what `wingetcreate` produces). My local edits had reproduced them with **LF** endings. If I'd just overwritten the files, every line would show as changed in the PR diff - a noise-fest that reviewers hate.
 
 I patched the version strings in place while preserving the CRLFs:
 
@@ -379,14 +379,14 @@ The PR's CI re-triggered automatically on the new commit.
 
 ## 8. What the PR's automated validation does
 
-Within ~10–30 minutes of opening (or updating) the PR, several Azure Pipelines checks run:
+Within ~10-30 minutes of opening (or updating) the PR, several Azure Pipelines checks run:
 
-- **ManifestValidation** — same `winget validate` you ran locally, but against the latest schema rules.
-- **InstallerValidation** — actually downloads the URL, verifies the SHA256, runs SmartScreen on the file, and attempts a sandbox install.
-- **URLValidation** — checks that all URLs return reasonable HTTP statuses and aren't on a blocklist.
-- **DefenderScan** — antivirus scan of the binary.
+- **ManifestValidation** - same `winget validate` you ran locally, but against the latest schema rules.
+- **InstallerValidation** - actually downloads the URL, verifies the SHA256, runs SmartScreen on the file, and attempts a sandbox install.
+- **URLValidation** - checks that all URLs return reasonable HTTP statuses and aren't on a blocklist.
+- **DefenderScan** - antivirus scan of the binary.
 
-If everything's green, a label like `Validation-Completed` is added and the PR enters the moderator queue. First-time publishers may get extra scrutiny — expect anywhere from a few hours to a couple of days.
+If everything's green, a label like `Validation-Completed` is added and the PR enters the moderator queue. First-time publishers may get extra scrutiny - expect anywhere from a few hours to a couple of days.
 
 ---
 
@@ -394,7 +394,7 @@ If everything's green, a label like `Validation-Completed` is added and the PR e
 
 Once a maintainer merges the PR:
 
-1. The community source index rebuilds (~30–60 minutes).
+1. The community source index rebuilds (~30-60 minutes).
 2. `winget search FileDO`, `winget search SerZhyAle`, and tag-based searches like `winget search fake-capacity` all start finding the package.
 3. `winget install SerZhyAle.FileDO` works from any Windows machine with no flags or admin opt-in.
 
@@ -424,24 +424,119 @@ wingetcreate update SerZhyAle.FileDO `
 
 ---
 
+## 10.1 Preflight checklist for every future winget update
+
+This is the short version to follow every time, so the same mistakes don't come back.
+
+### Before opening the PR
+
+1. Build and publish the GitHub Release first. The winget manifest must point at a real release ZIP with a stable URL.
+2. Keep the local source-of-truth manifests in [`../winget/`](../winget/) updated to the new version before submitting.
+3. Check the schema version in the local manifest files. Do **not** assume the old schema is still current.
+4. Make sure the `.yaml` files use **CRLF** line endings. `winget-pkgs` is picky about this.
+5. Validate locally:
+
+```powershell
+winget validate --manifest p:\WINDOWS\FileDo\winget
+```
+
+6. Prefer a real install test before submitting:
+
+```powershell
+winget settings --enable LocalManifestFiles
+winget install --manifest p:\WINDOWS\FileDo\winget
+```
+
+7. Prefer `wingetcreate` browser/device auth over pasting a token on the command line. If a PAT is used, keep the scope minimal and revoke it after use.
+
+### After opening the PR
+
+1. Wait for the validation labels and pipeline comments.
+2. If the PR shows a schema/version complaint, patch the existing PR branch directly instead of opening a second PR.
+3. If the PR shows `Validation-Line-Endings-Error`, assume the changed manifest files were committed with `LF` or mixed line endings and normalize them to clean `CRLF`.
+
+### The exact fix we used for `Validation-Line-Endings-Error`
+
+When `microsoft/winget-pkgs#386817` hit the line-ending validator, the problem was that all five CyrFlip manifest files were `mixed` instead of `CRLF`.
+
+Useful check:
+
+```powershell
+git ls-files --eol -- manifests/s/SerZhyAle/CyrFlip/26.6.12.0021/*
+```
+
+Bad output looked like:
+
+```text
+i/mixed w/mixed attr/text=auto
+```
+
+The repair was to normalize only the changed manifest files in place, preserving UTF-8 and writing `CRLF`:
+
+```powershell
+$files = Get-ChildItem 'manifests/s/SerZhyAle/CyrFlip/26.6.12.0021/*.yaml'
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+foreach ($file in $files) {
+  $content = [System.IO.File]::ReadAllText($file.FullName)
+  $normalized = [System.Text.RegularExpressions.Regex]::Replace($content, '\r\n|\n|\r', "`r`n")
+  [System.IO.File]::WriteAllText($file.FullName, $normalized, $utf8NoBom)
+}
+```
+
+Then verify:
+
+```powershell
+git ls-files --eol -- manifests/s/SerZhyAle/CyrFlip/26.6.12.0021/*
+```
+
+Good output should show:
+
+```text
+i/mixed w/crlf attr/text=auto
+```
+
+Then:
+
+```bash
+git add manifests/s/SerZhyAle/CyrFlip/26.6.12.0021/*.yaml
+git commit -m "Normalize CyrFlip manifest line endings"
+git push origin HEAD
+```
+
+Two important notes from that fix:
+
+1. A **push to the PR branch** is enough to trigger fresh validation. That is the most reliable re-run trigger.
+2. Commenting `@wingetbot run` may fail with "Commenter does not have sufficient privileges", so do not depend on it.
+
+### Safe workflow if a PR needs patching
+
+If a winget PR already exists and needs a surgical fix:
+
+1. Update the existing PR branch on your fork.
+2. Avoid re-running `wingetcreate submit`, because that can create a second PR.
+3. Only touch the manifest files that belong to that package/version folder.
+4. Check line endings before and after the edit if the diff looks suspiciously large.
+
+---
+
 ## 11. Lessons worth remembering
 
-1. **Empty workflow files silently break a repo.** A 0-byte `build.yml` failed for weeks before getting Actions auto-paused. Either commit a real workflow, delete the file, or comment everything out — never leave an empty trigger.
+1. **Empty workflow files silently break a repo.** A 0-byte `build.yml` failed for weeks before getting Actions auto-paused. Either commit a real workflow, delete the file, or comment everything out - never leave an empty trigger.
 2. **Tag pushes don't retry when Actions is disabled.** If you enable Actions after pushing a tag, you have to push a new tag (or use `workflow_dispatch`) to re-trigger.
 3. **Match the PR template's schema version.** Don't trust your memory; check `microsoft/winget-pkgs/doc/manifest/schema/` for the highest directory.
 4. **`wingetcreate submit` is dramatically faster than a manual PR**, but it does write your token to the command line. Use device-code auth, or revoke the PAT immediately after.
 5. **Sparse-checkout, not full clone**, when you need to touch a single path in a giant repo. `git config core.sparseCheckout true` + a one-line `.git/info/sparse-checkout` is gold.
 6. **Preserve line endings on Windows-authored manifests.** Tools like `wingetcreate` emit CRLF; `sed` with default settings will rewrite them and produce huge no-op diffs. Use PowerShell's `[System.IO.File]::ReadAllText` / `WriteAllText` for in-place edits.
-7. **Source-of-truth your manifests.** I keep the latest version's manifests committed in [`winget/`](../winget/) of the FileDO repo. They mirror exactly what's in the live PR, so the next release just needs a version bump and a new SHA — no archaeology required.
+7. **Source-of-truth your manifests.** I keep the latest version's manifests committed in [`winget/`](../winget/) of the FileDO repo. They mirror exactly what's in the live PR, so the next release just needs a version bump and a new SHA - no archaeology required.
 
 ---
 
 ## 12. Files in this repo that are part of the winget pipeline
 
-- [`.github/workflows/release.yml`](../.github/workflows/release.yml) — builds + publishes the release zip on tag push.
-- [`winget/SerZhyAle.FileDO.yaml`](../winget/SerZhyAle.FileDO.yaml) — version manifest.
-- [`winget/SerZhyAle.FileDO.installer.yaml`](../winget/SerZhyAle.FileDO.installer.yaml) — installer manifest.
-- [`winget/SerZhyAle.FileDO.locale.en-US.yaml`](../winget/SerZhyAle.FileDO.locale.en-US.yaml) — locale manifest.
-- [`README.md`](../README.md) → "Installation" section — user-facing install instructions.
+- [`.github/workflows/release.yml`](../.github/workflows/release.yml) - builds + publishes the release zip on tag push.
+- [`winget/SerZhyAle.FileDO.yaml`](../winget/SerZhyAle.FileDO.yaml) - version manifest.
+- [`winget/SerZhyAle.FileDO.installer.yaml`](../winget/SerZhyAle.FileDO.installer.yaml) - installer manifest.
+- [`winget/SerZhyAle.FileDO.locale.en-US.yaml`](../winget/SerZhyAle.FileDO.locale.en-US.yaml) - locale manifest.
+- [`README.md`](../README.md) → "Installation" section - user-facing install instructions.
 
 That's the whole story. Total elapsed time, including all blockers and false starts: about an hour. For your project, knowing the gotchas in advance, it should be 15 minutes.

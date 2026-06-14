@@ -422,7 +422,7 @@ FileDO/
 
 **FileDO v2507112115** - Erweiterte Datei- und Speicher-Tools
 
-Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO)
+Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
 ---
 

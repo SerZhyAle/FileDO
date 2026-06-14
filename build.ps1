@@ -10,17 +10,16 @@ Write-Host ""
 $out = "$root\exe_to_download"
 
 $builds = @(
-    @{ Dir = $root;          Out = "$out\filedo.exe";       Flags = "-ldflags=-X 'main.version=$version'" },
-    @{ Dir = "$root\FILL";   Out = "$out\filedo_fill.exe";  Flags = "" },
-    @{ Dir = "$root\CHECK";  Out = "$out\filedo_check.exe"; Flags = "" },
-    @{ Dir = "$root\TEST";   Out = "$out\filedo_test.exe";  Flags = "" }
+    @{ Name = "filedo";       Dir = "$root\cmd\filedo";       Out = "$out\filedo.exe";       Flags = "-ldflags=-X 'main.version=$version'" },
+    @{ Name = "filedo_fill";  Dir = "$root\cmd\filedo-fill";  Out = "$out\filedo_fill.exe";  Flags = "" },
+    @{ Name = "filedo_check"; Dir = "$root\cmd\filedo-check"; Out = "$out\filedo_check.exe"; Flags = "" },
+    @{ Name = "filedo_test";  Dir = "$root\cmd\filedo-test";  Out = "$out\filedo_test.exe";  Flags = "" }
 )
 
 $failed = @()
 
 foreach ($b in $builds) {
-    $name = Split-Path $b.Dir -Leaf
-    if ($name -eq (Split-Path $root -Leaf)) { $name = "filedo" }
+    $name = $b.Name
     Write-Host "Building $name..." -NoNewline
 
     Push-Location $b.Dir

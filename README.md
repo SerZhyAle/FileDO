@@ -26,8 +26,8 @@
 - **Universal compatibility** - supports devices, folders, and network shares
 - **Confirmation guardrails** - `wipe` always asks `Type WIPE to continue` before
   deleting. Add `--force` (or `-y`) to skip the prompt in automation. Dangerous
-  targets — drive/share roots, reparse points (junctions/symlinks) and the system
-  TEMP folder — always require interactive confirmation and are never bypassed by
+  targets - drive/share roots, reparse points (junctions/symlinks) and the system
+  TEMP folder - always require interactive confirmation and are never bypassed by
   `--force`.
 
 ### 🛡️ **Security Features**
@@ -180,7 +180,7 @@ filedo check D:\Data --good-list D:\check_files.list --quiet
 
 ### 📥 Installation
 
-#### Option 1 — winget (recommended)
+#### Option 1 - winget (recommended)
 
 ```powershell
 winget install SerZhyAle.FileDO
@@ -200,7 +200,7 @@ To uninstall:
 winget uninstall SerZhyAle.FileDO
 ```
 
-#### Option 2 — Manual download
+#### Option 2 - Manual download
 
 1. **Download**: Grab the latest `FileDO-<version>-windows-x64.zip` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest)
 2. **Extract** anywhere (e.g. `C:\Tools\FileDO`)
@@ -208,7 +208,7 @@ winget uninstall SerZhyAle.FileDO
 4. **GUI Option**: also download `filedo_win.exe` from `exe_to_download/` for the VB.NET visual interface
 5. **Run**: execute from command line or GUI
 
-#### Option 3 — Build from source
+#### Option 3 - Build from source
 
 ```powershell
 git clone https://github.com/SerZhyAle/FileDO.git
@@ -217,6 +217,12 @@ cd FileDO
 ```
 
 Requires Go 1.24+. Builds all four executables into `exe_to_download/`.
+
+Build only the main CLI:
+
+```powershell
+go build -o filedo.exe .\cmd\filedo
+```
 
 
 
@@ -543,15 +549,14 @@ FileDO/
 │   ├── FileDOGUI.sln        # Visual Studio solution
 │   ├── MainForm.vb          # Main form logic
 │   └── bin/                 # Compiled GUI executable
-├── command_handlers.go       # Command processing
-├── device_windows.go         # Device-specific operations
-├── folder.go                 # Folder operations
-├── network_windows.go        # Network storage operations
-├── interrupt.go              # Interruption handling
-├── progress.go               # Progress tracking
-├── main_types.go             # Legacy type definitions
-├── history.json              # Operation history
-└── hash_cache.json           # Hash cache for duplicates
+├── cmd/
+│   ├── filedo/              # Main CLI sources
+│   ├── filedo-check/        # Standalone health check utility
+│   ├── filedo-fill/         # Standalone fill utility
+│   └── filedo-test/         # Standalone test utility
+├── capacitytest/             # Capacity-testing shared logic
+├── fileduplicates/           # Duplicate detection logic
+└── helpers/                  # Shared helpers
 ```
 
 ### Key Features
@@ -592,7 +597,7 @@ FileDO/
 
 **FileDO v2507112115** - Advanced File & Storage Operations Tool
 
-Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO)
+Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
 ---
 

@@ -93,3 +93,9 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# MSIX packaging (generated)
+msix/stage/
+msix/out/
+msix/*.pfx
+msix/*.cer

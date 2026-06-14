@@ -70,10 +70,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
           $builds = @(
-            @{ Dir = '.';     Out = "$stage\filedo.exe";       UseVersion = $true  },
-            @{ Dir = 'FILL';  Out = "$stage\filedo_fill.exe";  UseVersion = $false },
-            @{ Dir = 'CHECK'; Out = "$stage\filedo_check.exe"; UseVersion = $false },
-            @{ Dir = 'TEST';  Out = "$stage\filedo_test.exe";  UseVersion = $false }
+            @{ Dir = 'cmd\filedo'; Out = "$stage\filedo.exe";       UseVersion = $true  },
+            @{ Dir = 'cmd\filedo-fill';  Out = "$stage\filedo_fill.exe";  UseVersion = $false },
+            @{ Dir = 'cmd\filedo-check'; Out = "$stage\filedo_check.exe"; UseVersion = $false },
+            @{ Dir = 'cmd\filedo-test';  Out = "$stage\filedo_test.exe";  UseVersion = $false }
           )
 
           foreach ($b in $builds) {

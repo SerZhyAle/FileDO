@@ -43,7 +43,7 @@ filedo cmp D:\Data E:\Backup del old target    # тільки якщо стар�
 filedo cmp D:\Data E:\Backup del new source    # тільки якщо новіший на Source
 ```
 
-Примітки: зіставлення за відносним шляхом; рівність — тільки за розміром; mtime для old/new; у Windows без урахування регістру; логи: compare_report_*.log, delete_report_<mode>_*.log.
+Примітки: зіставлення за відносним шляхом; рівність - тільки за розміром; mtime для old/new; у Windows без урахування регістру; логи: compare_report_*.log, delete_report_<mode>_*.log.
 filedo C: speed 100
 
 # Безпечне очищення вільного місця
@@ -420,7 +420,7 @@ FileDO/
 
 **FileDO v2507112115** - Розширені інструменти для файлів і сховищ
 
-Створено **sza@ukr.net** | [Ліцензія MIT](LICENSE) | [GitHub репозиторій](https://github.com/SerZhyAle/FileDO)
+Створено **sza@ukr.net** | [Ліцензія MIT](LICENSE) | [GitHub репозиторій](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
 ---
 
