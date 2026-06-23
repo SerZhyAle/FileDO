@@ -1,196 +1,794 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FileDO - Advanced File & Storage Operations</title>
+  <meta name="theme-color" content="#0a0f0a">
+  <title data-i18n="title">FileDO - Windows Storage & File CLI</title>
+  <meta name="description" content="FileDO - a fast Windows command-line tool for drive benchmarking, fake-capacity detection, secure data wiping, duplicate management and reliable copying.">
+  <link rel="canonical" href="https://serzhyale.github.io/FileDO/">
+  <link rel="icon" type="image/png" href="assets/filedo.png">
+  <link rel="apple-touch-icon" href="assets/filedo.png">
+
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="FileDO - Windows Storage & File CLI">
+  <meta property="og:description" content="Drive benchmarking, fake-capacity detection, secure wiping, duplicate management and reliable copying - one small Windows CLI.">
+  <meta property="og:url" content="https://serzhyale.github.io/FileDO/">
+  <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Pre-paint: resolve theme + language before first paint (no flash) -->
+  <script>
+  (function(){try{
+    var t=localStorage.getItem('filedo-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
+    document.documentElement.setAttribute('data-theme',t);
+    var l=localStorage.getItem('filedo-lang');
+    if(!l){var n=(navigator.language||'en').toLowerCase();
+      l=n.indexOf('ru')===0?'ru':n.indexOf('uk')===0?'uk':n.indexOf('de')===0?'de':n.indexOf('fr')===0?'fr':'en';}
+    document.documentElement.setAttribute('data-lang',l);
+    document.documentElement.lang=l;
+  }catch(e){}})();
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- SZA shared kit (Pine + Gold) -->
+  <link rel="stylesheet" href="kit/sza-kit.css">
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0d1117; color: #e6edf3; font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; }
-    a { color: #58a6ff; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .lang-bar { background: #161b22; padding: 10px 20px; border-bottom: 1px solid #30363d; font-size: 0.9rem; }
-    .lang-bar a { margin: 0 8px; padding: 4px 12px; border-radius: 16px; border: 1px solid #30363d; display: inline-block; }
-    .lang-bar a.active { background: #58a6ff; color: #000; }
-    header { text-align: center; padding: 40px 20px; background: #161b22; border-bottom: 1px solid #30363d; }
-    h1 { font-size: 2.5rem; margin-bottom: 10px; color: #58a6ff; }
-    .subtitle { color: #8b949e; font-size: 0.95rem; margin-bottom: 20px; }
-    .tagline-emoji { display: block; font-size: 0.9rem; color: #8b949e; margin-bottom: 20px; }
-    .btn { display: inline-block; padding: 8px 20px; margin: 4px; border-radius: 6px; border: 1px solid #30363d; font-weight: 600; cursor: pointer; }
-    .btn-primary { background: #58a6ff; color: #000; border-color: #58a6ff; }
-    .btn-secondary { background: transparent; color: #58a6ff; }
-    .btn:hover { opacity: 0.8; }
-    main { max-width: 960px; margin: 40px auto; padding: 0 20px 60px; }
-    h2 { font-size: 1.5rem; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d; color: #58a6ff; }
-    h3 { color: #58a6ff; margin-top: 0; font-size: 1rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 20px; }
-    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
-    .card ul { list-style: none; margin-top: 10px; font-size: 0.9rem; color: #8b949e; }
-    .card li { margin: 6px 0; }
-    .code-block { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; font-size: 0.85rem; margin: 12px 0; font-family: Consolas, monospace; color: #79c0ff; }
-    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
-    th { background: #161b22; text-align: left; padding: 10px; border: 1px solid #30363d; font-weight: 600; color: #8b949e; }
-    td { padding: 8px 10px; border: 1px solid #30363d; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.8rem; } }
-    footer { text-align: center; padding: 30px 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; }
+    /* ---- FileDO-specific (built on the kit) ---- */
+    .hero{text-align:left;padding:1.2rem 0 .4rem}
+    .hero-id{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+    .hero-id .av-text h1{font-size:clamp(1.9rem,4.5vw,2.6rem);margin:0;line-height:1.05}
+    .hero-id .av-text .kicker{display:block;margin:.25rem 0 0}
+    .hero .lead{margin:0 0 1rem;max-width:680px}
+    .hero .avatar{position:relative;width:64px;height:64px;margin:0;flex:none;border-radius:16px;background:var(--bg-2);border:1px solid var(--border);
+      animation:logoIn .7s cubic-bezier(.34,1.2,.4,1) both, glow 3s 1s infinite alternate}
+    .hero .avatar img{position:relative;width:100%;height:100%;border-radius:16px;object-fit:cover}
+    @keyframes glow{from{box-shadow:0 0 9px color-mix(in srgb,var(--acc) 22%,transparent)}to{box-shadow:0 0 22px color-mix(in srgb,var(--acc) 50%,transparent)}}
+    @keyframes logoIn{from{opacity:0;transform:scale(.7) translateY(4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .button-group{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:.7rem;margin-top:.2rem}
+
+    .section-title{display:flex;align-items:center;gap:.7rem;font-family:var(--font-heading);font-size:1.6rem;font-weight:700;margin-bottom:.4rem}
+    .section-title .h{color:var(--acc)}
+    .section-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+    .section-desc{color:var(--muted);max-width:760px;font-size:.95rem;margin-bottom:1.6rem}
+
+    /* feature card */
+    .feat-head{display:flex;gap:.85rem;align-items:center;margin-bottom:1rem}
+    .feat-ico{width:46px;height:46px;border-radius:12px;background:color-mix(in srgb,var(--acc) 12%,transparent);
+      border:1px solid color-mix(in srgb,var(--acc) 22%,transparent);display:grid;place-items:center;color:var(--acc);flex:none}
+    .feat-ico svg{width:24px;height:24px}
+    .feat-title{font-family:var(--font-heading);font-weight:700;font-size:1.08rem;line-height:1.2}
+    .card ul.feat-list{list-style:none;display:grid;gap:.5rem}
+    .card ul.feat-list li{position:relative;padding-left:1.4rem;color:var(--text-2);font-size:.9rem}
+    .card ul.feat-list li::before{content:"";position:absolute;left:0;top:.5em;width:.5rem;height:.5rem;border-radius:50%;
+      background:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
+
+    /* usage: caption + copybox */
+    .use-grid{display:grid;grid-template-columns:1fr;gap:1rem}
+    @media(min-width:720px){.use-grid{grid-template-columns:1fr 1fr}}
+    .use{display:grid;gap:.45rem}
+    .use .cap{font-family:var(--font-heading);font-size:.78rem;font-weight:700;color:var(--text-2);letter-spacing:.01em}
+    .use .cap .n{color:var(--acc);margin-right:.4rem}
+
+    /* targets + commands reference */
+    .ref-grid{display:grid;gap:1.5rem}
+    @media(min-width:880px){.ref-grid{grid-template-columns:1fr 1fr}}
+    .ref-card h3{font-family:var(--font-heading);font-size:1.05rem;margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem}
+    .ref-card h3 .h{color:var(--gold)}
+    .reftable{width:100%;border-collapse:collapse;font-size:.86rem}
+    .reftable td{padding:.55rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
+    .reftable tr:last-child td{border-bottom:none}
+    .reftable td:first-child{white-space:nowrap;width:1%}
+    .reftable code{font-family:var(--font-mono);font-size:.84rem;color:var(--code-ink);background:var(--code-bg);
+      border:1px solid var(--border);border-radius:7px;padding:.18rem .5rem}
+    .reftable .desc{color:var(--muted)}
+
+    /* footer tools heading */
+    .footer-tools-title{font-family:var(--font-heading);font-weight:700;font-size:1rem;margin-bottom:1rem;color:var(--text)}
+    .footer-tools-title a{color:var(--acc-strong)}
+
+    /* keep the 5-language header from clipping on narrow phones */
+    @media(max-width:440px){
+      .site-header{gap:8px;padding:10px 12px}
+      .site-header .seg{padding:2px;gap:1px}
+      .site-header .seg button{padding:5px 7px}
+    }
   </style>
 </head>
 <body>
 
-<div class="lang-bar">
-  🌐 &nbsp;
-  <a href="." class="active">English</a>
-  <a href="de/">Deutsch</a>
-  <a href="fr/">Français</a>
-  <a href="ru/">Русский</a>
-  <a href="ua/">Українська</a>
-</div>
+  <!-- BACKGROUND -->
+  <div class="bg-blobs"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
 
-<header>
-  <h1>FileDO</h1>
-  <p class="subtitle">Advanced File & Storage Operations Tool</p>
-  <p class="tagline-emoji">🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Detection • 📁 Duplicates</p>
-  <div>
-    <a href="https://github.com/SerZhyAle/FileDO/releases" class="btn btn-primary">📥 Download</a>
-    <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-secondary">⭐ GitHub</a>
+  <!-- STICKY HEADER -->
+  <header class="site-header">
+    <span class="brand">FileDO<span class="dot">.</span></span>
+    <div class="seg" role="group" aria-label="Language">
+      <button data-lang="ru" onclick="setLanguage('ru')">RU</button>
+      <button data-lang="en" onclick="setLanguage('en')" aria-pressed="true">EN</button>
+      <button data-lang="uk" onclick="setLanguage('uk')">UA</button>
+      <button data-lang="de" onclick="setLanguage('de')">DE</button>
+      <button data-lang="fr" onclick="setLanguage('fr')">FR</button>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Switch theme" onclick="toggleTheme()">◐</button>
+    <a class="btn btn-primary btn-sm" href="https://github.com/SerZhyAle/FileDO/releases/latest" target="_blank" rel="noopener noreferrer" data-i18n="hdr-cta">Download</a>
+  </header>
+
+  <div class="container">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-id">
+        <div class="avatar"><img src="assets/filedo.png" alt="FileDO icon"></div>
+        <div class="av-text">
+          <h1>FileDO</h1>
+          <span class="kicker" data-i18n="hero-kicker">Windows Storage &amp; File CLI</span>
+        </div>
+      </div>
+      <p class="lead" data-i18n="hero-desc">A fast Windows command-line utility for drive benchmarking, fake-capacity detection, secure data wiping, duplicate management and reliable copying - across devices, folders and network shares.</p>
+      <div class="pills" style="justify-content:flex-start;margin-bottom:1rem">
+        <span class="pill">Fake Detection</span><span class="pill">Speed Test</span><span class="pill">Secure Wipe</span><span class="pill">Duplicates</span><span class="pill">Copy</span><span class="pill">Compare</span><span class="pill gold">MIT &middot; Open Source</span>
+      </div>
+      <div class="button-group">
+        <a href="https://github.com/SerZhyAle/FileDO/releases/latest" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span data-i18n="hero-download">Download</span>
+        </a>
+        <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          GitHub
+        </a>
+        <a href="https://sza.od.ua/" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span data-i18n="hero-more">More by SZA</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- GET IT (above the fold) -->
+    <div class="get">
+      <p class="whatfor" data-i18n="get-whatfor">Windows 10/11, x64. Free and open-source (MIT). Install with winget, or grab the portable zip - no installer required.</p>
+      <div class="copybox">winget install SerZhyAle.FileDO<button class="copy" data-i18n="copy" data-copy="winget install SerZhyAle.FileDO">Copy</button></div>
+      <div class="channels">
+        <a href="https://github.com/SerZhyAle/FileDO/releases/latest" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer" data-i18n="get-zip">Download .zip</a>
+        <a href="https://github.com/SerZhyAle/FileDO" class="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/SerZhyAle/FileDO/issues" class="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer" data-i18n="get-issues">Issues</a>
+      </div>
+      <ol class="quickstart">
+        <li data-i18n="qs-1">Install with winget, or download and extract the zip anywhere.</li>
+        <li data-i18n="qs-2">Open a terminal (PowerShell or cmd).</li>
+        <li data-i18n="qs-3">Run filedo &lt;target&gt; &lt;operation&gt; - e.g. filedo E: test del</li>
+      </ol>
+    </div>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <h2 class="section-title"><span class="h">#</span> <span data-i18n="sec-features-title">Key features</span></h2>
+      <p class="section-desc" data-i18n="sec-features-desc">Everything FileDO does, packed into one small executable. No dependencies, no telemetry.</p>
+      <div class="grid">
+
+        <article class="card">
+          <div class="feat-head">
+            <span class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></span>
+            <div class="feat-title" data-i18n="feat-1-title">Fake-Capacity Detection</div>
+          </div>
+          <ul class="feat-list">
+            <li data-i18n="feat-1-1">100-file verification, 1% capacity each</li>
+            <li data-i18n="feat-1-2">Random position checks on every run</li>
+            <li data-i18n="feat-1-3">Defeats sophisticated fake controllers</li>
+            <li data-i18n="feat-1-4">Fast raw LBA probe (~1 min)</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="feat-head">
+            <span class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
+            <div class="feat-title" data-i18n="feat-2-title">Speed Testing</div>
+          </div>
+          <ul class="feat-list">
+            <li data-i18n="feat-2-1">Real read / write throughput</li>
+            <li data-i18n="feat-2-2">Memory-optimized buffers</li>
+            <li data-i18n="feat-2-3">Live progress with ETA</li>
+            <li data-i18n="feat-2-4">Test files from 1 MB to 100 GB</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="feat-head">
+            <span class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+            <div class="feat-title" data-i18n="feat-3-title">Duplicate Management</div>
+          </div>
+          <ul class="feat-list">
+            <li data-i18n="feat-3-1">MD5 hash-based identification</li>
+            <li data-i18n="feat-3-2">Oldest / newest / alphabetical modes</li>
+            <li data-i18n="feat-3-3">Delete or move duplicates</li>
+            <li data-i18n="feat-3-4">Hash cache for fast re-scans</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="feat-head">
+            <span class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+            <div class="feat-title" data-i18n="feat-4-title">Copy Operations</div>
+          </div>
+          <ul class="feat-list">
+            <li data-i18n="feat-4-1">Progress tracking with ETA</li>
+            <li data-i18n="feat-4-2">Timeout protection on stalls</li>
+            <li data-i18n="feat-4-3">Preserves metadata &amp; timestamps</li>
+            <li data-i18n="feat-4-4">Devices, folders, shares and files</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="feat-head">
+            <span class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
+            <div class="feat-title" data-i18n="feat-5-title">Fast &amp; Secure Wipe</div>
+          </div>
+          <ul class="feat-list">
+            <li data-i18n="feat-5-1">Ultra-fast folder wipe</li>
+            <li data-i18n="feat-5-2">High-speed secure fill (4.7+ GB/s)</li>
+            <li data-i18n="feat-5-3">WIPE confirmation guardrails</li>
+            <li data-i18n="feat-5-4">Protects roots, junctions and TEMP</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="feat-head">
+            <span class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>
+            <div class="feat-title" data-i18n="feat-6-title">Compare &amp; Health Check</div>
+          </div>
+          <ul class="feat-list">
+            <li data-i18n="feat-6-1">Compare two folders + report</li>
+            <li data-i18n="feat-6-2">Delete by old / new / small / big</li>
+            <li data-i18n="feat-6-3">Fast read health check</li>
+            <li data-i18n="feat-6-4">Batch mode from command files</li>
+          </ul>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- QUICK START -->
+    <section class="section" id="usage">
+      <h2 class="section-title"><span class="h">#</span> <span data-i18n="sec-usage-title">Quick start</span></h2>
+      <p class="section-desc" data-i18n="sec-usage-desc">One verb, any target. Copy a command and go.</p>
+      <div class="use-grid">
+        <div class="use">
+          <span class="cap"><span class="n">01</span><span data-i18n="use-1">Check if a USB / SD card is fake</span></span>
+          <div class="copybox">filedo E: test del<button class="copy" data-i18n="copy" data-copy="filedo E: test del">Copy</button></div>
+        </div>
+        <div class="use">
+          <span class="cap"><span class="n">02</span><span data-i18n="use-2">Benchmark drive speed</span></span>
+          <div class="copybox">filedo C: speed 100<button class="copy" data-i18n="copy" data-copy="filedo C: speed 100">Copy</button></div>
+        </div>
+        <div class="use">
+          <span class="cap"><span class="n">03</span><span data-i18n="use-3">Securely wipe free space</span></span>
+          <div class="copybox">filedo D: fill 1000 del<button class="copy" data-i18n="copy" data-copy="filedo D: fill 1000 del">Copy</button></div>
+        </div>
+        <div class="use">
+          <span class="cap"><span class="n">04</span><span data-i18n="use-4">Find duplicate files</span></span>
+          <div class="copybox">filedo C: check-duplicates<button class="copy" data-i18n="copy" data-copy="filedo C: check-duplicates">Copy</button></div>
+        </div>
+        <div class="use">
+          <span class="cap"><span class="n">05</span><span data-i18n="use-5">Copy a folder with progress</span></span>
+          <div class="copybox">filedo C:\Source copy D:\Backup<button class="copy" data-i18n="copy" data-copy="filedo C:\Source copy D:\Backup">Copy</button></div>
+        </div>
+        <div class="use">
+          <span class="cap"><span class="n">06</span><span data-i18n="use-6">Fast-wipe a folder's contents</span></span>
+          <div class="copybox">filedo C:\Temp wipe<button class="copy" data-i18n="copy" data-copy="filedo C:\Temp wipe">Copy</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TARGETS & COMMANDS -->
+    <section class="section" id="reference">
+      <h2 class="section-title"><span class="h">#</span> <span data-i18n="sec-ref-title">Targets &amp; commands</span></h2>
+      <p class="section-desc" data-i18n="sec-ref-desc">FileDO auto-detects the target type, so the same verb works everywhere.</p>
+      <div class="ref-grid">
+
+        <div class="card ref-card">
+          <h3><span class="h">#</span> <span data-i18n="ref-targets">Targets</span></h3>
+          <table class="reftable">
+            <tr><td><code>C:</code></td><td class="desc" data-i18n="tgt-device">Device / drive</td></tr>
+            <tr><td><code>C:\path</code></td><td class="desc" data-i18n="tgt-folder">Folder</td></tr>
+            <tr><td><code>\\server\share</code></td><td class="desc" data-i18n="tgt-network">Network share</td></tr>
+            <tr><td><code>file.txt</code></td><td class="desc" data-i18n="tgt-file">Single file</td></tr>
+          </table>
+        </div>
+
+        <div class="card ref-card">
+          <h3><span class="h">#</span> <span data-i18n="ref-commands">Commands</span></h3>
+          <table class="reftable">
+            <tr><td><code>info</code></td><td class="desc" data-i18n="cmd-info">Show target details</td></tr>
+            <tr><td><code>test</code></td><td class="desc" data-i18n="cmd-test">Detect fake capacity</td></tr>
+            <tr><td><code>speed</code></td><td class="desc" data-i18n="cmd-speed">Benchmark read/write</td></tr>
+            <tr><td><code>fill</code></td><td class="desc" data-i18n="cmd-fill">Fill / secure wipe space</td></tr>
+            <tr><td><code>cd</code></td><td class="desc" data-i18n="cmd-cd">Check duplicates</td></tr>
+            <tr><td><code>copy</code></td><td class="desc" data-i18n="cmd-copy">Copy with progress</td></tr>
+            <tr><td><code>wipe</code></td><td class="desc" data-i18n="cmd-wipe">Fast-wipe contents</td></tr>
+            <tr><td><code>compare</code></td><td class="desc" data-i18n="cmd-compare">Compare two folders</td></tr>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
   </div>
-</header>
 
-<main>
-
-  <h2>✨ Key Features</h2>
-  <div class="grid">
-    <div class="card">
-      <h3>🎯 Fake Detection</h3>
-      <ul>
-        <li>100-file verification</li>
-        <li>Random position checks</li>
-        <li>Defeats fake controllers</li>
-        <li>Fast raw probe (~1 min)</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>⚡ Speed Testing</h3>
-      <ul>
-        <li>Real read/write speed</li>
-        <li>Memory-optimized</li>
-        <li>Progress with ETA</li>
-        <li>1MB to 10GB files</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>🔍 Duplicates</h3>
-      <ul>
-        <li>MD5 hash identification</li>
-        <li>Multiple selection modes</li>
-        <li>Flexible actions</li>
-        <li>Hash caching</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>📋 Copy Ops</h3>
-      <ul>
-        <li>Progress tracking</li>
-        <li>Timeout protection</li>
-        <li>Metadata preserved</li>
-        <li>Universal support</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>🧹 Fast Wipe</h3>
-      <ul>
-        <li>Ultra-fast delete</li>
-        <li>Progress display</li>
-        <li>Permissions kept</li>
-        <li>System folders</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>🛡️ Security</h3>
-      <ul>
-        <li>High-speed wiping</li>
-        <li>Parallel writing</li>
-        <li>Batch processing</li>
-        <li>Full history</li>
-      </ul>
-    </div>
-  </div>
-
-  <h2>🚀 Quick Start</h2>
-  <div class="two-col">
-    <div>
-      <h3>Common Tasks</h3>
-      <div class="code-block">
-# Check if USB is fake
-filedo E: test del
-
-# Test drive speed
-filedo C: speed 100
-
-# Secure wipe
-filedo D: fill 1000 del
-
-# Find duplicates
-filedo C: check-duplicates
+  <!-- FOOTER: MORE TOOLS BY SZA -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-tools-title"><span data-i18n="footer-tools">More tools by SZA</span> &middot; <a href="https://sza.od.ua" target="_blank" rel="noopener noreferrer">sza.od.ua</a></div>
+      <div class="tools-grid">
+        <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/" target="_blank" rel="noopener noreferrer"><b>FastMediaSorter v2</b><span data-i18n="tool-fms">Android media sorter</span></a>
+        <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener noreferrer"><b>FastMediaSorter Lite</b><span data-i18n="tool-fmslite">Windows media sorter</span></a>
+        <a href="https://serzhyale.github.io/CyrFlip/" target="_blank" rel="noopener noreferrer"><b>CyrFlip</b><span data-i18n="tool-cyrflip">Keyboard layout fixer</span></a>
+        <a href="https://serzhyale.github.io/doc-html-translate/" target="_blank" rel="noopener noreferrer"><b>doc-html-translate</b><span data-i18n="tool-doc">Ebook converter & translator</span></a>
+        <a href="https://serzhyale.github.io/universal-agent-kit/" target="_blank" rel="noopener noreferrer"><b>universal-agent-kit</b><span data-i18n="tool-uak">AI workflow kit</span></a>
+        <a href="https://eltr.od.ua/" target="_blank" rel="noopener noreferrer"><b>ELTR</b><span data-i18n="tool-eltr">1C trade & accounting</span></a>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Serhii Zhyhunenko (SZA). <span data-i18n="footer-copyright">All rights reserved.</span></span>
+        <span><a href="https://sza.od.ua" target="_blank" rel="noopener noreferrer">sza.od.ua</a> &middot; <a href="https://github.com/SerZhyAle/FileDO" target="_blank" rel="noopener noreferrer">GitHub</a> &middot; <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a></span>
       </div>
     </div>
-    <div>
-      <h3>Copy & Cleanup</h3>
-      <div class="code-block">
-# Copy with progress
-filedo C:\Source copy D:\Backup
+  </footer>
 
-# Fast wipe folder
-filedo C:\Temp wipe
+  <button class="to-top" id="toTop" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&uarr;</button>
 
-# Show device info
-filedo C: info
-      </div>
-    </div>
-  </div>
+  <script>
+    const i18n = {
+      en: {
+        "title":"FileDO - Windows Storage & File CLI",
+        "description":"FileDO - a fast Windows command-line tool for drive benchmarking, fake-capacity detection, secure data wiping, duplicate management and reliable copying.",
+        "hdr-cta":"Download",
+        "hero-kicker":"Windows Storage & File CLI",
+        "hero-desc":"A fast Windows command-line utility for drive benchmarking, fake-capacity detection, secure data wiping, duplicate management and reliable copying - across devices, folders and network shares.",
+        "hero-download":"Download",
+        "hero-more":"More by SZA",
+        "get-whatfor":"Windows 10/11, x64. Free and open-source (MIT). Install with winget, or grab the portable zip - no installer required.",
+        "get-zip":"Download .zip",
+        "get-issues":"Issues",
+        "copy":"Copy","copied":"✓ Copied",
+        "qs-1":"Install with winget, or download and extract the zip anywhere.",
+        "qs-2":"Open a terminal (PowerShell or cmd).",
+        "qs-3":"Run filedo <target> <operation> - e.g. filedo E: test del",
+        "sec-features-title":"Key features",
+        "sec-features-desc":"Everything FileDO does, packed into one small executable. No dependencies, no telemetry.",
+        "feat-1-title":"Fake-Capacity Detection",
+        "feat-1-1":"100-file verification, 1% capacity each",
+        "feat-1-2":"Random position checks on every run",
+        "feat-1-3":"Defeats sophisticated fake controllers",
+        "feat-1-4":"Fast raw LBA probe (~1 min)",
+        "feat-2-title":"Speed Testing",
+        "feat-2-1":"Real read / write throughput",
+        "feat-2-2":"Memory-optimized buffers",
+        "feat-2-3":"Live progress with ETA",
+        "feat-2-4":"Test files from 1 MB to 100 GB",
+        "feat-3-title":"Duplicate Management",
+        "feat-3-1":"MD5 hash-based identification",
+        "feat-3-2":"Oldest / newest / alphabetical modes",
+        "feat-3-3":"Delete or move duplicates",
+        "feat-3-4":"Hash cache for fast re-scans",
+        "feat-4-title":"Copy Operations",
+        "feat-4-1":"Progress tracking with ETA",
+        "feat-4-2":"Timeout protection on stalls",
+        "feat-4-3":"Preserves metadata & timestamps",
+        "feat-4-4":"Devices, folders, shares and files",
+        "feat-5-title":"Fast & Secure Wipe",
+        "feat-5-1":"Ultra-fast folder wipe",
+        "feat-5-2":"High-speed secure fill (4.7+ GB/s)",
+        "feat-5-3":"WIPE confirmation guardrails",
+        "feat-5-4":"Protects roots, junctions and TEMP",
+        "feat-6-title":"Compare & Health Check",
+        "feat-6-1":"Compare two folders + report",
+        "feat-6-2":"Delete by old / new / small / big",
+        "feat-6-3":"Fast read health check",
+        "feat-6-4":"Batch mode from command files",
+        "sec-usage-title":"Quick start",
+        "sec-usage-desc":"One verb, any target. Copy a command and go.",
+        "use-1":"Check if a USB / SD card is fake",
+        "use-2":"Benchmark drive speed",
+        "use-3":"Securely wipe free space",
+        "use-4":"Find duplicate files",
+        "use-5":"Copy a folder with progress",
+        "use-6":"Fast-wipe a folder's contents",
+        "sec-ref-title":"Targets & commands",
+        "sec-ref-desc":"FileDO auto-detects the target type, so the same verb works everywhere.",
+        "ref-targets":"Targets","ref-commands":"Commands",
+        "tgt-device":"Device / drive","tgt-folder":"Folder","tgt-network":"Network share","tgt-file":"Single file",
+        "cmd-info":"Show target details","cmd-test":"Detect fake capacity","cmd-speed":"Benchmark read/write",
+        "cmd-fill":"Fill / secure wipe space","cmd-cd":"Check duplicates","cmd-copy":"Copy with progress",
+        "cmd-wipe":"Fast-wipe contents","cmd-compare":"Compare two folders",
+        "footer-tools":"More tools by SZA",
+        "tool-fms":"Android media sorter","tool-fmslite":"Windows media sorter","tool-cyrflip":"Keyboard layout fixer",
+        "tool-doc":"Ebook converter & translator","tool-uak":"AI workflow kit","tool-eltr":"1C trade & accounting",
+        "footer-copyright":"All rights reserved."
+      },
+      ru: {
+      "title": "FileDO - CLI для накопителей и файлов в Windows",
+      "description": "FileDO - быстрая утилита командной строки для Windows: тестирование накопителей, выявление поддельной ёмкости, безопасное стирание данных, управление дубликатами и надёжное копирование.",
+      "hdr-cta": "Скачать",
+      "hero-kicker": "CLI для накопителей и файлов в Windows",
+      "hero-desc": "Быстрая утилита командной строки для Windows: тестирование накопителей, выявление поддельной ёмкости, безопасное стирание данных, управление дубликатами и надёжное копирование - для устройств, папок и сетевых ресурсов.",
+      "hero-download": "Скачать",
+      "hero-more": "Другое от SZA",
+      "get-whatfor": "Windows 10/11, x64. Бесплатно и с открытым кодом (MIT). Установите через winget или возьмите портативный .zip - установщик не нужен.",
+      "get-zip": "Скачать .zip",
+      "get-issues": "Issues",
+      "copy": "Копировать",
+      "copied": "✓ Скопировано",
+      "qs-1": "Установите через winget либо скачайте и распакуйте .zip в любое место.",
+      "qs-2": "Откройте терминал (PowerShell или cmd).",
+      "qs-3": "Выполните filedo <target> <operation> - например, filedo E: test del",
+      "sec-features-title": "Ключевые возможности",
+      "sec-features-desc": "Всё, что умеет FileDO, в одном небольшом исполняемом файле. Без зависимостей и телеметрии.",
+      "feat-1-title": "Выявление поддельной ёмкости",
+      "feat-1-1": "Проверка 100 файлами, по 1% ёмкости каждый",
+      "feat-1-2": "Проверки в случайных позициях при каждом запуске",
+      "feat-1-3": "Распознаёт даже хитрые поддельные контроллеры",
+      "feat-1-4": "Быстрая проверка по сырым LBA (~1 мин)",
+      "feat-2-title": "Тестирование скорости",
+      "feat-2-1": "Реальная скорость чтения / записи",
+      "feat-2-2": "Буферы, оптимизированные по памяти",
+      "feat-2-3": "Прогресс в реальном времени с оценкой времени",
+      "feat-2-4": "Тестовые файлы от 1 MB до 100 GB",
+      "feat-3-title": "Управление дубликатами",
+      "feat-3-1": "Определение по хешу MD5",
+      "feat-3-2": "Режимы: старейшие / новейшие / по алфавиту",
+      "feat-3-3": "Удаление или перемещение дубликатов",
+      "feat-3-4": "Кеш хешей для быстрого повторного сканирования",
+      "feat-4-title": "Операции копирования",
+      "feat-4-1": "Отслеживание прогресса с оценкой времени",
+      "feat-4-2": "Защита по тайм-ауту при зависаниях",
+      "feat-4-3": "Сохраняет метаданные и метки времени",
+      "feat-4-4": "Устройства, папки, сетевые ресурсы и файлы",
+      "feat-5-title": "Быстрое и безопасное стирание",
+      "feat-5-1": "Сверхбыстрая очистка папок",
+      "feat-5-2": "Высокоскоростное безопасное заполнение (4.7+ GB/s)",
+      "feat-5-3": "Защитное подтверждение командой WIPE",
+      "feat-5-4": "Защищает корни дисков, точки соединения и TEMP",
+      "feat-6-title": "Сравнение и проверка целостности",
+      "feat-6-1": "Сравнение двух папок + отчёт",
+      "feat-6-2": "Удаление по дате / новизне / размеру",
+      "feat-6-3": "Быстрая проверка читаемости",
+      "feat-6-4": "Пакетный режим из файлов команд",
+      "sec-usage-title": "Быстрый старт",
+      "sec-usage-desc": "Один глагол, любая цель. Скопируйте команду и вперёд.",
+      "use-1": "Проверить, не поддельная ли USB / SD-карта",
+      "use-2": "Замерить скорость накопителя",
+      "use-3": "Безопасно стереть свободное место",
+      "use-4": "Найти дубликаты файлов",
+      "use-5": "Скопировать папку с прогрессом",
+      "use-6": "Быстро стереть содержимое папки",
+      "sec-ref-title": "Цели и команды",
+      "sec-ref-desc": "FileDO сам определяет тип цели, поэтому один и тот же глагол работает везде.",
+      "ref-targets": "Цели",
+      "ref-commands": "Команды",
+      "tgt-device": "Устройство / диск",
+      "tgt-folder": "Папка",
+      "tgt-network": "Сетевой ресурс",
+      "tgt-file": "Отдельный файл",
+      "cmd-info": "Показать сведения о цели",
+      "cmd-test": "Выявить поддельную ёмкость",
+      "cmd-speed": "Замерить чтение/запись",
+      "cmd-fill": "Заполнить / безопасно стереть место",
+      "cmd-cd": "Проверить дубликаты",
+      "cmd-copy": "Копировать с прогрессом",
+      "cmd-wipe": "Быстро стереть содержимое",
+      "cmd-compare": "Сравнить две папки",
+      "footer-tools": "Другие инструменты от SZA",
+      "tool-fms": "Сортировщик медиа для Android",
+      "tool-fmslite": "Сортировщик медиа для Windows",
+      "tool-cyrflip": "Исправление раскладки клавиатуры",
+      "tool-doc": "Конвертер и переводчик электронных книг",
+      "tool-uak": "Набор для AI-процессов",
+      "tool-eltr": "1C: торговля и учёт",
+      "footer-copyright": "Все права защищены."
+    },
+      uk: {
+      "title": "FileDO - CLI для сховищ і файлів у Windows",
+      "description": "FileDO - швидкий інструмент командного рядка для Windows: тестування дисків, виявлення фейкової ємності, безпечне стирання даних, керування дублікатами та надійне копіювання.",
+      "hdr-cta": "Завантажити",
+      "hero-kicker": "CLI для сховищ і файлів у Windows",
+      "hero-desc": "Швидка утиліта командного рядка для Windows: тестування дисків, виявлення фейкової ємності, безпечне стирання даних, керування дублікатами та надійне копіювання - на пристроях, у теках і мережевих ресурсах.",
+      "hero-download": "Завантажити",
+      "hero-more": "Більше від SZA",
+      "get-whatfor": "Windows 10/11, x64. Безкоштовно та з відкритим кодом (MIT). Встановлюйте через winget або беріть портативний zip - без інсталятора.",
+      "get-zip": "Завантажити .zip",
+      "get-issues": "Issues",
+      "copy": "Копіювати",
+      "copied": "✓ Скопійовано",
+      "qs-1": "Встановіть через winget або завантажте та розпакуйте zip у будь-яку теку.",
+      "qs-2": "Відкрийте термінал (PowerShell або cmd).",
+      "qs-3": "Виконайте filedo <target> <operation> - напр. filedo E: test del",
+      "sec-features-title": "Ключові можливості",
+      "sec-features-desc": "Усе, що вміє FileDO, в одному невеликому виконуваному файлі. Без залежностей, без телеметрії.",
+      "feat-1-title": "Виявлення фейкової ємності",
+      "feat-1-1": "Перевірка 100 файлами, по 1% ємності кожен",
+      "feat-1-2": "Перевірка випадкових позицій на кожному запуску",
+      "feat-1-3": "Долає хитрі фейкові контролери",
+      "feat-1-4": "Швидке зондування raw LBA (~1 хв)",
+      "feat-2-title": "Тестування швидкості",
+      "feat-2-1": "Реальна пропускна здатність читання / запису",
+      "feat-2-2": "Буфери, оптимізовані під пам'ять",
+      "feat-2-3": "Прогрес у реальному часі з ETA",
+      "feat-2-4": "Тестові файли від 1 MB до 100 GB",
+      "feat-3-title": "Керування дублікатами",
+      "feat-3-1": "Ідентифікація за хешем MD5",
+      "feat-3-2": "Режими: найстаріші / найновіші / за абеткою",
+      "feat-3-3": "Видалення або переміщення дублікатів",
+      "feat-3-4": "Кеш хешів для швидкого повторного сканування",
+      "feat-4-title": "Операції копіювання",
+      "feat-4-1": "Відстеження прогресу з ETA",
+      "feat-4-2": "Захист від зависань за таймаутом",
+      "feat-4-3": "Зберігає метадані та позначки часу",
+      "feat-4-4": "Пристрої, теки, мережеві ресурси та файли",
+      "feat-5-title": "Швидке та безпечне стирання",
+      "feat-5-1": "Надшвидке стирання теки",
+      "feat-5-2": "Високошвидкісне безпечне заповнення (4.7+ GB/s)",
+      "feat-5-3": "Захисні запобіжники з підтвердженням WIPE",
+      "feat-5-4": "Захищає корені, junctions і TEMP",
+      "feat-6-title": "Порівняння та перевірка стану",
+      "feat-6-1": "Порівняння двох тек + звіт",
+      "feat-6-2": "Видалення за: старі / нові / малі / великі",
+      "feat-6-3": "Швидка перевірка стану читанням",
+      "feat-6-4": "Пакетний режим із командних файлів",
+      "sec-usage-title": "Швидкий старт",
+      "sec-usage-desc": "Одне дієслово, будь-яка ціль. Скопіюйте команду - і вперед.",
+      "use-1": "Перевірити, чи USB / SD-картка фейкова",
+      "use-2": "Заміряти швидкість диска",
+      "use-3": "Безпечно стерти вільне місце",
+      "use-4": "Знайти дублікати файлів",
+      "use-5": "Скопіювати теку з прогресом",
+      "use-6": "Швидко стерти вміст теки",
+      "sec-ref-title": "Цілі та команди",
+      "sec-ref-desc": "FileDO автоматично визначає тип цілі, тож одне й те саме дієслово працює всюди.",
+      "ref-targets": "Цілі",
+      "ref-commands": "Команди",
+      "tgt-device": "Пристрій / диск",
+      "tgt-folder": "Тека",
+      "tgt-network": "Мережевий ресурс",
+      "tgt-file": "Окремий файл",
+      "cmd-info": "Показати відомості про ціль",
+      "cmd-test": "Виявити фейкову ємність",
+      "cmd-speed": "Заміряти читання/запис",
+      "cmd-fill": "Заповнити / безпечно стерти місце",
+      "cmd-cd": "Перевірити дублікати",
+      "cmd-copy": "Копіювати з прогресом",
+      "cmd-wipe": "Швидко стерти вміст",
+      "cmd-compare": "Порівняти дві теки",
+      "footer-tools": "Більше інструментів від SZA",
+      "tool-fms": "Сортувальник медіа для Android",
+      "tool-fmslite": "Сортувальник медіа для Windows",
+      "tool-cyrflip": "Виправлення розкладки клавіатури",
+      "tool-doc": "Конвертер і перекладач електронних книг",
+      "tool-uak": "Набір для AI-робочих процесів",
+      "tool-eltr": "1C: торгівля та облік",
+      "footer-copyright": "Усі права захищено."
+    },
+      de: {
+      "title": "FileDO - CLI für Windows-Speicher & Dateien",
+      "description": "FileDO - ein schnelles Windows-Kommandozeilentool für Laufwerks-Benchmarks, Erkennung gefälschter Kapazität, sicheres Löschen von Daten, Duplikatverwaltung und zuverlässiges Kopieren.",
+      "hdr-cta": "Herunterladen",
+      "hero-kicker": "CLI für Windows-Speicher & Dateien",
+      "hero-desc": "Ein schnelles Windows-Kommandozeilenprogramm für Laufwerks-Benchmarks, Erkennung gefälschter Kapazität, sicheres Löschen von Daten, Duplikatverwaltung und zuverlässiges Kopieren - über Geräte, Ordner und Netzwerkfreigaben hinweg.",
+      "hero-download": "Herunterladen",
+      "hero-more": "Mehr von SZA",
+      "get-whatfor": "Windows 10/11, x64. Kostenlos und Open Source (MIT). Installation per winget oder als portable ZIP herunterladen - kein Installer nötig.",
+      "get-zip": ".zip herunterladen",
+      "get-issues": "Issues",
+      "copy": "Kopieren",
+      "copied": "✓ Kopiert",
+      "qs-1": "Per winget installieren oder die ZIP herunterladen und beliebig entpacken.",
+      "qs-2": "Ein Terminal öffnen (PowerShell oder cmd).",
+      "qs-3": "filedo <target> <operation> ausführen - z. B. filedo E: test del",
+      "sec-features-title": "Hauptfunktionen",
+      "sec-features-desc": "Alles, was FileDO kann, in einer einzigen kleinen EXE-Datei. Keine Abhängigkeiten, keine Telemetrie.",
+      "feat-1-title": "Erkennung gefälschter Kapazität",
+      "feat-1-1": "Prüfung mit 100 Dateien, je 1 % der Kapazität",
+      "feat-1-2": "Zufällige Positionsprüfungen bei jedem Durchlauf",
+      "feat-1-3": "Entlarvt selbst raffinierte gefälschte Controller",
+      "feat-1-4": "Schnelle Roh-LBA-Prüfung (~1 Min.)",
+      "feat-2-title": "Geschwindigkeitstest",
+      "feat-2-1": "Echter Lese-/Schreibdurchsatz",
+      "feat-2-2": "Speicheroptimierte Puffer",
+      "feat-2-3": "Live-Fortschritt mit Restzeit",
+      "feat-2-4": "Testdateien von 1 MB bis 100 GB",
+      "feat-3-title": "Duplikatverwaltung",
+      "feat-3-1": "Identifikation über MD5-Hash",
+      "feat-3-2": "Modi: ältestes / neuestes / alphabetisch",
+      "feat-3-3": "Duplikate löschen oder verschieben",
+      "feat-3-4": "Hash-Cache für schnelle erneute Scans",
+      "feat-4-title": "Kopiervorgänge",
+      "feat-4-1": "Fortschrittsanzeige mit Restzeit",
+      "feat-4-2": "Timeout-Schutz bei Stillständen",
+      "feat-4-3": "Erhält Metadaten & Zeitstempel",
+      "feat-4-4": "Geräte, Ordner, Freigaben und Dateien",
+      "feat-5-title": "Schnelles & sicheres Löschen",
+      "feat-5-1": "Ultraschnelles Löschen von Ordnern",
+      "feat-5-2": "Sicheres Hochgeschwindigkeitsfüllen (4,7+ GB/s)",
+      "feat-5-3": "WIPE-Bestätigung als Schutzmechanismus",
+      "feat-5-4": "Schützt Stammverzeichnisse, Junctions und TEMP",
+      "feat-6-title": "Vergleich & Zustandsprüfung",
+      "feat-6-1": "Zwei Ordner vergleichen + Bericht",
+      "feat-6-2": "Löschen nach alt / neu / klein / groß",
+      "feat-6-3": "Schnelle Lese-Zustandsprüfung",
+      "feat-6-4": "Stapelverarbeitung aus Befehlsdateien",
+      "sec-usage-title": "Schnellstart",
+      "sec-usage-desc": "Ein Befehl, jedes Ziel. Befehl kopieren und loslegen.",
+      "use-1": "Prüfen, ob ein USB- / SD-Speicher gefälscht ist",
+      "use-2": "Laufwerksgeschwindigkeit messen",
+      "use-3": "Freien Speicher sicher löschen",
+      "use-4": "Doppelte Dateien finden",
+      "use-5": "Ordner mit Fortschrittsanzeige kopieren",
+      "use-6": "Inhalt eines Ordners schnell löschen",
+      "sec-ref-title": "Ziele & Befehle",
+      "sec-ref-desc": "FileDO erkennt den Zieltyp automatisch, sodass derselbe Befehl überall funktioniert.",
+      "ref-targets": "Ziele",
+      "ref-commands": "Befehle",
+      "tgt-device": "Gerät / Laufwerk",
+      "tgt-folder": "Ordner",
+      "tgt-network": "Netzwerkfreigabe",
+      "tgt-file": "Einzelne Datei",
+      "cmd-info": "Zieldetails anzeigen",
+      "cmd-test": "Gefälschte Kapazität erkennen",
+      "cmd-speed": "Lesen/Schreiben messen",
+      "cmd-fill": "Speicher füllen / sicher löschen",
+      "cmd-cd": "Duplikate prüfen",
+      "cmd-copy": "Mit Fortschrittsanzeige kopieren",
+      "cmd-wipe": "Inhalt schnell löschen",
+      "cmd-compare": "Zwei Ordner vergleichen",
+      "footer-tools": "Weitere Tools von SZA",
+      "tool-fms": "Android-Mediensortierer",
+      "tool-fmslite": "Windows-Mediensortierer",
+      "tool-cyrflip": "Tastaturlayout-Korrektur",
+      "tool-doc": "E-Book-Konverter & -Übersetzer",
+      "tool-uak": "KI-Workflow-Kit",
+      "tool-eltr": "1C Handel & Buchhaltung",
+      "footer-copyright": "Alle Rechte vorbehalten."
+    },
+      fr: {
+      "title": "FileDO - Stockage Windows & CLI de fichiers",
+      "description": "FileDO - un outil en ligne de commande Windows rapide pour le benchmarking de disques, la détection de fausse capacité, l'effacement sécurisé des données, la gestion des doublons et la copie fiable.",
+      "hdr-cta": "Télécharger",
+      "hero-kicker": "Stockage Windows & CLI de fichiers",
+      "hero-desc": "Un utilitaire en ligne de commande Windows rapide pour le benchmarking de disques, la détection de fausse capacité, l'effacement sécurisé des données, la gestion des doublons et la copie fiable - sur les périphériques, les dossiers et les partages réseau.",
+      "hero-download": "Télécharger",
+      "hero-more": "Plus par SZA",
+      "get-whatfor": "Windows 10/11, x64. Gratuit et open source (MIT). Installez avec winget, ou récupérez le zip portable - aucune installation requise.",
+      "get-zip": "Télécharger le .zip",
+      "get-issues": "Issues",
+      "copy": "Copier",
+      "copied": "✓ Copié",
+      "qs-1": "Installez avec winget, ou téléchargez et extrayez le zip où vous voulez.",
+      "qs-2": "Ouvrez un terminal (PowerShell ou cmd).",
+      "qs-3": "Lancez filedo <target> <operation> - ex. filedo E: test del",
+      "sec-features-title": "Fonctionnalités clés",
+      "sec-features-desc": "Tout ce que fait FileDO, réuni dans un seul petit exécutable. Aucune dépendance, aucune télémétrie.",
+      "feat-1-title": "Détection de fausse capacité",
+      "feat-1-1": "Vérification de 100 fichiers, 1 % de capacité chacun",
+      "feat-1-2": "Contrôles à positions aléatoires à chaque exécution",
+      "feat-1-3": "Déjoue les contrôleurs falsifiés sophistiqués",
+      "feat-1-4": "Sonde LBA brute rapide (~1 min)",
+      "feat-2-title": "Test de vitesse",
+      "feat-2-1": "Débit réel en lecture / écriture",
+      "feat-2-2": "Tampons optimisés en mémoire",
+      "feat-2-3": "Progression en direct avec estimation du temps restant",
+      "feat-2-4": "Fichiers de test de 1 MB à 100 GB",
+      "feat-3-title": "Gestion des doublons",
+      "feat-3-1": "Identification basée sur le hachage MD5",
+      "feat-3-2": "Modes plus ancien / plus récent / alphabétique",
+      "feat-3-3": "Supprimer ou déplacer les doublons",
+      "feat-3-4": "Cache de hachage pour des réanalyses rapides",
+      "feat-4-title": "Opérations de copie",
+      "feat-4-1": "Suivi de la progression avec estimation du temps restant",
+      "feat-4-2": "Protection par délai d'expiration en cas de blocage",
+      "feat-4-3": "Préserve les métadonnées & les horodatages",
+      "feat-4-4": "Périphériques, dossiers, partages et fichiers",
+      "feat-5-title": "Effacement rapide & sécurisé",
+      "feat-5-1": "Effacement de dossier ultra-rapide",
+      "feat-5-2": "Remplissage sécurisé à haute vitesse (4.7+ GB/s)",
+      "feat-5-3": "Garde-fous de confirmation WIPE",
+      "feat-5-4": "Protège les racines, les jonctions et TEMP",
+      "feat-6-title": "Comparaison & contrôle d'intégrité",
+      "feat-6-1": "Comparer deux dossiers + rapport",
+      "feat-6-2": "Supprimer par ancien / récent / petit / grand",
+      "feat-6-3": "Contrôle d'intégrité par lecture rapide",
+      "feat-6-4": "Mode par lots à partir de fichiers de commandes",
+      "sec-usage-title": "Démarrage rapide",
+      "sec-usage-desc": "Un seul verbe, n'importe quelle cible. Copiez une commande et lancez-vous.",
+      "use-1": "Vérifier si une clé USB / carte SD est falsifiée",
+      "use-2": "Mesurer la vitesse d'un disque",
+      "use-3": "Effacer l'espace libre de façon sécurisée",
+      "use-4": "Trouver les fichiers en double",
+      "use-5": "Copier un dossier avec progression",
+      "use-6": "Effacer rapidement le contenu d'un dossier",
+      "sec-ref-title": "Cibles & commandes",
+      "sec-ref-desc": "FileDO détecte automatiquement le type de cible, donc le même verbe fonctionne partout.",
+      "ref-targets": "Cibles",
+      "ref-commands": "Commandes",
+      "tgt-device": "Périphérique / disque",
+      "tgt-folder": "Dossier",
+      "tgt-network": "Partage réseau",
+      "tgt-file": "Fichier unique",
+      "cmd-info": "Afficher les détails de la cible",
+      "cmd-test": "Détecter une fausse capacité",
+      "cmd-speed": "Mesurer la lecture/écriture",
+      "cmd-fill": "Remplir / effacer l'espace de façon sécurisée",
+      "cmd-cd": "Vérifier les doublons",
+      "cmd-copy": "Copier avec progression",
+      "cmd-wipe": "Effacer rapidement le contenu",
+      "cmd-compare": "Comparer deux dossiers",
+      "footer-tools": "Plus d'outils par SZA",
+      "tool-fms": "Trieur de médias Android",
+      "tool-fmslite": "Trieur de médias Windows",
+      "tool-cyrflip": "Correcteur de disposition clavier",
+      "tool-doc": "Convertisseur & traducteur d'ebooks",
+      "tool-uak": "Kit de workflow IA",
+      "tool-eltr": "1C commerce & comptabilité",
+      "footer-copyright": "Tous droits réservés."
+    }
+    };
 
-  <h2>📖 Targets & Commands</h2>
-  <table>
-    <tr><th>Target</th><th>Type</th><th>Example</th></tr>
-    <tr><td><code>C:</code></td><td>Device</td><td><code>filedo C: test</code></td></tr>
-    <tr><td><code>C:\path</code></td><td>Folder</td><td><code>filedo C:\temp speed</code></td></tr>
-    <tr><td><code>\\server\sh</code></td><td>Network</td><td><code>filedo \\nas\data info</code></td></tr>
-    <tr><td><code>file.txt</code></td><td>File</td><td><code>filedo doc.pdf info</code></td></tr>
-  </table>
+    function setMeta(t){var m=document.querySelector('meta[name=theme-color]');if(m)m.content=(t==='light')?'#eef3ea':'#0a0f0a';}
 
-  <table style="margin-top:30px;">
-    <tr><th>Command</th><th>Purpose</th></tr>
-    <tr><td><code>info</code></td><td>Show details</td></tr>
-    <tr><td><code>test</code></td><td>Detect fake</td></tr>
-    <tr><td><code>speed</code></td><td>Test speed</td></tr>
-    <tr><td><code>fill</code></td><td>Fill with data</td></tr>
-    <tr><td><code>cd</code></td><td>Check duplicates</td></tr>
-    <tr><td><code>copy</code></td><td>Copy files</td></tr>
-    <tr><td><code>wipe</code></td><td>Fast wipe</td></tr>
-    <tr><td><code>compare</code></td><td>Compare folders</td></tr>
-  </table>
+    function toggleTheme(){
+      var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next);
+      try{localStorage.setItem('filedo-theme',next);}catch(e){}
+      setMeta(next);
+    }
 
-  <h2>📥 Get Started</h2>
-  <p style="color: #8b949e; line-height: 2;">
-    Download <code style="background: #161b22; padding: 2px 6px; border-radius: 3px;">filedo.exe</code> from 
-    <a href="https://github.com/SerZhyAle/FileDO/releases">GitHub Releases</a>,
-    then run: <code style="background: #161b22; padding: 2px 6px; border-radius: 3px;">filedo &lt;target&gt; &lt;operation&gt;</code>
-  </p>
+    function setLanguage(lang){
+      if(!i18n[lang]||!i18n[lang].title)lang='en';
+      try{localStorage.setItem('filedo-lang',lang);}catch(e){}
+      document.documentElement.setAttribute('data-lang',lang);
+      document.documentElement.lang=lang;
+      document.querySelectorAll('.seg button[data-lang]').forEach(function(b){
+        b.setAttribute('aria-pressed', b.getAttribute('data-lang')===lang?'true':'false');
+      });
+      var dict=i18n[lang];
+      if(dict.title)document.title=dict.title;
+      var md=document.querySelector('meta[name=description]');
+      if(md&&dict.description)md.content=dict.description;
+      document.querySelectorAll('[data-i18n]').forEach(function(el){
+        var k=el.getAttribute('data-i18n');
+        if(dict[k]!=null) el.textContent=dict[k];
+      });
+    }
 
-  <h2>🔗 Resources</h2>
-  <ul style="margin-left: 20px; line-height: 2.2; color: #8b949e;">
-    <li><a href="https://github.com/SerZhyAle/FileDO">GitHub</a></li>
-    <li><a href="https://github.com/SerZhyAle/FileDO/releases">Releases</a></li>
-    <li><a href="https://github.com/SerZhyAle/FileDO/issues">Issues</a></li>
-    <li><a href="https://serzhyale.github.io/universal-agent-kit/">Universal Agent Kit</a></li>
-  </ul>
+    function wireCopy(){
+      document.querySelectorAll('.copy').forEach(function(b){
+        b.addEventListener('click',function(){
+          var txt=b.getAttribute('data-copy')||'';
+          var lang=localStorage.getItem('filedo-lang')||'en'; if(!i18n[lang]||!i18n[lang].copy)lang='en';
+          var done=function(){ b.textContent=i18n[lang].copied; b.classList.add('done');
+            setTimeout(function(){ b.textContent=i18n[lang].copy; b.classList.remove('done'); },1600); };
+          if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(done); }
+          else{ var t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select();
+            try{document.execCommand('copy');}catch(e){} document.body.removeChild(t); done(); }
+        });
+      });
+    }
 
-</main>
-
-<footer>
-  <p>FileDO © <a href="https://github.com/SerZhyAle">SerZhyAle</a> | <a href="https://opensource.org/licenses/MIT">MIT License</a></p>
-</footer>
-
+    document.addEventListener('DOMContentLoaded',function(){
+      var saved=null; try{saved=localStorage.getItem('filedo-lang');}catch(e){}
+      var lang=saved;
+      if(!lang){var n=(navigator.language||'en').toLowerCase();
+        lang=n.indexOf('ru')===0?'ru':n.indexOf('uk')===0?'uk':n.indexOf('de')===0?'de':n.indexOf('fr')===0?'fr':'en';}
+      setLanguage(lang);
+      setMeta(document.documentElement.getAttribute('data-theme')||'dark');
+      wireCopy();
+      var tt=document.getElementById('toTop');
+      window.addEventListener('scroll',function(){ tt.classList.toggle('show', window.scrollY>600); });
+    });
+  </script>
 </body>
 </html>
