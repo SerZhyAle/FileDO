@@ -53,6 +53,14 @@ function Find-SdkTool([string]$name) {
   throw "$name not found in any Windows SDK bin\x64 folder."
 }
 
+function Find-MSBuild {
+  $vsw = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+  if (-not (Test-Path $vsw)) { throw "vswhere not found. Install VS Build Tools with the MSBuild component to build the GUI." }
+  $mb = & $vsw -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+  if (-not $mb -or -not (Test-Path $mb)) { throw "MSBuild.exe not found via vswhere." }
+  return $mb
+}
+
 function New-Logo([string]$src, [string]$dst, [int]$size) {
   $img = [System.Drawing.Image]::FromFile($src)
   try {
@@ -93,6 +101,7 @@ Write-Host ""
 
 # --- tools --------------------------------------------------------------------
 $makeappx = Find-SdkTool "makeappx.exe"
+$msbuild = Find-MSBuild
 try { Add-Type -AssemblyName System.Drawing -ErrorAction Stop } catch { Add-Type -AssemblyName System.Drawing.Common }
 
 # --- clean stage --------------------------------------------------------------
@@ -104,9 +113,20 @@ Write-Host "Building filedo.exe..." -NoNewline
 $env:GOOS = "windows"; $env:GOARCH = "amd64"
 Push-Location $root
 try {
-  go build "-ldflags=-X main.version=$stamp" -o (Join-Path $stage "filedo.exe") . 2>&1 | Out-Null
+  go build "-ldflags=-X main.version=$stamp" -o (Join-Path $stage "filedo.exe") .\cmd\filedo 2>&1 | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "go build failed ($LASTEXITCODE)" }
 } finally { Pop-Location }
+Write-Host " OK"
+
+# --- build the GUI (filedo_win.exe) straight into the stage -------------------
+Write-Host "Building filedo_win.exe (GUI)..." -NoNewline
+& $msbuild (Join-Path $root "filedo_win_vb\FileDOGUI.vbproj") /p:Configuration=Release /p:Platform=AnyCPU /v:quiet /nologo | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "GUI build failed ($LASTEXITCODE)" }
+$guiBin = Join-Path $root "filedo_win_vb\bin\Release"
+Copy-Item (Join-Path $guiBin "filedo_win.exe") (Join-Path $stage "filedo_win.exe") -Force
+if (Test-Path (Join-Path $guiBin "filedo_win.exe.config")) {
+  Copy-Item (Join-Path $guiBin "filedo_win.exe.config") (Join-Path $stage "filedo_win.exe.config") -Force
+}
 Write-Host " OK"
 
 # --- payload extras -----------------------------------------------------------

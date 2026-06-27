@@ -13,9 +13,23 @@ on:
 permissions:
   contents: write
 
+# Serialize runs that target the same tag. A manual re-dispatch of a tag that is
+# already building now queues instead of racing the original run and clobbering a
+# half-published release. cancel-in-progress is intentionally FALSE: cancelling a
+# release mid-upload would leave a partial GitHub Release behind.
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   release:
+    # Windows is REQUIRED here, not a default: the VB.NET WinForms GUI targets
+    # .NET Framework 4.8, which only builds with Windows MSBuild. Moving the
+    # Go/MSI steps to Linux is possible but not worth it for a release-only
+    # pipeline (see PR notes). Windows bills at 2x Linux on PRIVATE repos; on this
+    # public repo standard runners are free, so this is hygiene, not a cost cut.
     runs-on: windows-latest
+    timeout-minutes: 30  # healthy run is <10 min; default ceiling is 360 (6h) per stuck job
 
     steps:
       - name: Checkout
@@ -27,6 +41,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          # setup-go enables module/build caching by default but only keys off the
+          # root go.sum. This repo has 4 modules, so list each go.sum to keep the
+          # cache key correct (a stale key = silent cache misses on every release).
+          cache-dependency-path: |
+            go.sum
+            cmd/filedo-fill/go.sum
+            cmd/filedo-check/go.sum
+            cmd/filedo-test/go.sum
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
 
       - name: Resolve version
         id: ver
@@ -109,6 +134,18 @@ jobs:
           Copy-Item exe_to_download\*.bat $stage -Force
           Copy-Item LICENSE  $stage -Force
           Copy-Item README.md $stage -Force
+
+      - name: Build GUI
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
+          # filedo_win.exe is the VB.NET command-builder GUI; ships alongside the CLI.
+          msbuild filedo_win_vb\FileDOGUI.vbproj -p:Configuration=Release -p:Platform=AnyCPU -v:minimal -nologo
+          if ($LASTEXITCODE -ne 0) { throw "GUI build failed" }
+          Copy-Item filedo_win_vb\bin\Release\filedo_win.exe $stage -Force
+          if (Test-Path filedo_win_vb\bin\Release\filedo_win.exe.config) {
+            Copy-Item filedo_win_vb\bin\Release\filedo_win.exe.config $stage -Force
+          }
 
       - name: Package zip
         id: pkg

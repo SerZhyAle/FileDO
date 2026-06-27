@@ -1,70 +1,58 @@
-# FileDO VB.NET GUI
+# FileDO GUI (filedo_win.exe)
 
-Simple Windows GUI application for filedo.exe built with VB.NET Framework 4.8.
+A VB.NET (Windows Forms, .NET Framework 4.8) command builder for `filedo.exe`. It
+assembles **any** FileDO command from a few controls, explains what each one does,
+shows a live editable preview, and runs it in a console window.
 
-## Features
+## What it builds
 
-- Stable native Windows interface
-- Checkboxes for target and operation selection
-- Path input field with Browse button
-- Size field for speed/fill operations
-- Real-time command preview
-- Debug logging when launched with -debug parameter
-- Check for filedo.exe presence before execution
+- **Language**: English / Русский / Українська / Deutsch / Français, remembered
+  between runs (HKCU\Software\FileDO\GuiLang)
+- **Target**: device / folder / network / file - for **device** the path becomes a
+  **drive-letter picker** populated from the actual drives
+- **Operation** (one dropdown): info, speed, test, fill, clean, cd (duplicates),
+  copy, fastcopy, synccopy, balanced, maxcopy, smartcopy, safecopy, wipe, compare,
+  check, probe, recover, from, hist, help
+- **Source + Destination** fields for copy and compare
+- **Size** for speed / fill
+- **Flags**: max, del, nodel, short, hist, `--force` (wipe)
+- **Duplicate options** (old / new / abc / xyz, move to folder) for `cd`
+- **Delete rule** dropdown for `compare`
+
+## Inline help
+
+- A **help panel** under the controls explains the selected operation and what it
+  produces, shows an **example** for the chosen target type, and lists the meaning
+  of every active flag - all in the chosen language.
+- **Tooltips** on the operation and flag controls repeat the short description on hover.
+- Choosing the **system drive** (e.g. `C:`) for a write test (test/fill/speed) shows
+  a note: FileDO redirects those writes to `%TEMP%\FileDO_Operations` (fallback
+  `C:\TEMP`) and asks to confirm, to protect Windows.
+
+The **Command** box is editable - tweak by hand for anything the builder does not
+cover. **Copy command** puts it on the clipboard; **RUN** executes it.
+
+## How it finds filedo.exe
+
+`filedo_win.exe` runs `filedo.exe` from the same folder if present, otherwise from
+`PATH` (the winget portable alias or the Microsoft Store appExecutionAlias). So it
+works the same whether launched from the portable zip, the installed location, or
+the Store tile.
 
 ## Build
 
-```cmd
-cd c:\GIT\FileDo\filedo_win_vb
-msbuild FileDOGUI.vbproj /p:Configuration=Release
+```powershell
+msbuild FileDOGUI.vbproj /p:Configuration=Release /p:Platform=AnyCPU
 ```
+
+Output: `bin\Release\filedo_win.exe`. The repo's `build.ps1` and the release CI
+build this automatically and ship it in the winget package, the portable zip, the
+MSI, and the Microsoft Store (MSIX) package, where it is the clickable tile.
 
 ## Usage
 
-```cmd
-bin\Release\filedo_win.exe
-bin\Release\filedo_win.exe -debug
+```powershell
+filedo_win              # if on PATH (winget / Store)
+filedo_win.exe          # next to filedo.exe in the portable zip
+filedo_win.exe -debug   # writes filedo_win_debug.log next to the exe
 ```
-
-## Interface
-
-- **Target**: device, folder, network, file
-- **Operation**: none, info, speed, fill (f), test, clean  
-- **Path**: path to file/folder/device
-- **Size**: size for speed/fill operations (default 100MB for fill)
-- **Flags**: max, help, hist, short, del/delete/d (auto-delete)
-- **Browse**: folder selection via standard dialog
-- **RUN**: execute filedo.exe in CMD with pause
-
-Command is automatically built when parameters change.
-
-## Recent Updates
-
-### System Drive Protection
-
-- When targeting system drive (`C:`), operations are automatically redirected to `C:\TEMP` 
-- This prevents Windows access restrictions in the root folder
-- Directory is automatically created if it doesn't exist
-- Works with all operation types (speed, fill, test) in both regular and speed-specific tools
-
-### Speed Command Enhancements
-
-- `filedo_speed.exe` available for direct speed testing
-- No need to specify "speed" keyword with filedo_speed.exe
-- Supported formats:
-  - `filedo_speed d:\temp 100` → direct speed test
-  - `filedo_speed C: 1000 nodel` → with options (redirects to C:\TEMP)
-  - `filedo_speed E: max short` → maximum size, brief output
-  - `filedo_speed \\server\share 500` → network speed test
-
-### Fill Command Enhancements
-
-- `fill` command now works without size parameter (uses 100MB default)
-- Added `f` shortcut for `fill` command
-- Added `d` shortcut for `delete`/`del` option
-- Supported formats:
-  - `filedo d:\temp fill` → uses 100MB default
-  - `filedo d:\temp f` → shortcut, uses 100MB default  
-  - `filedo d:\temp fill 500` → custom size
-  - `filedo d:\temp f del` → with auto-delete
-  - `filedo d:\temp f d` → with auto-delete (short form)

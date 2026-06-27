@@ -24,13 +24,18 @@
     <Property Id="ARPNOMODIFY" Value="1" />
 
     <Feature Id="Main" Title="FileDO" Level="1" Display="expand"
-             Description="FileDO CLI binaries and helper scripts.">
+             Description="FileDO CLI binaries, the GUI command builder, and helper scripts.">
       <ComponentGroupRef Id="FileDOFiles" />
       <ComponentRef Id="EnvPath" />
+      <ComponentRef Id="StartMenuShortcut" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="FileDO" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppProgramMenuDir" Name="FileDO" />
     </StandardDirectory>
 
   </Package>
@@ -54,9 +59,30 @@
   </Fragment>
 
   <Fragment>
+    <Component Id="StartMenuShortcut" Directory="AppProgramMenuDir" Guid="7e1c9a44-2f8b-4d63-9a1e-5c6b8d2f4a30">
+      <Shortcut Id="FileDoGuiShortcut"
+                Name="FileDO"
+                Description="FileDO - build and run any storage command"
+                Target="[INSTALLFOLDER]filedo_win.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="MainIcon" />
+      <RemoveFolder Id="RemoveAppProgramMenuDir" Directory="AppProgramMenuDir" On="uninstall" />
+      <RegistryValue Root="HKLM"
+                     Key="Software\FileDO"
+                     Name="GuiShortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+  <Fragment>
     <ComponentGroup Id="FileDOFiles" Directory="INSTALLFOLDER">
       <Component Id="FileDoExe" Guid="*">
         <File Source="$(var.StageDir)\filedo.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="FileDoWinExe" Guid="*">
+        <File Source="$(var.StageDir)\filedo_win.exe" KeyPath="yes" />
       </Component>
       <Component Id="FileDoCheckExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_check.exe" KeyPath="yes" />

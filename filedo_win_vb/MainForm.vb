@@ -1,20 +1,45 @@
 Imports System.IO
+Imports System.Linq
 Imports System.Diagnostics
+Imports Microsoft.Win32
 
 Public Class MainForm
     Private debugMode As Boolean = False
     Private logWriter As StreamWriter = Nothing
+    Private updating As Boolean = True   ' suppress event churn while we set controls programmatically
+
+    Private currentLang As String = "en"
+    Private dict As Dictionary(Of String, String) = Localization.GetDict("en")
+
+    ' Every operation the CLI understands. The combo item text IS the CLI token.
+    Private ReadOnly operations As String() = {
+        "info", "speed", "test", "fill", "clean", "cd",
+        "copy", "fastcopy", "synccopy", "balanced", "maxcopy", "smartcopy", "safecopy",
+        "wipe", "compare", "check", "probe", "recover", "from", "hist", "help"
+    }
+
+    Private ReadOnly copyFamily As String() = {
+        "copy", "fastcopy", "synccopy", "balanced", "maxcopy", "smartcopy", "safecopy"
+    }
+
+    Private ReadOnly targetOps As String() = {
+        "info", "speed", "test", "fill", "clean", "cd", "wipe", "probe", "recover"
+    }
+
+    Private ReadOnly compareDelRules As String() = {
+        "(no delete)", "del source", "del target", "del old", "del new",
+        "del small", "del big", "del old target", "del new source",
+        "del small source", "del big target"
+    }
 
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         CheckDebugMode()
         InitializeForm()
-        UpdateCommand()
     End Sub
 
     Private Sub CheckDebugMode()
         Dim args As String() = Environment.GetCommandLineArgs()
         debugMode = args.Contains("-debug")
-        
         If debugMode Then
             Try
                 logWriter = New StreamWriter("filedo_win_debug.log", False)
@@ -26,93 +51,77 @@ Public Class MainForm
     End Sub
 
     Private Sub InitializeForm()
-        LogMessage("Initializing form")
-        
-        txtSize.Text = "100"
+        updating = True
+
+        cmbLang.Items.Clear()
+        cmbLang.Items.AddRange(Localization.LanguageNames.Cast(Of Object)().ToArray())
+
+        cmbOperation.Items.Clear()
+        cmbOperation.Items.AddRange(operations.Cast(Of Object)().ToArray())
+        cmbOperation.SelectedItem = "info"
+
+        cmbCompareDel.Items.Clear()
+        cmbCompareDel.Items.AddRange(compareDelRules.Cast(Of Object)().ToArray())
+        cmbCompareDel.SelectedIndex = 0
+
+        PopulateDrives()
+
         chkDevice.Checked = True
-        chkNoOp.Checked = True
-        
-        ' Initialize duplicate options
-        rbNew.Checked = True        ' Default to "new" mode (keep oldest)
-        txtMoveTarget.Enabled = False
-        btnBrowseMove.Enabled = False
-        grpDuplicateOptions.Visible = False
-        
-        SetDefaultPath()
-        UpdateOperationsAvailability()
-        
+        rbNew.Checked = True
+        txtSize.Text = "100"
+
+        currentLang = LoadLang()
+        Dim li = Array.IndexOf(Localization.Languages, currentLang)
+        cmbLang.SelectedIndex = If(li >= 0, li, 0)
+
+        updating = False
+        ApplyLanguage()
+        RefreshAll()
         LogMessage("Form initialized")
     End Sub
 
-    Private Sub SetDefaultPath()
-        If chkDevice.Checked Or chkFolder.Checked Then
-            txtPath.Text = "C:\"
+    Private Sub PopulateDrives()
+        cmbDrive.Items.Clear()
+        Try
+            For Each dv As DriveInfo In DriveInfo.GetDrives()
+                cmbDrive.Items.Add(dv.Name.TrimEnd("\"c)) ' "C:\" -> "C:"
+            Next
+        Catch
+        End Try
+        Dim sys = SystemDriveLetter()
+        If cmbDrive.Items.Contains(sys) Then
+            cmbDrive.SelectedItem = sys
+        ElseIf cmbDrive.Items.Count > 0 Then
+            cmbDrive.SelectedIndex = 0
         Else
-            txtPath.Text = ""
+            cmbDrive.Text = sys
         End If
     End Sub
 
-    Private Sub UpdateOperationsAvailability()
-        LogMessage("Updating operations availability")
-        
-        Dim isFile As Boolean = chkFile.Checked
-        Dim isNetwork As Boolean = chkNetwork.Checked
-        
-        ' Operation availability
-        chkFill.Enabled = Not isFile
-        chkClean.Enabled = Not isFile And Not isNetwork
-        chkTest.Enabled = Not isNetwork
-        chkDups.Enabled = Not isFile  ' Дубликаты можно искать в папках, на устройствах и сетевых ресурсах
-        
-        ' Clear disabled operations
-        If Not chkFill.Enabled And chkFill.Checked Then chkFill.Checked = False
-        If Not chkClean.Enabled And chkClean.Checked Then chkClean.Checked = False
-        If Not chkTest.Enabled And chkTest.Checked Then chkTest.Checked = False
-        If Not chkDups.Enabled And chkDups.Checked Then chkDups.Checked = False
-        
-        ' Flag availability based on operation
-        Dim operation As String = GetSelectedOperation()
-        chkDelete.Enabled = (operation = "test" Or operation = "fill" Or operation = "cd")
-        chkMax.Enabled = (operation = "speed" Or operation = "fill")
-        
-        ' Duplicate options visibility
-        grpDuplicateOptions.Visible = (operation = "cd")
-        
-        ' Clear disabled flags
-        If Not chkDelete.Enabled And chkDelete.Checked Then chkDelete.Checked = False
-        If Not chkMax.Enabled And chkMax.Checked Then chkMax.Checked = False
-    End Sub
+    ' ---- helpers ----------------------------------------------------------
 
-    Private Sub LogMessage(message As String)
-        If debugMode AndAlso logWriter IsNot Nothing Then
-            logWriter.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") & " " & message)
-            logWriter.Flush()
-        End If
-    End Sub
+    Private Function L(key As String) As String
+        Dim v As String = Nothing
+        If dict IsNot Nothing AndAlso dict.TryGetValue(key, v) Then Return v
+        Return key
+    End Function
 
-    Private Sub UpdateCommand()
-        LogMessage("UpdateCommand called")
-        
-        Dim target As String = GetSelectedTarget()
-        Dim operation As String = GetSelectedOperation()
-        Dim path As String = txtPath.Text.Trim()
-        Dim size As String = txtSize.Text.Trim()
-        Dim flags As String = GetSelectedFlags()
-        
-        LogMessage($"Components: target='{target}', op='{operation}', path='{path}', size='{size}', flags='{flags}'")
-        
-        Dim cmd As String = "filedo.exe"
-        If Not String.IsNullOrEmpty(target) Then cmd &= " " & target
-        If Not String.IsNullOrEmpty(path) Then cmd &= " " & path
-        If Not String.IsNullOrEmpty(operation) Then cmd &= " " & operation
-        If (operation = "speed" Or operation = "fill") AndAlso Not String.IsNullOrEmpty(size) Then
-            cmd &= " " & size
-        End If
-        If Not String.IsNullOrEmpty(flags) Then cmd &= " " & flags
-        
-        txtCommand.Text = cmd
-        LogMessage($"Final command: '{cmd}'")
-    End Sub
+    Private Function CurrentOp() As String
+        If cmbOperation.SelectedItem Is Nothing Then Return "info"
+        Return cmbOperation.SelectedItem.ToString()
+    End Function
+
+    Private Function IsCopyFamily(op As String) As Boolean
+        Return copyFamily.Contains(op)
+    End Function
+
+    Private Function IsTwoPath(op As String) As Boolean
+        Return IsCopyFamily(op) OrElse op = "compare"
+    End Function
+
+    Private Function UsesTargetType(op As String) As Boolean
+        Return targetOps.Contains(op)
+    End Function
 
     Private Function GetSelectedTarget() As String
         If chkDevice.Checked Then Return "device"
@@ -122,253 +131,458 @@ Public Class MainForm
         Return ""
     End Function
 
-    Private Function GetSelectedOperation() As String
-        If chkInfo.Checked Then Return "info"
-        If chkSpeed.Checked Then Return "speed"
-        If chkFill.Checked Then Return "fill"
-        If chkTest.Checked Then Return "test"
-        If chkClean.Checked Then Return "clean"
-        If chkDups.Checked Then Return "cd"
-        Return ""
+    Private Function SystemDriveLetter() As String
+        Dim s = Environment.GetEnvironmentVariable("SystemDrive")
+        If String.IsNullOrEmpty(s) Then s = "C:"
+        Return s.TrimEnd("\"c)
     End Function
 
-    Private Function GetSelectedFlags() As String
-        Dim flags As New List(Of String)
-        
-        ' Standard flags
-        If chkMax.Checked Then flags.Add("max")
-        If chkDelete.Checked Then flags.Add("del")
-        If chkHelp.Checked Then flags.Add("help")
-        If chkHist.Checked Then flags.Add("hist")
-        If chkShort.Checked Then flags.Add("short")
-        
-        ' Duplicate selection mode flags
-        If chkDups.Checked Then
-            If rbOld.Checked Then flags.Add("old")
-            If rbNew.Checked Then flags.Add("new")
-            If rbAbc.Checked Then flags.Add("abc")
-            If rbXyz.Checked Then flags.Add("xyz")
-            
-            ' Move option for duplicates
-            If chkMove.Checked AndAlso Not String.IsNullOrWhiteSpace(txtMoveTarget.Text) Then
-                flags.Add("move")
-                flags.Add(txtMoveTarget.Text)
+    ' Path 1: the drive combo when it is showing (device), else the text box.
+    Private Function CurrentPath1() As String
+        If cmbDrive.Visible Then Return cmbDrive.Text.Trim()
+        Return txtPath.Text.Trim()
+    End Function
+
+    Private Function Q(s As String) As String
+        If String.IsNullOrEmpty(s) Then Return s
+        If s.Contains(" ") AndAlso Not s.StartsWith("""") Then Return """" & s & """"
+        Return s
+    End Function
+
+    Private Sub LogMessage(message As String)
+        If debugMode AndAlso logWriter IsNot Nothing Then
+            logWriter.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") & " " & message)
+            logWriter.Flush()
+        End If
+    End Sub
+
+    ' ---- language ---------------------------------------------------------
+
+    Private Function LoadLang() As String
+        Try
+            Using k = Registry.CurrentUser.OpenSubKey("Software\FileDO")
+                If k IsNot Nothing Then
+                    Dim v = TryCast(k.GetValue("GuiLang"), String)
+                    If v IsNot Nothing AndAlso Localization.Languages.Contains(v) Then Return v
+                End If
+            End Using
+        Catch
+        End Try
+        Dim c = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant()
+        If Localization.Languages.Contains(c) Then Return c
+        Return "en"
+    End Function
+
+    Private Sub SaveLang(lang As String)
+        Try
+            Using k = Registry.CurrentUser.CreateSubKey("Software\FileDO")
+                k.SetValue("GuiLang", lang)
+            End Using
+        Catch
+        End Try
+    End Sub
+
+    Private Sub ApplyLanguage()
+        dict = Localization.GetDict(currentLang)
+
+        Me.Text = L("ui_title")
+        lblLang.Text = L("ui_lang")
+        lblTarget.Text = L("ui_target")
+        lblOperation.Text = L("ui_operation")
+        lblPath2.Text = L("ui_dest")
+        lblSize.Text = L("ui_size")
+        lblFlags.Text = L("ui_flags")
+        btnBrowse.Text = L("ui_browse")
+        btnBrowse2.Text = L("ui_browse")
+        btnCopy.Text = L("ui_copy")
+        btnRun.Text = L("ui_run")
+        lblCommandTitle.Text = "Command:"
+        grpDuplicateOptions.Text = L("dup_title")
+        rbOld.Text = L("dup_old")
+        rbNew.Text = L("dup_new")
+        rbAbc.Text = L("dup_abc")
+        rbXyz.Text = L("dup_xyz")
+        chkMove.Text = L("dup_move")
+        lblCompareDel.Text = L("cmp_label")
+
+        ' static flag tooltips
+        tip.SetToolTip(chkMax, L("fl_max"))
+        tip.SetToolTip(chkDelete, L("fl_del"))
+        tip.SetToolTip(chkNoDel, L("fl_nodel"))
+        tip.SetToolTip(chkShort, L("fl_short"))
+        tip.SetToolTip(chkHist, L("fl_hist"))
+        tip.SetToolTip(chkForce, L("fl_force"))
+    End Sub
+
+    Private Sub OnLangChanged(sender As Object, e As EventArgs) Handles cmbLang.SelectedIndexChanged
+        If updating Then Return
+        If cmbLang.SelectedIndex < 0 Then Return
+        currentLang = Localization.Languages(cmbLang.SelectedIndex)
+        SaveLang(currentLang)
+        ApplyLanguage()
+        RefreshAll()
+    End Sub
+
+    ' ---- single place that reconciles UI state + builds the command -------
+
+    Private Sub RefreshAll()
+        If updating Then Return
+        updating = True
+        Try
+            EnforceTargetForOperation()
+            UpdateUiForOperation()
+            BuildCommand()
+            BuildHelp()
+        Finally
+            updating = False
+        End Try
+    End Sub
+
+    ' Keep target checkboxes consistent with the chosen operation.
+    Private Sub EnforceTargetForOperation()
+        Dim op As String = CurrentOp()
+
+        If op = "probe" OrElse op = "recover" Then
+            chkDevice.Checked = True
+            chkFolder.Checked = False
+            chkNetwork.Checked = False
+            chkFile.Checked = False
+            Return
+        End If
+
+        Dim fileInvalid As Boolean = {"speed", "test", "fill", "clean", "cd", "wipe"}.Contains(op)
+        If fileInvalid AndAlso chkFile.Checked Then
+            chkFile.Checked = False
+            chkDevice.Checked = True
+        End If
+    End Sub
+
+    Private Sub UpdateUiForOperation()
+        Dim op As String = CurrentOp()
+        Dim isTarget As Boolean = UsesTargetType(op)
+        Dim isTwo As Boolean = IsTwoPath(op)
+        Dim isProbe As Boolean = (op = "probe" OrElse op = "recover")
+        Dim noPath As Boolean = (op = "hist" OrElse op = "help")
+
+        chkDevice.Enabled = isTarget AndAlso Not isProbe
+        chkFolder.Enabled = isTarget AndAlso Not isProbe
+        chkNetwork.Enabled = isTarget AndAlso Not isProbe
+        chkFile.Enabled = (op = "info")
+
+        ' drive picker for device target; text box for everything else
+        Dim showDrive As Boolean = (GetSelectedTarget() = "device") AndAlso (isTarget OrElse isProbe)
+        cmbDrive.Visible = showDrive
+        txtPath.Visible = (Not noPath) AndAlso (Not showDrive)
+        btnBrowse.Visible = (Not noPath) AndAlso (Not showDrive)
+
+        If showDrive Then
+            lblPath.Text = L("ui_drive")
+        ElseIf isTwo Then
+            lblPath.Text = L("ui_source")
+        ElseIf op = "from" Then
+            lblPath.Text = L("ui_list")
+        ElseIf op = "check" Then
+            lblPath.Text = L("ui_folder")
+        Else
+            lblPath.Text = L("ui_path")
+        End If
+        lblPath.Visible = Not noPath
+
+        lblPath2.Visible = isTwo
+        txtPath2.Visible = isTwo
+        btnBrowse2.Visible = isTwo
+
+        Dim usesSize As Boolean = (op = "speed" OrElse op = "fill")
+        lblSize.Enabled = usesSize
+        txtSize.Enabled = usesSize AndAlso Not chkMax.Checked
+
+        chkMax.Enabled = usesSize
+        chkDelete.Enabled = {"test", "fill", "cd"}.Contains(op)
+        chkNoDel.Enabled = (op = "speed" OrElse op = "fill")
+        chkShort.Enabled = {"info", "speed", "test", "fill"}.Contains(op)
+        chkForce.Enabled = (op = "wipe")
+        chkHist.Enabled = isTarget
+
+        If Not chkMax.Enabled Then chkMax.Checked = False
+        If Not chkDelete.Enabled Then chkDelete.Checked = False
+        If Not chkNoDel.Enabled Then chkNoDel.Checked = False
+        If Not chkShort.Enabled Then chkShort.Checked = False
+        If Not chkForce.Enabled Then chkForce.Checked = False
+        If Not chkHist.Enabled Then chkHist.Checked = False
+
+        grpDuplicateOptions.Visible = (op = "cd")
+        lblCompareDel.Visible = (op = "compare")
+        cmbCompareDel.Visible = (op = "compare")
+
+        txtMoveTarget.Enabled = chkMove.Checked
+        btnBrowseMove.Enabled = chkMove.Checked
+
+        ' shrink the help panel when the dup/compare band is in use
+        If grpDuplicateOptions.Visible OrElse cmbCompareDel.Visible Then
+            txtHelp.Height = 70
+        Else
+            txtHelp.Height = 150
+        End If
+    End Sub
+
+    Private Sub BuildCommand()
+        Dim op As String = CurrentOp()
+        Dim p1 As String = CurrentPath1()
+        Dim p2 As String = txtPath2.Text.Trim()
+        Dim size As String = txtSize.Text.Trim()
+        Dim parts As New List(Of String) From {"filedo.exe"}
+
+        If IsCopyFamily(op) Then
+            parts.Add(op)
+            If p1 <> "" Then parts.Add(Q(p1))
+            If p2 <> "" Then parts.Add(Q(p2))
+        ElseIf op = "compare" Then
+            parts.Add("compare")
+            If p1 <> "" Then parts.Add(Q(p1))
+            If p2 <> "" Then parts.Add(Q(p2))
+            If cmbCompareDel.SelectedIndex > 0 Then parts.Add(cmbCompareDel.SelectedItem.ToString())
+        ElseIf op = "check" Then
+            parts.Add("check")
+            If p1 <> "" Then parts.Add(Q(p1))
+        ElseIf op = "from" Then
+            parts.Add("from")
+            If p1 <> "" Then parts.Add(Q(p1))
+        ElseIf op = "hist" Then
+            parts.Add("hist")
+        ElseIf op = "help" Then
+            parts.Add("help")
+        ElseIf op = "probe" OrElse op = "recover" Then
+            parts.Add("device")
+            If p1 <> "" Then parts.Add(Q(p1))
+            parts.Add(op)
+        Else
+            ' target operations: info / speed / test / fill / clean / cd / wipe
+            Dim t As String = GetSelectedTarget()
+            If t <> "" Then parts.Add(t)
+            If p1 <> "" Then parts.Add(Q(p1))
+
+            Select Case op
+                Case "speed"
+                    parts.Add("speed")
+                    If chkMax.Checked Then
+                        parts.Add("max")
+                    ElseIf size <> "" Then
+                        parts.Add(size)
+                    End If
+                Case "fill"
+                    parts.Add("fill")
+                    If chkMax.Checked Then
+                        parts.Add("max")
+                    ElseIf size <> "" Then
+                        parts.Add(size)
+                    End If
+                Case "wipe"
+                    parts.Add("wipe")
+                Case "info", "test", "clean", "cd"
+                    parts.Add(op)
+            End Select
+
+            If chkDelete.Enabled AndAlso chkDelete.Checked Then parts.Add("del")
+            If chkNoDel.Enabled AndAlso chkNoDel.Checked Then parts.Add("nodel")
+            If chkShort.Enabled AndAlso chkShort.Checked Then parts.Add("short")
+            If chkForce.Enabled AndAlso chkForce.Checked Then parts.Add("--force")
+
+            If op = "cd" Then
+                If rbOld.Checked Then parts.Add("old")
+                If rbNew.Checked Then parts.Add("new")
+                If rbAbc.Checked Then parts.Add("abc")
+                If rbXyz.Checked Then parts.Add("xyz")
+                If chkMove.Checked AndAlso txtMoveTarget.Text.Trim() <> "" Then
+                    parts.Add("move")
+                    parts.Add(Q(txtMoveTarget.Text.Trim()))
+                End If
             End If
+
+            If chkHist.Enabled AndAlso chkHist.Checked Then parts.Add("hist")
         End If
-        
-        Return String.Join(" ", flags)
+
+        txtCommand.Text = String.Join(" ", parts)
+        LogMessage("Command: " & txtCommand.Text)
+    End Sub
+
+    Private Sub BuildHelp()
+        Dim op As String = CurrentOp()
+        Dim lines As New List(Of String)
+
+        lines.Add(L("op_" & op))
+        tip.SetToolTip(cmbOperation, L("op_" & op))
+
+        If op <> "hist" AndAlso op <> "help" Then
+            lines.Add("")
+            lines.Add(ExampleValue())
+        End If
+
+        If ShowSysDriveNote() Then
+            lines.Add("")
+            lines.Add(L("hl_note") & " " & L("note_sysdrive"))
+        End If
+
+        Dim flags = ActiveFlagDescriptions()
+        If flags.Count > 0 Then
+            lines.Add("")
+            lines.Add(L("hl_flags"))
+            For Each f As String In flags
+                lines.Add("  " & f)
+            Next
+        End If
+
+        txtHelp.Lines = lines.ToArray()
+    End Sub
+
+    Private Function ExampleValue() As String
+        Dim op As String = CurrentOp()
+        If IsTwoPath(op) OrElse op = "check" Then Return L("ex_folder")
+        If op = "from" Then Return L("ex_file")
+        Select Case GetSelectedTarget()
+            Case "device" : Return L("ex_device")
+            Case "folder" : Return L("ex_folder")
+            Case "network" : Return L("ex_network")
+            Case "file" : Return L("ex_file")
+        End Select
+        Return L("ex_folder")
     End Function
 
-    Private Sub chkDevice_CheckedChanged(sender As Object, e As EventArgs) Handles chkDevice.CheckedChanged
-        LogMessage("Device checkbox changed")
-        If chkDevice.Checked Then
-            chkFolder.Checked = False
-            chkNetwork.Checked = False
-            chkFile.Checked = False
+    Private Function ShowSysDriveNote() As Boolean
+        Dim op As String = CurrentOp()
+        If GetSelectedTarget() <> "device" Then Return False
+        If Not {"test", "fill", "speed"}.Contains(op) Then Return False
+        Dim p = CurrentPath1().TrimEnd("\"c).ToUpperInvariant()
+        Return p = SystemDriveLetter().ToUpperInvariant()
+    End Function
+
+    Private Function ActiveFlagDescriptions() As List(Of String)
+        Dim r As New List(Of String)
+        If chkMax.Enabled AndAlso chkMax.Checked Then r.Add(L("fl_max"))
+        If chkDelete.Enabled AndAlso chkDelete.Checked Then r.Add(L("fl_del"))
+        If chkNoDel.Enabled AndAlso chkNoDel.Checked Then r.Add(L("fl_nodel"))
+        If chkShort.Enabled AndAlso chkShort.Checked Then r.Add(L("fl_short"))
+        If chkHist.Enabled AndAlso chkHist.Checked Then r.Add(L("fl_hist"))
+        If chkForce.Enabled AndAlso chkForce.Checked Then r.Add(L("fl_force"))
+        Return r
+    End Function
+
+    ' ---- events -----------------------------------------------------------
+
+    Private Sub OnTargetChanged(sender As Object, e As EventArgs) _
+        Handles chkDevice.CheckedChanged, chkFolder.CheckedChanged,
+                chkNetwork.CheckedChanged, chkFile.CheckedChanged
+        If updating Then Return
+        Dim cb As CheckBox = TryCast(sender, CheckBox)
+        If cb IsNot Nothing AndAlso cb.Checked Then
+            updating = True
+            If cb IsNot chkDevice Then chkDevice.Checked = False
+            If cb IsNot chkFolder Then chkFolder.Checked = False
+            If cb IsNot chkNetwork Then chkNetwork.Checked = False
+            If cb IsNot chkFile Then chkFile.Checked = False
+            updating = False
         End If
-        SetDefaultPath()
-        UpdateOperationsAvailability()
-        UpdateCommand()
+        RefreshAll()
     End Sub
 
-    Private Sub chkFolder_CheckedChanged(sender As Object, e As EventArgs) Handles chkFolder.CheckedChanged
-        LogMessage("Folder checkbox changed")
-        If chkFolder.Checked Then
-            chkDevice.Checked = False
-            chkNetwork.Checked = False
-            chkFile.Checked = False
-        End If
-        SetDefaultPath()
-        UpdateOperationsAvailability()
-        UpdateCommand()
+    Private Sub OnOperationChanged(sender As Object, e As EventArgs) Handles cmbOperation.SelectedIndexChanged
+        RefreshAll()
     End Sub
 
-    Private Sub chkNetwork_CheckedChanged(sender As Object, e As EventArgs) Handles chkNetwork.CheckedChanged
-        LogMessage("Network checkbox changed")
-        If chkNetwork.Checked Then
-            chkDevice.Checked = False
-            chkFolder.Checked = False
-            chkFile.Checked = False
-        End If
-        SetDefaultPath()
-        UpdateOperationsAvailability()
-        UpdateCommand()
+    Private Sub OnInputChanged(sender As Object, e As EventArgs) _
+        Handles txtPath.TextChanged, txtPath2.TextChanged, txtSize.TextChanged,
+                txtMoveTarget.TextChanged, cmbCompareDel.SelectedIndexChanged,
+                cmbDrive.SelectedIndexChanged, cmbDrive.TextChanged
+        RefreshAll()
     End Sub
 
-    Private Sub chkFile_CheckedChanged(sender As Object, e As EventArgs) Handles chkFile.CheckedChanged
-        LogMessage("File checkbox changed")
-        If chkFile.Checked Then
-            chkDevice.Checked = False
-            chkFolder.Checked = False
-            chkNetwork.Checked = False
-        End If
-        SetDefaultPath()
-        UpdateOperationsAvailability()
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkNoOp_CheckedChanged(sender As Object, e As EventArgs) Handles chkNoOp.CheckedChanged
-        If chkNoOp.Checked Then
-            chkInfo.Checked = False
-            chkSpeed.Checked = False
-            chkFill.Checked = False
-            chkTest.Checked = False
-            chkClean.Checked = False
-        End If
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkInfo_CheckedChanged(sender As Object, e As EventArgs) Handles chkInfo.CheckedChanged
-        If chkInfo.Checked Then chkNoOp.Checked = False : ClearOtherOperations("info")
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkSpeed_CheckedChanged(sender As Object, e As EventArgs) Handles chkSpeed.CheckedChanged
-        If chkSpeed.Checked Then chkNoOp.Checked = False : ClearOtherOperations("speed")
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkFill_CheckedChanged(sender As Object, e As EventArgs) Handles chkFill.CheckedChanged
-        If chkFill.Checked Then chkNoOp.Checked = False : ClearOtherOperations("fill")
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkTest_CheckedChanged(sender As Object, e As EventArgs) Handles chkTest.CheckedChanged
-        If chkTest.Checked Then chkNoOp.Checked = False : ClearOtherOperations("test")
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkClean_CheckedChanged(sender As Object, e As EventArgs) Handles chkClean.CheckedChanged
-        If chkClean.Checked Then chkNoOp.Checked = False : ClearOtherOperations("clean")
-        UpdateCommand()
-    End Sub
-
-    Private Sub ClearOtherOperations(except As String)
-        If except <> "info" Then chkInfo.Checked = False
-        If except <> "speed" Then chkSpeed.Checked = False
-        If except <> "fill" Then chkFill.Checked = False
-        If except <> "test" Then chkTest.Checked = False
-        If except <> "clean" Then chkClean.Checked = False
-        If except <> "cd" Then chkDups.Checked = False
-        UpdateOperationsAvailability()
-    End Sub
-
-    Private Sub chkMax_CheckedChanged(sender As Object, e As EventArgs) Handles chkMax.CheckedChanged, chkHelp.CheckedChanged, chkHist.CheckedChanged, chkShort.CheckedChanged, chkDelete.CheckedChanged
-        UpdateCommand()
-    End Sub
-
-    Private Sub txtCommand_TextChanged(sender As Object, e As EventArgs) Handles txtCommand.TextChanged
-        LogMessage("Command text manually changed")
-    End Sub
-
-    Private Sub txtPath_TextChanged(sender As Object, e As EventArgs) Handles txtPath.TextChanged
-        LogMessage("Path text changed")
-        UpdateCommand()
-    End Sub
-
-    Private Sub txtSize_TextChanged(sender As Object, e As EventArgs) Handles txtSize.TextChanged
-        LogMessage("Size text changed")
-        UpdateCommand()
+    Private Sub OnFlagChanged(sender As Object, e As EventArgs) _
+        Handles chkMax.CheckedChanged, chkDelete.CheckedChanged, chkNoDel.CheckedChanged,
+                chkShort.CheckedChanged, chkHist.CheckedChanged, chkForce.CheckedChanged,
+                rbOld.CheckedChanged, rbNew.CheckedChanged, rbAbc.CheckedChanged,
+                rbXyz.CheckedChanged, chkMove.CheckedChanged
+        RefreshAll()
     End Sub
 
     Private Sub btnBrowse_Click(sender As Object, e As EventArgs) Handles btnBrowse.Click
-        LogMessage("Browse button clicked")
-        
-        Using dialog As New FolderBrowserDialog()
-            dialog.Description = "Select folder or drive"
-            dialog.ShowNewFolderButton = False
-            
-            If dialog.ShowDialog() = DialogResult.OK Then
-                txtPath.Text = dialog.SelectedPath
-                LogMessage($"Path selected: {dialog.SelectedPath}")
-            End If
-        End Using
+        Dim op As String = CurrentOp()
+        Dim pickFile As Boolean = (op = "from") OrElse (op = "info" AndAlso chkFile.Checked)
+        BrowseInto(txtPath, pickFile)
+    End Sub
+
+    Private Sub btnBrowse2_Click(sender As Object, e As EventArgs) Handles btnBrowse2.Click
+        BrowseInto(txtPath2, False)
+    End Sub
+
+    Private Sub btnBrowseMove_Click(sender As Object, e As EventArgs) Handles btnBrowseMove.Click
+        BrowseInto(txtMoveTarget, False)
+    End Sub
+
+    Private Sub BrowseInto(box As TextBox, pickFile As Boolean)
+        If pickFile Then
+            Using dlg As New OpenFileDialog()
+                dlg.Title = "Select file"
+                dlg.CheckFileExists = True
+                If dlg.ShowDialog() = DialogResult.OK Then box.Text = dlg.FileName
+            End Using
+        Else
+            Using dlg As New FolderBrowserDialog()
+                dlg.ShowNewFolderButton = True
+                If dlg.ShowDialog() = DialogResult.OK Then box.Text = dlg.SelectedPath
+            End Using
+        End If
+    End Sub
+
+    Private Sub btnCopy_Click(sender As Object, e As EventArgs) Handles btnCopy.Click
+        Dim cmd As String = txtCommand.Text.Trim()
+        If cmd <> "" Then
+            Try
+                Clipboard.SetText(cmd)
+            Catch ex As Exception
+                MessageBox.Show("Could not copy to clipboard: " & ex.Message, "FileDO",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            End Try
+        End If
     End Sub
 
     Private Sub btnRun_Click(sender As Object, e As EventArgs) Handles btnRun.Click
-        LogMessage("RUN button clicked")
-        
-        Dim path As String = txtPath.Text.Trim()
-        If String.IsNullOrEmpty(path) Then
-            MessageBox.Show("Path is required", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-            LogMessage("Path is empty")
-            Return
+        Dim full As String = txtCommand.Text.Trim()
+        If full = "" Then Return
+
+        Dim args As String = full
+        Dim lower As String = full.ToLowerInvariant()
+        If lower.StartsWith("filedo.exe ") Then
+            args = full.Substring("filedo.exe ".Length)
+        ElseIf lower.StartsWith("filedo ") Then
+            args = full.Substring("filedo ".Length)
         End If
-        
-        If Not File.Exists("filedo.exe") Then
-            MessageBox.Show("filedo.exe not found in current directory", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            LogMessage("filedo.exe not found")
-            Return
-        End If
-        
-        Dim command As String = txtCommand.Text.Trim()
-        LogMessage($"Executing command: {command}")
-        
+        args = args.Trim()
+
+        ' Resolve filedo.exe next to this GUI; otherwise rely on PATH / the MSIX alias.
+        Dim exePath As String = Path.Combine(Application.StartupPath, "filedo.exe")
+        If Not File.Exists(exePath) Then exePath = "filedo.exe"
+
+        Dim inner As String = """" & exePath & """ " & args & " & pause"
         Try
-            If command.StartsWith("filedo.exe ") Then
-                Dim args As String = command.Substring(11) ' Remove "filedo.exe "
-                Dim fullCmd As String = $"cmd /c ""filedo.exe {args} & pause"""
-                
-                LogMessage($"Full command: {fullCmd}")
-                
-                Dim psi As New ProcessStartInfo() With {
-                    .FileName = "cmd",
-                    .Arguments = "/c """ & "filedo.exe " & args & " & pause""",
-                    .UseShellExecute = True,
-                    .CreateNoWindow = False
-                }
-                
-                Process.Start(psi)
-                LogMessage("Process started successfully")
-            Else
-                MessageBox.Show("Command must start with 'filedo.exe'", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End If
-            
+            Dim psi As New ProcessStartInfo() With {
+                .FileName = "cmd.exe",
+                .Arguments = "/c """ & inner & """",
+                .UseShellExecute = True,
+                .CreateNoWindow = False
+            }
+            Dim home As String = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            If Directory.Exists(home) Then psi.WorkingDirectory = home
+
+            Process.Start(psi)
+            LogMessage("Started: " & inner)
         Catch ex As Exception
-            MessageBox.Show($"Error starting process: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            LogMessage($"Error starting process: {ex.Message}")
+            MessageBox.Show("Error starting process: " & ex.Message, "FileDO",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error)
+            LogMessage("Error starting process: " & ex.Message)
         End Try
     End Sub
 
     Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         LogMessage("=== FileDO VB.NET GUI End ===")
         logWriter?.Close()
-    End Sub
-
-    Private Sub chkDups_CheckedChanged(sender As Object, e As EventArgs) Handles chkDups.CheckedChanged
-        If chkDups.Checked Then 
-            chkNoOp.Checked = False : ClearOtherOperations("cd")
-            grpDuplicateOptions.Visible = True
-        Else
-            grpDuplicateOptions.Visible = False
-        End If
-        UpdateCommand()
-    End Sub
-
-    Private Sub chkMove_CheckedChanged(sender As Object, e As EventArgs) Handles chkMove.CheckedChanged
-        txtMoveTarget.Enabled = chkMove.Checked
-        btnBrowseMove.Enabled = chkMove.Checked
-        
-        ' Uncheck delete if move is checked
-        If chkMove.Checked Then
-            chkDelete.Checked = False
-        End If
-        UpdateCommand()
-    End Sub
-
-    Private Sub rbDuplicateMode_CheckedChanged(sender As Object, e As EventArgs) Handles rbOld.CheckedChanged, rbNew.CheckedChanged, rbAbc.CheckedChanged, rbXyz.CheckedChanged
-        UpdateCommand()
-    End Sub
-
-    Private Sub btnBrowseMove_Click(sender As Object, e As EventArgs) Handles btnBrowseMove.Click
-        Using folderDialog As New FolderBrowserDialog()
-            folderDialog.Description = "Select folder for duplicates"
-            folderDialog.ShowNewFolderButton = True
-            
-            If folderDialog.ShowDialog() = DialogResult.OK Then
-                txtMoveTarget.Text = folderDialog.SelectedPath
-                UpdateCommand()
-            End If
-        End Using
     End Sub
 End Class

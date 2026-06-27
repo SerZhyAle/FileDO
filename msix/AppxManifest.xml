@@ -7,6 +7,13 @@
   Identity/Name, Publisher, PublisherDisplayName come from Partner Center
   (Product > Product identity). Version is computed by the build script
   (Major.Minor.Build.0, revision must be 0, each part <= 65535).
+
+  Two applications ship in one package:
+    * FileDOGui - the clickable Start-menu tile (filedo_win.exe), a GUI that
+      builds any filedo command and runs it.
+    * FileDO    - the console tool (filedo.exe), hidden from the app list
+      (AppListEntry="none") and exposed on PATH via an appExecutionAlias so
+      `filedo` works from any terminal.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -26,7 +33,7 @@
     <DisplayName>FileDO</DisplayName>
     <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
-    <Description>Advanced command-line tool for file and storage operations: storage speed testing, fake-capacity detection, secure wiping, and duplicate management.</Description>
+    <Description>Advanced tool for file and storage operations: storage speed testing, fake-capacity detection, secure wiping, and duplicate management. Ships a command-line tool plus a GUI command builder.</Description>
   </Properties>
 
   <Resources>
@@ -42,10 +49,24 @@
   </Capabilities>
 
   <Applications>
-    <Application Id="FileDO" Executable="filedo.exe" EntryPoint="Windows.FullTrustApplication">
+    <!-- Clickable GUI tile: builds and runs any filedo command. -->
+    <Application Id="FileDOGui" Executable="filedo_win.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="FileDO"
-        Description="Advanced File and Storage Operations Tool"
+        Description="FileDO - build and run any storage command"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
+      </uap:VisualElements>
+    </Application>
+
+    <!-- Console tool: hidden from the app list, exposed on PATH as `filedo`. -->
+    <Application Id="FileDO" Executable="filedo.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        AppListEntry="none"
+        DisplayName="FileDO CLI"
+        Description="Advanced File and Storage Operations Tool (command line)"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

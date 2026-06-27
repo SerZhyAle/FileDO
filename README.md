@@ -58,6 +58,8 @@
 
 **🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Capacity Detection • 📁 Duplicate Management**
 
+*Storage tools for the pleasantly paranoid - because some drives lie about their size, and you deserve proof.*
+
 </div>
 
 ---
@@ -188,7 +190,7 @@ winget install SerZhyAle.FileDO
 winget install filedo
 ```
 
-This installs all four CLI tools (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) and adds them to your `PATH`. To upgrade later:
+This installs the CLI tools (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) plus the `filedo_win` GUI command builder, and adds them all to your `PATH`. To upgrade later:
 
 ```powershell
 winget upgrade SerZhyAle.FileDO
@@ -200,15 +202,19 @@ To uninstall:
 winget uninstall SerZhyAle.FileDO
 ```
 
-#### Option 2 - Manual download
+#### Option 2 - Microsoft Store (MSIX)
+
+One package, two entries: a clickable **FileDO** tile - a GUI that builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the visual command builder and the CLI together.
+
+#### Option 3 - Manual download
 
 1. **Download**: Grab the latest `FileDO-<version>-windows-x64.zip` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest)
 2. **Extract** anywhere (e.g. `C:\Tools\FileDO`)
 3. **Optional**: add the folder to your `PATH` so you can call `filedo` from any directory
-4. **GUI Option**: also download `filedo_win.exe` from `exe_to_download/` for the VB.NET visual interface
+4. **GUI**: the zip includes `filedo_win.exe` - run it next to `filedo.exe` for the visual command builder
 5. **Run**: execute from command line or GUI
 
-#### Option 3 - Build from source
+#### Option 4 - Build from source
 
 ```powershell
 git clone https://github.com/SerZhyAle/FileDO.git
@@ -376,26 +382,23 @@ filedo C:\temp clean
 
 ## 🖥️ GUI Application
 
-**FileDO GUI** (`filedo_win.exe`) - VB.NET Windows Forms application provides user-friendly interface:
+**FileDO GUI** (`filedo_win.exe`) - a VB.NET Windows Forms command builder that can assemble **any** FileDO command and run it:
 
-- ✅ **Visual target selection** with radio buttons (Device/Folder/Network/File)
-- ✅ **Operation dropdown** (Info, Speed, Fill, Test, Clean, Check Duplicates)
-- ✅ **Parameter input** with validation
-- ✅ **Real-time command preview** showing equivalent CLI command
-- ✅ **Browse button** for easy path selection
-- ✅ **Progress tracking** with real-time output
-- ✅ **One-click execution** with output display
+- ✅ **5-language UI** (EN / RU / UA / DE / FR, remembered) with an **inline help panel**: what the selected operation and flags do, the expected result, and an example for the target
+- ✅ **Target selection** (device / folder / network / file); for **device** the path becomes a **drive-letter picker**, and choosing the system drive explains the `%TEMP%\FileDO_Operations` redirect
+- ✅ **Every operation** in one dropdown: info, speed, test, fill, clean, cd (duplicates), the full copy family (copy / fastcopy / synccopy / balanced / maxcopy / smartcopy / safecopy), wipe, compare, check, probe, recover, from, hist
+- ✅ **Source + destination** fields for copy and compare
+- ✅ **Context-aware flags** (max, del, nodel, short, hist, `--force` for wipe) and duplicate/compare delete rules
+- ✅ **Live command preview** in an editable box - tweak by hand for anything the builder doesn't cover
+- ✅ **Browse** buttons for paths, **Copy command** to clipboard, and **RUN** in a console window
+- ✅ Finds `filedo.exe` next to itself or on `PATH` (works under the Store package and portable zip alike)
 
-```bash
-# Run from filedo_win_vb folder
-filedo_win.exe          # Windows GUI interface
+```powershell
+filedo_win              # if installed via winget / Store (on PATH)
+filedo_win.exe          # next to filedo.exe in the portable zip
 ```
 
-**Features:**
-- Built with VB.NET Windows Forms for native Windows experience
-- Automatic command validation and parameter checking
-- Real-time output display with color coding
-- Integration with main CLI application
+**Ships everywhere:** the GUI is included in the winget package, the portable zip, the MSI, and is the clickable tile of the Microsoft Store (MSIX) package.
 
 ---
 

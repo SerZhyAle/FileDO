@@ -199,6 +199,7 @@ func saveToHistory(entry HistoryEntry) error {
 var shortUsage = fmt.Sprintf(`
                             FileDO v%s
                     Advanced File & Storage Operations Tool
+                 Storage tools for the pleasantly paranoid
 ═══════════════════════════════════════════════════════════════════════════════
 BASIC USAGE:
   filedo.exe <target> [operation] [options]
@@ -250,12 +251,14 @@ MORE INFO:
 var usage = fmt.Sprintf(`
                             FileDO v%s
                     Advanced File & Storage Operations Tool
+                 Storage tools for the pleasantly paranoid
                            Created by sza@ukr.net
 ═══════════════════════════════════════════════════════════════════════════════
 OVERVIEW:
   FileDO is a comprehensive tool for testing, analyzing, and managing files on
   devices, folders, and network paths. It specializes in storage capacity
-  verification, performance testing, and secure data wiping.
+  verification, performance testing, and secure data wiping. In short: it pokes
+  your storage until it admits how much space it really has.
 
 BASIC USAGE:
   filedo.exe <target> [operation] [options]
@@ -504,7 +507,8 @@ IMPORTANT NOTES
 	Timeout can be overridden via env var FILEDO_TIMEOUT_NOPROGRESS_SECONDS.
 
 • Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
-  total capacity, to detect counterfeit storage devices that report false sizes.
+  total capacity, to expose counterfeit storage devices that cheerfully claim
+  sizes they do not actually have.
   Uses optimized smart verification - full verification for first 5 files and
   every 10th file, fast header-only checks for recent files between milestones.
 
