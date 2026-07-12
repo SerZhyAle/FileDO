@@ -242,7 +242,7 @@ ManifestVersion: 1.12.0
 Before submitting anything, validate against the schema:
 
 ```powershell
-winget validate --manifest p:\WINDOWS\FileDo\winget
+winget validate --manifest p:\WINDOWS\FileDO\winget
 ```
 
 Output:
@@ -258,7 +258,7 @@ The full local install test (which I'd recommend) needs an admin opt-in:
 ```powershell
 # In an elevated PowerShell:
 winget settings --enable LocalManifestFiles
-winget install --manifest p:\WINDOWS\FileDo\winget
+winget install --manifest p:\WINDOWS\FileDO\winget
 ```
 
 This actually downloads the release zip, verifies the SHA256, extracts the four exes to a winget-managed location, and adds them to `PATH`. It's the single best test before submitting the PR. If you skip it, the PR's CI will catch problems anyway, but the round-trip is slower.
@@ -278,7 +278,7 @@ It also needs a GitHub Personal Access Token. Generate one at https://github.com
 Then submit:
 
 ```powershell
-wingetcreate submit --token ghp_yourTokenHere p:\WINDOWS\FileDo\winget
+wingetcreate submit --token ghp_yourTokenHere p:\WINDOWS\FileDO\winget
 ```
 
 Output:
@@ -437,14 +437,14 @@ This is the short version to follow every time, so the same mistakes don't come 
 5. Validate locally:
 
 ```powershell
-winget validate --manifest p:\WINDOWS\FileDo\winget
+winget validate --manifest p:\WINDOWS\FileDO\winget
 ```
 
 6. Prefer a real install test before submitting:
 
 ```powershell
 winget settings --enable LocalManifestFiles
-winget install --manifest p:\WINDOWS\FileDo\winget
+winget install --manifest p:\WINDOWS\FileDO\winget
 ```
 
 7. Prefer `wingetcreate` browser/device auth over pasting a token on the command line. If a PAT is used, keep the scope minimal and revoke it after use.

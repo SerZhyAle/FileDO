@@ -4,6 +4,10 @@
 *.so
 *.dylib
 
+# ..but the distributable build output IS tracked: build.ps1 / `/build` refresh
+# every variant here, and all of them must be committed (not just filedo.exe).
+!exe_to_download/*.exe
+
 # Go build artifacts
 /filedo
 /filedo.exe

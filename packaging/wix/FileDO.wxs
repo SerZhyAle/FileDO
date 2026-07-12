@@ -60,7 +60,7 @@
 
   <Fragment>
     <Component Id="StartMenuShortcut" Directory="AppProgramMenuDir" Guid="7e1c9a44-2f8b-4d63-9a1e-5c6b8d2f4a30">
-      <Shortcut Id="FileDoGuiShortcut"
+      <Shortcut Id="FileDOGuiShortcut"
                 Name="FileDO"
                 Description="FileDO - build and run any storage command"
                 Target="[INSTALLFOLDER]filedo_win.exe"
@@ -78,34 +78,34 @@
 
   <Fragment>
     <ComponentGroup Id="FileDOFiles" Directory="INSTALLFOLDER">
-      <Component Id="FileDoExe" Guid="*">
+      <Component Id="FileDOExe" Guid="*">
         <File Source="$(var.StageDir)\filedo.exe" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoWinExe" Guid="*">
+      <Component Id="FileDOWinExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_win.exe" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoCheckExe" Guid="*">
+      <Component Id="FileDOCheckExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_check.exe" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoFillExe" Guid="*">
+      <Component Id="FileDOFillExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_fill.exe" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoTestExe" Guid="*">
+      <Component Id="FileDOTestExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_test.exe" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoCdBat" Guid="*">
+      <Component Id="FileDOCdBat" Guid="*">
         <File Source="$(var.StageDir)\filedo_cd.bat" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoCleanBat" Guid="*">
+      <Component Id="FileDOCleanBat" Guid="*">
         <File Source="$(var.StageDir)\filedo_clean.bat" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoFillBat" Guid="*">
+      <Component Id="FileDOFillBat" Guid="*">
         <File Source="$(var.StageDir)\filedo_fill.bat" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoSpeedBat" Guid="*">
+      <Component Id="FileDOSpeedBat" Guid="*">
         <File Source="$(var.StageDir)\filedo_speed.bat" KeyPath="yes" />
       </Component>
-      <Component Id="FileDoTestBat" Guid="*">
+      <Component Id="FileDOTestBat" Guid="*">
         <File Source="$(var.StageDir)\filedo_test.bat" KeyPath="yes" />
       </Component>
       <Component Id="LicenseFile" Guid="*">

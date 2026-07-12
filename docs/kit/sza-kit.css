@@ -41,7 +41,7 @@
   --font-body:'Plus Jakarta Sans',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-mono:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,Menlo,monospace;
   /* metrics */
-  --wide:1100px; --radius:16px; --radius-sm:10px; --radius-pill:30px;
+  --wide:min(1640px,94vw); --radius:16px; --radius-sm:10px; --radius-pill:30px;
   --step:clamp(.9rem,2.2vw,1rem);
 }
 
@@ -80,7 +80,7 @@ img{max-width:100%;height:auto}
 
 /* ---------- LAYOUT ---------- */
 .container{max-width:var(--wide);margin:0 auto;padding:0 20px;position:relative;z-index:1}
-.section{padding:2rem 0}
+.section{padding:1.6rem 0}
 
 /* ---------- STICKY GLASS HEADER ---------- */
 .site-header{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;
@@ -123,9 +123,17 @@ html[data-theme="light"] .btn-ghost{background:rgba(16,40,20,.03)}
 
 /* ---------- "GET IT" / DISTRIBUTION BLOCK (required above the fold on app sites) ---------- */
 .get{display:grid;gap:1rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  backdrop-filter:blur(16px);padding:1.4rem 1.5rem;margin:1rem auto 2rem;max-width:760px}
+  backdrop-filter:blur(16px);padding:1.4rem 1.5rem;margin:1rem 0 2rem;max-width:1000px}
 .get .whatfor{color:var(--text-2);font-size:.98rem}
 .get .channels{display:flex;flex-wrap:wrap;gap:.6rem}
+@media(min-width:820px){
+  .get{grid-template-columns:1.15fr .85fr;align-items:start;
+    grid-template-areas:"what what" "copy list" "chan list"}
+  .get .whatfor{grid-area:what}
+  .get .copybox{grid-area:copy}
+  .get .channels{grid-area:chan}
+  .get .quickstart{grid-area:list}
+}
 .quickstart{counter-reset:qs;display:grid;gap:.5rem;margin-top:.4rem}
 .quickstart li{list-style:none;position:relative;padding-left:2rem;color:var(--text-2);font-size:.92rem}
 .quickstart li::before{counter-increment:qs;content:counter(qs);position:absolute;left:0;top:0;
@@ -133,11 +141,9 @@ html[data-theme="light"] .btn-ghost{background:rgba(16,40,20,.03)}
   color:var(--acc);font-family:var(--font-heading);font-weight:800;font-size:.72rem;display:grid;place-items:center}
 
 /* ---------- GLASS CARDS / GRID ---------- */
-.grid{display:grid;grid-template-columns:1fr;gap:1.25rem}
-@media(min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:960px){.grid{grid-template-columns:repeat(3,1fr)}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  backdrop-filter:blur(16px);padding:1.6rem;transition:transform .3s,border-color .3s,background .3s}
+  backdrop-filter:blur(16px);padding:1.35rem 1.5rem;transition:transform .3s,border-color .3s,background .3s}
 .card:hover{transform:translateY(-4px);border-color:var(--border-hover);background:var(--card-hover)}
 
 /* ---------- NUMBERED COLLAPSIBLE SECTIONS (TOC-as-content) ---------- */
@@ -183,9 +189,8 @@ kbd{font-size:.8em;padding:.12em .45em;border-radius:5px;background:var(--bg-3);
 .demo .out{color:var(--gold)}
 
 /* ---------- FOOTER : "MORE TOOLS BY SZA" + CONTACT ---------- */
-.site-footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0}
-.tools-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1.5rem}
-@media(min-width:760px){.tools-grid{grid-template-columns:repeat(3,1fr)}}
+.site-footer{border-top:1px solid var(--border);margin-top:2.2rem;padding:1.6rem 0}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.6rem;margin-bottom:1.5rem}
 .tools-grid a{display:block;padding:.7rem .9rem;border:1px solid var(--border);border-radius:var(--radius-sm);
   background:var(--card);color:var(--text);font-size:.85rem}
 .tools-grid a:hover{border-color:var(--border-hover);background:var(--card-hover)}

@@ -32,6 +32,13 @@ Public Class MainForm
         "del small source", "del big target"
     }
 
+    ' Localization key for each compareDelRules entry, same order.
+    Private ReadOnly compareDelKeys As String() = {
+        "cmprule_none", "cmprule_source", "cmprule_target", "cmprule_old", "cmprule_new",
+        "cmprule_small", "cmprule_big", "cmprule_old_target", "cmprule_new_source",
+        "cmprule_small_source", "cmprule_big_target"
+    }
+
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         CheckDebugMode()
         InitializeForm()
@@ -417,6 +424,13 @@ Public Class MainForm
             lines.Add(ExampleValue())
         End If
 
+        ' Explain the currently chosen rule (compare delete rule / duplicate rule).
+        Dim rule As String = RuleDescription()
+        If rule <> "" Then
+            lines.Add("")
+            lines.Add(L("hl_rule") & " " & rule)
+        End If
+
         If ShowSysDriveNote() Then
             lines.Add("")
             lines.Add(L("hl_note") & " " & L("note_sysdrive"))
@@ -445,6 +459,22 @@ Public Class MainForm
             Case "file" : Return L("ex_file")
         End Select
         Return L("ex_folder")
+    End Function
+
+    ' One-line description of the rule the user just picked, or "" if the
+    ' current operation has no rule selector.
+    Private Function RuleDescription() As String
+        Dim op As String = CurrentOp()
+        If op = "compare" Then
+            Dim i As Integer = cmbCompareDel.SelectedIndex
+            If i >= 0 AndAlso i < compareDelKeys.Length Then Return L(compareDelKeys(i))
+        ElseIf op = "cd" Then
+            If rbOld.Checked Then Return L("cdrule_old")
+            If rbNew.Checked Then Return L("cdrule_new")
+            If rbAbc.Checked Then Return L("cdrule_abc")
+            If rbXyz.Checked Then Return L("cdrule_xyz")
+        End If
+        Return ""
     End Function
 
     Private Function ShowSysDriveNote() As Boolean
