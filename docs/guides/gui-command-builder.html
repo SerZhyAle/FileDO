@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <title>Use the FileDO GUI command builder</title>
+    <meta
+      name="description"
+      content="A practical guide to building and reviewing FileDO commands in the Windows GUI before running them."
+    />
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · FileDO GUI</span
+          ><span data-l="en">Guide · FileDO GUI</span
+          ><span data-l="ua">Посібник · FileDO GUI</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Соберите команду в окне, прочитайте её и только потом
+            запустите.</span
+          ><span data-l="en"
+            >Build the command in a window, read it, then run it.</span
+          ><span data-l="ua"
+            >Зберіть команду у вікні, прочитайте її та лише потім
+            запустіть.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >FileDO GUI — это Windows Forms-конструктор для тех же команд
+            FileDO. Он не меняет правила безопасности: он делает путь, операцию
+            и будущую команду видимыми до запуска.</span
+          ><span data-l="en"
+            >FileDO GUI is a Windows Forms builder for the same FileDO commands.
+            It does not change safety rules: it makes the path, operation, and
+            future command visible before execution.</span
+          ><span data-l="ua"
+            >FileDO GUI — це Windows Forms-конструктор для тих самих команд
+            FileDO. Він не змінює правил безпеки: він робить шлях, операцію та
+            майбутню команду видимими перед запуском.</span
+          >
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Когда выбрать GUI</span
+          ><span data-l="en">When to choose the GUI</span
+          ><span data-l="ua">Коли вибрати GUI</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Команду удобнее собрать</span
+              ><span data-l="en">You prefer to assemble a command</span
+              ><span data-l="ua">Команду зручніше зібрати</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Выберите тип цели, путь и операцию вместо ручного ввода всех
+                аргументов.</span
+              ><span data-l="en"
+                >Choose the target type, path, and operation instead of typing
+                every argument.</span
+              ><span data-l="ua"
+                >Виберіть тип цілі, шлях і операцію замість ручного введення
+                всіх аргументів.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Нужно проверить путь</span
+              ><span data-l="en">You need to verify a path</span
+              ><span data-l="ua">Треба перевірити шлях</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Для устройств используется выбор буквы диска, а для папок и
+                файлов есть кнопки обзора.</span
+              ><span data-l="en"
+                >Devices use a drive-letter picker, and folders or files have
+                browse buttons.</span
+              ><span data-l="ua"
+                >Для пристроїв використовується вибір літери диска, а для папок
+                і файлів є кнопки огляду.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Нужна команда для инструкции</span
+              ><span data-l="en">You need a command for an instruction</span
+              ><span data-l="ua">Потрібна команда для інструкції</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Предпросмотр можно скопировать в буфер, отредактировать или
+                запустить в консоли.</span
+              ><span data-l="en"
+                >The preview can be copied, edited, or run in a console.</span
+              ><span data-l="ua"
+                >Попередній перегляд можна скопіювати, відредагувати або
+                запустити в консолі.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Первый безопасный запуск</span
+          ><span data-l="en">First safe run</span
+          ><span data-l="ua">Перший безпечний запуск</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              >Запустите <code>filedo_win</code> из winget/Store-пакета либо
+              <code>filedo_win.exe</code> рядом с <code>filedo.exe</code> в
+              portable ZIP.</span
+            ><span data-l="en"
+              >Start <code>filedo_win</code> from the winget/Store package, or
+              <code>filedo_win.exe</code> beside <code>filedo.exe</code> in the
+              portable ZIP.</span
+            ><span data-l="ua"
+              >Запустіть <code>filedo_win</code> із пакета winget/Store або
+              <code>filedo_win.exe</code> поруч із <code>filedo.exe</code> у
+              portable ZIP.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Выберите тип цели и укажите путь. Для первой проверки выберите
+              операцию <code>info</code>.</span
+            ><span data-l="en"
+              >Choose the target type and set the path. For a first check,
+              choose <code>info</code>.</span
+            ><span data-l="ua"
+              >Виберіть тип цілі та задайте шлях. Для першої перевірки виберіть
+              <code>info</code>.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Прочитайте live preview, затем используйте Copy command или Run.
+              Результат <code>info</code> только показывает сведения.</span
+            ><span data-l="en"
+              >Read the live preview, then use Copy command or Run.
+              <code>info</code> only shows information.</span
+            ><span data-l="ua"
+              >Прочитайте live preview, потім використайте Copy command або Run.
+              <code>info</code> лише показує відомості.</span
+            >
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo_win<button class="copy" data-copy="filedo_win">Copy</button>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Что показывает окно</span
+          ><span data-l="en">What the window exposes</span
+          ><span data-l="ua">Що показує вікно</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >В одном окне доступны info, speed, test, fill, clean, дубликаты,
+            семейство copy, wipe, compare, check, probe, recover, from и hist.
+            Для операций копирования и сравнения появляются поля источника и
+            назначения. Контекстные флаги показывают только относящиеся к
+            выбранной операции параметры, а справочная панель объясняет
+            ожидаемый результат и пример.</span
+          ><span data-l="en"
+            >One window offers info, speed, test, fill, clean, duplicates, the
+            copy family, wipe, compare, check, probe, recover, from, and hist.
+            Copy and compare expose source and destination fields. Contextual
+            flags show parameters relevant to the selected operation, while the
+            help panel explains the expected result and gives an example.</span
+          ><span data-l="ua"
+            >В одному вікні доступні info, speed, test, fill, clean, дублікати,
+            сімейство copy, wipe, compare, check, probe, recover, from і hist.
+            Для копіювання та порівняння з’являються поля джерела й призначення.
+            Контекстні прапорці показують параметри, що стосуються вибраної
+            операції, а довідкова панель пояснює очікуваний результат і наводить
+            приклад.</span
+          >
+        </p>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="ru">Та же ответственность</span
+            ><span data-l="en">Same responsibility</span
+            ><span data-l="ua">Та сама відповідальність</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >GUI не делает <code>wipe</code>, <code>fill … del</code> или
+              режимы удаления обратимыми. Перед Run проверьте цель и preview;
+              для необратимых действий сделайте резервную копию.</span
+            ><span data-l="en"
+              >The GUI does not make <code>wipe</code>, <code>fill … del</code>,
+              or deletion modes reversible. Check the target and preview before
+              Run; back up before irreversible actions.</span
+            ><span data-l="ua"
+              >GUI не робить <code>wipe</code>, <code>fill … del</code> або
+              режими видалення зворотними. Перед Run перевірте ціль і preview;
+              перед незворотними діями зробіть резервну копію.</span
+            >
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "GUI-конструктор команд FileDO",
+          description: "Практическое руководство по FileDO GUI.",
+        },
+        en: {
+          title: "Use the FileDO GUI command builder",
+          description: "A practical FileDO GUI guide.",
+        },
+        ua: {
+          title: "GUI-конструктор команд FileDO",
+          description: "Практичний посібник із FileDO GUI.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

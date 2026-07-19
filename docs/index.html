@@ -1,38 +1,2282 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0a0f0a"><link rel="canonical" href="https://serzhyale.github.io/FileDO/">
-<link rel="icon" type="image/png" href="assets/filedo.png"><meta property="og:type" content="website"><meta property="og:url" content="https://serzhyale.github.io/FileDO/"><meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png"><meta name="twitter:card" content="summary_large_image">
-<title>FileDO — check storage before changing it</title><meta name="description" content="A Windows tool for checking drives, testing capacity and speed, copying files, comparing folders, and finding duplicates."><meta property="og:title" content="FileDO — check storage before changing it"><meta property="og:description" content="A Windows tool for checking drives, testing capacity and speed, copying files, comparing folders, and finding duplicates.">
-<script>(function(){try{var t=localStorage.getItem('sza-theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.theme=t;var l=localStorage.getItem('sza-lang');if(!l){var n=(navigator.language||'en').toLowerCase();l=n.indexOf('ru')===0?'ru':n.indexOf('uk')===0?'ua':'en'}document.documentElement.dataset.lang=l;document.documentElement.lang=l==='ua'?'uk':l}catch(e){}})()</script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="kit/sza-kit.css">
-<style>
-html[data-lang="ru"] [data-l]:not([data-l="ru"]),html[data-lang="en"] [data-l]:not([data-l="en"]),html[data-lang="ua"] [data-l]:not([data-l="ua"]){display:none}.site-header{margin-left:20px;margin-right:20px}.mark{display:inline-block;width:9px;height:9px;margin-right:7px;border:2px solid currentColor;border-radius:2px}.hero{padding-bottom:.7rem}.hero .lead{font-size:1.07rem}.intro{color:var(--text-2);margin-bottom:1.1rem}.scenario{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.8rem}.scenario .card,.feature .card{padding:1rem}.scenario h3,.feature h3{font-size:1rem;margin-bottom:.35rem}.scenario p,.feature p{font-size:.88rem;color:var(--text-2)}.get{max-width:none;margin:1rem 0 1.5rem}.get h2,.section h2{font-size:1.4rem;margin-bottom:.55rem}.get .copybox{max-width:620px}.feature{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.8rem}.detail-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}.details-copy{display:grid;gap:.75rem}.details-copy p,.plain-list{color:var(--text-2)}.plain-list{padding-left:1.2rem}.plain-list li{margin:.35rem 0}.danger{border-left-color:var(--danger)}.danger .tag{color:var(--danger)}.footer-tools-title{font-family:var(--font-heading);font-size:1.05rem;margin-bottom:.75rem}@media(max-width:480px){.site-header{margin:10px}.site-header .btn{display:inline-flex;padding:.5rem .7rem}.brand{font-size:14px}}
-</style></head>
-<body>
-<div class="bg-blobs"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
-<header class="site-header"><a class="brand" href="#top"><span class="mark" aria-hidden="true"></span>FileDO<span class="dot">.</span></a><div class="seg" role="group" aria-label="Language"><button data-set-lang="ru">RU</button><button data-set-lang="en">EN</button><button data-set-lang="ua">UA</button></div><button class="theme-btn" id="themeBtn" aria-label="Switch theme">◐</button><a class="btn btn-primary btn-sm" href="#get"><span data-l="ru">Установить</span><span data-l="en">Install</span><span data-l="ua">Встановити</span></a></header>
-<main class="container" id="top">
-<section class="hero"><p class="kicker"><span data-l="ru">Windows · хранение и файлы</span><span data-l="en">Windows · storage and files</span><span data-l="ua">Windows · сховища та файли</span></p><h1><span data-l="ru">Проверьте носитель и файлы, прежде чем что-то удалять или копировать.</span><span data-l="en">Check a drive and its files before you delete or copy anything.</span><span data-l="ua">Перевірте носій і файли, перш ніж щось видаляти або копіювати.</span></h1><p class="lead"><span data-l="ru">Командный инструмент для Windows: сведения о носителе, тест ёмкости и скорости, дубликаты, копирование, сравнение папок и проверка чтения.</span><span data-l="en">A Windows command-line tool for drive information, capacity and speed tests, duplicates, copying, folder comparison, and read checks.</span><span data-l="ua">Інструмент командного рядка для Windows: відомості про носій, тести ємності та швидкості, дублікати, копіювання, порівняння папок і перевірка читання.</span></p></section>
-<section class="section"><h2><span data-l="ru">Когда он нужен</span><span data-l="en">When it helps</span><span data-l="ua">Коли він потрібен</span></h2><p class="intro"><span data-l="ru">Для пользователя Windows, который разбирается с USB-накопителем, SD-картой, папкой с данными или сетевой папкой. Начните с просмотра информации; действия, меняющие данные, оставьте на потом.</span><span data-l="en">For a Windows user dealing with a USB drive, SD card, data folder, or network share. Start by inspecting it; leave data-changing actions for later.</span><span data-l="ua">Для користувача Windows, який працює з USB-накопичувачем, SD-карткою, папкою з даними або мережевою папкою. Почніть з перегляду відомостей; дії, що змінюють дані, залиште на потім.</span></p><div class="grid scenario">
-<article class="card"><h3><span data-l="ru">Проверить USB или SD</span><span data-l="en">Check a USB or SD card</span><span data-l="ua">Перевірити USB або SD-картку</span></h3><p><span data-l="ru">Узнать, соответствует ли реальная ёмкость заявленной.</span><span data-l="en">Find out whether usable capacity matches what was advertised.</span><span data-l="ua">З’ясувати, чи відповідає реальна ємність заявленій.</span></p></article>
-<article class="card"><h3><span data-l="ru">Измерить скорость</span><span data-l="en">Measure speed</span><span data-l="ua">Виміряти швидкість</span></h3><p><span data-l="ru">Проверить чтение и запись носителя или папки.</span><span data-l="en">Check read and write throughput for a drive or folder.</span><span data-l="ua">Перевірити швидкість читання й запису носія або папки.</span></p></article>
-<article class="card"><h3><span data-l="ru">Найти дубликаты</span><span data-l="en">Find duplicates</span><span data-l="ua">Знайти дублікати</span></h3><p><span data-l="ru">Получить список одинаковых файлов перед выбором действия.</span><span data-l="en">Get a list of matching files before choosing an action.</span><span data-l="ua">Отримати список однакових файлів перед вибором дії.</span></p></article>
-<article class="card"><h3><span data-l="ru">Скопировать с прогрессом</span><span data-l="en">Copy with progress</span><span data-l="ua">Копіювати з прогресом</span></h3><p><span data-l="ru">Перенести папку, файл, устройство или сетевую папку с ходом работы.</span><span data-l="en">Move a folder, file, device, or share with visible progress.</span><span data-l="ua">Перенести папку, файл, пристрій або мережеву папку з видимим ходом роботи.</span></p></article>
-<article class="card"><h3><span data-l="ru">Сверить или прочитать файлы</span><span data-l="en">Compare or read-check files</span><span data-l="ua">Зіставити або перевірити читання файлів</span></h3><p><span data-l="ru">Сравнить две папки или проверить, читаются ли файлы без задержек.</span><span data-l="en">Compare two folders or check whether files can be read without stalls.</span><span data-l="ua">Порівняти дві папки або перевірити, чи читаються файли без затримок.</span></p></article></div></section>
-<section class="get" id="get"><h2><span data-l="ru">Начать с безопасной проверки</span><span data-l="en">Start with a safe check</span><span data-l="ua">Почніть із безпечної перевірки</span></h2><p class="whatfor"><span data-l="ru">Основной путь — winget для Windows x64. Portable ZIP и MSI доступны в GitHub Releases; ссылка ниже всегда ведёт к последнему релизу.</span><span data-l="en">The primary path is winget for Windows x64. A portable ZIP and MSI are available in GitHub Releases; the link below always leads to the latest release.</span><span data-l="ua">Основний шлях — winget для Windows x64. Portable ZIP і MSI доступні в GitHub Releases; посилання нижче завжди веде до останнього релізу.</span></p><div class="copybox">winget install SerZhyAle.FileDO<button class="copy" data-copy="winget install SerZhyAle.FileDO">Copy</button></div><div class="channels"><a class="btn btn-primary btn-sm" id="releaseLink" href="https://github.com/SerZhyAle/FileDO/releases/latest" target="_blank" rel="noopener">GitHub Releases</a><a class="btn btn-ghost btn-sm" href="https://github.com/SerZhyAle/FileDO" target="_blank" rel="noopener"><span data-l="ru">Исходный код</span><span data-l="en">Source code</span><span data-l="ua">Вихідний код</span></a></div><ol class="quickstart"><li><span data-l="ru">Установите командой выше или распакуйте ZIP из Releases.</span><span data-l="en">Install with the command above, or extract the ZIP from Releases.</span><span data-l="ua">Встановіть командою вище або розпакуйте ZIP з Releases.</span></li><li><span data-l="ru">Откройте PowerShell или cmd и сначала проверьте сведения о носителе.</span><span data-l="en">Open PowerShell or cmd and inspect the drive first.</span><span data-l="ua">Відкрийте PowerShell або cmd і спочатку перегляньте відомості про носій.</span></li><li><span data-l="ru">Только затем выбирайте тест, скорость, копирование или поиск дубликатов.</span><span data-l="en">Only then choose a test, speed check, copy, or duplicate scan.</span><span data-l="ua">Лише потім виберіть тест, перевірку швидкості, копіювання або пошук дублікатів.</span></li></ol><div class="copybox">filedo E: info<button class="copy" data-copy="filedo E: info">Copy</button></div><div class="note"><span class="tag"><span data-l="ru">Важно</span><span data-l="en">Important</span><span data-l="ua">Важливо</span></span><p><span data-l="ru">Замените <code>E:</code> на нужный путь. Эта команда показывает сведения и не удаляет файлы.</span><span data-l="en">Replace <code>E:</code> with your target. This command shows information and does not delete files.</span><span data-l="ua">Замініть <code>E:</code> на потрібний шлях. Ця команда показує відомості й не видаляє файли.</span></p></div></section>
-<section class="section"><h2><span data-l="ru">Основные возможности</span><span data-l="en">Main capabilities</span><span data-l="ua">Основні можливості</span></h2><p class="intro"><span data-l="ru">После безопасной проверки используйте одну операцию для одной понятной задачи.</span><span data-l="en">After the safe check, use one operation for one clear task.</span><span data-l="ua">Після безпечної перевірки використовуйте одну операцію для одного зрозумілого завдання.</span></p><div class="grid feature">
-<article class="card"><h3>Capacity &amp; speed</h3><p><span data-l="ru">Тесты ёмкости и производительности для носителей, папок и сетевых путей.</span><span data-l="en">Capacity and performance tests for drives, folders, and network paths.</span><span data-l="ua">Тести ємності й продуктивності для носіїв, папок і мережевих шляхів.</span></p></article><article class="card"><h3>Duplicates</h3><p><span data-l="ru">Поиск совпадений по MD5 с кэшем; список можно сохранить и обработать позже.</span><span data-l="en">MD5 matching with a cache; save a list and process it later.</span><span data-l="ua">Пошук збігів за MD5 з кешем; список можна зберегти й обробити пізніше.</span></p></article><article class="card"><h3>Copy &amp; compare</h3><p><span data-l="ru">Копирование с прогрессом и тайм-аутами, а также отчёт о различиях между папками.</span><span data-l="en">Copying with progress and timeouts, plus reports of differences between folders.</span><span data-l="ua">Копіювання з прогресом і тайм-аутами, а також звіт про відмінності між папками.</span></p></article><article class="card"><h3>Read check</h3><p><span data-l="ru">Проверка чтения файлов с отчётами и настройками для медленных HDD/USB.</span><span data-l="en">Read checks with reports and controls for slow HDD/USB media.</span><span data-l="ua">Перевірка читання файлів зі звітами й налаштуваннями для повільних HDD/USB.</span></p></article><article class="card"><h3>GUI command builder</h3><p><span data-l="ru">В ZIP и winget-пакете есть <code>filedo_win</code>, который собирает и запускает команды.</span><span data-l="en">The ZIP and winget package include <code>filedo_win</code>, which builds and runs commands.</span><span data-l="ua">ZIP і пакет winget містять <code>filedo_win</code>, який збирає та запускає команди.</span></p></article></div></section>
-<section class="section" id="guides"><h2><span data-l="ru">Инструкции и детали</span><span data-l="en">Guides and details</span><span data-l="ua">Інструкції та деталі</span></h2><p class="intro"><span data-l="ru">Полные справочные материалы остаются здесь, чтобы не мешать первому шагу.</span><span data-l="en">The full reference stays here so it does not compete with the first step.</span><span data-l="ua">Повна довідка залишається тут, щоб не заважати першому кроку.</span></p><div class="detail-actions"><button class="btn btn-ghost btn-sm" id="expandAll"><span data-l="ru">Раскрыть всё</span><span data-l="en">Expand all</span><span data-l="ua">Розгорнути все</span></button><button class="btn btn-ghost btn-sm" id="collapseAll"><span data-l="ru">Свернуть всё</span><span data-l="en">Collapse all</span><span data-l="ua">Згорнути все</span></button></div>
-<details class="sec" id="first-test"><summary><span class="secnum">01</span><span data-l="ru">Проверка USB/SD и скорости</span><span data-l="en">Checking a USB/SD card and speed</span><span data-l="ua">Перевірка USB/SD і швидкості</span></summary><div class="details-copy"><p><span data-l="ru">Сначала используйте <code>info</code>. Проверка ёмкости создаёт проверочные файлы; выбирайте правильный носитель и убедитесь, что на нём достаточно свободного места.</span><span data-l="en">Use <code>info</code> first. A capacity test creates test files; select the correct drive and make sure it has enough free space.</span><span data-l="ua">Спочатку використайте <code>info</code>. Тест ємності створює тестові файли; виберіть правильний носій і переконайтеся, що на ньому достатньо вільного місця.</span></p><div class="copybox">filedo E: test del<button class="copy" data-copy="filedo E: test del">Copy</button></div><div class="copybox">filedo E: speed 100<button class="copy" data-copy="filedo E: speed 100">Copy</button></div></div></details>
-<details class="sec" id="duplicates"><summary><span class="secnum">02</span><span data-l="ru">Дубликаты, копирование и сравнение</span><span data-l="en">Duplicates, copying, and comparison</span><span data-l="ua">Дублікати, копіювання та порівняння</span></summary><div class="details-copy"><p><span data-l="ru">Сначала получите список или отчёт. Команды с <code>del</code> удаляют данные; проверьте путь и результат до их запуска.</span><span data-l="en">Get a list or report first. Commands with <code>del</code> remove data; verify the path and result before running them.</span><span data-l="ua">Спочатку отримайте список або звіт. Команди з <code>del</code> видаляють дані; перевірте шлях і результат перед запуском.</span></p><div class="copybox">filedo C:\Data check-duplicates<button class="copy" data-copy="filedo C:\Data check-duplicates">Copy</button></div><div class="copybox">filedo C:\Source copy D:\Backup<button class="copy" data-copy="filedo C:\Source copy D:\Backup">Copy</button></div><div class="copybox">filedo compare D:\Data E:\Backup<button class="copy" data-copy="filedo compare D:\Data E:\Backup">Copy</button></div></div></details>
-<details class="sec" id="safety"><summary><span class="secnum">03</span><span data-l="ru">Операции с риском</span><span data-l="en">Operations with risk</span><span data-l="ua">Операції з ризиком</span></summary><div class="details-copy"><div class="note danger"><span class="tag"><span data-l="ru">Необратимо</span><span data-l="en">Irreversible</span><span data-l="ua">Незворотно</span></span><p><span data-l="ru"><code>wipe</code>, <code>fill … del</code> и режимы удаления в compare/duplicates могут удалить данные. Сначала просмотрите носитель, список или отчёт и сделайте резервную копию.</span><span data-l="en"><code>wipe</code>, <code>fill … del</code>, and deletion modes in compare/duplicates can remove data. Inspect the drive, list, or report and back up first.</span><span data-l="ua"><code>wipe</code>, <code>fill … del</code> і режими видалення в compare/duplicates можуть видалити дані. Спочатку перегляньте носій, список або звіт і зробіть резервну копію.</span></p></div><p><span data-l="ru"><code>wipe</code> требует ввода <code>WIPE</code>. Для корней дисков/шар, reparse points и системной TEMP-папки нужно интерактивное подтверждение даже с <code>--force</code>.</span><span data-l="en"><code>wipe</code> asks you to type <code>WIPE</code>. Drive/share roots, reparse points, and the system TEMP folder require interactive confirmation even with <code>--force</code>.</span><span data-l="ua"><code>wipe</code> просить ввести <code>WIPE</code>. Корені дисків/ресурсів, reparse points і системна TEMP-папка потребують інтерактивного підтвердження навіть із <code>--force</code>.</span></p></div></details>
-<details class="sec" id="compatibility"><summary><span class="secnum">04</span><span data-l="ru">Совместимость, варианты и установка</span><span data-l="en">Compatibility, editions, and installation</span><span data-l="ua">Сумісність, варіанти та встановлення</span></summary><div class="details-copy"><ul class="plain-list"><li><span data-l="ru">Основной дистрибутив: Windows x64, CLI <code>filedo</code> и сопутствующие утилиты.</span><span data-l="en">Primary distribution: Windows x64, the <code>filedo</code> CLI, and companion utilities.</span><span data-l="ua">Основний дистрибутив: Windows x64, CLI <code>filedo</code> та супутні утиліти.</span></li><li><span data-l="ru">winget и portable ZIP включают <code>filedo</code>, <code>filedo_check</code>, <code>filedo_fill</code>, <code>filedo_test</code> и GUI <code>filedo_win</code>.</span><span data-l="en">winget and the portable ZIP include <code>filedo</code>, <code>filedo_check</code>, <code>filedo_fill</code>, <code>filedo_test</code>, and the <code>filedo_win</code> GUI.</span><span data-l="ua">winget і portable ZIP містять <code>filedo</code>, <code>filedo_check</code>, <code>filedo_fill</code>, <code>filedo_test</code> та GUI <code>filedo_win</code>.</span></li><li><span data-l="ru">Сборка из исходников требует Go 1.24+.</span><span data-l="en">Building from source requires Go 1.24+.</span><span data-l="ua">Збірка з вихідних кодів потребує Go 1.24+.</span></li></ul><div class="copybox">git clone https://github.com/SerZhyAle/FileDO.git &amp;&amp; cd FileDO &amp;&amp; .\build.ps1<button class="copy" data-copy="git clone https://github.com/SerZhyAle/FileDO.git && cd FileDO && .\build.ps1">Copy</button></div></div></details>
-<details class="sec" id="reference"><summary><span class="secnum">05</span><span data-l="ru">Полная справка, исходный код и история выпусков</span><span data-l="en">Full reference, source code, and release history</span><span data-l="ua">Повна довідка, вихідний код та історія випусків</span></summary><div class="details-copy"><p><span data-l="ru">README содержит полный каталог команд, параметры проверки чтения, примеры сетевых путей и детали GUI. GitHub Releases содержит ZIP, MSI и SHA256 для каждого выпуска.</span><span data-l="en">The README contains the full command catalogue, read-check options, network examples, and GUI details. GitHub Releases holds ZIP, MSI, and SHA256 files for each release.</span><span data-l="ua">README містить повний каталог команд, параметри перевірки читання, мережеві приклади та відомості про GUI. GitHub Releases містить ZIP, MSI та SHA256 для кожного випуску.</span></p><div class="channels"><a class="btn btn-ghost btn-sm" href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">README</a><a class="btn btn-ghost btn-sm" href="https://github.com/SerZhyAle/FileDO/releases" target="_blank" rel="noopener"><span data-l="ru">История релизов</span><span data-l="en">Release history</span><span data-l="ua">Історія випусків</span></a><a class="btn btn-ghost btn-sm" href="https://github.com/SerZhyAle/FileDO/issues" target="_blank" rel="noopener">Issues</a></div></div></details></section>
-<section class="section"><h2><span data-l="ru">Связанный инструмент</span><span data-l="en">Related tool</span><span data-l="ua">Пов’язаний інструмент</span></h2><p class="intro"><span data-l="ru">Если задача — разбирать большую папку фото и видео, а не проверять сам носитель, используйте </span><span data-l="en">If the task is sorting a large photo and video folder rather than checking the storage itself, use </span><span data-l="ua">Якщо завдання — розібрати велику папку фото й відео, а не перевіряти сам носій, скористайтеся </span><a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener">Fast Media Sorter for Windows</a>.</p></section>
-</main>
-<footer class="site-footer"><div class="container"><p class="footer-tools-title"><span data-l="ru">Другие инструменты SZA</span><span data-l="en">More tools by SZA</span><span data-l="ua">Інші інструменти SZA</span></p><div class="tools-grid"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Windows media sorter</span></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a><a href="https://github.com/SerZhyAle/OneClickRunner"><b>OneClickRunner</b><span>Windows tray launcher</span></a><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a></div><div class="footer-bottom"><span>© 2026 Serhii Zhyhunenko</span><span><a href="https://sza.od.ua">sza.od.ua</a> · <a href="https://github.com/SerZhyAle">GitHub</a> · <a href="mailto:sza@ukr.net">sza@ukr.net</a></span></div></div></footer><button class="to-top" id="toTop" aria-label="Back to top">↑</button>
-<script>
-(function(){var meta={ru:{t:'FileDO — проверьте носитель до действий с данными',d:'Инструмент Windows для проверки носителей, ёмкости и скорости, копирования, сравнения папок и поиска дубликатов.'},en:{t:'FileDO — check storage before changing it',d:'A Windows tool for checking drives, testing capacity and speed, copying files, comparing folders, and finding duplicates.'},ua:{t:'FileDO — перевірте носій перед зміною даних',d:'Інструмент Windows для перевірки носіїв, ємності та швидкості, копіювання, порівняння папок і пошуку дублікатів.'}};function lang(l){document.documentElement.dataset.lang=l;document.documentElement.lang=l==='ua'?'uk':l;localStorage.setItem('sza-lang',l);document.querySelectorAll('[data-set-lang]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.setLang===l))});document.title=meta[l].t;document.querySelector('meta[name="description"]').content=meta[l].d;document.querySelector('meta[property="og:title"]').content=meta[l].t;document.querySelector('meta[property="og:description"]').content=meta[l].d}document.querySelectorAll('[data-set-lang]').forEach(function(b){b.onclick=function(){lang(b.dataset.setLang)}});lang(document.documentElement.dataset.lang||'en');var theme=document.getElementById('themeBtn');theme.onclick=function(){var n=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=n;localStorage.setItem('sza-theme',n);document.querySelector('meta[name="theme-color"]').content=n==='light'?'#eef3ea':'#0a0f0a';theme.setAttribute('aria-label',n==='light'?'Switch to dark theme':'Switch to light theme')};function fallback(t,done){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove();done()}document.querySelectorAll('.copy').forEach(function(b){b.onclick=function(){function done(){b.textContent='✓ Copied';b.classList.add('done');setTimeout(function(){b.textContent='Copy';b.classList.remove('done')},1600)}var t=b.dataset.copy;if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,function(){fallback(t,done)});else fallback(t,done)}});function fromHash(){var e=document.getElementById(location.hash.slice(1));if(e&&e.tagName==='DETAILS'){e.open=true;setTimeout(function(){e.scrollIntoView()},0)}}addEventListener('hashchange',fromHash);fromHash();document.getElementById('expandAll').onclick=function(){document.querySelectorAll('details.sec').forEach(function(d){d.open=true})};document.getElementById('collapseAll').onclick=function(){document.querySelectorAll('details.sec').forEach(function(d){d.open=false})};var top=document.getElementById('toTop');addEventListener('scroll',function(){top.classList.toggle('show',scrollY>600)});top.onclick=function(){scrollTo({top:0,behavior:'smooth'})};fetch('https://api.github.com/repos/SerZhyAle/FileDO/releases/latest').then(function(r){return r.ok?r.json():null}).then(function(x){if(!x)return;var a=x.assets&&x.assets.find(function(y){return /windows-x64\\.zip$/i.test(y.name)}),b=document.getElementById('releaseLink');b.href=a?a.browser_download_url:(x.html_url||b.href)}).catch(function(){})})();
-</script></body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/" />
+    <link rel="icon" type="image/png" href="assets/filedo.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/" />
+    <meta
+      property="og:image"
+      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>FileDO — know your storage before you trust it</title>
+    <meta
+      name="description"
+      content="Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data."
+    />
+    <meta
+      property="og:title"
+      content="FileDO — know your storage before you trust it"
+    />
+    <meta
+      property="og:description"
+      content="Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data."
+    />
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="kit/sza-kit.css" />
+    <style>
+      html[data-lang="ru"] [data-l]:not([data-l="ru"]),
+      html[data-lang="en"] [data-l]:not([data-l="en"]),
+      html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
+        display: none;
+      }
+      .container,
+      .site-header {
+        max-width: min(1760px, 94vw);
+      }
+      .site-header {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .brand-unit {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-right: auto;
+        min-width: 0;
+        color: var(--text);
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: 15px;
+      }
+      .brand-unit img {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        object-fit: cover;
+      }
+      .brand-unit .dot {
+        color: var(--acc);
+      }
+      .hero {
+        padding: 1.2rem 0;
+      }
+      .hero .lead {
+        font-size: 1.07rem;
+      }
+      .intro {
+        color: var(--text-2);
+        margin-bottom: 1.1rem;
+      }
+      .scenario {
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 0.8rem;
+      }
+      .scenario .card,
+      .feature .card {
+        padding: 1rem;
+      }
+      .scenario h3,
+      .feature h3 {
+        font-size: 1rem;
+        margin-bottom: 0.35rem;
+      }
+      .scenario p,
+      .feature p {
+        font-size: 0.88rem;
+        color: var(--text-2);
+      }
+      .get {
+        max-width: none;
+        margin: 1rem 0 1.5rem;
+      }
+      .section h2 {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-family: var(--font-heading);
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+      }
+      .section h2::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--border), transparent);
+      }
+      .get h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.55rem;
+      }
+      .get .copybox {
+        max-width: 620px;
+      }
+      .feature {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 0.8rem;
+      }
+      @media (min-width: 1360px) {
+        .scenario,
+        .feature {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1rem;
+      }
+      .detail-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .details-copy {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .details-copy p,
+      .plain-list {
+        color: var(--text-2);
+      }
+      .plain-list {
+        padding-left: 1.2rem;
+      }
+      .plain-list li {
+        margin: 0.35rem 0;
+      }
+      .danger {
+        border-left-color: var(--danger);
+      }
+      .danger .tag {
+        color: var(--danger);
+      }
+      .footer-tools-title {
+        font-family: var(--font-heading);
+        font-size: 1.05rem;
+        margin-bottom: 0.75rem;
+      }
+      @media (max-width: 480px) {
+        .site-header {
+          max-width: calc(100% - 24px);
+          margin: 10px auto;
+          padding: 8px 10px;
+          gap: 6px;
+        }
+        .brand-unit {
+          font-size: 13px;
+          gap: 0.35rem;
+        }
+        .brand-unit img {
+          width: 24px;
+          height: 24px;
+        }
+        .site-header .btn {
+          display: inline-flex;
+          padding: 0.5rem 0.7rem;
+        }
+      }
+
+      /* FileDO product landing: full-bleed, restrained, outcome-first. */
+      :root {
+        --bg: #091019;
+        --bg-2: #0d1621;
+        --bg-3: #111d2a;
+        --card: rgba(255, 255, 255, 0.035);
+        --card-hover: rgba(255, 255, 255, 0.055);
+        --border: rgba(178, 205, 232, 0.14);
+        --border-hover: rgba(93, 168, 239, 0.55);
+        --text: #f2f6fa;
+        --text-2: #b9c6d3;
+        --muted: #8495a6;
+        --acc: #58a7ee;
+        --acc-strong: #79baf5;
+        --acc-ink: #06121e;
+        --gold: #9fb2c5;
+        --gold-strong: #c3d0dd;
+        --gold-ink: #091019;
+        --code-bg: #050a10;
+        --code-ink: #d5e4f2;
+        --ok: #71c99a;
+        --warn: #d7b36a;
+        --danger: #ee766f;
+        --glow: 0 18px 60px rgba(69, 145, 216, 0.2);
+      }
+      html[data-theme="light"] {
+        --bg: #f2f5f8;
+        --bg-2: #ffffff;
+        --bg-3: #e7edf3;
+        --card: rgba(255, 255, 255, 0.82);
+        --card-hover: #ffffff;
+        --border: rgba(29, 57, 84, 0.14);
+        --border-hover: rgba(34, 119, 199, 0.48);
+        --text: #132233;
+        --text-2: #405267;
+        --muted: #687b8e;
+        --acc: #287fcf;
+        --acc-strong: #166bb9;
+        --acc-ink: #fff;
+        --gold: #4e6479;
+        --gold-strong: #334a5f;
+        --code-bg: #0a121b;
+        --code-ink: #d5e4f2;
+        --glow: 0 18px 55px rgba(37, 118, 192, 0.14);
+      }
+      body {
+        background: var(--bg);
+      }
+      .bg-blobs {
+        display: none;
+      }
+      main {
+        width: 100%;
+      }
+      .container {
+        max-width: none;
+      }
+      .site-header {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 13px clamp(18px, 3.6vw, 72px);
+        border-width: 0 0 1px;
+        border-radius: 0;
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+      }
+      .brand-unit {
+        gap: 0.7rem;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+      }
+      .brand-unit img {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        box-shadow: 0 8px 24px rgba(57, 137, 214, 0.22);
+      }
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: clamp(0.8rem, 2vw, 2rem);
+        margin-right: 0.75rem;
+      }
+      .header-nav a {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .header-nav a:hover {
+        color: var(--text);
+      }
+      .header-action {
+        white-space: nowrap;
+      }
+
+      .band-inner {
+        width: 100%;
+        max-width: 1640px;
+        margin: 0 auto;
+      }
+      .hero {
+        min-height: clamp(600px, calc(100svh - 63px), 760px);
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(400px, 0.95fr);
+        align-items: center;
+        gap: clamp(40px, 5vw, 90px);
+        padding: clamp(48px, 6vh, 72px) clamp(22px, 5vw, 96px);
+        text-align: left;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        width: min(50vw, 820px);
+        aspect-ratio: 1;
+        right: -12vw;
+        top: 50%;
+        transform: translateY(-50%);
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(63, 147, 225, 0.13),
+          transparent 68%
+        );
+        pointer-events: none;
+      }
+      .hero-copy,
+      .hero-visual {
+        position: relative;
+        z-index: 1;
+      }
+      .hero-kicker {
+        margin-bottom: 1.25rem;
+        color: var(--acc);
+        font-family: var(--font-heading);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+      .hero h1 {
+        max-width: 760px;
+        margin: 0 0 1.35rem;
+        font-size: clamp(2.8rem, 4.2vw, 4.6rem);
+        line-height: 1;
+        letter-spacing: -0.045em;
+        font-weight: 700;
+      }
+      .hero h1 em {
+        color: var(--acc);
+        font-style: normal;
+      }
+      .hero .lead {
+        max-width: 680px;
+        margin: 0 0 1.7rem;
+        color: var(--text-2);
+        font-size: clamp(1rem, 1.2vw, 1.15rem);
+        line-height: 1.62;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        align-items: center;
+      }
+      .hero-actions .btn {
+        padding: 0.85rem 1.35rem;
+      }
+      .hero-proof {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 1.35rem;
+        margin-top: 1.65rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      .hero-proof > span::before {
+        content: "—";
+        margin-right: 0.45rem;
+        color: var(--acc);
+      }
+
+      .device-card {
+        max-width: 620px;
+        margin-left: auto;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        background: #07101a;
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+      }
+      html[data-theme="light"] .device-card {
+        background: #0b1520;
+      }
+      .device-top {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.9rem 1.1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        color: #8ea1b4;
+        font: 600 0.72rem/1 var(--font-mono);
+      }
+      .device-top i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #354555;
+      }
+      .device-top span {
+        margin-left: auto;
+      }
+      .drive-head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 1rem;
+        padding: clamp(20px, 2.2vw, 26px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .drive-letter {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #3987d6, #65b5f5);
+        color: #fff;
+        font: 700 1.2rem/1 var(--font-heading);
+      }
+      .drive-name strong {
+        display: block;
+        color: #eff5fb;
+        font: 650 1.05rem/1.2 var(--font-heading);
+      }
+      .drive-name span {
+        display: block;
+        margin-top: 0.35rem;
+        color: #7f93a7;
+        font: 0.75rem/1 var(--font-mono);
+      }
+      .drive-state {
+        color: #81d5a7;
+        font: 700 0.7rem/1 var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .readout {
+        padding: clamp(18px, 2.2vw, 26px);
+      }
+      .readout-row {
+        display: grid;
+        grid-template-columns: minmax(110px, 0.8fr) minmax(150px, 1.5fr) auto;
+        align-items: center;
+        gap: 1rem;
+        min-height: 52px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        font-family: var(--font-mono);
+      }
+      .readout-row:last-child {
+        border: 0;
+      }
+      .readout-label {
+        color: #7890a6;
+        font-size: 0.74rem;
+      }
+      .readout-track {
+        height: 5px;
+        border-radius: 5px;
+        background: #172433;
+        overflow: hidden;
+      }
+      .readout-track i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #58a7ee;
+      }
+      .readout-value {
+        min-width: 92px;
+        color: #e5eef6;
+        font-size: 0.78rem;
+        text-align: right;
+      }
+      .readout-value.ok {
+        color: #71c99a;
+      }
+      .terminal-line {
+        display: flex;
+        gap: 0.8rem;
+        padding: 1.15rem clamp(20px, 3vw, 34px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        color: #adbdca;
+        font: 0.75rem/1.5 var(--font-mono);
+      }
+      .terminal-line b {
+        color: #58a7ee;
+      }
+
+      .page-band {
+        padding: clamp(62px, 6vw, 96px) clamp(22px, 5vw, 96px);
+      }
+      .outcomes {
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-2);
+      }
+      .section-intro {
+        display: grid;
+        grid-template-columns: minmax(0, 0.75fr) minmax(300px, 1fr);
+        gap: clamp(30px, 5vw, 96px);
+        align-items: center;
+        margin-bottom: clamp(36px, 4vw, 58px);
+      }
+      .eyebrow {
+        margin-bottom: 1rem;
+        color: var(--acc);
+        font: 700 0.72rem/1 var(--font-heading);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .section-intro h2,
+      .get-title h2 {
+        font-size: clamp(2.15rem, 3.2vw, 3.6rem);
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+        font-weight: 650;
+      }
+      .section-intro .intro {
+        max-width: 750px;
+        margin: 0;
+        color: var(--text-2);
+        font-size: clamp(1rem, 1.35vw, 1.18rem);
+      }
+      .outcome-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        border: 1px solid var(--border);
+      }
+      .outcome {
+        min-height: 220px;
+        padding: clamp(24px, 2.5vw, 42px);
+        border-right: 1px solid var(--border);
+        background: var(--card);
+      }
+      .outcome:last-child {
+        border-right: 0;
+      }
+      .outcome-num {
+        color: var(--acc);
+        font: 700 0.72rem/1 var(--font-mono);
+      }
+      .outcome h3 {
+        margin: 3.25rem 0 0.7rem;
+        font-size: clamp(1.15rem, 1.55vw, 1.5rem);
+      }
+      .outcome p {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .method {
+        background: var(--bg);
+      }
+      .method-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+      }
+      .method-step {
+        padding: clamp(30px, 4vw, 64px);
+        background: var(--bg);
+      }
+      .method-step > span {
+        color: var(--acc);
+        font: 700 0.75rem/1 var(--font-mono);
+      }
+      .method-step h3 {
+        margin: 2.4rem 0 0.8rem;
+        font-size: clamp(1.45rem, 2vw, 2rem);
+      }
+      .method-step p {
+        color: var(--text-2);
+        max-width: 460px;
+      }
+      .method-step code {
+        display: inline-block;
+        margin-top: 1.5rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .install-band {
+        background: var(--bg-2);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+      .get {
+        max-width: 1640px;
+        margin: 0 auto;
+        padding: 0;
+        display: grid;
+        grid-template-columns: minmax(300px, 0.8fr) minmax(480px, 1.2fr);
+        gap: clamp(42px, 8vw, 140px);
+        align-items: start;
+        border: 0;
+        background: transparent;
+        backdrop-filter: none;
+      }
+      .get-title p {
+        margin-top: 1.35rem;
+        color: var(--text-2);
+        max-width: 600px;
+      }
+      .install-panel {
+        display: grid;
+        gap: 1rem;
+      }
+      .install-panel .copybox,
+      .install-panel .channels,
+      .install-panel .quickstart {
+        grid-area: auto;
+      }
+      .install-panel .copybox {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+      }
+      .install-panel .channels {
+        margin-top: 0.25rem;
+      }
+      .install-note {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .section {
+        padding: clamp(54px, 7vw, 100px) clamp(22px, 5vw, 96px);
+      }
+      .section > * {
+        max-width: 1640px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .section h2 {
+        font-size: clamp(2rem, 3.2vw, 3.5rem);
+        margin-bottom: 0.8rem;
+      }
+      .section .intro {
+        color: var(--text-2);
+        margin-bottom: 1.5rem;
+        max-width: 850px;
+      }
+      .detail-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .details-copy {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .details-copy p,
+      .plain-list {
+        color: var(--text-2);
+      }
+      .plain-list {
+        padding-left: 1.2rem;
+      }
+      .plain-list li {
+        margin: 0.35rem 0;
+      }
+      .danger {
+        border-left-color: var(--danger);
+      }
+      .danger .tag {
+        color: var(--danger);
+      }
+      .footer-tools-title {
+        font-family: var(--font-heading);
+        font-size: 1.05rem;
+        margin-bottom: 0.75rem;
+      }
+
+      @media (max-width: 1250px) {
+        .outcome-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .outcome {
+          border-bottom: 1px solid var(--border);
+        }
+        .outcome:nth-child(3n) {
+          border-right: 0;
+        }
+        .outcome:nth-child(n + 4) {
+          border-bottom: 0;
+        }
+      }
+      @media (min-width: 941px) and (max-width: 1100px) {
+        .drive-head,
+        .readout {
+          padding: 18px;
+        }
+        .drive-letter {
+          width: 46px;
+          height: 46px;
+        }
+        .drive-name span {
+          font-size: 0.68rem;
+        }
+        .readout-row {
+          grid-template-columns: 82px minmax(82px, 1fr) auto;
+          gap: 0.65rem;
+        }
+        .readout-value {
+          min-width: 68px;
+          font-size: 0.72rem;
+        }
+      }
+      @media (max-width: 940px) {
+        .hero {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+        .hero-copy {
+          max-width: 900px;
+        }
+        .hero-visual {
+          width: min(100%, 780px);
+        }
+        .device-card {
+          margin-left: 0;
+          transform: none;
+        }
+        .outcome-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .outcome {
+          border-bottom: 1px solid var(--border);
+        }
+        .outcome:nth-child(2n) {
+          border-right: 0;
+        }
+        .outcome:nth-child(3n) {
+          border-right: 1px solid var(--border);
+        }
+        .outcome:last-child {
+          grid-column: 1 / -1;
+          border-right: 0;
+          border-bottom: 0;
+        }
+      }
+      @media (max-width: 820px) {
+        .header-nav {
+          display: none;
+        }
+        .section-intro,
+        .get {
+          grid-template-columns: 1fr;
+        }
+        .method-grid {
+          grid-template-columns: 1fr;
+        }
+        .method-step {
+          min-height: 250px;
+        }
+        .install-panel {
+          width: 100%;
+        }
+      }
+      @media (max-width: 560px) {
+        .site-header {
+          max-width: none;
+          margin: 0;
+          padding: 10px 14px;
+          gap: 7px;
+        }
+        .brand-unit {
+          font-size: 0.9rem;
+          gap: 0.5rem;
+        }
+        .brand-unit img {
+          width: 32px;
+          height: 32px;
+        }
+        .header-action {
+          display: none !important;
+        }
+        .seg button {
+          padding: 5px 7px;
+        }
+        .hero {
+          padding-top: 48px;
+          padding-bottom: 58px;
+        }
+        .hero h1 {
+          font-size: clamp(2.45rem, 12vw, 3.35rem);
+        }
+        .hero-actions .btn {
+          width: 100%;
+          justify-content: center;
+        }
+        .outcome-grid {
+          grid-template-columns: 1fr;
+        }
+        .outcome,
+        .outcome:nth-child(2n) {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        .outcome:last-child {
+          grid-column: auto;
+        }
+        .outcome h3 {
+          margin-top: 3rem;
+        }
+        .readout-row {
+          grid-template-columns: 1fr auto;
+          gap: 0.7rem;
+        }
+        .readout-track {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+        .drive-state {
+          display: none;
+        }
+        .drive-head {
+          grid-template-columns: auto 1fr;
+        }
+      }
+
+      /* Compact FileDO page aligned with the visual system of sza.od.ua. */
+      :root {
+        --bg: #0a0f0a;
+        --bg-2: #0f1610;
+        --bg-3: #131c14;
+        --card: rgba(255, 255, 255, 0.035);
+        --card-hover: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(63, 185, 80, 0.35);
+        --text: #f1f5ee;
+        --text-2: #c3ccbc;
+        --muted: #94a08c;
+        --acc: #3fb950;
+        --acc-strong: #56d364;
+        --acc-ink: #04130c;
+        --gold: #e3b341;
+        --gold-strong: #f0c862;
+        --gold-ink: #1c1403;
+        --code-bg: #070f08;
+        --code-ink: #d6e2cf;
+        --glow: 0 0 26px rgba(63, 185, 80, 0.28);
+      }
+      html[data-theme="light"] {
+        --bg: #eef3ea;
+        --bg-2: #ffffff;
+        --bg-3: #e4ecdf;
+        --card: rgba(255, 255, 255, 0.7);
+        --card-hover: rgba(255, 255, 255, 0.92);
+        --border: rgba(16, 40, 20, 0.12);
+        --border-hover: rgba(47, 143, 58, 0.4);
+        --text: #16210f;
+        --text-2: #384534;
+        --muted: #5f6b54;
+        --acc: #2f8f3a;
+        --acc-strong: #267a30;
+        --acc-ink: #ffffff;
+        --gold: #9a6a13;
+        --gold-strong: #7e560f;
+        --gold-ink: #ffffff;
+        --code-bg: #0e1411;
+        --code-ink: #d6e2cf;
+        --glow: 0 0 26px rgba(47, 143, 58, 0.18);
+      }
+      .container {
+        max-width: var(--wide);
+      }
+      .site-header {
+        width: auto;
+        max-width: var(--wide);
+        margin: 14px auto;
+        padding: 10px 16px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-2) 78%, transparent);
+      }
+      .brand-unit {
+        font-size: 15px;
+      }
+      .hero {
+        display: block;
+        min-height: 0;
+        max-width: var(--wide);
+        margin: 0 auto;
+        padding: 2.25rem 20px 1.5rem;
+        overflow: visible;
+      }
+      .hero::before {
+        display: none;
+      }
+      .compact-identity {
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr);
+        gap: 1.05rem;
+        align-items: start;
+      }
+      .compact-product-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        box-shadow: none;
+      }
+      .hero-copy {
+        max-width: 1160px;
+      }
+      .hero-kicker {
+        margin: 0.05rem 0 0.45rem;
+        color: var(--acc);
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+      }
+      .hero h1 {
+        max-width: 980px;
+        margin: 0;
+        font-size: clamp(1.9rem, 2.7vw, 2.5rem);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+      }
+      .hero h1 em {
+        color: inherit;
+      }
+      .hero .lead {
+        max-width: 1120px;
+        margin: 0.75rem 0 1rem;
+        color: var(--text-2);
+        font-size: 0.98rem;
+        line-height: 1.6;
+      }
+      .hero-actions {
+        gap: 0.55rem;
+      }
+      .hero-actions .btn {
+        padding: 0.62rem 1.05rem;
+        font-size: 0.82rem;
+      }
+      .hero-proof {
+        margin-top: 0.9rem;
+        gap: 0.4rem 1rem;
+        font-size: 0.74rem;
+      }
+      .hero-visual {
+        display: none;
+      }
+      .page-band {
+        padding: 1.45rem 20px;
+      }
+      .band-inner {
+        max-width: var(--wide);
+      }
+      .outcomes,
+      .install-band {
+        border: 0;
+        background: transparent;
+      }
+      .section-intro {
+        display: block;
+        margin-bottom: 1.2rem;
+      }
+      .eyebrow {
+        display: none;
+      }
+      .section-intro h2,
+      .get-title h2 {
+        font-size: 1.5rem;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        font-weight: 700;
+      }
+      .section-intro h2::before,
+      .section h2::before {
+        content: "#";
+        color: var(--acc);
+        margin-right: 0.65rem;
+      }
+      .section-intro .intro {
+        max-width: 1050px;
+        margin-top: 0.35rem;
+        font-size: 0.9rem;
+      }
+      .outcome-grid {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1rem;
+        border: 0;
+      }
+      .outcome,
+      .outcome:nth-child(2n),
+      .outcome:nth-child(3n),
+      .outcome:nth-child(n + 4),
+      .outcome:last-child {
+        min-height: 0;
+        padding: 1.15rem 1.2rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        grid-column: auto;
+      }
+      .outcome-num {
+        display: inline-block;
+        padding: 0.2rem 0.55rem;
+        border-radius: var(--radius-pill);
+        background: color-mix(in srgb, var(--acc) 12%, transparent);
+        font-size: 0.64rem;
+      }
+      .outcome h3 {
+        margin: 0.85rem 0 0.45rem;
+        font-size: 1rem;
+      }
+      .outcome p {
+        font-size: 0.82rem;
+        line-height: 1.55;
+      }
+      .get {
+        max-width: var(--wide);
+        grid-template-columns: minmax(260px, 0.75fr) minmax(420px, 1.25fr);
+        gap: 1.4rem;
+        padding: 1.25rem 1.35rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        backdrop-filter: blur(12px);
+      }
+      .get-title p {
+        margin-top: 0.5rem;
+        font-size: 0.88rem;
+      }
+      .install-panel {
+        gap: 0.65rem;
+      }
+      .install-panel > .quickstart,
+      .install-panel > .install-example,
+      .install-panel > .note {
+        display: none;
+      }
+      .section {
+        padding: 1.45rem 20px;
+      }
+      .section h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.45rem;
+      }
+      .section .intro {
+        max-width: none;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+      }
+      details.sec > summary {
+        padding: 0.85rem 0;
+        font-size: 0.95rem;
+      }
+      .site-footer {
+        margin-top: 1rem;
+      }
+      .footer-tools-title,
+      .tools-grid {
+        display: none;
+      }
+      @media (max-width: 820px) {
+        .get {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 560px) {
+        .site-header {
+          max-width: calc(100% - 20px);
+          margin: 10px auto;
+        }
+        .compact-identity {
+          grid-template-columns: 48px minmax(0, 1fr);
+          gap: 0.8rem;
+        }
+        .compact-product-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+        }
+        .hero {
+          padding-top: 1.5rem;
+          padding-bottom: 1rem;
+        }
+        .hero h1 {
+          font-size: 1.8rem;
+        }
+        .hero-actions .btn {
+          width: auto;
+        }
+        .outcome-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand-unit" href="#top"
+        ><span>FileDO<span class="dot">.</span></span></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a
+        class="btn btn-primary btn-sm header-action"
+        href="https://github.com/SerZhyAle/FileDO"
+        target="_blank"
+        rel="noopener"
+        >GitHub</a
+      >
+    </header>
+    <main id="top">
+      <section class="hero">
+        <div class="compact-identity">
+          <img
+            class="compact-product-icon"
+            src="assets/filedo.png"
+            alt="FileDO"
+          />
+          <div class="hero-copy">
+            <p class="hero-kicker">
+              <span data-l="ru">FileDO · Windows CLI и GUI</span>
+              <span data-l="en">FileDO · Windows CLI &amp; GUI</span>
+              <span data-l="ua">FileDO · Windows CLI та GUI</span>
+            </p>
+            <h1>
+              <span data-l="ru">Проверка накопителей и операции с файлами</span>
+              <span data-l="en">Storage checks and file operations</span>
+              <span data-l="ua">Перевірка носіїв і операції з файлами</span>
+            </h1>
+            <p class="lead">
+              <span data-l="ru"
+                >Windows-инструмент для проверки реальной ёмкости и скорости
+                USB, SD и HDD, чтения файлов, поиска дубликатов, сравнения
+                папок, копирования и очистки.</span
+              >
+              <span data-l="en"
+                >A Windows tool for checking the real capacity and speed of USB,
+                SD, and HDD storage, reading files, finding duplicates,
+                comparing folders, copying, and cleanup.</span
+              >
+              <span data-l="ua"
+                >Windows-інструмент для перевірки реальної ємності та швидкості
+                USB, SD і HDD, читання файлів, пошуку дублікатів, порівняння
+                тек, копіювання й очищення.</span
+              >
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#why"
+                ><span data-l="ru">Возможности</span
+                ><span data-l="en">Capabilities</span
+                ><span data-l="ua">Можливості</span></a
+              >
+              <a class="btn btn-ghost" href="guides/"
+                ><span data-l="ru">Выбрать свою задачу</span
+                ><span data-l="en">Choose your task</span
+                ><span data-l="ua">Обрати своє завдання</span></a
+              >
+            </div>
+            <div class="hero-proof" aria-label="Product facts">
+              <span
+                ><span data-l="ru">USB · SD · HDD · папки</span
+                ><span data-l="en">USB · SD · HDD · folders</span
+                ><span data-l="ua">USB · SD · HDD · теки</span></span
+              ><span>Windows x64</span><span>CLI + GUI</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual" aria-label="Example FileDO storage check">
+          <div class="device-card">
+            <div class="device-top">
+              <i></i><i></i><i></i
+              ><span
+                ><span data-l="ru">filedo · пример проверки</span
+                ><span data-l="en">filedo · example check</span
+                ><span data-l="ua">filedo · приклад перевірки</span></span
+              >
+            </div>
+            <div class="drive-head">
+              <div class="drive-letter">E:</div>
+              <div class="drive-name">
+                <strong>USB STORAGE</strong><span>exFAT · removable media</span>
+              </div>
+              <div class="drive-state">
+                <span data-l="ru">проверено</span
+                ><span data-l="en">checked</span
+                ><span data-l="ua">перевірено</span>
+              </div>
+            </div>
+            <div class="readout">
+              <div class="readout-row">
+                <span class="readout-label"
+                  ><span data-l="ru">Ёмкость</span
+                  ><span data-l="en">Capacity</span
+                  ><span data-l="ua">Ємність</span></span
+                ><span class="readout-track"><i style="width: 94%"></i></span
+                ><span class="readout-value">117.2 GB</span>
+              </div>
+              <div class="readout-row">
+                <span class="readout-label"
+                  ><span data-l="ru">Чтение</span
+                  ><span data-l="en">Read speed</span
+                  ><span data-l="ua">Читання</span></span
+                ><span class="readout-track"><i style="width: 78%"></i></span
+                ><span class="readout-value">92 MB/s</span>
+              </div>
+              <div class="readout-row">
+                <span class="readout-label"
+                  ><span data-l="ru">Файлы</span><span data-l="en">Files</span
+                  ><span data-l="ua">Файли</span></span
+                ><span class="readout-track"><i style="width: 100%"></i></span
+                ><span class="readout-value ok"
+                  ><span data-l="ru">читаются</span
+                  ><span data-l="en">readable</span
+                  ><span data-l="ua">читаються</span></span
+                >
+              </div>
+              <div class="readout-row">
+                <span class="readout-label"
+                  ><span data-l="ru">Дубликаты</span
+                  ><span data-l="en">Duplicates</span
+                  ><span data-l="ua">Дублікати</span></span
+                ><span class="readout-track"><i style="width: 18%"></i></span
+                ><span class="readout-value"
+                  ><span data-l="ru">14 групп</span
+                  ><span data-l="en">14 groups</span
+                  ><span data-l="ua">14 груп</span></span
+                >
+              </div>
+            </div>
+            <div class="terminal-line">
+              <b>›</b><span>info · speed · read · duplicates</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="page-band outcomes" id="why">
+        <div class="band-inner">
+          <div class="section-intro">
+            <div>
+              <p class="eyebrow">
+                <span data-l="ru">Возможности</span
+                ><span data-l="en">Capabilities</span
+                ><span data-l="ua">Можливості</span>
+              </p>
+              <h2>
+                <span data-l="ru">Что проверяет и делает FileDO</span
+                ><span data-l="en">What FileDO checks and does</span
+                ><span data-l="ua">Що перевіряє та робить FileDO</span>
+              </h2>
+            </div>
+            <p class="intro">
+              <span data-l="ru"
+                >Операции сгруппированы по задаче. Проверки и отчёты не изменяют
+                данные; удаление и очистка запускаются отдельно.</span
+              ><span data-l="en"
+                >Operations are grouped by task. Checks and reports do not
+                change data; deletion and cleanup are run separately.</span
+              ><span data-l="ua"
+                >Операції згруповані за завданням. Перевірки та звіти не
+                змінюють дані; видалення й очищення запускаються окремо.</span
+              >
+            </p>
+          </div>
+          <div class="outcome-grid">
+            <article class="outcome">
+              <span class="outcome-num">01</span>
+              <h3>
+                <span data-l="ru">Проверить накопитель</span
+                ><span data-l="en">Check storage</span
+                ><span data-l="ua">Перевірити носій</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Проверить реальную ёмкость USB или SD и измерить скорость
+                  чтения и записи.</span
+                ><span data-l="en"
+                  >Verify USB or SD capacity and measure read and write
+                  speed.</span
+                ><span data-l="ua"
+                  >Перевірити реальну ємність USB або SD та виміряти швидкість
+                  читання й запису.</span
+                >
+              </p>
+            </article>
+            <article class="outcome" hidden>
+              <span class="outcome-num">02</span>
+              <h3>
+                <span data-l="ru">Понять скорость</span
+                ><span data-l="en">Measure speed</span
+                ><span data-l="ua">Зрозуміти швидкість</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Измерить чтение и запись вместо догадок по ощущениям.</span
+                ><span data-l="en"
+                  >Measure read and write performance instead of guessing.</span
+                ><span data-l="ua"
+                  >Виміряти читання та запис замість здогадок.</span
+                >
+              </p>
+            </article>
+            <article class="outcome">
+              <span class="outcome-num">02</span>
+              <h3>
+                <span data-l="ru">Проверить чтение</span
+                ><span data-l="en">Check reading</span
+                ><span data-l="ua">Перевірити читання</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Найти файлы, которые читаются с ошибками или
+                  задержками.</span
+                ><span data-l="en"
+                  >Find files that read with errors or persistent stalls.</span
+                ><span data-l="ua"
+                  >Знайти файли, що читаються з помилками або затримками.</span
+                >
+              </p>
+            </article>
+            <article class="outcome">
+              <span class="outcome-num">03</span>
+              <h3>
+                <span data-l="ru">Найти дубликаты</span
+                ><span data-l="en">Find duplicates</span
+                ><span data-l="ua">Знайти дублікати</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Увидеть группы дубликатов и сохранить список до
+                  удаления.</span
+                ><span data-l="en"
+                  >Review duplicate groups and save the list before
+                  deleting.</span
+                ><span data-l="ua"
+                  >Побачити групи дублікатів і зберегти список до
+                  видалення.</span
+                >
+              </p>
+            </article>
+            <article class="outcome">
+              <span class="outcome-num">04</span>
+              <h3>
+                <span data-l="ru">Копировать и сравнить</span
+                ><span data-l="en">Copy and compare</span
+                ><span data-l="ua">Копіювати й порівняти</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Копировать с прогрессом или получить отчёт о различиях
+                  папок.</span
+                ><span data-l="en"
+                  >Copy with progress or get a report of folder
+                  differences.</span
+                ><span data-l="ua"
+                  >Копіювати з прогресом або отримати звіт про відмінності
+                  тек.</span
+                >
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="page-band method" id="approach" hidden>
+        <div class="band-inner">
+          <div class="section-intro">
+            <div>
+              <p class="eyebrow">
+                <span data-l="ru">Сдержанный подход</span
+                ><span data-l="en">A deliberate approach</span
+                ><span data-l="ua">Стриманий підхід</span>
+              </p>
+              <h2>
+                <span data-l="ru">Сначала понять. Потом действовать.</span
+                ><span data-l="en">Understand first. Act second.</span
+                ><span data-l="ua">Спочатку зрозуміти. Потім діяти.</span>
+              </h2>
+            </div>
+            <p class="intro">
+              <span data-l="ru"
+                >FileDO разделяет наблюдение и изменение данных. Вы начинаете с
+                информации и отчёта, а операции удаления остаются явным
+                следующим решением.</span
+              ><span data-l="en"
+                >FileDO separates observation from data-changing actions. You
+                begin with information and reports; deletion remains an explicit
+                next decision.</span
+              ><span data-l="ua"
+                >FileDO відокремлює спостереження від зміни даних. Ви починаєте
+                з інформації та звіту, а видалення лишається окремим
+                рішенням.</span
+              >
+            </p>
+          </div>
+          <div class="method-grid">
+            <article class="method-step">
+              <span>01 / OBSERVE</span>
+              <h3>
+                <span data-l="ru">Увидеть состояние</span
+                ><span data-l="en">See the state</span
+                ><span data-l="ua">Побачити стан</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Получите сведения о носителе или папке без изменения
+                  файлов.</span
+                ><span data-l="en"
+                  >Inspect the drive or folder without changing its files.</span
+                ><span data-l="ua"
+                  >Отримайте відомості про носій або папку без зміни
+                  файлів.</span
+                >
+              </p>
+              <code>filedo E: info</code>
+            </article>
+            <article class="method-step">
+              <span>02 / VERIFY</span>
+              <h3>
+                <span data-l="ru">Проверить предположение</span
+                ><span data-l="en">Verify the assumption</span
+                ><span data-l="ua">Перевірити припущення</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Запустите ровно тот тест, который отвечает на ваш
+                  вопрос.</span
+                ><span data-l="en"
+                  >Run only the check that answers the question you have.</span
+                ><span data-l="ua"
+                  >Запустіть саме ту перевірку, що відповідає на ваше
+                  питання.</span
+                >
+              </p>
+              <code>capacity · speed · read · compare</code>
+            </article>
+            <article class="method-step">
+              <span>03 / DECIDE</span>
+              <h3>
+                <span data-l="ru">Принять решение</span
+                ><span data-l="en">Make the decision</span
+                ><span data-l="ua">Прийняти рішення</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Сохраните отчёт, скопируйте данные или удалите только после
+                  проверки результата.</span
+                ><span data-l="en"
+                  >Save a report, copy data, or delete only after reviewing the
+                  result.</span
+                ><span data-l="ua"
+                  >Збережіть звіт, скопіюйте дані або видаляйте лише після
+                  перевірки результату.</span
+                >
+              </p>
+              <code>report → review → action</code>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="page-band install-band" id="get">
+        <div class="get">
+          <div class="get-title">
+            <p class="eyebrow">
+              <span data-l="ru">Когда вы уже решили</span
+              ><span data-l="en">When you are ready</span
+              ><span data-l="ua">Коли ви вже вирішили</span>
+            </p>
+            <h2>
+              <span data-l="ru">Установка</span
+              ><span data-l="en">Installation</span
+              ><span data-l="ua">Встановлення</span>
+            </h2>
+            <p class="whatfor">
+              <span data-l="ru"
+                >Основной путь — winget для Windows x64. Portable ZIP и MSI
+                доступны в GitHub Releases; ссылка ниже всегда ведёт к
+                последнему релизу.</span
+              ><span data-l="en"
+                >The primary path is winget for Windows x64. A portable ZIP and
+                MSI are available in GitHub Releases; the link below always
+                leads to the latest release.</span
+              ><span data-l="ua"
+                >Основний шлях — winget для Windows x64. Portable ZIP і MSI
+                доступні в GitHub Releases; посилання нижче завжди веде до
+                останнього релізу.</span
+              >
+            </p>
+          </div>
+          <div class="install-panel">
+            <div class="copybox">
+              winget install SerZhyAle.FileDO<button
+                class="copy"
+                data-copy="winget install SerZhyAle.FileDO"
+              >
+                Copy
+              </button>
+            </div>
+            <div class="channels">
+              <a
+                class="btn btn-primary btn-sm"
+                id="releaseLink"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                >GitHub Releases</a
+              ><a
+                class="btn btn-ghost btn-sm"
+                href="https://github.com/SerZhyAle/FileDO"
+                target="_blank"
+                rel="noopener"
+                ><span data-l="ru">Исходный код</span
+                ><span data-l="en">Source code</span
+                ><span data-l="ua">Вихідний код</span></a
+              >
+            </div>
+            <ol class="quickstart">
+              <li>
+                <span data-l="ru"
+                  >Установите командой выше или распакуйте ZIP из
+                  Releases.</span
+                ><span data-l="en"
+                  >Install with the command above, or extract the ZIP from
+                  Releases.</span
+                ><span data-l="ua"
+                  >Встановіть командою вище або розпакуйте ZIP з Releases.</span
+                >
+              </li>
+              <li>
+                <span data-l="ru"
+                  >Откройте PowerShell или cmd и сначала проверьте сведения о
+                  носителе.</span
+                ><span data-l="en"
+                  >Open PowerShell or cmd and inspect the drive first.</span
+                ><span data-l="ua"
+                  >Відкрийте PowerShell або cmd і спочатку перегляньте відомості
+                  про носій.</span
+                >
+              </li>
+              <li>
+                <span data-l="ru"
+                  >Только затем выбирайте тест, скорость, копирование или поиск
+                  дубликатов.</span
+                ><span data-l="en"
+                  >Only then choose a test, speed check, copy, or duplicate
+                  scan.</span
+                ><span data-l="ua"
+                  >Лише потім виберіть тест, перевірку швидкості, копіювання або
+                  пошук дублікатів.</span
+                >
+              </li>
+            </ol>
+            <div class="copybox install-example">
+              filedo E: info<button class="copy" data-copy="filedo E: info">
+                Copy
+              </button>
+            </div>
+            <div class="note">
+              <span class="tag"
+                ><span data-l="ru">Важно</span><span data-l="en">Important</span
+                ><span data-l="ua">Важливо</span></span
+              >
+              <p>
+                <span data-l="ru"
+                  >Замените <code>E:</code> на нужный путь. Эта команда
+                  показывает сведения и не удаляет файлы.</span
+                ><span data-l="en"
+                  >Replace <code>E:</code> with your target. This command shows
+                  information and does not delete files.</span
+                ><span data-l="ua"
+                  >Замініть <code>E:</code> на потрібний шлях. Ця команда
+                  показує відомості й не видаляє файли.</span
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="section" hidden>
+        <h2>
+          <span data-l="ru">Основные возможности</span
+          ><span data-l="en">Main capabilities</span
+          ><span data-l="ua">Основні можливості</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >После безопасной проверки используйте одну операцию для одной
+            понятной задачи.</span
+          ><span data-l="en"
+            >After the safe check, use one operation for one clear task.</span
+          ><span data-l="ua"
+            >Після безпечної перевірки використовуйте одну операцію для одного
+            зрозумілого завдання.</span
+          >
+        </p>
+        <div class="grid feature">
+          <article class="card">
+            <h3>Capacity &amp; speed</h3>
+            <p>
+              <span data-l="ru"
+                >Тесты ёмкости и производительности для носителей, папок и
+                сетевых путей.</span
+              ><span data-l="en"
+                >Capacity and performance tests for drives, folders, and network
+                paths.</span
+              ><span data-l="ua"
+                >Тести ємності й продуктивності для носіїв, папок і мережевих
+                шляхів.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>Duplicates</h3>
+            <p>
+              <span data-l="ru"
+                >Поиск совпадений по MD5 с кэшем; список можно сохранить и
+                обработать позже.</span
+              ><span data-l="en"
+                >MD5 matching with a cache; save a list and process it
+                later.</span
+              ><span data-l="ua"
+                >Пошук збігів за MD5 з кешем; список можна зберегти й обробити
+                пізніше.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>Copy &amp; compare</h3>
+            <p>
+              <span data-l="ru"
+                >Копирование с прогрессом и тайм-аутами, а также отчёт о
+                различиях между папками.</span
+              ><span data-l="en"
+                >Copying with progress and timeouts, plus reports of differences
+                between folders.</span
+              ><span data-l="ua"
+                >Копіювання з прогресом і тайм-аутами, а також звіт про
+                відмінності між папками.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>Read check</h3>
+            <p>
+              <span data-l="ru"
+                >Проверка чтения файлов с отчётами и настройками для медленных
+                HDD/USB.</span
+              ><span data-l="en"
+                >Read checks with reports and controls for slow HDD/USB
+                media.</span
+              ><span data-l="ua"
+                >Перевірка читання файлів зі звітами й налаштуваннями для
+                повільних HDD/USB.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>GUI command builder</h3>
+            <p>
+              <span data-l="ru"
+                >В ZIP и winget-пакете есть <code>filedo_win</code>, который
+                собирает и запускает команды.</span
+              ><span data-l="en"
+                >The ZIP and winget package include <code>filedo_win</code>,
+                which builds and runs commands.</span
+              ><span data-l="ua"
+                >ZIP і пакет winget містять <code>filedo_win</code>, який збирає
+                та запускає команди.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="guides">
+        <h2>
+          <span data-l="ru">Инструкции и детали</span
+          ><span data-l="en">Guides and details</span
+          ><span data-l="ua">Інструкції та деталі</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Полные справочные материалы остаются здесь, чтобы не мешать первому
+            шагу.</span
+          ><span data-l="en"
+            >The full reference stays here so it does not compete with the first
+            step.</span
+          ><span data-l="ua"
+            >Повна довідка залишається тут, щоб не заважати першому кроку.</span
+          >
+        </p>
+        <div class="detail-actions">
+          <button class="btn btn-ghost btn-sm" id="expandAll">
+            <span data-l="ru">Раскрыть всё</span
+            ><span data-l="en">Expand all</span
+            ><span data-l="ua">Розгорнути все</span></button
+          ><button class="btn btn-ghost btn-sm" id="collapseAll">
+            <span data-l="ru">Свернуть всё</span
+            ><span data-l="en">Collapse all</span
+            ><span data-l="ua">Згорнути все</span>
+          </button>
+        </div>
+        <details class="sec" id="first-test">
+          <summary>
+            <span class="secnum">01</span
+            ><span data-l="ru">Проверка USB/SD и скорости</span
+            ><span data-l="en">Checking a USB/SD card and speed</span
+            ><span data-l="ua">Перевірка USB/SD і швидкості</span>
+          </summary>
+          <div class="details-copy">
+            <p>
+              <span data-l="ru"
+                >Сначала используйте <code>info</code>. Проверка ёмкости создаёт
+                проверочные файлы; выбирайте правильный носитель и убедитесь,
+                что на нём достаточно свободного места.</span
+              ><span data-l="en"
+                >Use <code>info</code> first. A capacity test creates test
+                files; select the correct drive and make sure it has enough free
+                space.</span
+              ><span data-l="ua"
+                >Спочатку використайте <code>info</code>. Тест ємності створює
+                тестові файли; виберіть правильний носій і переконайтеся, що на
+                ньому достатньо вільного місця.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo E: test del<button
+                class="copy"
+                data-copy="filedo E: test del"
+              >
+                Copy
+              </button>
+            </div>
+            <div class="copybox">
+              filedo E: speed 100<button
+                class="copy"
+                data-copy="filedo E: speed 100"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </details>
+        <details class="sec" id="duplicates">
+          <summary>
+            <span class="secnum">02</span
+            ><span data-l="ru">Дубликаты, копирование и сравнение</span
+            ><span data-l="en">Duplicates, copying, and comparison</span
+            ><span data-l="ua">Дублікати, копіювання та порівняння</span>
+          </summary>
+          <div class="details-copy">
+            <p>
+              <span data-l="ru"
+                >Сначала получите список или отчёт. Команды с
+                <code>del</code> удаляют данные; проверьте путь и результат до
+                их запуска.</span
+              ><span data-l="en"
+                >Get a list or report first. Commands with
+                <code>del</code> remove data; verify the path and result before
+                running them.</span
+              ><span data-l="ua"
+                >Спочатку отримайте список або звіт. Команди з
+                <code>del</code> видаляють дані; перевірте шлях і результат
+                перед запуском.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo C:\Data check-duplicates<button
+                class="copy"
+                data-copy="filedo C:\Data check-duplicates"
+              >
+                Copy
+              </button>
+            </div>
+            <div class="copybox">
+              filedo C:\Source copy D:\Backup<button
+                class="copy"
+                data-copy="filedo C:\Source copy D:\Backup"
+              >
+                Copy
+              </button>
+            </div>
+            <div class="copybox">
+              filedo compare D:\Data E:\Backup<button
+                class="copy"
+                data-copy="filedo compare D:\Data E:\Backup"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </details>
+        <details class="sec" id="safety">
+          <summary>
+            <span class="secnum">03</span
+            ><span data-l="ru">Операции с риском</span
+            ><span data-l="en">Operations with risk</span
+            ><span data-l="ua">Операції з ризиком</span>
+          </summary>
+          <div class="details-copy">
+            <div class="note danger">
+              <span class="tag"
+                ><span data-l="ru">Необратимо</span
+                ><span data-l="en">Irreversible</span
+                ><span data-l="ua">Незворотно</span></span
+              >
+              <p>
+                <span data-l="ru"
+                  ><code>wipe</code>, <code>fill … del</code> и режимы удаления
+                  в compare/duplicates могут удалить данные. Сначала просмотрите
+                  носитель, список или отчёт и сделайте резервную копию.</span
+                ><span data-l="en"
+                  ><code>wipe</code>, <code>fill … del</code>, and deletion
+                  modes in compare/duplicates can remove data. Inspect the
+                  drive, list, or report and back up first.</span
+                ><span data-l="ua"
+                  ><code>wipe</code>, <code>fill … del</code> і режими видалення
+                  в compare/duplicates можуть видалити дані. Спочатку
+                  перегляньте носій, список або звіт і зробіть резервну
+                  копію.</span
+                >
+              </p>
+            </div>
+            <p>
+              <span data-l="ru"
+                ><code>wipe</code> требует ввода <code>WIPE</code>. Для корней
+                дисков/шар, reparse points и системной TEMP-папки нужно
+                интерактивное подтверждение даже с <code>--force</code>.</span
+              ><span data-l="en"
+                ><code>wipe</code> asks you to type <code>WIPE</code>.
+                Drive/share roots, reparse points, and the system TEMP folder
+                require interactive confirmation even with
+                <code>--force</code>.</span
+              ><span data-l="ua"
+                ><code>wipe</code> просить ввести <code>WIPE</code>. Корені
+                дисків/ресурсів, reparse points і системна TEMP-папка потребують
+                інтерактивного підтвердження навіть із
+                <code>--force</code>.</span
+              >
+            </p>
+          </div>
+        </details>
+        <details class="sec" id="compatibility">
+          <summary>
+            <span class="secnum">04</span
+            ><span data-l="ru">Совместимость, варианты и установка</span
+            ><span data-l="en">Compatibility, editions, and installation</span
+            ><span data-l="ua">Сумісність, варіанти та встановлення</span>
+          </summary>
+          <div class="details-copy">
+            <ul class="plain-list">
+              <li>
+                <span data-l="ru"
+                  >Основной дистрибутив: Windows x64, CLI <code>filedo</code> и
+                  сопутствующие утилиты.</span
+                ><span data-l="en"
+                  >Primary distribution: Windows x64, the
+                  <code>filedo</code> CLI, and companion utilities.</span
+                ><span data-l="ua"
+                  >Основний дистрибутив: Windows x64, CLI <code>filedo</code> та
+                  супутні утиліти.</span
+                >
+              </li>
+              <li>
+                <span data-l="ru"
+                  >winget и portable ZIP включают <code>filedo</code>,
+                  <code>filedo_check</code>, <code>filedo_fill</code>,
+                  <code>filedo_test</code> и GUI <code>filedo_win</code>.</span
+                ><span data-l="en"
+                  >winget and the portable ZIP include <code>filedo</code>,
+                  <code>filedo_check</code>, <code>filedo_fill</code>,
+                  <code>filedo_test</code>, and the
+                  <code>filedo_win</code> GUI.</span
+                ><span data-l="ua"
+                  >winget і portable ZIP містять <code>filedo</code>,
+                  <code>filedo_check</code>, <code>filedo_fill</code>,
+                  <code>filedo_test</code> та GUI <code>filedo_win</code>.</span
+                >
+              </li>
+              <li>
+                <span data-l="ru">Сборка из исходников требует Go 1.24+.</span
+                ><span data-l="en">Building from source requires Go 1.24+.</span
+                ><span data-l="ua"
+                  >Збірка з вихідних кодів потребує Go 1.24+.</span
+                >
+              </li>
+            </ul>
+            <div class="copybox">
+              git clone https://github.com/SerZhyAle/FileDO.git &amp;&amp; cd
+              FileDO &amp;&amp; .\build.ps1<button
+                class="copy"
+                data-copy="git clone https://github.com/SerZhyAle/FileDO.git && cd FileDO && .\build.ps1"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </details>
+        <details class="sec" id="reference">
+          <summary>
+            <span class="secnum">05</span
+            ><span data-l="ru"
+              >Полная справка, исходный код и история выпусков</span
+            ><span data-l="en"
+              >Full reference, source code, and release history</span
+            ><span data-l="ua"
+              >Повна довідка, вихідний код та історія випусків</span
+            >
+          </summary>
+          <div class="details-copy">
+            <p>
+              <span data-l="ru"
+                >README содержит полный каталог команд, параметры проверки
+                чтения, примеры сетевых путей и детали GUI. GitHub Releases
+                содержит ZIP, MSI и SHA256 для каждого выпуска.</span
+              ><span data-l="en"
+                >The README contains the full command catalogue, read-check
+                options, network examples, and GUI details. GitHub Releases
+                holds ZIP, MSI, and SHA256 files for each release.</span
+              ><span data-l="ua"
+                >README містить повний каталог команд, параметри перевірки
+                читання, мережеві приклади та відомості про GUI. GitHub Releases
+                містить ZIP, MSI та SHA256 для кожного випуску.</span
+              >
+            </p>
+            <div class="channels">
+              <a
+                class="btn btn-ghost btn-sm"
+                href="https://github.com/SerZhyAle/FileDO#readme"
+                target="_blank"
+                rel="noopener"
+                >README</a
+              ><a
+                class="btn btn-ghost btn-sm"
+                href="https://github.com/SerZhyAle/FileDO/releases"
+                target="_blank"
+                rel="noopener"
+                ><span data-l="ru">История релизов</span
+                ><span data-l="en">Release history</span
+                ><span data-l="ua">Історія випусків</span></a
+              ><a
+                class="btn btn-ghost btn-sm"
+                href="https://github.com/SerZhyAle/FileDO/issues"
+                target="_blank"
+                rel="noopener"
+                >Issues</a
+              >
+            </div>
+          </div>
+        </details>
+      </section>
+      <section class="section" id="guides-pages">
+        <h2>
+          <span data-l="ru">Пошаговые руководства</span
+          ><span data-l="en">Step-by-step guides</span
+          ><span data-l="ua">Покрокові посібники</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Подробные маршруты остаются отдельными страницами: так на главной
+            видна задача и применение, а конкретная инструкция не превращается в
+            стену команд.</span
+          ><span data-l="en"
+            >Detailed routes live on separate pages: the front page keeps the
+            job and use case visible, while a specific guide does not become a
+            wall of commands.</span
+          ><span data-l="ua"
+            >Докладні маршрути винесено на окремі сторінки: на головній
+            лишаються видимими завдання та застосування, а конкретний посібник
+            не перетворюється на стіну команд.</span
+          >
+        </p>
+        <div class="grid feature">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Проверка носителя</span
+              ><span data-l="en">Check storage</span
+              ><span data-l="ua">Перевірка носія</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Сведения, ёмкость, скорость и проверка чтения — с объяснением
+                тестовых файлов и прав администратора.</span
+              ><span data-l="en"
+                >Information, capacity, speed, and read checks—with the test
+                files and administrator requirement explained.</span
+              ><span data-l="ua"
+                >Відомості, ємність, швидкість і перевірка читання — з
+                поясненням тестових файлів і прав адміністратора.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="guides/check-storage.html"
+                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
+                ><span data-l="ua">Відкрити</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Дубликаты и копирование</span
+              ><span data-l="en">Duplicates and copies</span
+              ><span data-l="ua">Дублікати та копіювання</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Как сначала получить список или отчёт, сделать копию и
+                проверить резервную папку.</span
+              ><span data-l="en"
+                >How to get a list or report first, make a copy, and check the
+                backup folder.</span
+              ><span data-l="ua"
+                >Як спочатку отримати список або звіт, зробити копію та
+                перевірити резервну папку.</span
+              >
+            </p>
+            <p class="actions">
+              <a
+                class="btn btn-ghost btn-sm"
+                href="guides/files-and-copies.html"
+                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
+                ><span data-l="ua">Відкрити</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">GUI-конструктор</span
+              ><span data-l="en">GUI command builder</span
+              ><span data-l="ua">GUI-конструктор</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Как собрать, проверить и выполнить команду через окно
+                <code>filedo_win</code>.</span
+              ><span data-l="en"
+                >How to build, inspect, and run a command through the
+                <code>filedo_win</code> window.</span
+              ><span data-l="ua"
+                >Як зібрати, перевірити та виконати команду через вікно
+                <code>filedo_win</code>.</span
+              >
+            </p>
+            <p class="actions">
+              <a
+                class="btn btn-ghost btn-sm"
+                href="guides/gui-command-builder.html"
+                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
+                ><span data-l="ua">Відкрити</span></a
+              >
+            </p>
+          </article>
+        </div>
+        <p class="actions">
+          <a class="btn btn-ghost btn-sm" href="guides/"
+            ><span data-l="ru">Все руководства</span
+            ><span data-l="en">All guides</span
+            ><span data-l="ua">Усі посібники</span></a
+          >
+        </p>
+      </section>
+      <section class="section" hidden>
+        <h2>
+          <span data-l="ru">Связанный инструмент</span
+          ><span data-l="en">Related tool</span
+          ><span data-l="ua">Пов’язаний інструмент</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Если задача — разбирать большую папку фото и видео, а не проверять
+            сам носитель, используйте </span
+          ><span data-l="en"
+            >If the task is sorting a large photo and video folder rather than
+            checking the storage itself, use </span
+          ><span data-l="ua"
+            >Якщо завдання — розібрати велику папку фото й відео, а не
+            перевіряти сам носій, скористайтеся </span
+          ><a
+            href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+            target="_blank"
+            rel="noopener"
+            >Fast Media Sorter for Windows</a
+          >.
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p class="footer-tools-title">
+          <span data-l="ru">Другие инструменты SZA</span
+          ><span data-l="en">More tools by SZA</span
+          ><span data-l="ua">Інші інструменти SZA</span>
+        </p>
+        <div class="tools-grid">
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"
+            ><b>FastMediaSorter v2</b><span>Android media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+            ><b>Fast Media Sorter</b><span>Windows media sorter</span></a
+          ><a href="https://serzhyale.github.io/CyrFlip/"
+            ><b>CyrFlip</b><span>Windows layout fixer</span></a
+          ><a href="https://serzhyale.github.io/doc-html-translate/"
+            ><b>doc-html-translate</b><span>Windows ebook converter</span></a
+          ><a href="https://serzhyale.github.io/universal-agent-kit/"
+            ><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
+          ><a href="https://github.com/SerZhyAle/OneClickRunner"
+            ><b>OneClickRunner</b><span>Windows tray launcher</span></a
+          ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
+    <script>
+      (function () {
+        var meta = {
+          ru: {
+            t: "FileDO — узнайте носитель, прежде чем доверить ему данные",
+            d: "Узнайте реальную ёмкость, скорость и читаемость носителя, найдите дубликаты и различия папок до действий с данными.",
+          },
+          en: {
+            t: "FileDO — know your storage before you trust it",
+            d: "Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data.",
+          },
+          ua: {
+            t: "FileDO — дізнайтеся про носій, перш ніж довірити йому дані",
+            d: "Дізнайтеся реальну ємність, швидкість і читання носія, знайдіть дублікати та відмінності папок до дій із даними.",
+          },
+        };
+        function lang(l) {
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+          localStorage.setItem("sza-lang", l);
+          document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+            b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
+          });
+          document.title = meta[l].t;
+          document.querySelector('meta[name="description"]').content =
+            meta[l].d;
+          document.querySelector('meta[property="og:title"]').content =
+            meta[l].t;
+          document.querySelector('meta[property="og:description"]').content =
+            meta[l].d;
+        }
+        document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+          b.onclick = function () {
+            lang(b.dataset.setLang);
+          };
+        });
+        lang(document.documentElement.dataset.lang || "en");
+        var theme = document.getElementById("themeBtn");
+        theme.onclick = function () {
+          var n =
+            document.documentElement.dataset.theme === "light"
+              ? "dark"
+              : "light";
+          document.documentElement.dataset.theme = n;
+          localStorage.setItem("sza-theme", n);
+          document.querySelector('meta[name="theme-color"]').content =
+            n === "light" ? "#eef3ea" : "#0a0f0a";
+          theme.setAttribute(
+            "aria-label",
+            n === "light" ? "Switch to dark theme" : "Switch to light theme",
+          );
+        };
+        function fallback(t, done) {
+          var a = document.createElement("textarea");
+          a.value = t;
+          a.style.cssText = "position:fixed;opacity:0";
+          document.body.appendChild(a);
+          a.select();
+          try {
+            document.execCommand("copy");
+          } catch (e) {}
+          a.remove();
+          done();
+        }
+        document.querySelectorAll(".copy").forEach(function (b) {
+          b.onclick = function () {
+            function done() {
+              b.textContent = "✓ Copied";
+              b.classList.add("done");
+              setTimeout(function () {
+                b.textContent = "Copy";
+                b.classList.remove("done");
+              }, 1600);
+            }
+            var t = b.dataset.copy;
+            if (navigator.clipboard)
+              navigator.clipboard.writeText(t).then(done, function () {
+                fallback(t, done);
+              });
+            else fallback(t, done);
+          };
+        });
+        function fromHash() {
+          var e = document.getElementById(location.hash.slice(1));
+          if (e && e.tagName === "DETAILS") {
+            e.open = true;
+            setTimeout(function () {
+              e.scrollIntoView();
+            }, 0);
+          }
+        }
+        addEventListener("hashchange", fromHash);
+        fromHash();
+        document.getElementById("expandAll").onclick = function () {
+          document.querySelectorAll("details.sec").forEach(function (d) {
+            d.open = true;
+          });
+        };
+        document.getElementById("collapseAll").onclick = function () {
+          document.querySelectorAll("details.sec").forEach(function (d) {
+            d.open = false;
+          });
+        };
+        var top = document.getElementById("toTop");
+        addEventListener("scroll", function () {
+          top.classList.toggle("show", scrollY > 600);
+        });
+        top.onclick = function () {
+          scrollTo({ top: 0, behavior: "smooth" });
+        };
+        fetch("https://api.github.com/repos/SerZhyAle/FileDO/releases/latest")
+          .then(function (r) {
+            return r.ok ? r.json() : null;
+          })
+          .then(function (x) {
+            if (!x) return;
+            var a =
+                x.assets &&
+                x.assets.find(function (y) {
+                  return /windows-x64\\.zip$/i.test(y.name);
+                }),
+              b = document.getElementById("releaseLink");
+            b.href = a ? a.browser_download_url : x.html_url || b.href;
+          })
+          .catch(function () {});
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,131 @@
+html[data-lang="ru"] [data-l]:not([data-l="ru"]),
+html[data-lang="en"] [data-l]:not([data-l="en"]),
+html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
+  display: none;
+}
+.container,
+.site-header {
+  max-width: min(1760px, 94vw);
+}
+.site-header {
+  margin-left: auto;
+  margin-right: auto;
+}
+.mark {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  margin-right: 7px;
+  border-radius: 7px;
+  background: url("../assets/filedo.png") center / cover no-repeat;
+  vertical-align: middle;
+}
+.hero {
+  padding: 1.2rem 0;
+}
+.hero .lead {
+  font-size: 1.07rem;
+}
+.intro {
+  color: var(--text-2);
+  margin-bottom: 1.15rem;
+}
+.guide-grid {
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+  gap: 0.9rem;
+}
+.guide-grid .card {
+  padding: 1.15rem;
+}
+.guide-grid h2,
+.guide-grid h3 {
+  font-size: 1.08rem;
+  margin-bottom: 0.45rem;
+}
+.guide-grid p,
+.detail-copy {
+  color: var(--text-2);
+  font-size: 0.92rem;
+}
+.section h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+.section h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+.steps {
+  display: grid;
+  gap: 0.7rem;
+  counter-reset: steps;
+  margin: 1rem 0;
+}
+.steps li {
+  list-style: none;
+  position: relative;
+  padding-left: 2rem;
+  color: var(--text-2);
+}
+.steps li::before {
+  counter-increment: steps;
+  content: counter(steps);
+  position: absolute;
+  left: 0;
+  top: 0.12rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--acc) 18%, transparent);
+  color: var(--acc);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.copybox {
+  margin: 0.6rem 0;
+}
+.note.danger {
+  border-left-color: var(--danger);
+}
+.note.danger .tag {
+  color: var(--danger);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+.footer-tools-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  margin-bottom: 0.75rem;
+}
+@media (min-width: 1360px) {
+  .guide-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .site-header {
+    max-width: calc(100% - 24px);
+    margin: 10px auto;
+  }
+  .site-header .btn {
+    display: inline-flex;
+    padding: 0.5rem 0.7rem;
+  }
+  .brand {
+    font-size: 14px;
+  }
+}

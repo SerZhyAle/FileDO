@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <title>Check a drive with FileDO</title>
+    <meta
+      name="description"
+      content="A practical FileDO guide to inspecting a drive, testing capacity and speed, and checking file reads safely."
+    />
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · носители</span
+          ><span data-l="en">Guide · storage</span
+          ><span data-l="ua">Посібник · носії</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Сначала узнайте, что перед вами: носитель, папка или проблема с
+            чтением.</span
+          ><span data-l="en"
+            >First establish what you have: a drive, folder, or read
+            problem.</span
+          ><span data-l="ua"
+            >Спочатку з’ясуйте, що перед вами: носій, папка чи проблема з
+            читанням.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >Эта последовательность подходит для новой флешки, SD-карты,
+            внешнего диска, папки с данными или сетевого пути. Начинается она с
+            команды, которая только показывает информацию.</span
+          ><span data-l="en"
+            >This sequence suits a new USB drive, SD card, external disk, data
+            folder, or network path. It begins with a command that only shows
+            information.</span
+          ><span data-l="ua"
+            >Ця послідовність підходить для нової флешки, SD-картки, зовнішнього
+            диска, папки з даними чи мережевого шляху. Вона починається з
+            команди, яка лише показує відомості.</span
+          >
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Когда это нужно</span
+          ><span data-l="en">When to use it</span
+          ><span data-l="ua">Коли це потрібно</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Накопитель выглядит подозрительно дешёвым, копирование идёт
+            медленно, часть файлов не открывается или перед переносом архива
+            нужно понять свободное место и тип файловой системы.</span
+          ><span data-l="en"
+            >A drive looks suspiciously cheap, copying is slow, files fail to
+            open, or you need to know free space and filesystem before moving an
+            archive.</span
+          ><span data-l="ua"
+            >Носій виглядає підозріло дешевим, копіювання повільне, частина
+            файлів не відкривається або перед перенесенням архіву треба
+            зрозуміти вільне місце й файлову систему.</span
+          >
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              >Подключите или укажите нужный путь и убедитесь, что буква диска
+              верна.</span
+            ><span data-l="en"
+              >Connect or locate the target and make sure the drive letter is
+              correct.</span
+            ><span data-l="ua"
+              >Підключіть або знайдіть ціль і переконайтеся, що літера диска
+              правильна.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru">Получите сведения, не меняя данных.</span
+            ><span data-l="en">Get information without changing data.</span
+            ><span data-l="ua">Отримайте відомості без зміни даних.</span>
+          </li>
+          <li>
+            <span data-l="ru"
+              >Выберите только нужную проверку: ёмкость, скорость или чтение
+              файлов.</span
+            ><span data-l="en"
+              >Choose only the needed check: capacity, speed, or file
+              reads.</span
+            ><span data-l="ua"
+              >Виберіть лише потрібну перевірку: ємність, швидкість або читання
+              файлів.</span
+            >
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo E: info<button class="copy" data-copy="filedo E: info">
+            Copy
+          </button>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Выберите проверку</span
+          ><span data-l="en">Choose a check</span
+          ><span data-l="ua">Виберіть перевірку</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Ёмкость USB/SD</span
+              ><span data-l="en">USB/SD capacity</span
+              ><span data-l="ua">Ємність USB/SD</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Записывает и проверяет тестовые данные, чтобы обнаружить
+                носитель с заявленной, но недоступной ёмкостью.</span
+              ><span data-l="en"
+                >Writes and verifies test data to detect a drive whose
+                advertised capacity is not usable.</span
+              ><span data-l="ua"
+                >Записує та перевіряє тестові дані, щоб виявити носій із
+                заявленою, але недоступною ємністю.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo E: test del<button
+                class="copy"
+                data-copy="filedo E: test del"
+              >
+                Copy
+              </button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Скорость</span><span data-l="en">Speed</span
+              ><span data-l="ua">Швидкість</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Измеряет чтение и запись тестовых данных. Укажите небольшой
+                размер, когда нужен быстрый ориентир.</span
+              ><span data-l="en"
+                >Measures reads and writes using test data. Use a small size
+                when you need a quick indication.</span
+              ><span data-l="ua"
+                >Вимірює читання та запис тестових даних. Укажіть невеликий
+                розмір, коли потрібен швидкий орієнтир.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo E: speed 100<button
+                class="copy"
+                data-copy="filedo E: speed 100"
+              >
+                Copy
+              </button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Чтение файлов</span
+              ><span data-l="en">File reads</span
+              ><span data-l="ua">Читання файлів</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Читает файлы в папке и отмечает задержки начального чтения;
+                удобно для старого HDD, USB или медиа-архива.</span
+              ><span data-l="en"
+                >Reads files in a folder and notes initial-read delays; useful
+                for an old HDD, USB drive, or media archive.</span
+              ><span data-l="ua"
+                >Читає файли в папці та позначає затримки початкового читання;
+                зручно для старого HDD, USB або медіа-архіву.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo check F:\Photos<button
+                class="copy"
+                data-copy="filedo check F:\Photos"
+              >
+                Copy
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Что важно до запуска</span
+          ><span data-l="en">What matters before running it</span
+          ><span data-l="ua">Що важливо до запуску</span>
+        </h2>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Тестовые данные</span
+            ><span data-l="en">Test data</span
+            ><span data-l="ua">Тестові дані</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>test</code> и <code>speed</code> работают с тестовыми
+              файлами. Проверьте букву носителя и свободное место. Суффикс
+              <code>del</code> у <code>test</code> просит удалить тестовые
+              данные по окончании; это не замена резервной копии.</span
+            ><span data-l="en"
+              ><code>test</code> and <code>speed</code> use test files. Check
+              the drive letter and free space. The <code>del</code> suffix on
+              <code>test</code> removes test data when done; it is not a
+              substitute for a backup.</span
+            ><span data-l="ua"
+              ><code>test</code> і <code>speed</code> використовують тестові
+              файли. Перевірте літеру носія та вільне місце. Суфікс
+              <code>del</code> у <code>test</code> прибирає тестові дані після
+              завершення; це не заміна резервної копії.</span
+            >
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="ru">Raw probe</span><span data-l="en">Raw probe</span
+            ><span data-l="ua">Raw probe</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>probe</code> использует прямой доступ к LBA, выполняется
+              примерно минуту и требует прав администратора. Не используйте его
+              как первый шаг: сначала выполните <code>info</code> и обычный
+              <code>test</code>.</span
+            ><span data-l="en"
+              ><code>probe</code> uses direct LBA access, takes about a minute,
+              and needs administrator rights. Do not use it as a first step: run
+              <code>info</code> and the regular <code>test</code> first.</span
+            ><span data-l="ua"
+              ><code>probe</code> використовує прямий доступ до LBA, триває
+              приблизно хвилину та потребує прав адміністратора. Не
+              використовуйте його як перший крок: спочатку виконайте
+              <code>info</code> і звичайний <code>test</code>.</span
+            >
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Проверка носителя с FileDO",
+          description: "Практическое руководство FileDO по проверке носителей.",
+        },
+        en: {
+          title: "Check storage with FileDO",
+          description: "A practical FileDO guide to checking storage.",
+        },
+        ua: {
+          title: "Перевірка носія з FileDO",
+          description: "Практичний посібник FileDO з перевірки носіїв.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

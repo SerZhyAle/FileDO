@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <title>FileDO guides — choose a safe starting point</title>
+    <meta
+      name="description"
+      content="Practical FileDO guides for checking storage, handling duplicates, copying data, comparing folders, and using the GUI command builder."
+    />
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">FileDO · практические руководства</span
+          ><span data-l="en">FileDO · practical guides</span
+          ><span data-l="ua">FileDO · практичні посібники</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Выберите действие и сначала проверьте, что оно меняет.</span
+          ><span data-l="en"
+            >Choose the action, then check what it changes first.</span
+          ><span data-l="ua"
+            >Виберіть дію та спочатку перевірте, що вона змінює.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >Здесь — маршруты от обычной задачи к первой команде, ожидаемому
+            результату и предупреждениям. Это дополнение к полной справке в
+            README, а не её замена.</span
+          ><span data-l="en"
+            >These routes take a normal task to a first command, expected
+            result, and caveats. They complement the full README reference
+            rather than replace it.</span
+          ><span data-l="ua"
+            >Тут — маршрути від звичайного завдання до першої команди,
+            очікуваного результату та застережень. Вони доповнюють повну довідку
+            README, а не замінюють її.</span
+          >
+        </p>
+      </section>
+      <section class="section">
+        <div class="grid guide-grid">
+          <article class="card">
+            <h2>
+              <span data-l="ru">Проверить носитель</span
+              ><span data-l="en">Check storage</span
+              ><span data-l="ua">Перевірити носій</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Сведения о диске, тест ёмкости, скорость, проверка чтения и
+                условия, при которых нужен администратор.</span
+              ><span data-l="en"
+                >Drive information, capacity testing, speed, read checks, and
+                when administrator rights are needed.</span
+              ><span data-l="ua"
+                >Відомості про диск, тест ємності, швидкість, перевірка читання
+                та випадки, коли потрібні права адміністратора.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="check-storage.html"
+                ><span data-l="ru">Открыть руководство</span
+                ><span data-l="en">Open guide</span
+                ><span data-l="ua">Відкрити посібник</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="ru">Дубликаты, копирование и сравнение</span
+              ><span data-l="en">Duplicates, copy, and compare</span
+              ><span data-l="ua">Дублікати, копіювання та порівняння</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Как сначала получить список или отчёт, затем скопировать данные
+                и только потом рассматривать удаление.</span
+              ><span data-l="en"
+                >How to get a list or report first, copy data, and only then
+                consider deletion.</span
+              ><span data-l="ua"
+                >Як спочатку отримати список або звіт, скопіювати дані й лише
+                потім розглядати видалення.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="files-and-copies.html"
+                ><span data-l="ru">Открыть руководство</span
+                ><span data-l="en">Open guide</span
+                ><span data-l="ua">Відкрити посібник</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="ru">Работать через окно</span
+              ><span data-l="en">Work through a window</span
+              ><span data-l="ua">Працювати через вікно</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Для тех, кому удобнее собрать, проверить и запустить команду в
+                FileDO GUI, а не набрать её вручную.</span
+              ><span data-l="en"
+                >For people who prefer to assemble, inspect, and run a command
+                in FileDO GUI instead of typing it.</span
+              ><span data-l="ua"
+                >Для тих, кому зручніше зібрати, перевірити й запустити команду
+                у FileDO GUI, а не набирати її вручну.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
+                ><span data-l="ru">Открыть руководство</span
+                ><span data-l="en">Open guide</span
+                ><span data-l="ua">Відкрити посібник</span></a
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Чего здесь нет</span
+          ><span data-l="en">What is not here</span
+          ><span data-l="ua">Чого тут немає</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >FileDO работает с локальными устройствами, папками, отдельными
+            файлами и сетевыми путями Windows. Поддержки SFTP, FTP или SSH в
+            продукте нет. SFTP в Fast Media Sorter for Windows — другая,
+            отдельная возможность: публикация выбранных папок ПК для
+            Android.</span
+          ><span data-l="en"
+            >FileDO works with local devices, folders, individual files, and
+            Windows network paths. It does not support SFTP, FTP, or SSH. SFTP
+            in Fast Media Sorter for Windows is a separate capability:
+            publishing selected PC folders for Android.</span
+          ><span data-l="ua"
+            >FileDO працює з локальними пристроями, папками, окремими файлами й
+            мережевими шляхами Windows. Підтримки SFTP, FTP або SSH у продукті
+            немає. SFTP у Fast Media Sorter for Windows — окрема можливість:
+            публікація вибраних папок ПК для Android.</span
+          >
+        </p>
+        <a
+          href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+          target="_blank"
+          rel="noopener"
+          >Fast Media Sorter for Windows</a
+        >
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="../">FileDO</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Руководства FileDO — безопасная точка начала",
+          description: "Практические руководства FileDO.",
+        },
+        en: {
+          title: "FileDO guides — choose a safe starting point",
+          description: "Practical FileDO guides.",
+        },
+        ua: {
+          title: "Посібники FileDO — безпечна точка початку",
+          description: "Практичні посібники FileDO.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>
