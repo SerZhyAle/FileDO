@@ -28,11 +28,11 @@
   "site": {
     "kind": "product",
     "root": "docs",
-    "pages": ["index.html"]
+    "pages": ["index.html", "privacy.html"]
   },
 
   "privacy": {
-    "page": null,
+    "page": "docs/privacy.html",
     "carveOut": null,
     "sensitiveAccess": false
   },

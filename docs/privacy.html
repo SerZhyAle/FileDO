@@ -1,0 +1,1116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/privacy.html" />
+    <link rel="icon" type="image/png" href="assets/filedo.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/privacy.html" />
+    <meta
+      property="og:image"
+      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>FileDO privacy - no network, no telemetry, no accounts</title>
+    <meta
+      name="description"
+      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, the two files it writes locally, and how to switch them off."
+    />
+    <meta
+      property="og:title"
+      content="FileDO privacy - no network, no telemetry, no accounts"
+    />
+    <meta
+      property="og:description"
+      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, the two files it writes locally, and how to switch them off."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "PrivacyPolicy",
+        "name": "FileDO Privacy Policy",
+        "url": "https://serzhyale.github.io/FileDO/privacy.html",
+        "inLanguage": ["en", "ru", "uk"],
+        "dateModified": "2026-07-27",
+        "publisher": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko",
+          "email": "serzhyale@gmail.com"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Windows 10, Windows 11",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        }
+      }
+    </script>
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="kit/sza-kit.css" />
+    <style>
+      html[data-lang="ru"] [data-l]:not([data-l="ru"]),
+      html[data-lang="en"] [data-l]:not([data-l="en"]),
+      html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
+        display: none;
+      }
+      .container,
+      .site-header {
+        max-width: min(1100px, 94vw);
+      }
+      .site-header {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .brand-unit {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-right: auto;
+        min-width: 0;
+        color: var(--text);
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: 15px;
+        text-decoration: none;
+      }
+      .brand-unit .dot {
+        color: var(--acc);
+      }
+      .hero {
+        padding: 1.4rem 0 0.6rem;
+      }
+      .hero h1 {
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: clamp(1.7rem, 4vw, 2.4rem);
+        line-height: 1.15;
+        margin-bottom: 0.6rem;
+      }
+      .hero-kicker {
+        font-family: var(--font-heading);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--acc);
+        margin-bottom: 0.5rem;
+      }
+      .hero .lead {
+        font-size: 1.02rem;
+        color: var(--text-2);
+        max-width: 68ch;
+      }
+      .stamp {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.4rem;
+        margin-top: 0.9rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .stamp b {
+        color: var(--text-2);
+        font-weight: 600;
+      }
+      h2 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+        font-size: 1.18rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: baseline;
+        gap: 0.7rem;
+      }
+      h3 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 0.3rem;
+      }
+      p,
+      li {
+        color: var(--text-2);
+        font-size: 0.92rem;
+      }
+      .section p {
+        margin-bottom: 0.7rem;
+        max-width: 78ch;
+      }
+      ul {
+        margin: 0 0 0.8rem 1.1rem;
+      }
+      li {
+        margin-bottom: 0.4rem;
+      }
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0.1em 0.4em;
+      }
+      a {
+        color: var(--acc-strong);
+      }
+      .card h3 {
+        color: var(--text);
+      }
+      .card p {
+        margin-bottom: 0;
+      }
+      .filetable {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.87rem;
+        margin-bottom: 0.9rem;
+      }
+      .filetable th,
+      .filetable td {
+        text-align: left;
+        padding: 0.6rem 0.7rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--text-2);
+      }
+      .filetable th {
+        font-family: var(--font-heading);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .filetable td:first-child {
+        white-space: nowrap;
+        color: var(--text);
+      }
+      .tablewrap {
+        overflow-x: auto;
+      }
+      .site-footer {
+        margin-top: 1.6rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand-unit" href="./"
+        ><span>FileDO<span class="dot">.</span></span></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a
+        class="btn btn-primary btn-sm header-action"
+        href="https://github.com/SerZhyAle/FileDO"
+        target="_blank"
+        rel="noopener"
+        >GitHub</a
+      >
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="container">
+          <p class="hero-kicker">
+            <span data-l="ru">Политика конфиденциальности</span>
+            <span data-l="en">Privacy policy</span>
+            <span data-l="ua">Політика конфіденційності</span>
+          </p>
+          <h1>
+            <span data-l="ru"
+              >FileDO работает только на вашем компьютере</span
+            >
+            <span data-l="en">FileDO runs only on your computer</span>
+            <span data-l="ua">FileDO працює лише на вашому комп'ютері</span>
+          </h1>
+          <p class="lead">
+            <span data-l="ru"
+              >FileDO не отправляет никуда ничего. В программе нет сетевого
+              кода, телеметрии, аналитики, рекламы, аккаунтов и проверки
+              обновлений. Всё, что она читает и пишет, остаётся на вашем
+              диске.</span
+            >
+            <span data-l="en"
+              >FileDO sends nothing anywhere. It contains no networking code, no
+              telemetry, no analytics, no ads, no accounts and no update check.
+              Everything it reads and writes stays on your own disk.</span
+            >
+            <span data-l="ua"
+              >FileDO нікуди нічого не надсилає. У програмі немає мережевого
+              коду, телеметрії, аналітики, реклами, акаунтів і перевірки
+              оновлень. Усе, що вона читає та пише, лишається на вашому
+              диску.</span
+            >
+          </p>
+          <div class="pills" style="margin-top: 0.9rem">
+            <span class="pill"
+              ><span data-l="ru">Без сети</span
+              ><span data-l="en">No network</span
+              ><span data-l="ua">Без мережі</span></span
+            >
+            <span class="pill"
+              ><span data-l="ru">Без телеметрии</span
+              ><span data-l="en">No telemetry</span
+              ><span data-l="ua">Без телеметрії</span></span
+            >
+            <span class="pill"
+              ><span data-l="ru">Без аккаунтов</span
+              ><span data-l="en">No accounts</span
+              ><span data-l="ua">Без акаунтів</span></span
+            >
+            <span class="pill gold"
+              ><span data-l="ru">Открытый код</span
+              ><span data-l="en">Open source</span
+              ><span data-l="ua">Відкритий код</span></span
+            >
+          </div>
+          <div class="stamp">
+            <span
+              ><b
+                ><span data-l="ru">Дата вступления в силу:</span
+                ><span data-l="en">Effective date:</span
+                ><span data-l="ua">Дата набрання чинності:</span></b
+              >
+              2026-07-27</span
+            >
+            <span
+              ><b
+                ><span data-l="ru">Относится к:</span
+                ><span data-l="en">Applies to:</span
+                ><span data-l="ua">Стосується:</span></b
+              >
+              <span data-l="ru"
+                >FileDO CLI и FileDO GUI для Windows - во всех каналах поставки
+                (GitHub, winget, Microsoft Store)</span
+              ><span data-l="en"
+                >FileDO CLI and FileDO GUI for Windows - in every distribution
+                channel (GitHub, winget, Microsoft Store)</span
+              ><span data-l="ua"
+                >FileDO CLI та FileDO GUI для Windows - в усіх каналах постачання
+                (GitHub, winget, Microsoft Store)</span
+              ></span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">01</span>
+            <span data-l="ru">Коротко</span
+            ><span data-l="en">In short</span
+            ><span data-l="ua">Коротко</span>
+          </h2>
+          <div class="grid">
+            <div class="card">
+              <h3>
+                <span data-l="ru">Мы не собираем ничего</span
+                ><span data-l="en">We collect nothing</span
+                ><span data-l="ua">Ми не збираємо нічого</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >У автора нет серверов, нет базы данных и нет способа узнать,
+                  что вы делаете в программе. Персональные данные не собираются,
+                  не хранятся и не передаются - ни нам, ни третьим лицам.</span
+                >
+                <span data-l="en"
+                  >The author runs no servers, keeps no database and has no way
+                  of learning what you do in the app. No personal data is
+                  collected, stored or shared - not with us, not with anyone
+                  else.</span
+                >
+                <span data-l="ua"
+                  >Автор не має серверів, бази даних і жодного способу дізнатися,
+                  що ви робите в програмі. Персональні дані не збираються, не
+                  зберігаються й не передаються - ні нам, ні третім особам.</span
+                >
+              </p>
+            </div>
+            <div class="card">
+              <h3>
+                <span data-l="ru">Программа не выходит в сеть</span
+                ><span data-l="en">The app never goes online</span
+                ><span data-l="ua">Програма не виходить у мережу</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >В исходном коде FileDO нет ни одного сетевого вызова:
+                  сетевые библиотеки в него просто не подключены. Пакет для
+                  Microsoft Store не объявляет разрешения на доступ в интернет,
+                  поэтому Windows его и не даст.</span
+                >
+                <span data-l="en"
+                  >There is not a single network call in the FileDO source: the
+                  networking libraries are simply not linked in. The Microsoft
+                  Store package declares no internet capability, so Windows
+                  would not grant one anyway.</span
+                >
+                <span data-l="ua"
+                  >У вихідному коді FileDO немає жодного мережевого виклику:
+                  мережеві бібліотеки до нього просто не під'єднані. Пакет для
+                  Microsoft Store не оголошує дозволу на доступ до інтернету,
+                  тож Windows його й не надасть.</span
+                >
+              </p>
+            </div>
+            <div class="card">
+              <h3>
+                <span data-l="ru">Вы можете проверить это сами</span
+                ><span data-l="en">You can verify this yourself</span
+                ><span data-l="ua">Ви можете перевірити це самі</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >FileDO распространяется с открытым исходным кодом под
+                  лицензией MIT. Обещания на этой странице проверяются чтением
+                  кода, а не доверием к нам.</span
+                >
+                <span data-l="en"
+                  >FileDO ships as open source under the MIT license. Every
+                  promise on this page can be checked by reading the code rather
+                  than by trusting us.</span
+                >
+                <span data-l="ua"
+                  >FileDO поширюється з відкритим вихідним кодом за ліцензією
+                  MIT. Обіцянки на цій сторінці перевіряються читанням коду, а не
+                  довірою до нас.</span
+                >
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">02</span>
+            <span data-l="ru">Что FileDO читает на вашей машине</span
+            ><span data-l="en">What FileDO reads on your machine</span
+            ><span data-l="ua">Що FileDO читає на вашій машині</span>
+          </h2>
+          <p>
+            <span data-l="ru"
+              >Только то, на что вы его направили командой, и только пока
+              команда выполняется:</span
+            >
+            <span data-l="en"
+              >Only what you point it at with a command, and only while that
+              command runs:</span
+            >
+            <span data-l="ua"
+              >Лише те, на що ви його спрямували командою, і лише поки команда
+              виконується:</span
+            >
+          </p>
+          <ul>
+            <li>
+              <span data-l="ru"
+                ><b>Файлы и папки, которые вы указали.</b> Содержимое читается
+                для проверки скорости, поиска повреждений, сравнения папок и
+                вычисления хешей MD5 при поиске дубликатов. FileDO не обходит
+                диск самостоятельно и не открывает ничего за пределами
+                указанного вами пути.</span
+              >
+              <span data-l="en"
+                ><b>The files and folders you named.</b> Their contents are read
+                to measure speed, check for corruption, compare trees and
+                compute MD5 hashes when looking for duplicates. FileDO never
+                walks your disk on its own and opens nothing outside the path
+                you gave it.</span
+              >
+              <span data-l="ua"
+                ><b>Файли та теки, які ви вказали.</b> Вміст читається для
+                перевірки швидкості, пошуку пошкоджень, порівняння тек і
+                обчислення хешів MD5 під час пошуку дублікатів. FileDO не обходить
+                диск самостійно й не відкриває нічого поза вказаним вами
+                шляхом.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Технические данные о накопителе.</b> Для команды
+                <code>info</code> FileDO запрашивает у Windows через WMI модель,
+                серийный номер и тип интерфейса физического диска, а также
+                размер и свободное место. Эти сведения выводятся на экран, чтобы
+                вы видели, с каким устройством работаете. Они
+                <b>не записываются</b> в журнал операций и никуда не
+                передаются.</span
+              >
+              <span data-l="en"
+                ><b>Technical facts about the drive.</b> For the
+                <code>info</code> command FileDO asks Windows through WMI for
+                the physical disk's model, serial number and interface type,
+                plus size and free space. These are printed on screen so that
+                you can see which device you are working with. They are
+                <b>not written</b> to the operation log and are not sent
+                anywhere.</span
+              >
+              <span data-l="ua"
+                ><b>Технічні дані про носій.</b> Для команди
+                <code>info</code> FileDO запитує у Windows через WMI модель,
+                серійний номер і тип інтерфейсу фізичного диска, а також розмір і
+                вільне місце. Ці відомості виводяться на екран, щоб ви бачили, з
+                яким пристроєм працюєте. Вони <b>не записуються</b> до журналу
+                операцій і нікуди не передаються.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Сетевые папки - это папки SMB, а не интернет.</b> Когда
+                FileDO работает с адресом вида <code>\\server\share</code>, он
+                обращается к нему как к обычному пути файловой системы средствами
+                Windows. Собственных сетевых соединений программа не
+                открывает.</span
+              >
+              <span data-l="en"
+                ><b>"Network" here means an SMB share, not the internet.</b>
+                When FileDO works with a path like
+                <code>\\server\share</code> it treats it as an ordinary
+                filesystem path through Windows. The app opens no network
+                connections of its own.</span
+              >
+              <span data-l="ua"
+                ><b>«Мережеві» теки - це теки SMB, а не інтернет.</b> Коли
+                FileDO працює з адресою на кшталт
+                <code>\\server\share</code>, він звертається до неї як до
+                звичайного шляху файлової системи засобами Windows. Власних
+                мережевих з'єднань програма не відкриває.</span
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">03</span>
+            <span data-l="ru">Что FileDO пишет - и куда</span
+            ><span data-l="en">What FileDO writes - and where</span
+            ><span data-l="ua">Що FileDO пише - і куди</span>
+          </h2>
+          <p>
+            <span data-l="ru"
+              >Два служебных файла и, по вашей команде, тестовые данные. Всё это
+              обычные файлы на вашем диске: вы можете их прочитать, удалить или
+              вовсе не создавать.</span
+            >
+            <span data-l="en"
+              >Two housekeeping files, plus test data when you ask for it. All of
+              them are ordinary files on your own disk: you can read them, delete
+              them, or never create them at all.</span
+            >
+            <span data-l="ua"
+              >Два службові файли і, за вашою командою, тестові дані. Усе це
+              звичайні файли на вашому диску: ви можете їх прочитати, видалити
+              або взагалі не створювати.</span
+            >
+          </p>
+          <div class="tablewrap">
+            <table class="filetable">
+              <thead>
+                <tr>
+                  <th>
+                    <span data-l="ru">Файл</span><span data-l="en">File</span
+                    ><span data-l="ua">Файл</span>
+                  </th>
+                  <th>
+                    <span data-l="ru">Где создаётся</span
+                    ><span data-l="en">Where it lands</span
+                    ><span data-l="ua">Де створюється</span>
+                  </th>
+                  <th>
+                    <span data-l="ru">Что внутри</span
+                    ><span data-l="en">What is inside</span
+                    ><span data-l="ua">Що всередині</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>history.json</code></td>
+                  <td>
+                    <span data-l="ru"
+                      >В текущем рабочем каталоге. При запуске из GUI это папка
+                      вашего профиля (<code>%USERPROFILE%</code>).</span
+                    >
+                    <span data-l="en"
+                      >In the current working directory. Launched from the GUI,
+                      that is your profile folder
+                      (<code>%USERPROFILE%</code>).</span
+                    >
+                    <span data-l="ua"
+                      >У поточному робочому каталозі. Під час запуску з GUI це
+                      тека вашого профілю (<code>%USERPROFILE%</code>).</span
+                    >
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Журнал операций: время, имя команды, путь, к которому вы
+                      её применили, полная строка запуска, параметры, результаты
+                      (скорость, число файлов), длительность и текст ошибки, если
+                      она была. Хранятся последние 1000 записей, старые
+                      вытесняются.</span
+                    >
+                    <span data-l="en"
+                      >An operation log: time, command name, the path you applied
+                      it to, the full command line, parameters, results (speed,
+                      file counts), duration and the error text if there was one.
+                      The last 1000 entries are kept; older ones roll off.</span
+                    >
+                    <span data-l="ua"
+                      >Журнал операцій: час, назва команди, шлях, до якого ви її
+                      застосували, повний рядок запуску, параметри, результати
+                      (швидкість, кількість файлів), тривалість і текст помилки,
+                      якщо вона була. Зберігаються останні 1000 записів, старі
+                      витісняються.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>hash_cache.json</code></td>
+                  <td>
+                    <span data-l="ru"
+                      >Рядом с исполняемым файлом. В версии из Microsoft Store
+                      папка установки доступна только для чтения, поэтому Windows
+                      перенаправляет запись в ваше личное хранилище пакета в
+                      <code>%LOCALAPPDATA%\Packages\</code>.</span
+                    >
+                    <span data-l="en"
+                      >Next to the executable. In the Microsoft Store build the
+                      install folder is read-only, so Windows redirects the write
+                      into the package's own per-user storage under
+                      <code>%LOCALAPPDATA%\Packages\</code>.</span
+                    >
+                    <span data-l="ua"
+                      >Поруч із виконуваним файлом. У версії з Microsoft Store
+                      тека встановлення доступна лише для читання, тому Windows
+                      перенаправляє запис до вашого особистого сховища пакета в
+                      <code>%LOCALAPPDATA%\Packages\</code>.</span
+                    >
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Кеш для ускорения повторного поиска дубликатов: путь к
+                      файлу, размер, дата изменения и вычисленные хеши MD5.
+                      Содержимого файлов в кеше нет.</span
+                    >
+                    <span data-l="en"
+                      >A cache that makes a repeat duplicate scan faster: file
+                      path, size, modification time and the computed MD5 hashes.
+                      No file contents are stored in it.</span
+                    >
+                    <span data-l="ua"
+                      >Кеш для пришвидшення повторного пошуку дублікатів: шлях до
+                      файлу, розмір, дата зміни та обчислені хеші MD5. Вмісту
+                      файлів у кеші немає.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span data-l="ru">Тестовые файлы</span
+                    ><span data-l="en">Test files</span
+                    ><span data-l="ua">Тестові файли</span>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >В том месте, которое вы указали командам
+                      <code>speed</code>, <code>test</code> или
+                      <code>fill</code>.</span
+                    >
+                    <span data-l="en"
+                      >In the target you gave to the <code>speed</code>,
+                      <code>test</code> or <code>fill</code> commands.</span
+                    >
+                    <span data-l="ua"
+                      >У тому місці, яке ви вказали командам
+                      <code>speed</code>, <code>test</code> чи
+                      <code>fill</code>.</span
+                    >
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Сгенерированные данные для измерения скорости и проверки
+                      реальной ёмкости. Удаляются командой
+                      <code>clean</code>.</span
+                    >
+                    <span data-l="en"
+                      >Generated data used to measure speed and to check the real
+                      capacity. Removed with the <code>clean</code>
+                      command.</span
+                    >
+                    <span data-l="ua"
+                      >Згенеровані дані для вимірювання швидкості та перевірки
+                      справжньої ємності. Видаляються командою
+                      <code>clean</code>.</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note">
+            <span class="tag"
+              ><span data-l="ru">Как выключить журнал</span
+              ><span data-l="en">Turning the log off</span
+              ><span data-l="ua">Як вимкнути журнал</span></span
+            >
+            <p>
+              <span data-l="ru"
+                >Добавьте к команде <code>nohist</code> (или
+                <code>no_history</code>) - и запуск не будет записан в
+                <code>history.json</code> вообще. Если файл недоступен для
+                записи, FileDO просто не ведёт журнал и продолжает работу. Сам
+                файл можно удалить в любой момент.</span
+              >
+              <span data-l="en"
+                >Add <code>nohist</code> (or <code>no_history</code>) to the
+                command and the run is not recorded in
+                <code>history.json</code> at all. If the file cannot be written,
+                FileDO simply keeps no log and carries on. You can delete the
+                file at any time.</span
+              >
+              <span data-l="ua"
+                >Додайте до команди <code>nohist</code> (або
+                <code>no_history</code>) - і запуск не буде записано до
+                <code>history.json</code> взагалі. Якщо файл недоступний для
+                запису, FileDO просто не веде журнал і продовжує роботу. Сам файл
+                можна видалити будь-коли.</span
+              >
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">04</span>
+            <span data-l="ru">Права, удаление данных и внешние программы</span
+            ><span data-l="en"
+              >Permissions, data destruction and external programs</span
+            ><span data-l="ua">Права, видалення даних і зовнішні програми</span>
+          </h2>
+          <ul>
+            <li>
+              <span data-l="ru"
+                ><b>FileDO не запрашивает права администратора.</b> Программа
+                запускается с теми правами, которые есть у вас. Отдельные
+                операции с диском Windows разрешит только администратору - тогда
+                вы запускаете терминал от имени администратора сами, осознанно.
+                Молча повышать права FileDO не умеет.</span
+              >
+              <span data-l="en"
+                ><b>FileDO does not request administrator rights.</b> It runs
+                with whatever rights you already have. Windows will allow some
+                disk operations only to an administrator - in that case you
+                deliberately start the terminal as one yourself. FileDO has no
+                way to elevate itself silently.</span
+              >
+              <span data-l="ua"
+                ><b>FileDO не запитує права адміністратора.</b> Програма
+                запускається з тими правами, які є у вас. Окремі операції з диском
+                Windows дозволить лише адміністратору - тоді ви запускаєте
+                термінал від імені адміністратора самі, свідомо. Мовчки
+                підвищувати права FileDO не вміє.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Полный доступ к рабочему столу (runFullTrust).</b> Версия из
+                Microsoft Store объявляет это разрешение - оно нужно, чтобы
+                обращаться к диску напрямую и измерять реальную скорость и
+                ёмкость. Другие разрешения, включая доступ в интернет, пакет не
+                объявляет.</span
+              >
+              <span data-l="en"
+                ><b>Full-trust desktop access (runFullTrust).</b> The Microsoft
+                Store build declares this one capability, because reading and
+                writing the drive directly is what speed and capacity testing
+                are. The package declares no other capability - internet access
+                included.</span
+              >
+              <span data-l="ua"
+                ><b>Повний доступ до робочого столу (runFullTrust).</b> Версія з
+                Microsoft Store оголошує цей дозвіл - він потрібен, щоб
+                звертатися до диска напряму й вимірювати справжню швидкість і
+                ємність. Інших дозволів, зокрема доступу до інтернету, пакет не
+                оголошує.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Команды <code>wipe</code> и <code>fill</code> уничтожают
+                  данные - в этом их смысл.</b>
+                Они всегда спрашивают подтверждение и никогда не выполняются
+                молча над корнем диска, точками соединения (junction, symlink) и
+                системной папкой TEMP. Записи на диск <code>C:</code> по
+                умолчанию перенаправляются в
+                <code>%TEMP%\FileDO_Operations</code> - тоже с вашим
+                подтверждением.</span
+              >
+              <span data-l="en"
+                ><b
+                  >The <code>wipe</code> and <code>fill</code> commands destroy
+                  data - that is their job.</b
+                >
+                They always ask for confirmation and never run silently against
+                a drive root, a reparse point (junction, symlink) or the system
+                TEMP folder. Writes aimed at <code>C:</code> are by default
+                redirected into <code>%TEMP%\FileDO_Operations</code> - again,
+                only after you confirm.</span
+              >
+              <span data-l="ua"
+                ><b
+                  >Команди <code>wipe</code> і <code>fill</code> знищують дані -
+                  у цьому їхній сенс.</b
+                >
+                Вони завжди запитують підтвердження й ніколи не виконуються мовчки
+                над коренем диска, точками з'єднання (junction, symlink) і
+                системною текою TEMP. Записи на диск <code>C:</code> типово
+                перенаправляються до <code>%TEMP%\FileDO_Operations</code> -
+                теж із вашим підтвердженням.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Иногда FileDO запускает системные программы Windows.</b> При
+                восстановлении носителя (<code>probe</code>) он может вызвать
+                <code>chkdsk</code>, <code>format</code> или PowerShell
+                <code>Format-Volume</code> для диска, который вы назвали. А если
+                вы передаёте команде <code>from</code> файл со списком команд,
+                FileDO выполнит строки из него - в том числе строки, которые
+                запускают другие программы. Запускается ровно то, что вы
+                написали.</span
+              >
+              <span data-l="en"
+                ><b>FileDO sometimes launches built-in Windows programs.</b>
+                While recovering a drive (<code>probe</code>) it may call
+                <code>chkdsk</code>, <code>format</code> or PowerShell's
+                <code>Format-Volume</code> against the drive you named. And if
+                you hand the <code>from</code> command a file listing commands,
+                FileDO runs those lines - including lines that start other
+                programs. What runs is exactly what you wrote.</span
+              >
+              <span data-l="ua"
+                ><b>Іноді FileDO запускає системні програми Windows.</b> Під час
+                відновлення носія (<code>probe</code>) він може викликати
+                <code>chkdsk</code>, <code>format</code> або PowerShell
+                <code>Format-Volume</code> для диска, який ви назвали. А якщо ви
+                передаєте команді <code>from</code> файл зі списком команд,
+                FileDO виконає рядки з нього - зокрема рядки, що запускають інші
+                програми. Запускається саме те, що ви написали.</span
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">05</span>
+            <span data-l="ru">Этот сайт</span
+            ><span data-l="en">This website</span
+            ><span data-l="ua">Цей сайт</span>
+          </h2>
+          <p>
+            <span data-l="ru"
+              >Сказанное выше относится к программе. Сайт - это отдельная
+              история, и честно будет назвать её тоже. Сайт не ставит счётчиков,
+              не показывает рекламы и не использует cookie, но при открытии
+              страницы ваш браузер обращается к трём внешним адресам:</span
+            >
+            <span data-l="en"
+              >Everything above describes the app. The website is a separate
+              matter, and it is only fair to name it too. The site sets no
+              analytics, shows no ads and uses no cookies, but opening a page
+              does make your browser reach three outside addresses:</span
+            >
+            <span data-l="ua"
+              >Сказане вище стосується програми. Сайт - це окрема історія, і
+              чесно буде назвати її теж. Сайт не ставить лічильників, не показує
+              реклами й не використовує cookie, але під час відкриття сторінки ваш
+              браузер звертається до трьох зовнішніх адрес:</span
+            >
+          </p>
+          <ul>
+            <li>
+              <span data-l="ru"
+                ><b>GitHub Pages</b> - здесь размещён сам сайт. GitHub, как любой
+                веб-хостинг, видит обращения к страницам; это регулируется
+                политикой конфиденциальности GitHub.</span
+              >
+              <span data-l="en"
+                ><b>GitHub Pages</b> - the site is hosted there. GitHub, like any
+                web host, sees the requests for these pages; that is governed by
+                GitHub's own privacy statement.</span
+              >
+              <span data-l="ua"
+                ><b>GitHub Pages</b> - тут розміщено сам сайт. GitHub, як і
+                будь-який вебхостинг, бачить звернення до сторінок; це регулюється
+                політикою конфіденційності GitHub.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Google Fonts</b> - страница подгружает шрифты с
+                <code>fonts.googleapis.com</code> и
+                <code>fonts.gstatic.com</code>.</span
+              >
+              <span data-l="en"
+                ><b>Google Fonts</b> - the page loads its typefaces from
+                <code>fonts.googleapis.com</code> and
+                <code>fonts.gstatic.com</code>.</span
+              >
+              <span data-l="ua"
+                ><b>Google Fonts</b> - сторінка завантажує шрифти з
+                <code>fonts.googleapis.com</code> та
+                <code>fonts.gstatic.com</code>.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>GitHub API</b> - главная страница запрашивает у
+                <code>api.github.com</code> адрес последнего релиза, чтобы
+                кнопка загрузки вела на свежую версию.</span
+              >
+              <span data-l="en"
+                ><b>GitHub API</b> - the landing page asks
+                <code>api.github.com</code> for the latest release so that the
+                download button points at the current version.</span
+              >
+              <span data-l="ua"
+                ><b>GitHub API</b> - головна сторінка запитує в
+                <code>api.github.com</code> адресу останнього релізу, щоб кнопка
+                завантаження вела на свіжу версію.</span
+              >
+            </li>
+          </ul>
+          <p>
+            <span data-l="ru"
+              >Как и при любом запросе в интернете, этим сервисам виден ваш
+              IP-адрес и данные браузера. Выбор языка и темы оформления
+              сохраняются локально в вашем браузере и никуда не отправляются.
+              Установленная программа ничего из этого не делает.</span
+            >
+            <span data-l="en"
+              >As with any request on the internet, those services see your IP
+              address and browser details. Your language and theme choices are
+              stored locally in your browser and are never sent anywhere. The
+              installed app does none of this.</span
+            >
+            <span data-l="ua"
+              >Як і за будь-якого запиту в інтернеті, цим сервісам видно вашу
+              IP-адресу та дані браузера. Вибір мови й теми оформлення
+              зберігаються локально у вашому браузері й нікуди не надсилаються.
+              Встановлена програма нічого з цього не робить.</span
+            >
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">06</span>
+            <span data-l="ru">Дети, изменения и связь с автором</span
+            ><span data-l="en">Children, changes and contact</span
+            ><span data-l="ua">Діти, зміни та зв'язок з автором</span>
+          </h2>
+          <p>
+            <span data-l="ru"
+              >FileDO - инструмент для работы с накопителями, он не предназначен
+              для детей и не собирает данные ни о ком, включая детей.</span
+            >
+            <span data-l="en"
+              >FileDO is a storage tool. It is not directed at children, and it
+              collects no data about anyone, children included.</span
+            >
+            <span data-l="ua"
+              >FileDO - інструмент для роботи з носіями, він не призначений для
+              дітей і не збирає даних ні про кого, зокрема про дітей.</span
+            >
+          </p>
+          <p>
+            <span data-l="ru"
+              >Если эта политика изменится, обновлённая версия появится на этой
+              же странице с новой датой вступления в силу. История правок
+              открыта в репозитории.</span
+            >
+            <span data-l="en"
+              >If this policy changes, the new version appears on this same page
+              with a new effective date. The full edit history is public in the
+              repository.</span
+            >
+            <span data-l="ua"
+              >Якщо ця політика зміниться, оновлена версія з'явиться на цій самій
+              сторінці з новою датою набрання чинності. Історія правок відкрита в
+              репозиторії.</span
+            >
+          </p>
+          <p>
+            <span data-l="ru">Вопросы о конфиденциальности - автору напрямую:</span
+            ><span data-l="en">Privacy questions go straight to the author:</span
+            ><span data-l="ua">Питання щодо конфіденційності - автору напряму:</span>
+          </p>
+          <ul>
+            <li>
+              <span data-l="ru">Почта:</span><span data-l="en">Email:</span
+              ><span data-l="ua">Пошта:</span>
+              <a href="mailto:serzhyale@gmail.com">serzhyale@gmail.com</a>
+            </li>
+            <li>
+              <span data-l="ru">Issues в репозитории:</span
+              ><span data-l="en">Repository issues:</span
+              ><span data-l="ua">Issues у репозиторії:</span>
+              <a
+                href="https://github.com/SerZhyAle/FileDO/issues"
+                target="_blank"
+                rel="noopener"
+                >github.com/SerZhyAle/FileDO/issues</a
+              >
+            </li>
+            <li>
+              <span data-l="ru">Исходный код и лицензия MIT:</span
+              ><span data-l="en">Source code and the MIT license:</span
+              ><span data-l="ua">Вихідний код і ліцензія MIT:</span>
+              <a
+                href="https://github.com/SerZhyAle/FileDO"
+                target="_blank"
+                rel="noopener"
+                >github.com/SerZhyAle/FileDO</a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="./"
+              ><span data-l="ru">FileDO</span><span data-l="en">FileDO</span
+              ><span data-l="ua">FileDO</span></a
+            >
+            · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
+    <script>
+      (function () {
+        var meta = {
+          ru: {
+            t: "Конфиденциальность FileDO - без сети, телеметрии и аккаунтов",
+            d: "FileDO работает только на вашем устройстве: нет сетевых вызовов, телеметрии и аккаунтов. Что программа читает, какие два файла пишет и как их отключить.",
+          },
+          en: {
+            t: "FileDO privacy - no network, no telemetry, no accounts",
+            d: "FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, the two files it writes locally, and how to switch them off.",
+          },
+          ua: {
+            t: "Конфіденційність FileDO - без мережі, телеметрії та акаунтів",
+            d: "FileDO працює лише на вашому пристрої: немає мережевих викликів, телеметрії та акаунтів. Що програма читає, які два файли пише і як їх вимкнути.",
+          },
+        };
+        function lang(l) {
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+          localStorage.setItem("sza-lang", l);
+          document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+            b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
+          });
+          document.title = meta[l].t;
+          document.querySelector('meta[name="description"]').content =
+            meta[l].d;
+          document.querySelector('meta[property="og:title"]').content =
+            meta[l].t;
+          document.querySelector('meta[property="og:description"]').content =
+            meta[l].d;
+        }
+        document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+          b.onclick = function () {
+            lang(b.dataset.setLang);
+          };
+        });
+        lang(document.documentElement.dataset.lang || "en");
+        var theme = document.getElementById("themeBtn");
+        theme.onclick = function () {
+          var n =
+            document.documentElement.dataset.theme === "light"
+              ? "dark"
+              : "light";
+          document.documentElement.dataset.theme = n;
+          localStorage.setItem("sza-theme", n);
+          document.querySelector('meta[name="theme-color"]').content =
+            n === "light" ? "#eef3ea" : "#0a0f0a";
+          theme.setAttribute(
+            "aria-label",
+            n === "light" ? "Switch to dark theme" : "Switch to light theme",
+          );
+        };
+        var top = document.getElementById("toTop");
+        addEventListener("scroll", function () {
+          top.classList.toggle("show", scrollY > 600);
+        });
+        top.onclick = function () {
+          scrollTo({ top: 0, behavior: "smooth" });
+        };
+      })();
+    </script>
+  </body>
+</html>

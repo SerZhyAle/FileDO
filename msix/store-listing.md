@@ -47,22 +47,41 @@ These APIs are available only to full-trust desktop apps. FileDO runs entirely l
 Full-trust Win32 console app. Needs runFullTrust for raw disk/volume access (CreateFile on \\.\PhysicalDrive, raw read/write) used for speed testing, fake-capacity detection, and secure wiping - APIs only available to full-trust desktop apps. Runs locally, no network, no data collection. https://github.com/SerZhyAle/FileDO
 ```
 
-## Privacy policy (host as a page, e.g. GitHub Pages; key points)
+## Privacy policy
+
+**Privacy policy URL** (paste into Partner Center ▸ Properties ▸ Privacy policy URL):
 
 ```
-FileDO does not collect, store, log, or transmit any personal data. It runs entirely on
-your device, has no servers, makes no network requests, and contains no
+https://serzhyale.github.io/FileDO/privacy.html
+```
+
+The hosted page (`docs/privacy.html`) is the single source of truth. The Partner Center
+data-collection form and the summary below are *rendered from it* - if the page changes,
+re-derive them; never edit the summary on its own.
+
+Partner Center data collection: declare **no** data collection (the app has no networking
+code at all and the package declares no `internetClient` capability).
+
+```
+FileDO does not collect, store, or transmit any personal data. It runs entirely on your
+device, has no servers, makes no network requests, and contains no
 telemetry/analytics/ads/accounts.
 
 What it accesses and why:
 - Raw disk/device data (read and write) on the drives, folders, or shares you target -
   used only for speed testing, fake-capacity detection, secure wiping, and copying.
+- Drive model, serial number, and interface type, read via WMI for the `info` command and
+  shown on screen only - never logged to file, never transmitted.
 - The wipe and fill features intentionally overwrite/destroy data you point them at; they
   confirm before acting and never silently force drive roots, junctions, or system TEMP.
 
 Local files it writes (these never leave your device):
-- history.json - a log of operations, written to the current working directory.
-- hash_cache.json - cached file hashes to speed up duplicate scans, stored next to the app.
+- history.json - a log of operations (time, command, target path, full command line,
+  parameters, results), written to the current working directory, last 1000 entries.
+  Disable per run with the `nohist` (or `no_history`) flag.
+- hash_cache.json - cached file paths, sizes, timestamps, and MD5 hashes that speed up
+  duplicate scans, stored next to the exe (redirected into the package's per-user
+  LocalCache under MSIX). No file contents are stored.
 
 Data sharing: none. Children: no data collected. Open source: https://github.com/SerZhyAle/FileDO
 Contact: serzhyale@gmail.com
