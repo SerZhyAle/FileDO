@@ -1,0 +1,43 @@
+{
+  "$comment": "AGENTS.md is the authoritative rules file here; CLAUDE.md is a deliberate bare pointer to it. ledgerShape 4 is proven by generate_release_notes in .github/workflows/release.yml.",
+
+  "canon": {
+    "version": "2026.07.27",
+    "coreDigest": "sha256:dae220bfd389416d775986ac24913efdf8b0a8b9e881608157c41e5371d23663",
+    "adoptedOn": "2026-07-27",
+    "model": "reference",
+    "contribRecord": "contrib/filedo.md"
+  },
+
+  "role": "product",
+
+  "overlay": ["C"],
+  "shapes": ["co-shipped-companion"],
+  "editions": [],
+
+  "versionShape": {
+    "tagRegex": "^v\\d{10}$",
+    "editionTagPrefixes": []
+  },
+
+  "ledgerShape": 4,
+  "ledgerFile": null,
+
+  "channels": ["github", "winget", "msstore", "installer"],
+
+  "site": {
+    "kind": "product",
+    "root": "docs",
+    "pages": ["index.html"]
+  },
+
+  "privacy": {
+    "page": null,
+    "carveOut": null,
+    "sensitiveAccess": false
+  },
+
+  "byteIdenticalPairs": [],
+  "vendorAllow": [],
+  "exemptions": []
+}
