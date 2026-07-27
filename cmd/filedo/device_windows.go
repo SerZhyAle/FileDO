@@ -485,7 +485,7 @@ func runDeviceFill(devicePath, sizeMBStr string, autoDelete bool) error {
 	now := time.Now()
 	timestamp := now.Format("021504") // ddHHmmss
 
-	// 4 MB buffer per worker — keeps 12 workers within 32-bit process address space
+	// 4 MB buffer per worker - keeps 12 workers within 32-bit process address space
 	optimalBuffer := 4 * 1024 * 1024
 
 	// Start filling
@@ -870,7 +870,7 @@ func runDeviceFillVerify(devicePath string) error {
 	fmt.Printf("Target: %s\n", getEnhancedDeviceInfo(normalizedPath))
 	fmt.Printf("How it works: each FILL file embeds its own name in the header.\n")
 	fmt.Printf("  A fake controller overwrites early blocks with later writes,\n")
-	fmt.Printf("  so FILL_00001 ends up containing FILL_00500's header — caught.\n\n")
+	fmt.Printf("  so FILL_00001 ends up containing FILL_00500's header - caught.\n\n")
 
 	pattern := filepath.Join(normalizedPath, "FILL_*.tmp")
 	matches, err := filepath.Glob(pattern)
@@ -934,7 +934,7 @@ func runDeviceFillVerify(devicePath string) error {
 				embeddedName := ""
 				if strings.HasPrefix(line, prefix) {
 					rest := line[len(prefix):]
-					// Filename ends at ".tmp" — everything after is the build timestamp
+					// Filename ends at ".tmp" - everything after is the build timestamp
 					if idx := strings.Index(rest, ".tmp"); idx >= 0 {
 						embeddedName = rest[:idx] + ".tmp"
 					}
@@ -980,7 +980,7 @@ func runDeviceFillVerify(devicePath string) error {
 	fmt.Printf("\n")
 
 	if badCount == 0 && readErrCount == 0 {
-		fmt.Printf("✓ GENUINE: All %d file headers match — storage capacity appears real.\n", totalFiles)
+		fmt.Printf("✓ GENUINE: All %d file headers match - storage capacity appears real.\n", totalFiles)
 		return nil
 	}
 

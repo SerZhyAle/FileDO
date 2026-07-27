@@ -341,7 +341,7 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 			reason = "read error"
 		}
 		
-		// Если это была отмена пользователем — прерываем без логирования как повреждённый
+		// Если это была отмена пользователем - прерываем без логирования как повреждённый
 		if strings.Contains(errorStr, "interrupted by user") {
 			return fmt.Errorf("operation interrupted by user")
 		}

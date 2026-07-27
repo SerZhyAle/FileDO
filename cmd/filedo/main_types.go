@@ -553,7 +553,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 		fileSizeMB, float64(totalDataTarget)/float64(freeSpace)*100, maxFiles)
 	fmt.Printf("Will create %d test files...\n\n", maxFiles)
 
-	// Write buffer is fixedBufferSize (64 MB) — set in writeTestFileContentOptimized.
+	// Write buffer is fixedBufferSize (64 MB) - set in writeTestFileContentOptimized.
 	// No upfront calibration: eliminates 300 MB of wasted writes before the test.
 
 	const baselineFileCount = 3
@@ -827,7 +827,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 
 // Optimized file operations without template files
 
-const fixedBufferSize = 64 * 1024 * 1024 // 64 MB — good for all device types
+const fixedBufferSize = 64 * 1024 * 1024 // 64 MB - good for all device types
 
 // copyFileOptimized copies src→dst with a fixed 64 MB buffer.
 func copyFileOptimized(src, dst string) (int64, error) {
@@ -1121,7 +1121,7 @@ func verifyPatternQuick(file *os.File, fileSize int64, firstLine string) error {
 //
 // Strategy:
 //   - Current file: always quick-verified (catches write errors immediately)
-//   - File 1: quick-verified after EVERY write — detects the moment a fake
+//   - File 1: quick-verified after EVERY write - detects the moment a fake
 //     controller overwrites the first file's middle blocks with later data
 //   - File 5 and 10: quick-verified every 10th / 20th write (secondary anchors)
 //   - Every 5th write: full (body-tag) verification of the current file
@@ -1140,7 +1140,7 @@ func verifySmartTestFiles(filePaths []string, currentIndex int) error {
 		filesToVerify[currentIndex-1] = false
 	}
 
-	// File 1: quick after EVERY write — earliest possible fake detection
+	// File 1: quick after EVERY write - earliest possible fake detection
 	if len(filePaths) > 1 {
 		filesToVerify[0] = false
 	}

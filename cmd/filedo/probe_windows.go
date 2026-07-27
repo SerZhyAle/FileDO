@@ -30,7 +30,7 @@ import (
 //  4. Read all markers back and check for mismatches
 //
 // On a fake device the controller wraps addresses, so later writes overwrite
-// earlier ones — caught when we verify.
+// earlier ones - caught when we verify.
 func runDeviceProbe(devicePath string) error {
 	// Normalise: accept "D", "D:", "D:\"
 	driveLetter := rune(0)
@@ -48,7 +48,7 @@ func runDeviceProbe(devicePath string) error {
 
 	fmt.Printf("Device Probe (fast fake-capacity detection)\n")
 	fmt.Printf("Target : %s  (raw: %s)\n", getEnhancedDeviceInfo(fmt.Sprintf(`%c:`, driveLetter)), rawPath)
-	fmt.Printf("Mode   : Administrator raw I/O — no files written to filesystem\n\n")
+	fmt.Printf("Mode   : Administrator raw I/O - no files written to filesystem\n\n")
 
 	// ── Open raw device ─────────────────────────────────────────────────────
 	// FILE_FLAG_NO_BUFFERING (0x20000000) bypasses cache manager for direct I/O.
@@ -68,7 +68,7 @@ func runDeviceProbe(devicePath string) error {
 	)
 	if err != nil {
 		if errors.Is(err, syscall.ERROR_ACCESS_DENIED) {
-			return fmt.Errorf("access denied — run as Administrator to use probe\n"+
+			return fmt.Errorf("access denied - run as Administrator to use probe\n"+
 				"  Right-click cmd/PowerShell → \"Run as administrator\", then retry:\n"+
 				"  filedo %s probe", devicePath)
 		}
@@ -236,7 +236,7 @@ func runDeviceProbe(devicePath string) error {
 
 	fmt.Println()
 	if mismatch == 0 {
-		fmt.Printf("✅ GENUINE: All %d probes verified — no fake capacity detected.\n", numProbes)
+		fmt.Printf("✅ GENUINE: All %d probes verified - no fake capacity detected.\n", numProbes)
 		fmt.Printf("   Checked range: %.2f → %.2f GB\n", float64(startOffset)/(1<<30), float64(endOffset)/(1<<30))
 	} else {
 		// Estimate real capacity: last good probe before first bad one
@@ -249,7 +249,7 @@ func runDeviceProbe(devicePath string) error {
 		if realBytes > 0 {
 			fmt.Printf("   Estimated real capacity: %.2f GB\n", float64(realBytes)/(1<<30))
 		} else {
-			fmt.Printf("   Fake starts at the very first sector — actual capacity near zero.\n")
+			fmt.Printf("   Fake starts at the very first sector - actual capacity near zero.\n")
 		}
 		fmt.Printf("   Claimed size   : %.2f GB\n", float64(totalBytes)/(1<<30))
 	}

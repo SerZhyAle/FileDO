@@ -388,7 +388,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 		fmt.Printf("Step 3: Upload Speed Test - Copying file to network location...\n")
 		fmt.Printf("Source: %s\n", localFileName)
 		fmt.Printf("Target: %s\n", networkFileName)
-		fmt.Printf("Mode: unbuffered write (FILE_FLAG_NO_BUFFERING|WRITE_THROUGH — bypasses OS page cache)\n")
+		fmt.Printf("Mode: unbuffered write (FILE_FLAG_NO_BUFFERING|WRITE_THROUGH - bypasses OS page cache)\n")
 	}
 
 	// Use unbuffered write so the OS page cache does not hide the real network write speed.
@@ -423,7 +423,7 @@ func runNetworkSpeedTest(networkPath, sizeMBStr string, noDelete, shortFormat bo
 		fmt.Printf("Step 4: Download Speed Test - Copying file from network location...\n")
 		fmt.Printf("Source: %s\n", networkFileName)
 		fmt.Printf("Target: %s\n", downloadFileName)
-		fmt.Printf("Mode: unbuffered read (FILE_FLAG_NO_BUFFERING — bypasses OS page cache)\n")
+		fmt.Printf("Mode: unbuffered read (FILE_FLAG_NO_BUFFERING - bypasses OS page cache)\n")
 	}
 
 	// Use unbuffered read so the OS page cache does not serve the just-uploaded file from RAM.

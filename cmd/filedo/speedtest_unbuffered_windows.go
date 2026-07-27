@@ -67,7 +67,7 @@ func roundUpSector(n int64) int64 {
 //
 // Strategy:
 //   - Source is opened with standard buffered I/O (the local test file was just
-//     created and will be served from the OS page cache; that is fine — we want
+//     created and will be served from the OS page cache; that is fine - we want
 //     reads to be fast so they don't become the bottleneck).
 //   - Destination is opened with FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH
 //     so every write goes directly past the OS write-behind cache to the actual
@@ -79,7 +79,7 @@ func copySpeedTestUpload(src, dst string) (int64, error) {
 	// Allocate sector-aligned buffer once.
 	ptr, buf, err := allocSectorAligned(unbufferedChunkSize)
 	if err != nil {
-		// Cannot allocate aligned memory — fall back.
+		// Cannot allocate aligned memory - fall back.
 		return copyFileOptimized(src, dst)
 	}
 	defer freeSectorAligned(ptr)
@@ -105,7 +105,7 @@ func copySpeedTestUpload(src, dst string) (int64, error) {
 		syscall.GENERIC_WRITE, 0,
 		syscall.CREATE_ALWAYS, dstFlags)
 	if err != nil {
-		// Some network shares reject NO_BUFFERING — try WRITE_THROUGH only.
+		// Some network shares reject NO_BUFFERING - try WRITE_THROUGH only.
 		dstFlags = fileFlagWriteThrough
 		dstHandle, err = createFileWindows(dst,
 			syscall.GENERIC_WRITE, 0,
