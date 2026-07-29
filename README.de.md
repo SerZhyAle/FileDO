@@ -187,6 +187,8 @@ filedo C:\temp clean
 - ✅ **Durchsuchen-Button** für einfache Pfad-Auswahl
 - ✅ **Fortschrittsverfolgung** mit Echtzeit-Ausgabe
 - ✅ **Ein-Klick-Ausführung** mit Ausgabe-Anzeige
+- ✅ **Fenster «Über das Programm»** (Schaltfläche **Über das Programm** oben rechts): Build, Autor und Links zur Website, zum Quellcode, zum Issue-Tracker, zur Datenschutzseite und zu den weiteren Programmen des Autors
+- ✅ **Logs an den Autor senden** - die eine Schaltfläche in diesem Fenster packt die auf diesem Rechner gefundenen FileDO-Logs in ein Zip, öffnet den Ordner mit markierter Datei, legt den Pfad in die Zwischenablage und öffnet Ihr Mailprogramm mit ausgefüllter Adresse und Betreff. Das Zip sehen Sie zuerst selbst, und gesendet wird nichts, bevor Sie die Mail selbst abschicken
 
 ```bash
 # Starten aus dem filedo_win_vb Ordner

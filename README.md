@@ -392,6 +392,8 @@ filedo C:\temp clean
 - ✅ **Live command preview** in an editable box - tweak by hand for anything the builder doesn't cover
 - ✅ **Browse** buttons for paths, **Copy command** to clipboard, and **RUN** in a console window
 - ✅ Finds `filedo.exe` next to itself or on `PATH` (works under the Store package and portable zip alike)
+- ✅ **About window** (the **About** button, top right): build stamp, author, and links to the site, the source, the issue tracker, the privacy page and the author's other tools
+- ✅ **Send logs to the author** - the one button in that window packs the FileDO logs found on this machine into a single zip, opens the folder with it selected, puts its path on the clipboard, and opens your default mail program already addressed and titled. You see the zip first, and nothing is sent until you press Send yourself
 
 ```powershell
 filedo_win              # if installed via winget / Store (on PATH)

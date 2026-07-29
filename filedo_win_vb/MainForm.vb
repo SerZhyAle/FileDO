@@ -40,6 +40,7 @@ Public Class MainForm
     }
 
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        AppIcon.Apply(Me)
         CheckDebugMode()
         InitializeForm()
     End Sub
@@ -203,6 +204,7 @@ Public Class MainForm
         btnBrowse2.Text = L("ui_browse")
         btnCopy.Text = L("ui_copy")
         btnRun.Text = L("ui_run")
+        btnAbout.Text = L("ui_about")
         lblCommandTitle.Text = "Command:"
         grpDuplicateOptions.Text = L("dup_title")
         rbOld.Text = L("dup_old")
@@ -211,6 +213,8 @@ Public Class MainForm
         rbXyz.Text = L("dup_xyz")
         chkMove.Text = L("dup_move")
         lblCompareDel.Text = L("cmp_label")
+
+        tip.SetToolTip(btnAbout, L("about_tip"))
 
         ' static flag tooltips
         tip.SetToolTip(chkMax, L("fl_max"))
@@ -609,6 +613,14 @@ Public Class MainForm
                             MessageBoxButtons.OK, MessageBoxIcon.Error)
             LogMessage("Error starting process: " & ex.Message)
         End Try
+    End Sub
+
+    ' Version, author, links, and the button that mails the logs to the author.
+    Private Sub btnAbout_Click(sender As Object, e As EventArgs) Handles btnAbout.Click
+        Using dlg As New AboutForm(currentLang)
+            dlg.ShowDialog(Me)
+        End Using
+        LogMessage("About dialog closed")
     End Sub
 
     Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing

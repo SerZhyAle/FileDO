@@ -64,6 +64,7 @@ Partial Class MainForm
         Me.txtCommand = New System.Windows.Forms.TextBox()
         Me.btnCopy = New System.Windows.Forms.Button()
         Me.btnRun = New System.Windows.Forms.Button()
+        Me.btnAbout = New System.Windows.Forms.Button()
         Me.grpDuplicateOptions.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -453,11 +454,21 @@ Partial Class MainForm
         Me.btnRun.Text = "RUN"
         Me.btnRun.UseVisualStyleBackColor = True
         '
+        'btnAbout
+        '
+        Me.btnAbout.Location = New System.Drawing.Point(466, 12)
+        Me.btnAbout.Name = "btnAbout"
+        Me.btnAbout.Size = New System.Drawing.Size(124, 30)
+        Me.btnAbout.TabIndex = 33
+        Me.btnAbout.Text = "About"
+        Me.btnAbout.UseVisualStyleBackColor = True
+        '
         'MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(9.0!, 20.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(610, 592)
+        Me.Controls.Add(Me.btnAbout)
         Me.Controls.Add(Me.btnRun)
         Me.Controls.Add(Me.btnCopy)
         Me.Controls.Add(Me.txtCommand)
@@ -544,4 +555,5 @@ Partial Class MainForm
     Friend WithEvents txtCommand As TextBox
     Friend WithEvents btnCopy As Button
     Friend WithEvents btnRun As Button
+    Friend WithEvents btnAbout As Button
 End Class

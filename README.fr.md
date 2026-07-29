@@ -187,6 +187,8 @@ filedo C:\temp clean
 - ✅ **Bouton parcourir** pour sélection facile du chemin
 - ✅ **Suivi du progrès** avec sortie en temps réel
 - ✅ **Exécution en un clic** avec affichage de la sortie
+- ✅ **Fenêtre «À propos»** (bouton **À propos** en haut à droite) : version, auteur et liens vers le site, le code source, le suivi des problèmes, la page de confidentialité et les autres outils de l'auteur
+- ✅ **Envoyer les logs à l'auteur** - l'unique bouton de cette fenêtre regroupe les logs FileDO trouvés sur cette machine dans un seul zip, ouvre le dossier avec le fichier sélectionné, place son chemin dans le presse-papiers et ouvre votre programme de messagerie avec l'adresse et l'objet déjà remplis. Vous voyez d'abord le zip, et rien n'est envoyé avant que vous envoyiez le message vous-même
 
 ```bash
 # Lancer depuis le dossier filedo_win_vb

@@ -32,6 +32,35 @@ shows a live editable preview, and runs it in a console window.
 The **Command** box is editable - tweak by hand for anything the builder does not
 cover. **Copy command** puts it on the clipboard; **RUN** executes it.
 
+## About window and sending logs
+
+**About** (top right of the main window) opens a small window holding the GUI build
+stamp, the `filedo.exe` version beside it, the author, and links to the site, the
+source, the issue tracker, the privacy page and the author's other tools. Every
+string on it is localized; the URLs and the version stamps are not.
+
+Its one action is **Send logs to the author**:
+
+1. A dialog states what will be collected, that paths inside the logs can contain
+   your own folder and account names, and that nothing is sent automatically.
+2. On Yes, the FileDO artifacts found next to the exe, in `%USERPROFILE%`, in
+   `%TEMP%\FileDO_Operations` and in `%TEMP%` - `filedo_win_debug.log`,
+   `history.json`, `check_report_*`, `check_state.json`, `compare_report_*.log`,
+   `delete_report_*.log`, `skip_files.list`, `damaged_files.log` - are packed
+   newest-first into `%TEMP%\FileDO_Logs\filedo-logs-<stamp>.zip`, together with a
+   generated `filedo-report.txt` (build stamps, OS, culture, and a manifest of what
+   went in and what was left out under the 40-file / 8 MB-per-file / 20 MB-total
+   caps).
+3. Explorer opens with the zip selected, its path goes to the clipboard, and the
+   default mail program opens addressed to the author with an English subject and
+   body template.
+4. `mailto:` cannot carry an attachment, so attaching the zip is the one manual step -
+   the closing dialog says so and shows the path.
+
+If no artifact exists anywhere, no archive is written and no mail program is opened;
+the dialog explains how to produce a log instead. Full requirements and the decisions
+behind them: [`docs/spec-send-logs-to-author.md`](../docs/spec-send-logs-to-author.md).
+
 ## How it finds filedo.exe
 
 `filedo_win.exe` runs `filedo.exe` from the same folder if present, otherwise from

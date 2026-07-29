@@ -33,7 +33,7 @@
         "name": "FileDO Privacy Policy",
         "url": "https://serzhyale.github.io/FileDO/privacy.html",
         "inLanguage": ["en", "ru", "uk"],
-        "dateModified": "2026-07-27",
+        "dateModified": "2026-07-30",
         "publisher": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
@@ -314,7 +314,7 @@
                 ><span data-l="en">Effective date:</span
                 ><span data-l="ua">Дата набрання чинності:</span></b
               >
-              2026-07-27</span
+              2026-07-30</span
             >
             <span
               ><b
@@ -733,6 +733,171 @@
         <div class="container">
           <h2>
             <span class="secnum">04</span>
+            <span data-l="ru">Если вы сами отправляете логи автору</span
+            ><span data-l="en">If you choose to send the logs to the author</span
+            ><span data-l="ua">Якщо ви самі надсилаєте логи автору</span>
+          </h2>
+          <p>
+            <span data-l="ru"
+              >В окне «О программе» есть кнопка «Отправить логи автору». Это
+              единственное место в программе, откуда данные могут покинуть вашу
+              машину - и только вашими руками. Автоматически, по таймеру или при
+              ошибке она не срабатывает никогда.</span
+            >
+            <span data-l="en"
+              >The About window carries a Send logs to the author button. It is
+              the only place in the program from which data can leave your
+              machine - and only by your own hand. It never fires automatically,
+              on a timer, or on a failure.</span
+            >
+            <span data-l="ua"
+              >У вікні «Про програму» є кнопка «Надіслати логи автору». Це єдине
+              місце в програмі, звідки дані можуть покинути вашу машину - і лише
+              вашими руками. Автоматично, за таймером або під час помилки вона не
+              спрацьовує ніколи.</span
+            >
+          </p>
+          <ul>
+            <li>
+              <span data-l="ru"
+                ><b>Что собирается.</b> Только файлы, которые записал сам
+                FileDO: <code>filedo_win_debug.log</code>,
+                <code>history.json</code>, отчёты <code>check_report_*</code>,
+                <code>check_state.json</code>,
+                <code>compare_report_*.log</code>,
+                <code>delete_report_*.log</code>,
+                <code>skip_files.list</code>, <code>damaged_files.log</code> - из
+                папки программы, из <code>%USERPROFILE%</code>, из
+                <code>%TEMP%\FileDO_Operations</code> и из
+                <code>%TEMP%</code>. Плюс сгенерированный
+                <code>filedo-report.txt</code>: версии, версия Windows, язык
+                интерфейса и список того, что вошло в архив.</span
+              >
+              <span data-l="en"
+                ><b>What is collected.</b> Only files FileDO itself wrote:
+                <code>filedo_win_debug.log</code>, <code>history.json</code>, the
+                <code>check_report_*</code> reports,
+                <code>check_state.json</code>,
+                <code>compare_report_*.log</code>,
+                <code>delete_report_*.log</code>,
+                <code>skip_files.list</code>, <code>damaged_files.log</code> -
+                from the program folder, from <code>%USERPROFILE%</code>, from
+                <code>%TEMP%\FileDO_Operations</code> and from
+                <code>%TEMP%</code>. Plus a generated
+                <code>filedo-report.txt</code>: the version stamps, the Windows
+                version, the interface language, and a list of what went into the
+                archive.</span
+              >
+              <span data-l="ua"
+                ><b>Що збирається.</b> Лише файли, які записав сам FileDO:
+                <code>filedo_win_debug.log</code>, <code>history.json</code>,
+                звіти <code>check_report_*</code>,
+                <code>check_state.json</code>,
+                <code>compare_report_*.log</code>,
+                <code>delete_report_*.log</code>,
+                <code>skip_files.list</code>, <code>damaged_files.log</code> - з
+                теки програми, з <code>%USERPROFILE%</code>, з
+                <code>%TEMP%\FileDO_Operations</code> і з
+                <code>%TEMP%</code>. Плюс згенерований
+                <code>filedo-report.txt</code>: версії, версія Windows, мова
+                інтерфейсу та перелік того, що увійшло до архіву.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Что там может быть личного.</b> Пути к файлам, к которым вы
+                применяли команды, а значит - имена ваших папок и вашей учётной
+                записи Windows. Имя компьютера и имя пользователя отдельными
+                полями не добавляются, но путь вида
+                <code>C:\Users\ваше-имя\..</code> в логе остаться может.</span
+              >
+              <span data-l="en"
+                ><b>What personal detail can be in there.</b> The paths you
+                pointed commands at - which means the names of your own folders
+                and of your Windows account. The machine name and the user name
+                are not added as fields of their own, but a path like
+                <code>C:\Users\your-name\..</code> can remain inside a log.</span
+              >
+              <span data-l="ua"
+                ><b>Що там може бути особистого.</b> Шляхи до файлів, до яких ви
+                застосовували команди, а отже - назви ваших тек і вашого
+                облікового запису Windows. Ім'я комп'ютера та ім'я користувача
+                окремими полями не додаються, але шлях виду
+                <code>C:\Users\ваше-ім'я\..</code> у лозі залишитися може.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Вы видите архив первым.</b> Zip складывается в
+                <code>%TEMP%\FileDO_Logs\</code>, папка открывается с выделенным
+                файлом, а полный путь копируется в буфер обмена. Откройте его,
+                уберите всё лишнее или просто удалите - на этом всё и
+                закончится.</span
+              >
+              <span data-l="en"
+                ><b>You see the archive first.</b> The zip is written to
+                <code>%TEMP%\FileDO_Logs\</code>, the folder opens with the file
+                selected, and the full path goes to your clipboard. Open it,
+                strip anything you would rather not share, or simply delete it -
+                and that is the end of it.</span
+              >
+              <span data-l="ua"
+                ><b>Ви бачите архів першим.</b> Zip складається в
+                <code>%TEMP%\FileDO_Logs\</code>, тека відкривається з виділеним
+                файлом, а повний шлях копіюється в буфер обміну. Відкрийте його,
+                приберіть усе зайве або просто видаліть - на цьому все й
+                закінчиться.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Отправляете вы, а не программа.</b> FileDO открывает вашу
+                почтовую программу с адресом автора, темой и заготовкой письма.
+                Архив вы прикладываете сами, письмо отправляете сами и своей
+                учётной записью. У FileDO нет ни сервера, ни собственной
+                отправки почты, ни сетевых запросов - и здесь тоже.</span
+              >
+              <span data-l="en"
+                ><b>You send it, not the program.</b> FileDO opens your own mail
+                program with the author's address, a subject and a draft body.
+                You attach the archive yourself and send the mail yourself, from
+                your own account. FileDO has no server, no mail sending of its
+                own and no network requests - here as everywhere else.</span
+              >
+              <span data-l="ua"
+                ><b>Надсилаєте ви, а не програма.</b> FileDO відкриває вашу
+                поштову програму з адресою автора, темою та заготовкою листа.
+                Архів ви прикладаєте самі, лист надсилаєте самі і своїм
+                обліковим записом. У FileDO немає ні сервера, ні власного
+                надсилання пошти, ні мережевих запитів - і тут теж.</span
+              >
+            </li>
+            <li>
+              <span data-l="ru"
+                ><b>Что происходит с присланным.</b> Письмо приходит на личную
+                почту автора и используется только для разбора вашей проблемы. Ни
+                в какую базу, аналитику или третьи руки оно не попадает.</span
+              >
+              <span data-l="en"
+                ><b>What happens to what you send.</b> The mail arrives in the
+                author's personal mailbox and is used only to work out your
+                problem. It goes into no database, no analytics and no third
+                party's hands.</span
+              >
+              <span data-l="ua"
+                ><b>Що відбувається з надісланим.</b> Лист надходить на особисту
+                пошту автора і використовується лише для розбору вашої проблеми.
+                До жодної бази, аналітики чи третіх рук він не потрапляє.</span
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">05</span>
             <span data-l="ru">Права, удаление данных и внешние программы</span
             ><span data-l="en"
               >Permissions, data destruction and external programs</span
@@ -828,7 +993,9 @@
                 вы передаёте команде <code>from</code> файл со списком команд,
                 FileDO выполнит строки из него - в том числе строки, которые
                 запускают другие программы. Запускается ровно то, что вы
-                написали.</span
+                написали. В окне «О программе» ссылки открываются вашим браузером,
+                а кнопка отправки логов открывает Проводник и вашу почтовую
+                программу - и только когда вы её нажали.</span
               >
               <span data-l="en"
                 ><b>FileDO sometimes launches built-in Windows programs.</b>
@@ -837,7 +1004,10 @@
                 <code>Format-Volume</code> against the drive you named. And if
                 you hand the <code>from</code> command a file listing commands,
                 FileDO runs those lines - including lines that start other
-                programs. What runs is exactly what you wrote.</span
+                programs. What runs is exactly what you wrote. In the About window
+                the links open in your browser, and the send-logs button opens
+                Explorer and your mail program - only once you have pressed
+                it.</span
               >
               <span data-l="ua"
                 ><b>Іноді FileDO запускає системні програми Windows.</b> Під час
@@ -846,7 +1016,10 @@
                 <code>Format-Volume</code> для диска, який ви назвали. А якщо ви
                 передаєте команді <code>from</code> файл зі списком команд,
                 FileDO виконає рядки з нього - зокрема рядки, що запускають інші
-                програми. Запускається саме те, що ви написали.</span
+                програми. Запускається саме те, що ви написали. У вікні «Про
+                програму» посилання відкриваються вашим браузером, а кнопка
+                надсилання логів відкриває Проводник і вашу поштову програму - і
+                тільки коли ви її натиснули.</span
               >
             </li>
           </ul>
@@ -856,7 +1029,7 @@
       <section class="section">
         <div class="container">
           <h2>
-            <span class="secnum">05</span>
+            <span class="secnum">06</span>
             <span data-l="ru">Этот сайт</span
             ><span data-l="en">This website</span
             ><span data-l="ua">Цей сайт</span>
@@ -960,7 +1133,7 @@
       <section class="section">
         <div class="container">
           <h2>
-            <span class="secnum">06</span>
+            <span class="secnum">07</span>
             <span data-l="ru">Дети, изменения и связь с автором</span
             ><span data-l="en">Children, changes and contact</span
             ><span data-l="ua">Діти, зміни та зв'язок з автором</span>

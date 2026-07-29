@@ -75,7 +75,8 @@ What it accesses and why:
 - The wipe and fill features intentionally overwrite/destroy data you point them at; they
   confirm before acting and never silently force drive roots, junctions, or system TEMP.
 
-Local files it writes (these never leave your device):
+Local files it writes (they stay on your device unless you mail them yourself - see the last
+item below):
 - history.json - a log of operations (time, command, target path, full command line,
   parameters, results), written to the current working directory, last 1000 entries.
   Disable per run with the `nohist` (or `no_history`) flag.
@@ -83,6 +84,14 @@ Local files it writes (these never leave your device):
   duplicate scans, stored next to the exe (redirected into the package's per-user
   LocalCache under MSIX). No file contents are stored.
 
-Data sharing: none. Children: no data collected. Open source: https://github.com/SerZhyAle/FileDO
+Sending logs to the author is entirely yours to start: the About window of the GUI has a
+button that packs those local log files into a zip in your TEMP folder, shows it to you in
+Explorer, and opens your own mail program addressed to the author. The app never uploads
+anything, never sends mail itself, and never does this automatically - you attach the file and
+press Send, or you delete the zip and nothing happens.
+
+Data sharing: none - the app shares nothing on its own; the only outbound path is a mail you
+compose and send yourself from your own account. Children: no data collected.
+Open source: https://github.com/SerZhyAle/FileDO
 Contact: serzhyale@gmail.com
 ```
