@@ -53,7 +53,7 @@
 - **Comprehensive operation history** with JSON logging
 - **Context-aware interruption** - graceful cancellation supportthub.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2507112115-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Capacity Detection • 📁 Duplicate Management**
@@ -576,14 +576,36 @@ FileDO/
 
 ## 🔄 Version History
 
-**v2507112115** (Current)
+**v2607300124** (Current)
+- **GUI**: 5-language interface (English, Russian, Ukrainian, German, French) with runtime language switching and an app icon
+- **GUI**: About window with a send-logs-to-the-author action
+- **Privacy**: hosted privacy page, linked from the site and the Store listing
+- **CLI**: new "pleasantly paranoid" tagline and clearer usage text
+- **Docs**: redesigned site with new step-by-step guides (storage check, files and copies, GUI command builder)
+- **Project**: sources reorganized under `cmd/` (filedo, filedo-check, filedo-fill, filedo-test); separate build and release flows
+
+**v2606120121** (Previous)
+- **Wipe**: hardened wipe safety checks
+- **Duplicates**: fixed duplicate-cache correctness and parallelism
+- **Copy**: trimmed copy directory walks
+
+**v2605152056**
+- **Installer**: MSI installer; application icon embedded in all EXEs and the installed-programs entry
+- **Store**: Microsoft Store submission spec and social preview image
+
+**v2604272228**
+- **Distribution**: first winget release (SerZhyAle.FileDO) and GitHub Actions release workflow
+- **Binaries**: PE version info and Windows application manifest embedded in all binaries
+- **Docs**: GitHub Pages redesigned and simplified
+
+**v2507112115**
 - **Major Refactoring**: Extracted capacity testing logic into dedicated `capacitytest` package
 - **Enhanced Interruption**: Added context-aware cancellation with thread-safe `InterruptHandler`
 - **Improved Performance**: Optimized buffer management and verification algorithms
 - **Better Architecture**: Modular design with clear separation of concerns
 - **VB.NET GUI**: Updated Windows Forms GUI application with better integration
 
-**v2507082120** (Previous)
+**v2507082120**
 - Added duplicate file detection and management
 - Multiple duplicate selection modes (old/new/abc/xyz)
 - Hash caching for faster duplicate scanning
@@ -600,7 +622,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2507112115** - Advanced File & Storage Operations Tool
+**FileDO v2607300124** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

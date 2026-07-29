@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2507112115-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Test de Stockage • 🚀 Analyse de Performance • 🛡️ Suppression Sécurisée • 🎯 Détection de Fausse Capacité • 📁 Gestion des Doublons**
@@ -397,14 +397,36 @@ FileDO/
 
 ## 🔄 Historique des Versions
 
-**v2507112115** (Actuelle)
+**v2607300124** (Actuelle)
+- **GUI** : interface en 5 langues (anglais, russe, ukrainien, allemand, français) avec changement de langue à la volée et icône d'application
+- **GUI** : fenêtre "À propos" avec envoi des journaux à l'auteur
+- **Confidentialité** : page de confidentialité publiée, liée depuis le site et la fiche du Store
+- **CLI** : nouveau slogan "pleasantly paranoid" et texte d'aide plus clair
+- **Documentation** : site repensé avec de nouveaux guides pas à pas (vérification du stockage, fichiers et copies, constructeur de commandes GUI)
+- **Projet** : sources réorganisées sous `cmd/` (filedo, filedo-check, filedo-fill, filedo-test) ; flux de build et de release séparés
+
+**v2606120121** (Précédente)
+- **Wipe** : contrôles de sécurité renforcés pour l'effacement
+- **Doublons** : correction de l'exactitude et du parallélisme du cache de doublons
+- **Copie** : parcours de répertoires allégés lors de la copie
+
+**v2605152056**
+- **Installateur** : installateur MSI ; icône d'application intégrée dans tous les EXE et l'entrée des programmes installés
+- **Store** : spécification de publication sur le Microsoft Store et image d'aperçu
+
+**v2604272228**
+- **Distribution** : première publication sur winget (SerZhyAle.FileDO) et pipeline de release GitHub Actions
+- **Binaires** : informations de version PE et manifeste d'application Windows intégrés dans tous les binaires
+- **Documentation** : pages GitHub Pages repensées et simplifiées
+
+**v2507112115**
 - **Refactorisation majeure** : Logique de test de capacité extraite dans un package `capacitytest` dédié
 - **Interruption améliorée** : Ajout d'annulation contextuelle avec `InterruptHandler` thread-safe
 - **Performance améliorée** : Algorithmes de gestion des buffers et de vérification optimisés
 - **Meilleure architecture** : Design modulaire avec séparation claire des responsabilités
 - **GUI VB.NET** : Application Windows Forms mise à jour avec meilleure intégration
 
-**v2507082120** (Précédente)
+**v2507082120**
 - Ajout de détection et gestion des doublons de fichiers
 - Multiples modes de sélection de doublons (old/new/abc/xyz)
 - Mise en cache des hachages pour scan de doublons plus rapide
@@ -421,7 +443,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2507112115** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2607300124** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

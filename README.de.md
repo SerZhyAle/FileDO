@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2507112115-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Speicher-Tests • 🚀 Leistungsanalyse • 🛡️ Sicheres Löschen • 🎯 Fake-Kapazität Erkennung • 📁 Duplikat-Verwaltung**
@@ -398,14 +398,36 @@ FileDO/
 
 ## 🔄 Versionshistorie
 
-**v2507112115** (Aktuell)
+**v2607300124** (Aktuell)
+- **GUI**: Oberfläche in 5 Sprachen (Englisch, Russisch, Ukrainisch, Deutsch, Französisch) mit Sprachwechsel zur Laufzeit und App-Symbol
+- **GUI**: "Über"-Fenster mit Funktion zum Senden der Protokolle an den Autor
+- **Datenschutz**: veröffentlichte Datenschutzseite, verlinkt von der Website und dem Store-Eintrag
+- **CLI**: neuer Slogan "pleasantly paranoid" und klarerer Hilfetext
+- **Dokumentation**: neu gestaltete Website mit neuen Schritt-für-Schritt-Anleitungen (Speicherprüfung, Dateien und Kopien, GUI-Befehlsgenerator)
+- **Projekt**: Quellcode unter `cmd/` reorganisiert (filedo, filedo-check, filedo-fill, filedo-test); getrennte Build- und Release-Abläufe
+
+**v2606120121** (Vorherige)
+- **Wipe**: verstärkte Sicherheitsprüfungen beim Löschen
+- **Duplikate**: Korrektheit und Parallelität des Duplikat-Caches korrigiert
+- **Kopieren**: Verzeichnisdurchläufe beim Kopieren reduziert
+
+**v2605152056**
+- **Installer**: MSI-Installer; App-Symbol in alle EXEs und den Eintrag der installierten Programme eingebettet
+- **Store**: Microsoft-Store-Einreichungsspezifikation und Vorschaubild
+
+**v2604272228**
+- **Distribution**: erste winget-Veröffentlichung (SerZhyAle.FileDO) und GitHub-Actions-Release-Pipeline
+- **Binärdateien**: PE-Versionsinformationen und Windows-Anwendungsmanifest in alle Binärdateien eingebettet
+- **Dokumentation**: GitHub-Pages-Seiten neu gestaltet und vereinfacht
+
+**v2507112115**
 - **Große Refaktorierung**: Kapazitätstest-Logik in dediziertes `capacitytest` Package extrahiert
 - **Verbesserte Unterbrechung**: Kontextabhängige Abbrüche mit thread-sicherem `InterruptHandler` hinzugefügt
 - **Verbesserte Leistung**: Optimierte Puffer-Verwaltung und Verifikations-Algorithmen
 - **Bessere Architektur**: Modulares Design mit klarer Trennung der Verantwortlichkeiten
 - **VB.NET GUI**: Aktualisierte Windows Forms Anwendung mit besserer Integration
 
-**v2507082120** (Vorherige)
+**v2507082120**
 - Datei-Duplikat-Erkennung und Verwaltung hinzugefügt
 - Mehrere Duplikat-Auswahlmodi (old/new/abc/xyz)
 - Hash-Caching für schnellere Duplikat-Scans
@@ -422,7 +444,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2507112115** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2607300124** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
