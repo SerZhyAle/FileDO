@@ -26,7 +26,7 @@ filedo cmp D:\Data E:\Backup del new source    # только если нове�
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Тестирование накопителей • 🚀 Анализ производительности • 🛡️ Безопасное удаление • 🎯 Обнаружение поддельной ёмкости • 📁 Управление дубликатами**
@@ -488,7 +488,7 @@ FileDO/
 
 ## 🔄 История версий
 
-**v2607300124** (Текущая)
+**v2607301014** (Текущая)
 - **GUI**: интерфейс на 5 языках (английский, русский, украинский, немецкий, французский) с переключением языка на лету и значком приложения
 - **GUI**: окно "О программе" с функцией отправки логов автору
 - **Приватность**: опубликована страница конфиденциальности, на неё ссылаются сайт и страница в Store
@@ -534,7 +534,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607300124** - Продвинутый инструмент для работы с файлами и накопителями
+**FileDO v2607301014** - Продвинутый инструмент для работы с файлами и накопителями
 
 Создан **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

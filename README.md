@@ -53,7 +53,7 @@
 - **Comprehensive operation history** with JSON logging
 - **Context-aware interruption** - graceful cancellation supportthub.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Capacity Detection • 📁 Duplicate Management**
@@ -576,7 +576,7 @@ FileDO/
 
 ## 🔄 Version History
 
-**v2607300124** (Current)
+**v2607301014** (Current)
 - **GUI**: 5-language interface (English, Russian, Ukrainian, German, French) with runtime language switching and an app icon
 - **GUI**: About window with a send-logs-to-the-author action
 - **Privacy**: hosted privacy page, linked from the site and the Store listing
@@ -622,7 +622,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607300124** - Advanced File & Storage Operations Tool
+**FileDO v2607301014** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

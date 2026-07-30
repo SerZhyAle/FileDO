@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Speicher-Tests • 🚀 Leistungsanalyse • 🛡️ Sicheres Löschen • 🎯 Fake-Kapazität Erkennung • 📁 Duplikat-Verwaltung**
@@ -398,7 +398,7 @@ FileDO/
 
 ## 🔄 Versionshistorie
 
-**v2607300124** (Aktuell)
+**v2607301014** (Aktuell)
 - **GUI**: Oberfläche in 5 Sprachen (Englisch, Russisch, Ukrainisch, Deutsch, Französisch) mit Sprachwechsel zur Laufzeit und App-Symbol
 - **GUI**: "Über"-Fenster mit Funktion zum Senden der Protokolle an den Autor
 - **Datenschutz**: veröffentlichte Datenschutzseite, verlinkt von der Website und dem Store-Eintrag
@@ -444,7 +444,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607300124** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2607301014** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607300124-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Тестування сховищ • 🚀 Аналіз продуктивності • 🛡️ Безпечне видалення • 🎯 Виявлення підробної місткості • 📁 Управління дублікатами**
@@ -409,7 +409,7 @@ FileDO/
 
 ## 🔄 Історія версій
 
-**v2607300124** (Поточна)
+**v2607301014** (Поточна)
 - **GUI**: інтерфейс 5 мовами (англійська, російська, українська, німецька, французька) з перемиканням мови на льоту та значком застосунку
 - **GUI**: вікно "Про програму" з функцією надсилання логів автору
 - **Приватність**: опубліковано сторінку конфіденційності, на неї посилаються сайт і сторінка в Store
@@ -455,7 +455,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607300124** - Розширені інструменти для файлів і сховищ
+**FileDO v2607301014** - Розширені інструменти для файлів і сховищ
 
 Створено **sza@ukr.net** | [Ліцензія MIT](LICENSE) | [GitHub репозиторій](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
