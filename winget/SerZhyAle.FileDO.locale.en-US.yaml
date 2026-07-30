@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 
 PackageIdentifier: SerZhyAle.FileDO
-PackageVersion: "2606120121"
+PackageVersion: "2607301014"
 PackageLocale: en-US
 Publisher: SZA
 PublisherUrl: https://github.com/SerZhyAle
@@ -37,6 +37,6 @@ Tags:
 - storage
 - usb
 - wipe
-ReleaseNotesUrl: https://github.com/SerZhyAle/FileDO/releases/tag/v2606120121
+ReleaseNotesUrl: https://github.com/SerZhyAle/FileDO/releases/tag/v2607301014
 ManifestType: defaultLocale
 ManifestVersion: 1.12.0
