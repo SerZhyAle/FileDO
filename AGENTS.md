@@ -1,20 +1,28 @@
 # Repository Guidelines
 
 ## Shared rules (canon)
-FileDO follows the **SZA Unified Rules** - the cross-project source of truth, read-only from a work
-session:
+FileDO follows the **SZA Unified Rules**, consumed by **reference** through the `sza` Claude Code plugin
+(`github.com/SerZhyAle/sza-unified-rules`). Start at `rules/INVARIANTS.md`, then Overlay C. Adoption is
+stamped in `.sza-canon.json`; this repo's per-project record - overlay facts, channel rows and every
+recorded divergence - is `rules/contrib/filedo.md` in the canon repo.
 
-the **`sza` Claude Code plugin**, from `github.com/SerZhyAle/sza-unified-rules` (start at
-`rules/INVARIANTS.md`, then Overlay C + the Go-CLI notes; adoption stamped in `.sza-canon.json`). This
-repo's per-project record - overlay facts, channel rows, and every recorded divergence - is
-`rules/contrib/filedo.md` there. Consume by **reference**: the canon owns the universal rules (evidence over
-confidence, the build/release wall, git/commit discipline, the testing evidence ladder); only
+**The canon owns the universal rules and this file does not repeat them**: evidence over confidence, when
+to commit and push, the co-author trailer, English artifacts and Russian chat, the build/release wall,
+mechanical versioning, the changelog shape, the house text style, secrets, and Bash/tooling safety. Only
 FileDO-specific deltas live below. Rule fixes go back to the canon in their own session, never from here.
 
-Recorded divergences (canon `AI_USAGE.md`): the only agent-rules file with content is **`AGENTS.md`** -
-`CLAUDE.md` exists but is a bare pointer to this file and must never grow guidance of its own; the in-repo
-skills under `.claude/skills/{build,release}/` are **git-ignored** - local-only, not team-shared through
-git.
+The plugin also **ships the enforcement hooks** described in canon `GITHUB_INTERACTION.md` section 6 and
+`AI_USAGE.md` section 5 - the `find` guard, the `.ps1`- and cmdlet-in-Bash command-head guards, the
+missing-interpreter and slash-argument checks, and the fire-and-forget guard. This repo registers **no
+hooks of its own** (`.claude/settings.json` carries a permission entry only), so there is nothing here to
+disarm and nothing to duplicate. Do not hand-wire a local copy of a canon hook.
+
+**Recorded divergences** (canon `AI_USAGE.md`):
+- The only agent-rules file with content is **`AGENTS.md`**; `CLAUDE.md` exists but is a bare pointer to
+  this file and must never grow guidance of its own.
+- The in-repo skills under `.claude/skills/{build,release}/` are **git-ignored** (`.gitignore` line 76
+  ignores all of `.claude/`) - local-only, never team-shared through git. An edit to a skill therefore
+  cannot be committed; say so rather than reporting it as landed.
 
 ## Project shape (overlay facts)
 Windows-first Go **CLI** (storage speed test, fake-capacity/counterfeit-flash detection, secure wipe,
@@ -26,7 +34,8 @@ release, one tag, a companion binary, *not* a separate edition. Distributed on t
   shared top-level packages `fileduplicates/`, `helpers/`, `capacitytest/`. **Multi-module**: 4 separate
   `go.mod`/`go.sum`, mixed Go versions (1.24.4 / 1.21). Module path `filedo` (a frozen anchor).
 - **Version shape.** Separator-less `yyMMddHHmm` (e.g. `2606120121`) - a sortable 10-digit integer. Git
-  tag `v<stamp>`, stamped via `-ldflags "-X main.version="`. Remapped mechanically for MSIX and the PE
+  tag `v<stamp>`, validated by `release.ps1` as `^\d{10}$` before it prefixes the `v`, and stamped into
+  the binaries via `-ldflags "-X main.version="`. Remapped mechanically for MSIX and the PE
   `VS_VERSIONINFO` only.
 - **Release-mechanics** are top-level channel siblings (no `publishing/` umbrella): `winget/`, `msix/`,
   `packaging/wix/`, committed `exe_to_download/`.
@@ -72,30 +81,37 @@ as `filedo/...` and are reachable only from `cmd/filedo`. The three companion bi
 modules (`filedo_check`, `filedo_fill`, `filedo_test`) with no `replace` back to the root, so whatever
 they need is copy-pasted into their own directory - that duplication is structural, not an oversight.
 
-## Build / release (the two-flow wall)
+## Build / release (which script is which)
+<!-- canon-ok: the canon owns "a build is not a release"; what is repo-specific is which of the two
+     scripts holds the tag, and that is the fact an agent has to get right here. -->
 `build.ps1` and `release.ps1` are the two halves, and the wall between them is **structural**:
 
 - **`.\build.ps1`** = BUILD ("сборка"): compile all four exes into `exe_to_download/`, optionally test,
-  optionally commit. **HARD RULE: never creates or pushes a `v*` tag** - it spends no CI and ships nothing.
-- **`.\release.ps1`** = RELEASE ("релиз"): the **only** thing that tags `v*` and triggers GitHub CI, then
-  fans out to winget (`wingetcreate submit`) and an MSIX build; the Microsoft Store step is a manual
-  Partner Center upload.
+  optionally commit. It contains **no `git tag` call at all** - that is the enforcement, not a convention.
+- **`.\release.ps1`** = RELEASE ("релиз"): the **only** thing that tags `v*` (lines 130-131) and triggers
+  GitHub CI, then fans out to winget (`wingetcreate submit`) and an MSIX build; the Microsoft Store step is
+  a manual Partner Center upload. It re-runs `build.ps1 -Test` first and aborts on any non-zero exit.
 - Single-target builds: `go build -o filedo.exe .\cmd\filedo` (main CLI); each companion tool builds from
   its own `cmd\filedo-*` directory. The GUI is MSBuild, not Go: `MSBuild filedo_win_vb\FileDOGUI.vbproj
   /p:Configuration=Release /p:Platform=AnyCPU` (locate it with `vswhere -latest -find
   "MSBuild\**\Bin\MSBuild.exe"`); `.\build.ps1 -SkipGui` drops it when VS Build Tools are absent.
 
-Prefer the in-repo skills for these flows: `/build` and `/release`.
+Both are PowerShell and both must be invoked through the PowerShell tool, or from Bash as
+`pwsh -NoProfile -File ./build.ps1 -Test`. Prefer the in-repo skills `/build` and `/release`.
 
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate (`build.ps1 -Test`) is two things: a smoke-run asserting the freshly built exe prints the
-  stamped version, and a compile-check of the test module. `cmd/filedo-test` is its **own module**, so that
-  check is `cd cmd\filedo-test; go test ./...` - `go test ./cmd/filedo-test` from the repo root fails with
-  *main module (filedo) does not contain package*. The repo currently has **no `func Test*` anywhere**, so
-  the run reports `[no tests to run]` and is purely a compile check; `go test ./... -run <Name>` only starts
-  meaning something once the first real test lands.
+- The real gate is `build.ps1 -Test`: a smoke-run asserting the freshly built exe prints the stamped
+  version, plus a compile-check of the test module. Its exit codes are **1 = a defect was found** and
+  **2 = the gate could not verify** (Go missing from `PATH`, or the built exe absent). Exit 2 is not a
+  pass and not a defect report; treat it as "nothing was proven".
+- `cmd/filedo-test` is **its own module**, so the compile-check must run from inside it
+  (`cd cmd\filedo-test; go test ./...`). Running `go test ./cmd/filedo-test` from the repo root fails with
+  *main module (filedo) does not contain package* - a trap worth knowing, because the console line
+  `build.ps1` used to print named exactly that failing form.
+- The repo has **no `func Test*` anywhere**, so the run reports `[no tests to run]` and is purely a compile
+  check; `go test ./... -run <Name>` only starts meaning something once the first real test lands.
 - Add or adjust tests in `cmd\filedo-test/` for user-visible changes; use `tests\prepare_test_env.cmd` for
   list-driven scenarios; note any disk, drive-letter, or admin requirement in the PR.
 - **Destructive-tool safety is the pass/fail line, not friction.** For `wipe`/`fill` the persona test
@@ -108,8 +124,11 @@ Prefer the in-repo skills for these flows: `/build` and `/release`.
 Go defaults via `gofmt` before committing. Keep Windows-specific behavior in `*_windows.go` and
 cross-platform fallbacks in `*_unsupported.go`; prefer small, focused files over growing `main.go`.
 
-## Commit & PR
-English, short imperative subjects naming the affected area (`Fix WiX icon path`, `Add MSI installer`,
-`Sync winget/ ...`); add a co-author trailer. PRs: a brief summary, the manual verification commands you
-ran with their output (no "done" without a fresh run and its evidence), linked issues, and screenshots for
-GUI, installer, or docs changes. Full git/release discipline lives in canon `GITHUB_INTERACTION.md`.
+## Site (`docs/`)
+Hand-authored, **no generator** - so the pages are edited in place and are not render targets. The tree
+index, the canonical page list and the redirect-stub rule are in [`docs/README.md`](docs/README.md); adding
+a public page means editing `docs/sitemap.xml` in the same commit.
+
+## PR specifics
+Beyond the canon's commit and PR conventions: include the manual verification commands you ran with their
+output, and attach screenshots for GUI, installer, or docs changes.

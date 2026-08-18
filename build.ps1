@@ -28,6 +28,12 @@
 #    .\build.ps1 -Test                 # build, then smoke-test + go test
 #    .\build.ps1 -Test -Commit "msg"   # build + test, commit only if both pass
 #    .\build.ps1 -SkipGui             # Go variants only (no MSBuild needed)
+#
+#  Exit codes:
+#    0  build (and, with -Test, the gate) succeeded
+#    1  a defect was found - a build error, or a gate that failed
+#    2  the gate could not verify: a prerequisite is missing, so nothing was
+#       proven. Not a pass and not a defect report.
 # ============================================================================
 [CmdletBinding()]
 param(
@@ -53,6 +59,15 @@ Write-Host "Version: $version"
 Write-Host ""
 
 $out = "$root\exe_to_download"
+
+# Environment before work, not after: a missing toolchain means this run can
+# prove nothing, which is exit 2 ("could not verify") and not exit 1 ("found a
+# defect"). Checking it here rather than inside the gate is the point - by the
+# time the gate runs, a missing Go would already have surfaced as build errors.
+if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+    Write-Host "Cannot verify: 'go' is not on PATH - nothing was built or checked." -ForegroundColor Yellow
+    exit 2
+}
 
 $builds = @(
     @{ Name = "filedo";       Dir = "$root\cmd\filedo";       Out = "$out\filedo.exe";       Flags = "-ldflags=-X 'main.version=$version'" },
@@ -138,6 +153,14 @@ if ($Test) {
     Write-Host ""
     Write-Host "== Test gate =="
 
+    # 0) The artifact the gate is about to smoke-run must exist. If a build
+    #    reported OK and the exe is still absent, the gate has proven nothing -
+    #    exit 2 ("could not verify"), never exit 1 ("found a defect").
+    if (-not (Test-Path "$out\filedo.exe")) {
+        Write-Host "Cannot verify: $out\filedo.exe is missing." -ForegroundColor Yellow
+        exit 2
+    }
+
     # 1) Smoke-run filedo.exe and assert it prints the version we just stamped.
     Write-Host "Smoke: filedo.exe -? ..." -NoNewline
     $smoke = & "$out\filedo.exe" "-?" 2>&1 | Out-String
@@ -150,11 +173,19 @@ if ($Test) {
 
     # 2) Compile-check the test module (root `go test ./...` is known-broken per
     #    AGENTS.md, so we only run the module that is expected to pass).
-    Write-Host "go test ./cmd/filedo-test ..." -NoNewline
+    #    cmd\filedo-test is its own module: the check must run from inside it.
+    #    `go test ./cmd/filedo-test` from the root fails with "main module
+    #    (filedo) does not contain package", so do not print that form here -
+    #    a console line naming a command that cannot work gets copy-pasted.
+    Write-Host "go test ./... (in cmd\filedo-test) ..." -NoNewline
     Push-Location "$root\cmd\filedo-test"
     try {
-        go test ./... 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { Write-Host " FAILED"; exit 1 }
+        $testOut = go test ./... 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host " FAILED"
+            Write-Host $testOut
+            exit 1
+        }
         Write-Host " OK"
     } finally {
         Pop-Location
