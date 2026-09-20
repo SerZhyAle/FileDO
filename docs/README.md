@@ -27,7 +27,7 @@ are deliberately absent from `sitemap.xml`.
 ## What does not live here
 
 Specs, implementation plans, questionnaires and research write-ups are working documents, not product
-documentation. They live in `.specs/` at the repository root, which `.gitignore` keeps out of git. What
+documentation. They live in `PLAN/` at the repository root, which `.gitignore` keeps out of git. What
 the repository carries is documentation of the finished product, written for an experienced user - the
 pages above, the READMEs, and the listing sources.
 
