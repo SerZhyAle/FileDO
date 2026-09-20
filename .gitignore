@@ -75,6 +75,11 @@ desktop.ini
 # Claude Code local config
 .claude/
 
+# Working documents - specs, plans, questionnaires, research notes. They stay on disk for the
+# author and the agents and never enter git: the repository carries documentation of the
+# finished product, not the thinking that produced it.
+.specs/
+
 # Logs
 *.log
 

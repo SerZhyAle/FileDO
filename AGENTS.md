@@ -129,6 +129,12 @@ Hand-authored, **no generator** - so the pages are edited in place and are not r
 index, the canonical page list and the redirect-stub rule are in [`docs/README.md`](docs/README.md); adding
 a public page means editing `docs/sitemap.xml` in the same commit.
 
+## Working documents (`.specs/`)
+Specs, implementation plans, questionnaires and research notes live in `.specs/`, which `.gitignore`
+keeps out of git. What the repository carries is documentation of the finished product, written for an
+experienced user - the site, the READMEs, the listing sources. Never `git add -f` a working document,
+and never link to one from a tracked file: whoever clones this repository does not have it.
+
 ## PR specifics
 Beyond the canon's commit and PR conventions: include the manual verification commands you ran with their
 output, and attach screenshots for GUI, installer, or docs changes.

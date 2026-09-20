@@ -1,6 +1,7 @@
 # docs/ - index of this tree
 
-Two different things live here, and mixing them up is the only trap in this folder.
+This tree is the published site and nothing else. The working documents that precede a feature -
+specs, plans, questionnaires, research notes - are not here; see "What does not live here" below.
 
 ## The published site (GitHub Pages serves this tree)
 
@@ -23,14 +24,12 @@ Supporting files: [`robots.txt`](robots.txt), [`sitemap.xml`](sitemap.xml), [`as
 root, which is where the translated text actually lives - so they carry a canonical link to the root and
 are deliberately absent from `sitemap.xml`.
 
-## Repo documents that are not part of the site
+## What does not live here
 
-Reachable by URL, but linked from nothing and excluded from the sitemap on purpose:
-
-- [`github-store-submission.md`](github-store-submission.md) - Microsoft Store submission write-up.
-- [`how-i-posted-this-project-to-winget.md`](how-i-posted-this-project-to-winget.md) - the winget walkthrough.
-- [`spec-safety-speed-improvements.md`](spec-safety-speed-improvements.md) - safety/speed work spec.
-- [`spec-send-logs-to-author.md`](spec-send-logs-to-author.md) - log-sending feature spec.
+Specs, implementation plans, questionnaires and research write-ups are working documents, not product
+documentation. They live in `.specs/` at the repository root, which `.gitignore` keeps out of git. What
+the repository carries is documentation of the finished product, written for an experienced user - the
+pages above, the READMEs, and the listing sources.
 
 ## Editing rules
 

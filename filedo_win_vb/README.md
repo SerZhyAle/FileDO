@@ -58,8 +58,7 @@ Its one action is **Send logs to the author**:
    the closing dialog says so and shows the path.
 
 If no artifact exists anywhere, no archive is written and no mail program is opened;
-the dialog explains how to produce a log instead. Full requirements and the decisions
-behind them: [`docs/spec-send-logs-to-author.md`](../docs/spec-send-logs-to-author.md).
+the dialog explains how to produce a log instead.
 
 ## How it finds filedo.exe
 

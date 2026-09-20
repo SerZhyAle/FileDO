@@ -2,7 +2,7 @@
 ' that packs the local FileDO logs and hands them to the user's mail program.
 '
 ' Nothing here runs by itself. The log archive is only ever built because the user pressed
-' Send logs and then confirmed. See docs/spec-send-logs-to-author.md.
+' Send logs and then confirmed.
 
 Imports System.Diagnostics
 

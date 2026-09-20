@@ -7,7 +7,7 @@
 '
 ' mailto: cannot carry an attachment (RFC 6068 excludes it and every major client drops
 ' attachment=), so the archive is revealed in Explorer and its path is put on the clipboard;
-' the user performs the one manual attach step. See docs/spec-send-logs-to-author.md.
+' the user performs the one manual attach step.
 
 Imports System.IO
 Imports System.IO.Compression
