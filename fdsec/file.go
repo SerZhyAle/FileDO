@@ -21,7 +21,7 @@ import (
 // The read-back is the proof of principle 3: by the time PackFile returns,
 // the container has been reopened and every chunk verified against the
 // original's own digest.
-func PackFile(dstPath, srcPath string, meta Metadata, cred Credential, p Params) (Info, error) {
+func PackFile(dstPath, srcPath string, meta Metadata, cred Credential, p Params, opts ...StreamOption) (Info, error) {
 	var zero Info
 	if _, err := os.Stat(dstPath); err == nil {
 		return zero, fmt.Errorf("fdsec: refusing to overwrite existing %s", dstPath)
@@ -42,7 +42,7 @@ func PackFile(dstPath, srcPath string, meta Metadata, cred Credential, p Params)
 	if err != nil {
 		return zero, err
 	}
-	info, err := Pack(f, src, meta, cred, p)
+	info, err := Pack(f, src, meta, cred, p, opts...)
 	if err != nil {
 		f.Close()
 		os.Remove(tmp)
@@ -56,6 +56,13 @@ func PackFile(dstPath, srcPath string, meta Metadata, cred Credential, p Params)
 	if err := f.Close(); err != nil {
 		os.Remove(tmp)
 		return zero, fmt.Errorf("fdsec: close container: %w", err)
+	}
+
+	// beforeReadBack is the fault-injection seam of the read-back proof
+	// (nil in every shipped path, set only by a test that has to make the
+	// read-back fail on purpose). It is the same kind of seam as randSource.
+	if beforeReadBack != nil {
+		beforeReadBack(tmp)
 	}
 
 	// Read-back: reopen and unpack to nowhere - every chunk tag and the final
@@ -78,6 +85,10 @@ func PackFile(dstPath, srcPath string, meta Metadata, cred Credential, p Params)
 	}
 	return info, nil
 }
+
+// beforeReadBack is called with the temporary container's path after it was
+// written and closed and before it is read back. Production leaves it nil.
+var beforeReadBack func(tmpPath string)
 
 // tempSibling builds an obviously-partial temporary name next to dstPath.
 func tempSibling(dstPath string) (string, error) {

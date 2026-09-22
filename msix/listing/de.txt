@@ -1,0 +1,87 @@
+# Store listing source for de (Partner Center locale: de).
+# Read by build-store-listing-csv.ps1, which fills only empty cells of a fresh export.
+# Prose style: ".." statt Auslassungspunkten, einfacher Bindestrich statt Gedankenstrich.
+
+@@ShortDescription
+Prüfen Sie die echte Kapazität und Geschwindigkeit von Laufwerken und SD-Karten, erkennen Sie gefälschte Speichermedien, löschen Sie Daten sicher, räumen Sie doppelte Dateien auf und schützen Sie eine Datei mit einem Passwort - im Fenster oder auf der Befehlszeile. Kein Netzwerk, keine Konten, keine Werbung.
+
+@@Description
+FileDO sagt Ihnen, ob ein Laufwerk hält, was es verspricht, und gibt Ihnen die Werkzeuge, sich um die Daten darauf zu kümmern.
+
+Öffnen Sie es über das Startmenü oder tippen Sie filedo in einem beliebigen Terminal - dahinter arbeitet dieselbe Engine.
+
+PRÜFEN
+- Kapazitätstest: schreibt echte Daten über das gesamte Medium und liest sie zurück, sodass ein USB-Stick oder eine SD-Karte, die mehr Platz verspricht als vorhanden ist, auffällt, bevor sie Ihre Dateien verschluckt.
+- Geschwindigkeitstest für Laufwerke, Ordner und Netzwerkfreigaben mit detaillierten Zeitmessungen.
+
+AUFRÄUMEN UND VERSCHIEBEN
+- Duplikatsuche: MD5-Hashes mit einem Cache, der zwischen den Läufen wiederverwendet wird; Duplikate lassen sich nach älter, neuer oder Name löschen oder verschieben.
+- Zwei Ordner vergleichen und große Verzeichnisbäume kopieren, mit Live-Fortschritt, Restzeit und Rücksicht auf langsame oder beschädigte Laufwerke.
+
+LÖSCHEN
+- Einen Ordner überschreiben oder den freien Speicher füllen, damit eine Wiederherstellung schwerer wird. Das Überschreiben verlangt immer die Eingabe von WIPE, und Laufwerkswurzeln, Junctions und temporäre Systemordner werden nie erzwungen.
+
+SCHÜTZEN
+- Eine Datei mit Passwort in einen .fd-sec-Container packen, das Original zurückholen oder den Inhalt im zugehörigen Programm öffnen, ohne ihn zu entpacken - aus einer schreibgeschützten Kopie, die nur Ihr Konto lesen kann und die entfernt wird, sobald Sie fertig sind. Ein leeres Passwort ist erlaubt und bedeutet nur Verschleierung, keine Geheimhaltung; FileDO sagt das dort, wo Sie es eingeben. Das Containerformat ist vollständig veröffentlicht, Ihre Daten lassen sich also auch ohne FileDO lesen.
+
+PRIVATSPHÄRE
+FileDO läuft vollständig auf Ihrem Gerät. Es enthält keinen Netzwerkcode, keine Telemetrie, keine Werbung und keine Konten. Der Quellcode ist offen: https://github.com/SerZhyAle/FileDO
+
+GUT ZU WISSEN
+- Dies ist die Microsoft-Store-Edition. Sie fügt keine Einträge zum Explorer-Kontextmenü hinzu und beansprucht den Dateityp .fd-sec nicht - beides gehört zum MSI-Installer. Dieselben Vorgänge stehen im Fenster und mit dem Befehl filedo zur Verfügung.
+- FileDO braucht den Full-Trust-Zugriff einer Desktop-App auf rohe Laufwerks- und Gerätedaten: Kapazitätstest, Geschwindigkeitsmessung und sicheres Löschen funktionieren ohne ihn nicht. Überschreiben und Füllen zerstören Daten bestimmungsgemäß und fragen vor Laufwerkswurzeln und Systemordnern immer nach.
+- Windows 10 Version 1903 oder neuer.
+
+@@Feature1
+Kapazitätstest: schreibt und prüft echte Daten über das gesamte Medium, um gefälschte USB-Sticks und SD-Karten zu entlarven
+
+@@Feature2
+Lese- und Schreibgeschwindigkeitstests für Laufwerke, Ordner und Netzwerkfreigaben mit detaillierten Zeitmessungen
+
+@@Feature3
+Duplikatsuche mit MD5-Hashing und wiederverwendbarem Cache; Duplikate nach älter, neuer oder Name löschen oder verschieben
+
+@@Feature4
+Zwei Ordner vergleichen und große Verzeichnisbäume kopieren, mit Live-Fortschritt, Restzeit und Rücksicht auf langsame oder beschädigte Laufwerke
+
+@@Feature5
+Einen Ordner überschreiben oder freien Speicher füllen, damit eine Wiederherstellung schwerer wird - verlangt vorher immer die Eingabe von WIPE
+
+@@Feature6
+Geheime Dateien: eine Datei in einen passwortgeschützten .fd-sec-Container packen, zurückholen oder ohne Entpacken öffnen
+
+@@Feature7
+Die Kopie eines geöffneten Containers ist schreibgeschützt, nur für Ihr Konto lesbar und wird entfernt, sobald Sie fertig sind
+
+@@Feature8
+Ein Fenster für jede Aufgabe und der Befehl filedo für jedes Terminal - eine Engine dahinter
+
+@@Feature9
+Oberfläche auf Englisch, Russisch, Ukrainisch, Deutsch und Französisch
+
+@@Feature10
+Open Source, kein Netzwerkzugriff, keine Telemetrie, keine Werbung, keine Konten
+
+@@SearchTerm1
+usb stick echtheit prüfen
+
+@@SearchTerm2
+sd karte kapazität testen
+
+@@SearchTerm3
+laufwerk geschwindigkeit
+
+@@SearchTerm4
+daten sicher löschen
+
+@@SearchTerm5
+doppelte dateien finden
+
+@@SearchTerm6
+datei mit passwort schützen
+
+@@SearchTerm7
+usb stick test
+
+@@ReleaseNotes
+Erste Veröffentlichung im Microsoft Store: das FileDO-Fenster und der Befehl filedo mit Kapazitäts- und Geschwindigkeitstests, Duplikatsuche, sicherem Löschen und geheimen Dateien.

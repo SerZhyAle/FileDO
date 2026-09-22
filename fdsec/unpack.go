@@ -12,34 +12,18 @@ import (
 // metadata it recovered. The final digest check makes the round trip
 // byte-exact: the recovered bytes must hash to the digest stored at pack time.
 // Error classes follow section 12 and never fall through into each other.
-func Unpack(dst io.Writer, src io.ReadSeeker, cred Credential) (Metadata, error) {
+func Unpack(dst io.Writer, src io.ReadSeeker, cred Credential, opts ...StreamOption) (Metadata, error) {
 	var meta Metadata
+	so := newStreamOpts(opts)
 	if _, err := src.Seek(0, io.SeekStart); err != nil {
 		return meta, fmt.Errorf("fdsec: seek container: %w", err)
 	}
-	h, err := parseHeader(src)
+	// Unmask the head and unwrap slot 0: either it authenticates or it does
+	// not - there is no partial answer and no separate verifier
+	// (FDSEC-FORMAT.md sections 5, 12).
+	h, fileKey, err := openHead(src, cred)
 	if err != nil {
 		return meta, err
-	}
-	slots, err := parseSlots(src)
-	if err != nil {
-		return meta, err
-	}
-
-	// Unwrap slot 0: either authenticates or it does not - there is no partial
-	// answer and no separate verifier (FDSEC-FORMAT.md sections 5, 12).
-	kek := deriveKEK(cred, h)
-	kekAEAD, err := newXAEAD(kek)
-	if err != nil {
-		return meta, err
-	}
-	var wrapNonce [nonceSize]byte
-	copy(wrapNonce[:], slots[0].Payload[wrapNonceOff:nonceSize])
-	var wrapped [wrappedSize]byte
-	copy(wrapped[:], slots[0].Payload[nonceSize:nonceSize+wrappedSize])
-	fileKey, fail := kekAEAD.Open(nil, wrapNonce[:], wrapped[:], adSlot0(h.HeaderDigest))
-	if fail != nil {
-		return meta, fmt.Errorf("%w: key slot 0 does not authenticate", ErrCredentialOrTamper)
 	}
 	fileAEAD, err := newXAEAD(fileKey)
 	if err != nil {
@@ -109,6 +93,9 @@ func Unpack(dst io.Writer, src io.ReadSeeker, cred Credential) (Metadata, error)
 		}
 		if _, err := dh.Write(pt); err != nil {
 			return meta, err
+		}
+		if so.progress != nil {
+			so.progress(int64(i)*capacity+int64(len(pt)), meta.Size)
 		}
 	}
 	if [digestSize]byte(dh.Sum(nil)) != digest {

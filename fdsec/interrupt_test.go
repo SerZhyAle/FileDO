@@ -21,7 +21,7 @@ func TestInterrupt_NoCompleteLookingPartial(t *testing.T) {
 
 	// Reference layout numbers from a clean pack.
 	clean := packBytes(t, content, meta, cred, p)
-	h, err := parseHeader(bytes.NewReader(clean))
+	h, _, err := openHead(bytes.NewReader(clean), cred)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestInterrupt_NoCompleteLookingPartial(t *testing.T) {
 
 	points := map[string]int64{
 		"before anything":      0,
-		"mid-header":           40,
+		"mid-head":             40,
 		"first chunk boundary": preLen,
 		"mid-chunk":            preLen + 17,
 		"one byte before done": total - 1,

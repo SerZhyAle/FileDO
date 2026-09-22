@@ -15,6 +15,9 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <ApplicationIcon>..\assets\icon.ico</ApplicationIcon>
+    <!-- The DPI declaration of SP-0006 M0: the manifest makes the process per-monitor aware and
+         app.config is what makes WinForms act on it. Both must ship; neither works alone. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -49,6 +52,7 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
     <Import Include="Microsoft.VisualBasic" />
@@ -65,6 +69,39 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppIcon.vb" />
+    <Compile Include="ArgQuoting.vb" />
+    <Compile Include="Ui.vb" />
+    <Compile Include="Links.vb" />
+    <Compile Include="AboutView.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SettingsView.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ArgQuotingTests.vb" />
+    <Compile Include="EventStream.vb" />
+    <Compile Include="Runner.vb" />
+    <Compile Include="JobCatalogue.vb" />
+    <Compile Include="SelfTest.vb" />
+    <Compile Include="CheckOptions.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="JobView.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="HistoryView.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="CommandView.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Theme.vb" />
+    <Compile Include="Chrome.vb" />
+    <Compile Include="ShellSettings.vb" />
+    <Compile Include="Rail.vb" />
+    <Compile Include="ShellForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Localization.vb" />
     <Compile Include="LogReport.vb" />
     <Compile Include="AboutForm.vb">
@@ -81,6 +118,9 @@
       <DependentUpon>MainForm.vb</DependentUpon>
       <SubType>Form</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="MainForm.resx">

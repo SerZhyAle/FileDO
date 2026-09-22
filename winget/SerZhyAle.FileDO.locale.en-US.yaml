@@ -20,6 +20,11 @@ Description: |-
   It detects fake USB/SD cards by writing and verifying real data, benchmarks read/write speeds, securely
   wipes free space at multi-GB/s, finds and manages duplicate files via MD5 with hash caching, and copies
   large trees with progress and timeout protection.
+  It also packs a single file into a password-protected .fd-sec container and takes it back out, or opens
+  what is inside in the program it belongs to without unpacking it - from a read-only copy that only your
+  account can read and that is removed when you are done with it. An empty password is accepted and means
+  obfuscation only, not secrecy, and FileDO says so where you type it. The package registers nothing in
+  Explorer on its own: run "filedo fdsec register" if you want the menu entries and the .fd-sec type.
 Moniker: filedo
 Tags:
 - benchmark
@@ -31,6 +36,7 @@ Tags:
 - hash
 - md5
 - portable
+- encryption
 - sd-card
 - secure-erase
 - speed-test

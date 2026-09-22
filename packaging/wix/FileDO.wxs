@@ -1,5 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<!--
+  The FileDO MSI.
+
+  FileDO is a CLI at heart, but what it installs is a Windows program: the
+  shell (filedo_win.exe) is what a shortcut opens, and the secret-file feature
+  (FDSEC-FORMAT.md, SP-0005) only reaches the user through a document type and
+  two Explorer verbs. So this installer does the four things a Windows program
+  is expected to do, and each one is a feature the user can deselect:
+
+    Main                 - the binaries, PATH, and the Start menu shortcut
+    ExplorerIntegration  - the .fd-sec document type and the two verbs
+    DesktopShortcut      - the desktop icon
+
+  Silent installs choose with ADDLOCAL, e.g.
+      msiexec /i FileDO.msi /qn ADDLOCAL=Main,ExplorerIntegration
+      msiexec /i FileDO.msi /qn ADDLOCAL=Main              (no integration)
+
+  The registry shape written by ExplorerIntegration is the SAME shape
+  cmd\filedo\fdsec_register.go writes for the channels where no installer runs
+  (portable zip, winget, go install). The two must not drift: the key names,
+  the labels, the commands and the FileDO.RegisteredBy mark are one contract
+  with two writers. This one writes HKLM and wins; the per-user writer stands
+  down when it sees this.
+
+  Build:
+      wix build packaging\wix\FileDO.wxs -arch x64 -ext WixToolset.UI.wixext ^
+        -d ProductVersion=... -d StageDir=... -d IconFile=... -d LicenseRtf=... -o FileDO.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- The document type id. It is an anchor in the same sense as the winget
+       identifier: change it and every machine that ever installed FileDO keeps
+       a dangling file type no uninstall will find. The same string is the
+       fdsecProgID constant in cmd\filedo\fdsec_register.go. -->
+  <?define ProgId = "FileDO.SecureContainer" ?>
 
   <Package
       Name="FileDO"
@@ -12,7 +47,11 @@
 
     <SummaryInformation Description="FileDO - Advanced File and Storage Operations Tool" />
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of FileDO is already installed." />
+    <!-- MigrateFeatures keeps the user's own feature choice across an upgrade.
+         Without it, someone who deselected the Explorer integration would get
+         it back at the next version, and someone who chose it would lose it. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of FileDO is already installed."
+                  MigrateFeatures="yes" />
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="MainIcon" SourceFile="$(var.IconFile)" />
@@ -20,14 +59,44 @@
     <Property Id="ARPHELPLINK" Value="https://github.com/SerZhyAle/FileDO/issues" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/SerZhyAle/FileDO" />
     <Property Id="ARPCONTACT" Value="https://github.com/SerZhyAle" />
-    <Property Id="ARPNOREPAIR" Value="1" />
-    <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- The line Apps and features shows under the entry. The only place a
+         person meets this program again is that list, months later. -->
+    <Property Id="ARPCOMMENTS" Value="Storage speed and fake-capacity testing, readability checks, duplicate management, secure wipe, and encrypted .fd-sec containers. No network, no telemetry." />
+    <!-- Change and Repair are deliberately NOT suppressed: the features above
+         are the reason. Turning the Explorer integration on or off later is
+         "Change" in Apps and Features, and a repair is what puts the registry
+         entries back if something else overwrites them. -->
 
-    <Feature Id="Main" Title="FileDO" Level="1" Display="expand"
-             Description="FileDO CLI binaries, the GUI command builder, and helper scripts.">
+    <!-- The feature tree UI. WixUI_FeatureTree is the stock dialog set whose
+         Customize page IS the feature list, so the checkboxes come from the
+         features below rather than from a hand-written dialog. -->
+    <ui:WixUI Id="WixUI_FeatureTree" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <!-- The wizard's own artwork, regenerated from assets\icon.png by
+         packaging\wix\make-art.ps1. Without these two, every page is the WiX
+         default blue-and-white with no sign of what is being installed. -->
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.BannerBmp)" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)" />
+
+    <!-- Feature titles and descriptions are not decoration: the Customize page
+         shows the description of whatever the person clicks, and it is the only
+         place the installer can answer "what is this, and why would I want
+         it?". Each one says what lands on the machine. -->
+    <Feature Id="Main" Title="FileDO program" Level="1" Display="expand" AllowAbsent="no"
+             Description="The program itself, into C:\Program Files\FileDO: the FileDO window, the filedo command line and its three companion tools (check, fill, test), and the helper scripts. Adds the folder to the system PATH so filedo works in any terminal, and puts FileDO in the Start menu. Required.">
       <ComponentGroupRef Id="FileDOFiles" />
       <ComponentRef Id="EnvPath" />
       <ComponentRef Id="StartMenuShortcut" />
+
+      <Feature Id="ExplorerIntegration" Title="Explorer right-click menu" Level="1" AllowAbsent="yes"
+               Description="A 'File DO..' group in the right-click menu of any file: secure it into a password-protected .fd-sec container (keeping, deleting or wiping the original), unsecure one back, wipe a file, read-check it, and show its details. Plus the .fd-sec file type itself, with its own icon: a double-click is exactly the group's 'Unsecure and start' entry - a console asks for the password, restores the original into a folder only you and the system can read, hands it to whatever program it belongs to, and removes that copy when the console window closes. On Windows 11 the group is under 'Show more options'. Uninstalling removes it.">
+        <ComponentGroupRef Id="ShellIntegration" />
+      </Feature>
+
+      <Feature Id="DesktopShortcut" Title="Desktop icon" Level="1" AllowAbsent="yes"
+               Description="A FileDO icon on the desktop for every account on this computer. It opens the same window as the Start menu entry - this is convenience, nothing else.">
+        <ComponentRef Id="DesktopShortcut" />
+      </Feature>
     </Feature>
 
     <StandardDirectory Id="ProgramFiles64Folder">
@@ -37,6 +106,8 @@
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="AppProgramMenuDir" Name="FileDO" />
     </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
 
   </Package>
 
@@ -77,12 +148,207 @@
   </Fragment>
 
   <Fragment>
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="3f5d8c21-6b04-4e97-8a52-0d7c9e1b4f63">
+      <Shortcut Id="FileDODesktopShortcut"
+                Name="FileDO"
+                Description="FileDO - build and run any storage command"
+                Target="[INSTALLFOLDER]filedo_win.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="MainIcon" />
+      <RegistryValue Root="HKLM"
+                     Key="Software\FileDO"
+                     Name="DesktopShortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+  <!-- ==================================================================
+       Explorer integration. Two things and nothing else (SP-0005 9.1, as
+       amended 2026-09-20): a cascading "File DO.." group on all files, and
+       a document type for .fd-sec whose double-click is exactly the group's
+       "Unsecure and start" entry (amended again 2026-09-22).
+       The group carries the option set (del / wipe / rename) as entries,
+       which is the owner's reversal of the earlier single-purpose shape:
+       the dialog that was to carry them belongs to a GUI stage that has not
+       shipped, and a menu entry that then asks the question in a console is
+       not the same thing as choosing the operation before anything happens.
+
+       This file and cmd/filedo/fdsec_register*.go write the SAME keys,
+       labels and commands. A change to one is a change to both, in the same
+       commit.
+
+       ForceDeleteOnUninstall is what makes an uninstall leave no orphaned
+       document type behind: the subkeys were created by this component, so
+       this component takes them away.
+       ================================================================== -->
+  <Fragment>
+    <ComponentGroup Id="ShellIntegration" Directory="INSTALLFOLDER">
+
+      <Component Id="ShellDocumentType" Guid="c41a7e58-9d36-4b82-a0f5-2e6c8b31d947">
+        <RegistryKey Root="HKLM" Key="Software\Classes\$(var.ProgId)" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="FileDO secure container" KeyPath="yes" />
+          <RegistryValue Name="FriendlyTypeName" Type="string" Value="FileDO secure container" />
+          <!-- The mark `filedo fdsec unregister` looks for. One contract, two
+               writers: without it the CLI would refuse to touch these keys. -->
+          <RegistryValue Name="FileDO.RegisteredBy" Type="string" Value="[INSTALLFOLDER]filedo.exe" />
+          <RegistryValue Key="DefaultIcon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell" Type="string" Value="open" />
+          <RegistryValue Key="shell\open" Type="string" Value="Unsecure and start with FileDO" />
+          <RegistryValue Key="shell\open" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <!-- The open verb answered a double-click with the GUI's reveal page
+               until 2026-09-22 (SP-0005 9.4): a whole window - a target card,
+               a parameters card, a plan card - opened waiting to be filled in,
+               which is not what "double-click, type the password" promises.
+               It is now exactly the "Unsecure and start" entry of the group
+               below, on the CLI: one password prompt on the console, then the
+               restored file is handed to its registered program. This value
+               and cmd/filedo/fdsec_register.go's fdsecOpenCommand must not
+               drift - see the note at the top of that file. -->
+          <RegistryValue Key="shell\open\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; unsecure start --pause --no-history" />
+          <!-- No second verb on the document type. Everything a container
+               needs is in the "File DO.." group below, which is on every
+               file and so on containers too; the extension's own job is the
+               double-click (owner's decision, 2026-09-20). -->
+        </RegistryKey>
+        <RegistryKey Root="HKLM" Key="Software\Classes\.fd-sec" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="$(var.ProgId)" />
+        </RegistryKey>
+      </Component>
+
+      <!-- The cascading "File DO.." group on all files. This component
+           replaces ShellSecureVerb, which wrote a single "Secure with FileDO"
+           entry under a different key: a component's key path may never move,
+           so the replacement is a new component with a new GUID rather than
+           an edit of the old one. The major upgrade is scheduled
+           afterInstallValidate, so the previous version - and the old key
+           with it - is removed before this one is written.
+
+           SubCommands as an EMPTY string is what turns the key into a
+           sub-menu whose entries are the `shell` subkey below it. The entry
+           key names are never shown; their leading numbers are the only thing
+           that fixes the order, because the shell draws them in the order the
+           registry keeps them, which is by name.
+
+           The group key must NOT carry a (Default) value. With SubCommands
+           present, a (Default) on the group makes the shell build the sub-menu
+           empty: the arrow is drawn and nothing opens. MUIVerb alone carries
+           the label, so it is the key path of this component.
+
+           CommandFlags=32 is ECF_SEPARATORBEFORE: a line above the entry, so
+           a destructive one never sits flush against the one above it.
+
+           The pause flag on every command is not decoration. Explorer closes
+           the console the moment the process ends, so without it "Info" and
+           "Check" print their answer into a window that is already gone. -->
+      <Component Id="ShellMenuGroup" Guid="eaac8342-aace-41e0-8e1e-ed6cc4726b47">
+        <RegistryKey Root="HKLM" Key="Software\Classes\*\shell\FileDO" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="MUIVerb" Type="string" Value="File DO.." KeyPath="yes" />
+          <RegistryValue Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Name="SubCommands" Type="string" Value="" />
+          <!-- The mark `filedo fdsec unregister` looks for. One contract, two
+               writers: without it the CLI would refuse to touch these keys. -->
+          <RegistryValue Name="FileDO.RegisteredBy" Type="string" Value="[INSTALLFOLDER]filedo.exe" />
+
+          <RegistryValue Key="shell\10Secure" Type="string" Value="Secure" />
+          <RegistryValue Key="shell\10Secure" Name="MUIVerb" Type="string" Value="Secure" />
+          <RegistryValue Key="shell\10Secure" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\10Secure" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\10Secure\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure --pause --no-history" />
+
+          <RegistryValue Key="shell\20SecureDel" Type="string" Value="Secure and delete original" />
+          <RegistryValue Key="shell\20SecureDel" Name="MUIVerb" Type="string" Value="Secure and delete original" />
+          <RegistryValue Key="shell\20SecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\20SecureDel" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\20SecureDel\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure del --pause --no-history" />
+
+          <RegistryValue Key="shell\30SecureWipe" Type="string" Value="Secure and wipe original" />
+          <RegistryValue Key="shell\30SecureWipe" Name="MUIVerb" Type="string" Value="Secure and wipe original" />
+          <RegistryValue Key="shell\30SecureWipe" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\30SecureWipe" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\30SecureWipe\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure wipe --pause --no-history" />
+
+          <RegistryValue Key="shell\40SecureRename" Type="string" Value="Secure with a random name" />
+          <RegistryValue Key="shell\40SecureRename" Name="MUIVerb" Type="string" Value="Secure with a random name" />
+          <RegistryValue Key="shell\40SecureRename" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\40SecureRename" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\40SecureRename\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure rename --pause --no-history" />
+
+          <RegistryValue Key="shell\50Unsecure" Type="string" Value="Unsecure" />
+          <RegistryValue Key="shell\50Unsecure" Name="MUIVerb" Type="string" Value="Unsecure" />
+          <RegistryValue Key="shell\50Unsecure" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\50Unsecure" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\50Unsecure" Name="CommandFlags" Type="integer" Value="32" />
+          <RegistryValue Key="shell\50Unsecure\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; unsecure --pause --no-history" />
+
+          <RegistryValue Key="shell\60UnsecureDel" Type="string" Value="Unsecure and delete container" />
+          <RegistryValue Key="shell\60UnsecureDel" Name="MUIVerb" Type="string" Value="Unsecure and delete container" />
+          <RegistryValue Key="shell\60UnsecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\60UnsecureDel" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\60UnsecureDel\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; unsecure del -y --pause --no-history" />
+
+          <RegistryValue Key="shell\65UnsecureStart" Type="string" Value="Unsecure and start" />
+          <RegistryValue Key="shell\65UnsecureStart" Name="MUIVerb" Type="string" Value="Unsecure and start" />
+          <RegistryValue Key="shell\65UnsecureStart" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\65UnsecureStart" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\65UnsecureStart\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; unsecure start --pause --no-history" />
+
+          <RegistryValue Key="shell\70Wipe" Type="string" Value="Wipe this file" />
+          <RegistryValue Key="shell\70Wipe" Name="MUIVerb" Type="string" Value="Wipe this file" />
+          <RegistryValue Key="shell\70Wipe" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\70Wipe" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\70Wipe" Name="CommandFlags" Type="integer" Value="32" />
+          <RegistryValue Key="shell\70Wipe\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; file &quot;%1&quot; wipe --pause --no-history" />
+
+          <RegistryValue Key="shell\80Check" Type="string" Value="Check this file" />
+          <RegistryValue Key="shell\80Check" Name="MUIVerb" Type="string" Value="Check this file" />
+          <RegistryValue Key="shell\80Check" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\80Check" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\80Check\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; check &quot;%1&quot; --pause --no-history" />
+
+          <RegistryValue Key="shell\90Info" Type="string" Value="Info" />
+          <RegistryValue Key="shell\90Info" Name="MUIVerb" Type="string" Value="Info" />
+          <RegistryValue Key="shell\90Info" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\90Info" Name="MultiSelectModel" Type="string" Value="Player" />
+          <RegistryValue Key="shell\90Info\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; file &quot;%1&quot; info --pause --no-history" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
     <ComponentGroup Id="FileDOFiles" Directory="INSTALLFOLDER">
       <Component Id="FileDOExe" Guid="*">
         <File Source="$(var.StageDir)\filedo.exe" KeyPath="yes" />
       </Component>
       <Component Id="FileDOWinExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_win.exe" KeyPath="yes" />
+      </Component>
+      <!-- The GUI's app.config. It is not optional decoration: the manifest inside the exe makes
+           the process per-monitor DPI aware, and this file is what makes WinForms rescale its
+           controls to match. An install that carries one without the other renders worse than one
+           that carries neither (SP-0006 M0). -->
+      <Component Id="FileDOWinExeConfig" Guid="*">
+        <File Source="$(var.StageDir)\filedo_win.exe.config" KeyPath="yes" />
+      </Component>
+      <!-- The document type's icon has to be a file on disk, not the icon
+           embedded in the MSI: DefaultIcon is a path the shell reads at draw
+           time, long after the installer is gone. -->
+      <Component Id="FileDOIconFile" Guid="*">
+        <File Source="$(var.StageDir)\FileDO.ico" KeyPath="yes" />
       </Component>
       <Component Id="FileDOCheckExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_check.exe" KeyPath="yes" />

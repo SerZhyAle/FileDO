@@ -352,13 +352,21 @@ func HandleCheckArgs(root string, args []string) error {
 // CheckFolder scans all files under root and performs a fast read test.
 // If a file's first read takes > 2s (except a one-time warm-up up to 10s),
 // it is marked as damaged and appended to skip_files.list immediately.
+//
+// root may also be a single file. filepath.Walk already visits exactly that
+// one file, so the engine below needs no second shape - but two of its rules
+// are about narrowing a sweep and have no business narrowing an explicit
+// choice, so a single file is never filtered out by size or extension and is
+// never skipped for being on the good list. A user who points at one file is
+// asking about that file, today.
 func CheckFolder(root string) error {
     info, err := os.Stat(root)
     if err != nil {
         return fmt.Errorf("path error: %v", err)
     }
-    if !info.IsDir() {
-        return fmt.Errorf("%s is not a directory", root)
+    singleFile := !info.IsDir()
+    if singleFile && !info.Mode().IsRegular() {
+        return fmt.Errorf("%s is neither a folder nor a regular file", root)
     }
 
     cfg := loadCheckConfig(root)
@@ -408,6 +416,12 @@ func CheckFolder(root string) error {
     }
     goodAppend := func(p string) {
         if p == "" { return }
+        // A single-file check never reads the good list, so it has no
+        // business writing one - least of all into whatever directory the
+        // shell happened to hand it as a working directory. The Explorer
+        // entry would otherwise drop check_files.list beside the user's file
+        // on every click.
+        if singleFile { return }
         key := normGood(p)
         goodMu.Lock()
         if goodSet[key] {
@@ -477,22 +491,24 @@ func CheckFolder(root string) error {
         stopMu.Unlock()            // Filters
             sz := fi.Size()
             if sz == 0 { return nil }
-            if cfg.minSizeBytes > 0 && sz < cfg.minSizeBytes { return nil }
-            if cfg.maxSizeBytes > 0 && sz > cfg.maxSizeBytes { return nil }
-            if cfg.includeExt != nil || cfg.excludeExt != nil {
-                ext := strings.ToLower(filepath.Ext(fi.Name()))
-                if cfg.includeExt != nil && !cfg.includeExt[ext] { return nil }
-                if cfg.excludeExt != nil && cfg.excludeExt[ext] { return nil }
-            }
+            if !singleFile {
+                if cfg.minSizeBytes > 0 && sz < cfg.minSizeBytes { return nil }
+                if cfg.maxSizeBytes > 0 && sz > cfg.maxSizeBytes { return nil }
+                if cfg.includeExt != nil || cfg.excludeExt != nil {
+                    ext := strings.ToLower(filepath.Ext(fi.Name()))
+                    if cfg.includeExt != nil && !cfg.includeExt[ext] { return nil }
+                    if cfg.excludeExt != nil && cfg.excludeExt[ext] { return nil }
+                }
 
-            // Skip if previously checked good
-            if goodHas(p) {
-                atomic.AddInt64(&skippedFiles, 1)
-                return nil
+                // Skip if previously checked good
+                if goodHas(p) {
+                    atomic.AddInt64(&skippedFiles, 1)
+                    return nil
+                }
             }
 
             atomic.AddInt64(&totalFiles, 1)
-            if damaged.ShouldSkipFile(p) {
+            if !singleFile && damaged.ShouldSkipFile(p) {
                 atomic.AddInt64(&skippedFiles, 1)
                 return nil
             }
@@ -508,8 +524,11 @@ func CheckFolder(root string) error {
         close(jobs)
     }()
 
-    // Optional pre-count for better ETA
-    if cfg.precount {
+    // Optional pre-count for better ETA. It is an estimate for a sweep, and
+    // for a single file it is both pointless and wrong: it stores a total the
+    // walker then adds to, so the summary would report two files where there
+    // is one.
+    if cfg.precount && !singleFile {
         var precTotal int64
         filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
             if err != nil || fi == nil || fi.IsDir() { return nil }
@@ -879,9 +898,35 @@ func CheckFolder(root string) error {
     ticker.Stop()
     if !cfg.quiet { fmt.Print("\n") }
 
+    // What the sweep found, on the machine channel and in the exit code. A
+    // file that reads slowly or not at all is a judgement about the target,
+    // so the run ends `Failed` and exits 1; a sweep that found nothing ends
+    // `Passed` and exits 0 (CLI-EVENT-STREAM rules 10 and 11).
+    runNumber("totalFiles", atomic.LoadInt64(&totalFiles))
+    runNumber("skippedFiles", atomic.LoadInt64(&skippedFiles))
+    runNumber("damagedFiles", atomic.LoadInt64(&damagedFiles))
+    if n := atomic.LoadInt64(&damagedFiles); n > 0 {
+        runDefect("damaged-files",
+            fmt.Sprintf("%d file(s) read slowly or not at all and were logged as damaged", n),
+            map[string]interface{}{"damagedFiles": n, "totalFiles": atomic.LoadInt64(&totalFiles)})
+    }
+
     if !cfg.quiet {
         fmt.Printf("\nCHECK completed: total=%d, skipped(damaged-before)=%d, newly-damaged=%d\n",
             atomic.LoadInt64(&totalFiles), atomic.LoadInt64(&skippedFiles), atomic.LoadInt64(&damagedFiles))
+        // One file gets one sentence. The counters above answer a sweep;
+        // they do not answer "is this file all right", which is the only
+        // question a single-file check was asked.
+        if singleFile {
+            switch {
+            case info.Size() == 0:
+                fmt.Printf("%s is empty - there is nothing to read, so nothing to judge.\n", root)
+            case atomic.LoadInt64(&damagedFiles) > 0:
+                fmt.Printf("%s reads SLOWLY or not at all and was logged as damaged.\n", root)
+            case atomic.LoadInt64(&processedFiles) > 0:
+                fmt.Printf("%s reads cleanly.\n", root)
+            }
+        }
     }
     return nil
 }

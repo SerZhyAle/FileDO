@@ -4,10 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0a0f0a" />
-    <title>Use the FileDO GUI command builder</title>
+    <title>Use the FileDO window (GUI)</title>
     <meta
       name="description"
-      content="A practical guide to building and reviewing FileDO commands in the Windows GUI before running them."
+      content="A practical guide to the FileDO window on Windows: a rail of jobs with one page per job, the Command page for any operation, and the Protect pages for secret files."
     />
     <script>
       (function () {
@@ -75,28 +75,37 @@
         </p>
         <h1>
           <span data-l="ru"
-            >Соберите команду в окне, прочитайте её и только потом
+            >Выберите задачу, пройдите её страницу, проверьте и только потом
             запустите.</span
           ><span data-l="en"
-            >Build the command in a window, read it, then run it.</span
+            >Pick the job, work through its page, check, then run.</span
           ><span data-l="ua"
-            >Зберіть команду у вікні, прочитайте її та лише потім
+            >Виберіть завдання, пройдіть його сторінку, перевірте та лише потім
             запустіть.</span
           >
         </h1>
         <p class="lead">
           <span data-l="ru"
-            >FileDO GUI - это Windows Forms-конструктор для тех же команд
-            FileDO. Он не меняет правила безопасности: он делает путь, операцию
-            и будущую команду видимыми до запуска.</span
+            >FileDO GUI - это окно Windows для тех же команд FileDO. По
+            умолчанию открывается оболочка: слева список задач, а на каждую
+            задачу - своя пронумерованная страница: над чем работать, какие
+            параметры, затем проверка и запуск. Окно не меняет правила
+            безопасности: оно делает цель, операцию и команду видимыми до
+            запуска.</span
           ><span data-l="en"
-            >FileDO GUI is a Windows Forms builder for the same FileDO commands.
-            It does not change safety rules: it makes the path, operation, and
-            future command visible before execution.</span
+            >FileDO GUI is the Windows window for the same FileDO commands. It
+            opens on a shell: a rail of jobs down the left side and one
+            numbered page per job - what to work on, which parameters, then
+            check and run. It does not change safety rules: it makes the
+            target, the operation, and the command visible before
+            execution.</span
           ><span data-l="ua"
-            >FileDO GUI - це Windows Forms-конструктор для тих самих команд
-            FileDO. Він не змінює правил безпеки: він робить шлях, операцію та
-            майбутню команду видимими перед запуском.</span
+            >FileDO GUI - це вікно Windows для тих самих команд FileDO. За
+            замовчуванням відкривається оболонка: ліворуч список завдань, а на
+            кожне завдання - своя пронумерована сторінка: над чим працювати,
+            які параметри, потім перевірка та запуск. Вікно не змінює правил
+            безпеки: воно робить ціль, операцію та команду видимими перед
+            запуском.</span
           >
         </p>
       </section>
@@ -109,20 +118,20 @@
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Команду удобнее собрать</span
-              ><span data-l="en">You prefer to assemble a command</span
-              ><span data-l="ua">Команду зручніше зібрати</span>
+              <span data-l="ru">Удобнее выбрать задачу</span
+              ><span data-l="en">You prefer to pick a job</span
+              ><span data-l="ua">Зручніше вибрати завдання</span>
             </h3>
             <p>
               <span data-l="ru"
-                >Выберите тип цели, путь и операцию вместо ручного ввода всех
-                аргументов.</span
+                >Выберите задачу в списке слева и заполните её страницу вместо
+                ручного ввода всех аргументов.</span
               ><span data-l="en"
-                >Choose the target type, path, and operation instead of typing
-                every argument.</span
+                >Choose the job in the rail and fill in its page instead of
+                typing every argument.</span
               ><span data-l="ua"
-                >Виберіть тип цілі, шлях і операцію замість ручного введення
-                всіх аргументів.</span
+                >Виберіть завдання у списку ліворуч і заповніть його сторінку
+                замість ручного введення всіх аргументів.</span
               >
             </p>
           </article>
@@ -134,14 +143,15 @@
             </h3>
             <p>
               <span data-l="ru"
-                >Для устройств используется выбор буквы диска, а для папок и
-                файлов есть кнопки обзора.</span
+                >Каждая страница начинается с того, над чем работать, и
+                заканчивается проверкой - цель у вас перед глазами до
+                запуска.</span
               ><span data-l="en"
-                >Devices use a drive-letter picker, and folders or files have
-                browse buttons.</span
+                >Every page starts with what to work on and ends with a check,
+                so the target is in front of you before you run.</span
               ><span data-l="ua"
-                >Для пристроїв використовується вибір літери диска, а для папок
-                і файлів є кнопки огляду.</span
+                >Кожна сторінка починається з того, над чим працювати, і
+                закінчується перевіркою - ціль перед очима до запуску.</span
               >
             </p>
           </article>
@@ -153,13 +163,14 @@
             </h3>
             <p>
               <span data-l="ru"
-                >Предпросмотр можно скопировать в буфер, отредактировать или
-                запустить в консоли.</span
+                >Страница «Команда» показывает командную строку: её можно
+                отредактировать, скопировать в буфер или запустить.</span
               ><span data-l="en"
-                >The preview can be copied, edited, or run in a console.</span
+                >The Command page shows the command line: it can be edited,
+                copied, or run.</span
               ><span data-l="ua"
-                >Попередній перегляд можна скопіювати, відредагувати або
-                запустити в консолі.</span
+                >Сторінка «Команда» показує командний рядок: його можна
+                відредагувати, скопіювати або запустити.</span
               >
             </p>
           </article>
@@ -171,22 +182,25 @@
             </h3>
             <p>
               <span data-l="ru"
-                >Кнопка «О программе» справа сверху открывает окно с версией,
-                ссылками и кнопкой «Отправить логи автору»: логи собираются в
+                >Страница «О программе» показывает версию, ссылки и кнопку
+                «Отправить логи автору» (в старом окне это кнопка «О программе»
+                справа сверху): логи собираются в
                 один zip, папка с ним открывается, путь копируется в буфер
                 обмена, а ваша почтовая программа открывается с адресом автора и
                 темой. Приложить архив и отправить письмо - ваш шаг: сам FileDO
                 ничего никуда не передаёт.</span
               ><span data-l="en"
-                >The About button in the top right opens a window with the build,
-                the links, and a Send logs to the author button: the logs are
+                >The About page shows the build, the links, and a Send logs to
+                the author button (in the older window, the About button in the
+                top right): the logs are
                 packed into one zip, the folder opens with it selected, the path
                 goes to the clipboard, and your mail program opens with the
                 author's address and a subject. Attaching the archive and sending
                 the mail is your step - FileDO itself transmits nothing.</span
               ><span data-l="ua"
-                >Кнопка «Про програму» праворуч угорі відкриває вікно з версією,
-                посиланнями та кнопкою «Надіслати логи автору»: логи збираються в
+                >Сторінка «Про програму» показує версію, посилання та кнопку
+                «Надіслати логи автору» (у старому вікні це кнопка «Про
+                програму» праворуч угорі): логи збираються в
                 один zip, тека з ним відкривається, шлях копіюється в буфер
                 обміну, а ваша поштова програма відкривається з адресою автора та
                 темою. Прикласти архів і надіслати лист - ваш крок: сам FileDO
@@ -207,39 +221,41 @@
             <span data-l="ru"
               >Запустите <code>filedo_win</code> из winget/Store-пакета либо
               <code>filedo_win.exe</code> рядом с <code>filedo.exe</code> в
-              portable ZIP.</span
+              portable ZIP. Откроется оболочка со списком задач слева.</span
             ><span data-l="en"
               >Start <code>filedo_win</code> from the winget/Store package, or
               <code>filedo_win.exe</code> beside <code>filedo.exe</code> in the
-              portable ZIP.</span
+              portable ZIP. The shell opens with the rail of jobs on the
+              left.</span
             ><span data-l="ua"
               >Запустіть <code>filedo_win</code> із пакета winget/Store або
               <code>filedo_win.exe</code> поруч із <code>filedo.exe</code> у
-              portable ZIP.</span
+              portable ZIP. Відкриється оболонка зі списком завдань
+              ліворуч.</span
             >
           </li>
           <li>
             <span data-l="ru"
-              >Выберите тип цели и укажите путь. Для первой проверки выберите
-              операцию <code>info</code>.</span
+              >Для первой проверки выберите «Информация о цели» и укажите, над
+              чем работать.</span
             ><span data-l="en"
-              >Choose the target type and set the path. For a first check,
-              choose <code>info</code>.</span
+              >For a first check, choose Target info and set what to work
+              on.</span
             ><span data-l="ua"
-              >Виберіть тип цілі та задайте шлях. Для першої перевірки виберіть
-              <code>info</code>.</span
+              >Для першої перевірки виберіть «Інформація про ціль» і вкажіть,
+              над чим працювати.</span
             >
           </li>
           <li>
             <span data-l="ru"
-              >Прочитайте live preview, затем используйте Copy command или Run.
-              Результат <code>info</code> только показывает сведения.</span
+              >Прочитайте шаг «Проверить и запустить», затем запустите. Задача
+              «Информация о цели» только показывает сведения.</span
             ><span data-l="en"
-              >Read the live preview, then use Copy command or Run.
-              <code>info</code> only shows information.</span
+              >Read the Check and run step, then run it. Target info only shows
+              information.</span
             ><span data-l="ua"
-              >Прочитайте live preview, потім використайте Copy command або Run.
-              <code>info</code> лише показує відомості.</span
+              >Прочитайте крок «Перевірити та запустити», потім запустіть.
+              Завдання «Інформація про ціль» лише показує відомості.</span
             >
           </li>
         </ol>
@@ -255,27 +271,156 @@
         </h2>
         <p class="intro">
           <span data-l="ru"
-            >В одном окне доступны info, speed, test, fill, clean, дубликаты,
-            семейство copy, wipe, compare, check, probe, recover, from и hist.
-            Для операций копирования и сравнения появляются поля источника и
-            назначения. Контекстные флаги показывают только относящиеся к
-            выбранной операции параметры, а справочная панель объясняет
-            ожидаемый результат и пример.</span
+            >Список слева перечисляет задачи, и каждая задача открывает одну
+            пронумерованную страницу: над чем работать, какие параметры, затем
+            проверка и запуск. Есть страницы для теста ёмкости, теста
+            скорости, сведений о цели, проверки повреждённых файлов, прямой
+            проверки ёмкости, восстановления накопителя, дубликатов, сравнения
+            двух папок, заполнения свободного места, копирования файлов и
+            стирания папки; рядом - страницы защиты, «История», «Настройки» и
+            «О программе». Все параметры, которые CLI принимает для задачи,
+            есть на её странице.</span
           ><span data-l="en"
-            >One window offers info, speed, test, fill, clean, duplicates, the
-            copy family, wipe, compare, check, probe, recover, from, and hist.
-            Copy and compare expose source and destination fields. Contextual
-            flags show parameters relevant to the selected operation, while the
-            help panel explains the expected result and gives an example.</span
+            >The rail lists the jobs, and each job opens one numbered page: what
+            to work on, which parameters, then check and run. There are pages
+            for a capacity test, a speed test, target info, a damaged-files
+            check, a raw capacity probe, recovering a drive, duplicate files,
+            comparing two folders, filling the free space, copying files, and
+            wiping a folder; the Protect pages, History, Settings, and About sit
+            beside them. Every option the CLI takes for a job is on its
+            page.</span
           ><span data-l="ua"
-            >В одному вікні доступні info, speed, test, fill, clean, дублікати,
-            сімейство copy, wipe, compare, check, probe, recover, from і hist.
-            Для копіювання та порівняння з’являються поля джерела й призначення.
-            Контекстні прапорці показують параметри, що стосуються вибраної
-            операції, а довідкова панель пояснює очікуваний результат і наводить
-            приклад.</span
+            >Список ліворуч перелічує завдання, і кожне завдання відкриває одну
+            пронумеровану сторінку: над чим працювати, які параметри, потім
+            перевірка та запуск. Є сторінки для тесту ємності, тесту швидкості,
+            відомостей про ціль, перевірки пошкоджених файлів, прямої перевірки
+            ємності, відновлення накопичувача, дублікатів, порівняння двох тек,
+            заповнення вільного місця, копіювання файлів і затирання теки;
+            поруч - сторінки захисту, «Історія», «Налаштування» та «Про
+            програму». Усі параметри, які CLI приймає для завдання, є на його
+            сторінці.</span
           >
         </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Страница «Команда»</span
+              ><span data-l="en">The Command page</span
+              ><span data-l="ua">Сторінка «Команда»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Экспертный конструктор: все операции, которые принимает
+                <code>filedo.exe</code>, с флагами и выбором правил, относящимися
+                к выбранной операции, и самой командной строкой, которую можно
+                править внизу. Прочитайте её, отредактируйте вручную, скопируйте
+                или запустите.</span
+              ><span data-l="en"
+                >The expert builder: every operation <code>filedo.exe</code>
+                takes, with the flags and rule pickers that belong to the one
+                you choose, and the command line itself editable underneath.
+                Read it, edit it by hand, copy it, or run it.</span
+              ><span data-l="ua"
+                >Експертний конструктор: усі операції, які приймає
+                <code>filedo.exe</code>, із прапорцями та вибором правил, що
+                стосуються вибраної операції, і самим командним рядком, який
+                можна редагувати внизу. Прочитайте його, відредагуйте вручну,
+                скопіюйте або запустіть.</span
+              >
+            </p>
+            <p>
+              <span data-l="ru"
+                >Операции, которым нужен пароль, получают здесь отдельное
+                скрытое поле, а <code>secure</code> спрашивает его дважды.
+                Пароль не попадает в командную строку: в ней только
+                <code>pe:FILEDO_SHELL_CRED</code> - имя переменной, через
+                которую он передаётся запуску. <code>secure</code>, который
+                удаляет или перезаписывает оригинал, отсюда требует ещё и
+                <code>-y</code>; без него оригинал сохраняется, и запуск об этом
+                сообщает.</span
+              ><span data-l="en"
+                >Operations that need a password get a masked field of their own
+                here, and <code>secure</code> asks twice. The password never
+                enters the command line: the line carries only
+                <code>pe:FILEDO_SHELL_CRED</code>, the name of the variable that
+                passes it to the run. A <code>secure</code> that deletes or
+                overwrites the original also needs <code>-y</code> from here;
+                without it the original is kept and the run says so.</span
+              ><span data-l="ua"
+                >Операції, яким потрібен пароль, отримують тут окреме приховане
+                поле, а <code>secure</code> питає його двічі. Пароль не потрапляє
+                в командний рядок: у ньому лише
+                <code>pe:FILEDO_SHELL_CRED</code> - ім’я змінної, через яку він
+                передається запуску. <code>secure</code>, що видаляє або
+                перезаписує оригінал, звідси потребує ще й <code>-y</code>; без
+                нього оригінал зберігається, і запуск про це повідомляє.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Страницы «Защита»</span
+              ><span data-l="en">The Protect pages</span
+              ><span data-l="ua">Сторінки «Захист»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Три страницы: сделать файл секретным, вернуть оригинал и
+                открыть секретный файл, не распаковывая его. Пароль скрыт и при
+                упаковке вводится дважды; пустой пароль принимается и означает
+                лишь маскировку, без секретности.</span
+              ><span data-l="en"
+                >Three pages make a file secret, get the original back, and open
+                a secret file without unpacking it. The password is masked and
+                typed twice when packing; an empty password is accepted and
+                means obfuscation only, with no secrecy.</span
+              ><span data-l="ua"
+                >Три сторінки: зробити файл секретним, повернути оригінал і
+                відкрити секретний файл, не розпаковуючи його. Пароль приховано,
+                і під час пакування його вводять двічі; порожній пароль
+                приймається й означає лише маскування, без секретності.</span
+              >
+            </p>
+            <p>
+              <span data-l="ru"
+                >Что будет с оригиналом, выбирается до запуска: оставить (по
+                умолчанию), удалить или перезаписать и удалить. Только последний
+                вариант требует набрать <code>WIPE</code>. Открытие контейнера
+                запускает работу, которая длится ровно столько, сколько
+                существует открытая копия; кнопка «Убрать копию сейчас» её
+                завершает.</span
+              ><span data-l="en"
+                >What happens to the original is chosen before anything runs:
+                keep (the default), delete, or overwrite then delete. Only the
+                last one asks you to type <code>WIPE</code>. Opening a container
+                starts a run that lasts exactly as long as the plaintext copy
+                exists; the Remove the copy now button ends it.</span
+              ><span data-l="ua"
+                >Що буде з оригіналом, вибирається до запуску: залишити (за
+                замовчуванням), видалити або перезаписати й видалити. Лише
+                останній варіант вимагає набрати <code>WIPE</code>. Відкриття
+                контейнера запускає роботу, яка триває рівно стільки, скільки
+                існує відкрита копія; кнопка «Прибрати копію зараз» її
+                завершує.</span
+              >
+            </p>
+            <p>
+              <span data-l="ru"
+                >Формат и то, что он защищает и не защищает, описаны в
+                <a href="fd-sec-containers.html"
+                  >руководстве по секретным файлам</a
+                >.</span
+              ><span data-l="en"
+                >The format, and what it does and does not protect, are in the
+                <a href="fd-sec-containers.html">secret files guide</a>.</span
+              ><span data-l="ua"
+                >Формат і те, що він захищає та чого не захищає, описано в
+                <a href="fd-sec-containers.html">посібнику із секретних файлів</a
+                >.</span
+              >
+            </p>
+          </article>
+        </div>
         <div class="note danger">
           <span class="tag"
             ><span data-l="ru">Та же ответственность</span
@@ -285,18 +430,116 @@
           <p>
             <span data-l="ru"
               >GUI не делает <code>wipe</code>, <code>fill … del</code> или
-              режимы удаления обратимыми. Перед Run проверьте цель и preview;
-              для необратимых действий сделайте резервную копию.</span
+              режимы удаления обратимыми. Перед запуском проверьте цель и
+              команду; для необратимых действий сделайте резервную копию.
+              «Прямая проверка ёмкости» и «Восстановить накопитель» помечены
+              как разрушающие и просят права администратора; «Затереть папку»
+              по-прежнему требует набрать <code>WIPE</code>.</span
             ><span data-l="en"
               >The GUI does not make <code>wipe</code>, <code>fill … del</code>,
-              or deletion modes reversible. Check the target and preview before
-              Run; back up before irreversible actions.</span
+              or deletion modes reversible. Check the target and the command
+              before you run; back up before irreversible actions. Raw capacity
+              probe and Recover a drive are marked destructive and ask for
+              Administrator; Wipe a folder still needs <code>WIPE</code> typed
+              out.</span
             ><span data-l="ua"
               >GUI не робить <code>wipe</code>, <code>fill … del</code> або
-              режими видалення зворотними. Перед Run перевірте ціль і preview;
-              перед незворотними діями зробіть резервну копію.</span
+              режими видалення зворотними. Перед запуском перевірте ціль і
+              команду; перед незворотними діями зробіть резервну копію. «Пряма
+              перевірка ємності» та «Відновити накопичувач» позначені як
+              руйнівні й просять права адміністратора; «Затерти теку»
+              як і раніше вимагає набрати <code>WIPE</code>.</span
             >
           </p>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="ru">Как запустить окно</span
+          ><span data-l="en">Ways to start the window</span
+          ><span data-l="ua">Як запустити вікно</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">На файле</span
+              ><span data-l="en">On a file</span
+              ><span data-l="ua">На файлі</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Двойной щелчок по файлу <code>.fd-sec</code> открывает окно
+                прямо на этом контейнере. Из командной строки то же самое даёт
+                <code>filedo_win.exe C:\a\secret.fd-sec</code>. Каждый
+                контейнер получает своё окно.</span
+              ><span data-l="en"
+                >A double-click on a <code>.fd-sec</code> file opens the window
+                on that container. From a command line, the same thing is
+                <code>filedo_win.exe C:\a\secret.fd-sec</code>. Each container
+                gets its own window.</span
+              ><span data-l="ua"
+                >Подвійний клік по файлу <code>.fd-sec</code> відкриває вікно
+                прямо на цьому контейнері. З командного рядка те саме дає
+                <code>filedo_win.exe C:\a\secret.fd-sec</code>. Кожен контейнер
+                отримує своє вікно.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Со старым окном</span
+              ><span data-l="en">The older window</span
+              ><span data-l="ua">Зі старим вікном</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Прежнее окно-конструктор команд по-прежнему есть и открывается
+                переключателем <code>--legacy-builder</code>.</span
+              ><span data-l="en"
+                >The command-builder window that shipped before the shell is
+                still there, and the <code>--legacy-builder</code> switch opens
+                it.</span
+              ><span data-l="ua"
+                >Попереднє вікно-конструктор команд досі є й відкривається
+                перемикачем <code>--legacy-builder</code>.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo_win.exe --legacy-builder<button
+                class="copy"
+                data-copy="filedo_win.exe --legacy-builder"
+              >
+                Copy
+              </button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">С журналом отладки</span
+              ><span data-l="en">With a debug log</span
+              ><span data-l="ua">Із журналом налагодження</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Переключатель <code>-debug</code> пишет файл
+                <code>filedo_win_debug.log</code> рядом с exe.</span
+              ><span data-l="en"
+                >The <code>-debug</code> switch writes
+                <code>filedo_win_debug.log</code> next to the exe.</span
+              ><span data-l="ua"
+                >Перемикач <code>-debug</code> пише файл
+                <code>filedo_win_debug.log</code> поруч з exe.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo_win.exe -debug<button
+                class="copy"
+                data-copy="filedo_win.exe -debug"
+              >
+                Copy
+              </button>
+            </div>
+          </article>
         </div>
       </section>
     </main>
@@ -314,15 +557,15 @@
     <script>
       window.guideMeta = {
         ru: {
-          title: "GUI-конструктор команд FileDO",
+          title: "Окно FileDO (GUI): как им пользоваться",
           description: "Практическое руководство по FileDO GUI.",
         },
         en: {
-          title: "Use the FileDO GUI command builder",
+          title: "Use the FileDO window (GUI)",
           description: "A practical FileDO GUI guide.",
         },
         ua: {
-          title: "GUI-конструктор команд FileDO",
+          title: "Вікно FileDO (GUI): як ним користуватися",
           description: "Практичний посібник із FileDO GUI.",
         },
       };

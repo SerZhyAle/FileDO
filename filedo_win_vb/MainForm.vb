@@ -39,11 +39,90 @@ Public Class MainForm
         "cmprule_small_source", "cmprule_big_target"
     }
 
+    Private Declare Function SetForegroundWindow Lib "user32" (hWnd As IntPtr) As Boolean
+    Private Declare Function ShowWindow Lib "user32" (hWnd As IntPtr, nCmdShow As Integer) As Boolean
+    Private Const SW_RESTORE As Integer = 9
+
+    Private Function CheckSingleInstance() As Boolean
+        Try
+            Dim currentProc = Process.GetCurrentProcess()
+            For Each p In Process.GetProcessesByName(currentProc.ProcessName)
+                If p.Id <> currentProc.Id AndAlso p.MainWindowHandle <> IntPtr.Zero Then
+                    ShowWindow(p.MainWindowHandle, SW_RESTORE)
+                    SetForegroundWindow(p.MainWindowHandle)
+                    Return True
+                End If
+            Next
+        Catch
+        End Try
+        Return False
+    End Function
+
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' The gate of SelfTest.vb: builds every page, checks the command each one writes, and
+        ' ends the process with 0 or 1. It runs before anything is shown, because a test run
+        ' must not depend on a window being on somebody's screen.
+        If Environment.GetCommandLineArgs().Contains("--selftest") Then
+            Environment.Exit(SelfTest.Run())
+            Return
+        End If
+
+        ' A second copy normally hands the desktop back to the one already
+        ' open. A copy started ON a file must not: the file is what this start
+        ' is about, and focusing somebody else's window would drop it. Each
+        ' double-clicked container therefore gets its own window - which is
+        ' also what makes the "remove the copy now" of a reveal belong to one
+        ' file rather than to whichever reveal ran last.
+        If StartupTarget() Is Nothing AndAlso CheckSingleInstance() Then
+            Close()
+            Return
+        End If
         AppIcon.Apply(Me)
         CheckDebugMode()
+        If Not Environment.GetCommandLineArgs().Contains("--legacy-builder") Then
+            If OpenShell() Then Return
+        End If
         InitializeForm()
     End Sub
+
+    ' The file the program was started on, if it was started on one.
+    '
+    ' Explorer hands a double-clicked .fd-sec to this program as a bare path
+    ' (SP-0005 9.4), and the switches this program already understands are all
+    ' prefixed, so "the first argument that is not a switch and is a file on
+    ' disk" needs no new grammar. Anything else is left to the shell's own
+    ' opening page.
+    Private Shared Function StartupTarget() As String
+        Dim args = Environment.GetCommandLineArgs()
+        For i As Integer = 1 To args.Length - 1
+            Dim a = args(i)
+            If String.IsNullOrWhiteSpace(a) Then Continue For
+            If a.StartsWith("-") OrElse a.StartsWith("/") Then Continue For
+            Try
+                If IO.File.Exists(a) Then Return a
+            Catch
+            End Try
+        Next
+        Return Nothing
+    End Function
+
+    ' Launches the shell form (SP-0006 D2 / M5).
+    Private Function OpenShell() As Boolean
+        Try
+            Dim shell As New ShellForm(StartupTarget())
+            AddHandler shell.FormClosed, Sub(s As Object, ev As FormClosedEventArgs) Me.Close()
+            ShowInTaskbar = False
+            BeginInvoke(New MethodInvoker(Sub()
+                                              Hide()
+                                              shell.Show()
+                                          End Sub))
+            Return True
+        Catch ex As Exception
+            MessageBox.Show("The shell could not open: " & ex.Message)
+            ShowInTaskbar = True
+            Return False
+        End Try
+    End Function
 
     Private Sub CheckDebugMode()
         Dim args As String() = Environment.GetCommandLineArgs()

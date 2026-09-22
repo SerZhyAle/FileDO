@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The FileDO setup EXE (a WiX Burn bundle).
+
+  This is the single file a person downloads and double-clicks:
+  FileDO-<version>-setup.exe. It carries the MSI inside itself and hands the
+  install over to it, so everything the package does - the binaries, PATH, the
+  Start menu entry, the desktop icon and the Explorer integration - is decided
+  by packaging\wix\FileDO.wxs and nothing is defined twice.
+
+  Why a bundle at all, when the MSI already installs everything: an .exe is
+  what people expect to download, it survives a browser that mangles .msi
+  downloads, it upgrades a previous FileDO in one step, and it is the only
+  place a prerequisite could later be chained in without touching the MSI.
+
+  The UI is the MSI's own feature tree (DisplayInternalUI). The bootstrapper
+  therefore draws no window of its own - two license pages and two progress
+  bars for one install is worse than one of each.
+
+  Build (build.ps1 -Msi does this after the MSI):
+      wix build packaging\wix\FileDO-bundle.wxs -arch x64 ^
+        -ext WixToolset.BootstrapperApplications.wixext ^
+        -d ProductVersion=... -d MsiFile=... -d IconFile=... -d LicenseRtf=... ^
+        -o dist\FileDO-<version>-setup.exe
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+
+  <Bundle
+      Name="FileDO"
+      Manufacturer="Serhii Zhyhunenko"
+      Version="$(var.ProductVersion)"
+      UpgradeCode="033d2348-b26c-477f-8885-c68d9cfff47f"
+      IconSourceFile="$(var.IconFile)"
+      AboutUrl="https://github.com/SerZhyAle/FileDO"
+      HelpUrl="https://github.com/SerZhyAle/FileDO/issues"
+      UpdateUrl="https://github.com/SerZhyAle/FileDO/releases/latest"
+      Compressed="yes"
+      DisableModify="yes">
+
+    <!-- A bundle's UpgradeCode is its identity, exactly like the MSI's: the
+         value below is how every future setup EXE recognises the one already
+         installed and replaces it instead of adding a second entry to Apps and
+         features. It is frozen for the product's life. It is NOT the MSI's
+         UpgradeCode - two different installers, two different identities. -->
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+          Theme="none"
+          LicenseFile="$(var.LicenseRtf)" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <!-- Vital: if the MSI fails, the bundle fails - there is nothing else in
+           the chain that could be called a partial success.
+           DisplayInternalUI: the feature checkboxes (Explorer integration,
+           desktop shortcut) are the MSI's UI, and this is what shows it. -->
+      <MsiPackage
+          Id="FileDOMsi"
+          SourceFile="$(var.MsiFile)"
+          Vital="yes"
+          Compressed="yes"
+          bal:DisplayInternalUICondition="1" />
+    </Chain>
+
+  </Bundle>
+
+</Wix>

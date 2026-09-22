@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The application manifest the GUI has never had. Two things it declares, and one it deliberately
+  does not.
+
+  It declares per-monitor v2 DPI awareness, so the shell is rendered rather than resampled on a
+  scaled display and follows a monitor change. The older <dpiAware> element sits beside the newer
+  <dpiAwareness> on purpose: a Windows build that does not understand the newer one still gets
+  system-DPI awareness from the older, which is worse than per-monitor and much better than none.
+  This half only makes the process per-monitor aware; WinForms does its share of the work only when
+  app.config turns it on, which is why these two files arrive together and ship together.
+
+  It declares the supported operating systems, because per-monitor v2 is ignored for an application
+  that has not said it knows about Windows 10.
+
+  It does NOT ask for elevation: level="asInvoker". Elevation is per job and is requested where the
+  job needs it (SP-0006 section 7.6), never for the whole window.
+-->
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity version="1.0.0.0" name="FileDO.gui" type="win32" />
+
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 and 11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+      <!-- Windows 8.1 -->
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />
+      <!-- Windows 8 -->
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}" />
+      <!-- Windows 7 -->
+      <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}" />
+    </application>
+  </compatibility>
+
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness>
+    </windowsSettings>
+  </application>
+</assembly>

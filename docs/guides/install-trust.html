@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link
+      rel="canonical"
+      href="https://serzhyale.github.io/FileDO/guides/install-trust.html"
+    />
+    <title>Why Windows warns about FileDO</title>
+    <meta
+      name="description"
+      content="What the SmartScreen warning about FileDO means, why it appears, exactly what to click, and what FileDO never does."
+    />
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · Доверие</span
+          ><span data-l="en">Guide · Trust</span
+          ><span data-l="ua">Посібник · Довіра</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Windows предупредила о FileDO. Вот что это значит и что делать
+            дальше.</span
+          ><span data-l="en"
+            >Windows warned you about FileDO. Here is what that means and what
+            to do next.</span
+          ><span data-l="ua"
+            >Windows попередила про FileDO. Ось що це означає і що робити
+            далі.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >FileDO - маленькая бесплатная программа независимого
+            разработчика. Эта сборка не подписана цифровым сертификатом, поэтому
+            Windows относится к ней с дополнительной осторожностью и показывает
+            одно-два окна. Ниже - что это за окна, почему они появляются, что
+            именно нажать и что FileDO никогда не делает.</span
+          ><span data-l="en"
+            >FileDO is a small free tool from an independent developer. This
+            build is not code-signed, so Windows treats it with extra caution
+            and shows a prompt or two. Below: what those prompts are, why they
+            appear, exactly what to click, and what FileDO never does.</span
+          ><span data-l="ua"
+            >FileDO - маленька безкоштовна програма незалежного розробника. Ця
+            збірка не підписана цифровим сертифікатом, тому Windows ставиться
+            до неї з додатковою обережністю й показує одне-два вікна. Нижче -
+            що це за вікна, чому вони з'являються, що саме натиснути і чого
+            FileDO ніколи не робить.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="what">
+        <h2>
+          <span data-l="ru">1. Что это за предупреждение</span
+          ><span data-l="en">1. What the warning is</span
+          ><span data-l="ua">1. Що це за попередження</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Вы видите одно из двух окон, иногда оба - одно за другим.</span
+          ><span data-l="en"
+            >You are looking at one of two dialogs, sometimes both, one after
+            the other.</span
+          ><span data-l="ua"
+            >Ви бачите одне з двох вікон, інколи обидва - одне за одним.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">«Windows защитила ваш компьютер»</span
+              ><span data-l="en">&ldquo;Windows protected your PC&rdquo;</span
+              ><span data-l="ua">«Windows захистила ваш ПК»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Синее окно SmartScreen с кнопкой «Не выполнять». Появляется,
+                когда вы запускаете <code>FileDO-&lt;версия&gt;-setup.exe</code>
+                в первый раз. Это фильтр репутации, а не результат проверки
+                содержимого: Windows говорит, что не знает издателя нового
+                неподписанного файла, а не что нашла в нём что-то плохое.</span
+              ><span data-l="en"
+                >The blue SmartScreen dialog with a &ldquo;Don't run&rdquo;
+                button. It appears the first time you run
+                <code>FileDO-&lt;version&gt;-setup.exe</code>. It is a
+                reputation filter, not a finding about the content: Windows is
+                saying it does not know the publisher of a new unsigned file,
+                not that it found something wrong inside it.</span
+              ><span data-l="ua"
+                >Синє вікно SmartScreen із кнопкою «Не виконувати».
+                З'являється, коли ви запускаєте
+                <code>FileDO-&lt;версія&gt;-setup.exe</code> уперше. Це фільтр
+                репутації, а не результат перевірки вмісту: Windows каже, що не
+                знає видавця нового непідписаного файлу, а не що знайшла в
+                ньому щось погане.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru"
+                >«Разрешить этому приложению вносить изменения?»</span
+              ><span data-l="en"
+                >&ldquo;Do you want to allow this app to make
+                changes?&rdquo;</span
+              ><span data-l="ua"
+                >«Дозволити цій програмі вносити зміни?»</span
+              >
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Запрос прав администратора (UAC). Появляется один раз, во
+                время установки, потому что программы ставятся в
+                <code>C:\Program Files\FileDO</code>, а пункты Проводника
+                пишутся в реестр для всей машины. Повседневная работа FileDO
+                прав администратора не требует. Что именно делается под этими
+                правами - в разделе 3.</span
+              ><span data-l="en"
+                >The administrator prompt (UAC). It appears once, during setup,
+                because the programs go to
+                <code>C:\Program Files\FileDO</code> and the Explorer entries
+                are written to the machine-wide registry. Day-to-day use of
+                FileDO needs no administrator rights. Exactly what is done with
+                them is section 3.</span
+              ><span data-l="ua"
+                >Запит прав адміністратора (UAC). З'являється один раз, під час
+                встановлення, бо програми ставляться в
+                <code>C:\Program Files\FileDO</code>, а пункти Провідника
+                пишуться в реєстр для всієї машини. Повсякденна робота FileDO
+                прав адміністратора не потребує. Що саме робиться під цими
+                правами - у розділі 3.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Реакция антивируса</span
+              ><span data-l="en">An antivirus reaction</span
+              ><span data-l="ua">Реакція антивіруса</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Некоторые антивирусы осторожно оценивают новые неподписанные
+                файлы и могут поместить программу в карантин. Это та же
+                репутация, что и у SmartScreen, и она накапливается со
+                временем.</span
+              ><span data-l="en"
+                >Some antivirus tools score new unsigned binaries cautiously
+                and may quarantine the program. It is the same reputation
+                SmartScreen is reading, and it accrues over time.</span
+              ><span data-l="ua"
+                >Деякі антивіруси обережно оцінюють нові непідписані файли й
+                можуть помістити програму в карантин. Це та сама репутація, що
+                й у SmartScreen, і вона накопичується з часом.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="why">
+        <h2>
+          <span data-l="ru">2. Почему оно появляется</span
+          ><span data-l="en">2. Why it appears</span
+          ><span data-l="ua">2. Чому воно з'являється</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Потому что сборка не подписана сертификатом разработчика.
+            Сертификат стоит сотни долларов в год, и это был выбор: FileDO
+            бесплатен и с открытым кодом, и эти деньги в него не вложены.
+            Предупреждение работает ровно так, как задумано, - это не ошибка
+            Windows, не сбой и не то, чего вы не должны были увидеть.</span
+          ><span data-l="en"
+            >Because the build is not signed with a developer certificate. A
+            certificate costs hundreds of dollars a year, and skipping it was a
+            choice: FileDO is free and open source, and that money has not been
+            spent on it. The warning is working exactly as designed - it is not
+            a mistake, not a bug, and not something you were not supposed to
+            see.</span
+          ><span data-l="ua"
+            >Бо збірка не підписана сертифікатом розробника. Сертифікат коштує
+            сотні доларів на рік, і це був вибір: FileDO безкоштовний і з
+            відкритим кодом, і ці гроші в нього не вкладено. Попередження
+            працює саме так, як задумано, - це не помилка Windows, не збій і не
+            те, чого ви не мали побачити.</span
+          >
+        </p>
+        <p class="intro">
+          <span data-l="ru"
+            >Репутация накапливается: чем больше людей скачивают и запускают ту
+            же самую сборку, тем реже SmartScreen о ней спрашивает. Поэтому
+            предупреждение со временем само сходит на нет, а после каждой новой
+            версии ненадолго возвращается.</span
+          ><span data-l="en"
+            >Reputation accrues: the more people download and run the same
+            build, the less often SmartScreen asks about it. So the warning
+            fades on its own over time, and comes back briefly after each new
+            version.</span
+          ><span data-l="ua"
+            >Репутація накопичується: що більше людей завантажують і запускають
+            ту саму збірку, то рідше SmartScreen про неї питає. Тому
+            попередження з часом саме зникає, а після кожної нової версії
+            ненадовго повертається.</span
+          >
+        </p>
+        <p class="intro">
+          <span data-l="ru"
+            >Проверить, что вы скачали именно опубликованный файл, можно, не
+            доверяя нам на слово: рядом с загрузкой лежит файл
+            <code>.sha256</code>, и строка, которую напечатает команда ниже,
+            должна совпасть с его содержимым.</span
+          ><span data-l="en"
+            >You can check that you downloaded the published file without
+            taking our word for it: a <code>.sha256</code> file sits next to
+            the download, and the line the command below prints must match its
+            contents.</span
+          ><span data-l="ua"
+            >Перевірити, що ви завантажили саме опублікований файл, можна, не
+            вірячи нам на слово: поруч із завантаженням лежить файл
+            <code>.sha256</code>, і рядок, який надрукує команда нижче, має
+            збігтися з його вмістом.</span
+          >
+        </p>
+        <div class="copybox">
+          certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
+        </div>
+      </section>
+
+      <section class="section" id="what-to-click">
+        <h2>
+          <span data-l="ru">3. Что именно нажать</span
+          ><span data-l="en">3. Exactly what to click</span
+          ><span data-l="ua">3. Що саме натиснути</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              >В окне «Windows защитила ваш компьютер» нажмите
+              <b>«Подробнее»</b>. Окно раскроется и покажет имя файла.</span
+            ><span data-l="en"
+              >In &ldquo;Windows protected your PC&rdquo;, click
+              <b>More info</b>. The dialog expands and shows the file
+              name.</span
+            ><span data-l="ua"
+              >У вікні «Windows захистила ваш ПК» натисніть
+              <b>«Докладніше»</b>. Вікно розгорнеться і покаже ім'я
+              файлу.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Нажмите <b>«Выполнить в любом случае»</b>. Это решение про один
+              этот файл и больше ни про что.</span
+            ><span data-l="en"
+              >Click <b>Run anyway</b>. That decision is about this one file
+              and nothing else.</span
+            ><span data-l="ua"
+              >Натисніть <b>«Усе одно запустити»</b>. Це рішення про один цей
+              файл і більше ні про що.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >В запросе прав администратора нажмите <b>«Да»</b>. Если нажать
+              «Нет», установка просто не начнётся и ничего не изменится.</span
+            ><span data-l="en"
+              >In the administrator prompt, click <b>Yes</b>. Choosing
+              &ldquo;No&rdquo; simply means the install does not start and
+              nothing changes.</span
+            ><span data-l="ua"
+              >У запиті прав адміністратора натисніть <b>«Так»</b>. Якщо
+              натиснути «Ні», встановлення просто не почнеться і нічого не
+              зміниться.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Если антивирус поместил файл в карантин - добавьте исключение
+              для одной папки установки,
+              <code>C:\Program Files\FileDO</code>. Не выключайте антивирус и
+              не выключайте SmartScreen: ни то, ни другое для FileDO не нужно,
+              и мы этого не просим.</span
+            ><span data-l="en"
+              >If your antivirus quarantined the file, add an exception for the
+              one install folder, <code>C:\Program Files\FileDO</code>. Do not
+              turn your antivirus off and do not turn SmartScreen off: FileDO
+              needs neither, and we are not asking for either.</span
+            ><span data-l="ua"
+              >Якщо антивірус помістив файл у карантин - додайте виняток для
+              однієї теки встановлення,
+              <code>C:\Program Files\FileDO</code>. Не вимикайте антивірус і не
+              вимикайте SmartScreen: ні те, ні інше для FileDO не потрібне, і
+              ми цього не просимо.</span
+            >
+          </li>
+        </ol>
+        <h3>
+          <span data-l="ru">Что делается правами администратора</span
+          ><span data-l="en">What the administrator rights are used for</span
+          ><span data-l="ua">Що робиться правами адміністратора</span>
+        </h3>
+        <p class="intro">
+          <span data-l="ru"
+            >Ровно это и ничего сверх. Каждый пункт - выбор в мастере
+            установки, кроме первых двух.</span
+          ><span data-l="en"
+            >This and nothing more. Every item but the first two is a choice in
+            the install wizard.</span
+          ><span data-l="ua"
+            >Саме це й нічого понад. Кожен пункт - вибір у майстрі
+            встановлення, крім перших двох.</span
+          >
+        </p>
+        <ul class="steps">
+          <li>
+            <span data-l="ru"
+              >Копирует программы в <code>C:\Program Files\FileDO</code>.</span
+            ><span data-l="en"
+              >Copies the programs into
+              <code>C:\Program Files\FileDO</code>.</span
+            ><span data-l="ua"
+              >Копіює програми до
+              <code>C:\Program Files\FileDO</code>.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Добавляет эту папку в <code>PATH</code> машины и запись о самой
+              установке в <code>HKLM\Software\FileDO</code>, чтобы следующая
+              версия заменяла эту, а не ставилась второй.</span
+            ><span data-l="en"
+              >Adds that folder to the machine <code>PATH</code>, and a record
+              of the install itself under
+              <code>HKLM\Software\FileDO</code>, so the next version replaces
+              this one instead of installing beside it.</span
+            ><span data-l="ua"
+              >Додає цю теку до <code>PATH</code> машини і запис про саме
+              встановлення в <code>HKLM\Software\FileDO</code>, щоб наступна
+              версія заміняла цю, а не ставилася другою.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Создаёт пункт в меню «Пуск», а если вы согласились - значок на
+              рабочем столе.</span
+            ><span data-l="en"
+              >Creates a Start menu entry and, if you agreed to it, a desktop
+              icon.</span
+            ><span data-l="ua"
+              >Створює пункт у меню «Пуск», а якщо ви погодилися - піктограму
+              на робочому столі.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Если вы оставили компонент «Explorer integration» - пишет группу
+              <code>File DO..</code> в контекстное меню файлов и тип документа
+              <code>.fd-sec</code> с его значком. Это единственные две записи
+              такого рода, и ничего больше в реестр не пишется.</span
+            ><span data-l="en"
+              >If you kept the &ldquo;Explorer integration&rdquo; feature,
+              writes the <code>File DO..</code> group into the file context
+              menu and the <code>.fd-sec</code> document type with its icon.
+              Those are the only two registrations of that kind, and nothing
+              else is written to the registry.</span
+            ><span data-l="ua"
+              >Якщо ви залишили компонент «Explorer integration» - пише групу
+              <code>File DO..</code> у контекстне меню файлів і тип документа
+              <code>.fd-sec</code> з його піктограмою. Це єдині два записи
+              такого роду, і більше нічого в реєстр не пишеться.</span
+            >
+          </li>
+        </ul>
+        <div class="note">
+          <p>
+            <span data-l="ru"
+              ><b>Всё это снимается одним действием.</b> «Параметры» →
+              «Приложения» → FileDO → «Удалить» убирает файлы,
+              <code>PATH</code>, ярлыки, пункты Проводника и тип документа
+              вместе. Если хочется убрать только пункты меню, оставив
+              программу, - там же «Изменить» и снятая галочка «Explorer
+              integration»; переносимая сборка и winget делают то же командой
+              <code>filedo fdsec unregister</code>.</span
+            ><span data-l="en"
+              ><b>All of it comes off in one action.</b> Settings → Apps →
+              FileDO → Uninstall removes the files, the <code>PATH</code>
+              entry, the shortcuts, the Explorer entries and the document type
+              together. To remove only the menu entries and keep the program,
+              use Change in the same place and clear &ldquo;Explorer
+              integration&rdquo;; the portable build and winget do the same
+              with <code>filedo fdsec unregister</code>.</span
+            ><span data-l="ua"
+              ><b>Усе це знімається однією дією.</b> «Параметри» → «Програми» →
+              FileDO → «Видалити» прибирає файли, <code>PATH</code>, ярлики,
+              пункти Провідника і тип документа разом. Щоб прибрати лише пункти
+              меню, залишивши програму, - там само «Змінити» і знята позначка
+              «Explorer integration»; переносна збірка й winget роблять те саме
+              командою <code>filedo fdsec unregister</code>.</span
+            >
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="never">
+        <h2>
+          <span data-l="ru">4. Что FileDO никогда не делает</span
+          ><span data-l="en">4. What FileDO never does</span
+          ><span data-l="ua">4. Чого FileDO ніколи не робить</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Это тот же список, что на
+            <a href="../privacy.html">странице приватности</a> и в анкете
+            Microsoft Store. Он проверяется чтением кода, а не доверием к
+            нам.</span
+          ><span data-l="en"
+            >This is the same list as on the
+            <a href="../privacy.html">privacy page</a> and in the Microsoft
+            Store data form. It can be checked by reading the code rather than
+            by trusting us.</span
+          ><span data-l="ua"
+            >Це той самий список, що на
+            <a href="../privacy.html">сторінці приватності</a> та в анкеті
+            Microsoft Store. Він перевіряється читанням коду, а не довірою до
+            нас.</span
+          >
+        </p>
+        <ul class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>Не выходит в сеть.</b> В исходном коде FileDO нет ни одного
+              сетевого вызова: сетевые библиотеки в него просто не подключены.
+              Пакет для Microsoft Store не объявляет разрешения на доступ в
+              интернет, поэтому Windows его и не даст.</span
+            ><span data-l="en"
+              ><b>It never goes online.</b> There is not a single network call
+              in the FileDO source: the networking libraries are simply not
+              linked in. The Microsoft Store package declares no internet
+              capability, so Windows would not grant one anyway.</span
+            ><span data-l="ua"
+              ><b>Не виходить у мережу.</b> У вихідному коді FileDO немає
+              жодного мережевого виклику: мережеві бібліотеки до нього просто
+              не під'єднані. Пакет для Microsoft Store не оголошує дозволу на
+              доступ до інтернету, тож Windows його й не надасть.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Не собирает ничего.</b> У автора нет серверов, нет базы
+              данных и нет способа узнать, что вы делаете в программе. Ни
+              телеметрии, ни аналитики, ни рекламы, ни учётных записей.</span
+            ><span data-l="en"
+              ><b>It collects nothing.</b> The author runs no servers, keeps no
+              database and has no way of learning what you do in the app. No
+              telemetry, no analytics, no ads, no accounts.</span
+            ><span data-l="ua"
+              ><b>Не збирає нічого.</b> Автор не має серверів, бази даних і
+              жодного способу дізнатися, що ви робите в програмі. Ні
+              телеметрії, ні аналітики, ні реклами, ні облікових записів.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Не осматривает диск сам по себе.</b> FileDO читает и пишет
+              только там, куда вы его указали - на выбранном диске, в выбранной
+              папке или сетевом ресурсе. Пакет для Store объявляет ровно одну
+              возможность, <code>runFullTrust</code>: она нужна, чтобы обращаться
+              к диску напрямую - иначе измерить настоящую скорость и поймать
+              поддельную ёмкость нельзя.</span
+            ><span data-l="en"
+              ><b>It does not go looking around your disk.</b> FileDO reads and
+              writes only where you point it - the drive, folder or share you
+              chose. The Store package declares exactly one capability,
+              <code>runFullTrust</code>: it is what allows direct access to the
+              disk, without which real speed cannot be measured and fake
+              capacity cannot be caught.</span
+            ><span data-l="ua"
+              ><b>Не оглядає диск сам по собі.</b> FileDO читає й пише лише
+              там, куди ви його вказали - на вибраному диску, у вибраній теці
+              чи мережевому ресурсі. Пакет для Store оголошує рівно одну
+              можливість, <code>runFullTrust</code>: вона потрібна, щоб
+              звертатися до диска напряму - інакше виміряти справжню швидкість
+              і спіймати підроблену ємність не можна.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Не записывает ваш пароль и настоящее имя файла в
+              контейнере.</b> Ни в журнал, ни в <code>history.json</code>, ни в
+              заголовок окна, ни во временный файл. Журнал
+              <code>history.json</code> остаётся на вашем диске и выключается
+              флагом <code>nohist</code>.</span
+            ><span data-l="en"
+              ><b>It never records your password or a container's true file
+              name.</b> Not in a log, not in <code>history.json</code>, not in
+              a window title, not in a temporary file. The
+              <code>history.json</code> log stays on your disk and is switched
+              off with <code>nohist</code>.</span
+            ><span data-l="ua"
+              ><b>Не записує ваш пароль і справжнє ім'я файлу в
+              контейнері.</b> Ні в журнал, ні в <code>history.json</code>, ні в
+              заголовок вікна, ні до тимчасового файлу. Журнал
+              <code>history.json</code> лишається на вашому диску й вимикається
+              прапорцем <code>nohist</code>.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Не удаляет ничего без спроса.</b> Разрушающие команды
+              спрашивают подтверждение - <code>wipe</code> требует напечатать
+              слово <code>WIPE</code> - и продолжают проверять безопасность
+              цели, даже когда вопрос отключён флагом.</span
+            ><span data-l="en"
+              ><b>It never deletes anything unasked.</b> Destructive commands
+              confirm first - <code>wipe</code> asks you to type the word
+              <code>WIPE</code> - and keep checking the target for safety even
+              when a flag has turned the question off.</span
+            ><span data-l="ua"
+              ><b>Не видаляє нічого без запиту.</b> Руйнівні команди питають
+              підтвердження - <code>wipe</code> вимагає надрукувати слово
+              <code>WIPE</code> - і далі перевіряють безпечність цілі, навіть
+              коли питання вимкнене прапорцем.</span
+            >
+          </li>
+        </ul>
+        <p class="intro">
+          <span data-l="ru"
+            >FileDO распространяется с открытым исходным кодом под лицензией
+            MIT:
+            <a
+              href="https://github.com/SerZhyAle/FileDO"
+              target="_blank"
+              rel="noopener"
+              >github.com/SerZhyAle/FileDO</a
+            >. Дальше по установке - в
+            <a href="install-and-explorer.html">руководстве по установке</a>.</span
+          ><span data-l="en"
+            >FileDO ships as open source under the MIT license:
+            <a
+              href="https://github.com/SerZhyAle/FileDO"
+              target="_blank"
+              rel="noopener"
+              >github.com/SerZhyAle/FileDO</a
+            >. For the rest of the install, see the
+            <a href="install-and-explorer.html">installation guide</a>.</span
+          ><span data-l="ua"
+            >FileDO поширюється з відкритим вихідним кодом за ліцензією MIT:
+            <a
+              href="https://github.com/SerZhyAle/FileDO"
+              target="_blank"
+              rel="noopener"
+              >github.com/SerZhyAle/FileDO</a
+            >. Далі про встановлення - у
+            <a href="install-and-explorer.html">посібнику зі встановлення</a>.</span
+          >
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Почему Windows предупреждает о FileDO",
+          description:
+            "Что означает предупреждение SmartScreen о FileDO, почему оно появляется, что именно нажать и чего FileDO никогда не делает.",
+        },
+        en: {
+          title: "Why Windows warns about FileDO",
+          description:
+            "What the SmartScreen warning about FileDO means, why it appears, exactly what to click, and what FileDO never does.",
+        },
+        ua: {
+          title: "Чому Windows попереджає про FileDO",
+          description:
+            "Що означає попередження SmartScreen про FileDO, чому воно з'являється, що саме натиснути і чого FileDO ніколи не робить.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

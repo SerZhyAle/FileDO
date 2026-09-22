@@ -596,20 +596,33 @@
                       её применили, полная строка запуска, параметры, результаты
                       (скорость, число файлов), длительность и текст ошибки, если
                       она была. Хранятся последние 1000 записей, старые
-                      вытесняются.</span
+                      вытесняются. Пароль в этот файл не попадает - он
+                      вымарывается до записи строки, - как и запечатанное
+                      настоящее имя внутри контейнера <code>.fd-sec</code>:
+                      открытие контейнера записывает папку, куда легла копия, и
+                      ничего о том, как назывался файл.</span
                     >
                     <span data-l="en"
                       >An operation log: time, command name, the path you applied
                       it to, the full command line, parameters, results (speed,
                       file counts), duration and the error text if there was one.
-                      The last 1000 entries are kept; older ones roll off.</span
+                      The last 1000 entries are kept; older ones roll off. A
+                      password never reaches this file - it is redacted before
+                      the line is written - and neither does the sealed true name
+                      inside a <code>.fd-sec</code> container: opening one
+                      records the folder the copy went to, and nothing about what
+                      the file was called.</span
                     >
                     <span data-l="ua"
                       >Журнал операцій: час, назва команди, шлях, до якого ви її
                       застосували, повний рядок запуску, параметри, результати
                       (швидкість, кількість файлів), тривалість і текст помилки,
                       якщо вона була. Зберігаються останні 1000 записів, старі
-                      витісняються.</span
+                      витісняються. Пароль до цього файлу не потрапляє - його
+                      вилучають до запису рядка, - як і запечатане справжнє ім'я
+                      всередині контейнера <code>.fd-sec</code>: відкриття
+                      контейнера записує теку, куди лягла копія, і нічого про те,
+                      як називався файл.</span
                     >
                   </td>
                 </tr>
@@ -690,6 +703,77 @@
                       >Згенеровані дані для вимірювання швидкості та перевірки
                       справжньої ємності. Видаляються командою
                       <code>clean</code>.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span data-l="ru">Раскрытая копия, копия от «Unsecure and start»</span
+                    ><span data-l="en">A revealed copy, and an "Unsecure and start" copy</span
+                    ><span data-l="ua">Розкрита копія, копія від «Unsecure and start»</span>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >В <code>%LOCALAPPDATA%\FileDO\reveal\</code>, в отдельной
+                      папке со случайным именем. Права доступа выставлены так,
+                      что читать её могут только эта учётная запись и система;
+                      сама копия открывается только для чтения. Копия, которую
+                      пишет <code>unsecure start</code> (то есть двойной клик по
+                      контейнеру), лежит в той же папке и с теми же правами, но
+                      остаётся обычным файлом: это ваш файл, который вы только
+                      что распаковали.</span
+                    >
+                    <span data-l="en"
+                      >In <code>%LOCALAPPDATA%\FileDO\reveal\</code>, in its own
+                      directory with a random name. Its access list names this
+                      account and the system only, and the copy itself is
+                      read-only. The copy <code>unsecure start</code> writes -
+                      the double-click on a container - sits in the same folder
+                      under the same access list, but stays an ordinary file:
+                      it is your own file, just unpacked.</span
+                    >
+                    <span data-l="ua"
+                      >У <code>%LOCALAPPDATA%\FileDO\reveal\</code>, в окремій
+                      теці з випадковим іменем. Права доступу названі так, що
+                      читати її можуть лише цей обліковий запис і система; сама
+                      копія доступна лише для читання. Копія, яку пише
+                      <code>unsecure start</code> (тобто подвійний клік на
+                      контейнері), лежить у тій самій теці й з тими самими
+                      правами, але залишається звичайним файлом: це ваш файл,
+                      який ви щойно розпакували.</span
+                    >
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Содержимое контейнера <code>.fd-sec</code>, который вы
+                      открыли - в открытом виде, столько, сколько он открыт. Копия
+                      убирается, когда вы скажете, или когда её отпустит
+                      открывшая её программа; после сбоя питания она останется до
+                      следующего запуска FileDO, который её подметает. Копия от
+                      <code>unsecure start</code> убирается, когда закрывается
+                      окно консоли, а если программа всё ещё держит её открытой -
+                      при следующем запуске FileDO. Наружу ничего не
+                      уходит.</span
+                    >
+                    <span data-l="en"
+                      >The contents of the <code>.fd-sec</code> container you
+                      opened, in the clear, for as long as it is open. The copy
+                      goes when you say so, or when the program that opened it
+                      lets go; after a power loss it stays until the next FileDO
+                      start, which sweeps it. An <code>unsecure start</code> copy
+                      goes when the console window closes, or - if the program
+                      still has it open then - at the next FileDO start. Nothing
+                      of it leaves the machine.</span
+                    >
+                    <span data-l="ua"
+                      >Вміст контейнера <code>.fd-sec</code>, який ви відкрили -
+                      у відкритому вигляді, доки він відкритий. Копія зникає, коли
+                      ви скажете, або коли її відпустить програма, що її
+                      відкрила; після збою живлення вона залишиться до наступного
+                      запуску FileDO, який її прибирає. Копія від
+                      <code>unsecure start</code> зникає, коли закривається вікно
+                      консолі, а якщо програма ще тримає її відкритою - при
+                      наступному запуску FileDO. Назовні нічого не йде.</span
                     >
                   </td>
                 </tr>

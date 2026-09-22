@@ -1,35 +1,46 @@
 // Package fdsec implements the FileDO secret-file container, format version 1,
-// suite 1. The on-disk contract is FDSEC-FORMAT.md at the repository root; every
-// offset, width and rule in this package cites the section of that document it
-// implements. A container built under a non-empty credential is encryption; the
-// empty credential is accepted and is obfuscation with no secrecy - never call
-// it protection.
+// suite 1. The on-disk contract is FDSEC-FORMAT.md, which lives outside this
+// repository in the shared contracts catalog - see AGENTS.md "External
+// contracts" for where that is, and docs/contracts/FDSEC-FORMAT.md for what
+// this package owes it. Every offset, width and rule below cites the section of
+// that document it implements. A container built under a non-empty credential
+// is encryption; the empty credential is accepted and is obfuscation with no
+// secrecy - never call it protection.
+//
+// A container never announces itself. There is no magic, no version byte in the
+// clear, no field a scanner can read: the only unmasked bytes of the head are
+// the 16-byte salt, and everything after it - parameters and key slots alike -
+// is masked with a keystream that only the credential produces
+// (FDSEC-FORMAT.md sections 3, 4, 13.4). Consequently nothing in this package
+// can tell "not a container" from "wrong credential": the two are one outcome
+// by construction.
 package fdsec
 
 import (
 	"encoding/binary"
 	"fmt"
 	"hash"
-	"io"
 
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/chacha20"
 )
 
-// Clear-header layout constants (FDSEC-FORMAT.md sections 3-4).
+// Head layout constants (FDSEC-FORMAT.md sections 3-5).
 const (
-	Magic         = "FDSEC"
 	FormatVersion = 1
 	SuiteID1      = 1
 
-	headerSize = 81 // clear header
+	saltSize   = 16
+	headerSize = 28       // salt + the masked parameter block
+	maskOff    = saltSize // the mask starts right after the salt
 	slotCount  = 8
 	slotSize   = 80
-	slotsSize  = slotCount * slotSize // 640
+	slotsSize  = slotCount * slotSize   // 640
+	preMeta    = headerSize + slotsSize // 668: the whole head
+	maskLen    = preMeta - maskOff      // 652 masked bytes
 	metaPlain  = 4096
 	metaSize   = metaPlain + tagSize // sealed metadata, 4112 on disk
-	preMeta    = headerSize + slotsSize
 
-	saltSize     = 16
 	fileKeySize  = 32
 	nonceSize    = 24
 	tagSize      = 16
@@ -45,123 +56,96 @@ const (
 	MaxNameBytes = 3000
 )
 
-// Writer defaults (FDSEC-FORMAT.md section 6). They are recorded in every
-// container's header; a reader obeys the file, never its own defaults.
+// Writer defaults (FDSEC-FORMAT.md section 6). They are recorded in the masked
+// header of every container; a reader obeys the file, never its own defaults.
+// The KDF profile is not among them: it is fixed by the format version
+// (section 6), because the mask must be derived before any byte on disk can be
+// read.
 const (
 	DefaultClusterAlignment uint32 = 4096
 	DefaultChunkSize        uint32 = 1 << 20 // on-disk chunk slot; plaintext capacity is S-16
-	DefaultThreshold        uint32 = 64
-	DefaultKDFMemoryKiB     uint32 = 65536
-	DefaultKDFTime          uint32 = 3
-	DefaultKDFLanes         uint8  = 4
 )
 
-// header is the clear header (FDSEC-FORMAT.md section 4). All integers are
-// little-endian on disk.
+// header is the container head (FDSEC-FORMAT.md section 4): the clear salt
+// followed by the parameter block, which is masked on disk. All integers are
+// little-endian.
 type header struct {
+	Salt             [saltSize]byte
 	Version          uint8
 	Suite            uint8
 	Flags            uint16
-	Salt             [saltSize]byte
-	KDFMemoryKiB     uint32
-	KDFTime          uint32
-	KDFLanes         uint8
-	KDFKeyLen        uint8
-	KDFReserved      uint16
-	Threshold        uint32
 	ChunkSize        uint32
 	ClusterAlignment uint32
-	HeaderDigest     [digestSize]byte
+	HeaderDigest     [digestSize]byte // derived, never stored
 }
 
 func (h *header) marshal() []byte {
 	b := make([]byte, headerSize)
-	copy(b[0:5], Magic)
-	b[5] = h.Version
-	b[6] = h.Suite
-	binary.LittleEndian.PutUint16(b[7:9], h.Flags)
-	copy(b[9:25], h.Salt[:])
-	binary.LittleEndian.PutUint32(b[25:29], h.KDFMemoryKiB)
-	binary.LittleEndian.PutUint32(b[29:33], h.KDFTime)
-	b[33] = h.KDFLanes
-	b[34] = h.KDFKeyLen
-	binary.LittleEndian.PutUint16(b[35:37], h.KDFReserved)
-	binary.LittleEndian.PutUint32(b[37:41], h.Threshold)
-	binary.LittleEndian.PutUint32(b[41:45], h.ChunkSize)
-	binary.LittleEndian.PutUint32(b[45:49], h.ClusterAlignment)
-	copy(b[49:81], h.HeaderDigest[:])
+	copy(b[0:16], h.Salt[:])
+	b[16] = h.Version
+	b[17] = h.Suite
+	binary.LittleEndian.PutUint16(b[18:20], h.Flags)
+	binary.LittleEndian.PutUint32(b[20:24], h.ChunkSize)
+	binary.LittleEndian.PutUint32(b[24:28], h.ClusterAlignment)
 	return b
 }
 
-// setDigest computes the header digest over bytes [0, 49) and stores it
-// (FDSEC-FORMAT.md section 4, last row).
-func (h *header) setDigest() {
-	saved := h.HeaderDigest
-	h.HeaderDigest = [digestSize]byte{}
-	b := h.marshal()
-	h.HeaderDigest = saved
-	h.HeaderDigest = blake2b.Sum256(b[:49])
+func (h *header) unmarshal(b []byte) {
+	copy(h.Salt[:], b[0:16])
+	h.Version = b[16]
+	h.Suite = b[17]
+	h.Flags = binary.LittleEndian.Uint16(b[18:20])
+	h.ChunkSize = binary.LittleEndian.Uint32(b[20:24])
+	h.ClusterAlignment = binary.LittleEndian.Uint32(b[24:28])
 }
 
-// parseHeader reads and validates the clear header. The three failure classes
-// never fall through into each other (FDSEC-FORMAT.md sections 4, 12): a bad
-// digest is damage, an unknown version/suite/flag/slot type is a refusal by
-// name, and neither is ever a credential problem.
-func parseHeader(r io.Reader) (*header, error) {
-	b := make([]byte, headerSize)
-	if _, err := io.ReadFull(r, b); err != nil {
-		return nil, fmt.Errorf("%w: header unreadable (%v)", ErrDamaged, err)
+// setDigest computes the header digest over the 28 plaintext header bytes
+// (FDSEC-FORMAT.md section 4). The digest is the associated data of every AEAD
+// call in the container and is never written to disk: a stored verifier would
+// hand an attacker a cheap way to confirm a credential guess, and a container
+// that stores nothing verifiable cannot be recognised at all.
+func (h *header) setDigest() {
+	h.HeaderDigest = blake2b.Sum256(h.marshal())
+}
+
+// mask XORs the keystream of the credential-derived mask key over b, the head
+// from the end of the salt onwards (FDSEC-FORMAT.md section 4, "Masking").
+// ChaCha20 with a 32-byte key, a twelve-byte zero nonce and counter 0 - the key
+// is single-use per container because the salt is.
+func mask(maskKey, b []byte) error {
+	c, err := chacha20.NewUnauthenticatedCipher(maskKey, make([]byte, chacha20.NonceSize))
+	if err != nil {
+		return err
 	}
-	if string(b[0:5]) != Magic {
-		return nil, fmt.Errorf("%w: not a framed fdsec container (no magic)", ErrUnsupported)
-	}
-	var stored [digestSize]byte
-	copy(stored[:], b[49:81])
-	if blake2b.Sum256(b[:49]) != stored {
-		return nil, fmt.Errorf("%w: header digest mismatch", ErrDamaged)
-	}
-	h := &header{
-		Version:          b[5],
-		Suite:            b[6],
-		Flags:            binary.LittleEndian.Uint16(b[7:9]),
-		KDFMemoryKiB:     binary.LittleEndian.Uint32(b[25:29]),
-		KDFTime:          binary.LittleEndian.Uint32(b[29:33]),
-		KDFLanes:         b[33],
-		KDFKeyLen:        b[34],
-		KDFReserved:      binary.LittleEndian.Uint16(b[35:37]),
-		Threshold:        binary.LittleEndian.Uint32(b[37:41]),
-		ChunkSize:        binary.LittleEndian.Uint32(b[41:45]),
-		ClusterAlignment: binary.LittleEndian.Uint32(b[45:49]),
-	}
-	copy(h.Salt[:], b[9:25])
-	copy(h.HeaderDigest[:], b[49:81])
+	c.XORKeyStream(b, b)
+	return nil
+}
+
+// validateHeader applies the rules of FDSEC-FORMAT.md sections 4 and 9. It runs
+// only after slot 0 has authenticated, so by the time it can fail the file is
+// known to be a container opened with the right credential: an unknown version,
+// suite or flag bit is a refusal by name, a broken structural rule is damage,
+// and neither can be a credential problem any more (section 12).
+func validateHeader(h *header) error {
 	switch {
 	case h.Version != FormatVersion:
-		return nil, fmt.Errorf("%w: format version %d", ErrUnsupported, h.Version)
+		return fmt.Errorf("%w: format version %d", ErrUnsupported, h.Version)
 	case h.Suite != SuiteID1:
-		return nil, fmt.Errorf("%w: suite id %d", ErrUnsupported, h.Suite)
+		return fmt.Errorf("%w: suite id %d", ErrUnsupported, h.Suite)
 	case h.Flags != flagV1Conform:
-		return nil, fmt.Errorf("%w: flags 0x%04x", ErrUnsupported, h.Flags)
-	case h.KDFKeyLen != fileKeySize:
-		return nil, fmt.Errorf("%w: KDF key length %d", ErrDamaged, h.KDFKeyLen)
-	case h.KDFReserved != 0:
-		return nil, fmt.Errorf("%w: nonzero KDF reserved bytes", ErrDamaged)
-	case h.KDFMemoryKiB < 1 || h.KDFTime < 1 || h.KDFLanes < 1:
-		return nil, fmt.Errorf("%w: impossible KDF parameters", ErrDamaged)
-	case h.Threshold < 1:
-		return nil, fmt.Errorf("%w: zero KDF length threshold", ErrDamaged)
+		return fmt.Errorf("%w: flags 0x%04x", ErrUnsupported, h.Flags)
 	case !isPow2(h.ClusterAlignment) || h.ClusterAlignment < 512 || h.ClusterAlignment > 1<<21:
-		return nil, fmt.Errorf("%w: cluster alignment %d", ErrDamaged, h.ClusterAlignment)
+		return fmt.Errorf("%w: cluster alignment %d", ErrDamaged, h.ClusterAlignment)
 	case h.ChunkSize < h.ClusterAlignment || h.ChunkSize%h.ClusterAlignment != 0:
-		return nil, fmt.Errorf("%w: chunk size %d breaks the alignment invariant", ErrDamaged, h.ChunkSize)
+		return fmt.Errorf("%w: chunk size %d breaks the alignment invariant", ErrDamaged, h.ChunkSize)
 	}
-	return h, nil
+	return nil
 }
 
 func isPow2(v uint32) bool { return v > 0 && v&(v-1) == 0 }
 
-// preLen is the payload start offset: header + slots + sealed metadata, padded
-// with random bytes to a cluster boundary (FDSEC-FORMAT.md section 3).
+// preLen is the payload start offset: head + sealed metadata, padded with
+// random bytes to a cluster boundary (FDSEC-FORMAT.md section 3).
 func (h *header) preLen() int64 {
 	raw := int64(preMeta + metaSize)
 	a := int64(h.ClusterAlignment)
@@ -199,35 +183,41 @@ func marshalSlots(slot0 *slotRecord) []byte {
 	b := make([]byte, slotsSize)
 	b[0] = slot0.Type
 	copy(b[1:slotSize], slot0.Payload[:])
-	// Slots 1..7 stay type 0 in version 1.
+	// Slots 1..7 stay type 0 in version 1; the mask makes their zero bytes
+	// look like every other byte of the file.
 	return b
 }
 
-func parseSlots(r io.Reader) ([]slotRecord, error) {
-	b := make([]byte, slotsSize)
-	if _, err := io.ReadFull(r, b); err != nil {
-		return nil, fmt.Errorf("%w: key slots unreadable (%v)", ErrDamaged, err)
-	}
+func parseSlots(b []byte) []slotRecord {
 	slots := make([]slotRecord, slotCount)
 	for i := range slots {
 		slots[i].Type = b[i*slotSize]
 		copy(slots[i].Payload[:], b[i*slotSize+1:(i+1)*slotSize])
 	}
-	if slots[0].Type == typeEmpty {
-		return nil, fmt.Errorf("%w: key slot 0 is empty", ErrDamaged)
-	}
+	return slots
+}
+
+// validateSlots runs after slot 0 authenticated, for the same reason as
+// validateHeader: before that point every byte here is indistinguishable from
+// noise (FDSEC-FORMAT.md sections 5, 12).
+func validateSlots(slots []slotRecord) error {
 	if slots[0].Type != typeCredWrap {
-		return nil, fmt.Errorf("%w: key-slot type %d in slot 0", ErrUnsupported, slots[0].Type)
+		return fmt.Errorf("%w: key-slot type %d in slot 0", ErrUnsupported, slots[0].Type)
 	}
 	for _, s := range slots[1:] {
 		if s.Type != typeEmpty {
-			return nil, fmt.Errorf("%w: key-slot type %d in a reserved slot", ErrUnsupported, s.Type)
+			return fmt.Errorf("%w: key-slot type %d in a reserved slot", ErrUnsupported, s.Type)
 		}
 	}
 	if nz(slots[0].Payload[nonceSize+wrappedSize:]) {
-		return nil, fmt.Errorf("%w: nonzero reserved bytes in key slot 0", ErrDamaged)
+		return fmt.Errorf("%w: nonzero reserved bytes in key slot 0", ErrDamaged)
 	}
-	return slots, nil
+	for _, s := range slots[1:] {
+		if nz(s.Payload[:]) {
+			return fmt.Errorf("%w: nonzero payload in an empty key slot", ErrDamaged)
+		}
+	}
+	return nil
 }
 
 func nz(b []byte) bool {
@@ -237,12 +227,6 @@ func nz(b []byte) bool {
 		}
 	}
 	return false
-}
-
-// IsFramed reports whether b begins with the suite-1 frame magic. This is the
-// framed-versus-quiet dispatch point (FDSEC-FORMAT.md section 13.4).
-func IsFramed(b []byte) bool {
-	return len(b) >= 5 && string(b[:5]) == Magic
 }
 
 // newDigest is a BLAKE2b-256 hash; keyed mode is used for nonce derivation.

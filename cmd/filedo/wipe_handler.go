@@ -21,6 +21,78 @@ type WipeProgress struct {
 	CurrentItem   string
 }
 
+// handleFileWipeCommand is `filedo file <path> wipe`: a secure erase of one
+// file - overwritten in place with random bytes, then removed.
+//
+// The word means two different strengths in this program, and the difference
+// is not sloppiness. On a folder, `wipe` empties it: the entries go, the bytes
+// stay recoverable until the space is reused. On a single file it means the
+// stronger thing, because that is the only reading under which a verb of its
+// own earns a place beside an ordinary delete - which Explorer already has.
+//
+// There is one implementation of the overwrite, wipeFileInPlace, shared with
+// SP-0005's `secure wipe`; the Explorer group's "Wipe this file" is this entry
+// point.
+//
+// --yes / --force skips the question, never the caveat: what an
+// overwrite-in-place is worth on modern storage is information the user needs
+// whether or not they automated the answer.
+func handleFileWipeCommand(path string, args []string) error {
+	force := false
+	for _, a := range args {
+		switch strings.ToLower(a) {
+		case "--yes", "-y", "--force", "--force-wipe", "/y":
+			force = true
+		}
+	}
+	if os.Getenv("FILEDO_AUTO_CONFIRM") == "1" {
+		force = true
+	}
+
+	fi, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if fi.IsDir() {
+		return fmt.Errorf("%s is a folder: `folder %s wipe` empties a folder, this verb erases one file", path, path)
+	}
+	if !fi.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", path)
+	}
+	// A reparse point is a name pointing somewhere else. Overwriting through
+	// one writes over whatever it happens to point at today, which is never
+	// what the person clicking "Wipe this file" meant.
+	if hasReparsePoint(path) {
+		return fmt.Errorf("%s is a reparse point (junction/symlink/mount point) and is refused: it would overwrite whatever it points at", path)
+	}
+
+	fmt.Printf("\nWIPE will overwrite and then remove:\n  %s (%s)\n", path, formatBytes(uint64(fi.Size())))
+	fmt.Printf("There is no container and no copy - the content is gone.\n")
+	fmt.Printf("Honest caveat: on SSDs, copy-on-write and journaled volumes, overwrite-in-place\nlowers the odds of recovery but does not guarantee erasure.\n")
+	if force {
+		fmt.Printf("Confirmation skipped (--yes/--force).\n")
+	} else {
+		fmt.Printf("Type WIPE to continue: ")
+		line, rerr := readConsoleLine()
+		if rerr != nil || strings.TrimSpace(line) != "WIPE" {
+			return fmt.Errorf("wipe cancelled by user")
+		}
+	}
+
+	// A read-only file cannot be opened for writing, and the attribute is not
+	// a permission decision - it is a flag the owner can clear themselves in
+	// two clicks. Refusing over it would only teach them to clear it and try
+	// again, having read the caveat once less.
+	if fi.Mode().Perm()&0o200 == 0 {
+		_ = os.Chmod(path, fi.Mode().Perm()|0o200)
+	}
+	if err := wipeFileInPlace(path); err != nil {
+		return err
+	}
+	fmt.Printf("Overwritten and removed: %s\n", path)
+	return nil
+}
+
 // handleWipeCommand processes the wipe command
 func handleWipeCommand(args []string) error {
 	if len(args) == 0 {

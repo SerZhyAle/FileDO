@@ -979,6 +979,11 @@ func runDeviceFillVerify(devicePath string) error {
 	}
 	fmt.Printf("\n")
 
+	runNumber("filesChecked", totalFiles)
+	runNumber("headersOK", goodCount)
+	runNumber("headersWrong", badCount)
+	runNumber("unreadable", readErrCount)
+
 	if badCount == 0 && readErrCount == 0 {
 		fmt.Printf("✓ GENUINE: All %d file headers match - storage capacity appears real.\n", totalFiles)
 		return nil
@@ -989,6 +994,18 @@ func runDeviceFillVerify(devicePath string) error {
 	//  the controller wraps its address space.)
 	realGB := float64(goodCount) * float64(fileSize) / (1024 * 1024 * 1024)
 	claimedGB := float64(totalFiles) * float64(fileSize) / (1024 * 1024 * 1024)
+
+	// The sentence below was the whole of the answer: the function returned
+	// nil, so a drive that lies and a drive that does not exited the same 0.
+	// The finding is what makes it a `Failed` verdict and exit 1
+	// (CLI-EVENT-STREAM rule 11).
+	runDefect("fake-capacity", fmt.Sprintf("%d of %d file headers were overwritten - real capacity is about %.1f GB, not %.1f GB",
+		badCount, totalFiles, realGB, claimedGB),
+		map[string]interface{}{
+			"claimedCapacityGB": claimedGB,
+			"realCapacityGB":    realGB,
+			"overwrittenFiles":  badCount,
+		})
 
 	fmt.Printf("⚠ FAKE CAPACITY DETECTED!\n")
 	fmt.Printf("  Claimed capacity: ~%.1f GB (%d × %d MB files)\n",

@@ -83,17 +83,16 @@ var _ io.ReadSeeker = (*seqReader)(nil)
 
 // The >4 GiB corpus member (exit criterion of stage S2): crosses the 32-bit
 // boundary in every length and offset computation. The default chunk size and
-// alignment are used; the KDF is shrunk because the point here is the length
-// arithmetic, not the stretch cost. Byte-exactness is proven by Unpack's
-// internal digest check: the recovered stream must hash to the digest Pack
-// computed over the same generator. Skipped under -short.
+// alignment are used; the KDF runs under the suite's test profile because the
+// point here is the length arithmetic, not the stretch cost. Byte-exactness is
+// proven by Unpack's internal digest check: the recovered stream must hash to
+// the digest Pack computed over the same generator. Skipped under -short.
 func TestRoundTrip_Over4GiB(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping the >4 GiB round trip in -short mode")
 	}
 	const size = int64(4)<<30 + 1
 	p := DefaultParams() // default alignment and chunk size, so the 32-bit boundary is crossed at full slot size
-	p.KDFMemoryKiB, p.KDFTime, p.KDFLanes = 1024, 1, 1
 	meta := Metadata{
 		Name:      "large.bin",
 		Size:      size,

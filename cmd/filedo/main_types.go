@@ -500,6 +500,12 @@ func formatBytesShort(b uint64) string {
 // Generic fake capacity testing functions
 
 // runGenericFakeCapacityTest performs a generic fake capacity test using the provided tester interface
+//
+// Each of its four conclusions is a judgement about the device rather than a
+// failure to reach one, so each returns defectf: that is what makes a lying
+// device exit 1 and an unreadable one exit 2 (CLI-EVENT-STREAM rule 11). The
+// files it deliberately keeps are named in the result event, because they are
+// the evidence for the estimated-real-capacity report.
 func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxFiles int, logger *HistoryLogger) (*FakeCapacityTestResult, error) {
 	testType, targetPath := tester.GetTestInfo()
 
@@ -565,6 +571,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 	progress := NewProgressTrackerWithInterval(int64(maxFiles), int64(maxFiles)*fileSize, 2*time.Second)
 
 	// Write phase
+	runStep("write", fmt.Sprintf("Writing %d test files", maxFiles))
 	fmt.Printf("Starting capacity test - writing %d files...\n", maxFiles)
 
 	for i := 1; i <= maxFiles; i++ {
@@ -609,7 +616,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
 			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
-			err = fmt.Errorf("failed to create file %s: %v", fileName, err)
+			runFilesLeft(result.CreatedFiles...)
+			runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+			err = defectf("failed to create file %s: %v", fileName, err)
 			if logger != nil {
 				logger.SetError(err)
 				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
@@ -678,7 +687,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
 			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
-			err = fmt.Errorf("test failed during verification - file corruption detected")
+			runFilesLeft(result.CreatedFiles...)
+			runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+			err = defectf("test failed during verification - file corruption detected")
 			if logger != nil {
 				logger.SetError(err)
 				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
@@ -725,7 +736,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
 				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
-				err = fmt.Errorf("test failed due to abnormally slow write speed")
+				runFilesLeft(result.CreatedFiles...)
+				runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+				err = defectf("test failed due to abnormally slow write speed")
 				if logger != nil {
 					logger.SetError(err)
 					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
@@ -748,7 +761,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
 				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
 
-				err = fmt.Errorf("test failed due to abnormally fast write speed")
+				runFilesLeft(result.CreatedFiles...)
+				runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
+				err = defectf("test failed due to abnormally fast write speed")
 				if logger != nil {
 					logger.SetError(err)
 					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
@@ -781,6 +796,11 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 	}
 
 	result.TestPassed = true
+
+	runNumber("filesWritten", result.FilesCreated)
+	runNumber("bytesWritten", result.TotalDataBytes)
+	runNumber("averageSpeedMBps", result.AverageSpeedMBps)
+	runNumber("baselineSpeedMBps", result.BaselineSpeedMBps)
 
 	fmt.Printf("\n✅ TEST PASSED SUCCESSFULLY!\n")
 	fmt.Printf("All %d files were written and verified successfully.\n", result.FilesCreated)

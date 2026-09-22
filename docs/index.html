@@ -672,6 +672,20 @@
         color: var(--muted);
         font-size: 0.82rem;
       }
+      .download-block {
+        display: grid;
+        gap: 0.6rem;
+        justify-items: start;
+      }
+      .download-block .install-note {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .download-block .dl-caveat {
+        color: var(--text-2);
+        border-left: 3px solid var(--gold);
+        padding-left: 0.7rem;
+      }
 
       .section {
         padding: clamp(54px, 7vw, 100px) clamp(22px, 5vw, 96px);
@@ -1203,7 +1217,12 @@
               >
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#why"
+              <a class="btn btn-primary" href="#get"
+                ><span data-l="ru">Скачать для Windows</span
+                ><span data-l="en">Download for Windows</span
+                ><span data-l="ua">Завантажити для Windows</span></a
+              >
+              <a class="btn btn-ghost" href="#why"
                 ><span data-l="ru">Возможности</span
                 ><span data-l="en">Capabilities</span
                 ><span data-l="ua">Можливості</span></a
@@ -1529,21 +1548,72 @@
             </h2>
             <p class="whatfor">
               <span data-l="ru"
-                >Основной путь - winget для Windows x64. Portable ZIP и MSI
-                доступны в GitHub Releases; ссылка ниже всегда ведёт к
-                последнему релизу.</span
+                >Установщик для Windows x64: скачайте один файл и запустите
+                его. Есть и другие пути - winget, Portable ZIP и голый MSI; все
+                ссылки ниже всегда ведут к последнему релизу.</span
               ><span data-l="en"
-                >The primary path is winget for Windows x64. A portable ZIP and
-                MSI are available in GitHub Releases; the link below always
-                leads to the latest release.</span
+                >The Windows x64 installer: download one file and run it. The
+                other routes are winget, a portable ZIP and the bare MSI; every
+                link below always leads to the latest release.</span
               ><span data-l="ua"
-                >Основний шлях - winget для Windows x64. Portable ZIP і MSI
-                доступні в GitHub Releases; посилання нижче завжди веде до
-                останнього релізу.</span
+                >Інсталятор для Windows x64: завантажте один файл і запустіть
+                його. Є й інші шляхи - winget, Portable ZIP і голий MSI; усі
+                посилання нижче завжди ведуть до останнього релізу.</span
               >
             </p>
           </div>
           <div class="install-panel">
+            <div class="download-block">
+              <a
+                class="btn btn-primary"
+                id="setupLink"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                ><span data-l="ru">Скачать для Windows (setup.exe)</span
+                ><span data-l="en">Download for Windows (setup.exe)</span
+                ><span data-l="ua">Завантажити для Windows (setup.exe)</span></a
+              >
+              <p class="install-note">
+                <span data-l="ru">Windows 10 и 11, x64 · один файл, без командной строки</span
+                ><span data-l="en"
+                  >Windows 10 and 11, x64 · one file, no command line</span
+                ><span data-l="ua"
+                  >Windows 10 і 11, x64 · один файл, без командного рядка</span
+                ><span id="setupFile" hidden>
+                  · <code id="setupName"></code> · <span id="setupMb"></span>
+                  <span data-l="ru">МБ</span><span data-l="en">MB</span
+                  ><span data-l="ua">МБ</span> ·
+                  <a
+                    id="setupHash"
+                    href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                    target="_blank"
+                    rel="noopener"
+                    >SHA256</a
+                  ></span
+                >
+              </p>
+              <p class="install-note dl-caveat">
+                <span data-l="ru"
+                  >Без цифровой подписи: Windows может показать «Windows
+                  защитила ваш компьютер» и запросить права администратора.
+                  Сверьте SHA256, затем выберите «Подробнее» и «Выполнить в
+                  любом случае».
+                  <a href="guides/install-trust.html">Почему так и что нажать</a></span
+                ><span data-l="en"
+                  >Not code-signed: Windows may show &ldquo;Windows protected
+                  your PC&rdquo; and ask for administrator permission. Check
+                  the SHA256, then choose &ldquo;More info&rdquo; and &ldquo;Run
+                  anyway&rdquo;.
+                  <a href="guides/install-trust.html">Why, and what to click</a></span
+                ><span data-l="ua"
+                  >Без цифрового підпису: Windows може показати «Windows
+                  захистила ваш ПК» і запросити права адміністратора. Звірте
+                  SHA256, потім виберіть «Докладніше» та «Усе одно запустити».
+                  <a href="guides/install-trust.html">Чому так і що натиснути</a></span
+                >
+              </p>
+            </div>
             <div class="copybox">
               winget install SerZhyAle.FileDO<button
                 class="copy"
@@ -1554,7 +1624,21 @@
             </div>
             <div class="channels">
               <a
-                class="btn btn-primary btn-sm"
+                class="btn btn-ghost btn-sm"
+                id="zipLink"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                >Portable ZIP</a
+              ><a
+                class="btn btn-ghost btn-sm"
+                id="msiLink"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                >MSI</a
+              ><a
+                class="btn btn-ghost btn-sm"
                 id="releaseLink"
                 href="https://github.com/SerZhyAle/FileDO/releases/latest"
                 target="_blank"
@@ -1573,13 +1657,14 @@
             <ol class="quickstart">
               <li>
                 <span data-l="ru"
-                  >Установите командой выше или распакуйте ZIP из
-                  Releases.</span
+                  >Запустите установщик, установите командой winget выше или
+                  распакуйте ZIP из Releases.</span
                 ><span data-l="en"
-                  >Install with the command above, or extract the ZIP from
-                  Releases.</span
+                  >Run the installer, install with the winget command above, or
+                  extract the ZIP from Releases.</span
                 ><span data-l="ua"
-                  >Встановіть командою вище або розпакуйте ZIP з Releases.</span
+                  >Запустіть інсталятор, встановіть командою winget вище або
+                  розпакуйте ZIP з Releases.</span
                 >
               </li>
               <li>
@@ -1626,6 +1711,50 @@
                 ><span data-l="ua"
                   >Замініть <code>E:</code> на потрібний шлях. Ця команда
                   показує відомості й не видаляє файли.</span
+                >
+              </p>
+            </div>
+            <div class="note">
+              <span class="tag"
+                ><span data-l="ru">Установщик</span
+                ><span data-l="en">Installer</span
+                ><span data-l="ua">Інсталятор</span></span
+              >
+              <p>
+                <span data-l="ru"
+                  >Файл <code>FileDO-&lt;версия&gt;-setup.exe</code> из Releases
+                  ставит FileDO как обычную программу Windows:
+                  <code>filedo</code> в <code>PATH</code>, пункт в меню «Пуск» и
+                  значок на рабочем столе, а также - отдельным компонентом,
+                  который можно снять, - группу
+                  <code>File DO..</code> в контекстном меню любого
+                  файла и тип документа <code>.fd-sec</code>. winget и ZIP не
+                  регистрируют ничего: пункты добавляет команда
+                  <code>filedo fdsec register</code>.
+                  <a href="guides/install-and-explorer.html"
+                    >Подробное руководство</a
+                  >.</span
+                ><span data-l="en"
+                  >The <code>FileDO-&lt;version&gt;-setup.exe</code> in Releases
+                  installs FileDO as an ordinary Windows program: <code>filedo</code> on <code>PATH</code>, a Start
+                  menu entry and a desktop icon, plus - as a feature you can
+                  deselect - the <code>File DO..</code> group in the context menu
+                  of every file and the <code>.fd-sec</code> document type.
+                  winget and the ZIP register nothing;
+                  <code>filedo fdsec register</code> adds the same entries.
+                  <a href="guides/install-and-explorer.html">Full guide</a>.</span
+                ><span data-l="ua"
+                  >Файл <code>FileDO-&lt;версія&gt;-setup.exe</code> з Releases
+                  встановлює FileDO як звичайну програму Windows: <code>filedo</code> у <code>PATH</code>, пункт у меню
+                  «Пуск» і піктограму на робочому столі, а також - окремим
+                  компонентом, який можна зняти, - групу
+                  <code>File DO..</code> у контекстному меню будь-якого
+                  файлу і тип документа <code>.fd-sec</code>. winget і ZIP не
+                  реєструють нічого: пункти додає команда
+                  <code>filedo fdsec register</code>.
+                  <a href="guides/install-and-explorer.html"
+                    >Докладний посібник</a
+                  >.</span
                 >
               </p>
             </div>
@@ -1711,17 +1840,50 @@
             </p>
           </article>
           <article class="card">
-            <h3>GUI command builder</h3>
+            <h3>
+              <span data-l="ru">Секретные файлы</span
+              ><span data-l="en">Secret files</span
+              ><span data-l="ua">Секретні файли</span>
+            </h3>
             <p>
               <span data-l="ru"
-                >В ZIP и winget-пакете есть <code>filedo_win</code>, который
-                собирает и запускает команды.</span
+                >Один файл уходит в контейнер <code>.fd-sec</code> под паролем и
+                возвращается обратно; двойной клик открывает содержимое в нужной
+                программе из копии, которая потом убирается. Пустой пароль - это
+                только маскировка, и программа говорит об этом прямо.</span
               ><span data-l="en"
-                >The ZIP and winget package include <code>filedo_win</code>,
-                which builds and runs commands.</span
+                >One file goes into a <code>.fd-sec</code> container behind a
+                password and comes back out; a double-click opens what is inside
+                in the program it belongs to, from a copy that is taken away
+                again. An empty password is obfuscation only, and the program
+                says so plainly.</span
               ><span data-l="ua"
-                >ZIP і пакет winget містять <code>filedo_win</code>, який збирає
-                та запускає команди.</span
+                >Один файл іде в контейнер <code>.fd-sec</code> під паролем і
+                повертається назад; подвійний клік відкриває вміст у потрібній
+                програмі з копії, яку потім прибирають. Порожній пароль - це
+                лише маскування, і програма каже про це прямо.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Окно FileDO (GUI)</span
+              ><span data-l="en">The FileDO window (GUI)</span
+              ><span data-l="ua">Вікно FileDO (GUI)</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >В ZIP и winget-пакете есть <code>filedo_win</code>: слева
+                список задач, на каждую - своя страница, плюс страница
+                «Команда» для любой операции.</span
+              ><span data-l="en"
+                >The ZIP and winget package include <code>filedo_win</code>: a
+                rail of jobs with one page per job, plus a Command page for any
+                operation.</span
+              ><span data-l="ua"
+                >ZIP і пакет winget містять <code>filedo_win</code>: ліворуч
+                список завдань, на кожне - своя сторінка, плюс сторінка
+                «Команда» для будь-якої операції.</span
               >
             </p>
           </article>
@@ -1958,6 +2120,30 @@
                 >
               </li>
               <li>
+                <span data-l="ru"
+                  >MSI ставит то же самое в <code>Program Files</code>, плюс
+                  <code>PATH</code>, ярлыки и - по выбору при установке -
+                  интеграцию с Проводником. Компоненты выбираются в окне
+                  установщика или ключом
+                  <code>ADDLOCAL</code> при тихой установке, а «Изменить» в
+                  «Приложения и возможности» переключает их позже.</span
+                ><span data-l="en"
+                  >The MSI installs the same set into
+                  <code>Program Files</code>, plus <code>PATH</code>, the
+                  shortcuts, and - your choice at install time - the Explorer
+                  integration. Features are picked in the installer window or
+                  with <code>ADDLOCAL</code> for a silent install, and Change in
+                  Apps &amp; features switches them later.</span
+                ><span data-l="ua"
+                  >MSI встановлює те саме в <code>Program Files</code>, плюс
+                  <code>PATH</code>, ярлики і - за вибором під час
+                  встановлення - інтеграцію з Провідником. Компоненти
+                  вибираються у вікні інсталятора або ключем
+                  <code>ADDLOCAL</code> при тихій інсталяції, а «Змінити» в
+                  «Програми та можливості» перемикає їх пізніше.</span
+                >
+              </li>
+              <li>
                 <span data-l="ru">Сборка из исходников требует Go 1.24+.</span
                 ><span data-l="en">Building from source requires Go 1.24+.</span
                 ><span data-l="ua"
@@ -1992,15 +2178,18 @@
               <span data-l="ru"
                 >README содержит полный каталог команд, параметры проверки
                 чтения, примеры сетевых путей и детали GUI. GitHub Releases
-                содержит ZIP, MSI и SHA256 для каждого выпуска.</span
+                содержит установщик setup EXE, ZIP, MSI и SHA256 для каждого
+                выпуска.</span
               ><span data-l="en"
                 >The README contains the full command catalogue, read-check
                 options, network examples, and GUI details. GitHub Releases
-                holds ZIP, MSI, and SHA256 files for each release.</span
+                holds the setup EXE, ZIP, MSI, and SHA256 files for each
+                release.</span
               ><span data-l="ua"
                 >README містить повний каталог команд, параметри перевірки
                 читання, мережеві приклади та відомості про GUI. GitHub Releases
-                містить ZIP, MSI та SHA256 для кожного випуску.</span
+                містить інсталятор setup EXE, ZIP, MSI та SHA256 для кожного
+                випуску.</span
               >
             </p>
             <div class="channels">
@@ -2105,26 +2294,106 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">GUI-конструктор</span
-              ><span data-l="en">GUI command builder</span
-              ><span data-l="ua">GUI-конструктор</span>
+              <span data-l="ru">Окно FileDO (GUI)</span
+              ><span data-l="en">The FileDO window (GUI)</span
+              ><span data-l="ua">Вікно FileDO (GUI)</span>
             </h3>
             <p>
               <span data-l="ru"
-                >Как собрать, проверить и выполнить команду через окно
-                <code>filedo_win</code>.</span
+                >Как выбрать задачу, пройти её страницу, проверить и выполнить
+                в окне <code>filedo_win</code>; страница «Команда» и секретные
+                файлы.</span
               ><span data-l="en"
-                >How to build, inspect, and run a command through the
-                <code>filedo_win</code> window.</span
+                >How to pick a job, work through its page, check, and run it in
+                the <code>filedo_win</code> window; the Command page and secret
+                files.</span
               ><span data-l="ua"
-                >Як зібрати, перевірити та виконати команду через вікно
-                <code>filedo_win</code>.</span
+                >Як вибрати завдання, пройти його сторінку, перевірити та
+                виконати у вікні <code>filedo_win</code>; сторінка «Команда» і
+                секретні файли.</span
               >
             </p>
             <p class="actions">
               <a
                 class="btn btn-ghost btn-sm"
                 href="guides/gui-command-builder.html"
+                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
+                ><span data-l="ua">Відкрити</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Предупреждение Windows</span
+              ><span data-l="en">The Windows warning</span
+              ><span data-l="ua">Попередження Windows</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Почему появляется «Windows защитила ваш компьютер», что
+                нажать и что программа никогда не делает.</span
+              ><span data-l="en"
+                >Why &ldquo;Windows protected your PC&rdquo; appears, what to
+                click, and what the app never does.</span
+              ><span data-l="ua"
+                >Чому з'являється «Windows захистила ваш ПК», що натиснути і
+                чого програма ніколи не робить.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="guides/install-trust.html"
+                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
+                ><span data-l="ua">Відкрити</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Установка и Проводник</span
+              ><span data-l="en">Installation and Explorer</span
+              ><span data-l="ua">Встановлення і Провідник</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Что добавляет установщик и как включить или убрать пункты
+                контекстного меню.</span
+              ><span data-l="en"
+                >What the installer adds, and how to turn the context-menu
+                entries on or off.</span
+              ><span data-l="ua"
+                >Що додає інсталятор і як увімкнути чи прибрати пункти
+                контекстного меню.</span
+              >
+            </p>
+            <p class="actions">
+              <a
+                class="btn btn-ghost btn-sm"
+                href="guides/install-and-explorer.html"
+                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
+                ><span data-l="ua">Відкрити</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Секретные файлы</span
+              ><span data-l="en">Secret files</span
+              ><span data-l="ua">Секретні файли</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Контейнеры <code>.fd-sec</code>: упаковать, вернуть, открыть не
+                распаковывая - и что каждый выбор обещает.</span
+              ><span data-l="en"
+                ><code>.fd-sec</code> containers: pack, restore, open without
+                unpacking - and what each choice promises.</span
+              ><span data-l="ua"
+                >Контейнери <code>.fd-sec</code>: запакувати, повернути,
+                відкрити не розпаковуючи - і що кожен вибір обіцяє.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="guides/fd-sec-containers.html"
                 ><span data-l="ru">Открыть</span><span data-l="en">Open</span
                 ><span data-l="ua">Відкрити</span></a
               >
@@ -2317,14 +2586,51 @@
             return r.ok ? r.json() : null;
           })
           .then(function (x) {
-            if (!x) return;
-            var a =
-                x.assets &&
-                x.assets.find(function (y) {
-                  return /windows-x64\\.zip$/i.test(y.name);
+            if (!x || !x.assets) return;
+            // Every href in the install panel starts on /releases/latest and
+            // is only upgraded to a direct file link when the API answers, so
+            // the page works without it and never hard-codes a version.
+            function pick(test) {
+              return x.assets.find(function (y) {
+                return test(y.name);
+              });
+            }
+            function point(id, a) {
+              var el = document.getElementById(id);
+              if (el && a) el.href = a.browser_download_url;
+            }
+            var setup = pick(function (n) {
+              return /-setup\.exe$/i.test(n);
+            });
+            point("setupLink", setup);
+            point(
+              "zipLink",
+              pick(function (n) {
+                return /-windows-x64\.zip$/i.test(n);
+              }),
+            );
+            point(
+              "msiLink",
+              pick(function (n) {
+                return /-windows-x64\.msi$/i.test(n);
+              }),
+            );
+            if (x.html_url) {
+              document.getElementById("releaseLink").href = x.html_url;
+            }
+            if (setup) {
+              point(
+                "setupHash",
+                pick(function (n) {
+                  return n === setup.name + ".sha256";
                 }),
-              b = document.getElementById("releaseLink");
-            b.href = a ? a.browser_download_url : x.html_url || b.href;
+              );
+              document.getElementById("setupName").textContent = setup.name;
+              document.getElementById("setupMb").textContent = (
+                setup.size / 1048576
+              ).toFixed(1);
+              document.getElementById("setupFile").hidden = false;
+            }
           })
           .catch(function () {});
       })();

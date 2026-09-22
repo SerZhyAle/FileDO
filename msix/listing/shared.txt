@@ -1,0 +1,6 @@
+# Store listing fields that are identical in every language column.
+# Read by build-store-listing-csv.ps1 first; a field in <code>.txt overrides it for that language.
+# The Title is the reserved product name and stays in one form everywhere.
+
+@@Title
+FileDO

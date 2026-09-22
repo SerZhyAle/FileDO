@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   FileDO MSIX package manifest (TEMPLATE).
-  build-msix.ps1 fills the {{PLACEHOLDERS}} and writes the final manifest into stage\.
+  build-msix.ps1 fills the double-brace placeholders and writes the final manifest into stage\.
   Do not edit the staged copy by hand; edit this template.
 
   Identity/Name, Publisher, PublisherDisplayName come from Partner Center
@@ -9,11 +9,27 @@
   (Major.Minor.Build.0, revision must be 0, each part <= 65535).
 
   Two applications ship in one package:
-    * FileDOGui - the clickable Start-menu tile (filedo_win.exe), a GUI that
-      builds any filedo command and runs it.
-    * FileDO    - the console tool (filedo.exe), hidden from the app list
-      (AppListEntry="none") and exposed on PATH via an appExecutionAlias so
-      `filedo` works from any terminal.
+    * FileDOGui - the Start-menu tile (filedo_win.exe), the graphical shell.
+    * FileDO    - the console tool (filedo.exe), exposed on PATH through an
+                  appExecutionAlias so `filedo` works from any terminal.
+
+  The CLI application is VISIBLE (no AppListEntry="none") on purpose. The Microsoft
+  Store rejects a hidden app at package upload ("The package specifies a headless
+  app. You don't have permission to create a headless app" - it needs a
+  HeadlessAppBypass waiver); the sibling doc-html-translate hit exactly that with
+  the same account. `build-msix.ps1 -Cli hidden` builds the hidden shape for an
+  account that holds the waiver, `-Cli none` drops the CLI application, and the
+  Store's own verdict at upload is the arbiter.
+
+  MinVersion is 10.0.18362.0 (Windows 10 1903), not 1809: filedo_win.exe targets
+  .NET Framework 4.8, which is in the box from 1903 on, and a package cannot
+  declare a .NET Framework dependency. Declaring 1809 would offer the Store copy
+  to machines where the graphical shell cannot start.
+
+  The Store build registers nothing in Explorer: a packaged app can only declare a
+  context-menu handler through a signed shell command handler (not built), and
+  `HKCU\Software\Classes` writes are virtualized into the package. Say so in the
+  listing rather than implying parity with the MSI.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -33,15 +49,22 @@
     <DisplayName>FileDO</DisplayName>
     <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
-    <Description>Advanced tool for file and storage operations: storage speed testing, fake-capacity detection, secure wiping, and duplicate management. Ships a command-line tool plus a GUI command builder.</Description>
+    <Description>Storage speed tests, fake-capacity detection, secure wiping, duplicate management and password-protected secret files - a command-line tool with a graphical shell.</Description>
   </Properties>
 
   <Resources>
+    <!-- One entry per interface language the GUI ships (Localization.vb), in Store locale
+         tags. A locale absent here is a locale the Store will not offer the listing in,
+         however well the app speaks it. Keep in step with msix/listing/*.txt. -->
     <Resource Language="en-us" />
+    <Resource Language="ru" />
+    <Resource Language="uk" />
+    <Resource Language="de" />
+    <Resource Language="fr" />
   </Resources>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.18362.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
   <Capabilities>
@@ -49,11 +72,11 @@
   </Capabilities>
 
   <Applications>
-    <!-- Clickable GUI tile: builds and runs any filedo command. -->
+    <!-- The graphical shell: speed / capacity / wipe / duplicates / secret files. -->
     <Application Id="FileDOGui" Executable="filedo_win.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="FileDO"
-        Description="FileDO - build and run any storage command"
+        Description="FileDO - storage tests, secure wipe, duplicates and secret files"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
@@ -61,12 +84,11 @@
       </uap:VisualElements>
     </Application>
 
-    <!-- Console tool: hidden from the app list, exposed on PATH as `filedo`. -->
+    <!-- The console tool, on PATH as `filedo`. Visible by default - see the header. -->
     <Application Id="FileDO" Executable="filedo.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        AppListEntry="none"
         DisplayName="FileDO CLI"
-        Description="Advanced File and Storage Operations Tool (command line)"
+        Description="FileDO command line - type filedo in any terminal"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

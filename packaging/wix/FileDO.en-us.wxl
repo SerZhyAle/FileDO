@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The words the installer says.
+
+  WixUI ships a stock wizard whose sentences are deliberately about nothing -
+  "The Setup Wizard will install [ProductName] on your computer" tells a person
+  who is about to give a program administrator rights exactly nothing about
+  what it is or what it will do to their machine. Every string below replaces
+  one of those.
+
+  Two rules for editing this file:
+    * Say what happens, not that something will happen. A person reads this
+      page once, standing at a decision.
+    * Keep each one short. MSI dialog text does not scroll: the Welcome page
+      gives about eight lines at this width, and the ready-to-install line
+      gives one. Text that overflows is text nobody ever sees.
+
+  Passed to the build with `-loc packaging\wix\FileDO.en-us.wxl`. The ids are
+  WixUI's own; a typo in one is silent - the stock sentence simply stays - so
+  check a change by reading the built MSI, not by trusting the build to fail.
+-->
+<WixLocalization Culture="en-US" Codepage="1252"
+                 xmlns="http://wixtoolset.org/schemas/v4/wxl">
+
+  <!-- Welcome page. What the program is, and what this install will do. -->
+  <String Id="WelcomeDlgTitle" Value="{\WixUI_Font_Bigger}Install FileDO" />
+  <String Id="WelcomeDlgDescription" Value="FileDO tells you what a drive really is: its true capacity behind what the label claims, its real speed, which files it can still read, and where your duplicates are. It also packs single files into password-protected .fd-sec containers - an empty password is accepted and means obfuscation only, not secrecy.&#13;&#10;&#13;&#10;This installs the command line and the FileDO window, adds them to PATH, and offers the Explorer right-click entries. No network connection, no telemetry." />
+
+  <!-- License page. -->
+  <String Id="LicenseAgreementDlgDescription" Value="FileDO is free and open source, under the MIT licence. In short: use it for anything, and it comes with no warranty." />
+
+  <!-- The feature tree. The one page that answers &quot;what am I getting?&quot; -->
+  <String Id="CustomizeDlgTitle" Value="{\WixUI_Font_Title}Choose what to install" />
+  <String Id="CustomizeDlgDescription" Value="Click a feature to read what it does. FileDO itself is required; the two under it are conveniences you can add now, drop now, or change later with Change in Apps and features." />
+
+  <!-- Ready page: one line, and it is the last chance to say it plainly. -->
+  <String Id="VerifyReadyDlgInstallText" Value="Click Install to put the selected features on this computer. Windows will ask for administrator rights, because FileDO installs for every account." />
+
+  <!-- Finish page: where the program now is and how to start it. -->
+  <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}FileDO is installed" />
+  <String Id="ExitDialogDescription" Value="Open FileDO from the Start menu, or type filedo in a new terminal window - a console already open will not have the new PATH yet. If you kept the Explorer integration, right-click any file and look under Show more options." />
+
+</WixLocalization>

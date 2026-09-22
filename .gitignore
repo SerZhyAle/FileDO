@@ -93,6 +93,10 @@ ehthumbs.db
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 
+# Local installer output (build.ps1 -Msi). The release workflow builds its own
+# copy on the runner; nothing here is ever the artifact users get.
+dist/
+
 # Windows Installer files
 *.cab
 *.msi

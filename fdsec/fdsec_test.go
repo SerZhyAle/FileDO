@@ -4,14 +4,29 @@ import (
 	"bytes"
 	"crypto/rand"
 	"io"
+	"os"
 	"testing"
 	"time"
 )
 
-// fastParams keep the corpus quick: the parameters are header fields, so small
-// values are as valid as the defaults - the reader obeys the file.
+// fastParams keep the corpus quick: the layout parameters are header fields,
+// so small values are as valid as the defaults - the reader obeys the file.
 func fastParams() Params {
-	return Params{ClusterAlignment: 512, ChunkSize: 1024, Threshold: 8, KDFMemoryKiB: 1024, KDFTime: 1, KDFLanes: 1}
+	return Params{ClusterAlignment: 512, ChunkSize: 1024}
+}
+
+// testProfile is the work factor this suite runs under. The KDF profile is a
+// format constant rather than a file field (FDSEC-FORMAT.md section 6), so the
+// only way to keep a corpus of hundreds of containers quick is the
+// activeProfile seam - the same kind of seam as randSource, and just as absent
+// from every shipped path. TestVectors_Suite1 puts the real profile back for
+// the duration of the committed vectors, which must pin the format and not the
+// test setting.
+var testProfile = kdfProfile{MemoryKiB: 1024, Time: 1, Lanes: 1, Threshold: 8}
+
+func TestMain(m *testing.M) {
+	activeProfile = testProfile
+	os.Exit(m.Run())
 }
 
 var fixedTimes = Metadata{

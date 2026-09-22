@@ -1,0 +1,88 @@
+# Store listing source for en (Partner Center locale: en-us).
+# Read by build-store-listing-csv.ps1, which fills only empty cells of a fresh export.
+# Prose style: ".." for an ellipsis, a plain hyphen for a dash. Caps are read from the Partner
+# Center console at submit time; the builder only warns about the values known when it was written.
+
+@@ShortDescription
+Test the real capacity and speed of drives and SD cards, spot fake flash, wipe data securely, clear out duplicate files and lock a file behind a password - from a window or the command line. No network, no accounts, no ads.
+
+@@Description
+FileDO tells you whether a drive is what it claims to be, and gives you the tools to look after the data on it.
+
+Open it from the Start menu, or type filedo in any terminal - the same engine runs behind both.
+
+CHECK
+- Capacity test: writes real data across the whole device and reads it back, so a USB stick or SD card that promises more space than it has is caught before it swallows your files.
+- Speed test for disks, folders and network shares, with detailed timing.
+
+TIDY AND MOVE
+- Duplicate finder: MD5 hashing with a cache that is reused between runs; delete or move duplicates by oldest, newest or name.
+- Compare two folders, and copy large trees with live progress, an ETA and care for slow or damaged disks.
+
+ERASE
+- Wipe a folder or fill the free space to make recovery harder. Wipe always asks you to type WIPE, and drive roots, junctions and system temp folders are never forced.
+
+PROTECT
+- Pack one file into a password-protected .fd-sec container, get the original back, or open the contents in the program they belong to without unpacking - from a read-only copy that only your account can read and that is removed when you are done with it. An empty password is accepted and means obfuscation only, not secrecy; FileDO says so where you type it. The container format is published in full, so your data can be read without FileDO.
+
+PRIVATE BY DESIGN
+FileDO runs entirely on your device. It has no network code, no telemetry, no ads and no accounts. It is open source: https://github.com/SerZhyAle/FileDO
+
+GOOD TO KNOW
+- This is the Microsoft Store edition. It does not add Explorer context-menu entries or claim the .fd-sec file type - those come with the MSI installer. The same operations are available in the window and with the filedo command.
+- FileDO needs full-trust desktop access to read and write raw disk and device data: capacity testing, speed benchmarking and secure wiping cannot work without it. Wipe and fill destroy data by design and always confirm before touching drive roots or system folders.
+- Windows 10 version 1903 or later.
+
+@@Feature1
+Capacity test: writes and verifies real data across the whole device to expose fake USB drives and SD cards
+
+@@Feature2
+Read and write speed tests for disks, folders and network shares, with detailed timing
+
+@@Feature3
+Duplicate finder with MD5 hashing and a reusable cache; delete or move duplicates by oldest, newest or name
+
+@@Feature4
+Compare two folders and copy large trees with live progress, an ETA and care for slow or damaged disks
+
+@@Feature5
+Wipe a folder or fill free space to make recovery harder - always asks you to type WIPE first
+
+@@Feature6
+Secret files: pack one file into a password-protected .fd-sec container, get it back, or open it without unpacking
+
+@@Feature7
+An opened container's copy is read-only, private to your account and removed when you are done
+
+@@Feature8
+A window for every task and the filedo command for any terminal - one engine behind both
+
+@@Feature9
+Interface in English, Russian, Ukrainian, German and French
+
+@@Feature10
+Open source, no network access, no telemetry, no ads, no accounts
+
+@@SearchTerm1
+fake usb test
+
+@@SearchTerm2
+sd card capacity test
+
+@@SearchTerm3
+disk speed test
+
+@@SearchTerm4
+secure wipe
+
+@@SearchTerm5
+duplicate file finder
+
+@@SearchTerm6
+password protect file
+
+@@SearchTerm7
+usb flash checker
+
+@@ReleaseNotes
+First release on the Microsoft Store: the FileDO window and the filedo command, with capacity and speed tests, a duplicate finder, secure wipe and secret files.

@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link
+      rel="canonical"
+      href="https://serzhyale.github.io/FileDO/guides/install-and-explorer.html"
+    />
+    <title>Install FileDO and add it to Explorer</title>
+    <meta
+      name="description"
+      content="Which FileDO install to choose, what the MSI writes to your machine, and how to add or remove the Explorer entries yourself."
+    />
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sza-theme") ||
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (!l) {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · Установка</span
+          ><span data-l="en">Guide · Installation</span
+          ><span data-l="ua">Посібник · Встановлення</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Установите FileDO как программу Windows - и решите, что она
+            добавит в систему.</span
+          ><span data-l="en"
+            >Install FileDO as a Windows program - and decide what it adds to
+            your system.</span
+          ><span data-l="ua"
+            >Встановіть FileDO як програму Windows - і вирішіть, що вона додасть
+            до системи.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >У FileDO ядро в командной строке, но ставится он как обычная
+            программа: окно, ярлыки, тип документа <code>.fd-sec</code> и пункты
+            в контекстном меню Проводника. Ничего из этого не появляется
+            молча - установщик спрашивает, а переносимая сборка не регистрирует
+            вообще ничего, пока вы не попросите.</span
+          ><span data-l="en"
+            >FileDO is a command-line tool at heart, but it installs like an
+            ordinary program: a window, shortcuts, the <code>.fd-sec</code>
+            document type, and entries in the Explorer context menu. None of it
+            appears silently - the installer asks, and the portable build
+            registers nothing at all until you ask it to.</span
+          ><span data-l="ua"
+            >У FileDO ядро в командному рядку, але встановлюється він як
+            звичайна програма: вікно, ярлики, тип документа
+            <code>.fd-sec</code> і пункти в контекстному меню Провідника.
+            Нічого з цього не з'являється мовчки - інсталятор питає, а
+            переносна збірка не реєструє нічого, доки ви не попросите.</span
+          >
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="ru">Выберите способ установки</span
+          ><span data-l="en">Choose how to install</span
+          ><span data-l="ua">Виберіть спосіб встановлення</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Установщик (setup EXE)</span
+              ><span data-l="en">Installer (setup EXE)</span
+              ><span data-l="ua">Інсталятор (setup EXE)</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Полный вариант: файлы в <code>Program Files</code>,
+                <code>filedo</code> в <code>PATH</code>, ярлыки и - по вашему
+                выбору - интеграция с Проводником. Всё это снимается удалением
+                программы.</span
+              ><span data-l="en"
+                >The complete option: files in <code>Program Files</code>,
+                <code>filedo</code> on <code>PATH</code>, shortcuts, and - if
+                you keep it ticked - the Explorer integration. Uninstalling
+                takes all of it back.</span
+              ><span data-l="ua"
+                >Повний варіант: файли в <code>Program Files</code>,
+                <code>filedo</code> у <code>PATH</code>, ярлики і - за вашим
+                вибором - інтеграція з Провідником. Усе це знімається
+                видаленням програми.</span
+              >
+            </p>
+            <p>
+              <a
+                class="btn btn-primary btn-sm"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                ><span data-l="ru">Скачать setup.exe</span
+                ><span data-l="en">Download setup.exe</span
+                ><span data-l="ua">Завантажити setup.exe</span></a
+              >
+            </p>
+            <div class="copybox">FileDO-&lt;version&gt;-setup.exe</div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">winget или ZIP</span
+              ><span data-l="en">winget or ZIP</span
+              ><span data-l="ua">winget або ZIP</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Быстро и без установщика. Команды доступны сразу, а пункты
+                Проводника нужно добавить отдельной командой - см. ниже.</span
+              ><span data-l="en"
+                >Quick, and no installer runs. The commands work immediately;
+                the Explorer entries are a separate command - see below.</span
+              ><span data-l="ua"
+                >Швидко й без інсталятора. Команди доступні одразу, а пункти
+                Провідника треба додати окремою командою - див. нижче.</span
+              >
+            </p>
+            <div class="copybox">
+              winget install SerZhyAle.FileDO<button
+                class="copy"
+                data-copy="winget install SerZhyAle.FileDO"
+              >
+                Copy
+              </button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Microsoft Store</span
+              ><span data-l="en">Microsoft Store</span
+              ><span data-l="ua">Microsoft Store</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Плитка FileDO и команда <code>filedo</code> в любом терминале.
+                Пунктов Проводника в этой сборке пока нет: пакету нужен
+                подписанный обработчик оболочки, и это отдельная работа.</span
+              ><span data-l="en"
+                >The FileDO tile plus the <code>filedo</code> command in any
+                terminal. This build has no Explorer entries yet: a package can
+                only get them through a signed shell handler, which is separate
+                work.</span
+              ><span data-l="ua"
+                >Плитка FileDO і команда <code>filedo</code> в будь-якому
+                терміналі. Пунктів Провідника в цій збірці поки немає: пакету
+                потрібен підписаний обробник оболонки, і це окрема робота.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="first-run">
+        <h2>
+          <span data-l="ru">Первый запуск: что скажет Windows</span
+          ><span data-l="en">First run: what Windows will say</span
+          ><span data-l="ua">Перший запуск: що скаже Windows</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              >Скачайте <code>FileDO-&lt;версия&gt;-setup.exe</code> из
+              последнего релиза. Рядом лежит файл <code>.sha256</code>.</span
+            ><span data-l="en"
+              >Take <code>FileDO-&lt;version&gt;-setup.exe</code> from the
+              latest release. A <code>.sha256</code> file sits next to
+              it.</span
+            ><span data-l="ua"
+              >Завантажте <code>FileDO-&lt;версія&gt;-setup.exe</code> з
+              останнього релізу. Поруч лежить файл <code>.sha256</code>.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Сверьте хеш: строка, которую напечатает команда ниже, должна
+              совпасть с содержимым <code>.sha256</code>. Так вы убеждаетесь,
+              что файл тот, который опубликован.</span
+            ><span data-l="en"
+              >Check the hash: the line the command below prints must match the
+              contents of the <code>.sha256</code> file. That is how you know
+              the file is the one that was published.</span
+            ><span data-l="ua"
+              >Звірте хеш: рядок, який надрукує команда нижче, має збігтися зі
+              вмістом <code>.sha256</code>. Так ви переконуєтесь, що файл той,
+              який опубліковано.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Запустите файл. Установщик не подписан цифровой подписью, и
+              Windows может показать «Windows защитила ваш компьютер». Это
+              значит лишь, что система не знает издателя нового неподписанного
+              файла, а не что она нашла в нём что-то плохое. Выберите
+              «Подробнее», затем «Выполнить в любом случае». <a
+                href="install-trust.html"
+                >Почему так и что программа никогда не делает</a
+              >.</span
+            ><span data-l="en"
+              >Run the file. The installer is not code-signed, so Windows may
+              show "Windows protected your PC". That only means the system does
+              not know the publisher of a new unsigned file - it is not a
+              finding about the content. Choose "More info", then "Run
+              anyway". <a href="install-trust.html"
+                >Why, and what the app never does</a
+              >.</span
+            ><span data-l="ua"
+              >Запустіть файл. Інсталятор не має цифрового підпису, і Windows
+              може показати «Windows захистила ваш ПК». Це означає лише, що
+              система не знає видавця нового непідписаного файлу, а не що вона
+              знайшла в ньому щось погане. Виберіть «Докладніше», потім «Усе
+              одно запустити». <a href="install-trust.html"
+                >Чому так і чого програма ніколи не робить</a
+              >.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Затем Windows попросит права администратора: программы ставятся
+              в <code>C:\Program Files\FileDO</code>, а пункты Проводника
+              пишутся в реестр для всей машины.</span
+            ><span data-l="en"
+              >Windows then asks for administrator permission: the programs go
+              to <code>C:\Program Files\FileDO</code> and the Explorer entries
+              are written to the machine-wide registry.</span
+            ><span data-l="ua"
+              >Далі Windows попросить права адміністратора: програми
+              ставляться в <code>C:\Program Files\FileDO</code>, а пункти
+              Провідника пишуться в реєстр для всієї машини.</span
+            >
+          </li>
+        </ol>
+        <div class="copybox">
+          certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
+        </div>
+        <p class="intro">
+          <span data-l="ru"
+            >Чтобы обновиться, запустите более новый setup EXE: он заменяет
+            установленную копию, а не добавляет вторую.</span
+          ><span data-l="en"
+            >To update, run the newer setup EXE: it replaces the installed
+            copy instead of adding a second one.</span
+          ><span data-l="ua"
+            >Щоб оновитися, запустіть новіший setup EXE: він замінює
+            встановлену копію, а не додає другу.</span
+          >
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="ru">Что делает установщик</span
+          ><span data-l="en">What the installer does</span
+          ><span data-l="ua">Що робить інсталятор</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >На странице «Customize» три компонента. Первый обязателен, два
+            других можно снять сразу или переключить позже через
+            «Изменить» в «Приложения и возможности».</span
+          ><span data-l="en"
+            >The Customize page offers three features. The first is required;
+            the other two you can untick now, or switch later with Change in
+            Apps &amp; features.</span
+          ><span data-l="ua"
+            >На сторінці «Customize» три компоненти. Перший обов'язковий, два
+            інші можна зняти одразу або перемкнути пізніше через «Змінити» в
+            «Програми та можливості».</span
+          >
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>FileDO</b> - программы в <code>C:\Program Files\FileDO</code>,
+              <code>filedo</code> в системном <code>PATH</code> и пункт в меню
+              «Пуск».</span
+            ><span data-l="en"
+              ><b>FileDO</b> - the programs in
+              <code>C:\Program Files\FileDO</code>, <code>filedo</code> on the
+              system <code>PATH</code>, and a Start menu entry.</span
+            ><span data-l="ua"
+              ><b>FileDO</b> - програми в <code>C:\Program Files\FileDO</code>,
+              <code>filedo</code> у системному <code>PATH</code> і пункт у меню
+              «Пуск».</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Explorer integration</b> - группа <code>File DO..</code>
+              в меню любого файла и тип документа <code>.fd-sec</code> со своим
+              значком.</span
+            ><span data-l="en"
+              ><b>Explorer integration</b> - the <code>File DO..</code> group in
+              the menu of every file, and the <code>.fd-sec</code> document type
+              with its own icon.</span
+            ><span data-l="ua"
+              ><b>Explorer integration</b> - група
+              <code>File DO..</code> у меню будь-якого файлу і тип
+              документа <code>.fd-sec</code> із власною піктограмою.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Desktop shortcut</b> - значок на рабочем столе, открывающий то
+              же окно, что и пункт в меню «Пуск».</span
+            ><span data-l="en"
+              ><b>Desktop shortcut</b> - a desktop icon that opens the same
+              window as the Start menu entry.</span
+            ><span data-l="ua"
+              ><b>Desktop shortcut</b> - піктограма на робочому столі, що
+              відкриває те саме вікно, що й пункт у меню «Пуск».</span
+            >
+          </li>
+        </ol>
+        <p class="intro">
+          <span data-l="ru"
+            >Для развёртывания без вопросов компоненты выбираются по
+            имени:</span
+          ><span data-l="en"
+            >For an unattended rollout the features are chosen by name:</span
+          ><span data-l="ua"
+            >Для розгортання без запитань компоненти вибираються за іменем:</span
+          >
+        </p>
+        <div class="copybox">
+          FileDO-&lt;version&gt;-setup.exe /quiet<button
+            class="copy"
+            data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
+          >
+            Copy
+          </button>
+        </div>
+        <div class="copybox">
+          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main<button
+            class="copy"
+            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main"
+          >
+            Copy
+          </button>
+        </div>
+        <p class="intro">
+          <span data-l="ru"
+            ><code>/quiet</code> ставит всё без вопросов, <code>/uninstall</code>
+            убирает обратно. Голый <code>.msi</code> публикуется рядом - это тот
+            же файл, что лежит внутри setup EXE, - и полезен, когда средству
+            развёртывания нужны имена компонентов.</span
+          ><span data-l="en"
+            ><code>/quiet</code> installs everything without asking,
+            <code>/uninstall</code> takes it back. The bare <code>.msi</code> is
+            published next to it - the very file the setup EXE carries - and is
+            the one to use when a deployment tool wants the feature names.</span
+          ><span data-l="ua"
+            ><code>/quiet</code> встановлює все без запитань,
+            <code>/uninstall</code> прибирає назад. Голий <code>.msi</code>
+            публікується поруч - це той самий файл, що лежить усередині setup
+            EXE, - і корисний, коли засобу розгортання потрібні імена
+            компонентів.</span
+          >
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="ru">Что в группе «File DO..»</span
+          ><span data-l="en">What is in the "File DO.." group</span
+          ><span data-l="ua">Що в групі «File DO..»</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Правый клик по любому файлу - <code>File DO..</code> - и
+            открывается подменю из десяти пунктов. Каждый открывает окно
+            консоли, спрашивает всё, что нужно спросить, и остаётся на экране,
+            пока вы не нажмёте Enter.</span
+          ><span data-l="en"
+            >Right-click any file, <code>File DO..</code>, and a sub-menu of
+            ten entries opens. Each one opens a console window, asks whatever
+            has to be asked, and stays on screen until you press Enter.</span
+          ><span data-l="ua"
+            >Правий клік по будь-якому файлу - <code>File DO..</code> - і
+            відкривається підменю з десяти пунктів. Кожен відкриває вікно
+            консолі, запитує все, що треба запитати, і лишається на екрані,
+            доки ви не натиснете Enter.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Запаковать</span
+              ><span data-l="en">Pack</span
+              ><span data-l="ua">Запакувати</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Secure</b> - запаковать файл в контейнер
+                <code>.fd-sec</code> рядом, оригинал остаётся.
+                <b>Secure and delete original</b> - обычное удаление оригинала,
+                с подтверждением. <b>Secure and wipe original</b> - затирание
+                оригинала на месте, тоже с подтверждением.
+                <b>Secure with a random name</b> - контейнер получает случайное
+                имя без расширения. Оригинал трогают только после того, как
+                контейнер проверен побайтно.</span
+              ><span data-l="en"
+                ><b>Secure</b> packs the file into a <code>.fd-sec</code>
+                container beside it and keeps the original.
+                <b>Secure and delete original</b> deletes the original
+                afterwards - an ordinary delete, confirmed first.
+                <b>Secure and wipe original</b> overwrites it in place, also
+                confirmed first. <b>Secure with a random name</b> gives the
+                container a random name with no extension. The original is
+                touched only after the container has been verified chunk by
+                chunk.</span
+              ><span data-l="ua"
+                ><b>Secure</b> - запакувати файл у контейнер
+                <code>.fd-sec</code> поруч, оригінал лишається.
+                <b>Secure and delete original</b> - звичайне видалення
+                оригіналу, з підтвердженням. <b>Secure and wipe original</b> -
+                затирання оригіналу на місці, теж із підтвердженням.
+                <b>Secure with a random name</b> - контейнер отримує випадкову
+                назву без розширення. Оригінал чіпають лише після того, як
+                контейнер перевірено почанково.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Распаковать</span
+              ><span data-l="en">Unpack</span
+              ><span data-l="ua">Розпакувати</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Unsecure</b> - вернуть оригинал из контейнера навсегда, со
+                всеми его датами. <b>Unsecure and delete container</b> - то же
+                самое и удалить контейнер. <b>Unsecure and start</b> - открыть
+                восстановленный файл его обычной программой, не оставляя
+                распакованную копию рядом с контейнером: она пишется в
+                <code>%LOCALAPPDATA%\FileDO\reveal</code>, куда доступ есть
+                только у вас и у системы, и удаляется, когда вы закрываете
+                консоль; двойной клик по <code>.fd-sec</code> - это ровно
+                эта команда, с паролем в открывшейся консоли. Для разового
+                просмотра без постоянной распаковки есть отдельная команда,
+                <code>reveal</code> - она набирается вручную. <a
+                  href="fd-sec-containers.html">Подробности о контейнерах</a
+                >.</span
+              ><span data-l="en"
+                ><b>Unsecure</b> brings the original back out of a container for
+                good, timestamps and all. <b>Unsecure and delete container</b>
+                does the same and removes the container. <b>Unsecure and
+                start</b> opens the restored file with its usual program
+                without leaving an unpacked copy beside the container: it goes
+                into <code>%LOCALAPPDATA%\FileDO\reveal</code>, which only you
+                and the system can read, and is removed when you close the
+                console; a double-click on a <code>.fd-sec</code> is exactly
+                this command, with the password asked in the console it
+                opens. For a single look with nothing
+                kept afterward there is a separate command, <code>reveal</code>
+                - typed by hand. <a href="fd-sec-containers.html"
+                  >More about containers</a
+                >.</span
+              ><span data-l="ua"
+                ><b>Unsecure</b> - повернути оригінал із контейнера назавжди, з
+                усіма його датами. <b>Unsecure and delete container</b> - те
+                саме й видалити контейнер. <b>Unsecure and start</b> - відкрити
+                відновлений файл його звичайною програмою, не лишаючи
+                розпакованої копії поруч із контейнером: вона пишеться в
+                <code>%LOCALAPPDATA%\FileDO\reveal</code>, куди маєте доступ
+                лише ви та система, і видаляється, коли ви закриваєте консоль;
+                подвійний клік по <code>.fd-sec</code> - це рівно ця команда, з
+                паролем у консолі, що відкривається. Для разового перегляду без
+                постійного розпакування є окрема команда, <code>reveal</code> -
+                її набирають вручну. <a href="fd-sec-containers.html"
+                  >Докладніше про контейнери</a
+                >.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">И без всяких контейнеров</span
+              ><span data-l="en">And with no container at all</span
+              ><span data-l="ua">І без жодних контейнерів</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Wipe this file</b> - затереть файл на месте и удалить;
+                консоль требует напечатать <code>WIPE</code> и честно говорит,
+                чего стоит перезапись на SSD. <b>Check this file</b> - прочитать
+                файл и сказать, читается ли он чисто. <b>Info</b> - размер,
+                атрибуты, тип и даты.</span
+              ><span data-l="en"
+                ><b>Wipe this file</b> overwrites the file in place and removes
+                it; the console asks you to type <code>WIPE</code> and says
+                plainly what an overwrite is worth on an SSD.
+                <b>Check this file</b> reads the file and says whether it reads
+                cleanly. <b>Info</b> shows size, attributes, type and
+                dates.</span
+              ><span data-l="ua"
+                ><b>Wipe this file</b> - затерти файл на місці й видалити;
+                консоль вимагає надрукувати <code>WIPE</code> і чесно каже, чого
+                варте перезаписування на SSD. <b>Check this file</b> - прочитати
+                файл і сказати, чи читається він чисто. <b>Info</b> - розмір,
+                атрибути, тип і дати.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="ru">Пункты Проводника без установщика</span
+          ><span data-l="en">The Explorer entries without an installer</span
+          ><span data-l="ua">Пункти Провідника без інсталятора</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >winget, переносимый архив и <code>go install</code> не запускают
+            установщик и ничего не регистрируют. Попросите сами - и заберите
+            обратно так же:</span
+          ><span data-l="en"
+            >winget, the portable zip and <code>go install</code> run no
+            installer and register nothing. Ask for the entries yourself, and
+            take them back the same way:</span
+          ><span data-l="ua"
+            >winget, переносний архів і <code>go install</code> не запускають
+            інсталятор і не реєструють нічого. Попросіть самі - і заберіть назад
+            так само:</span
+          >
+        </p>
+        <div class="copybox">
+          filedo fdsec register<button
+            class="copy"
+            data-copy="filedo fdsec register"
+          >
+            Copy
+          </button>
+        </div>
+        <div class="copybox">
+          filedo fdsec register -all-users<button
+            class="copy"
+            data-copy="filedo fdsec register -all-users"
+          >
+            Copy
+          </button>
+        </div>
+        <div class="copybox">
+          filedo fdsec unregister<button
+            class="copy"
+            data-copy="filedo fdsec unregister"
+          >
+            Copy
+          </button>
+        </div>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Для себя или для всей машины</span
+              ><span data-l="en">For you, or for the machine</span
+              ><span data-l="ua">Для себе чи для всієї машини</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Без ключей пункты появляются только у вас и без прав
+                администратора. <code>-all-users</code> пишет для всей машины и
+                требует консоли с правами администратора.</span
+              ><span data-l="en"
+                >Without a flag the entries are yours alone and need no
+                administrator. <code>-all-users</code> writes them for the whole
+                machine and needs an elevated console.</span
+              ><span data-l="ua"
+                >Без ключів пункти з'являються лише у вас і без прав
+                адміністратора. <code>-all-users</code> пише для всієї машини та
+                потребує консолі з правами адміністратора.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Удаляется ровно записанное</span
+              ><span data-l="en">Only what it wrote is removed</span
+              ><span data-l="ua">Видаляється рівно записане</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >FileDO помечает свои записи и трогает только их. Если
+                <code>.fd-sec</code> раньше принадлежал другой программе, он
+                вернётся ей.</span
+              ><span data-l="en"
+                >FileDO marks its own entries and touches nothing else. If
+                <code>.fd-sec</code> belonged to another program before, it goes
+                back to it.</span
+              ><span data-l="ua"
+                >FileDO позначає свої записи й чіпає лише їх. Якщо
+                <code>.fd-sec</code> раніше належав іншій програмі, він
+                повернеться їй.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="ru">Что важно знать</span
+          ><span data-l="en">What is worth knowing</span
+          ><span data-l="ua">Що важливо знати</span>
+        </h2>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Windows 11</span><span data-l="en">Windows 11</span
+            ><span data-l="ua">Windows 11</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >В Windows 11 пункты FileDO находятся в «Показать дополнительные
+              параметры» - это место, куда система помещает все классические
+              записи меню, а не признак неполной установки.</span
+            ><span data-l="en"
+              >On Windows 11 the FileDO entries live under "Show more options" -
+              that is where the system puts every classic menu entry, not a sign
+              of an incomplete install.</span
+            ><span data-l="ua"
+              >У Windows 11 пункти FileDO розташовані в «Показати додаткові
+              параметри» - це місце, куди система складає всі класичні записи
+              меню, а не ознака неповного встановлення.</span
+            >
+          </p>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Двойной клик</span
+            ><span data-l="en">Double-click</span
+            ><span data-l="ua">Подвійний клік</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >Двойной клик по <code>.fd-sec</code> - это ровно пункт меню
+              «Unsecure and start»: открывается окно консоли, которое спрашивает
+              пароль, восстанавливает оригинал под его настоящим именем в
+              <code>%LOCALAPPDATA%\FileDO\reveal</code> - папку, которую можете
+              читать только вы и система, - и сразу открывает его в той
+              программе, которой принадлежит настоящее расширение: запакованный
+              <code>.txt</code> откроется в вашем редакторе текста, видео - в
+              плеере. Копия удаляется, когда вы закрываете это окно консоли;
+              если программа всё ещё держит файл открытым, копию уберёт
+              следующий запуск FileDO. Контейнер никуда не девается. Нужен
+              постоянный файл - <b>Unsecure</b> без start, он возвращает
+              оригинал рядом с контейнером навсегда.
+              Отдельного пункта меню для двойного клика нет и не нужно - по
+              расширению срабатывает ассоциация. Исполняемые файлы и скрипты,
+              восстановленные так, открываются как обычный двойной клик по ним
+              и открыл бы - без отдельного запрета для этого пути.</span
+            ><span data-l="en"
+              >Double-clicking a <code>.fd-sec</code> is exactly the "Unsecure
+              and start" menu entry: a console window opens, asks for the
+              password, restores the original under its true name into
+              <code>%LOCALAPPDATA%\FileDO\reveal</code> - a folder only you and
+              the system can read - and opens it right away in whatever program
+              owns its real extension: a packed <code>.txt</code> opens in your
+              text editor, a video in your player. The copy is removed when you
+              close that console window; if the program still has the file
+              open, the next FileDO start removes it. The container is left in
+              place. When you want the file to stay, use <b>Unsecure</b>
+              without start - it brings the original back beside the container
+              for good. There is no separate menu
+              entry for the double-click and there needs to be none - the
+              extension's own association is what runs. An executable or script
+              restored this way opens exactly as an ordinary double-click on it
+              would - there is no extra refusal on this path.</span
+            ><span data-l="ua"
+              >Подвійний клік по <code>.fd-sec</code> - це рівно пункт меню
+              «Unsecure and start»: відкривається вікно консолі, яке запитує
+              пароль, відновлює оригінал під його справжнім ім'ям у
+              <code>%LOCALAPPDATA%\FileDO\reveal</code> - теку, яку можете
+              читати лише ви та система, - і одразу відкриває його в тій
+              програмі, якій належить справжнє розширення: запакований
+              <code>.txt</code> відкриється у вашому редакторі тексту, відео -
+              у плеєрі. Копія видаляється, коли ви закриваєте це вікно консолі;
+              якщо програма ще тримає файл відкритим, копію прибере наступний
+              запуск FileDO. Контейнер нікуди не дівається. Потрібен постійний
+              файл - <b>Unsecure</b> без start, він повертає оригінал поруч із
+              контейнером назавжди.
+              Окремого пункту меню для подвійного кліку немає й не треба - за
+              розширенням спрацьовує асоціація. Виконувані файли та скрипти,
+              відновлені так, відкриваються так само, як їх відкрив би звичайний
+              подвійний клік - без окремої заборони на цьому шляху.</span
+            >
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Установка FileDO и пункты Проводника",
+          description:
+            "Какой вариант установки FileDO выбрать, что пишет установщик и как самому добавить или убрать пункты Проводника.",
+        },
+        en: {
+          title: "Install FileDO and add it to Explorer",
+          description:
+            "Which FileDO install to choose, what the MSI writes to your machine, and how to add or remove the Explorer entries yourself.",
+        },
+        ua: {
+          title: "Встановлення FileDO і пункти Провідника",
+          description:
+            "Який варіант встановлення FileDO вибрати, що пише інсталятор і як самому додати чи прибрати пункти Провідника.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

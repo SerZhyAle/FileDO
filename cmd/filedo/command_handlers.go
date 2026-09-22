@@ -57,6 +57,70 @@ func handleErrorWithUserMessage(err error, path string, historyLogger *HistoryLo
 	return true
 }
 
+// reportOpError is the one place an operation's error becomes all three of the
+// things it has always meant: the sentence the user reads, the history entry,
+// and the verdict this run ends on (CLI-EVENT-STREAM rules 10 and 11).
+//
+// The third was missing. Every branch below used to read "if the message was
+// handled, carry on", and carrying on meant falling through to SetSuccess and
+// exiting 0 - so a check that failed and a check that passed were the same
+// thing to the shell, to release.ps1 and to any script. That is the finding
+// the contract alignment recorded as T2, and this function is its fix: an
+// error ends the branch, and outcome.go turns it into a code.
+func reportOpError(err error, path string, historyLogger *HistoryLogger) {
+	if err == nil {
+		return
+	}
+	handleErrorWithUserMessage(err, path, historyLogger)
+	historyLogger.SetError(err)
+	runFailure(err)
+}
+
+// genericOperation resolves the positional operation word - the same compare
+// the branches of runGenericCommand make - into the name this run reports
+// under and whether the verb judges its target or merely acts on it. The
+// difference is a `Passed` against a `Done` and nothing else (rule 10).
+//
+// It mirrors the branch order below, including the two words that are an
+// alias of two different operations: `c` is clean, never copy, and `copy`
+// with nothing to copy to is not a copy at all.
+func genericOperation(cmd *flag.FlagSet) (string, runKind) {
+	if cmd.NArg() < 2 {
+		return "info", runActs
+	}
+	switch strings.ToLower(cmd.Arg(1)) {
+	case "cln", "clean", "c":
+		return "clean", runActs
+	case "check-duplicates", "cd", "duplicate":
+		return "check-duplicates", runJudges
+	case "speed":
+		return "speed", runActs
+	case "fill", "f":
+		if cmd.NArg() >= 3 {
+			third := strings.ToLower(cmd.Arg(2))
+			if third == "verify" || third == "v" {
+				return "fill-verify", runJudges
+			}
+		}
+		return "fill", runActs
+	case "test":
+		return "test", runJudges
+	case "probe":
+		return "probe", runJudges
+	case "recover", "repair":
+		return "recover", runActs
+	case "copy", "cp":
+		if cmd.NArg() >= 3 {
+			return "copy", runActs
+		}
+		return "info", runActs
+	case "wipe", "w":
+		return "wipe", runActs
+	default:
+		return "info", runActs
+	}
+}
+
 // redirectSystemDrive redirects C: to user's temp directory for write operations with user confirmation
 func redirectSystemDrive(path string) string {
 	if strings.ToLower(path) == "c:" {
@@ -332,8 +396,10 @@ func (h FileHandler) Copy(sourcePath, targetPath string) error {
 }
 
 func (h FileHandler) Wipe(path string, args []string) error {
-	// For files, wipe doesn't make sense - you can only delete the file
-	return fmt.Errorf("wipe command is not applicable to individual files - use delete instead")
+	// One file, overwritten in place and removed - the stronger meaning of
+	// the word, and the one the Explorer group's "Wipe this file" invokes.
+	// wipe_handler.go carries the confirmation and the caveat.
+	return handleFileWipeCommand(path, args)
 }
 
 // getCommandHandler returns the appropriate command handler
@@ -356,11 +422,19 @@ func getCommandHandler(cmdType CommandType) CommandHandler {
 func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, historyLogger *HistoryLogger) {
 	cmd.Parse(args)
 	if cmd.NArg() < 1 {
+		beginRun(runActs, cmd.Name(), "", args)
+		runFailure(fmt.Errorf("'%s' command requires a path argument", cmd.Name()))
 		fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
 		return
 	}
 
 	path := cmd.Arg(0)
+
+	// The run opens before the first thing that can end it, so that even a
+	// target that does not exist produces a stream with a `result` on the end
+	// of it (rule 10: a run that wrote no result has not said anything).
+	operation, kind := genericOperation(cmd)
+	beginRun(kind, operation, path, cmd.Args())
 
 	// First check if the path exists (for folders, files and network paths)
 	if cmdType != CommandDevice && !isPathAccessible(path) {
@@ -373,6 +447,9 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			resourceType = "Network path"
 		}
 		fmt.Printf("Info: %s \"%s\" does not exist or is not accessible.\n", resourceType, path)
+		// Nothing was measured, so nothing is claimed: an unreachable target
+		// is *Not proven* and exit 2, never the zero it used to be.
+		runFailure(fmt.Errorf("%s %q does not exist or is not accessible", strings.ToLower(resourceType), path))
 		return
 	}
 
@@ -395,31 +472,28 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	}[cmdType]
 
 	historyLogger.SetCommand(cmdTypeName, path, "")
-	historyLogger.SetParameter("args", args)
+	// Defence in depth: the fdsec family never reaches this function, but a
+	// parameter dump of raw args is exactly how a credential ends up on disk.
+	historyLogger.SetParameter("args", redactCredentialArgs(args))
 
 	// Check if this is a clean command
 	if cmd.NArg() >= 2 {
 		cleanParam := strings.ToLower(cmd.Arg(1))
 		if cleanParam == "cln" || cleanParam == "clean" || cleanParam == "c" {
 			historyLogger.SetCommand(cmdTypeName, path, "clean")
+			runStep("clean", path)
 			// Special handling for network clean to pass logger
 			if cmdTypeName == "network" {
 				err := runNetworkFillClean(path, historyLogger)
 				if err != nil {
-					if !handleErrorWithUserMessage(err, path, historyLogger) {
-						historyLogger.SetError(err)
-						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-						return
-					}
+					reportOpError(err, path, historyLogger)
+					return
 				}
 			} else {
 				err := handler.FillClean(path)
 				if err != nil {
-					if !handleErrorWithUserMessage(err, path, historyLogger) {
-						historyLogger.SetError(err)
-						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-						return
-					}
+					reportOpError(err, path, historyLogger)
+					return
 				}
 			}
 			historyLogger.SetSuccess()
@@ -430,6 +504,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		duplicatesParam := strings.ToLower(cmd.Arg(1))
 		if duplicatesParam == "check-duplicates" || duplicatesParam == "cd" || duplicatesParam == "duplicate" {
 			historyLogger.SetCommand(cmdTypeName, path, "check-duplicates")
+			runStep("check-duplicates", path)
 
 			// Collect additional arguments if any
 			var dupArgs []string
@@ -439,11 +514,8 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 			err := handler.CheckDuplicates(path, dupArgs)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 			historyLogger.SetSuccess()
 			return
@@ -453,6 +525,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	// Check if this is a speed test
 	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "speed" {
 		historyLogger.SetCommand(cmdTypeName, path, "speed")
+		runStep("speed", path)
 		sizeParam := "100" // Default size
 		if cmd.NArg() >= 3 {
 			sizeParam = cmd.Arg(2)
@@ -488,20 +561,14 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cmdTypeName == "network" {
 			err := runNetworkSpeedTest(path, sizeParam, noDelete, shortFormat, historyLogger)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 		} else {
 			err := handler.SpeedTest(path, sizeParam, noDelete, shortFormat)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 		}
 		historyLogger.SetSuccess()
@@ -513,10 +580,9 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		(strings.ToLower(cmd.Arg(1)) == "fill" || strings.ToLower(cmd.Arg(1)) == "f") &&
 		(strings.ToLower(cmd.Arg(2)) == "verify" || strings.ToLower(cmd.Arg(2)) == "v") {
 		historyLogger.SetCommand(cmdTypeName, path, "fill-verify")
-		err := handler.FillVerify(path)
-		if err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		runStep("fill-verify", path)
+		if err := handler.FillVerify(path); err != nil {
+			reportOpError(err, path, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
@@ -526,6 +592,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	// Check if this is a fill command
 	if cmd.NArg() >= 2 && (strings.ToLower(cmd.Arg(1)) == "fill" || strings.ToLower(cmd.Arg(1)) == "f") {
 		historyLogger.SetCommand(cmdTypeName, path, "fill")
+		runStep("fill", path)
 
 		sizeParam := "100"
 		autoDelete := false
@@ -555,20 +622,14 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cmdTypeName == "network" {
 			err := runNetworkFill(path, sizeParam, autoDelete, historyLogger)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 		} else {
 			err := handler.Fill(path, sizeParam, autoDelete)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 		}
 		historyLogger.SetSuccess()
@@ -578,6 +639,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	// Check if this is a test command
 	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "test" {
 		historyLogger.SetCommand(cmdTypeName, path, "test")
+		runStep("test", path)
 
 		// Parse additional arguments: optional N (number of files) and optional "del"
 		// Supported forms: test | test N | test del | test N del
@@ -603,20 +665,14 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cmdTypeName == "network" {
 			err := runNetworkTest(path, autoDelete, maxFiles, historyLogger)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 		} else {
 			err := handler.Test(path, autoDelete, maxFiles)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 		}
 		historyLogger.SetSuccess()
@@ -626,6 +682,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	// Check if this is a probe command
 	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "probe" {
 		historyLogger.SetCommand(cmdTypeName, path, "probe")
+		runStep("probe", path)
 
 		// Optional flags:
 		//  yes|y|allright|force -> skip interactive confirmations
@@ -650,11 +707,8 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 		err := handler.Probe(path, assumeYes, autoRepair)
 		if err != nil {
-			if !handleErrorWithUserMessage(err, path, historyLogger) {
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				return
-			}
+			reportOpError(err, path, historyLogger)
+			return
 		}
 		historyLogger.SetSuccess()
 		return
@@ -665,11 +719,10 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		recoverParam := strings.ToLower(cmd.Arg(1))
 		if recoverParam == "recover" || recoverParam == "repair" {
 			historyLogger.SetCommand(cmdTypeName, path, "recover")
+			runStep("recover", path)
 
 			if cmdTypeName != "device" {
-				err := fmt.Errorf("recover command is only supported for local drive letters (e.g. D:)")
-				historyLogger.SetError(err)
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				reportOpError(fmt.Errorf("recover command is only supported for local drive letters (e.g. D:)"), path, historyLogger)
 				return
 			}
 
@@ -696,11 +749,8 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 			err := runDeviceRecoverCheck(path, assumeYes, forceFormat)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 			historyLogger.SetSuccess()
 			return
@@ -712,16 +762,14 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		copyParam := strings.ToLower(cmd.Arg(1))
 		if copyParam == "copy" || copyParam == "cp" || copyParam == "c" {
 			historyLogger.SetCommand(cmdTypeName, path, "copy")
+			runStep("copy", path)
 			targetPath := cmd.Arg(2)
 			historyLogger.SetParameter("targetPath", targetPath)
 
 			err := handler.Copy(path, targetPath)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 			historyLogger.SetSuccess()
 			return
@@ -733,6 +781,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		wipeParam := strings.ToLower(cmd.Arg(1))
 		if wipeParam == "wipe" || wipeParam == "w" {
 			historyLogger.SetCommand(cmdTypeName, path, "wipe")
+			runStep("wipe", path)
 
 			// Collect trailing arguments (e.g. --yes / --force) if any
 			var wipeArgs []string
@@ -742,11 +791,8 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 			err := handler.Wipe(path, wipeArgs)
 			if err != nil {
-				if !handleErrorWithUserMessage(err, path, historyLogger) {
-					historyLogger.SetError(err)
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					return
-				}
+				reportOpError(err, path, historyLogger)
+				return
 			}
 			historyLogger.SetSuccess()
 			return
@@ -755,6 +801,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 	// Regular info command
 	historyLogger.SetCommand(cmdTypeName, path, "info")
+	runStep("info", path)
 	fullScan := cmd.NArg() > 1 && (strings.ToLower(cmd.Arg(1)) == "info" || strings.ToLower(cmd.Arg(1)) == "i")
 	shortFormat := cmd.NArg() > 1 && (strings.ToLower(cmd.Arg(1)) == "short" || strings.ToLower(cmd.Arg(1)) == "s")
 
@@ -772,11 +819,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 	result, err := handler.Info(path, fullScan)
 	if err != nil {
-		if !handleErrorWithUserMessage(err, path, historyLogger) {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return
-		}
+		reportOpError(err, path, historyLogger)
 		return
 	}
 

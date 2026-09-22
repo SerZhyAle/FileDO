@@ -176,7 +176,26 @@ func (ih *InterruptHandler) CheckContext() error {
 	}
 }
 
-// WithTimeoutContext creates a context with timeout based on the interrupt handler's context
-func (ih *InterruptHandler) WithTimeoutContext(timeout time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ih.ctx, timeout)
+// WatchStopFile starts a background goroutine that polls for the presence of stopFilePath.
+// When the file is detected, it triggers graceful shutdown via ih.Interrupt().
+func (ih *InterruptHandler) WatchStopFile(stopFilePath string) {
+	if stopFilePath == "" {
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ih.ctx.Done():
+				return
+			case <-ticker.C:
+				if _, err := os.Stat(stopFilePath); err == nil {
+					EmitNoteEvent("Stop file detected; canceling operation gracefully.")
+					ih.Interrupt()
+					return
+				}
+			}
+		}
+	}()
 }

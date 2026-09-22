@@ -14,7 +14,8 @@ import (
 	"golang.org/x/crypto/chacha20"
 )
 
-// The committed test vectors of FDSEC-FORMAT.md section 16. A third party
+// The committed test vectors of FDSEC-FORMAT.md section 16 (the contract lives
+// outside this repository - see AGENTS.md "External contracts"). A third party
 // implements from the format document, replays the recorded inputs, and
 // compares byte for byte; this test does the same from this side and also
 // guards that the committed files stay in sync with the code.
@@ -71,8 +72,13 @@ type vecRandoms struct {
 }
 
 type vecLayout struct {
-	Header    hexBytes `json:"header"`
-	Slots     hexBytes `json:"slots"`
+	MaskKey     hexBytes `json:"mask_key"`
+	KEK         hexBytes `json:"kek"`
+	HeaderPlain hexBytes `json:"header_unmasked"`
+	SlotsPlain  hexBytes `json:"slots_unmasked"`
+
+	Header    hexBytes `json:"header_on_disk"`
+	Slots     hexBytes `json:"slots_on_disk"`
 	Meta      hexBytes `json:"sealed_metadata"`
 	AlignPad  hexBytes `json:"align_pad"`
 	Payload   hexBytes `json:"payload"`
@@ -100,16 +106,15 @@ type vecContainer struct {
 	Randoms    vecRandoms `json:"random_inputs"`
 	Layout     vecLayout  `json:"layout"`
 	File       string     `json:"file"`
-	KEK        hexBytes   `json:"kek,omitempty"`
 	Chunk0     *vecChunk  `json:"chunk0,omitempty"`
 }
 
 type vectorsFile struct {
 	Format     string                   `json:"format"`
 	Generated  string                   `json:"generated"`
-	KDF        map[string]uint32        `json:"kdf_defaults"`
-	KEKSlow    hexBytes                 `json:"kek_slow_branch"`
-	KEKFast    hexBytes                 `json:"kek_fast_branch"`
+	KDF        map[string]uint32        `json:"kdf_profile"`
+	RootSlow   hexBytes                 `json:"root_slow_branch"`
+	RootFast   hexBytes                 `json:"root_fast_branch"`
 	Containers map[string]*vecContainer `json:"containers"`
 }
 
@@ -130,7 +135,7 @@ func vecStream(seed string, total int) []byte {
 
 func vecLayoutLengths(name string, size int64) []int {
 	p := DefaultParams()
-	h := header{ChunkSize: p.ChunkSize, ClusterAlignment: p.ClusterAlignment, Threshold: p.Threshold}
+	h := header{ChunkSize: p.ChunkSize, ClusterAlignment: p.ClusterAlignment}
 	// Metadata block: u16le len || name || 40 (size + 4 FILETIMEs) || 32 digest.
 	metaPad := metaPlain - 2 - len(name) - 72
 	preLen := h.preLen()
@@ -186,14 +191,32 @@ func buildVectorContainer(name string, content []byte, cred string) (*vecContain
 		ModifiedAt: meta.ModifiedAt.Format(time.RFC3339Nano),
 		Randoms:    *r,
 	}
-	h, _ := parseHeader(bytes.NewReader(b))
+	h, _, _ := openHead(bytes.NewReader(b), NewCredential(cred))
 	preLen := h.preLen()
 	fileLen := int64(len(b))
 	tailLen := len(r.TailPad)
+
+	// The head is masked on disk, so the vectors publish both sides of the
+	// mask and the key that produces it: a third party unmasks, compares the
+	// plaintext head field by field, and re-masks to the committed bytes.
+	maskKey, kek, err := deriveKeys(NewCredential(cred), r.Salt)
+	if err != nil {
+		panic(err)
+	}
+	plainHead := bytes.Clone(b[:preMeta])
+	if err := mask(maskKey, plainHead[maskOff:]); err != nil {
+		panic(err)
+	}
+
 	v.Layout = vecLayout{
+		MaskKey:     maskKey,
+		KEK:         kek,
+		HeaderPlain: bytes.Clone(plainHead[:headerSize]),
+		SlotsPlain:  bytes.Clone(plainHead[headerSize:preMeta]),
+
 		Header:    bytes.Clone(b[:headerSize]),
-		Slots:     bytes.Clone(b[headerSize : headerSize+slotsSize]),
-		Meta:      bytes.Clone(b[headerSize+slotsSize : preMeta+metaSize]),
+		Slots:     bytes.Clone(b[headerSize:preMeta]),
+		Meta:      bytes.Clone(b[preMeta : preMeta+metaSize]),
 		AlignPad:  bytes.Clone(b[preMeta+metaSize : preLen]),
 		Payload:   bytes.Clone(b[preLen : fileLen-int64(tailLen)]),
 		TailPad:   bytes.Clone(b[fileLen-int64(tailLen):]),
@@ -210,20 +233,26 @@ func mustBlake(b []byte) []byte {
 }
 
 func TestVectors_Suite1(t *testing.T) {
+	// The committed vectors pin the format, so they run under the real KDF
+	// profile of format version 1 - never under the suite's fast test profile.
+	saved := activeProfile
+	activeProfile = profileV1
+	defer func() { activeProfile = saved }()
+
 	emptyVec, emptyBytes := buildVectorContainer(vecEmptyName, []byte{}, vecSlowCred)
 	emptyVec.File = vecEmptyFile
 	oneVec, oneBytes := buildVectorContainer(vecOneName, []byte(vecOneContent), vecSlowCred)
 	oneVec.File = vecOneFile
 
-	// The KEK vectors pin both threshold branches with the empty container's
-	// salt and the default parameters.
-	h, err := parseHeader(bytes.NewReader(emptyBytes))
+	// The root-key vectors pin both threshold branches with the empty
+	// container's salt and the profile of format version 1.
+	h, _, err := openHead(bytes.NewReader(emptyBytes), NewCredential(vecSlowCred))
 	if err != nil {
 		t.Fatal(err)
 	}
-	kekSlow := deriveKEK(NewCredential(vecSlowCred), h)
-	kekFast := deriveKEK(NewCredential(vecFastCred), h)
-	if len(NewCredential(vecFastCred)) < int(h.Threshold) {
+	rootSlow := deriveRoot(NewCredential(vecSlowCred), h.Salt[:])
+	rootFast := deriveRoot(NewCredential(vecFastCred), h.Salt[:])
+	if len(NewCredential(vecFastCred)) < int(profileV1.Threshold) {
 		t.Fatal("fast-branch vector credential is shorter than the threshold")
 	}
 
@@ -234,15 +263,15 @@ func TestVectors_Suite1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ad := adChunk(parseHeaderDigest(t, oneBytes), 0, 1, true, 1)
+	ad := adChunk(parseHeaderDigest(t, oneBytes, vecSlowCred), 0, 1, true, 1)
 	oneVec.Chunk0 = &vecChunk{Nonce: nonce, AD: ad, Ciphertext: bytes.Clone(oneVec.Layout.Payload)}
 
 	vf := &vectorsFile{
-		Format:    "FDSEC suite 1, format version 1 - see FDSEC-FORMAT.md section 16",
+		Format:    "FDSEC suite 1, format version 1 - see FDSEC-FORMAT.md section 16, the contract these vectors ship beside",
 		Generated: "2026-09-20",
-		KDF:       map[string]uint32{"m_kib": DefaultKDFMemoryKiB, "t": DefaultKDFTime, "p": uint32(DefaultKDFLanes), "threshold": DefaultThreshold},
-		KEKSlow:   kekSlow,
-		KEKFast:   kekFast,
+		KDF:       map[string]uint32{"m_kib": profileV1.MemoryKiB, "t": profileV1.Time, "p": uint32(profileV1.Lanes), "threshold": profileV1.Threshold},
+		RootSlow:  rootSlow,
+		RootFast:  rootFast,
 		Containers: map[string]*vecContainer{
 			"empty":   emptyVec,
 			"onebyte": oneVec,
@@ -288,20 +317,24 @@ func TestVectors_Suite1(t *testing.T) {
 	checkBytes("committed empty container", emptyBytes, mustRead(t, filepath.Join(vecDir, vecEmptyFile)))
 	checkBytes("committed one-byte container", oneBytes, mustRead(t, filepath.Join(vecDir, vecOneFile)))
 
-	if len(committed.KEKSlow) != fileKeySize || len(committed.KEKFast) != fileKeySize {
-		t.Fatal("committed KEK vectors are not 32 bytes")
+	if len(committed.RootSlow) != fileKeySize || len(committed.RootFast) != fileKeySize {
+		t.Fatal("committed root-key vectors are not 32 bytes")
 	}
-	if !bytes.Equal(committed.KEKSlow, kekSlow) {
-		t.Error("slow-branch KEK drifted from the committed vector")
+	if !bytes.Equal(committed.RootSlow, rootSlow) {
+		t.Error("slow-branch root key drifted from the committed vector")
 	}
-	if !bytes.Equal(committed.KEKFast, kekFast) {
-		t.Error("fast-branch KEK drifted from the committed vector")
+	if !bytes.Equal(committed.RootFast, rootFast) {
+		t.Error("fast-branch root key drifted from the committed vector")
 	}
 	for key, want := range map[string]*vecContainer{"empty": emptyVec, "onebyte": oneVec} {
 		got := committed.Containers[key]
 		if got == nil {
 			t.Fatalf("committed vectors.json has no %q container", key)
 		}
+		checkBytes(key+" mask key", want.Layout.MaskKey, got.Layout.MaskKey)
+		checkBytes(key+" kek", want.Layout.KEK, got.Layout.KEK)
+		checkBytes(key+" unmasked header", want.Layout.HeaderPlain, got.Layout.HeaderPlain)
+		checkBytes(key+" unmasked slots", want.Layout.SlotsPlain, got.Layout.SlotsPlain)
 		checkBytes(key+" header", want.Layout.Header, got.Layout.Header)
 		checkBytes(key+" slots", want.Layout.Slots, got.Layout.Slots)
 		checkBytes(key+" sealed metadata", want.Layout.Meta, got.Layout.Meta)
@@ -352,9 +385,9 @@ func TestVectors_Suite1(t *testing.T) {
 	}
 }
 
-func parseHeaderDigest(t *testing.T, b []byte) [digestSize]byte {
+func parseHeaderDigest(t *testing.T, b []byte, cred string) [digestSize]byte {
 	t.Helper()
-	h, err := parseHeader(bytes.NewReader(b))
+	h, _, err := openHead(bytes.NewReader(b), NewCredential(cred))
 	if err != nil {
 		t.Fatal(err)
 	}

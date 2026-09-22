@@ -308,11 +308,14 @@ Module LogReport
     ''' Short CLI identity for the About window: the version if the binary carries one, else its
     ''' build stamp, else a plain statement that it is not sitting next to the GUI.
     ''' </summary>
-    Public Function CliVersion() As String
+    ''' <param name="missingText">What to say when filedo.exe is not there. The log archive is an
+    ''' English artifact and takes the default; a window is read by the user and passes its own
+    ''' translated string.</param>
+    Public Function CliVersion(Optional missingText As String = "not next to the GUI (PATH or Store alias)") As String
         Dim dir As String = AppFolder()
         If dir = "" Then Return "(unknown)"
         Dim exe As String = Path.Combine(dir, "filedo.exe")
-        If Not File.Exists(exe) Then Return "not next to the GUI (PATH or Store alias)"
+        If Not File.Exists(exe) Then Return missingText
         Try
             Dim v As String = CleanVersion(FileVersionInfo.GetVersionInfo(exe).FileVersion)
             If v <> "" Then Return v

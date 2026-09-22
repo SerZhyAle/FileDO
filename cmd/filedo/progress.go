@@ -104,6 +104,16 @@ func (pt *ProgressTracker) PrintProgress(operation string) {
 
 	fmt.Printf("%s: %d/%d (%6.1f MB/s) - %6.2f GB %s\r",
 		operation, pt.currentItem, pt.totalItems, speedMBps, gbProcessed, etaStr)
+
+	// The same tick, on the machine channel. Every long loop in the program -
+	// fill, the capacity test, pack and unpack - already draws its bar through
+	// this tracker, so wiring the `progress` event here is what gives them all
+	// one without thirteen call sites drifting apart. It sits after the
+	// throttle above on purpose: the console line and the event are the same
+	// beat (CLI-EVENT-STREAM rule 7; speedBps is bytes per second, which is
+	// what the contract names, not the megabytes the console line shows).
+	EmitProgressEvent(pt.currentItem, pt.totalItems, pt.currentBytes, pt.totalBytes,
+		speedMBps*1024*1024, operation)
 }
 
 // PrintProgressCustom prints custom progress format without ETA (for network operations)

@@ -9,10 +9,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/term"
 )
 
 // This version string is automatically set by the build script
@@ -20,6 +24,139 @@ var version = "dev"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
+
+// machineStopChannel records that whoever started this process gave a
+// --stop-file, so a graceful "stop now" can arrive without a console. A
+// reveal reads it to know that the visible "remove it now" of spec 8.2 exists
+// as a window somewhere even though stdin is not a terminal.
+var machineStopChannel bool
+
+// noHistoryFlag is --no-history: no history.json for this run.
+var noHistoryFlag bool
+
+func extractGlobalFlags(args []string) (filtered []string, eventsPath string, stopFilePath string, noUI bool, pause bool) {
+	filtered = make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--events" && i+1 < len(args) {
+			eventsPath = args[i+1]
+			i++
+		} else if strings.HasPrefix(arg, "--events=") {
+			eventsPath = strings.TrimPrefix(arg, "--events=")
+		} else if arg == "--stop-file" && i+1 < len(args) {
+			stopFilePath = args[i+1]
+			i++
+		} else if strings.HasPrefix(arg, "--stop-file=") {
+			stopFilePath = strings.TrimPrefix(arg, "--stop-file=")
+		} else if arg == "--no-ui" {
+			noUI = true
+		} else if arg == "--pause" || arg == "-pause" || arg == "/pause" {
+			pause = true
+		} else if arg == "--no-history" {
+			noHistoryFlag = true
+		} else {
+			filtered = append(filtered, arg)
+		}
+	}
+	return filtered, eventsPath, stopFilePath, noUI, pause
+}
+
+// pauseOnExit is the --pause flag, and holdConsoleIfAsked is what it buys: a
+// window that is still on screen when the work is over.
+//
+// It exists for the Explorer menu (SP-0005 9.1). Explorer gives a console
+// verb its own window and closes it the instant the process ends, so
+// "Info" and "Check" would print their answer into a window nobody can read.
+// The flag is stripped in extractGlobalFlags before any command sees it, so
+// no verb can mistake it for an operation word or a bare password.
+//
+// Once, because the exit paths overlap: the deferred history flush calls this
+// before os.Exit (which would skip every remaining defer), and the normal
+// path calls it again after the finish line. A second call is a no-op.
+//
+// A run whose stdin is not a console - a batch file, a redirected run, the
+// GUI's child process - waits for nothing: there would be no one to press the
+// key, and the wait would be a hang.
+var (
+	pauseOnExit bool
+	pauseOnce   sync.Once
+
+	afterHoldMu sync.Mutex
+	afterHold   []func()
+)
+
+func holdConsoleIfAsked() {
+	if pauseOnExit {
+		pauseOnce.Do(func() {
+			if !term.IsTerminal(int(os.Stdin.Fd())) {
+				return
+			}
+			fmt.Print("\nPress Enter to close this window.. ")
+			_, _ = readConsoleLine()
+		})
+	}
+	runAfterConsoleHold()
+}
+
+// willHoldConsole answers the one question a caller needs before it schedules
+// work for "when the window closes": whether there will be a wait at all. The
+// two conditions are exactly holdConsoleIfAsked's own - the flag, and a
+// console to hold - so nothing can be queued behind a pause that never
+// happens.
+func willHoldConsole() bool {
+	return pauseOnExit && term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+// addAfterConsoleHold queues a function to run the moment that wait ends,
+// immediately before the process exits. SP-0008 4.3 is the only caller: an
+// `unsecure start` sandbox is removed when the console window Explorer opened
+// for it closes, and on that path this is that instant.
+func addAfterConsoleHold(fn func()) {
+	afterHoldMu.Lock()
+	defer afterHoldMu.Unlock()
+	afterHold = append(afterHold, fn)
+}
+
+// runAfterConsoleHold drains the queue. It is called from every
+// holdConsoleIfAsked - including the ones that did not wait for anything -
+// and drains rather than iterates, so a second call is a no-op however the
+// exit paths overlap.
+func runAfterConsoleHold() {
+	afterHoldMu.Lock()
+	queued := afterHold
+	afterHold = nil
+	afterHoldMu.Unlock()
+	for i := len(queued) - 1; i >= 0; i-- {
+		queued[i]()
+	}
+}
+
+func findUIExecutable() string {
+	if exePath, err := os.Executable(); err == nil {
+		dir := filepath.Dir(exePath)
+		target := filepath.Join(dir, "filedo_win.exe")
+		if _, err := os.Stat(target); err == nil {
+			return target
+		}
+	}
+	if _, err := os.Stat("filedo_win.exe"); err == nil {
+		return "filedo_win.exe"
+	}
+	if path, err := exec.LookPath("filedo_win.exe"); err == nil {
+		return path
+	}
+	return ""
+}
+
+func launchUI(args ...string) error {
+	uiPath := findUIExecutable()
+	if uiPath == "" {
+		return fmt.Errorf("filedo_win.exe not found")
+	}
+	cmd := exec.Command(uiPath, args...)
+	setDetachedProcess(cmd)
+	return cmd.Start()
+}
 
 type HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
@@ -42,11 +179,12 @@ type HistoryLogger struct {
 	originalArgs []string
 	historyFile  string
 	canWriteHist bool
+	finished     bool
 }
 
 func NewHistoryLogger(args []string) *HistoryLogger {
 	// Check for nohist/no_history flags to disable history logging
-	enabled := true
+	enabled := !noHistoryFlag
 	for _, arg := range args {
 		if arg == "nohist" || arg == "no_history" {
 			enabled = false
@@ -68,8 +206,10 @@ func NewHistoryLogger(args []string) *HistoryLogger {
 		}
 	}
 
-	// Create full command string from args
-	fullCommand := strings.Join(args, " ")
+	// Create full command string from args. Credential material of the fdsec
+	// family is redacted HERE, before anything is written: a password that
+	// reaches history.json is on the user's disk permanently (spec 12).
+	fullCommand := strings.Join(redactCredentialArgs(args), " ")
 
 	return &HistoryLogger{
 		enabled:      enabled && canWriteHist,
@@ -132,9 +272,10 @@ func (hl *HistoryLogger) SetResultSummary(summary string) {
 }
 
 func (hl *HistoryLogger) Finish() {
-	if !hl.enabled {
+	if !hl.enabled || hl.finished {
 		return
 	}
+	hl.finished = true
 
 	hl.entry.Duration = formatDuration(time.Since(hl.startTime))
 
@@ -199,12 +340,12 @@ func saveToHistory(entry HistoryEntry) error {
 var shortUsage = fmt.Sprintf(`
                             FileDO v%s
                     Advanced File & Storage Operations Tool
-                 Storage tools for the pleasantly paranoid
 ═══════════════════════════════════════════════════════════════════════════════
 BASIC USAGE:
   filedo.exe <target> [operation] [options]
 
 MAIN OPERATIONS:
+  ui       → Open the graphical UI shell
   info     → Show device/folder information
   speed    → Test read/write speed 
   test     → Test storage capacity (detect fake devices)
@@ -213,6 +354,9 @@ MAIN OPERATIONS:
   cd       → Check for duplicate files
   copy     → Copy files/folders with optimization
   wipe     → Fast wipe folder contents
+  secure   → Pack a file into a .fd-sec container behind a password
+  unsecure → Restore the original from a .fd-sec container
+  reveal   → Open a container in its app, in a sandbox that is swept after
   compare  → Compare directory trees
   check    → Check files for corruption
 
@@ -223,12 +367,14 @@ TARGETS:
   file.txt → File operations
 
 EXAMPLES:
+  filedo.exe ui                   → Open the graphical UI shell
   filedo.exe D: info              → Show drive info
   filedo.exe E: speed 100         → Test speed with 100MB
   filedo.exe F: test del          → Test capacity, auto-cleanup
   filedo.exe C:\temp cd           → Find duplicates
   filedo.exe copy C:\src D:\dst   → Smart copy with optimization
   filedo.exe C:\temp wipe         → Fast wipe folder
+  filedo.exe secret.txt secure    → Pack into secret.fd-sec
 
 COPY MODES:
   copy      → Smart auto-detection (recommended)
@@ -240,6 +386,8 @@ OPTIONS:
   short     → Brief output only
   del       → Auto-delete test files
   max       → Maximum size (10GB)
+  --no-ui   → Suppress GUI launch on empty args (or FILEDO_NO_UI=1)
+  --pause   → Wait for Enter before the window closes (what the Explorer menu uses)
 
 MORE INFO:
   filedo.exe help                 → Show detailed help
@@ -251,14 +399,12 @@ MORE INFO:
 var usage = fmt.Sprintf(`
                             FileDO v%s
                     Advanced File & Storage Operations Tool
-                 Storage tools for the pleasantly paranoid
                            Created by sza@ukr.net
 ═══════════════════════════════════════════════════════════════════════════════
 OVERVIEW:
   FileDO is a comprehensive tool for testing, analyzing, and managing files on
   devices, folders, and network paths. It specializes in storage capacity
-  verification, performance testing, and secure data wiping. In short: it pokes
-  your storage until it admits how much space it really has.
+  verification, performance testing, and secure data wiping.
 
 BASIC USAGE:
   filedo.exe <target> [operation] [options]
@@ -334,6 +480,102 @@ File Analysis:
   filedo.exe readme.txt            → Show detailed file information
   filedo.exe file data.zip info    → Show detailed file information
   filedo.exe file document.pdf short → Show brief file summary
+
+═══════════════════════════════════════════════════════════════════════════════
+SECRET FILES (.fd-sec containers)
+
+  A container holds exactly one file. The true name, the real size and the
+  timestamps are sealed inside it; only the container's own size and its
+  format parameters are visible without the password.
+
+Pack and restore:
+  filedo.exe secret.txt secure           → Pack into secret.fd-sec (asks twice)
+  filedo.exe secret.txt secure p:hunter2 → Pack with the password on the line
+  filedo.exe secret.fd-sec unsecure      → Restore under the sealed true name
+  filedo.exe secret.fd-sec unsecure here → Restore into the current folder
+  filedo.exe c.fd-sec unsecure start     → Open it in its own program and keep
+                                           nothing: the copy lives where only
+                                           you can read it and goes when the
+                                           window closes
+  filedo.exe *.jpg secure p:hunter2      → One container per matched file
+
+Open without unpacking (reveal):
+  filedo.exe holiday.fd-sec reveal       → Open in the registered app, then
+                                           remove the copy when it is done
+  filedo.exe c.fd-sec reveal -keep       → Leave the copy; the next FileDO
+                                           start of any kind removes it
+  filedo.exe c.fd-sec reveal -rw to x.md → Not a sandbox: restore to a file
+                                           you own (what unsecure does)
+
+  The copy lives in %%LOCALAPPDATA%%\FileDO\reveal\<random>\, readable by you
+  and the system only, read-only, and marked as coming from elsewhere. It is
+  removed when the app lets go of it, or when you say so - the Enter prompt in
+  a console, the "remove the copy now" button when the shell started it - or,
+  if the machine lost power meanwhile, at the next FileDO start.
+  Executables and scripts are NEVER launched: they are extracted, the
+  location is shown, and you decide. Reveal takes one container, never a
+  mask: a batch of plaintext copies is not something this offers.
+
+In the window (filedo_win.exe, or filedo.exe ui): the Protect group carries
+the same three operations as pages - the password is masked and typed twice on
+secure, the disposition of the original is chosen before anything runs, and a
+reveal's copy is removed by the button on the page rather than by a keypress in
+a console. The password never reaches a command line from there.
+
+Inspect:
+  filedo.exe fdsec info c.fd-sec p:pwd   → Layout facts (the password is needed:
+                                            nothing in the file says it is one)
+  filedo.exe fdsec verify c.fd-sec p:pwd → Prove every chunk and the digest
+
+Explorer integration (the MSI installer offers this as a feature; the
+portable zip, winget and go install builds ask for it here):
+  filedo.exe fdsec register              → A "File DO.." group on every file
+                                           (secure, secure+del, secure+wipe,
+                                           secure+rename, unsecure,
+                                           unsecure+del, unsecure+start, wipe,
+                                           check, info)
+                                           and a .fd-sec document type whose
+                                           double-click opens the shell window
+                                           and reveals there - for this user
+  filedo.exe fdsec register -all-users   → The same, machine-wide (needs an
+                                           elevated console)
+  filedo.exe fdsec unregister            → Remove exactly what was written
+
+Credential sources. p: is REQUIRED whenever any option is present, so a
+password equal to an option word is never eaten as that option:
+  p:<password>   → on the command line (visible in the process list)
+  pf:<file>      → from a password file (one trailing newline is dropped)
+  pe:<VAR>       → from an environment variable
+  k:<keyfile>    → any file; the digest of its bytes is the credential
+  <password>     → bare trailing token, valid only when nothing else is given
+  (nothing)      → prompt with no echo; twice on secure, once on the rest
+  An EMPTY password is accepted and means obfuscation only - NO SECRECY.
+
+Options (order does not matter):
+  del / delete   → remove the source after the read-back verified it
+  wipe           → overwrite the original, then remove it (secure only).
+                   Honest caveat: on SSDs and on copy-on-write or journaled
+                   volumes an overwrite-in-place lowers the odds of recovery
+                   but does not guarantee erasure.
+  rename / ren   → write a random name with no extension (a nameless blob)
+  here           → restore into the current folder (unsecure only)
+  start          → hand the restored file to its registered handler
+                   (unsecure only, no executable/script refusal - like an
+                   ordinary double-click). The copy goes into
+                   %%LOCALAPPDATA%%\FileDO\reveal\<random>\, readable by you
+                   and the system only, and removed when the window closes;
+                   name a destination with to <dest> to keep the file
+  to <dest>      → exact destination, or a folder; the parent must exist
+  -y / --force   → skip the prompt, never the verification or the guards
+  -rw            → reveal only: no writable sandbox exists, so this restores
+                   to a file you own instead (combine with to <dest>)
+  -keep          → reveal only: leave the copy for the next start to sweep
+
+Exit codes: 0 ok, 2 usage, 3 wrong credential or tampered, 4 damaged,
+            5 I/O, 6 unsupported container or stage not shipped yet.
+
+Credentials are redacted from history.json and from the batch echo. The
+argument form is still visible in the system process list while it runs.
 
 ═══════════════════════════════════════════════════════════════════════════════
 NETWORK OPERATIONS (SMB shares, network drives)
@@ -433,7 +675,9 @@ Folder Compare:
 
 Folder Health Check:
 	filedo.exe check D:\Data                 → Read-check all files; mark damaged on read delay > 2.0s
+	filedo.exe check D:\Data\one.mkv         → Read-check that one file and say whether it reads cleanly
 	Notes: one-time warm-up up to 10.0s before first read; uses 'skip_files.list' immediately; parallel workers; Ctrl+C supported
+	       a single file is never skipped by the good list and never filtered out by size or extension
 
 ═══════════════════════════════════════════════════════════════════════════════
 BATCH OPERATIONS & HISTORY
@@ -535,7 +779,7 @@ IMPORTANT NOTES
   enable detailed history logging: filedo.exe C: info hist
 
 • System Drive Protection: Write operations on C: are automatically redirected
-  to safe temporary locations (%TEMP%\FileDO_Operations) with user confirmation.
+  to safe temporary locations (%%TEMP%%\FileDO_Operations) with user confirmation.
   Environment variables:
   - FILEDO_DISABLE_REDIRECT=1 → Disable redirection (advanced users only)
   - FILEDO_AUTO_CONFIRM=1 → Auto-confirm redirections (for scripts/testing)
@@ -565,10 +809,12 @@ var list_of_flags_for_smartcopy = []string{"smartcopy", "smart", "auto"}
 var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue", "damaged"}
 var list_of_flags_for_check = []string{"check"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
+var list_of_flags_for_fdsec = []string{"fdsec", "fds"}
+var list_of_flags_for_ui = []string{"ui", "gui"}
 var list_fo_flags_for_help = []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
 var list_fo_flags_for_short_help = []string{"?", "/?", "-?", "--help"}
 var list_fo_flags_for_full_help = []string{"help", "h", "/help"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -603,7 +849,9 @@ func executeFromFile(filePath string, historyLogger *HistoryLogger) error {
 		}
 
 		commandCount++
-		fmt.Printf("\n[%d] Executing: %s\n", commandCount, line)
+		// The echo repeats the command line, so the same redaction as history
+		// applies (invariant 8: no credential on the console either).
+		fmt.Printf("\n[%d] Executing: %s\n", commandCount, strings.Join(redactCredentialArgs(strings.Fields(line)), " "))
 
 		// Split command into arguments
 		args := strings.Fields(line)
@@ -665,6 +913,21 @@ func executeInternalCommand(args []string) error {
 	// Create a new history logger for internal command
 	internalLogger := NewHistoryLogger(append([]string{"filedo"}, args...))
 	defer internalLogger.Finish()
+
+	// The target-first fdsec grammar is dispatched before the path probe:
+	// a mask target (secure *.txt) never passes os.Stat, and the family owns
+	// its own not-found message and exit code. This is the SAME call main()
+	// makes, so a verb that works interactively cannot silently fail here.
+	if handled, err := fdsecDispatchTarget(args, internalLogger); handled {
+		if err != nil {
+			internalLogger.SetError(err)
+			fdsecSetExit(err)
+			runFailure(err)
+			return err
+		}
+		internalLogger.SetSuccess()
+		return nil
+	}
 
 	// Parse command similar to main function logic
 	command := ""
@@ -742,6 +1005,12 @@ func executeInternalCommand(args []string) error {
 		deviceCmd := flag.NewFlagSet("device", flag.ContinueOnError)
 		deviceCmd.SetOutput(os.Stdout) // Suppress error output
 		runGenericCommand(deviceCmd, CommandDevice, add_args, internalLogger)
+	case contains(list_of_flags_for_fdsec, command):
+		if err := handleFdsecCommand(add_args, internalLogger); err != nil {
+			internalLogger.SetError(err)
+			return err
+		}
+		internalLogger.SetSuccess()
 	case contains(list_of_flags_for_folder, command):
 		folderCmd := flag.NewFlagSet("folder", flag.ContinueOnError)
 		folderCmd.SetOutput(os.Stdout)
@@ -869,7 +1138,7 @@ func executeInternalCommand(args []string) error {
 	case contains(list_of_flags_for_check, command):
 		// Handle check command with flags
 		if len(args) < 2 {
-			return fmt.Errorf("check command requires folder path")
+			return fmt.Errorf("check command requires a folder or a file path")
 		}
 		internalLogger.SetCommand(command, args[1], "check")
 		if err := HandleCheckArgs(args[1], args[2:]); err != nil {
@@ -889,6 +1158,8 @@ func executeInternalCommand(args []string) error {
 			return err
 		}
 		internalLogger.SetSuccess()
+	case contains(list_of_flags_for_ui, command):
+		return fmt.Errorf("cannot launch UI shell from batch script")
 	default:
 		return fmt.Errorf("unknown command: %s", command)
 	}
@@ -1103,8 +1374,21 @@ func main() {
 	// Initialize global interrupt handler first
 	globalInterruptHandler = NewInterruptHandler()
 
+	// Lifetime mechanism 3 (spec 8.2): every FileDO start reclaims any reveal
+	// sandbox left behind by a previous one, before anything else runs. This
+	// is the only remedy for a handler that never locks its input and for a
+	// power loss while a copy exists - stage S0's probe P2 established that
+	// the OS itself will not tidy %LOCALAPPDATA% up for us. A sandbox that is
+	// in use right now, in another FileDO, holds a lock and is stepped around.
+	fdsecSweepReveals()
+
 	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " sza@ukr.net " + version + "\n"
 	fmt.Print(hi_message)
+
+	// Registered first, so it runs last: --pause holds the window open after
+	// the finish line, not before it. The flag itself is read a few lines
+	// down, which is soon enough - nothing above this point can end the run.
+	defer holdConsoleIfAsked()
 
 	// Ensure bue_message is always printed, even on errors or panic
 	defer func() {
@@ -1115,11 +1399,50 @@ func main() {
 		fmt.Print(bue_message)
 	}()
 
-	args := os.Args
+	rawArgs := os.Args
+	args, eventsPath, stopFilePath, noUI, pause := extractGlobalFlags(rawArgs)
+	pauseOnExit = pause
 
-	// Initialize history logger
-	historyLogger := NewHistoryLogger(os.Args)
-	defer historyLogger.Finish()
+	if eventsPath != "" {
+		em, err := InitEventManager(eventsPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to initialize events channel: %v\n", err)
+		} else {
+			defer em.Close()
+		}
+	}
+
+	if stopFilePath != "" {
+		machineStopChannel = true
+		globalInterruptHandler.WatchStopFile(stopFilePath)
+	}
+
+	// Initialize history logger. The deferred func flushes the history entry
+	// and only then honours a nonzero exit code - os.Exit skips defers,
+	// so the ordering is deliberate.
+	historyLogger := NewHistoryLogger(args)
+	defer func() {
+		historyLogger.Finish()
+		if globalEventManager != nil {
+			globalEventManager.Close()
+		}
+		// os.Exit skips every remaining defer, so the window has to be held
+		// here rather than in the deferred call registered above.
+		if fdsecExitCode != 0 {
+			holdConsoleIfAsked()
+			os.Exit(fdsecExitCode)
+		}
+		if globalExitCode != 0 {
+			holdConsoleIfAsked()
+			os.Exit(globalExitCode)
+		}
+	}()
+
+	// Registered after the history flush, so it runs before it: the `result`
+	// event has to be on disk while the events file is still open, and the
+	// exit code has to be decided before the deferred os.Exit reads it.
+	// finishRun is the only writer of both (outcome.go).
+	defer finishRun()
 
 	// Convert only the first few arguments (commands/flags) to lowercase, preserve paths
 	lowerArgs := make([]string, len(args))
@@ -1151,6 +1474,11 @@ func main() {
 
 	if len(args) < 2 {
 		fmt.Println(shortUsage)
+		if !noUI && os.Getenv("FILEDO_NO_UI") != "1" {
+			if err := launchUI(); err != nil {
+				fmt.Printf("\nGUI is available as filedo_win.exe (download from https://github.com/SerZhyAle/FileDO/releases)\n")
+			}
+		}
 		return
 	}
 
@@ -1160,6 +1488,22 @@ func main() {
 		} else {
 			fmt.Println(usage)
 		}
+		return
+	}
+
+	// Target-first fdsec ops (<file> secure|unsecure|reveal ..) are handled
+	// before the generic path probe - see fdsecDispatchTarget. The batch
+	// path calls exactly the same function, so a verb cannot work
+	// interactively and silently fail from a .lst file.
+	if handled, err := fdsecDispatchTarget(args[1:], historyLogger); handled {
+		if err != nil {
+			historyLogger.SetError(err)
+			fdsecSetExit(err)
+			runFailure(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return
+		}
+		historyLogger.SetSuccess()
 		return
 	}
 
@@ -1256,6 +1600,15 @@ func main() {
 	case contains(list_of_flags_for_device, command):
 		deviceCmd := flag.NewFlagSet("device", flag.ExitOnError)
 		runDeviceCommand(deviceCmd)
+	case contains(list_of_flags_for_fdsec, command):
+		if err := handleFdsecCommand(add_args, historyLogger); err != nil {
+			historyLogger.SetError(err)
+			fdsecSetExit(err)
+			runFailure(err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return
+		}
+		historyLogger.SetSuccess()
 	case contains(list_of_flags_for_folder, command):
 		folderCmd := flag.NewFlagSet("folder", flag.ExitOnError)
 		runFolderCommand(folderCmd)
@@ -1267,11 +1620,11 @@ func main() {
 		runNetworkCommand(networkCmd)
 	case contains(list_of_flags_for_from, command):
 		if len(add_args) < 1 {
-			fmt.Fprintf(os.Stderr, "Error: Missing file path for 'from' command\n")
+			usageFailure(command, args, "Missing file path for 'from' command")
 			return
 		}
 		if err := executeFromFile(add_args[0], historyLogger); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 	case contains(list_of_flags_for_hist, command):
@@ -1279,123 +1632,134 @@ func main() {
 		return
 	case contains(list_of_flags_for_compare, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Compare command requires source and target paths\n")
+			usageFailure(command, args, "Compare command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "compare")
+		beginRun(runActs, "compare", add_args[0], args)
 		if err := handleCompareCommand(add_args[0], add_args[1], add_args[2:]...); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_copy, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Copy command requires source and target paths\n")
+			usageFailure(command, args, "Copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "auto-copy")
+		beginRun(runActs, "auto-copy", add_args[0], args)
 		if err := handleAutoCopyCommand(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_fastcopy, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Fast copy command requires source and target paths\n")
+			usageFailure(command, args, "Fast copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "fastcopy")
+		beginRun(runActs, "fastcopy", add_args[0], args)
 		if err := handleFastCopyCommand(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_synccopy, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Sync copy command requires source and target paths\n")
+			usageFailure(command, args, "Sync copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "synccopy")
+		beginRun(runActs, "synccopy", add_args[0], args)
 		if err := handleSyncCopyCommand(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_balanced, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Balanced copy command requires source and target paths\n")
+			usageFailure(command, args, "Balanced copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "balanced")
+		beginRun(runActs, "balanced", add_args[0], args)
 		if err := handleBalancedCopyCommand(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_maxcopy, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Max copy command requires source and target paths\n")
+			usageFailure(command, args, "Max copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "maxcopy")
+		beginRun(runActs, "maxcopy", add_args[0], args)
 		if err := handleMaxCopyCommand(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_smartcopy, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Smart copy command requires source and target paths\n")
+			usageFailure(command, args, "Smart copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "smartcopy")
+		beginRun(runActs, "smartcopy", add_args[0], args)
 		if err := handleSmartCopyCommand(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_safecopy, command):
 		if len(add_args) < 2 {
-			fmt.Fprintf(os.Stderr, "Error: Safe copy command requires source and target paths\n")
+			usageFailure(command, args, "Safe copy command requires source and target paths")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "safecopy")
+		beginRun(runActs, "safecopy", add_args[0], args)
 		if err := SafeCopy(add_args[0], add_args[1]); err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			reportRunError(err, historyLogger)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	case contains(list_of_flags_for_check, command):
 		if len(add_args) < 1 {
-			fmt.Fprintf(os.Stderr, "Error: CHECK command requires folder path\n")
+			usageFailure(command, args, "CHECK command requires a folder or a file path")
 			return
 		}
 		historyLogger.SetCommand(command, add_args[0], "check")
+		beginRun(runJudges, "check", add_args[0], args)
 		if err := HandleCheckArgs(add_args[0], add_args[1:]); err != nil {
+			reportRunError(err, historyLogger)
+			return
+		}
+		historyLogger.SetSuccess()
+		return
+	case contains(list_of_flags_for_ui, command):
+		historyLogger.SetCommand("ui", "", "ui")
+		beginRun(runActs, "ui", "", args)
+		if err := launchUI(add_args...); err != nil {
+			fmt.Fprintf(os.Stderr, "GUI is available as filedo_win.exe (download from https://github.com/SerZhyAle/FileDO/releases)\nError: %v\n", err)
 			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			runFailure(err)
 			return
 		}
 		historyLogger.SetSuccess()
 		return
 	default:
-		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n\n", os.Args[1])
+		usageFailure(command, args, "Unknown command %q", os.Args[1])
 		fmt.Println(usage)
 		return
 	}

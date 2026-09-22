@@ -135,8 +135,12 @@ folder .\test_dups copy .\test_target2
 folder .\test_target2 wipe
 folder .\test_wipe_folder w
 
-# Test wipe on file (should show error)
-file .\main.go wipe
+# Wipe one file: overwritten in place and removed, never the folder meaning.
+# The target is a throwaway copy on purpose - this line destroys what it names.
+# Without an answer on stdin the prompt is refused and the file survives, which
+# is itself the thing worth seeing: a batch run must not be able to wipe by
+# accident.
+file D:\TestFolder\testfile.txt wipe
 
 # =====================================================================
 # End of test suite

@@ -45,9 +45,61 @@ filedo C: info
 
 ### 📥 Installation
 
-1. **Télécharger**: Obtenez `filedo.exe` depuis les releases
-2. **Version GUI**: Téléchargez aussi `filedo_win.exe` pour l'interface graphique (VB.NET)
-3. **Exécution**: Lancez depuis la ligne de commande ou via l'interface graphique
+#### Option 1 - winget
+
+```powershell
+winget install SerZhyAle.FileDO
+```
+
+Installe les outils en ligne de commande (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) et la fenêtre graphique `filedo_win` (une page par tâche), et les ajoute au `PATH`.
+
+#### Option 2 - Programme d'installation (setup EXE)
+
+Téléchargez `FileDO-<version>-setup.exe` depuis les [releases](https://github.com/SerZhyAle/FileDO/releases/latest) et lancez-le. C'est cette option qui fait de FileDO un programme Windows ordinaire plutôt qu'un dossier d'exécutables:
+
+- installe les fichiers dans `C:\Program Files\FileDO` et ajoute `filedo` au `PATH` système;
+- crée une **entrée dans le menu Démarrer** et une **icône sur le bureau** pour la fenêtre FileDO (`filedo_win.exe`);
+- enregistre l'**intégration à l'Explorateur**: un groupe `File DO..` dans le menu contextuel de tout fichier - Secure (garder, supprimer ou effacer l'original, ou un nom de conteneur aléatoire), Unsecure (en option, supprimer le conteneur ou démarrer aussitôt le fichier restauré), Wipe this file, Check this file, Info - ainsi que le type de document `.fd-sec` avec sa propre icône: le double-clic est exactement l'entrée Unsecure and start: une console y demande le mot de passe, restaure l'original sous son vrai nom dans `%LOCALAPPDATA%\FileDO\reveal` - un dossier que seuls ce compte et le système peuvent lire -, le confie au programme auquel appartient sa véritable extension, puis retire cette copie à la fermeture de la fenêtre de console. Sous Windows 11, le groupe se trouve sous *Afficher d'autres options*.
+
+Le programme d'installation n'est pas signé numériquement: au premier lancement, Windows peut afficher *Windows a protégé votre ordinateur* puis demander les droits d'administrateur. Comparez le SHA256 (le fichier `.sha256` publié à côté du téléchargement; `certutil -hashfile FileDO-<version>-setup.exe SHA256`), puis choisissez *Informations complémentaires* et *Exécuter quand même*. Pourquoi l'avertissement apparaît, à quoi servent les droits d'administrateur et ce que FileDO ne fait jamais: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html) (page en EN/RU/UA).
+
+Ces deux derniers points sont des fonctionnalités que l'on peut décocher sur la page « Customize » du programme d'installation, puis activer ou désactiver plus tard via **Modifier** dans « Applications et fonctionnalités ». Sans surveillance:
+
+```powershell
+FileDO-<version>-setup.exe /quiet
+FileDO-<version>-setup.exe /uninstall
+```
+
+La même release publie aussi le `FileDO-<version>-windows-x64.msi` nu - c'est exactement ce fichier qui se trouve dans le setup EXE - pour les outils de déploiement qui veulent le paquet et les noms de fonctionnalités directement:
+
+```powershell
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DesktopShortcut
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main
+```
+
+La désinstallation retire tout ce que le programme d'installation a écrit, y compris les entrées de registre.
+
+#### Option 3 - Microsoft Store (MSIX)
+
+Un paquet, deux entrées: la tuile **FileDO** et la commande `filedo` dans le `PATH`. La version du Store n'a **pas** les entrées de l'Explorateur: un paquet ne peut les obtenir que via un gestionnaire shell signé, ce qui est un travail distinct.
+
+#### Option 4 - Téléchargement manuel
+
+1. **Télécharger**: obtenez `FileDO-<version>-windows-x64.zip` depuis les releases et décompressez-le où vous voulez
+2. **GUI**: `filedo_win.exe` est dans l'archive - lancez-le à côté de `filedo.exe`
+3. **Exécution**: depuis la ligne de commande ou via l'interface graphique
+
+#### Intégration à l'Explorateur sans programme d'installation
+
+winget, l'archive portable et `go install` ne lancent aucun programme d'installation et n'enregistrent donc rien. Le même groupe et le même type de document se demandent soi-même - et se reprennent de la même façon:
+
+```powershell
+filedo fdsec register              # pour cet utilisateur
+filedo fdsec register -all-users   # pour toute la machine (console élevée requise)
+filedo fdsec unregister            # retire exactement ce qui a été écrit
+```
+
+FileDO ne retire que ce qu'il a marqué comme sien: un type de document qui appartient désormais à un autre programme reste intact, et celui qui possédait `.fd-sec` avant FileDO le récupère.
 
 ---
 
@@ -100,6 +152,59 @@ filedo C:\temp clean
 </td>
 </tr>
 </table>
+
+---
+
+## 🔐 Fichiers secrets (`.fd-sec`)
+
+Un fichier entre dans un conteneur, derrière un mot de passe, et en ressort - depuis la ligne de commande,
+depuis le menu de l'Explorateur, ou depuis les pages du groupe **Protéger** dans la fenêtre. Le vrai nom
+de l'original, sa taille réelle et ses horodatages y sont scellés ; le conteneur lui-même ne livre rien
+d'autre que sa propre taille.
+
+```bash
+# Empaqueter (le mot de passe est demandé deux fois, sans écho)
+filedo report.docx secure
+
+# Empaqueter et se débarrasser de l'original - récupérable, puis la manière forte
+filedo report.docx secure del p:hunter2
+filedo report.docx secure wipe p:hunter2
+
+# Le récupérer sous son nom scellé, ou dans ce dossier
+filedo report.fd-sec unsecure
+filedo report.fd-sec unsecure here
+
+# L'ouvrir dans le programme auquel il appartient, sans le déballer
+filedo report.fd-sec reveal
+```
+
+Quatre choses dites franchement, car une fonction de sécurité qui se surestime vaut moins que rien :
+
+- **Un mot de passe vide n'est qu'un camouflage - aucun secret.** Il est accepté, et chaque surface qui
+  prend un mot de passe dit ce qu'il vaut au moment même où on le tape.
+- **`wipe` réduit les chances de récupération et ne promet rien.** Sur SSD et sur les systèmes de fichiers
+  à copie sur écriture ou journalisés, écraser un fichier sur place ne garantit pas que les anciens blocs
+  ont disparu.
+- **Une copie révélée vit dans `%LOCALAPPDATA%\FileDO\reveal`**, en lecture seule, lisible par ce compte
+  et le système uniquement. Elle disparaît quand vous le dites, ou quand le programme qui l'a ouverte la
+  relâche.
+- **`unsecure start` - le double-clic - place sa copie dans ce même dossier protégé**, et non à côté du
+  conteneur, puis la retire à la fermeture de la fenêtre de console. Cette copie est votre propre
+  fichier, pas une vue en lecture seule; si le programme la garde ouverte à cet instant, le prochain
+  démarrage de FileDO la balaie. Pour garder le fichier, utilisez `unsecure` tout court.
+- **Après une coupure de courant, cette copie reste sur le disque jusqu'au prochain démarrage de FileDO**,
+  qui la balaie. Rien d'autre ne le fera.
+
+Il n'y a pas de clé de récupération : un mot de passe oublié, c'est un fichier perdu. L'original est
+conservé tant que vous ne demandez pas son retrait, et rien n'est supprimé avant que le conteneur n'ait
+été écrit, relu et vérifié. Les exécutables et les scripts ne sont jamais lancés depuis un conteneur -
+ils sont extraits et leur emplacement est indiqué.
+
+Dans la fenêtre, le groupe **Protéger** porte les trois mêmes opérations sous forme de pages : le mot de
+passe est masqué, saisi deux fois à l'empaquetage, et transmis à `filedo.exe` hors de vue - il n'atteint
+aucune ligne de commande, aucun rapport d'exécution et aucun fichier d'historique. Un double-clic sur un
+`.fd-sec` n'ouvre pas cette fenêtre - il exécute **Unsecure and start** dans la console, exactement comme
+l'entrée du même nom dans le menu de l'Explorateur.
 
 ---
 
@@ -178,22 +283,25 @@ filedo C:\temp clean
 
 ## 🖥️ Application GUI
 
-**FileDO GUI** (`filedo_win.exe`) - Application Windows Forms VB.NET fournit une interface conviviale :
+**FileDO GUI** (`filedo_win.exe`) - shell Windows Forms VB.NET : à gauche une colonne de tâches, et pour chaque tâche une page numérotée - ce qu'on traite, quels paramètres, puis vérification et exécution - plus une page **«Commande»**, le constructeur expert, qui assemble et exécute n'importe quelle commande FileDO :
 
 - ✅ **Sélection visuelle de cible** avec boutons radio (Périphérique/Dossier/Réseau/Fichier)
-- ✅ **Menu déroulant d'opérations** (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons)
+- ✅ **Menu déroulant d'opérations** sur la page «Commande» (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons)
+- ✅ **Une page par tâche** dans la fenêtre par défaut - capacité, vitesse, informations, vérification des fichiers endommagés, sondage direct, récupération, doublons, comparaison, nettoyage, copie, remplissage, effacement et les trois tâches des fichiers secrets - chacune portant toutes les options que la CLI accepte pour elle, y compris les vingt-neuf options de `check`
 - ✅ **Saisie de paramètres** avec validation
-- ✅ **Aperçu de commande en temps réel** montrant la commande CLI équivalente
+- ✅ **Aperçu de commande en temps réel** sur la page «Commande», montrant la commande CLI équivalente
 - ✅ **Bouton parcourir** pour sélection facile du chemin
 - ✅ **Suivi du progrès** avec sortie en temps réel
 - ✅ **Exécution en un clic** avec affichage de la sortie
-- ✅ **Fenêtre «À propos»** (bouton **À propos** en haut à droite) : version, auteur et liens vers le site, le code source, le suivi des problèmes, la page de confidentialité et les autres outils de l'auteur
-- ✅ **Envoyer les logs à l'auteur** - l'unique bouton de cette fenêtre regroupe les logs FileDO trouvés sur cette machine dans un seul zip, ouvre le dossier avec le fichier sélectionné, place son chemin dans le presse-papiers et ouvre votre programme de messagerie avec l'adresse et l'objet déjà remplis. Vous voyez d'abord le zip, et rien n'est envoyé avant que vous envoyiez le message vous-même
+- ✅ **Page «À propos»** : version, auteur et liens vers le site, le code source, le suivi des problèmes, la page de confidentialité et les autres outils de l'auteur
+- ✅ **Envoyer les logs à l'auteur** - l'unique bouton de cette page regroupe les logs FileDO trouvés sur cette machine dans un seul zip, ouvre le dossier avec le fichier sélectionné, place son chemin dans le presse-papiers et ouvre votre programme de messagerie avec l'adresse et l'objet déjà remplis. Vous voyez d'abord le zip, et rien n'est envoyé avant que vous envoyiez le message vous-même
 
 ```bash
 # Lancer depuis le dossier filedo_win_vb
 filedo_win.exe          # Interface Windows GUI
 ```
+
+Les pages **«Protéger»** traitent les fichiers secrets `.fd-sec` - rendre un fichier secret, récupérer l'original, ou l'ouvrir sans le décompresser. Le mot de passe est masqué et n'entre jamais dans une ligne de commande. Donner directement un chemin `.fd-sec` à la fenêtre l'ouvre sur la page de ce conteneur (`filedo_win.exe C:\a\x.fd-sec`); un double-clic dans l'Explorateur ne passe pas du tout par la fenêtre - il exécute **Unsecure and start** dans la console, comme décrit plus haut. «Historique», «Réglages» et «À propos» ont leurs propres pages, et l'ancienne fenêtre constructeur de commandes reste accessible avec `filedo_win.exe --legacy-builder`.
 
 **Fonctionnalités :**
 - Construit avec VB.NET Windows Forms pour une expérience native Windows
@@ -411,7 +519,7 @@ FileDO/
 - **Copie** : parcours de répertoires allégés lors de la copie
 
 **v2605152056**
-- **Installateur** : installateur MSI ; icône d'application intégrée dans tous les EXE et l'entrée des programmes installés
+- **Installateur** : setup EXE (un bundle WiX contenant le MSI) et le MSI nu ; icône d'application intégrée dans tous les EXE et l'entrée des programmes installés
 - **Store** : spécification de publication sur le Microsoft Store et image d'aperçu
 
 **v2604272228**

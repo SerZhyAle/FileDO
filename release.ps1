@@ -11,12 +11,12 @@
 #  here so a plain `build.ps1` can never accidentally ship anything.
 #
 #  Full pipeline (all automatic, per chosen policy):
-#    1. preflight  - tools present, gh authed, on main, tree clean
+#    1. preflight  - tools present, gh authed, on main, tree clean, winget anchors intact
 #    2. gate       - build.ps1 -Test (fail fast BEFORE tagging)
 #    3. commit     - commit refreshed binaries if the build changed them
 #    4. push       - push main, then create + push tag v<version>  <-- triggers CI
 #    5. wait       - poll until the GitHub Release + assets exist
-#    6. winget     - sync winget/*.yaml (version, URL, SHA256, date), commit, push
+#    6. winget     - sync winget/*.yaml (version, URL, SHA256, date), CHECK them, commit, push
 #    7. submit     - wingetcreate submit -> PR to microsoft/winget-pkgs
 #    8. store      - build the MSIX for Microsoft Store (upload stays manual)
 #    9. checklist  - print what is done and the one manual step that remains
@@ -27,10 +27,17 @@
 #    .\release.ps1 -DryRun         # do everything EXCEPT push tag / submit / Store
 #    .\release.ps1 -SkipStore      # skip the MSIX build (CLI + winget only)
 #    .\release.ps1 -SkipWinget     # skip winget sync + submit
+#    .\release.ps1 -WingetInstallTest   # also install the synced manifest here, then uninstall
 #
-#  Store identity (only needed for a real Store build; defaults are placeholders
-#  from msix\build-msix.ps1 - the real values come from Partner Center):
-#    .\release.ps1 -StoreIdentityName "..." -StorePublisher "CN=..." -StorePublisherDisplayName "..."
+#  The winget manifests are checked twice by packaging\check-winget-manifests.ps1: in the
+#  preflight (frozen anchors, offline - still no tag) and in step 6 against the synced files
+#  (schema, version, published hash - before the commit and the winget-pkgs PR).
+#
+#  Store identity: read from msix\identity.json (recorded once, after the app name is reserved
+#  in Partner Center) or passed here. There is no placeholder default any more: without a
+#  reserved identity the MSIX step refuses and says so, and the release itself carries on.
+#  The package is pinned to this release's stamp, so the exe inside prints the tag's version.
+#    .\release.ps1 -StoreIdentityName "..." [-StorePublisher "CN=..."] [-StorePublisherDisplayName "..."]
 # ============================================================================
 [CmdletBinding()]
 param(
@@ -41,6 +48,10 @@ param(
     [string]$StoreIdentityName,
     [string]$StorePublisher,
     [string]$StorePublisherDisplayName,
+    # Also install the synced manifest on this machine, run a portable shim and uninstall it
+    # (packaging\check-winget-manifests.ps1 -Install). Off by default: it proves the zip layout
+    # is real, but it writes into the operator's own profile.
+    [switch]$WingetInstallTest,
     # How long to wait for the GitHub Release to appear after pushing the tag.
     [int]$WaitMinutes = 25
 )
@@ -85,14 +96,40 @@ try {
     Write-Host "  branch  : $branch"
     Write-Host "  version : $Version"
     Write-Host "  tag     : $tag"
+    if (-not $SkipStore -and -not $StoreIdentityName -and -not (Test-Path (Join-Path $root 'msix\identity.json'))) {
+        Write-Host "  Store   : no reserved identity (msix\identity.json is missing, no -StoreIdentityName) - step 8 will not build the MSIX." -ForegroundColor Yellow
+        Write-Host "            Reserve the name in Partner Center first (msix\README.md, section 2), or pass -SkipStore." -ForegroundColor Yellow
+    }
     if ($DryRun) { Write-Host "  MODE    : DRY RUN (no tag push, no submit, no Store upload)" -ForegroundColor Yellow }
+
+    # The frozen anchors of the winget manifests, read before anything irreversible happens.
+    # Step 6 re-runs these against the SYNCED manifests, but a broken PackageIdentifier or a
+    # renamed PortableCommandAlias is already broken here, and here there is still no tag.
+    # Offline and version-free on purpose: winget\ still carries the previous release.
+    if (-not $SkipWinget) {
+        & "$root\packaging\check-winget-manifests.ps1" -NoNetwork
+        if ($LASTEXITCODE -ne 0) { Fail "winget manifest checks failed on the current winget\ - nothing tagged." }
+    }
 
     # -----------------------------------------------------------------------
     # 2. Build + test gate (fail BEFORE we tag anything)
     # -----------------------------------------------------------------------
     Step "2/9 Build + test gate"
-    & "$root\build.ps1" -Test
-    if ($LASTEXITCODE -ne 0) { Fail "build.ps1 -Test failed. Nothing tagged." }
+    # build.ps1 builds the installer on any plain run; -Msi is what makes a
+    # missing WiX exit 2 instead of a printed skip. For a release that
+    # distinction matters: the installer is what most users actually get, and a
+    # wxs that does not compile must surface here and not inside the tagged CI
+    # run, after the one irreversible step. On a machine with no WiX the gate
+    # still runs - the workflow builds the real artifacts on the runner.
+    if (Get-Command wix -ErrorAction SilentlyContinue) {
+        & "$root\build.ps1" -Test -Msi
+        if ($LASTEXITCODE -ne 0) { Fail "build.ps1 -Test -Msi failed. Nothing tagged." }
+    } else {
+        & "$root\build.ps1" -Test
+        if ($LASTEXITCODE -ne 0) { Fail "build.ps1 -Test failed. Nothing tagged." }
+        Write-Host "  note: WiX is not installed here, so the MSI was not built locally." -ForegroundColor Yellow
+        Write-Host "        dotnet tool install --global wix --version 5.*" -ForegroundColor Yellow
+    }
 
     # -----------------------------------------------------------------------
     # 3. Commit refreshed artifacts (binaries are tracked in exe_to_download\)
@@ -188,6 +225,15 @@ try {
         $cl = $cl -replace 'ReleaseNotesUrl:\s*\S+', "ReleaseNotesUrl: https://github.com/$repo/releases/tag/$tag"
         Set-Content $pl $cl -NoNewline -Encoding UTF8
 
+        # Gate the synced manifests BEFORE committing them. microsoft/winget-pkgs re-validates
+        # every PR in its own CI, which is after the tag is already pushed - the one place a
+        # schema slip or a broken frozen anchor must not first surface. The install test is
+        # opt-in because it writes to this machine's profile.
+        $checkArgs = @{ Version = $Version }
+        if ($WingetInstallTest) { $checkArgs['Install'] = $true }
+        & "$root\packaging\check-winget-manifests.ps1" @checkArgs
+        if ($LASTEXITCODE -ne 0) { Fail "winget manifest checks failed - nothing committed to winget\. The tag $tag is already out; fix winget\ and re-run with -SkipStore, or submit by hand." }
+
         git add winget
         if (git diff --cached --name-only) {
             git commit -m "Sync winget/ to $tag"
@@ -216,12 +262,21 @@ try {
     # -----------------------------------------------------------------------
     if (-not $SkipStore) {
         Step "8/9 Store MSIX"
-        $msixArgs = @{}
+        # Pinned to this release's stamp (the tag without the v), so the exe inside the package
+        # prints the version the release carries. build-msix.ps1 refuses without a reserved
+        # identity, and by now the tag and the winget PR are out: a refusal is reported, never fatal.
+        $msixArgs = @{ Stamp = $Version }
         if ($StoreIdentityName)        { $msixArgs['IdentityName'] = $StoreIdentityName }
         if ($StorePublisher)           { $msixArgs['Publisher'] = $StorePublisher }
         if ($StorePublisherDisplayName){ $msixArgs['PublisherDisplayName'] = $StorePublisherDisplayName }
-        & "$root\msix\build-msix.ps1" @msixArgs
-        if ($LASTEXITCODE -ne 0) { Write-Host "  MSIX build FAILED (non-fatal)." -ForegroundColor Yellow }
+        try {
+            & "$root\msix\build-msix.ps1" @msixArgs
+            if ($LASTEXITCODE -ne 0) { throw "build-msix.ps1 exited $LASTEXITCODE" }
+        } catch {
+            $storeFailure = "$($_.Exception.Message)".Trim()
+            Write-Host "  MSIX build did NOT produce a Store package (non-fatal; the tag and winget are already out):" -ForegroundColor Yellow
+            Write-Host "    $storeFailure" -ForegroundColor Yellow
+        }
     } else {
         Step "8/9 Store MSIX"; Write-Host "  skipped (-SkipStore)."
     }
@@ -231,12 +286,18 @@ try {
     # -----------------------------------------------------------------------
     Step "9/9 Done"
     $wTxt = if ($SkipWinget) { "skipped" } else { "synced + PR submitted" }
-    $sTxt = if ($SkipStore)  { "skipped" } else { "built into msix\out\" }
+    $sTxt = if ($SkipStore) { "skipped" } elseif ($storeFailure) { "NOT BUILT - $storeFailure" } else { "built into msix\out\ (unsigned, stamp $Version)" }
     Write-Host "  [x] GitHub Release : https://github.com/$repo/releases/tag/$tag"
     Write-Host "  [x] winget/ : $wTxt"
-    Write-Host "  [x] Store MSIX : $sTxt"
+    Write-Host "  [$(if ($storeFailure -or $SkipStore) { ' ' } else { 'x' })] Store MSIX : $sTxt"
     Write-Host ""
-    Write-Host "  MANUAL (no CLI exists): upload msix\out\FileDO_*.msix to Partner Center." -ForegroundColor Yellow
+    if (-not $SkipStore -and -not $storeFailure) {
+        Write-Host "  MANUAL (no CLI exists), in this order - msix\README.md sections 4-6:" -ForegroundColor Yellow
+        Write-Host "    1. Partner Center > Create new submission > Packages: upload msix\out\FileDO_*.msix" -ForegroundColor Yellow
+        Write-Host "    2. Store listings: export, .\msix\build-store-listing-csv.ps1 -Refresh ReleaseNotes, import msix\out\store-import" -ForegroundColor Yellow
+        Write-Host "       (ReleaseNotes come from msix\listing\<code>.txt: write this release's notes there first)" -ForegroundColor Yellow
+        Write-Host "    3. Submit, then update over a real prior install and check the version and the notes." -ForegroundColor Yellow
+    }
     Write-Host "  Then verify: winget show $repo   (after the winget-pkgs PR merges)"
 }
 finally {

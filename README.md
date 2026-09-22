@@ -4,61 +4,14 @@
 
 <div align="center">
 
-[![Go Report Card](https://goreportcard.### 🔍 **Duplicate Fil### 🔍 **Duplicate File Management**
-- Multiple selection modes (oldest/newest/alphabetical)
-- Flexible actions (delete/move duplicates)
-- MD5 hash-based reliable identification
-- Hash caching for faster repeated scans
-- Support for saving/loading duplicate lists
-
-### 📋 **Copy Operations**
-- **Progress tracking** with detailed ETA calculations
-- **Timeout protection** for corrupted/slow filesystems (3-second timeout)
-- **Preserves metadata** - file permissions and timestamps
-- **Robust error handling** - continues copying even if individual files fail
-- **Universal support** - works with devices, folders, network shares, and individual files
-
-### 🧹 **Fast Wipe Operations**
-- **Ultra-fast method** - delete entire folder and recreate (milliseconds)
-- **Standard fallback** - file-by-file deletion with progress for restricted folders
-- **Metadata preservation** - maintains original folder permissions and timestamps
-- **Smart error handling** - works with system folders and access restrictions
-- **Universal compatibility** - supports devices, folders, and network shares
-- **Confirmation guardrails** - `wipe` always asks `Type WIPE to continue` before
-  deleting. Add `--force` (or `-y`) to skip the prompt in automation. Dangerous
-  targets - drive/share roots, reparse points (junctions/symlinks) and the system
-  TEMP folder - always require interactive confirmation and are never bypassed by
-  `--force`.
-
-### 🛡️ **Security Features**
-- High-speed secure data wiping to prevent recovery (4.7+ GB/s)
-- Fill operations with parallel writing and automatic cleanup
-- Batch processing for multiple targets
-- Comprehensive operation history**
-- **Built-in duplicate detection** - integrated into main application
-- **Multiple selection modes** (oldest/newest/alphabetical)
-- **Flexible actions** (delete/move duplicates)
-- **MD5 hash-based reliable identification**
-- **Hash caching** for faster repeated scans - the cache (`hash_cache.json`) lives
-  next to the executable and is read and written from the same location on every
-  run. A cached hash is only reused when the file's size **and** modification time
-  still match, so a changed file never produces a false duplicate match.
-- **Save/load duplicate lists** for batch processing
-- **Modular architecture** with dedicated fileduplicates package
-
-### 🛡️ **Security Features**
-- **High-speed secure data wiping** to prevent recovery
-- **Fill operations** with optimized buffer management
-- **Batch processing** for multiple targets
-- **Comprehensive operation history** with JSON logging
-- **Context-aware interruption** - graceful cancellation supportthub.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
+[![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **🔍 Storage Testing • 🚀 Performance Analysis • 🛡️ Security Wiping • 🎯 Fake Capacity Detection • 📁 Duplicate Management**
 
-*Storage tools for the pleasantly paranoid - because some drives lie about their size, and you deserve proof.*
+*A command-line tool for Windows storage: capacity and speed tests, fake-capacity detection, secure wipe, fill and duplicate management.*
 
 </div>
 
@@ -94,7 +47,7 @@ filedo folder D:\Cache w
 filedo C: info
 ```
 
-### � Compare & Cleanup
+### 🔄 Compare & Cleanup
 
 ```bash
 # Compare two folders and show summary + save report
@@ -190,7 +143,7 @@ winget install SerZhyAle.FileDO
 winget install filedo
 ```
 
-This installs the CLI tools (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) plus the `filedo_win` GUI command builder, and adds them all to your `PATH`. To upgrade later:
+This installs the CLI tools (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) plus the `filedo_win` GUI (a window with a page per job), and adds them all to your `PATH`. To upgrade later:
 
 ```powershell
 winget upgrade SerZhyAle.FileDO
@@ -202,19 +155,61 @@ To uninstall:
 winget uninstall SerZhyAle.FileDO
 ```
 
-#### Option 2 - Microsoft Store (MSIX)
+#### Option 2 - Installer (setup EXE)
 
-One package, two entries: a clickable **FileDO** tile - a GUI that builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the visual command builder and the CLI together.
+Download `FileDO-<version>-setup.exe` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest) and run it. This is the option that makes FileDO an ordinary Windows program rather than a folder of executables:
 
-#### Option 3 - Manual download
+- installs the binaries into `C:\Program Files\FileDO` and puts `filedo` on the system `PATH`;
+- creates a **Start menu entry** and a **desktop icon** for the FileDO window (`filedo_win.exe`);
+- registers the **Explorer integration**: a `File DO..` group in the right-click menu of every file - Secure (keeping, deleting or wiping the original, or under a random name), Unsecure (optionally deleting the container or starting the restored file), Wipe this file, Check this file, Info - plus the `.fd-sec` document type with its own icon, whose double-click is exactly the Unsecure-and-start entry: a console asks for the password there, restores the original under its true name into `%LOCALAPPDATA%\FileDO\reveal` - readable by this account and the system only - hands it to whatever program owns its real extension, and takes that copy away again when the console window closes. On Windows 11 the group lives under *Show more options*.
+
+The installer is not code-signed, so on first run Windows may show *Windows protected your PC* and then ask for administrator permission. Compare the SHA256 (the `.sha256` file published next to the download; `certutil -hashfile FileDO-<version>-setup.exe SHA256`), then choose *More info* and *Run anyway*. Why the warning appears, what the administrator prompt is used for, and what FileDO never does: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html).
+
+The last two are features you can deselect on the installer's Customize page, and turn on or off later with **Change** in Apps & features. For an unattended rollout:
+
+```powershell
+# everything, no questions asked
+FileDO-<version>-setup.exe /quiet
+# ..with a log, if it has to be explained afterwards
+FileDO-<version>-setup.exe /quiet /log install.log
+# remove it again
+FileDO-<version>-setup.exe /uninstall
+```
+
+The same release also publishes the bare `FileDO-<version>-windows-x64.msi` - the setup EXE carries exactly that file inside it - for deployment tools that want the package and the feature names directly:
+
+```powershell
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DesktopShortcut
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main   # no Explorer entries, no desktop icon
+```
+
+Uninstalling removes everything the installer wrote, the registry entries included.
+
+#### Option 3 - Microsoft Store (MSIX)
+
+One package, two entries: a clickable **FileDO** tile - a GUI with a page per job, whose Command page builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the graphical window and the CLI together. The Store build does **not** carry the Explorer entries: a packaged build can only get them through a signed shell handler, which is separate work.
+
+#### Option 4 - Manual download
 
 1. **Download**: Grab the latest `FileDO-<version>-windows-x64.zip` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest)
 2. **Extract** anywhere (e.g. `C:\Tools\FileDO`)
 3. **Optional**: add the folder to your `PATH` so you can call `filedo` from any directory
-4. **GUI**: the zip includes `filedo_win.exe` - run it next to `filedo.exe` for the visual command builder
+4. **GUI**: the zip includes `filedo_win.exe` - run it next to `filedo.exe` for the graphical window (a page per job, plus a Command page)
 5. **Run**: execute from command line or GUI
 
-#### Option 4 - Build from source
+#### Explorer integration without an installer
+
+winget, the portable zip and `go install` never run an installer, so they register nothing at all. Ask for the same group and document type yourself, and take them back the same way:
+
+```powershell
+filedo fdsec register              # for this user
+filedo fdsec register -all-users   # machine-wide (needs an elevated console)
+filedo fdsec unregister            # removes exactly what was written
+```
+
+FileDO removes only what it marked as its own: a document type that meanwhile belongs to another program is left alone, and whoever owned `.fd-sec` before FileDO did gets it back. A machine that already has the installer's registration is left alone too - the per-user copy would show every entry twice.
+
+#### Option 5 - Build from source
 
 ```powershell
 git clone https://github.com/SerZhyAle/FileDO.git
@@ -291,6 +286,58 @@ filedo C:\temp clean
 
 ---
 
+## 🔐 Secret Files (`.fd-sec`)
+
+One file goes into one container, behind a password, and comes back out - from the command line, from the
+Explorer menu, or from the **Protect** pages in the window. The original's true name, its real size and
+its timestamps are sealed inside; the container itself gives away nothing but its own size.
+
+```bash
+# Pack it (asks for the password twice, with no echo)
+filedo report.docx secure
+
+# Pack it and get rid of the original - the recoverable way, and the harder one
+filedo report.docx secure del p:hunter2
+filedo report.docx secure wipe p:hunter2
+
+# Get it back under its sealed name, or into this folder
+filedo report.fd-sec unsecure
+filedo report.fd-sec unsecure here
+
+# Open it in the program it belongs to, without unpacking it
+filedo report.fd-sec reveal
+```
+
+Four things said plainly, because a security feature that oversells itself is worse than none:
+
+- **An empty password is obfuscation only - no secrecy.** It is accepted, and every surface that takes a
+  password says what it is worth while it is being typed.
+- **`wipe` lowers the odds of recovery and promises nothing.** On SSDs and on copy-on-write or journaled
+  file systems, overwriting a file in place does not guarantee the old blocks are gone.
+- **A revealed copy lives in `%LOCALAPPDATA%\FileDO\reveal`**, read-only, readable by this account and the
+  system only. It goes when you say so, or when the program that opened it lets go of it.
+- **`unsecure start` - the double-click - puts its copy in that same protected folder**, not beside
+  the container, and removes it when the console window closes. That copy is your own file rather
+  than a read-only view, and if the program still has it open when the window closes, the next
+  FileDO start sweeps it. Plain `unsecure` is the one that brings the file back for good.
+- **`unsecure start` - the double-click - puts its copy in that same protected folder**, not beside
+  the container, and removes it when the console window closes. That copy is your own file rather
+  than a read-only view, and if the program still has it open when the window closes, the next
+  FileDO start sweeps it. Plain `unsecure` is the one that brings the file back for good.
+- **A power loss leaves that copy on disk until the next FileDO start**, which sweeps it. Nothing else
+  will.
+
+There is no recovery key: a forgotten password is a lost file. The original is kept unless you ask for it
+to go, and nothing is removed before the container has been written, read back and verified. Executables
+and scripts are never launched out of a container - they are extracted and their location shown.
+
+In the window, the **Protect** group carries the same three operations as pages: the password is masked,
+typed twice when packing, and handed to `filedo.exe` out of sight - it reaches no command line, no run
+report and no history file. A double-click on a `.fd-sec` does not open that window; it runs
+**Unsecure and start** on the console, exactly as the Explorer menu entry of the same name does.
+
+---
+
 ## 🌟 Key Features
 
 ### 🎯 **Fake Capacity Detection**
@@ -306,18 +353,42 @@ filedo C:\temp clean
 - Progress tracking with ETA calculations
 - Configurable file sizes (1MB to 10GB)
 
-### � **Duplicate File Management**
+### 🔍 **Duplicate File Management**
 - Multiple selection modes (oldest/newest/alphabetical)
 - Flexible actions (delete/move duplicates)
 - MD5 hash-based reliable identification
-- Hash caching for faster repeated scans
+- Hash caching for faster repeated scans - the cache (`hash_cache.json`) lives next to the executable, and
+  a cached hash is reused only while the file's size **and** modification time still match, so an edited
+  file never counts as a duplicate
 - Support for saving/loading duplicate lists
 
-### �🛡️ **Security Features**
+### 📋 **Copy Operations**
+- **Progress tracking** with detailed ETA calculations
+- **Timeout protection** for corrupted/slow filesystems (3-second timeout)
+- **Preserves metadata** - file permissions and timestamps
+- **Robust error handling** - continues copying even if individual files fail
+- **Universal support** - works with devices, folders, network shares, and individual files
+
+### 🧹 **Fast Wipe Operations**
+- **Ultra-fast method** - delete entire folder and recreate (milliseconds)
+- **Standard fallback** - file-by-file deletion with progress for restricted folders
+- **Metadata preservation** - maintains original folder permissions and timestamps
+- **Smart error handling** - works with system folders and access restrictions
+- **Universal compatibility** - supports devices, folders, and network shares
+- **Confirmation guardrails** - `wipe` always asks `Type WIPE to continue` before
+  deleting. Add `--force` (or `-y`) to skip the prompt in automation. Dangerous
+  targets - drive/share roots, reparse points (junctions/symlinks) and the system
+  TEMP folder - always require interactive confirmation and are never bypassed by
+  `--force`.
+
+### 🛡️ **Security Features**
 - High-speed secure data wiping to prevent recovery (4.7+ GB/s)
 - Fill operations with parallel writing and automatic cleanup
+- Secret files: one file per `.fd-sec` container behind a password, with a bounded plaintext window when
+  one is opened - see [Secret Files](#-secret-files-fd-sec) for what each choice does and does not promise
 - Batch processing for multiple targets
-- Comprehensive operation history
+- Comprehensive operation history, with credentials redacted before anything is written to it
+- **Context-aware interruption** - a graceful cancellation that still cleans up after itself
 
 ---
 
@@ -382,23 +453,26 @@ filedo C:\temp clean
 
 ## 🖥️ GUI Application
 
-**FileDO GUI** (`filedo_win.exe`) - a VB.NET Windows Forms command builder that can assemble **any** FileDO command and run it:
+**FileDO GUI** (`filedo_win.exe`) - a VB.NET Windows Forms shell: a rail of jobs on the left and one numbered page per job - what to work on, which parameters, then check and run - plus a **Command** page, the expert builder that can assemble **any** FileDO command and run it. What the window holds:
 
 - ✅ **5-language UI** (EN / RU / UA / DE / FR, remembered) with an **inline help panel**: what the selected operation and flags do, the expected result, and an example for the target
 - ✅ **Target selection** (device / folder / network / file); for **device** the path becomes a **drive-letter picker**, and choosing the system drive explains the `%TEMP%\FileDO_Operations` redirect
-- ✅ **Every operation** in one dropdown: info, speed, test, fill, clean, cd (duplicates), the full copy family (copy / fastcopy / synccopy / balanced / maxcopy / smartcopy / safecopy), wipe, compare, check, probe, recover, from, hist
+- ✅ **Every operation** on the Command page, in one dropdown: info, speed, test, fill, clean, cd (duplicates), the full copy family (copy / fastcopy / synccopy / balanced / maxcopy / smartcopy / safecopy), wipe, compare, check, probe, recover, from, hist
 - ✅ **Source + destination** fields for copy and compare
 - ✅ **Context-aware flags** (max, del, nodel, short, hist, `--force` for wipe) and duplicate/compare delete rules
-- ✅ **Live command preview** in an editable box - tweak by hand for anything the builder doesn't cover
+- ✅ **A page per job** in the default window - capacity, speed, info, damaged-files check, raw probe, recover, duplicates, compare, clean, copy, fill, wipe and the three secret-file jobs - each carrying every option the CLI takes for it, including all twenty-nine `check` flags
+- ✅ **Live command preview** in an editable box on the Command page - tweak by hand for anything the builder doesn't cover
 - ✅ **Browse** buttons for paths, **Copy command** to clipboard, and **RUN** in a console window
 - ✅ Finds `filedo.exe` next to itself or on `PATH` (works under the Store package and portable zip alike)
-- ✅ **About window** (the **About** button, top right): build stamp, author, and links to the site, the source, the issue tracker, the privacy page and the author's other tools
-- ✅ **Send logs to the author** - the one button in that window packs the FileDO logs found on this machine into a single zip, opens the folder with it selected, puts its path on the clipboard, and opens your default mail program already addressed and titled. You see the zip first, and nothing is sent until you press Send yourself
+- ✅ **About page**: build stamp, author, and links to the site, the source, the issue tracker, the privacy page and the author's other tools
+- ✅ **Send logs to the author** - the one button on that page packs the FileDO logs found on this machine into a single zip, opens the folder with it selected, puts its path on the clipboard, and opens your default mail program already addressed and titled. You see the zip first, and nothing is sent until you press Send yourself
 
 ```powershell
 filedo_win              # if installed via winget / Store (on PATH)
 filedo_win.exe          # next to filedo.exe in the portable zip
 ```
+
+The **Protect** pages handle `.fd-sec` secret files - make a file secret, get the original back, or open it without unpacking. The password is masked and never enters a command line. Handing the window a `.fd-sec` path directly opens it on that container's page (`filedo_win.exe C:\a\x.fd-sec`); a double-click in Explorer does not go through the window at all - it runs **Unsecure and start** on the console, as described above. History, Settings and About have pages of their own, and the older command-builder window is still there behind `filedo_win.exe --legacy-builder`.
 
 **Ships everywhere:** the GUI is included in the winget package, the portable zip, the MSI, and is the clickable tile of the Microsoft Store (MSIX) package.
 
@@ -448,7 +522,7 @@ filedo network \\pc\share info
 
 > **🔥 Enhanced Interruption**: All long-running operations support **Ctrl+C graceful cancellation** with automatic cleanup. Context-aware interruption checks at optimal points for immediate responsiveness.
 
-> **�️ Secure Wiping**: `fill <size> del` overwrites free space with optimized buffer management and context-aware writing for secure data deletion.
+> **🛡️ Secure Wiping**: `fill <size> del` overwrites free space with optimized buffer management and context-aware writing for secure data deletion.
 
 > **🟢 Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. Use `clean` command to remove them automatically.
 
@@ -590,7 +664,7 @@ FileDO/
 - **Copy**: trimmed copy directory walks
 
 **v2605152056**
-- **Installer**: MSI installer; application icon embedded in all EXEs and the installed-programs entry
+- **Installer**: setup EXE (a WiX bundle carrying the MSI) plus the bare MSI; application icon embedded in all EXEs and the installed-programs entry
 - **Store**: Microsoft Store submission spec and social preview image
 
 **v2604272228**

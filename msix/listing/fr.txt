@@ -1,0 +1,87 @@
+# Store listing source for fr (Partner Center locale: fr).
+# Read by build-store-listing-csv.ps1, which fills only empty cells of a fresh export.
+# Prose style: ".." au lieu des points de suspension, trait d'union simple au lieu du tiret.
+
+@@ShortDescription
+Vérifiez la vraie capacité et la vitesse des disques et des cartes SD, repérez les faux supports, effacez vos données en toute sécurité, faites le tri dans les fichiers en double et protégez un fichier par mot de passe - dans une fenêtre ou en ligne de commande. Sans réseau, sans compte, sans publicité.
+
+@@Description
+FileDO vous dit si un support est bien ce qu'il prétend être, et vous donne les outils pour prendre soin des données qu'il contient.
+
+Ouvrez-le depuis le menu Démarrer ou tapez filedo dans n'importe quel terminal - le même moteur tourne derrière les deux.
+
+VÉRIFIER
+- Test de capacité : écrit de vraies données sur tout le support puis les relit, si bien qu'une clé USB ou une carte SD qui promet plus d'espace qu'elle n'en a est démasquée avant d'avaler vos fichiers.
+- Test de vitesse des disques, des dossiers et des partages réseau, avec des mesures de temps détaillées.
+
+RANGER ET DÉPLACER
+- Recherche de doublons : hachage MD5 avec un cache réutilisé d'une exécution à l'autre ; suppression ou déplacement des doublons selon le plus ancien, le plus récent ou le nom.
+- Comparer deux dossiers et copier de grandes arborescences avec progression en direct, temps restant estimé et ménagement des disques lents ou endommagés.
+
+EFFACER
+- Effacer un dossier ou remplir l'espace libre pour rendre la récupération plus difficile. L'effacement demande toujours de taper WIPE, et les racines de disque, les jonctions et les dossiers temporaires du système ne sont jamais forcés.
+
+PROTÉGER
+- Placer un fichier dans un conteneur .fd-sec protégé par mot de passe, récupérer l'original ou ouvrir le contenu dans le programme qui lui correspond sans le décompresser - depuis une copie en lecture seule que seul votre compte peut lire et qui est supprimée dès que vous avez terminé. Un mot de passe vide est accepté et ne signifie qu'une simple dissimulation, pas un secret ; FileDO le dit à l'endroit où vous le saisissez. Le format du conteneur est publié en entier : vos données restent lisibles sans FileDO.
+
+VIE PRIVÉE
+FileDO fonctionne entièrement sur votre appareil. Il ne contient ni code réseau, ni télémétrie, ni publicité, ni compte. Le code source est ouvert : https://github.com/SerZhyAle/FileDO
+
+BON À SAVOIR
+- Voici l'édition Microsoft Store. Elle n'ajoute pas d'entrées au menu contextuel de l'Explorateur et ne prend pas en charge le type de fichier .fd-sec - les deux viennent avec l'installateur MSI. Les mêmes opérations sont disponibles dans la fenêtre et avec la commande filedo.
+- FileDO a besoin de l'accès complet (full trust) d'une application de bureau aux données brutes des disques et des périphériques : le test de capacité, la mesure de vitesse et l'effacement sécurisé ne peuvent pas fonctionner sans lui. L'effacement et le remplissage détruisent des données par conception et demandent toujours confirmation avant de toucher aux racines de disque ou aux dossiers système.
+- Windows 10 version 1903 ou ultérieure.
+
+@@Feature1
+Test de capacité : écrit et vérifie de vraies données sur tout le support pour démasquer les fausses clés USB et cartes SD
+
+@@Feature2
+Tests de vitesse en lecture et en écriture pour les disques, les dossiers et les partages réseau, avec des mesures de temps détaillées
+
+@@Feature3
+Recherche de doublons par hachage MD5 avec un cache réutilisable ; suppression ou déplacement selon le plus ancien, le plus récent ou le nom
+
+@@Feature4
+Comparer deux dossiers et copier de grandes arborescences avec progression en direct, temps restant estimé et ménagement des disques lents ou endommagés
+
+@@Feature5
+Effacer un dossier ou remplir l'espace libre pour rendre la récupération plus difficile - demande toujours de taper WIPE d'abord
+
+@@Feature6
+Fichiers secrets : placer un fichier dans un conteneur .fd-sec protégé par mot de passe, le récupérer ou l'ouvrir sans le décompresser
+
+@@Feature7
+La copie d'un conteneur ouvert est en lecture seule, réservée à votre compte et supprimée dès que vous avez terminé
+
+@@Feature8
+Une fenêtre pour chaque tâche et la commande filedo pour n'importe quel terminal - un seul moteur derrière les deux
+
+@@Feature9
+Interface en anglais, russe, ukrainien, allemand et français
+
+@@Feature10
+Code source ouvert, sans accès au réseau, sans télémétrie, sans publicité, sans compte
+
+@@SearchTerm1
+tester clé usb
+
+@@SearchTerm2
+vérifier capacité carte sd
+
+@@SearchTerm3
+test de vitesse disque
+
+@@SearchTerm4
+effacement sécurisé
+
+@@SearchTerm5
+trouver fichiers en double
+
+@@SearchTerm6
+protéger fichier mot de passe
+
+@@SearchTerm7
+faux usb capacité
+
+@@ReleaseNotes
+Première version sur le Microsoft Store : la fenêtre FileDO et la commande filedo avec tests de capacité et de vitesse, recherche de doublons, effacement sécurisé et fichiers secrets.

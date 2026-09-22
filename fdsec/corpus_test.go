@@ -52,10 +52,11 @@ func TestRoundTrip_EmptyCredential(t *testing.T) {
 // A credential at or above the threshold takes the fast branch and still
 // round trips; the branch is recomputed by the reader, never stored.
 func TestRoundTrip_ThresholdBranches(t *testing.T) {
-	p := fastParams()                     // threshold 8
-	short := strings.Repeat("a", 7)       // below: slow Argon2id branch
-	long := strings.Repeat("a", 8)        // at: fast salted-hash branch
-	longer := strings.Repeat("long ", 20) // well above
+	p := fastParams()
+	th := int(activeProfile.Threshold)        // 8 under testProfile
+	short := strings.Repeat("a", th-1)        // below: slow Argon2id branch
+	long := strings.Repeat("a", th)           // at: fast salted-hash branch
+	longer := strings.Repeat("long ", 5*th/2) // well above
 	for _, cred := range []string{short, long, longer} {
 		roundTrip(t, []byte("payload"), fixedTimes, NewCredential(cred), p)
 	}
@@ -111,16 +112,15 @@ func TestMetadata_NameAndTimeEdges(t *testing.T) {
 }
 
 // Zero Params fields take the package defaults, and the defaults land in the
-// header byte for byte (FDSEC-FORMAT.md section 6 writer defaults).
+// masked header byte for byte (FDSEC-FORMAT.md section 6 writer defaults).
 func TestParams_DefaultsEchoInHeader(t *testing.T) {
-	container := packBytes(t, []byte("defaults"), fixedTimes, NewCredential("pw"), Params{})
-	h, err := parseHeader(bytes.NewReader(container))
+	cred := NewCredential("pw")
+	container := packBytes(t, []byte("defaults"), fixedTimes, cred, Params{})
+	h, _, err := openHead(bytes.NewReader(container), cred)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h.ClusterAlignment != DefaultClusterAlignment || h.ChunkSize != DefaultChunkSize ||
-		h.Threshold != DefaultThreshold || h.KDFMemoryKiB != DefaultKDFMemoryKiB ||
-		h.KDFTime != DefaultKDFTime || h.KDFLanes != DefaultKDFLanes {
+	if h.ClusterAlignment != DefaultClusterAlignment || h.ChunkSize != DefaultChunkSize {
 		t.Fatalf("defaults not recorded: %+v", h)
 	}
 }
@@ -131,10 +131,10 @@ func TestParams_DefaultsEchoInHeader(t *testing.T) {
 func TestParams_RejectsImpossible(t *testing.T) {
 	base := fastParams()
 	bad := []Params{
-		{ClusterAlignment: 513, ChunkSize: 1024, Threshold: 8, KDFMemoryKiB: 1, KDFTime: 1, KDFLanes: 1}, // not a power of two
-		{ClusterAlignment: 256, ChunkSize: 512, Threshold: 8, KDFMemoryKiB: 1, KDFTime: 1, KDFLanes: 1},  // below 512
-		{ClusterAlignment: 512, ChunkSize: 1000, Threshold: 8, KDFMemoryKiB: 1, KDFTime: 1, KDFLanes: 1}, // not a multiple of the alignment
-		{ClusterAlignment: 512, ChunkSize: 256, Threshold: 8, KDFMemoryKiB: 1, KDFTime: 1, KDFLanes: 1},  // chunk slot below the alignment
+		{ClusterAlignment: 513, ChunkSize: 1024}, // not a power of two
+		{ClusterAlignment: 256, ChunkSize: 512},  // below 512
+		{ClusterAlignment: 512, ChunkSize: 1000}, // not a multiple of the alignment
+		{ClusterAlignment: 512, ChunkSize: 256},  // chunk slot below the alignment
 	}
 	for i, p := range bad {
 		if _, err := p.withDefaults(); err == nil {
@@ -160,23 +160,56 @@ func TestPack_SizeMismatchRefused(t *testing.T) {
 	}
 }
 
-// The frame dispatch: magic means framed, anything else is not (the quiet
-// fallback point, FDSEC-FORMAT.md section 13.4).
-func TestIsFramed(t *testing.T) {
-	container := packBytes(t, []byte("x"), fixedTimes, NewCredential("pw"), fastParams())
-	if !IsFramed(container) {
-		t.Fatal("container not recognized as framed")
+// The container says nothing about its own nature (FDSEC-FORMAT.md sections 4,
+// 13.4, 14). This is the regression guard for the whole point of the masked
+// head: no marker string anywhere, no constant bytes shared by two containers
+// of the same input, and no stretch of repeated bytes where the reserved key
+// slots and their zero payloads sit.
+func TestContainer_CarriesNoMarker(t *testing.T) {
+	cred := NewCredential("pw")
+	a := packBytes(t, []byte("x"), fixedTimes, cred, fastParams())
+	b := packBytes(t, []byte("x"), fixedTimes, cred, fastParams())
+
+	for _, marker := range []string{"FDSEC", "fdsec", "fd-sec", "FileDO"} {
+		if bytes.Contains(a, []byte(marker)) {
+			t.Fatalf("the container carries the marker %q", marker)
+		}
 	}
-	if IsFramed([]byte("FDSE")) || IsFramed([]byte{}) || IsFramed(randContent(t, 64)) {
-		t.Fatal("non-frame recognized as framed")
+	if len(a) != len(b) {
+		t.Fatalf("same input gave different lengths: %d and %d", len(a), len(b))
+	}
+	if bytes.Equal(a[:preMeta], b[:preMeta]) {
+		t.Fatal("two containers of the same input share their head byte for byte")
+	}
+	// The 640-byte key-slot region is 561 zero bytes before masking (the empty
+	// slots plus slot 0's reserved tail). Unmasked, that would be the loudest
+	// pattern in the file.
+	if run := longestRun(a[headerSize:preMeta]); run > 8 {
+		t.Fatalf("the key-slot region has a run of %d equal bytes: it is not masked", run)
 	}
 }
 
-// A container shorter than the header is damage, not a crash.
+func longestRun(b []byte) int {
+	best, cur := 0, 0
+	for i := range b {
+		if i > 0 && b[i] == b[i-1] {
+			cur++
+		} else {
+			cur = 1
+		}
+		if cur > best {
+			best = cur
+		}
+	}
+	return best
+}
+
+// A file too short to hold a head is damage, not a crash - and the report says
+// nothing about whether it ever was a container.
 func TestUnpack_TooShort(t *testing.T) {
-	for _, n := range []int{0, 4, 5, 80} {
-		if _, _, err := unpackContainer(make([]byte, n), NewCredential("pw")); !errors.Is(err, ErrDamaged) && !errors.Is(err, ErrUnsupported) {
-			t.Fatalf("%d bytes: want damaged or unsupported, got %v", n, err)
+	for _, n := range []int{0, 4, 5, 80, preMeta - 1} {
+		if _, _, err := unpackContainer(make([]byte, n), NewCredential("pw")); !errors.Is(err, ErrDamaged) {
+			t.Fatalf("%d bytes: want damaged, got %v", n, err)
 		}
 	}
 }

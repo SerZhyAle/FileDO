@@ -1,4 +1,8 @@
 @echo off
+rem Quick single-binary dev loop: filedo.exe with -race, nothing else.
+rem The distributable build - all five executables plus the MSI and the setup
+rem EXE - is build.ps1, and needs no switch:  .\build.ps1   (add -Test for the
+rem test gate).
 setlocal enabledelayedexpansion
 
 echo Getting version from Git...

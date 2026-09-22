@@ -8,26 +8,20 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-// Params are the per-container header parameters a writer chooses
+// Params are the per-container layout parameters a writer chooses
 // (FDSEC-FORMAT.md sections 4, 6). A zero field takes its default; the chosen
-// values are recorded in the header and a reader always obeys the file.
+// values are recorded in the masked header and a reader always obeys the file.
+// The KDF work factor is not here: it belongs to the format version, because a
+// masked header cannot carry the parameters of its own mask (section 6).
 type Params struct {
 	ClusterAlignment uint32
 	ChunkSize        uint32
-	Threshold        uint32
-	KDFMemoryKiB     uint32
-	KDFTime          uint32
-	KDFLanes         uint8
 }
 
 func DefaultParams() Params {
 	return Params{
 		ClusterAlignment: DefaultClusterAlignment,
 		ChunkSize:        DefaultChunkSize,
-		Threshold:        DefaultThreshold,
-		KDFMemoryKiB:     DefaultKDFMemoryKiB,
-		KDFTime:          DefaultKDFTime,
-		KDFLanes:         DefaultKDFLanes,
 	}
 }
 
@@ -38,35 +32,11 @@ func (p Params) withDefaults() (Params, error) {
 	if p.ChunkSize == 0 {
 		p.ChunkSize = DefaultChunkSize
 	}
-	if p.Threshold == 0 {
-		p.Threshold = DefaultThreshold
-	}
-	if p.KDFMemoryKiB == 0 {
-		p.KDFMemoryKiB = DefaultKDFMemoryKiB
-	}
-	if p.KDFTime == 0 {
-		p.KDFTime = DefaultKDFTime
-	}
-	if p.KDFLanes == 0 {
-		p.KDFLanes = DefaultKDFLanes
-	}
-	q := header{
-		ClusterAlignment: p.ClusterAlignment,
-		ChunkSize:        p.ChunkSize,
-		Threshold:        p.Threshold,
-		KDFMemoryKiB:     p.KDFMemoryKiB,
-		KDFTime:          p.KDFTime,
-		KDFLanes:         p.KDFLanes,
-	}
 	switch {
-	case !isPow2(q.ClusterAlignment) || q.ClusterAlignment < 512 || q.ClusterAlignment > 1<<21:
-		return p, fmt.Errorf("fdsec: cluster alignment %d must be a power of two in [512, 2097152]", q.ClusterAlignment)
-	case q.ChunkSize < q.ClusterAlignment || q.ChunkSize%q.ClusterAlignment != 0:
-		return p, fmt.Errorf("fdsec: chunk size %d must be a multiple of cluster alignment %d", q.ChunkSize, q.ClusterAlignment)
-	case q.Threshold < 1:
-		return p, fmt.Errorf("fdsec: threshold %d must be at least 1", q.Threshold)
-	case q.KDFMemoryKiB < 1 || q.KDFTime < 1 || q.KDFLanes < 1:
-		return p, fmt.Errorf("fdsec: impossible KDF parameters M=%d T=%d P=%d", q.KDFMemoryKiB, q.KDFTime, q.KDFLanes)
+	case !isPow2(p.ClusterAlignment) || p.ClusterAlignment < 512 || p.ClusterAlignment > 1<<21:
+		return p, fmt.Errorf("fdsec: cluster alignment %d must be a power of two in [512, 2097152]", p.ClusterAlignment)
+	case p.ChunkSize < p.ClusterAlignment || p.ChunkSize%p.ClusterAlignment != 0:
+		return p, fmt.Errorf("fdsec: chunk size %d must be a multiple of cluster alignment %d", p.ChunkSize, p.ClusterAlignment)
 	}
 	return p, nil
 }
@@ -80,15 +50,38 @@ type Info struct {
 	Params       Params
 }
 
+// StreamOption tunes a Pack or Unpack call. The only option today is
+// WithProgress, used by the CLI for the progress line on large files.
+type StreamOption func(*streamOpts)
+
+type streamOpts struct {
+	progress func(done, total int64)
+}
+
+// WithProgress registers a callback invoked at chunk boundaries with the
+// plaintext bytes processed so far and the total. It must not block.
+func WithProgress(fn func(done, total int64)) StreamOption {
+	return func(o *streamOpts) { o.progress = fn }
+}
+
+func newStreamOpts(opts []StreamOption) streamOpts {
+	var o streamOpts
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
+}
+
 // Pack streams src into a complete suite-1 container written to dst,
 // implementing the writer algorithm of FDSEC-FORMAT.md section 10: digest the
-// original in one pass, then write header, slots, sealed metadata, alignment
+// original in one pass, then write the masked head, sealed metadata, alignment
 // pad, sealed chunks and tail pad. src is read twice (it must be seekable);
 // meta.Size must equal the number of bytes src yields. The empty credential is
 // accepted and produces obfuscation with no secrecy - callers must say so at
 // the point of entry.
-func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Params) (Info, error) {
+func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Params, opts ...StreamOption) (Info, error) {
 	var info Info
+	so := newStreamOpts(opts)
 	p, err := p.withDefaults()
 	if err != nil {
 		return info, err
@@ -137,11 +130,6 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 		Version:          FormatVersion,
 		Suite:            SuiteID1,
 		Flags:            flagV1Conform,
-		KDFMemoryKiB:     p.KDFMemoryKiB,
-		KDFTime:          p.KDFTime,
-		KDFLanes:         p.KDFLanes,
-		KDFKeyLen:        fileKeySize,
-		Threshold:        p.Threshold,
 		ChunkSize:        p.ChunkSize,
 		ClusterAlignment: p.ClusterAlignment,
 	}
@@ -150,8 +138,12 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 	info.HeaderDigest = h.HeaderDigest
 
 	// Key slot 0: the file key wrapped under the credential-derived key
-	// (FDSEC-FORMAT.md section 5). Wrapping, not direct encryption.
-	kek := deriveKEK(cred, &h)
+	// (FDSEC-FORMAT.md section 5). Wrapping, not direct encryption. The same
+	// derivation yields the mask that hides everything after the salt.
+	maskKey, kek, err := deriveKeys(cred, salt)
+	if err != nil {
+		return info, err
+	}
 	kekAEAD, err := newXAEAD(kek)
 	if err != nil {
 		return info, err
@@ -182,13 +174,15 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 	last := h.lastLen(n)
 	info.Chunks = k
 
-	// The header, slots and sealed metadata, then random bytes to the cluster
-	// boundary (FDSEC-FORMAT.md section 3).
-	if _, err := dst.Write(h.marshal()); err != nil {
-		return info, fmt.Errorf("fdsec: write header: %w", err)
+	// The head - salt in the clear, everything after it masked - then the
+	// sealed metadata and random bytes to the cluster boundary
+	// (FDSEC-FORMAT.md section 3).
+	head, err := buildHead(&h, &slot0, maskKey)
+	if err != nil {
+		return info, err
 	}
-	if _, err := dst.Write(marshalSlots(&slot0)); err != nil {
-		return info, fmt.Errorf("fdsec: write key slots: %w", err)
+	if _, err := dst.Write(head); err != nil {
+		return info, fmt.Errorf("fdsec: write head: %w", err)
 	}
 	if _, err := dst.Write(sealedMeta); err != nil {
 		return info, fmt.Errorf("fdsec: write metadata: %w", err)
@@ -227,6 +221,9 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 			return info, fmt.Errorf("fdsec: write chunk %d: %w", i, err)
 		}
 		written += int64(len(ct))
+		if so.progress != nil {
+			so.progress(int64(i)*capacity+int64(want), n)
+		}
 	}
 	if written != (k-1)*int64(p.ChunkSize)+last+tagSize {
 		return info, fmt.Errorf("fdsec: internal: payload length arithmetic is wrong")
