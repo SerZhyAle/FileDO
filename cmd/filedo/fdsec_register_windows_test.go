@@ -152,7 +152,7 @@ func TestFdsecRegisterWritesTheGroupAndTheDocumentType(t *testing.T) {
 	// Every entry the owner asked for, each one running the verb it says.
 	for _, want := range []struct{ key, label, cmd string }{
 		{"10Secure", "Secure", `"%1" secure`},
-		{"20SecureDel", "Secure and delete original", `"%1" secure del`},
+		{"20SecureDel", "Secure and delete original", `"%1" secure del -y`},
 		{"30SecureWipe", "Secure and wipe original", `"%1" secure wipe`},
 		{"40SecureRename", "Secure with a random name", `"%1" secure rename`},
 		{"50Unsecure", "Unsecure", `"%1" unsecure`},

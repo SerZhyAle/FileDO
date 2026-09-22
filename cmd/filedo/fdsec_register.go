@@ -123,11 +123,20 @@ type fdsecMenuItem struct {
 // question in a console window is not the same thing as choosing the
 // operation before anything happens.
 //
-// Every destructive entry still prompts in the console it opens: the menu
-// chooses the operation, it does not skip the confirmation (invariant 9).
+// A menu entry that names its disposition is the confirmation. The user read
+// "and delete original" and clicked it before anything was touched, so the
+// console does not ask the same question a second time: the entry carries -y,
+// exactly as the window does for the same reason (JobView.FdsecOptionArgs).
+// -y skips the prompt and nothing else - the container is still verified
+// chunk by chunk against the original's own digest before the original is
+// touched, and the collision guard still refuses to clobber (invariant 9).
+//
+// Wipe is the one entry that still asks. An overwrite-in-place is the only
+// disposition here that no undelete tool can walk back, so it keeps its typed
+// WIPE, and the honest caveat it prints is information rather than a prompt.
 var fdsecMenuItems = []fdsecMenuItem{
 	{key: "10Secure", label: "Secure", args: `"%1" secure`},
-	{key: "20SecureDel", label: "Secure and delete original", args: `"%1" secure del`},
+	{key: "20SecureDel", label: "Secure and delete original", args: `"%1" secure del -y`},
 	{key: "30SecureWipe", label: "Secure and wipe original", args: `"%1" secure wipe`},
 	{key: "40SecureRename", label: "Secure with a random name", args: `"%1" secure rename`},
 	{key: "50Unsecure", label: "Unsecure", args: `"%1" unsecure`, separator: true},

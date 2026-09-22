@@ -155,6 +155,8 @@ To uninstall:
 winget uninstall SerZhyAle.FileDO
 ```
 
+Also available in the [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) - the same tools, installed and updated by the Store.
+
 #### Option 2 - Installer (setup EXE)
 
 Download `FileDO-<version>-setup.exe` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest) and run it. This is the option that makes FileDO an ordinary Windows program rather than a folder of executables:

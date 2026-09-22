@@ -264,7 +264,7 @@
           <RegistryValue Key="shell\20SecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
           <RegistryValue Key="shell\20SecureDel" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\20SecureDel\command" Type="string"
-                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure del --pause --no-history" />
+                         Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure del -y --pause --no-history" />
 
           <RegistryValue Key="shell\30SecureWipe" Type="string" Value="Secure and wipe original" />
           <RegistryValue Key="shell\30SecureWipe" Name="MUIVerb" Type="string" Value="Secure and wipe original" />

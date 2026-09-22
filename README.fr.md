@@ -53,6 +53,8 @@ winget install SerZhyAle.FileDO
 
 Installe les outils en ligne de commande (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) et la fenêtre graphique `filedo_win` (une page par tâche), et les ajoute au `PATH`.
 
+Également disponible dans le [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) - les mêmes outils, installés et mis à jour par le Store.
+
 #### Option 2 - Programme d'installation (setup EXE)
 
 Téléchargez `FileDO-<version>-setup.exe` depuis les [releases](https://github.com/SerZhyAle/FileDO/releases/latest) et lancez-le. C'est cette option qui fait de FileDO un programme Windows ordinaire plutôt qu'un dossier d'exécutables:

@@ -451,9 +451,11 @@
               <span data-l="ru"
                 ><b>Secure</b> - запаковать файл в контейнер
                 <code>.fd-sec</code> рядом, оригинал остаётся.
-                <b>Secure and delete original</b> - обычное удаление оригинала,
-                с подтверждением. <b>Secure and wipe original</b> - затирание
-                оригинала на месте, тоже с подтверждением.
+                <b>Secure and delete original</b> - обычное удаление
+                оригинала: сам пункт меню и есть подтверждение, второй раз
+                ничего не спросят. <b>Secure and wipe original</b> - затирание
+                оригинала на месте, и только оно всё ещё просит набрать WIPE:
+                его не отменит ни одна программа восстановления.
                 <b>Secure with a random name</b> - контейнер получает случайное
                 имя без расширения. Оригинал трогают только после того, как
                 контейнер проверен побайтно.</span
@@ -461,9 +463,11 @@
                 ><b>Secure</b> packs the file into a <code>.fd-sec</code>
                 container beside it and keeps the original.
                 <b>Secure and delete original</b> deletes the original
-                afterwards - an ordinary delete, confirmed first.
-                <b>Secure and wipe original</b> overwrites it in place, also
-                confirmed first. <b>Secure with a random name</b> gives the
+                afterwards - an ordinary delete, and the menu entry you picked
+                is the confirmation, so nothing is asked twice.
+                <b>Secure and wipe original</b> overwrites it in place, and
+                that one still asks you to type WIPE: no undelete tool walks
+                it back. <b>Secure with a random name</b> gives the
                 container a random name with no extension. The original is
                 touched only after the container has been verified chunk by
                 chunk.</span
@@ -471,8 +475,10 @@
                 ><b>Secure</b> - запакувати файл у контейнер
                 <code>.fd-sec</code> поруч, оригінал лишається.
                 <b>Secure and delete original</b> - звичайне видалення
-                оригіналу, з підтвердженням. <b>Secure and wipe original</b> -
-                затирання оригіналу на місці, теж із підтвердженням.
+                оригіналу: сам пункт меню і є підтвердженням, удруге нічого не
+                спитають. <b>Secure and wipe original</b> - затирання
+                оригіналу на місці, і лише воно досі просить набрати WIPE:
+                його не поверне жодна програма відновлення.
                 <b>Secure with a random name</b> - контейнер отримує випадкову
                 назву без розширення. Оригінал чіпають лише після того, як
                 контейнер перевірено почанково.</span
