@@ -159,6 +159,7 @@ foreach ($t in 'go', 'goversioninfo') {
     }
 }
 $makeappx = Find-SdkTool "makeappx.exe"
+$makepri  = Find-SdkTool "makepri.exe"
 $msbuild  = Find-MSBuild
 try { Add-Type -AssemblyName System.Drawing -ErrorAction Stop } catch { Add-Type -AssemblyName System.Drawing.Common }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -223,6 +224,7 @@ Copy-Item $cfg (Join-Path $stage "filedo_win.exe.config") -Force
 Write-Host " OK"
 
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt") -Force
+Copy-Item (Join-Path $root "THIRD-PARTY-NOTICES.txt") (Join-Path $stage "THIRD-PARTY-NOTICES.txt") -Force
 
 # --- logos -------------------------------------------------------------------
 function New-Logo([string]$src, [string]$dst, [int]$size) {
@@ -246,6 +248,18 @@ New-Logo $iconSrc (Join-Path $assetsOut "Square44x44Logo.png")   44
 New-Logo $iconSrc (Join-Path $assetsOut "Square71x71Logo.png")   71
 New-Logo $iconSrc (Join-Path $assetsOut "Square150x150Logo.png") 150
 New-Logo $iconSrc (Join-Path $assetsOut "StoreLogo.png")         50
+
+# Windows selects target-size and unplated logo variants only when resources.pri indexes them.
+# Keep every derivative mechanically tied to the one FileDO mark rather than maintaining a
+# second set of artwork that can drift from the MSI, EXE and site icon.
+$logoVariants = New-Object System.Collections.Generic.List[string]
+foreach ($size in 16, 24, 32, 48, 256) {
+    foreach ($form in '', '_altform-unplated', '_altform-lightunplated') {
+        $leaf = "Square44x44Logo.targetsize-$size$form.png"
+        New-Logo $iconSrc (Join-Path $assetsOut $leaf) $size
+        $logoVariants.Add("Assets\$leaf")
+    }
+}
 Write-Host " OK"
 
 # --- manifest ----------------------------------------------------------------
@@ -269,6 +283,25 @@ switch ($Cli) {
     'hidden' { $cliApp.SelectSingleNode('uap:VisualElements', $ns).SetAttribute('AppListEntry', 'none') }
 }
 [System.IO.File]::WriteAllText((Join-Path $stage "AppxManifest.xml"), $xml.OuterXml, (New-Object System.Text.UTF8Encoding($false)))
+
+# A PRI is not cosmetic: without it Windows ignores the targetsize-* and unplated forms above.
+# Generate the config on every build (the SDK owns its schema), then index the final staged manifest
+# and assets. The manifest remains the Store's language declaration, so assert all five shipped
+# languages before and after packing rather than assuming a resource index cannot narrow them.
+$expectedResourceLanguages = @('en-us', 'ru', 'uk', 'de', 'fr')
+$manifestResourceLanguages = @($xml.SelectNodes('/m:Package/m:Resources/m:Resource', $ns) | ForEach-Object { $_.GetAttribute('Language') })
+if (($manifestResourceLanguages -join ',') -cne ($expectedResourceLanguages -join ',')) {
+    Fail "manifest Resource languages are '$($manifestResourceLanguages -join ',')', expected '$($expectedResourceLanguages -join ',')'. The PRI must not narrow Store listing reach."
+}
+$priConfig = Join-Path $outDir 'resources.priconfig.xml'
+$priFile = Join-Path $stage 'resources.pri'
+Write-Host "Indexing logo resources..." -NoNewline
+$priOut = & $makepri createconfig /cf $priConfig /dq en-US /pv 10.0.0 /o 2>&1
+if ($LASTEXITCODE -ne 0) { Write-Host ""; Write-Host ($priOut | Out-String); Fail "makepri createconfig failed ($LASTEXITCODE)" }
+$priOut = & $makepri new /pr $stage /cf $priConfig /mn (Join-Path $stage 'AppxManifest.xml') /of $priFile /o 2>&1
+if ($LASTEXITCODE -ne 0) { Write-Host ""; Write-Host ($priOut | Out-String); Fail "makepri new failed ($LASTEXITCODE)" }
+if (-not (Test-Path $priFile) -or (Get-Item $priFile).Length -eq 0) { Fail "makepri did not produce a non-empty resources.pri." }
+Write-Host " OK"
 
 # --- pack --------------------------------------------------------------------
 $suffix  = if ($testMode) { "_LOCALTEST" } else { "" }
@@ -317,8 +350,15 @@ foreach ($a in $apps) {
         if ($entries -notcontains $ve.GetAttribute($attr)) { [void]$problems.Add("Application $($a.GetAttribute('Id')) references a missing $attr") }
     }
 }
-foreach ($need in 'filedo_win.exe.config', 'LICENSE.txt', 'Assets\StoreLogo.png') {
+foreach ($need in 'filedo_win.exe.config', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'Assets\StoreLogo.png') {
     if ($entries -notcontains $need) { [void]$problems.Add("$need is not in the package") }
+}
+foreach ($need in @('resources.pri') + $logoVariants) {
+    if ($entries -notcontains $need) { [void]$problems.Add("$need is not in the package") }
+}
+$packedResourceLanguages = @($packed.SelectNodes('/m:Package/m:Resources/m:Resource', $pns) | ForEach-Object { $_.GetAttribute('Language') })
+if (($packedResourceLanguages -join ',') -cne ($expectedResourceLanguages -join ',')) {
+    [void]$problems.Add("packed Resource languages are '$($packedResourceLanguages -join ',')', expected '$($expectedResourceLanguages -join ',')'; resources.pri must not narrow Store listing reach")
 }
 if (-not $testMode -and ($IdentityName -match 'LocalTest' -or $Publisher -match 'LocalTest')) { [void]$problems.Add("a Store package carries the local-test identity") }
 if ($problems.Count) {

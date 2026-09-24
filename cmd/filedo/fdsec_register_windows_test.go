@@ -312,6 +312,29 @@ func TestFdsecUnregisterRemovesWhatItWrote(t *testing.T) {
 	}
 }
 
+// The Store build cannot register: Windows keeps a packaged app's writes under
+// Software\Classes to the app, so a register there would report success and
+// change nothing Explorer reads. It refuses as a usage error, says where the
+// menu comes from, and writes nothing - for register and unregister alike.
+func TestFdsecRegisterRefusesInThePackagedBuild(t *testing.T) {
+	dir := t.TempDir()
+	seam, userClasses, _ := regSeam(t)
+	t.Setenv(fdsecAsPackagedEnv, "1")
+
+	for _, sub := range []string{"register", "unregister"} {
+		out, code := runReg(t, dir, seam, "fdsec", sub)
+		if code != 2 {
+			t.Errorf("packaged %s exit %d, want 2 (usage)\n%s", sub, code, out)
+		}
+		if !strings.Contains(out, "Microsoft Store build") || !strings.Contains(out, "MSI installer") {
+			t.Errorf("packaged %s does not say why, or where the menu comes from\n%s", sub, out)
+		}
+	}
+	if _, ok := regString(t, userClasses+`\FileDO.SecureContainer\shell\open\command`, ""); ok {
+		t.Error("the packaged build wrote a registration")
+	}
+}
+
 // The machine-wide registration wins. A per-user copy on top of it would put
 // every entry in the menu twice, with no way to tell which one an uninstall
 // takes away - so the per-user register stands down and says so.

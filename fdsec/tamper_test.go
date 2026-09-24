@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"math"
+	"strings"
 	"testing"
 )
 
@@ -57,6 +59,26 @@ func TestTamper_Classes(t *testing.T) {
 	t.Run("flipped payload byte is class A", func(t *testing.T) {
 		b := bytes.Clone(raw)
 		b[preLen+100] ^= 0x01
+		_, _, err := unpackContainer(b, cred)
+		assertClass(t, "A", err)
+		if !strings.Contains(err.Error(), "chunk 0") {
+			t.Fatalf("error %v does not name chunk index", err)
+		}
+	})
+
+	t.Run("flipped chunk 1 payload byte is class A naming chunk 1", func(t *testing.T) {
+		b := bytes.Clone(raw)
+		b[preLen+slot+100] ^= 0x01
+		_, _, err := unpackContainer(b, cred)
+		assertClass(t, "A", err)
+		if !strings.Contains(err.Error(), "chunk 1") {
+			t.Fatalf("error %v does not name chunk 1", err)
+		}
+	})
+
+	t.Run("flipped sealed-metadata byte is class A", func(t *testing.T) {
+		b := bytes.Clone(raw)
+		b[preMeta+100] ^= 0x01
 		_, _, err := unpackContainer(b, cred)
 		assertClass(t, "A", err)
 	})
@@ -323,4 +345,77 @@ func TestWrongCredential_NeverDamage(t *testing.T) {
 		_, _, err := unpackContainer(randContent(t, len(raw)), correct)
 		assertClass(t, "A", err)
 	})
+}
+
+func rewriteMetadata(t *testing.T, raw []byte, cred Credential, forge func(origMeta Metadata, origDigest [32]byte) []byte) []byte {
+	t.Helper()
+	orig, fileKey, err := openHead(bytes.NewReader(raw), cred)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileAEAD, err := newXAEAD(fileKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metaNonce, err := deriveNonce(fileKey, metaCtx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	metaPT, fail := fileAEAD.Open(nil, metaNonce, raw[preMeta:preMeta+metaSize], adMeta(orig.HeaderDigest))
+	if fail != nil {
+		t.Fatal(fail)
+	}
+	meta, digest, err := parseMetadataBlock(metaPT)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newMeta := forge(meta, digest)
+	b := bytes.Clone(raw)
+	copy(b[preMeta:preMeta+metaSize], fileAEAD.Seal(nil, metaNonce, newMeta, adMeta(orig.HeaderDigest)))
+	return b
+}
+
+func TestTamper_ForgedMetadata(t *testing.T) {
+	raw, _, _, _ := tampered(t)
+	cred := NewCredential("pw123")
+
+	forgedNames := []string{`..\x`, `a/b`, `c:x`, `CON`, `x.`}
+	for _, badName := range forgedNames {
+		t.Run("forged name "+badName+" is damage", func(t *testing.T) {
+			b := rewriteMetadata(t, raw, cred, func(origMeta Metadata, origDigest [32]byte) []byte {
+				block := make([]byte, metaPlain)
+				nameBytes := []byte(badName)
+				binary.LittleEndian.PutUint16(block[0:2], uint16(len(nameBytes)))
+				copy(block[2:], nameBytes)
+				o := 2 + len(nameBytes)
+				binary.LittleEndian.PutUint64(block[o:], uint64(origMeta.Size))
+				copy(block[o+40:], origDigest[:])
+				return block
+			})
+			_, _, err := unpackContainer(b, cred)
+			assertClass(t, "B", err)
+		})
+	}
+
+	forgedSizes := map[string]uint64{
+		"2^63":   1 << 63,
+		"2^64-1": math.MaxUint64,
+		"2^63-1": math.MaxInt64,
+	}
+	for name, badSize := range forgedSizes {
+		t.Run("forged size "+name+" is damage", func(t *testing.T) {
+			b := rewriteMetadata(t, raw, cred, func(origMeta Metadata, origDigest [32]byte) []byte {
+				block := make([]byte, metaPlain)
+				nameBytes := []byte(origMeta.Name)
+				binary.LittleEndian.PutUint16(block[0:2], uint16(len(nameBytes)))
+				copy(block[2:], nameBytes)
+				o := 2 + len(nameBytes)
+				binary.LittleEndian.PutUint64(block[o:], badSize)
+				copy(block[o+40:], origDigest[:])
+				return block
+			})
+			_, _, err := unpackContainer(b, cred)
+			assertClass(t, "B", err)
+		})
+	}
 }

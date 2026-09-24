@@ -16,7 +16,7 @@
     <title>FileDO privacy - no network, no telemetry, no accounts</title>
     <meta
       name="description"
-      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, the two files it writes locally, and how to switch them off."
+      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
     />
     <meta
       property="og:title"
@@ -24,7 +24,7 @@
     />
     <meta
       property="og:description"
-      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, the two files it writes locally, and how to switch them off."
+      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
     />
     <script type="application/ld+json">
       {
@@ -33,11 +33,11 @@
         "name": "FileDO Privacy Policy",
         "url": "https://serzhyale.github.io/FileDO/privacy.html",
         "inLanguage": ["en", "ru", "uk"],
-        "dateModified": "2026-07-30",
+        "dateModified": "2026-09-24",
         "publisher": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
-          "email": "serzhyale@gmail.com"
+          "email": "sza@ukr.net"
         },
         "about": {
           "@type": "SoftwareApplication",
@@ -51,14 +51,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -110,6 +110,7 @@
       }
       .hero {
         padding: 1.4rem 0 0.6rem;
+        text-align: center;
       }
       .hero h1 {
         font-family: var(--font-heading);
@@ -131,6 +132,7 @@
         font-size: 1.02rem;
         color: var(--text-2);
         max-width: 68ch;
+        margin: 0 auto 1.2rem;
       }
       .stamp {
         display: flex;
@@ -222,7 +224,12 @@
       }
       .site-footer {
         margin-top: 1.6rem;
+        padding: 1.6rem 0;
       }
+      .section { padding: 1.6rem 0; }
+      .grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+      .card { padding: 1.35rem 1.5rem; }
+      .tools-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
     </style>
   </head>
   <body>
@@ -244,10 +251,9 @@
         ◐</button
       ><a
         class="btn btn-primary btn-sm header-action"
-        href="https://github.com/SerZhyAle/FileDO"
-        target="_blank"
-        rel="noopener"
-        >GitHub</a
+        href="./#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
       >
     </header>
 
@@ -537,17 +543,17 @@
           </h2>
           <p>
             <span data-l="ru"
-              >Два служебных файла и, по вашей команде, тестовые данные. Всё это
+              >Служебные файлы и, по вашей команде, тестовые данные. Всё это
               обычные файлы на вашем диске: вы можете их прочитать, удалить или
               вовсе не создавать.</span
             >
             <span data-l="en"
-              >Two housekeeping files, plus test data when you ask for it. All of
+              >Housekeeping files, plus test data when you ask for it. All of
               them are ordinary files on your own disk: you can read them, delete
               them, or never create them at all.</span
             >
             <span data-l="ua"
-              >Два службові файли і, за вашою командою, тестові дані. Усе це
+              >Службові файли і, за вашою командою, тестові дані. Усе це
               звичайні файли на вашому диску: ви можете їх прочитати, видалити
               або взагалі не створювати.</span
             >
@@ -777,6 +783,44 @@
                     >
                   </td>
                 </tr>
+                <tr>
+                  <td><code>%LOCALAPPDATA%\FileDO\runs</code></td>
+                  <td>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
+                    <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
+                    <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Временные файлы потока событий для текущих операций в графическом интерфейсе. Хранятся 7 дней, удаляются при запуске программы.</span
+                    >
+                    <span data-l="en"
+                      >Temporary event stream files for tracking active operations in the GUI. Kept for 7 days, swept on startup.</span
+                    >
+                    <span data-l="ua"
+                      >Тимчасові файли потоку подій для відстеження поточних операцій у графічному інтерфейсі. Зберігаються 7 днів, видаляються під час запуску програми.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>%LOCALAPPDATA%\FileDO\reports</code></td>
+                  <td>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
+                    <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
+                    <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Структурированные JSON-отчёты о завершённых операциях и вердиктах. Хранятся 30 дней, удаляются при запуске программы.</span
+                    >
+                    <span data-l="en"
+                      >Structured JSON run reports of completed operations and verdicts. Kept for 30 days, swept on startup.</span
+                    >
+                    <span data-l="ua"
+                      >Структуровані JSON-звіти про завершені операції та вердикти. Зберігаються 30 днів, видаляються під час запуску програми.</span
+                    >
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -845,13 +889,13 @@
             <li>
               <span data-l="ru"
                 ><b>Что собирается.</b> Только файлы, которые записал сам
-                FileDO: <code>filedo_win_debug.log</code>,
+                FileDO: <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>,
                 <code>history.json</code>, отчёты <code>check_report_*</code>,
                 <code>check_state.json</code>,
                 <code>compare_report_*.log</code>,
                 <code>delete_report_*.log</code>,
                 <code>skip_files.list</code>, <code>damaged_files.log</code> - из
-                папки программы, из <code>%USERPROFILE%</code>, из
+                папки программы, из <code>%LOCALAPPDATA%\FileDO</code>, из <code>%USERPROFILE%</code>, из
                 <code>%TEMP%\FileDO_Operations</code> и из
                 <code>%TEMP%</code>. Плюс сгенерированный
                 <code>filedo-report.txt</code>: версии, версия Windows, язык
@@ -859,13 +903,13 @@
               >
               <span data-l="en"
                 ><b>What is collected.</b> Only files FileDO itself wrote:
-                <code>filedo_win_debug.log</code>, <code>history.json</code>, the
+                <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>, <code>history.json</code>, the
                 <code>check_report_*</code> reports,
                 <code>check_state.json</code>,
                 <code>compare_report_*.log</code>,
                 <code>delete_report_*.log</code>,
                 <code>skip_files.list</code>, <code>damaged_files.log</code> -
-                from the program folder, from <code>%USERPROFILE%</code>, from
+                from the program folder, from <code>%LOCALAPPDATA%\FileDO</code>, from <code>%USERPROFILE%</code>, from
                 <code>%TEMP%\FileDO_Operations</code> and from
                 <code>%TEMP%</code>. Plus a generated
                 <code>filedo-report.txt</code>: the version stamps, the Windows
@@ -874,13 +918,13 @@
               >
               <span data-l="ua"
                 ><b>Що збирається.</b> Лише файли, які записав сам FileDO:
-                <code>filedo_win_debug.log</code>, <code>history.json</code>,
+                <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>, <code>history.json</code>,
                 звіти <code>check_report_*</code>,
                 <code>check_state.json</code>,
                 <code>compare_report_*.log</code>,
                 <code>delete_report_*.log</code>,
                 <code>skip_files.list</code>, <code>damaged_files.log</code> - з
-                теки програми, з <code>%USERPROFILE%</code>, з
+                теки програми, з <code>%LOCALAPPDATA%\FileDO</code>, з <code>%USERPROFILE%</code>, з
                 <code>%TEMP%\FileDO_Operations</code> і з
                 <code>%TEMP%</code>. Плюс згенерований
                 <code>filedo-report.txt</code>: версії, версія Windows, мова
@@ -990,25 +1034,28 @@
           <ul>
             <li>
               <span data-l="ru"
-                ><b>FileDO не запрашивает права администратора.</b> Программа
-                запускается с теми правами, которые есть у вас. Отдельные
-                операции с диском Windows разрешит только администратору - тогда
-                вы запускаете терминал от имени администратора сами, осознанно.
-                Молча повышать права FileDO не умеет.</span
+                ><b>FileDO никогда не повышает права молча.</b> Программа
+                работает с теми правами, которые есть у вас. Два задания
+                проверки диска в графическом окне запрашивают у Windows права
+                администратора на время одного этого запуска, и вы видите
+                стандартный запрос UAC. Запустить терминал от имени
+                администратора для операций в командной строке вы можете
+                сами.</span
               >
               <span data-l="en"
-                ><b>FileDO does not request administrator rights.</b> It runs
-                with whatever rights you already have. Windows will allow some
-                disk operations only to an administrator - in that case you
-                deliberately start the terminal as one yourself. FileDO has no
-                way to elevate itself silently.</span
+                ><b>FileDO never elevates silently.</b> It runs with whatever
+                rights you already have. Two drive-repair jobs in the window
+                ask Windows for administrator rights for that one run, and you
+                see the prompt. Terminal operations that require elevated rights
+                are started as an administrator by you deliberately.</span
               >
               <span data-l="ua"
-                ><b>FileDO не запитує права адміністратора.</b> Програма
-                запускається з тими правами, які є у вас. Окремі операції з диском
-                Windows дозволить лише адміністратору - тоді ви запускаєте
-                термінал від імені адміністратора самі, свідомо. Мовчки
-                підвищувати права FileDO не вміє.</span
+                ><b>FileDO ніколи не підвищує права мовчки.</b> Програма
+                працює з тими правами, які є у вас. Два завдання перевірки
+                диска в графічному вікні запитують у Windows права адміністратора
+                на час одного цього запуску, і ви бачите стандартний запит UAC.
+                Запустити термінал від імені адміністратора для операцій у
+                командному рядку ви можете самі.</span
               >
             </li>
             <li>
@@ -1262,7 +1309,7 @@
             <li>
               <span data-l="ru">Почта:</span><span data-l="en">Email:</span
               ><span data-l="ua">Пошта:</span>
-              <a href="mailto:serzhyale@gmail.com">serzhyale@gmail.com</a>
+              <a href="mailto:sza@ukr.net">sza@ukr.net</a>
             </li>
             <li>
               <span data-l="ru">Issues в репозитории:</span
@@ -1293,6 +1340,21 @@
 
     <footer class="site-footer">
       <div class="container">
+        <p class="footer-tools-title">
+          <span data-l="ru">Другие инструменты SZA</span
+          ><span data-l="en">More tools by SZA</span
+          ><span data-l="ua">Інші інструменти SZA</span>
+        </p>
+        <div class="tools-grid">
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a
+          ><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a
+          ><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
+          ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>StreamsPlayer</b><span>Windows stream player</span></a
+          ><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a
+          ><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
+          ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
+        </div>
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><span
@@ -1307,30 +1369,38 @@
         </div>
       </div>
     </footer>
-    <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
+    <button class="to-top" id="toTop" aria-label="Scroll to top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z" fill="currentColor"/></svg></button>
     <script>
       (function () {
         var meta = {
           ru: {
             t: "Конфиденциальность FileDO - без сети, телеметрии и аккаунтов",
-            d: "FileDO работает только на вашем устройстве: нет сетевых вызовов, телеметрии и аккаунтов. Что программа читает, какие два файла пишет и как их отключить.",
+            d: "FileDO работает только на вашем устройстве: нет сетевых вызовов, телеметрии и аккаунтов. Что программа читает, что пишет локально и как этим управлять.",
           },
           en: {
             t: "FileDO privacy - no network, no telemetry, no accounts",
-            d: "FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, the two files it writes locally, and how to switch them off.",
+            d: "FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, what it writes locally, and how to control it.",
           },
           ua: {
             t: "Конфіденційність FileDO - без мережі, телеметрії та акаунтів",
-            d: "FileDO працює лише на вашому пристрої: немає мережевих викликів, телеметрії та акаунтів. Що програма читає, які два файли пише і як їх вимкнути.",
+            d: "FileDO працює лише на вашому пристрої: немає мережевих викликів, телеметрії та акаунтів. Що програма читає, що пише локально і як цим керувати.",
           },
         };
         function lang(l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
           document.documentElement.dataset.lang = l;
           document.documentElement.lang = l === "ua" ? "uk" : l;
           localStorage.setItem("sza-lang", l);
           document.querySelectorAll("[data-set-lang]").forEach(function (b) {
             b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
           });
+          // nav.scroll-top is named with its ICON-SET name in the page language.
+          document
+            .getElementById("toTop")
+            .setAttribute(
+              "aria-label",
+              { ru: "В начало списка", en: "Scroll to top", ua: "На початок списку" }[l],
+            );
           document.title = meta[l].t;
           document.querySelector('meta[name="description"]').content =
             meta[l].d;

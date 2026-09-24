@@ -1,7 +1,7 @@
 ' The shell's half of HKCU\Software\FileDO.
 '
-' The key already exists and already holds GuiLang, written by MainForm - so this milestone extends
-' a store rather than inventing one (SP-0006 M0 tactics, finding 2.2). Everything here is
+' The key already held GuiLang, written by the command builder that shipped before the shell - so
+' this milestone extended a store rather than inventing one (SP-0006 M0 tactics, finding 2.2). Everything here is
 ' best-effort: a settings read that throws must never stop the window from opening, so every path
 ' has a defensible default and every failure is swallowed deliberately rather than by accident.
 '
@@ -15,7 +15,7 @@ Module ShellSettings
     Private Const KeyPath As String = "Software\FileDO"
 
     ' Bumped when a stored placement has to be retired rather than restored - see LoadPlacement.
-    Private Const PlacementVersion As Integer = 2
+    Private Const PlacementVersion As Integer = 3
 
     Private Function ReadValue(name As String) As Object
         Try
@@ -98,6 +98,7 @@ Module ShellSettings
         Public Width As Integer
         Public Height As Integer
         Public Maximized As Boolean
+        Public Dpi As Integer          ' the DPI of the monitor it was saved on; 0 when unknown
     End Structure
 
     Private Function ReadInt(name As String, ByRef into As Integer) As Boolean
@@ -116,6 +117,10 @@ Module ShellSettings
     ' complaint could only be fixed for people who had never opened the program. The stamp retires
     ' those placements once; anything saved by this build carries the current number and is
     ' restored untouched, however small the user made it.
+    '
+    ' Version 3 (SP-0014 T13) adds ShellDpi, the DPI the rectangle was saved at, so a placement
+    ' restored on a monitor of another scale is scaled rather than taken literally. A version 2
+    ' placement has no DPI to scale by, so it is retired once by the same rule.
     Public Function LoadPlacement() As Placement
         Dim p As New Placement With {.HasValue = False}
         Dim stamp As Integer
@@ -129,21 +134,24 @@ Module ShellSettings
         End If
         Dim m As Integer
         If ReadInt("ShellMax", m) Then p.Maximized = (m <> 0)
+        Dim d As Integer
+        If ReadInt("ShellDpi", d) AndAlso d > 0 Then p.Dpi = d
         Return p
     End Function
 
-    Public Sub SavePlacement(x As Integer, y As Integer, width As Integer, height As Integer, maximized As Boolean)
+    Public Sub SavePlacement(x As Integer, y As Integer, width As Integer, height As Integer, maximized As Boolean, dpi As Integer)
         WriteValue("ShellPlacementV", PlacementVersion)
         WriteValue("ShellX", x)
         WriteValue("ShellY", y)
         WriteValue("ShellW", width)
         WriteValue("ShellH", height)
         WriteValue("ShellMax", If(maximized, 1, 0))
+        WriteValue("ShellDpi", dpi)
     End Sub
 
     ' ---- language --------------------------------------------------------
-    ' The same value MainForm reads and writes. The shell does not get a second language setting:
-    ' one program, one language (SP-0006 section 13).
+    ' GuiLang, the value the retired command builder wrote too, so a language chosen there carries
+    ' over. One program, one language (SP-0006 section 13).
 
     Public Function Language() As String
         Dim v = TryCast(ReadValue("GuiLang"), String)

@@ -159,14 +159,17 @@ func (h *header) chunkCapacity() int64 { return int64(h.ChunkSize) - tagSize }
 // chunkCount derives the number of chunks from the real size N. An empty
 // original has one zero-length chunk (FDSEC-FORMAT.md section 8).
 func (h *header) chunkCount(n int64) int64 {
-	k := (n + h.chunkCapacity() - 1) / h.chunkCapacity()
-	if k < 1 {
-		k = 1
+	if n <= 0 {
+		return 1
 	}
-	return k
+	cap := h.chunkCapacity()
+	return (n-1)/cap + 1
 }
 
 func (h *header) lastLen(n int64) int64 {
+	if n <= 0 {
+		return 0
+	}
 	return n - (h.chunkCount(n)-1)*h.chunkCapacity()
 }
 

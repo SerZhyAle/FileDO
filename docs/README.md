@@ -48,3 +48,7 @@ pages above, the READMEs, and the listing sources.
 A user-visible change lands in **every** surface in one edit - the landing page, the guides, the READMEs
 and the listing sources - per canon `DOCUMENTATION_CONCEPT.md` 5. Add a public page and `sitemap.xml`
 changes in the same commit; the sitemap lists canonical URLs only.
+
+The product pages consume `PAGE-CONTENT`, `PAGE-STYLE`, and `SITE-FAMILY-MAP`. `kit/sza-kit.css` is the
+vendored `PAGE-STYLE` artifact: copy it byte-for-byte from the catalog and put FileDO-specific styling in
+the page layer instead of editing the kit.

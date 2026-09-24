@@ -24,6 +24,8 @@ Module LogReport
 
     ' Only names FileDO itself produces. No wildcards that could sweep in someone else's files.
     Private ReadOnly logPatterns As String() = {
+        "filedo_win.log",
+        "filedo_win.log.1",
         "filedo_win_debug.log",
         "history.json",
         "check_report_*.log",
@@ -69,10 +71,25 @@ Module LogReport
             End Sub
 
         add("app", AppFolder())
+        ' The shell's own log (ShellLog) lives here, beside the run reports.
+        Try
+            add("appdata", Runner.GetAppDataDir())
+        Catch
+        End Try
         add("profile", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
         add("temp-ops", Path.Combine(Path.GetTempPath(), "FileDO_Operations"))
         add("temp", Path.GetTempPath())
         Return roots
+    End Function
+
+    ' How many files an archive would hold, looked up before the user is asked anything: a question
+    ' about an empty archive is a question about nothing (APP-BEHAVIOUR rule 5).
+    Public Function CountAvailable() As Integer
+        Dim n As Integer = 0
+        For Each c As Candidate In Collect()
+            If c.Skip = "" Then n += 1
+        Next
+        Return n
     End Function
 
     Private Function Collect() As List(Of Candidate)
@@ -163,6 +180,7 @@ Module LogReport
                         AddFile(zip, c)
                         fileCount += 1
                     Catch ex As Exception
+                        ' The archive's own manifest, read by the author - never the screen.
                         c.Skip = "left out: could not be read (" & ex.Message & ")"
                     End Try
                 Next
@@ -337,6 +355,7 @@ Module LogReport
             Return "filedo.exe " & v & ", " & fi.Length.ToString() & " bytes, modified " &
                    fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
         Catch ex As Exception
+            ' The archive's report, read by the author - never the screen.
             Return "filedo.exe found, could not be read (" & ex.Message & ")"
         End Try
     End Function
@@ -344,13 +363,16 @@ Module LogReport
     ' ---- hand-off ---------------------------------------------------------
 
     ' Each step reports its own failure into problems and lets the others run: a machine with no
-    ' default mail client should still end up with a finished archive and an open folder.
+    ' default mail client should still end up with a finished archive and an open folder. What goes
+    ' into problems is a localization key naming the step that failed; the exception goes to the
+    ' shell's log.
 
     Public Sub RevealInExplorer(archivePath As String, problems As List(Of String))
         Try
             Process.Start("explorer.exe", "/select,""" & archivePath & """")
         Catch ex As Exception
-            problems.Add("Explorer: " & ex.Message)
+            ShellLog.Write("send logs: explorer", ex)
+            problems.Add("logs_problem_explorer")
         End Try
     End Sub
 
@@ -358,7 +380,8 @@ Module LogReport
         Try
             Clipboard.SetText(archivePath)
         Catch ex As Exception
-            problems.Add("Clipboard: " & ex.Message)
+            ShellLog.Write("send logs: clipboard", ex)
+            problems.Add("logs_problem_clipboard")
         End Try
     End Sub
 
@@ -369,7 +392,8 @@ Module LogReport
                                 "&body=" & Uri.EscapeDataString(MailBody(archivePath))
             Process.Start(New ProcessStartInfo() With {.FileName = url, .UseShellExecute = True})
         Catch ex As Exception
-            problems.Add("Mail program: " & ex.Message)
+            ShellLog.Write("send logs: mail program", ex)
+            problems.Add("logs_problem_mail")
         End Try
     End Sub
 

@@ -44,8 +44,11 @@ the installer, or add the test gate.
 .\build.ps1 -Install              # build, then RUN the installer here
 ```
 
-- `-Test` runs the test gate: smoke-run `filedo.exe -?` (asserts it prints the
-  stamped version) + `go test ./cmd/filedo-test`. (Root `go test ./...` is
+- `-Test` runs five gate steps: stamped-executable smoke tests; the separate
+  test-module compile check and placement registry; fdsec short tests; the
+  fdsec command-surface tests plus its vet baseline; and the GUI self-test.
+  Its final `build-gate <stamp>:` line is `PASS`, `FAIL`, or `NOT VERIFIED`;
+  exit codes are 0, 1, and 2 respectively. (Root `go test ./...` is
   known-broken per `AGENTS.md`, so it is intentionally not run.)
 - `-Commit` implies `-Test` and commits the working tree only after the gate
   passes. It never tags and never pushes.
@@ -195,9 +198,9 @@ and `<name>.sha256` for the hash link. Rename an asset in `release.yml` and the
 button quietly falls back to the plain Releases page - the page still works,
 but nothing downloads from it. The site therefore never needs an edit for a
 release, and a release never breaks it, as long as those suffixes hold. The
-installer is also **not code-signed**, and the landing page, the install guide
-and every README say so next to the download; the day that changes, those lines
-change in the same edit.
+installer is also **not code-signed**, and the landing page, the release body,
+the trust page, the install guide and every README say so next to the download;
+the day that changes, those lines change in the same edit.
 
 The MSI is what makes FileDO a Windows program rather than a folder of
 executables, so it carries the operations an install is expected to perform:

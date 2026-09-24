@@ -1,8 +1,11 @@
 ' Localization tables for the FileDO GUI.
 ' Each language returns "key|value" lines; GetDict splits them into a dictionary.
 ' Keep "|" out of values. Use plain "-" (not em-dash) and ".." (not "...").
-' A literal \n inside a value is a line break: MainForm.LText expands it for the multi-line
-' dialog texts. Everything else is single-line and used as it stands.
+' A literal \n inside a value is a line break: Multiline expands it for the multi-line dialog
+' texts. Everything else is single-line and used as it stands.
+'
+' A template with placeholders is filled with Format below, never with String.Format: a translation
+' is text somebody typed, and APP-BEHAVIOUR rule 7 says rendering it can never throw.
 Module Localization
 
     Public ReadOnly Languages As String() = {"en", "ru", "uk", "de", "fr"}
@@ -13,6 +16,98 @@ Module Localization
     Public Function Multiline(value As String) As String
         If value Is Nothing Then Return ""
         Return value.Replace("\n", Environment.NewLine)
+    End Function
+
+    ' Fills a translated template. It never throws (APP-BEHAVIOUR rule 7): a template that cannot be
+    ' parsed renders itself as it stands, and a placeholder with no argument renders blank. The
+    ' grammar is String.Format's - {index}, {index,alignment}, {index:format}, {{ and }} - so every
+    ' template in the tables keeps its meaning.
+    Public Function Format(template As String, ParamArray args As Object()) As String
+        If template Is Nothing Then Return ""
+        If args Is Nothing Then args = New Object() {}
+        Dim sb As New System.Text.StringBuilder(template.Length + 16)
+        Dim i As Integer = 0
+        Dim n = template.Length
+        While i < n
+            Dim ch = template(i)
+            If ch = "{"c Then
+                If i + 1 < n AndAlso template(i + 1) = "{"c Then
+                    sb.Append("{"c) : i += 2 : Continue While
+                End If
+                Dim close = template.IndexOf("}"c, i + 1)
+                If close < 0 Then Return template
+                Dim body = template.Substring(i + 1, close - i - 1)
+                Dim piece As String = Nothing
+                If Not FormatPlaceholder(body, args, piece) Then Return template
+                sb.Append(piece)
+                i = close + 1
+            ElseIf ch = "}"c Then
+                If i + 1 < n AndAlso template(i + 1) = "}"c Then
+                    sb.Append("}"c) : i += 2 : Continue While
+                End If
+                Return template
+            Else
+                sb.Append(ch)
+                i += 1
+            End If
+        End While
+        Return sb.ToString()
+    End Function
+
+    ' One {index[,alignment][:format]} body. False means the body is not a placeholder at all, which
+    ' makes the whole template unparseable.
+    Private Function FormatPlaceholder(body As String, args As Object(), ByRef piece As String) As Boolean
+        piece = ""
+        Dim fmt As String = Nothing
+        Dim colon = body.IndexOf(":"c)
+        If colon >= 0 Then
+            fmt = body.Substring(colon + 1)
+            body = body.Substring(0, colon)
+        End If
+        Dim align As Integer = 0
+        Dim comma = body.IndexOf(","c)
+        If comma >= 0 Then
+            If Not Integer.TryParse(body.Substring(comma + 1).Trim(), align) Then Return False
+            body = body.Substring(0, comma)
+        End If
+        Dim index As Integer
+        If Not Integer.TryParse(body.Trim(), Globalization.NumberStyles.None,
+                                Globalization.CultureInfo.InvariantCulture, index) Then Return False
+        If index < 0 OrElse index >= args.Length OrElse args(index) Is Nothing Then Return True
+
+        Dim value = args(index)
+        Try
+            Dim formattable = TryCast(value, IFormattable)
+            If formattable IsNot Nothing Then
+                piece = formattable.ToString(fmt, Globalization.CultureInfo.CurrentCulture)
+            Else
+                piece = value.ToString()
+            End If
+        Catch
+            ' A format string the value does not understand ({0:Q} on a number) costs the format,
+            ' never the sentence around it.
+            piece = value.ToString()
+        End Try
+        If align > 0 Then piece = piece.PadLeft(align)
+        If align < 0 Then piece = piece.PadRight(-align)
+        Return True
+    End Function
+
+    ' The dictionary of the window's language, built once. The language is read when the window
+    ' opens and a change takes effect on the next opening (SettingsView), so one copy serves every
+    ' dialog of the session.
+    Private shellDict As Dictionary(Of String, String) = Nothing
+
+    Public Function ForShell() As Dictionary(Of String, String)
+        If shellDict Is Nothing Then shellDict = GetDict(ShellSettings.Language())
+        Return shellDict
+    End Function
+
+    ' A key's text in the window's language, the key itself when no table has it.
+    Public Function T(key As String) As String
+        Dim v As String = Nothing
+        If ForShell().TryGetValue(key, v) Then Return Multiline(v)
+        Return key
     End Function
 
     Public Function GetDict(lang As String) As Dictionary(Of String, String)
@@ -41,27 +136,13 @@ Module Localization
 
     Private Function EnLines() As String()
         Return New String() {
-            "ui_title|FileDO - command builder",
-            "ui_lang|Language:",
-            "ui_target|Target:",
             "ui_operation|Operation:",
-            "ui_drive|Drive:",
-            "ui_path|Path:",
             "ui_source|Source:",
             "ui_list|List file:",
             "ui_folder|Folder:",
             "ui_dest|Destination:",
-            "ui_size|Size (MB):",
             "ui_flags|Flags:",
-            "ui_browse|Browse",
-            "ui_copy|Copy command",
-            "ui_run|RUN",
-            "ui_about|About",
-            "ui_close|Close",
             "ui_send_logs|Send logs to the author",
-            "about_tip|Version, links, and sending the logs to the author",
-            "about_title|About FileDO",
-            "about_tagline|Storage speed tests, fake-capacity detection, secure wipe, fill and duplicate management for Windows - a command-line tool and this command builder for it.",
             "about_build|GUI build:",
             "about_cli|CLI filedo.exe:",
             "about_cli_missing|not next to the GUI (PATH or Store alias)",
@@ -81,17 +162,8 @@ Module Localization
             "logs_ready|The zip is ready:\n{0}\n\nFiles collected: {1}. The folder is open with the file selected, and the full path is on the clipboard.\n\nLast step: attach that file to the mail that just opened, and press Send.",
             "logs_partial|Some steps did not work:",
             "logs_error|Could not build the log archive:\n{0}",
-            "hl_example|Example:",
-            "hl_note|Note:",
-            "hl_flags|Active flags:",
-            "dup_title|Duplicate options",
-            "dup_old|Keep newest (old)",
-            "dup_new|Keep oldest (new)",
-            "dup_abc|Keep last alpha (abc)",
-            "dup_xyz|Keep first alpha (xyz)",
             "dup_move|Move duplicates to:",
             "cmp_label|Delete rule:",
-            "hl_rule|Rule:",
             "cmprule_none|Report differences only; delete nothing.",
             "cmprule_source|Delete files in Source that also exist in Target.",
             "cmprule_target|Delete files in Target that also exist in Source.",
@@ -132,13 +204,7 @@ Module Localization
             "fl_del|del: delete the test files automatically after the run.",
             "fl_nodel|nodel: keep the test file instead of deleting it.",
             "fl_short|short: brief output only.",
-            "fl_hist|hist: log this run to history.json.",
             "fl_force|--force: skip the WIPE confirmation (normal targets only).",
-            "ex_device|Example: pick a drive - C:  D:  E:",
-            "ex_folder|Example: C:\Temp   D:\Data",
-            "ex_network|Example: \\server\share",
-            "ex_file|Example: C:\data\archive.zip",
-            "note_sysdrive|C: is the system drive. Write tests (test/fill/speed) are redirected to %TEMP%FileDO_Operations (fallback C:\TEMP) and ask to confirm - this protects Windows.",
             "shell_title|FileDO",
             "shell_subtitle|Storage tests, copy, fill and wipe - a front end for filedo.exe",
             "shell_empty_title|Nothing to show yet",
@@ -159,7 +225,7 @@ Module Localization
             "rail_job_damaged|Damaged files check",
             "rail_job_duplicates|Duplicate files",
             "rail_job_compare|Compare two folders",
-            "rail_job_clean|Remove FileDO's test files",
+            "rail_job_clean|Delete FileDO's test files",
             "rail_job_copy|Copy files",
             "rail_job_fill|Fill the free space",
             "rail_job_wipe|Wipe a folder",
@@ -171,7 +237,7 @@ Module Localization
             "purpose_job_damaged|Scan files and directories for corruption and read defects.",
             "purpose_job_duplicates|Find duplicate files and reclaim wasted space safely.",
             "purpose_job_compare|Compare two directories and synchronize or clean redundant files.",
-            "purpose_job_clean|Safely remove temporary FileDO test and benchmark files.",
+            "purpose_job_clean|Safely delete temporary FileDO test and benchmark files.",
             "purpose_job_copy|Copy files with hardware-aware optimization and safe error recovery.",
             "purpose_job_fill|Fill free space with test data to verify capacity or prepare for wiping.",
             "purpose_job_wipe|Quickly and securely wipe folder contents.",
@@ -184,7 +250,7 @@ Module Localization
             "shell_opt_autodel|Auto-delete test files (del)",
             "shell_opt_force|Skip confirmation prompt (-y / --force)",
             "shell_blast_counting|Counting the files in the target..",
-            "shell_blast_result_fmt|Target contains {0} files ({1:F1} MB)",
+            "shell_blast_result_fmt|Target contains {0} files in {2} folders ({1:F1} MB)",
             "shell_blast_not_counted|Files in the target: not counted",
             "shell_btn_skip_count|Skip count",
             "shell_wipe_confirm_hint|Type WIPE in capital letters to confirm:",
@@ -270,7 +336,7 @@ Module Localization
             "shell_preset_thorough_speed|Thorough - the largest file (max)",
             "shell_preset_quick_test|Quick - 100 files",
             "shell_preset_thorough_test|Thorough - 1000 files",
-            "shell_report_read_error|Could not read the report: {0}",
+            "shell_report_read_error|Could not read the report: {0} Refresh the list, or open the reports folder.",
             "shell_lbl_command_editable|The command that will run - edit it freely:",
             "rail_group_protect|Protect",
             "rail_job_secure|Make a file secret",
@@ -387,33 +453,65 @@ Module Localization
             "fl_here|here: restore into the current folder.",
             "fl_rw|-rw: restore to a file you own instead of a temporary copy.",
             "fl_keep|-keep: leave the revealed copy; the next FileDO start removes it.",
-            "shell_cmd_fdsec_needs_y|This question is asked on a console, and a run started here has none: without -y the original is kept and the run says so."
+            "shell_cmd_fdsec_needs_y|This question is asked on a console, and a run started here has none: without -y the original is kept and the run says so.",
+            "shell_cause_access|Windows refused access to it.",
+            "shell_cause_missing|It is not where it was expected - it may have been moved, renamed or deleted.",
+            "shell_cause_busy|Another program is using it right now.",
+            "shell_cause_no_program|Windows has no program set up to open it.",
+            "shell_cause_disk_full|The disk is full.",
+            "shell_cause_io|Windows could not read or write it.",
+            "shell_cause_unexpected|Something went wrong inside FileDO that it did not expect.",
+            "shell_problem_title|FileDO - something did not work",
+            "shell_problem_logged|The details are in the FileDO log. Send logs passes them to the author.",
+            "shell_btn_send_logs|Send logs..",
+            "shell_btn_close|Close",
+            "shell_btn_cancel|Cancel",
+            "shell_btn_retry|Try again",
+            "shell_btn_copy_address|Copy the address",
+            "shell_btn_copy_path|Copy the path",
+            "shell_link_failed|The address could not be opened:\n{0}\n\n{1} You can copy it and open it in a browser yourself.",
+            "shell_folder_open_failed|The folder could not be opened in Explorer:\n{0}\n\n{1}",
+            "shell_report_open_failed|The report could not be opened in Notepad. {0} The reports folder can be opened instead.",
+            "shell_copy_failed|Nothing was copied. {0}",
+            "shell_unhandled|FileDO ran into a problem it did not expect. What you were doing may not have finished.",
+            "shell_open_failed|The FileDO window could not open. {0} The command-line tool filedo.exe is not affected.",
+            "logs_problem_explorer|The folder could not be opened in Explorer.",
+            "logs_problem_clipboard|The path could not be put on the clipboard.",
+            "logs_problem_mail|The mail program could not be opened.",
+            "logs_btn_build|Build the zip",
+            "shell_close_running_title|A job is still running",
+            "shell_close_running|{0} is still running. Closing the window now would leave it running with nothing on screen to stop it.\n\nStop it and close the window, or keep it running?",
+            "shell_btn_stop_close|Stop and close",
+            "shell_btn_keep_running|Keep running",
+            "shell_closing_after_stop|Stopping the job - the window closes as soon as it has ended.",
+            "shell_close_still_running|{0} has not stopped yet.\n\nEnd it now and close? It is ended at once, without its own cleanup, so test files may be left behind.",
+            "shell_btn_end_now|End it now and close",
+            "shell_btn_keep_waiting|Keep waiting",
+            "shell_busy_fmt|{0} is running. Stop it, or let it finish, before starting another job.",
+            "shell_blast_nothing|The folder is empty - there is nothing to delete.",
+            "shell_wipe_needs_y|Tick -y as well. filedo.exe asks for WIPE again on its console, and a run started from this window has none - without -y it would stop without wiping. Your typed WIPE above is the confirmation.",
+            "shell_wipe_needs_console|This location needs the console: {0}. There FileDO asks twice - WIPE, then the path - and only a terminal can answer. Copy the command below and run it in one.",
+            "shell_wipe_danger_root|it is the root of a drive",
+            "shell_wipe_danger_share|it is the root of a network share",
+            "shell_wipe_danger_reparse|it is a junction, symbolic link or mount point",
+            "shell_wipe_danger_temp|it is the system TEMP folder",
+            "shell_cmd_wipe_confirm|This command wipes. Type WIPE in capital letters to run it:",
+            "shell_cmd_wipe_needs_y|Without -y the wipe asks its question on a console, and a run from this window has none - it would stop without wiping.",
+            "shell_acc_open|Open",
+            "shell_history_details|Report contents",
+            "shell_drive_row_fmt|{0} ({1}, {2}, {3:F1} GB, free {4:F1} GB)"
         }
     End Function
 
     Private Function RuLines() As String()
         Return New String() {
-            "ui_title|FileDO - конструктор команд",
-            "ui_lang|Язык:",
-            "ui_target|Цель:",
             "ui_operation|Операция:",
-            "ui_drive|Диск:",
-            "ui_path|Путь:",
             "ui_source|Источник:",
             "ui_list|Файл списка:",
             "ui_folder|Папка:",
             "ui_dest|Назначение:",
-            "ui_size|Размер (МБ):",
             "ui_flags|Флаги:",
-            "ui_browse|Обзор",
-            "ui_copy|Копировать",
-            "ui_run|ВЫПОЛНИТЬ",
-            "ui_about|О программе",
-            "ui_close|Закрыть",
             "ui_send_logs|Отправить логи автору",
-            "about_tip|Версия, ссылки и отправка логов автору",
-            "about_title|О программе FileDO",
-            "about_tagline|Тесты скорости накопителей, выявление поддельной ёмкости, безопасная очистка, заполнение и работа с дубликатами для Windows - консольная программа и этот конструктор команд к ней.",
             "about_build|Сборка GUI:",
             "about_cli|CLI filedo.exe:",
             "about_cli_missing|нет рядом с GUI (PATH или алиас Store)",
@@ -433,17 +531,8 @@ Module Localization
             "logs_ready|Zip готов:\n{0}\n\nСобрано файлов: {1}. Папка открыта, файл в ней выделен, полный путь скопирован в буфер обмена.\n\nПоследний шаг: приложите этот файл к открывшемуся письму и отправьте его.",
             "logs_partial|Часть шагов не выполнилась:",
             "logs_error|Не удалось собрать архив логов:\n{0}",
-            "hl_example|Пример:",
-            "hl_note|Внимание:",
-            "hl_flags|Активные флаги:",
-            "dup_title|Опции дубликатов",
-            "dup_old|Оставить новейший (old)",
-            "dup_new|Оставить старейший (new)",
-            "dup_abc|Оставить последний по алфавиту (abc)",
-            "dup_xyz|Оставить первый по алфавиту (xyz)",
             "dup_move|Переместить дубликаты в:",
             "cmp_label|Правило удаления:",
-            "hl_rule|Правило:",
             "cmprule_none|Только показать различия; ничего не удалять.",
             "cmprule_source|Удалить файлы в Источнике, которые есть и в Назначении.",
             "cmprule_target|Удалить файлы в Назначении, которые есть и в Источнике.",
@@ -484,13 +573,7 @@ Module Localization
             "fl_del|del: удалить тестовые файлы автоматически после запуска.",
             "fl_nodel|nodel: оставить тестовый файл, не удалять.",
             "fl_short|short: только краткий вывод.",
-            "fl_hist|hist: записать запуск в history.json.",
             "fl_force|--force: пропустить подтверждение WIPE (только обычные цели).",
-            "ex_device|Пример: выберите диск - C:  D:  E:",
-            "ex_folder|Пример: C:\Temp   D:\Data",
-            "ex_network|Пример: \\server\share",
-            "ex_file|Пример: C:\data\archive.zip",
-            "note_sysdrive|C: - системный диск. Пишущие тесты (test/fill/speed) перенаправляются в %TEMP%FileDO_Operations (запасной C:\TEMP) и просят подтверждение - это защищает Windows.",
             "shell_title|FileDO",
             "shell_subtitle|Тесты накопителей, копирование, заполнение и очистка - оболочка для filedo.exe",
             "shell_empty_title|Пока нечего показать",
@@ -536,7 +619,7 @@ Module Localization
             "shell_opt_autodel|Автоматически удалять тестовые файлы (del)",
             "shell_opt_force|Пропускать подтверждение (-y / --force)",
             "shell_blast_counting|Подсчёт файлов в цели..",
-            "shell_blast_result_fmt|В цели обнаружено {0} файлов ({1:F1} МБ)",
+            "shell_blast_result_fmt|В цели обнаружено {0} файлов в {2} папках ({1:F1} МБ)",
             "shell_blast_not_counted|Файлы в цели: не подсчитаны",
             "shell_btn_skip_count|Пропустить подсчёт",
             "shell_wipe_confirm_hint|Для подтверждения введите WIPE заглавными буквами:",
@@ -622,7 +705,7 @@ Module Localization
             "shell_preset_thorough_speed|Тщательно - самый большой файл (max)",
             "shell_preset_quick_test|Быстро - 100 файлов",
             "shell_preset_thorough_test|Тщательно - 1000 файлов",
-            "shell_report_read_error|Не удалось прочитать отчёт: {0}",
+            "shell_report_read_error|Не удалось прочитать отчёт: {0} Обновите список или откройте папку отчётов.",
             "shell_lbl_command_editable|Команда, которая будет выполнена - её можно править:",
             "rail_group_protect|Защита",
             "rail_job_secure|Сделать файл секретным",
@@ -739,33 +822,65 @@ Module Localization
             "fl_here|here: восстановить в текущую папку.",
             "fl_rw|-rw: восстановить в собственный файл вместо временной копии.",
             "fl_keep|-keep: оставить открытую копию; её уберёт следующий запуск FileDO.",
-            "shell_cmd_fdsec_needs_y|Этот вопрос задаётся в консоли, а у запуска отсюда её нет: без -y оригинал остаётся, и запуск об этом сообщает."
+            "shell_cmd_fdsec_needs_y|Этот вопрос задаётся в консоли, а у запуска отсюда её нет: без -y оригинал остаётся, и запуск об этом сообщает.",
+            "shell_cause_access|Windows отказала в доступе.",
+            "shell_cause_missing|Его нет там, где он ожидался - возможно, его переместили, переименовали или удалили.",
+            "shell_cause_busy|Сейчас его использует другая программа.",
+            "shell_cause_no_program|В Windows не назначена программа, которая его открывает.",
+            "shell_cause_disk_full|Диск заполнен.",
+            "shell_cause_io|Windows не смогла его прочитать или записать.",
+            "shell_cause_unexpected|Внутри FileDO произошла непредвиденная ошибка.",
+            "shell_problem_title|FileDO - что-то не получилось",
+            "shell_problem_logged|Подробности записаны в журнал FileDO. Кнопка «Отправить логи» передаст их автору.",
+            "shell_btn_send_logs|Отправить логи..",
+            "shell_btn_close|Закрыть",
+            "shell_btn_cancel|Отмена",
+            "shell_btn_retry|Повторить",
+            "shell_btn_copy_address|Скопировать адрес",
+            "shell_btn_copy_path|Скопировать путь",
+            "shell_link_failed|Не удалось открыть адрес:\n{0}\n\n{1} Его можно скопировать и открыть в браузере вручную.",
+            "shell_folder_open_failed|Не удалось открыть папку в Проводнике:\n{0}\n\n{1}",
+            "shell_report_open_failed|Не удалось открыть отчёт в Блокноте. {0} Вместо этого можно открыть папку отчётов.",
+            "shell_copy_failed|Ничего не скопировано. {0}",
+            "shell_unhandled|FileDO столкнулся с непредвиденной проблемой. То, что вы делали, могло не завершиться.",
+            "shell_open_failed|Окно FileDO не удалось открыть. {0} Консольный инструмент filedo.exe это не затрагивает.",
+            "logs_problem_explorer|Не удалось открыть папку в Проводнике.",
+            "logs_problem_clipboard|Не удалось поместить путь в буфер обмена.",
+            "logs_problem_mail|Не удалось открыть почтовую программу.",
+            "logs_btn_build|Собрать zip",
+            "shell_close_running_title|Задание ещё выполняется",
+            "shell_close_running|«{0}» ещё выполняется. Если закрыть окно сейчас, задание продолжит работать, и остановить его будет негде.\n\nОстановить его и закрыть окно или оставить работать?",
+            "shell_btn_stop_close|Остановить и закрыть",
+            "shell_btn_keep_running|Оставить работать",
+            "shell_closing_after_stop|Задание останавливается - окно закроется, как только оно завершится.",
+            "shell_close_still_running|«{0}» ещё не остановилось.\n\nЗавершить его сейчас и закрыть окно? Оно будет прервано сразу, без собственной уборки, поэтому тестовые файлы могут остаться.",
+            "shell_btn_end_now|Завершить сейчас и закрыть",
+            "shell_btn_keep_waiting|Подождать ещё",
+            "shell_busy_fmt|Выполняется «{0}». Остановите его или дождитесь окончания, прежде чем запускать другое задание.",
+            "shell_blast_nothing|Папка пуста - удалять нечего.",
+            "shell_wipe_needs_y|Отметьте также -y. filedo.exe ещё раз спрашивает WIPE в своей консоли, а у запуска из этого окна её нет - без -y он остановится, ничего не стерев. Подтверждение - это WIPE, набранное выше.",
+            "shell_wipe_needs_console|Это место требует консоли: {0}. Здесь FileDO спрашивает дважды - WIPE, затем путь, - и ответить может только терминал. Скопируйте команду ниже и выполните её в терминале.",
+            "shell_wipe_danger_root|это корень диска",
+            "shell_wipe_danger_share|это корень сетевой папки",
+            "shell_wipe_danger_reparse|это соединение, символическая ссылка или точка подключения",
+            "shell_wipe_danger_temp|это системная папка TEMP",
+            "shell_cmd_wipe_confirm|Эта команда стирает данные. Чтобы запустить её, наберите WIPE заглавными буквами:",
+            "shell_cmd_wipe_needs_y|Без -y стирание задаёт вопрос в консоли, а у запуска из этого окна её нет - оно остановится, ничего не стерев.",
+            "shell_acc_open|Открыть",
+            "shell_history_details|Содержимое отчёта",
+            "shell_drive_row_fmt|{0} ({1}, {2}, {3:F1} ГБ, свободно {4:F1} ГБ)"
         }
     End Function
 
     Private Function UkLines() As String()
         Return New String() {
-            "ui_title|FileDO - конструктор команд",
-            "ui_lang|Мова:",
-            "ui_target|Ціль:",
             "ui_operation|Операція:",
-            "ui_drive|Диск:",
-            "ui_path|Шлях:",
             "ui_source|Джерело:",
             "ui_list|Файл списку:",
             "ui_folder|Тека:",
             "ui_dest|Призначення:",
-            "ui_size|Розмір (МБ):",
             "ui_flags|Прапорці:",
-            "ui_browse|Огляд",
-            "ui_copy|Копіювати",
-            "ui_run|ВИКОНАТИ",
-            "ui_about|Про програму",
-            "ui_close|Закрити",
             "ui_send_logs|Надіслати логи автору",
-            "about_tip|Версія, посилання та надсилання логів автору",
-            "about_title|Про програму FileDO",
-            "about_tagline|Тести швидкості носіїв, виявлення підробленої ємності, безпечне очищення, заповнення та робота з дублікатами для Windows - консольна програма і цей конструктор команд до неї.",
             "about_build|Збірка GUI:",
             "about_cli|CLI filedo.exe:",
             "about_cli_missing|немає поряд з GUI (PATH або аліас Store)",
@@ -785,17 +900,8 @@ Module Localization
             "logs_ready|Zip готовий:\n{0}\n\nЗібрано файлів: {1}. Тека відкрита, файл у ній виділено, повний шлях скопійовано в буфер обміну.\n\nОстанній крок: прикладіть цей файл до листа, що відкрився, і надішліть його.",
             "logs_partial|Частина кроків не виконалася:",
             "logs_error|Не вдалося зібрати архів логів:\n{0}",
-            "hl_example|Приклад:",
-            "hl_note|Увага:",
-            "hl_flags|Активні прапорці:",
-            "dup_title|Опції дублікатів",
-            "dup_old|Лишити найновіший (old)",
-            "dup_new|Лишити найстаріший (new)",
-            "dup_abc|Лишити останній за абеткою (abc)",
-            "dup_xyz|Лишити перший за абеткою (xyz)",
             "dup_move|Перемістити дублікати в:",
             "cmp_label|Правило видалення:",
-            "hl_rule|Правило:",
             "cmprule_none|Лише показати відмінності; нічого не видаляти.",
             "cmprule_source|Видалити файли в Джерелі, які є й у Призначенні.",
             "cmprule_target|Видалити файли в Призначенні, які є й у Джерелі.",
@@ -836,13 +942,7 @@ Module Localization
             "fl_del|del: видалити тестові файли автоматично після запуску.",
             "fl_nodel|nodel: лишити тестовий файл, не видаляти.",
             "fl_short|short: лише короткий вивід.",
-            "fl_hist|hist: записати запуск у history.json.",
             "fl_force|--force: пропустити підтвердження WIPE (лише звичайні цілі).",
-            "ex_device|Приклад: оберіть диск - C:  D:  E:",
-            "ex_folder|Приклад: C:\Temp   D:\Data",
-            "ex_network|Приклад: \\server\share",
-            "ex_file|Приклад: C:\data\archive.zip",
-            "note_sysdrive|C: - системний диск. Пишучі тести (test/fill/speed) перенаправляються в %TEMP%FileDO_Operations (запасний C:\TEMP) і просять підтвердження - це захищає Windows.",
             "shell_title|FileDO",
             "shell_subtitle|Тести носіїв, копіювання, заповнення та очищення - оболонка для filedo.exe",
             "shell_empty_title|Поки нема чого показати",
@@ -888,7 +988,7 @@ Module Localization
             "shell_opt_autodel|Автоматично видаляти тестові файли (del)",
             "shell_opt_force|Пропускати підтвердження (-y / --force)",
             "shell_blast_counting|Підрахунок файлів у цілі..",
-            "shell_blast_result_fmt|У цілі знайдено {0} файлів ({1:F1} МБ)",
+            "shell_blast_result_fmt|У цілі знайдено {0} файлів у {2} теках ({1:F1} МБ)",
             "shell_blast_not_counted|Файли в цілі: не підраховані",
             "shell_btn_skip_count|Пропустити підрахунок",
             "shell_wipe_confirm_hint|Для підтвердження введіть WIPE великими літерами:",
@@ -974,7 +1074,7 @@ Module Localization
             "shell_preset_thorough_speed|Ретельно - найбільший файл (max)",
             "shell_preset_quick_test|Швидко - 100 файлів",
             "shell_preset_thorough_test|Ретельно - 1000 файлів",
-            "shell_report_read_error|Не вдалося прочитати звіт: {0}",
+            "shell_report_read_error|Не вдалося прочитати звіт: {0} Оновіть список або відкрийте теку звітів.",
             "shell_lbl_command_editable|Команда, яку буде виконано - її можна правити:",
             "rail_group_protect|Захист",
             "rail_job_secure|Зробити файл секретним",
@@ -1091,33 +1191,65 @@ Module Localization
             "fl_here|here: відновити в поточну теку.",
             "fl_rw|-rw: відновити у власний файл замість тимчасової копії.",
             "fl_keep|-keep: лишити відкриту копію; її прибере наступний запуск FileDO.",
-            "shell_cmd_fdsec_needs_y|Це запитання ставиться в консолі, а в запуску звідси її немає: без -y оригінал лишається, і запуск про це повідомляє."
+            "shell_cmd_fdsec_needs_y|Це запитання ставиться в консолі, а в запуску звідси її немає: без -y оригінал лишається, і запуск про це повідомляє.",
+            "shell_cause_access|Windows відмовила в доступі.",
+            "shell_cause_missing|Його немає там, де він мав бути - можливо, його перемістили, перейменували або видалили.",
+            "shell_cause_busy|Зараз його використовує інша програма.",
+            "shell_cause_no_program|У Windows не призначено програму, яка його відкриває.",
+            "shell_cause_disk_full|Диск заповнено.",
+            "shell_cause_io|Windows не змогла його прочитати або записати.",
+            "shell_cause_unexpected|Усередині FileDO сталася непередбачена помилка.",
+            "shell_problem_title|FileDO - щось не вдалося",
+            "shell_problem_logged|Подробиці записано в журнал FileDO. Кнопка «Надіслати логи» передасть їх авторові.",
+            "shell_btn_send_logs|Надіслати логи..",
+            "shell_btn_close|Закрити",
+            "shell_btn_cancel|Скасувати",
+            "shell_btn_retry|Повторити",
+            "shell_btn_copy_address|Скопіювати адресу",
+            "shell_btn_copy_path|Скопіювати шлях",
+            "shell_link_failed|Не вдалося відкрити адресу:\n{0}\n\n{1} Її можна скопіювати й відкрити в браузері вручну.",
+            "shell_folder_open_failed|Не вдалося відкрити теку в Провіднику:\n{0}\n\n{1}",
+            "shell_report_open_failed|Не вдалося відкрити звіт у Блокноті. {0} Натомість можна відкрити теку звітів.",
+            "shell_copy_failed|Нічого не скопійовано. {0}",
+            "shell_unhandled|FileDO натрапив на непередбачену проблему. Те, що ви робили, могло не завершитися.",
+            "shell_open_failed|Вікно FileDO не вдалося відкрити. {0} Консольного інструмента filedo.exe це не стосується.",
+            "logs_problem_explorer|Не вдалося відкрити теку в Провіднику.",
+            "logs_problem_clipboard|Не вдалося помістити шлях у буфер обміну.",
+            "logs_problem_mail|Не вдалося відкрити поштову програму.",
+            "logs_btn_build|Зібрати zip",
+            "shell_close_running_title|Завдання ще виконується",
+            "shell_close_running|«{0}» ще виконується. Якщо закрити вікно зараз, завдання працюватиме далі, і зупинити його не буде де.\n\nЗупинити його й закрити вікно чи залишити працювати?",
+            "shell_btn_stop_close|Зупинити й закрити",
+            "shell_btn_keep_running|Залишити працювати",
+            "shell_closing_after_stop|Завдання зупиняється - вікно закриється, щойно воно завершиться.",
+            "shell_close_still_running|«{0}» ще не зупинилося.\n\nЗавершити його зараз і закрити вікно? Його буде перервано одразу, без власного прибирання, тож тестові файли можуть залишитися.",
+            "shell_btn_end_now|Завершити зараз і закрити",
+            "shell_btn_keep_waiting|Зачекати ще",
+            "shell_busy_fmt|Виконується «{0}». Зупиніть його або дочекайтеся завершення, перш ніж запускати інше завдання.",
+            "shell_blast_nothing|Тека порожня - видаляти нічого.",
+            "shell_wipe_needs_y|Позначте також -y. filedo.exe ще раз питає WIPE у своїй консолі, а в запуску з цього вікна її немає - без -y він зупиниться, нічого не стерши. Підтвердження - це WIPE, набране вище.",
+            "shell_wipe_needs_console|Це місце потребує консолі: {0}. Тут FileDO питає двічі - WIPE, потім шлях, - і відповісти може лише термінал. Скопіюйте команду нижче й виконайте її в терміналі.",
+            "shell_wipe_danger_root|це корінь диска",
+            "shell_wipe_danger_share|це корінь мережевої теки",
+            "shell_wipe_danger_reparse|це з'єднання, символічне посилання або точка підключення",
+            "shell_wipe_danger_temp|це системна тека TEMP",
+            "shell_cmd_wipe_confirm|Ця команда стирає дані. Щоб запустити її, наберіть WIPE великими літерами:",
+            "shell_cmd_wipe_needs_y|Без -y стирання ставить запитання в консолі, а в запуску з цього вікна її немає - воно зупиниться, нічого не стерши.",
+            "shell_acc_open|Відкрити",
+            "shell_history_details|Вміст звіту",
+            "shell_drive_row_fmt|{0} ({1}, {2}, {3:F1} ГБ, вільно {4:F1} ГБ)"
         }
     End Function
 
     Private Function DeLines() As String()
         Return New String() {
-            "ui_title|FileDO - Befehlsbaukasten",
-            "ui_lang|Sprache:",
-            "ui_target|Ziel:",
             "ui_operation|Operation:",
-            "ui_drive|Laufwerk:",
-            "ui_path|Pfad:",
             "ui_source|Quelle:",
             "ui_list|Listendatei:",
             "ui_folder|Ordner:",
             "ui_dest|Ziel (Kopie):",
-            "ui_size|Größe (MB):",
             "ui_flags|Flags:",
-            "ui_browse|Durchsuchen",
-            "ui_copy|Befehl kopieren",
-            "ui_run|AUSFÜHREN",
-            "ui_about|Über das Programm",
-            "ui_close|Schließen",
             "ui_send_logs|Logs an den Autor senden",
-            "about_tip|Version, Links und das Senden der Logs an den Autor",
-            "about_title|Über FileDO",
-            "about_tagline|Geschwindigkeitstests für Datenträger, Erkennung vorgetäuschter Kapazität, sicheres Löschen, Füllen und Umgang mit Duplikaten für Windows - ein Kommandozeilenprogramm und dieser Befehlsbaukasten dafür.",
             "about_build|GUI-Build:",
             "about_cli|CLI filedo.exe:",
             "about_cli_missing|nicht neben der GUI (PATH oder Store-Alias)",
@@ -1137,17 +1269,8 @@ Module Localization
             "logs_ready|Das Zip ist fertig:\n{0}\n\nGesammelte Dateien: {1}. Der Ordner ist geöffnet, die Datei darin markiert, und der vollständige Pfad liegt in der Zwischenablage.\n\nLetzter Schritt: Hängen Sie diese Datei an die gerade geöffnete Mail an und senden Sie sie.",
             "logs_partial|Einige Schritte sind fehlgeschlagen:",
             "logs_error|Das Log-Archiv konnte nicht erstellt werden:\n{0}",
-            "hl_example|Beispiel:",
-            "hl_note|Hinweis:",
-            "hl_flags|Aktive Flags:",
-            "dup_title|Duplikat-Optionen",
-            "dup_old|Neuestes behalten (old)",
-            "dup_new|Ältestes behalten (new)",
-            "dup_abc|Letztes alphabetisch behalten (abc)",
-            "dup_xyz|Erstes alphabetisch behalten (xyz)",
             "dup_move|Duplikate verschieben nach:",
             "cmp_label|Löschregel:",
-            "hl_rule|Regel:",
             "cmprule_none|Nur Unterschiede melden; nichts löschen.",
             "cmprule_source|Dateien in der Quelle löschen, die auch im Ziel existieren.",
             "cmprule_target|Dateien im Ziel löschen, die auch in der Quelle existieren.",
@@ -1188,13 +1311,7 @@ Module Localization
             "fl_del|del: Testdateien nach dem Lauf automatisch löschen.",
             "fl_nodel|nodel: Testdatei behalten statt löschen.",
             "fl_short|short: nur kurze Ausgabe.",
-            "fl_hist|hist: diesen Lauf in history.json protokollieren.",
             "fl_force|--force: WIPE-Bestätigung überspringen (nur normale Ziele).",
-            "ex_device|Beispiel: Laufwerk wählen - C:  D:  E:",
-            "ex_folder|Beispiel: C:\Temp   D:\Data",
-            "ex_network|Beispiel: \\server\share",
-            "ex_file|Beispiel: C:\data\archive.zip",
-            "note_sysdrive|C: ist das Systemlaufwerk. Schreibtests (test/fill/speed) werden nach %TEMP%FileDO_Operations (Ersatz C:\TEMP) umgeleitet und fragen nach - das schützt Windows.",
             "shell_title|FileDO",
             "shell_subtitle|Datenträgertests, Kopieren, Füllen und Löschen - eine Oberfläche für filedo.exe",
             "shell_empty_title|Noch nichts zu zeigen",
@@ -1240,7 +1357,7 @@ Module Localization
             "shell_opt_autodel|Testdateien automatisch löschen (del)",
             "shell_opt_force|Bestätigung überspringen (-y / --force)",
             "shell_blast_counting|Dateien im Ziel werden gezählt..",
-            "shell_blast_result_fmt|Im Ziel wurden {0} Dateien gefunden ({1:F1} MB)",
+            "shell_blast_result_fmt|Im Ziel wurden {0} Dateien in {2} Ordnern gefunden ({1:F1} MB)",
             "shell_blast_not_counted|Dateien im Ziel: nicht gezählt",
             "shell_btn_skip_count|Zählung überspringen",
             "shell_wipe_confirm_hint|Zur Bestätigung WIPE in Großbuchstaben eingeben:",
@@ -1326,7 +1443,7 @@ Module Localization
             "shell_preset_thorough_speed|Gründlich - die größte Datei (max)",
             "shell_preset_quick_test|Schnell - 100 Dateien",
             "shell_preset_thorough_test|Gründlich - 1000 Dateien",
-            "shell_report_read_error|Der Bericht konnte nicht gelesen werden: {0}",
+            "shell_report_read_error|Der Bericht konnte nicht gelesen werden: {0} Aktualisieren Sie die Liste, oder öffnen Sie den Berichtsordner.",
             "shell_lbl_command_editable|Der Befehl, der ausgeführt wird - frei bearbeitbar:",
             "rail_group_protect|Schützen",
             "rail_job_secure|Datei geheim machen",
@@ -1443,33 +1560,65 @@ Module Localization
             "fl_here|here: stellt in den aktuellen Ordner wieder her.",
             "fl_rw|-rw: stellt in eine eigene Datei statt in eine temporäre Kopie wieder her.",
             "fl_keep|-keep: lässt die geöffnete Kopie liegen; der nächste FileDO-Start entfernt sie.",
-            "shell_cmd_fdsec_needs_y|Diese Rückfrage stellt die Konsole, und ein Lauf von hier hat keine: ohne -y bleibt das Original erhalten, und der Lauf sagt das auch."
+            "shell_cmd_fdsec_needs_y|Diese Rückfrage stellt die Konsole, und ein Lauf von hier hat keine: ohne -y bleibt das Original erhalten, und der Lauf sagt das auch.",
+            "shell_cause_access|Windows hat den Zugriff verweigert.",
+            "shell_cause_missing|Es ist nicht dort, wo es erwartet wurde - vielleicht wurde es verschoben, umbenannt oder gelöscht.",
+            "shell_cause_busy|Ein anderes Programm verwendet es gerade.",
+            "shell_cause_no_program|In Windows ist kein Programm eingerichtet, das es öffnet.",
+            "shell_cause_disk_full|Der Datenträger ist voll.",
+            "shell_cause_io|Windows konnte es nicht lesen oder schreiben.",
+            "shell_cause_unexpected|In FileDO ist ein unerwarteter Fehler aufgetreten.",
+            "shell_problem_title|FileDO - etwas hat nicht funktioniert",
+            "shell_problem_logged|Die Einzelheiten stehen im FileDO-Log. «Logs senden» gibt sie an den Autor weiter.",
+            "shell_btn_send_logs|Logs senden..",
+            "shell_btn_close|Schließen",
+            "shell_btn_cancel|Abbrechen",
+            "shell_btn_retry|Erneut versuchen",
+            "shell_btn_copy_address|Adresse kopieren",
+            "shell_btn_copy_path|Pfad kopieren",
+            "shell_link_failed|Die Adresse konnte nicht geöffnet werden:\n{0}\n\n{1} Sie können sie kopieren und selbst im Browser öffnen.",
+            "shell_folder_open_failed|Der Ordner konnte im Explorer nicht geöffnet werden:\n{0}\n\n{1}",
+            "shell_report_open_failed|Der Bericht konnte im Editor nicht geöffnet werden. {0} Stattdessen lässt sich der Berichtsordner öffnen.",
+            "shell_copy_failed|Es wurde nichts kopiert. {0}",
+            "shell_unhandled|FileDO ist auf ein unerwartetes Problem gestoßen. Was Sie gerade getan haben, ist vielleicht nicht fertig geworden.",
+            "shell_open_failed|Das FileDO-Fenster konnte nicht geöffnet werden. {0} Das Kommandozeilenwerkzeug filedo.exe ist davon nicht betroffen.",
+            "logs_problem_explorer|Der Ordner konnte im Explorer nicht geöffnet werden.",
+            "logs_problem_clipboard|Der Pfad konnte nicht in die Zwischenablage gelegt werden.",
+            "logs_problem_mail|Das Mailprogramm konnte nicht geöffnet werden.",
+            "logs_btn_build|Zip erstellen",
+            "shell_close_running_title|Ein Auftrag läuft noch",
+            "shell_close_running|«{0}» läuft noch. Wird das Fenster jetzt geschlossen, läuft der Auftrag weiter, ohne dass er sich noch anhalten ließe.\n\nAnhalten und das Fenster schließen, oder weiterlaufen lassen?",
+            "shell_btn_stop_close|Anhalten und schließen",
+            "shell_btn_keep_running|Weiterlaufen lassen",
+            "shell_closing_after_stop|Der Auftrag wird angehalten - das Fenster schließt sich, sobald er beendet ist.",
+            "shell_close_still_running|«{0}» hat noch nicht angehalten.\n\nJetzt beenden und schließen? Der Auftrag wird sofort beendet, ohne eigenes Aufräumen, daher können Testdateien zurückbleiben.",
+            "shell_btn_end_now|Jetzt beenden und schließen",
+            "shell_btn_keep_waiting|Weiter warten",
+            "shell_busy_fmt|«{0}» läuft. Halten Sie den Auftrag an oder lassen Sie ihn zu Ende laufen, bevor Sie einen anderen starten.",
+            "shell_blast_nothing|Der Ordner ist leer - es gibt nichts zu löschen.",
+            "shell_wipe_needs_y|Setzen Sie auch -y. filedo.exe fragt in seiner Konsole noch einmal nach WIPE, und ein Lauf aus diesem Fenster hat keine - ohne -y hält er an, ohne zu löschen. Die Bestätigung ist das oben getippte WIPE.",
+            "shell_wipe_needs_console|Dieser Ort braucht die Konsole: {0}. Hier fragt FileDO zweimal - WIPE, dann den Pfad -, und nur ein Terminal kann antworten. Kopieren Sie den Befehl unten und führen Sie ihn dort aus.",
+            "shell_wipe_danger_root|es ist das Stammverzeichnis eines Laufwerks",
+            "shell_wipe_danger_share|es ist das Stammverzeichnis einer Netzwerkfreigabe",
+            "shell_wipe_danger_reparse|es ist eine Verzweigung, ein symbolischer Link oder ein Bereitstellungspunkt",
+            "shell_wipe_danger_temp|es ist der TEMP-Ordner des Systems",
+            "shell_cmd_wipe_confirm|Dieser Befehl löscht. Tippen Sie WIPE in Großbuchstaben, um ihn auszuführen:",
+            "shell_cmd_wipe_needs_y|Ohne -y stellt das Löschen seine Rückfrage in der Konsole, und ein Lauf aus diesem Fenster hat keine - es hielte an, ohne zu löschen.",
+            "shell_acc_open|Öffnen",
+            "shell_history_details|Inhalt des Berichts",
+            "shell_drive_row_fmt|{0} ({1}, {2}, {3:F1} GB, frei {4:F1} GB)"
         }
     End Function
 
     Private Function FrLines() As String()
         Return New String() {
-            "ui_title|FileDO - constructeur de commandes",
-            "ui_lang|Langue :",
-            "ui_target|Cible :",
             "ui_operation|Opération :",
-            "ui_drive|Disque :",
-            "ui_path|Chemin :",
             "ui_source|Source :",
             "ui_list|Fichier liste :",
             "ui_folder|Dossier :",
             "ui_dest|Destination :",
-            "ui_size|Taille (Mo) :",
             "ui_flags|Options :",
-            "ui_browse|Parcourir",
-            "ui_copy|Copier la commande",
-            "ui_run|EXÉCUTER",
-            "ui_about|À propos",
-            "ui_close|Fermer",
             "ui_send_logs|Envoyer les logs à l'auteur",
-            "about_tip|Version, liens et envoi des logs à l'auteur",
-            "about_title|À propos de FileDO",
-            "about_tagline|Tests de vitesse des supports, détection de capacité falsifiée, effacement sécurisé, remplissage et gestion des doublons pour Windows - un outil en ligne de commande et ce constructeur de commandes.",
             "about_build|Version de l'interface:",
             "about_cli|CLI filedo.exe:",
             "about_cli_missing|absent à côté de l'interface (PATH ou alias du Store)",
@@ -1489,17 +1638,8 @@ Module Localization
             "logs_ready|Le zip est prêt:\n{0}\n\nFichiers collectés: {1}. Le dossier est ouvert avec le fichier sélectionné, et le chemin complet est dans le presse-papiers.\n\nDernière étape: joignez ce fichier au message qui vient de s'ouvrir et envoyez-le.",
             "logs_partial|Certaines étapes ont échoué:",
             "logs_error|Impossible de créer l'archive des logs:\n{0}",
-            "hl_example|Exemple :",
-            "hl_note|Remarque :",
-            "hl_flags|Options actives :",
-            "dup_title|Options des doublons",
-            "dup_old|Garder le plus récent (old)",
-            "dup_new|Garder le plus ancien (new)",
-            "dup_abc|Garder le dernier alpha (abc)",
-            "dup_xyz|Garder le premier alpha (xyz)",
             "dup_move|Déplacer les doublons vers :",
             "cmp_label|Règle de suppression :",
-            "hl_rule|Règle :",
             "cmprule_none|Signaler seulement les différences ; ne rien supprimer.",
             "cmprule_source|Supprimer les fichiers de la Source présents aussi dans la Destination.",
             "cmprule_target|Supprimer les fichiers de la Destination présents aussi dans la Source.",
@@ -1540,13 +1680,7 @@ Module Localization
             "fl_del|del : supprimer les fichiers de test automatiquement après l'exécution.",
             "fl_nodel|nodel : garder le fichier de test au lieu de le supprimer.",
             "fl_short|short : sortie brève uniquement.",
-            "fl_hist|hist : journaliser cette exécution dans history.json.",
             "fl_force|--force : ignorer la confirmation WIPE (cibles normales uniquement).",
-            "ex_device|Exemple : choisissez un disque - C:  D:  E:",
-            "ex_folder|Exemple : C:\Temp   D:\Data",
-            "ex_network|Exemple : \\server\share",
-            "ex_file|Exemple : C:\data\archive.zip",
-            "note_sysdrive|C: est le disque système. Les tests d'écriture (test/fill/speed) sont redirigés vers %TEMP%FileDO_Operations (repli C:\TEMP) et demandent confirmation - cela protège Windows.",
             "shell_title|FileDO",
             "shell_subtitle|Tests de stockage, copie, remplissage et effacement - une interface pour filedo.exe",
             "shell_empty_title|Rien à afficher pour l'instant",
@@ -1592,7 +1726,7 @@ Module Localization
             "shell_opt_autodel|Suppression automatique des fichiers de test (del)",
             "shell_opt_force|Ignorer la confirmation (-y / --force)",
             "shell_blast_counting|Comptage des fichiers de la cible..",
-            "shell_blast_result_fmt|La cible contient {0} fichiers ({1:F1} Mo)",
+            "shell_blast_result_fmt|La cible contient {0} fichiers dans {2} dossiers ({1:F1} Mo)",
             "shell_blast_not_counted|Fichiers de la cible : non comptés",
             "shell_btn_skip_count|Ignorer le comptage",
             "shell_wipe_confirm_hint|Tapez WIPE en majuscules pour confirmer :",
@@ -1678,7 +1812,7 @@ Module Localization
             "shell_preset_thorough_speed|Approfondi - le plus gros fichier (max)",
             "shell_preset_quick_test|Rapide - 100 fichiers",
             "shell_preset_thorough_test|Approfondi - 1000 fichiers",
-            "shell_report_read_error|Impossible de lire le rapport : {0}",
+            "shell_report_read_error|Impossible de lire le rapport : {0} Actualisez la liste ou ouvrez le dossier des rapports.",
             "shell_lbl_command_editable|La commande qui sera exécutée - modifiable :",
             "rail_group_protect|Protéger",
             "rail_job_secure|Rendre un fichier secret",
@@ -1795,7 +1929,53 @@ Module Localization
             "fl_here|here : restaure dans le dossier courant.",
             "fl_rw|-rw : restaure dans un fichier qui vous appartient plutôt que dans une copie temporaire.",
             "fl_keep|-keep : laisse la copie ouverte ; le prochain démarrage de FileDO la retire.",
-            "shell_cmd_fdsec_needs_y|Cette question se pose sur une console, et une exécution lancée d'ici n'en a pas : sans -y l'original est conservé, et l'exécution le dit."
+            "shell_cmd_fdsec_needs_y|Cette question se pose sur une console, et une exécution lancée d'ici n'en a pas : sans -y l'original est conservé, et l'exécution le dit.",
+            "shell_cause_access|Windows en a refusé l'accès.",
+            "shell_cause_missing|Il n'est pas là où il était attendu - il a peut-être été déplacé, renommé ou supprimé.",
+            "shell_cause_busy|Un autre programme l'utilise en ce moment.",
+            "shell_cause_no_program|Aucun programme n'est configuré dans Windows pour l'ouvrir.",
+            "shell_cause_disk_full|Le disque est plein.",
+            "shell_cause_io|Windows n'a pas pu le lire ou l'écrire.",
+            "shell_cause_unexpected|Une erreur inattendue s'est produite dans FileDO.",
+            "shell_problem_title|FileDO - quelque chose n'a pas fonctionné",
+            "shell_problem_logged|Les détails sont dans le log de FileDO. «Envoyer les logs» les transmet à l'auteur.",
+            "shell_btn_send_logs|Envoyer les logs..",
+            "shell_btn_close|Fermer",
+            "shell_btn_cancel|Annuler",
+            "shell_btn_retry|Réessayer",
+            "shell_btn_copy_address|Copier l'adresse",
+            "shell_btn_copy_path|Copier le chemin",
+            "shell_link_failed|L'adresse n'a pas pu être ouverte :\n{0}\n\n{1} Vous pouvez la copier et l'ouvrir vous-même dans un navigateur.",
+            "shell_folder_open_failed|Le dossier n'a pas pu être ouvert dans l'Explorateur :\n{0}\n\n{1}",
+            "shell_report_open_failed|Le rapport n'a pas pu être ouvert dans le Bloc-notes. {0} Le dossier des rapports peut être ouvert à la place.",
+            "shell_copy_failed|Rien n'a été copié. {0}",
+            "shell_unhandled|FileDO a rencontré un problème imprévu. Ce que vous faisiez n'est peut-être pas terminé.",
+            "shell_open_failed|La fenêtre de FileDO n'a pas pu s'ouvrir. {0} L'outil en ligne de commande filedo.exe n'est pas concerné.",
+            "logs_problem_explorer|Le dossier n'a pas pu être ouvert dans l'Explorateur.",
+            "logs_problem_clipboard|Le chemin n'a pas pu être placé dans le presse-papiers.",
+            "logs_problem_mail|Le programme de messagerie n'a pas pu être ouvert.",
+            "logs_btn_build|Créer le zip",
+            "shell_close_running_title|Une tâche est encore en cours",
+            "shell_close_running|«{0}» est encore en cours. Fermer la fenêtre maintenant la laisserait tourner sans rien à l'écran pour l'arrêter.\n\nL'arrêter et fermer la fenêtre, ou la laisser tourner ?",
+            "shell_btn_stop_close|Arrêter et fermer",
+            "shell_btn_keep_running|Laisser tourner",
+            "shell_closing_after_stop|Arrêt de la tâche en cours - la fenêtre se fermera dès qu'elle sera terminée.",
+            "shell_close_still_running|«{0}» ne s'est pas encore arrêtée.\n\nLa terminer maintenant et fermer ? Elle est interrompue aussitôt, sans son propre nettoyage, des fichiers de test peuvent donc rester.",
+            "shell_btn_end_now|Terminer maintenant et fermer",
+            "shell_btn_keep_waiting|Continuer d'attendre",
+            "shell_busy_fmt|«{0}» est en cours. Arrêtez-la ou laissez-la finir avant de lancer une autre tâche.",
+            "shell_blast_nothing|Le dossier est vide - il n'y a rien à supprimer.",
+            "shell_wipe_needs_y|Cochez aussi -y. filedo.exe redemande WIPE sur sa console, et une exécution lancée depuis cette fenêtre n'en a pas - sans -y elle s'arrêterait sans rien effacer. La confirmation est le WIPE saisi plus haut.",
+            "shell_wipe_needs_console|Cet emplacement exige la console : {0}. FileDO y demande deux confirmations - WIPE, puis le chemin - et seul un terminal peut répondre. Copiez la commande ci-dessous et exécutez-la dans un terminal.",
+            "shell_wipe_danger_root|c'est la racine d'un lecteur",
+            "shell_wipe_danger_share|c'est la racine d'un partage réseau",
+            "shell_wipe_danger_reparse|c'est une jonction, un lien symbolique ou un point de montage",
+            "shell_wipe_danger_temp|c'est le dossier TEMP du système",
+            "shell_cmd_wipe_confirm|Cette commande efface. Tapez WIPE en majuscules pour l'exécuter :",
+            "shell_cmd_wipe_needs_y|Sans -y, l'effacement pose sa question sur une console, et une exécution depuis cette fenêtre n'en a pas - elle s'arrêterait sans rien effacer.",
+            "shell_acc_open|Ouvrir",
+            "shell_history_details|Contenu du rapport",
+            "shell_drive_row_fmt|{0} ({1}, {2}, {3:F1} Go, libre {4:F1} Go)"
         }
     End Function
 

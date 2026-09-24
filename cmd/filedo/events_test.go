@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -103,8 +104,9 @@ func TestInterruptHandler_StopFile(t *testing.T) {
 		t.Fatalf("failed to write stop file: %v", err)
 	}
 
-	// Wait for polling detection
-	deadline := time.Now().Add(2 * time.Second)
+	// Rule 15 promises detection within 250 ms. Leave a small scheduler margin
+	// while still making a regression from the 100 ms poll visible quickly.
+	deadline := time.Now().Add(250 * time.Millisecond)
 	for time.Now().Before(deadline) {
 		if ih.IsCancelled() {
 			break
@@ -119,4 +121,63 @@ func TestInterruptHandler_StopFile(t *testing.T) {
 	if !cleaned {
 		t.Fatal("cleanup function was not invoked on stop")
 	}
+}
+
+// TestEventSample_V1 is rung 1 of the CLI-EVENT-STREAM conformance ladder.
+// The committed stream is generated, never edited: set FILEDO_WRITE_EVENT_SAMPLE=1
+// to refresh it after deliberately changing the schema.
+func TestEventSample_V1(t *testing.T) {
+	path := filepath.Join("testdata", "events", "sample-v1.jsonl")
+	got := generatedEventSample(t)
+	if os.Getenv("FILEDO_WRITE_EVENT_SAMPLE") == "1" {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	want, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated sample: %v", err)
+	}
+	if !bytes.Equal(want, got) {
+		t.Fatalf("%s differs from the producer-generated stream; rerun with FILEDO_WRITE_EVENT_SAMPLE=1", path)
+	}
+}
+
+func generatedEventSample(t *testing.T) []byte {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample-v1.jsonl")
+	oldManager, oldNow := globalEventManager, eventNow
+	em, err := InitEventManager(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		globalEventManager = oldManager
+		eventNow = oldNow
+	}()
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	eventNow = func() time.Time {
+		v := now
+		now = now.Add(time.Millisecond)
+		return v
+	}
+
+	EmitRunEvent("2609241200", "sample", "C:\\sample", []string{"sample", "p:masked"})
+	EmitStepEvent("write", "Writing a deterministic sample")
+	EmitProgressEvent(1, 2, 512, 1024, 256.5, "Halfway done")
+	EmitFindingEvent("example", "An example finding", map[string]interface{}{"index": 1})
+	EmitNoteEvent("An example note")
+	EmitResultEvent("Passed", map[string]interface{}{"bytes": 1024}, []string{"C:\\sample\\kept.bin"}, []string{"C:\\sample\\report.txt"})
+	em.Close()
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }

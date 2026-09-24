@@ -34,7 +34,7 @@
         "url": "https://serzhyale.github.io/FileDO/",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Windows 10, Windows 11",
-        "inLanguage": ["en", "ru", "uk", "de", "fr"],
+        "inLanguage": ["en", "ru", "uk"],
         "description": "Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data.",
         "downloadUrl": "https://github.com/SerZhyAle/FileDO/releases/latest",
         "softwareHelp": "https://serzhyale.github.io/FileDO/guides/",
@@ -42,7 +42,7 @@
         "author": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
-          "email": "serzhyale@gmail.com"
+          "email": "sza@ukr.net"
         },
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
@@ -50,14 +50,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -1174,46 +1174,39 @@
         ◐</button
       ><a
         class="btn btn-primary btn-sm header-action"
-        href="https://github.com/SerZhyAle/FileDO"
-        target="_blank"
-        rel="noopener"
-        >GitHub</a
+        href="#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
       >
     </header>
     <main id="top">
       <section class="hero">
-        <div class="compact-identity">
-          <img
-            class="compact-product-icon"
-            src="assets/filedo.png"
-            alt="FileDO"
-          />
-          <div class="hero-copy">
+        <div class="hero-copy">
             <p class="hero-kicker">
-              <span data-l="ru">FileDO · Windows CLI и GUI</span>
-              <span data-l="en">FileDO · Windows CLI &amp; GUI</span>
-              <span data-l="ua">FileDO · Windows CLI та GUI</span>
+              <span data-l="ru">Windows CLI и GUI</span>
+              <span data-l="en">Windows CLI &amp; GUI</span>
+              <span data-l="ua">Windows CLI та GUI</span>
             </p>
             <h1>
-              <span data-l="ru">Проверка накопителей и операции с файлами</span>
-              <span data-l="en">Storage checks and file operations</span>
-              <span data-l="ua">Перевірка носіїв і операції з файлами</span>
+              <span data-l="ru">Узнайте носитель, прежде чем доверить ему данные</span>
+              <span data-l="en">Know your storage before you trust it</span>
+              <span data-l="ua">Дізнайтеся про носій, перш ніж довірити йому дані</span>
             </h1>
             <p class="lead">
               <span data-l="ru"
-                >Windows-инструмент для проверки реальной ёмкости и скорости
-                USB, SD и HDD, чтения файлов, поиска дубликатов, сравнения
-                папок, копирования и очистки.</span
+                >Проверка накопителей и операции с файлами для Windows, когда
+                перед данными нужно понять, можно ли доверять USB, SD, HDD или
+                папке.</span
               >
               <span data-l="en"
-                >A Windows tool for checking the real capacity and speed of USB,
-                SD, and HDD storage, reading files, finding duplicates,
-                comparing folders, copying, and cleanup.</span
+                >Windows storage checks and file operations when you need to
+                know whether a USB drive, SD card, HDD, or folder can be trusted
+                with your data.</span
               >
               <span data-l="ua"
-                >Windows-інструмент для перевірки реальної ємності та швидкості
-                USB, SD і HDD, читання файлів, пошуку дублікатів, порівняння
-                тек, копіювання й очищення.</span
+                >Перевірка носіїв і операції з файлами для Windows, коли перед
+                даними треба зрозуміти, чи можна довіряти USB, SD, HDD або
+                теці.</span
               >
             </p>
             <div class="hero-actions">
@@ -1241,8 +1234,7 @@
               ><span>Windows x64</span><span>CLI + GUI</span>
             </div>
           </div>
-        </div>
-        <div class="hero-visual" aria-label="Example FileDO storage check">
+        <div class="hero-visual" aria-label="Example storage check">
           <div class="device-card">
             <div class="device-top">
               <i></i><i></i><i></i
@@ -1359,23 +1351,6 @@
                 >
               </p>
             </article>
-            <article class="outcome" hidden>
-              <span class="outcome-num">02</span>
-              <h3>
-                <span data-l="ru">Понять скорость</span
-                ><span data-l="en">Measure speed</span
-                ><span data-l="ua">Зрозуміти швидкість</span>
-              </h3>
-              <p>
-                <span data-l="ru"
-                  >Измерить чтение и запись вместо догадок по ощущениям.</span
-                ><span data-l="en"
-                  >Measure read and write performance instead of guessing.</span
-                ><span data-l="ua"
-                  >Виміряти читання та запис замість здогадок.</span
-                >
-              </p>
-            </article>
             <article class="outcome">
               <span class="outcome-num">02</span>
               <h3>
@@ -1433,102 +1408,6 @@
                   тек.</span
                 >
               </p>
-            </article>
-          </div>
-        </div>
-      </section>
-      <section class="page-band method" id="approach" hidden>
-        <div class="band-inner">
-          <div class="section-intro">
-            <div>
-              <p class="eyebrow">
-                <span data-l="ru">Сдержанный подход</span
-                ><span data-l="en">A deliberate approach</span
-                ><span data-l="ua">Стриманий підхід</span>
-              </p>
-              <h2>
-                <span data-l="ru">Сначала понять. Потом действовать.</span
-                ><span data-l="en">Understand first. Act second.</span
-                ><span data-l="ua">Спочатку зрозуміти. Потім діяти.</span>
-              </h2>
-            </div>
-            <p class="intro">
-              <span data-l="ru"
-                >FileDO разделяет наблюдение и изменение данных. Вы начинаете с
-                информации и отчёта, а операции удаления остаются явным
-                следующим решением.</span
-              ><span data-l="en"
-                >FileDO separates observation from data-changing actions. You
-                begin with information and reports; deletion remains an explicit
-                next decision.</span
-              ><span data-l="ua"
-                >FileDO відокремлює спостереження від зміни даних. Ви починаєте
-                з інформації та звіту, а видалення лишається окремим
-                рішенням.</span
-              >
-            </p>
-          </div>
-          <div class="method-grid">
-            <article class="method-step">
-              <span>01 / OBSERVE</span>
-              <h3>
-                <span data-l="ru">Увидеть состояние</span
-                ><span data-l="en">See the state</span
-                ><span data-l="ua">Побачити стан</span>
-              </h3>
-              <p>
-                <span data-l="ru"
-                  >Получите сведения о носителе или папке без изменения
-                  файлов.</span
-                ><span data-l="en"
-                  >Inspect the drive or folder without changing its files.</span
-                ><span data-l="ua"
-                  >Отримайте відомості про носій або папку без зміни
-                  файлів.</span
-                >
-              </p>
-              <code>filedo E: info</code>
-            </article>
-            <article class="method-step">
-              <span>02 / VERIFY</span>
-              <h3>
-                <span data-l="ru">Проверить предположение</span
-                ><span data-l="en">Verify the assumption</span
-                ><span data-l="ua">Перевірити припущення</span>
-              </h3>
-              <p>
-                <span data-l="ru"
-                  >Запустите ровно тот тест, который отвечает на ваш
-                  вопрос.</span
-                ><span data-l="en"
-                  >Run only the check that answers the question you have.</span
-                ><span data-l="ua"
-                  >Запустіть саме ту перевірку, що відповідає на ваше
-                  питання.</span
-                >
-              </p>
-              <code>capacity · speed · read · compare</code>
-            </article>
-            <article class="method-step">
-              <span>03 / DECIDE</span>
-              <h3>
-                <span data-l="ru">Принять решение</span
-                ><span data-l="en">Make the decision</span
-                ><span data-l="ua">Прийняти рішення</span>
-              </h3>
-              <p>
-                <span data-l="ru"
-                  >Сохраните отчёт, скопируйте данные или удалите только после
-                  проверки результата.</span
-                ><span data-l="en"
-                  >Save a report, copy data, or delete only after reviewing the
-                  result.</span
-                ><span data-l="ua"
-                  >Збережіть звіт, скопіюйте дані або видаляйте лише після
-                  перевірки результату.</span
-                >
-              </p>
-              <code>report → review → action</code>
             </article>
           </div>
         </div>
@@ -1621,9 +1500,7 @@
               winget install SerZhyAle.FileDO<button
                 class="copy"
                 data-copy="winget install SerZhyAle.FileDO"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
             <div class="channels">
               <a
@@ -1702,9 +1579,7 @@
               </li>
             </ol>
             <div class="copybox install-example">
-              filedo E: info<button class="copy" data-copy="filedo E: info">
-                Copy
-              </button>
+              filedo E: info<button class="copy" data-copy="filedo E: info"><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
             <div class="note">
               <span class="tag"
@@ -1771,7 +1646,7 @@
           </div>
         </div>
       </section>
-      <section class="section" hidden>
+      <section class="section" id="capabilities">
         <h2>
           <span data-l="ru">Основные возможности</span
           ><span data-l="en">Main capabilities</span
@@ -1877,48 +1752,29 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Окно FileDO (GUI)</span
-              ><span data-l="en">The FileDO window (GUI)</span
-              ><span data-l="ua">Вікно FileDO (GUI)</span>
+              <span data-l="ru">Окно FileDO и отчёт для поддержки</span
+              ><span data-l="en">The FileDO window and support report</span
+              ><span data-l="ua">Вікно FileDO та звіт для підтримки</span>
             </h3>
             <p>
               <span data-l="ru"
                 >В ZIP и winget-пакете есть <code>filedo_win</code>: слева
                 список задач, на каждую - своя страница, плюс страница
-                «Команда» для любой операции.</span
+                «Команда» для любой операции. Кнопка «О программе» собирает
+                логи в ZIP и открывает ваше почтовое приложение: архив виден
+                вам первым, и ничего не отправляется без вашего действия.</span
               ><span data-l="en"
                 >The ZIP and winget package include <code>filedo_win</code>: a
                 rail of jobs with one page per job, plus a Command page for any
-                operation.</span
+                operation. Its About button packages logs in a ZIP and opens
+                your mail app: you see the archive first, and nothing sends
+                until you act.</span
               ><span data-l="ua"
                 >ZIP і пакет winget містять <code>filedo_win</code>: ліворуч
                 список завдань, на кожне - своя сторінка, плюс сторінка
-                «Команда» для будь-якої операції.</span
-              >
-            </p>
-          </article>
-          <article class="card">
-            <h3>
-              <span data-l="ru">Отправить логи автору</span
-              ><span data-l="en">Send logs to the author</span
-              ><span data-l="ua">Надіслати логи автору</span>
-            </h3>
-            <p>
-              <span data-l="ru"
-                >В окне «О программе» одна кнопка собирает логи FileDO в zip и
-                открывает вашу почтовую программу с адресом автора. Архив вы
-                видите первым, и ничего не уходит, пока вы сами не отправите
-                письмо.</span
-              ><span data-l="en"
-                >One button in the About window packs the FileDO logs into a zip
-                and opens your own mail program addressed to the author. You see
-                the archive first, and nothing is sent until you press Send
-                yourself.</span
-              ><span data-l="ua"
-                >У вікні «Про програму» одна кнопка збирає логи FileDO у zip і
-                відкриває вашу поштову програму з адресою автора. Архів ви
-                бачите першим, і нічого не йде, поки ви самі не надішлете
-                лист.</span
+                «Команда» для будь-якої операції. Кнопка «Про програму» збирає
+                логи в ZIP і відкриває вашу поштову програму: архів спершу
+                бачите ви, і нічого не надсилається без вашої дії.</span
               >
             </p>
           </article>
@@ -1979,17 +1835,13 @@
               filedo E: test del<button
                 class="copy"
                 data-copy="filedo E: test del"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
             <div class="copybox">
               filedo E: speed 100<button
                 class="copy"
                 data-copy="filedo E: speed 100"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </div>
         </details>
@@ -2020,25 +1872,19 @@
               filedo C:\Data check-duplicates<button
                 class="copy"
                 data-copy="filedo C:\Data check-duplicates"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
             <div class="copybox">
               filedo C:\Source copy D:\Backup<button
                 class="copy"
                 data-copy="filedo C:\Source copy D:\Backup"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
             <div class="copybox">
               filedo compare D:\Data E:\Backup<button
                 class="copy"
                 data-copy="filedo compare D:\Data E:\Backup"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </div>
         </details>
@@ -2166,9 +2012,7 @@
               FileDO &amp;&amp; .\build.ps1<button
                 class="copy"
                 data-copy="git clone https://github.com/SerZhyAle/FileDO.git && cd FileDO && .\build.ps1"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </div>
         </details>
@@ -2418,30 +2262,6 @@
           >
         </p>
       </section>
-      <section class="section" hidden>
-        <h2>
-          <span data-l="ru">Связанный инструмент</span
-          ><span data-l="en">Related tool</span
-          ><span data-l="ua">Пов’язаний інструмент</span>
-        </h2>
-        <p class="intro">
-          <span data-l="ru"
-            >Если задача - разбирать большую папку фото и видео, а не проверять
-            сам носитель, используйте </span
-          ><span data-l="en"
-            >If the task is sorting a large photo and video folder rather than
-            checking the storage itself, use </span
-          ><span data-l="ua"
-            >Якщо завдання - розібрати велику папку фото й відео, а не
-            перевіряти сам носій, скористайтеся </span
-          ><a
-            href="https://serzhyale.github.io/FastMediaSorter_Lite/"
-            target="_blank"
-            rel="noopener"
-            >Fast Media Sorter for Windows</a
-          >.
-        </p>
-      </section>
     </main>
     <footer class="site-footer">
       <div class="container">
@@ -2454,14 +2274,16 @@
           <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"
             ><b>FastMediaSorter v2</b><span>Android media sorter</span></a
           ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"
-            ><b>Fast Media Sorter</b><span>Windows media sorter</span></a
+            ><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a
           ><a href="https://serzhyale.github.io/CyrFlip/"
             ><b>CyrFlip</b><span>Windows layout fixer</span></a
           ><a href="https://serzhyale.github.io/doc-html-translate/"
             ><b>doc-html-translate</b><span>Windows ebook converter</span></a
+          ><a href="https://serzhyale.github.io/StreamsPlayer/"
+            ><b>StreamsPlayer</b><span>Windows stream player</span></a
           ><a href="https://serzhyale.github.io/universal-agent-kit/"
             ><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
-          ><a href="https://github.com/SerZhyAle/OneClickRunner"
+          ><a href="https://serzhyale.github.io/OneClickRunner/"
             ><b>OneClickRunner</b><span>Windows tray launcher</span></a
           ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
         </div>
@@ -2480,7 +2302,7 @@
         </div>
       </div>
     </footer>
-    <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
+    <button class="to-top" id="toTop" aria-label="Scroll to top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z" fill="currentColor"/></svg></button>
     <script>
       (function () {
         var meta = {
@@ -2498,12 +2320,20 @@
           },
         };
         function lang(l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
           document.documentElement.dataset.lang = l;
           document.documentElement.lang = l === "ua" ? "uk" : l;
           localStorage.setItem("sza-lang", l);
           document.querySelectorAll("[data-set-lang]").forEach(function (b) {
             b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
           });
+          // nav.scroll-top is named with its ICON-SET name in the page language.
+          document
+            .getElementById("toTop")
+            .setAttribute(
+              "aria-label",
+              { ru: "В начало списка", en: "Scroll to top", ua: "На початок списку" }[l],
+            );
           document.title = meta[l].t;
           document.querySelector('meta[name="description"]').content =
             meta[l].d;
@@ -2545,13 +2375,19 @@
           a.remove();
           done();
         }
+        // The feedback is a word in the page language, not a plain check mark:
+        // that shape is action.confirm in ICON-SET, distinct from status.ok.
+        var copyLabel =
+          '<span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span>';
+        var copiedLabel =
+          '<span data-l="ru">Скопировано</span><span data-l="en">Copied</span><span data-l="ua">Скопійовано</span>';
         document.querySelectorAll(".copy").forEach(function (b) {
           b.onclick = function () {
             function done() {
-              b.textContent = "✓ Copied";
+              b.innerHTML = copiedLabel;
               b.classList.add("done");
               setTimeout(function () {
-                b.textContent = "Copy";
+                b.innerHTML = copyLabel;
                 b.classList.remove("done");
               }, 1600);
             }

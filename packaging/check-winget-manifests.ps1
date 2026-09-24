@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
   Pre-publication checks for the winget manifest set.
@@ -28,7 +29,7 @@
       Per-user and admin-free, but it writes to the profile of whoever runs it - which is why it
       is a switch and not the default.
 
-  Exit code: 0 = every check passed, 1 = a check failed.
+  Exit code: 0 = every check passed, 1 = a defect was found, 2 = could not verify.
 
   This script lives in packaging\ and not in winget\ on purpose: `winget validate --manifest`
   is pointed at the directory and parses EVERY file in it as YAML, so one .ps1 next to the
@@ -59,6 +60,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 if (-not $Path) { $Path = Join-Path (Split-Path $PSScriptRoot -Parent) "winget" }
+if (-not (Test-Path $Path)) {
+    Write-Host "winget-manifests: NOT VERIFIED (manifest directory does not exist: $Path)" -ForegroundColor Yellow
+    exit 2
+}
 $Path = (Resolve-Path $Path).Path
 
 # --- frozen anchors ----------------------------------------------------------
@@ -74,10 +79,14 @@ $Files = [ordered]@{
     installer = 'SerZhyAle.FileDO.installer.yaml'
 }
 
-$script:fail = 0; $script:pass = 0
+$script:fail = 0; $script:pass = 0; $script:unverified = @()
 function Check([string]$name, [bool]$ok, [string]$detail = "") {
     if ($ok) { $script:pass++; Write-Host "  PASS  $name" -ForegroundColor Green }
     else     { $script:fail++; Write-Host "  FAIL  $name  $detail" -ForegroundColor Red }
+}
+function CannotVerify([string]$reason) {
+    $script:unverified += $reason
+    Write-Host "  NOT VERIFIED  $reason" -ForegroundColor Yellow
 }
 function Get-Field([string]$text, [string]$key) {
     # The installer keys sit inside the Installers sequence, so the line may be indented and
@@ -97,14 +106,12 @@ foreach ($k in $Files.Keys) {
     if (Test-Path $p) { $raw[$k] = Get-Content $p -Raw } else { $missing += $Files[$k] }
 }
 Check "the three manifests exist" ($missing.Count -eq 0) ($missing -join ', ')
-if ($missing.Count) { Write-Host ""; Write-Host "winget manifest checks FAILED." -ForegroundColor Red; exit 1 }
+if ($missing.Count) { Write-Host ""; Write-Host "winget-manifests: FAIL (missing manifests)" -ForegroundColor Red; exit 1 }
 
 # --- the schema, as winget reads it ------------------------------------------
 Write-Host "SCHEMA" -ForegroundColor Cyan
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    # winget is inbox on Windows 11 and this runs on the machine that cuts the release:
-    # absent, the check did not pass, so it is a failure and never a skip.
-    Check "winget validate --manifest" $false "winget is not on PATH (it is inbox on Windows 11; install App Installer)"
+    CannotVerify "winget is not on PATH (install App Installer)"
 } else {
     $vOut  = & winget validate --manifest $Path 2>&1 | Out-String
     $vCode = $LASTEXITCODE
@@ -172,7 +179,9 @@ if ($NoNetwork) {
         $real = (Get-FileHash $tmp -Algorithm SHA256).Hash.ToUpper()
         Check "InstallerSha256 is the hash of the downloaded artifact" ($sha -ceq $real) "the asset hashes to $real"
     } catch {
-        Check "the artifact at InstallerUrl can be downloaded" $false "$($_.Exception.Message)"
+        $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { $null }
+        if ($status -eq 404) { Check "the artifact at InstallerUrl can be downloaded" $false "status 404 - $($_.Exception.Message)" }
+        else { CannotVerify "the artifact at InstallerUrl could not be reached: $($_.Exception.Message)" }
     } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
 } else {
     try {
@@ -183,7 +192,9 @@ if ($NoNetwork) {
         $published = ((([string]$side).Trim() -split '\s+')[0]).ToUpper()
         Check "InstallerSha256 equals the hash published beside the asset" ($sha -ceq $published) "published: $published"
     } catch {
-        Check "the .sha256 sidecar of InstallerUrl can be read" $false "$($_.Exception.Message)"
+        $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { $null }
+        if ($status -eq 404) { Check "the .sha256 sidecar of InstallerUrl can be read" $false "status 404 - $($_.Exception.Message)" }
+        else { CannotVerify "the .sha256 sidecar of InstallerUrl could not be reached: $($_.Exception.Message)" }
     }
 }
 
@@ -217,6 +228,7 @@ if ($Install) {
 }
 
 Write-Host ""
-if ($script:fail -eq 0) { Write-Host "winget manifest checks PASSED ($script:pass checks)." -ForegroundColor Green; exit 0 }
-Write-Host "winget manifest checks FAILED: $script:fail of $($script:pass + $script:fail) checks." -ForegroundColor Red
-exit 1
+if ($script:fail -gt 0) { Write-Host "winget-manifests: FAIL ($script:fail checks)" -ForegroundColor Red; exit 1 }
+if ($script:unverified.Count -gt 0) { Write-Host "winget-manifests: NOT VERIFIED ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
+Write-Host "winget-manifests: PASS ($script:pass checks)" -ForegroundColor Green
+exit 0

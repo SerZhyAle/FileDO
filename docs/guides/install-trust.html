@@ -16,14 +16,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -136,22 +136,32 @@
             </h3>
             <p>
               <span data-l="ru"
-                >Синее окно SmartScreen с кнопкой «Не выполнять». Появляется,
-                когда вы запускаете <code>FileDO-&lt;версия&gt;-setup.exe</code>
-                в первый раз. Это фильтр репутации, а не результат проверки
-                содержимого: Windows говорит, что не знает издателя нового
-                неподписанного файла, а не что нашла в нём что-то плохое.</span
+                >Синее окно SmartScreen с кнопкой «Не выполнять». Появляется при
+                первом запуске любого из неподписанных файлов выпуска —
+                установщика <code>FileDO-&lt;версия&gt;-setup.exe</code>,
+                отдельного пакета <code>FileDO-&lt;версия&gt;-windows-x64.msi</code>
+                или исполняемых файлов из архива <code>FileDO-&lt;версия&gt;-windows-x64.zip</code>
+                (<code>filedo_win.exe</code>, <code>filedo.exe</code>). Это фильтр
+                репутации, а не результат проверки содержимого: Windows говорит,
+                что не знает издателя нового неподписанного файла, а не что
+                нашла в нём что-то плохое.</span
               ><span data-l="en"
                 >The blue SmartScreen dialog with a &ldquo;Don't run&rdquo;
-                button. It appears the first time you run
-                <code>FileDO-&lt;version&gt;-setup.exe</code>. It is a
+                button. It appears the first time you run any of the unsigned
+                release files — the installer <code>FileDO-&lt;version&gt;-setup.exe</code>,
+                the standalone <code>FileDO-&lt;version&gt;-windows-x64.msi</code>,
+                or the executables from <code>FileDO-&lt;version&gt;-windows-x64.zip</code>
+                (<code>filedo_win.exe</code>, <code>filedo.exe</code>). It is a
                 reputation filter, not a finding about the content: Windows is
                 saying it does not know the publisher of a new unsigned file,
                 not that it found something wrong inside it.</span
               ><span data-l="ua"
-                >Синє вікно SmartScreen із кнопкою «Не виконувати».
-                З'являється, коли ви запускаєте
-                <code>FileDO-&lt;версія&gt;-setup.exe</code> уперше. Це фільтр
+                >Синє вікно SmartScreen із кнопкою «Не виконувати». З'являється під
+                час першого запуску будь-якого з непідписаних файлів випуску —
+                встановлювача <code>FileDO-&lt;версія&gt;-setup.exe</code>,
+                окремого пакета <code>FileDO-&lt;версія&gt;-windows-x64.msi</code>
+                або виконуваних файлів з архіву <code>FileDO-&lt;версія&gt;-windows-x64.zip</code>
+                (<code>filedo_win.exe</code>, <code>filedo.exe</code>). Це фільтр
                 репутації, а не результат перевірки вмісту: Windows каже, що не
                 знає видавця нового непідписаного файлу, а не що знайшла в
                 ньому щось погане.</span
@@ -171,26 +181,31 @@
             </h3>
             <p>
               <span data-l="ru"
-                >Запрос прав администратора (UAC). Появляется один раз, во
-                время установки, потому что программы ставятся в
+                >Запрос прав администратора (UAC). Появляется во время установки,
+                а позже — только если вы запускаете одно из двух заданий
+                проверки диска или регистрируете контекстное меню Проводника для
+                всех учётных записей. Программы ставятся в
                 <code>C:\Program Files\FileDO</code>, а пункты Проводника
                 пишутся в реестр для всей машины. Повседневная работа FileDO
                 прав администратора не требует. Что именно делается под этими
-                правами - в разделе 3.</span
+                правами — в разделе 3.</span
               ><span data-l="en"
-                >The administrator prompt (UAC). It appears once, during setup,
-                because the programs go to
+                >The administrator prompt (UAC). It appears during setup, and
+                later only when you start one of two drive-repair jobs or
+                register the Explorer menu for every account. The programs go to
                 <code>C:\Program Files\FileDO</code> and the Explorer entries
                 are written to the machine-wide registry. Day-to-day use of
                 FileDO needs no administrator rights. Exactly what is done with
                 them is section 3.</span
               ><span data-l="ua"
-                >Запит прав адміністратора (UAC). З'являється один раз, під час
-                встановлення, бо програми ставляться в
+                >Запит прав адміністратора (UAC). З'являється під час встановлення,
+                а пізніше — лише якщо ви запускаєте одне з двох завдань
+                перевірки диска або реєструєте контекстне меню Провідника для
+                всіх облікових записів. Програми ставляться в
                 <code>C:\Program Files\FileDO</code>, а пункти Провідника
                 пишуться в реєстр для всієї машини. Повсякденна робота FileDO
                 прав адміністратора не потребує. Що саме робиться під цими
-                правами - у розділі 3.</span
+                правами — у розділі 3.</span
               >
             </p>
           </article>
@@ -250,6 +265,21 @@
         </p>
         <p class="intro">
           <span data-l="ru"
+            >Версия из Microsoft Store подписывается самой компанией Microsoft
+            при публикации и не показывает таких предупреждений — это та же
+            самая программа.</span
+          ><span data-l="en"
+            >The Microsoft Store build is signed by Microsoft at certification
+            and shows none of these warnings — it is the exact same
+            program.</span
+          ><span data-l="ua"
+            >Версія з Microsoft Store підписується самою компанією Microsoft
+            під час публікації й не показує таких попереджень — це та сама
+            програма.</span
+          >
+        </p>
+        <p class="intro">
+          <span data-l="ru"
             >Репутация накапливается: чем больше людей скачивают и запускают ту
             же самую сборку, тем реже SmartScreen о ней спрашивает. Поэтому
             предупреждение со временем само сходит на нет, а после каждой новой
@@ -285,7 +315,7 @@
           >
         </p>
         <div class="copybox">
-          certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
+          certutil -hashfile &lt;the-file-you-downloaded&gt; SHA256
         </div>
       </section>
 
@@ -324,16 +354,20 @@
           </li>
           <li>
             <span data-l="ru"
-              >В запросе прав администратора нажмите <b>«Да»</b>. Если нажать
-              «Нет», установка просто не начнётся и ничего не изменится.</span
+              ><b>При установке:</b> в запросе прав администратора нажмите
+              <b>«Да»</b>. Если нажать «Нет», установка просто не начнётся и
+              ничего не изменится. Переносимая версия из ZIP этот запрос при
+              обычном запуске не вызывает.</span
             ><span data-l="en"
-              >In the administrator prompt, click <b>Yes</b>. Choosing
-              &ldquo;No&rdquo; simply means the install does not start and
-              nothing changes.</span
+              ><b>For installers:</b> in the administrator prompt, click
+              <b>Yes</b>. Choosing &ldquo;No&rdquo; simply means the install does
+              not start and nothing changes. The portable build from the ZIP
+              does not raise this prompt on normal start.</span
             ><span data-l="ua"
-              >У запиті прав адміністратора натисніть <b>«Так»</b>. Якщо
-              натиснути «Ні», встановлення просто не почнеться і нічого не
-              зміниться.</span
+              ><b>Під час встановлення:</b> у запиті прав адміністратора
+              натисніть <b>«Так»</b>. Якщо натиснути «Ні», встановлення просто
+              не почнеться і нічого не зміниться. Переносна версія із ZIP цей
+              запит під час звичайного запуску не викликає.</span
             >
           </li>
           <li>
@@ -364,14 +398,14 @@
         </h3>
         <p class="intro">
           <span data-l="ru"
-            >Ровно это и ничего сверх. Каждый пункт - выбор в мастере
-            установки, кроме первых двух.</span
+            >Ровно это и ничего сверх. Каждый пункт — выбор в мастере
+            установки, кроме первых трёх.</span
           ><span data-l="en"
-            >This and nothing more. Every item but the first two is a choice in
+            >This and nothing more. Every item but the first three is a choice in
             the install wizard.</span
           ><span data-l="ua"
-            >Саме це й нічого понад. Кожен пункт - вибір у майстрі
-            встановлення, крім перших двох.</span
+            >Саме це й нічого понад. Кожен пункт — вибір у майстрі
+            встановлення, крім перших трьох.</span
           >
         </p>
         <ul class="steps">
@@ -404,14 +438,20 @@
           </li>
           <li>
             <span data-l="ru"
-              >Создаёт пункт в меню «Пуск», а если вы согласились - значок на
-              рабочем столе.</span
+              >Создаёт пункт в меню «Пуск».</span
             ><span data-l="en"
-              >Creates a Start menu entry and, if you agreed to it, a desktop
-              icon.</span
+              >Creates a Start menu entry.</span
             ><span data-l="ua"
-              >Створює пункт у меню «Пуск», а якщо ви погодилися - піктограму
-              на робочому столі.</span
+              >Створює пункт у меню «Пуск».</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Если вы согласились — создаёт значок на рабочем столе.</span
+            ><span data-l="en"
+              >If you agreed to it, creates a desktop icon.</span
+            ><span data-l="ua"
+              >Якщо ви погодилися — створює піктограму на робочому столі.</span
             >
           </li>
           <li>
@@ -434,31 +474,87 @@
             >
           </li>
         </ul>
+        <h3>
+          <span data-l="ru">Повышение прав после установки</span
+          ><span data-l="en">Elevations after install</span
+          ><span data-l="ua">Підвищення прав після встановлення</span>
+        </h3>
+        <ul class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>Прямая проверка ёмкости (Raw capacity probe)</b> и
+              <b>Восстановить накопитель (Recover a drive)</b> в графическом окне —
+              запрашивают права администратора на время одного запуска. Значок на
+              кнопке предупреждает об этом до запуска; права используются только
+              этим процессом и завершаются вместе с ним. Эти задания пишут на
+              физический накопитель напрямую и <b>необратимы по своей природе</b>
+              (у них нет и не может быть отката).</span
+            ><span data-l="en"
+              ><b>Raw capacity probe</b> and <b>Recover a drive</b> in the GUI —
+              ask for administrator rights per run. The badge on the button says
+              so before you start; the rights are used for that one process and
+              end with it. They write to the volume directly and are
+              <b>irreversible by design</b> (they have no undo action).</span
+            ><span data-l="ua"
+              ><b>Пряма перевірка ємності (Raw capacity probe)</b> та
+              <b>Відновити накопичувач (Recover a drive)</b> у графічному вікні —
+              запитують права адміністратора на час одного запуску. Позначка на
+              кнопці попереджає про це до запуску; права використовуються лише
+              цим процесом і завершуються разом із ним. Ці завдання пишуть на
+              фізичний накопичувач напряму й <b>є незворотними за своєю суттю</b>
+              (у них немає й не може бути відкату).</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Регистрация контекстного меню для всех пользователей</b>:
+              команда <code>filedo fdsec register -all-users</code> из консоли
+              администратора пишет те же записи в <code>HKLM</code>, что и
+              установщик. Отменяется командой
+              <code>filedo fdsec unregister -all-users</code>.</span
+            ><span data-l="en"
+              ><b>Machine-wide Explorer registration</b>:
+              <code>filedo fdsec register -all-users</code> from an elevated
+              console writes the same HKLM entries as the installer. Undone with
+              <code>filedo fdsec unregister -all-users</code>.</span
+            ><span data-l="ua"
+              ><b>Реєстрація контекстного меню для всіх користувачів</b>:
+              команда <code>filedo fdsec register -all-users</code> із консолі
+              адміністратора пише ті самі записи в <code>HKLM</code>, що й
+              інсталятор. Скасовується командою
+              <code>filedo fdsec unregister -all-users</code>.</span
+            >
+          </li>
+        </ul>
         <div class="note">
           <p>
             <span data-l="ru"
               ><b>Всё это снимается одним действием.</b> «Параметры» →
               «Приложения» → FileDO → «Удалить» убирает файлы,
               <code>PATH</code>, ярлыки, пункты Проводника и тип документа
-              вместе. Если хочется убрать только пункты меню, оставив
-              программу, - там же «Изменить» и снятая галочка «Explorer
-              integration»; переносимая сборка и winget делают то же командой
-              <code>filedo fdsec unregister</code>.</span
+              вместе. Для отдельного пакета MSI пункт «Изменить» там же
+              позволяет отключить только пункты меню; в установщике setup EXE или
+              переносимой сборке то же самое делает команда
+              <code>filedo fdsec unregister</code> (добавьте
+              <code>-all-users</code>, если регистрация выполнялась для всей
+              машины).</span
             ><span data-l="en"
               ><b>All of it comes off in one action.</b> Settings → Apps →
               FileDO → Uninstall removes the files, the <code>PATH</code>
               entry, the shortcuts, the Explorer entries and the document type
-              together. To remove only the menu entries and keep the program,
-              use Change in the same place and clear &ldquo;Explorer
-              integration&rdquo;; the portable build and winget do the same
-              with <code>filedo fdsec unregister</code>.</span
+              together. For the standalone MSI, use Change in the same place to
+              remove only the menu entries; for the setup EXE or portable
+              build, use <code>filedo fdsec unregister</code> (add
+              <code>-all-users</code> if registered machine-wide).</span
             ><span data-l="ua"
               ><b>Усе це знімається однією дією.</b> «Параметри» → «Програми» →
               FileDO → «Видалити» прибирає файли, <code>PATH</code>, ярлики,
-              пункти Провідника і тип документа разом. Щоб прибрати лише пункти
-              меню, залишивши програму, - там само «Змінити» і знята позначка
-              «Explorer integration»; переносна збірка й winget роблять те саме
-              командою <code>filedo fdsec unregister</code>.</span
+              пункти Провідника і тип документа разом. Для окремого пакета MSI
+              пункт «Змінити» там само дозволяє вимкнути лише пункти меню; у
+              встановлювачі setup EXE або переносній збірці те саме робить
+              команда <code>filedo fdsec unregister</code> (додайте
+              <code>-all-users</code>, якщо реєстрація виконувалася для всієї
+              машини).</span
             >
           </p>
         </div>
@@ -524,26 +620,35 @@
           </li>
           <li>
             <span data-l="ru"
-              ><b>Не осматривает диск сам по себе.</b> FileDO читает и пишет
-              только там, куда вы его указали - на выбранном диске, в выбранной
-              папке или сетевом ресурсе. Пакет для Store объявляет ровно одну
-              возможность, <code>runFullTrust</code>: она нужна, чтобы обращаться
-              к диску напрямую - иначе измерить настоящую скорость и поймать
-              поддельную ёмкость нельзя.</span
+              ><b>Не осматривает диск сам по себе.</b> FileDO работает с вашими
+              данными только там, куда вы его указали — на выбранном диске, в
+              выбранной папке или сетевом ресурсе; собственные служебные файлы
+              (перечисленные на <a href="../privacy.html">странице
+              приватности</a>) остаются в рабочем каталоге, рядом с программой
+              и в <code>%LOCALAPPDATA%\FileDO</code>. Пакет для Store объявляет
+              ровно одну возможность, <code>runFullTrust</code>: она нужна,
+              чтобы обращаться к диску напрямую — иначе измерить настоящую
+              скорость и поймать поддельную ёмкость нельзя.</span
             ><span data-l="en"
-              ><b>It does not go looking around your disk.</b> FileDO reads and
-              writes only where you point it - the drive, folder or share you
-              chose. The Store package declares exactly one capability,
-              <code>runFullTrust</code>: it is what allows direct access to the
-              disk, without which real speed cannot be measured and fake
-              capacity cannot be caught.</span
+              ><b>It does not go looking around your disk.</b> FileDO touches
+              your data only where you point it — the drive, folder or share you
+              chose; its own housekeeping (listed on the
+              <a href="../privacy.html">privacy page</a>) stays in the working
+              directory, next to the program, and under
+              <code>%LOCALAPPDATA%\FileDO</code>. The Store package declares
+              exactly one capability, <code>runFullTrust</code>: it is what
+              allows direct access to the disk, without which real speed cannot
+              be measured and fake capacity cannot be caught.</span
             ><span data-l="ua"
-              ><b>Не оглядає диск сам по собі.</b> FileDO читає й пише лише
-              там, куди ви його вказали - на вибраному диску, у вибраній теці
-              чи мережевому ресурсі. Пакет для Store оголошує рівно одну
-              можливість, <code>runFullTrust</code>: вона потрібна, щоб
-              звертатися до диска напряму - інакше виміряти справжню швидкість
-              і спіймати підроблену ємність не можна.</span
+              ><b>Не оглядає диск сам по собі.</b> FileDO працює з вашими
+              даними лише там, куди ви його вказали — на вибраному диску, у
+              вибраній теці чи мережевому ресурсі; власні службові файли
+              (перелічені на <a href="../privacy.html">сторінці
+              приватності</a>) залишаються в робочому каталозі, поруч із
+              програмою та в <code>%LOCALAPPDATA%\FileDO</code>. Пакет для Store
+              оголошує рівно одну можливість, <code>runFullTrust</code>: вона
+              потрібна, щоб звертатися до диска напряму — інакше виміряти
+              справжню швидкість і спіймати підроблену ємність не можна.</span
             >
           </li>
           <li>

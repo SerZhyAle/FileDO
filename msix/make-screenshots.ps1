@@ -4,12 +4,13 @@
 
 .DESCRIPTION
   filedo_win.exe is a WinForms window, so unlike a web UI it cannot be driven by a URL. The
-  script starts the freshly staged exe once per language and page, sizes the window, clicks the
-  page's row in the left rail with a real mouse click (the rows expose no UI Automation invoke
-  pattern), and grabs the client area with PrintWindow.
+  script starts the freshly staged exe once per language and page, sizes the window, chooses the
+  page's row in the left rail by doing its accessible default action (APP-BEHAVIOUR rule 9 - the
+  row is found by its label, read from filedo_win_vb\Localization.vb), and grabs the client area
+  with PrintWindow.
 
-  It MOVES THE MOUSE POINTER and needs the window visible and on top for a few seconds per
-  shot: run it when the machine is not in use, and do not touch the mouse while it runs.
+  It takes the foreground for a few seconds per shot and parks the mouse pointer in a corner so
+  no row is drawn hovered: run it when the machine is not in use.
 
   Everything it changes is put back: the developer's HKCU\Software\FileDO values (language,
   theme, placement, folded rail groups) are snapshotted first and restored in a finally block,
@@ -42,9 +43,8 @@ param(
     [string]$Exe,
     [string]$Language = "en,ru,uk,de,fr",
     [string]$Page = "capacity,speed,duplicates,secure,wipe",
-    # dark by default: under the light palette one rail row paints as a WinForms red-cross
-    # placeholder (an OnPaint exception, confirmed with -Live). The red-cross check below refuses
-    # to save such a shot, so switching to light after the app is fixed is safe.
+    # dark or light. The Store set is dark; the light set is the APP-STYLE rung-3 pair. The
+    # red-cross check below refuses to save a shot in which a control's paint threw.
     [ValidateSet('light', 'dark')]
     [string]$Theme = 'dark',
     # Client size in design pixels; the window's DPI scales it.
@@ -85,10 +85,10 @@ if (Get-Process filedo_win -ErrorAction SilentlyContinue) {
     throw "make-screenshots: a filedo_win window is already open. A second launch would hand over to it (single-instance) and the capture would show the wrong window. Close it first."
 }
 
-# language code -> Partner Center locale, and page -> row index in the rail (flat order of the
-# 19 job rows, group headers excluded; see JobCatalogue.vb) or a launch argument
+# language code -> Partner Center locale, and page -> the rail row's localization key (Rail.vb)
+# or a launch argument
 $StoreLocale = @{ en = 'en-us'; ru = 'ru'; uk = 'uk'; de = 'de'; fr = 'fr' }
-$PageRow     = @{ capacity = 0; speed = 1; duplicates = 6; wipe = 11; command = 16 }
+$PageRow     = @{ capacity = 'rail_job_capacity'; speed = 'rail_job_speed'; duplicates = 'rail_job_duplicates'; wipe = 'rail_job_wipe'; command = 'rail_job_command' }
 foreach ($l in $Languages) { if (-not $StoreLocale.ContainsKey($l)) { throw "make-screenshots: unknown language '$l' (expected $($StoreLocale.Keys -join ' '))." } }
 foreach ($p in $Pages)     { if (-not ($PageRow.ContainsKey($p) -or $p -eq 'secure')) { throw "make-screenshots: unknown page '$p' (expected capacity speed duplicates secure wipe command)." } }
 
@@ -109,9 +109,25 @@ public static class FdWin {
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
-    [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
     // BGRA pixels; counted in compiled code because a PowerShell loop over ~5M pixels takes seconds.
     public static int CountPureRed(byte[] b) { int n = 0; for (int i = 0; i + 3 < b.Length; i += 4) if (b[i + 2] == 255 && b[i + 1] == 0 && b[i] == 0) n++; return n; }
+}
+'@
+Add-Type -ReferencedAssemblies Accessibility -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class FdMsaa {
+    [DllImport("oleacc.dll")]
+    static extern int AccessibleObjectFromWindow(IntPtr hwnd, int id, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out object o);
+    static Accessibility.IAccessible Of(IntPtr h) {
+        Guid g = new Guid("618736E0-3C3D-11CF-810C-00AA00389B71");   // IID_IAccessible
+        object o;
+        int hr = AccessibleObjectFromWindow(h, unchecked((int)0xFFFFFFFC), ref g, out o);   // OBJID_CLIENT
+        if (hr != 0) throw new Exception("AccessibleObjectFromWindow 0x" + hr.ToString("X8"));
+        return (Accessibility.IAccessible)o;
+    }
+    public static string DefaultAction(IntPtr h) { return Of(h).get_accDefaultAction(0); }
+    public static void DoDefault(IntPtr h) { Of(h).accDoDefaultAction(0); }
 }
 '@
 # Per-monitor v2, like the GUI itself: otherwise every rectangle below is virtualized.
@@ -150,8 +166,7 @@ function Find-ShellWindow([int]$procId) {
     $cond = New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $procId)
     for ($i = 0; $i -lt 80; $i++) {
         foreach ($w in $AE::RootElement.FindAll('Children', $cond)) {
-            # Two top-level windows exist for a moment: the legacy builder (hidden again at once)
-            # and the shell, titled exactly "FileDO".
+            # The shell's window is titled exactly "FileDO"; a question it asks is a second window.
             if ($w.Current.Name -eq 'FileDO' -and -not $w.Current.IsOffscreen -and $w.Current.NativeWindowHandle -ne 0) { return $w }
         }
         Start-Sleep -Milliseconds 250
@@ -190,12 +205,32 @@ function Save-Png($bmp, [string]$path) {
     }
 }
 
-function Click-At([int]$x, [int]$y) {
-    [void][FdWin]::SetCursorPos($x, $y)
-    Start-Sleep -Milliseconds 120
-    [FdWin]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)   # left down
-    Start-Sleep -Milliseconds 60
-    [FdWin]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)   # left up
+function Get-RailLabel([string]$lang, [string]$key) {
+    # The row's label in the language the window was started in, read from the one table the
+    # window reads it from, so the script never carries a second copy of the strings.
+    $fn = @{ en = 'EnLines'; ru = 'RuLines'; uk = 'UkLines'; de = 'DeLines'; fr = 'FrLines' }[$lang]
+    $src = [System.IO.File]::ReadAllText((Join-Path $msix "..\filedo_win_vb\Localization.vb"))
+    $start = $src.IndexOf("Private Function $fn()")
+    if ($start -lt 0) { throw "Localization.vb has no $fn table" }
+    $m = [regex]::Match($src.Substring($start), '"' + [regex]::Escape($key) + '\|([^"]*)"')
+    if (-not $m.Success) { throw "Localization.vb $fn has no $key" }
+    return $m.Groups[1].Value
+}
+
+function Invoke-RailRow($win, [string]$lang, [string]$key) {
+    # A rail row's default action is its click (Rail.vb, APP-BEHAVIOUR rule 9). The managed UI
+    # Automation client does not bridge MSAA, so it sees the row only as a named pane: the row is
+    # found by its label and its default action is done through MSAA - no pixel is looked for
+    # and no mouse is moved.
+    $label = Get-RailLabel $lang $key
+    $cond = New-Object System.Windows.Automation.AndCondition(
+        (New-Object System.Windows.Automation.PropertyCondition($AE::NameProperty, $label)),
+        (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Pane)))
+    $row = $win.FindFirst('Descendants', $cond)
+    if (-not $row) { throw "the rail row '$label' ($key) was not found" }
+    $h = [IntPtr]$row.Current.NativeWindowHandle
+    if (-not [FdMsaa]::DefaultAction($h)) { throw "the rail row '$label' ($key) has no default action (APP-BEHAVIOUR rule 9 - see Rail.vb)" }
+    [FdMsaa]::DoDefault($h)
 }
 
 # A neutral path for the "Make a file secret" page: temp paths carry the user name.
@@ -219,7 +254,8 @@ try {
             Set-GuiSetting 'GuiLang' $lang
             Set-GuiSetting 'ShellTheme' $Theme
             Clear-GuiSetting 'ShellRailCollapsed'
-            Set-GuiSetting 'ShellPlacementV' 2 'DWord'
+            Set-GuiSetting 'ShellPlacementV' 3 'DWord'
+            Clear-GuiSetting 'ShellDpi'                  # no saved DPI: the rectangle is taken as it stands
             Set-GuiSetting 'ShellX' ($screen.Left + 40) 'DWord'
             Set-GuiSetting 'ShellY' ($screen.Top + 40) 'DWord'
             Set-GuiSetting 'ShellW' 1400 'DWord'
@@ -242,38 +278,18 @@ try {
                 [void][FdWin]::GetWindowRect($h, [ref]$wr); [void][FdWin]::GetClientRect($h, [ref]$cr)
                 $ncW = ($wr.Right - $wr.Left) - ($cr.Right - $cr.Left); $ncH = ($wr.Bottom - $wr.Top) - ($cr.Bottom - $cr.Top)
                 [void][FdWin]::ShowWindow($h, 1)
-                # HWND_TOPMOST (-1): a click only reaches the window if nothing covers it, and
-                # SetForegroundWindow alone is refused for a process that is not in the foreground.
+                # HWND_TOPMOST (-1): the capture is of the window as a user sees it, so nothing may
+                # cover it, and SetForegroundWindow alone is refused for a process not in the foreground.
                 [void][FdWin]::SetWindowPos($h, [IntPtr](-1), $screen.Left, $screen.Top, $cw + $ncW, $ch + $ncH, 0x0040)  # SHOWWINDOW
                 [void][FdWin]::SetForegroundWindow($h)
                 Start-Sleep -Milliseconds 1500   # labels re-wrap after a resize
 
+                [void][FdWin]::SetCursorPos($screen.Right - 5, $screen.Bottom - 5)   # out of the window: no hover state in the shot
                 if ($PageRow.ContainsKey($pg)) {
-                    # the rail rows, in order, group headers (no lower-case letters) skipped
                     $win = Find-ShellWindow $proc.Id
-                    $rect = $win.Current.BoundingRectangle
-                    $railRight = $rect.Left + [Math]::Round(300 * $scale)
-                    $rows = @()
-                    foreach ($e in $win.FindAll('Descendants', [System.Windows.Automation.Condition]::TrueCondition)) {
-                        $r = $e.Current.BoundingRectangle
-                        if ($e.Current.ControlType.ProgrammaticName -ne 'ControlType.Pane') { continue }
-                        $nm = $e.Current.Name
-                        if (-not $nm -or $nm -ceq $nm.ToUpperInvariant()) { continue }
-                        if ($r.Left -gt $railRight -or $r.Width -le 0 -or $r.Height -le 0) { continue }
-                        $rows += , @($r.Top, $r.Left, $r.Width, $r.Height, $nm)
-                    }
-                    $rows = @($rows | Sort-Object { $_[0] })
-                    if ($rows.Count -lt 19) { throw "found $($rows.Count) rail rows for $lang/$pg, expected 19 (the rail is clipped or the layout changed)" }
-                    $row = $rows[$PageRow[$pg]]
-                    $cx = [int]($row[1] + $row[2] / 2); $cy = [int]($row[0] + $row[3] / 2)
-                    # never click blind: the element under the point must be ours, or something covers the window
-                    $under = $AE::FromPoint((New-Object System.Windows.Point($cx, $cy)))
-                    if ($under.Current.ProcessId -ne $proc.Id) { throw "another window covers the FileDO window at ($cx,$cy) for $lang/$pg - close it and retry" }
-                    Click-At $cx $cy
-                    [void][FdWin]::SetCursorPos($screen.Right - 5, $screen.Bottom - 5)   # out of the window: no hover state in the shot
+                    Invoke-RailRow $win $lang $PageRow[$pg]
                     Start-Sleep -Milliseconds 1200
                 } else {
-                    [void][FdWin]::SetCursorPos($screen.Right - 5, $screen.Bottom - 5)
                     Start-Sleep -Milliseconds 800
                 }
 

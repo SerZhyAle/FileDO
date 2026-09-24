@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
-	"runtime"
 )
 
 type InterruptHandler struct {
@@ -54,20 +54,20 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 
 	if sig == os.Interrupt {
 		now := time.Now()
-		
+
 		if !ih.interrupted {
 			// First Ctrl+C - graceful shutdown
 			ih.interrupted = true
 			ih.firstCtrlC = now
 			fmt.Printf("\n\n⚠ Interrupt signal received (Ctrl+C). Cleaning up gracefully...\n")
 			fmt.Printf("Press Ctrl+C again within 3 seconds to force immediate exit.\n")
-			
+
 			// Run cleanup functions in reverse order
 			for i := len(ih.cleanupFns) - 1; i >= 0; i-- {
 				ih.cleanupFns[i]()
 			}
 			ih.cancel()
-			
+
 			// Start timer to reset force exit window
 			go func() {
 				time.Sleep(3 * time.Second)
@@ -77,7 +77,7 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 				}
 				ih.mu.Unlock()
 			}()
-			
+
 		} else if !ih.forceExit && now.Sub(ih.firstCtrlC) <= 3*time.Second {
 			// Second Ctrl+C within 3 seconds - immediate exit
 			ih.forceExit = true
@@ -86,7 +86,10 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 			for i := len(ih.cleanupFns) - 1; i >= 0; i-- {
 				ih.cleanupFns[i]()
 			}
-			os.Exit(1)
+			// A forced exit bypasses main's deferred finishRun.  Close the
+			// stream here instead, with the rule-11 "could not be verified"
+			// vocabulary rather than the old misleading defect code 1.
+			os.Exit(finishForcedRun())
 		} else {
 			// Ctrl+C after grace period - treat as new first Ctrl+C
 			ih.firstCtrlC = now

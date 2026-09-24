@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const version = "250916_check"
+// version is stamped by build.ps1 and release.yml with -ldflags.
+var version = "dev"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -224,17 +225,17 @@ func main() {
 	// Parse arguments for CHECK command
 	// Expected format: filedo_check.exe C: [mode] [options]
 	// Should work as: filedo.exe C: check [mode] [options]
-	
+
 	targetPath := args[1]
-	
+
 	// Default values
 	checkMode := "balanced" // default mode
 	var checkOptions []string
-	
+
 	// Parse additional arguments
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(strings.TrimSpace(args[i]))
-		
+
 		// Проверка режимов проверки
 		if arg == "quick" || arg == "q" {
 			checkMode = "quick"
@@ -248,7 +249,7 @@ func main() {
 			checkMode = "deep"
 			continue
 		}
-		
+
 		// Все остальные аргументы передаем как опции
 		checkOptions = append(checkOptions, args[i])
 	}
@@ -262,7 +263,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	historyLogger.SetSuccess()
 }
 
@@ -332,7 +333,7 @@ func handleCheckOperation(targetPath, mode string, options []string, logger *His
 
 	// Определение типа пути (аналогично логике main filedo)
 	targetPath = strings.TrimSpace(targetPath)
-	
+
 	// Проверка, является ли это буквой диска
 	if len(targetPath) > 0 && ((len(targetPath) == 1) || (len(targetPath) > 1 && len(targetPath) < 4 && string([]rune(targetPath)[1]) == ":")) {
 		if len(targetPath) == 1 {
@@ -342,7 +343,7 @@ func handleCheckOperation(targetPath, mode string, options []string, logger *His
 		logger.SetCommand("device", targetPath, "check")
 		logger.SetParameter("mode", mode)
 		logger.SetParameter("options", options)
-		
+
 		switch mode {
 		case "quick":
 			return runDeviceCheckQuick(targetPath)
@@ -352,14 +353,14 @@ func handleCheckOperation(targetPath, mode string, options []string, logger *His
 			return runDeviceCheck(targetPath)
 		}
 	}
-	
+
 	// Проверка, является ли это сетевым путем
 	if len(targetPath) > 2 && (targetPath[0:2] == "\\" || targetPath[0:2] == "//") {
 		// Сетевая операция
 		logger.SetCommand("network", targetPath, "check")
 		logger.SetParameter("mode", mode)
 		logger.SetParameter("options", options)
-		
+
 		switch mode {
 		case "quick":
 			return runNetworkCheckQuick(targetPath, logger)
@@ -369,14 +370,14 @@ func handleCheckOperation(targetPath, mode string, options []string, logger *His
 			return runNetworkCheck(targetPath, logger)
 		}
 	}
-	
+
 	// Проверка, является ли это существующей папкой
 	if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
 		// Операция с папкой
 		logger.SetCommand("folder", targetPath, "check")
 		logger.SetParameter("mode", mode)
 		logger.SetParameter("options", options)
-		
+
 		switch mode {
 		case "quick":
 			return runFolderCheckQuick(targetPath)
@@ -386,7 +387,7 @@ func handleCheckOperation(targetPath, mode string, options []string, logger *His
 			return runFolderCheck(targetPath)
 		}
 	}
-	
+
 	// Путь не существует или является файлом
 	if strings.HasSuffix(targetPath, "/") || strings.HasSuffix(targetPath, "\\") {
 		return fmt.Errorf("folder \"%s\" does not exist", targetPath)

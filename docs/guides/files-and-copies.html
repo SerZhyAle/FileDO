@@ -12,14 +12,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -129,9 +129,7 @@
               filedo D:\Media check-duplicates<button
                 class="copy"
                 data-copy="filedo D:\Media check-duplicates"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -143,22 +141,26 @@
             <p>
               <span data-l="ru"
                 >Скопируйте исходную папку в резервную или на другой носитель с
-                видимым ходом операции.</span
+                видимым ходом операции. Копирование начинается с первого
+                найденного файла; добавьте <code>--precount</code>, чтобы сначала
+                сосчитать всё дерево и видеть точное оставшееся время.</span
               ><span data-l="en"
                 >Copy the source folder to a backup location or another drive
-                with visible progress.</span
+                with visible progress. Copying starts with the first file found;
+                add <code>--precount</code> to count the whole tree first and see
+                an exact time left.</span
               ><span data-l="ua"
                 >Скопіюйте вихідну папку до резервного місця або на інший носій
-                із видимим ходом операції.</span
+                із видимим ходом операції. Копіювання починається з першого
+                знайденого файлу; додайте <code>--precount</code>, щоб спершу
+                порахувати все дерево й бачити точний час, що лишився.</span
               >
             </p>
             <div class="copybox">
               filedo C:\Source copy D:\Backup<button
                 class="copy"
                 data-copy="filedo C:\Source copy D:\Backup"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -183,9 +185,7 @@
               filedo compare D:\Data E:\Backup<button
                 class="copy"
                 data-copy="filedo compare D:\Data E:\Backup"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
         </div>

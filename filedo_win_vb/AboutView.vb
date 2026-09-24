@@ -9,9 +9,8 @@ Imports System.Diagnostics
 ' build stamp.
 '
 ' It is a page of the shell rather than a dialog, because a dialog is something a person dismisses
-' and a page is something they can read. The links, the URLs and the log archive are the ones the
-' builder's About window already uses - the addresses live in Links.vb so that the two surfaces
-' cannot drift apart, which is the same reason section 6.4 keeps one vocabulary everywhere.
+' and a page is something they can read. The addresses live in Links.vb and the log flow in
+' LogSender.vb, so every place that shows either one says the same thing.
 Public Class AboutView
     Inherits UserControl
 
@@ -139,49 +138,17 @@ Public Class AboutView
         lbl.AccessibleName = text & " - " & url
         tips.SetToolTip(lbl, url)
         AddHandler lbl.LinkClicked, Sub(s As Object, e As LinkLabelLinkClickedEventArgs)
-                                      Links.Open(CStr(DirectCast(s, LinkLabel).Tag), L("about_title"))
+                                      Links.Open(ShellDialog.OwnerOf(Me), CStr(DirectCast(s, LinkLabel).Tag))
                                   End Sub
         linkLabels.Add(lbl)
         Return lbl
     End Function
 
     ' Nothing leaves the machine here: the zip is built locally, the folder is opened so the user
-    ' sees it first, and the mail is sent by the user or not at all.
+    ' sees it first, and the mail is sent by the user or not at all. The flow is LogSender's, shared
+    ' with the Send logs button of every problem dialog.
     Private Sub SendLogs_Click(sender As Object, e As EventArgs)
-        If MessageBox.Show(LText("logs_confirm"), L("logs_title"),
-                           MessageBoxButtons.YesNo, MessageBoxIcon.Question) <> DialogResult.Yes Then
-            Return
-        End If
-
-        Dim count As Integer = 0
-        Dim archive As String
-        Try
-            Cursor = Cursors.WaitCursor
-            archive = LogReport.BuildArchive(lang, count)
-        Catch ex As Exception
-            MessageBox.Show(String.Format(LText("logs_error"), ex.Message), L("logs_title"),
-                            MessageBoxButtons.OK, MessageBoxIcon.Error)
-            Return
-        Finally
-            Cursor = Cursors.Default
-        End Try
-
-        If archive = "" Then
-            MessageBox.Show(LText("logs_none"), L("logs_title"), MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Return
-        End If
-
-        Dim problems As New List(Of String)
-        LogReport.RevealInExplorer(archive, problems)
-        LogReport.CopyPathToClipboard(archive, problems)
-        LogReport.OpenMailClient(archive, problems)
-
-        Dim msg As String = String.Format(LText("logs_ready"), archive, count)
-        If problems.Count > 0 Then
-            msg &= Environment.NewLine & Environment.NewLine & L("logs_partial") &
-                   Environment.NewLine & String.Join(Environment.NewLine, problems.ToArray())
-        End If
-        MessageBox.Show(msg, L("logs_title"), MessageBoxButtons.OK, MessageBoxIcon.Information)
+        LogSender.Run(ShellDialog.OwnerOf(Me))
     End Sub
 
     Public Sub ApplyTheme()
@@ -202,9 +169,9 @@ Public Class AboutView
 
         For Each lbl In linkLabels
             lbl.Font = Theme.FontBody()
-            lbl.LinkColor = p.Accent
+            lbl.LinkColor = p.Link
             lbl.ActiveLinkColor = p.Text
-            lbl.VisitedLinkColor = p.Accent
+            lbl.VisitedLinkColor = p.Link
             lbl.LinkBehavior = LinkBehavior.HoverUnderline
         Next
 

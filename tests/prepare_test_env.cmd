@@ -21,4 +21,4 @@ echo Folder duplicate content 2 > D:\TestFolder\folder_file2.txt
 echo Folder duplicate content 2 > D:\TestFolder\folder_file2_copy.txt
 
 echo Test environment created successfully.
-echo Run filedo.exe from .\test\test_list.lst to start testing.
+echo Run filedo.exe from .\tests\test_list.lst to start testing.

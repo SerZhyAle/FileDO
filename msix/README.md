@@ -10,6 +10,7 @@ and the owner's decision.
 | --- | --- |
 | `AppxManifest.xml` | Manifest **template**: placeholders for the identity and version, `runFullTrust`, two applications (the window and the console tool), five languages. |
 | `build-msix.ps1` | version, build both exes, stage, logos, fill manifest, `makeappx pack`, **read the packed manifest back and assert it**. Three modes: Store, `-SelfSign`, `-Register`. |
+| `stage/resources.pri` | Generated resource index. It is what lets Windows select the target-size and unplated forms of the 44 px logo; never edit or package a PRI by hand. |
 | `identity.json` | The reserved Store identity, recorded once (**absent until the name is reserved**, see section 2). |
 | `listing/<code>.txt` | The listing copy per language (`en ru uk de fr`) + `shared.txt`. **The single source**; the console is a render target. |
 | `build-store-listing-csv.ps1` | Patches a fresh Partner Center export with `listing/*.txt`, keeping the export's own style. |
@@ -80,7 +81,9 @@ Output `out\FileDO_<ver>.msix` (unsigned) and a `.sha256`. What it does and asse
   `filedo_win.exe.config` ships beside the GUI or its DPI declaration does nothing.
 - **Read-back.** The packed `AppxManifest.xml` is opened from the `.msix` and checked: Identity
   Name/Publisher/Version, PublisherDisplayName, exactly one capability (`runFullTrust`), every
-  `Executable` and logo present, no hidden application. A mismatch aborts before the file is offered.
+  `Executable` and logo present, the 16/24/32/48/256 target-size/unplated logo variants and
+  `resources.pri`, all five manifest languages, and no hidden application. A mismatch aborts before the
+  file is offered.
 
 ### Two applications, and the "headless" rule
 
@@ -198,18 +201,21 @@ been identified yet, and the four `-Only` files above are how to find it.
 
 ```powershell
 .\msix\build-msix.ps1 -Register               # stages the exes (any mode does)
-.\msix\make-screenshots.ps1                   # 5 pages x 5 languages, about 3.5 minutes
+.\msix\make-screenshots.ps1                   # 5 pages x 5 languages, dark, about 3.5 minutes
+.\msix\make-screenshots.ps1 -Theme light -OutDir <folder>  # the light set of the same 25
 .\msix\make-screenshots.ps1 -Language en -Page capacity    # one shot
 ```
 
-The script **moves the mouse** (the rail rows have no UI Automation invoke pattern, so it clicks them) and
-needs the window on top: run it when the machine is idle. It snapshots and restores the developer's
-`HKCU\Software\FileDO` settings, kills the window instead of closing it (a graceful close writes the window
-placement), sizes the client area in design pixels scaled by the window's DPI, and never saves a shot in
-which a control painted as a WinForms red-cross placeholder. **Dark theme is the default** because the light
-palette currently produces exactly that placeholder on one rail row; the check refuses light shots until the
-app is fixed. `-Live` grabs the real screen instead of `PrintWindow`, to tell a real defect from an artefact.
-Store rule: PNG, 1366x768 up to 3840x2160.
+The script chooses each page's rail row through **UI Automation** - every row is named `rail:<key>` and
+has a default action (APP-BEHAVIOUR rule 9) - so it clicks nothing, but it does bring the window to the
+top for a few seconds per shot and parks the mouse pointer in a corner: run it when the machine is idle. It
+snapshots and restores the developer's `HKCU\Software\FileDO` settings, kills the window instead of closing
+it (a graceful close writes the window placement), sizes the client area in design pixels scaled by the
+window's DPI, and never saves a shot in which a control painted as a WinForms red-cross placeholder. **Dark
+is the default** and is the Store set; `-Theme light` makes the other half of the APP-STYLE light/dark pair.
+(The light theme used to paint the selected rail row as exactly that placeholder - an `OverflowException` in
+the palette's colour mix, fixed in `Theme.vb`.) `-Live` grabs the real screen instead of `PrintWindow`, to
+tell a real defect from an artefact. Store rule: PNG, 1366x768 up to 3840x2160.
 
 ## 6. Submission click path (manual)
 
@@ -237,7 +243,8 @@ a fresh install cannot catch an identity mistake.
 
 - No Explorer context-menu entries and no `.fd-sec` file type: a packaged app can only declare them through a
   signed shell command handler (not built). Say so in the listing (it does).
-- `filedo fdsec register` must **not** be advertised for this build: it would write command lines that point into
-  `C:\Program Files\WindowsApps\..`, which Explorer cannot run.
+- `filedo fdsec register` must **not** be advertised for this build. Inside the package it refuses as a usage error
+  (exit 2) and writes nothing: Windows keeps a packaged app's `Software\Classes` writes to the app, where Explorer
+  never looks, and the command lines would point into `C:\Program Files\WindowsApps\..`, which Explorer cannot run.
 - The window needs .NET Framework 4.8, which is in the box from Windows 10 1903; the manifest floor
   (`10.0.18362.0`) says so. The MSI and zip channels have no such floor.

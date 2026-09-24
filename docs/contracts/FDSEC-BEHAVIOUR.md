@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-BEHAVIOUR` |
-| **Version** | 1.0 (wire carrier: the exit-code classes of section 7.1) |
+| **Version** | 1.1 (wire carrier: the exit-code classes of section 7.1) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FD-SEC-CONTRACT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |

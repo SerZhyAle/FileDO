@@ -98,6 +98,16 @@ func holdConsoleIfAsked() {
 	runAfterConsoleHold()
 }
 
+// recoverRunPanic is deferred after finishRun, so it executes first while a
+// panic unwinds. That ordering turns a panic into the rule-11 Not proven
+// outcome before finishRun writes the channel's final result.
+func recoverRunPanic() {
+	if r := recover(); r != nil {
+		runFailure(fmt.Errorf("panic: %v", r))
+		fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
+	}
+}
+
 // willHoldConsole answers the one question a caller needs before it schedules
 // work for "when the window closes": whether there will be a wait at all. The
 // two conditions are exactly holdConsoleIfAsked's own - the flag, and a
@@ -388,6 +398,12 @@ OPTIONS:
   max       → Maximum size (10GB)
   --no-ui   → Suppress GUI launch on empty args (or FILEDO_NO_UI=1)
   --pause   → Wait for Enter before the window closes (what the Explorer menu uses)
+  --events <path>    → Write the opt-in JSON Lines event stream for a supervisor
+  --stop-file <path> → Stop gracefully when the named file appears
+  --precount → copy: count the tree first, for exact totals and ETA (otherwise copying starts at the first file)
+
+EXIT CODES (all non-container verbs):
+  0 passed or done, 1 ran and found a defect, 2 could not be verified
 
 MORE INFO:
   filedo.exe help                 → Show detailed help
@@ -616,6 +632,10 @@ Intelligent Copy (AI-Optimized for All Hardware):
 
 Manual Copy Strategies:
   filedo.exe device C: copy D:\Backup     → Copy device contents to folder
+  filedo.exe folder D:\Source copy E:\Target --precount → Count the tree first for exact totals and ETA
+  Note: a plain copy walks the tree once and copies as it goes, so the first file
+        moves at once and the totals grow while it runs. --precount adds one
+        counting walk first. The parallel modes below always count first.
 
 High-Speed Copy (Optimized for large datasets):
   filedo.exe fastcopy D:\LargeFolder E:\Backup → Optimized parallel copy
@@ -696,6 +716,11 @@ COMMAND OPTIONS & MODIFIERS
 Output Control:
   short, s        → Show brief/summary output only
   info, i         → Show detailed information (default)
+  --events <path> → Write the opt-in JSON Lines event stream for a supervisor
+  --stop-file <path> → Stop gracefully when the named file appears
+
+Exit codes (all non-container verbs):
+  0 passed or done, 1 ran and found a defect, 2 could not be verified
 
 File Management:
   del, delete, d  → Auto-delete test files after successful operation
@@ -914,6 +939,9 @@ func executeInternalCommand(args []string) error {
 	internalLogger := NewHistoryLogger(append([]string{"filedo"}, args...))
 	defer internalLogger.Finish()
 
+	// Each batch line asks for --precount on its own; none inherits it.
+	copyPrecount = false
+
 	// The target-first fdsec grammar is dispatched before the path probe:
 	// a mask target (secure *.txt) never passes os.Stat, and the family owns
 	// its own not-found message and exit code. This is the SAME call main()
@@ -986,14 +1014,11 @@ func executeInternalCommand(args []string) error {
 				// Path doesn't exist - determine if it looks like a folder or file path
 				// and provide a more helpful message
 				if strings.HasSuffix(args[0], "/") || strings.HasSuffix(args[0], "\\") {
-					fmt.Printf("Info: The folder \"%s\" does not exist.\n", args[0])
-					return nil
+					return fmt.Errorf("the folder %q does not exist", args[0])
 				} else if strings.Contains(args[0], ".") {
-					fmt.Printf("Info: The file \"%s\" does not exist.\n", args[0])
-					return nil
+					return fmt.Errorf("the file %q does not exist", args[0])
 				} else {
-					fmt.Printf("Info: The path \"%s\" does not exist.\n", args[0])
-					return nil
+					return fmt.Errorf("the path %q does not exist", args[0])
 				}
 			}
 		}
@@ -1057,6 +1082,7 @@ func executeInternalCommand(args []string) error {
 			return fmt.Errorf("copy command requires source and target paths")
 		}
 		internalLogger.SetCommand(command, args[1], "auto-copy")
+		copyPrecount = wantsCopyPrecount(args[3:])
 		err := handleAutoCopyCommand(args[1], args[2])
 		if err != nil {
 			internalLogger.SetError(err)
@@ -1390,11 +1416,9 @@ func main() {
 	// down, which is soon enough - nothing above this point can end the run.
 	defer holdConsoleIfAsked()
 
-	// Ensure bue_message is always printed, even on errors or panic
+	// Ensure bue_message is always printed. Panic recovery is registered after
+	// finishRun below so it records Not proven before the result is emitted.
 	defer func() {
-		if r := recover(); r != nil {
-			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
-		}
 		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + formatDurationDetailed(time.Since(start_time)) + "\n"
 		fmt.Print(bue_message)
 	}()
@@ -1443,6 +1467,7 @@ func main() {
 	// exit code has to be decided before the deferred os.Exit reads it.
 	// finishRun is the only writer of both (outcome.go).
 	defer finishRun()
+	defer recoverRunPanic()
 
 	// Convert only the first few arguments (commands/flags) to lowercase, preserve paths
 	lowerArgs := make([]string, len(args))
@@ -1565,10 +1590,12 @@ func main() {
 						command = lowerArgs[1]
 						add_args = args[2:]
 					} else if strings.HasSuffix(args[1], "/") || strings.HasSuffix(args[1], "\\") {
-						fmt.Printf("Info: The folder \"%s\" does not exist.\n", args[1])
+						err := fmt.Errorf("the folder %q does not exist", args[1])
+						reportRunError(err, historyLogger)
 						return
 					} else if strings.Contains(args[1], ".") {
-						fmt.Printf("Info: The file \"%s\" does not exist.\n", args[1])
+						err := fmt.Errorf("the file %q does not exist", args[1])
+						reportRunError(err, historyLogger)
 						return
 					} else {
 						// Could be a command or non-existent path
@@ -1650,6 +1677,7 @@ func main() {
 		}
 		historyLogger.SetCommand(command, add_args[0], "auto-copy")
 		beginRun(runActs, "auto-copy", add_args[0], args)
+		copyPrecount = wantsCopyPrecount(add_args[2:])
 		if err := handleAutoCopyCommand(add_args[0], add_args[1]); err != nil {
 			reportRunError(err, historyLogger)
 			return

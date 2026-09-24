@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const version = "250916_test"
+// version is stamped by build.ps1 and release.yml with -ldflags.
+var version = "dev"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -228,16 +229,16 @@ func main() {
 	// Parse arguments for TEST command
 	// Expected format: filedo_test.exe C:
 	// Should work as: filedo.exe C: test
-	
+
 	targetPath := args[1]
-	
+
 	// Default values
 	autoDelete := false
-	
+
 	// Parse additional arguments
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(strings.TrimSpace(args[i]))
-		
+
 		// Check auto-delete flags
 		if arg == "del" || arg == "delete" || arg == "d" {
 			autoDelete = true
@@ -253,7 +254,7 @@ func main() {
 		// Don't use os.Exit(1) to allow defer cleanup message
 		return
 	}
-	
+
 	historyLogger.SetSuccess()
 }
 
@@ -309,7 +310,7 @@ NOTES:
 func handleTestOperation(targetPath string, autoDelete bool, logger *HistoryLogger) error {
 	// Определение типа пути (аналогично логике main filedo)
 	targetPath = strings.TrimSpace(targetPath)
-	
+
 	// Проверка, является ли это буквой диска
 	if len(targetPath) > 0 && ((len(targetPath) == 1) || (len(targetPath) > 1 && len(targetPath) < 4 && string([]rune(targetPath)[1]) == ":")) {
 		if len(targetPath) == 1 {
@@ -318,28 +319,28 @@ func handleTestOperation(targetPath string, autoDelete bool, logger *HistoryLogg
 		// Операция с устройством
 		logger.SetCommand("device", targetPath, "test")
 		logger.SetParameter("autoDelete", autoDelete)
-		
+
 		return runDeviceCapacityTest(targetPath, autoDelete, logger)
 	}
-	
+
 	// Check if this is a network path
 	if len(targetPath) > 2 && (targetPath[0:2] == "\\" || targetPath[0:2] == "//") {
 		// Network operation
 		logger.SetCommand("network", targetPath, "test")
 		logger.SetParameter("autoDelete", autoDelete)
-		
+
 		return runNetworkCapacityTest(targetPath, autoDelete, logger)
 	}
-	
+
 	// Check if this is an existing folder
 	if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
 		// Folder operation
 		logger.SetCommand("folder", targetPath, "test")
 		logger.SetParameter("autoDelete", autoDelete)
-		
+
 		return runFolderCapacityTest(targetPath, autoDelete, logger)
 	}
-	
+
 	// Path does not exist or is a file
 	if strings.HasSuffix(targetPath, "/") || strings.HasSuffix(targetPath, "\\") {
 		return fmt.Errorf("folder \"%s\" does not exist", targetPath)

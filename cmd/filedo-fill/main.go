@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const version = "250916_fill"
+// version is stamped by build.ps1 and release.yml with -ldflags.
+var version = "dev"
 
 var start_time time.Time
 var globalInterruptHandler *InterruptHandler
@@ -224,30 +225,30 @@ func main() {
 	// Parse arguments for FILL command
 	// Expected format: filedo_fill.exe C: 1000 del
 	// Should work as: filedo.exe C: fill 1000 del
-	
+
 	targetPath := args[1]
-	
+
 	// Default values
 	sizeMBStr := "100"
 	autoDelete := false
 	cleanMode := false
-	
+
 	// Parse additional arguments
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(strings.TrimSpace(args[i]))
-		
+
 		// Check clean operation
 		if arg == "clean" || arg == "c" {
 			cleanMode = true
 			continue
 		}
-		
+
 		// Check auto-delete flags
 		if arg == "del" || arg == "delete" || arg == "d" {
 			autoDelete = true
 			continue
 		}
-		
+
 		// If not a flag, it's a size
 		if !isFlag(arg) {
 			sizeMBStr = arg
@@ -268,7 +269,7 @@ func main() {
 		// Don't use os.Exit(1) to allow defer cleanup message
 		return
 	}
-	
+
 	historyLogger.SetSuccess()
 }
 
@@ -317,7 +318,7 @@ NOTES:
 func handleFillOperation(targetPath, sizeMBStr string, autoDelete bool, logger *HistoryLogger) error {
 	// Определение типа пути (аналогично логике main filedo)
 	targetPath = strings.TrimSpace(targetPath)
-	
+
 	// Проверка, является ли это буквой диска
 	if len(targetPath) > 0 && ((len(targetPath) == 1) || (len(targetPath) > 1 && len(targetPath) < 4 && string([]rune(targetPath)[1]) == ":")) {
 		if len(targetPath) == 1 {
@@ -327,30 +328,30 @@ func handleFillOperation(targetPath, sizeMBStr string, autoDelete bool, logger *
 		logger.SetCommand("device", targetPath, "fill")
 		logger.SetParameter("size", sizeMBStr)
 		logger.SetParameter("autoDelete", autoDelete)
-		
+
 		return runDeviceFill(targetPath, sizeMBStr, autoDelete)
 	}
-	
+
 	// Проверка, является ли это сетевым путем
 	if len(targetPath) > 2 && (targetPath[0:2] == "\\" || targetPath[0:2] == "//") {
 		// Сетевая операция
 		logger.SetCommand("network", targetPath, "fill")
 		logger.SetParameter("size", sizeMBStr)
 		logger.SetParameter("autoDelete", autoDelete)
-		
+
 		return runNetworkFill(targetPath, sizeMBStr, autoDelete, logger)
 	}
-	
+
 	// Проверка, является ли это существующей папкой
 	if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
 		// Операция с папкой
 		logger.SetCommand("folder", targetPath, "fill")
 		logger.SetParameter("size", sizeMBStr)
 		logger.SetParameter("autoDelete", autoDelete)
-		
+
 		return runFolderFill(targetPath, sizeMBStr, autoDelete)
 	}
-	
+
 	// Путь не существует или является файлом
 	if strings.HasSuffix(targetPath, "/") || strings.HasSuffix(targetPath, "\\") {
 		return fmt.Errorf("folder \"%s\" does not exist", targetPath)
@@ -362,7 +363,7 @@ func handleFillOperation(targetPath, sizeMBStr string, autoDelete bool, logger *
 func handleCleanOperation(targetPath string, logger *HistoryLogger) error {
 	// Определение типа пути и вызов соответствующей функции очистки
 	targetPath = strings.TrimSpace(targetPath)
-	
+
 	// Проверка, является ли это буквой диска
 	if len(targetPath) > 0 && ((len(targetPath) == 1) || (len(targetPath) > 1 && len(targetPath) < 4 && string([]rune(targetPath)[1]) == ":")) {
 		if len(targetPath) == 1 {
@@ -372,21 +373,21 @@ func handleCleanOperation(targetPath string, logger *HistoryLogger) error {
 		logger.SetCommand("device", targetPath, "clean")
 		return runDeviceFillClean(targetPath)
 	}
-	
+
 	// Проверка, является ли это сетевым путем
 	if len(targetPath) > 2 && (targetPath[0:2] == "\\" || targetPath[0:2] == "//") {
 		// Операция очистки сети
 		logger.SetCommand("network", targetPath, "clean")
 		return runNetworkFillClean(targetPath, logger)
 	}
-	
+
 	// Проверка, является ли это существующей папкой
 	if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
 		// Операция очистки папки
 		logger.SetCommand("folder", targetPath, "clean")
 		return runFolderFillClean(targetPath)
 	}
-	
+
 	return fmt.Errorf("path \"%s\" does not exist or is not a valid target", targetPath)
 }
 

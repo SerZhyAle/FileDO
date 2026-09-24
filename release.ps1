@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 # ============================================================================
 #  FileDO - "RELIZ" (RELEASE): the public, CI-driven flow.
 #
@@ -59,8 +60,18 @@ param(
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $repo = "SerZhyAle/FileDO"
+$script:inPreflight = $true
+if (-not $Version) { $Version = Get-Date -Format "yyMMddHHmm" }
 
-function Fail($msg) { Write-Host "RELEASE ABORTED: $msg" -ForegroundColor Red; exit 1 }
+function Fail([string]$msg, [int]$code = 1) {
+    $subject = if ($script:inPreflight) { "release-preflight $Version" } else { "release $Version" }
+    if ($code -eq 2) {
+        Write-Host "${subject}: NOT VERIFIED ($msg)" -ForegroundColor Yellow
+    } else {
+        Write-Host "${subject}: FAIL ($msg)" -ForegroundColor Red
+    }
+    exit $code
+}
 function Step($n)   { Write-Host ""; Write-Host "== $n ==" -ForegroundColor Cyan }
 
 # ---------------------------------------------------------------------------
@@ -69,14 +80,14 @@ function Step($n)   { Write-Host ""; Write-Host "== $n ==" -ForegroundColor Cyan
 Step "1/9 Preflight"
 
 foreach ($t in @('git','gh','go')) {
-    if (-not (Get-Command $t -ErrorAction SilentlyContinue)) { Fail "$t not found on PATH." }
+    if (-not (Get-Command $t -ErrorAction SilentlyContinue)) { Fail "$t not found on PATH." 2 }
 }
 if (-not $SkipWinget -and -not (Get-Command wingetcreate -ErrorAction SilentlyContinue)) {
-    Fail "wingetcreate not found. Install: winget install Microsoft.WingetCreate (or use -SkipWinget)."
+    Fail "wingetcreate not found. Install: winget install Microsoft.WingetCreate (or use -SkipWinget)." 2
 }
 
 gh auth status 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Fail "GitHub CLI is not authenticated. Run: gh auth login" }
+if ($LASTEXITCODE -ne 0) { Fail "GitHub CLI is not authenticated. Run: gh auth login" 2 }
 
 Push-Location $root
 try {
@@ -84,7 +95,6 @@ try {
     if ($branch -ne 'main') { Fail "Releases must be cut from 'main' (you are on '$branch')." }
 
     # Version + tag
-    if (-not $Version) { $Version = Get-Date -Format "yyMMddHHmm" }
     if ($Version -notmatch '^\d{10}$') { Fail "Version must be 10 digits (yyMMddHHmm); got '$Version'." }
     $tag = "v$Version"
 
@@ -108,7 +118,8 @@ try {
     # Offline and version-free on purpose: winget\ still carries the previous release.
     if (-not $SkipWinget) {
         & "$root\packaging\check-winget-manifests.ps1" -NoNetwork
-        if ($LASTEXITCODE -ne 0) { Fail "winget manifest checks failed on the current winget\ - nothing tagged." }
+        $manifestCode = $LASTEXITCODE
+        if ($manifestCode -ne 0) { Fail "winget manifest checks did not pass on the current winget\ - nothing tagged." $manifestCode }
     }
 
     # -----------------------------------------------------------------------
@@ -122,14 +133,26 @@ try {
     # run, after the one irreversible step. On a machine with no WiX the gate
     # still runs - the workflow builds the real artifacts on the runner.
     if (Get-Command wix -ErrorAction SilentlyContinue) {
-        & "$root\build.ps1" -Test -Msi
-        if ($LASTEXITCODE -ne 0) { Fail "build.ps1 -Test -Msi failed. Nothing tagged." }
+        & "$root\build.ps1" -Test -Msi -Version $Version
+        $gateCode = $LASTEXITCODE
+        if ($gateCode -ne 0) { Fail "build.ps1 -Test -Msi did not pass. Nothing tagged." $gateCode }
     } else {
-        & "$root\build.ps1" -Test
-        if ($LASTEXITCODE -ne 0) { Fail "build.ps1 -Test failed. Nothing tagged." }
+        & "$root\build.ps1" -Test -Version $Version
+        $gateCode = $LASTEXITCODE
+        if ($gateCode -ne 0) { Fail "build.ps1 -Test did not pass. Nothing tagged." $gateCode }
         Write-Host "  note: WiX is not installed here, so the MSI was not built locally." -ForegroundColor Yellow
         Write-Host "        dotnet tool install --global wix --version 5.*" -ForegroundColor Yellow
     }
+    Write-Host "go test ./fdsec/ (full release run) ..." -NoNewline
+    $fullFdsec = go test ./fdsec/ -count=1 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host " FAILED" -ForegroundColor Red
+        Write-Host $fullFdsec
+        Fail "the full fdsec release run found a defect. Nothing tagged."
+    }
+    Write-Host " OK"
+    Write-Host "release-preflight ${Version}: PASS" -ForegroundColor Green
+    $script:inPreflight = $false
 
     # -----------------------------------------------------------------------
     # 3. Commit refreshed artifacts (binaries are tracked in exe_to_download\)
@@ -232,7 +255,8 @@ try {
         $checkArgs = @{ Version = $Version }
         if ($WingetInstallTest) { $checkArgs['Install'] = $true }
         & "$root\packaging\check-winget-manifests.ps1" @checkArgs
-        if ($LASTEXITCODE -ne 0) { Fail "winget manifest checks failed - nothing committed to winget\. The tag $tag is already out; fix winget\ and re-run with -SkipStore, or submit by hand." }
+        $manifestCode = $LASTEXITCODE
+        if ($manifestCode -ne 0) { Fail "winget manifest checks did not pass - nothing committed to winget\. The tag $tag is already out; fix winget\ and re-run with -SkipStore, or submit by hand." $manifestCode }
 
         git add winget
         if (git diff --cached --name-only) {

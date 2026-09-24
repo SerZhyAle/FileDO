@@ -37,6 +37,9 @@ func repoRoot(t *testing.T) string {
 	}
 	root := filepath.Clean(filepath.Join(wd, "..", ".."))
 	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); err != nil {
+		if os.Getenv("FILEDO_FDSEC_REQUIRE_REPO_ROOT") == "1" {
+			t.Fatalf("FDSEC_SURFACES_REPO_ROOT_MISSING: not running inside the repository tree (%v)", err)
+		}
 		t.Skipf("not running inside the repository tree (%v)", err)
 	}
 	return root
@@ -57,14 +60,28 @@ const revealDirToken = `%LOCALAPPDATA%\FileDO\reveal`
 
 // The four claims, as the tokens that carry them across languages.
 type surfaceClaim struct {
-	name  string
-	token string
+	name   string
+	token  string
+	tokens []string
+}
+
+func (c surfaceClaim) match(body string) bool {
+	if c.token != "" {
+		return strings.Contains(body, c.token)
+	}
+	for _, tok := range c.tokens {
+		if strings.Contains(body, tok) {
+			return true
+		}
+	}
+	return false
 }
 
 var surfaceClaims = []surfaceClaim{
-	{"where a revealed copy lives", revealDirToken},
-	{"what wiping cannot promise on flash storage", "SSD"},
-	{"the container's extension", ".fd-sec"},
+	{name: "where a revealed copy lives", token: revealDirToken},
+	{name: "what wiping cannot promise on flash storage", token: "SSD"},
+	{name: "the container's extension", token: ".fd-sec"},
+	{name: "what an empty credential means", tokens: []string{"obfuscation", "маскировк", "маскуванн", "Verschleierung", "camouflage"}},
 }
 
 // Every authored README locale carries the feature and all of its claims.
@@ -75,14 +92,27 @@ func TestSurfaces_EveryReadmeLocaleCarriesTheClaims(t *testing.T) {
 	for _, rel := range []string{"README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"} {
 		body := readSurface(t, root, rel)
 		for _, c := range surfaceClaims {
-			if !strings.Contains(body, c.token) {
-				t.Errorf("%s does not say %s (looked for %q)", rel, c.name, c.token)
+			if !c.match(body) {
+				t.Errorf("%s does not say %s", rel, c.name)
 			}
 		}
 		// The power-loss clause has no single token, but the sweep it
 		// describes is always the next start of this program.
 		if !strings.Contains(body, "FileDO") {
 			t.Errorf("%s never names the program that sweeps the copy", rel)
+		}
+	}
+}
+
+// The non-container exit vocabulary is a scripting contract, so it must not
+// drift between the five README locales while their surrounding prose is
+// translated (CLI-EVENT-STREAM rule 11 / SP-0012 T8).
+func TestSurfaces_EveryReadmeLocaleCarriesTheExitVocabulary(t *testing.T) {
+	root := repoRoot(t)
+	const block = "0 passed or done, 1 ran and found a defect, 2 could not be verified"
+	for _, rel := range []string{"README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"} {
+		if !strings.Contains(readSurface(t, root, rel), block) {
+			t.Errorf("%s does not carry the CLI exit-code vocabulary", rel)
 		}
 	}
 }
@@ -95,8 +125,8 @@ func TestSurfaces_TheGuidePageIsCompleteInEveryAuthoredLocale(t *testing.T) {
 	page := readSurface(t, root, filepath.Join("docs", "guides", "fd-sec-containers.html"))
 
 	for _, c := range surfaceClaims {
-		if !strings.Contains(page, c.token) {
-			t.Errorf("the fd-sec guide does not say %s (looked for %q)", c.name, c.token)
+		if !c.match(page) {
+			t.Errorf("the fd-sec guide does not say %s", c.name)
 		}
 	}
 	for _, lang := range []string{`data-l="ru"`, `data-l="en"`, `data-l="ua"`} {
@@ -151,6 +181,17 @@ func TestSurfaces_TheInstallTrustPageKeepsItsContract(t *testing.T) {
 		at = i
 	}
 
+	// Rule 1 / T4: the page covers every unsigned artifact published in the release
+	// (setup EXE, MSI, ZIP), and section 2 mentions the signed Microsoft Store build.
+	for _, artifact := range []string{"-windows-x64.msi", "-windows-x64.zip"} {
+		if !strings.Contains(page, artifact) {
+			t.Errorf("the trust page does not name artifact %q in section 1", artifact)
+		}
+	}
+	if !strings.Contains(page, "Microsoft Store") {
+		t.Error("the trust page does not explain that the Microsoft Store build is signed")
+	}
+
 	// Rule 2: the dialog is quoted, in each authored locale, so the user can
 	// match the page to the window they are looking at.
 	for _, quote := range []string{
@@ -178,16 +219,27 @@ func TestSurfaces_TheInstallTrustPageKeepsItsContract(t *testing.T) {
 		"отключите антивирус",
 		"выключите SmartScreen",
 		"вимкніть антивірус",
+		"run as administrator",
+		"запустите от имени администратора",
+		"запустіть від імені адміністратора",
 	} {
 		if strings.Contains(strings.ToLower(page), strings.ToLower(forbidden)) {
 			t.Errorf("the trust page tells the user to weaken their protection: %q (rule 4)", forbidden)
 		}
 	}
 
-	// Rule 5: the elevation is itemized and the single action that undoes all
+	// Rule 5: every elevation is itemized and the single action that undoes all
 	// of it is named.
 	if !strings.Contains(page, "filedo fdsec unregister") || !strings.Contains(page, "Uninstall") {
 		t.Error("the trust page does not name the one action that removes everything the elevation did (rule 5)")
+	}
+	if strings.Contains(page, "appears once, during setup") {
+		t.Error("the trust page claims UAC appears once during setup, omitting runtime elevations (rule 5)")
+	}
+	for _, elevationTerm := range []string{"probe", "Recover", "-all-users"} {
+		if !strings.Contains(page, elevationTerm) {
+			t.Errorf("the trust page does not itemize elevation term %q (rule 5)", elevationTerm)
+		}
 	}
 
 	// Rule 6: the fourth section says the same thing as the privacy page and
@@ -210,6 +262,20 @@ func TestSurfaces_TheInstallTrustPageKeepsItsContract(t *testing.T) {
 	if strings.Count(manifest, "Capability Name=") != 1 {
 		t.Error("the manifest declares more than one capability; the trust page says it declares exactly one")
 	}
+	if strings.Contains(page, "writes only where you point") {
+		t.Error("the trust page overclaims where FileDO writes (rule 6)")
+	}
+	if strings.Contains(privacy, "does not request administrator rights") ||
+		strings.Contains(privacy, "не запрашивает права администратора") ||
+		strings.Contains(privacy, "не запитує права адміністратора") {
+		t.Error("the privacy page denies administrator elevations that the code performs (rule 6)")
+	}
+	if !strings.Contains(privacy, `FileDO\runs`) || !strings.Contains(privacy, `FileDO\reports`) {
+		t.Error("the privacy page does not list FileDO runs and reports directories (rule 6)")
+	}
+	if strings.Contains(privacy, "two files") || strings.Contains(privacy, "два служебных") || strings.Contains(privacy, "два службові") {
+		t.Error("the privacy page still refers to 'two files' written locally (rule 6)")
+	}
 
 	// Localization: authored wherever the other guides are.
 	for _, lang := range []string{`data-l="ru"`, `data-l="en"`, `data-l="ua"`} {
@@ -218,13 +284,14 @@ func TestSurfaces_TheInstallTrustPageKeepsItsContract(t *testing.T) {
 		}
 	}
 
-	// Rule 7: reachable from where the download is - the site, the guide hub
-	// and every README locale.
+	// Rule 7: reachable from where the download is - the release body, the site,
+	// the guide hub and every README locale.
 	sitemap := readSurface(t, root, filepath.Join("docs", "sitemap.xml"))
 	if !strings.Contains(sitemap, "guides/install-trust.html") {
 		t.Error("the trust page is published but absent from docs/sitemap.xml")
 	}
 	for _, rel := range []string{
+		filepath.Join(".github", "workflows", "release.yml"),
 		filepath.Join("docs", "index.html"),
 		filepath.Join("docs", "guides", "index.html"),
 		filepath.Join("docs", "guides", "install-and-explorer.html"),
@@ -335,5 +402,104 @@ func TestSurfaces_BothRegistryWritersOpenTheSameProgram(t *testing.T) {
 	}
 	if !strings.Contains(reg, `"%1" unsecure start`) {
 		t.Error("fdsec register lost the double-click's unsecure-and-start command")
+	}
+}
+
+// PAGE-CONTENT, PAGE-STYLE, and SITE-FAMILY-MAP are implemented by the
+// hand-authored site. The landing and privacy pages keep a literal footer;
+// guides receive the same grid from guide.js. Keep those three sources in
+// lockstep, because a missing family member otherwise has no build failure.
+func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
+	root := repoRoot(t)
+	sources := []string{
+		filepath.Join("docs", "index.html"),
+		filepath.Join("docs", "privacy.html"),
+		filepath.Join("docs", "guides", "guide.js"),
+	}
+	urls := []string{
+		"https://serzhyale.github.io/FastMediaSorter_mob_v2/",
+		"https://serzhyale.github.io/FastMediaSorter_Lite/",
+		"https://serzhyale.github.io/CyrFlip/",
+		"https://serzhyale.github.io/doc-html-translate/",
+		"https://serzhyale.github.io/StreamsPlayer/",
+		"https://serzhyale.github.io/OneClickRunner/",
+		"https://serzhyale.github.io/universal-agent-kit/",
+		"https://sza.od.ua",
+	}
+	for _, rel := range sources {
+		body := readSurface(t, root, rel)
+		for _, u := range urls {
+			if !strings.Contains(body, u) {
+				t.Errorf("%s footer is missing %s", rel, u)
+			}
+		}
+		if strings.Contains(body, "github.com/SerZhyAle/OneClickRunner") {
+			t.Errorf("%s still links OneClickRunner's repository", rel)
+		}
+		if strings.Contains(body, "serzhyale@gmail.com") {
+			t.Errorf("%s states a contact other than sza@ukr.net", rel)
+		}
+	}
+
+	for _, header := range []struct {
+		rel  string
+		href string
+	}{
+		{filepath.Join("docs", "index.html"), `href="#get"`},
+		{filepath.Join("docs", "privacy.html"), `href="./#get"`},
+		{filepath.Join("docs", "guides", "index.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "check-storage.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "files-and-copies.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "gui-command-builder.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "install-and-explorer.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "install-trust.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "fd-sec-containers.html"), `href="../#get"`},
+	} {
+		body := readSurface(t, root, header.rel)
+		start := strings.Index(body, `<header class="site-header">`)
+		if start < 0 {
+			t.Errorf("%s has no site header", header.rel)
+			continue
+		}
+		end := strings.Index(body[start:], "</header>")
+		if end < 0 {
+			t.Errorf("%s has no complete site header", header.rel)
+			continue
+		}
+		block := body[start : start+end]
+		if strings.Count(block, `class="btn`) != 1 || !strings.Contains(block, header.href) {
+			t.Errorf("%s header must have exactly one Install button to %s", header.rel, header.href)
+		}
+	}
+}
+
+func TestSurfaces_TheSiteOnlyTrustsKnownStoredPreferences(t *testing.T) {
+	root := repoRoot(t)
+	for _, rel := range []string{
+		filepath.Join("docs", "index.html"),
+		filepath.Join("docs", "privacy.html"),
+		filepath.Join("docs", "guides", "guide.js"),
+	} {
+		body := readSurface(t, root, rel)
+		if !strings.Contains(body, `l !== "ru" && l !== "en" && l !== "ua"`) {
+			t.Errorf("%s accepts an unknown sza-lang value", rel)
+		}
+	}
+	for _, rel := range []string{
+		filepath.Join("docs", "index.html"),
+		filepath.Join("docs", "privacy.html"),
+		filepath.Join("docs", "guides", "index.html"),
+		filepath.Join("docs", "guides", "check-storage.html"),
+		filepath.Join("docs", "guides", "files-and-copies.html"),
+		filepath.Join("docs", "guides", "gui-command-builder.html"),
+		filepath.Join("docs", "guides", "install-and-explorer.html"),
+		filepath.Join("docs", "guides", "install-trust.html"),
+		filepath.Join("docs", "guides", "fd-sec-containers.html"),
+	} {
+		body := readSurface(t, root, rel)
+		if !strings.Contains(body, `t !== "dark" && t !== "light"`) ||
+			!strings.Contains(body, `l !== "ru" && l !== "en" && l !== "ua"`) {
+			t.Errorf("%s does not whitelist stored theme and language values", rel)
+		}
 	}
 }

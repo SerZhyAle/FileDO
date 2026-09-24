@@ -7,15 +7,15 @@
 [![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**🔍 Speicher-Tests • 🚀 Leistungsanalyse • 🛡️ Sicheres Löschen • 🎯 Fake-Kapazität Erkennung • 📁 Duplikat-Verwaltung**
+**Speicher-Tests • Leistungsanalyse • Sicheres Löschen • Fake-Kapazität Erkennung • Duplikat-Verwaltung**
 
 </div>
 
 ---
 
-## 🎯 Schnellstart
+## Schnellstart
 
-### ⚡ Häufigste Aufgaben
+### Häufigste Aufgaben
 
 ```bash
 # USB/SD-Karte auf Fälschung prüfen
@@ -34,6 +34,8 @@ filedo D: cd old del
 # Kopieren mit Fortschrittsanzeige
 filedo folder C:\Source copy D:\Backup
 filedo device E: copy F:\Archive
+# Erst den Baum zählen, für eine genaue Restzeit (sonst beginnt das Kopieren mit der ersten Datei)
+filedo folder C:\Source copy D:\Backup --precount
 
 # Schnelle Ordnerreinigung
 filedo folder C:\Temp wipe
@@ -43,7 +45,7 @@ filedo folder D:\Cache w
 filedo C: info
 ```
 
-### 📥 Installation
+### Installation
 
 #### Variante 1 - winget
 
@@ -105,13 +107,13 @@ FileDO entfernt nur, was es selbst markiert hat: ein Dokumenttyp, der inzwischen
 
 ---
 
-## 🔧 Hauptoperationen
+## Hauptoperationen
 
 <table>
 <tr>
 <td width="50%">
 
-### 💾 Geräte-Tests
+### Geräte-Tests
 ```bash
 # Informationen
 filedo C: info
@@ -129,7 +131,7 @@ filedo D: speed max
 </td>
 <td width="50%">
 
-### 📁 Datei- und Ordner-Operationen
+### Datei- und Ordner-Operationen
 ```bash
 # Ordner-Analyse
 filedo C:\temp info
@@ -157,12 +159,13 @@ filedo C:\temp clean
 
 ---
 
-## 🔐 Geheime Dateien (`.fd-sec`)
+## Geheime Dateien (`.fd-sec`)
 
 Eine Datei geht in einen Container, hinter ein Passwort, und kommt wieder heraus - von der Befehlszeile,
 aus dem Explorer-Menü oder von den Seiten der Gruppe **Schützen** im Fenster. Der wahre Name des
 Originals, seine tatsächliche Größe und seine Zeitstempel sind darin versiegelt; der Container selbst
-verrät nichts als seine eigene Größe.
+verrät nur seine eigene Größe, seinen sichtbaren Namen und seine Zeitstempel (`rename` erzeugt einen
+namenlosen Datenblock).
 
 ```bash
 # Einpacken (das Passwort wird zweimal abgefragt, ohne Anzeige)
@@ -180,7 +183,7 @@ filedo report.fd-sec unsecure here
 filedo report.fd-sec reveal
 ```
 
-Vier Dinge klar gesagt, denn eine Sicherheitsfunktion, die sich überschätzt, ist schlimmer als gar keine:
+Fünf Dinge klar gesagt, denn eine Sicherheitsfunktion, die sich überschätzt, ist schlimmer als gar keine:
 
 - **Ein leeres Passwort ist nur Verschleierung - keine Geheimhaltung.** Es wird angenommen, und jede
   Oberfläche, die ein Passwort entgegennimmt, sagt schon beim Tippen, was es wert ist.
@@ -210,22 +213,22 @@ Explorer-Menüeintrag.
 
 ---
 
-## 🌟 Hauptfunktionen
+## Hauptfunktionen
 
-### 🎯 **Fake-Kapazität-Erkennung**
+### **Fake-Kapazität-Erkennung**
 - **100-Dateien-Test** mit jeweils 1% Kapazität
 - **Zufällige Positionsprüfung** - jede Datei wird an eindeutigen zufälligen Positionen überprüft
 - **Schutz vor raffinierten Fälschungen** - schlägt Controller, die Daten an vorhersagbaren Positionen speichern
 - **Lesbare Muster** - verwendet `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789` für einfache Korruptionserkennung
 - **Schnelles Raw-Sondieren** (`probe`) - 32 Marker per direktem LBA-Zugriff, fertig in ~1 Min (Admin erforderlich)
 
-### ⚡ **Leistungstest**
+### **Leistungstest**
 - Messung der tatsächlichen Lese-/Schreibgeschwindigkeit
 - Optimiertes Streaming für große Dateien
 - Fortschrittsverfolgung mit ETA-Berechnung
 - Konfigurierbare Dateigrößen (1MB bis 10GB)
 
-### 🔍 **Datei-Duplikat-Verwaltung**
+### **Datei-Duplikat-Verwaltung**
 - **Integrierte Duplikat-Erkennung** - in die Hauptanwendung integriert
 - **Mehrere Auswahlmodi** (älteste/neueste/alphabetisch)
 - **Flexible Aktionen** (Duplikate löschen/verschieben)
@@ -234,7 +237,7 @@ Explorer-Menüeintrag.
 - **Speichern/Laden von Duplikat-Listen** für Stapelverarbeitung
 - **Modulare Architektur** mit dediziertem fileduplicates-Package
 
-### 🛡️ **Sicherheitsfunktionen**
+### **Sicherheitsfunktionen**
 - **Hochgeschwindigkeits-Datenlöschung** um Wiederherstellung zu verhindern
 - **Fülloperationen** mit optimierter Puffer-Verwaltung
 - **Stapelverarbeitung** für mehrere Ziele
@@ -243,7 +246,7 @@ Explorer-Menüeintrag.
 
 ---
 
-## 💻 Befehlsreferenz
+## Befehlsreferenz
 
 ### Zieltypen (Automatische Erkennung)
 | Muster | Typ | Beispiel |
@@ -283,27 +286,27 @@ Explorer-Menüeintrag.
 
 ---
 
-## 🖥️ GUI-Anwendung
+## GUI-Anwendung
 
 **FileDO GUI** (`filedo_win.exe`) - VB.NET Windows Forms Shell: links eine Leiste mit den Aufgaben, je Aufgabe eine nummerierte Seite - was bearbeitet wird, welche Parameter, dann Prüfen und Ausführen - plus eine Seite **«Befehl»**, der Experten-Baukasten, der jeden FileDO-Befehl zusammenstellt und ausführt:
 
-- ✅ **Visuelle Zielauswahl** mit Optionsfeldern (Gerät/Ordner/Netzwerk/Datei)
-- ✅ **Operationen-Dropdown** auf der Seite «Befehl» (Info, Geschwindigkeit, Füllen, Test, Bereinigen, Duplikat-Prüfung)
-- ✅ **Eine Seite je Aufgabe** im Standardfenster - Kapazität, Geschwindigkeit, Info, Prüfung auf beschädigte Dateien, direkte Kapazitätsprüfung, Wiederherstellung, Duplikate, Vergleich, Bereinigen, Kopieren, Füllen, Löschen und die drei Aufgaben für geheime Dateien - jede mit allen Optionen, die die CLI dafür annimmt, einschließlich aller neunundzwanzig `check`-Schalter
-- ✅ **Parameter-Eingabe** mit Validierung
-- ✅ **Echtzeit-Befehlsvorschau** auf der Seite «Befehl» zeigt äquivalenten CLI-Befehl
-- ✅ **Durchsuchen-Button** für einfache Pfad-Auswahl
-- ✅ **Fortschrittsverfolgung** mit Echtzeit-Ausgabe
-- ✅ **Ein-Klick-Ausführung** mit Ausgabe-Anzeige
-- ✅ **Seite «Über»**: Build, Autor und Links zur Website, zum Quellcode, zum Issue-Tracker, zur Datenschutzseite und zu den weiteren Programmen des Autors
-- ✅ **Logs an den Autor senden** - die eine Schaltfläche auf dieser Seite packt die auf diesem Rechner gefundenen FileDO-Logs in ein Zip, öffnet den Ordner mit markierter Datei, legt den Pfad in die Zwischenablage und öffnet Ihr Mailprogramm mit ausgefüllter Adresse und Betreff. Das Zip sehen Sie zuerst selbst, und gesendet wird nichts, bevor Sie die Mail selbst abschicken
+- **Visuelle Zielauswahl** mit Optionsfeldern (Gerät/Ordner/Netzwerk/Datei)
+- **Operationen-Dropdown** auf der Seite «Befehl» (Info, Geschwindigkeit, Füllen, Test, Bereinigen, Duplikat-Prüfung)
+- **Eine Seite je Aufgabe** im Standardfenster - Kapazität, Geschwindigkeit, Info, Prüfung auf beschädigte Dateien, direkte Kapazitätsprüfung, Wiederherstellung, Duplikate, Vergleich, Bereinigen, Kopieren, Füllen, Löschen und die drei Aufgaben für geheime Dateien - jede mit allen Optionen, die die CLI dafür annimmt, einschließlich aller neunundzwanzig `check`-Schalter
+- **Parameter-Eingabe** mit Validierung
+- **Echtzeit-Befehlsvorschau** auf der Seite «Befehl» zeigt äquivalenten CLI-Befehl
+- **Durchsuchen-Button** für einfache Pfad-Auswahl
+- **Fortschrittsverfolgung** mit Echtzeit-Ausgabe
+- **Ein-Klick-Ausführung** mit Ausgabe-Anzeige
+- **Seite «Über»**: Build, Autor und Links zur Website, zum Quellcode, zum Issue-Tracker, zur Datenschutzseite und zu den weiteren Programmen des Autors
+- **Logs an den Autor senden** - die eine Schaltfläche auf dieser Seite packt die auf diesem Rechner gefundenen FileDO-Logs in ein Zip, öffnet den Ordner mit markierter Datei, legt den Pfad in die Zwischenablage und öffnet Ihr Mailprogramm mit ausgefüllter Adresse und Betreff. Das Zip sehen Sie zuerst selbst, und gesendet wird nichts, bevor Sie die Mail selbst abschicken
 
 ```bash
 # Starten aus dem filedo_win_vb Ordner
 filedo_win.exe          # Windows GUI Interface
 ```
 
-Die Seiten unter **«Schützen»** behandeln geheime `.fd-sec`-Dateien - eine Datei geheim machen, das Original zurückholen oder sie ohne Entpacken öffnen. Das Passwort ist maskiert und gelangt nie in eine Kommandozeile. Wird dem Fenster ein `.fd-sec`-Pfad direkt übergeben, öffnet es sich auf der Seite dieses Containers (`filedo_win.exe C:\a\x.fd-sec`); ein Doppelklick im Explorer nutzt das Fenster gar nicht - er führt **Unsecure and start** in der Konsole aus, wie oben beschrieben. «Verlauf», «Einstellungen» und «Über» haben eigene Seiten, und das ältere Befehlsbaukasten-Fenster gibt es weiterhin über `filedo_win.exe --legacy-builder`.
+Die Seiten unter **«Schützen»** behandeln geheime `.fd-sec`-Dateien - eine Datei geheim machen, das Original zurückholen oder sie ohne Entpacken öffnen. Das Passwort ist maskiert und gelangt nie in eine Kommandozeile. Wird dem Fenster ein `.fd-sec`-Pfad direkt übergeben, öffnet es sich auf der Seite dieses Containers (`filedo_win.exe C:\a\x.fd-sec`); ein Doppelklick im Explorer nutzt das Fenster gar nicht - er führt **Unsecure and start** in der Konsole aus, wie oben beschrieben. «Verlauf», «Einstellungen» und «Über» haben eigene Seiten; das ältere Befehlsbaukasten-Fenster ist außer Dienst gestellt, und eine von Hand geschriebene Befehlszeile gehört auf die Seite **«Befehl»**.
 
 **Funktionen:**
 - Mit VB.NET Windows Forms für native Windows-Erfahrung gebaut
@@ -313,7 +316,7 @@ Die Seiten unter **«Schützen»** behandeln geheime `.fd-sec`-Dateien - eine Da
 
 ---
 
-## 🔍 Erweiterte Funktionen
+## Erweiterte Funktionen
 
 ### Ordnervergleich & Bereinigung
 
@@ -351,6 +354,8 @@ folder C:\temp clean
 
 Ausführen: `filedo from commands.txt`
 
+Exit-Codes (alle Nicht-Container-Befehle): **0 passed or done, 1 ran and found a defect, 2 could not be verified.**
+
 ### Historien-Verfolgung
 ```bash
 filedo hist              # Letzte 10 Operationen anzeigen
@@ -375,24 +380,24 @@ filedo network \\pc\share info
 
 ---
 
-## ⚠️ Wichtige Hinweise
+## Wichtige Hinweise
 
-> **🎯 Fake-Kapazität-Erkennung**: Erstellt 100 Dateien (jeweils 1% Kapazität) mit **kontextabhängiger Unterbrechungsunterstützung**. Verwendet moderne zufällige Prüfmuster und optimierte Puffer-Verwaltung für zuverlässige Erkennung.
+> **Fake-Kapazität-Erkennung**: Erstellt 100 Dateien (jeweils 1% Kapazität) mit **kontextabhängiger Unterbrechungsunterstützung**. Verwendet moderne zufällige Prüfmuster und optimierte Puffer-Verwaltung für zuverlässige Erkennung.
 
-> **🔥 Verbesserte Unterbrechung**: Alle langen Operationen unterstützen **eleganten Ctrl+C-Abbruch** mit automatischer Bereinigung. Kontextabhängige Unterbrechungsprüfungen an optimalen Punkten für sofortige Reaktionsfähigkeit.
+> **Verbesserte Unterbrechung**: Alle langen Operationen unterstützen **eleganten Ctrl+C-Abbruch** mit automatischer Bereinigung. Kontextabhängige Unterbrechungsprüfungen an optimalen Punkten für sofortige Reaktionsfähigkeit.
 
-> **🛡️ Sicheres Löschen**: `fill <größe> del` überschreibt freien Speicherplatz mit optimierter Puffer-Verwaltung und kontextabhängigem Schreiben für sichere Datenlöschung.
+> **Sicheres Löschen**: `fill <größe> del` überschreibt freien Speicherplatz mit optimierter Puffer-Verwaltung und kontextabhängigem Schreiben für sichere Datenlöschung.
 
-> **🟢 Testdateien**: Erstellt `FILL_*.tmp` und `speedtest_*.txt` Dateien. Verwenden Sie den `clean` Befehl für automatische Löschung.
+> **Testdateien**: Erstellt `FILL_*.tmp` und `speedtest_*.txt` Dateien. Verwenden Sie den `clean` Befehl für automatische Löschung.
 
-> **🔵 Modulare Architektur**: Refaktoriert mit separaten `capacitytest` und `fileduplicates` Packages für bessere Wartbarkeit und Erweiterbarkeit.
+> **Modulare Architektur**: Refaktoriert mit separaten `capacitytest` und `fileduplicates` Packages für bessere Wartbarkeit und Erweiterbarkeit.
 
 ---
 
-## 📖 Anwendungsbeispiele
+## Anwendungsbeispiele
 
 <details>
-<summary><b>🔍 USB/SD-Karten Authentizitätsprüfung</b></summary>
+<summary><b>USB/SD-Karten Authentizitätsprüfung</b></summary>
 
 ```bash
 # Schnelltest mit Bereinigung
@@ -407,7 +412,7 @@ filedo E: info
 </details>
 
 <details>
-<summary><b>⚡ Leistungs-Benchmark</b></summary>
+<summary><b>Leistungs-Benchmark</b></summary>
 
 ```bash
 # Schneller 100MB Test
@@ -422,7 +427,7 @@ filedo \\server\backup speed 500
 </details>
 
 <details>
-<summary><b>🛡️ Sicheres Datenlöschen</b></summary>
+<summary><b>Sicheres Datenlöschen</b></summary>
 
 ```bash
 # 5GB füllen dann sicher löschen
@@ -437,7 +442,7 @@ filedo E: fill max del
 </details>
 
 <details>
-<summary><b>🔍 Duplikat-Suche und Verwaltung</b></summary>
+<summary><b>Duplikat-Suche und Verwaltung</b></summary>
 
 ```bash
 # Duplikate im aktuellen Verzeichnis finden
@@ -459,7 +464,7 @@ filedo cd from list duplicates.lst xyz del
 
 ---
 
-## 🏗️ Technische Details
+## Technische Details
 
 ### Architektur
 - **Modulares Design**: Aufgeteilt in spezialisierte Packages für bessere Wartbarkeit
@@ -483,7 +488,7 @@ FileDO/
 │   └── worker.go             # Hintergrundverarbeitung
 ├── filedo_win_vb/           # VB.NET GUI-Anwendung
 │   ├── FileDOGUI.sln        # Visual Studio Solution
-│   ├── MainForm.vb          # Hauptformular-Logik
+│   ├── Program.vb           # Einstiegspunkt; das Fenster ist ShellForm.vb
 │   └── bin/                 # Kompilierte GUI-Ausführdatei
 ├── command_handlers.go       # Befehlsverarbeitung
 ├── device_windows.go         # Geräte-Operationen
@@ -506,7 +511,7 @@ FileDO/
 
 ---
 
-## 🔄 Versionshistorie
+## Versionshistorie
 
 **v2607301014** (Aktuell)
 - **GUI**: Oberfläche in 5 Sprachen (Englisch, Russisch, Ukrainisch, Deutsch, Französisch) mit Sprachwechsel zur Laufzeit und App-Symbol
@@ -560,12 +565,12 @@ Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https
 
 ---
 
-### 🚀 Neueste Verbesserungen
+### Neueste Verbesserungen
 
-- **🔧 Modulare Architektur**: Refaktoriert in spezialisierte Packages (`capacitytest`, `fileduplicates`)
-- **⚡ Verbesserte Unterbrechung**: Kontextabhängige Abbrüche mit eleganter Bereinigung
-- **🛡️ Thread-sichere Operationen**: Verbesserter `InterruptHandler` mit Mutex-Schutz
-- **📊 Bessere Leistung**: Optimierte Puffer-Verwaltung und Verifikations-Algorithmen
-- **🖥️ Aktualisierte GUI**: VB.NET Windows Forms Anwendung mit verbesserter Integration
+- **Modulare Architektur**: Refaktoriert in spezialisierte Packages (`capacitytest`, `fileduplicates`)
+- **Verbesserte Unterbrechung**: Kontextabhängige Abbrüche mit eleganter Bereinigung
+- **Thread-sichere Operationen**: Verbesserter `InterruptHandler` mit Mutex-Schutz
+- **Bessere Leistung**: Optimierte Puffer-Verwaltung und Verifikations-Algorithmen
+- **Aktualisierte GUI**: VB.NET Windows Forms Anwendung mit verbesserter Integration
 
 </div>

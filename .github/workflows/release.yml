@@ -95,10 +95,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
           $builds = @(
-            @{ Dir = 'cmd\filedo'; Out = "$stage\filedo.exe";       UseVersion = $true  },
-            @{ Dir = 'cmd\filedo-fill';  Out = "$stage\filedo_fill.exe";  UseVersion = $false },
-            @{ Dir = 'cmd\filedo-check'; Out = "$stage\filedo_check.exe"; UseVersion = $false },
-            @{ Dir = 'cmd\filedo-test';  Out = "$stage\filedo_test.exe";  UseVersion = $false }
+            @{ Dir = 'cmd\filedo';       Out = "$stage\filedo.exe"       },
+            @{ Dir = 'cmd\filedo-fill';  Out = "$stage\filedo_fill.exe"  },
+            @{ Dir = 'cmd\filedo-check'; Out = "$stage\filedo_check.exe" },
+            @{ Dir = 'cmd\filedo-test';  Out = "$stage\filedo_test.exe"  }
           )
 
           foreach ($b in $builds) {
@@ -120,11 +120,7 @@ jobs:
 
               # Keep symbols (-s -w stripping correlates with higher AV
               # heuristic false-positive rates for Go binaries).
-              if ($b.UseVersion) {
-                go build -trimpath -ldflags "-X main.version=$version" -o $b.Out .
-              } else {
-                go build -trimpath -o $b.Out .
-              }
+              go build -trimpath -ldflags "-X main.version=$version" -o $b.Out .
               if ($LASTEXITCODE -ne 0) { throw "build failed in $($b.Dir)" }
             } finally {
               Pop-Location
@@ -133,6 +129,7 @@ jobs:
 
           Copy-Item exe_to_download\*.bat $stage -Force
           Copy-Item LICENSE  $stage -Force
+          Copy-Item THIRD-PARTY-NOTICES.txt $stage -Force
           Copy-Item README.md $stage -Force
           # The .fd-sec document type points DefaultIcon at a file on disk, so
           # the icon ships in the package as well as inside the MSI. The zip
@@ -145,12 +142,30 @@ jobs:
         run: |
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
           # filedo_win.exe is the VB.NET command-builder GUI; ships alongside the CLI.
-          msbuild filedo_win_vb\FileDOGUI.vbproj -p:Configuration=Release -p:Platform=AnyCPU -v:minimal -nologo
+          $version = "${{ steps.ver.outputs.version }}"
+          $guiVersion = "${{ steps.ver.outputs.vMaj }}.${{ steps.ver.outputs.vMin }}.${{ steps.ver.outputs.vPat }}.${{ steps.ver.outputs.vBld }}"
+          msbuild filedo_win_vb\FileDOGUI.vbproj -p:Configuration=Release -p:Platform=AnyCPU -p:BuildStamp=$version -p:AssemblyVersion=$guiVersion -v:minimal -nologo
           if ($LASTEXITCODE -ne 0) { throw "GUI build failed" }
           Copy-Item filedo_win_vb\bin\Release\filedo_win.exe $stage -Force
           if (Test-Path filedo_win_vb\bin\Release\filedo_win.exe.config) {
             Copy-Item filedo_win_vb\bin\Release\filedo_win.exe.config $stage -Force
           }
+
+      - name: Smoke staged release artifacts
+        shell: pwsh
+        run: |
+          $version = "${{ steps.ver.outputs.version }}"
+          $guiVersion = "${{ steps.ver.outputs.vMaj }}.${{ steps.ver.outputs.vMin }}.${{ steps.ver.outputs.vPat }}.${{ steps.ver.outputs.vBld }}"
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
+          foreach ($name in 'filedo.exe', 'filedo_fill.exe', 'filedo_check.exe', 'filedo_test.exe') {
+            $text = & (Join-Path $stage $name) '-?' 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 0 -or $text -notmatch [regex]::Escape($version)) {
+              throw "$name does not report staged build stamp $version"
+            }
+          }
+          $gui = (Get-Item (Join-Path $stage 'filedo_win.exe')).VersionInfo.FileVersion
+          if ($gui -ne $guiVersion) { throw "filedo_win.exe PE version '$gui' does not match '$guiVersion'" }
+          Write-Host "release-artifacts $version: PASS (5 stamped executables)"
 
       - name: Package zip
         id: pkg
@@ -285,7 +300,9 @@ jobs:
             The installer is not code-signed, so Windows may show "Windows
             protected your PC" on first run and ask for administrator
             permission. Compare the SHA256 below, then choose "More info" and
-            "Run anyway".
+            "Run anyway". Why the warning appears, what the administrator
+            prompt is used for, and what FileDO never does:
+            https://serzhyale.github.io/FileDO/guides/install-trust.html
 
             **The MSI** installs FileDO as a Windows program: the binaries and
             `filedo` on PATH, a Start menu entry and a desktop icon for the

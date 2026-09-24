@@ -1,5 +1,6 @@
 (function () {
   function setLang(l) {
+    if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
     document.documentElement.dataset.lang = l;
     document.documentElement.lang = l === "ua" ? "uk" : l;
     localStorage.setItem("sza-lang", l);
@@ -18,7 +19,7 @@
     .forEach(function (container) {
       container.insertAdjacentHTML(
         "afterbegin",
-        '<p class="footer-tools-title"><span data-l="ru">Другие инструменты SZA</span><span data-l="en">More tools by SZA</span><span data-l="ua">Інші інструменти SZA</span></p><div class="tools-grid"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b></a><a href="https://github.com/SerZhyAle/OneClickRunner"><b>OneClickRunner</b></a><a href="https://sza.od.ua"><b>SZA</b></a></div>',
+        '<p class="footer-tools-title"><span data-l="ru">Другие инструменты SZA</span><span data-l="en">More tools by SZA</span><span data-l="ua">Інші інструменти SZA</span></p><div class="tools-grid"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a><a href="https://serzhyale.github.io/StreamsPlayer/"><b>StreamsPlayer</b><span>Windows stream player</span></a><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a></div>',
       );
     });
   document.querySelectorAll("[data-set-lang]").forEach(function (b) {
@@ -40,11 +41,17 @@
       next === "light" ? "Switch to dark theme" : "Switch to light theme",
     );
   });
+  // The feedback is a word in the page language, not a plain check mark: that
+  // shape is action.confirm in ICON-SET, distinct from status.ok.
+  var copyLabel =
+    '<span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span>';
+  var copiedLabel =
+    '<span data-l="ru">Скопировано</span><span data-l="en">Copied</span><span data-l="ua">Скопійовано</span>';
   function copied(button) {
-    button.textContent = "✓ Copied";
+    button.innerHTML = copiedLabel;
     button.classList.add("done");
     setTimeout(function () {
-      button.textContent = "Copy";
+      button.innerHTML = copyLabel;
       button.classList.remove("done");
     }, 1600);
   }

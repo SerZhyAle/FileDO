@@ -12,14 +12,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -154,9 +154,7 @@
           </li>
         </ol>
         <div class="copybox">
-          filedo E: info<button class="copy" data-copy="filedo E: info">
-            Copy
-          </button>
+          filedo E: info<button class="copy" data-copy="filedo E: info"><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
       </section>
       <section class="section">
@@ -188,9 +186,7 @@
               filedo E: test del<button
                 class="copy"
                 data-copy="filedo E: test del"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -214,9 +210,7 @@
               filedo E: speed 100<button
                 class="copy"
                 data-copy="filedo E: speed 100"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -241,9 +235,7 @@
               filedo check F:\Photos<button
                 class="copy"
                 data-copy="filedo check F:\Photos"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
         </div>

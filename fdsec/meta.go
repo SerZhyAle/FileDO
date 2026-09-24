@@ -3,6 +3,9 @@ package fdsec
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"golang.org/x/text/unicode/norm"
@@ -38,14 +41,56 @@ type Metadata struct {
 	ModifiedAt time.Time // original's last-write time
 }
 
+var reservedStems = map[string]bool{
+	"con": true, "prn": true, "aux": true, "nul": true,
+	"com1": true, "com2": true, "com3": true, "com4": true, "com5": true,
+	"com6": true, "com7": true, "com8": true, "com9": true,
+	"lpt1": true, "lpt2": true, "lpt3": true, "lpt4": true, "lpt5": true,
+	"lpt6": true, "lpt7": true, "lpt8": true, "lpt9": true,
+}
+
+// ValidateName screens the sealed true name against path separators, reserved
+// device names, control characters and trailing dots or spaces (FDSEC-FORMAT.md
+// section 7, FDSEC-BEHAVIOUR.md section 4.3). The error does not echo the name.
+func ValidateName(name string) error {
+	if len(name) < 1 || len(name) > MaxNameBytes {
+		return fmt.Errorf("name must be 1..%d UTF-8 bytes", MaxNameBytes)
+	}
+	if name == "." || name == ".." {
+		return fmt.Errorf("name is a relative directory reference")
+	}
+	if strings.ContainsAny(name, `/\:*?"<>|`) {
+		return fmt.Errorf("name contains a path separator or illegal character")
+	}
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f {
+			return fmt.Errorf("name contains a control character")
+		}
+	}
+	if strings.TrimRight(name, ". ") != name {
+		return fmt.Errorf("name ends in a dot or a space")
+	}
+	if filepath.IsAbs(name) || filepath.Base(name) != name {
+		return fmt.Errorf("name is a path, not a file name")
+	}
+	stem := strings.ToLower(name)
+	if i := strings.IndexByte(stem, '.'); i >= 0 {
+		stem = stem[:i]
+	}
+	if reservedStems[stem] {
+		return fmt.Errorf("name is a reserved device name")
+	}
+	return nil
+}
+
 // buildMetadataBlock lays out the fixed 4096-byte plaintext block:
 //
 //	u16le name_len || name || u64le size || 4x u64le FILETIME ||
 //	32-byte digest || random pad to 4096
 func buildMetadataBlock(m Metadata, digest [digestSize]byte, pad func(int) ([]byte, error)) ([]byte, error) {
 	name := norm.NFC.String(m.Name)
-	if len(name) < 1 || len(name) > MaxNameBytes {
-		return nil, fmt.Errorf("fdsec: original name must be 1..%d UTF-8 bytes, is %d", MaxNameBytes, len(name))
+	if err := ValidateName(name); err != nil {
+		return nil, fmt.Errorf("fdsec: %w", err)
 	}
 	if m.Size < 0 {
 		return nil, fmt.Errorf("fdsec: negative size %d", m.Size)
@@ -86,8 +131,17 @@ func parseMetadataBlock(b []byte) (Metadata, [digestSize]byte, error) {
 	if o+40+digestSize > metaPlain {
 		return m, digest, fmt.Errorf("%w: metadata name overflows the block", ErrDamaged)
 	}
-	m.Name = string(b[2 : 2+nameLen])
-	m.Size = int64(binary.LittleEndian.Uint64(b[o:]))
+	name := string(b[2 : 2+nameLen])
+	if err := ValidateName(name); err != nil {
+		return m, digest, fmt.Errorf("%w: sealed name: %v", ErrDamaged, err)
+	}
+	m.Name = name
+
+	sizeRaw := binary.LittleEndian.Uint64(b[o:])
+	if sizeRaw > math.MaxInt64 {
+		return m, digest, fmt.Errorf("%w: sealed size %d exceeds max int64", ErrDamaged, sizeRaw)
+	}
+	m.Size = int64(sizeRaw)
 	m.EncodedAt = fromFILETIME(binary.LittleEndian.Uint64(b[o+8:]))
 	m.CreatedAt = fromFILETIME(binary.LittleEndian.Uint64(b[o+16:]))
 	m.AccessedAt = fromFILETIME(binary.LittleEndian.Uint64(b[o+24:]))

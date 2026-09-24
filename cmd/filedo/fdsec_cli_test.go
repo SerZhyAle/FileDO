@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"filedo/fdsec"
 )
 
 var filedoExe string
@@ -591,7 +593,7 @@ func TestFdsecMaskPacksOneContainerPerFile(t *testing.T) {
 
 // ---------------------------------------------------------------------------
 // Refusals and the exit-code taxonomy. A wrong credential is class A and is
-// never reported as damage (master doc section 3).
+// never reported as damage (FD-SEC-CONTRACT.md section 7.1).
 // ---------------------------------------------------------------------------
 
 func TestFdsecRefusalsAndExitCodes(t *testing.T) {
@@ -614,6 +616,53 @@ func TestFdsecRefusalsAndExitCodes(t *testing.T) {
 		if strings.Contains(strings.ToLower(out), "damaged") {
 			t.Errorf("a wrong credential was reported as damage\n%s", out)
 		}
+	})
+
+	t.Run("an unsupported suite-3 container is 6 naming FDSEC and update", func(t *testing.T) {
+		dir, secret := setup(t)
+		path := filepath.Join(dir, "plain.fd-sec")
+		origBytes := mustRead(t, path)
+		suite3Bytes, err := fdsec.ForgeSuiteForTest(origBytes, fdsec.NewCredential(secret), 3)
+		if err != nil {
+			t.Fatal(err)
+		}
+		suite3Path := filepath.Join(dir, "suite3.fd-sec")
+		if err := os.WriteFile(suite3Path, suite3Bytes, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		out, code := run(t, dir, "suite3.fd-sec", "unsecure", "p:"+secret)
+		if code != 6 {
+			t.Errorf("exit %d, want 6 (unsupported)\n%s", code, out)
+		}
+		if !strings.Contains(out, "FDSEC") || !strings.Contains(out, "update") {
+			t.Errorf("unsupported output %q does not contain FDSEC and update", out)
+		}
+	})
+
+	t.Run("a container with forged path-traversing name is 4, does not escape", func(t *testing.T) {
+		dir, secret := setup(t)
+		path := filepath.Join(dir, "plain.fd-sec")
+		origBytes := mustRead(t, path)
+		forgedBytes, err := fdsec.ForgeMetadataNameForTest(origBytes, fdsec.NewCredential(secret), `..\escaped.txt`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		forgedPath := filepath.Join(dir, "forged.fd-sec")
+		if err := os.WriteFile(forgedPath, forgedBytes, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		escapedTarget := filepath.Join(filepath.Dir(dir), "escaped.txt")
+		os.Remove(escapedTarget)
+		defer os.Remove(escapedTarget)
+
+		out, code := run(t, dir, "forged.fd-sec", "unsecure", "p:"+secret)
+		if code != 4 {
+			t.Errorf("exit %d, want 4 (damaged)\n%s", code, out)
+		}
+		if exists(escapedTarget) {
+			t.Errorf("forged sealed name escaped to parent directory: %s", escapedTarget)
+		}
+		assertNoPartials(t, dir)
 	})
 
 	t.Run("a tampered container is 3", func(t *testing.T) {
@@ -900,5 +949,76 @@ func TestHelp_RendersWithoutFormatErrors(t *testing.T) {
 	out, _ := run(t, dir, "help")
 	if !strings.Contains(out, `%LOCALAPPDATA%\FileDO\reveal`) {
 		t.Errorf("the detailed help does not print the sandbox root as a path that can be pasted\n%s", out)
+	}
+}
+
+func TestFdsecRestoreDir(t *testing.T) {
+	dir := t.TempDir()
+	subDir := filepath.Join(dir, "sub")
+	if err := os.Mkdir(subDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	containerPath := filepath.Join(dir, "test.fd-sec")
+
+	// 1. here
+	oHere := &fdsecOpts{here: true}
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotHere, err := fdsecRestoreDir(oHere, containerPath)
+	if err != nil || gotHere != wd {
+		t.Errorf("here: got (%q, %v), want (%q, nil)", gotHere, err, wd)
+	}
+
+	// 2. to existing dir
+	oToDir := &fdsecOpts{haveTo: true, to: subDir}
+	gotToDir, err := fdsecRestoreDir(oToDir, containerPath)
+	if err != nil || gotToDir != subDir {
+		t.Errorf("to dir: got (%q, %v), want (%q, nil)", gotToDir, err, subDir)
+	}
+
+	// 3. to file in existing dir
+	targetFile := filepath.Join(subDir, "restored.txt")
+	oToFile := &fdsecOpts{haveTo: true, to: targetFile}
+	gotToFile, err := fdsecRestoreDir(oToFile, containerPath)
+	if err != nil || gotToFile != subDir {
+		t.Errorf("to file: got (%q, %v), want (%q, nil)", gotToFile, err, subDir)
+	}
+
+	// 4. default (container dir)
+	oDefault := &fdsecOpts{}
+	gotDefault, err := fdsecRestoreDir(oDefault, containerPath)
+	if err != nil || gotDefault != dir {
+		t.Errorf("default: got (%q, %v), want (%q, nil)", gotDefault, err, dir)
+	}
+}
+
+func TestFdsecUnsecure_SealedNameNotWrittenToHistory(t *testing.T) {
+	dir, _ := workdir(t)
+	const secret = "pw-history-test"
+	const trueName = "secret-invoice-987654.docx"
+	origPath := filepath.Join(dir, trueName)
+	if err := os.WriteFile(origPath, []byte("confidential content"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, code := run(t, dir, trueName, "secure", "p:"+secret); code != 0 {
+		t.Fatalf("secure exited %d\n%s", code, out)
+	}
+	os.Remove(origPath)
+	os.Remove(filepath.Join(dir, "history.json"))
+
+	containerName := "secret-invoice-987654.fd-sec"
+	if out, code := run(t, dir, containerName, "unsecure", "p:"+secret); code != 0 {
+		t.Fatalf("unsecure exited %d\n%s", code, out)
+	}
+
+	histPath := filepath.Join(dir, "history.json")
+	if !exists(histPath) {
+		t.Fatalf("history.json was not written")
+	}
+	histData := string(mustRead(t, histPath))
+	if strings.Contains(histData, trueName) {
+		t.Errorf("history.json contains the sealed true name %q:\n%s", trueName, histData)
 	}
 }

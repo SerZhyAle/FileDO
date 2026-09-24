@@ -129,6 +129,8 @@ item below):
 - hash_cache.json - cached file paths, sizes, timestamps, and MD5 hashes that speed up
   duplicate scans, stored next to the exe (redirected into the package's per-user
   LocalCache under MSIX). No file contents are stored.
+- %LOCALAPPDATA%\FileDO\runs and \reports - GUI event stream files for live UI tracking
+  (kept 7 days) and structured JSON run reports (kept 30 days), swept on start.
 - A revealed copy - when you open a .fd-sec container without unpacking it, its contents are
   written read-only into %LOCALAPPDATA%\FileDO\reveal, in a folder whose access list names
   your account and the system only. It is removed when you say so or when the program that

@@ -6,14 +6,16 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{12345678-1234-5678-9012-123456789012}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <StartupObject>FileDOGUI.MainForm</StartupObject>
+    <StartupObject>FileDOGUI.Program</StartupObject>
     <RootNamespace>FileDOGUI</RootNamespace>
     <AssemblyName>filedo_win</AssemblyName>
     <FileAlignment>512</FileAlignment>
-    <MyType>WindowsForms</MyType>
+    <MyType>WindowsFormsWithCustomSubMain</MyType>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <BuildStamp Condition="'$(BuildStamp)' == ''">dev</BuildStamp>
+    <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">0.0.0.0</AssemblyVersion>
     <ApplicationIcon>..\assets\icon.ico</ApplicationIcon>
     <!-- The DPI declaration of SP-0006 M0: the manifest makes the process per-monitor aware and
          app.config is what makes WinForms act on it. Both must ship; neither works alone. -->
@@ -41,6 +43,7 @@
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)BuildVersion.vb" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
@@ -104,33 +107,32 @@
     </Compile>
     <Compile Include="Localization.vb" />
     <Compile Include="LogReport.vb" />
-    <Compile Include="AboutForm.vb">
+    <Compile Include="LogSender.vb" />
+    <Compile Include="ShellLog.vb" />
+    <Compile Include="ShellDialog.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="AboutForm.Designer.vb">
-      <DependentUpon>AboutForm.vb</DependentUpon>
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MainForm.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MainForm.Designer.vb">
-      <DependentUpon>MainForm.vb</DependentUpon>
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Include="WindowPlacement.vb" />
+    <Compile Include="WipeSafety.vb" />
+    <Compile Include="Program.vb" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="MainForm.resx">
-      <DependentUpon>MainForm.vb</DependentUpon>
-    </EmbeddedResource>
     <!-- The same icon ApplicationIcon stamps on the exe, embedded so the windows can use it too. -->
     <EmbeddedResource Include="..\assets\icon.ico">
       <Link>icon.ico</Link>
       <LogicalName>FileDOGUI.icon.ico</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\cmd\filedo\testdata\events\sample-v1.jsonl">
+      <Link>testdata\events\sample-v1.jsonl</Link>
+      <LogicalName>FileDOGUI.events.sample-v1.jsonl</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+  <Target Name="WriteBuildVersion" BeforeTargets="CoreCompile">
+    <WriteLinesToFile File="$(IntermediateOutputPath)BuildVersion.vb" Overwrite="true"
+      Lines="&lt;Assembly: System.Reflection.AssemblyVersion(&quot;$(AssemblyVersion)&quot;)&gt;&#xD;&#xA;&lt;Assembly: System.Reflection.AssemblyFileVersion(&quot;$(AssemblyVersion)&quot;)&gt;&#xD;&#xA;Namespace FileDOGUI&#xD;&#xA;    Friend Module BuildVersion&#xD;&#xA;        Friend Const Stamp As String = &quot;$(BuildStamp)&quot;&#xD;&#xA;    End Module&#xD;&#xA;End Namespace" />
+  </Target>
 </Project>

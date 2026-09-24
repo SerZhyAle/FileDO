@@ -100,6 +100,7 @@ func runStep(name, description string) {
 // runDefect records a judgement against the target: the run ran and the answer
 // is no. It is what turns a verdict into `Failed` and an exit code into 1.
 func runDefect(findingType, message string, details map[string]interface{}) {
+	ensureRunForFinding()
 	currentRun.mu.Lock()
 	currentRun.defects++
 	currentRun.mu.Unlock()
@@ -117,10 +118,34 @@ func runFailure(err error) {
 		runDefect("defect", err.Error(), nil)
 		return
 	}
+	ensureRunForFinding()
 	currentRun.mu.Lock()
 	currentRun.notProven = true
 	currentRun.mu.Unlock()
-	EmitFindingEvent("error", err.Error(), nil)
+	EmitFindingEvent("error", eventSafeErrorMessage(err), nil)
+}
+
+// ensureRunForFinding closes the old gap where a dispatch error could emit a
+// lone finding (or only print to the console).  Rule 9 requires run first and
+// rule 10 requires result last even when there was no useful work to do.
+func ensureRunForFinding() {
+	currentRun.mu.Lock()
+	begun := currentRun.begun
+	currentRun.mu.Unlock()
+	if !begun {
+		beginRun(runActs, "unknown", "", nil)
+	}
+}
+
+// eventSafeErrorMessage is deliberately narrower than console/history error
+// reporting.  A container's sealed filename is useful on the terminal, but
+// CLI-EVENT-STREAM rule 13 says it may never enter the durable event log.
+func eventSafeErrorMessage(err error) string {
+	var screened *fdsecEventSafeError
+	if errors.As(err, &screened) {
+		return screened.eventMessage
+	}
+	return err.Error()
 }
 
 // runNumber adds one measurement to `result.numbers`, whose keys belong to the
@@ -244,6 +269,28 @@ func finishRun() {
 		return
 	}
 	setExitCode(exitCodeFor(v))
+}
+
+// finishForcedRun is the second-Ctrl+C path.  os.Exit skips normal defers, so
+// it cannot rely on finishRun to speak the channel vocabulary.  The outcome is
+// not proven: the operation was abandoned before its own finishing code ran.
+func finishForcedRun() int {
+	ensureRunForFinding()
+
+	currentRun.mu.Lock()
+	if currentRun.finished {
+		currentRun.mu.Unlock()
+		return 2
+	}
+	currentRun.finished = true
+	numbers := currentRun.numbers
+	filesLeft := currentRun.filesLeft
+	reports := currentRun.reports
+	currentRun.mu.Unlock()
+
+	EmitResultEvent(string(VerdictNotProven), numbers, filesLeft, reports)
+	setExitCode(2)
+	return 2
 }
 
 // runStopRequested reports whether the stop channel or a Ctrl+C has asked this

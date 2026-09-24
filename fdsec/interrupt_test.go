@@ -145,3 +145,21 @@ func mustStatSize(t *testing.T, path string) int64 {
 	}
 	return fi.Size()
 }
+
+func TestInterrupt_Unpack(t *testing.T) {
+	p := fastParams()
+	content := bytes.Repeat([]byte("test interrupted unpack content "), 20)
+	meta := fixedTimes
+	meta.Size = int64(len(content))
+	cred := NewCredential("pw123")
+	clean := packBytes(t, content, meta, cred, p)
+
+	w := &faultWriter{limit: 50}
+	_, err := Unpack(w, bytes.NewReader(clean), cred)
+	if err == nil {
+		t.Fatal("interrupted unpack succeeded unexpectedly")
+	}
+	if errors.Is(err, ErrCredentialOrTamper) {
+		t.Fatalf("interrupted unpack reported as credential/tamper: %v", err)
+	}
+}

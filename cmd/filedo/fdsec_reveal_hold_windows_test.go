@@ -113,12 +113,11 @@ func TestReveal_Mechanism1_ClosesWhenTheHandlerLetsGo(t *testing.T) {
 	cmd, buf, mu := startReveal(t, dir, "plain.fd-sec", "reveal", "p:"+secret)
 	copyPath := awaitCopy(t, dir, "plain.txt", 20*time.Second)
 
-	// The player takes it, and keeps it long enough for a poll to see it -
-	// a hold that comes and goes faster than the poll interval is one the
-	// mechanism is entitled to miss, and asserting otherwise would be
-	// asserting against the design.
+	// The player takes it, and keeps it past the minimum a hold must last to
+	// count - a shorter one is a reader, not a player, and
+	// TestReveal_ABriefReadIsNotAHold holds that half.
 	release := holdExclusively(t, copyPath)
-	time.Sleep(2 * time.Second)
+	time.Sleep(fdsecRevealHoldMin + time.Second)
 
 	// A hold dropped and taken again inside the settle window is not the
 	// handler finishing - S0's probe P3 measured a release edge meaning only

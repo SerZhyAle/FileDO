@@ -765,6 +765,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			runStep("copy", path)
 			targetPath := cmd.Arg(2)
 			historyLogger.SetParameter("targetPath", targetPath)
+			copyPrecount = wantsCopyPrecount(cmd.Args()[3:])
 
 			err := handler.Copy(path, targetPath)
 			if err != nil {

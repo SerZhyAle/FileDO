@@ -27,10 +27,9 @@ import (
 //	filedo fdsec register   [-all-users]
 //	filedo fdsec unregister [-all-users]
 //
-// Exit codes - the distinctions are the contract (spec 5.6 / master doc
-// section 3), the digits are this stage's choice; filedo had no nonzero
-// convention before. main() honours fdsecExitCode after the history entry is
-// flushed.
+// Exit codes - the distinctions are the contract (FD-SEC-CONTRACT.md section 7.1),
+// the digits are this stage's choice; filedo had no nonzero convention
+// before. main() honours fdsecExitCode after the history entry is flushed.
 const (
 	fdsecExitUsage              = 2 // D: bad option, missing target
 	fdsecExitCredentialOrTamper = 3 // A: wrong credential, or tamper on an intact file
@@ -42,6 +41,26 @@ const (
 var fdsecExitCode int
 
 var errFdsecUsage = errors.New("fdsec usage")
+
+// fdsecEventSafeError keeps the full error for the console while giving the
+// event stream a message that cannot contain a sealed filename (rule 13).
+type fdsecEventSafeError struct {
+	err          error
+	eventMessage string
+}
+
+func (e *fdsecEventSafeError) Error() string { return e.err.Error() }
+func (e *fdsecEventSafeError) Unwrap() error { return e.err }
+
+func fdsecScreenEventError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &fdsecEventSafeError{
+		err:          err,
+		eventMessage: "Could not restore the container to its requested destination; see the console for details.",
+	}
+}
 
 // fdsecSetExit maps an error to its exit class. Wrong-credential-or-tamper
 // and damaged never map to each other (invariant 9).
@@ -61,6 +80,21 @@ func fdsecSetExit(err error) {
 	default:
 		fdsecExitCode = fdsecExitIO
 	}
+}
+
+func fdsecHumanizeError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, fdsec.ErrUnsupported) {
+		msg := err.Error()
+		const prefix = "fdsec: unsupported container: "
+		if idx := strings.Index(msg, prefix); idx >= 0 {
+			detail := msg[idx+len(prefix):]
+			return fmt.Errorf("unsupported container (FDSEC %s): written by a newer program - update FileDO to open it: %w", detail, fdsec.ErrUnsupported)
+		}
+	}
+	return err
 }
 
 func usagef(format string, args ...interface{}) error {
@@ -152,14 +186,16 @@ func runFdsecTargetOp(cmdTypeName, path string, opArgs []string, hl *HistoryLogg
 	if cmdTypeName != "file" {
 		return fmt.Errorf("%s is a %s, not a file: a secret container holds exactly one file. Folders, drives and shares belong to the vault profile of the virtual-disk feature (SP-0004), not to .fd-sec containers", path, cmdTypeName)
 	}
+	var err error
 	switch op {
 	case "secure", "sec":
-		return fdsecSecure(path, opArgs[1:], hl)
+		err = fdsecSecure(path, opArgs[1:], hl)
 	case "unsecure", "uns", "unsec":
-		return fdsecUnsecure(path, opArgs[1:], hl)
+		err = fdsecUnsecure(path, opArgs[1:], hl)
 	default: // reveal, rev
-		return fdsecReveal(path, opArgs[1:], hl)
+		err = fdsecReveal(path, opArgs[1:], hl)
 	}
+	return fdsecHumanizeError(err)
 }
 
 // handleFdsecCommand is the verb-first entry: filedo fdsec <sub-verb> ..
@@ -186,9 +222,9 @@ func handleFdsecCommand(args []string, hl *HistoryLogger) error {
 			credArgs = args[2:]
 		}
 		if sub == "info" {
-			return fdsecInfo(path, credArgs, hl)
+			return fdsecHumanizeError(fdsecInfo(path, credArgs, hl))
 		}
-		return fdsecVerify(path, credArgs, hl)
+		return fdsecHumanizeError(fdsecVerify(path, credArgs, hl))
 	case "register", "unregister":
 		hl.SetCommand("fdsec", "", sub)
 		beginRun(runActs, "fdsec "+sub, "", args)
@@ -726,7 +762,7 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	// inside the sandbox for a `start`: a temporary plaintext beside the
 	// container would leak exactly what the sandbox exists to hide, however
 	// briefly.
-	dir := filepath.Dir(path)
+	var dir string
 	var sb *fdsecStartSandbox
 	if sandboxed {
 		sb, err = fdsecStartSandboxOpen(startRoot)
@@ -735,6 +771,11 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 		}
 		defer sb.closeUnlessScheduled()
 		dir = sb.dir
+	} else {
+		dir, err = fdsecRestoreDir(o, path)
+		if err != nil {
+			return err
+		}
 	}
 	tmp, err := os.CreateTemp(dir, ".fdsec-restore-*")
 	if err != nil {
@@ -781,15 +822,15 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	} else {
 		finalPath, err = fdsecRestorePath(path, meta.Name, o)
 		if err != nil {
-			return err
+			return fdsecScreenEventError(err)
 		}
 		finalPath, err = fdsecResolveCollision(finalPath, o.assumeYes)
 		if err != nil {
-			return err
+			return fdsecScreenEventError(err)
 		}
 	}
 	if err := os.Rename(tmpPath, finalPath); err != nil {
-		return err
+		return fdsecScreenEventError(err)
 	}
 	remove = false
 	fdsecRestoreTimes(finalPath, meta)
@@ -803,7 +844,9 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 		// reveal already follows (SP-0008 5).
 		hl.SetResult("restored", sb.dir)
 	} else {
-		hl.SetResult("restored", finalPath)
+		// BEHAVIOUR §6.8: never write the sealed true name into a log.
+		// Record the destination folder rather than finalPath.
+		hl.SetResult("restored", dir)
 	}
 
 	// start hands the restored file straight to its registered handler - the
@@ -846,6 +889,26 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 		hl.SetResult("container", "removed")
 	}
 	return nil
+}
+
+// fdsecRestoreDir resolves the destination directory for the restored file
+// before unpacking, so temporary files are always created on the target volume.
+func fdsecRestoreDir(o *fdsecOpts, containerPath string) (string, error) {
+	switch {
+	case o.here:
+		return os.Getwd()
+	case o.haveTo:
+		if st, err := os.Stat(o.to); err == nil && st.IsDir() {
+			return o.to, nil
+		}
+		parent := filepath.Dir(o.to)
+		if _, perr := os.Stat(parent); perr != nil {
+			return "", fmt.Errorf("destination parent %s does not exist; refusing to invent a folder (create it first if you want it)", parent)
+		}
+		return parent, nil
+	default:
+		return filepath.Dir(containerPath), nil
+	}
 }
 
 // fdsecRestorePath resolves where the restored original lands.

@@ -55,6 +55,7 @@ Public Class HistoryView
             .IntegralHeight = False,
             .Margin = New Padding(0, 0, 8, 8)
         }
+        reportListBox.AccessibleName = L("rail_job_history")
         AddHandler reportListBox.SelectedIndexChanged, AddressOf ReportListBox_SelectedIndexChanged
 
         detailsBox = New TextBox With {
@@ -64,6 +65,7 @@ Public Class HistoryView
             .ScrollBars = ScrollBars.Both,
             .Margin = New Padding(8, 0, 0, 8)
         }
+        detailsBox.AccessibleName = L("shell_history_details")
 
         Dim btnRow As New FlowLayoutPanel With {
             .Dock = DockStyle.Fill,
@@ -118,7 +120,7 @@ Public Class HistoryView
         ' D8: with the switch off the page says so rather than showing an empty list, because an
         ' empty list reads as "nothing happened" and the truth is "nothing was recorded".
         stateLabel.Text = If(ShellSettings.HistoryEnabled(),
-                             String.Format(L("shell_reports_dir_fmt"), Runner.GetReportsDir()),
+                             Localization.Format(L("shell_reports_dir_fmt"), Runner.GetReportsDir()),
                              L("shell_history_off"))
 
         Dim dir = Runner.GetReportsDir()
@@ -144,7 +146,8 @@ Public Class HistoryView
             Try
                 detailsBox.Text = File.ReadAllText(reportFiles(idx))
             Catch ex As Exception
-                detailsBox.Text = String.Format(L("shell_report_read_error"), ex.Message)
+                ShellLog.Write("read report " & reportFiles(idx), ex)
+                detailsBox.Text = Localization.Format(L("shell_report_read_error"), Problems.Cause(ex))
             End Try
         End If
     End Sub
@@ -153,20 +156,28 @@ Public Class HistoryView
         Dim idx = reportListBox.SelectedIndex
         If idx >= 0 AndAlso idx < reportFiles.Count Then
             Try
-                Process.Start("notepad.exe", reportFiles(idx))
-            Catch
+                Process.Start("notepad.exe", """" & reportFiles(idx) & """")
+            Catch ex As Exception
+                ShellLog.Write("open report in notepad", ex)
+                If ShellDialog.Problem(ShellDialog.OwnerOf(Me),
+                                       Localization.Format(L("shell_report_open_failed"), Problems.Cause(ex)),
+                                       L("shell_btn_show_reports_dir")) Then
+                    ShowDirBtn_Click(sender, e)
+                End If
             End Try
         End If
     End Sub
 
     Private Sub ShowDirBtn_Click(sender As Object, e As EventArgs)
+        Dim dir As String
         Try
-            Dim dir = Runner.GetReportsDir()
-            If Directory.Exists(dir) Then
-                Process.Start("explorer.exe", dir)
-            End If
-        Catch
+            dir = Runner.GetReportsDir()
+        Catch ex As Exception
+            ShellLog.Write("find the reports folder", ex)
+            ShellDialog.Problem(ShellDialog.OwnerOf(Me), Problems.Cause(ex))
+            Return
         End Try
+        Ui.OpenFolder(ShellDialog.OwnerOf(Me), dir)
     End Sub
 
     Public Sub ApplyTheme()

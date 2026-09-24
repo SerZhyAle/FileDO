@@ -16,14 +16,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -178,9 +178,7 @@
               winget install SerZhyAle.FileDO<button
                 class="copy"
                 data-copy="winget install SerZhyAle.FileDO"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -384,17 +382,13 @@
           FileDO-&lt;version&gt;-setup.exe /quiet<button
             class="copy"
             data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
-          >
-            Copy
-          </button>
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main<button
             class="copy"
             data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main"
-          >
-            Copy
-          </button>
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
         <p class="intro">
           <span data-l="ru"
@@ -595,25 +589,19 @@
           filedo fdsec register<button
             class="copy"
             data-copy="filedo fdsec register"
-          >
-            Copy
-          </button>
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           filedo fdsec register -all-users<button
             class="copy"
             data-copy="filedo fdsec register -all-users"
-          >
-            Copy
-          </button>
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           filedo fdsec unregister<button
             class="copy"
             data-copy="filedo fdsec unregister"
-          >
-            Copy
-          </button>
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="grid guide-grid">
           <article class="card">

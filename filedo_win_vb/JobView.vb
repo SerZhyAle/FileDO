@@ -19,8 +19,20 @@ Public Class JobView
 
     Public Event OpenInCommandRequested(command As String)
 
+    ' Raised on the UI thread when a run has ended and its result card is filled in. The window
+    ' listens, because a close the user asked for while the run was active waits for this.
+    Public Event RunFinished()
+
     Private ReadOnly runner As New Runner()
     Private job As JobDefinition
+
+    ' A result that arrived while another view was in front. Choosing this job's row again shows it
+    ' instead of resetting the page (APP-BEHAVIOUR rule 3: the outcome of a run is not lost).
+    Private resultUnseen As Boolean = False
+
+    ' What the wipe target's count found (T10): -1 until a count has finished.
+    Private countedFiles As Long = -1
+    Private countedFolders As Long = -1
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly tips As New ToolTip()
 
@@ -140,6 +152,9 @@ Public Class JobView
     Private destructiveBadge As Label
     Private elevationBadge As Label
     Private redirectNoticeLabel As Label
+    ' Why Run is not offered on the Wipe page when that is not obvious from the fields: the folder is
+    ' empty, the location needs the console, or -y is not ticked (T10, T11).
+    Private runBlockedLabel As Label
     Private commandLabel As Label
     Private commandBox As TextBox
     Private copyCmdBtn As Button
@@ -159,6 +174,7 @@ Public Class JobView
     ' The result card
     Private verdictBadge As Label
     Private verdictGlyph As Label
+    Private shownVerdict As String = ""
     Private verdictReasonLabel As Label
     Private resultNumbersLabel As Label
     Private filesLeftLabel As Label
@@ -192,6 +208,9 @@ Public Class JobView
     End Function
 
     Public Sub SetJob(jobDef As JobDefinition)
+        ' The page never changes job under a running run: the window keeps the running page in
+        ' front (ShellForm), and this is the backstop if anything else ever asks.
+        If runner.IsActive Then Return
         Me.job = jobDef
         ResetView()
         PopulateTargets()
@@ -199,11 +218,50 @@ Public Class JobView
         ApplyTheme()
     End Sub
 
+    ' ---- the run, as the window sees it -----------------------------------
+
+    Public ReadOnly Property IsRunning As Boolean
+        Get
+            Return runner.IsActive
+        End Get
+    End Property
+
+    ' The rail key of the job on this page, or "" when none is.
+    Public ReadOnly Property CurrentJobId As String
+        Get
+            Return If(job Is Nothing, "", job.Id)
+        End Get
+    End Property
+
+    Public ReadOnly Property HoldsRunOrUnseenResult As Boolean
+        Get
+            Return runner.IsActive OrElse resultUnseen
+        End Get
+    End Property
+
+    Public Sub MarkResultSeen()
+        resultUnseen = False
+    End Sub
+
+    ' The window's "Stop and close": the same request the Stop button makes.
+    Public Sub RequestStopFromShell()
+        If Not runner.IsActive Then Return
+        StopBtn_Click(Me, EventArgs.Empty)
+    End Sub
+
+    ' The last resort of a close whose stop was not honoured: the process is ended outright.
+    Public Sub ForceEnd()
+        If runner.IsActive Then runner.ForceKill()
+    End Sub
+
     Private Sub ResetView()
         If countingTokenSource IsNot Nothing Then
             countingTokenSource.Cancel()
             countingTokenSource = Nothing
         End If
+        resultUnseen = False
+        countedFiles = -1
+        countedFolders = -1
 
         targetCard.Visible = True
         paramsCard.Visible = True
@@ -263,6 +321,7 @@ Public Class JobView
         rawOutputBox.Clear()
         progressBar.Value = 0
         progressBar.Style = ProgressBarStyle.Continuous
+        shownVerdict = ""
         stateBadge.Text = L("shell_state_idle")
         stepLabel.Text = ""
         throughputLabel.Text = ""
@@ -977,7 +1036,7 @@ Public Class JobView
             Sub()
                 Using dlg As New FolderBrowserDialog()
                     dlg.Description = L("shell_dlg_select_dest")
-                    If dlg.ShowDialog() = DialogResult.OK Then dupMoveBox.Text = dlg.SelectedPath
+                    If dlg.ShowDialog(FindForm()) = DialogResult.OK Then dupMoveBox.Text = dlg.SelectedPath
                 End Using
             End Sub
         secondaryButtons.Add(dupMoveBrowseBtn)
@@ -1220,6 +1279,7 @@ Public Class JobView
             .Margin = Ui.PxPad(Me, 0, 4, 0, 0)
         }
         startBtn = New Button With {
+            .Text = L("shell_btn_run_cmd"),
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .Padding = Ui.PxPad(Me, 18, 7, 18, 7),
@@ -1240,20 +1300,29 @@ Public Class JobView
         btnRow.Controls.Add(copyCmdBtn)
         btnRow.Controls.Add(openInCmdBtn)
 
+        runBlockedLabel = New Label With {
+            .Text = "",
+            .AutoSize = True,
+            .Margin = Ui.PxPad(Me, 0, 0, 0, 6),
+            .Visible = False
+        }
+
         table.Controls.Add(planHeader, 0, 0)
         table.Controls.Add(intentLabel, 0, 1)
         table.Controls.Add(touchesLabel, 0, 2)
         table.Controls.Add(badgeRow, 0, 3)
         table.Controls.Add(redirectNoticeLabel, 0, 4)
-        table.Controls.Add(commandLabel, 0, 5)
-        table.Controls.Add(commandBox, 0, 6)
-        table.Controls.Add(btnRow, 0, 7)
+        table.Controls.Add(runBlockedLabel, 0, 5)
+        table.Controls.Add(commandLabel, 0, 6)
+        table.Controls.Add(commandBox, 0, 7)
+        table.Controls.Add(btnRow, 0, 8)
 
         planCard.Controls.Add(table)
 
         Ui.Wrap(intentLabel, planCard, Ui.Px(Me, 36))
         Ui.Wrap(touchesLabel, planCard, Ui.Px(Me, 36))
         Ui.Wrap(redirectNoticeLabel, planCard, Ui.Px(Me, 36))
+        Ui.Wrap(runBlockedLabel, planCard, Ui.Px(Me, 36))
     End Sub
 
     Private Sub BuildRunStrip()
@@ -1323,7 +1392,11 @@ Public Class JobView
             .Dock = DockStyle.Top,
             .Margin = Ui.PxPad(Me, 0, 0, 0, 8)
         }
+        ' The glyph is decoration beside the badge, which carries the verdict's word: it has no
+        ' accessible role, so a screen reader reads the verdict once, not a glyph and then the word
+        ' (APP-BEHAVIOUR rule 9).
         verdictGlyph = New Label With {.AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 6, 0)}
+        verdictGlyph.AccessibleRole = AccessibleRole.None
         verdictBadge = New Label With {.AutoSize = True, .Padding = Ui.PxPad(Me, 10, 4, 10, 4)}
         vRow.Controls.Add(verdictGlyph)
         vRow.Controls.Add(verdictBadge)
@@ -1388,11 +1461,7 @@ Public Class JobView
         rawOutputBox.AccessibleName = L("shell_btn_show_output")
 
         copyOutputBtn = New Button With {.Text = L("shell_btn_copy_output"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
-        AddHandler copyOutputBtn.Click, Sub()
-                                            If Not String.IsNullOrEmpty(rawOutputBox.Text) Then
-                                                Clipboard.SetText(rawOutputBox.Text)
-                                            End If
-                                        End Sub
+        AddHandler copyOutputBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), rawOutputBox.Text)
         secondaryButtons.Add(copyOutputBtn)
 
         table.Controls.Add(rawOutputBox, 0, 0)
@@ -1406,57 +1475,93 @@ Public Class JobView
     Private Sub HookRunnerEvents()
         AddHandler runner.OutputLineReceived,
             Sub(line, isErr)
-                BeginInvoke(Sub()
+                PostToUi(Sub()
                                 rawOutputBox.AppendText(line & Environment.NewLine)
                             End Sub)
             End Sub
 
         AddHandler runner.StepChanged,
             Sub(name, desc)
-                BeginInvoke(Sub()
+                PostToUi(Sub()
                                 stepLabel.Text = If(String.IsNullOrEmpty(desc), name, name & ": " & desc)
                             End Sub)
             End Sub
 
         AddHandler runner.ProgressReported,
             Sub(p)
-                BeginInvoke(Sub()
-                                If p.TotalBytes > 0 Then
-                                    Dim pct = CInt(Math.Min(100, Math.Max(0, (p.DoneBytes * 100) / p.TotalBytes)))
-                                    progressBar.Style = ProgressBarStyle.Continuous
-                                    progressBar.Value = pct
-                                ElseIf p.TotalItems > 0 Then
-                                    Dim pct = CInt(Math.Min(100, Math.Max(0, (p.DoneItems * 100) / p.TotalItems)))
-                                    progressBar.Style = ProgressBarStyle.Continuous
-                                    progressBar.Value = pct
-                                Else
-                                    progressBar.Style = ProgressBarStyle.Marquee
-                                End If
-
-                                If p.SpeedBps > 0 Then
-                                    Dim mbps = p.SpeedBps / (1024.0 * 1024.0)
-                                    throughputLabel.Text = mbps.ToString("F1") & " MB/s"
-                                End If
-
-                                If Not String.IsNullOrEmpty(p.Message) Then
-                                    stepLabel.Text = p.Message
-                                End If
-                            End Sub)
+                PostToUi(Sub() OnProgress(p))
             End Sub
 
         AddHandler runner.FindingReported,
             Sub(fType, msg, details)
-                BeginInvoke(Sub()
+                PostToUi(Sub()
                                 rawOutputBox.AppendText("[" & fType & "] " & msg & Environment.NewLine)
                             End Sub)
             End Sub
 
         AddHandler runner.NoteReported,
             Sub(msg)
-                BeginInvoke(Sub()
+                PostToUi(Sub()
                                 rawOutputBox.AppendText("[note] " & msg & Environment.NewLine)
                             End Sub)
             End Sub
+    End Sub
+
+    ' One progress event, drawn by the rule both run pages share (RunProgress, T6).
+    Private Sub OnProgress(p As EventStream.ProgressInfo)
+        RunProgress.Apply(progressBar, p)
+
+        If p.SpeedBps > 0 Then
+            Dim mbps = p.SpeedBps / (1024.0 * 1024.0)
+            throughputLabel.Text = mbps.ToString("F1") & " MB/s"
+        End If
+
+        If Not String.IsNullOrEmpty(p.Message) Then
+            stepLabel.Text = p.Message
+        End If
+    End Sub
+
+    ' ---- seams for SelfTest.vb -------------------------------------------
+
+    Friend Sub FeedProgressForTest(p As EventStream.ProgressInfo)
+        OnProgress(p)
+    End Sub
+
+    Friend ReadOnly Property ProgressBarForTest As ProgressBar
+        Get
+            Return progressBar
+        End Get
+    End Property
+
+    Friend Sub ShowResultForTest(verdict As String)
+        ShowResultCard(New Runner.RunResult With {.Verdict = verdict, .ExitCode = 1, .Duration = TimeSpan.Zero})
+    End Sub
+
+    Friend ReadOnly Property VerdictBadgeForTest As Label
+        Get
+            Return verdictBadge
+        End Get
+    End Property
+
+    ' The plan card's reason line and whether Run is offered, for the Wipe page's rules (T10, T11).
+    Friend Function RunStateForTest(ByRef reason As String) As Boolean
+        reason = If(runBlockedLabel.Visible, runBlockedLabel.Text, "")
+        Return startBtn.Enabled
+    End Function
+
+    Friend Sub SetWipeInputsForTest(typed As String, yes As Boolean)
+        optionsCheckForce.Checked = yes
+        wipeConfirmBox.Text = typed
+        UpdatePlanCard()
+    End Sub
+
+    ' A finished count, as StartBlastRadiusCount would report it.
+    Friend Sub SetCountForTest(files As Long, folders As Long)
+        If countingTokenSource IsNot Nothing Then
+            countingTokenSource.Cancel()
+            countingTokenSource = Nothing
+        End If
+        CountFinished(files, folders, 0)
     End Sub
 
     ' ---- step 2 - the target ---------------------------------------------
@@ -1478,13 +1583,16 @@ Public Class JobView
                     Dim sizeGb = d.TotalSize / (1024.0 * 1024.0 * 1024.0)
                     Dim freeGb = d.TotalFreeSpace / (1024.0 * 1024.0 * 1024.0)
                     Dim label = If(String.IsNullOrEmpty(d.VolumeLabel), d.DriveType.ToString(), d.VolumeLabel)
-                    targetCombo.Items.Add(String.Format("{0} ({1}, {2}, {3:F1} GB, free {4:F1} GB)",
-                                                        d.Name, label, d.DriveFormat, sizeGb, freeGb))
+                    targetCombo.Items.Add(Localization.Format(L("shell_drive_row_fmt"),
+                                                              d.Name, label, d.DriveFormat, sizeGb, freeGb))
                 Else
                     targetCombo.Items.Add(d.Name)
                 End If
             Next
-        Catch
+        Catch ex As Exception
+            ' A drive that vanishes while it is listed; the list keeps what it had, and the box
+            ' still takes a typed path.
+            ShellLog.Write("list drives", ex)
         End Try
 
         If targetCombo.Items.Count > 0 Then targetCombo.SelectedIndex = 0
@@ -1502,9 +1610,20 @@ Public Class JobView
 
     Private Sub TargetChanged()
         UpdatePlanCard()
-        If job IsNot Nothing AndAlso job.IsDestructive Then
-            StartBlastRadiusCount()
+        If job Is Nothing OrElse Not job.IsDestructive Then Return
+        ' A location this page will not wipe (a drive root, TEMP..) is not counted either: counting
+        ' a whole drive to tell the user a number for a run that is not offered is work for nothing.
+        If job.DefaultVerb = "wipe" AndAlso WipeSafety.DangerKey(GetRawTarget()) <> "" Then
+            If countingTokenSource IsNot Nothing Then
+                countingTokenSource.Cancel()
+                countingTokenSource = Nothing
+            End If
+            countedFiles = -1
+            countedFolders = -1
+            blastRadiusRow.Visible = False
+            Return
         End If
+        StartBlastRadiusCount()
     End Sub
 
     ' Dropping a file or a folder on the page answers step 2 in one gesture (section 5.3).
@@ -1537,47 +1656,98 @@ Public Class JobView
         Dim token = countingTokenSource.Token
         Dim target = GetRawTarget()
 
+        countedFiles = -1
+        countedFolders = -1
         blastRadiusRow.Visible = True
         UpdateParamsVisibility()
         blastRadiusLabel.Text = L("shell_blast_counting")
+        UpdatePlanCard()
 
+        ' Files and folders both: a folder holding only empty folders is not "nothing to delete",
+        ' and saying so would let it be wiped without the typed WIPE (T10).
         Task.Run(
             Sub()
                 Try
-                    Dim count As Long = 0
-                    Dim bytes As Long = 0
-
-                    If Directory.Exists(target) Then
-                        Dim di As New DirectoryInfo(target)
-                        For Each fi In di.EnumerateFiles("*", SearchOption.AllDirectories)
-                            If token.IsCancellationRequested Then Return
-                            count += 1
-                            bytes += fi.Length
-                        Next
+                    If Not Directory.Exists(target) Then
+                        PostToUi(Sub() CountNotFinished(token))
+                        Return
                     End If
 
-                    Dim mb = bytes / (1024.0 * 1024.0)
-                    BeginInvoke(Sub()
-                                    If Not token.IsCancellationRequested Then
-                                        blastRadiusLabel.Text = String.Format(L("shell_blast_result_fmt"), count, mb)
-                                    End If
-                                End Sub)
-                Catch
-                    BeginInvoke(Sub()
-                                    If Not token.IsCancellationRequested Then
-                                        blastRadiusLabel.Text = L("shell_blast_not_counted")
-                                    End If
-                                End Sub)
+                    Dim files As Long = 0
+                    Dim folders As Long = 0
+                    Dim bytes As Long = 0
+                    Dim di As New DirectoryInfo(target)
+                    For Each entry In di.EnumerateFileSystemInfos("*", SearchOption.AllDirectories)
+                        If token.IsCancellationRequested Then Return
+                        Dim fi = TryCast(entry, FileInfo)
+                        If fi IsNot Nothing Then
+                            files += 1
+                            bytes += fi.Length
+                        Else
+                            folders += 1
+                        End If
+                    Next
+
+                    PostToUi(Sub()
+                                 If Not token.IsCancellationRequested Then CountFinished(files, folders, bytes)
+                             End Sub)
+                Catch ex As Exception
+                    ' A folder the user may not read (a drive's Recycle Bin) is an ordinary answer here:
+                    ' the page says "not counted", and the detail is for a -debug log only.
+                    ShellLog.Debug("count the target: " & ex.GetType().Name)
+                    PostToUi(Sub() CountNotFinished(token))
                 End Try
             End Sub, token)
     End Sub
+
+    ' Hands work from another thread - the runner's events, the target count - to the page. A page
+    ' that has no window yet (the self-test builds pages it never shows) or no longer has one (the
+    ' window closed while Windows was shutting down) simply does not get it: an event posted to a
+    ' destroyed control would end the process.
+    Private Sub PostToUi(work As Action)
+        If IsDisposed OrElse Not IsHandleCreated Then Return
+        Try
+            BeginInvoke(work)
+        Catch ex As InvalidOperationException
+            ' The window closed between the check and the call; the count has nobody to tell.
+        End Try
+    End Sub
+
+    Private Sub CountFinished(files As Long, folders As Long, bytes As Long)
+        countedFiles = files
+        countedFolders = folders
+        If files = 0 AndAlso folders = 0 Then
+            blastRadiusLabel.Text = L("shell_blast_nothing")
+        Else
+            blastRadiusLabel.Text = Localization.Format(L("shell_blast_result_fmt"), files, bytes / (1024.0 * 1024.0), folders)
+        End If
+        UpdatePlanCard()
+    End Sub
+
+    Private Sub CountNotFinished(token As CancellationToken)
+        If token.IsCancellationRequested Then Return
+        countedFiles = -1
+        countedFolders = -1
+        blastRadiusLabel.Text = L("shell_blast_not_counted")
+        UpdatePlanCard()
+    End Sub
+
+    ' A wipe target whose count finished at no files and no folders: there is nothing to confirm and
+    ' nothing to run (APP-BEHAVIOUR rule 5). A target not counted, or not yet counted, keeps the
+    ' typed WIPE exactly as before (SP-0006 section 8 item 1).
+    Private Function WipeTargetIsEmpty() As Boolean
+        Return job IsNot Nothing AndAlso job.DefaultVerb = "wipe" AndAlso countedFiles = 0 AndAlso countedFolders = 0
+    End Function
 
     Private Sub SkipCounting_Click(sender As Object, e As EventArgs)
         If countingTokenSource IsNot Nothing Then
             countingTokenSource.Cancel()
             countingTokenSource = Nothing
         End If
+        countedFiles = -1
+        countedFolders = -1
         blastRadiusLabel.Text = L("shell_blast_not_counted")
+        UpdatePlanCard()
     End Sub
 
     ' ---- step 4 - the plan -----------------------------------------------
@@ -1589,7 +1759,7 @@ Public Class JobView
         Dim isSysDrive = target.StartsWith("C:", StringComparison.OrdinalIgnoreCase)
 
         intentLabel.Text = L(job.PurposeKey)
-        touchesLabel.Text = String.Format(L("shell_touches_fmt"), If(target = "", L("shell_target_none"), target))
+        touchesLabel.Text = Localization.Format(L("shell_touches_fmt"), If(target = "", L("shell_target_none"), target))
         ' A secret-file page states the reversibility of what is actually
         ' about to happen, not of the job in the abstract: "secure and keep"
         ' is reversible, "secure and overwrite the original" is not, and the
@@ -1615,13 +1785,21 @@ Public Class JobView
         Dim cmdArgs = BuildCommandArgs()
         commandBox.Text = "filedo.exe " & ArgQuoting.JoinArgs(cmdArgs)
 
-        startBtn.Text = String.Format(L("shell_btn_run_action"), L(job.LabelKey))
+        startBtn.Text = Localization.Format(L("shell_btn_run_action"), L(job.LabelKey))
         tips.SetToolTip(startBtn, commandBox.Text)
 
         UpdateStartButtonState()
     End Sub
 
+    ' The plan card's reason line: shown with the reason Run is not offered, when the reason is one
+    ' the fields above do not already make plain.
+    Private Sub ShowRunBlocked(reason As String)
+        runBlockedLabel.Text = reason
+        runBlockedLabel.Visible = (reason <> "")
+    End Sub
+
     Private Sub UpdateStartButtonState()
+        ShowRunBlocked("")
         If job Is Nothing Then
             startBtn.Enabled = False
             Return
@@ -1631,6 +1809,7 @@ Public Class JobView
         If String.IsNullOrEmpty(target) Then
             startBtn.Enabled = False
             tips.SetToolTip(startBtn, L("shell_need_target"))
+            If job.Id = "rail_job_wipe" Then wipeConfirmRow.Visible = True
             Return
         End If
 
@@ -1648,9 +1827,44 @@ Public Class JobView
             Return
         End If
 
-        ' Typing WIPE stays typing WIPE. A checkbox is not equivalent and is not offered
-        ' (SP-0006 section 8 item 1).
+        ' The Wipe page, in the order its questions are answered.
         If job.Id = "rail_job_wipe" Then
+            ' A drive or share root, a junction or the system TEMP folder is asked about twice on
+            ' a console - WIPE, then the path - whatever -y says, and a run from this window has no
+            ' console to answer on. It would end cancelled after the user had typed WIPE here, so
+            ' it is not offered: the reason says where it can be done, and the command can be
+            ' copied from the box below (APP-BEHAVIOUR rules 5 and 6; SP-0014 T11).
+            Dim danger = WipeSafety.DangerKey(target)
+            If danger <> "" Then
+                startBtn.Enabled = False
+                wipeConfirmRow.Visible = False
+                ShowRunBlocked(Localization.Format(L("shell_wipe_needs_console"), L(danger)))
+                tips.SetToolTip(startBtn, runBlockedLabel.Text)
+                Return
+            End If
+
+            ' A folder counted empty has nothing to confirm (T10).
+            If WipeTargetIsEmpty() Then
+                startBtn.Enabled = False
+                wipeConfirmRow.Visible = False
+                ShowRunBlocked(L("shell_blast_nothing"))
+                tips.SetToolTip(startBtn, runBlockedLabel.Text)
+                Return
+            End If
+            wipeConfirmRow.Visible = True
+
+            ' Typing WIPE stays typing WIPE. A checkbox is not equivalent and is not offered in its
+            ' place (SP-0006 section 8 item 1). And -y is needed as well: filedo.exe asks for WIPE
+            ' again on its console, which a run from this window does not have, so without -y it
+            ' would end cancelled after the user had already typed the word here. The owner's call
+            ' (SP-0014 D2) is to keep that console question and say so, rather than have the page
+            ' pass -y on its own.
+            If Not optionsCheckForce.Checked Then
+                startBtn.Enabled = False
+                ShowRunBlocked(L("shell_wipe_needs_y"))
+                tips.SetToolTip(startBtn, runBlockedLabel.Text)
+                Return
+            End If
             startBtn.Enabled = (wipeConfirmBox.Text.Trim() = "WIPE")
             If Not startBtn.Enabled Then tips.SetToolTip(startBtn, L("shell_wipe_confirm_hint"))
             Return
@@ -1694,7 +1908,7 @@ Public Class JobView
         If startBtn.Enabled Then
             Ui.StyleButton(startBtn, p.Accent, p.AccentText, p.Accent)
         Else
-            Ui.StyleButton(startBtn, p.SurfaceAlt, p.MutedText, p.Border)
+            Ui.StyleButton(startBtn, p.SurfaceAlt, p.TextDisabled, p.Border)
         End If
     End Sub
 
@@ -1924,26 +2138,26 @@ Public Class JobView
         If job IsNot Nothing AndAlso job.TargetKind = JobDefinition.TargetType.File Then
             Using dlg As New OpenFileDialog()
                 dlg.Title = L("shell_dlg_select_file")
-                If dlg.ShowDialog() = DialogResult.OK Then targetCombo.Text = dlg.FileName
+                If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.FileName
             End Using
             Return
         End If
 
         Using dlg As New FolderBrowserDialog()
             dlg.Description = L("shell_dlg_select_folder")
-            If dlg.ShowDialog() = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
+            If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
         End Using
     End Sub
 
     Private Sub BrowseSecondTarget_Click(sender As Object, e As EventArgs)
         Using dlg As New FolderBrowserDialog()
             dlg.Description = L("shell_dlg_select_dest")
-            If dlg.ShowDialog() = DialogResult.OK Then secondTargetBox.Text = dlg.SelectedPath
+            If dlg.ShowDialog(FindForm()) = DialogResult.OK Then secondTargetBox.Text = dlg.SelectedPath
         End Using
     End Sub
 
     Private Sub CopyCmdBtn_Click(sender As Object, e As EventArgs)
-        If Not String.IsNullOrEmpty(commandBox.Text) Then Clipboard.SetText(commandBox.Text)
+        Ui.CopyText(ShellDialog.OwnerOf(Me), commandBox.Text)
     End Sub
 
     Private Sub OpenInCmdBtn_Click(sender As Object, e As EventArgs)
@@ -1961,8 +2175,7 @@ Public Class JobView
 
         stateBadge.Text = L("shell_state_running")
         stepLabel.Text = L("shell_step_starting")
-        progressBar.Value = 0
-        progressBar.Style = ProgressBarStyle.Marquee
+        RunProgress.Begin(progressBar)
         stopBtn.Enabled = True
 
         ' During a reveal the strip is not a progress bar with a cancel button
@@ -1995,6 +2208,10 @@ Public Class JobView
         runTimer = Nothing
 
         ShowResultCard(res)
+        ' Another view was in front when the run ended: the result waits on this page until its
+        ' row is chosen again, rather than being reset away.
+        resultUnseen = Not Visible
+        RaiseEvent RunFinished()
     End Sub
 
     ' Stop is a request, not a kill: the CLI is asked to end the way Ctrl+C ends it, so its own
@@ -2021,32 +2238,15 @@ Public Class JobView
         runStrip.Visible = False
         resultCard.Visible = True
 
-        Dim p = Theme.Current
         verdictBadge.Text = L("shell_verdict_" & res.Verdict.ToLowerInvariant().Replace(" ", "_"))
 
-        ' Every verdict carries a word and a glyph as well as a colour (section 11 item 8).
-        Select Case res.Verdict.ToLowerInvariant()
-            Case "passed"
-                verdictGlyph.Text = Theme.Glyph(ChrW(&HE73E))
-                verdictBadge.BackColor = p.Success
-                verdictBadge.ForeColor = p.AccentText
-            Case "failed"
-                verdictGlyph.Text = Theme.Glyph(ChrW(&HE711))
-                verdictBadge.BackColor = p.Danger
-                verdictBadge.ForeColor = p.AccentText
-            Case "stopped"
-                verdictGlyph.Text = Theme.Glyph(ChrW(&HE71A))
-                verdictBadge.BackColor = p.Warning
-                verdictBadge.ForeColor = p.AccentText
-            Case "done"
-                verdictGlyph.Text = Theme.Glyph(ChrW(&HE73E))
-                verdictBadge.BackColor = p.Accent
-                verdictBadge.ForeColor = p.AccentText
-            Case Else
-                verdictGlyph.Text = Theme.Glyph(ChrW(&HE9CE))
-                verdictBadge.BackColor = p.SurfaceAlt
-                verdictBadge.ForeColor = p.Text
-        End Select
+        ' Every verdict carries a word and a glyph as well as a colour (section 11 item 8). The
+        ' glyph is the verdict's state glyph in the state's colour (Theme.VerdictGlyph, SP-0016
+        ' T2); it is decoration beside the badge that says the word. The colours are painted by
+        ' PaintVerdict, which ApplyTheme calls too - so a theme switch repaints them (T2).
+        shownVerdict = res.Verdict
+        verdictGlyph.Text = Theme.Glyph(Theme.VerdictGlyph(res.Verdict))
+        PaintVerdict(Theme.Current)
 
         ' "Could not verify" is a real answer, and it says why (principle 3).
         If String.IsNullOrEmpty(res.Reason) Then
@@ -2056,7 +2256,7 @@ Public Class JobView
             verdictReasonLabel.Text = L(res.Reason)
         End If
 
-        Dim numStr = String.Format(L("shell_result_summary_fmt"), res.Duration.ToString("mm\:ss"), res.ExitCode)
+        Dim numStr = Localization.Format(L("shell_result_summary_fmt"), res.Duration.ToString("mm\:ss"), res.ExitCode)
         If res.ResultInfo IsNot Nothing AndAlso res.ResultInfo.Numbers IsNot Nothing Then
             For Each kvp In res.ResultInfo.Numbers
                 numStr &= Environment.NewLine & kvp.Key & ": " & kvp.Value.ToString()
@@ -2076,12 +2276,20 @@ Public Class JobView
         End If
 
         If ShellSettings.HistoryEnabled() Then
-            reportsLabel.Text = String.Format(L("shell_reports_dir_fmt"), Runner.GetReportsDir())
+            reportsLabel.Text = Localization.Format(L("shell_reports_dir_fmt"), Runner.GetReportsDir())
             actionOpenReportBtn.Visible = True
         Else
             reportsLabel.Text = L("shell_history_off")
             actionOpenReportBtn.Visible = False
         End If
+    End Sub
+
+    ' The verdict's colours, one function of (verdict, palette) for both the result path and a theme
+    ' change (APP-STYLE section 3).
+    Private Sub PaintVerdict(p As Theme.Palette)
+        verdictGlyph.ForeColor = Theme.VerdictColor(shownVerdict, p)
+        verdictBadge.BackColor = Theme.VerdictBack(shownVerdict, p)
+        verdictBadge.ForeColor = Theme.VerdictFore(shownVerdict, p)
     End Sub
 
     Private Sub CleanTestFiles_Click(sender As Object, e As EventArgs)
@@ -2090,11 +2298,15 @@ Public Class JobView
     End Sub
 
     Private Sub OpenLatestReport_Click(sender As Object, e As EventArgs)
+        Dim reportsDir As String
         Try
-            Dim reportsDir = Runner.GetReportsDir()
-            If Directory.Exists(reportsDir) Then Process.Start("explorer.exe", reportsDir)
-        Catch
+            reportsDir = Runner.GetReportsDir()
+        Catch ex As Exception
+            ShellLog.Write("find the reports folder", ex)
+            ShellDialog.Problem(ShellDialog.OwnerOf(Me), Problems.Cause(ex))
+            Return
         End Try
+        Ui.OpenFolder(ShellDialog.OwnerOf(Me), reportsDir)
     End Sub
 
     ' ---- theming ---------------------------------------------------------
@@ -2248,6 +2460,8 @@ Public Class JobView
 
         redirectNoticeLabel.Font = Theme.FontBodyStrong()
         redirectNoticeLabel.ForeColor = p.Warning
+        runBlockedLabel.Font = Theme.FontBodyStrong()
+        runBlockedLabel.ForeColor = p.Warning
 
         commandLabel.Font = Theme.FontCaption()
         commandLabel.ForeColor = p.MutedText
@@ -2278,8 +2492,8 @@ Public Class JobView
         timeLabel.ForeColor = p.MutedText
 
         verdictGlyph.Font = Theme.FontGlyph()
-        verdictGlyph.ForeColor = p.Text
         verdictBadge.Font = Theme.FontSubtitle()
+        PaintVerdict(p)
         verdictReasonLabel.Font = Theme.FontBody()
         verdictReasonLabel.ForeColor = p.MutedText
 

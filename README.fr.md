@@ -7,15 +7,15 @@
 [![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**🔍 Test de Stockage • 🚀 Analyse de Performance • 🛡️ Suppression Sécurisée • 🎯 Détection de Fausse Capacité • 📁 Gestion des Doublons**
+**Test de Stockage • Analyse de Performance • Suppression Sécurisée • Détection de Fausse Capacité • Gestion des Doublons**
 
 </div>
 
 ---
 
-## 🎯 Démarrage Rapide
+## Démarrage Rapide
 
-### ⚡ Tâches Les Plus Courantes
+### Tâches Les Plus Courantes
 
 ```bash
 # Vérifier la contrefaçon d'une clé USB/carte SD
@@ -34,6 +34,8 @@ filedo D: cd old del
 # Copie avec suivi de progression
 filedo folder C:\Source copy D:\Backup
 filedo device E: copy F:\Archive
+# Compter d'abord l'arborescence pour un temps restant exact (sinon la copie commence dès le premier fichier)
+filedo folder C:\Source copy D:\Backup --precount
 
 # Nettoyage rapide des dossiers
 filedo folder C:\Temp wipe
@@ -43,7 +45,7 @@ filedo folder D:\Cache w
 filedo C: info
 ```
 
-### 📥 Installation
+### Installation
 
 #### Option 1 - winget
 
@@ -105,13 +107,13 @@ FileDO ne retire que ce qu'il a marqué comme sien: un type de document qui appa
 
 ---
 
-## 🔧 Opérations Principales
+## Opérations Principales
 
 <table>
 <tr>
 <td width="50%">
 
-### 💾 Test de Périphériques
+### Test de Périphériques
 ```bash
 # Informations
 filedo C: info
@@ -129,7 +131,7 @@ filedo D: speed max
 </td>
 <td width="50%">
 
-### 📁 Opérations Fichiers et Dossiers
+### Opérations Fichiers et Dossiers
 ```bash
 # Analyse de dossier
 filedo C:\temp info
@@ -157,12 +159,12 @@ filedo C:\temp clean
 
 ---
 
-## 🔐 Fichiers secrets (`.fd-sec`)
+## Fichiers secrets (`.fd-sec`)
 
 Un fichier entre dans un conteneur, derrière un mot de passe, et en ressort - depuis la ligne de commande,
 depuis le menu de l'Explorateur, ou depuis les pages du groupe **Protéger** dans la fenêtre. Le vrai nom
-de l'original, sa taille réelle et ses horodatages y sont scellés ; le conteneur lui-même ne livre rien
-d'autre que sa propre taille.
+de l'original, sa taille réelle et ses horodatages y sont scellés ; le conteneur lui-même ne révèle que
+sa propre taille, son nom visible et ses horodatages (`rename` crée un bloc de données anonyme).
 
 ```bash
 # Empaqueter (le mot de passe est demandé deux fois, sans écho)
@@ -180,7 +182,7 @@ filedo report.fd-sec unsecure here
 filedo report.fd-sec reveal
 ```
 
-Quatre choses dites franchement, car une fonction de sécurité qui se surestime vaut moins que rien :
+Cinq choses dites franchement, car une fonction de sécurité qui se surestime vaut moins que rien :
 
 - **Un mot de passe vide n'est qu'un camouflage - aucun secret.** Il est accepté, et chaque surface qui
   prend un mot de passe dit ce qu'il vaut au moment même où on le tape.
@@ -210,22 +212,22 @@ l'entrée du même nom dans le menu de l'Explorateur.
 
 ---
 
-## 🌟 Fonctionnalités Clés
+## Fonctionnalités Clés
 
-### 🎯 **Détection de Fausse Capacité**
+### **Détection de Fausse Capacité**
 - **Test de 100 fichiers** avec 1% de capacité chacun
 - **Vérification positionnelle aléatoire** - chaque fichier vérifié à des positions aléatoires uniques
 - **Protection contre les contrefaçons sophistiquées** - bat les contrôleurs qui préservent les données à des positions prévisibles
 - **Motifs lisibles** - utilise `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789` pour une détection facile de la corruption
 - **Sondage rapide brut** (`probe`) - 32 marqueurs par accès LBA direct, terminé en ~1 min (Admin requis)
 
-### ⚡ **Test de Performance**
+### **Test de Performance**
 - Mesure de la vitesse réelle de lecture/écriture
 - Streaming optimisé pour les gros fichiers
 - Suivi du progrès avec calcul ETA
 - Tailles de fichiers configurables (1MB à 10GB)
 
-### 🔍 **Gestion des Doublons de Fichiers**
+### **Gestion des Doublons de Fichiers**
 - **Détection de doublons intégrée** - intégrée dans l'application principale
 - **Multiples modes de sélection** (plus ancien/plus récent/alphabétique)
 - **Actions flexibles** (supprimer/déplacer les doublons)
@@ -234,7 +236,7 @@ l'entrée du même nom dans le menu de l'Explorateur.
 - **Sauvegarde/chargement des listes de doublons** pour le traitement par lots
 - **Architecture modulaire** avec le package fileduplicates dédié
 
-### 🛡️ **Fonctionnalités de Sécurité**
+### **Fonctionnalités de Sécurité**
 - **Suppression sécurisée de données haute vitesse** pour empêcher la récupération
 - **Opérations de remplissage** avec gestion optimisée des buffers
 - **Traitement par lots** pour multiples cibles
@@ -243,7 +245,7 @@ l'entrée du même nom dans le menu de l'Explorateur.
 
 ---
 
-## 💻 Référence des Commandes
+## Référence des Commandes
 
 ### Types de Cibles (Auto-détection)
 | Motif | Type | Exemple |
@@ -283,27 +285,27 @@ l'entrée du même nom dans le menu de l'Explorateur.
 
 ---
 
-## 🖥️ Application GUI
+## Application GUI
 
 **FileDO GUI** (`filedo_win.exe`) - shell Windows Forms VB.NET : à gauche une colonne de tâches, et pour chaque tâche une page numérotée - ce qu'on traite, quels paramètres, puis vérification et exécution - plus une page **«Commande»**, le constructeur expert, qui assemble et exécute n'importe quelle commande FileDO :
 
-- ✅ **Sélection visuelle de cible** avec boutons radio (Périphérique/Dossier/Réseau/Fichier)
-- ✅ **Menu déroulant d'opérations** sur la page «Commande» (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons)
-- ✅ **Une page par tâche** dans la fenêtre par défaut - capacité, vitesse, informations, vérification des fichiers endommagés, sondage direct, récupération, doublons, comparaison, nettoyage, copie, remplissage, effacement et les trois tâches des fichiers secrets - chacune portant toutes les options que la CLI accepte pour elle, y compris les vingt-neuf options de `check`
-- ✅ **Saisie de paramètres** avec validation
-- ✅ **Aperçu de commande en temps réel** sur la page «Commande», montrant la commande CLI équivalente
-- ✅ **Bouton parcourir** pour sélection facile du chemin
-- ✅ **Suivi du progrès** avec sortie en temps réel
-- ✅ **Exécution en un clic** avec affichage de la sortie
-- ✅ **Page «À propos»** : version, auteur et liens vers le site, le code source, le suivi des problèmes, la page de confidentialité et les autres outils de l'auteur
-- ✅ **Envoyer les logs à l'auteur** - l'unique bouton de cette page regroupe les logs FileDO trouvés sur cette machine dans un seul zip, ouvre le dossier avec le fichier sélectionné, place son chemin dans le presse-papiers et ouvre votre programme de messagerie avec l'adresse et l'objet déjà remplis. Vous voyez d'abord le zip, et rien n'est envoyé avant que vous envoyiez le message vous-même
+- **Sélection visuelle de cible** avec boutons radio (Périphérique/Dossier/Réseau/Fichier)
+- **Menu déroulant d'opérations** sur la page «Commande» (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons)
+- **Une page par tâche** dans la fenêtre par défaut - capacité, vitesse, informations, vérification des fichiers endommagés, sondage direct, récupération, doublons, comparaison, nettoyage, copie, remplissage, effacement et les trois tâches des fichiers secrets - chacune portant toutes les options que la CLI accepte pour elle, y compris les vingt-neuf options de `check`
+- **Saisie de paramètres** avec validation
+- **Aperçu de commande en temps réel** sur la page «Commande», montrant la commande CLI équivalente
+- **Bouton parcourir** pour sélection facile du chemin
+- **Suivi du progrès** avec sortie en temps réel
+- **Exécution en un clic** avec affichage de la sortie
+- **Page «À propos»** : version, auteur et liens vers le site, le code source, le suivi des problèmes, la page de confidentialité et les autres outils de l'auteur
+- **Envoyer les logs à l'auteur** - l'unique bouton de cette page regroupe les logs FileDO trouvés sur cette machine dans un seul zip, ouvre le dossier avec le fichier sélectionné, place son chemin dans le presse-papiers et ouvre votre programme de messagerie avec l'adresse et l'objet déjà remplis. Vous voyez d'abord le zip, et rien n'est envoyé avant que vous envoyiez le message vous-même
 
 ```bash
 # Lancer depuis le dossier filedo_win_vb
 filedo_win.exe          # Interface Windows GUI
 ```
 
-Les pages **«Protéger»** traitent les fichiers secrets `.fd-sec` - rendre un fichier secret, récupérer l'original, ou l'ouvrir sans le décompresser. Le mot de passe est masqué et n'entre jamais dans une ligne de commande. Donner directement un chemin `.fd-sec` à la fenêtre l'ouvre sur la page de ce conteneur (`filedo_win.exe C:\a\x.fd-sec`); un double-clic dans l'Explorateur ne passe pas du tout par la fenêtre - il exécute **Unsecure and start** dans la console, comme décrit plus haut. «Historique», «Réglages» et «À propos» ont leurs propres pages, et l'ancienne fenêtre constructeur de commandes reste accessible avec `filedo_win.exe --legacy-builder`.
+Les pages **«Protéger»** traitent les fichiers secrets `.fd-sec` - rendre un fichier secret, récupérer l'original, ou l'ouvrir sans le décompresser. Le mot de passe est masqué et n'entre jamais dans une ligne de commande. Donner directement un chemin `.fd-sec` à la fenêtre l'ouvre sur la page de ce conteneur (`filedo_win.exe C:\a\x.fd-sec`); un double-clic dans l'Explorateur ne passe pas du tout par la fenêtre - il exécute **Unsecure and start** dans la console, comme décrit plus haut. «Historique», «Réglages» et «À propos» ont leurs propres pages; l'ancienne fenêtre constructeur de commandes est retirée, et une ligne de commande écrite à la main se saisit sur la page **«Commande»**.
 
 **Fonctionnalités :**
 - Construit avec VB.NET Windows Forms pour une expérience native Windows
@@ -313,7 +315,7 @@ Les pages **«Protéger»** traitent les fichiers secrets `.fd-sec` - rendre un 
 
 ---
 
-## 🔍 Fonctionnalités Avancées
+## Fonctionnalités Avancées
 
 ### Traitement par Lots
 Créez `commands.txt` :
@@ -326,6 +328,8 @@ folder C:\temp clean
 ```
 
 Exécutez : `filedo from commands.txt`
+
+Codes de sortie (toutes les commandes hors conteneur) : **0 passed or done, 1 ran and found a defect, 2 could not be verified.**
 
 ### Suivi d'Historique
 ```bash
@@ -374,24 +378,24 @@ Notes: appariement par chemin relatif; égalité par taille seulement; mtime pou
 
 ---
 
-## ⚠️ Notes Importantes
+## Notes Importantes
 
-> **🎯 Détection de Fausse Capacité** : Crée 100 fichiers (1% de capacité chacun) avec **support d'interruption contextuelle**. Utilise des motifs de vérification aléatoires modernes et une gestion optimisée des buffers pour une détection fiable.
+> **Détection de Fausse Capacité** : Crée 100 fichiers (1% de capacité chacun) avec **support d'interruption contextuelle**. Utilise des motifs de vérification aléatoires modernes et une gestion optimisée des buffers pour une détection fiable.
 
-> **🔥 Interruption Améliorée** : Toutes les opérations longues supportent **l'annulation gracieuse Ctrl+C** avec nettoyage automatique. Vérifications d'interruption contextuelle aux points optimaux pour une réactivité immédiate.
+> **Interruption Améliorée** : Toutes les opérations longues supportent **l'annulation gracieuse Ctrl+C** avec nettoyage automatique. Vérifications d'interruption contextuelle aux points optimaux pour une réactivité immédiate.
 
-> **🛡️ Suppression Sécurisée** : `fill <taille> del` écrase l'espace libre avec gestion optimisée des buffers et écriture contextuelle pour la suppression sécurisée des données.
+> **Suppression Sécurisée** : `fill <taille> del` écrase l'espace libre avec gestion optimisée des buffers et écriture contextuelle pour la suppression sécurisée des données.
 
-> **🟢 Fichiers de Test** : Crée des fichiers `FILL_*.tmp` et `speedtest_*.txt`. Utilisez la commande `clean` pour leur suppression automatique.
+> **Fichiers de Test** : Crée des fichiers `FILL_*.tmp` et `speedtest_*.txt`. Utilisez la commande `clean` pour leur suppression automatique.
 
-> **🔵 Architecture Modulaire** : Refactorisée avec des packages séparés `capacitytest` et `fileduplicates` pour une meilleure maintenabilité et extensibilité.
+> **Architecture Modulaire** : Refactorisée avec des packages séparés `capacitytest` et `fileduplicates` pour une meilleure maintenabilité et extensibilité.
 
 ---
 
-## 📖 Exemples par Cas d'Usage
+## Exemples par Cas d'Usage
 
 <details>
-<summary><b>🔍 Vérification d'Authenticité USB/Carte SD</b></summary>
+<summary><b>Vérification d'Authenticité USB/Carte SD</b></summary>
 
 ```bash
 # Test rapide avec nettoyage
@@ -406,7 +410,7 @@ filedo E: info
 </details>
 
 <details>
-<summary><b>⚡ Benchmark de Performance</b></summary>
+<summary><b>Benchmark de Performance</b></summary>
 
 ```bash
 # Test rapide 100MB
@@ -421,7 +425,7 @@ filedo \\server\backup speed 500
 </details>
 
 <details>
-<summary><b>🛡️ Suppression Sécurisée de Données</b></summary>
+<summary><b>Suppression Sécurisée de Données</b></summary>
 
 ```bash
 # Remplir 5GB puis supprimer de façon sécurisée
@@ -436,7 +440,7 @@ filedo E: fill max del
 </details>
 
 <details>
-<summary><b>🔍 Recherche et Gestion des Doublons</b></summary>
+<summary><b>Recherche et Gestion des Doublons</b></summary>
 
 ```bash
 # Trouver doublons dans le répertoire courant
@@ -458,7 +462,7 @@ filedo cd from list duplicates.lst xyz del
 
 ---
 
-## 🏗️ Détails Techniques
+## Détails Techniques
 
 ### Architecture
 - **Design Modulaire** : Séparé en packages spécialisés pour une meilleure maintenabilité
@@ -482,7 +486,7 @@ FileDO/
 │   └── worker.go             # Traitement en arrière-plan
 ├── filedo_win_vb/           # Application GUI VB.NET
 │   ├── FileDOGUI.sln        # Solution Visual Studio
-│   ├── MainForm.vb          # Logique du formulaire principal
+│   ├── Program.vb           # Point d'entrée; la fenêtre est ShellForm.vb
 │   └── bin/                 # Exécutable GUI compilé
 ├── command_handlers.go       # Gestion des commandes
 ├── device_windows.go         # Opérations sur périphériques
@@ -505,7 +509,7 @@ FileDO/
 
 ---
 
-## 🔄 Historique des Versions
+## Historique des Versions
 
 **v2607301014** (Actuelle)
 - **GUI** : interface en 5 langues (anglais, russe, ukrainien, allemand, français) avec changement de langue à la volée et icône d'application
@@ -559,12 +563,12 @@ Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://g
 
 ---
 
-### 🚀 Dernières Améliorations
+### Dernières Améliorations
 
-- **🔧 Architecture Modulaire** : Refactorisée en packages spécialisés (`capacitytest`, `fileduplicates`)
-- **⚡ Interruption Améliorée** : Annulation contextuelle avec nettoyage gracieux
-- **🛡️ Opérations Thread-Safe** : `InterruptHandler` amélioré avec protection par mutex
-- **📊 Meilleure Performance** : Algorithmes optimisés de gestion des buffers et de vérification
-- **🖥️ GUI Mis à Jour** : Application Windows Forms VB.NET avec intégration améliorée
+- **Architecture Modulaire** : Refactorisée en packages spécialisés (`capacitytest`, `fileduplicates`)
+- **Interruption Améliorée** : Annulation contextuelle avec nettoyage gracieux
+- **Opérations Thread-Safe** : `InterruptHandler` amélioré avec protection par mutex
+- **Meilleure Performance** : Algorithmes optimisés de gestion des buffers et de vérification
+- **GUI Mis à Jour** : Application Windows Forms VB.NET avec intégration améliorée
 
 </div>

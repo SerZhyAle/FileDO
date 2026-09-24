@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 # ============================================================================
 #  FileDO - "SBORKA" (BUILD): the local, zero-CI flow.
 #
@@ -64,6 +65,10 @@
 param(
     # Run the local test gate after a successful build (smoke-run + go test).
     [switch]$Test,
+    # Use this exact yyMMddHHmm stamp instead of the current time. release.ps1
+    # passes the tag's stamp so the gate, tracked binaries and tag agree.
+    [ValidatePattern('^\d{10}$')]
+    [string]$Version,
     # Commit message. When set, stages everything and commits ONLY if the build
     # (and the test gate, which is forced on) succeeded. Never tags, never pushes.
     [string]$Commit,
@@ -97,13 +102,41 @@ if ($Msi -and $SkipInstaller) {
     exit 2
 }
 
-# Version = current build date/time in yyMMddHHmm format
-$version = Get-Date -Format "yyMMddHHmm"
+# Version = current build date/time in yyMMddHHmm format unless a release pins it.
+if (-not $Version) { $Version = Get-Date -Format "yyMMddHHmm" }
+$version = $Version
 
 Write-Host "Version: $version"
 Write-Host ""
 
 $out = "$root\exe_to_download"
+
+function Write-BuildSummary {
+    Write-Host ""
+    Write-Host "== Built =="
+    Write-Host "  Executables : $out"
+    $setupBuilt = "$root\dist\FileDO-$version-setup.exe"
+    $msiBuilt   = "$root\dist\FileDO-$version-windows-x64.msi"
+    if (Test-Path $setupBuilt) {
+        Write-Host "  INSTALLER   : $setupBuilt" -ForegroundColor Green
+        Write-Host "  MSI inside  : $msiBuilt"
+        if (-not $Install) { Write-Host "  Run it with a double-click, or: .\build.ps1 -Install" }
+    } elseif ($SkipInstaller) {
+        Write-Host "  Installer   : not built (-SkipInstaller)." -ForegroundColor Yellow
+    } else {
+        Write-Host "  Installer   : NOT built - see the Installer section above." -ForegroundColor Yellow
+    }
+}
+
+function Write-GateVerdict([int]$code, [string[]]$failures, [string[]]$unverified, [int]$ran, [int]$skipped) {
+    if ($code -eq 0) {
+        Write-Host "build-gate ${version}: PASS (ran $ran, skipped $skipped)" -ForegroundColor Green
+    } elseif ($code -eq 1) {
+        Write-Host "build-gate ${version}: FAIL ($($failures.Count) step(s): $($failures -join ', '))" -ForegroundColor Red
+    } else {
+        Write-Host "build-gate ${version}: NOT VERIFIED ($($unverified -join '; '))" -ForegroundColor Yellow
+    }
+}
 
 # Environment before work, not after: a missing toolchain means this run can
 # prove nothing, which is exit 2 ("could not verify") and not exit 1 ("found a
@@ -115,10 +148,10 @@ if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
 }
 
 $builds = @(
-    @{ Name = "filedo";       Dir = "$root\cmd\filedo";       Out = "$out\filedo.exe";       Flags = "-ldflags=-X 'main.version=$version'" },
-    @{ Name = "filedo_fill";  Dir = "$root\cmd\filedo-fill";  Out = "$out\filedo_fill.exe";  Flags = "" },
-    @{ Name = "filedo_check"; Dir = "$root\cmd\filedo-check"; Out = "$out\filedo_check.exe"; Flags = "" },
-    @{ Name = "filedo_test";  Dir = "$root\cmd\filedo-test";  Out = "$out\filedo_test.exe";  Flags = "" }
+    @{ Name = "filedo";       Dir = "$root\cmd\filedo";       Out = "$out\filedo.exe" },
+    @{ Name = "filedo_fill";  Dir = "$root\cmd\filedo-fill";  Out = "$out\filedo_fill.exe" },
+    @{ Name = "filedo_check"; Dir = "$root\cmd\filedo-check"; Out = "$out\filedo_check.exe" },
+    @{ Name = "filedo_test";  Dir = "$root\cmd\filedo-test";  Out = "$out\filedo_test.exe" }
 )
 
 $failed = @()
@@ -130,11 +163,7 @@ foreach ($b in $builds) {
 
     Push-Location $b.Dir
     try {
-        if ($b.Flags) {
-            go build $b.Flags -o $b.Out . 2>&1 | Out-Null
-        } else {
-            go build -o $b.Out . 2>&1 | Out-Null
-        }
+        go build -ldflags "-X main.version=$version" -o $b.Out . 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "exit code $LASTEXITCODE" }
         Write-Host " OK"
     } catch {
@@ -157,7 +186,9 @@ if ($SkipGui) {
         $msbuild = & $vsw -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
     }
     if ($msbuild -and (Test-Path $msbuild)) {
-        & $msbuild "$root\filedo_win_vb\FileDOGUI.vbproj" /t:Rebuild /p:Configuration=Release /p:Platform=AnyCPU /v:quiet /nologo | Out-Null
+        if ($version -notmatch '^(\d{2})(\d{2})(\d{2})(\d{4})$') { throw "version '$version' is not yyMMddHHmm" }
+        $guiVersion = "$([int]$Matches[1]).$([int]$Matches[2]).$([int]$Matches[3]).$([int]$Matches[4])"
+        & $msbuild "$root\filedo_win_vb\FileDOGUI.vbproj" /t:Rebuild /p:Configuration=Release /p:Platform=AnyCPU /p:BuildStamp=$version /p:AssemblyVersion=$guiVersion /v:quiet /nologo | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Host " FAILED: MSBuild exit code $LASTEXITCODE"
             $failed += "filedo_win"
@@ -204,22 +235,64 @@ if ($Test) {
     Write-Host ""
     Write-Host "== Test gate =="
 
+    $gateFailures = [System.Collections.Generic.List[string]]::new()
+    $gateUnverified = [System.Collections.Generic.List[string]]::new()
+    $gateRan = 0
+    $gateSkipped = 0
+    function Record-GateStep([string]$name, [int]$code, [string]$detail = "") {
+        if ($code -eq 0) {
+            $script:gateRan++
+            Write-Host " OK"
+        } elseif ($code -eq 2) {
+            $script:gateRan++
+            $script:gateUnverified.Add($name)
+            Write-Host " NOT VERIFIED: $detail" -ForegroundColor Yellow
+        } else {
+            $script:gateRan++
+            $script:gateFailures.Add($name)
+            Write-Host " FAILED" -ForegroundColor Red
+            if ($detail) { Write-Host $detail }
+        }
+    }
+
     # 0) The artifact the gate is about to smoke-run must exist. If a build
     #    reported OK and the exe is still absent, the gate has proven nothing -
     #    exit 2 ("could not verify"), never exit 1 ("found a defect").
     if (-not (Test-Path "$out\filedo.exe")) {
         Write-Host "Cannot verify: $out\filedo.exe is missing." -ForegroundColor Yellow
+        Write-BuildSummary
+        Write-GateVerdict 2 @() @('filedo.exe is missing') 0 0
         exit 2
     }
 
-    # 1) Smoke-run filedo.exe and assert it prints the version we just stamped.
-    Write-Host "Smoke: filedo.exe -? ..." -NoNewline
-    $smoke = & "$out\filedo.exe" "-?" 2>&1 | Out-String
-    if ($smoke -match [regex]::Escape($version)) {
-        Write-Host " OK (version $version)"
+    # 1) Each Go executable says the stamp it was built with. The GUI is a
+    # WinExe, so its stamped PE FileVersion is the smoke surface instead.
+    Write-Host "Smoke: all shipped executables carry $version ..." -NoNewline
+    $smokeProblems = [System.Collections.Generic.List[string]]::new()
+    foreach ($exe in @('filedo.exe', 'filedo_fill.exe', 'filedo_check.exe', 'filedo_test.exe')) {
+        $path = Join-Path $out $exe
+        if (-not (Test-Path $path)) { $smokeProblems.Add("$exe is missing"); continue }
+        $smoke = & $path '-?' 2>&1 | Out-String
+        if ($smoke -notmatch [regex]::Escape($version)) { $smokeProblems.Add("$exe does not print $version") }
+    }
+    if (-not $SkipGui) {
+        $guiPath = Join-Path $out 'filedo_win.exe'
+        if (-not (Test-Path $guiPath)) {
+            $smokeProblems.Add('filedo_win.exe is missing')
+        } else {
+            $guiStamp = (Get-Item $guiPath).VersionInfo.FileVersion
+            if ($version -notmatch '^(\d{2})(\d{2})(\d{2})(\d{4})$') {
+                $smokeProblems.Add("$version is not yyMMddHHmm")
+            } else {
+                $expectedGuiStamp = "$([int]$Matches[1]).$([int]$Matches[2]).$([int]$Matches[3]).$([int]$Matches[4])"
+                if ($guiStamp -ne $expectedGuiStamp) { $smokeProblems.Add("filedo_win.exe PE version is '$guiStamp', want '$expectedGuiStamp'") }
+            }
+        }
+    }
+    if ($smokeProblems.Count) {
+        Record-GateStep 'smoke' 1 ($smokeProblems -join '; ')
     } else {
-        Write-Host " FAILED: version $version not found in output"
-        exit 1
+        Record-GateStep 'smoke' 0
     }
 
     # 2) Compile-check the test module (root `go test ./...` is known-broken per
@@ -229,18 +302,25 @@ if ($Test) {
     #    (filedo) does not contain package", so do not print that form here -
     #    a console line naming a command that cannot work gets copy-pasted.
     Write-Host "go test ./... (in cmd\filedo-test) ..." -NoNewline
+    $compileCode = 0; $compileDetail = ''
     Push-Location "$root\cmd\filedo-test"
     try {
         $testOut = go test ./... 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
-            Write-Host " FAILED"
-            Write-Host $testOut
-            exit 1
+            $compileCode = 1; $compileDetail = $testOut
         }
-        Write-Host " OK"
     } finally {
         Pop-Location
     }
+    if ($compileCode -eq 0) {
+        $placementOut = & "$root\packaging\check-placement.ps1" 2>&1 | Out-String
+        $placementCode = $LASTEXITCODE
+        if ($placementCode -ne 0) {
+            $compileCode = $placementCode
+            $compileDetail = $placementOut
+        }
+    }
+    Record-GateStep 'compile-test-module' $compileCode $compileDetail
 
     # 3) The real tests. Two packages carry `func Test*` today and both must be
     #    green: fdsec (the container format and its vectors) and cmd\filedo
@@ -253,20 +333,63 @@ if ($Test) {
     Write-Host "go test ./fdsec/ ..." -NoNewline
     $fdsecOut = go test ./fdsec/ -count=1 -short 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) {
-        Write-Host " FAILED"
-        Write-Host $fdsecOut
-        exit 1
+        Record-GateStep 'fdsec' 1 $fdsecOut
+    } else {
+        Record-GateStep 'fdsec' 0
     }
-    Write-Host " OK"
 
-    Write-Host "go test ./cmd/filedo/ (fdsec command surface) ..." -NoNewline
-    $cliOut = go test ./cmd/filedo/ -count=1 -vet=off 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host " FAILED"
-        Write-Host $cliOut
-        exit 1
+    Write-Host "go test ./cmd/filedo/ and vet baseline ..." -NoNewline
+    $oldRootRequirement = $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT
+    $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT = '1'
+    try {
+        $cliOut = go test ./cmd/filedo/ -count=1 -vet=off 2>&1 | Out-String
+        $cliNativeCode = $LASTEXITCODE
+    } finally {
+        if ($null -eq $oldRootRequirement) { Remove-Item Env:FILEDO_FDSEC_REQUIRE_REPO_ROOT -ErrorAction SilentlyContinue }
+        else { $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT = $oldRootRequirement }
     }
-    Write-Host " OK"
+    $cliCode = if ($cliNativeCode -eq 0) { 0 } elseif ($cliOut -match 'FDSEC_SURFACES_REPO_ROOT_MISSING') { 2 } else { 1 }
+    $cliDetails = [System.Collections.Generic.List[string]]::new()
+    if ($cliCode -ne 0) { $cliDetails.Add($cliOut) }
+
+    # CHECK-BASELINE: vet debt is a set, never a suppression. A missing file is
+    # "could not verify" (rule 4), never "accept everything". HashSets rather
+    # than Compare-Object, which refuses an empty side - and an empty baseline
+    # is exactly where this ratchet is meant to end up.
+    $vetCode = 0
+    $baseline = "$root\cmd\filedo\vet-baseline.txt"
+    if (-not (Test-Path $baseline)) {
+        $vetCode = 2; $cliDetails.Add("could not verify: missing $baseline")
+    } else {
+        $vetOut = go vet ./cmd/filedo/ 2>&1 | Out-String
+        $vetNativeCode = $LASTEXITCODE
+        $actual = [System.Collections.Generic.HashSet[string]]::new()
+        $seen = @{}
+        foreach ($line in ($vetOut -split "`r?`n")) {
+            if ($line -match '^(.+?):\d+:\d+:\s+(.+)$') {
+                $rel = $Matches[1].Replace('\', '/')
+                $key = "${rel}: $($Matches[2])"
+                $seen[$key] = 1 + [int]($seen[$key])
+                [void]$actual.Add("$key #$($seen[$key])")
+            }
+        }
+        $expected = [System.Collections.Generic.HashSet[string]]::new(
+            [string[]]@(Get-Content $baseline | Where-Object { $_ -and -not $_.StartsWith('#') }))
+        if ($vetNativeCode -ne 0 -and $actual.Count -eq 0) {
+            $vetCode = 2; $cliDetails.Add("could not verify: go vet exited $vetNativeCode with no findings`n$vetOut")
+        } else {
+            $new = @($actual | Where-Object { -not $expected.Contains($_) } | Sort-Object)
+            $gone = @($expected | Where-Object { -not $actual.Contains($_) } | Sort-Object)
+            if ($new.Count -or $gone.Count) {
+                $vetCode = 1
+                $drift = @($new | ForEach-Object { "new vet finding: $_" }) + @($gone | ForEach-Object { "fixed, remove from the baseline: $_" })
+                $cliDetails.Add("vet baseline drift - fix a new finding; delete a fixed one from cmd\filedo\vet-baseline.txt:`n  " + ($drift -join "`n  "))
+            }
+        }
+    }
+    # A defect in either half outranks "could not verify" in the other.
+    $stepCode = if ($cliCode -eq 1 -or $vetCode -eq 1) { 1 } elseif ($cliCode -eq 2 -or $vetCode -eq 2) { 2 } else { 0 }
+    Record-GateStep 'filedo-cli-and-vet' $stepCode ($cliDetails -join "`n")
 
     # The GUI's own gate (filedo_win_vb\SelfTest.vb): it builds every job page, checks the
     # command each one would run and the localization keys behind it, then exits 0 or 1. A page
@@ -276,21 +399,38 @@ if ($Test) {
     # It is skipped, not failed, when the GUI was not built (-SkipGui): a gate cannot prove
     # anything about an executable that is not there, and saying so is the honest outcome.
     $guiExe = "$out\filedo_win.exe"
-    if (Test-Path $guiExe) {
+    if ($SkipGui) {
+        $gateSkipped++
+        Write-Host "filedo_win.exe --selftest ... SKIPPED (-SkipGui)" -ForegroundColor Yellow
+    } elseif (Test-Path $guiExe) {
         Write-Host "filedo_win.exe --selftest ..." -NoNewline
         $selfTest = Start-Process $guiExe -ArgumentList "--selftest" -PassThru -Wait
+        $log = "$out\filedo_win_selftest.log"
         if ($selfTest.ExitCode -ne 0) {
-            Write-Host " FAILED"
-            $log = "$out\filedo_win_selftest.log"
-            if (Test-Path $log) { Get-Content $log | Where-Object { $_ -like "FAIL*" } | Write-Host }
-            exit 1
+            if (-not (Test-Path $log)) {
+                Record-GateStep 'gui-selftest' 2 'could not verify: no selftest log'
+            } else {
+                $logLines = Get-Content $log
+                Record-GateStep 'gui-selftest' $selfTest.ExitCode (($logLines | Where-Object { $_ -like 'FAIL *' -or $_ -like 'selftest:*' }) -join "`n")
+            }
+        } elseif (-not (Test-Path $log)) {
+            Record-GateStep 'gui-selftest' 2 'could not verify: no selftest log'
+        } else {
+            Record-GateStep 'gui-selftest' 0
         }
-        Write-Host " OK"
     } else {
-        Write-Host "filedo_win.exe --selftest ... SKIPPED (no GUI in this build)"
+        $gateSkipped++
+        Write-Host "filedo_win.exe --selftest ... SKIPPED (no GUI in this build)" -ForegroundColor Yellow
     }
 
-    Write-Host "Test gate passed."
+    # A failed step outranks a step that could not verify. All five steps run
+    # before this decision, so one run names every defect it found.
+    $gateExit = if ($gateFailures.Count) { 1 } elseif ($gateUnverified.Count) { 2 } else { 0 }
+    if ($gateExit -ne 0) {
+        Write-BuildSummary
+        Write-GateVerdict $gateExit $gateFailures.ToArray() $gateUnverified.ToArray() $gateRan $gateSkipped
+        exit $gateExit
+    }
 }
 
 # ---- Optional installer (-Msi) ---------------------------------------------
@@ -302,7 +442,7 @@ if ($Test) {
 #
 # Everything the wxs reads comes from a staged folder, exactly as the release
 # workflow stages it: the built exes, the GUI's config, the .bat helpers,
-# LICENSE, README.md, and assets\icon.ico under the name the document type
+# LICENSE, THIRD-PARTY-NOTICES.txt, README.md, and assets\icon.ico under the name the document type
 # points at (FileDO.ico).
 $wixPresent = [bool](Get-Command wix -ErrorAction SilentlyContinue)
 if ($buildInstaller -and -not $wixPresent) {
@@ -378,13 +518,14 @@ function Build-FileDOInstaller {
     Copy-Item "$out\filedo_win.exe.config" $stage -Force -ErrorAction SilentlyContinue
     Copy-Item "$out\*.bat"              $stage -Force
     Copy-Item "$root\LICENSE"           $stage -Force
+    Copy-Item "$root\THIRD-PARTY-NOTICES.txt" $stage -Force
     Copy-Item "$root\README.md"         $stage -Force
     Copy-Item "$root\assets\icon.ico"   "$stage\FileDO.ico" -Force
 
     # Every file the wxs names must be in the stage, or wix reports it one at
     # a time. Saying so here names them all at once.
     $required = @("filedo.exe", "filedo_win.exe", "filedo_win.exe.config", "filedo_check.exe",
-                  "filedo_fill.exe", "filedo_test.exe", "FileDO.ico", "LICENSE", "README.md",
+                  "filedo_fill.exe", "filedo_test.exe", "FileDO.ico", "LICENSE", "THIRD-PARTY-NOTICES.txt", "README.md",
                   "filedo_cd.bat", "filedo_clean.bat", "filedo_fill.bat", "filedo_speed.bat", "filedo_test.bat")
     $missing = $required | Where-Object { -not (Test-Path "$stage\$_") }
     if ($missing) {
@@ -518,23 +659,12 @@ if ($Commit) {
 }
 
 # ---- What this run produced -------------------------------------------------
-# The last thing on the screen, because that is the only line a person is
-# guaranteed to see: everything above it scrolls. It names full paths - a build
-# whose output you have to go looking for is a build that answers "so where is
-# the installer?" with silence.
-Write-Host ""
-Write-Host "== Built =="
-Write-Host "  Executables : $out"
-$setupBuilt = "$root\dist\FileDO-$version-setup.exe"
-$msiBuilt   = "$root\dist\FileDO-$version-windows-x64.msi"
-if (Test-Path $setupBuilt) {
-    Write-Host "  INSTALLER   : $setupBuilt" -ForegroundColor Green
-    Write-Host "  MSI inside  : $msiBuilt"
-    if (-not $Install) {
-        Write-Host "  Run it with a double-click, or: .\build.ps1 -Install"
-    }
-} elseif ($SkipInstaller) {
-    Write-Host "  Installer   : not built (-SkipInstaller)." -ForegroundColor Yellow
-} else {
-    Write-Host "  Installer   : NOT built - see the Installer section above." -ForegroundColor Yellow
+Write-BuildSummary
+if ($Test) {
+    # CHECK-VERDICT rule 5: the gate's machine-readable conclusion is last.
+    Write-GateVerdict 0 @() @() $gateRan $gateSkipped
 }
+# Every failure path above exits on its own. Without this line the script's exit
+# code is whatever the last native command left in $LASTEXITCODE - `go vet`,
+# which exits 1 on the accepted baseline debt - and a passing gate reads as 1.
+exit 0

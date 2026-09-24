@@ -1,88 +1,66 @@
 # FileDO GUI (filedo_win.exe)
 
-A VB.NET (Windows Forms, .NET Framework 4.8) window for `filedo.exe`. By default it opens
-the **shell** - a rail of jobs with one page per job, described under "The shell's pages"
-below. The command builder this section describes is still there: it is the shell's
-**Command** page, and it opens on its own as the older window with `--legacy-builder`. It
-assembles **any** FileDO command from a few controls, explains what each one does, shows a
-live editable preview, and runs it in a console window.
+A VB.NET (Windows Forms, .NET Framework 4.8) window for `filedo.exe`: the **shell** - a rail of jobs on
+the left and one numbered page per job, described under "The shell's pages" below. The command builder
+that shipped before the shell has been retired; its successor is the shell's **Command** page, where any
+FileDO command can be assembled or typed by hand. `--legacy-builder` is still accepted on the command line
+and simply opens the shell.
 
-## What the command builder builds
+## When something fails
 
-- **Language**: English / Русский / Українська / Deutsch / Français, remembered
-  between runs (HKCU\Software\FileDO\GuiLang)
-- **Target**: device / folder / network / file - for **device** the path becomes a
-  **drive-letter picker** populated from the actual drives
-- **Operation** (one dropdown): info, speed, test, fill, clean, cd (duplicates),
-  copy, fastcopy, synccopy, balanced, maxcopy, smartcopy, safecopy, wipe, compare,
-  check, probe, recover, from, hist, help
-- **Source + Destination** fields for copy and compare
-- **Size** for speed / fill
-- **Flags**: max, del, nodel, short, hist, `--force` (wipe)
-- **Duplicate options** (old / new / abc / xyz, move to folder) for `cd`
-- **Delete rule** dropdown for `compare`
+A failure is shown as what happened and what can be done about it - try again, open the folder, copy the
+address or the path, **Send logs** - never as the exception's own text. That text goes to the window's own
+log, `%LOCALAPPDATA%\FileDO\filedo_win.log`, which Send logs packs. `-debug` adds diagnostic lines to the
+same file. Every question the window asks has a no-action answer that Escape and the close box give.
 
-## Inline help
+## A running job
 
-- A **help panel** under the controls explains the selected operation and what it
-  produces, shows an **example** for the chosen target type, and lists the meaning
-  of every active flag - all in the chosen language.
-- **Tooltips** on the operation and flag controls repeat the short description on hover.
-- Choosing the **system drive** (e.g. `C:`) for a write test (test/fill/speed) shows
-  a note: FileDO redirects those writes to `%TEMP%\FileDO_Operations` (fallback
-  `C:\TEMP`) and asks to confirm, to protect Windows.
+While a job runs, clicking another job in the rail keeps the running page in front and says why; History,
+Settings, About and Command stay reachable. A result that arrives while another view is in front waits on
+the job's page. Closing the window while a job runs asks **Stop and close** (the job is asked to stop, its
+report is written, then the window closes) or **Keep running** - which is also what Escape gives.
 
-The **Command** box is editable - tweak by hand for anything the builder does not
-cover. **Copy command** puts it on the clipboard; **RUN** executes it.
+## About page and sending logs
 
-## About window and sending logs
-
-**About** (top right of the main window) opens a small window holding the GUI build
-stamp, the `filedo.exe` version beside it, the author, and links to the site, the
-source, the issue tracker, the privacy page and the author's other tools. Every
-string on it is localized; the URLs and the version stamps are not.
+**About** holds the GUI build stamp, the `filedo.exe` version beside it, the author, and links to the site,
+the source, the issue tracker, the privacy page and the author's other tools.
 
 Its one action is **Send logs to the author**:
 
-1. A dialog states what will be collected, that paths inside the logs can contain
-   your own folder and account names, and that nothing is sent automatically.
-2. On Yes, the FileDO artifacts found next to the exe, in `%USERPROFILE%`, in
-   `%TEMP%\FileDO_Operations` and in `%TEMP%` - `filedo_win_debug.log`,
-   `history.json`, `check_report_*`, `check_state.json`, `compare_report_*.log`,
-   `delete_report_*.log`, `skip_files.list`, `damaged_files.log` - are packed
-   newest-first into `%TEMP%\FileDO_Logs\filedo-logs-<stamp>.zip`, together with a
-   generated `filedo-report.txt` (build stamps, OS, culture, and a manifest of what
-   went in and what was left out under the 40-file / 8 MB-per-file / 20 MB-total
-   caps).
-3. Explorer opens with the zip selected, its path goes to the clipboard, and the
-   default mail program opens addressed to the author with an English subject and
-   body template.
-4. `mailto:` cannot carry an attachment, so attaching the zip is the one manual step -
-   the closing dialog says so and shows the path.
-
-If no artifact exists anywhere, no archive is written and no mail program is opened;
-the dialog explains how to produce a log instead.
+1. The FileDO artifacts are looked for first - next to the exe, in `%LOCALAPPDATA%\FileDO`, in
+   `%USERPROFILE%`, in `%TEMP%\FileDO_Operations` and in `%TEMP%`: `filedo_win.log`,
+   `filedo_win_debug.log`, `history.json`, `check_report_*`, `check_state.json`, `compare_report_*.log`,
+   `delete_report_*.log`, `skip_files.list`, `damaged_files.log`. When there are none, the window says so
+   and asks nothing.
+2. Otherwise a dialog states what will be collected, that paths inside the logs can contain your own
+   folder and account names, and that nothing is sent automatically. **Build the zip** or **Cancel**.
+3. The files are packed newest-first into `%TEMP%\FileDO_Logs\filedo-logs-<stamp>.zip`, together with a
+   generated `filedo-report.txt` (build stamps, OS, culture, and a manifest of what went in and what was
+   left out under the 40-file / 8 MB-per-file / 20 MB-total caps).
+4. Explorer opens with the zip selected, its path goes to the clipboard, and the default mail program
+   opens addressed to the author with an English subject and body template. `mailto:` cannot carry an
+   attachment, so attaching the zip is the one manual step - the closing dialog says so and shows the path.
 
 ## How it finds filedo.exe
 
-`filedo_win.exe` runs `filedo.exe` from the same folder if present, otherwise from
-`PATH` (the winget portable alias or the Microsoft Store appExecutionAlias). So it
-works the same whether launched from the portable zip, the installed location, or
-the Store tile.
+`filedo_win.exe` runs `filedo.exe` from the same folder if present, otherwise from `PATH` (the winget
+portable alias or the Microsoft Store appExecutionAlias). So it works the same whether launched from the
+portable zip, the installed location, or the Store tile.
 
 ## Build
 
 ```powershell
 msbuild FileDOGUI.vbproj /p:Configuration=Release /p:Platform=AnyCPU
+filedo_win.exe --selftest    # the shell's own gate; writes filedo_win_selftest.log beside the exe
 ```
 
-Output: `bin\Release\filedo_win.exe`. The repo's `build.ps1` and the release CI
-build this automatically and ship it in the winget package, the portable zip, the
-MSI, and the Microsoft Store (MSIX) package, where it is the clickable tile.
+Output: `bin\Release\filedo_win.exe`. The repo's `build.ps1` and the release CI build this automatically
+and ship it in the winget package, the portable zip, the MSI, and the Microsoft Store (MSIX) package, where
+it is the clickable tile.
 
-## The shell's pages (the default window)
+## The shell's pages
 
-The window that opens by default is the shell, not the builder above: a rail of jobs on the left
+The window is a rail of jobs on the left
 and one numbered page per job - what to work on, which parameters, then check and run. Every
 option the CLI takes for a job is on its page:
 
@@ -99,7 +77,9 @@ option the CLI takes for a job is on its page:
 - **Fill the free space** - the file size, `del`, and `fill verify`
 - **Copy files** - the strategy: `copy`, `fastcopy`, `synccopy`, `balanced`, `maxcopy`,
   `smartcopy` or `safecopy`
-- **Wipe a folder** - `-y`, still behind a typed `WIPE`
+- **Wipe a folder** - the typed `WIPE` and `-y` both, because the CLI asks again on a console a window
+  run does not have; an empty folder is said to be empty, and a drive root, a share root, a junction or
+  TEMP is sent to the console, where FileDO asks twice
 - **Protect** - see below
 - Every job except the three secret-file ones also offers `nohist`
 
@@ -107,7 +87,8 @@ The **Command** page is the expert builder: all twenty-eight operations `filedo.
 including `probe`, `recover`, the six named copy strategies, `secure`, `unsecure`, `reveal`, the
 two `fdsec` inspections, `from`, `hist` and the two Explorer registrations - with the flags and
 rule pickers that belong to whichever one is chosen, and the command line itself editable
-underneath.
+underneath. A line that holds `wipe` - with `-y` or without - runs only once `WIPE` is typed beside it,
+and progress is drawn by the same rule as on a job page.
 
 The five verbs that need a password get a masked field of their own on that page, `secure` asking
 twice. The password never enters the command line: what the line carries is `pe:FILEDO_SHELL_CRED`,
@@ -140,7 +121,6 @@ before reading the code:
 ```powershell
 filedo_win                      # if on PATH (winget / Store)
 filedo_win.exe                  # next to filedo.exe in the portable zip
-filedo_win.exe C:\a\secret.fd-sec   # what a double-click does: opens on that container
-filedo_win.exe -debug           # writes filedo_win_debug.log next to the exe
-filedo_win.exe --legacy-builder # the older command-builder window this file describes above
+filedo_win.exe C:\a\secret.fd-sec   # opens on that container's page
+filedo_win.exe -debug           # adds diagnostic lines to %LOCALAPPDATA%\FileDO\filedo_win.log
 ```

@@ -3,6 +3,7 @@ package fdsec
 import (
 	"fmt"
 	"io"
+	"math"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -50,6 +51,9 @@ func Unpack(dst io.Writer, src io.ReadSeeker, cred Credential, opts ...StreamOpt
 
 	// Length arithmetic: the file must be the unique multiple of the cluster
 	// alignment in [L_min, L_min + A) (FDSEC-FORMAT.md sections 9, 11 step 7).
+	if meta.Size < 0 {
+		return meta, fmt.Errorf("%w: negative size %d", ErrDamaged, meta.Size)
+	}
 	total, err := src.Seek(0, io.SeekEnd)
 	if err != nil {
 		return meta, fmt.Errorf("fdsec: size container: %w", err)
@@ -57,7 +61,11 @@ func Unpack(dst io.Writer, src io.ReadSeeker, cred Credential, opts ...StreamOpt
 	preLen := h.preLen()
 	k := h.chunkCount(meta.Size)
 	last := h.lastLen(meta.Size)
-	lMin := preLen + (k-1)*int64(h.ChunkSize) + last + tagSize
+	chunkSize := int64(h.ChunkSize)
+	if k > 1 && (math.MaxInt64-preLen-last-tagSize-int64(h.ClusterAlignment))/chunkSize < (k-1) {
+		return meta, fmt.Errorf("%w: sealed size %d causes length overflow", ErrDamaged, meta.Size)
+	}
+	lMin := preLen + (k-1)*chunkSize + last + tagSize
 	if total < lMin || total >= lMin+int64(h.ClusterAlignment) || total%int64(h.ClusterAlignment) != 0 {
 		return meta, fmt.Errorf("%w: file length %d is impossible for size %d (want %d..%d, cluster-aligned)", ErrDamaged, total, meta.Size, lMin, lMin+int64(h.ClusterAlignment)-1)
 	}

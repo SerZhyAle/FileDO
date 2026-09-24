@@ -1,7 +1,15 @@
 ' The shell's main window (SP-0006).
 ' Hosts the rail navigation, the 3-card job view, history & reports view, and expert command view.
+'
+' Two shared desktop contracts bind this window, FileDO a consumer of both: APP-BEHAVIOUR (the
+' twelve moments - here rule 3, a run that navigation and closing cannot lose; rule 10, placement)
+' and APP-STYLE (the theme, applied live below). docs/contracts/ carries what FileDO owes them.
 Public Class ShellForm
     Inherits Form
+
+    ' ICON-RENDER's Windows target size. The value is in design pixels and is passed through
+    ' Ui.Px at every layout site, so it scales with the rest of the window at higher DPI.
+    Friend Const RailTargetHeight As Integer = 44
 
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly entries As New List(Of RailEntry)
@@ -21,6 +29,7 @@ Public Class ShellForm
     Private header As Panel
     Private titleLabel As Label
     Private subtitleLabel As Label
+    Private statusLabel As Label
     Private emptyTitle As Label
     Private emptyHint As Label
     Private emptyCentre As TableLayoutPanel
@@ -36,6 +45,11 @@ Public Class ShellForm
 
     ' WM_SETTINGCHANGE - Windows broadcasts it when the user switches light and dark, among many other things.
     Private Const WM_SETTINGCHANGE As Integer = &H1A
+
+    ' Closing while a run is active (APP-BEHAVIOUR rule 3, SP-0006 section 14): the user chose Stop
+    ' and close, the stop file is written, and the window closes itself when the run has ended.
+    Private closeWhenIdle As Boolean = False
+    Private stopAskedAt As DateTime = DateTime.MinValue
 
     Public Sub New()
         Me.New(Nothing)
@@ -80,6 +94,10 @@ Public Class ShellForm
         Dim v As String = Nothing
         If dict IsNot Nothing AndAlso dict.TryGetValue(key, v) Then Return v
         Return key
+    End Function
+
+    Private Function LText(key As String) As String
+        Return Localization.Multiline(L(key))
     End Function
 
     ' ---- layout ----------------------------------------------------------
@@ -147,6 +165,7 @@ Public Class ShellForm
         Controls.Add(root)
 
         ResumeLayout(True)
+        LayoutRail()
     End Sub
 
     ' The window a first run opens at. A fixed 1180x780 is a small window on the display most of
@@ -176,11 +195,12 @@ Public Class ShellForm
         Dim stack As New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .ColumnCount = 1,
-            .RowCount = 2,
+            .RowCount = 3,
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .Margin = New Padding(0)
         }
+        stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
 
@@ -195,9 +215,21 @@ Public Class ShellForm
             .Margin = New Padding(0, 2, 0, 0)
         }
 
+        ' The line that says why the rail did not do what was clicked: a job is running, and the
+        ' page it runs on stays in front until it has ended (T5). Empty the rest of the time.
+        statusLabel = New Label With {
+            .Text = "",
+            .AutoSize = True,
+            .Visible = False,
+            .Margin = New Padding(0, 6, 0, 0)
+        }
+
         stack.Controls.Add(titleLabel, 0, 0)
         stack.Controls.Add(subtitleLabel, 0, 1)
+        stack.Controls.Add(statusLabel, 0, 2)
         header.Controls.Add(stack)
+        Ui.Wrap(subtitleLabel, header, 48)
+        Ui.Wrap(statusLabel, header, 48)
     End Sub
 
     Private Sub BuildPageHost()
@@ -209,9 +241,11 @@ Public Class ShellForm
                 SelectJobByKey("rail_job_command")
                 commandView.SetCommand(cmd)
             End Sub
+        AddHandler jobView.RunFinished, AddressOf AnyRunFinished
 
         historyView = New HistoryView() With {.Visible = False}
         commandView = New CommandView() With {.Visible = False}
+        AddHandler commandView.RunFinished, AddressOf AnyRunFinished
         aboutView = New AboutView() With {.Visible = False}
         settingsView = New SettingsView() With {.Visible = False}
         AddHandler settingsView.ThemeChanged, Sub() ApplyTheme()
@@ -254,49 +288,16 @@ Public Class ShellForm
         pageHost.Controls.Add(emptyCentre)
     End Sub
 
-    ' The rail rows are SP-0006 section 5.2.
-    '
-    ' Every row here leads somewhere today. A row for a job that is still being written is not
-    ' listed as "coming later": a rail is navigation, not a roadmap, and a row that answers nothing
-    ' when it is clicked costs the reader more than the announcement is worth. The job appears in
-    ' the rail on the day its page does.
+    ' The rail rows are SP-0006 section 5.2, listed once in RailRow.All (Rail.vb) so the self-test
+    ' measures exactly the rows this builds.
     Private Sub BuildRail()
-        AddGroup("rail_group_check")
-        AddEntry("rail_job_capacity", ChrW(&HE7BA))
-        AddEntry("rail_job_speed", ChrW(&HE72C))
-        AddEntry("rail_job_info", ChrW(&HE946))
-        AddEntry("rail_job_damaged", ChrW(&HE721))
-        AddEntry("rail_job_probe", ChrW(&HE9D9))
-        AddEntry("rail_job_recover", ChrW(&HE777))
-
-        AddGroup("rail_group_tidy")
-        AddEntry("rail_job_duplicates", ChrW(&HE8C8))
-        AddEntry("rail_job_compare", ChrW(&HE8B7))
-        AddEntry("rail_job_clean", ChrW(&HE74D))
-
-        AddGroup("rail_group_move")
-        AddEntry("rail_job_copy", ChrW(&HE896))
-
-        AddGroup("rail_group_erase")
-        AddEntry("rail_job_fill", ChrW(&HE74E))
-        AddEntry("rail_job_wipe", ChrW(&HE74D))
-
-        AddGroup("rail_group_protect")
-        AddEntry("rail_job_secure", ChrW(&HE72E))
-        AddEntry("rail_job_unsecure", ChrW(&HE785))
-        AddEntry("rail_job_reveal", ChrW(&HE8A7))
-
-        AddGroup("rail_group_records")
-        AddEntry("rail_job_history", ChrW(&HE81C))
-
-        AddGroup("rail_group_expert")
-        AddEntry("rail_job_command", ChrW(&HE756))
-
-        ' The program itself: where the settings live, and where the links to the site, the source,
-        ' the issue tracker and the author are.
-        AddGroup("rail_group_program")
-        AddEntry("rail_job_settings", ChrW(&HE713))
-        AddEntry("rail_job_about", ChrW(&HE946))
+        For Each row In RailRow.All
+            If row.IsGroup Then
+                AddGroup(row.Key)
+            Else
+                AddEntry(row.Key, row.Glyph)
+            End If
+        Next
     End Sub
 
     ' A group header. It is a row the user can operate - click, Space or Enter folds the group -
@@ -304,11 +305,13 @@ Public Class ShellForm
     Private Sub AddGroup(key As String)
         Dim e As New RailEntry With {
             .Key = key,
+            .Name = "rail:" & key,
             .Text = L(key).ToUpperInvariant(),
             .IsGroupHeader = True,
             .TabStop = True,
+            .RowUnit = Ui.Px(Me, RailTargetHeight),
             .Width = Ui.Px(Me, 236),
-            .Height = Ui.Px(Me, 26),
+            .Height = Ui.Px(Me, RailTargetHeight),
             .Margin = Ui.PxPad(Me, 10, 8, 10, 1)
         }
         e.AccessibleRole = AccessibleRole.ButtonDropDown
@@ -323,21 +326,24 @@ Public Class ShellForm
     Private Sub AddEntry(key As String, glyph As String)
         Dim e As New RailEntry With {
             .Key = key,
+            .Name = "rail:" & key,
             .Text = L(key),
             .Glyph = glyph,
             .TabStop = True,
+            .RowUnit = Ui.Px(Me, RailTargetHeight),
+            .DefaultActionText = L("shell_acc_open"),
             .Width = Ui.Px(Me, 236),
-            .Height = Ui.Px(Me, 34),
+            .Height = Ui.Px(Me, RailTargetHeight),
             .Margin = Ui.PxPad(Me, 10, 0, 10, 0)
         }
         e.AccessibleName = L(key)
-        e.AccessibleRole = AccessibleRole.ListItem
+        e.AccessibleRole = AccessibleRole.PushButton
         If currentGroupKey IsNot Nothing Then
             groupMembers(currentGroupKey).Add(e)
             groupOf(key) = currentGroupKey
         End If
-        ' The row is one line, so a label that does not fit is shortened on screen - the tooltip is
-        ' where the whole label and the job's purpose stay readable, in every locale.
+        ' The label wraps and the row grows to hold it (LayoutRail), so the whole label is always on
+        ' screen; the tooltip is where the job's purpose is, in every locale.
         tips.SetToolTip(e, L(key) & Environment.NewLine & L(PurposeKeyFor(key)))
         AddHandler e.Click, AddressOf RailEntry_Click
         entries.Add(e)
@@ -379,6 +385,7 @@ Public Class ShellForm
     Private Sub UpdateGroupAccessibility(head As RailEntry)
         Dim state = If(head.Collapsed, L("rail_group_collapsed"), L("rail_group_expanded"))
         head.AccessibleName = L(head.Key) & " - " & state
+        head.DefaultActionText = If(head.Collapsed, L("rail_group_expand"), L("rail_group_collapse"))
         tips.SetToolTip(head, L(head.Key) & Environment.NewLine &
                               If(head.Collapsed, L("rail_group_expand"), L("rail_group_collapse")))
     End Sub
@@ -431,12 +438,22 @@ Public Class ShellForm
         ShellSettings.SetCollapsedGroups(shut)
     End Sub
 
+    ' Every row as wide as the rail and as tall as its label needs: one unit, or more where the label
+    ' wraps (APP-BEHAVIOUR rule 2).
     Private Sub LayoutRail()
         Dim w = rail.ClientSize.Width - Ui.Px(Me, 26)
         If w < Ui.Px(Me, 120) Then Return
+        rail.SuspendLayout()
         For Each c As Control In rail.Controls
-            c.Width = w
+            Dim row = TryCast(c, RailEntry)
+            If row Is Nothing Then
+                c.Width = w
+                Continue For
+            End If
+            row.RowUnit = Ui.Px(Me, RailTargetHeight)
+            row.Size = New Size(w, row.PreferredRowHeight(w))
         Next
+        rail.ResumeLayout(True)
     End Sub
 
     Private Sub SelectJobByKey(key As String)
@@ -452,6 +469,22 @@ Public Class ShellForm
         Dim chosen = TryCast(sender, RailEntry)
         If chosen Is Nothing Then Return
 
+        ' A job is running on the job page. Another job's row would reset that page - hiding its run
+        ' strip and its Stop button while the run carries on - so it is refused: the running job's
+        ' row is chosen again and the header says why (APP-BEHAVIOUR rule 3). History, Settings,
+        ' About and Command are other views and stay reachable; the job page keeps its run while
+        ' they are on screen.
+        Dim chosenJob = JobCatalogue.GetJob(chosen.Key)
+        If chosenJob IsNot Nothing AndAlso jobView.IsRunning AndAlso chosen.Key <> jobView.CurrentJobId Then
+            Dim runningRow = EntryFor(jobView.CurrentJobId)
+            If runningRow IsNot Nothing Then
+                RailEntry_Click(runningRow, EventArgs.Empty)
+                ShowBusy(runningRow.Text)
+                Return
+            End If
+        End If
+        HideBusy()
+
         For Each it In entries
             it.Selected = (it Is chosen)
         Next
@@ -465,7 +498,7 @@ Public Class ShellForm
         ' the rail only chose the builder, and the operation - the real step 1 - is asked on the
         ' page itself, so the header must not answer step 1 before the page does.
         Dim numbered = (JobCatalogue.GetJob(chosen.Key) IsNot Nothing)
-        titleLabel.Text = If(numbered, String.Format(L("shell_step1_fmt"), chosen.Text), chosen.Text)
+        titleLabel.Text = If(numbered, Localization.Format(L("shell_step1_fmt"), chosen.Text), chosen.Text)
         subtitleLabel.Text = L(PurposeKeyFor(chosen.Key))
 
         jobView.Visible = False
@@ -487,8 +520,14 @@ Public Class ShellForm
         Else
             Dim jobDef = JobCatalogue.GetJob(chosen.Key)
             If jobDef IsNot Nothing Then
-                jobView.SetJob(jobDef)
+                ' The page of a job that is running, or whose result arrived while another view was
+                ' in front, is shown as it stands - choosing its row again must not throw either
+                ' one away.
+                If Not (chosen.Key = jobView.CurrentJobId AndAlso jobView.HoldsRunOrUnseenResult) Then
+                    jobView.SetJob(jobDef)
+                End If
                 jobView.Visible = True
+                jobView.MarkResultSeen()
             Else
                 emptyTitle.Text = chosen.Text
                 emptyHint.Text = L("shell_empty_hint")
@@ -496,6 +535,84 @@ Public Class ShellForm
             End If
         End If
     End Sub
+
+    Private Function EntryFor(key As String) As RailEntry
+        For Each it In entries
+            If it.Key = key Then Return it
+        Next
+        Return Nothing
+    End Function
+
+    Private Sub ShowBusy(jobName As String)
+        statusLabel.Text = Localization.Format(L("shell_busy_fmt"), jobName)
+        statusLabel.Visible = True
+    End Sub
+
+    Private Sub HideBusy()
+        If closeWhenIdle Then Return
+        statusLabel.Visible = False
+        statusLabel.Text = ""
+    End Sub
+
+    ' ---- a run and the window's life -------------------------------------
+
+    Private Function AnyRunActive() As Boolean
+        Return jobView.IsRunning OrElse commandView.IsRunning
+    End Function
+
+    ' The name of what is running, for the close question.
+    Private Function RunningName() As String
+        If jobView.IsRunning Then
+            Dim row = EntryFor(jobView.CurrentJobId)
+            If row IsNot Nothing Then Return row.Text
+        End If
+        Return L("rail_job_command")
+    End Function
+
+    Private Sub AnyRunFinished()
+        If Not AnyRunActive() Then HideBusy()
+        If closeWhenIdle AndAlso Not AnyRunActive() Then
+            ' The run the user asked to stop has ended and its report is written; the close they
+            ' asked for goes ahead now.
+            BeginInvoke(New MethodInvoker(AddressOf Close))
+        End If
+    End Sub
+
+    ' Closing while a run is active asks one question (APP-BEHAVIOUR rule 1 and rule 3). Keep
+    ' running is the answer that changes nothing, and it is what Escape, the close box and Enter
+    ' give. Stop and close writes the stop file and closes when the run has ended - its own cleanup
+    ' runs and its report is written - so nothing is left running unseen. If the run has not ended
+    ' after a stop was asked for a while ago, a second close offers to end the process outright.
+    Private Function ConfirmCloseWhileRunning() As Boolean
+        If closeWhenIdle Then
+            If (DateTime.Now - stopAskedAt).TotalSeconds < 10 Then Return False
+            Dim pickEnd = ShellDialog.Ask(Me, L("shell_close_running_title"),
+                                          Localization.Format(LText("shell_close_still_running"), RunningName()),
+                                          New String() {L("shell_btn_end_now"), L("shell_btn_keep_waiting")},
+                                          1, 1, 0)
+            If pickEnd = 0 Then
+                ShellLog.Info("close: the user ended a run that had not stopped")
+                jobView.ForceEnd()
+                commandView.ForceEnd()
+            End If
+            Return False
+        End If
+
+        Dim pick = ShellDialog.Ask(Me, L("shell_close_running_title"),
+                                   Localization.Format(LText("shell_close_running"), RunningName()),
+                                   New String() {L("shell_btn_stop_close"), L("shell_btn_keep_running")},
+                                   1, 1)
+        If pick <> 0 Then Return False
+
+        closeWhenIdle = True
+        stopAskedAt = DateTime.Now
+        statusLabel.Text = L("shell_closing_after_stop")
+        statusLabel.Visible = True
+        ShellLog.Info("close: stop requested, the window closes when the run ends")
+        jobView.RequestStopFromShell()
+        commandView.RequestStopFromShell()
+        Return False
+    End Function
 
     ' ---- theme -----------------------------------------------------------
 
@@ -515,6 +632,8 @@ Public Class ShellForm
         titleLabel.ForeColor = p.Text
         subtitleLabel.Font = Theme.FontBody()
         subtitleLabel.ForeColor = p.MutedText
+        statusLabel.Font = Theme.FontBodyStrong()
+        statusLabel.ForeColor = p.Warning
 
         emptyTitle.Font = Theme.FontSubtitle()
         emptyTitle.ForeColor = p.Text
@@ -563,15 +682,19 @@ Public Class ShellForm
 
     ' ---- placement -------------------------------------------------------
 
+    ' APP-BEHAVIOUR rule 10: the saved rectangle is put back defensively - onto a screen that
+    ' exists, with its title strip reachable, at the scale of the monitor it lands on. The decision
+    ' is WindowPlacement.Place, a pure function the self-test exercises without a display.
     Private Sub RestorePlacement()
         Dim p = ShellSettings.LoadPlacement()
         If Not p.HasValue Then Return
-        Dim r As New Rectangle(p.X, p.Y, p.Width, p.Height)
-        Dim visible = False
+        Dim screens As New List(Of WindowPlacement.ScreenArea)
         For Each s As Screen In Screen.AllScreens
-            If s.WorkingArea.IntersectsWith(r) Then visible = True
+            screens.Add(New WindowPlacement.ScreenArea(s.WorkingArea, WindowPlacement.DpiOf(s)))
         Next
-        If visible Then
+        Dim r = WindowPlacement.Place(New Rectangle(p.X, p.Y, p.Width, p.Height), p.Dpi, screens,
+                                      SystemInformation.CaptionHeight)
+        If Not r.IsEmpty Then
             StartPosition = FormStartPosition.Manual
             Bounds = r
         End If
@@ -579,19 +702,32 @@ Public Class ShellForm
     End Sub
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
+        ' A close with a run still active is a question, not a close (T5) - whether it came from the
+        ' close box, Alt+F4 or another program's WM_CLOSE (which WinForms reports as reason None).
+        ' Windows shutting down, or Task Manager, cannot wait for an answer: the run is asked to
+        ' stop and the window goes.
+        If AnyRunActive() Then
+            If e.CloseReason <> CloseReason.WindowsShutDown AndAlso e.CloseReason <> CloseReason.TaskManagerClosing Then
+                If Not ConfirmCloseWhileRunning() Then
+                    e.Cancel = True
+                    Return
+                End If
+            Else
+                jobView.RequestStopFromShell()
+                commandView.RequestStopFromShell()
+            End If
+        End If
+
         Dim b = If(WindowState = FormWindowState.Normal, Bounds, RestoreBounds)
-        ShellSettings.SavePlacement(b.X, b.Y, b.Width, b.Height, WindowState = FormWindowState.Maximized)
+        ShellSettings.SavePlacement(b.X, b.Y, b.Width, b.Height, WindowState = FormWindowState.Maximized, DeviceDpi)
+        ShellLog.Debug("shell closed")
         MyBase.OnFormClosing(e)
     End Sub
 
+    ' -debug adds the frame's diagnostics to the shell log.
     Private Sub WriteDiagnosticsIfAsked()
-        Try
-            If Not Environment.GetCommandLineArgs().Contains("-debug") Then Return
-            Dim line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & " shell frame: " & Chrome.Report() &
-                       " | dpi=" & DeviceDpi.ToString() & " | size=" & Width.ToString() & "x" & Height.ToString()
-            IO.File.AppendAllText("filedo_win_shell.log", line & Environment.NewLine)
-        Catch
-        End Try
+        ShellLog.Debug("shell frame: " & Chrome.Report() & " | dpi=" & DeviceDpi.ToString() &
+                       " | size=" & Width.ToString() & "x" & Height.ToString())
     End Sub
 
 End Class

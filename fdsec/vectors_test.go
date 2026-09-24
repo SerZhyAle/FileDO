@@ -5,8 +5,10 @@ import (
 	"crypto/sha256" //nolint:gosec // fixed test seed derivation, not security
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,18 +97,19 @@ type vecChunk struct {
 }
 
 type vecContainer struct {
-	Name       string     `json:"name"`
-	Size       int64      `json:"size"`
-	Content    hexBytes   `json:"content"`
-	Credential string     `json:"credential"`
-	EncodedAt  string     `json:"encoded_at"`
-	CreatedAt  string     `json:"created_at"`
-	AccessedAt string     `json:"accessed_at"`
-	ModifiedAt string     `json:"modified_at"`
-	Randoms    vecRandoms `json:"random_inputs"`
-	Layout     vecLayout  `json:"layout"`
-	File       string     `json:"file"`
-	Chunk0     *vecChunk  `json:"chunk0,omitempty"`
+	Name       string      `json:"name"`
+	Size       int64       `json:"size"`
+	Content    hexBytes    `json:"content"`
+	Credential string      `json:"credential"`
+	EncodedAt  string      `json:"encoded_at"`
+	CreatedAt  string      `json:"created_at"`
+	AccessedAt string      `json:"accessed_at"`
+	ModifiedAt string      `json:"modified_at"`
+	Randoms    vecRandoms  `json:"random_inputs"`
+	Layout     vecLayout   `json:"layout"`
+	File       string      `json:"file,omitempty"`
+	Chunk0     *vecChunk   `json:"chunk0,omitempty"`
+	Chunks     []*vecChunk `json:"chunks,omitempty"`
 }
 
 type vectorsFile struct {
@@ -115,6 +118,7 @@ type vectorsFile struct {
 	KDF        map[string]uint32        `json:"kdf_profile"`
 	RootSlow   hexBytes                 `json:"root_slow_branch"`
 	RootFast   hexBytes                 `json:"root_fast_branch"`
+	RootEmpty  hexBytes                 `json:"root_empty_credential"`
 	Containers map[string]*vecContainer `json:"containers"`
 }
 
@@ -133,8 +137,7 @@ func vecStream(seed string, total int) []byte {
 	return out
 }
 
-func vecLayoutLengths(name string, size int64) []int {
-	p := DefaultParams()
+func vecLayoutLengths(name string, size int64, p Params) []int {
 	h := header{ChunkSize: p.ChunkSize, ClusterAlignment: p.ClusterAlignment}
 	// Metadata block: u16le len || name || 40 (size + 4 FILETIMEs) || 32 digest.
 	metaPad := metaPlain - 2 - len(name) - 72
@@ -147,12 +150,12 @@ func vecLayoutLengths(name string, size int64) []int {
 	return []int{saltSize, fileKeySize, nonceSize, metaPad, alignPad, int(tail)}
 }
 
-func buildVectorContainer(name string, content []byte, cred string) (*vecContainer, []byte) {
+func buildVectorContainer(name string, content []byte, cred string, p Params) (*vecContainer, []byte) {
 	meta := vecTimes
 	meta.Name = name
 	meta.Size = int64(len(content))
 
-	lengths := vecLayoutLengths(name, int64(len(content)))
+	lengths := vecLayoutLengths(name, int64(len(content)), p)
 	total := 0
 	for _, n := range lengths {
 		total += n
@@ -177,7 +180,7 @@ func buildVectorContainer(name string, content []byte, cred string) (*vecContain
 	defer func() { randSource = saved }()
 
 	var out bytes.Buffer
-	Pack(&out, bytes.NewReader(content), meta, NewCredential(cred), DefaultParams())
+	Pack(&out, bytes.NewReader(content), meta, NewCredential(cred), p)
 	b := out.Bytes()
 
 	v := &vecContainer{
@@ -239,19 +242,23 @@ func TestVectors_Suite1(t *testing.T) {
 	activeProfile = profileV1
 	defer func() { activeProfile = saved }()
 
-	emptyVec, emptyBytes := buildVectorContainer(vecEmptyName, []byte{}, vecSlowCred)
+	emptyVec, emptyBytes := buildVectorContainer(vecEmptyName, []byte{}, vecSlowCred, DefaultParams())
 	emptyVec.File = vecEmptyFile
-	oneVec, oneBytes := buildVectorContainer(vecOneName, []byte(vecOneContent), vecSlowCred)
+	oneVec, oneBytes := buildVectorContainer(vecOneName, []byte(vecOneContent), vecSlowCred, DefaultParams())
 	oneVec.File = vecOneFile
 
-	// The root-key vectors pin both threshold branches with the empty
-	// container's salt and the profile of format version 1.
+	multiContent := bytes.Repeat([]byte("0123456789abcdef"), 150) // 2400 bytes: k=3 with S=1024, A=512
+	multiVec, multiBytes := buildVectorContainer("multi.bin", multiContent, vecSlowCred, Params{ClusterAlignment: 512, ChunkSize: 1024})
+
+	// The root-key vectors pin both threshold branches and the empty credential
+	// with the empty container's salt and the profile of format version 1.
 	h, _, err := openHead(bytes.NewReader(emptyBytes), NewCredential(vecSlowCred))
 	if err != nil {
 		t.Fatal(err)
 	}
 	rootSlow := deriveRoot(NewCredential(vecSlowCred), h.Salt[:])
 	rootFast := deriveRoot(NewCredential(vecFastCred), h.Salt[:])
+	rootEmpty := deriveRoot(NewCredential(""), h.Salt[:])
 	if len(NewCredential(vecFastCred)) < int(profileV1.Threshold) {
 		t.Fatal("fast-branch vector credential is shorter than the threshold")
 	}
@@ -266,15 +273,47 @@ func TestVectors_Suite1(t *testing.T) {
 	ad := adChunk(parseHeaderDigest(t, oneBytes, vecSlowCred), 0, 1, true, 1)
 	oneVec.Chunk0 = &vecChunk{Nonce: nonce, AD: ad, Ciphertext: bytes.Clone(oneVec.Layout.Payload)}
 
+	// Multi-chunk vector chunk records (k=3)
+	mh, _, err := openHead(bytes.NewReader(multiBytes), NewCredential(vecSlowCred))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mk := mh.chunkCount(int64(len(multiContent)))
+	mCap := int(mh.chunkCapacity())
+	mHeadDigest := mh.HeaderDigest
+	chunkOffset := 0
+	for i := int64(0); i < mk; i++ {
+		mNonce, err := deriveNonce(multiVec.Randoms.FileKey, string(chunkCtx(i)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		isLast := (i == mk-1)
+		chunkLen := mCap
+		if isLast {
+			chunkLen = int(mh.lastLen(int64(len(multiContent))))
+		}
+		mAd := adChunk(mHeadDigest, i, mk, isLast, int64(chunkLen))
+		chunkCiphertextLen := chunkLen + tagSize
+		chunkCt := multiVec.Layout.Payload[chunkOffset : chunkOffset+chunkCiphertextLen]
+		multiVec.Chunks = append(multiVec.Chunks, &vecChunk{
+			Nonce:      mNonce,
+			AD:         mAd,
+			Ciphertext: bytes.Clone(chunkCt),
+		})
+		chunkOffset += chunkCiphertextLen
+	}
+
 	vf := &vectorsFile{
 		Format:    "FDSEC suite 1, format version 1 - see FDSEC-FORMAT.md section 16, the contract these vectors ship beside",
 		Generated: "2026-09-20",
 		KDF:       map[string]uint32{"m_kib": profileV1.MemoryKiB, "t": profileV1.Time, "p": uint32(profileV1.Lanes), "threshold": profileV1.Threshold},
 		RootSlow:  rootSlow,
 		RootFast:  rootFast,
+		RootEmpty: rootEmpty,
 		Containers: map[string]*vecContainer{
 			"empty":   emptyVec,
 			"onebyte": oneVec,
+			"multi":   multiVec,
 		},
 	}
 
@@ -286,7 +325,8 @@ func TestVectors_Suite1(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(vecDir, vecJSON), append(j, '\n'), 0o644); err != nil {
+		jData := append(j, '\n')
+		if err := os.WriteFile(filepath.Join(vecDir, vecJSON), jData, 0o644); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(vecDir, vecEmptyFile), emptyBytes, 0o644); err != nil {
@@ -295,7 +335,50 @@ func TestVectors_Suite1(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(vecDir, vecOneFile), oneBytes, 0o644); err != nil {
 			t.Fatal(err)
 		}
+		prov := fmt.Sprintf("# Vendored copy of the FDSEC-FORMAT conformance vectors from the shared contracts catalog.\n# Never edit the vectors here: re-vendor them from the catalog and rewrite the sha256 rows.\n# Asserted by TestVectors_Suite1.\ncontract: FDSEC-FORMAT\nversion: 1.1\nvendored: 2026-09-24\nsha256 %s %x\nsha256 %s %x\nsha256 %s %x\n",
+			vecJSON, sha256.Sum256(jData),
+			vecEmptyFile, sha256.Sum256(emptyBytes),
+			vecOneFile, sha256.Sum256(oneBytes))
+		if err := os.WriteFile(filepath.Join(vecDir, "PROVENANCE.txt"), []byte(prov), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		t.Logf("vectors rewritten to %s", vecDir)
+	}
+
+	// Validation against PROVENANCE.txt
+	provRaw, err := os.ReadFile(filepath.Join(vecDir, "PROVENANCE.txt"))
+	if err != nil {
+		t.Fatalf("committed PROVENANCE.txt missing (run FDSEC_WRITE_VECTORS=1 go test ./fdsec -run TestVectors_Suite1): %v", err)
+	}
+	provLines := strings.Split(string(provRaw), "\n")
+	for _, line := range provLines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "sha256 ") {
+			parts := strings.Fields(line)
+			if len(parts) == 3 {
+				fname := parts[1]
+				wantHash := parts[2]
+				fbytes, err := os.ReadFile(filepath.Join(vecDir, fname))
+				if err != nil {
+					t.Fatalf("PROVENANCE target file %s missing: %v", fname, err)
+				}
+				gotHash := fmt.Sprintf("%x", sha256.Sum256(fbytes))
+				if gotHash != wantHash {
+					t.Fatalf("PROVENANCE sha256 mismatch for %s: got %s, want %s", fname, gotHash, wantHash)
+				}
+			}
+		}
+	}
+
+	// Opt-in catalog comparison
+	if catDir := os.Getenv("FDSEC_CATALOG_VECTORS"); catDir != "" {
+		for _, fname := range []string{vecJSON, vecEmptyFile, vecOneFile, "PROVENANCE.txt"} {
+			localBytes := mustRead(t, filepath.Join(vecDir, fname))
+			catBytes := mustRead(t, filepath.Join(catDir, fname))
+			if !bytes.Equal(localBytes, catBytes) {
+				t.Fatalf("catalog vector file %s does not match local fixture", fname)
+			}
+		}
 	}
 
 	// Validation against the committed files.
@@ -317,7 +400,7 @@ func TestVectors_Suite1(t *testing.T) {
 	checkBytes("committed empty container", emptyBytes, mustRead(t, filepath.Join(vecDir, vecEmptyFile)))
 	checkBytes("committed one-byte container", oneBytes, mustRead(t, filepath.Join(vecDir, vecOneFile)))
 
-	if len(committed.RootSlow) != fileKeySize || len(committed.RootFast) != fileKeySize {
+	if len(committed.RootSlow) != fileKeySize || len(committed.RootFast) != fileKeySize || len(committed.RootEmpty) != fileKeySize {
 		t.Fatal("committed root-key vectors are not 32 bytes")
 	}
 	if !bytes.Equal(committed.RootSlow, rootSlow) {
@@ -326,7 +409,10 @@ func TestVectors_Suite1(t *testing.T) {
 	if !bytes.Equal(committed.RootFast, rootFast) {
 		t.Error("fast-branch root key drifted from the committed vector")
 	}
-	for key, want := range map[string]*vecContainer{"empty": emptyVec, "onebyte": oneVec} {
+	if !bytes.Equal(committed.RootEmpty, rootEmpty) {
+		t.Error("empty-credential root key drifted from the committed vector")
+	}
+	for key, want := range map[string]*vecContainer{"empty": emptyVec, "onebyte": oneVec, "multi": multiVec} {
 		got := committed.Containers[key]
 		if got == nil {
 			t.Fatalf("committed vectors.json has no %q container", key)
@@ -351,6 +437,15 @@ func TestVectors_Suite1(t *testing.T) {
 	} else {
 		t.Error("committed onebyte chunk0 vector missing")
 	}
+	if c := committed.Containers["multi"]; c != nil && len(c.Chunks) == int(mk) {
+		for i, chunk := range multiVec.Chunks {
+			checkBytes(fmt.Sprintf("multi chunk %d nonce", i), chunk.Nonce, c.Chunks[i].Nonce)
+			checkBytes(fmt.Sprintf("multi chunk %d ad", i), chunk.AD, c.Chunks[i].AD)
+			checkBytes(fmt.Sprintf("multi chunk %d ciphertext", i), chunk.Ciphertext, c.Chunks[i].Ciphertext)
+		}
+	} else {
+		t.Error("committed multi chunks vector missing or count mismatch")
+	}
 
 	// The committed containers must unpack - the read-back the format promises.
 	for _, f := range []string{vecEmptyFile, vecOneFile} {
@@ -362,12 +457,19 @@ func TestVectors_Suite1(t *testing.T) {
 
 	// The committed randoms must reproduce the committed file byte for byte -
 	// this is the third-party property: doc + vectors.json => identical bytes.
-	for key, name := range map[string]string{"empty": vecEmptyName, "onebyte": vecOneName} {
+	for key, tc := range map[string]struct {
+		name   string
+		params Params
+	}{
+		"empty":   {vecEmptyName, DefaultParams()},
+		"onebyte": {vecOneName, DefaultParams()},
+		"multi":   {"multi.bin", Params{ClusterAlignment: 512, ChunkSize: 1024}},
+	} {
 		c := committed.Containers[key]
 		content := c.Content
 		stream := concat(c.Randoms.Salt, c.Randoms.FileKey, c.Randoms.WrapNonce, c.Randoms.MetaPad, c.Randoms.AlignPad, c.Randoms.TailPad)
 		meta := vecTimes
-		meta.Name = name
+		meta.Name = tc.name
 		meta.Size = int64(len(content))
 		meta.EncodedAt = mustTime(t, c.EncodedAt)
 		meta.CreatedAt = mustTime(t, c.CreatedAt)
@@ -376,12 +478,20 @@ func TestVectors_Suite1(t *testing.T) {
 		saved := randSource
 		randSource = bytes.NewReader(stream)
 		var out bytes.Buffer
-		_, err := Pack(&out, bytes.NewReader(content), meta, NewCredential(c.Credential), DefaultParams())
+		_, err := Pack(&out, bytes.NewReader(content), meta, NewCredential(c.Credential), tc.params)
 		randSource = saved
 		if err != nil {
 			t.Fatalf("%s: rebuild from committed randoms: %v", key, err)
 		}
-		checkBytes(key+" rebuilt from committed randoms", out.Bytes(), mustRead(t, filepath.Join(vecDir, c.File)))
+		if key != "multi" {
+			checkBytes(key+" rebuilt from committed randoms", out.Bytes(), mustRead(t, filepath.Join(vecDir, c.File)))
+		} else {
+			if dec, _, err := unpackContainer(out.Bytes(), NewCredential(c.Credential)); err != nil {
+				t.Fatalf("multi rebuilt does not unpack: %v", err)
+			} else {
+				checkBytes("multi decrypted", dec, content)
+			}
+		}
 	}
 }
 

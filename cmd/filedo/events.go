@@ -45,6 +45,11 @@ type EventManager struct {
 
 var globalEventManager *EventManager
 
+// eventNow is a narrow clock seam for the generated conformance vector.  The
+// production path keeps time.Now; the producer test fixes it so the checked-in
+// stream is reproducible byte for byte (CLI-EVENT-STREAM §4 rung 1).
+var eventNow = time.Now
+
 // InitEventManager initializes the global event channel if eventsPath is not empty.
 func InitEventManager(eventsPath string) (*EventManager, error) {
 	if eventsPath == "" {
@@ -78,7 +83,7 @@ func (em *EventManager) Emit(kind EventKind, data map[string]interface{}) {
 	ev := Event{
 		SchemaVersion: SchemaVersion,
 		Kind:          kind,
-		Timestamp:     time.Now(),
+		Timestamp:     eventNow(),
 		Data:          data,
 	}
 
@@ -134,12 +139,12 @@ func EmitProgressEvent(doneItems, totalItems, doneBytes, totalBytes int64, speed
 		return
 	}
 	globalEventManager.Emit(EventKindProgress, map[string]interface{}{
-		"doneItems":   doneItems,
-		"totalItems":  totalItems,
-		"doneBytes":   doneBytes,
-		"totalBytes":  totalBytes,
-		"speedBps":    speedBps,
-		"message":     message,
+		"doneItems":  doneItems,
+		"totalItems": totalItems,
+		"doneBytes":  doneBytes,
+		"totalBytes": totalBytes,
+		"speedBps":   speedBps,
+		"message":    message,
 	})
 }
 

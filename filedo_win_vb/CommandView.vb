@@ -23,8 +23,15 @@ Imports System.IO
 Public Class CommandView
     Inherits UserControl
 
+    ' Raised on the UI thread when a run has ended (the window's close waits for it).
+    Public Event RunFinished()
+
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly runner As New Runner()
+
+    ' What the verdict line is showing: "" (nothing), "running", "stopping", or a verdict word. The
+    ' line's colour is a function of this and the palette, re-applied by ApplyTheme (T2).
+    Private verdictState As String = ""
     Private ReadOnly tips As New ToolTip()
     Private ReadOnly secondaryButtons As New List(Of Button)
 
@@ -101,10 +108,16 @@ Public Class CommandView
     Private runHeader As Label
     Private cmdLabel As Label
     Private cmdLineBox As TextBox
+    ' The typed WIPE, asked whenever the line holds a `wipe` - with -y or without (T11).
+    Private wipeRow As FlowLayoutPanel
+    Private wipeLabel As Label
+    Private wipeBox As TextBox
+    Private wipeNotice As Label
     Private runBtn As Button
     Private stopBtn As Button
     Private copyBtn As Button
     Private verdictLabel As Label
+    Private progressBar As ProgressBar
     Private outputBox As TextBox
 
     Public Sub New()
@@ -201,7 +214,7 @@ Public Class CommandView
         AddHandler browseFolderBtn.Click, Sub()
                                               Using dlg As New FolderBrowserDialog()
                                                   dlg.Description = L("shell_dlg_select_folder")
-                                                  If dlg.ShowDialog() = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
+                                                  If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
                                               End Using
                                           End Sub
         secondaryButtons.Add(browseFolderBtn)
@@ -212,7 +225,7 @@ Public Class CommandView
         AddHandler browseFileBtn.Click, Sub()
                                             Using dlg As New OpenFileDialog()
                                                 dlg.Title = L("shell_dlg_select_file")
-                                                If dlg.ShowDialog() = DialogResult.OK Then targetCombo.Text = dlg.FileName
+                                                If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.FileName
                                             End Using
                                         End Sub
         secondaryButtons.Add(browseFileBtn)
@@ -362,7 +375,7 @@ Public Class CommandView
             Sub()
                 Using dlg As New FolderBrowserDialog()
                     dlg.Description = L("shell_dlg_select_dest")
-                    If dlg.ShowDialog() = DialogResult.OK Then dupMoveBox.Text = dlg.SelectedPath
+                    If dlg.ShowDialog(FindForm()) = DialogResult.OK Then dupMoveBox.Text = dlg.SelectedPath
                 End Using
             End Sub
         secondaryButtons.Add(dupMoveBrowseBtn)
@@ -484,14 +497,129 @@ Public Class CommandView
         End If
     End Sub
 
-    ' Run is refused for the one mistake this page can catch: a secure whose two boxes differ.
-    ' Everything else - an empty password included - is a documented choice.
+    ' Run is refused for the mistakes this page can catch: a secure whose two boxes differ, and a
+    ' wipe that was not typed out. Everything else - an empty password included - is a documented
+    ' choice.
     Private Sub UpdateRunButtonState()
-        If runner.IsActive Then Return
+        If runBtn Is Nothing OrElse runner.IsActive Then Return
         Dim op = CurrentOp()
         Dim mismatched = (op = "secure") AndAlso (credConfirmBox.Text <> credBox.Text)
-        runBtn.Enabled = Not mismatched
-        If mismatched Then tips.SetToolTip(runBtn, L("shell_cred_mismatch")) Else tips.SetToolTip(runBtn, "")
+        If mismatched Then
+            runBtn.Enabled = False
+            tips.SetToolTip(runBtn, L("shell_cred_mismatch"))
+            Return
+        End If
+
+        ' A line that holds `wipe` - the wipe verb, or the overwrite disposition of secure - asks
+        ' for the typed word whether or not it also carries -y: a ticked checkbox is not a
+        ' confirmation (APP-BEHAVIOUR rule 5, SP-0006 section 8 item 1).
+        Dim args = LineArgs()
+        Dim wipes = args.Any(Function(a) String.Equals(a, "wipe", StringComparison.OrdinalIgnoreCase))
+        wipeRow.Visible = wipes
+        wipeNotice.Visible = False
+        If Not wipes Then
+            wipeBox.Text = ""
+            runBtn.Enabled = True
+            tips.SetToolTip(runBtn, "")
+            Return
+        End If
+
+        ' The wipe verb on a location the CLI only wipes after asking twice on a console.
+        Dim danger = WipeDanger(args)
+        If danger <> "" Then
+            wipeNotice.Text = Localization.Format(L("shell_wipe_needs_console"), L(danger))
+            wipeNotice.Visible = True
+            runBtn.Enabled = False
+            tips.SetToolTip(runBtn, wipeNotice.Text)
+            Return
+        End If
+
+        If Not args.Any(Function(a) a = "-y" OrElse a = "--force" OrElse a = "--yes") Then
+            wipeNotice.Text = L("shell_cmd_wipe_needs_y")
+            wipeNotice.Visible = True
+        End If
+
+        runBtn.Enabled = (wipeBox.Text.Trim() = "WIPE")
+        tips.SetToolTip(runBtn, If(runBtn.Enabled, "", L("shell_cmd_wipe_confirm")))
+    End Sub
+
+    ' The line as the argument list it will run as, without the leading "filedo.exe".
+    Private Function LineArgs() As List(Of String)
+        Dim cmd = If(cmdLineBox Is Nothing, "", cmdLineBox.Text.Trim())
+        If cmd.StartsWith("filedo.exe ", StringComparison.OrdinalIgnoreCase) Then
+            cmd = cmd.Substring("filedo.exe ".Length).Trim()
+        End If
+        Try
+            Return New List(Of String)(ArgQuoting.SplitArgs(cmd))
+        Catch ex As Exception
+            ShellLog.Write("read the command line", ex)
+            Return New List(Of String)()
+        End Try
+    End Function
+
+    ' The reason key when the line wipes a dangerous location: `<target> wipe`, the CLI's order.
+    Private Shared Function WipeDanger(args As List(Of String)) As String
+        For i = 1 To args.Count - 1
+            If String.Equals(args(i), "wipe", StringComparison.OrdinalIgnoreCase) Then
+                Return WipeSafety.DangerKey(args(i - 1))
+            End If
+        Next
+        Return ""
+    End Function
+
+    ' ---- seams for SelfTest.vb -------------------------------------------
+
+    Friend Function RunEnabledForTest(line As String, typed As String) As Boolean
+        cmdLineBox.Text = line
+        wipeBox.Text = typed
+        UpdateRunButtonState()
+        Return runBtn.Enabled
+    End Function
+
+    Friend Sub FeedProgressForTest(p As EventStream.ProgressInfo)
+        progressBar.Visible = True
+        RunProgress.Apply(progressBar, p)
+    End Sub
+
+    Friend ReadOnly Property ProgressBarForTest As ProgressBar
+        Get
+            Return progressBar
+        End Get
+    End Property
+
+    Friend Sub ShowVerdictForTest(verdict As String)
+        ShowVerdict(New Runner.RunResult With {.Verdict = verdict, .ExitCode = 1, .Duration = TimeSpan.Zero})
+    End Sub
+
+    Friend ReadOnly Property VerdictLabelForTest As Label
+        Get
+            Return verdictLabel
+        End Get
+    End Property
+
+    ' ---- the run, as the window sees it -----------------------------------
+
+    Public ReadOnly Property IsRunning As Boolean
+        Get
+            Return runner.IsActive
+        End Get
+    End Property
+
+    Public Sub RequestStopFromShell()
+        If Not runner.IsActive Then Return
+        StopRun()
+    End Sub
+
+    Public Sub ForceEnd()
+        If runner.IsActive Then runner.ForceKill()
+    End Sub
+
+    Private Sub StopRun()
+        runner.RequestStop()
+        stopBtn.Enabled = False
+        verdictLabel.Text = L("shell_stop_requested")
+        verdictState = "stopping"
+        PaintVerdict(Theme.Current)
     End Sub
 
     Private Sub RuleChanged()
@@ -519,15 +647,13 @@ Public Class CommandView
         Dim t As New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .ColumnCount = 1,
-            .RowCount = 6,
+            .RowCount = 8,
             .Margin = New Padding(0)
         }
         t.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
-        t.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-        t.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-        t.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-        t.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-        t.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        For i = 0 To 6
+            t.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        Next
         t.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
 
         runHeader = Ui.StepHeader(Me, L("shell_step4"))
@@ -535,6 +661,25 @@ Public Class CommandView
 
         cmdLineBox = New TextBox With {.Dock = DockStyle.Fill, .Margin = Ui.PxPad(Me, 0, 2, 0, 8)}
         cmdLineBox.AccessibleName = L("shell_lbl_command_editable")
+        AddHandler cmdLineBox.TextChanged, Sub() UpdateRunButtonState()
+
+        wipeRow = New FlowLayoutPanel With {
+            .Dock = DockStyle.Top,
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .FlowDirection = FlowDirection.TopDown,
+            .WrapContents = False,
+            .Margin = Ui.PxPad(Me, 0, 0, 0, 8),
+            .Visible = False
+        }
+        wipeLabel = New Label With {.Text = L("shell_cmd_wipe_confirm"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
+        wipeBox = New TextBox With {.Width = Ui.Px(Me, 120), .Margin = Ui.PxPad(Me, 0, 2, 0, 4)}
+        wipeBox.AccessibleName = L("shell_cmd_wipe_confirm")
+        AddHandler wipeBox.TextChanged, Sub() UpdateRunButtonState()
+        wipeNotice = New Label With {.Text = "", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 0), .Visible = False}
+        wipeRow.Controls.Add(wipeLabel)
+        wipeRow.Controls.Add(wipeBox)
+        wipeRow.Controls.Add(wipeNotice)
 
         Dim btnFlow As New FlowLayoutPanel With {
             .Dock = DockStyle.Top,
@@ -551,22 +696,17 @@ Public Class CommandView
             .Margin = Ui.PxPad(Me, 0, 0, 10, 0)
         }
         AddHandler runBtn.Click, AddressOf RunBtn_Click
+        AddHandler runBtn.EnabledChanged, Sub() StyleRunButton()
 
         stopBtn = New Button With {.Text = L("shell_btn_stop"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0), .Enabled = False}
         ' A red button that cannot be pressed is the loudest thing on a page where nothing is
         ' running. Stop looks like Stop while there is something to stop, and like any other
         ' inactive control the rest of the time.
         AddHandler stopBtn.EnabledChanged, Sub() StyleStopButton()
-        AddHandler stopBtn.Click, Sub()
-                                      runner.RequestStop()
-                                      stopBtn.Enabled = False
-                                      verdictLabel.Text = L("shell_stop_requested")
-                                  End Sub
+        AddHandler stopBtn.Click, Sub() StopRun()
 
         copyBtn = New Button With {.Text = L("shell_btn_copy_cmd"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
-        AddHandler copyBtn.Click, Sub()
-                                      If Not String.IsNullOrEmpty(cmdLineBox.Text) Then Clipboard.SetText(cmdLineBox.Text)
-                                  End Sub
+        AddHandler copyBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), cmdLineBox.Text)
         secondaryButtons.Add(copyBtn)
 
         btnFlow.Controls.Add(runBtn)
@@ -574,6 +714,16 @@ Public Class CommandView
         btnFlow.Controls.Add(copyBtn)
 
         verdictLabel = New Label With {.Text = "", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 6)}
+
+        ' The run's progress, drawn by the same rule as the job page's (RunProgress, T6). It is on
+        ' screen only while something runs.
+        progressBar = New ProgressBar With {
+            .Dock = DockStyle.Top,
+            .Height = Ui.Px(Me, 18),
+            .Margin = Ui.PxPad(Me, 0, 0, 0, 8),
+            .Visible = False
+        }
+        progressBar.AccessibleName = L("shell_state_running")
 
         outputBox = New TextBox With {
             .Dock = DockStyle.Fill,
@@ -587,12 +737,16 @@ Public Class CommandView
         t.Controls.Add(runHeader, 0, 0)
         t.Controls.Add(cmdLabel, 0, 1)
         t.Controls.Add(cmdLineBox, 0, 2)
-        t.Controls.Add(btnFlow, 0, 3)
-        t.Controls.Add(verdictLabel, 0, 4)
-        t.Controls.Add(outputBox, 0, 5)
+        t.Controls.Add(wipeRow, 0, 3)
+        t.Controls.Add(btnFlow, 0, 4)
+        t.Controls.Add(verdictLabel, 0, 5)
+        t.Controls.Add(progressBar, 0, 6)
+        t.Controls.Add(outputBox, 0, 7)
 
         runCard.Controls.Add(t)
         Ui.Wrap(verdictLabel, runCard, Ui.Px(Me, 36))
+        Ui.Wrap(wipeLabel, runCard, Ui.Px(Me, 36))
+        Ui.Wrap(wipeNotice, runCard, Ui.Px(Me, 36))
     End Sub
 
     ' Every operation filedo.exe takes that can be written on a command line without a password.
@@ -967,12 +1121,28 @@ Public Class CommandView
     Private Sub HookRunner()
         AddHandler runner.OutputLineReceived,
             Sub(line, isErr)
-                BeginInvoke(Sub() outputBox.AppendText(line & Environment.NewLine))
+                PostToUi(Sub() outputBox.AppendText(line & Environment.NewLine))
             End Sub
         AddHandler runner.NoteReported,
             Sub(msg)
-                BeginInvoke(Sub() outputBox.AppendText("[note] " & msg & Environment.NewLine))
+                PostToUi(Sub() outputBox.AppendText("[note] " & msg & Environment.NewLine))
             End Sub
+        AddHandler runner.ProgressReported,
+            Sub(p)
+                PostToUi(Sub() RunProgress.Apply(progressBar, p))
+            End Sub
+    End Sub
+
+    ' Hands a runner event from its thread to the page. A page whose window is gone - the window
+    ' was closed while Windows was shutting down - simply does not get it: an event posted to a
+    ' destroyed control would end the process.
+    Private Sub PostToUi(work As Action)
+        If IsDisposed OrElse Not IsHandleCreated Then Return
+        Try
+            BeginInvoke(work)
+        Catch ex As InvalidOperationException
+            ' Destroyed between the check and the call; the line has nobody left to show it to.
+        End Try
     End Sub
 
     Private Async Sub RunBtn_Click(sender As Object, e As EventArgs)
@@ -980,9 +1150,12 @@ Public Class CommandView
 
         outputBox.Clear()
         verdictLabel.Text = L("shell_state_running")
-        verdictLabel.ForeColor = Theme.Current.Accent
+        verdictState = "running"
+        PaintVerdict(Theme.Current)
         runBtn.Enabled = False
         stopBtn.Enabled = True
+        RunProgress.Begin(progressBar)
+        progressBar.Visible = True
 
         Dim cmd = cmdLineBox.Text.Trim()
         If cmd.StartsWith("filedo.exe ", StringComparison.OrdinalIgnoreCase) Then
@@ -1006,26 +1179,46 @@ Public Class CommandView
         ' quoted path with a space in it stays one argument (ArgQuoting.SplitArgs).
         Dim res = Await runner.ExecuteAsync(ArgQuoting.SplitArgs(cmd), envVars:=env)
 
-        runBtn.Enabled = True
         stopBtn.Enabled = False
         stopBtn.Text = L("shell_btn_stop")
+        progressBar.Visible = False
         ShowVerdict(res)
+        wipeBox.Text = ""
+        UpdateRunButtonState()
+        RaiseEvent RunFinished()
     End Sub
 
     Private Sub ShowVerdict(res As Runner.RunResult)
-        Dim p = Theme.Current
         Dim word = L("shell_verdict_" & res.Verdict.ToLowerInvariant().Replace(" ", "_"))
-        Dim line = Theme.Glyph(VerdictGlyph(res.Verdict)) & " " & word & " - " &
-                   String.Format(L("shell_result_summary_fmt"), res.Duration.ToString("mm\:ss"), res.ExitCode)
+        Dim line = Theme.Glyph(Theme.VerdictGlyph(res.Verdict)) & " " & word & " - " &
+                   Localization.Format(L("shell_result_summary_fmt"), res.Duration.ToString("mm\:ss"), res.ExitCode)
         If Not String.IsNullOrEmpty(res.Reason) Then line &= Environment.NewLine & L(res.Reason)
 
         verdictLabel.Text = line
-        Select Case res.Verdict.ToLowerInvariant()
-            Case "passed", "done" : verdictLabel.ForeColor = p.Success
-            Case "failed" : verdictLabel.ForeColor = p.Danger
-            Case "stopped" : verdictLabel.ForeColor = p.Warning
-            Case Else : verdictLabel.ForeColor = p.MutedText
+        verdictState = res.Verdict
+        PaintVerdict(Theme.Current)
+    End Sub
+
+    ' The verdict line's colour, one function of (state, palette), called from the run path and from
+    ' ApplyTheme - so a result on screen follows a theme switch (APP-STYLE section 3, T2).
+    Private Sub PaintVerdict(p As Theme.Palette)
+        Select Case verdictState
+            Case "" : verdictLabel.ForeColor = p.Text
+            Case "running", "stopping" : verdictLabel.ForeColor = p.Accent
+            Case Else : verdictLabel.ForeColor = Theme.VerdictColor(verdictState, p)
         End Select
+    End Sub
+
+    ' Run looks like Run when it can be pressed, and like any inactive control while the typed WIPE
+    ' or the password pair is still missing.
+    Private Sub StyleRunButton()
+        If runBtn Is Nothing Then Return
+        Dim p = Theme.Current
+        If runBtn.Enabled Then
+            Ui.StyleButton(runBtn, p.Accent, p.AccentText, p.Accent)
+        Else
+            Ui.StyleButton(runBtn, p.SurfaceAlt, p.TextDisabled, p.Border)
+        End If
     End Sub
 
     Private Sub StyleStopButton()
@@ -1034,18 +1227,9 @@ Public Class CommandView
         If stopBtn.Enabled Then
             Ui.StyleButton(stopBtn, p.Danger, p.AccentText, p.Danger)
         Else
-            Ui.StyleButton(stopBtn, p.SurfaceAlt, p.MutedText, p.Border)
+            Ui.StyleButton(stopBtn, p.SurfaceAlt, p.TextDisabled, p.Border)
         End If
     End Sub
-
-    Private Shared Function VerdictGlyph(verdict As String) As String
-        Select Case verdict.ToLowerInvariant()
-            Case "passed", "done" : Return ChrW(&HE73E)
-            Case "failed" : Return ChrW(&HE711)
-            Case "stopped" : Return ChrW(&HE71A)
-            Case Else : Return ChrW(&HE9CE)
-        End Select
-    End Function
 
     Public Sub ApplyTheme()
         Dim p = Theme.Current
@@ -1146,9 +1330,19 @@ Public Class CommandView
         outputBox.BorderStyle = BorderStyle.FixedSingle
 
         verdictLabel.Font = Theme.FontBodyStrong()
+        PaintVerdict(p)
+
+        wipeLabel.Font = Theme.FontBodyStrong()
+        wipeLabel.ForeColor = p.Danger
+        wipeBox.Font = Theme.FontBody()
+        wipeBox.BackColor = p.SurfaceAlt
+        wipeBox.ForeColor = p.Text
+        wipeBox.BorderStyle = BorderStyle.FixedSingle
+        wipeNotice.Font = Theme.FontCaption()
+        wipeNotice.ForeColor = p.Warning
 
         runBtn.Font = Theme.FontBodyStrong()
-        Ui.StyleButton(runBtn, p.Accent, p.AccentText, p.Accent)
+        StyleRunButton()
         stopBtn.Font = Theme.FontBodyStrong()
         StyleStopButton()
 

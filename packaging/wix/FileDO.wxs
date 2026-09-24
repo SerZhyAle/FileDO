@@ -377,6 +377,9 @@
       <Component Id="LicenseFile" Guid="*">
         <File Source="$(var.StageDir)\LICENSE" Name="LICENSE.txt" KeyPath="yes" />
       </Component>
+      <Component Id="ThirdPartyNoticesFile" Guid="*">
+        <File Source="$(var.StageDir)\THIRD-PARTY-NOTICES.txt" KeyPath="yes" />
+      </Component>
       <Component Id="ReadmeFile" Guid="*">
         <File Source="$(var.StageDir)\README.md" KeyPath="yes" />
       </Component>

@@ -23,10 +23,10 @@
 - Lands in every authored locale in one edit, like any other user-facing surface.
 
 **Status: adopted.** `docs/guides/install-trust.html` is the page, in the three locales the site
-authors, and it is linked from the landing page's download band, the guide hub, the install guide and all
+authors, and it is linked from the landing page's download band, the GitHub Release body, the guide hub, the install guide and all
 five README locales. `cmd/filedo/fdsec_surfaces_test.go`
 (`TestSurfaces_TheInstallTrustPageKeepsItsContract`) asserts the four sections in order, the quoted
-dialogs, the stated cost, the absence of every instruction rule 4 forbids, the one undo action, and that
+dialogs, the stated cost, the absence of every instruction rule 4 forbids, the itemized elevations, and that
 the fourth section still agrees with `docs/privacy.html`, the MSIX capability list and the Store
 data-safety answers.
 

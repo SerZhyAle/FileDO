@@ -316,39 +316,44 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 - **`msix/listing/<code>.txt` is the one source of listing copy** (en ru uk de fr - the GUI's languages, kept in
   step with the manifest `Resources` and the builder's locale map). The Partner Center console is a render
   target and `store-listing.md` carries only what the CSV cannot. `msix/test-store-tools.ps1` gates both.
-- **`msix/make-screenshots.ps1` moves the mouse**: run it on an idle machine. It captures the dark theme
-  because the light palette makes one rail row paint as a WinForms red-cross placeholder; it refuses to save
-  such a shot rather than ship it.
+- **`msix/make-screenshots.ps1` takes the foreground**: run it on an idle machine. It chooses rail rows
+  through UI Automation (each row is named `rail:<key>` and has a default action), captures either theme
+  (`-Theme light|dark`), and refuses to save a shot in which a control painted as a WinForms red-cross
+  placeholder rather than ship it.
 - **Nothing in `msix/` publishes.** The upload, the listing import and the submission are the owner's.
 
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate is `build.ps1 -Test`, in four steps: a smoke-run asserting the freshly built exe prints
-  the stamped version, a compile-check of the test module, `go test ./fdsec/ -count=1 -short`, and
-  `go test ./cmd/filedo/ -count=1 -vet=off`. Its exit codes are **1 = a defect was found** and
-  **2 = the gate could not verify** (Go missing from `PATH`, or the built exe absent). Exit 2 is not a
-  pass and not a defect report; treat it as "nothing was proven".
+- The real gate is `build.ps1 -Test`, in five steps: smoke every shipped executable for its stamped version;
+  compile-check `cmd\filedo-test` and validate `packaging/check-placement.jsonl`; `go test ./fdsec/ -count=1
+  -short`; `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`; and
+  `filedo_win.exe --selftest` (skipped only with `-SkipGui`). Its last line is `build-gate <stamp>: PASS`,
+  `FAIL`, or `NOT VERIFIED`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate
+  could not verify**. Exit 2 is not a pass and not a defect report; treat it as "nothing was proven".
 - `cmd/filedo-test` is **its own module**, so the compile-check must run from inside it
-  (`cd cmd\filedo-test; go test ./...`). Running `go test ./cmd/filedo-test` from the repo root fails with
+  (`cd cmd\filedo-test; go test ./...`). Addressing that module from the repository root fails with
   *main module (filedo) does not contain package* - a trap worth knowing, because the console line
-  `build.ps1` used to print named exactly that failing form.
+  `build.ps1` used to print that failing form.
 - **Two packages carry real tests** and both are part of the gate:
   - `fdsec/` - the container format, its boundary corpus, every tampering class and the committed vectors.
-    It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip (about 90 s); run it without
-    `-short` before a release.
+    It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip (about 90 s); `release.ps1`
+    runs it without `-short` before tagging.
   - `cmd/filedo/` - the black-box acceptance suite for the fdsec command surface. It builds its own exe and
     asserts exit codes, `history.json` redaction, the batch `.lst` path and the destructive rules. It needs
-    **`-vet=off`**, not because of these tests but because package main carries the pre-existing vet debt
-    named in the first bullet; without the flag `go test` fails at the vet step before a test even runs.
+    **`-vet=off`**, because package main carries the pre-existing vet debt recorded, never suppressed, in
+    `cmd/filedo/vet-baseline.txt`; without the flag `go test` fails at the vet step before a test even runs.
     `outcome_cli_test.go` is the exit-code table - one verb of each kind, its code and the verdict its
     `result` event must carry - and `fdsec_surfaces_test.go` is the cross-surface gate, which now also
     holds the install-trust page to its contract.
 - **The shell has its own gate and it is not `go test`**: `filedo_win.exe --selftest` builds every job
   page, then runs the consumer half of `CLI-EVENT-STREAM` - the `verdict:` rows (every verdict/exit-code/
   stop-file/schema-version combination `Runner.Judge` can meet) and the `tailer:` rows (a line written in
-  two halves, an unparseable timestamp, a newer MAJOR). It writes `filedo_win_selftest.log` beside the exe
-  and exits 0 or 1. It is a GUI-subsystem process, so from PowerShell it needs
+  two halves, an unparseable timestamp, a newer MAJOR) - and the `APP-BEHAVIOUR`/`APP-STYLE` rungs:
+  `palette:`, `theme:`, `rail-paint:`, `rail-label:` (every label in five languages), `progress:`,
+  `format:`, `a11y:`, `placement:`, `wipe:` and `command:` rows. Its palette switch goes through
+  `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe
+  and exits 0, 1, or 2 (the last means its log could not be written). It is a GUI-subsystem process, so from PowerShell it needs
   `Start-Process .\filedo_win.exe --selftest -Wait -PassThru` to have an exit code at all.
 - Add or adjust tests in `cmd\filedo-test/` for user-visible changes that the two Go suites do not reach;
   use `tests\prepare_test_env.cmd` for list-driven scenarios; note any disk, drive-letter, or admin
@@ -365,26 +370,38 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   alone once let an edited file be deleted as a false duplicate - now a permanent invariant).
 
 ## The GUI shell (`filedo_win_vb/`)
-The VB.NET project holds two windows. `ShellForm` - the shell built under `PLAN/SP-0006` - is what
-`filedo_win.exe` opens now; `MainForm` is the command builder that shipped before it, still there and
-reached with **`--legacy-builder`**. `MainForm.Load` is the entry point either way: it opens the shell
-unless that switch is present. `filedo_win.exe` is a frozen anchor (one name, one winget alias, one MSIX
-`Application Id`), so the shell is a second **form**, never a second program.
+The VB.NET project holds one window, `ShellForm` - the shell built under SP-0006 - and `Program.Main` is
+its entry point. The command builder that shipped before it (`MainForm`, `AboutForm`) was **retired**;
+`--legacy-builder` is still accepted and simply opens the shell, so an old shortcut keeps working. The
+shell's Command page is where a hand-written command line lives. `filedo_win.exe` is a frozen anchor (one
+name, one winget alias, one MSIX `Application Id`), so the shell is a **form**, never a second program.
 
-**The program can be started on a file.** `MainForm.StartupTarget` takes the first argument that is not a
+**The program can be started on a file.** `Program.StartupTarget` takes the first argument that is not a
 switch and is a file on disk, and hands it to `ShellForm`, which opens the reveal page for a `.fd-sec` and
 the secure page for anything else (SP-0005 9.4). Two consequences are load-bearing: a copy started on a
 file does **not** stand down for the single-instance check - focusing another window would drop the file
 the start was about - and each double-clicked container therefore gets its own window, which is what makes
 "remove the copy now" belong to one reveal rather than to whichever ran last.
 
+**The shell consumes `APP-BEHAVIOUR` and `APP-STYLE`** (see "External contracts"). What that means in
+code, each held by a gate:
+- **No exception text on screen.** A caught exception goes to `ShellLog` (`%LOCALAPPDATA%\FileDO\
+  filedo_win.log`, which Send logs packs), and the user gets `ShellDialog.Problem` - a cause named from the
+  exception's *type* (`Problems.CauseKey`) and actions. `Program.Main` handles every exception nothing else
+  caught the same way.
+- **No system message box and no owner-less dialog.** Every question is a `ShellDialog` (owned, themed,
+  Escape and the close box give the no-action answer); every common dialog gets `FindForm()`.
+- **No `String.Format` on a translation** - `Localization.Format`, which never throws.
+- **A running job is never lost.** A job row clicked mid-run keeps the running page; closing mid-run asks.
+
 Three rules a change here must not break:
 - **`Theme.vb` is the only file allowed to name a colour.** No `Color.`, `FromArgb` or `RGB(` anywhere
-  else in the shell - and mixing two tokens counts as naming one, which is why `Theme.Blend` lives there
-  too. Check it with a search before claiming a change is done.
+  else in the shell - and mixing two tokens counts as naming one, which is why `Theme.Blend` is private to
+  it and a mix a view needs becomes a named palette role. `cmd/filedo/shell_contract_test.go` makes the
+  search on every build. A mix is done in `Integer`: a `Byte` minus a larger `Byte` throws in VB, which is
+  what once painted the light theme's selected rail row as a red cross.
 - **No fixed coordinates.** Layout comes from `TableLayoutPanel`, `FlowLayoutPanel`, docking and
-  anchoring. The designer-written `System.Drawing.Point(..)` calls in `MainForm.Designer.vb` are exactly
-  what a per-monitor-DPI window must not have.
+  anchoring - a `System.Drawing.Point(..)` is exactly what a per-monitor-DPI window must not have.
 - **The DPI declaration is two files and both must ship.** `app.manifest` is linked into the exe;
   `app.config` becomes a separate `filedo_win.exe.config` that `build.ps1`, `packaging/wix/FileDO.wxs`,
   `msix/build-msix.ps1` and the release workflow each have to carry. Shipping the manifest without the
@@ -445,10 +462,28 @@ What this repository implements, with its pointer file:
 
 | Contract | Version | Catalog folder | Pointer here |
 | --- | --- | --- | --- |
-| `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte | 1.0 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
-| `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.0 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
+| `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte | 1.1 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
+| `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.1 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
 | `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.9 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
 | `INSTALL-TRUST` - what a user reads in the thirty seconds after Windows warned them about an unsigned build | 1.0 | `install-trust/` | [`docs/contracts/INSTALL-TRUST.md`](docs/contracts/INSTALL-TRUST.md) |
+| `CHECK-VERDICT` - the exit code and final machine-readable line emitted by an automated check | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-VERDICT.md`](docs/contracts/CHECK-VERDICT.md) |
+| `CHECK-BASELINE` - the shrink-only file carrying accepted check debt | 0.9 draft | `automated-checks/` | [`docs/contracts/CHECK-BASELINE.md`](docs/contracts/CHECK-BASELINE.md) |
+| `CHECK-PLACEMENT` - the record mapping every check to its runner | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-PLACEMENT.md`](docs/contracts/CHECK-PLACEMENT.md) |
+| `BUILD-EVIDENCE` - the version carried by an artifact and the gate judging it | 0.9 draft | `automated-checks/` | [`docs/contracts/BUILD-EVIDENCE.md`](docs/contracts/BUILD-EVIDENCE.md) |
+| `ICON-SET` - the glyph vocabulary: one meaning, one glyph, one name, on every surface that shows a picture (consumer) | 0.11 draft | `iconography/` | [`docs/contracts/ICON-SET.md`](docs/contracts/ICON-SET.md) |
+| `ICON-RENDER` - how a glyph is drawn: colour role, themes, sizes, accessible name, the product mark on system surfaces (consumer) | 0.11 draft | `iconography/` | [`docs/contracts/ICON-RENDER.md`](docs/contracts/ICON-RENDER.md) |
+| `ICON-EXTERNAL` - third-party marks, other apps' icons, downloaded pictures (consumer) | 0.9 draft | `iconography/` | [`docs/contracts/ICON-EXTERNAL.md`](docs/contracts/ICON-EXTERNAL.md) |
+| `REPO-STAMP` - the canon adoption stamp `.sza-canon.json`, written by the canon's adoption run (producer) | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-STAMP.md`](docs/contracts/REPO-STAMP.md) |
+
+What this repository consumes:
+
+| Contract | Version | Catalog folder | Pointer here |
+| --- | --- | --- | --- |
+| `PAGE-CONTENT` / `PAGE-STYLE` / `SITE-FAMILY-MAP` - what the product page says and in what order, how it looks, and the family footer | 1.1 / 1.1 / 1.1 | `product-web-pages/` | [`docs/contracts/PAGE-CONTENT.md`](docs/contracts/PAGE-CONTENT.md), [`PAGE-STYLE.md`](docs/contracts/PAGE-STYLE.md), [`SITE-FAMILY-MAP.md`](docs/contracts/SITE-FAMILY-MAP.md) |
+| `APP-BEHAVIOUR` - what the shell does at the twelve moments a user of any SZA desktop app meets: escapable dialogs, honest progress, consent, confirmation, failure as actions, localized rendering, accessible names, window placement, first run, settings | 0.10 draft | `desktop-app-ux/` | [`docs/contracts/APP-BEHAVIOUR.md`](docs/contracts/APP-BEHAVIOUR.md) |
+| `APP-STYLE` - the theme mechanism (system/light/dark, live), one palette table, the role vocabulary, declared out-of-theme surfaces | 0.10 draft | `desktop-app-ux/` | [`docs/contracts/APP-STYLE.md`](docs/contracts/APP-STYLE.md) |
+| `REPO-LAYOUT` - the root and `docs/` names a shared tool may address without asking | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-LAYOUT.md`](docs/contracts/REPO-LAYOUT.md) |
+| `RULE-DELIVERY` - how the canon arrives through the `sza` plugin, and how staleness is judged | 0.9 draft | `rule-adoption/` | [`docs/contracts/RULE-DELIVERY.md`](docs/contracts/RULE-DELIVERY.md) |
 
 Four rules, because a shared contract breaks differently from ordinary code:
 

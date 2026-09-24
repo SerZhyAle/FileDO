@@ -1,7 +1,7 @@
 # FileDO Comprehensive Test Suite
 # This file contains tests for all major functionalities of FileDO
 # Created: July 11, 2025
-# For use with: filedo.exe from .\test\test_list.lst
+# For use with: filedo.exe from .\tests\test_list.lst
 # =====================================================================
 
 # =====================================================================

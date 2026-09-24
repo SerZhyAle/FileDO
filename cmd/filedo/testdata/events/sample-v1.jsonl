@@ -1,0 +1,6 @@
+{"schemaVersion":1,"kind":"run","timestamp":"2026-09-24T12:00:00Z","data":{"args":["sample","p:masked"],"command":"sample","target":"C:\\sample","version":"2609241200"}}
+{"schemaVersion":1,"kind":"step","timestamp":"2026-09-24T12:00:00.001Z","data":{"description":"Writing a deterministic sample","name":"write"}}
+{"schemaVersion":1,"kind":"progress","timestamp":"2026-09-24T12:00:00.002Z","data":{"doneBytes":512,"doneItems":1,"message":"Halfway done","speedBps":256.5,"totalBytes":1024,"totalItems":2}}
+{"schemaVersion":1,"kind":"finding","timestamp":"2026-09-24T12:00:00.003Z","data":{"details":{"index":1},"message":"An example finding","type":"example"}}
+{"schemaVersion":1,"kind":"note","timestamp":"2026-09-24T12:00:00.004Z","data":{"message":"An example note"}}
+{"schemaVersion":1,"kind":"result","timestamp":"2026-09-24T12:00:00.005Z","data":{"filesLeft":["C:\\sample\\kept.bin"],"numbers":{"bytes":1024},"reports":["C:\\sample\\report.txt"],"verdict":"Passed"}}

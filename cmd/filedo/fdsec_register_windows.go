@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -27,6 +28,21 @@ import (
 // fdsecRegRootEnv points the registration at a scratch subkey of HKCU. Tests
 // only; unset in every shipped run.
 const fdsecRegRootEnv = "FILEDO_FDSEC_REG_ROOT"
+
+// fdsecHasPackageIdentity reports whether this process runs with a package
+// identity - the Microsoft Store build, started from its tile or through the
+// `filedo` execution alias. GetCurrentPackageFullName answers
+// APPMODEL_ERROR_NO_PACKAGE for every process that has none.
+func fdsecHasPackageIdentity() bool {
+	proc := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetCurrentPackageFullName")
+	if proc.Find() != nil {
+		return false
+	}
+	const appmodelErrorNoPackage = 15700
+	var n uint32
+	r, _, _ := proc.Call(uintptr(unsafe.Pointer(&n)), 0)
+	return r != appmodelErrorNoPackage
+}
 
 // fdsecPreviousProgIDValue holds whatever owned .fd-sec before FileDO did, so
 // that unregister gives it back rather than leaving the extension orphaned.

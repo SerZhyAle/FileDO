@@ -25,7 +25,7 @@
 - **A stop is a file**, not a signal: the shell creates the `--stop-file`, the CLI polls for its presence
   and takes the interrupt path it already has.
 - Both sides cite `CLI-EVENT-STREAM rule N` in their comments.
-- Open deviations are recorded as dated exceptions in the catalog's registry; ticket SP-0010.
+- Open deviations are recorded as dated exceptions in the catalog's registry; ticket SP-0012.
 
 ## Where each half lives
 
@@ -33,7 +33,7 @@
   `runDefect`, `runNumber` and `runFailure` record, and `finishRun` - deferred once in `main()` - writes
   the one `result` event and sets the one exit code. `cmd/filedo/events.go` is the wire format,
   `progress.go` the `progress` tick every long loop shares. Proven by
-  `go test ./cmd/filedo/ -count=1 -vet=off -run 'TestExitCodeVocabulary|TestEventStreamShape|TestContainerVerbKeepsItsOwnClasses|TestRunEventRedactsCredentials'`.
+  `go test ./cmd/filedo/ -count=1 -vet=off -run 'TestEventManager_Emission|TestInterruptHandler_StopFile|TestEventSample_V1|TestExitCodeVocabulary|TestEventStreamShape|TestContainerVerbKeepsItsOwnClasses|TestRunEventRedactsCredentials'`.
 - **Consumer.** `filedo_win_vb/EventStream.vb` tails by byte offset and never advances past an incomplete
   line; `filedo_win_vb/Runner.vb` (`Judge`) decides the verdict. Proven by `filedo_win.exe --selftest`,
   whose `verdict:` and `tailer:` lines are rungs 2 and 3 of the contract's conformance ladder.

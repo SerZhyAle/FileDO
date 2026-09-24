@@ -12,14 +12,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -90,18 +90,20 @@
             >FileDO упаковывает файл в контейнер <code>.fd-sec</code>, возвращает
             его обратно и умеет открыть содержимое в нужной программе, не
             распаковывая. Настоящее имя, размер и отметки времени запечатаны
-            внутри; снаружи виден только размер самого контейнера.</span
+            внутри; снаружи видны только размер самого контейнера, его видимое имя
+            и время создания (переименование даёт безымянный блок данных).</span
           ><span data-l="en"
             >FileDO packs a file into a <code>.fd-sec</code> container, brings it
             back, and can open what is inside in the program it belongs to
             without unpacking it. The true name, the size and the timestamps are
-            sealed inside; from outside only the container's own size is
-            visible.</span
+            sealed inside; from outside only the container's own size, its visible
+            name and its timestamps are visible (renaming writes a nameless blob).</span
           ><span data-l="ua"
             >FileDO пакує файл у контейнер <code>.fd-sec</code>, повертає його
             назад і вміє відкрити вміст у потрібній програмі, не розпаковуючи.
             Справжнє ім'я, розмір і позначки часу запечатані всередині; ззовні
-            видно лише розмір самого контейнера.</span
+            видно лише розмір самого контейнера, його видиме ім'я та позначки часу
+            (перейменування дає безіменний блок даних).</span
           >
         </p>
       </section>
@@ -151,9 +153,7 @@
               filedo report.docx secure<button
                 class="copy"
                 data-copy="filedo report.docx secure"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -180,9 +180,7 @@
               filedo report.fd-sec unsecure<button
                 class="copy"
                 data-copy="filedo report.fd-sec unsecure"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
@@ -213,9 +211,7 @@
               filedo report.fd-sec reveal<button
                 class="copy"
                 data-copy="filedo report.fd-sec reveal"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
         </div>
@@ -235,17 +231,17 @@
           <p>
             <span data-l="ru"
               >Пустой пароль принимается - и означает только маскировку, без
-              секретности: такой файл откроет любой, у кого есть FileDO. Короткий
+              секретности: такой файл откроет любой, кто знает формат. Короткий
               пароль защищает ненамного лучше. Ключа восстановления нет:
               забытый пароль - это потерянный файл.</span
             ><span data-l="en"
               >An empty password is accepted, and it means obfuscation only - no
-              secrecy: anyone with FileDO opens that file. A short password is
-              not much better. There is no recovery key: a forgotten password is
-              a lost file.</span
+              secrecy: anyone who knows the format opens that file. A short
+              password is not much better. There is no recovery key: a forgotten
+              password is a lost file.</span
             ><span data-l="ua"
               >Порожній пароль приймається - і означає лише маскування, без
-              таємниці: такий файл відкриє будь-хто, у кого є FileDO. Короткий
+              таємниці: такий файл відкриє будь-хто, хто знає формат. Короткий
               пароль захищає ненабагато краще. Ключа відновлення немає: забутий
               пароль - це втрачений файл.</span
             >
@@ -410,9 +406,7 @@
           filedo fdsec register<button
             class="copy"
             data-copy="filedo fdsec register"
-          >
-            Copy
-          </button>
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
       </section>
     </main>

@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
   Assert that every .sha256 sidecar in a directory matches the asset it names.
@@ -14,7 +15,7 @@
   Expected shape, as the workflow writes it: "<64 hex digits>  <file name>", the file sitting
   beside the sidecar, the sidecar named "<file name>.sha256".
 
-  Exit code: 0 = every sidecar matches, 1 = one does not.
+  Exit code: 0 = every sidecar matches, 1 = one does not, 2 = could not verify.
 
 .PARAMETER Path
   The directory holding the assets and their sidecars. Default: dist.
@@ -33,12 +34,16 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-if (-not (Test-Path $Path)) { Write-Host "FAIL  $Path does not exist" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path $Path)) { Write-Host "sha256-sidecars: NOT VERIFIED ($Path does not exist)" -ForegroundColor Yellow; exit 2 }
 
 $bad      = @()
 $sidecars = @(Get-ChildItem (Join-Path $Path "*.sha256") -File -ErrorAction SilentlyContinue)
 if ($Expect -gt 0 -and $sidecars.Count -ne $Expect) {
     $bad += "expected $Expect .sha256 sidecars in $Path, found $($sidecars.Count)"
+}
+if ($sidecars.Count -eq 0) {
+    Write-Host "sha256-sidecars: NOT VERIFIED (no .sha256 sidecars in $Path)" -ForegroundColor Yellow
+    exit 2
 }
 
 foreach ($s in $sidecars) {
@@ -56,8 +61,8 @@ foreach ($s in $sidecars) {
 
 if ($bad.Count) {
     $bad | ForEach-Object { Write-Host "  FAIL  $_" -ForegroundColor Red }
-    Write-Host "$($bad.Count) sidecar problem(s) - nothing should be published." -ForegroundColor Red
+    Write-Host "sha256-sidecars: FAIL ($($bad.Count) problems)" -ForegroundColor Red
     exit 1
 }
-Write-Host "All $($sidecars.Count) .sha256 sidecars match their assets." -ForegroundColor Green
+Write-Host "sha256-sidecars: PASS ($($sidecars.Count) checks)" -ForegroundColor Green
 exit 0

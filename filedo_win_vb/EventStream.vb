@@ -132,7 +132,15 @@ Public Class EventStream
             ' A line that omits schemaVersion is read as 1 for the life of
             ' MAJOR 1 (contract section 3); a higher MAJOR stops interpretation
             ' altogether rather than being half-read.
-            Dim version = GetInt(dict, "schemaVersion", KnownSchemaVersion)
+            Dim version As Integer
+            If Not TryGetSchemaVersion(dict, version) Then
+                ' A present carrier that is not a JSON integer is no safer to
+                ' interpret than a newer MAJOR.  Refuse it permanently rather
+                ' than silently treating it as the known version (§3).
+                refusedVersion = True
+                RaiseEvent UnsupportedVersion(KnownSchemaVersion + 1)
+                Return
+            End If
             If version > KnownSchemaVersion Then
                 refusedVersion = True
                 RaiseEvent UnsupportedVersion(version)
@@ -154,7 +162,9 @@ Public Class EventStream
 
             RaiseEvent EventReceived(ev)
 
-            Select Case ev.Kind.ToLowerInvariant()
+            ' Contract tokens are ordinal and case-sensitive. "RESULT" is an
+            ' unknown kind, not a result that happened to be capitalized.
+            Select Case ev.Kind
                 Case "step"
                     Dim name = If(ev.Data.ContainsKey("name"), ev.Data("name").ToString(), "")
                     Dim desc = If(ev.Data.ContainsKey("description"), ev.Data("description").ToString(), "")
@@ -205,16 +215,26 @@ Public Class EventStream
         End Try
     End Sub
 
-    ' An integer that will not convert takes the default rather than throwing:
-    ' a field a reader does not understand is never fatal (rule 6).
-    Private Shared Function GetInt(dict As Dictionary(Of String, Object), key As String, fallback As Integer) As Integer
-        If dict IsNot Nothing AndAlso dict.ContainsKey(key) AndAlso dict(key) IsNot Nothing Then
-            Try
-                Return Convert.ToInt32(dict(key))
-            Catch
-            End Try
-        End If
-        Return fallback
+    ' schemaVersion is the load-bearing JSON int. Its absence means MAJOR 1;
+    ' its presence as any other JSON type is refused (contract §3).
+    Private Shared Function TryGetSchemaVersion(dict As Dictionary(Of String, Object), ByRef version As Integer) As Boolean
+        version = KnownSchemaVersion
+        If dict Is Nothing OrElse Not dict.ContainsKey("schemaVersion") Then Return True
+        Dim value = dict("schemaVersion")
+        If value Is Nothing Then Return False
+        Select Case Type.GetTypeCode(value.GetType())
+            Case TypeCode.Byte, TypeCode.SByte, TypeCode.Int16, TypeCode.UInt16, TypeCode.Int32
+                version = Convert.ToInt32(value)
+                Return True
+            Case TypeCode.Int64, TypeCode.UInt32, TypeCode.UInt64
+                Try
+                    version = Convert.ToInt32(value)
+                    Return True
+                Catch
+                    Return False
+                End Try
+        End Select
+        Return False
     End Function
 
     ' The timestamp is informational: RFC 3339 with an offset (rule 6), read

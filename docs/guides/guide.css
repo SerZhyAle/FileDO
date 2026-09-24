@@ -22,9 +22,12 @@ html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
 }
 .hero {
   padding: 1.2rem 0;
+  text-align: center;
 }
 .hero .lead {
   font-size: 1.07rem;
+  max-width: 600px;
+  margin: 0 auto 1.2rem;
 }
 .intro {
   color: var(--text-2);
@@ -110,6 +113,22 @@ html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
   font-family: var(--font-heading);
   font-size: 1.05rem;
   margin-bottom: 0.75rem;
+}
+.section {
+  padding: 1.6rem 0;
+}
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+.card {
+  padding: 1.35rem 1.5rem;
+}
+.site-footer {
+  margin-top: 2.2rem;
+  padding: 1.6rem 0;
+}
+.tools-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 @media (min-width: 1360px) {
   .guide-grid {

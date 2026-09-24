@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-FORMAT` |
-| **Version** | 1.0 (wire carrier: format version byte 1, suite id 1) |
+| **Version** | 1.1 (wire carrier: format version byte 1, suite id 1) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FDSEC-FORMAT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |

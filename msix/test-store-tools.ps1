@@ -15,7 +15,7 @@
             with every copy cell emptied. It carries no product data: the field IDs are the
             format's own. Replace it with FileDO's real, emptied export after the first submission.
 
-  Exit code: 0 = every check passed, 1 = a check failed.
+  Exit code: 0 = every check passed, 1 = a defect was found, 2 = could not verify.
 
 .EXAMPLE
   pwsh -NoProfile -File .\msix\test-store-tools.ps1
@@ -30,6 +30,11 @@ $fixture = Join-Path $msix "testdata\listingData.fixture.csv"
 $listing = Join-Path $msix "listing"
 $shots   = Join-Path $msix "screenshots"
 $hostExe = if ($PSVersionTable.PSEdition -eq 'Core') { Join-Path $PSHOME "pwsh.exe" } else { Join-Path $PSHOME "powershell.exe" }
+
+if (-not (Test-Path $builder) -or -not (Test-Path $fixture) -or -not (Test-Path $listing)) {
+    Write-Host "store-tools: NOT VERIFIED (required listing source, fixture, or builder is missing)" -ForegroundColor Yellow
+    exit 2
+}
 
 $script:fail = 0; $script:pass = 0
 function Check([string]$name, [bool]$ok, [string]$detail = "") {
@@ -222,6 +227,6 @@ finally {
 }
 
 Write-Host ""
-if ($script:fail -eq 0) { Write-Host "Store tools self-test PASSED ($script:pass checks)." -ForegroundColor Green; exit 0 }
-Write-Host "Store tools self-test FAILED: $script:fail of $($script:pass + $script:fail) checks." -ForegroundColor Red
+if ($script:fail -eq 0) { Write-Host "store-tools: PASS ($script:pass checks)" -ForegroundColor Green; exit 0 }
+Write-Host "store-tools: FAIL ($script:fail checks)" -ForegroundColor Red
 exit 1

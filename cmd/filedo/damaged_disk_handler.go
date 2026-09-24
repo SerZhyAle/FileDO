@@ -37,12 +37,12 @@ type DamagedFileInfo struct {
 
 // DamagedDiskHandler обрабатывает копирование с повреждённых дисков
 type DamagedDiskHandler struct {
-	config      DamagedDiskConfig
-	damagedFiles []DamagedFileInfo
-	skipSet     map[string]bool
+	config           DamagedDiskConfig
+	damagedFiles     []DamagedFileInfo
+	skipSet          map[string]bool
 	persistedSkipSet map[string]bool
-	mutex       sync.RWMutex
-	workingDir  string
+	mutex            sync.RWMutex
+	workingDir       string
 
 	// Session stats
 	sessionSkippedCount int
@@ -76,29 +76,29 @@ var skipListLoadedPrinted bool
 // NewDamagedDiskHandler создаёт новый обработчик для повреждённых дисков
 func NewDamagedDiskHandler() (*DamagedDiskHandler, error) {
 	config := NewDamagedDiskConfig()
-	
+
 	// Получаем рабочую директорию (где запущен filedo.exe)
 	workingDir, err := os.Getwd()
 	if err != nil {
 		workingDir = "." // fallback to current directory
 	}
-	
+
 	// Устанавливаем полные пути к лог-файлам
 	config.DamagedLogFile = filepath.Join(workingDir, config.DamagedLogFile)
 	config.SkipListFile = filepath.Join(workingDir, config.SkipListFile)
-	
+
 	handler := &DamagedDiskHandler{
-		config:     config,
-		skipSet:    make(map[string]bool),
-	persistedSkipSet: make(map[string]bool),
-		workingDir: workingDir,
+		config:           config,
+		skipSet:          make(map[string]bool),
+		persistedSkipSet: make(map[string]bool),
+		workingDir:       workingDir,
 	}
-	
+
 	// Загружаем список файлов для пропуска
 	if err := handler.loadSkipList(); err != nil {
 		fmt.Printf("Warning: Could not load skip list: %v\n", err)
 	}
-	
+
 	return handler, nil
 }
 
@@ -115,10 +115,10 @@ func NewDamagedDiskHandlerQuiet() (*DamagedDiskHandler, error) {
 	config.SkipListFile = filepath.Join(workingDir, config.SkipListFile)
 
 	handler := &DamagedDiskHandler{
-		config:     config,
-		skipSet:    make(map[string]bool),
+		config:           config,
+		skipSet:          make(map[string]bool),
 		persistedSkipSet: make(map[string]bool),
-		workingDir: workingDir,
+		workingDir:       workingDir,
 	}
 	if err := handler.loadSkipList(); err != nil && !config.Quiet {
 		fmt.Printf("Warning: Could not load skip list: %v\n", err)
@@ -136,7 +136,7 @@ func (h *DamagedDiskHandler) loadSkipList() error {
 	if !h.config.UseSkipList {
 		return nil
 	}
-	
+
 	file, err := os.Open(h.config.SkipListFile)
 	if os.IsNotExist(err) {
 		return nil // Файл не существует - это нормально для первого запуска
@@ -145,13 +145,13 @@ func (h *DamagedDiskHandler) loadSkipList() error {
 		return err
 	}
 	defer file.Close()
-	
+
 	scanner := bufio.NewScanner(file)
 	count := 0
-	
+
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line != "" && !strings.HasPrefix(line, "#") {
@@ -161,12 +161,12 @@ func (h *DamagedDiskHandler) loadSkipList() error {
 			count++
 		}
 	}
-	
+
 	if count > 0 && !h.config.Quiet && !skipListLoadedPrinted {
 		fmt.Printf("📋 Loaded %d previously damaged files from skip list\n", count)
 		skipListLoadedPrinted = true
 	}
-	
+
 	return scanner.Err()
 }
 
@@ -229,10 +229,10 @@ func (h *DamagedDiskHandler) ShouldSkipFile(filePath string) bool {
 	if !h.config.UseSkipList {
 		return false
 	}
-	
+
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	
+
 	return h.skipSet[h.normalizePath(filePath)]
 }
 
@@ -246,7 +246,7 @@ func (h *DamagedDiskHandler) LogDamagedFile(filePath, reason string, size int64,
 		AttemptNum:  attemptNum,
 		ErrorDetail: errorDetail,
 	}
-    
+
 	// Немедленно фиксируем в памяти и (если включено) дописываем в skip_files.list без дубликатов
 	h.mutex.Lock()
 	h.damagedFiles = append(h.damagedFiles, info)
@@ -263,7 +263,7 @@ func (h *DamagedDiskHandler) LogDamagedFile(filePath, reason string, size int64,
 		}
 	}
 	h.mutex.Unlock()
-	
+
 	// Обновляем сессионные счетчики
 	h.mutex.Lock()
 	h.sessionSkippedCount++
@@ -276,7 +276,7 @@ func (h *DamagedDiskHandler) LogDamagedFile(filePath, reason string, size int64,
 	if !h.config.Quiet {
 		fmt.Printf("⚠️ SKIPPED: %s (%s) | session: %d, last: %s\n", filePath, reason, sc, ls)
 	}
-	
+
 	// damaged_files.log disabled; rely on skip_files.list and console output only
 }
 
@@ -284,14 +284,14 @@ func (h *DamagedDiskHandler) LogDamagedFile(filePath, reason string, size int64,
 func (h *DamagedDiskHandler) GetDamagedStats() (int, int64) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	
+
 	count := len(h.damagedFiles)
 	var totalSize int64
-	
+
 	for _, info := range h.damagedFiles {
 		totalSize += info.Size
 	}
-	
+
 	return count, totalSize
 }
 
@@ -299,7 +299,7 @@ func (h *DamagedDiskHandler) GetDamagedStats() (int, int64) {
 func (h *DamagedDiskHandler) GetSkippedStats() int {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	
+
 	return len(h.skipSet)
 }
 
@@ -310,25 +310,25 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 		fmt.Printf("📋 Skipping previously damaged file: %s\n", sourcePath)
 		return nil
 	}
-	
+
 	// Создаём директорию назначения если нужно
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %v", err)
 	}
-	
+
 	// Пытаемся скопировать файл с таймаутом
 	for attempt := 1; attempt <= h.config.RetryCount; attempt++ {
-	err := h.copyFileWithTimeoutAndProgress(sourcePath, targetPath, sourceInfo, attempt, progress)
-		
+		err := h.copyFileWithTimeoutAndProgress(sourcePath, targetPath, sourceInfo, attempt, progress)
+
 		if err == nil {
 			// Успешно скопировали
 			return nil
 		}
-		
+
 		// Анализируем ошибку
 		errorStr := err.Error()
 		var reason string
-		
+
 		if strings.Contains(errorStr, "timeout") || strings.Contains(errorStr, "context deadline exceeded") {
 			reason = "timeout"
 		} else if strings.Contains(errorStr, "I/O error") || strings.Contains(errorStr, "read error") {
@@ -340,7 +340,7 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 		} else {
 			reason = "read error"
 		}
-		
+
 		// Если это была отмена пользователем - прерываем без логирования как повреждённый
 		if strings.Contains(errorStr, "interrupted by user") {
 			return fmt.Errorf("operation interrupted by user")
@@ -351,11 +351,11 @@ func (h *DamagedDiskHandler) CopyFileWithDamageHandling(sourcePath, targetPath s
 			h.LogDamagedFile(sourcePath, reason, sourceInfo.Size(), attempt, errorStr)
 			return nil // Не возвращаем ошибку - продолжаем с другими файлами
 		}
-		
+
 		fmt.Printf("🔄 Retry %d/%d for %s (reason: %s)\n", attempt, h.config.RetryCount, sourcePath, reason)
 		time.Sleep(1 * time.Second) // Небольшая пауза перед повтором
 	}
-	
+
 	return nil
 }
 
@@ -368,23 +368,23 @@ func (h *DamagedDiskHandler) copyFileWithTimeoutAndProgress(sourcePath, targetPa
 	}
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
-	
+
 	// Канал для результата операции
 	done := make(chan error, 1)
 	// Канал для отслеживания прогресса чтения
 	progressChan := make(chan int64, 1)
-	
+
 	go func() {
 		done <- h.copyFileInternalWithProgress(ctx, sourcePath, targetPath, sourceInfo, progressChan, externalProgress)
 	}()
-	
+
 	// Отслеживание прогресса - таймаут только при отсутствии чтения данных
 	lastProgressTime := time.Now()
 	var lastBytesRead int64 = 0
-	
+
 	ticker := time.NewTicker(1 * time.Second) // Проверяем каждую секунду
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case err := <-done:
@@ -413,23 +413,23 @@ func (h *DamagedDiskHandler) copyFileWithTimeoutAndProgress(sourcePath, targetPa
 func (h *DamagedDiskHandler) copyFileWithTimeout(sourcePath, targetPath string, sourceInfo os.FileInfo, attemptNum int) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	// Канал для результата операции
 	done := make(chan error, 1)
 	// Канал для отслеживания прогресса чтения
 	progressChan := make(chan int64, 1)
-	
+
 	go func() {
 		done <- h.copyFileInternalWithProgress(ctx, sourcePath, targetPath, sourceInfo, progressChan, nil)
 	}()
-	
+
 	// Отслеживание прогресса - таймаут только при отсутствии чтения данных
 	lastProgressTime := time.Now()
 	var lastBytesRead int64 = 0
-	
+
 	ticker := time.NewTicker(1 * time.Second) // Проверяем каждую секунду
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case err := <-done:
@@ -458,7 +458,7 @@ func (h *DamagedDiskHandler) copyFileInternalWithProgress(ctx context.Context, s
 		return fmt.Errorf("failed to open source file: %v", err)
 	}
 	defer sourceFile.Close()
-	
+
 	// Создаём целевой файл
 	targetFile, err := os.Create(targetPath)
 	if err != nil {
@@ -475,11 +475,11 @@ func (h *DamagedDiskHandler) copyFileInternalWithProgress(ctx context.Context, s
 			targetFile.Close()
 		})
 	}()
-	
+
 	// Используем небольшой буфер для безопасности
 	buffer := make([]byte, h.config.BufferSize)
 	var totalBytesRead int64 = 0
-	
+
 	for {
 		// Проверяем контекст перед чтением
 		select {
@@ -487,49 +487,49 @@ func (h *DamagedDiskHandler) copyFileInternalWithProgress(ctx context.Context, s
 			return ctx.Err()
 		default:
 		}
-		
+
 		n, readErr := sourceFile.Read(buffer)
 		if n > 0 {
 			totalBytesRead += int64(n)
-			
+
 			// Отправляем прогресс (неблокирующе)
 			select {
 			case progressChan <- totalBytesRead:
 			default:
 			}
-			
+
 			// Обновляем внешний прогресс если передан
 			if externalProgress != nil {
 				if fastProgress, ok := externalProgress.(*FastCopyProgress); ok {
 					fastProgress.setCurrentFileProgress(sourcePath, sourceInfo.Size(), totalBytesRead)
 				}
 			}
-			
+
 			if _, writeErr := targetFile.Write(buffer[:n]); writeErr != nil {
 				return fmt.Errorf("failed to write to target file: %v", writeErr)
 			}
 		}
-		
+
 		if readErr == io.EOF {
 			break
 		}
-		
+
 		if readErr != nil {
 			return fmt.Errorf("failed to read from source file: %v", readErr)
 		}
 	}
-	
+
 	// Синхронизируем запись
 	if err := targetFile.Sync(); err != nil {
 		return fmt.Errorf("failed to sync target file: %v", err)
 	}
-	
+
 	// Устанавливаем правильные права доступа
 	if err := os.Chmod(targetPath, sourceInfo.Mode()); err != nil {
 		// Не критичная ошибка, логгируем но не прерываем
 		fmt.Printf("Warning: failed to set file permissions: %v\n", err)
 	}
-	
+
 	return nil
 }
 
@@ -560,26 +560,26 @@ func (h *DamagedDiskHandler) normalizePath(p string) string {
 func (h *DamagedDiskHandler) PrintSummary() {
 	damagedCount, damagedSize := h.GetDamagedStats()
 	skippedCount := h.GetSkippedStats()
-	
+
 	if damagedCount == 0 && skippedCount == 0 {
 		fmt.Printf("✅ All files processed successfully - no damaged files found\n")
 		return
 	}
-	
-	fmt.Printf("\n" + strings.Repeat("=", 60) + "\n")
+
+	fmt.Print("\n" + strings.Repeat("=", 60) + "\n")
 	fmt.Printf("📊 DAMAGED DISK COPY SUMMARY\n")
-	fmt.Printf(strings.Repeat("=", 60) + "\n")
-	
+	fmt.Print(strings.Repeat("=", 60) + "\n")
+
 	if skippedCount > damagedCount {
 		fmt.Printf("📋 Previously damaged files (skipped): %d\n", skippedCount-damagedCount)
 	}
-	
+
 	if damagedCount > 0 {
 		fmt.Printf("⚠️ Newly damaged files found: %d\n", damagedCount)
 		fmt.Printf("💽 Total size of damaged files: %s\n", formatDiskFileSize(damagedSize))
 		fmt.Printf("📋 Skip list updated: %s\n", h.config.SkipListFile)
 	}
-	
+
 	fmt.Printf("\n💡 RECOMMENDATIONS:\n")
 	if damagedCount > 0 {
 		fmt.Printf("• Check disk health with disk diagnostic tools\n")
@@ -591,7 +591,7 @@ func (h *DamagedDiskHandler) PrintSummary() {
 		fmt.Printf("• To retry previously damaged files, delete: %s\n", h.config.SkipListFile)
 		fmt.Printf("• Or manually edit the skip list to remove specific files\n")
 	}
-	fmt.Printf(strings.Repeat("=", 60) + "\n")
+	fmt.Print(strings.Repeat("=", 60) + "\n")
 }
 
 // formatDiskFileSize форматирует размер файла для поврежденного диска

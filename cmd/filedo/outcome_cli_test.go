@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fillFile writes one FILL test file whose embedded header names `embeds`.
@@ -84,6 +85,18 @@ func TestExitCodeVocabulary(t *testing.T) {
 		{
 			name:     "a verb that could not judge - the target is not there",
 			args:     []string{"folder", missing, "info"},
+			wantCode: 2,
+			wantVerd: "Not proven",
+		},
+		{
+			name:     "a bare missing folder still closes the stream",
+			args:     []string{missing + "\\"},
+			wantCode: 2,
+			wantVerd: "Not proven",
+		},
+		{
+			name:     "an unreadable batch list still closes the stream",
+			args:     []string{"from", filepath.Join(t.TempDir(), "missing.lst")},
 			wantCode: 2,
 			wantVerd: "Not proven",
 		},
@@ -160,6 +173,8 @@ func TestEventStreamShape(t *testing.T) {
 		{"file info", wdFdsec, []string{"file", filepath.Join(wdFdsec, "box.fd-sec"), "info"}},
 		{"container verify", wdFdsec, []string{"fdsec", "verify",
 			filepath.Join(wdFdsec, "box.fd-sec"), "correct-horse-battery"}},
+		{"fdsec missing sub-verb", wdFdsec, []string{"fdsec"}},
+		{"missing container unsecure", wdFdsec, []string{filepath.Join(wdFdsec, "missing.fd-sec"), "unsecure", "p:any"}},
 	}
 
 	for _, c := range cases {
@@ -183,11 +198,105 @@ func TestEventStreamShape(t *testing.T) {
 				if ev["schemaVersion"] != float64(SchemaVersion) {
 					t.Errorf("event %d carries schemaVersion %v, want %d", i, ev["schemaVersion"], SchemaVersion)
 				}
-				if ev["timestamp"] == "" || ev["timestamp"] == nil {
+				ts, ok := ev["timestamp"].(string)
+				if !ok || ts == "" {
 					t.Errorf("event %d carries no timestamp", i)
+					continue
+				}
+				if _, err := time.Parse(time.RFC3339Nano, ts); err != nil || (!strings.HasSuffix(ts, "Z") && !strings.Contains(ts[10:], "+") && !strings.Contains(ts[10:], "-")) {
+					t.Errorf("event %d timestamp %q is not RFC 3339 with an offset: %v", i, ts, err)
 				}
 			}
 		})
+	}
+}
+
+func TestRecoveredPanicEndsNotProven(t *testing.T) {
+	dir := t.TempDir()
+	events := filepath.Join(dir, "events.jsonl")
+	savedRun, savedExit, savedEvents, savedInterrupt := currentRun, globalExitCode, globalEventManager, globalInterruptHandler
+	defer func() {
+		currentRun, globalExitCode, globalEventManager, globalInterruptHandler = savedRun, savedExit, savedEvents, savedInterrupt
+	}()
+	currentRun = &runOutcome{numbers: make(map[string]interface{})}
+	globalExitCode = 0
+	globalInterruptHandler = nil
+	em, err := InitEventManager(events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer em.Close()
+
+	func() {
+		defer finishRun()
+		defer recoverRunPanic()
+		beginRun(runActs, "panic-test", "", nil)
+		panic("test panic")
+	}()
+	if globalExitCode != 2 {
+		t.Fatalf("panic set exit %d, want 2", globalExitCode)
+	}
+	if got := lastResult(t, events)["verdict"]; got != "Not proven" {
+		t.Fatalf("panic result verdict %q, want Not proven", got)
+	}
+}
+
+func TestForcedExitEndsNotProven(t *testing.T) {
+	dir := t.TempDir()
+	events := filepath.Join(dir, "events.jsonl")
+	savedRun, savedExit, savedEvents := currentRun, globalExitCode, globalEventManager
+	defer func() { currentRun, globalExitCode, globalEventManager = savedRun, savedExit, savedEvents }()
+	currentRun = &runOutcome{numbers: make(map[string]interface{})}
+	globalExitCode = 0
+	em, err := InitEventManager(events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer em.Close()
+	beginRun(runActs, "force-test", "", nil)
+	if got := finishForcedRun(); got != 2 {
+		t.Fatalf("forced exit code %d, want 2", got)
+	}
+	if got := lastResult(t, events)["verdict"]; got != "Not proven" {
+		t.Fatalf("forced exit verdict %q, want Not proven", got)
+	}
+}
+
+func TestFdsecSealedNameIsNotInEvents(t *testing.T) {
+	dir, payload := workdir(t)
+	const sealedName = "sealed-event-token.txt"
+	if err := os.WriteFile(filepath.Join(dir, sealedName), payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, code := run(t, dir, sealedName, "secure", "p:correct-horse-battery", "to", "box.fd-sec"); code != 0 {
+		t.Fatalf("secure exited %d\n%s", code, out)
+	}
+	if err := os.WriteFile(filepath.Join(dir, sealedName), []byte("collision"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	events := filepath.Join(dir, "events.jsonl")
+	out, code := run(t, dir, "--events", events, "box.fd-sec", "unsecure", "p:correct-horse-battery")
+	if code != fdsecExitUsage {
+		t.Fatalf("unsecure collision exited %d, want %d\n%s", code, fdsecExitUsage, out)
+	}
+	raw, err := os.ReadFile(events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), sealedName) {
+		t.Fatalf("sealed name reached the events file:\n%s", raw)
+	}
+
+	revealEvents := filepath.Join(dir, "reveal-events.jsonl")
+	if out, code := run(t, dir, "--events", revealEvents, "box.fd-sec", "reveal", "p:correct-horse-battery"); code != 0 {
+		t.Fatalf("reveal exited %d\n%s", code, out)
+	}
+	revealRaw, err := os.ReadFile(revealEvents)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(revealRaw), sealedName) {
+		t.Fatalf("sealed name reached reveal events:\n%s", revealRaw)
 	}
 }
 

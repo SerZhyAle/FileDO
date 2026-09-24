@@ -26,7 +26,7 @@
              the PUBLISHED page, not the working tree - which is exactly why it is here and
              not in the release gate, where GitHub Pages lag would make it noise.
 
-  Exit code: 0 = every check passed, 1 = a check failed.
+  Exit code: 0 = every check passed, 1 = a defect was found, 2 = could not verify.
 
 .PARAMETER Msix
   The package to test. Default: the newest msix\out\FileDO_*_LOCALTEST.msix.
@@ -65,10 +65,14 @@ $root    = Split-Path $msixDir -Parent
 $outDir  = Join-Path $msixDir "out"
 if (-not $ReportPath) { $ReportPath = Join-Path $outDir "wack-report.xml" }
 
-$script:fail = 0; $script:pass = 0
+$script:fail = 0; $script:pass = 0; $script:unverified = @()
 function Check([string]$name, [bool]$ok, [string]$detail = "") {
     if ($ok) { $script:pass++; Write-Host "  PASS  $name" -ForegroundColor Green }
     else     { $script:fail++; Write-Host "  FAIL  $name  $detail" -ForegroundColor Red }
+}
+function CannotVerify([string]$reason) {
+    $script:unverified += $reason
+    Write-Host "  NOT VERIFIED  $reason" -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -81,7 +85,8 @@ try {
 } catch {
     $code = $null
     if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
-    Check "$PrivacyUrl answers 200 (policy 10.5)" $false ("status $code - " + $_.Exception.Message)
+    if ($code -eq 404) { Check "$PrivacyUrl answers 200 (policy 10.5)" $false ("status 404 - " + $_.Exception.Message) }
+    else { CannotVerify "$PrivacyUrl could not be reached: $($_.Exception.Message)" }
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -97,25 +102,28 @@ if ($SkipWack) {
     # detail. It refuses even to print its own help without it.
     $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $admin) {
-        Check "the session is elevated" $false "appcert.exe requires an administrator session - re-run this script from an ADMIN PowerShell, or pass -SkipWack"
+        CannotVerify "appcert.exe requires an administrator session - re-run from an ADMIN PowerShell, or pass -SkipWack"
     } else {
         # appcert does NOT live in the SDK's bin\<version>\x64 (where makeappx and signtool are);
         # it has its own kit directory, so build-msix.ps1's Find-SdkTool does not find it.
         $ack = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\App Certification Kit\appcert.exe"
         if (-not (Test-Path $ack)) {
-            Check "appcert.exe is installed" $false "$ack not found. Install: winget install Microsoft.WindowsSDK.10.0.26100"
+            CannotVerify "$ack not found. Install: winget install Microsoft.WindowsSDK.10.0.26100"
         } else {
             if ($Build) {
                 Write-Host "  building the local-test package..." -ForegroundColor DarkGray
                 & (Join-Path $msixDir "build-msix.ps1") -SelfSign
-                if ($LASTEXITCODE -ne 0) { Check "build-msix.ps1 -SelfSign succeeds" $false "exit $LASTEXITCODE" }
+                if ($LASTEXITCODE -ne 0) {
+                    if ($LASTEXITCODE -eq 2) { CannotVerify "build-msix.ps1 -SelfSign could not verify" }
+                    else { Check "build-msix.ps1 -SelfSign succeeds" $false "exit $LASTEXITCODE" }
+                }
             }
             if (-not $Msix) {
                 $Msix = (Get-ChildItem (Join-Path $outDir "FileDO_*_LOCALTEST.msix") -ErrorAction SilentlyContinue |
                          Sort-Object LastWriteTime | Select-Object -Last 1).FullName
             }
             if (-not $Msix -or -not (Test-Path $Msix)) {
-                Check "a local-test package exists" $false "no msix\out\FileDO_*_LOCALTEST.msix - run this script with -Build, or .\msix\build-msix.ps1 -SelfSign"
+                CannotVerify "no local-test package - run with -Build, or .\msix\build-msix.ps1 -SelfSign"
             } else {
                 $Msix = (Resolve-Path $Msix).Path
                 # A Store package must never be handed to this path: it is unsigned, appcert
@@ -140,7 +148,7 @@ if ($SkipWack) {
                         }
                     }
                     if (-not $trusted) {
-                        Check "the local-test certificate is trusted" $false "appcert cannot install an untrusted package. Re-run with -TrustTestCert, or: Import-Certificate -FilePath `"$cer`" -CertStoreLocation Cert:\LocalMachine\TrustedPeople"
+                        CannotVerify "the local-test certificate is not trusted. Re-run with -TrustTestCert, or import $cer"
                     } else {
                         New-Item -ItemType Directory -Force -Path (Split-Path $ReportPath -Parent) | Out-Null
                         Remove-Item $ReportPath -ErrorAction SilentlyContinue
@@ -200,6 +208,7 @@ if ($SkipWack) {
 }
 
 Write-Host ""
-if ($script:fail -eq 0) { Write-Host "Store package checks PASSED ($script:pass checks)." -ForegroundColor Green; exit 0 }
-Write-Host "Store package checks FAILED: $script:fail of $($script:pass + $script:fail) checks." -ForegroundColor Red
-exit 1
+if ($script:fail -gt 0) { Write-Host "store-package: FAIL ($script:fail checks)" -ForegroundColor Red; exit 1 }
+if ($script:unverified.Count -gt 0) { Write-Host "store-package: NOT VERIFIED ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
+Write-Host "store-package: PASS ($script:pass checks)" -ForegroundColor Green
+exit 0

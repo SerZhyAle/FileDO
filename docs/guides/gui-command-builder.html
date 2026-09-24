@@ -12,14 +12,14 @@
     <script>
       (function () {
         try {
-          var t =
-            localStorage.getItem("sza-theme") ||
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
             (matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
-          if (!l) {
+          if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
               n.indexOf("ru") === 0
@@ -260,7 +260,7 @@
           </li>
         </ol>
         <div class="copybox">
-          filedo_win<button class="copy" data-copy="filedo_win">Copy</button>
+          filedo_win<button class="copy" data-copy="filedo_win"><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
       </section>
       <section class="section">
@@ -434,21 +434,24 @@
               команду; для необратимых действий сделайте резервную копию.
               «Прямая проверка ёмкости» и «Восстановить накопитель» помечены
               как разрушающие и просят права администратора; «Затереть папку»
-              по-прежнему требует набрать <code>WIPE</code>.</span
+              по-прежнему требует набрать <code>WIPE</code> и отметить <code>-y</code>, а
+              корень диска, общую папку или TEMP отправляет в консоль.</span
             ><span data-l="en"
               >The GUI does not make <code>wipe</code>, <code>fill … del</code>,
               or deletion modes reversible. Check the target and the command
               before you run; back up before irreversible actions. Raw capacity
               probe and Recover a drive are marked destructive and ask for
               Administrator; Wipe a folder still needs <code>WIPE</code> typed
-              out.</span
+              out and <code>-y</code> ticked, and sends a drive root, a share or TEMP to the
+              console.</span
             ><span data-l="ua"
               >GUI не робить <code>wipe</code>, <code>fill … del</code> або
               режими видалення зворотними. Перед запуском перевірте ціль і
               команду; перед незворотними діями зробіть резервну копію. «Пряма
               перевірка ємності» та «Відновити накопичувач» позначені як
               руйнівні й просять права адміністратора; «Затерти теку»
-              як і раніше вимагає набрати <code>WIPE</code>.</span
+              як і раніше вимагає набрати <code>WIPE</code> і позначити <code>-y</code>, а
+              корінь диска, спільну теку чи TEMP відправляє в консоль.</span
             >
           </p>
         </div>
@@ -487,57 +490,33 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Со старым окном</span
-              ><span data-l="en">The older window</span
-              ><span data-l="ua">Зі старим вікном</span>
-            </h3>
-            <p>
-              <span data-l="ru"
-                >Прежнее окно-конструктор команд по-прежнему есть и открывается
-                переключателем <code>--legacy-builder</code>.</span
-              ><span data-l="en"
-                >The command-builder window that shipped before the shell is
-                still there, and the <code>--legacy-builder</code> switch opens
-                it.</span
-              ><span data-l="ua"
-                >Попереднє вікно-конструктор команд досі є й відкривається
-                перемикачем <code>--legacy-builder</code>.</span
-              >
-            </p>
-            <div class="copybox">
-              filedo_win.exe --legacy-builder<button
-                class="copy"
-                data-copy="filedo_win.exe --legacy-builder"
-              >
-                Copy
-              </button>
-            </div>
-          </article>
-          <article class="card">
-            <h3>
               <span data-l="ru">С журналом отладки</span
               ><span data-l="en">With a debug log</span
               ><span data-l="ua">Із журналом налагодження</span>
             </h3>
             <p>
               <span data-l="ru"
-                >Переключатель <code>-debug</code> пишет файл
-                <code>filedo_win_debug.log</code> рядом с exe.</span
+                >Окно всегда записывает свои ошибки в
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.log</code> - этот файл
+                и уходит автору по кнопке «Отправить логи». Переключатель
+                <code>-debug</code> добавляет туда подробные строки.</span
               ><span data-l="en"
-                >The <code>-debug</code> switch writes
-                <code>filedo_win_debug.log</code> next to the exe.</span
+                >The window always writes its errors to
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.log</code> - the file
+                Send logs passes to the author. The <code>-debug</code> switch
+                adds detailed lines to it.</span
               ><span data-l="ua"
-                >Перемикач <code>-debug</code> пише файл
-                <code>filedo_win_debug.log</code> поруч з exe.</span
+                >Вікно завжди записує свої помилки в
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.log</code> - саме цей
+                файл іде авторові за кнопкою «Надіслати логи». Перемикач
+                <code>-debug</code> додає туди докладні рядки.</span
               >
             </p>
             <div class="copybox">
               filedo_win.exe -debug<button
                 class="copy"
                 data-copy="filedo_win.exe -debug"
-              >
-                Copy
-              </button>
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
         </div>

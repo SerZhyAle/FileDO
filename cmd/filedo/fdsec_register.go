@@ -151,6 +151,11 @@ var fdsecMenuItems = []fdsecMenuItem{
 // refusals must describe the same two flags.
 const fdsecRegisterUsage = "fdsec register|unregister [-all-users]"
 
+// fdsecAsPackagedEnv is the test seam for the one fact a test cannot arrange:
+// running with a package identity. Set to 1, the command answers as the
+// Microsoft Store build does - which can only make it refuse, never write.
+const fdsecAsPackagedEnv = "FILEDO_FDSEC_AS_PACKAGED"
+
 // handleFdsecRegister runs `fdsec register` and `fdsec unregister`. It owns
 // its own flag parsing rather than borrowing parseFdsecArgs: that parser is
 // about credentials and dispositions, and this command takes neither.
@@ -163,6 +168,15 @@ func handleFdsecRegister(sub string, args []string) error {
 		default:
 			return usagef("unknown option %q for fdsec %s: %s", a, sub, fdsecRegisterUsage)
 		}
+	}
+	// The Store build declares what it integrates in its package manifest
+	// and can write nothing here: Windows keeps a packaged app's writes under
+	// Software\Classes to the app itself, where Explorer never looks, and the
+	// commands would point into WindowsApps, which Explorer cannot run. A
+	// registration that reports success and does nothing is worse than a
+	// refusal that says where the menu comes from.
+	if os.Getenv(fdsecAsPackagedEnv) == "1" || fdsecHasPackageIdentity() {
+		return usagef("fdsec %s is not available in the Microsoft Store build: Windows keeps a packaged app's registry writes to the app itself, so Explorer would never see them. The File DO.. menu and the .fd-sec file type come with the MSI installer, the winget package or the zip", sub)
 	}
 	if sub == "unregister" {
 		return fdsecShellUnregister(allUsers)

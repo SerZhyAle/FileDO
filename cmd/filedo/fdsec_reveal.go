@@ -51,11 +51,20 @@ const fdsecRevealLockSuffix = ".lock"
 // Lifetime tuning. These are the shape of the wait, not the contract:
 //   - a handler gets this long to take its hold before hold-and-watch decides
 //     it never will (P3 measured a media player taking it in 0.01 s);
+//   - a hold counts only once it has lasted the minimum without a break. G3's
+//     check 6.2 (2026-09-24) caught the packaged Notepad, started cold,
+//     holding the copy for 150-200 ms while it read it - long enough for one
+//     poll to see - and the reveal took that read for a player letting go and
+//     deleted a copy that was open on screen. The same run measured a media
+//     player holding continuously from 1.1 s for as long as it was open, and
+//     Explorer's zip view never holding at all; the minimum sits ten times
+//     above the longest read and far below any real playback;
 //   - once the hold is released it must stay released for the settle window,
 //     so a player that closes and reopens the file between frames does not
 //     lose it (P3 measured a release visible 0.12 s after the holder ended).
 const (
 	fdsecRevealAcquireWait = 10 * time.Second
+	fdsecRevealHoldMin     = 2 * time.Second
 	fdsecRevealSettle      = 3 * time.Second
 	fdsecRevealPoll        = 200 * time.Millisecond
 )
@@ -96,62 +105,17 @@ func fdsecRevealRoot() (string, error) {
 	return filepath.Join(base, "FileDO", "reveal"), nil
 }
 
-// fdsecReservedStems are the device names Windows resolves before it ever
-// looks at a directory. A container whose sealed name is one of them would
-// not produce a file at all.
-var fdsecReservedStems = map[string]bool{
-	"con": true, "prn": true, "aux": true, "nul": true,
-	"com1": true, "com2": true, "com3": true, "com4": true, "com5": true,
-	"com6": true, "com7": true, "com8": true, "com9": true,
-	"lpt1": true, "lpt2": true, "lpt3": true, "lpt4": true, "lpt5": true,
-	"lpt6": true, "lpt7": true, "lpt8": true, "lpt9": true,
-}
-
 // fdsecSandboxName turns the sealed true name into a name that is safe to
 // create inside the sandbox and safe to classify by extension. A container
 // arrives from anywhere and its metadata is attacker-controlled the moment
 // somebody else made it, so every rule here is refused rather than sanitised:
 // a silent rename would hide what the container was trying to do, and it is
 // the *user* who needs to see that their file is not what it claims.
-//
-// The rule that matters most is the one about trailing dots and spaces.
-// Windows drops them when it creates a file, so a sealed name of "invoice.exe "
-// becomes "invoice.exe" on disk - while a naive extension check sees
-// ".exe " and finds it nowhere in the never-launch list. That is the launch
-// policy of invariant 7 bypassed by one space, so the name is refused before
-// anything else can look at it.
 func fdsecSandboxName(trueName string) (string, error) {
-	refuse := func(why string) error {
+	if err := fdsec.ValidateName(trueName); err != nil {
 		// The name itself is deliberately not echoed: it is sealed metadata,
 		// and this error reaches history.json, which outlives the reveal.
-		return fmt.Errorf("%w: the container's sealed name %s, and is refused. The container may have been built to make a reveal write or launch something other than what it claims", fdsec.ErrDamaged, why)
-	}
-	if trueName == "" || trueName == "." || trueName == ".." {
-		return "", refuse("is empty or a directory reference")
-	}
-	if strings.ContainsAny(trueName, `/\:*?"<>|`) {
-		// ':' is here for the same reason as the separators: "notes:run.exe"
-		// is not a file name, it is a request to write an alternate data
-		// stream of a different file.
-		return "", refuse("contains a path separator or a character that is not legal in a file name")
-	}
-	for _, r := range trueName {
-		if r < 0x20 || r == 0x7f {
-			return "", refuse("contains a control character")
-		}
-	}
-	if strings.TrimRight(trueName, ". ") != trueName {
-		return "", refuse("ends in a dot or a space, which Windows silently drops - so the name on disk would differ from the name the extension check saw")
-	}
-	if filepath.IsAbs(trueName) || filepath.Base(trueName) != trueName {
-		return "", refuse("is a path, not a file name")
-	}
-	stem := strings.ToLower(trueName)
-	if i := strings.IndexByte(stem, '.'); i >= 0 {
-		stem = stem[:i]
-	}
-	if fdsecReservedStems[stem] {
-		return "", refuse("is a reserved device name")
+		return "", fmt.Errorf("%w: the container's sealed name %v, and is refused. The container may have been built to make a reveal write or launch something other than what it claims", fdsec.ErrDamaged, err)
 	}
 	return trueName, nil
 }
@@ -229,10 +193,10 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 	keep := false
 	defer func() {
 		if !keep {
-			fdsecRemoveSandbox(dir)
+			fdsecTryRemoveSandbox(dir)
 		}
 	}()
-	globalInterruptHandler.AddCleanup(func() { fdsecRemoveSandbox(dir) })
+	globalInterruptHandler.AddCleanup(func() { fdsecTryRemoveSandbox(dir) })
 
 	src, err := os.Open(path)
 	if err != nil {
@@ -336,7 +300,9 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 	if o.keep {
 		return nil
 	}
-	fdsecAwaitDone(copyPath)
+	reason := fdsecAwaitDone(copyPath)
+	fdsecCloseReveal(dir, copyPath)
+	fmt.Printf("\nReveal closed (%s).\n", reason)
 	return nil
 }
 
@@ -356,9 +322,9 @@ func fdsecLaunchCopy(path string) error {
 	return fdsecLaunch(path)
 }
 
-// fdsecAwaitDone runs mechanisms 1 and 2 against each other and returns when
-// either says the reveal is over. The caller's deferred removal is what
-// actually closes the window; this decides when.
+// fdsecAwaitDone runs mechanisms 1 and 2 against each other and returns, as
+// the words the closing line gives, whichever says the reveal is over first.
+// It only decides when; fdsecCloseReveal is what actually closes the window.
 //
 // Mechanism 2 - the visible "remove it now" - has two shapes, and which one
 // exists is a property of who started this process. A console gets the Enter
@@ -367,24 +333,21 @@ func fdsecLaunchCopy(path string) error {
 // interrupt handler is what notices it, and the caller's cleanup removes the
 // sandbox. Without either, there is nobody to ask, and only then does
 // hold-and-watch decide alone.
-func fdsecAwaitDone(copyPath string) {
+func fdsecAwaitDone(copyPath string) string {
+	const (
+		letGo  = "the handler let go of it"
+		saidSo = "you said so"
+	)
 	watch := make(chan bool, 1)
 	go func() { watch <- fdsecHoldAndWatch(copyPath) }()
 
 	asked := globalInterruptHandler.Context().Done()
 
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		if !machineStopChannel {
-			// No console and no machine channel - a batch run, or output
-			// redirected by something that offers no way back. Mechanism 2
-			// does not exist here, so hold-and-watch decides alone.
-			if <-watch {
-				fmt.Printf("Reveal closed (the handler let go of it).\n")
-			} else {
-				fmt.Printf("Reveal closed (no handler ever held it, and there is no console to ask).\n")
-			}
-			return
-		}
+	// The machine channel is asked first, before the console. The shell starts
+	// this process with no window but does not redirect stdin, so stdin is a
+	// hidden console that nobody can type into - G3's check 6.3 step 5
+	// (2026-09-24) saw the window's run log tell the user to press Enter.
+	if machineStopChannel {
 		// The GUI's own window is the visible "remove it now", so a handler
 		// that never locks the file must not end the reveal on a timer: the
 		// copy stays until the shell says it is done, exactly as it would
@@ -394,16 +357,24 @@ func fdsecAwaitDone(copyPath string) {
 		for {
 			select {
 			case <-asked:
-				fmt.Printf("Reveal closed (you said so).\n")
-				return
+				return saidSo
 			case held := <-watch:
 				if !held {
 					continue
 				}
-				fmt.Printf("\nReveal closed (the handler let go of it).\n")
-				return
+				return letGo
 			}
 		}
+	}
+
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		// No console and no machine channel - a batch run, or output
+		// redirected by something that offers no way back. Mechanism 2 does
+		// not exist here, so hold-and-watch decides alone.
+		if <-watch {
+			return letGo
+		}
+		return "no handler ever held it, and there is no console to ask"
 	}
 
 	done := make(chan struct{})
@@ -417,11 +388,9 @@ func fdsecAwaitDone(copyPath string) {
 	for {
 		select {
 		case <-done:
-			fmt.Printf("Reveal closed (you said so).\n")
-			return
+			return saidSo
 		case <-asked:
-			fmt.Printf("Reveal closed (you said so).\n")
-			return
+			return saidSo
 		case held := <-watch:
 			if !held {
 				// Nobody ever took a hold - S0's P3 measured two such
@@ -429,24 +398,62 @@ func fdsecAwaitDone(copyPath string) {
 				// blind here, so it steps aside and the prompt decides.
 				continue
 			}
-			fmt.Printf("\nReveal closed (the handler let go of it).\n")
+			return letGo
+		}
+	}
+}
+
+// fdsecCloseReveal removes the sandbox at the end of a reveal and returns only
+// once it is gone. G3's check 6.3 (2026-09-24) found why it cannot simply
+// remove and report: a media player holds its file without delete sharing, so
+// "remove it now" pressed while the player is still open cannot be honoured -
+// the removal failed silently, the run said the reveal was closed with the
+// copy still on disk, and its read-only mark had already been stripped. So a
+// copy that cannot go yet keeps its mark, the user is told what is holding it,
+// and the removal is retried the moment the handler lets go. A run ended in
+// the meantime drops its lock, and the next start's sweep takes the copy.
+func fdsecCloseReveal(dir, copyPath string) {
+	if fdsecTryRemoveSandbox(dir) {
+		return
+	}
+	fmt.Printf("\nThe copy is still open in another program, which does not allow it to be deleted while it is open.\n")
+	fmt.Printf("Close it there and the copy is removed at once. If this run is ended first, the next FileDO start removes it.\n")
+	for {
+		time.Sleep(fdsecRevealPoll)
+		if fdsecIsHeld(copyPath) {
+			continue
+		}
+		if fdsecTryRemoveSandbox(dir) {
 			return
 		}
 	}
 }
 
-// fdsecHoldAndWatch is mechanism 1. It reports true only for a hold it
-// actually saw taken and then released: a handler that never locks the file -
-// S0's P3 measured the packaged Notepad and Explorer's zip view doing exactly
-// that - returns false instead, because deleting a file that is open on
-// screen is worse than waiting for the user or for the next start's sweep.
-func fdsecHoldAndWatch(path string) bool {
-	deadline := time.Now().Add(fdsecRevealAcquireWait)
-	for !fdsecIsHeld(path) {
-		if time.Now().After(deadline) {
-			return false
+// fdsecTryRemoveSandbox removes a sandbox and reports whether it is gone.
+// Whatever it could not remove - a file another program holds without delete
+// sharing - gets its read-only mark back, because a copy that outlives its
+// removal must not also outlive spec 8.4.
+func fdsecTryRemoveSandbox(dir string) bool {
+	fdsecRemoveSandbox(dir)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return true
+	}
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, e := range entries {
+			_ = os.Chmod(filepath.Join(dir, e.Name()), 0o444)
 		}
-		time.Sleep(fdsecRevealPoll)
+	}
+	return false
+}
+
+// fdsecHoldAndWatch is mechanism 1. It reports true only for a hold it
+// actually saw taken, kept, and then released: a handler that never locks the
+// file - S0's P3 measured the packaged Notepad and Explorer's zip view doing
+// exactly that - returns false instead, because deleting a file that is open
+// on screen is worse than waiting for the user or for the next start's sweep.
+func fdsecHoldAndWatch(path string) bool {
+	if !fdsecAwaitSustainedHold(path) {
+		return false
 	}
 	// Held. Now wait for it to be let go - and to stay let go for the settle
 	// window, so a handler that closes and reopens the file between tracks
@@ -467,6 +474,32 @@ func fdsecHoldAndWatch(path string) bool {
 		if settled {
 			return true
 		}
+	}
+}
+
+// fdsecAwaitSustainedHold waits for a handler to hold the copy for
+// fdsecRevealHoldMin without a break. A shorter hold is a read-and-close
+// handler reading the file - the handler that then lets go of it while it is
+// still on screen - and is forgotten, so only a hold that starts inside the
+// acquire window and lasts is taken as a player's.
+func fdsecAwaitSustainedHold(path string) bool {
+	deadline := time.Now().Add(fdsecRevealAcquireWait)
+	var since time.Time
+	for {
+		if fdsecIsHeld(path) {
+			if since.IsZero() {
+				since = time.Now()
+			}
+			if time.Since(since) >= fdsecRevealHoldMin {
+				return true
+			}
+		} else {
+			since = time.Time{}
+			if time.Now().After(deadline) {
+				return false
+			}
+		}
+		time.Sleep(fdsecRevealPoll)
 	}
 }
 
@@ -523,9 +556,9 @@ func fdsecSweepReveals() {
 		if fdsecIsHeld(dir + fdsecRevealLockSuffix) {
 			continue
 		}
-		fdsecRemoveSandbox(dir)
+		gone := fdsecTryRemoveSandbox(dir)
 		os.Remove(dir + fdsecRevealLockSuffix)
-		if _, serr := os.Stat(dir); serr == nil {
+		if !gone {
 			fmt.Printf("Note: a leftover %s could not be removed and stays for the next start: %s\n", kind, dir)
 			continue
 		}

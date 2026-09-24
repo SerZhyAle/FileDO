@@ -280,11 +280,13 @@ Public Class Runner
                         .TimedOut = False
                     }
                 Catch ex As Exception
+                    ' The cause is the log's; the page shows the named reason (APP-BEHAVIOUR rule 6).
+                    ShellLog.Write("start or watch filedo.exe", ex)
                     Return New RunResult With {
                         .ExitCode = 2,
                         .Verdict = "Not proven",
                         .Reason = "shell_start_failed",
-                        .Output = outputBuilder.ToString() & Environment.NewLine & ex.Message,
+                        .Output = outputBuilder.ToString(),
                         .Duration = DateTime.Now - startTime,
                         .ResultInfo = Nothing,
                         .TimedOut = False
@@ -336,17 +338,20 @@ Public Class Runner
             Return "Not proven"
         End If
 
-        Dim verdict = result.Verdict.Trim()
-        If stopped AndAlso Not verdict.Equals("Stopped", StringComparison.OrdinalIgnoreCase) Then
+        Dim verdict = result.Verdict
+        If stopped AndAlso verdict <> "Stopped" Then
             Return "Stopped"
         End If
 
         Dim expected As Integer
-        Select Case verdict.ToLowerInvariant()
-            Case "passed", "done" : expected = 0
-            Case "failed" : expected = 1
-            Case "not proven" : expected = 2
-            Case "stopped" : Return verdict    ' a stop carries its own ending
+        ' Verdict words are contract tokens, not presentation text. Case
+        ' folding or trimming would turn an unknown future word into a result
+        ' this build has no right to claim (CLI-EVENT-STREAM rule 8).
+        Select Case verdict
+            Case "Passed", "Done" : expected = 0
+            Case "Failed" : expected = 1
+            Case "Not proven" : expected = 2
+            Case "Stopped" : Return "Stopped"    ' a stop carries its own ending
             Case Else
                 ' A word this build does not know is a word whose meaning it
                 ' cannot guess. A future verdict must not become a label on
@@ -378,7 +383,8 @@ Public Class Runner
         If Not isRunning OrElse String.IsNullOrEmpty(currentStopFile) Then Return
         Try
             File.WriteAllText(currentStopFile, "stop")
-        Catch
+        Catch ex As Exception
+            ShellLog.Write("write the stop file", ex)
         End Try
     End Sub
 
@@ -386,7 +392,9 @@ Public Class Runner
         If isRunning AndAlso currentProcess IsNot Nothing Then
             Try
                 currentProcess.Kill()
-            Catch
+            Catch ex As Exception
+                ' It ended between the check and the call, or Windows refused; either way it is logged.
+                ShellLog.Write("end filedo.exe", ex)
             End Try
         End If
     End Sub
@@ -409,7 +417,8 @@ Public Class Runner
             sb.AppendLine(New String("-"c, 60))
             sb.AppendLine(log)
             File.WriteAllText(reportFile, sb.ToString())
-        Catch
+        Catch ex As Exception
+            ShellLog.Write("save the run report", ex)
         End Try
     End Sub
 

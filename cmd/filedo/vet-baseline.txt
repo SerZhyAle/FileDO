@@ -1,0 +1,6 @@
+# CHECK-BASELINE set baseline for `go vet ./cmd/filedo/` (SP-0017 T9).
+# Identifier: repository-relative file, vet message, and occurrence number.
+# The number makes duplicate diagnostics stable while allowing line shifts.
+cmd/filedo/copy_fast.go: possible misuse of unsafe.Pointer #1
+cmd/filedo/copy_fast.go: possible misuse of unsafe.Pointer #2
+cmd/filedo/speedtest_unbuffered_windows.go: possible misuse of unsafe.Pointer #1
