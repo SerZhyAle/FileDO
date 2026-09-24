@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Тестування сховищ • Аналіз продуктивності • Безпечне видалення • Виявлення підробної місткості • Управління дублікатами**
@@ -510,7 +510,16 @@ FileDO/
 
 ## Історія версій
 
-**v2607301014** (Поточна)
+**v2609241700** (Поточна)
+- **Секретні файли (`.fd-sec`)**: один файл пакується в контейнер під паролем і повертається назад - `secure`, `unsecure`, `reveal` - з командного рядка, з меню Провідника або зі сторінок групи Protect у вікні; справжнє ім'я, розмір і дати оригіналу запечатано всередині
+- **Інтеграція з Провідником**: інсталятор додає до контекстного меню групу `File DO..` (Secure, Unsecure, Wipe this file, Check this file, Info) і тип документа `.fd-sec`; `filedo fdsec register` / `unregister` робить те саме без інсталятора
+- **GUI**: нове вікно - ліворуч перелік завдань, для кожного завдання своя сторінка з усіма параметрами CLI, плюс сторінки Command, History, Settings і About; старе вікно-конструктор команд прибрано
+- **Копіювання**: починається з першого файлу; `--precount` спочатку перераховує дерево для точних підсумків і часу, що залишився
+- **CLI**: єдині коди виходу - 0 пройдено або виконано, 1 знайдено дефект, 2 перевірити не вдалося; облікові дані вичищаються до запису в історію
+- **Поширення**: FileDO є в Microsoft Store; `THIRD-PARTY-NOTICES.txt` входить до zip, MSI і пакета Store
+- **Документація**: нові посібники - секретні файли та "Windows warned you about FileDO"
+
+**v2607301014** (Попередня)
 - **GUI**: інтерфейс 5 мовами (англійська, російська, українська, німецька, французька) з перемиканням мови на льоту та значком застосунку
 - **GUI**: вікно "Про програму" з функцією надсилання логів автору
 - **Приватність**: опубліковано сторінку конфіденційності, на неї посилаються сайт і сторінка в Store
@@ -518,7 +527,7 @@ FileDO/
 - **Документація**: перероблений сайт з новими покроковими посібниками (перевірка накопичувача, файли та копії, конструктор команд GUI)
 - **Проєкт**: вихідні коди реорганізовано в `cmd/` (filedo, filedo-check, filedo-fill, filedo-test); розділено процеси збірки та релізу
 
-**v2606120121** (Попередня)
+**v2606120121**
 - **Wipe**: посилено перевірки безпеки під час затирання
 - **Дублікати**: виправлено коректність і паралелізм кешу дублікатів
 - **Копіювання**: скорочено обходи каталогів під час копіювання
@@ -556,7 +565,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607301014** - Розширені інструменти для файлів і сховищ
+**FileDO v2609241700** - Розширені інструменти для файлів і сховищ
 
 Створено **sza@ukr.net** | [Ліцензія MIT](LICENSE) | [GitHub репозиторій](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

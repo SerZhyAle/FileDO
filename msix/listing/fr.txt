@@ -84,4 +84,4 @@ protéger fichier mot de passe
 faux usb capacité
 
 @@ReleaseNotes
-Première version sur le Microsoft Store : la fenêtre FileDO et la commande filedo avec tests de capacité et de vitesse, recherche de doublons, effacement sécurisé et fichiers secrets.
+Pages de tâches de la fenêtre et fichiers secrets (.fd-sec) améliorés. Le paquet inclut désormais les mentions de licence des composants tiers.

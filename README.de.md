@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Speicher-Tests • Leistungsanalyse • Sicheres Löschen • Fake-Kapazität Erkennung • Duplikat-Verwaltung**
@@ -513,7 +513,16 @@ FileDO/
 
 ## Versionshistorie
 
-**v2607301014** (Aktuell)
+**v2609241700** (Aktuell)
+- **Geheime Dateien (`.fd-sec`)**: eine Datei wird in einen passwortgeschützten Container gepackt und wieder herausgeholt - `secure`, `unsecure`, `reveal` - per Kommandozeile, über das Explorer-Menü oder auf den Protect-Seiten des Fensters; Name, Größe und Zeitstempel des Originals sind darin versiegelt
+- **Explorer-Integration**: das Setup fügt die Kontextmenügruppe `File DO..` (Secure, Unsecure, Wipe this file, Check this file, Info) und den Dokumenttyp `.fd-sec` hinzu; `filedo fdsec register` / `unregister` erledigt dasselbe ohne Installer
+- **GUI**: ein neues Fenster - links die Aufgaben, pro Aufgabe eine Seite mit allen CLI-Optionen, dazu die Seiten Command, History, Settings und About; das alte Befehlsbaukasten-Fenster entfällt
+- **Kopieren**: beginnt mit der ersten Datei; `--precount` zählt den Baum vorher für exakte Summen und Restzeit
+- **CLI**: einheitliche Exit-Codes - 0 bestanden oder erledigt, 1 Defekt gefunden, 2 nicht prüfbar; Zugangsdaten werden entfernt, bevor etwas in den Verlauf gelangt
+- **Vertrieb**: FileDO ist im Microsoft Store; `THIRD-PARTY-NOTICES.txt` liegt im Zip, im MSI und im Store-Paket
+- **Dokumentation**: neue Anleitungen - geheime Dateien und "Windows warned you about FileDO"
+
+**v2607301014** (Vorherige)
 - **GUI**: Oberfläche in 5 Sprachen (Englisch, Russisch, Ukrainisch, Deutsch, Französisch) mit Sprachwechsel zur Laufzeit und App-Symbol
 - **GUI**: "Über"-Fenster mit Funktion zum Senden der Protokolle an den Autor
 - **Datenschutz**: veröffentlichte Datenschutzseite, verlinkt von der Website und dem Store-Eintrag
@@ -521,7 +530,7 @@ FileDO/
 - **Dokumentation**: neu gestaltete Website mit neuen Schritt-für-Schritt-Anleitungen (Speicherprüfung, Dateien und Kopien, GUI-Befehlsgenerator)
 - **Projekt**: Quellcode unter `cmd/` reorganisiert (filedo, filedo-check, filedo-fill, filedo-test); getrennte Build- und Release-Abläufe
 
-**v2606120121** (Vorherige)
+**v2606120121**
 - **Wipe**: verstärkte Sicherheitsprüfungen beim Löschen
 - **Duplikate**: Korrektheit und Parallelität des Duplikat-Caches korrigiert
 - **Kopieren**: Verzeichnisdurchläufe beim Kopieren reduziert
@@ -559,7 +568,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607301014** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2609241700** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

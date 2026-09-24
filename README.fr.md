@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test de Stockage • Analyse de Performance • Suppression Sécurisée • Détection de Fausse Capacité • Gestion des Doublons**
@@ -511,7 +511,16 @@ FileDO/
 
 ## Historique des Versions
 
-**v2607301014** (Actuelle)
+**v2609241700** (Actuelle)
+- **Fichiers secrets (`.fd-sec`)** : un fichier est placé dans un conteneur protégé par mot de passe puis restauré - `secure`, `unsecure`, `reveal` - en ligne de commande, depuis le menu de l'Explorateur ou les pages Protect de la fenêtre ; le vrai nom, la taille et les dates de l'original sont scellés à l'intérieur
+- **Intégration à l'Explorateur** : le setup ajoute le groupe `File DO..` au menu contextuel (Secure, Unsecure, Wipe this file, Check this file, Info) et le type de document `.fd-sec` ; `filedo fdsec register` / `unregister` fait de même sans installateur
+- **GUI** : une nouvelle fenêtre - la liste des tâches à gauche, une page par tâche avec toutes les options de la CLI, plus les pages Command, History, Settings et About ; l'ancienne fenêtre de construction de commandes est retirée
+- **Copie** : elle commence dès le premier fichier ; `--precount` compte d'abord l'arborescence pour des totaux et une durée restante exacts
+- **CLI** : des codes de sortie uniques - 0 réussi ou terminé, 1 défaut trouvé, 2 vérification impossible ; les identifiants sont masqués avant toute écriture dans l'historique
+- **Distribution** : FileDO est sur le Microsoft Store ; `THIRD-PARTY-NOTICES.txt` est inclus dans le zip, le MSI et le paquet Store
+- **Documentation** : nouveaux guides - fichiers secrets et "Windows warned you about FileDO"
+
+**v2607301014** (Précédente)
 - **GUI** : interface en 5 langues (anglais, russe, ukrainien, allemand, français) avec changement de langue à la volée et icône d'application
 - **GUI** : fenêtre "À propos" avec envoi des journaux à l'auteur
 - **Confidentialité** : page de confidentialité publiée, liée depuis le site et la fiche du Store
@@ -519,7 +528,7 @@ FileDO/
 - **Documentation** : site repensé avec de nouveaux guides pas à pas (vérification du stockage, fichiers et copies, constructeur de commandes GUI)
 - **Projet** : sources réorganisées sous `cmd/` (filedo, filedo-check, filedo-fill, filedo-test) ; flux de build et de release séparés
 
-**v2606120121** (Précédente)
+**v2606120121**
 - **Wipe** : contrôles de sécurité renforcés pour l'effacement
 - **Doublons** : correction de l'exactitude et du parallélisme du cache de doublons
 - **Copie** : parcours de répertoires allégés lors de la copie
@@ -557,7 +566,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607301014** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2609241700** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

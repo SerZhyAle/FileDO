@@ -6,7 +6,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2607301014-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Storage Testing • Performance Analysis • Security Wiping • Fake Capacity Detection • Duplicate Management**
@@ -655,7 +655,16 @@ FileDO/
 
 ## Version History
 
-**v2607301014** (Current)
+**v2609241700** (Current)
+- **Secret files (`.fd-sec`)**: pack one file into a password-protected container and get it back - `secure`, `unsecure`, `reveal` - from the command line, the Explorer menu or the window's Protect pages; the original's name, size and timestamps are sealed inside
+- **Explorer integration**: the setup EXE adds a `File DO..` right-click group (Secure, Unsecure, Wipe this file, Check this file, Info) and the `.fd-sec` document type; `filedo fdsec register` / `unregister` does the same without an installer
+- **GUI**: a new window - a rail of jobs with one page per job, each carrying every CLI option, plus Command, History, Settings and About pages; the old command-builder window is retired
+- **Copy**: copying starts at the first file; `--precount` counts the tree first for exact totals and an ETA
+- **CLI**: one set of exit codes - 0 passed or done, 1 found a defect, 2 could not be verified; credentials are redacted before anything reaches the history
+- **Distribution**: FileDO is on the Microsoft Store; `THIRD-PARTY-NOTICES.txt` ships in the zip, the MSI and the Store package
+- **Docs**: new guides - secret files and "Windows warned you about FileDO"
+
+**v2607301014** (Previous)
 - **GUI**: 5-language interface (English, Russian, Ukrainian, German, French) with runtime language switching and an app icon
 - **GUI**: About window with a send-logs-to-the-author action
 - **Privacy**: hosted privacy page, linked from the site and the Store listing
@@ -663,7 +672,7 @@ FileDO/
 - **Docs**: redesigned site with new step-by-step guides (storage check, files and copies, GUI command builder)
 - **Project**: sources reorganized under `cmd/` (filedo, filedo-check, filedo-fill, filedo-test); separate build and release flows
 
-**v2606120121** (Previous)
+**v2606120121**
 - **Wipe**: hardened wipe safety checks
 - **Duplicates**: fixed duplicate-cache correctness and parallelism
 - **Copy**: trimmed copy directory walks
@@ -701,7 +710,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2607301014** - Advanced File & Storage Operations Tool
+**FileDO v2609241700** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

@@ -84,4 +84,4 @@ datei mit passwort schützen
 usb stick test
 
 @@ReleaseNotes
-Erste Veröffentlichung im Microsoft Store: das FileDO-Fenster und der Befehl filedo mit Kapazitäts- und Geschwindigkeitstests, Duplikatsuche, sicherem Löschen und geheimen Dateien.
+Verbesserte Aufgabenseiten im Fenster und verbesserte geheime Dateien (.fd-sec). Das Paket enthält jetzt die Lizenzhinweise der Drittanbieter-Komponenten.

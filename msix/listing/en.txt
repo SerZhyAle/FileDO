@@ -85,4 +85,4 @@ password protect file
 usb flash checker
 
 @@ReleaseNotes
-First release on the Microsoft Store: the FileDO window and the filedo command, with capacity and speed tests, a duplicate finder, secure wipe and secret files.
+Improvements to the window's job pages and to secret files (.fd-sec). The package now includes the third-party license notices.
