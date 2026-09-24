@@ -165,7 +165,7 @@ jobs:
           }
           $gui = (Get-Item (Join-Path $stage 'filedo_win.exe')).VersionInfo.FileVersion
           if ($gui -ne $guiVersion) { throw "filedo_win.exe PE version '$gui' does not match '$guiVersion'" }
-          Write-Host "release-artifacts $version: PASS (5 stamped executables)"
+          Write-Host "release-artifacts ${version}: PASS (5 stamped executables)"
 
       - name: Package zip
         id: pkg
