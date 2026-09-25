@@ -26,18 +26,25 @@
   declare a .NET Framework dependency. Declaring 1809 would offer the Store copy
   to machines where the graphical shell cannot start.
 
-  The Store build registers nothing in Explorer: a packaged app can only declare a
-  context-menu handler through a signed shell command handler (not built), and
-  `HKCU\Software\Classes` writes are virtualized into the package. Say so in the
-  listing rather than implying parity with the MSI.
+  The Store build cannot write the classic `HKCU\Software\Classes` context-menu
+  keys (they are virtualized into the package), so its "File DO.." group is the
+  packaged Explorer command of SP-0020: FileDOShell.dll, an IExplorerCommand
+  declared below through desktop4:FileExplorerContextMenus and hosted by a COM
+  surrogate (com:SurrogateServer), so a fault in it ends a dllhost.exe and not
+  Explorer. That is what reaches the Windows 11 first-level menu. It also
+  declares the `.fd-sec` file type, so Windows starts the GUI with a selected
+  container's path on double-click.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap3 desktop rescap">
+  IgnorableNamespaces="uap uap3 desktop desktop4 desktop5 com rescap">
 
   <Identity
     Name="{{IDENTITY_NAME}}"
@@ -82,6 +89,36 @@
         Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
       </uap:VisualElements>
+      <Extensions>
+        <!-- SP-0005 9.2: the .fd-sec association. Its logo is the ICON-SET meaning
+             content.secret-file, not the product mark (SP-0016 T8). -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="filedo.securecontainer">
+            <uap:Logo>Assets\SecretFile.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.fd-sec</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <!-- SP-0020: the "File DO.." group at the Windows 11 first level, on every file
+             (Type="*", as the classic `*\shell\FileDO`). The Clsid is the handler's one
+             identity and appears twice - here and on the COM class - and in FileDOShell.cpp;
+             build-msix.ps1 checks that all three agree. -->
+        <desktop4:Extension Category="windows.fileExplorerContextMenus">
+          <desktop4:FileExplorerContextMenus>
+            <desktop5:ItemType Type="*">
+              <desktop5:Verb Id="FileDO" Clsid="7B369FE8-B2BC-41EA-AA71-5427ACAD6E8E" />
+            </desktop5:ItemType>
+          </desktop4:FileExplorerContextMenus>
+        </desktop4:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="FileDO Explorer command">
+              <com:Class Id="7B369FE8-B2BC-41EA-AA71-5427ACAD6E8E" Path="FileDOShell.dll" ThreadingModel="STA" />
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
     </Application>
 
     <!-- The console tool, on PATH as `filedo`. Visible by default - see the header. -->

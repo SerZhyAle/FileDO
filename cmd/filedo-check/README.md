@@ -1,163 +1,89 @@
-# FileDO CHECK - Specialized File Integrity Checker
+# filedo_check - a shortcut for `filedo check`
 
-FileDO CHECK v250916_check - A specialized tool for file integrity verification through read performance analysis.
-
-## Overview
-
-FileDO CHECK is a standalone version of the CHECK functionality from the main FileDO toolkit. It performs fast file integrity checks by monitoring file read delays, identifying potentially damaged files that may indicate disk problems.
-
-## Features
-
-- **Three Check Modes**: Quick, Balanced (default), and Deep scanning
-- **Multi-target Support**: Devices, folders, and network shares
-- **Intelligent Threading**: Auto-detects drive type for optimal performance
-- **Progress Tracking**: Real-time progress with ETA calculations  
-- **Damage Detection**: Identifies slow-reading files indicating potential damage
-- **Resume Support**: Continue from last position for interrupted scans
-- **Flexible Reporting**: CSV and JSON output formats
-- **Integration Ready**: Compatible with main FileDO damage tracking system
+`filedo_check.exe` is a launcher, not a second copy of the check engine. It turns its command line
+into the equivalent `filedo.exe check` command line, runs the `filedo.exe` that sits in its own
+folder with the same console, and ends with that exit code. Everything the run does - which files
+it reads and how, what counts as damage, the `skip_files.list` and `check_files.list` it keeps,
+and the verdict - is what `filedo.exe check` does, so the two can never disagree.
 
 ## Usage
 
 ```cmd
-filedo_check.exe <target> [mode] [options]
+filedo_check.exe <target> [mode] [options] [global options]
 ```
 
-### Basic Examples
+| You type | filedo.exe runs |
+| --- | --- |
+| `filedo_check.exe D:` | `filedo.exe check D:\ --mode balanced` |
+| `filedo_check.exe D: quick` | `filedo.exe check D:\ --mode quick` |
+| `filedo_check.exe D:\Photos deep` | `filedo.exe check D:\Photos --mode deep` |
+| `filedo_check.exe \\server\share` | `filedo.exe check \\server\share --mode balanced` |
+| `filedo_check.exe D:\Video\one.mkv` | `filedo.exe check D:\Video\one.mkv --mode balanced` |
+| `filedo_check.exe D: --threshold 5` | `filedo.exe check D:\ --mode balanced --threshold 5` |
 
-```cmd
-# Check entire C: drive with balanced mode (default)
-filedo_check.exe C:
+- **target** - a drive (`D:`, checked from its root), a folder, a network share, or one file. A
+  single letter (`D`) means that drive; a bare folder name (`Photos`) is passed as `.\Photos`.
+- **mode** - one of:
+  - `quick`, `q` - read the start of each file;
+  - `balanced`, `b` - also read the middle of large files. **The default**, passed explicitly
+    because `filedo.exe check` on its own defaults to `quick`;
+  - `deep`, `d` - also read three points inside large files.
 
-# Quick check of D: drive
-filedo_check.exe D: quick
+### Options
 
-# Deep check of specific folder
-filedo_check.exe C:\Important deep
+Each is the `filedo.exe check` option of the same name, passed on unchanged (`--name value` or
+`--name=value`):
 
-# Check network share
-filedo_check.exe \\server\share balanced
-```
+| Option | What it does |
+| --- | --- |
+| `--threshold <sec>` | a read slower than this marks the file damaged (default 2) |
+| `--workers <n>` | number of parallel readers (default: chosen from the drive type) |
+| `--max-files <n>` | stop after this many files |
+| `--min-mb <n>` / `--max-mb <n>` | only files of at least / at most n MB |
+| `--include-ext <list>` / `--exclude-ext <list>` | only / skip these extensions, comma-separated |
+| `--report csv\|json` | also write `check_report_<time>.csv` or `.json` |
+| `--verbose` / `--quiet` | more or less output |
+| `--precount` | count the files first, for exact totals (already the default) |
 
-### Modes
+`filedo.exe check` has further tuning options; run it directly for those. The `FILEDO_CHECK_*`
+environment variables it reads apply here too, because `filedo.exe` inherits the environment -
+except `FILEDO_CHECK_MODE`, which the mode word (or the `balanced` default) always overrides.
 
-- **quick** (`q`) - Fast scan, reads only the beginning of files
-- **balanced** (`b`) - Default mode, reads beginning and middle of files  
-- **deep** (`d`) - Thorough scan, reads beginning, middle, and end of files
+`--resume` and `--dry-run`, which earlier versions of this tool listed, are refused: the check
+engine does not keep a position to resume from, and it has no dry run. Anything else unknown is
+refused too, before `filedo.exe` starts.
 
-### Common Options
+### Global options
 
-```cmd
-# Set custom delay threshold (default: 2.0 seconds)
-filedo_check.exe C: --threshold 5
+Handed to `filedo.exe` unchanged: `--events <file>`, `--stop-file <file>`, `--pause`,
+`--no-history`, `--no-ui`, `nohist`.
 
-# Verbose output with detailed information
-filedo_check.exe C: --verbose
+`filedo_check.exe -?` shows the usage and the version.
 
-# Quiet mode with minimal output
-filedo_check.exe C: --quiet
+## Exit codes
 
-# Generate CSV report
-filedo_check.exe C: --report csv
+`filedo.exe`'s own: **0** passed, **1** damaged files were found, **2** could not verify.
+`filedo_check.exe` adds nothing of its own except **2** for a command line it refuses and for a
+`filedo.exe` that is not in its folder or cannot be started.
 
-# Limit to specific file types
-filedo_check.exe C: --include-ext "jpg,png,mp4"
+Ctrl+C reaches `filedo.exe` directly, because the two share the console; it stops the way it
+always does, and `filedo_check.exe` waits for it and returns its exit code.
 
-# Skip certain file types
-filedo_check.exe C: --exclude-ext "tmp,log"
+## Where filedo.exe comes from
 
-# Check only large files (>100MB)
-filedo_check.exe C: --min-mb 100
+Only from the folder `filedo_check.exe` is in - never from the current folder and never from
+`PATH`. A winget install starts the tools through links in `WinGet\Links`; the launcher follows
+its own link back to the package folder first. The zip, the installer and winget all ship the two
+files together.
 
-# Limit processing to 1000 files
-filedo_check.exe C: --max-files 1000
+## Building
 
-# Resume from last position
-filedo_check.exe C: --resume
-```
-
-## How It Works
-
-1. **File Discovery**: Scans target location for eligible files
-2. **Read Testing**: Attempts to read file beginnings (and middle/end for balanced/deep modes)
-3. **Delay Analysis**: Measures read response times against threshold (default: 2 seconds)
-4. **Damage Detection**: Files exceeding threshold are flagged as potentially damaged
-5. **List Management**: Updates `skip_files.list` (damaged) and `check_files.list` (verified good)
-
-## Output Files
-
-- `skip_files.list` - Contains paths of files with read delays (potentially damaged)
-- `check_files.list` - Contains paths of verified good files (skipped on subsequent runs)
-- `history.json` - Operation history log with statistics
-- `check_report_*.csv/json` - Optional detailed reports
-
-## Environment Variables
-
-Advanced configuration through environment variables:
-
-```cmd
-set FILEDO_CHECK_MODE=balanced
-set FILEDO_CHECK_THRESHOLD_SECONDS=2.0
-set FILEDO_CHECK_WORKERS=8
-set FILEDO_CHECK_VERBOSE=1
-set FILEDO_CHECK_REPORT=csv
-set FILEDO_CHECK_MAX_FILES=10000
-```
-
-See main FileDO documentation for complete environment variable reference.
-
-## Integration with FileDO
-
-FileDO CHECK uses the same damage detection system as the main FileDO toolkit:
-
-- Shares `skip_files.list` for consistent damage tracking
-- Compatible with main FileDO rescue operations
-- Uses same environmental configuration options
-- Maintains unified operation history
-
-## Performance Tips
-
-- **SSDs**: Use higher worker counts (8+) for parallel processing
-- **HDDs**: Use fewer workers (3-4) to avoid seek penalties  
-- **Network**: Use moderate worker counts (5-6) depending on bandwidth
-- **Large datasets**: Use `--precount` for accurate ETA estimation
-- **Resume**: Use `--resume` for very large operations that may be interrupted
-
-## Build Instructions
-
-### Prerequisites
-- Go 1.24.4 or later (download from https://golang.org/dl/)
-- Windows (optimized for Windows file systems)
-
-### Building
 ```cmd
 cd cmd\filedo-check
-go mod tidy
 go build -o filedo_check.exe .
+go test ./...
 ```
 
-Or use the provided batch file:
-```cmd
-build.cmd
-```
-
-### Installation Notes
-If you get "go is not recognized" error:
-1. Download and install Go from https://golang.org/dl/
-2. Restart command prompt/terminal
-3. Verify installation: `go version`
-4. Then run build commands above
-
-## Requirements
-
-- Go 1.24.4 or later
-- Windows (optimized for Windows file systems)
-- Access to parent FileDO module for core check functionality
-
-## Author
-
-Created by sza@ukr.net as part of the FileDO toolkit.
-
-## License
-
-See LICENSE file in the parent FileDO project.
+It is its own Go module with no dependencies outside the standard library. `go test` builds the
+launcher and a stub `filedo.exe` and runs them together; it never reads a real drive.
+`test_filedo_check.cmd` is a manual walk-through against a real `filedo.exe`.

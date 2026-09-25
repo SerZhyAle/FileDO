@@ -10,8 +10,9 @@ on:
         description: 'Tag to release (e.g. v2604271200)'
         required: true
 
-permissions:
-  contents: write
+# Least privilege (CI-02): nothing by default. The build job reads the repository; only the
+# small publish job, which runs no project code, may write - and all it writes is the release.
+permissions: {}
 
 # Serialize runs that target the same tag. A manual re-dispatch of a tag that is
 # already building now queues instead of racing the original run and clobbering a
@@ -22,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     # Windows is REQUIRED here, not a default: the VB.NET WinForms GUI targets
     # .NET Framework 4.8, which only builds with Windows MSBuild. Moving the
     # Go/MSI steps to Linux is possible but not worth it for a release-only
@@ -30,17 +31,44 @@ jobs:
     # public repo standard runners are free, so this is hygiene, not a cost cut.
     runs-on: windows-latest
     timeout-minutes: 30  # healthy run is <10 min; default ceiling is 360 (6h) per stuck job
+    permissions:
+      contents: read
+    env:
+      # The Go that setup-go installs is the Go that builds - never a toolchain the go
+      # command would download on its own. "Check the toolchain pin" below proves it is
+      # the one go.mod pins, which is also the one build.ps1's gate tested.
+      GOTOOLCHAIN: local
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      version: ${{ steps.ver.outputs.version }}
+      setup_name: ${{ steps.setup.outputs.name }}
+      setup_sha: ${{ steps.setup.outputs.sha }}
+      zip_name: ${{ steps.pkg.outputs.name }}
+      zip_sha: ${{ steps.pkg.outputs.sha }}
+      msi_name: ${{ steps.msi.outputs.name }}
+      msi_sha: ${{ steps.msi.outputs.sha }}
 
     steps:
+      # Every action is pinned by commit SHA (CI-02): a moved tag on a third-party action
+      # must not be able to run code next to the release artifacts. The version is the comment.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          # A dispatch names a tag, and only a tag: refs/tags/ keeps a branch of the same
+          # name from being checked out instead.
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
+          # The whole history, so "Resolve version" can prove the tag is on main.
+          fetch-depth: 0
+          # The token is not left in .git/config for every later step (CI-02).
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version-file: go.mod
+          # One toolchain for every channel (CI-03): equal to go.mod's `toolchain` line.
+          # setup-go's go-version-file reads only the `go` line (the language floor), so the
+          # version is spelled here, and build.ps1's gate fails when the two differ.
+          go-version: '1.26.1'
           # setup-go enables module/build caching by default but only keys off the
           # root go.sum. This repo has 4 modules, so list each go.sum to keep the
           # cache key correct (a stale key = silent cache misses on every release).
@@ -51,33 +79,63 @@ jobs:
             cmd/filedo-test/go.sum
 
       - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
 
+      # CI-01: the tag reaches the script only through the environment - never spliced into
+      # the script text, where a crafted dispatch input would be code. It must be a v + a
+      # real yyMMddHHmm date, and its commit must be on main; anything else stops here,
+      # before a single artifact exists. There is no 0.0.0.0 fallback any more.
       - name: Resolve version
         id: ver
         shell: pwsh
+        env:
+          RAW_TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
-          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
-          $version = $tag -replace '^v',''
-          # Parse yyMMddHHmm into Major.Minor.Patch.Build for VS_VERSIONINFO
-          if ($version -match '^(\d{2})(\d{2})(\d{2})(\d{4})$') {
-            $vMaj = [int]$Matches[1]; $vMin = [int]$Matches[2]
-            $vPat = [int]$Matches[3]; $vBld = [int]$Matches[4]
-          } else {
-            $vMaj = 0; $vMin = 0; $vPat = 0; $vBld = 0
+          $tag = $env:RAW_TAG
+          if ($tag -cnotmatch '^v\d{10}$') { throw "'$tag' is not a release tag (v + yyMMddHHmm) - nothing is built or published." }
+          $version = $tag.Substring(1)
+          try {
+            $when = [datetime]::ParseExact($version, 'yyMMddHHmm', [Globalization.CultureInfo]::InvariantCulture)
+          } catch {
+            throw "'$version' is not a real yyMMddHHmm date - nothing is built or published."
           }
-          "tag=$tag"           | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "version=$version"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "vMaj=$vMaj"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "vMin=$vMin"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "vPat=$vPat"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "vBld=$vBld"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "Tag: $tag  Version: $version  ($vMaj.$vMin.$vPat.$vBld)"
+          $tagCommit = git rev-parse "refs/tags/$tag^{commit}"
+          if ($LASTEXITCODE -ne 0 -or -not $tagCommit) { throw "tag $tag does not exist" }
+          $head = git rev-parse HEAD
+          if ("$tagCommit".Trim() -ne "$head".Trim()) { throw "the checkout ($head) is not the commit of $tag ($tagCommit)" }
+          $tagCommit = "$tagCommit".Trim()
+          git merge-base --is-ancestor $tagCommit origin/main
+          if ($LASTEXITCODE -ne 0) { throw "$tag ($tagCommit) is not on origin/main - only a commit of main is released." }
+          # PE VS_VERSIONINFO: yy.M.d.HHmm (the smoke test and About read it back).
+          $vMaj = $when.Year % 100; $vMin = $when.Month; $vPat = $when.Day
+          $vBld = $when.Hour * 100 + $when.Minute
+          # MSI and setup EXE: yy . M . ((d-1)*1440 + H*60 + m) - Windows Installer compares
+          # three fields, so the minute of the month is in the third (PKG-01). The same
+          # arithmetic as build.ps1's Get-InstallerVersion.
+          $installerVersion = "{0}.{1}.{2}" -f $vMaj, $vMin, (($when.Day - 1) * 1440 + $when.Hour * 60 + $when.Minute)
+          "tag=$tag"                           | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version=$version"                   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "peVersion=$vMaj.$vMin.$vPat.$vBld"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vMaj=$vMaj"                         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vMin=$vMin"                         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vPat=$vPat"                         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "vBld=$vBld"                         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "installerVersion=$installerVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Tag: $tag  Version: $version  (PE $vMaj.$vMin.$vPat.$vBld, installer $installerVersion)"
+
+      - name: Check the toolchain pin
+        shell: pwsh
+        run: |
+          $pin = if ((Get-Content go.mod -Raw) -match '(?m)^toolchain\s+(go\S+)\s*$') { $Matches[1] } else { throw "go.mod has no toolchain line" }
+          $have = (go env GOVERSION).Trim()
+          if ($have -ne $pin) { throw "setup-go installed $have, go.mod pins $pin - fix go-version above" }
+          Write-Host "Go $have = go.mod toolchain $pin"
 
       - name: Install goversioninfo
         shell: pwsh
         run: |
           go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1
+          if ($LASTEXITCODE -ne 0) { throw "goversioninfo install failed" }
           # Add Go bin to PATH for subsequent steps
           "$(go env GOPATH)\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
@@ -85,12 +143,16 @@ jobs:
         shell: pwsh
         env:
           CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+          VERSION: ${{ steps.ver.outputs.version }}
+          PE_VERSION: ${{ steps.ver.outputs.peVersion }}
+          VMAJ: ${{ steps.ver.outputs.vMaj }}
+          VMIN: ${{ steps.ver.outputs.vMin }}
+          VPAT: ${{ steps.ver.outputs.vPat }}
+          VBLD: ${{ steps.ver.outputs.vBld }}
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
-          $vMaj = "${{ steps.ver.outputs.vMaj }}"
-          $vMin = "${{ steps.ver.outputs.vMin }}"
-          $vPat = "${{ steps.ver.outputs.vPat }}"
-          $vBld = "${{ steps.ver.outputs.vBld }}"
+          $version = $env:VERSION
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
@@ -108,12 +170,12 @@ jobs:
               # is auto-linked by `go build` from the package directory.
               goversioninfo `
                 -64 `
-                -ver-major $vMaj -ver-minor $vMin `
-                -ver-patch $vPat -ver-build $vBld `
-                -product-ver-major $vMaj -product-ver-minor $vMin `
-                -product-ver-patch $vPat -product-ver-build $vBld `
-                -file-version "$vMaj.$vMin.$vPat.$vBld" `
-                -product-version "$vMaj.$vMin.$vPat.$vBld" `
+                -ver-major $env:VMAJ -ver-minor $env:VMIN `
+                -ver-patch $env:VPAT -ver-build $env:VBLD `
+                -product-ver-major $env:VMAJ -product-ver-minor $env:VMIN `
+                -product-ver-patch $env:VPAT -product-ver-build $env:VBLD `
+                -file-version $env:PE_VERSION `
+                -product-version $env:PE_VERSION `
                 -o resource.syso `
                 versioninfo.json
               if ($LASTEXITCODE -ne 0) { throw "goversioninfo failed in $($b.Dir)" }
@@ -136,15 +198,34 @@ jobs:
           # carries it too: `filedo fdsec register` uses it when no installer
           # ran (portable, winget, go install).
           Copy-Item assets\icon.ico "$stage\FileDO.ico" -Force
+          # The Explorer entries and the document type show their ICON-SET meaning's
+          # icon from icons\ beside the exe (SP-0016 T8) - in the MSI and the zip alike.
+          New-Item -ItemType Directory -Force -Path "$stage\icons" | Out-Null
+          Copy-Item assets\menu-icons\*.ico "$stage\icons" -Force
+
+      # CI-03: no known-vulnerable code ships. Binary mode reads what is linked into each
+      # executable - the standard library of the pinned toolchain included - and exits
+      # non-zero on a vulnerability whose symbols are in the binary.
+      - name: govulncheck
+        shell: pwsh
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+          if ($LASTEXITCODE -ne 0) { throw "govulncheck install failed" }
+          $gvc = Join-Path (go env GOPATH) 'bin\govulncheck.exe'
+          foreach ($exe in 'filedo.exe', 'filedo_fill.exe', 'filedo_check.exe', 'filedo_test.exe') {
+            & $gvc -mode=binary (Join-Path $env:GITHUB_WORKSPACE "dist\FileDO\$exe")
+            if ($LASTEXITCODE -ne 0) { throw "govulncheck reports a vulnerability in $exe - nothing is published" }
+          }
 
       - name: Build GUI
         shell: pwsh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          PE_VERSION: ${{ steps.ver.outputs.peVersion }}
         run: |
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
-          # filedo_win.exe is the VB.NET command-builder GUI; ships alongside the CLI.
-          $version = "${{ steps.ver.outputs.version }}"
-          $guiVersion = "${{ steps.ver.outputs.vMaj }}.${{ steps.ver.outputs.vMin }}.${{ steps.ver.outputs.vPat }}.${{ steps.ver.outputs.vBld }}"
-          msbuild filedo_win_vb\FileDOGUI.vbproj -p:Configuration=Release -p:Platform=AnyCPU -p:BuildStamp=$version -p:AssemblyVersion=$guiVersion -v:minimal -nologo
+          # filedo_win.exe is the VB.NET GUI shell; ships alongside the CLI.
+          msbuild filedo_win_vb\FileDOGUI.vbproj -p:Configuration=Release -p:Platform=AnyCPU "-p:BuildStamp=$env:VERSION" "-p:AssemblyVersion=$env:PE_VERSION" -v:minimal -nologo
           if ($LASTEXITCODE -ne 0) { throw "GUI build failed" }
           Copy-Item filedo_win_vb\bin\Release\filedo_win.exe $stage -Force
           if (Test-Path filedo_win_vb\bin\Release\filedo_win.exe.config) {
@@ -153,9 +234,11 @@ jobs:
 
       - name: Smoke staged release artifacts
         shell: pwsh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          PE_VERSION: ${{ steps.ver.outputs.peVersion }}
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
-          $guiVersion = "${{ steps.ver.outputs.vMaj }}.${{ steps.ver.outputs.vMin }}.${{ steps.ver.outputs.vPat }}.${{ steps.ver.outputs.vBld }}"
+          $version = $env:VERSION
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
           foreach ($name in 'filedo.exe', 'filedo_fill.exe', 'filedo_check.exe', 'filedo_test.exe') {
             $text = & (Join-Path $stage $name) '-?' 2>&1 | Out-String
@@ -164,15 +247,16 @@ jobs:
             }
           }
           $gui = (Get-Item (Join-Path $stage 'filedo_win.exe')).VersionInfo.FileVersion
-          if ($gui -ne $guiVersion) { throw "filedo_win.exe PE version '$gui' does not match '$guiVersion'" }
+          if ($gui -ne $env:PE_VERSION) { throw "filedo_win.exe PE version '$gui' does not match '$env:PE_VERSION'" }
           Write-Host "release-artifacts ${version}: PASS (5 stamped executables)"
 
       - name: Package zip
         id: pkg
         shell: pwsh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
-          $zipName = "FileDO-$version-windows-x64.zip"
+          $zipName = "FileDO-$env:VERSION-windows-x64.zip"
           $zipPath = Join-Path $env:GITHUB_WORKSPACE "dist\$zipName"
           Compress-Archive -Path "dist\FileDO\*" -DestinationPath $zipPath -Force
           $sha = (Get-FileHash -Algorithm SHA256 $zipPath).Hash
@@ -185,7 +269,9 @@ jobs:
       - name: Install WiX
         shell: pwsh
         run: |
-          dotnet tool install --global wix --version 5.*
+          # Pinned (CI-02): a floating 5.* would take whatever NuGet serves next, into a job
+          # that builds the installer everyone downloads. build.ps1 names the same version.
+          dotnet tool install --global wix --version 5.0.2
           if ($LASTEXITCODE -ne 0) { throw "wix install failed" }
           $tools = "$env:USERPROFILE\.dotnet\tools"
           $tools | Out-File -FilePath $env:GITHUB_PATH -Append
@@ -202,11 +288,12 @@ jobs:
       - name: Build MSI
         id: msi
         shell: pwsh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          INSTALLER_VERSION: ${{ steps.ver.outputs.installerVersion }}
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
-          $productVersion = "${{ steps.ver.outputs.vMaj }}.${{ steps.ver.outputs.vMin }}.${{ steps.ver.outputs.vPat }}.${{ steps.ver.outputs.vBld }}"
           $stage = Join-Path $env:GITHUB_WORKSPACE 'dist\FileDO'
-          $msiName = "FileDO-$version-windows-x64.msi"
+          $msiName = "FileDO-$env:VERSION-windows-x64.msi"
           $msiPath = Join-Path $env:GITHUB_WORKSPACE "dist\$msiName"
           $iconFile = Join-Path $env:GITHUB_WORKSPACE 'assets\icon.ico'
           $licenseRtf = Join-Path $env:GITHUB_WORKSPACE 'packaging\wix\License.rtf'
@@ -218,7 +305,7 @@ jobs:
           wix build packaging\wix\FileDO.wxs `
             -arch x64 `
             -ext WixToolset.UI.wixext `
-            -d "ProductVersion=$productVersion" `
+            -d "ProductVersion=$env:INSTALLER_VERSION" `
             -d "StageDir=$stage" `
             -d "IconFile=$iconFile" `
             -d "LicenseRtf=$licenseRtf" `
@@ -240,18 +327,20 @@ jobs:
       - name: Build setup EXE
         id: setup
         shell: pwsh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          INSTALLER_VERSION: ${{ steps.ver.outputs.installerVersion }}
+          MSI_PATH: ${{ steps.msi.outputs.msi }}
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
-          $productVersion = "${{ steps.ver.outputs.vMaj }}.${{ steps.ver.outputs.vMin }}.${{ steps.ver.outputs.vPat }}.${{ steps.ver.outputs.vBld }}"
-          $setupName = "FileDO-$version-setup.exe"
+          $setupName = "FileDO-$env:VERSION-setup.exe"
           $setupPath = Join-Path $env:GITHUB_WORKSPACE "dist\$setupName"
           $iconFile = Join-Path $env:GITHUB_WORKSPACE 'assets\icon.ico'
           $licenseRtf = Join-Path $env:GITHUB_WORKSPACE 'packaging\wix\License.rtf'
           wix build packaging\wix\FileDO-bundle.wxs `
             -arch x64 `
             -ext WixToolset.BootstrapperApplications.wixext `
-            -d "ProductVersion=$productVersion" `
-            -d "MsiFile=${{ steps.msi.outputs.msi }}" `
+            -d "ProductVersion=$env:INSTALLER_VERSION" `
+            -d "MsiFile=$env:MSI_PATH" `
             -d "IconFile=$iconFile" `
             -d "LicenseRtf=$licenseRtf" `
             -o $setupPath
@@ -274,26 +363,80 @@ jobs:
           pwsh -NoProfile -File packaging\verify-sha256-sidecars.ps1 -Path dist -Expect 3
           if ($LASTEXITCODE -ne 0) { throw "a .sha256 sidecar does not match its asset - nothing published" }
 
-      # The asset NAMES below are a contract with docs/index.html: the landing
-      # page picks its download links from the releases/latest API by the
-      # suffixes -setup.exe, -windows-x64.zip, -windows-x64.msi and
-      # <name>.sha256. Rename one and that link silently falls back to the
-      # plain Releases page.
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      # The six files, and nothing else, go to the publish job.
+      - name: Hand the assets to the publish job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          tag_name: ${{ steps.ver.outputs.tag }}
-          name: FileDO ${{ steps.ver.outputs.version }}
-          generate_release_notes: true
-          files: |
+          name: release-assets
+          path: |
             dist/${{ steps.setup.outputs.name }}
             dist/${{ steps.setup.outputs.name }}.sha256
             dist/${{ steps.pkg.outputs.name }}
             dist/${{ steps.pkg.outputs.name }}.sha256
             dist/${{ steps.msi.outputs.name }}
             dist/${{ steps.msi.outputs.name }}.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    # The only job with write access. It checks out nothing and builds nothing: it takes
+    # the six verified files from the build job and publishes them (CI-02).
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Take the assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-assets
+          path: dist
+
+      # CI-01: "Latest" is what the site's download button and releases/latest serve. It
+      # moves only forward: a re-dispatched or back-dated tag is published, but it never
+      # takes Latest from a newer release.
+      - name: Decide whether this release becomes Latest
+        id: latest
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          STAMP: ${{ needs.build.outputs.version }}
+        run: |
+          $current = (& gh api "repos/$env:GH_REPO/releases/latest" --jq .tag_name 2>&1 | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0) {
+            if ($current -notmatch 'HTTP 404') { throw "could not read the current latest release: $current" }
+            # No release yet. The step's own exit code is the last native one, so clear it.
+            $current = ''
+            $global:LASTEXITCODE = 0
+          }
+          $makeLatest = if ($current -cnotmatch '^v\d{10}$') { 'true' } elseif ([long]$env:STAMP -gt [long]$current.Substring(1)) { 'true' } else { 'false' }
+          Write-Host "current latest: '$current'  this: v$env:STAMP  make_latest: $makeLatest"
+          "make_latest=$makeLatest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      # The asset NAMES below are a contract with docs/index.html: the landing
+      # page picks its download links from the releases/latest API by the
+      # suffixes -setup.exe, -windows-x64.zip, -windows-x64.msi and
+      # <name>.sha256. Rename one and that link silently falls back to the
+      # plain Releases page.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: FileDO ${{ needs.build.outputs.version }}
+          generate_release_notes: true
+          make_latest: ${{ steps.latest.outputs.make_latest }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/${{ needs.build.outputs.setup_name }}
+            dist/${{ needs.build.outputs.setup_name }}.sha256
+            dist/${{ needs.build.outputs.zip_name }}
+            dist/${{ needs.build.outputs.zip_name }}.sha256
+            dist/${{ needs.build.outputs.msi_name }}
+            dist/${{ needs.build.outputs.msi_name }}.sha256
           body: |
-            **Download `${{ steps.setup.outputs.name }}`** and run it - that is
+            **Download `${{ needs.build.outputs.setup_name }}`** and run it - that is
             the installer. It carries the MSI below inside it; the bare `.msi`
             is there for deployment tools that want it.
 
@@ -319,11 +462,11 @@ jobs:
             to get the same entries, and `filedo fdsec unregister` to remove
             them.
 
-            **SHA256** (`${{ steps.setup.outputs.name }}`):
-            `${{ steps.setup.outputs.sha }}`
+            **SHA256** (`${{ needs.build.outputs.setup_name }}`):
+            `${{ needs.build.outputs.setup_sha }}`
 
-            **SHA256** (`${{ steps.pkg.outputs.name }}`):
-            `${{ steps.pkg.outputs.sha }}`
+            **SHA256** (`${{ needs.build.outputs.zip_name }}`):
+            `${{ needs.build.outputs.zip_sha }}`
 
-            **SHA256** (`${{ steps.msi.outputs.name }}`):
-            `${{ steps.msi.outputs.sha }}`
+            **SHA256** (`${{ needs.build.outputs.msi_name }}`):
+            `${{ needs.build.outputs.msi_sha }}`

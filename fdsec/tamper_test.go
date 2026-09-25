@@ -237,12 +237,12 @@ func TestTamper_EditedHeaderFields(t *testing.T) {
 	cred := NewCredential("pw123")
 
 	t.Run("unknown suite refused by name", func(t *testing.T) {
-		b := rewriteHeader(t, raw, cred, func(h *header) { h.Suite = 3 })
+		b := rewriteHeader(t, raw, cred, func(h *header) { h.Suite = 4 })
 		_, _, err := unpackContainer(b, cred)
 		if !errors.Is(err, ErrUnsupported) {
 			t.Fatalf("want unsupported, got %v", err)
 		}
-		if got := err.Error(); !bytes.Contains([]byte(got), []byte("suite id 3")) {
+		if got := err.Error(); !bytes.Contains([]byte(got), []byte("suite id 4")) {
 			t.Fatalf("refusal does not name the suite: %v", err)
 		}
 	})
@@ -267,8 +267,12 @@ func TestTamper_EditedHeaderFields(t *testing.T) {
 	})
 
 	t.Run("reserved slot type refused by name", func(t *testing.T) {
+		// Slot 1's type byte is masked and its clear value is typeEmpty (0), so
+		// XOR - not assignment - is what makes it read back as typeRecovery.
+		// Assigning left it at 2 XOR the mask byte, which is 0 once in 256
+		// containers: the test passed a blank slot and failed at random.
 		b := bytes.Clone(raw)
-		b[headerSize+slotSize] = typeRecovery // slot 1
+		b[headerSize+slotSize] ^= typeRecovery // slot 1
 		_, _, err := unpackContainer(b, cred)
 		if !errors.Is(err, ErrUnsupported) {
 			t.Fatalf("want unsupported, got %v", err)

@@ -11,7 +11,7 @@
   "StringFileInfo": {
     "Comments":         "https://github.com/SerZhyAle/FileDO",
     "CompanyName":      "SZA",
-    "FileDescription":  "FileDO Test - Storage capacity and speed test utility",
+    "FileDescription":  "FileDO Test - fake capacity test (runs filedo.exe test)",
     "FileVersion":      "26.4.27.0",
     "InternalName":     "filedo_test",
     "LegalCopyright":   "Copyright (c) 2025 sza. MIT License.",

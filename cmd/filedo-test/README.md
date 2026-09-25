@@ -1,162 +1,68 @@
-# FileDO TEST v250916_test - Storage Capacity Testing Tool# FileDO Test Suite
+# filedo_test - a shortcut for `filedo <target> test`
 
+`filedo_test.exe` is a launcher, not a second copy of the fake-capacity engine. It turns its
+command line into the equivalent `filedo.exe` command line, runs the `filedo.exe` that sits in its
+own folder with the same console, and ends with that exit code. Everything the run does - the
+test files, the checks that catch a counterfeit drive, the prompts, the safety checks on the
+system drive and the verdict - is what `filedo.exe` does for that command, so a detection fix in
+the main tool is a fix here too.
 
+## Usage
 
-**FileDO TEST** is a specialized sub-project within the FileDO ecosystem designed to detect fake storage devices by testing their actual capacity. This standalone application helps identify storage devices that report incorrect capacity or corrupt data when reaching their real limits.This folder contains a comprehensive test suite for FileDO application.
+```cmd
+filedo_test.exe <target> [del] [global options]
+filedo_test.exe <target> clean [global options]
+```
 
+| You type | filedo.exe runs |
+| --- | --- |
+| `filedo_test.exe E:` | `filedo.exe E: test` |
+| `filedo_test.exe E: del` | `filedo.exe E: test del` |
+| `filedo_test.exe D:\Temp` | `filedo.exe D:\Temp test` |
+| `filedo_test.exe D:\Temp del` | `filedo.exe D:\Temp test del` |
+| `filedo_test.exe \\server\share` | `filedo.exe \\server\share test` |
+| `filedo_test.exe E: clean` | `filedo.exe E: clean` |
 
+- **target** - a drive (`E:`), a folder (`D:\Temp`) or a network share (`\\server\share`). A
+  single letter (`E`) means that drive; a bare folder name (`Photos`) is passed as `.\Photos`,
+  so it can never be mistaken for one of `filedo.exe`'s verbs.
+- **`del`**, `delete`, `d` - delete the test files when the test passes. When it fails they are
+  kept: they are the evidence.
+- **`clean`**, `c` - delete the test files a test or a fill left on the target. It takes no
+  `del`.
+- **Global options** are handed to `filedo.exe` unchanged: `--events <file>`,
+  `--stop-file <file>`, `--pause`, `--no-history`, `--no-ui`, `nohist`, and `-y`, `--yes`,
+  `--force`. What they do is what `filedo.exe` does with them for that verb.
+- `filedo_test.exe -?` shows the usage and the version.
 
-## Features## Files
+Anything else is refused before `filedo.exe` starts. For a different number of test files, run
+`filedo.exe <target> test <count>` directly.
 
+## Exit codes
 
+`filedo.exe`'s own: **0** the test passed, **1** a defect was found (a fake capacity, a write that
+does not read back), **2** could not verify. `filedo_test.exe` adds nothing of its own except
+**2** for a command line it refuses and for a `filedo.exe` that is not in its folder or cannot be
+started.
 
-- **Fake Capacity Detection**: Tests storage devices to detect fake capacity claims- `test_list.lst` - Main test file containing commands to test all major functionalities
+Ctrl+C reaches `filedo.exe` directly, because the two share the console; it stops the way it
+always does, and `filedo_test.exe` waits for it and returns its exit code.
 
-- **Multi-Platform Support**: Supports devices, folders, and network shares  - `prepare_test_env.cmd` - Script to create necessary test environment (folders and files)
+## Where filedo.exe comes from
 
-- **Real-time Verification**: Incrementally verifies data integrity during testing- `cleanup_test_env.cmd` - Script to clean up test files after testing
-
-- **Speed Analysis**: Monitors write speeds to detect abnormal behavior
-
-- **Comprehensive Reporting**: Provides detailed analysis of real vs claimed capacity## Usage
-
-- **Safe Interruption**: Supports Ctrl+C for graceful cancellation
-
-- **History Logging**: All operations logged in `history.json`1. **Prepare Test Environment**:
-
-   ```
-
-## Usage   prepare_test_env.cmd
-
-   ```
-
-```   This will create necessary test folders and files on drive D:
-
-filedo_test.exe <target> [options]
-
-```2. **Run Tests**:
-
-   ```
-
-### Examples   filedo.exe from .\test\test_list.lst
-
-   ```
-
-```bash   This will execute the full test suite, testing all major functionalities of FileDO.
-
-# Test drive capacity (primary use case)
-
-filedo_test.exe C:3. **Clean Up**:
-
-filedo_test.exe D: del          # Test and auto-delete files   ```
-
-   cleanup_test_env.cmd
-
-# Test folder capacity     ```
-
-filedo_test.exe C:\temp   This will remove all test folders and files created during testing.
-
-filedo_test.exe C:\temp del     # Test folder and auto-delete
-
-## Test Coverage
-
-# Test network share capacity
-
-filedo_test.exe \\server\shareThe test suite covers:
-
-filedo_test.exe \\server\share del- Device operations (info, speed, test, fill, clean, duplicate detection)
-
-```- Folder operations (info, speed, test, fill, clean, duplicate detection)
-
-- File operations (info)
-
-### Targets- Network operations (if uncommented and configured)
-
-- Duplicate file management with various selection modes
-
-- **C:, D:, etc.** - Device/drive operations (primary use case)- History functionality
-
-- **C:\folder** - Folder operations- Cleanup operations
-
-- **\\server\share** - Network operations- Error handling for non-existent resources (files, folders, devices, networks)
-
-
-
-### Options## Note
-
-
-
-- **del, delete, d** - Auto-delete test files after completion- The test suite assumes drive D: is available for testing
-
-- Network operations are commented out by default
-
-## How It Works- Some tests create temporary files that may use significant disk space
-
-- Use cleanup script after testing to remove all test artifacts
-
-### Test Process
-
-1. **Space Analysis**: Calculates available space and determines optimal test file size
-2. **Buffer Optimization**: Calibrates optimal write buffer size for target device
-3. **File Creation**: Creates up to 100 large test files (using 95% of available space)
-4. **Real-time Verification**: Verifies each file immediately after creation
-5. **Speed Monitoring**: Analyzes write speeds to detect anomalies
-6. **Integrity Checking**: Uses pattern-based data verification
-
-### Detection Methods
-
-- **Creation Failures**: Files fail to create when real capacity is reached
-- **Data Corruption**: Files become corrupted when device limit exceeded
-- **Speed Anomalies**: Write speeds drop dramatically or increase unrealistically
-- **Pattern Verification**: Data patterns become corrupted or filled with zeros
-
-### Test Files
-
-- **Format**: `FILL_001_ddHHmmss.tmp`, `FILL_002_ddHHmmss.tmp`, etc.
-- **Structure**: Header + Data Pattern + Footer
-- **Pattern**: Readable text pattern for easy verification
-- **Verification**: Header/footer matching + random data sampling
-
-## Requirements
-
-- **Minimum Space**: 100MB free space required
-- **Operating System**: Windows (uses Windows-specific APIs for drive information)
-- **Go Version**: 1.21 or later
+Only from the folder `filedo_test.exe` is in - never from the current folder and never from
+`PATH`. A winget install starts the tools through links in `WinGet\Links`; the launcher follows
+its own link back to the package folder first. The zip, the installer and winget all ship the two
+files together.
 
 ## Building
 
-```bash
-cd cmd/filedo-test
+```cmd
+cd cmd\filedo-test
 go build -o filedo_test.exe .
+go test ./...
 ```
 
-## Files Structure
-
-```
-cmd/filedo-test/
-├── main.go           # Main application entry point
-├── go.mod            # Go module definition
-├── go.sum            # Go dependencies checksum
-├── device_test.go    # Windows device testing
-├── folder_test.go    # Folder testing
-├── network_test.go   # Network share testing
-├── test_core.go      # Core testing logic
-├── utils.go          # Utility functions
-├── interrupt.go      # Signal handling
-├── progress.go       # Progress tracking
-├── build.cmd         # Build script
-├── test_filedo_test.cmd # Test script
-└── README.md         # This file
-```
-
-## Integration
-
-FileDO TEST integrates with the main FileDO ecosystem:
-
-- **History Logging**: Compatible with main FileDO history format
-- **File Formats**: Uses same test file patterns as FileDO FILL
-- **Command Interface**: Consistent with main FileDO command structure
-
-## Author
-
-sza@ukr.net
+It is its own Go module with no dependencies outside the standard library; `go test` has to run
+from inside this folder. It builds the launcher and a stub `filedo.exe` and runs them together; it
+never touches a real drive.

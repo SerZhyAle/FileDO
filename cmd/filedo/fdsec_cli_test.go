@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"filedo/fdsec"
+	"filedo/statedir"
 )
 
 var filedoExe string
@@ -37,6 +38,12 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dir)
 		os.Exit(2)
 	}
+	// The safety net under every launch: a run whose helper does not name a
+	// state root of its own still never writes into the developer's
+	// %LOCALAPPDATA%\FileDO\state. The helpers point it at their working
+	// directory, where the history assertions look.
+	stateNet := filepath.Join(dir, "state")
+	os.Setenv(statedir.EnvOverride, stateNet)
 	code := m.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)
@@ -60,6 +67,7 @@ func run(t *testing.T, wd string, args ...string) (string, int) {
 	cmd.Env = append(os.Environ(),
 		"FILEDO_FDSEC_NO_LAUNCH=1",
 		"FILEDO_FDSEC_REVEAL_ROOT="+revealRoot(wd),
+		statedir.EnvOverride+"="+wd,
 	)
 	cmd.Stdin = strings.NewReader("")
 	out, err := cmd.CombinedOutput()
@@ -265,7 +273,7 @@ func TestFdsecCredentialHygieneAcrossEverySource(t *testing.T) {
 			pack := exec.Command(filedoExe, append([]string{"plain.txt", "secure"}, cred...)...)
 			pack.Dir = dir
 			pack.Stdin = strings.NewReader("")
-			pack.Env = append(os.Environ(), "FDSEC_TEST_PW="+envSecret)
+			pack.Env = append(os.Environ(), "FDSEC_TEST_PW="+envSecret, statedir.EnvOverride+"="+dir)
 			packOut, err := pack.CombinedOutput()
 			if err != nil {
 				t.Fatalf("secure via %s failed: %v\n%s", s.name, err, packOut)
@@ -281,7 +289,7 @@ func TestFdsecCredentialHygieneAcrossEverySource(t *testing.T) {
 			unpack := exec.Command(filedoExe, append([]string{"plain.fd-sec", "unsecure"}, cred...)...)
 			unpack.Dir = dir
 			unpack.Stdin = strings.NewReader("")
-			unpack.Env = append(os.Environ(), "FDSEC_TEST_PW="+envSecret)
+			unpack.Env = append(os.Environ(), "FDSEC_TEST_PW="+envSecret, statedir.EnvOverride+"="+dir)
 			unpackOut, err := unpack.CombinedOutput()
 			if err != nil {
 				t.Fatalf("unsecure via %s failed: %v\n%s", s.name, err, unpackOut)
@@ -618,19 +626,19 @@ func TestFdsecRefusalsAndExitCodes(t *testing.T) {
 		}
 	})
 
-	t.Run("an unsupported suite-3 container is 6 naming FDSEC and update", func(t *testing.T) {
+	t.Run("an unsupported suite-4 container is 6 naming FDSEC and update", func(t *testing.T) {
 		dir, secret := setup(t)
 		path := filepath.Join(dir, "plain.fd-sec")
 		origBytes := mustRead(t, path)
-		suite3Bytes, err := fdsec.ForgeSuiteForTest(origBytes, fdsec.NewCredential(secret), 3)
+		suite4Bytes, err := fdsec.ForgeSuiteForTest(origBytes, fdsec.NewCredential(secret), 4)
 		if err != nil {
 			t.Fatal(err)
 		}
-		suite3Path := filepath.Join(dir, "suite3.fd-sec")
-		if err := os.WriteFile(suite3Path, suite3Bytes, 0o644); err != nil {
+		suite4Path := filepath.Join(dir, "suite4.fd-sec")
+		if err := os.WriteFile(suite4Path, suite4Bytes, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		out, code := run(t, dir, "suite3.fd-sec", "unsecure", "p:"+secret)
+		out, code := run(t, dir, "suite4.fd-sec", "unsecure", "p:"+secret)
 		if code != 6 {
 			t.Errorf("exit %d, want 6 (unsupported)\n%s", code, out)
 		}
@@ -747,18 +755,21 @@ func TestFdsecRefusalsAndExitCodes(t *testing.T) {
 		}
 	})
 
-	t.Run("a folder is refused and the vault is named", func(t *testing.T) {
+	// A folder is a valid source since SP-0009 - its acceptance test is the
+	// batch round trip in fdsec_tree_cli_test.go. What is still refused is a
+	// folder handed to a verb that opens a container.
+	t.Run("a folder is not a container", func(t *testing.T) {
 		dir, _ := setup(t)
 		sub := filepath.Join(dir, "subdir")
 		if err := os.Mkdir(sub, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		out, code := run(t, dir, "subdir", "secure", "p:pw")
+		out, code := run(t, dir, "subdir", "unsecure", "p:pw")
 		if code == 0 {
-			t.Errorf("a folder was accepted as a source\n%s", out)
+			t.Errorf("a folder was accepted as a container\n%s", out)
 		}
-		if !strings.Contains(out, "vault") {
-			t.Errorf("the refusal does not name the alternative\n%s", out)
+		if !strings.Contains(out, "not a container") {
+			t.Errorf("the refusal does not say why\n%s", out)
 		}
 	})
 

@@ -28,7 +28,7 @@ VIE PRIVÉE
 FileDO fonctionne entièrement sur votre appareil. Il ne contient ni code réseau, ni télémétrie, ni publicité, ni compte. Le code source est ouvert : https://github.com/SerZhyAle/FileDO
 
 BON À SAVOIR
-- Voici l'édition Microsoft Store. Elle n'ajoute pas d'entrées au menu contextuel de l'Explorateur et ne prend pas en charge le type de fichier .fd-sec - les deux viennent avec l'installateur MSI. Les mêmes opérations sont disponibles dans la fenêtre et avec la commande filedo.
+- Voici l'édition Microsoft Store. Elle n'ajoute pas d'entrées au menu contextuel de l'Explorateur ; elles viennent avec l'installateur MSI. Elle prend en charge le type de fichier .fd-sec : un double-clic sur un conteneur ouvre FileDO. Les mêmes opérations sont disponibles dans la fenêtre et avec la commande filedo.
 - FileDO a besoin de l'accès complet (full trust) d'une application de bureau aux données brutes des disques et des périphériques : le test de capacité, la mesure de vitesse et l'effacement sécurisé ne peuvent pas fonctionner sans lui. L'effacement et le remplissage détruisent des données par conception et demandent toujours confirmation avant de toucher aux racines de disque ou aux dossiers système.
 - Windows 10 version 1903 ou ultérieure.
 

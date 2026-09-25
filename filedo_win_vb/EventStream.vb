@@ -58,6 +58,10 @@ Public Class EventStream
 
     Public Sub New(filePath As String)
         Me.filePath = filePath
+        ' GUI-10: the serializer refuses anything over 2 MB by default, and a capacity test on a
+        ' fake drive lists every file it left in its `result` - 25 000 names is past that. The line
+        ' that carries the verdict must never be the one that is too long to read.
+        jsonSerializer.MaxJsonLength = Integer.MaxValue
     End Sub
 
     ' True once the channel has been refused for declaring a newer MAJOR. The
@@ -208,10 +212,13 @@ Public Class EventStream
                     ' may never be mapped onto a kind it resembles, and it may
                     ' never abort the run.
             End Select
-        Catch
+        Catch ex As Exception
             ' Only a line that is not a JSON object at all reaches here now.
             ' Every field inside one degrades to its documented default above,
-            ' so a bad field can no longer cost the event that carried it.
+            ' so a bad field can no longer cost the event that carried it. A line
+            ' that is dropped is said so in the log (GUI-10) - by its size and the
+            ' reason's type, never its text, which can hold the user's paths.
+            ShellLog.Info("event line dropped: " & ex.GetType().Name & ", " & line.Length.ToString() & " characters")
         End Try
     End Sub
 

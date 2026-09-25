@@ -68,6 +68,11 @@ func fdsecSetExit(err error) {
 	if err == nil {
 		return
 	}
+	// A stop is neither a usage error nor a failure: the run ends Stopped and
+	// its code is the supervisor's (rule 15), so no container class is set.
+	if fdsecStopped(err) {
+		return
+	}
 	switch {
 	case errors.Is(err, fdsec.ErrCredentialOrTamper):
 		fdsecExitCode = fdsecExitCredentialOrTamper
@@ -75,11 +80,30 @@ func fdsecSetExit(err error) {
 		fdsecExitCode = fdsecExitDamaged
 	case errors.Is(err, fdsec.ErrUnsupported):
 		fdsecExitCode = fdsecExitUnsupported
-	case errors.Is(err, errFdsecUsage):
+	case errors.Is(err, errFdsecUsage), errors.Is(err, fdsec.ErrTreeContainer), errors.Is(err, fdsec.ErrFileContainer):
 		fdsecExitCode = fdsecExitUsage
 	default:
 		fdsecExitCode = fdsecExitIO
 	}
+}
+
+// reportFdsecError is how a container verb's error ends a run, from either
+// entry point - main() and the batch path call the same function, so a line
+// in a .lst ends with the same code and verdict as the same command typed
+// (CLI-10). A stop is reported as a stop: no failure is recorded, and the
+// verdict comes out Stopped (FDSEC-02, rule 15).
+func reportFdsecError(err error, hl *HistoryLogger) {
+	if err == nil {
+		return
+	}
+	hl.SetError(err)
+	if fdsecStopped(err) {
+		fmt.Printf("Stopped: %v\n", err)
+		return
+	}
+	fdsecSetExit(err)
+	runFailure(err)
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 }
 
 func fdsecHumanizeError(err error) error {
@@ -126,13 +150,37 @@ func fdsecTargetKind(target string) string {
 	if len(target) > 2 && (target[0:2] == `\\` || target[0:2] == "//") {
 		return "network"
 	}
-	if r := []rune(target); len(r) == 1 || (len(r) > 1 && len(r) < 4 && r[1] == ':') {
+	// An existing regular file wins over the one-letter drive heuristic: a
+	// file called `a` is a file, not drive A: (FDSEC-14).
+	if fi, err := os.Stat(target); err == nil && fi.Mode().IsRegular() && !driveRootSpelling.MatchString(target) {
+		return "file"
+	}
+	if driveRootSpelling.MatchString(target) || (len([]rune(target)) == 1 && isASCIILetter(target)) {
 		return "device"
 	}
 	if fi, err := os.Stat(target); err == nil && fi.IsDir() {
 		return "folder"
 	}
 	return "file"
+}
+
+func isASCIILetter(s string) bool {
+	return len(s) == 1 && ((s[0] >= 'a' && s[0] <= 'z') || (s[0] >= 'A' && s[0] <= 'Z'))
+}
+
+// fdsecExplicitKind maps an explicit type word to the kind it names.
+func fdsecExplicitKind(word string) string {
+	l := strings.ToLower(word)
+	switch {
+	case contains(list_of_flags_for_device, l):
+		return "device"
+	case contains(list_of_flags_for_folder, l):
+		return "folder"
+	case contains(list_of_flags_for_network, l):
+		return "network"
+	default:
+		return "file"
+	}
 }
 
 // fdsecDispatchTarget runs the target-first grammar
@@ -147,8 +195,11 @@ func fdsecDispatchTarget(argv []string, hl *HistoryLogger) (bool, error) {
 	// The explicit type prefix this repo documents for every other operation
 	// (filedo file data.zip info) reaches the same place - but only when
 	// dropping it actually yields an fdsec op, so a file literally named
-	// "file" is still its own target.
+	// "file" is still its own target. An explicit type word wins over every
+	// guess (FDSEC-14): `file a secure` packs the file a.
+	explicitKind := ""
 	if len(argv) > 2 && isFdsecOp(argv[2]) && fdsecTypeWord(argv[0]) {
+		explicitKind = fdsecExplicitKind(argv[0])
 		argv = argv[1:]
 	}
 	// A verb with nothing after it is a usage error, not silence - unless a
@@ -166,13 +217,17 @@ func fdsecDispatchTarget(argv []string, hl *HistoryLogger) (bool, error) {
 	opArgs := make([]string, 0, len(argv)-1)
 	opArgs = append(opArgs, strings.ToLower(argv[1]))
 	opArgs = append(opArgs, argv[2:]...)
-	return true, runFdsecTargetOp(fdsecTargetKind(target), target, opArgs, hl)
+	kind := explicitKind
+	if kind == "" {
+		kind = fdsecTargetKind(target)
+	}
+	return true, runFdsecTargetOp(kind, target, opArgs, hl)
 }
 
-// runFdsecTargetOp is the target-first entry. Only a real file is a valid
-// source; a folder, device or network share is refused with the alternative
-// named (Q11) - a set is the sibling spec's vault, never a pile of
-// containers.
+// runFdsecTargetOp is the target-first entry. A file is a valid source, and so
+// is an ordinary folder for `secure` - it packs to one container holding the
+// whole tree (SP-0009, FDSEC-FORMAT suite 3). A drive or a network share is
+// refused: a whole volume is not a folder anybody means to pack in one go.
 func runFdsecTargetOp(cmdTypeName, path string, opArgs []string, hl *HistoryLogger) error {
 	op := strings.ToLower(opArgs[0])
 	hl.SetCommand(cmdTypeName, path, "fdsec-"+op)
@@ -183,8 +238,12 @@ func runFdsecTargetOp(cmdTypeName, path string, opArgs []string, hl *HistoryLogg
 	// the channel through redactCredentialArgs like every other surface
 	// (rule 13, and safety invariant 8 is the same sentence).
 	beginRun(runActs, op, path, opArgs)
-	if cmdTypeName != "file" {
-		return fmt.Errorf("%s is a %s, not a file: a secret container holds exactly one file. Folders, drives and shares belong to the vault profile of the virtual-disk feature (SP-0004), not to .fd-sec containers", path, cmdTypeName)
+	secureOp := op == "secure" || op == "sec"
+	switch {
+	case cmdTypeName == "folder" && !secureOp:
+		return fmt.Errorf("%s is a folder, not a container: %s opens a .fd-sec file (a folder is packed with: filedo %s secure)", path, op, path)
+	case cmdTypeName != "file" && cmdTypeName != "folder":
+		return fmt.Errorf("%s is a %s: secure packs one file or one folder into a container, never a whole drive or a network share", path, cmdTypeName)
 	}
 	var err error
 	switch op {
@@ -215,8 +274,12 @@ func handleFdsecCommand(args []string, hl *HistoryLogger) error {
 		hl.SetCommand("fdsec", path, sub)
 		// info and verify answer a question about the container, so their
 		// success is `Passed` rather than `Done` (rule 10); their digits stay
-		// FDSEC-BEHAVIOUR's (rule 12).
-		beginRun(runJudges, "fdsec "+sub, path, args)
+		// FDSEC-BEHAVIOUR's (rule 12). The arguments go to the `run` event
+		// with the family word in front, so the redactor knows the line is a
+		// container command and screens the password after the path - without
+		// it `verify <path> <password>` reached the event file in clear
+		// (FDSEC-04).
+		beginRun(runJudges, "fdsec "+sub, path, append([]string{"fdsec"}, args...))
 		var credArgs []string
 		if len(args) > 2 {
 			credArgs = args[2:]
@@ -227,7 +290,7 @@ func handleFdsecCommand(args []string, hl *HistoryLogger) error {
 		return fdsecHumanizeError(fdsecVerify(path, credArgs, hl))
 	case "register", "unregister":
 		hl.SetCommand("fdsec", "", sub)
-		beginRun(runActs, "fdsec "+sub, "", args)
+		beginRun(runActs, "fdsec "+sub, "", append([]string{"fdsec"}, args...))
 		return handleFdsecRegister(sub, args[1:])
 	}
 	return usagef("unknown fdsec sub-verb %q: want info, verify, register or unregister", sub)
@@ -241,12 +304,17 @@ type fdsecOpts struct {
 	here      bool
 	rw        bool // reveal: not a writable sandbox - the ordinary restore
 	keep      bool // reveal: leave the copy for the next start's sweep
+	suite2    bool // secure: write the quiet suite 2 instead of suite 1 (SP-0019 D2, D6)
 	start     bool // unsecure: hand the restored file to its registered handler
 	assumeYes bool
 	to        string
 	haveTo    bool
 	credSrc   string // "", "p", "pf", "pe", "k", "bare"
 	credVal   string
+	// produced holds the containers this run has written so far (a mask
+	// writes several), so the collision rule never offers one of them for
+	// overwrite (FDSEC-03).
+	produced map[string]bool
 }
 
 func parseFdsecArgs(args []string, verb string) (*fdsecOpts, error) {
@@ -256,28 +324,34 @@ func parseFdsecArgs(args []string, verb string) (*fdsecOpts, error) {
 		t := args[i]
 		lt := strings.ToLower(t)
 		switch {
-		case lt == "del" || lt == "delete":
-			o.del = true
-		case lt == "wipe":
-			o.wipe = true
-		case lt == "rename" || lt == "ren":
-			o.rename = true
-		case lt == "here":
-			o.here = true
-		case lt == "start":
-			o.start = true
-		case lt == "-rw" || lt == "rw":
-			o.rw = true
-		case lt == "-keep" || lt == "keep":
-			o.keep = true
+		case fdsecOptionWords[lt]:
+			// One vocabulary for the parser and the redactor (FDSEC-18).
+			switch lt {
+			case "del", "delete":
+				o.del = true
+			case "wipe":
+				o.wipe = true
+			case "rename", "ren":
+				o.rename = true
+			case "here":
+				o.here = true
+			case "suite2":
+				o.suite2 = true
+			case "start":
+				o.start = true
+			case "-rw", "rw":
+				o.rw = true
+			case "-keep", "keep":
+				o.keep = true
+			case "-y", "y", "--force", "force":
+				o.assumeYes = true
+			}
 		case lt == "to":
 			if i+1 >= len(args) {
 				return nil, usagef("to requires a destination")
 			}
 			o.to, o.haveTo = args[i+1], true
 			i++
-		case lt == "-y" || lt == "y" || lt == "--force" || lt == "force":
-			o.assumeYes = true
 		case strings.HasPrefix(t, "p:"):
 			o.credSrc, o.credVal = "p", t[2:]
 		case strings.HasPrefix(t, "pf:"):
@@ -288,12 +362,15 @@ func parseFdsecArgs(args []string, verb string) (*fdsecOpts, error) {
 			o.credSrc, o.credVal = "k", t[2:]
 		default:
 			if bare != "" {
-				return nil, usagef("two bare tokens (%q, %q): a bare password is valid only as the single trailing token; use p:<password> when anything else is present", bare, t)
+				// Neither token is quoted back: either one may be the password,
+				// and this message reaches history.json and the event file
+				// (FDSEC-05).
+				return nil, usagef("two words that are not options: a bare password is valid only as the single trailing token; use p:<password> when anything else is present")
 			}
 			bare = t
 		}
 	}
-	hasOption := o.del || o.wipe || o.rename || o.here || o.haveTo || o.assumeYes || o.rw || o.keep || o.start
+	hasOption := o.del || o.wipe || o.rename || o.here || o.haveTo || o.assumeYes || o.rw || o.keep || o.start || o.suite2
 	if bare != "" {
 		// p: is required whenever any option is present, so a password that
 		// happens to equal an option word is not eaten as that option.
@@ -307,6 +384,12 @@ func parseFdsecArgs(args []string, verb string) (*fdsecOpts, error) {
 	}
 	if verb == "unsecure" && o.wipe {
 		return nil, usagef("wipe is a secure option; unsecure del removes the container (a normal, recoverable unlink)")
+	}
+	// The suite is the writer's choice and named nowhere on disk: a reader
+	// finds it by opening (FDSEC-FORMAT.md section 13.4), so there is
+	// nothing for any other verb to select.
+	if verb != "secure" && o.suite2 {
+		return nil, usagef("suite2 is a secure option: every other verb finds the suite by opening the container")
 	}
 	if verb != "unsecure" && o.start {
 		return nil, usagef("start is an unsecure option: it hands the restored file to its registered handler")
@@ -345,8 +428,23 @@ func resolveFdsecCredential(o *fdsecOpts, confirm bool) (fdsec.Credential, error
 		return fdsecCredentialFromFile(o.credVal, false)
 	case "pe":
 		v, ok := os.LookupEnv(o.credVal)
+		// The variable leaves this process's environment the moment it is
+		// read, before anything can start a child: a reveal or `unsecure
+		// start` hands the copy to Word or a player, and every program those
+		// start would otherwise inherit the password (FDSEC-07).
+		if ok {
+			_ = os.Unsetenv(o.credVal)
+		}
+		// A named variable that is unset or empty is a mistake, never a
+		// choice: the GUI's "Open in Command" once lost the password this way
+		// and `secure wipe -y` then wrote a container with no secrecy and
+		// overwrote the original (FDSEC-19, GUI-02). An empty password is
+		// still possible - typed at the prompt or as p: - where it is visible.
 		if !ok {
-			return nil, fmt.Errorf("environment variable %s is not set", o.credVal)
+			return nil, usagef("environment variable %s is not set, so no password was given; nothing was written", o.credVal)
+		}
+		if v == "" {
+			return nil, usagef("environment variable %s is empty, so no password was given; nothing was written (an empty password is typed at the prompt or given as p: on purpose)", o.credVal)
 		}
 		return fdsec.NewCredential(v), nil
 	case "k":
@@ -382,28 +480,52 @@ func resolveFdsecCredential(o *fdsecOpts, confirm bool) (fdsec.Credential, error
 }
 
 func fdsecCredentialFromFile(path string, keyfile bool) (fdsec.Credential, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		if keyfile {
-			return nil, fmt.Errorf("read keyfile: %w", err)
-		}
-		return nil, fmt.Errorf("read password file: %w", err)
-	}
 	if keyfile {
 		// The keyfile's credential is the digest of its bytes (spec 5.1):
 		// hex-encoded it is 64 characters, high-entropy - the fast branch of
-		// the threshold derivation takes it by design.
-		sum := blake2b.Sum256(b)
+		// the threshold derivation takes it by design. The bytes are
+		// streamed into the hash rather than read whole, so a multi-gigabyte
+		// keyfile costs a buffer, not the address space (FDSEC-16); the
+		// digest is the same.
+		sum, err := fdsecKeyfileDigest(path)
+		if err != nil {
+			return nil, fmt.Errorf("read keyfile: %w", err)
+		}
 		return fdsec.NewCredential(fmt.Sprintf("%x", sum)), nil
 	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read password file: %w", err)
+	}
+	defer clear(b)
 	// One trailing newline is the convention of generated password files and
 	// almost never part of the intended password; anything more is kept.
 	s := strings.TrimSuffix(strings.TrimSuffix(string(b), "\n"), "\r")
 	return fdsec.NewCredential(s), nil
 }
 
-// fdsecSecure packs one file (or every file a mask matches - one container
-// per file, Q10) into a verified container. The credential is resolved once
+// fdsecKeyfileDigest is BLAKE2b-256 of a keyfile's bytes, streamed.
+func fdsecKeyfileDigest(path string) ([32]byte, error) {
+	var sum [32]byte
+	f, err := os.Open(path)
+	if err != nil {
+		return sum, err
+	}
+	defer f.Close()
+	h, err := blake2b.New256(nil)
+	if err != nil {
+		return sum, err
+	}
+	if _, err := io.Copy(h, f); err != nil {
+		return sum, err
+	}
+	copy(sum[:], h.Sum(nil))
+	return sum, nil
+}
+
+// fdsecSecure packs one file or folder (or every one a mask matches - one
+// container per target, Q10; a folder is one target, packed whole) into a
+// verified container. The credential is resolved once
 // for the whole mask, after every target has been screened: a prompt that
 // repeats per file would train the user to type the password into whatever
 // asks, and a refusal that arrives after the password was typed is a refusal
@@ -424,6 +546,15 @@ func fdsecSecure(path string, args []string, hl *HistoryLogger) error {
 			return fmt.Errorf("no file matches %s", path)
 		}
 		targets = matches
+		// A mask with `to` naming one exact file would send every match to
+		// that one path - the second overwriting or colliding with the first,
+		// whose original may already be gone (FDSEC-03). A mask goes to a
+		// folder or beside its sources, never to one file.
+		if o.haveTo {
+			if st, err := os.Stat(o.to); err != nil || !st.IsDir() {
+				return usagef("a mask packs one container per file, so to must name an existing folder, not %s", o.to)
+			}
+		}
 	}
 
 	var firstErr error
@@ -454,8 +585,18 @@ func fdsecSecure(path string, args []string, hl *HistoryLogger) error {
 	}
 
 	packed := 0
+	o.produced = map[string]bool{}
 	for _, t := range screened {
+		// No further target is started after a stop (FDSEC-02).
+		if runStopRequested() {
+			fmt.Printf("Stopped: %d of %d packed; the rest were not touched.\n", packed, len(screened))
+			return errFdsecStopped
+		}
 		if perr := fdsecSecureOne(t, o, cred, hl); perr != nil {
+			if fdsecStopped(perr) {
+				fmt.Printf("Stopped: %d of %d packed; the rest were not touched.\n", packed, len(screened))
+				return perr
+			}
 			if !masked {
 				return perr
 			}
@@ -474,19 +615,30 @@ func fdsecSecure(path string, args []string, hl *HistoryLogger) error {
 }
 
 // fdsecScreenSource refuses everything that is not a plain, not-yet-packed
-// file, naming the alternative rather than the rule (Q11, invariant 5).
+// file or an ordinary folder, naming the alternative rather than the rule
+// (invariant 5). A folder's own entries are screened by the walk
+// (fdsec.ScanTree), which refuses a reparse point anywhere inside it; here the
+// folder itself is screened, the way a file is.
 func fdsecScreenSource(path string) error {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 	if fi.IsDir() {
-		return fmt.Errorf("%s is a folder: a secret container holds exactly one file; folders belong to the vault profile (SP-0004)", path)
+		if fdsecRefusedReparse(path) {
+			return fmt.Errorf("%s is a reparse point (junction/symlink/mount point) and is refused as a source", path)
+		}
+		if vol := filepath.VolumeName(path); vol != "" {
+			if abs, aerr := filepath.Abs(path); aerr == nil && filepath.Clean(abs) == filepath.Clean(vol+`\`) {
+				return fmt.Errorf("%s is the root of a drive: secure packs one folder, never a whole drive", path)
+			}
+		}
+		return nil
 	}
 	if !fi.Mode().IsRegular() {
 		return fmt.Errorf("%s is not a regular file", path)
 	}
-	if hasReparsePoint(path) {
+	if fdsecRefusedReparse(path) {
 		return fmt.Errorf("%s is a reparse point (junction/symlink/mount point) and is refused as a source", path)
 	}
 	if strings.EqualFold(filepath.Ext(path), ".fd-sec") {
@@ -500,6 +652,12 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 	if err != nil {
 		return err
 	}
+	if fi.IsDir() {
+		if o.suite2 {
+			return usagef("%s is a folder, and suite 2 seals exactly one file; a folder packs as suite 3 - drop suite2", path)
+		}
+		return fdsecSecureTree(path, o, cred, hl)
+	}
 
 	// Destination: beside the source by default, original extension dropped
 	// from the visible name (Q3); rename = a random name with no extension at
@@ -508,28 +666,86 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 	if err != nil {
 		return err
 	}
-	dstPath, err = fdsecResolveCollision(dstPath, o.assumeYes)
-	if err != nil {
-		return err
+	// The container can never be the original itself: `secure to <source>`
+	// used to delete the only copy on "o = overwrite" and then fail to open
+	// it (FDSEC-03). Refused before a byte moves.
+	if same, _ := sameFilePaths(path, dstPath); same {
+		return usagef("the destination %s is the file being packed; name another destination", dstPath)
 	}
+	snapshot := takeFdsecSnapshot(path, fi)
 
-	// Ctrl+C must not leave a partial container behind: the temp files
-	// PackFile writes are removed by this cleanup (invariant 3).
-	globalInterruptHandler.AddCleanup(func() { removeFdsecPartials(dstPath) })
+	// Force exit only: a graceful stop ends PackFile at a chunk boundary and
+	// PackFile removes its own temporary file after closing it, so the
+	// cleanup never acts on a handle the pack still owns (FDSEC-02). The
+	// registration ends with this file.
+	removeCleanup := globalInterruptHandler.AddCleanup(func() {
+		if globalInterruptHandler.IsForceExit() {
+			removeFdsecPartials(dstPath)
+		}
+	})
+	defer removeCleanup()
 
 	meta := fdsecMetadataFromStat(fi)
-	info, err := fdsec.PackFile(dstPath, path, meta, cred, fdsec.Params{}, newFdsecTracker("secure", fi.Size()))
-	if err != nil {
-		return err
+	suite := fdsec.SuiteID1
+	var info fdsec.Info
+	// The collision rule runs before the pack and again whenever the name
+	// turns out to be taken at the final rename - another secure of a file
+	// with the same stem (IMG_0001.JPG and IMG_0001.CR2 from one Explorer
+	// multi-select) may have claimed it in the meantime. The rename never
+	// replaces what it finds (FDSEC-01); only an overwrite the user chose for
+	// that exact path does, and only after the new container verified
+	// (FDSEC-03).
+	for attempt := 0; ; attempt++ {
+		var replace bool
+		dstPath, replace, err = fdsecResolveCollision(dstPath, o, false)
+		if err != nil {
+			return err
+		}
+		opts := []fdsec.StreamOption{newFdsecTracker("secure", fi.Size()), fdsecStreamStop()}
+		if replace {
+			opts = append(opts, fdsec.AllowReplace())
+		}
+		if o.suite2 {
+			// Suite 2 seals the name, the size and the time of encryption only;
+			// the original's own timestamps are not carried (FDSEC-FORMAT.md 18.9).
+			suite = fdsec.SuiteID2
+			info, err = fdsec.PackFileSuite2(dstPath, path, meta, cred, opts...)
+		} else {
+			info, err = fdsec.PackFile(dstPath, path, meta, cred, fdsec.Params{}, opts...)
+		}
+		if errors.Is(err, fdsec.ErrExists) && attempt < 5 {
+			fmt.Printf("%s%s was created by something else while this pack ran; choosing again.\n", fdsecEndProgress(), dstPath)
+			continue
+		}
+		if fdsecStopped(err) {
+			fmt.Printf("%sStopped: nothing was written for %s; the original is untouched.\n", fdsecEndProgress(), path)
+			return errFdsecStopped
+		}
+		if err != nil {
+			return err
+		}
+		break
+	}
+	if o.produced != nil {
+		o.produced[fdsecPathKey(dstPath)] = true
 	}
 
 	secrecy := "encrypted"
 	if len(cred) == 0 {
 		secrecy = "obfuscation only - NO SECRECY (empty password)"
 	}
-	fmt.Printf("%sOK %s -> %s (%s, %s, %d chunks, container %s)\n",
-		fdsecEndProgress(), path, dstPath, secrecy, formatBytes(uint64(info.Size)), info.Chunks, formatBytes(uint64(info.TotalLen)))
-	hl.SetResult("container", dstPath)
+	fmt.Printf("%sOK %s -> %s (suite %d, %s, %s, %d chunks, container %s)\n",
+		fdsecEndProgress(), path, dstPath, suite, secrecy, formatBytes(uint64(info.Size)), info.Chunks, formatBytes(uint64(info.TotalLen)))
+	if o.rename {
+		// Neither the original's name nor the blob's: the folder is all the
+		// history may know, or it becomes the map from one to the other
+		// (CLI-21, decision recorded 2026-09-25).
+		hl.HideTarget(path)
+		hl.SetResult("container", filepath.Dir(dstPath))
+	} else {
+		hl.SetResult("container", dstPath)
+	}
+	hl.SetResult("suite", suite)
 	hl.SetResult("secrecy", secrecy)
 
 	// Disposition of the original - only now: PackFile already reopened the
@@ -537,6 +753,40 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 	// (invariant 1). Offered, prompted, never assumed (Q9).
 	if o.del || o.wipe {
 		kept := func(reason string) { fmt.Printf("Original kept (%s): %s\n", reason, path) }
+		if fdsecBeforeDisposition != nil {
+			fdsecBeforeDisposition(path)
+		}
+		// Nothing is deleted under a Stopped verdict (FDSEC-02).
+		if runStopRequested() {
+			kept("stopped before the original was removed; the container is complete and verified")
+			hl.SetResult("original", "kept")
+			return errFdsecStopped
+		}
+		// The container holds the original as it was when it was packed; an
+		// edit made since - during the read-back, or while the question below
+		// waits - would be deleted with it (FDSEC-12). Checked here and again
+		// right before the removal.
+		if why := snapshot.changedSince(path); why != "" {
+			kept(why)
+			hl.SetResult("original", "kept")
+			return nil
+		}
+		// lastCheck is the same two questions asked immediately before the
+		// removal, after any prompt: the answer it returns is what the run
+		// reports when the original is kept.
+		lastCheck := func() (proceed bool, err error) {
+			if runStopRequested() {
+				kept("stopped before the original was removed; the container is complete and verified")
+				hl.SetResult("original", "kept")
+				return false, errFdsecStopped
+			}
+			if why := snapshot.changedSince(path); why != "" {
+				kept(why)
+				hl.SetResult("original", "kept")
+				return false, nil
+			}
+			return true, nil
+		}
 		switch {
 		case o.wipe:
 			// The caveat is information, not a prompt, so -y does not skip it
@@ -552,6 +802,9 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 					kept("wipe not confirmed")
 					return nil
 				}
+			}
+			if ok, cerr := lastCheck(); !ok {
+				return cerr
 			}
 			if werr := wipeFileInPlace(path); werr != nil {
 				return werr
@@ -569,6 +822,9 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 					return nil
 				}
 			}
+			if ok, cerr := lastCheck(); !ok {
+				return cerr
+			}
 			if rerr := os.Remove(path); rerr != nil {
 				return rerr
 			}
@@ -583,7 +839,13 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 // (default), inside `to <dir>`, or exactly at `to <path>` whose parent must
 // exist - a folder is never guessed into being (spec 5.6).
 func fdsecContainerPath(srcPath, srcName string, o *fdsecOpts) (string, error) {
-	stem := strings.TrimSuffix(srcName, filepath.Ext(srcName))
+	return fdsecContainerPathFor(srcPath, strings.TrimSuffix(srcName, filepath.Ext(srcName)), o)
+}
+
+// fdsecContainerPathFor is fdsecContainerPath with the visible stem already
+// chosen: a file drops its extension, a folder keeps its whole name - a
+// folder's name has no extension to drop (FDSEC-FORMAT section 1).
+func fdsecContainerPathFor(srcPath, stem string, o *fdsecOpts) (string, error) {
 	if stem == "" {
 		stem = "_"
 	}
@@ -609,50 +871,88 @@ func fdsecContainerPath(srcPath, srcName string, o *fdsecOpts) (string, error) {
 // fdsecResolveCollision never clobbers silently (invariant 2, spec 5.6):
 // under -y the name gains a numeric suffix; interactively the user may
 // overwrite, suffix or cancel.
-func fdsecResolveCollision(dstPath string, assumeYes bool) (string, error) {
-	if _, err := os.Stat(dstPath); os.IsNotExist(err) {
-		return dstPath, nil
-	} else if err != nil {
-		return "", err
-	}
-	if assumeYes {
-		suffixed := fdsecSuffixed(dstPath)
-		fmt.Printf("Exists, -y given: writing %s instead\n", suffixed)
-		return suffixed, nil
-	}
+//
+// "Overwrite" deletes nothing here. It returns replace=true, and the caller
+// hands that to the one rename that puts the new, verified bytes in place -
+// so a pack that fails after the answer, a source that cannot be opened, or a
+// destination that is the source itself costs the user nothing (FDSEC-03).
+// A container this very run produced (the first match of a mask whose second
+// match has the same stem) is never offered for overwrite: its original may
+// already be gone. With hideName the message names the folder rather than the
+// file, because a restored file's name is the container's sealed name
+// (FDSEC-06).
+func fdsecResolveCollision(dstPath string, o *fdsecOpts, hideName bool) (string, bool, error) {
+	return fdsecResolveCollisionWith(dstPath, o, hideName, fdsecAskCollision)
+}
+
+// fdsecAskCollision is the console half of the collision rule, a variable so
+// the rule can be tested without a console.
+var fdsecAskCollision = func(shown string) (string, error) {
 	// Off a terminal there is nobody to answer, and an unanswerable prompt
 	// must not come back as an I/O error: say what to pass instead.
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return "", usagef("%s already exists and stdin is not a terminal, so the overwrite question cannot be asked; pass -y to write a suffixed name instead, or name the destination with to <path>", dstPath)
+		return "", usagef("%s already exists and stdin is not a terminal, so the overwrite question cannot be asked; pass -y to write a suffixed name instead, or name the destination with to <path>", shown)
 	}
-	fmt.Printf("\n%s already exists.\n  o = overwrite it, s = write a suffixed name (default), anything else cancels: ", dstPath)
+	fmt.Printf("\n%s already exists.\n  o = overwrite it, s = write a suffixed name (default), anything else cancels: ", shown)
 	line, err := readConsoleLine()
 	if err != nil {
-		return "", fmt.Errorf("collision at %s: %w", dstPath, err)
+		return "", fmt.Errorf("collision at %s: %w", shown, err)
+	}
+	return line, nil
+}
+
+func fdsecResolveCollisionWith(dstPath string, o *fdsecOpts, hideName bool, ask func(shown string) (string, error)) (string, bool, error) {
+	shown := dstPath
+	if hideName {
+		shown = "a file with the restored name in " + filepath.Dir(dstPath)
+	}
+	if _, err := os.Lstat(dstPath); os.IsNotExist(err) {
+		return dstPath, false, nil
+	} else if err != nil {
+		if hideName {
+			return "", false, fmt.Errorf("cannot examine the destination in %s: %w", filepath.Dir(dstPath), errors.Unwrap(err))
+		}
+		return "", false, err
+	}
+	producedHere := o != nil && o.produced != nil && o.produced[fdsecPathKey(dstPath)]
+	if (o != nil && o.assumeYes) || producedHere {
+		suffixed, err := fdsecSuffixedName(dstPath, false)
+		if err != nil {
+			return "", false, err
+		}
+		if hideName {
+			fmt.Printf("Exists, -y given: writing a suffixed name in %s instead\n", filepath.Dir(dstPath))
+		} else {
+			fmt.Printf("Exists, -y given: writing %s instead\n", suffixed)
+		}
+		return suffixed, false, nil
+	}
+	line, err := ask(shown)
+	if err != nil {
+		return "", false, err
 	}
 	switch strings.ToLower(strings.TrimSpace(line)) {
 	case "o":
-		if err := os.Remove(dstPath); err != nil {
-			return "", err
-		}
-		return dstPath, nil
+		return dstPath, true, nil
 	case "s", "":
-		return fdsecSuffixed(dstPath), nil
+		suffixed, err := fdsecSuffixedName(dstPath, false)
+		return suffixed, false, err
 	default:
-		return "", fmt.Errorf("cancelled: %s exists", dstPath)
+		return "", false, fmt.Errorf("cancelled: %s exists", shown)
 	}
 }
 
-// fdsecSuffixed finds the first free name-1, name-2, .. for a path.
-func fdsecSuffixed(path string) string {
-	ext := filepath.Ext(path)
-	base := strings.TrimSuffix(path, ext)
-	for i := 1; ; i++ {
-		candidate := fmt.Sprintf("%s-%d%s", base, i, ext)
-		if _, err := os.Stat(candidate); os.IsNotExist(err) {
-			return candidate
-		}
+func fdsecIsDir(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && st.IsDir()
+}
+
+// fdsecPathKey is a path in the form two spellings of one path share.
+func fdsecPathKey(p string) string {
+	if abs, err := filepath.Abs(p); err == nil {
+		p = abs
 	}
+	return strings.ToLower(filepath.Clean(p))
 }
 
 // fdsecRandomName: Latin letters and digits, up to 24 characters, no
@@ -710,7 +1010,7 @@ func fdsecScreenContainer(path, verb string) error {
 	if fi.IsDir() {
 		return fmt.Errorf("%s is a folder, not a container", path)
 	}
-	if hasReparsePoint(path) {
+	if fdsecRefusedReparse(path) {
 		return fmt.Errorf("%s is a reparse point (junction/symlink/mount point) and is refused as a source", path)
 	}
 	if err := fdsec.ScreenLength(fi.Size()); err != nil {
@@ -731,6 +1031,14 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return err
+	}
+	// The restored file can never land on the container itself: `unsecure to
+	// <the container> del` answered "o" then "y" used to remove both
+	// (FDSEC-03). Refused before a byte moves.
+	if o.haveTo {
+		if same, _ := sameFilePaths(path, o.to); same {
+			return usagef("the destination %s is the container being restored; name another destination", o.to)
+		}
 	}
 
 	// SP-0008: `start` restores into a protected per-run sandbox and removes
@@ -754,6 +1062,25 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	cred, err := resolveFdsecCredential(o, false)
 	if err != nil {
 		return err
+	}
+
+	// One key derivation opens the head, and only then is it known whether the
+	// container holds one file or a folder (the suite is inside the mask).
+	src, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	hl.SetResult("container", path)
+	c, err := fdsec.Open(src, cred)
+	if err != nil {
+		return err
+	}
+	if c.IsTree() {
+		if o.start {
+			return usagef("%s holds a folder, and start hands one file to its registered handler. Restore the folder instead: filedo %s unsecure [here | to <dest>]", path, path)
+		}
+		return fdsecUnsecureTree(path, c, src, fi.Size(), o, hl)
 	}
 
 	// Restore to a temporary sibling, then rename into the final name once
@@ -789,16 +1116,24 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 			os.Remove(tmpPath)
 		}
 	}()
-	globalInterruptHandler.AddCleanup(func() { os.Remove(tmpPath) })
+	// A graceful stop ends the unpack at a chunk boundary and the defer above
+	// closes and removes the temporary file. A forced exit skips every defer,
+	// so this cleanup closes the handle itself - an open file cannot be
+	// deleted on Windows, which is how a second Ctrl+C used to leave a
+	// plaintext .fdsec-restore-* beside the container (FDSEC-02).
+	removeCleanup := globalInterruptHandler.AddCleanup(func() {
+		if globalInterruptHandler.IsForceExit() {
+			tmp.Close()
+			os.Remove(tmpPath)
+		}
+	})
+	defer removeCleanup()
 
-	src, err := os.Open(path)
-	if err != nil {
-		return err
+	meta, err := c.Unpack(tmp, newFdsecTracker("unsecure", fi.Size()), fdsecStreamStop())
+	if fdsecStopped(err) {
+		fmt.Printf("%sStopped: nothing was restored and the container is untouched.\n", fdsecEndProgress())
+		return errFdsecStopped
 	}
-	defer src.Close()
-	hl.SetResult("container", path)
-
-	meta, err := fdsec.Unpack(tmp, src, cred, newFdsecTracker("unsecure", fi.Size()))
 	if err != nil {
 		return err
 	}
@@ -807,6 +1142,10 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	}
 	if err := tmp.Close(); err != nil {
 		return err
+	}
+	if runStopRequested() {
+		fmt.Printf("%sStopped: nothing was restored and the container is untouched.\n", fdsecEndProgress())
+		return errFdsecStopped
 	}
 
 	// Final name: the true name by default (here = the current directory,
@@ -819,18 +1158,40 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 		if err != nil {
 			return err
 		}
+		if err := renameNoReplace(tmpPath, finalPath); err != nil {
+			return fdsecScreenEventError(fdsecRenameError(err))
+		}
 	} else {
 		finalPath, err = fdsecRestorePath(path, meta.Name, o)
 		if err != nil {
 			return fdsecScreenEventError(err)
 		}
-		finalPath, err = fdsecResolveCollision(finalPath, o.assumeYes)
-		if err != nil {
-			return fdsecScreenEventError(err)
+		// The collision rule, the same-file refusal and a rename that never
+		// replaces what it finds: a name that appeared since the question was
+		// asked sends the rule round again rather than being overwritten
+		// (FDSEC-01).
+		for attempt := 0; ; attempt++ {
+			var replace bool
+			finalPath, replace, err = fdsecResolveCollision(finalPath, o, true)
+			if err != nil {
+				return fdsecScreenEventError(err)
+			}
+			if same, _ := sameFilePaths(finalPath, path); same {
+				return usagef("the restored file would replace the container it comes from; name another destination with to <path>")
+			}
+			if replace {
+				err = renameReplace(tmpPath, finalPath)
+			} else {
+				err = renameNoReplace(tmpPath, finalPath)
+			}
+			if errors.Is(err, errDestinationExists) && attempt < 5 {
+				continue
+			}
+			if err != nil {
+				return fdsecScreenEventError(fdsecRenameError(err))
+			}
+			break
 		}
-	}
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		return fdsecScreenEventError(err)
 	}
 	remove = false
 	fdsecRestoreTimes(finalPath, meta)
@@ -855,6 +1216,14 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	// just chose to unpack, not reveal's not-quite-trusted sandbox copy, so
 	// the same trust decision as an ordinary double-click applies.
 	if o.start {
+		// Nothing is launched after a stop (FDSEC-02); the copy goes the way
+		// every unlaunched sandbox copy goes.
+		if runStopRequested() {
+			fmt.Printf("Stopped: the copy was not handed to any program.\n")
+			hl.SetResult("launched", false)
+			sb.scheduleClose()
+			return errFdsecStopped
+		}
 		if lerr := fdsecLaunchCopy(finalPath); lerr != nil {
 			fmt.Printf("Could not hand %s to a registered handler (%v).\n", finalPath, lerr)
 			hl.SetResult("launched", false)
@@ -870,24 +1239,40 @@ func fdsecUnsecure(path string, args []string, hl *HistoryLogger) error {
 	// The container is removed only after the restored file verified (the
 	// digest check inside Unpack is that verification).
 	if o.del {
-		// Windows refuses to unlink a file this process still holds open.
-		src.Close()
-		if !o.assumeYes {
-			fmt.Printf("\nThe restored file was verified against the packed digest.\n")
-			fmt.Printf("Delete the container %s? (y/N): ", path)
-			line, rerr := readConsoleLine()
-			ans := strings.ToLower(strings.TrimSpace(line))
-			if rerr != nil || (ans != "y" && ans != "yes") {
-				fmt.Printf("Container kept: %s\n", path)
-				return nil
-			}
-		}
-		if rerr := os.Remove(path); rerr != nil {
-			return rerr
-		}
-		fmt.Printf("Container removed: %s\n", path)
-		hl.SetResult("container", "removed")
+		return fdsecDeleteContainer(path, src, o, hl, "The restored file was verified against the packed digest.")
 	}
+	return nil
+}
+
+// fdsecDeleteContainer is unsecure's `del`: offered after the restore
+// verified, prompted unless -y, a normal unlink.
+func fdsecDeleteContainer(path string, src *os.File, o *fdsecOpts, hl *HistoryLogger, verified string) error {
+	// Windows refuses to unlink a file this process still holds open.
+	src.Close()
+	// Nothing is deleted under a Stopped verdict (FDSEC-02).
+	if runStopRequested() {
+		fmt.Printf("Stopped: container kept: %s\n", path)
+		return errFdsecStopped
+	}
+	if !o.assumeYes {
+		fmt.Printf("\n%s\n", verified)
+		fmt.Printf("Delete the container %s? (y/N): ", path)
+		line, rerr := readConsoleLine()
+		ans := strings.ToLower(strings.TrimSpace(line))
+		if rerr != nil || (ans != "y" && ans != "yes") {
+			fmt.Printf("Container kept: %s\n", path)
+			return nil
+		}
+	}
+	if runStopRequested() {
+		fmt.Printf("Stopped: container kept: %s\n", path)
+		return errFdsecStopped
+	}
+	if rerr := os.Remove(path); rerr != nil {
+		return rerr
+	}
+	fmt.Printf("Container removed: %s\n", path)
+	hl.SetResult("container", "removed")
 	return nil
 }
 
@@ -916,6 +1301,10 @@ func fdsecRestorePath(containerPath, trueName string, o *fdsecOpts) (string, err
 	name := trueName
 	if o.rename {
 		name = fdsecRandomName()
+	} else if utf16Len(name) > fdsecMaxNameUnits && !(o.haveTo && !fdsecIsDir(o.to)) {
+		// A sealed name longer than any file system allows would fail at the
+		// rename with the name in the message (FDSEC-06); say so without it.
+		return "", usagef("the container's sealed name is longer than %d characters, which no file system accepts; restore it with rename or to <path>", fdsecMaxNameUnits)
 	}
 	switch {
 	case o.here:
@@ -964,9 +1353,30 @@ func fdsecInfo(path string, args []string, hl *HistoryLogger) error {
 	}
 	fmt.Printf("FileDO container (suite %d, format version %d)\n", hi.SuiteID, hi.FormatVersion)
 	fmt.Printf("  file:            %s (%s)\n", path, formatBytes(uint64(hi.ContainerSize)))
-	fmt.Printf("  chunk slot:      %s, cluster alignment %s\n", formatBytes(uint64(hi.ChunkSize)), formatBytes(uint64(hi.ClusterAlignment)))
-	fmt.Printf("  KDF (fixed by format version %d): Argon2id %d MiB, T=%d, P=%d; fast branch at %d password bytes\n", hi.FormatVersion, hi.KDFMemoryKiB/1024, hi.KDFTime, hi.KDFLanes, hi.Threshold)
-	fmt.Printf("  sealed (needs the password): true name, real size, timestamps\n")
+	if hi.IsTree {
+		fmt.Printf("  holds:           a folder - %d entries, %s in files\n", hi.TreeEntries, formatBytes(uint64(hi.TreeSize)))
+	} else {
+		fmt.Printf("  holds:           one file\n")
+	}
+	if hi.SuiteID == fdsec.SuiteID2 {
+		// Suite 2 has no head to report: its frame is a suite constant and its
+		// profile is the try-list entry that opened it (FDSEC-FORMAT.md 18).
+		fmt.Printf("  frame:           %s, no cluster alignment\n", formatBytes(uint64(hi.ChunkSize)))
+		fmt.Printf("  KDF (suite 2 try-list, the profile that opened it): pepper fold, then Argon2id %d MiB, T=%d, P=%d; no fast branch\n", hi.KDFMemoryKiB/1024, hi.KDFTime, hi.KDFLanes)
+	} else {
+		fmt.Printf("  chunk slot:      %s, cluster alignment %s\n", formatBytes(uint64(hi.ChunkSize)), formatBytes(uint64(hi.ClusterAlignment)))
+		fmt.Printf("  KDF (fixed by format version %d): Argon2id %d MiB, T=%d, P=%d; fast branch at %d password bytes\n", hi.FormatVersion, hi.KDFMemoryKiB/1024, hi.KDFTime, hi.KDFLanes, hi.Threshold)
+	}
+	switch {
+	case hi.SuiteID == fdsec.SuiteID2:
+		fmt.Printf("  sealed (needs the password): true name, real size, time of encryption - suite 2 does not carry the original's timestamps\n")
+	case hi.IsTree:
+		fmt.Printf("  sealed (needs the password): the folder's name, every entry's path, size and timestamps\n")
+		hl.SetResult("folder", true)
+		hl.SetResult("entries", hi.TreeEntries)
+	default:
+		fmt.Printf("  sealed (needs the password): true name, real size, timestamps\n")
+	}
 	fmt.Printf("  nothing in the file says it is one: no marker, no version in the clear\n")
 	fmt.Printf("  an EMPTY password means obfuscation only, no secrecy\n")
 	hl.SetResult("suite", hi.SuiteID)
@@ -993,11 +1403,39 @@ func fdsecVerify(path string, args []string, hl *HistoryLogger) error {
 	}
 	defer f.Close()
 	started := time.Now()
-	meta, err := fdsec.Unpack(io.Discard, f, cred)
+	c, err := fdsec.Open(f, cred)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("OK %s verified in %s: every chunk authenticated, the recovered bytes hash to the packed digest\n", path, formatDuration(time.Since(started)))
+	if c.IsTree() {
+		tm, entries, err := c.VerifyTree()
+		if err != nil {
+			return err
+		}
+		files := 0
+		for _, e := range entries {
+			if !e.IsDir() {
+				files++
+			}
+		}
+		fmt.Printf("OK %s verified in %s: the manifest and every entry authenticated, every file hashes to its packed digest\n", path, formatDuration(time.Since(started)))
+		fmt.Printf("  folder: %s\n  entries: %d (%d files, %d folders)\n  total size: %s\n", tm.Name, tm.Entries, files, len(entries)-files, formatBytes(uint64(tm.TotalSize)))
+		hl.SetResult("verified", true)
+		hl.SetResult("folder", true)
+		hl.SetResult("entries", tm.Entries)
+		return nil
+	}
+	meta, err := c.Unpack(io.Discard)
+	if err != nil {
+		return err
+	}
+	if c.Suite() == fdsec.SuiteID2 {
+		// Suite 2 stores no digest: every frame's tag, the index and the
+		// last-frame flag bound into each, are the whole proof (18.6).
+		fmt.Printf("OK %s verified in %s: suite 2, every frame authenticated in order through the flagged last one\n", path, formatDuration(time.Since(started)))
+	} else {
+		fmt.Printf("OK %s verified in %s: every chunk authenticated, the recovered bytes hash to the packed digest\n", path, formatDuration(time.Since(started)))
+	}
 	fmt.Printf("  true name: %s\n  real size: %s\n", meta.Name, formatBytes(uint64(meta.Size)))
 	hl.SetResult("verified", true)
 	return nil
@@ -1040,6 +1478,16 @@ func wipeFileInPlace(path string) error {
 		return err
 	}
 	return os.Remove(path)
+}
+
+// fdsecRenameError says what failed without repeating the two paths: the
+// destination carries the restored file's sealed name.
+func fdsecRenameError(err error) error {
+	var le *os.LinkError
+	if errors.As(err, &le) {
+		return fmt.Errorf("could not move the restored file into place: %w", le.Err)
+	}
+	return fmt.Errorf("could not move the restored file into place: %w", err)
 }
 
 // removeFdsecPartials removes the temporary files PackFile may have left at

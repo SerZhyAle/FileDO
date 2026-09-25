@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -62,25 +62,62 @@ func formatETA(d time.Duration) string {
 	}
 }
 
-// parseSize parses a size string and returns the size in MB
+// parseSize reads a size and returns it in whole megabytes (MiB). A bare
+// number is megabytes; the suffixes k/kb, m/mb, g/gb and t/tb are binary
+// units, and a decimal point is allowed (`1.5g` is 1536 MB). A size that does
+// not parse, is not positive, or is not a whole number of megabytes is an
+// error - never a silent fallback (SP-0024 CLI-25; `speed 1GB` used to run a
+// 1 MB test).
 func parseSize(sizeStr string) (int, error) {
-	var size int
-	var err error
-
-	sizeStr = strings.TrimSpace(strings.ToLower(sizeStr))
-
-	// Handle suffixes
-	if strings.HasSuffix(sizeStr, "mb") || strings.HasSuffix(sizeStr, "m") {
-		sizeStr = strings.TrimSuffix(sizeStr, "mb")
-		sizeStr = strings.TrimSuffix(sizeStr, "m")
+	s := strings.TrimSpace(strings.ToLower(sizeStr))
+	units := []struct {
+		suffix string
+		kib    float64 // the unit in KiB
+	}{
+		{"kb", 1}, {"k", 1},
+		{"mb", 1024}, {"m", 1024},
+		{"gb", 1024 * 1024}, {"g", 1024 * 1024},
+		{"tb", 1024 * 1024 * 1024}, {"t", 1024 * 1024 * 1024},
 	}
+	unit := 1024.0 // megabytes by default
+	for _, u := range units {
+		if strings.HasSuffix(s, u.suffix) {
+			s, unit = strings.TrimSpace(strings.TrimSuffix(s, u.suffix)), u.kib
+			break
+		}
+	}
+	if s == "" {
+		return 0, fmt.Errorf("no number in %q", sizeStr)
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil || math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0, fmt.Errorf("%q is not a size", sizeStr)
+	}
+	if v <= 0 {
+		return 0, fmt.Errorf("size %q must be positive", sizeStr)
+	}
+	kib := v * unit
+	mb := kib / 1024
+	if mb != math.Trunc(mb) {
+		return 0, fmt.Errorf("size %q is not a whole number of megabytes", sizeStr)
+	}
+	if mb > math.MaxInt32 {
+		return 0, fmt.Errorf("size %q is too large", sizeStr)
+	}
+	return int(mb), nil
+}
 
-	size, err = strconv.Atoi(sizeStr)
+// parseSizeMB is parseSize with the range a verb accepts, and the wording of
+// a usage error.
+func parseSizeMB(sizeStr string, minMB, maxMB int) (int, error) {
+	n, err := parseSize(sizeStr)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("invalid size: %v (a number of megabytes, or a size with k, m, g or t, from %d MB to %d MB)", err, minMB, maxMB)
 	}
-
-	return size, nil
+	if n < minMB || n > maxMB {
+		return 0, fmt.Errorf("size %q is out of range: %d MB, allowed %d MB to %d MB", sizeStr, n, minMB, maxMB)
+	}
+	return n, nil
 }
 
 // createRandomFile creates a test file with the specified size in MB
@@ -197,70 +234,4 @@ func createNumberedBlock(blockNum int, basePattern []byte, targetSize int) []byt
 	}
 
 	return block
-}
-
-// copyFileWithProgress copies a file from src to dst with progress reporting
-func copyFileWithProgress(src, dst string, showProgress bool) (int64, error) {
-	sourceFile, err := os.Open(src)
-	if err != nil {
-		return 0, err
-	}
-	defer sourceFile.Close()
-
-	sourceInfo, err := sourceFile.Stat()
-	if err != nil {
-		return 0, err
-	}
-
-	destFile, err := os.Create(dst)
-	if err != nil {
-		return 0, err
-	}
-	defer destFile.Close()
-
-	totalSize := sourceInfo.Size()
-	buffer := make([]byte, 64*1024) // 64KB buffer
-	var totalCopied int64
-	var lastProgressUpdate int64
-
-	if showProgress {
-		fmt.Printf("  Progress: 0.0%%")
-	}
-
-	for {
-		n, err := sourceFile.Read(buffer)
-		if n > 0 {
-			written, writeErr := destFile.Write(buffer[:n])
-			if writeErr != nil {
-				return totalCopied, writeErr
-			}
-			totalCopied += int64(written)
-
-			// Show progress less frequently - only every 5% or 10MB
-			if showProgress {
-				progressThreshold := int64(1024 * 1024 * 10) // 10MB
-				if totalSize < progressThreshold {
-					progressThreshold = totalSize / 20 // 5% for smaller files
-				}
-
-				if totalCopied-lastProgressUpdate >= progressThreshold {
-					progress := float64(totalCopied) / float64(totalSize) * 100
-					fmt.Printf("\r  Progress: %.1f%%", progress)
-					lastProgressUpdate = totalCopied
-				}
-			}
-		}
-
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return totalCopied, err
-		}
-	}
-
-	if showProgress {
-		fmt.Printf("\r  Progress: 100.0%%")
-	}
-	return totalCopied, nil
 }

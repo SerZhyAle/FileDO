@@ -27,13 +27,16 @@ the source, the issue tracker, the privacy page and the author's other tools.
 
 Its one action is **Send logs to the author**:
 
-1. The FileDO artifacts are looked for first - next to the exe, in `%LOCALAPPDATA%\FileDO`, in
-   `%USERPROFILE%`, in `%TEMP%\FileDO_Operations` and in `%TEMP%`: `filedo_win.log`,
-   `filedo_win_debug.log`, `history.json`, `check_report_*`, `check_state.json`, `compare_report_*.log`,
-   `delete_report_*.log`, `skip_files.list`, `damaged_files.log`. When there are none, the window says so
-   and asks nothing.
+1. The FileDO artifacts are looked for first - next to the exe and in FileDO's own state folder
+   `%LOCALAPPDATA%\FileDO\state\` (the window's log, `filedo_win.log` and its previous generation, in
+   `%LOCALAPPDATA%\FileDO`), never in the profile root or `%TEMP%`, where another program's file of the
+   same name may sit: `filedo_win_debug.log`, `history.json`, `check_report_*`, `check_damaged.list`,
+   `compare_report_*.log`, `delete_report_*.log`, `skip_files.list`, `damaged_files.log`. When there are
+   none, the window says so and asks nothing.
 2. Otherwise a dialog states what will be collected, that paths inside the logs can contain your own
-   folder and account names, and that nothing is sent automatically. **Build the zip** or **Cancel**.
+   folder and account names and the names of the files you protected (history.json says which file
+   became which container), and that nothing is sent automatically. **Build the zip** or **Cancel**.
+   Archives older than seven days are removed the next time.
 3. The files are packed newest-first into `%TEMP%\FileDO_Logs\filedo-logs-<stamp>.zip`, together with a
    generated `filedo-report.txt` (build stamps, OS, culture, and a manifest of what went in and what was
    left out under the 40-file / 8 MB-per-file / 20 MB-total caps).

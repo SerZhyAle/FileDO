@@ -105,6 +105,11 @@ $hidden = @($manifest.SelectNodes('/m:Package/m:Applications/m:Application', $mn
             ForEach-Object { $_.GetAttribute('Id') })
 Check "no Application is hidden (AppListEntry='none' is rejected on this account)" ($hidden.Count -eq 0) "hidden: $($hidden -join ',')"
 
+# SP-0005 9.2: this is an association, not an Explorer context-menu handler.
+# The association is owned by the GUI, which already accepts a file argument.
+$fdsecTypes = @($manifest.SelectNodes('/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions/uap:Extension[@Category="windows.fileTypeAssociation"]/uap:FileTypeAssociation[@Name="filedo.securecontainer"]/uap:SupportedFileTypes/uap:FileType', $mns) | ForEach-Object { $_.InnerText })
+Check "manifest associates .fd-sec with the GUI (SP-0005 9.2)" (($fdsecTypes -join ',') -ceq '.fd-sec') "types: $($fdsecTypes -join ',')"
+
 # ---------------------------------------------------------------------------------------------
 Write-Host "BUILDER" -ForegroundColor Cyan
 $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("fd-listing-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8))

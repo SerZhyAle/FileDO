@@ -1,7 +1,13 @@
 # FileDO Comprehensive Test Suite
 # This file contains tests for all major functionalities of FileDO
 # Created: July 11, 2025
-# For use with: filedo.exe from .\tests\test_list.lst
+#
+# Do not run this file directly. Its lines fill, clean, wipe and scan what they
+# name, so they name placeholders - <TARGET_DRIVE> and <TARGET_DIR> - which no
+# file operation can open, and the runner fills them in from FILEDO_TEST_TARGET after
+# refusing anything that is not a mounted VHD or a folder under %TEMP%:
+#   $env:FILEDO_TEST_TARGET = 'V:'
+#   pwsh -File tests\run-test-list.ps1 -List tests\test_list.lst
 # =====================================================================
 
 # =====================================================================
@@ -9,72 +15,72 @@
 # =====================================================================
 
 # Device Information
-device D: info
-device D: short
+device <TARGET_DRIVE> info
+device <TARGET_DRIVE> short
 # Non-existent device (should handle gracefully)
 device Z: info
 
-device D: clean
+device <TARGET_DRIVE> clean
 
 # Device Speed Testing
-device D: speed 10 short
-device D: speed 50 nodel
-device D: clean
+device <TARGET_DRIVE> speed 10 short
+device <TARGET_DRIVE> speed 50 nodel
+device <TARGET_DRIVE> clean
 
 # Device Test (Fake Capacity Detection)
 # Test with small size for quick testing, normally would use full capacity
-device D: test del
+device <TARGET_DRIVE> test del
 
 # Device Fill Operations
-device D: fill 10
-device D: clean
-device D: fill 20 del
+device <TARGET_DRIVE> fill 10
+device <TARGET_DRIVE> clean
+device <TARGET_DRIVE> fill 20 del
 
 # Device Duplicate Detection
 # First create some test duplicates
-folder D:\TestDuplicates info
-device D: cd short
-device D: cd list D:\TestDuplicates\duplicates.lst
+folder <TARGET_DIR>\TestDuplicates info
+device <TARGET_DRIVE> cd short
+device <TARGET_DRIVE> cd list <TARGET_DIR>\TestDuplicates\duplicates.lst
 
 # =====================================================================
 # SECTION 2: FOLDER OPERATIONS
 # =====================================================================
 
 # Folder Information
-folder D:\TestFolder info
-folder D:\TestFolder short
+folder <TARGET_DIR>\TestFolder info
+folder <TARGET_DIR>\TestFolder short
 # Non-existent folder (should handle gracefully)
-folder D:\NonExistentFolder info
+folder <TARGET_DIR>\NonExistentFolder info
 
-folder D:\TestFolder clean
+folder <TARGET_DIR>\TestFolder clean
 
 # Folder Speed Testing
-folder D:\TestFolder speed 10 short
-folder D:\TestFolder speed 20 nodel
-folder D:\TestFolder clean
+folder <TARGET_DIR>\TestFolder speed 10 short
+folder <TARGET_DIR>\TestFolder speed 20 nodel
+folder <TARGET_DIR>\TestFolder clean
 
 # Folder Test (Capacity)
-folder D:\TestFolder test short
-folder D:\TestFolder clean
+folder <TARGET_DIR>\TestFolder test short
+folder <TARGET_DIR>\TestFolder clean
 
 # Folder Fill Operations
-folder D:\TestFolder fill 10
-folder D:\TestFolder clean
-folder D:\TestFolder fill 20 del
+folder <TARGET_DIR>\TestFolder fill 10
+folder <TARGET_DIR>\TestFolder clean
+folder <TARGET_DIR>\TestFolder fill 20 del
 
 # Folder Duplicate Detection
-folder D:\TestFolder cd short
-folder D:\TestFolder cd list D:\TestFolder\folder_duplicates.lst
+folder <TARGET_DIR>\TestFolder cd short
+folder <TARGET_DIR>\TestFolder cd list <TARGET_DIR>\TestFolder\folder_duplicates.lst
 
 # =====================================================================
 # SECTION 3: FILE OPERATIONS
 # =====================================================================
 
 # File Information (First create a test file)
-file D:\TestFolder\testfile.txt info
-file D:\TestFolder\testfile.txt short
+file <TARGET_DIR>\TestFolder\testfile.txt info
+file <TARGET_DIR>\TestFolder\testfile.txt short
 # Non-existent file (should handle gracefully)
-file D:\TestFolder\nonexistent.txt info
+file <TARGET_DIR>\TestFolder\nonexistent.txt info
 
 # =====================================================================
 # SECTION 4: NETWORK OPERATIONS (if available)
@@ -120,8 +126,8 @@ hist
 # =====================================================================
 
 # Final cleanup
-device D: clean
-folder D:\TestFolder clean
+device <TARGET_DRIVE> clean
+folder <TARGET_DIR>\TestFolder clean
 network \\localhost\share clean
 
 # =====================================================================
@@ -140,7 +146,7 @@ folder .\test_wipe_folder w
 # Without an answer on stdin the prompt is refused and the file survives, which
 # is itself the thing worth seeing: a batch run must not be able to wipe by
 # accident.
-file D:\TestFolder\testfile.txt wipe
+file <TARGET_DIR>\TestFolder\testfile.txt wipe
 
 # =====================================================================
 # End of test suite

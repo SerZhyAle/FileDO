@@ -17,7 +17,14 @@ Imports System.Threading.Tasks
 Public Class JobView
     Inherits UserControl
 
-    Public Event OpenInCommandRequested(command As String)
+    ' GUI-02: the password travels with the line it belongs to. A Protect page's command names the
+    ' variable its password is in, and a Command page given that line without the password would run
+    ' it with an empty one - or with whatever an earlier secret-file line left in its box.
+    Public Event OpenInCommandRequested(command As String, credential As String)
+
+    ' GUI-12: "Clean files" after a test asks the window to open Clean on the target that was tested,
+    ' with its rail row selected.
+    Public Event CleanRequested(target As String)
 
     ' Raised on the UI thread when a run has ended and its result card is filled in. The window
     ' listens, because a close the user asked for while the run was active waits for this.
@@ -25,6 +32,27 @@ Public Class JobView
 
     Private ReadOnly runner As New Runner()
     Private job As JobDefinition
+
+    ' The target of the run that ran last, for "Clean files" (GUI-12).
+    Private lastRunTarget As String = ""
+
+    ' GUI-04: a Stop the run has not honoured after this long turns into "End it now".
+    Private Const StopGraceSeconds As Integer = 10
+    Private stopGraceTimer As Windows.Forms.Timer
+    Private endNowOffered As Boolean = False
+
+    ' The raw output drawer's feed, batched (GUI-14).
+    Private outputPane As OutputPane
+
+    ' What a Duplicates run that deletes or moves asks to be typed (GUI-03).
+    Private Const DupDeleteWord As String = "DELETE"
+    Private Const DupMoveWord As String = "MOVE"
+
+    ' The most files a result card lists by name; the rest are counted (the report has them all).
+    Private Const FilesLeftShown As Integer = 20
+
+    ' The word the Duplicates confirmation asks for right now ("" when it asks for none).
+    Private dupWordAsked As String = ""
 
     ' A result that arrived while another view was in front. Choosing this job's row again shows it
     ' instead of resetting the page (APP-BEHAVIOUR rule 3: the outcome of a run is not lost).
@@ -49,6 +77,7 @@ Public Class JobView
     Private targetLabel As Label
     Private targetCombo As ComboBox
     Private targetBrowseBtn As Button
+    Private targetBrowseFolderBtn As Button
     Private dropHintLabel As Label
     Private secondTargetLabel As Label
     Private secondTargetBox As TextBox
@@ -173,7 +202,7 @@ Public Class JobView
 
     ' The result card
     Private verdictBadge As Label
-    Private verdictGlyph As Label
+    Private verdictGlyph As GlyphBox
     Private shownVerdict As String = ""
     Private verdictReasonLabel As Label
     Private resultNumbersLabel As Label
@@ -243,9 +272,11 @@ Public Class JobView
         resultUnseen = False
     End Sub
 
-    ' The window's "Stop and close": the same request the Stop button makes.
+    ' The window's "Stop and close": the same request the Stop button makes. A stop already asked
+    ' for is not asked again - and never turned into the page's own "End it now" behind the user's
+    ' back; the window asks its own question for that.
     Public Sub RequestStopFromShell()
-        If Not runner.IsActive Then Return
+        If Not runner.IsActive OrElse endNowOffered Then Return
         StopBtn_Click(Me, EventArgs.Empty)
     End Sub
 
@@ -271,6 +302,7 @@ Public Class JobView
         rawOutputDrawer.Visible = False
 
         wipeConfirmBox.Text = ""
+        dupWordAsked = ""
         wipeConfirmRow.Visible = (job IsNot Nothing AndAlso job.Id = "rail_job_wipe")
 
         ' The credential does not survive a change of page: a password left in
@@ -318,7 +350,7 @@ Public Class JobView
         blastRadiusRow.Visible = False
         ApplyJobShape()
 
-        rawOutputBox.Clear()
+        outputPane.Clear()
         progressBar.Value = 0
         progressBar.Style = ProgressBarStyle.Continuous
         shownVerdict = ""
@@ -339,9 +371,10 @@ Public Class JobView
     Private Sub ApplyJobShape()
         If job Is Nothing Then Return
 
+        targetBrowseFolderBtn.Visible = (job.DefaultVerb = "secure")
         Select Case job.TargetKind
             Case JobDefinition.TargetType.File
-                targetLabel.Text = L("shell_lbl_file")
+                targetLabel.Text = If(job.DefaultVerb = "secure", L("shell_lbl_file_or_folder"), L("shell_lbl_file"))
                 targetBrowseBtn.Text = L("shell_btn_browse_file")
             Case JobDefinition.TargetType.Folder
                 targetLabel.Text = L("ui_folder")
@@ -493,11 +526,29 @@ Public Class JobView
     Private Sub OptionChanged()
         UpdateOptionExclusions()
         UpdateOptionNotices()
+        ' The Duplicates action decides whether the page asks for a typed word and counts the
+        ' folder (GUI-03, GUI-17).
+        If showsDup Then
+            UpdateParamsVisibility()
+            UpdateBlastRadius()
+        End If
         ' Some of these controls carry the danger colour while they are on, so the page is
         ' re-themed the moment one is chosen rather than at the next page change.
         ApplyTheme()
         UpdatePlanCard()
     End Sub
+
+    ' GUI-03: a Duplicates run that deletes or moves is destructive, on the page as much as on the
+    ' disk - the badge, the accent and the typed word, exactly as a Protect page's disposition turns
+    ' them on. The job itself is not: finding duplicates and listing them changes nothing.
+    Private Function DupIsDestructiveNow() As Boolean
+        If job Is Nothing OrElse job.DefaultVerb <> "cd" Then Return False
+        Return dupActionDelete.Checked OrElse dupActionMove.Checked
+    End Function
+
+    Private Function DupConfirmWord() As String
+        Return If(dupActionMove.Checked, DupMoveWord, DupDeleteWord)
+    End Function
 
     ' The three secret-file jobs, and which of the fields each one asks for.
     Private Function IsFdsec() As Boolean
@@ -662,6 +713,17 @@ Public Class JobView
             If Not wipeConfirmRow.Visible Then wipeConfirmBox.Text = ""
         End If
 
+        ' The same row asks a Duplicates run that deletes or moves for its word (GUI-03).
+        If job.DefaultVerb = "cd" Then
+            Dim destructive = DupIsDestructiveNow()
+            Dim word = If(destructive, DupConfirmWord(), "")
+            ' A word typed for one action does not carry over to the other.
+            If word <> dupWordAsked Then wipeConfirmBox.Text = ""
+            dupWordAsked = word
+            wipeConfirmLabel.Text = If(dupActionMove.Checked, L("shell_dup_move_confirm"), L("shell_dup_delete_confirm"))
+            wipeConfirmRow.Visible = destructive
+        End If
+
         ' The CLI asks a probe and a recover to have their target typed out on the console before
         ' either touches the volume (probe_windows.go). Started from this window there is no
         ' console to answer on, so the question is asked here and the run carries `yes`: the
@@ -766,8 +828,30 @@ Public Class JobView
         AddHandler targetBrowseBtn.Click, AddressOf BrowseTarget_Click
         secondaryButtons.Add(targetBrowseBtn)
 
+        ' The secure page packs a file or a whole folder (SP-0009), so it offers both choosers;
+        ' every other page shows the one button that matches its target kind.
+        targetBrowseFolderBtn = New Button With {
+            .Text = L("shell_btn_browse_folder"),
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .Margin = Ui.PxPad(Me, 6, 2, 0, 4),
+            .Visible = False
+        }
+        AddHandler targetBrowseFolderBtn.Click, AddressOf BrowseTargetFolder_Click
+        secondaryButtons.Add(targetBrowseFolderBtn)
+
+        Dim browseRow As New FlowLayoutPanel With {
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .FlowDirection = FlowDirection.LeftToRight,
+            .WrapContents = False,
+            .Margin = Ui.PxPad(Me, 0, 0, 0, 0)
+        }
+        browseRow.Controls.Add(targetBrowseBtn)
+        browseRow.Controls.Add(targetBrowseFolderBtn)
+
         table.Controls.Add(targetCombo, 0, 2)
-        table.Controls.Add(targetBrowseBtn, 1, 2)
+        table.Controls.Add(browseRow, 1, 2)
 
         ' The destination of a two-target job, labelled rather than left as a bare second box.
         secondTargetLabel = New Label With {.Text = L("shell_lbl_dest"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2), .Visible = False}
@@ -1395,8 +1479,7 @@ Public Class JobView
         ' The glyph is decoration beside the badge, which carries the verdict's word: it has no
         ' accessible role, so a screen reader reads the verdict once, not a glyph and then the word
         ' (APP-BEHAVIOUR rule 9).
-        verdictGlyph = New Label With {.AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 6, 0)}
-        verdictGlyph.AccessibleRole = AccessibleRole.None
+        verdictGlyph = New GlyphBox With {.Tier = 24, .Margin = Ui.PxPad(Me, 0, 4, 8, 0)}
         verdictBadge = New Label With {.AutoSize = True, .Padding = Ui.PxPad(Me, 10, 4, 10, 4)}
         vRow.Controls.Add(verdictGlyph)
         vRow.Controls.Add(verdictBadge)
@@ -1459,6 +1542,7 @@ Public Class JobView
             .Margin = Ui.PxPad(Me, 0, 0, 0, 8)
         }
         rawOutputBox.AccessibleName = L("shell_btn_show_output")
+        outputPane = New OutputPane(rawOutputBox)
 
         copyOutputBtn = New Button With {.Text = L("shell_btn_copy_output"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
         AddHandler copyOutputBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), rawOutputBox.Text)
@@ -1473,11 +1557,10 @@ Public Class JobView
     ' ---- the runner ------------------------------------------------------
 
     Private Sub HookRunnerEvents()
+        ' Output lines are queued and drawn in batches (GUI-14), never one post per line.
         AddHandler runner.OutputLineReceived,
             Sub(line, isErr)
-                PostToUi(Sub()
-                                rawOutputBox.AppendText(line & Environment.NewLine)
-                            End Sub)
+                outputPane.Add(line)
             End Sub
 
         AddHandler runner.StepChanged,
@@ -1494,16 +1577,12 @@ Public Class JobView
 
         AddHandler runner.FindingReported,
             Sub(fType, msg, details)
-                PostToUi(Sub()
-                                rawOutputBox.AppendText("[" & fType & "] " & msg & Environment.NewLine)
-                            End Sub)
+                outputPane.Add("[" & fType & "] " & msg)
             End Sub
 
         AddHandler runner.NoteReported,
             Sub(msg)
-                PostToUi(Sub()
-                                rawOutputBox.AppendText("[note] " & msg & Environment.NewLine)
-                            End Sub)
+                outputPane.Add("[note] " & msg)
             End Sub
     End Sub
 
@@ -1523,6 +1602,20 @@ Public Class JobView
 
     ' ---- seams for SelfTest.vb -------------------------------------------
 
+    ' Clean removes files, and the command it runs carries --yes; this is the question that
+    ' --yes stands for. Escape and the close box answer Cancel.
+    Private Function ConfirmClean() As Boolean
+        Dim text = Localization.Format(L("shell_clean_confirm_fmt"), GetRawTarget())
+        Dim pick = ShellDialog.Ask(ShellDialog.OwnerOf(Me), L("shell_clean_confirm_title"), text,
+                                   New String() {L("shell_btn_clean_remove"), L("shell_btn_cancel")},
+                                   cancelAt:=1, defaultAt:=1, dangerAt:=0)
+        Return pick = 0
+    End Function
+
+    Friend Sub SetCredentialForTest(text As String)
+        credBox.Text = text
+    End Sub
+
     Friend Sub FeedProgressForTest(p As EventStream.ProgressInfo)
         OnProgress(p)
     End Sub
@@ -1540,6 +1633,12 @@ Public Class JobView
     Friend ReadOnly Property VerdictBadgeForTest As Label
         Get
             Return verdictBadge
+        End Get
+    End Property
+
+    Friend ReadOnly Property VerdictGlyphForTest As GlyphBox
+        Get
+            Return verdictGlyph
         End Get
     End Property
 
@@ -1563,6 +1662,76 @@ Public Class JobView
         End If
         CountFinished(files, folders, 0)
     End Sub
+
+    ' The Duplicates action, as the radio buttons would set it: "report", "delete" or "move".
+    Friend Sub SetDupActionForTest(action As String, Optional moveTo As String = "")
+        Select Case action
+            Case "delete" : dupActionDelete.Checked = True
+            Case "move"
+                dupActionMove.Checked = True
+                dupMoveBox.Text = moveTo
+            Case Else : dupActionReport.Checked = True
+        End Select
+    End Sub
+
+    Friend Sub SetConfirmWordForTest(typed As String)
+        wipeConfirmBox.Text = typed
+    End Sub
+
+    Friend ReadOnly Property DestructiveBadgeShownForTest As Boolean
+        Get
+            Return destructiveBadge.Visible
+        End Get
+    End Property
+
+    Friend ReadOnly Property ReversibilityForTest As String
+        Get
+            Return reversibilityBadge.Text
+        End Get
+    End Property
+
+    Friend ReadOnly Property RedirectNoticeShownForTest As Boolean
+        Get
+            Return redirectNoticeLabel.Visible
+        End Get
+    End Property
+
+    Friend ReadOnly Property CountRowShownForTest As Boolean
+        Get
+            Return blastRadiusRow.Visible
+        End Get
+    End Property
+
+    ' The custom size, typed (GUI-15).
+    Friend Sub SetSizeForTest(text As String)
+        If showsPresets Then presetCustom.Checked = True
+        sizeBox.Text = text
+        UpdatePlanCard()
+    End Sub
+
+    ' "Clean files" after a run on this target, with no window listening (GUI-12).
+    Friend Sub CleanAfterRunForTest(testedTarget As String)
+        lastRunTarget = testedTarget
+        CleanTestFiles_Click(Me, EventArgs.Empty)
+    End Sub
+
+    Friend ReadOnly Property TargetTextForTest As String
+        Get
+            Return targetCombo.Text
+        End Get
+    End Property
+
+    ' Presses Run. Only ever called with the runs folder made unavailable (SHELL-13), so nothing
+    ' is started: the self-test never runs filedo.exe.
+    Friend Sub PressRunForTest()
+        StartBtn_Click(Me, EventArgs.Empty)
+    End Sub
+
+    Friend ReadOnly Property VerdictTextForTest As String
+        Get
+            Return verdictBadge.Text
+        End Get
+    End Property
 
     ' ---- step 2 - the target ---------------------------------------------
 
@@ -1598,22 +1767,77 @@ Public Class JobView
         If targetCombo.Items.Count > 0 Then targetCombo.SelectedIndex = 0
     End Sub
 
-    Private Function GetRawTarget() As String
+    ' The text of step 2 with a drive row read as its letter (GUI-01).
+    '
+    ' A drive row reads "E:\ (label, NTFS, ..)" and the command wants "E:" - but only a row this page
+    ' put in the list is one. A typed, dropped or double-clicked path that happens to hold a "(" -
+    ' D:\Photos (2019), taxes (1).pdf.fd-sec - is a path, and reading it as a drive row once turned a
+    ' Duplicates Delete on one folder into a run over the whole drive.
+    Private Function TargetText() As String
         Dim text = targetCombo.Text.Trim()
         If String.IsNullOrEmpty(text) Then Return ""
-        ' A drive row reads "E:\ (label, NTFS, ..)" - the command wants the first two characters.
-        If text.Length >= 3 AndAlso text(1) = ":"c AndAlso text.Contains("(") Then
-            Return text.Substring(0, 2)
-        End If
+        For Each item In targetCombo.Items
+            Dim row = TryCast(item, String)
+            If row IsNot Nothing AndAlso row.Length >= 2 AndAlso row(1) = ":"c AndAlso
+               String.Equals(row.Trim(), text, StringComparison.Ordinal) Then
+                Return row.Substring(0, 2)
+            End If
+        Next
         Return text
+    End Function
+
+    ' The target as the command carries it (SHELL-04): a drive letter as it stands, any other path
+    ' made absolute here - filedo.exe runs in %LOCALAPPDATA%\FileDO, so a relative path would name
+    ' one place for the checks on this page and another for the run. A path that is not fully
+    ' qualified is shown as typed, and TargetRefused keeps Run from taking it.
+    Private Function GetRawTarget() As String
+        Dim text = TargetText()
+        If text = "" Then Return ""
+        Return If(TargetPath.Resolve(text), text)
+    End Function
+
+    Private Function TargetRefused() As Boolean
+        Dim text = TargetText()
+        Return text <> "" AndAlso TargetPath.Resolve(text) Is Nothing
+    End Function
+
+    ' A second path on the page - a destination, a folder to move duplicates into - by the same rule.
+    Private Shared Function ResolvedOrRaw(text As String) As String
+        If String.IsNullOrWhiteSpace(text) Then Return ""
+        Return If(TargetPath.Resolve(text), text.Trim())
+    End Function
+
+    Private Function SecondPathsRefused() As Boolean
+        Dim wantsDest = job IsNot Nothing AndAlso
+                        (job.TargetKind = JobDefinition.TargetType.SourceAndTarget OrElse
+                         (IsFdsec() AndAlso (job.DefaultVerb = "secure" OrElse job.DefaultVerb = "unsecure")))
+        If wantsDest AndAlso secondTargetBox.Enabled AndAlso secondTargetBox.Text.Trim() <> "" AndAlso
+           TargetPath.Resolve(secondTargetBox.Text) Is Nothing Then Return True
+        If showsDup AndAlso dupActionMove.Checked AndAlso dupMoveBox.Text.Trim() <> "" AndAlso
+           TargetPath.Resolve(dupMoveBox.Text) Is Nothing Then Return True
+        Return False
     End Function
 
     Private Sub TargetChanged()
         UpdatePlanCard()
-        If job Is Nothing OrElse Not job.IsDestructive Then Return
+        UpdateBlastRadius()
+    End Sub
+
+    ' "The target holds N files" is counted for the two runs that delete what is there - a wipe and
+    ' a Duplicates Delete - and for no other (GUI-17): walking a whole suspect drive to show a number
+    ' before a fill or a probe is a long read of a disk the user is worried about, for nothing.
+    Private Function CountsTarget() As Boolean
+        If job Is Nothing Then Return False
+        If job.DefaultVerb = "wipe" Then Return True
+        Return job.DefaultVerb = "cd" AndAlso dupActionDelete.Checked
+    End Function
+
+    Private Sub UpdateBlastRadius()
+        Dim target = GetRawTarget()
         ' A location this page will not wipe (a drive root, TEMP..) is not counted either: counting
         ' a whole drive to tell the user a number for a run that is not offered is work for nothing.
-        If job.DefaultVerb = "wipe" AndAlso WipeSafety.DangerKey(GetRawTarget()) <> "" Then
+        If Not CountsTarget() OrElse target = "" OrElse TargetRefused() OrElse
+           (job.DefaultVerb = "wipe" AndAlso WipeSafety.DangerKey(target) <> "") Then
             If countingTokenSource IsNot Nothing Then
                 countingTokenSource.Cancel()
                 countingTokenSource = Nothing
@@ -1655,6 +1879,8 @@ Public Class JobView
         countingTokenSource = New CancellationTokenSource()
         Dim token = countingTokenSource.Token
         Dim target = GetRawTarget()
+        ' "E:" is the whole drive, not E's current folder (GUI-17).
+        If TargetPath.IsDriveToken(target) Then target &= "\"
 
         countedFiles = -1
         countedFolders = -1
@@ -1756,7 +1982,6 @@ Public Class JobView
         If job Is Nothing Then Return
 
         Dim target = GetRawTarget()
-        Dim isSysDrive = target.StartsWith("C:", StringComparison.OrdinalIgnoreCase)
 
         intentLabel.Text = L(job.PurposeKey)
         touchesLabel.Text = Localization.Format(L("shell_touches_fmt"), If(target = "", L("shell_target_none"), target))
@@ -1772,15 +1997,30 @@ Public Class JobView
                 reversibility = "partly reversible"
             End If
         End If
+        ' A Duplicates run that deletes cannot be undone; one that moves keeps every copy, in
+        ' another folder (GUI-03).
+        If job.DefaultVerb = "cd" Then
+            If dupActionDelete.Checked Then
+                reversibility = "permanent"
+            ElseIf dupActionMove.Checked Then
+                reversibility = "partly reversible"
+            End If
+        End If
         reversibilityBadge.Text = L("shell_rev_" & reversibility.Replace(" ", "_"))
 
-        destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow()
+        destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow()
         destructiveBadge.Text = L("shell_badge_destructive")
         elevationBadge.Visible = job.NeedsElevation
         elevationBadge.Text = L("shell_badge_elevation")
 
-        redirectNoticeLabel.Visible = isSysDrive AndAlso
-            (job.DefaultVerb = "speed" OrElse job.DefaultVerb = "fill" OrElse job.DefaultVerb = "test")
+        ' GUI-18: the notice says what filedo.exe does, and filedo.exe redirects the root of the
+        ' system volume - in any spelling - and nothing below it. Clean on that root looks in the
+        ' redirect folder, which is where the writes went.
+        Dim verb = job.DefaultVerb
+        Dim redirected = (verb = "speed" OrElse verb = "fill" OrElse verb = "test" OrElse verb = "clean") AndAlso
+                         TargetPath.IsSystemVolumeRoot(target)
+        redirectNoticeLabel.Text = If(verb = "clean", L("shell_redirect_notice_clean"), L("shell_redirect_notice"))
+        redirectNoticeLabel.Visible = redirected
 
         Dim cmdArgs = BuildCommandArgs()
         commandBox.Text = "filedo.exe " & ArgQuoting.JoinArgs(cmdArgs)
@@ -1810,6 +2050,17 @@ Public Class JobView
             startBtn.Enabled = False
             tips.SetToolTip(startBtn, L("shell_need_target"))
             If job.Id = "rail_job_wipe" Then wipeConfirmRow.Visible = True
+            Return
+        End If
+
+        ' SHELL-04: a path that is not fully qualified - "..", "reports", "D:x" - would be read by
+        ' filedo.exe in its own data folder, not where the user is looking. It is refused, with the
+        ' reason, before anything else is asked of it.
+        If TargetRefused() OrElse SecondPathsRefused() Then
+            startBtn.Enabled = False
+            If job.Id = "rail_job_wipe" Then wipeConfirmRow.Visible = False
+            ShowRunBlocked(L("shell_target_not_absolute"))
+            tips.SetToolTip(startBtn, runBlockedLabel.Text)
             Return
         End If
 
@@ -1878,6 +2129,14 @@ Public Class JobView
             Return
         End If
 
+        ' GUI-03: a Duplicates run that deletes or moves runs in batch mode - no question on a
+        ' console - so the question is asked here, as a word typed out, before -y is passed.
+        If DupIsDestructiveNow() Then
+            startBtn.Enabled = (wipeConfirmBox.Text.Trim() = DupConfirmWord())
+            If Not startBtn.Enabled Then tips.SetToolTip(startBtn, wipeConfirmLabel.Text)
+            Return
+        End If
+
         If IsFdsec() Then
             ' An empty password is allowed - it is a documented choice, not a
             ' mistake (R3), and the line above the button says what it buys.
@@ -1922,7 +2181,8 @@ Public Class JobView
                 tips.SetToolTip(startBtn, L("shell_need_size"))
                 Return False
             End If
-            If v <> "" AndAlso Not IsNumeric(v) Then
+            ' Megabytes and file counts are whole numbers to the CLI (GUI-15).
+            If v <> "" AndAlso Not Ui.IsWholeNumber(v) Then
                 tips.SetToolTip(startBtn, L("shell_bad_number"))
                 Return False
             End If
@@ -1984,6 +2244,10 @@ Public Class JobView
             Case "clean"
                 If hasTarget Then args.Add(target)
                 args.Add("clean")
+                ' The page asks before it runs (ConfirmClean); the CLI's own list-and-ask
+                ' cannot be answered through the closed stdin, so the page's answer travels
+                ' as --yes (SP-0026 CAP-14).
+                args.Add("--yes")
 
             Case "probe"
                 If hasTarget Then args.Add(target)
@@ -2012,7 +2276,7 @@ Public Class JobView
             Case "compare"
                 args.Add("compare")
                 If hasTarget Then args.Add(target)
-                Dim dest = secondTargetBox.Text.Trim()
+                Dim dest = ResolvedOrRaw(secondTargetBox.Text)
                 If Not String.IsNullOrEmpty(dest) Then args.Add(dest)
                 ' "del old target" is three words to the CLI, and it is three arguments here.
                 Dim rule = CliRules.CmpRuleTokens(Math.Max(cmpRuleCombo.SelectedIndex, 0))
@@ -2021,7 +2285,7 @@ Public Class JobView
             Case "copy"
                 args.Add(CliRules.CopyVerbs(Math.Max(copyStrategyCombo.SelectedIndex, 0)))
                 If hasTarget Then args.Add(target)
-                Dim dest = secondTargetBox.Text.Trim()
+                Dim dest = ResolvedOrRaw(secondTargetBox.Text)
                 If Not String.IsNullOrEmpty(dest) Then args.Add(dest)
 
             Case "wipe"
@@ -2040,7 +2304,17 @@ Public Class JobView
                 ' the password itself is on no command line, where the process
                 ' list of every process of this user could read it (SP-0005
                 ' 5.4, 12).
-                args.Add("pe:" & CredentialEnvName)
+                ' An empty password is the page's documented choice
+                ' (obfuscation only, labelled as such), and it is passed as the
+                ' visible `p:` rather than as an empty variable: filedo.exe
+                ' refuses a `pe:` whose variable is empty, because that is how a
+                ' lost password once became a container with no secrecy
+                ' (SP-0025 FDSEC-19).
+                If String.IsNullOrEmpty(credBox.Text) Then
+                    args.Add("p:")
+                Else
+                    args.Add("pe:" & CredentialEnvName)
+                End If
         End Select
 
         ' `nohist` is read wherever it appears in the line (main.go), and it is the one option
@@ -2068,13 +2342,19 @@ Public Class JobView
         Dim rule = CliRules.DupRuleTokens(Math.Max(dupRuleCombo.SelectedIndex, 0))
         If rule <> "" Then args.Add(rule)
 
+        ' GUI-03 / SP-0028 DUP-03: a run that deletes or moves is batch mode only by the explicit
+        ' -y, never by the rule word - and without it, from this window, filedo.exe stops before
+        ' touching anything. The page passes it because the question was asked here: Run stays off
+        ' until DELETE or MOVE has been typed.
         If dupActionDelete.Checked Then
             args.Add("del")
+            args.Add("-y")
         ElseIf dupActionMove.Checked Then
-            Dim dir = dupMoveBox.Text.Trim()
+            Dim dir = ResolvedOrRaw(dupMoveBox.Text)
             If dir <> "" Then
                 args.Add("move")
                 args.Add(dir)
+                args.Add("-y")
             End If
         End If
 
@@ -2104,7 +2384,7 @@ Public Class JobView
                 If fdsecDelRadio.Checked Then args.Add("del")
                 If fdsecWipeRadio.Checked Then args.Add("wipe")
                 If fdsecRenameCheck.Checked Then args.Add("rename")
-                Dim dest = secondTargetBox.Text.Trim()
+                Dim dest = ResolvedOrRaw(secondTargetBox.Text)
                 If Not fdsecRenameCheck.Checked AndAlso dest <> "" Then
                     args.Add("to")
                     args.Add(dest)
@@ -2112,7 +2392,7 @@ Public Class JobView
 
             Case "unsecure"
                 If fdsecDelContainerCheck.Checked Then args.Add("del")
-                Dim dest = secondTargetBox.Text.Trim()
+                Dim dest = ResolvedOrRaw(secondTargetBox.Text)
                 If dest <> "" Then
                     args.Add("to")
                     args.Add(dest)
@@ -2149,6 +2429,13 @@ Public Class JobView
         End Using
     End Sub
 
+    Private Sub BrowseTargetFolder_Click(sender As Object, e As EventArgs)
+        Using dlg As New FolderBrowserDialog()
+            dlg.Description = L("shell_dlg_select_folder_secure")
+            If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
+        End Using
+    End Sub
+
     Private Sub BrowseSecondTarget_Click(sender As Object, e As EventArgs)
         Using dlg As New FolderBrowserDialog()
             dlg.Description = L("shell_dlg_select_dest")
@@ -2156,16 +2443,24 @@ Public Class JobView
         End Using
     End Sub
 
+    ' The copy is written for cmd.exe, where the Wipe page tells the user to run it: a path holding
+    ' & or % would otherwise run something else there (GUI-20).
     Private Sub CopyCmdBtn_Click(sender As Object, e As EventArgs)
-        Ui.CopyText(ShellDialog.OwnerOf(Me), commandBox.Text)
+        Ui.CopyText(ShellDialog.OwnerOf(Me), CommandForCmd())
     End Sub
 
+    Friend Function CommandForCmd() As String
+        If job Is Nothing Then Return commandBox.Text
+        Return "filedo.exe " & ArgQuoting.JoinArgsForCmd(BuildCommandArgs())
+    End Function
+
     Private Sub OpenInCmdBtn_Click(sender As Object, e As EventArgs)
-        RaiseEvent OpenInCommandRequested(commandBox.Text)
+        RaiseEvent OpenInCommandRequested(commandBox.Text, If(IsFdsec(), credBox.Text, ""))
     End Sub
 
     Private Async Sub StartBtn_Click(sender As Object, e As EventArgs)
         If runner.IsActive Then Return
+        If job IsNot Nothing AndAlso job.DefaultVerb = "clean" AndAlso Not ConfirmClean() Then Return
 
         targetCard.Visible = False
         paramsCard.Visible = False
@@ -2177,6 +2472,9 @@ Public Class JobView
         stepLabel.Text = L("shell_step_starting")
         RunProgress.Begin(progressBar)
         stopBtn.Enabled = True
+        endNowOffered = False
+        lastRunTarget = GetRawTarget()
+        outputPane.Start()
 
         ' During a reveal the strip is not a progress bar with a cancel button
         ' on it: the run lasts exactly as long as the plaintext copy exists,
@@ -2192,7 +2490,7 @@ Public Class JobView
         runTimer = New Windows.Forms.Timer With {.Interval = 500}
         AddHandler runTimer.Tick, Sub()
                                       Dim el = DateTime.Now - startTime
-                                      timeLabel.Text = L("shell_elapsed") & ": " & el.ToString("mm\:ss")
+                                      timeLabel.Text = L("shell_elapsed") & ": " & Ui.FormatDuration(el)
                                   End Sub
         runTimer.Start()
 
@@ -2206,6 +2504,9 @@ Public Class JobView
         runTimer.Stop()
         runTimer.Dispose()
         runTimer = Nothing
+        If stopGraceTimer IsNot Nothing Then stopGraceTimer.Stop()
+        endNowOffered = False
+        outputPane.Stop()
 
         ShowResultCard(res)
         ' Another view was in front when the run ended: the result waits on this page until its
@@ -2217,6 +2518,14 @@ Public Class JobView
     ' Stop is a request, not a kill: the CLI is asked to end the way Ctrl+C ends it, so its own
     ' cleanup still runs (SP-0006 section 6.2 and 7.5).
     Private Sub StopBtn_Click(sender As Object, e As EventArgs)
+        ' The second press, after the grace period: the process is ended outright.
+        If endNowOffered Then
+            ShellLog.Info("the user ended a run that had not stopped")
+            stopBtn.Enabled = False
+            runner.ForceKill()
+            Return
+        End If
+
         runner.RequestStop()
         stateBadge.Text = L("shell_state_stopping")
         ' The same channel says two different things depending on what is
@@ -2225,6 +2534,28 @@ Public Class JobView
         Dim revealing = (IsFdsec() AndAlso job.DefaultVerb = "reveal")
         stepLabel.Text = If(revealing, L("shell_fdsec_removing_copy"), L("shell_stop_requested"))
         stopBtn.Enabled = False
+        StartStopGrace()
+    End Sub
+
+    Private Sub StartStopGrace()
+        If stopGraceTimer Is Nothing Then
+            stopGraceTimer = New Windows.Forms.Timer With {.Interval = StopGraceSeconds * 1000}
+            AddHandler stopGraceTimer.Tick, Sub() StopGraceElapsed()
+        End If
+        stopGraceTimer.Stop()
+        stopGraceTimer.Start()
+    End Sub
+
+    ' GUI-04: a stop the run has not honoured within the grace period is not a dead end - the page
+    ' offers to end it outright, the way closing the window already could, instead of leaving the
+    ' user with a disabled button and a run that says it is stopping.
+    Private Sub StopGraceElapsed()
+        stopGraceTimer.Stop()
+        If Not runner.IsActive Then Return
+        endNowOffered = True
+        stopBtn.Text = L("shell_btn_end_run_now")
+        stepLabel.Text = L("shell_stop_not_honoured")
+        stopBtn.Enabled = True
     End Sub
 
     Private Sub ToggleOutputBtn_Click(sender As Object, e As EventArgs)
@@ -2245,7 +2576,7 @@ Public Class JobView
         ' T2); it is decoration beside the badge that says the word. The colours are painted by
         ' PaintVerdict, which ApplyTheme calls too - so a theme switch repaints them (T2).
         shownVerdict = res.Verdict
-        verdictGlyph.Text = Theme.Glyph(Theme.VerdictGlyph(res.Verdict))
+        verdictGlyph.Glyph = Theme.VerdictGlyph(res.Verdict)
         PaintVerdict(Theme.Current)
 
         ' "Could not verify" is a real answer, and it says why (principle 3).
@@ -2256,7 +2587,7 @@ Public Class JobView
             verdictReasonLabel.Text = L(res.Reason)
         End If
 
-        Dim numStr = Localization.Format(L("shell_result_summary_fmt"), res.Duration.ToString("mm\:ss"), res.ExitCode)
+        Dim numStr = Localization.Format(L("shell_result_summary_fmt"), Ui.FormatDuration(res.Duration), res.ExitCode)
         If res.ResultInfo IsNot Nothing AndAlso res.ResultInfo.Numbers IsNot Nothing Then
             For Each kvp In res.ResultInfo.Numbers
                 numStr &= Environment.NewLine & kvp.Key & ": " & kvp.Value.ToString()
@@ -2268,7 +2599,14 @@ Public Class JobView
         Dim filesLeft = If(res.ResultInfo IsNot Nothing, res.ResultInfo.FilesLeft, Nothing)
         If filesLeft IsNot Nothing AndAlso filesLeft.Count > 0 Then
             filesLeftLabel.Visible = True
-            filesLeftLabel.Text = L("shell_files_left_warning") & Environment.NewLine & String.Join(Environment.NewLine, filesLeft)
+            ' A test on a fake drive can leave tens of thousands of files; the card names the first
+            ' few and counts the rest, and the report lists every one.
+            Dim shown = filesLeft.Take(FilesLeftShown).ToList()
+            Dim text = L("shell_files_left_warning") & Environment.NewLine & String.Join(Environment.NewLine, shown)
+            If filesLeft.Count > shown.Count Then
+                text &= Environment.NewLine & Localization.Format(L("shell_files_left_more_fmt"), filesLeft.Count - shown.Count)
+            End If
+            filesLeftLabel.Text = text
             actionCleanBtn.Visible = True
         Else
             filesLeftLabel.Visible = False
@@ -2276,7 +2614,14 @@ Public Class JobView
         End If
 
         If ShellSettings.HistoryEnabled() Then
-            reportsLabel.Text = Localization.Format(L("shell_reports_dir_fmt"), Runner.GetReportsDir())
+            ' The reports folder may be the very thing that could not be written (SHELL-13): the
+            ' card then names the cause instead of throwing out of the run's ending.
+            Try
+                reportsLabel.Text = Localization.Format(L("shell_reports_dir_fmt"), Runner.GetReportsDir())
+            Catch ex As Exception
+                ShellLog.Write("find the reports folder", ex)
+                reportsLabel.Text = Localization.Format(L("shell_report_read_error"), Problems.Cause(ex))
+            End Try
             actionOpenReportBtn.Visible = True
         Else
             reportsLabel.Text = L("shell_history_off")
@@ -2292,9 +2637,18 @@ Public Class JobView
         verdictBadge.ForeColor = Theme.VerdictFore(shownVerdict, p)
     End Sub
 
+    ' GUI-12: Clean opens on the target that was just tested, not on the first drive in the list -
+    ' the files left are on that drive. The window selects Clean's rail row and sets the target; a
+    ' page with no window to ask (the self-test) does both itself.
     Private Sub CleanTestFiles_Click(sender As Object, e As EventArgs)
+        If CleanRequestedEvent IsNot Nothing Then
+            RaiseEvent CleanRequested(lastRunTarget)
+            Return
+        End If
         Dim cleanJob = JobCatalogue.GetJob("rail_job_clean")
-        If cleanJob IsNot Nothing Then SetJob(cleanJob)
+        If cleanJob Is Nothing Then Return
+        SetJob(cleanJob)
+        If lastRunTarget <> "" Then SetTarget(lastRunTarget)
     End Sub
 
     Private Sub OpenLatestReport_Click(sender As Object, e As EventArgs)
@@ -2324,7 +2678,7 @@ Public Class JobView
 
         ' The Erase group is visually distinct, and by more than a colour: it keeps an accent bar
         ' on the card's edge (section 8 item 3).
-        Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow()
+        Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow()
         paramsCard.Accented = destructive
         paramsCard.AccentColour = p.Danger
         planCard.Accented = destructive
@@ -2356,6 +2710,7 @@ Public Class JobView
             r.BackColor = p.Surface
         Next
         dupActionDelete.ForeColor = If(dupActionDelete.Checked, p.Danger, p.Text)
+        dupActionMove.ForeColor = If(dupActionMove.Checked, p.Warning, p.Text)
 
         For Each cb As CheckBox In New CheckBox() {optionsCheckAutoDel, optionsCheckNoDel,
                                                    optionsCheckShort, optionsCheckVerify, optionsCheckHere,
@@ -2398,7 +2753,7 @@ Public Class JobView
         Next
         ' Same rule as the check panel's: a size that is not a number is shown as one.
         Dim sizeText = sizeBox.Text.Trim()
-        If sizeText <> "" AndAlso Not IsNumeric(sizeText) Then sizeBox.ForeColor = p.Danger
+        If sizeText <> "" AndAlso Not Ui.IsWholeNumber(sizeText) Then sizeBox.ForeColor = p.Danger
 
         checkOptions.ApplyTheme()
 
@@ -2491,7 +2846,6 @@ Public Class JobView
         timeLabel.Font = Theme.FontBody()
         timeLabel.ForeColor = p.MutedText
 
-        verdictGlyph.Font = Theme.FontGlyph()
         verdictBadge.Font = Theme.FontSubtitle()
         PaintVerdict(p)
         verdictReasonLabel.Font = Theme.FontBody()

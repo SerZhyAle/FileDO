@@ -42,16 +42,45 @@ Module WindowPlacement
             w = CInt(Math.Round(w * target.Dpi / CDbl(savedDpi)))
             h = CInt(Math.Round(h * target.Dpi / CDbl(savedDpi)))
         End If
+
+        ' SHELL-08: a window the user spread across two monitors is theirs to keep that way. It is
+        ' clamped to the space all the screens make together, and it stays where it is as long as a
+        ' piece of its title strip can still be grabbed on some screen.
+        Dim all = UnionOf(screens)
+        Dim keptW = Math.Min(w, all.Width)
+        Dim keptH = Math.Min(h, all.Height)
+        If StripReachable(New Rectangle(saved.X, saved.Y, keptW, Math.Max(1, Math.Min(titleHeight, keptH))), screens, titleHeight) Then
+            Return New Rectangle(saved.X, saved.Y, keptW, keptH)
+        End If
+
+        ' Otherwise it moves onto the screen it belongs to, at no more than that screen's size, and
+        ' the title strip - the full width, one caption high - is pulled back until it is wholly on
+        ' the working area, which is what keeps the window draggable.
         w = Math.Min(w, wa.Width)
         h = Math.Min(h, wa.Height)
-
-        ' The title strip - the full width, one caption high - is pulled back until it is wholly on
-        ' the working area, which is what keeps the window draggable. A window on its own screen
-        ' already is, and does not move.
         Dim strip = Math.Max(1, Math.Min(titleHeight, h))
         Dim x = Math.Min(Math.Max(saved.X, wa.Left), wa.Right - w)
         Dim y = Math.Min(Math.Max(saved.Y, wa.Top), wa.Bottom - strip)
         Return New Rectangle(x, y, w, h)
+    End Function
+
+    Private Function UnionOf(screens As IList(Of ScreenArea)) As Rectangle
+        Dim r = screens(0).Area
+        For Each s In screens
+            r = Rectangle.Union(r, s.Area)
+        Next
+        Return r
+    End Function
+
+    ' A title strip is reachable when some screen shows the whole of its height over a width a
+    ' pointer can grab - three captions, or the whole strip when it is narrower than that.
+    Private Function StripReachable(strip As Rectangle, screens As IList(Of ScreenArea), titleHeight As Integer) As Boolean
+        Dim grab = Math.Min(strip.Width, Math.Max(1, titleHeight) * 3)
+        For Each s In screens
+            Dim i = Rectangle.Intersect(strip, s.Area)
+            If i.Height >= strip.Height AndAlso i.Width >= grab Then Return True
+        Next
+        Return False
     End Function
 
     Private Function MostOverlapping(r As Rectangle, screens As IList(Of ScreenArea)) As ScreenArea

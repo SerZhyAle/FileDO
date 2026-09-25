@@ -2,41 +2,42 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"math/rand"
+	mrand "math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
-// Global variable to control verification mode
-var DeepVerificationMode = false
-
-// FakeCapacityTester interface defines the operations needed for fake capacity testing
+// FakeCapacityTester is what the fake-capacity engine needs from a target.
+// Device, folder and network testers differ only in how they reach the target;
+// every one of them writes its files with the same writer and is read back by
+// the same verifier (SP-0026 CAP-01).
 type FakeCapacityTester interface {
 	// GetTestInfo returns the test type name and target path for display
 	GetTestInfo() (testType, targetPath string)
 
-	// GetAvailableSpace returns the available space in bytes for testing
+	// GetAvailableSpace proves the target takes a write and returns the bytes
+	// free for testing. A failed probe or query is an error, never a guess.
 	GetAvailableSpace() (int64, error)
 
-	// CreateTestFile creates a test file with the given size and returns the file path
-	CreateTestFile(fileName string, fileSize int64) (filePath string, err error)
-
-	// CreateTestFileContext creates a test file with context for cancellation support
-	// If not implemented, should return the same as CreateTestFile
+	// CreateTestFileContext writes the named test file (the name may carry a
+	// subdirectory) and returns its path. On error the path is returned too
+	// when a file - whole or partial - was left on disk by this call, and is
+	// empty otherwise: a caller never removes a file the tester did not make.
 	CreateTestFileContext(ctx context.Context, fileName string, fileSize int64) (filePath string, err error)
-
-	// VerifyTestFile verifies that a test file contains the expected header
-	VerifyTestFile(filePath string) error
 
 	// CleanupTestFile removes a test file
 	CleanupTestFile(filePath string) error
 
-	// GetCleanupCommand returns the command to clean test files manually
+	// GetCleanupCommand returns the command that removes the test files: the
+	// clean verb on the folder that holds them (CAP-05).
 	GetCleanupCommand() string
 }
 
@@ -112,7 +113,7 @@ func (di DeviceInfo) String() string {
 		containsLabel = "Full Contains:"
 	}
 	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, di.FileCount, di.FolderCount))
-	b.WriteString(fmt.Sprintf("  Usage:         %.1f%%\n", float64(di.TotalBytes-di.FreeBytes)*100/float64(di.TotalBytes)))
+	b.WriteString(fmt.Sprintf("  Usage:         %.1f%%\n", di.usage()))
 	if di.AccessErrors {
 		b.WriteString("\nWarning: Some information could not be gathered due to access restrictions.\n")
 		b.WriteString("         Run as administrator for a complete scan.\n")
@@ -129,11 +130,36 @@ func (di DeviceInfo) StringShort() string {
 	// Format total size without full bytes, free space, and usage percentage
 	totalFormatted := formatBytesShort(di.TotalBytes)
 	freeFormatted := formatBytesShort(di.FreeBytes)
-	usage := float64(di.TotalBytes-di.FreeBytes) * 100 / float64(di.TotalBytes)
+	usage := di.usage()
 
 	b.WriteString(fmt.Sprintf("Total:  %s, Free:  %s (Usage: %.1f%%)", totalFormatted, freeFormatted, usage))
 
 	return b.String()
+}
+
+// usagePercent is the used share of a volume. Under a per-user disk quota the
+// total is the quota while the free space is the whole volume's, so free can
+// exceed total; the unsigned subtraction then wrapped to nearly 2^64 and the
+// usage printed as billions of percent (SP-0026 CAP-20). Free is clamped to
+// total, and an unknown total is 0% rather than a division by zero.
+func usagePercent(total, free uint64) float64 {
+	if total == 0 {
+		return 0
+	}
+	if free > total {
+		free = total
+	}
+	return float64(total-free) * 100 / float64(total)
+}
+
+// usage prefers the bytes free to this user when the volume-wide free space
+// does not fit inside a quota-limited total.
+func (di DeviceInfo) usage() float64 {
+	free := di.FreeBytes
+	if free > di.TotalBytes && di.AvailableBytes <= di.TotalBytes {
+		free = di.AvailableBytes
+	}
+	return usagePercent(di.TotalBytes, free)
 }
 
 type FolderInfo struct {
@@ -497,292 +523,180 @@ func formatBytesShort(b uint64) string {
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
-// Generic fake capacity testing functions
-
-// runGenericFakeCapacityTest performs a generic fake capacity test using the provided tester interface
+// ---------------------------------------------------------------------------
+// The fake-capacity test (SP-0026)
 //
-// Each of its four conclusions is a judgement about the device rather than a
-// failure to reach one, so each returns defectf: that is what makes a lying
-// device exit 1 and an unreadable one exit 2 (CLI-EVENT-STREAM rule 11). The
-// files it deliberately keeps are named in the result event, because they are
-// the evidence for the estimated-real-capacity report.
+// runGenericFakeCapacityTest drives any FakeCapacityTester through one test.
+// Three independent signals decide it, and all three stay: header == footer;
+// a body that names its file, its run and its offset in every 4 KiB block
+// (capacity_format.go); and the write speed. What each of them may conclude:
+//
+//   - every read-back bypasses the Windows cache (openForVerify), and before a
+//     PASS a final pass re-reads every file - header, footer and sampled
+//     blocks - so a file that went bad after its own check is still caught
+//     (CAP-03);
+//   - a speed anomaly alone is never a verdict: it triggers that re-read of
+//     every file written so far, and only data that does not read back is a
+//     defect (CAP-07);
+//   - an error is judged by the shared classifier (errclass_windows.go): a
+//     stop is a stop, an environmental error - access denied, write
+//     protection, a device or share that went away, a full disk - proves
+//     nothing (exit 2), and only a device-level I/O error or data that does
+//     not read back is a defect (exit 1) (CAP-04, CAP-13).
+//
+// On a defect the test files are kept, never cleaned up: they are the evidence
+// for the estimated-real-capacity report, and the result event names them. A
+// stop removes them, whenever it comes.
+
+const (
+	baselineFileCount = 3
+	finalPassSamples  = 3
+	speedLowRatio     = 0.1
+	speedHighRatio    = 10.0
+)
+
+// capacityRun is one test in progress.
+type capacityRun struct {
+	tester     FakeCapacityTester
+	targetPath string
+	plan       capacityPlan
+	result     *FakeCapacityTestResult
+	logger     *HistoryLogger
+	ctx        context.Context
+	evidence   []string // partial files kept beside the complete ones
+	anomalies  int
+}
+
+// runGenericFakeCapacityTest performs a fake capacity test through tester.
 func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxFiles int, logger *HistoryLogger) (*FakeCapacityTestResult, error) {
 	testType, targetPath := tester.GetTestInfo()
-
-	// Use global interrupt handler (avoid duplicate signal registration)
-	interruptHandler := globalInterruptHandler
-
-	// Setup history logging if provided
 	if logger != nil {
 		logger.SetCommand(strings.ToLower(testType), targetPath, "test")
 		logger.SetParameter("autoDelete", autoDelete)
 	}
+	result := &FakeCapacityTestResult{CreatedFiles: make([]string, 0, 100)}
+	r := &capacityRun{tester: tester, targetPath: targetPath, result: result, logger: logger, ctx: capacityContext()}
 
-	result := &FakeCapacityTestResult{
-		CreatedFiles: make([]string, 0, 100),
-	}
-
-	// Get available space
 	freeSpace, err := tester.GetAvailableSpace()
 	if err != nil {
-		if logger != nil {
-			logger.SetError(err)
-		}
-		return result, err
+		return result, r.logErr(err)
 	}
-
-	// Check minimum space requirement (100MB)
-	minSpaceBytes := int64(100 * 1024 * 1024) // 100MB
-	if freeSpace < minSpaceBytes {
-		err = fmt.Errorf("insufficient free space. At least 100MB required, but only %d MB available", freeSpace/(1024*1024))
-		if logger != nil {
-			logger.SetError(err)
-		}
-		return result, err
+	plan, err := planCapacityTest(freeSpace, maxFiles, capacityVolumeFacts(targetPath))
+	if err != nil {
+		return result, r.logErr(err)
 	}
-
-	// Calculate file size to use 95% of available space for the given number of files
-	totalDataTarget := int64(float64(freeSpace) * 0.95) // Use 95% of available space
-	fileSize := totalDataTarget / int64(maxFiles)
-	fileSizeMB := fileSize / (1024 * 1024)
-
-	// Ensure minimum file size of 1MB
-	if fileSize < 1024*1024 {
-		fileSize = 1024 * 1024 // 1MB minimum
-		fileSizeMB = 1
-	}
+	r.plan = plan
 
 	fmt.Printf("%s Fake Capacity Test\n", testType)
 	fmt.Printf("Target: %s\n", getEnhancedTargetInfo(tester))
-	fmt.Printf("Available space: %.2f GB\n", float64(freeSpace)/(1024*1024*1024))
-	fmt.Printf("Test file size: %d MB (%.1f%% of available space for %d files)\n",
-		fileSizeMB, float64(totalDataTarget)/float64(freeSpace)*100, maxFiles)
-	fmt.Printf("Will create %d test files...\n\n", maxFiles)
+	fmt.Printf("Available space: %.2f GB\n", gbOf(freeSpace))
+	for _, note := range plan.Notes {
+		fmt.Printf("Note: %s\n", note)
+	}
+	fmt.Printf("Test file size: %d MB (%d files, %.2f GB - %.1f%% of available space)\n",
+		plan.FileSize/capMiB, plan.Files, gbOf(plan.Target()), float64(plan.Target())/float64(freeSpace)*100)
+	fmt.Printf("Every file is read back past the Windows cache, and all of them again before a PASS.\n\n")
 
-	// Write buffer is fixedBufferSize (64 MB) - set in writeTestFileContentOptimized.
-	// No upfront calibration: eliminates 300 MB of wasted writes before the test.
-
-	const baselineFileCount = 3
-	var speeds []float64
-	var baselineSpeed float64
-	baselineSet := false
-
-	// Create progress tracker
-	progress := NewProgressTrackerWithInterval(int64(maxFiles), int64(maxFiles)*fileSize, 2*time.Second)
-
-	// Write phase
-	runStep("write", fmt.Sprintf("Writing %d test files", maxFiles))
-	fmt.Printf("Starting capacity test - writing %d files...\n", maxFiles)
-
-	for i := 1; i <= maxFiles; i++ {
-		// Check for interrupt
-		if interruptHandler.IsCancelled() {
-			fmt.Printf("\n\n⚠ Operation interrupted by user. Cleaning up created files...\n")
-
-			// Cleanup created files
-			deletedCount := 0
-			for _, filePath := range result.CreatedFiles {
-				if err := tester.CleanupTestFile(filePath); err == nil {
-					deletedCount++
-				}
-			}
-
-			fmt.Printf("Cleaned up %d/%d files.\n", deletedCount, len(result.CreatedFiles))
-			err := fmt.Errorf("operation interrupted by user")
-			if logger != nil {
-				logger.SetError(err)
-				logger.SetResult("filesCreated", result.FilesCreated)
-				logger.SetResult("interrupted", true)
-			}
-			return result, err
+	if plan.SubDir != "" {
+		dir := filepath.Join(targetPath, plan.SubDir)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return result, r.logErr(fmt.Errorf("could not create %s: %w", dir, err))
 		}
+	}
+	nonce := newCapacityNonce()
+	runID := capacityRunID(nonce)
+	stamp := time.Now().Format(capacityStampLayout)
+	width := len(strconv.Itoa(plan.Files))
+	if width < 3 {
+		width = 3
+	}
+	cachedBefore := verifyCachedReads.Load()
 
-		fileName := fmt.Sprintf("FILL_%03d_%s.tmp", i, time.Now().Format("02150405"))
+	var speeds []float64
+	var baseline float64
+	progress := NewProgressTrackerWithInterval(int64(plan.Files), plan.Target(), 2*time.Second)
 
-		start := time.Now()
-		filePath, err := tester.CreateTestFileContext(interruptHandler.Context(), fileName, fileSize)
-		if err != nil {
-			// DON'T clean up on creation error - keep files for analysis
-			result.FailureReason = fmt.Sprintf("Failed to create file %d: %v", i, err)
+	runStep("write", fmt.Sprintf("Writing %d test files", plan.Files))
+	fmt.Printf("Starting capacity test - writing %d files...\n", plan.Files)
 
-			// Calculate estimated real capacity
-			realCapacity := fileSize * int64(i-1)
-
-			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-			fmt.Printf("This indicates storage device failure or fake capacity.\n")
-			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-			fmt.Printf("  Files successfully created: %d out of %d\n", i-1, maxFiles)
-			fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
-			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-			runFilesLeft(result.CreatedFiles...)
-			runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-			err = defectf("failed to create file %s: %v", fileName, err)
-			if logger != nil {
-				logger.SetError(err)
-				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-				logger.SetResult("filesSuccessfullyCreated", i-1)
+	for i := 1; i <= plan.Files; i++ {
+		if r.stopRequested() {
+			return r.stopped("")
+		}
+		var path string
+		var start time.Time
+		for attempt := 0; ; attempt++ {
+			name := capacityFileName(int64(i), width, stamp, runID)
+			if plan.SubDir != "" {
+				name = filepath.Join(plan.SubDir, name)
 			}
-			return result, err
+			start = time.Now()
+			path, err = tester.CreateTestFileContext(r.ctx, name, plan.FileSize)
+			if err == nil || !errors.Is(err, fs.ErrExist) || attempt >= 2 {
+				break
+			}
+			// CAP-10: a name is never reused. Something already has this one,
+			// so the run takes a fresh nonce and with it a fresh run id.
+			nonce = newCapacityNonce()
+			runID = capacityRunID(nonce)
 		}
 		duration := time.Since(start)
-
+		if err != nil {
+			return r.createFailed(i, path, err)
+		}
 		result.FilesCreated++
-		result.TotalDataBytes += fileSize
-		result.CreatedFiles = append(result.CreatedFiles, filePath)
+		result.TotalDataBytes += plan.FileSize
+		result.CreatedFiles = append(result.CreatedFiles, path)
 
-		// Smart verification with new strategy
 		if err := verifySmartTestFiles(result.CreatedFiles, i); err != nil {
-			// DON'T clean up on verification error - keep files for analysis
-			result.TestPassed = false
-			result.FailureReason = fmt.Sprintf("Verification failed after creating file %d: %v", i, err)
-
-			// Calculate estimated real capacity
-			realCapacity := fileSize * int64(i-1) // Count files before the failed one
-
-			fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-			fmt.Printf("This indicates delayed data corruption or fake capacity.\n")
-			fmt.Printf("Error details: %v\n", err)
-
-			// Try to find which specific file failed
-			for j, fp := range result.CreatedFiles {
-				if verifyErr := verifyTestFileStartEnd(fp); verifyErr != nil {
-					fmt.Printf("Failed file: %s (file %d/%d)\n", fp, j+1, len(result.CreatedFiles))
-
-					// Additional file analysis
-					if fileInfo, statErr := os.Stat(fp); statErr == nil {
-						fmt.Printf("File size: %d bytes (expected: %d bytes)\n", fileInfo.Size(), fileSize)
-						if fileInfo.Size() != fileSize {
-							fmt.Printf("❌ FILE SIZE MISMATCH - This confirms fake capacity!\n")
-						}
-					}
-
-					// Try to read first few bytes for diagnosis
-					if diagFile, diagErr := os.Open(fp); diagErr == nil {
-						diagBuf := make([]byte, 128)
-						if n, readErr := diagFile.Read(diagBuf); readErr == nil && n > 0 {
-							fmt.Printf("File content preview (first %d bytes): %q\n", n, string(diagBuf[:n]))
-
-							// Check if file contains zeros (common in fake capacity)
-							zeroCount := 0
-							for _, b := range diagBuf[:n] {
-								if b == 0 {
-									zeroCount++
-								}
-							}
-							if zeroCount > n/2 {
-								fmt.Printf("❌ FILE CONTAINS MOSTLY ZEROS - Strong indicator of fake capacity!\n")
-							}
-						}
-						diagFile.Close()
-					}
-					break
-				}
-			}
-
-			fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-			fmt.Printf("  Files successfully verified: %d out of %d\n", i-1, len(result.CreatedFiles))
-			fmt.Printf("  Data verified before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
-			fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-			fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-			runFilesLeft(result.CreatedFiles...)
-			runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-			err = defectf("test failed during verification - file corruption detected")
-			if logger != nil {
-				logger.SetError(err)
-				logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-				logger.SetResult("filesSuccessfullyVerified", i-1)
-			}
-			return result, err
+			return r.verifyFailed(err, i-1, fmt.Sprintf("Verification failed after creating file %d", i))
 		}
 
-		// Calculate write speed
-		speed := float64(fileSize) / duration.Seconds() / (1024 * 1024) // MB/s
+		if duration <= 0 {
+			duration = time.Nanosecond
+		}
+		speed := float64(plan.FileSize) / duration.Seconds() / float64(capMiB)
 		speeds = append(speeds, speed)
-
-		// Update progress
 		progress.Update(int64(result.FilesCreated), result.TotalDataBytes)
 		progress.PrintProgress("Test")
 
-		// Set baseline speed from first 3 files
 		if i <= baselineFileCount {
 			if i == baselineFileCount {
-				// Calculate average of first 3 files as baseline
 				sum := 0.0
 				for _, s := range speeds[:baselineFileCount] {
 					sum += s
 				}
-				baselineSpeed = sum / float64(baselineFileCount)
-				result.BaselineSpeedMBps = baselineSpeed
-				baselineSet = true
-				fmt.Printf("Baseline speed established: %.2f MB/s", baselineSpeed)
+				baseline = sum / baselineFileCount
+				result.BaselineSpeedMBps = baseline
+				fmt.Printf("Baseline speed established: %.2f MB/s", baseline)
 			}
-		} else if baselineSet {
-			// Check for abnormal speed after baseline is set
-			if speed < baselineSpeed*0.1 { // Less than 10% of baseline
-				result.TestPassed = false
-				result.FailureReason = fmt.Sprintf("Speed dropped to %.2f MB/s (less than 10%% of baseline %.2f MB/s) at file %d", speed, baselineSpeed, i)
-
-				// Calculate estimated real capacity
-				realCapacity := fileSize * int64(i-1)
-
-				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-				fmt.Printf("This indicates potential fake capacity or device failure.\n")
-				fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-				fmt.Printf("  Files successfully written: %d out of %d\n", i-1, maxFiles)
-				fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
-				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-				runFilesLeft(result.CreatedFiles...)
-				runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-				err = defectf("test failed due to abnormally slow write speed")
-				if logger != nil {
-					logger.SetError(err)
-					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-					logger.SetResult("filesSuccessfullyWritten", i-1)
-				}
+		} else if baseline > 0 && (speed < baseline*speedLowRatio || speed > baseline*speedHighRatio) {
+			if err := r.speedAnomaly(i, speed, baseline); err != nil {
 				return result, err
 			}
-			if speed > baselineSpeed*10 { // More than 10x baseline
-				result.TestPassed = false
-				result.FailureReason = fmt.Sprintf("Speed jumped to %.2f MB/s (more than 1000%% of baseline %.2f MB/s) at file %d", speed, baselineSpeed, i)
-
-				// Calculate estimated real capacity
-				realCapacity := fileSize * int64(i-1)
-
-				fmt.Printf("\n❌ TEST FAILED: %s\n", result.FailureReason)
-				fmt.Printf("This indicates potential fake writing or caching issues.\n")
-				fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
-				fmt.Printf("  Files successfully written: %d out of %d\n", i-1, maxFiles)
-				fmt.Printf("  Data written before failure: %.2f GB\n", float64(fileSize*int64(i-1))/(1024*1024*1024))
-				fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", float64(realCapacity)/(1024*1024*1024))
-				fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(result.CreatedFiles))
-
-				runFilesLeft(result.CreatedFiles...)
-				runNumber("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-				err = defectf("test failed due to abnormally fast write speed")
-				if logger != nil {
-					logger.SetError(err)
-					logger.SetResult("estimatedRealCapacityGB", float64(realCapacity)/(1024*1024*1024))
-					logger.SetResult("filesSuccessfullyWritten", i-1)
-				}
-				return result, err
-			}
+			// The anomaly was the device's cache or throttling: measure the
+			// next files against what the device does now, so one sustained
+			// change is reported once, not once per file.
+			baseline = speed
 		}
 	}
 
-	fmt.Printf("\n✅ Write and smart incremental verification completed successfully!\n")
-	fmt.Printf("All %d files verified with optimized smart verification strategy.\n", len(result.CreatedFiles))
+	// The final pass: every file, past the cache, after the last write. A
+	// counterfeit that drops or aliases later writes damages files the
+	// in-loop checks had already passed (CAP-03).
+	fmt.Printf("\nFinal pass: re-reading all %d files past the cache..\n", len(result.CreatedFiles))
+	runStep("verify", fmt.Sprintf("Re-reading %d test files", len(result.CreatedFiles)))
+	if good, bad := verifyTestFilesSampled(result.CreatedFiles, finalPassSamples); bad != nil {
+		_, err := r.verifyFailed(bad, good, "Final verification failed")
+		return result, err
+	}
 
-	// Calculate statistics
+	fmt.Printf("\n✅ Write, incremental verification and the final re-read completed successfully!\n")
+
 	if len(speeds) > 0 {
 		result.MinSpeedMBps = speeds[0]
 		result.MaxSpeedMBps = speeds[0]
 		sum := 0.0
-
 		for _, speed := range speeds {
 			if speed < result.MinSpeedMBps {
 				result.MinSpeedMBps = speed
@@ -801,17 +715,28 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 	runNumber("bytesWritten", result.TotalDataBytes)
 	runNumber("averageSpeedMBps", result.AverageSpeedMBps)
 	runNumber("baselineSpeedMBps", result.BaselineSpeedMBps)
+	if r.anomalies > 0 {
+		runNumber("speedAnomalies", r.anomalies)
+	}
 
 	fmt.Printf("\n✅ TEST PASSED SUCCESSFULLY!\n")
-	fmt.Printf("All %d files were written and verified successfully.\n", result.FilesCreated)
+	fmt.Printf("All %d files were written and read back intact.\n", result.FilesCreated)
+	if cached := verifyCachedReads.Load() - cachedBefore; cached > 0 {
+		note := fmt.Sprintf("%d reads could not bypass the cache on this target (it refuses unbuffered I/O); they may have been answered from memory", cached)
+		fmt.Printf("Note: %s.\n", note)
+		EmitNoteEvent(note)
+		runNumber("cachedReads", cached)
+	}
+	if r.anomalies > 0 {
+		fmt.Printf("Speed changed %d time(s) during the test; every time, all files re-read intact.\n", r.anomalies)
+	}
 	fmt.Printf("\n📊 Speed Statistics:\n")
 	fmt.Printf("  Baseline speed (first 3 files): %.2f MB/s\n", result.BaselineSpeedMBps)
 	fmt.Printf("  Average speed: %.2f MB/s\n", result.AverageSpeedMBps)
 	fmt.Printf("  Minimum speed: %.2f MB/s\n", result.MinSpeedMBps)
 	fmt.Printf("  Maximum speed: %.2f MB/s\n", result.MaxSpeedMBps)
-	fmt.Printf("  Total data written: %.2f MB\n", float64(result.TotalDataBytes)/(1024*1024))
+	fmt.Printf("  Total data written: %.2f MB\n", float64(result.TotalDataBytes)/float64(capMiB))
 
-	// Auto-delete if requested and test passed
 	if autoDelete {
 		fmt.Printf("\n🗑️  Auto-delete enabled, cleaning up test files...\n")
 		deletedCount := 0
@@ -822,22 +747,22 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 				deletedCount++
 			}
 		}
+		r.removeSubDir()
 		fmt.Printf("Successfully deleted %d/%d test files.\n", deletedCount, len(result.CreatedFiles))
 	} else {
 		fmt.Printf("\n📁 Test files kept for manual inspection:\n")
-		fmt.Printf("   Location: %s\n", targetPath)
-		fmt.Printf("   Files: FILL_001_*.tmp to FILL_%03d_*.tmp\n", result.FilesCreated)
+		fmt.Printf("   Location: %s\n", filepath.Join(targetPath, plan.SubDir))
+		fmt.Printf("   Files: %s .. %s\n", filepath.Base(result.CreatedFiles[0]), filepath.Base(result.CreatedFiles[len(result.CreatedFiles)-1]))
 		fmt.Printf("   Use '%s' to remove them later.\n", tester.GetCleanupCommand())
 	}
 
-	// Log results if logger provided
 	if logger != nil {
 		logger.SetResult("testPassed", result.TestPassed)
 		logger.SetResult("averageSpeedMBps", result.AverageSpeedMBps)
 		logger.SetResult("minSpeedMBps", result.MinSpeedMBps)
 		logger.SetResult("maxSpeedMBps", result.MaxSpeedMBps)
 		logger.SetResult("baselineSpeedMBps", result.BaselineSpeedMBps)
-		logger.SetResult("totalDataMB", float64(result.TotalDataBytes)/(1024*1024))
+		logger.SetResult("totalDataMB", float64(result.TotalDataBytes)/float64(capMiB))
 		logger.SetResult("filesDeleted", autoDelete)
 		logger.SetSuccess()
 	}
@@ -845,11 +770,194 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 	return result, nil
 }
 
-// Optimized file operations without template files
+func (r *capacityRun) logErr(err error) error {
+	if r.logger != nil {
+		r.logger.SetError(err)
+	}
+	return err
+}
+
+func (r *capacityRun) stopRequested() bool {
+	return r.ctx.Err() != nil || runStopRequested()
+}
+
+// isEvidence reports whether a verification error is evidence against the
+// media: data that did not read back, or the device failing the I/O itself.
+func isEvidence(err error) bool {
+	return errors.Is(err, errDataMismatch) || isDeviceIOError(err)
+}
+
+// filesLeft is every test file on disk: the complete ones and any partial one
+// kept as evidence.
+func (r *capacityRun) filesLeft() []string {
+	left := append([]string(nil), r.result.CreatedFiles...)
+	return append(left, r.evidence...)
+}
+
+func (r *capacityRun) removeSubDir() {
+	if r.plan.SubDir != "" {
+		os.Remove(filepath.Join(r.targetPath, r.plan.SubDir)) // only when empty
+	}
+}
+
+// stopped is the one stop behaviour, whenever the stop comes (CAP-13): the
+// partial file and every complete one are removed, nothing is judged, and no
+// capacity is estimated. The verdict is Stopped (outcome.go).
+func (r *capacityRun) stopped(partial string) (*FakeCapacityTestResult, error) {
+	fmt.Printf("\n\n⚠ Operation stopped. Removing the test files..\n")
+	if partial != "" {
+		r.tester.CleanupTestFile(partial)
+	}
+	for _, p := range r.evidence {
+		r.tester.CleanupTestFile(p)
+	}
+	deleted := 0
+	for _, p := range r.result.CreatedFiles {
+		if err := r.tester.CleanupTestFile(p); err == nil {
+			deleted++
+		}
+	}
+	r.removeSubDir()
+	fmt.Printf("Removed %d/%d files.\n", deleted, len(r.result.CreatedFiles))
+	err := fmt.Errorf("test stopped after %d of %d files: %w", len(r.result.CreatedFiles), r.plan.Files, errRunStopped)
+	if r.logger != nil {
+		r.logger.SetError(err)
+		r.logger.SetResult("filesCreated", r.result.FilesCreated)
+		r.logger.SetResult("interrupted", true)
+	}
+	return r.result, err
+}
+
+// createFailed judges an error from writing file i (CAP-04). partial is the
+// file the failed write left behind, if any.
+func (r *capacityRun) createFailed(i int, partial string, err error) (*FakeCapacityTestResult, error) {
+	if isStopError(err) || r.stopRequested() {
+		return r.stopped(partial)
+	}
+	written := len(r.result.CreatedFiles)
+	if isDeviceIOError(err) {
+		if partial != "" {
+			r.evidence = append(r.evidence, partial)
+		}
+		verified := written
+		if good, bad := verifyTestFilesSampled(r.result.CreatedFiles, finalPassSamples); bad != nil {
+			verified = good
+		}
+		return r.defect(fmt.Sprintf("The device failed a write at file %d of %d", i, r.plan.Files),
+			"The device itself reported an I/O error - a failing or counterfeit controller.", verified, err)
+	}
+	if partial != "" {
+		r.tester.CleanupTestFile(partial)
+	}
+	if isDiskFullError(err) {
+		// A controller that lies about its size cannot cause this - the file
+		// system believes the size it claims - so the files already written
+		// are what decides, and they are read back first.
+		if good, bad := verifyTestFilesSampled(r.result.CreatedFiles, finalPassSamples); bad != nil {
+			return r.verifyFailed(bad, good, "Verification failed after the disk filled up")
+		}
+		return r.unverified(fmt.Sprintf("the file system reported the disk full at file %d, after %.2f GB", i, gbOf(r.result.TotalDataBytes)),
+			fmt.Sprintf("A counterfeit controller cannot cause this - the file system believes the size it claims - so it proves nothing about the media. All %d files written so far read back intact; something else used the space.", written),
+			err)
+	}
+	return r.unverified(fmt.Sprintf("could not create test file %d", i),
+		"The target refused the write for a reason that says nothing about the media.", err)
+}
+
+// verifyFailed judges a failed read-back. verified is how many files are known
+// to hold their data, for the estimate.
+func (r *capacityRun) verifyFailed(err error, verified int, headline string) (*FakeCapacityTestResult, error) {
+	if isStopError(err) || r.stopRequested() {
+		return r.stopped("")
+	}
+	if isEvidence(err) {
+		return r.defect(headline, "The data read back is not the data written: delayed corruption or fake capacity.", verified, err)
+	}
+	return r.unverified(headline, "A test file could not be read back, which says nothing about the media.", err)
+}
+
+// speedAnomaly re-reads every file written so far when the speed leaves
+// 0.1x..10x of the baseline (CAP-07). Only a failed read-back is a verdict.
+func (r *capacityRun) speedAnomaly(i int, speed, baseline float64) error {
+	word := "dropped to"
+	if speed > baseline {
+		word = "jumped to"
+	}
+	fmt.Printf("\n⚠ Speed %s %.2f MB/s at file %d (baseline %.2f MB/s) - re-reading all %d files past the cache..\n",
+		word, speed, i, baseline, len(r.result.CreatedFiles))
+	if good, bad := verifyTestFilesSampled(r.result.CreatedFiles, finalPassSamples); bad != nil {
+		_, err := r.verifyFailed(bad, good, fmt.Sprintf("Verification failed after the speed %s %.2f MB/s at file %d", word, speed, i))
+		return err
+	}
+	r.anomalies++
+	msg := fmt.Sprintf("speed %s %.2f MB/s at file %d (baseline %.2f MB/s), and all %d files read back intact: the device's cache or throttling, not lost data",
+		word, speed, i, baseline, len(r.result.CreatedFiles))
+	fmt.Printf("✓ The %s. Continuing.\n", msg)
+	EmitNoteEvent("The " + msg + ".")
+	return nil
+}
+
+// defect is the judgement that the device lies or fails: the files are kept
+// and named, the capacity that read back intact is the estimate, and the error
+// is a defect (exit 1).
+func (r *capacityRun) defect(headline, meaning string, verified int, cause error) (*FakeCapacityTestResult, error) {
+	res := r.result
+	res.TestPassed = false
+	res.FailureReason = fmt.Sprintf("%s: %v", headline, cause)
+	realCapacity := int64(verified) * r.plan.FileSize
+
+	fmt.Printf("\n❌ TEST FAILED: %s\n", headline)
+	fmt.Printf("%s\n", meaning)
+	fmt.Printf("Details: %v\n", cause)
+	fmt.Printf("\n📊 ESTIMATED REAL CAPACITY ANALYSIS:\n")
+	fmt.Printf("  Files that read back intact: %d of %d written\n", verified, len(res.CreatedFiles))
+	fmt.Printf("  Data verified: %.2f GB\n", gbOf(realCapacity))
+	fmt.Printf("  ESTIMATED REAL FREE SPACE: %.2f GB\n", gbOf(realCapacity))
+	left := r.filesLeft()
+	fmt.Printf("\n⚠️  Test files preserved for analysis (%d files).\n", len(left))
+	fmt.Printf("   Remove them with: %s\n", r.tester.GetCleanupCommand())
+
+	recordFilesLeft(left)
+	runNumber("estimatedRealCapacityGB", gbOf(realCapacity))
+	err := defectf("%s: %v", headline, cause)
+	if r.logger != nil {
+		r.logger.SetError(err)
+		r.logger.SetResult("estimatedRealCapacityGB", gbOf(realCapacity))
+		r.logger.SetResult("filesVerified", verified)
+	}
+	return res, err
+}
+
+// unverified ends a test that could not judge: nothing is claimed about the
+// media, the files written so far stay (named, with the command that removes
+// them), and the error is "could not verify" (exit 2).
+func (r *capacityRun) unverified(headline, meaning string, cause error) (*FakeCapacityTestResult, error) {
+	res := r.result
+	res.TestPassed = false
+	res.FailureReason = fmt.Sprintf("%s: %v", headline, cause)
+
+	fmt.Printf("\n⚠ COULD NOT VERIFY: %s\n", headline)
+	fmt.Printf("%s\n", meaning)
+	fmt.Printf("Details: %v\n", cause)
+	if left := r.filesLeft(); len(left) > 0 {
+		fmt.Printf("\nThe %d test files written so far were left in place.\n", len(left))
+		fmt.Printf("   Remove them with: %s\n", r.tester.GetCleanupCommand())
+		recordFilesLeft(left)
+	}
+	err := fmt.Errorf("%s: %w", headline, cause)
+	if r.logger != nil {
+		r.logger.SetError(err)
+	}
+	return res, err
+}
+
+// ---------------------------------------------------------------------------
+// Read-back
 
 const fixedBufferSize = 64 * 1024 * 1024 // 64 MB - good for all device types
 
-// copyFileOptimized copies src→dst with a fixed 64 MB buffer.
+// copyFileOptimized copies src→dst with a fixed 64 MB buffer (the speed
+// test's fallback when unbuffered I/O cannot be used at all).
 func copyFileOptimized(src, dst string) (int64, error) {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -867,274 +975,216 @@ func copyFileOptimized(src, dst string) (int64, error) {
 	return io.CopyBuffer(dstFile, srcFile, buf)
 }
 
-// writeTestFileContentOptimized writes a test file with a fixed 64 MB buffer.
-func writeTestFileContentOptimized(filePath string, fileSize int64) error {
-	return writeTestFileContentOptimizedContext(context.Background(), filePath, fileSize)
+// writeTestFileContentOptimizedContext is the one test-file writer: every
+// tester's files and every fill's files come from it, so the verifier reads
+// exactly what it was written for (CAP-01, CAP-02).
+func writeTestFileContentOptimizedContext(ctx context.Context, filePath string, fileSize int64) (created bool, err error) {
+	return writeCapacityFile(ctx, filePath, fileSize, testFileBufferSize, nil)
 }
 
-func writeTestFileContentOptimizedContext(ctx context.Context, filePath string, fileSize int64) error {
-	return writeTestFileWithBufferContext(ctx, filePath, fileSize, fixedBufferSize)
+// createTesterFile is the body of every tester's CreateTestFileContext.
+func createTesterFile(ctx context.Context, root, fileName string, fileSize int64) (string, error) {
+	path := filepath.Join(root, fileName)
+	created, err := writeTestFileContentOptimizedContext(ctx, path, fileSize)
+	if err != nil {
+		if !created {
+			path = ""
+		}
+		return path, fmt.Errorf("failed to create test file %s: %w", fileName, err)
+	}
+	return path, nil
 }
 
-// verifyTestFileStartEnd verifies file has correct header at start and end
-func verifyTestFileStartEnd(filePath string) error {
-	return verifyTestFileComplete(filePath)
+// cleanupHint is the command that removes a target's test files: the clean
+// verb, on the folder that actually holds them (CAP-05). It used to be
+// `filedo device X fill clean`, which starts a fill.
+func cleanupHint(path string) string {
+	if strings.ContainsAny(path, " \t") {
+		return fmt.Sprintf(`filedo "%s" clean`, path)
+	}
+	return fmt.Sprintf("filedo %s clean", path)
 }
 
-// verifyTestFileQuick performs quick verification (header + footer + one random middle position)
+// verifyCachedReads counts verifications that had to read through the cache
+// because the target refused unbuffered I/O.
+var verifyCachedReads atomic.Int64
+
+// fileCheckError names the test file a verification failed on.
+type fileCheckError struct {
+	Index int
+	Path  string
+	Err   error
+}
+
+func (e *fileCheckError) Error() string {
+	return fmt.Sprintf("file %d (%s): %v", e.Index, e.Path, e.Err)
+}
+
+func (e *fileCheckError) Unwrap() error { return e.Err }
+
+// verifyTestFileQuick checks the header block, the footer and one block from
+// the middle half of the file.
 func verifyTestFileQuick(filePath string) error {
-	file, err := os.Open(filePath)
+	return verifyTestFileWith(filePath, func(first, last int64) []int64 {
+		span := last - first + 1
+		return stratifiedBlocks(first+span/4, last-span/4, 1)
+	})
+}
+
+// verifyTestFileComplete checks the header block, the footer, the first and
+// last body blocks and three random body blocks.
+func verifyTestFileComplete(filePath string) error {
+	return verifyTestFileWith(filePath, func(first, last int64) []int64 {
+		return append([]int64{first, last}, stratifiedBlocks(first, last, 3)...)
+	})
+}
+
+// verifyTestFileSampled checks the header block, the footer and k body blocks,
+// one from each of k equal stretches of the file, so no stretch goes unread.
+func verifyTestFileSampled(filePath string, k int) error {
+	return verifyTestFileWith(filePath, func(first, last int64) []int64 {
+		return stratifiedBlocks(first, last, k)
+	})
+}
+
+// stratifiedBlocks picks one random block in each of k equal stretches of
+// [first, last].
+func stratifiedBlocks(first, last int64, k int) []int64 {
+	span := last - first + 1
+	if span <= 0 || k <= 0 {
+		return nil
+	}
+	if int64(k) > span {
+		k = int(span)
+	}
+	out := make([]int64, 0, k)
+	for s := int64(0); s < int64(k); s++ {
+		lo := first + span*s/int64(k)
+		hi := first + span*(s+1)/int64(k)
+		out = append(out, lo+mrand.Int64N(hi-lo))
+	}
+	return out
+}
+
+// verifyTestFileWith reads a current-format test file past the cache: the
+// whole first block (header included), the footer, and the body blocks pick
+// chooses among [first, last]. Any byte that is not the one written is a
+// tfMismatchError (errDataMismatch); a failure to read is returned as is.
+func verifyTestFileWith(filePath string, pick func(first, last int64) []int64) error {
+	r, err := openForVerify(filePath)
 	if err != nil {
-		return fmt.Errorf("could not open file: %v", err)
+		return fmt.Errorf("could not open test file: %w", err)
 	}
-	defer file.Close()
-
-	// Get file info
-	fileInfo, err := file.Stat()
+	defer r.Close()
+	if !r.Unbuffered() {
+		verifyCachedReads.Add(1)
+	}
+	meta, err := readCurrentHeader(r, filePath)
 	if err != nil {
-		return fmt.Errorf("could not get file info: %v", err)
+		return err
+	}
+	size := meta.Size
+	got := make([]byte, 2*tfBlockSize)
+	want := make([]byte, 2*tfBlockSize)
+
+	check := func(off int64, n int64) error {
+		nr, err := r.ReadAt(got[:n], off)
+		if int64(nr) < n {
+			if err == nil || errors.Is(err, io.EOF) {
+				return &tfMismatchError{Path: filePath, Offset: off + int64(nr), What: "is missing - the file ends early"}
+			}
+			return fmt.Errorf("could not read offset %d: %w", off, err)
+		}
+		return meta.check(filePath, got[:n], off, want)
 	}
 
-	fileSize := fileInfo.Size()
-	if fileSize < 100 {
-		return fmt.Errorf("file too small: %d bytes", fileSize)
+	head := int64(tfBlockSize)
+	if head > size {
+		head = size
 	}
-
-	// Read first line (header)
-	firstLineBuffer := make([]byte, 256)
-	n, err := file.Read(firstLineBuffer)
-	if err != nil {
-		return fmt.Errorf("could not read file header: %v", err)
+	if err := check(0, head); err != nil {
+		return err
 	}
-
-	if n == 0 {
-		return fmt.Errorf("file is empty")
+	footerStart := (size - int64(len(meta.Header))) / tfBlockSize * tfBlockSize
+	if footerStart < head {
+		footerStart = head
 	}
-
-	// Extract first line
-	firstLine := string(firstLineBuffer[:n])
-	if newlineIndex := strings.Index(firstLine, "\n"); newlineIndex > 0 {
-		firstLine = firstLine[:newlineIndex]
-	}
-
-	// Check header format
-	if !strings.HasPrefix(firstLine, "FILEDO_TEST_") {
-		return fmt.Errorf("invalid header format: %s", firstLine)
-	}
-
-	// Calculate last line position
-	lastLinePos := fileSize - int64(len(firstLine)+1)
-	if lastLinePos < 0 {
-		lastLinePos = 0
-	}
-
-	// Seek to last line
-	_, err = file.Seek(lastLinePos, 0)
-	if err != nil {
-		return fmt.Errorf("could not seek to last line: %v", err)
-	}
-
-	// Read last line
-	lastLineBuffer := make([]byte, 256)
-	n, err = file.Read(lastLineBuffer)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("could not read file footer: %v", err)
-	}
-
-	// Extract last line
-	lastLine := string(lastLineBuffer[:n])
-	if newlineIndex := strings.Index(lastLine, "\n"); newlineIndex > 0 {
-		lastLine = lastLine[:newlineIndex]
-	}
-
-	// Check header/footer match
-	if firstLine != lastLine {
-		return fmt.Errorf("header/footer mismatch: '%s' vs '%s'", firstLine, lastLine)
-	}
-
-	// Quick pattern check in middle (only if file is large enough)
-	const minSizeForPatternCheck = 1024
-	if fileSize >= minSizeForPatternCheck {
-		if err := verifyPatternQuick(file, fileSize, firstLine); err != nil {
+	if footerStart < size {
+		if err := check(footerStart, size-footerStart); err != nil {
 			return err
 		}
 	}
-
+	blocks := (size + tfBlockSize - 1) / tfBlockSize
+	if blocks > 2 {
+		for _, b := range pick(1, blocks-2) {
+			off := b * tfBlockSize
+			n := int64(tfBlockSize)
+			if off+n > size {
+				n = size - off
+			}
+			if err := check(off, n); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
-// verifyTestFileComplete performs comprehensive verification of test file
-func verifyTestFileComplete(filePath string) error {
-	file, err := os.Open(filePath)
+// readCurrentHeader reads and checks the header of a current-format test
+// file: it must be one, it must name this file, and its size must be the
+// file's.
+func readCurrentHeader(r verifyReader, filePath string) (*testFileMeta, error) {
+	size := r.Size()
+	n := int64(tfBlockSize)
+	if n > size {
+		n = size
+	}
+	head := make([]byte, n)
+	nr, err := r.ReadAt(head, 0)
+	if nr == 0 && err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("could not read the header: %w", err)
+	}
+	head = head[:nr]
+	var nilMeta *testFileMeta
+	line, ok := headerLine(head)
+	if !ok || !strings.HasPrefix(line, tfHeaderPrefix) {
+		return nil, &tfMismatchError{Path: filePath, Offset: 0, What: "has no FileDO header: it " + nilMeta.describeForeign(head)}
+	}
+	meta, err := parseTestFileHeader(line)
 	if err != nil {
-		return fmt.Errorf("could not open file: %v", err)
+		return nil, &tfMismatchError{Path: filePath, Offset: 0, What: "has a damaged FileDO header"}
 	}
-	defer file.Close()
-
-	// Get file info
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("could not get file info: %v", err)
+	if meta.Name != filepath.Base(filePath) {
+		return nil, &tfMismatchError{Path: filePath, Offset: 0,
+			What: fmt.Sprintf("holds the header of test file %s - another file's data", meta.Name)}
 	}
-
-	fileSize := fileInfo.Size()
-	if fileSize < 100 {
-		return fmt.Errorf("file too small: %d bytes", fileSize)
+	if meta.Size != size {
+		return nil, &tfMismatchError{Path: filePath, Offset: 0,
+			What: fmt.Sprintf("belongs to a file of %d bytes, but the file is %d bytes", meta.Size, size)}
 	}
+	return meta, nil
+}
 
-	// Read first line (header)
-	firstLineBuffer := make([]byte, 256)
-	n, err := file.Read(firstLineBuffer)
-	if err != nil {
-		return fmt.Errorf("could not read file header: %v", err)
-	}
-
-	if n == 0 {
-		return fmt.Errorf("file is empty")
-	}
-
-	// Extract first line
-	firstLineStr := string(firstLineBuffer[:n])
-	lines := strings.Split(firstLineStr, "\n")
-	if len(lines) == 0 {
-		return fmt.Errorf("no complete line found in file header")
-	}
-
-	expectedHeader := lines[0] + "\n"
-
-	// Validate header format
-	if !strings.HasPrefix(expectedHeader, "FILEDO_TEST_") {
-		return fmt.Errorf("invalid header format - expected 'FILEDO_TEST_...' but found '%s'", lines[0])
-	}
-
-	headerLen := int64(len(expectedHeader))
-
-	if fileSize < headerLen*2 {
-		return fmt.Errorf("file too small - expected at least %d bytes but got %d", headerLen*2, fileSize)
-	}
-
-	// Check footer (last line should match header)
-	footerStart := fileSize - headerLen
-	_, err = file.Seek(footerStart, 0)
-	if err != nil {
-		return fmt.Errorf("could not seek to footer position: %v", err)
-	}
-
-	footerBuffer := make([]byte, headerLen)
-	n, err = file.Read(footerBuffer)
-	if err != nil {
-		return fmt.Errorf("could not read file footer: %v", err)
-	}
-
-	actualFooter := string(footerBuffer[:n])
-
-	if expectedHeader != actualFooter {
-		return fmt.Errorf("header/footer mismatch - header: '%s' but footer: '%s'",
-			strings.TrimSuffix(expectedHeader, "\n"), strings.TrimSuffix(actualFooter, "\n"))
-	}
-
-	// Extract the file-specific body tag from the header.
-	// Header: "FILEDO_TEST_FILL_001_ddHHmmss.tmp_timestamp" → tag "F001_"
-	// Body written as "F001_ABCDE... F001_ABCDE..." repeating.
-	// A fake controller that overwrites file 001's middle with file 042's body
-	// will have "F042_" instead of "F001_" → detected immediately.
-	bodyTag := ""
-	const hdrPrefix = "FILEDO_TEST_FILL_"
-	hdr := strings.TrimSuffix(string(expectedHeader), "\n")
-	if strings.HasPrefix(hdr, hdrPrefix) {
-		rest := hdr[len(hdrPrefix):]
-		if idx := strings.IndexByte(rest, '_'); idx > 0 {
-			bodyTag = "F" + rest[:idx] + "_"
+// verifyTestFilesSampled re-reads every file (header, footer, k sampled
+// blocks). It returns how many read back intact and the first failure; a stop
+// ends it early.
+func verifyTestFilesSampled(filePaths []string, k int) (good int, firstBad error) {
+	for i, p := range filePaths {
+		if runStopRequested() {
+			if firstBad == nil {
+				firstBad = errRunStopped
+			}
+			return good, firstBad
 		}
-	}
-
-	// Define check positions: just after header, near footer, and 3 random middle spots
-	dataStart := headerLen
-	dataEnd := footerStart
-	dataLength := dataEnd - dataStart
-
-	if dataLength < 64 || bodyTag == "" {
-		return nil
-	}
-
-	const readBufSize = 256
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	checkPositions := []int64{
-		dataStart,
-		dataEnd - readBufSize,
-	}
-	for i := 0; i < 3; i++ {
-		minP := dataStart + readBufSize
-		maxP := dataEnd - readBufSize
-		if maxP > minP {
-			checkPositions = append(checkPositions, minP+rng.Int63n(maxP-minP))
-		}
-	}
-
-	readBuffer := make([]byte, readBufSize)
-
-	for _, pos := range checkPositions {
-		if pos < dataStart || pos+readBufSize > dataEnd {
+		if err := verifyTestFileSampled(p, k); err != nil {
+			if firstBad == nil {
+				firstBad = &fileCheckError{Index: i + 1, Path: p, Err: err}
+			}
 			continue
 		}
-		if _, err := file.Seek(pos, 0); err != nil {
-			return fmt.Errorf("could not seek to position %d: %v", pos, err)
-		}
-		n, err := file.Read(readBuffer)
-		if err != nil && err != io.EOF {
-			return fmt.Errorf("could not read at position %d: %v", pos, err)
-		}
-		if !strings.Contains(string(readBuffer[:n]), bodyTag) {
-			return fmt.Errorf("body corruption at offset %d: expected tag %q not found (wrong file's data?)", pos, bodyTag)
-		}
+		good++
 	}
-
-	return nil
-}
-
-// verifyPatternQuick checks one random middle position for the file-specific body tag.
-func verifyPatternQuick(file *os.File, fileSize int64, firstLine string) error {
-	// Extract the body tag written into this file's body: "FILL_001_..." → "F001_"
-	bodyTag := ""
-	const hdrPrefix = "FILEDO_TEST_FILL_"
-	if strings.HasPrefix(firstLine, hdrPrefix) {
-		rest := firstLine[len(hdrPrefix):]
-		if idx := strings.IndexByte(rest, '_'); idx > 0 {
-			bodyTag = "F" + rest[:idx] + "_"
-		}
-	}
-	if bodyTag == "" {
-		return nil
-	}
-
-	headerSize := int64(len(firstLine) + 1)
-	dataStart := headerSize
-	dataEnd := fileSize - headerSize
-	if dataEnd-dataStart < int64(len(bodyTag)*4) {
-		return nil
-	}
-
-	// One random position in the middle quarter of the file
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	minPos := dataStart + (dataEnd-dataStart)/4
-	maxPos := dataEnd - (dataEnd-dataStart)/4
-	if maxPos <= minPos {
-		return nil
-	}
-	pos := minPos + rng.Int63n(maxPos-minPos)
-
-	if _, err := file.Seek(pos, 0); err != nil {
-		return fmt.Errorf("could not seek to position %d: %v", pos, err)
-	}
-	buf := make([]byte, 256)
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("could not read at position %d: %v", pos, err)
-	}
-	if !strings.Contains(string(buf[:n]), bodyTag) {
-		return fmt.Errorf("body corruption at offset %d: tag %q not found", pos, bodyTag)
-	}
-	return nil
+	return good, firstBad
 }
 
 // verifySmartTestFiles checks key files after each write to detect fake capacity early.
@@ -1144,7 +1194,9 @@ func verifyPatternQuick(file *os.File, fileSize int64, firstLine string) error {
 //   - File 1: quick-verified after EVERY write - detects the moment a fake
 //     controller overwrites the first file's middle blocks with later data
 //   - File 5 and 10: quick-verified every 10th / 20th write (secondary anchors)
-//   - Every 5th write: full (body-tag) verification of the current file
+//   - Every 5th write: full verification of the current file
+//
+// Every read bypasses the cache; the final pass covers every other file.
 func verifySmartTestFiles(filePaths []string, currentIndex int) error {
 	if len(filePaths) == 0 {
 		return nil
@@ -1154,11 +1206,7 @@ func verifySmartTestFiles(filePaths []string, currentIndex int) error {
 	filesToVerify := make(map[int]bool)
 
 	// Current file: full every 5th, quick otherwise
-	if currentIndex%5 == 0 {
-		filesToVerify[currentIndex-1] = true
-	} else {
-		filesToVerify[currentIndex-1] = false
-	}
+	filesToVerify[currentIndex-1] = currentIndex%5 == 0
 
 	// File 1: quick after EVERY write - earliest possible fake detection
 	if len(filePaths) > 1 {
@@ -1176,7 +1224,7 @@ func verifySmartTestFiles(filePaths []string, currentIndex int) error {
 	}
 
 	for fileIndex, fullVerification := range filesToVerify {
-		if fileIndex >= len(filePaths) {
+		if fileIndex < 0 || fileIndex >= len(filePaths) {
 			continue
 		}
 		filePath := filePaths[fileIndex]
@@ -1187,156 +1235,22 @@ func verifySmartTestFiles(filePaths []string, currentIndex int) error {
 			err = verifyTestFileQuick(filePath)
 		}
 		if err != nil {
-			verifyType := "quick"
-			if fullVerification {
-				verifyType = "full"
-			}
-			return fmt.Errorf("file %d/%d (%s) %s verification failed: %v",
-				fileIndex+1, len(filePaths), filePath, verifyType, err)
+			return &fileCheckError{Index: fileIndex + 1, Path: filePath, Err: err}
 		}
 	}
 
 	return nil
 }
-
-// verifyAllTestFiles verifies all files in the list with progress indication
-func verifyAllTestFiles(filePaths []string) error {
-	if len(filePaths) == 0 {
-		return nil
-	}
-
-	//fmt.Printf("Verifying %d files... ", len(filePaths))
-
-	for i, filePath := range filePaths {
-		if err := verifyTestFileStartEnd(filePath); err != nil {
-			fmt.Printf("❌ FAILED at file %d/%d\n", i+1, len(filePaths))
-			return fmt.Errorf("file %d/%d (%s) verification failed: %v", i+1, len(filePaths), filePath, err)
-		}
-	}
-
-	//fmt.Printf("✅ OK\n")
-	return nil
-}
-
-// Helper function for min
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func writeTestFileWithBuffer(filePath string, fileSize int64, bufferSize int) error {
-	return writeTestFileWithBufferContext(context.Background(), filePath, fileSize, bufferSize)
-}
-
-func writeTestFileWithBufferContext(ctx context.Context, filePath string, fileSize int64, bufferSize int) error {
-	// Create file with optimized flags for faster writing
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// Generate unique header with filename and timestamp
-	fileName := filepath.Base(filePath)
-	timestamp := time.Now().Format("20060102_150405")
-	headerLine := fmt.Sprintf("FILEDO_TEST_%s_%s\n", fileName, timestamp)
-
-	// Write header
-	written, err := file.WriteString(headerLine)
-	if err != nil {
-		return err
-	}
-
-	// Calculate remaining space for data and footer
-	remaining := fileSize - int64(written) - int64(len(headerLine)) // Reserve space for footer (same as header)
-
-	// Build body pattern: embed file sequence number so middle reads are file-specific.
-	// A fake controller overwriting file 002's middle with file 042's body is caught
-	// because "F042_" != "F002_" when verifying.
-	// Extract sequence number from filename: FILL_00001_... → "00001"
-	seqTag := ""
-	if strings.HasPrefix(fileName, "FILL_") {
-		parts := strings.SplitN(fileName, "_", 3)
-		if len(parts) >= 2 {
-			seqTag = "F" + parts[1] + "_"
-		}
-	}
-	pattern := seqTag + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-	patternBytes := []byte(pattern)
-	block := make([]byte, bufferSize)
-
-	// Fill buffer with pattern - optimize by pre-filling once
-	for i := 0; i < bufferSize; {
-		copyLen := min(len(patternBytes), bufferSize-i)
-		copy(block[i:i+copyLen], patternBytes[:copyLen])
-		i += copyLen
-	}
-
-	// Write data blocks in larger chunks
-	for remaining > 0 {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		writeSize := bufferSize
-		if remaining < int64(bufferSize) {
-			writeSize = int(remaining)
-		}
-
-		n, err := file.Write(block[:writeSize])
-		if err != nil {
-			return err
-		}
-		remaining -= int64(n)
-	}
-
-	// Write footer (same as header)
-	_, err = file.WriteString(headerLine)
-	if err != nil {
-		return err
-	}
-
-	// Explicitly sync only once at the end for better performance
-	return file.Sync()
-}
-
-// Global variable to cache optimal buffer sizes per path
 
 // Helper function to get enhanced target info
 func getEnhancedTargetInfo(tester FakeCapacityTester) string {
 	testType, targetPath := tester.GetTestInfo()
 
-	// Try to get additional info based on tester type
+	// Try to get additional info based on tester type. Read-only: a header
+	// line never writes to the volume it describes.
 	switch testType {
-	case "Device":
-		// Get device info for enhanced display
-		if deviceInfo, err := getDeviceInfo(targetPath, false); err == nil {
-			volumeName := deviceInfo.VolumeName
-			if volumeName == "" {
-				volumeName = "No label"
-			}
-			totalSizeGB := float64(deviceInfo.TotalBytes) / (1024 * 1024 * 1024)
-			return fmt.Sprintf("%s (%s) [%.1f GB]", targetPath, volumeName, totalSizeGB)
-		}
-	case "Folder":
-		// For folders, try to get the drive info
-		if absPath, err := filepath.Abs(targetPath); err == nil {
-			if len(absPath) >= 3 && absPath[1] == ':' {
-				drivePath := absPath[:3] // "C:\"
-				if deviceInfo, err := getDeviceInfo(drivePath, false); err == nil {
-					volumeName := deviceInfo.VolumeName
-					if volumeName == "" {
-						volumeName = "No label"
-					}
-					totalSizeGB := float64(deviceInfo.TotalBytes) / (1024 * 1024 * 1024)
-					return fmt.Sprintf("%s (%s) [%.1f GB]", targetPath, volumeName, totalSizeGB)
-				}
-			}
-		}
+	case "Device", "Folder":
+		return getEnhancedDeviceInfo(targetPath)
 	case "Network":
 		// For network paths, just show the path
 		return targetPath
@@ -1345,5 +1259,3 @@ func getEnhancedTargetInfo(tester FakeCapacityTester) string {
 	// Fallback to simple path
 	return targetPath
 }
-
-// writeTestFileContent writes test content to a file in chunks to avoid memory issues

@@ -29,7 +29,7 @@ filedo D: fill 1000 del
 
 # Duplikate suchen und verwalten
 filedo C: check-duplicates
-filedo D: cd old del
+filedo D:\Photos cd old del
 
 # Kopieren mit Fortschrittsanzeige
 filedo folder C:\Source copy D:\Backup
@@ -85,7 +85,7 @@ Das Deinstallieren entfernt alles, was das Installationsprogramm geschrieben hat
 
 #### Variante 3 - Microsoft Store (MSIX)
 
-Ein Paket, zwei Einstiege: die anklickbare Kachel **FileDO** und der Befehl `filedo` im `PATH`. Die Store-Version hat die Explorer-Einträge **nicht**: ein Paket bekommt sie nur über einen signierten Shell-Handler, und das ist eigene Arbeit.
+Ein Paket, zwei Einstiege: die anklickbare Kachel **FileDO** und der Befehl `filedo` im `PATH`. Die Store-Version hat die Explorer-Einträge **nicht**: ein Paket bekommt sie nur über einen signierten Shell-Handler, und das ist eigene Arbeit. Den Dateityp `.fd-sec` beansprucht sie **doch**: ein Doppelklick auf einen Container öffnet das FileDO-Fenster auf der Seite *Geheime Datei öffnen* mit diesem Container bereits ausgewählt, und dort wird nach dem Passwort gefragt.
 
 #### Variante 4 - Manueller Download
 
@@ -161,11 +161,13 @@ filedo C:\temp clean
 
 ## Geheime Dateien (`.fd-sec`)
 
-Eine Datei geht in einen Container, hinter ein Passwort, und kommt wieder heraus - von der Befehlszeile,
-aus dem Explorer-Menü oder von den Seiten der Gruppe **Schützen** im Fenster. Der wahre Name des
-Originals, seine tatsächliche Größe und seine Zeitstempel sind darin versiegelt; der Container selbst
+Eine Datei - oder ein Ordner, sein ganzer Baum - geht in einen Container, hinter ein Passwort, und kommt
+wieder heraus - von der Befehlszeile, aus dem Explorer-Menü oder von den Seiten der Gruppe **Schützen**
+im Fenster. Der wahre Name des Originals, seine tatsächliche Größe und seine Zeitstempel sind darin
+versiegelt, bei einem Ordner auch Pfad, Größe und Zeitstempel jedes Eintrags; der Container selbst
 verrät nur seine eigene Größe, seinen sichtbaren Namen und seine Zeitstempel (`rename` erzeugt einen
-namenlosen Datenblock).
+namenlosen Datenblock). Auf der Platte ist ein Ordner-Container von einem Datei-Container nicht zu
+unterscheiden.
 
 ```bash
 # Einpacken (das Passwort wird zweimal abgefragt, ohne Anzeige)
@@ -181,7 +183,31 @@ filedo report.fd-sec unsecure here
 
 # Im zugehörigen Programm öffnen, ohne auszupacken
 filedo report.fd-sec reveal
+
+# Ein Ordner wird genauso zu einer Datei und kommt als ganzer Baum zurück
+filedo "Steuer 2025" secure
+filedo "Steuer 2025.fd-sec" unsecure to D:\Restored
+
+# Die leise Suite: ein härterer Schlüssel, keine Spur von Ausrichtung - aber nur FileDO öffnet sie
+filedo report.docx secure suite2
 ```
+
+Ein Ordner wird vollständig eingepackt - leere Unterordner eingeschlossen - und vollständig
+wiederhergestellt: zuerst in einen frischen temporären Ordner, an seinen Platz verschoben erst, nachdem
+jede Datei geprüft ist, und nie in oder über einen Ordner, der schon existiert (mit `-y` unter einem Namen
+mit Zahlensuffix). Ein Ordner mit einer Junction, einer symbolischen Verknüpfung oder einem
+Bereitstellungspunkt wird abgelehnt statt verfolgt. `del` und `wipe` entfernen den Originalbaum erst,
+nachdem der Container zurückgelesen wurde, und nur, wenn sich der Ordner seit dem Einpacken nicht geändert
+hat. `reveal` öffnet eine Datei, lehnt einen Ordner-Container also ab und verweist auf `unsecure`.
+
+`suite2` versiegelt eine Datei (keinen Ordner) mit Suite 2 statt der Standard-Suite 1: ein mit Pepper
+gefalteter Argon2id-Schlüssel mit 256 MiB und XChaCha20-Poly1305 in 64-KiB-Frames, sodass die Datei ab dem
+ersten Byte Rauschen ist, ohne auch nur das 512-Byte-Clusterlängenmuster von Suite 1. Sie bewahrt den wahren
+Namen, die tatsächliche Größe und den Zeitpunkt der Verschlüsselung, aber nicht die eigenen Zeitstempel des
+Originals - die wiederhergestellte Datei erhält die aktuelle Zeit. Nur FileDO ab dieser Version öffnet sie:
+ältere FileDO-Builds melden sie als beschädigt oder als falsches Passwort, und FastMediaSorter-Apps können
+sie nicht öffnen, deshalb bleibt Suite 1 der Standard. `unsecure`, `reveal`, `fdsec info` und `fdsec verify`
+erkennen die Suite selbst; sonst ändert sich nichts, und ein leeres Passwort bleibt reine Verschleierung.
 
 Fünf Dinge klar gesagt, denn eine Sicherheitsfunktion, die sich überschätzt, ist schlimmer als gar keine:
 
@@ -230,10 +256,11 @@ Explorer-Menüeintrag.
 
 ### **Datei-Duplikat-Verwaltung**
 - **Integrierte Duplikat-Erkennung** - in die Hauptanwendung integriert
-- **Mehrere Auswahlmodi** (älteste/neueste/alphabetisch)
-- **Flexible Aktionen** (Duplikate löschen/verschieben)
-- **Zuverlässige MD5-basierte Identifikation**
-- **Hash-Caching** für schnellere Wiederholungsscans
+- **Mehrere Auswahlmodi** (älteste/neueste nach Erstellungszeit, alphabetisch)
+- **Flexible Aktionen** (Duplikate löschen/verschieben) - jede Datei wird einzeln abgefragt, außer mit `-y` (oder `--yes`); ein Lauf ohne Konsole und ohne `-y` wird abgelehnt, bevor irgendetwas angefasst wird
+- **Gruppierung per SHA-256 und ein Byte-für-Byte-Vergleich mit der behaltenen Kopie** unmittelbar vor jedem Löschen oder Verschieben; ein Hash, aus dem Cache oder frisch, ist nie der einzige Beweis, und Verschieben ersetzt nie eine vorhandene Datei, auch nicht auf ein anderes Laufwerk
+- **Hardlinks und ein zweiter Name derselben Datei** gelten nie als Duplikate; das Stammverzeichnis eines Laufwerks oder einer Freigabe, Windows, Program Files und das System-TEMP verlangen auch mit `-y` eine getippte Bestätigung, und ein Scan überspringt Windows und Program Files, wenn er nicht darin beginnt
+- **Hash-Caching** für schnellere Wiederholungsscans - der Cache (`hash_cache.json`) liegt in `%LOCALAPPDATA%\FileDO\state\`, und ein Hash daraus gilt nur, solange Größe, Änderungszeit, Datei-ID und Change Time der Datei übereinstimmen
 - **Speichern/Laden von Duplikat-Listen** für Stapelverarbeitung
 - **Modulare Architektur** mit dediziertem fileduplicates-Package
 
@@ -268,7 +295,7 @@ Explorer-Menüeintrag.
 | `fill [größe]` | Mit Testdaten füllen | `filedo D: fill 1000` |
 | `clean` | Testdateien löschen | `filedo C: clean` |
 | `check-duplicates` | Datei-Duplikate finden | `filedo C: check-duplicates` |
-| `cd [modus] [aktion]` | Duplikate prüfen (Kurzform) | `filedo C: cd old del` |
+| `cd [modus] [aktion]` | Duplikate prüfen (Kurzform) | `filedo D:\Photos cd old del -y` |
 | `from <datei>` | Stapelbefehle ausführen | `filedo from script.txt` |
 | `hist` | Operationshistorie anzeigen | `filedo hist` |
 
@@ -279,10 +306,11 @@ Explorer-Menüeintrag.
 | `nodel` | Testdateien behalten | `filedo C: speed 100 nodel` |
 | `short` | Nur kurze Ausgabe | `filedo D: speed 100 short` |
 | `max` | Maximale Größe (10GB) | `filedo C: speed max` |
-| `old` | Neueste als Original behalten (für cd) | `filedo D: cd old del` |
-| `new` | Älteste als Original behalten (für cd) | `filedo E: cd new move F:` |
+| `old` | Neueste als Original behalten (für cd) | `filedo D:\Photos cd old del` |
+| `new` | Älteste als Original behalten (für cd) | `filedo E:\Photos cd new move F:\Dups` |
 | `abc` | Alphabetisch letztes behalten (für cd) | `filedo C: cd abc` |
 | `xyz` | Alphabetisch erstes behalten (für cd) | `filedo C: cd xyz list dups.lst` |
+| `-y`, `--yes` | Duplikate ohne Einzelabfrage löschen/verschieben (für cd; ohne Konsole erforderlich) | `filedo D:\Photos cd old del -y` |
 
 ---
 
@@ -339,7 +367,7 @@ filedo cmp D:\Data E:\Backup del old target    # nur wenn älter auf Target
 filedo cmp D:\Data E:\Backup del new source    # nur wenn neuer auf Source
 ```
 
-Hinweise: Abgleich per relativem Pfad; Gleichheit nur nach Größe; mtime für old/new; Windows ohne Groß-/Kleinschreibung; Logs: compare_report_*.log, delete_report_<mode>_*.log.
+Hinweise: Abgleich per relativem Pfad; `del source` und `del target` löschen ein Paar nur, wenn Größe und Änderungszeit übereinstimmen (`--by-hash`: gleicher Inhalt; `--allow-mismatch`: jedes Paar) - ein abweichendes Paar wird gemeldet und bleibt; zwei Schreibweisen desselben Ordners oder ein Ordner im anderen werden abgelehnt; mtime für old/new; Windows ohne Groß-/Kleinschreibung, gelöscht wird unter dem echten Dateinamen; was nicht gelesen oder gelöscht werden konnte, endet mit Exit-Code 2; Logs: compare_report_*.log, delete_report_<mode>_*.log.
 
 
 ### Stapelverarbeitung
@@ -388,9 +416,9 @@ filedo network \\pc\share info
 
 > **Sicheres Löschen**: `fill <größe> del` überschreibt freien Speicherplatz mit optimierter Puffer-Verwaltung und kontextabhängigem Schreiben für sichere Datenlöschung.
 
-> **Testdateien**: Erstellt `FILL_*.tmp` und `speedtest_*.txt` Dateien. Verwenden Sie den `clean` Befehl für automatische Löschung.
+> **Testdateien**: Erstellt `FILL_*.tmp` und `speedtest_*.txt` Dateien. `clean` entfernt nur die, die FileDO geschrieben hat - mit FileDO-Namen und FileDO-Inhalt, sonst nichts -, nachdem es sie aufgelistet und nachgefragt hat; `--yes` beantwortet die Frage.
 
-> **Modulare Architektur**: Refaktoriert mit separaten `capacitytest` und `fileduplicates` Packages für bessere Wartbarkeit und Erweiterbarkeit.
+> **Gemeinsame Packages**: `fileduplicates` (Duplikaterkennung), `fsx` (Pfadidentität und atomares Schreiben ohne Ersetzen) und `statedir` (das Zustandsverzeichnis, `%LOCALAPPDATA%\FileDO\state`).
 
 ---
 
@@ -448,11 +476,14 @@ filedo E: fill max del
 # Duplikate im aktuellen Verzeichnis finden
 filedo . check-duplicates
 
-# Alte Duplikate finden und löschen
-filedo C: cd old del
+# Alte Duplikate finden und löschen (mit Abfrage je Datei)
+filedo D:\Photos cd old del
+
+# Dasselbe ohne Abfrage je Datei
+filedo D:\Photos cd old del -y
 
 # Neue Duplikate finden und in Backup verschieben
-filedo E: cd new move E:\Backup
+filedo E:\Photos cd new move E:\Backup
 
 # Duplikat-Liste für spätere Verarbeitung speichern
 filedo D: cd list duplicates.lst
@@ -477,10 +508,8 @@ filedo cd from list duplicates.lst xyz del
 ```
 FileDO/
 ├── main.go                    # Anwendungs-Einstiegspunkt
-├── capacitytest/             # Kapazitätstest-Modul
-│   ├── types.go              # Kern-Interfaces und Typen
-│   ├── test.go               # Haupt-Testlogik
-│   └── utils.go              # Hilfsfunktionen und Prüffunktionen
+├── fsx/                      # Pfadidentität und atomares Schreiben
+├── statedir/                 # Ort der Zustandsdateien (%LOCALAPPDATA%\FileDO\state)
 ├── fileduplicates/           # Datei-Duplikat-Verwaltung
 │   ├── types.go              # Duplikat-Erkennungs-Interfaces
 │   ├── duplicates.go         # Haupt-Duplikat-Logik
@@ -505,7 +534,7 @@ FileDO/
 - **Verbesserter InterruptHandler**: Thread-sichere Unterbrechung mit Kontext-Unterstützung
 - **Optimierte Puffer-Verwaltung**: Dynamische Puffergrößenanpassung für optimale Leistung
 - **Umfassende Tests**: Fake-Kapazität-Erkennung mit zufälliger Verifikation
-- **Duplikat-Erkennung**: MD5-basierter Dateivergleich mit Caching
+- **Duplikat-Erkennung**: SHA-256-basierter Dateivergleich mit Caching und Byte-für-Byte-Prüfung vor jedem Löschen oder Verschieben
 - **Stapelverarbeitung**: Skriptausführung mit Fehlerbehandlung
 - **Historienführung**: JSON-basierte Operationsverfolgung
 

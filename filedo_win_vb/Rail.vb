@@ -26,12 +26,19 @@
 ' test (fake drives)" is what the row runs, and it is the shorter of the two in every locale.
 
 ' The rail's rows in order: the one table ShellForm builds the rail from and SelfTest measures.
+'
+' It is also the rail's glyph map (ICON-SET rung 2, SP-0016 T1): each row names the vocabulary
+' meaning it shows, and the drawing comes from the vendored catalog file of that id (ICON-EXTERNAL
+' rule 5). Twelve of these meanings entered the vocabulary in ICON-SET 0.14 at FileDO's request;
+' before that the rows drew Segoe stand-ins, several of them another meaning's picture. A future
+' row whose meaning the vocabulary lacks takes GlyphRef.Waiting with the id proposed for it, and
+' SelfTest holds the number of such rows at zero unless the baseline is raised with a reason.
 Public Class RailRow
     Public ReadOnly Key As String
-    Public ReadOnly Glyph As String
+    Public ReadOnly Glyph As GlyphRef
     Public ReadOnly IsGroup As Boolean
 
-    Public Sub New(key As String, glyph As String, isGroup As Boolean)
+    Public Sub New(key As String, glyph As GlyphRef, isGroup As Boolean)
         Me.Key = key
         Me.Glyph = glyph
         Me.IsGroup = isGroup
@@ -41,33 +48,33 @@ Public Class RailRow
     ' "coming later": a rail is navigation, not a roadmap, and a row that answers nothing when it
     ' is clicked costs the reader more than the announcement is worth.
     Public Shared ReadOnly All As RailRow() = {
-        New RailRow("rail_group_check", "", True),
-        New RailRow("rail_job_capacity", ChrW(&HE7BA), False),
-        New RailRow("rail_job_speed", ChrW(&HE72C), False),
-        New RailRow("rail_job_info", ChrW(&HE946), False),
-        New RailRow("rail_job_damaged", ChrW(&HE721), False),
-        New RailRow("rail_job_probe", ChrW(&HE9D9), False),
-        New RailRow("rail_job_recover", ChrW(&HE777), False),
-        New RailRow("rail_group_tidy", "", True),
-        New RailRow("rail_job_duplicates", ChrW(&HE8C8), False),
-        New RailRow("rail_job_compare", ChrW(&HE8B7), False),
-        New RailRow("rail_job_clean", ChrW(&HE74D), False),
-        New RailRow("rail_group_move", "", True),
-        New RailRow("rail_job_copy", ChrW(&HE896), False),
-        New RailRow("rail_group_erase", "", True),
-        New RailRow("rail_job_fill", ChrW(&HE74E), False),
-        New RailRow("rail_job_wipe", ChrW(&HE74D), False),
-        New RailRow("rail_group_protect", "", True),
-        New RailRow("rail_job_secure", ChrW(&HE72E), False),
-        New RailRow("rail_job_unsecure", ChrW(&HE785), False),
-        New RailRow("rail_job_reveal", ChrW(&HE8A7), False),
-        New RailRow("rail_group_records", "", True),
-        New RailRow("rail_job_history", ChrW(&HE81C), False),
-        New RailRow("rail_group_expert", "", True),
-        New RailRow("rail_job_command", ChrW(&HE756), False),
-        New RailRow("rail_group_program", "", True),
-        New RailRow("rail_job_settings", ChrW(&HE713), False),
-        New RailRow("rail_job_about", ChrW(&HE946), False)
+        New RailRow("rail_group_check", Nothing, True),
+        New RailRow("rail_job_capacity", GlyphRef.Vocabulary("feature.capacity-test"), False),
+        New RailRow("rail_job_speed", GlyphRef.Vocabulary("feature.speed-test"), False),
+        New RailRow("rail_job_info", GlyphRef.Vocabulary("app.info"), False),
+        New RailRow("rail_job_damaged", GlyphRef.Vocabulary("action.verify"), False),
+        New RailRow("rail_job_probe", GlyphRef.Vocabulary("feature.raw-probe"), False),
+        New RailRow("rail_job_recover", GlyphRef.Vocabulary("action.recover-drive"), False),
+        New RailRow("rail_group_tidy", Nothing, True),
+        New RailRow("rail_job_duplicates", GlyphRef.Vocabulary("action.find-duplicates"), False),
+        New RailRow("rail_job_compare", GlyphRef.Vocabulary("action.compare"), False),
+        New RailRow("rail_job_clean", GlyphRef.Vocabulary("action.delete"), False),
+        New RailRow("rail_group_move", Nothing, True),
+        New RailRow("rail_job_copy", GlyphRef.Vocabulary("action.copy"), False),
+        New RailRow("rail_group_erase", Nothing, True),
+        New RailRow("rail_job_fill", GlyphRef.Vocabulary("action.fill-space"), False),
+        New RailRow("rail_job_wipe", GlyphRef.Vocabulary("action.wipe"), False),
+        New RailRow("rail_group_protect", Nothing, True),
+        New RailRow("rail_job_secure", GlyphRef.Vocabulary("action.secure"), False),
+        New RailRow("rail_job_unsecure", GlyphRef.Vocabulary("action.unsecure"), False),
+        New RailRow("rail_job_reveal", GlyphRef.Vocabulary("nav.open-external"), False),
+        New RailRow("rail_group_records", Nothing, True),
+        New RailRow("rail_job_history", GlyphRef.Vocabulary("content.history"), False),
+        New RailRow("rail_group_expert", Nothing, True),
+        New RailRow("rail_job_command", GlyphRef.Vocabulary("app.command-line"), False),
+        New RailRow("rail_group_program", Nothing, True),
+        New RailRow("rail_job_settings", GlyphRef.Vocabulary("app.settings"), False),
+        New RailRow("rail_job_about", GlyphRef.Vocabulary("app.info"), False)
     }
 End Class
 
@@ -77,7 +84,7 @@ End Class
 Public Class RailEntry
     Inherits Control
 
-    Public Property Glyph As String = ""
+    Public Property Glyph As GlyphRef = Nothing
     Public Property Key As String = ""          ' the localization key, kept for a relayout
     Public Property IsGroupHeader As Boolean = False
 
@@ -100,16 +107,12 @@ Public Class RailEntry
     Private Shared fontBody As Font
     Private Shared fontStrong As Font
     Private Shared fontCaption As Font
-    Private Shared fontGlyph As Font
-    Private Shared fontChevron As Font
 
     Private Shared Sub EnsureFonts()
         If fontBody IsNot Nothing Then Return
         fontBody = Theme.FontBody()
         fontStrong = Theme.FontBodyStrong()
         fontCaption = Theme.FontCaption()
-        fontGlyph = Theme.FontGlyph()
-        fontChevron = Theme.FontChevron()
     End Sub
 
     ' The font a label is drawn in. A row is measured in its bold face whether or not it is
@@ -188,6 +191,30 @@ Public Class RailEntry
         Return New Rectangle(left, 0, Math.Max(1, width - left - 4), height)
     End Function
 
+    ' The glyph tier of a rail row and of a group's chevron: 20, the dense-row tier of ICON-RENDER
+    ' rule 5 (section 10 item E), in the same units as RowUnit - so a 44 px target holds a 20 px
+    ' glyph at every DPI.
+    Friend Const GlyphTier As Integer = 20
+
+    Private Function GlyphPixels() As Integer
+        Return Math.Max(8, CInt(Math.Round(RowUnit * GlyphTier / CDbl(ShellForm.RailTargetHeight))))
+    End Function
+
+    ' The square a glyph is drawn into: the row's glyph column (or the header's chevron column),
+    ' centred on the row's height as the label is.
+    Friend Function GlyphSquare(height As Integer) As Rectangle
+        Dim px = GlyphPixels()
+        Dim columnLeft, columnWidth As Integer
+        If IsGroupHeader Then
+            columnLeft = CInt(RowUnit * 0.15)
+            columnWidth = CInt(RowUnit * 0.9)
+        Else
+            columnLeft = CInt(RowUnit * 0.2)
+            columnWidth = px
+        End If
+        Return New Rectangle(columnLeft + (columnWidth - px) \ 2, Math.Max(0, (height - px) \ 2), px, px)
+    End Function
+
     ' The vertical breathing room above and below a label that has wrapped.
     Private Function VerticalPad() As Integer
         Return Math.Max(2, CInt(RowUnit * 0.18))
@@ -203,14 +230,20 @@ Public Class RailEntry
 
     ' True when the label, wrapped at this width, fits the rectangle it will be drawn into - and no
     ' single word of it is wider than that rectangle, which wrapping cannot help.
+    ' The tallest a row may grow to hold its label, in rail units. The row always grows to fit its
+    ' text (PreferredRowHeight), so measuring the text against the row it made proves nothing
+    ' (SHELL-15); what can fail is a label so long that the row it needs is no longer a row.
+    Friend Const MaxRowUnits As Integer = 2
+
     Friend Function LabelFits(width As Integer, ByRef detail As String) As Boolean
         Dim h = PreferredRowHeight(width)
         Dim box = LabelBounds(width, h)
         Dim f = MeasureFont(IsGroupHeader)
         Dim text = If(Me.Text, "")
         Dim wrapped = TextRenderer.MeasureText(text, f, New Size(box.Width, Integer.MaxValue), LabelFlags)
-        If wrapped.Height > box.Height - 2 * VerticalPad() + 1 Then
-            detail = "wraps to " & wrapped.Height.ToString() & " px in a " & box.Height.ToString() & " px row"
+        If h > RowUnit * MaxRowUnits Then
+            detail = "wraps to " & wrapped.Height.ToString() & " px - a " & h.ToString() & " px row, over " &
+                     MaxRowUnits.ToString() & " rail units of " & RowUnit.ToString() & " px"
             Return False
         End If
         For Each word In text.Split(New Char() {" "c}, StringSplitOptions.RemoveEmptyEntries)
@@ -342,12 +375,7 @@ Public Class RailEntry
                 DrawAccentBar(g, p)
             End If
 
-            Dim chevronWidth = CInt(RowUnit * 0.9)
-            TextRenderer.DrawText(g, Theme.ChevronGlyph(Collapsed), ChevronFont(),
-                                  New Rectangle(CInt(RowUnit * 0.15), 0, chevronWidth, Height),
-                                  p.MutedText,
-                                  TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or
-                                  TextFormatFlags.NoPrefix)
+            Glyphs.Draw(g, Theme.ChevronGlyph(Collapsed), GlyphSquare(Height), p.MutedText)
 
             DrawLabel(g, p.MutedText, LabelFont(True, False))
             DrawFocus(g, p)
@@ -369,22 +397,11 @@ Public Class RailEntry
         ' does not depend on the fill above.
         If Selected Then DrawAccentBar(g, p)
 
-        If Glyph <> "" Then
-            EnsureFonts()
-            TextRenderer.DrawText(g, Theme.Glyph(Glyph), fontGlyph,
-                                  New Rectangle(CInt(RowUnit * 0.2), 0, CInt(RowUnit * 1.1), Height), p.Text,
-                                  TextFormatFlags.Left Or TextFormatFlags.VerticalCenter Or
-                                  TextFormatFlags.NoPrefix)
-        End If
+        If Glyph IsNot Nothing Then Glyphs.Draw(g, Glyph, GlyphSquare(Height), p.Text)
 
         DrawLabel(g, p.Text, LabelFont(False, Selected))
         DrawFocus(g, p)
     End Sub
-
-    Private Shared Function ChevronFont() As Font
-        EnsureFonts()
-        Return fontChevron
-    End Function
 
     ' The label, wrapped inside its rectangle and centred on the row's height as a block.
     Private Sub DrawLabel(g As Graphics, colour As Color, f As Font)

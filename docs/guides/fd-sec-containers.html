@@ -75,31 +75,31 @@
         </p>
         <h1>
           <span data-l="ru"
-            >Один файл, один контейнер, один пароль - и честный рассказ о том,
+            >Один файл или папка, один контейнер, один пароль - и честный рассказ о том,
             что это даёт.</span
           ><span data-l="en"
-            >One file, one container, one password - and a straight account of
+            >One file or folder, one container, one password - and a straight account of
             what that buys.</span
           ><span data-l="ua"
-            >Один файл, один контейнер, один пароль - і чесна розповідь про те,
+            >Один файл чи тека, один контейнер, один пароль - і чесна розповідь про те,
             що це дає.</span
           >
         </h1>
         <p class="lead">
           <span data-l="ru"
-            >FileDO упаковывает файл в контейнер <code>.fd-sec</code>, возвращает
+            >FileDO упаковывает файл - или целую папку - в контейнер <code>.fd-sec</code>, возвращает
             его обратно и умеет открыть содержимое в нужной программе, не
             распаковывая. Настоящее имя, размер и отметки времени запечатаны
             внутри; снаружи видны только размер самого контейнера, его видимое имя
             и время создания (переименование даёт безымянный блок данных).</span
           ><span data-l="en"
-            >FileDO packs a file into a <code>.fd-sec</code> container, brings it
+            >FileDO packs a file - or a whole folder - into a <code>.fd-sec</code> container, brings it
             back, and can open what is inside in the program it belongs to
             without unpacking it. The true name, the size and the timestamps are
             sealed inside; from outside only the container's own size, its visible
             name and its timestamps are visible (renaming writes a nameless blob).</span
           ><span data-l="ua"
-            >FileDO пакує файл у контейнер <code>.fd-sec</code>, повертає його
+            >FileDO пакує файл - або цілу теку - у контейнер <code>.fd-sec</code>, повертає його
             назад і вміє відкрити вміст у потрібній програмі, не розпаковуючи.
             Справжнє ім'я, розмір і позначки часу запечатані всередині; ззовні
             видно лише розмір самого контейнера, його видиме ім'я та позначки часу
@@ -159,7 +159,7 @@
           <article class="card">
             <h3>
               <span data-l="ru">Вернуть оригинал</span
-              ><span data-l="en">Get the original back</span
+              ><span data-l="en">Unsecure a file</span
               ><span data-l="ua">Повернути оригінал</span>
             </h3>
             <p>
@@ -214,6 +214,114 @@
               ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Папка - тоже один файл</span
+            ><span data-l="en">A folder is one file too</span
+            ><span data-l="ua">Тека - теж один файл</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>secure</code> принимает и папку: всё её дерево, вместе с
+              пустыми подпапками, уходит в один <code>.fd-sec</code>, и снаружи
+              его не отличить от контейнера файла. <code>unsecure</code>
+              восстанавливает дерево сначала во временную папку и переносит на
+              место только после проверки каждого файла - никогда внутрь или
+              поверх существующей папки. Папка с junction, символической ссылкой
+              или точкой монтирования отклоняется. <code>del</code> и
+              <code>wipe</code> убирают исходное дерево, только если оно не
+              менялось после упаковки. <code>reveal</code> открывает один файл и
+              контейнер папки не принимает.</span
+            ><span data-l="en"
+              ><code>secure</code> takes a folder as well: its whole tree, empty
+              subfolders included, goes into one <code>.fd-sec</code>, which from
+              outside cannot be told from a file's container. <code>unsecure</code>
+              restores the tree into a temporary folder first and moves it into
+              place only after every file has verified - never into or over a
+              folder that exists. A folder holding a junction, a symbolic link or
+              a mount point is refused. <code>del</code> and <code>wipe</code>
+              remove the original tree only if it has not changed since it was
+              packed. <code>reveal</code> opens one file and does not take a
+              folder container.</span
+            ><span data-l="ua"
+              ><code>secure</code> приймає й теку: усе її дерево, разом із
+              порожніми підтеками, іде в один <code>.fd-sec</code>, і ззовні його
+              не відрізнити від контейнера файлу. <code>unsecure</code> відновлює
+              дерево спочатку в тимчасову теку й переносить на місце лише після
+              перевірки кожного файлу - ніколи всередину чи поверх наявної теки.
+              Теку з junction, символічним посиланням чи точкою монтування
+              відхилено. <code>del</code> і <code>wipe</code> прибирають вихідне
+              дерево, лише якщо воно не змінювалося після пакування.
+              <code>reveal</code> відкриває один файл і контейнер теки не
+              приймає.</span
+            >
+          </p>
+          <div class="copybox">
+            filedo "Tax 2025" secure<button
+              class="copy"
+              data-copy='filedo "Tax 2025" secure'
+            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Тихий набор: suite2</span
+            ><span data-l="en">The quiet suite: suite2</span
+            ><span data-l="ua">Тихий набір: suite2</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>secure suite2</code> запечатывает один файл (не папку)
+              набором 2 вместо набора 1 по умолчанию: ключ Argon2id на 256 МиБ со
+              свёрткой через перец и XChaCha20-Poly1305 кадрами по 64 КиБ, так что
+              файл - шум с первого байта, без даже того узора длины по кластерам в
+              512 байт, который есть у набора 1. Настоящее имя, реальный размер и
+              время шифрования сохраняются, а собственные отметки времени
+              оригинала - нет: восстановленный файл получает текущее время.
+              Открывает его только FileDO начиная с этой версии - старые сборки
+              FileDO сообщат о повреждении или неверном пароле, а приложения
+              FastMediaSorter его не откроют, поэтому по умолчанию остаётся набор
+              1. <code>unsecure</code>, <code>reveal</code>,
+              <code>fdsec info</code> и <code>fdsec verify</code> определяют набор
+              сами; больше ничего не меняется, и пустой пароль по-прежнему лишь
+              маскировка.</span
+            ><span data-l="en"
+              ><code>secure suite2</code> seals one file (not a folder) with suite
+              2 instead of the default suite 1: a pepper-folded Argon2id key at
+              256 MiB and XChaCha20-Poly1305 in 64 KiB frames, so the file is
+              noise from its first byte, without even the 512-byte cluster length
+              pattern suite 1 has. The true name, the real size and the time of
+              encryption are kept, but not the original's own timestamps: the
+              restored file gets the current time. Only FileDO from this version
+              on opens it - older FileDO builds report it as damaged or as a wrong
+              password, and FastMediaSorter apps cannot open it, so suite 1 stays
+              the default. <code>unsecure</code>, <code>reveal</code>,
+              <code>fdsec info</code> and <code>fdsec verify</code> find the suite
+              themselves; nothing else changes, and an empty password is still
+              obfuscation only.</span
+            ><span data-l="ua"
+              ><code>secure suite2</code> запечатує один файл (не теку) набором 2
+              замість типового набору 1: ключ Argon2id на 256 МіБ зі згорткою
+              через перець і XChaCha20-Poly1305 кадрами по 64 КіБ, тож файл - шум
+              із першого байта, без навіть того візерунка довжини за кластерами в
+              512 байт, який має набір 1. Справжнє ім'я, реальний розмір і час
+              шифрування зберігаються, а власні позначки часу оригіналу - ні:
+              відновлений файл отримує поточний час. Відкриває його лише FileDO
+              починаючи з цієї версії - старі збірки FileDO повідомлять про
+              пошкодження чи хибний пароль, а застосунки FastMediaSorter його не
+              відкриють, тому типовим лишається набір 1. <code>unsecure</code>,
+              <code>reveal</code>, <code>fdsec info</code> і
+              <code>fdsec verify</code> визначають набір самі; більше нічого не
+              змінюється, і порожній пароль, як і раніше, лише маскування.</span
+            >
+          </p>
+          <div class="copybox">
+            filedo report.docx secure suite2<button
+              class="copy"
+              data-copy="filedo report.docx secure suite2"
+            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          </div>
         </div>
       </section>
       <section class="section">
@@ -371,7 +479,10 @@
             когда вы закрываете это окно консоли; если программа всё ещё
             держит файл открытым, копию уберёт следующий запуск FileDO.
             Контейнер при этом остаётся на месте. В Windows 11 группа «File DO..» живёт в «Показать
-            дополнительные параметры».</span
+            дополнительные параметры». В сборке из Microsoft Store пунктов
+            меню нет, но тип <code>.fd-sec</code> она назначает: двойной клик
+            открывает окно FileDO на странице «Открыть секретный файл» с уже
+            выбранным контейнером, и пароль спрашивается там.</span
           ><span data-l="en"
             >The installer offers the Explorer integration as a component you can
             switch off. In the builds with no installer - winget, ZIP,
@@ -385,7 +496,11 @@
             copy is removed when you close that console window; if the program
             still has the file open, the next FileDO start removes it. The
             container itself is left in place. On Windows 11 the "File DO.." group lives under
-            "Show more options".</span
+            "Show more options". The Microsoft Store build has no menu
+            entries, but it does claim the <code>.fd-sec</code> type: a
+            double-click opens the FileDO window on its "Open a secret file"
+            page with that container already chosen, and the password is
+            asked there.</span
           ><span data-l="ua"
             >Інсталятор пропонує інтеграцію з Провідником як окремий компонент,
             який можна зняти. У збірках без інсталятора - winget, ZIP,
@@ -399,7 +514,10 @@
             ви закриваєте це вікно консолі; якщо програма ще тримає файл
             відкритим, копію прибере наступний запуск FileDO. Контейнер
             лишається на місці. У Windows 11 група «File DO..» живе в «Показати додаткові
-            параметри».</span
+            параметри». У збірці з Microsoft Store пунктів меню немає, але
+            тип <code>.fd-sec</code> вона призначає: подвійний клік відкриває
+            вікно FileDO на сторінці «Відкрити секретний файл» з уже вибраним
+            контейнером, і пароль запитується там.</span
           >
         </p>
         <div class="copybox">

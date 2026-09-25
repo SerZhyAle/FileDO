@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,8 +28,6 @@ type CopyProgress struct {
 	StartTime        time.Time    // Read-only after initialization
 	CurrentFile      string       // Protected by CurrentFileMutex
 	CurrentFileMutex sync.RWMutex // Mutex for CurrentFile access
-	Errors           []string     // Protected by ErrorsMutex
-	ErrorsMutex      sync.Mutex   // Mutex for thread-safe error logging
 	TotalsKnown      bool         // The totals were counted before copying (--precount); read-only after
 }
 
@@ -63,8 +61,10 @@ func (p *CopyProgress) etaText(doneBytes int64) string {
 	return formatETA(time.Duration(float64(remaining)/speed) * time.Second)
 }
 
-// FileOperationTimeout defines timeout for file operations with broken sources
-const FileOperationTimeout = 10 * time.Second // Increased to 10 seconds for damaged disks
+// FileOperationTimeout bounds one look at a path (a stat) on a share or a
+// failing disk that does not answer. It is never a limit on how long a file
+// may take to copy: that is the no-progress watchdog (COPY-11).
+const FileOperationTimeout = 10 * time.Second
 
 // Atomic helper methods for CopyProgress
 func (p *CopyProgress) AddTotalFiles(delta int64) {
@@ -107,47 +107,6 @@ func (p *CopyProgress) GetCurrentFile() string {
 	return p.CurrentFile
 }
 
-// logError safely logs an error to the progress structure
-func (p *CopyProgress) logError(path string, err error) {
-	p.ErrorsMutex.Lock()
-	defer p.ErrorsMutex.Unlock()
-
-	errorMsg := fmt.Sprintf("%s: %v", path, err)
-	p.Errors = append(p.Errors, errorMsg)
-	atomic.AddInt64(&p.SkippedFiles, 1)
-
-	// Also log to stderr for immediate visibility
-	fmt.Fprintf(os.Stderr, "Warning: %s\n", errorMsg)
-}
-
-// printErrorSummary prints a summary of all errors encountered
-func (p *CopyProgress) printErrorSummary() {
-	p.ErrorsMutex.Lock()
-	defer p.ErrorsMutex.Unlock()
-
-	if len(p.Errors) > 0 {
-		fmt.Printf("\n⚠️  COPY OPERATION COMPLETED WITH ERRORS:\n")
-		fmt.Printf("   %d files were skipped due to access errors:\n\n", len(p.Errors))
-
-		// Show first 10 errors, then summarize if more
-		maxShow := 10
-		for i, errMsg := range p.Errors {
-			if i < maxShow {
-				fmt.Printf("   • %s\n", errMsg)
-			} else {
-				fmt.Printf("   ... and %d more errors\n", len(p.Errors)-maxShow)
-				break
-			}
-		}
-
-		fmt.Printf("\nRecommendations:\n")
-		fmt.Printf("• Check file permissions for skipped files\n")
-		fmt.Printf("• Run as administrator if accessing system files\n")
-		fmt.Printf("• Some files may be in use by other applications\n")
-		fmt.Printf("• Consider using 'fastcopy' for better error handling\n\n")
-	}
-}
-
 // statWithTimeout performs os.Stat with timeout
 func statWithTimeout(path string, timeout time.Duration) (os.FileInfo, error) {
 	type statResult struct {
@@ -168,69 +127,12 @@ func statWithTimeout(path string, timeout time.Duration) (os.FileInfo, error) {
 	case result := <-ch:
 		return result.info, result.err
 	case <-ctx.Done():
-		return nil, fmt.Errorf("stat operation timed out after %v", timeout)
+		return nil, fmt.Errorf("%s: %w after %v", path, errStatTimeout, timeout)
 	}
 }
 
-// copyWithTimeout performs file copy with timeout and built-in progress support
-func copyWithTimeout(dst io.Writer, src io.Reader, timeout time.Duration) (int64, error) {
-	type copyResult struct {
-		written int64
-		err     error
-	}
-
-	ch := make(chan copyResult, 1)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	go func() {
-		defer close(ch)
-		var totalWritten int64
-		buffer := make([]byte, 1024*1024) // 1MB buffer
-
-		for {
-			select {
-			case <-ctx.Done():
-				ch <- copyResult{totalWritten, ctx.Err()}
-				return
-			default:
-			}
-
-			n, readErr := src.Read(buffer)
-			if readErr != nil && readErr != io.EOF {
-				ch <- copyResult{totalWritten, readErr}
-				return
-			}
-			if n == 0 {
-				break
-			}
-
-			written, writeErr := dst.Write(buffer[:n])
-			if writeErr != nil {
-				ch <- copyResult{totalWritten, writeErr}
-				return
-			}
-
-			totalWritten += int64(written)
-
-			if readErr == io.EOF {
-				break
-			}
-		}
-
-		ch <- copyResult{totalWritten, nil}
-	}()
-
-	select {
-	case result := <-ch:
-		return result.written, result.err
-	case <-ctx.Done():
-		return 0, fmt.Errorf("copy operation timed out after %v", timeout)
-	}
-}
-
-// handleCopyCommand processes the copy command with damaged disk handling
-// handleCopyCommand - regular copy with damaged disk protection (for safety commands)
+// handleCopyCommand - regular copy with damaged disk protection (the target
+// verbs' `copy`: folder, device, network and file).
 func handleCopyCommand(args []string) error {
 	if len(args) < 3 {
 		return fmt.Errorf("copy command requires source and target paths")
@@ -238,25 +140,20 @@ func handleCopyCommand(args []string) error {
 
 	sourcePath := args[1]
 	targetPath := args[2]
+	if err := refuseCopyPaths("copy", sourcePath, targetPath); err != nil {
+		return err
+	}
 
-	// Check if source exists
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
 		return fmt.Errorf("source path does not exist: %s", sourcePath)
 	}
 
-	fmt.Printf("🔄 Starting copy with damaged disk protection from %s to %s\n", sourcePath, targetPath)
+	fmt.Printf("Starting copy with damaged disk protection from %s to %s\n", sourcePath, targetPath)
 
-	// Initialize damaged disk handler
 	damagedHandler, err := NewDamagedDiskHandler()
 	if err != nil {
-		fmt.Printf("Warning: Could not initialize damaged disk handler: %v\n", err)
-		// Continue without damage handling
-		if sourceInfo.IsDir() {
-			return copyDirectory(sourcePath, targetPath)
-		} else {
-			return copyFile(sourcePath, targetPath)
-		}
+		fmt.Printf("Warning: %v - damaged files are skipped for this run only.\n", err)
 	}
 	defer func() {
 		damagedHandler.PrintSummary()
@@ -264,10 +161,9 @@ func handleCopyCommand(args []string) error {
 	}()
 
 	if sourceInfo.IsDir() {
-		return copyDirectoryWithDamageHandling(sourcePath, targetPath, damagedHandler)
-	} else {
-		return copyFileWithDamageHandling(sourcePath, targetPath, sourceInfo, damagedHandler)
+		return copyTree("copy", sourcePath, targetPath, damagedHandler)
 	}
+	return copyFile("copy", sourcePath, targetPath, damagedHandler)
 }
 
 // handleCopyCommandNoDamage - regular copy without damaged disk protection (for normal operation)
@@ -278,20 +174,21 @@ func handleCopyCommandNoDamage(args []string) error {
 
 	sourcePath := args[1]
 	targetPath := args[2]
+	if err := refuseCopyPaths("copy", sourcePath, targetPath); err != nil {
+		return err
+	}
 
-	// Check if source exists
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
 		return fmt.Errorf("source path does not exist: %s", sourcePath)
 	}
 
-	fmt.Printf("🔄 Starting regular copy from %s to %s\n", sourcePath, targetPath)
+	fmt.Printf("Starting regular copy from %s to %s\n", sourcePath, targetPath)
 
 	if sourceInfo.IsDir() {
 		return copyDirectory(sourcePath, targetPath)
-	} else {
-		return copyFile(sourcePath, targetPath)
 	}
+	return copyFile("copy", sourcePath, targetPath, nil)
 }
 
 // copyPrecountFlag asks a copy to count the whole tree before the first file
@@ -319,16 +216,119 @@ func wantsCopyPrecount(rest []string) bool {
 // can count the walks, which is the claim copyTree exists to keep.
 var copyWalk = filepath.Walk
 
-// copyTree copies sourcePath into targetPath in one walk of the tree: each
-// directory is created and each file handed to copyOne as the walk reaches
-// it, so the first file moves as soon as it is found instead of after a full
-// counting pass (SP-0002 item 5). The totals therefore grow while the copy
-// runs, and the progress line says so rather than showing an ETA against half
-// a tree. --precount buys the exact totals back with one counting walk first.
-func copyTree(sourcePath, targetPath string, copyOne func(path, target string, info os.FileInfo, progress *CopyProgress) error) error {
-	progress := &CopyProgress{
-		StartTime: time.Now(),
+// plainCopyRun is one plain copy: its progress line, its counts, its stop
+// and, when damage handling is on, the skip list.
+type plainCopyRun struct {
+	progress *CopyProgress
+	stats    *copyRunStats
+	ctx      context.Context
+	handler  *InterruptHandler
+	damaged  *DamagedDiskHandler
+}
+
+func newPlainCopyRun(verb string, damaged *DamagedDiskHandler) *plainCopyRun {
+	r := &plainCopyRun{
+		progress: &CopyProgress{StartTime: time.Now()},
+		stats:    newCopyRunStats(verb),
+		ctx:      context.Background(),
+		damaged:  damaged,
 	}
+	if globalInterruptHandler != nil {
+		r.handler = globalInterruptHandler
+		r.ctx = globalInterruptHandler.Context()
+	}
+	return r
+}
+
+// copyOne copies one source file of a plain copy and counts the outcome.
+func (r *plainCopyRun) copyOne(path, target string, info os.FileInfo) {
+	progress := r.progress
+	if !info.Mode().IsRegular() {
+		if info.Mode()&os.ModeSymlink == 0 {
+			r.stats.recordSpecial(path)
+			return
+		}
+		ti, err := os.Stat(path)
+		if err != nil {
+			atomic.AddInt64(&progress.ProcessedFiles, 1)
+			r.stats.recordFailure(path, fmt.Errorf("cannot follow the link: %w", err))
+			return
+		}
+		if !ti.Mode().IsRegular() {
+			r.stats.recordSpecial(path)
+			return
+		}
+		info = ti
+	}
+	if isPartialName(info.Name()) {
+		r.stats.recordPartialSource(path)
+		return
+	}
+	if r.damaged != nil && r.damaged.ShouldSkip(path, info) {
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		atomic.AddInt64(&progress.SkippedFiles, 1)
+		r.stats.recordDamagedSkip(path, r.damaged.SkipListPath())
+		return
+	}
+
+	v, verr := skipDecision(info, target)
+	if !r.stats.admit(v, path, target, verr) {
+		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
+		atomic.AddInt64(&progress.SkippedFiles, 1)
+		currentSize := atomic.AddInt64(&progress.CopiedSize, info.Size())
+		if v == skipAlreadyCopied {
+			fmt.Printf("Skipped: %s [%s, ETA: %s] - already at the target (same size and time)\n",
+				path, progress.countsText(currentFile, currentSize), progress.etaText(currentSize))
+		}
+		return
+	}
+
+	var err error
+	if r.damaged != nil {
+		err = r.damaged.CopyFileWithDamageHandling(r.ctx, path, target, info, v == copyReplaceEmpty, nil, r.handler)
+	} else {
+		buf, put := takeCopyBuffer(1 << 20)
+		err = copyOneFile(r.ctx, path, info, target, fileCopyOptions{
+			Buffer: buf,
+			// A no-progress watchdog, never a limit on the total time: a
+			// 200 MB file to a 10 MB/s stick takes twenty seconds and is
+			// fine; a read that returns nothing for ten is not (COPY-11).
+			NoProgress: NewDamagedDiskConfig().FileTimeout,
+			Replace:    v == copyReplaceEmpty,
+			Handler:    r.handler,
+			Release:    put,
+		})
+	}
+	switch {
+	case err == nil:
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		atomic.AddInt64(&progress.CopiedSize, info.Size())
+		r.stats.recordCopied(info.Size())
+		showProgress(progress)
+	case isStopError(err):
+		// A stop is not this file's failure.
+	default:
+		atomic.AddInt64(&progress.ProcessedFiles, 1)
+		var damaged *damagedSourceError
+		if errors.As(err, &damaged) {
+			atomic.AddInt64(&progress.DamagedFiles, 1)
+		}
+		r.stats.recordFailure(path, err)
+	}
+}
+
+// copyTree copies sourcePath into targetPath in one walk of the tree: each
+// directory is created and each file copied as the walk reaches it, so the
+// first file moves as soon as it is found instead of after a full counting
+// pass (SP-0002 item 5). The totals therefore grow while the copy runs, and
+// the progress line says so rather than showing an ETA against half a tree.
+// --precount buys the exact totals back with one counting walk first.
+//
+// The walk obeys a stop: it ends at the next entry, and no target is created
+// after it (COPY-04).
+func copyTree(verb, sourcePath, targetPath string, damaged *DamagedDiskHandler) error {
+	run := newPlainCopyRun(verb, damaged)
+	progress := run.progress
 
 	if copyPrecount {
 		fmt.Println("Counting files first (--precount)..")
@@ -342,34 +342,47 @@ func copyTree(sourcePath, targetPath string, copyOne func(path, target string, i
 		fmt.Println("Copying while the tree is walked - totals grow as files are found (--precount counts them first).")
 	}
 
+	var collisions caseCollisionIndex
 	copyErr := copyWalk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		if run.ctx.Err() != nil {
+			return filepath.SkipAll
+		}
 		if err != nil {
-			progress.logError(path, fmt.Errorf("error accessing during copy: %v", err))
-			return nil // Continue with other files
+			run.stats.recordFailure(path, fmt.Errorf("cannot read: %w", err))
+			return nil
 		}
 
 		// For broken sources, handle cases where info might be corrupted
 		if info == nil {
 			timeoutInfo, statErr := statWithTimeout(path, FileOperationTimeout)
 			if statErr != nil {
-				progress.logError(path, fmt.Errorf("stat timeout during copy: %v", statErr))
+				run.stats.recordFailure(path, statErr)
 				return nil
 			}
 			info = timeoutInfo
 		}
 
-		relPath, err := filepath.Rel(sourcePath, path)
-		if err != nil {
-			progress.logError(path, fmt.Errorf("error calculating relative path: %v", err))
+		if winner, lost := collisions.winner(path); lost {
+			run.stats.recordCollision(path, winner)
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
+		relPath, err := filepath.Rel(sourcePath, path)
+		if err != nil {
+			run.stats.recordFailure(path, err)
+			return nil
+		}
 		targetFilePath := filepath.Join(targetPath, relPath)
 
 		if info.IsDir() {
-			if err := os.MkdirAll(targetFilePath, info.Mode()); err != nil {
-				progress.logError(targetFilePath, fmt.Errorf("error creating directory: %v", err))
+			if err := os.MkdirAll(targetFilePath, 0o755); err != nil {
+				run.stats.recordFailure(targetFilePath, fmt.Errorf("cannot create the folder: %w", err))
+				return filepath.SkipDir
 			}
+			collisions.scanDir(path)
 			return nil
 		}
 
@@ -378,15 +391,17 @@ func copyTree(sourcePath, targetPath string, copyOne func(path, target string, i
 			progress.AddTotalSize(info.Size())
 		}
 		progress.SetCurrentFile(path)
-		return copyOne(path, targetFilePath, info, progress)
+		run.copyOne(path, targetFilePath, info)
+		return nil
 	})
+	if copyErr != nil && !isStopError(copyErr) {
+		run.stats.recordFailure(sourcePath, copyErr)
+	}
 
 	fmt.Printf("\nCopy finished: %d files, %.2f MB in %v\n",
 		progress.GetProcessedFiles(), float64(progress.GetCopiedSize())/(1024*1024),
 		time.Since(progress.StartTime).Round(time.Millisecond))
-	progress.printErrorSummary()
-
-	return copyErr
+	return run.stats.finish()
 }
 
 // countTree is the counting walk --precount asks for. It records nothing but
@@ -396,6 +411,9 @@ func countTree(sourcePath string, progress *CopyProgress) error {
 	return copyWalk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
+		}
+		if runStopRequested() {
+			return filepath.SkipAll
 		}
 		if info == nil {
 			timeoutInfo, statErr := statWithTimeout(path, FileOperationTimeout)
@@ -414,98 +432,32 @@ func countTree(sourcePath string, progress *CopyProgress) error {
 
 // copyDirectory copies entire directory structure
 func copyDirectory(sourcePath, targetPath string) error {
-	return copyTree(sourcePath, targetPath, copyFileWithCopyProgress)
+	return copyTree("copy", sourcePath, targetPath, nil)
 }
 
-// copyFile copies a single file
-func copyFile(sourcePath, targetPath string) error {
+// copyFile copies a single file. A target that is a folder (existing, or
+// spelled with a trailing separator) receives the file under its own name.
+func copyFile(verb, sourcePath, targetPath string, damaged *DamagedDiskHandler) error {
 	sourceInfo, err := statWithTimeout(sourcePath, FileOperationTimeout)
 	if err != nil {
 		return fmt.Errorf("cannot stat source file: %v", err)
 	}
-
-	progress := &CopyProgress{
-		StartTime:   time.Now(),
-		TotalsKnown: true, // one file: the totals are its own size
+	if targetPath, err = singleFileTarget(verb, sourcePath, targetPath); err != nil {
+		return err
 	}
 
-	// Initialize atomic fields
-	progress.AddTotalFiles(1)
-	progress.AddTotalSize(sourceInfo.Size())
-	progress.SetCurrentFile(sourcePath)
+	run := newPlainCopyRun(verb, damaged)
+	run.progress.TotalsKnown = true // one file: the totals are its own size
+	run.progress.AddTotalFiles(1)
+	run.progress.AddTotalSize(sourceInfo.Size())
+	run.progress.SetCurrentFile(sourcePath)
 
-	// Create target directory if it doesn't exist
-	targetDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		return fmt.Errorf("error creating target directory: %v", err)
 	}
-
-	return copyFileWithCopyProgress(sourcePath, targetPath, sourceInfo, progress)
-}
-
-// copyFileWithProgress copies a single file and updates progress
-func copyFileWithCopyProgress(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *CopyProgress) error {
-	// Check if target file already exists (with timeout for broken filesystems)
-	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
-		// Update counters and show skip message
-		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
-		currentSize := atomic.AddInt64(&progress.CopiedSize, sourceInfo.Size())
-
-		fmt.Printf("Skipped: %s [%s, ETA: %s] - already exists\n",
-			sourcePath, progress.countsText(currentFile, currentSize), progress.etaText(currentSize))
-		return nil
-	}
-
-	// Open source file
-	sourceFile, err := os.Open(sourcePath)
-	if err != nil {
-		// Update counters even on error for progress consistency
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-
-		progress.logError(sourcePath, fmt.Errorf("cannot open source file: %v", err))
-		return nil // Continue with other files
-	}
-	defer sourceFile.Close()
-
-	// Create target file
-	targetFile, err := os.Create(targetPath)
-	if err != nil {
-		// Update counters even on error for progress consistency
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-
-		progress.logError(targetPath, fmt.Errorf("cannot create target file: %v", err))
-		return nil // Continue with other files
-	}
-	defer targetFile.Close()
-
-	// Copy file content with timeout and progress reporting
-	copiedBytes, err := copyWithTimeout(targetFile, sourceFile, FileOperationTimeout)
-	if err != nil {
-		// Update counters even on timeout/error
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-
-		progress.logError(sourcePath, fmt.Errorf("copy timeout/error: %v", err))
-		return nil // Continue with other files
-	}
-
-	atomic.AddInt64(&progress.CopiedSize, copiedBytes)
-	atomic.AddInt64(&progress.ProcessedFiles, 1)
-
-	// Show progress after successful copy
-	showProgress(progress)
-
-	// Set file permissions and timestamps
-	err = os.Chmod(targetPath, sourceInfo.Mode())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Could not set permissions for %s: %v\n", targetPath, err)
-	}
-
-	err = os.Chtimes(targetPath, sourceInfo.ModTime(), sourceInfo.ModTime())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Could not set timestamps for %s: %v\n", targetPath, err)
-	}
-
-	return nil
+	run.copyOne(sourcePath, targetPath, sourceInfo)
+	fmt.Println()
+	return run.stats.finish()
 }
 
 // showProgress displays current copy progress
@@ -534,71 +486,4 @@ func showProgress(progress *CopyProgress) {
 		progress.countsText(processedFiles, copiedSize),
 		progress.etaText(copiedSize),
 		damagedInfo)
-}
-
-// copyDirectoryWithDamageHandling copies entire directory structure with damage handling
-func copyDirectoryWithDamageHandling(sourcePath, targetPath string, handler *DamagedDiskHandler) error {
-	return copyTree(sourcePath, targetPath, func(path, target string, info os.FileInfo, progress *CopyProgress) error {
-		return copyFileWithDamageHandlingAndProgress(path, target, info, progress, handler)
-	})
-}
-
-// copyFileWithDamageHandling copies a single file with damage handling
-func copyFileWithDamageHandling(sourcePath, targetPath string, sourceInfo os.FileInfo, handler *DamagedDiskHandler) error {
-	progress := &CopyProgress{
-		StartTime:   time.Now(),
-		TotalsKnown: true, // one file: the totals are its own size
-	}
-
-	// Initialize atomic fields
-	progress.AddTotalFiles(1)
-	progress.AddTotalSize(sourceInfo.Size())
-	progress.SetCurrentFile(sourcePath)
-
-	// Create target directory if it doesn't exist
-	targetDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return fmt.Errorf("error creating target directory: %v", err)
-	}
-
-	return copyFileWithDamageHandlingAndProgress(sourcePath, targetPath, sourceInfo, progress, handler)
-}
-
-// copyFileWithDamageHandlingAndProgress copies a single file with damage handling and updates progress
-func copyFileWithDamageHandlingAndProgress(sourcePath, targetPath string, sourceInfo os.FileInfo, progress *CopyProgress, handler *DamagedDiskHandler) error {
-	// Check if target file already exists (with timeout for broken filesystems)
-	if _, err := statWithTimeout(targetPath, FileOperationTimeout); err == nil {
-		// Update counters and show skip message
-		currentFile := atomic.AddInt64(&progress.ProcessedFiles, 1)
-		currentSize := atomic.AddInt64(&progress.CopiedSize, sourceInfo.Size())
-
-		fmt.Printf("⏭️ Skipped: %s [%s, ETA: %s] - already exists\n",
-			sourcePath, progress.countsText(currentFile, currentSize), progress.etaText(currentSize))
-		return nil
-	}
-
-	// Use damage handler to copy the file
-	err := handler.CopyFileWithDamageHandling(sourcePath, targetPath, sourceInfo, nil)
-	if err != nil {
-		// This is a critical error, not a damage issue
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		progress.logError(sourcePath, fmt.Errorf("copy error: %v", err))
-		return nil // Continue with other files
-	}
-
-	// Check if file was actually copied (not skipped due to damage)
-	if _, statErr := os.Stat(targetPath); statErr == nil {
-		// File was successfully copied
-		atomic.AddInt64(&progress.CopiedSize, sourceInfo.Size())
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-
-		// Show progress after successful copy
-		showProgress(progress)
-	} else {
-		// File was skipped due to damage
-		atomic.AddInt64(&progress.ProcessedFiles, 1)
-		atomic.AddInt64(&progress.DamagedFiles, 1)
-	}
-
-	return nil
 }

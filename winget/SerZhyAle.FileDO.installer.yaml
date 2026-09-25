@@ -16,6 +16,7 @@ NestedInstallerFiles:
   PortableCommandAlias: filedo_test
 - RelativeFilePath: filedo_win.exe
   PortableCommandAlias: filedo_win
+ArchiveBinariesDependOnPath: true
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/SerZhyAle/FileDO/releases/download/v2609241700/FileDO-2609241700-windows-x64.zip

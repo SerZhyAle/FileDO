@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -75,13 +76,47 @@ const (
 // executes" - a type that only some installations run is still refused,
 // because a refusal costs the user one manual double-click and a wrong
 // launch costs them the machine.
+//
+// It covers at least Outlook's Level-1 blocked attachment types plus the
+// interpreters a machine may have installed (FDSEC-08): a sealed invoice.py on
+// a machine with Python is executed by ShellExecute "open", and the Mark of
+// the Web does not stop py.exe. One table; TestRevealNeverLaunchTable holds a
+// row per entry.
 var fdsecNeverLaunch = map[string]bool{
+	// Windows executables, installers and shell objects.
 	".exe": true, ".com": true, ".scr": true, ".pif": true, ".cpl": true,
-	".bat": true, ".cmd": true, ".ps1": true, ".psm1": true, ".psd1": true,
-	".vbs": true, ".vbe": true, ".js": true, ".jse": true, ".wsf": true,
-	".wsh": true, ".hta": true, ".msi": true, ".msp": true, ".msc": true,
-	".reg": true, ".inf": true, ".sct": true, ".jar": true, ".lnk": true,
-	".url": true, ".application": true, ".gadget": true, ".chm": true,
+	".bat": true, ".cmd": true, ".msi": true, ".msp": true, ".mst": true,
+	".msu": true, ".msc": true, ".reg": true, ".inf": true, ".ins": true,
+	".isp": true, ".lnk": true, ".url": true, ".scf": true, ".shb": true,
+	".shs": true, ".sct": true, ".hta": true, ".chm": true, ".hlp": true,
+	".application": true, ".appref-ms": true, ".gadget": true, ".diagcab": true,
+	".msix": true, ".msixbundle": true, ".appx": true, ".appxbundle": true,
+	".appinstaller": true, ".wsb": true, ".website": true, ".jnlp": true,
+	".library-ms": true, ".search-ms": true, ".searchconnector-ms": true,
+	".settingcontent-ms": true, ".theme": true, ".themepack": true,
+	".cer": true, ".crt": true, ".der": true, ".xll": true, ".xbap": true,
+	".vsmacros": true, ".mcf": true, ".cnt": true, ".grp": true, ".prf": true,
+	".crx": true, ".xnk": true, ".mmc": true,
+	// Script hosts.
+	".vbs": true, ".vbe": true, ".vb": true, ".js": true, ".jse": true,
+	".wsf": true, ".wsh": true, ".ws": true, ".wsc": true,
+	".ps1": true, ".ps1xml": true, ".ps2": true, ".ps2xml": true,
+	".psc1": true, ".psc2": true, ".psm1": true, ".psd1": true,
+	".mshxml": true, ".msh": true, ".msh1": true, ".msh2": true,
+	".msh1xml": true, ".msh2xml": true,
+	// Interpreters a machine may have installed.
+	".py": true, ".pyw": true, ".pyz": true, ".pyzw": true, ".pyc": true,
+	".pyo": true, ".pl": true, ".rb": true, ".rbw": true, ".tcl": true,
+	".jar": true, ".class": true, ".php": true, ".lua": true,
+	// Office databases and add-ins that run code when opened.
+	".ade": true, ".adp": true, ".mda": true, ".mdb": true, ".mde": true,
+	".mdt": true, ".mdw": true, ".mdz": true, ".accda": true, ".accdb": true,
+	".accde": true, ".accdr": true, ".accdu": true, ".accdt": true,
+	".mam": true, ".maq": true, ".mar": true, ".mas": true, ".maf": true,
+	".mat": true, ".mav": true, ".maw": true, ".ops": true, ".pcd": true,
+	".plg": true, ".prg": true, ".csh": true, ".ksh": true, ".sh": true,
+	// Disk images mount and auto-run their contents.
+	".iso": true, ".img": true, ".vhd": true, ".vhdx": true,
 }
 
 // fdsecRevealRootEnv relocates the sandbox root. It exists so the test suite
@@ -117,6 +152,14 @@ func fdsecSandboxName(trueName string) (string, error) {
 		// and this error reaches history.json, which outlives the reveal.
 		return "", fmt.Errorf("%w: the container's sealed name %v, and is refused. The container may have been built to make a reveal write or launch something other than what it claims", fdsec.ErrDamaged, err)
 	}
+	// The format allows a name longer than any file system does; such a name
+	// can only fail at the rename, and that failure used to carry it into
+	// history.json and the event file. It is refused here, unnamed (FDSEC-06).
+	// The limit lives where the name becomes a file name, not in the format
+	// core, so every container the contract allows keeps opening.
+	if utf16Len(trueName) > fdsecMaxNameUnits {
+		return "", fmt.Errorf("%w: the container's sealed name is longer than any file name can be (%d characters), and is refused", fdsec.ErrDamaged, fdsecMaxNameUnits)
+	}
 	return trueName, nil
 }
 
@@ -136,7 +179,8 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 	if o.rw {
 		fmt.Printf("-rw is not a writable sandbox: the sandbox copy is always read-only.\n")
 		fmt.Printf("Restoring to an ordinary file you own instead (the same thing `unsecure` does).\n\n")
-		return fdsecUnsecure(path, fdsecArgsWithout(args, "-rw"), hl)
+		// Both spellings, which the parser accepts alike (FDSEC-13).
+		return fdsecUnsecure(path, fdsecArgsWithout(fdsecArgsWithout(args, "-rw"), "rw"), hl)
 	}
 
 	if err := fdsecScreenContainer(path, "reveal"); err != nil {
@@ -196,7 +240,19 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 			fdsecTryRemoveSandbox(dir)
 		}
 	}()
-	globalInterruptHandler.AddCleanup(func() { fdsecTryRemoveSandbox(dir) })
+	// Force exit only. A graceful stop - Ctrl+C, or the GUI's "remove the copy
+	// now" - is observed by the reveal itself: the unpack ends at a chunk
+	// boundary, nothing is marked or launched, and the defer above removes the
+	// sandbox once nothing in it is open. The old cleanup ran concurrently
+	// with the reveal, made the still-open temporary file read-only, and the
+	// untrusted mark then failed to write - so the copy was launched without
+	// it (FDSEC-02).
+	removeCleanup := globalInterruptHandler.AddCleanup(func() {
+		if globalInterruptHandler.IsForceExit() {
+			fdsecTryRemoveSandbox(dir)
+		}
+	})
+	defer removeCleanup()
 
 	src, err := os.Open(path)
 	if err != nil {
@@ -218,7 +274,17 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 		os.Remove(tmpPath)
 	}()
 
-	meta, err := fdsec.Unpack(tmp, src, cred, newFdsecTracker("reveal", fi.Size()))
+	meta, err := fdsec.Unpack(tmp, src, cred, newFdsecTracker("reveal", fi.Size()), fdsecStreamStop())
+	if fdsecStopped(err) {
+		fmt.Printf("%sStopped: nothing was revealed.\n", fdsecEndProgress())
+		return errFdsecStopped
+	}
+	if errors.Is(err, fdsec.ErrTreeContainer) {
+		// A directory container has no single file to hand to a registered
+		// application, whatever its entry count (SP-0009 R7); nothing was
+		// written, and the deferred cleanup removes the empty sandbox.
+		return usagef("%s holds a folder, and reveal opens exactly one file with its registered application. Restore the folder instead: filedo %s unsecure [here | to <dest>]", path, path)
+	}
 	if err != nil {
 		return err
 	}
@@ -229,22 +295,30 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 		return err
 	}
 
+	if runStopRequested() {
+		fmt.Printf("%sStopped: nothing was revealed.\n", fdsecEndProgress())
+		return errFdsecStopped
+	}
+
 	name, err := fdsecSandboxName(meta.Name)
 	if err != nil {
 		return err
 	}
 	copyPath := filepath.Join(dir, name)
-	if err := os.Rename(tmpPath, copyPath); err != nil {
-		return err
+	if err := renameNoReplace(tmpPath, copyPath); err != nil {
+		// Screened: the destination is the sealed name (FDSEC-06).
+		return fdsecScreenEventError(fdsecRenameError(err))
 	}
 	fdsecRestoreTimes(copyPath, meta)
 
 	// Mark the copy as untrusted-origin before it is sealed read-only, so the
-	// platform's own protections stay switched on for it. A failure here is
-	// reported and not fatal: the mark is defence in depth, and refusing the
-	// reveal over it would teach the user to avoid the feature.
-	if merr := fdsecMarkUntrusted(copyPath); merr != nil {
-		fmt.Printf("Note: could not mark the copy as untrusted-origin (%v)\n", merr)
+	// platform's own protections stay switched on for it. A copy whose mark
+	// could not be written is kept for the user to inspect and is never
+	// handed to the shell (FDSEC-02 requirement 5): the mark is what keeps
+	// Office's Protected View and SmartScreen switched on for it.
+	markErr := fdsecMarkUntrusted(copyPath)
+	if markErr != nil {
+		fmt.Printf("Note: could not mark the copy as untrusted-origin (%v)\n", markErr)
 	}
 	// No writable sandbox (spec 8.4): the copy is read-only, so there is no
 	// write-back logic that could lose an edit, because there is no edit.
@@ -272,6 +346,21 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 		fmt.Printf("The next FileDO start removes it.\n")
 		hl.SetResult("launched", "refused-executable")
 		return nil
+	}
+
+	if markErr != nil {
+		keep = true
+		fmt.Printf("\nThe copy could not be marked as untrusted-origin, so it is NOT launched.\n")
+		fmt.Printf("It is here, read-only, for you to open yourself:\n  %s\n", copyPath)
+		fmt.Printf("The next FileDO start removes it.\n")
+		hl.SetResult("launched", "refused-unmarked")
+		return nil
+	}
+
+	// Nothing is launched after a stop (FDSEC-02).
+	if runStopRequested() {
+		fmt.Printf("Stopped: the copy was not handed to any program.\n")
+		return errFdsecStopped
 	}
 
 	if o.keep {

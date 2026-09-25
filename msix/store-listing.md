@@ -10,7 +10,7 @@ This file keeps only what the CSV does not carry and a person pastes or ticks by
 Properties page, the `runFullTrust` justification, the export-compliance answer and the privacy
 declaration. The justification has a ~1000-char limit (both versions below are well under it).
 
-Repo: https://github.com/SerZhyAle/FileDO - Contact: serzhyale@gmail.com - License: MIT
+Repo: https://github.com/SerZhyAle/FileDO - Contact: sza@ukr.net - License: MIT
 
 ---
 ## Properties page (Partner Center > Product > Properties)
@@ -26,7 +26,7 @@ types it, which is why it is written down once instead of being decided again at
 | Does this product access, collect, or transmit personal information? | **Yes** |
 | Privacy policy URL | `https://serzhyale.github.io/FileDO/privacy.html` |
 | Support info > Website | `https://serzhyale.github.io/FileDO/` |
-| Support info > Support contact info | `serzhyale@gmail.com` |
+| Support info > Support contact info | `sza@ukr.net` |
 | Support info > Phone, Address, Postal code, City, State, Country | leave empty (optional, and a private address is not listing material) |
 
 **Category.** `Utilities + tools` has exactly two subcategories, `Backup + manage` and
@@ -88,10 +88,10 @@ the way in, so it changes no country in the current listing; if Partner Center a
 restricting availability anywhere, the submission is stopped and the question comes back to
 the owner rather than being resolved by accepting a smaller reach.
 
-**What the Store build does NOT carry.** No Explorer entries and no `.fd-sec` association: a
-packaged build can only declare a context-menu handler through a signed shell command handler,
-which is not built (SP-0005 9.3). The verbs work from the terminal in the Store build exactly
-as everywhere else. Say that plainly rather than implying parity.
+**What the Store build does NOT carry.** No Explorer context-menu entries: a packaged build can
+only declare a context-menu handler through a signed shell command handler, which is not built
+(SP-0005 9.3). It **does** declare the `.fd-sec` association, so double-clicking a container opens
+FileDO. The verbs work from the terminal in the Store build exactly as everywhere else.
 
 ## Privacy policy
 
@@ -124,11 +124,14 @@ What it accesses and why:
 Local files it writes (they stay on your device unless you mail them yourself - see the last
 item below):
 - history.json - a log of operations (time, command, target path, full command line,
-  parameters, results), written to the current working directory, last 1000 entries.
-  Disable per run with the `nohist` (or `no_history`) flag.
-- hash_cache.json - cached file paths, sizes, timestamps, and MD5 hashes that speed up
-  duplicate scans, stored next to the exe (redirected into the package's per-user
-  LocalCache under MSIX). No file contents are stored.
+  parameters, results), written to %LOCALAPPDATA%\FileDO\state\ (inside the package's own
+  per-user storage in the Store build), last 1000 entries. Help and the history listing
+  write nothing. Disable per run with the `nohist` (or `no_history`) flag.
+- hash_cache.json - cached file paths, sizes, timestamps, file IDs and SHA-256 hashes that
+  speed up duplicate scans, in the same %LOCALAPPDATA%\FileDO\state\ folder. No file
+  contents are stored.
+- The copy and check lists (skipped and damaged files, a check's resume state) - in the same
+  folder, never in the folder a command was started from.
 - %LOCALAPPDATA%\FileDO\runs and \reports - GUI event stream files for live UI tracking
   (kept 7 days) and structured JSON run reports (kept 30 days), swept on start.
 - A revealed copy - when you open a .fd-sec container without unpacking it, its contents are
@@ -146,5 +149,5 @@ press Send, or you delete the zip and nothing happens.
 Data sharing: none - the app shares nothing on its own; the only outbound path is a mail you
 compose and send yourself from your own account. Children: no data collected.
 Open source: https://github.com/SerZhyAle/FileDO
-Contact: serzhyale@gmail.com
+Contact: sza@ukr.net
 ```

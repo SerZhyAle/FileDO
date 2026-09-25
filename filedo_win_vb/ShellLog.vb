@@ -22,7 +22,11 @@ Module ShellLog
     Private debugChecked As Boolean = False
     Private debugOn As Boolean = False
 
+    ' The self-test's own log file, so the failures it provokes on purpose never reach the user's.
+    Friend PathForTest As String = Nothing
+
     Public Function LogPath() As String
+        If PathForTest IsNot Nothing Then Return PathForTest
         Return Path.Combine(Runner.GetAppDataDir(), FileName)
     End Function
 
@@ -56,9 +60,41 @@ Module ShellLog
         If DebugEnabled() Then Append("DEBUG", line)
     End Sub
 
+    ' SHELL-06: SyncLock only orders this process's threads. Two windows are two processes - a
+    ' double-clicked container opens its own - and without a gate between them one could rotate
+    ' the file while the other appended to it, or both could append at once and one line be lost.
+    ' The gate is a named mutex in the session; a writer that cannot get it in two seconds writes
+    ' anyway, because a log line late is better than a log that stops.
+    Private Const CrossProcessName As String = "Local\FileDO.ShellLog"
+    Private Const CrossProcessWaitMs As Integer = 2000
+    Private crossProcess As Threading.Mutex = Nothing
+    Private crossProcessTried As Boolean = False
+
+    Private Function CrossProcessGate() As Threading.Mutex
+        If Not crossProcessTried Then
+            crossProcessTried = True
+            Try
+                crossProcess = New Threading.Mutex(False, CrossProcessName)
+            Catch
+                crossProcess = Nothing
+            End Try
+        End If
+        Return crossProcess
+    End Function
+
     Private Sub Append(level As String, text As String)
         SyncLock gate
+            Dim m = CrossProcessGate()
+            Dim held = False
             Try
+                If m IsNot Nothing Then
+                    Try
+                        held = m.WaitOne(CrossProcessWaitMs)
+                    Catch ex As Threading.AbandonedMutexException
+                        ' The other window ended while it held the gate; the gate is this one's now.
+                        held = True
+                    End Try
+                End If
                 Dim target = LogPath()
                 Try
                     Dim fi As New FileInfo(target)
@@ -72,6 +108,13 @@ Module ShellLog
                 File.AppendAllText(target, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & " " & level & " " &
                                    text & Environment.NewLine)
             Catch
+            Finally
+                If held Then
+                    Try
+                        m.ReleaseMutex()
+                    Catch
+                    End Try
+                End If
             End Try
         End SyncLock
     End Sub

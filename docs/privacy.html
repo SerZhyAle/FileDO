@@ -583,17 +583,34 @@
                   <td><code>history.json</code></td>
                   <td>
                     <span data-l="ru"
-                      >В текущем рабочем каталоге. При запуске из GUI это папка
-                      вашего профиля (<code>%USERPROFILE%</code>).</span
+                      >В личной папке FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code>, откуда бы ни
+                      запускалась команда. В версии из Microsoft Store Windows
+                      держит эту папку в личном хранилище пакета в
+                      <code>%LOCALAPPDATA%\Packages\</code>. Файл, оставленный
+                      прежней версией в текущем каталоге, копируется туда один раз
+                      и остаётся на месте. Справка и просмотр истории ничего не
+                      записывают.</span
                     >
                     <span data-l="en"
-                      >In the current working directory. Launched from the GUI,
-                      that is your profile folder
-                      (<code>%USERPROFILE%</code>).</span
+                      >In your own FileDO folder,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code>, wherever the
+                      command was started. In the Microsoft Store build Windows
+                      keeps that folder in the package's own per-user storage
+                      under <code>%LOCALAPPDATA%\Packages\</code>. A file an
+                      earlier version left in the current directory is copied
+                      there once and left where it was. Showing help or the
+                      history writes nothing.</span
                     >
                     <span data-l="ua"
-                      >У поточному робочому каталозі. Під час запуску з GUI це
-                      тека вашого профілю (<code>%USERPROFILE%</code>).</span
+                      >В особистій теці FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code>, звідки б не
+                      запускалася команда. У версії з Microsoft Store Windows
+                      тримає цю теку в особистому сховищі пакета в
+                      <code>%LOCALAPPDATA%\Packages\</code>. Файл, залишений
+                      попередньою версією в поточному каталозі, копіюється туди
+                      один раз і лишається на місці. Довідка й перегляд історії
+                      нічого не записують.</span
                     >
                   </td>
                   <td>
@@ -636,39 +653,91 @@
                   <td><code>hash_cache.json</code></td>
                   <td>
                     <span data-l="ru"
-                      >Рядом с исполняемым файлом. В версии из Microsoft Store
-                      папка установки доступна только для чтения, поэтому Windows
-                      перенаправляет запись в ваше личное хранилище пакета в
-                      <code>%LOCALAPPDATA%\Packages\</code>.</span
+                      >В той же личной папке FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code> (в версии из
+                      Microsoft Store - в личном хранилище пакета). Кеш, лежавший
+                      рядом с исполняемым файлом у прежних версий, копируется туда
+                      один раз.</span
                     >
                     <span data-l="en"
-                      >Next to the executable. In the Microsoft Store build the
-                      install folder is read-only, so Windows redirects the write
-                      into the package's own per-user storage under
-                      <code>%LOCALAPPDATA%\Packages\</code>.</span
+                      >In the same FileDO folder,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code> (in the Microsoft
+                      Store build, in the package's own per-user storage). A cache
+                      an earlier version kept next to the executable is copied
+                      there once.</span
                     >
                     <span data-l="ua"
-                      >Поруч із виконуваним файлом. У версії з Microsoft Store
-                      тека встановлення доступна лише для читання, тому Windows
-                      перенаправляє запис до вашого особистого сховища пакета в
-                      <code>%LOCALAPPDATA%\Packages\</code>.</span
+                      >У тій самій особистій теці FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code> (у версії з
+                      Microsoft Store - в особистому сховищі пакета). Кеш, що
+                      лежав поруч із виконуваним файлом у попередніх версіях,
+                      копіюється туди один раз.</span
                     >
                   </td>
                   <td>
                     <span data-l="ru"
                       >Кеш для ускорения повторного поиска дубликатов: путь к
-                      файлу, размер, дата изменения и вычисленные хеши MD5.
-                      Содержимого файлов в кеше нет.</span
+                      файлу, размер, дата изменения, идентификатор файла на томе
+                      и вычисленные хеши SHA-256. Содержимого файлов в кеше
+                      нет.</span
                     >
                     <span data-l="en"
                       >A cache that makes a repeat duplicate scan faster: file
-                      path, size, modification time and the computed MD5 hashes.
-                      No file contents are stored in it.</span
+                      path, size, modification time, the file's ID on its volume
+                      and the computed SHA-256 hashes. No file contents are
+                      stored in it.</span
                     >
                     <span data-l="ua"
                       >Кеш для пришвидшення повторного пошуку дублікатів: шлях до
-                      файлу, розмір, дата зміни та обчислені хеші MD5. Вмісту
-                      файлів у кеші немає.</span
+                      файлу, розмір, дата зміни, ідентифікатор файлу на томі та
+                      обчислені хеші SHA-256. Вмісту файлів у кеші немає.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>skip_files.list</code>, <code>check_damaged.list</code>,
+                    <code>check_files.list</code>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >В той же личной папке FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code>, - никогда в
+                      папке, откуда запущена команда. Список, оставленный там
+                      прежней версией, копируется один раз и остаётся на
+                      месте.</span
+                    >
+                    <span data-l="en"
+                      >In the same FileDO folder,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code> - never in the
+                      folder a command was started from. A list an earlier version
+                      left there is copied once and left where it was.</span
+                    >
+                    <span data-l="ua"
+                      >У тій самій особистій теці FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code>, - ніколи в теці,
+                      звідки запущено команду. Список, залишений там попередньою
+                      версією, копіюється один раз і лишається на місці.</span
+                    >
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Пути, размеры и даты изменения файлов: те, что копирование
+                      пропускает как повреждённые; те, что проверка признала
+                      повреждёнными; и те, что проверка уже прочитала без ошибок
+                      (для <code>--resume</code>). Содержимого файлов нет.</span
+                    >
+                    <span data-l="en"
+                      >File paths, sizes and modification times: the files a copy
+                      skips as damaged, the files a check found damaged, and the
+                      files a check has already read cleanly (for
+                      <code>--resume</code>). No file contents.</span
+                    >
+                    <span data-l="ua"
+                      >Шляхи, розміри й дати зміни файлів: ті, що копіювання
+                      пропускає як пошкоджені; ті, що перевірка визнала
+                      пошкодженими; і ті, що перевірка вже прочитала без помилок
+                      (для <code>--resume</code>). Вмісту файлів немає.</span
                     >
                   </td>
                 </tr>
@@ -891,13 +960,14 @@
                 ><b>Что собирается.</b> Только файлы, которые записал сам
                 FileDO: <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>,
                 <code>history.json</code>, отчёты <code>check_report_*</code>,
-                <code>check_state.json</code>,
+                <code>check_damaged.list</code>,
                 <code>compare_report_*.log</code>,
                 <code>delete_report_*.log</code>,
-                <code>skip_files.list</code>, <code>damaged_files.log</code> - из
-                папки программы, из <code>%LOCALAPPDATA%\FileDO</code>, из <code>%USERPROFILE%</code>, из
-                <code>%TEMP%\FileDO_Operations</code> и из
-                <code>%TEMP%</code>. Плюс сгенерированный
+                <code>skip_files.list</code>, <code>damaged_files.log</code> - только
+                из папки программы и из <code>%LOCALAPPDATA%\FileDO\state\</code>
+                (журнал окна - из <code>%LOCALAPPDATA%\FileDO</code>); из папки
+                профиля и из <code>%TEMP%</code> ничего не берётся. Архивы старше
+                семи дней удаляются при следующей отправке. Плюс сгенерированный
                 <code>filedo-report.txt</code>: версии, версия Windows, язык
                 интерфейса и список того, что вошло в архив.</span
               >
@@ -905,13 +975,15 @@
                 ><b>What is collected.</b> Only files FileDO itself wrote:
                 <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>, <code>history.json</code>, the
                 <code>check_report_*</code> reports,
-                <code>check_state.json</code>,
+                <code>check_damaged.list</code>,
                 <code>compare_report_*.log</code>,
                 <code>delete_report_*.log</code>,
                 <code>skip_files.list</code>, <code>damaged_files.log</code> -
-                from the program folder, from <code>%LOCALAPPDATA%\FileDO</code>, from <code>%USERPROFILE%</code>, from
-                <code>%TEMP%\FileDO_Operations</code> and from
-                <code>%TEMP%</code>. Plus a generated
+                only from the program folder and from
+                <code>%LOCALAPPDATA%\FileDO\state\</code> (the window's log from
+                <code>%LOCALAPPDATA%\FileDO</code>); nothing is picked up from your
+                profile folder or from <code>%TEMP%</code>. Archives older than seven
+                days are removed the next time you send. Plus a generated
                 <code>filedo-report.txt</code>: the version stamps, the Windows
                 version, the interface language, and a list of what went into the
                 archive.</span
@@ -920,13 +992,14 @@
                 ><b>Що збирається.</b> Лише файли, які записав сам FileDO:
                 <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>, <code>history.json</code>,
                 звіти <code>check_report_*</code>,
-                <code>check_state.json</code>,
+                <code>check_damaged.list</code>,
                 <code>compare_report_*.log</code>,
                 <code>delete_report_*.log</code>,
-                <code>skip_files.list</code>, <code>damaged_files.log</code> - з
-                теки програми, з <code>%LOCALAPPDATA%\FileDO</code>, з <code>%USERPROFILE%</code>, з
-                <code>%TEMP%\FileDO_Operations</code> і з
-                <code>%TEMP%</code>. Плюс згенерований
+                <code>skip_files.list</code>, <code>damaged_files.log</code> - лише
+                з теки програми та з <code>%LOCALAPPDATA%\FileDO\state\</code>
+                (журнал вікна - з <code>%LOCALAPPDATA%\FileDO</code>); з теки
+                профілю та з <code>%TEMP%</code> нічого не береться. Архіви, старші
+                за сім днів, видаляються під час наступного надсилання. Плюс згенерований
                 <code>filedo-report.txt</code>: версії, версія Windows, мова
                 інтерфейсу та перелік того, що увійшло до архіву.</span
               >

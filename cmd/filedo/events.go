@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -84,16 +85,57 @@ func (em *EventManager) Emit(kind EventKind, data map[string]interface{}) {
 		SchemaVersion: SchemaVersion,
 		Kind:          kind,
 		Timestamp:     eventNow(),
-		Data:          data,
+		Data:          jsonSafe(data).(map[string]interface{}),
 	}
 
 	bytes, err := json.Marshal(ev)
+	if err != nil && kind == EventKindResult {
+		// A result that cannot be encoded still ends the stream with its
+		// verdict: a stream without a result "said nothing" (rule 10), which
+		// is the one thing a supervisor must never be told (CLI-24).
+		ev.Data = map[string]interface{}{"verdict": data["verdict"]}
+		bytes, err = json.Marshal(ev)
+	}
 	if err != nil {
 		return
 	}
 
 	_, _ = em.file.Write(append(bytes, '\n'))
 	_ = em.file.Sync()
+}
+
+// jsonSafe copies a value tree with every non-finite float replaced by nil.
+// encoding/json refuses NaN and ±Inf outright, and a speed divided by a zero
+// duration is exactly that - it used to drop the whole event, result included
+// (CLI-24).
+func jsonSafe(v interface{}) interface{} {
+	switch x := v.(type) {
+	case float64:
+		if math.IsNaN(x) || math.IsInf(x, 0) {
+			return nil
+		}
+		return x
+	case float32:
+		if math.IsNaN(float64(x)) || math.IsInf(float64(x), 0) {
+			return nil
+		}
+		return x
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(x))
+		for k, e := range x {
+			out[k] = jsonSafe(e)
+		}
+		return out
+	case []interface{}:
+		out := make([]interface{}, len(x))
+		for i, e := range x {
+			out[i] = jsonSafe(e)
+		}
+		return out
+	case nil:
+		return map[string]interface{}(nil)
+	}
+	return v
 }
 
 func (em *EventManager) Close() {

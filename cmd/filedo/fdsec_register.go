@@ -111,6 +111,10 @@ type fdsecMenuItem struct {
 	// containers - so a destructive entry never sits flush against the one
 	// above it.
 	separator bool
+	// icon is the ICON-SET meaning the entry shows (SP-0016 T8): Explorer draws
+	// icons\<icon>.ico from beside the exe, never the product mark, which
+	// belongs to the group entry alone (ICON-SET rule 7).
+	icon string
 }
 
 // fdsecMenuItems is the sub-menu, in the order it is drawn.
@@ -135,16 +139,16 @@ type fdsecMenuItem struct {
 // disposition here that no undelete tool can walk back, so it keeps its typed
 // WIPE, and the honest caveat it prints is information rather than a prompt.
 var fdsecMenuItems = []fdsecMenuItem{
-	{key: "10Secure", label: "Secure", args: `"%1" secure`},
-	{key: "20SecureDel", label: "Secure and delete original", args: `"%1" secure del -y`},
-	{key: "30SecureWipe", label: "Secure and wipe original", args: `"%1" secure wipe`},
-	{key: "40SecureRename", label: "Secure with a random name", args: `"%1" secure rename`},
-	{key: "50Unsecure", label: "Unsecure", args: `"%1" unsecure`, separator: true},
-	{key: "60UnsecureDel", label: "Unsecure and delete container", args: `"%1" unsecure del -y`},
-	{key: "65UnsecureStart", label: "Unsecure and start", args: `"%1" unsecure start`},
-	{key: "70Wipe", label: "Wipe this file", args: `file "%1" wipe`, separator: true},
-	{key: "80Check", label: "Check this file", args: `check "%1"`},
-	{key: "90Info", label: "Info", args: `file "%1" info`},
+	{key: "10Secure", label: "Secure", args: `"%1" secure`, icon: "action.secure"},
+	{key: "20SecureDel", label: "Secure and delete original", args: `"%1" secure del -y`, icon: "action.secure"},
+	{key: "30SecureWipe", label: "Secure and wipe original", args: `"%1" secure wipe`, icon: "action.secure"},
+	{key: "40SecureRename", label: "Secure with a random name", args: `"%1" secure rename`, icon: "action.secure"},
+	{key: "50Unsecure", label: "Unsecure", args: `"%1" unsecure`, separator: true, icon: "action.unsecure"},
+	{key: "60UnsecureDel", label: "Unsecure and delete container", args: `"%1" unsecure del -y`, icon: "action.unsecure"},
+	{key: "65UnsecureStart", label: "Unsecure and start", args: `"%1" unsecure start`, icon: "action.unsecure"},
+	{key: "70Wipe", label: "Wipe this file", args: `file "%1" wipe`, separator: true, icon: "action.wipe"},
+	{key: "80Check", label: "Check this file", args: `check "%1"`, icon: "action.verify"},
+	{key: "90Info", label: "Info", args: `file "%1" info`, icon: "app.info"},
 }
 
 // fdsecRegisterUsage is one string because the register and unregister
@@ -176,12 +180,52 @@ func handleFdsecRegister(sub string, args []string) error {
 	// registration that reports success and does nothing is worse than a
 	// refusal that says where the menu comes from.
 	if os.Getenv(fdsecAsPackagedEnv) == "1" || fdsecHasPackageIdentity() {
-		return usagef("fdsec %s is not available in the Microsoft Store build: Windows keeps a packaged app's registry writes to the app itself, so Explorer would never see them. The File DO.. menu and the .fd-sec file type come with the MSI installer, the winget package or the zip", sub)
+		return usagef("fdsec %s is not available in the Microsoft Store build: Windows keeps a packaged app's registry writes to the app itself, so Explorer would never see them. The Store build brings its own File DO.. menu and .fd-sec file type with the package; the MSI installer, the winget package and the zip register theirs with this command", sub)
 	}
 	if sub == "unregister" {
 		return fdsecShellUnregister(allUsers)
 	}
 	return fdsecShellRegister(allUsers)
+}
+
+// fdsecPackagedMenuFamilies are the package families whose manifest declares
+// the first-level "File DO.." command (SP-0020): the Store identity
+// (msix/identity.json) and the fixed local-test identity that
+// build-msix.ps1 -SelfSign/-Register installs. Both are anchors - a family
+// name is the identity's name plus a hash of its publisher, so it moves only
+// if one of the two frozen values does.
+var fdsecPackagedMenuFamilies = []string{
+	"SZA.FileDO_fdk7e19xt9z9j",
+	"SZA.FileDO.LocalTest_x0me1g9j44m1e",
+}
+
+// fdsecPackagedMenuEnv is the test seam for the package check: "1" answers
+// as if the package were installed, "0" as if it were not. It exists because
+// the real answer depends on the machine - a developer who sideloaded the
+// test package would otherwise see every registration test stand down.
+const fdsecPackagedMenuEnv = "FILEDO_FDSEC_PACKAGED_MENU"
+
+// fdsecPackagedMenuInstalled reports whether a FileDO package carrying the
+// first-level menu is installed for this user, and which family it is.
+//
+// SP-0020 D3: when it is, the classic registration is the one that yields.
+// The package's group is removed by its uninstall and nothing of it is in
+// the registry; a classic copy beside it would put every entry in the menu
+// twice. It is the per-user rule of "HKLM wins" again: the copy an uninstall
+// can take back is the one that stays.
+func fdsecPackagedMenuInstalled() (string, bool) {
+	switch os.Getenv(fdsecPackagedMenuEnv) {
+	case "1":
+		return fdsecPackagedMenuFamilies[0], true
+	case "0":
+		return "", false
+	}
+	for _, fam := range fdsecPackagedMenuFamilies {
+		if fdsecPackageFamilyInstalled(fam) {
+			return fam, true
+		}
+	}
+	return "", false
 }
 
 // fdsecRegisteredExe is the binary the registered menu commands point at:
@@ -200,7 +244,8 @@ func fdsecRegisteredExe() (string, error) {
 	return filepath.Clean(exe), nil
 }
 
-// fdsecRegisteredIcon picks the icon the document type shows, in order:
+// fdsecRegisteredIcon picks the product mark the group entry and the open
+// verb show (and the document type, when the icons folder is absent), in order:
 // FileDO.ico next to the exe (what the MSI installs and the release zip
 // carries), then the GUI's own icon, then the CLI's. The last one always
 // exists, so this never fails.
@@ -213,6 +258,31 @@ func fdsecRegisteredIcon(exe string) string {
 		return gui + ",0"
 	}
 	return exe + ",0"
+}
+
+// fdsecSecretFileIcon is the ICON-SET meaning of the .fd-sec document type.
+const fdsecSecretFileIcon = "content.secret-file"
+
+// fdsecMeaningIcon is the icon file of one ICON-SET meaning: icons\<id>.ico
+// beside the exe, drawn by `filedo_win.exe --write-menu-icons` from the
+// vocabulary's glyph (assets\menu-icons in the repository). The MSI, the
+// release zip and the MSIX all carry the folder. A bare exe without it gets
+// no icon at all rather than the product mark: an entry with no picture says
+// nothing wrong, the mark in its place would (ICON-SET rule 7).
+func fdsecMeaningIcon(exe, id string) (string, bool) {
+	ico := filepath.Join(filepath.Dir(exe), "icons", id+".ico")
+	return ico, fileExistsPlain(ico)
+}
+
+// fdsecDocumentIcon is the icon of the .fd-sec document type: its meaning's
+// glyph where the icons folder is present, else the product's own icon - a
+// file type with no icon at all reads as a file nothing can open, which is
+// worse than the mark.
+func fdsecDocumentIcon(exe string) string {
+	if ico, ok := fdsecMeaningIcon(exe, fdsecSecretFileIcon); ok {
+		return ico
+	}
+	return fdsecRegisteredIcon(exe)
 }
 
 func fileExistsPlain(path string) bool {

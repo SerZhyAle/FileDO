@@ -27,7 +27,8 @@
 
 .PARAMETER Stamp
   The release stamp yyMMddHHmm (the git tag without the v). release.ps1 passes the tag's
-  stamp so the exe inside the package prints the tag's version. Default: now.
+  stamp so the exes inside the package carry the tag's version: filedo.exe prints it, and
+  filedo_win.exe has it as its PE version (yy.M.d.HHmm) and BuildStamp. Default: now.
 
 .PARAMETER Cli
   visible (default)  the console tool is a second, visible Start-menu app with the `filedo`
@@ -40,7 +41,9 @@
 .EXAMPLE
   .\msix\build-msix.ps1 -Register                            # local run under MSIX, no cert
 .NOTES
-  Needs Go, goversioninfo, VS Build Tools (MSBuild) and the Windows SDK (makeappx).
+  Needs Go, goversioninfo, VS Build Tools (MSBuild), the VS C++ x64 tools (MSVC, for
+  shellext\FileDOShell.dll - component Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
+  and the Windows SDK (makeappx).
     winget install Microsoft.WindowsSDK.10.0.26100
     go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1
 #>
@@ -158,6 +161,12 @@ foreach ($t in 'go', 'goversioninfo') {
         Fail "'$t' is not on PATH.$(if ($t -eq 'goversioninfo') { ' Install: go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1' })"
     }
 }
+# One toolchain for every channel (SP-0030 CI-03): the Store's filedo.exe is compiled by the Go
+# that go.mod's `toolchain` line pins - the one release.yml installs and build.ps1 tests with.
+$pinnedGo = if ((Get-Content (Join-Path $root "go.mod") -Raw) -match '(?m)^toolchain\s+(go\S+)\s*$') { $Matches[1] } else { $null }
+if (-not $pinnedGo) { Fail "go.mod has no 'toolchain goX.Y.Z' line - the release toolchain is not pinned." }
+$localGo = (& go env GOVERSION | Out-String).Trim()
+if ($localGo -ne $pinnedGo) { Fail "the local Go is $localGo, but every channel builds with $pinnedGo (go.mod toolchain). Install it, or set GOTOOLCHAIN=$pinnedGo." }
 $makeappx = Find-SdkTool "makeappx.exe"
 $makepri  = Find-SdkTool "makepri.exe"
 $msbuild  = Find-MSBuild
@@ -211,16 +220,33 @@ $smoke = & (Join-Path $stage "filedo.exe") "-?" 2>&1 | Out-String
 if ($smoke -notmatch [regex]::Escape($Stamp)) { Fail "the built filedo.exe does not print the stamp $Stamp - the version wiring is broken." }
 
 # --- filedo_win.exe (the VB.NET GUI) -----------------------------------------
+# Stamped the way build.ps1 and release.yml stamp it (PKG-03): BuildStamp is the release stamp
+# About and Send logs print, AssemblyVersion the PE version yy.M.d.HHmm. Without them the Store
+# copy of the GUI was 0.0.0.0, and every Store install reported a file-time fallback.
 Write-Host "Building filedo_win.exe (GUI)..." -NoNewline
-$guiOut = & $msbuild (Join-Path $root "filedo_win_vb\FileDOGUI.vbproj") /t:Rebuild /p:Configuration=Release /p:Platform=AnyCPU /v:quiet /nologo 2>&1
+$guiVersion = "$vMaj.$vMin.$vPat.$vBld"
+$guiOut = & $msbuild (Join-Path $root "filedo_win_vb\FileDOGUI.vbproj") /t:Rebuild /p:Configuration=Release /p:Platform=AnyCPU /p:BuildStamp=$Stamp /p:AssemblyVersion=$guiVersion /v:quiet /nologo 2>&1
 if ($LASTEXITCODE -ne 0) { Write-Host ""; Write-Host ($guiOut | Out-String); Fail "GUI build failed ($LASTEXITCODE)" }
 $guiBin = Join-Path $root "filedo_win_vb\bin\Release"
 Copy-Item (Join-Path $guiBin "filedo_win.exe") (Join-Path $stage "filedo_win.exe") -Force
+# Read back, as build.ps1's smoke does: what was asked of MSBuild is not what was built until
+# the staged exe says so.
+$guiFileVersion = (Get-Item (Join-Path $stage "filedo_win.exe")).VersionInfo.FileVersion
+if ($guiFileVersion -ne $guiVersion) { Fail "the staged filedo_win.exe has PE version '$guiFileVersion', want '$guiVersion' - the GUI build ignored the stamp." }
 # The DPI declaration is two files and both must ship: the manifest inside the exe makes the
 # process per-monitor aware, and this config is what makes WinForms rescale its controls.
 $cfg = Join-Path $guiBin "filedo_win.exe.config"
 if (-not (Test-Path $cfg)) { Fail "filedo_win.exe.config was not produced by the GUI build; shipping the manifest without it renders worse than shipping neither." }
 Copy-Item $cfg (Join-Path $stage "filedo_win.exe.config") -Force
+Write-Host " OK"
+
+# --- FileDOShell.dll (the first-level Explorer command, SP-0020) -------------
+# The manifest declares it; a package that declares a COM class and lacks the DLL installs
+# fine and then shows nothing, so it is built on every run and asserted in the package below.
+Write-Host "Building FileDOShell.dll (Explorer command)..." -NoNewline
+$shellOut = Join-Path $outDir "shellext"
+& (Join-Path $root "shellext\build-shellext.ps1") -OutDir $shellOut -FileVersion "$vMaj.$vMin.$vPat.$vBld" | Out-Null
+Copy-Item (Join-Path $shellOut "FileDOShell.dll") (Join-Path $stage "FileDOShell.dll") -Force
 Write-Host " OK"
 
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt") -Force
@@ -260,6 +286,51 @@ foreach ($size in 16, 24, 32, 48, 256) {
         $logoVariants.Add("Assets\$leaf")
     }
 }
+
+# The .fd-sec file type shows its ICON-SET meaning (content.secret-file), not the product mark
+# (SP-0016 T8, ICON-SET rule 7): its PNGs are cut from the same .ico the MSI and the classic
+# registration use, so the three channels show one picture. The Explorer command (FileDOShell.dll)
+# reads the menu icons from icons\ beside it, as the classic registration does.
+$menuIconsSrc = Join-Path $root "assets\menu-icons"
+$menuIconsOut = Join-Path $stage "icons"
+New-Item -ItemType Directory -Force -Path $menuIconsOut | Out-Null
+Copy-Item (Join-Path $menuIconsSrc "*.ico") $menuIconsOut -Force
+$menuIconEntries = @(Get-ChildItem $menuIconsOut -Filter *.ico | ForEach-Object { "icons\$($_.Name)" })
+if ($menuIconEntries.Count -ne 6) { Fail "assets\menu-icons holds $($menuIconEntries.Count) icons, expected 6 - run filedo_win.exe --write-menu-icons assets\menu-icons" }
+function New-SecretFileLogo([string]$dst, [int]$size) {
+    $ico = New-Object System.Drawing.Icon((Join-Path $menuIconsSrc "content.secret-file.ico"), $size, $size)
+    try {
+        $bmp = $ico.ToBitmap()
+        try {
+            if ($bmp.Width -ne $size) { Fail "content.secret-file.ico has no $size px image" }
+            $bmp.Save($dst, [System.Drawing.Imaging.ImageFormat]::Png)
+        } finally { $bmp.Dispose() }
+    } finally { $ico.Dispose() }
+}
+# The 256 px image is a PNG inside the .ico, which System.Drawing.Icon skips; it is copied out
+# byte for byte. The unqualified 44 px asset the manifest names is scaled from it (the .ico has
+# no 44): Windows picks a targetsize form whenever one fits, so that one is the fallback only.
+$secret256 = Join-Path $assetsOut "SecretFile.targetsize-256.png"
+$icoBytes = [System.IO.File]::ReadAllBytes((Join-Path $menuIconsSrc "content.secret-file.ico"))
+$png = $null
+for ($i = 0; $i -lt [BitConverter]::ToUInt16($icoBytes, 4); $i++) {
+    $at = 6 + 16 * $i
+    if ($icoBytes[$at] -eq 0) {
+        $len = [BitConverter]::ToInt32($icoBytes, $at + 8); $off = [BitConverter]::ToInt32($icoBytes, $at + 12)
+        $png = New-Object byte[] $len
+        [Array]::Copy($icoBytes, $off, $png, 0, $len)
+    }
+}
+if (-not $png -or $png[1] -ne 0x50) { Fail "content.secret-file.ico carries no 256 px PNG image" }
+[System.IO.File]::WriteAllBytes($secret256, $png)
+New-Logo $secret256 (Join-Path $assetsOut "SecretFile.png") 44
+$logoVariants.Add("Assets\SecretFile.png")
+foreach ($size in 16, 24, 32, 48, 256) {
+    $leaf = "SecretFile.targetsize-$size.png"
+    if ($size -ne 256) { New-SecretFileLogo (Join-Path $assetsOut $leaf) $size }
+    $logoVariants.Add("Assets\$leaf")
+}
+foreach ($entry in $menuIconEntries) { $logoVariants.Add($entry) }
 Write-Host " OK"
 
 # --- manifest ----------------------------------------------------------------
@@ -349,6 +420,32 @@ foreach ($a in $apps) {
     foreach ($attr in 'Square150x150Logo', 'Square44x44Logo') {
         if ($entries -notcontains $ve.GetAttribute($attr)) { [void]$problems.Add("Application $($a.GetAttribute('Id')) references a missing $attr") }
     }
+}
+$fdsecTypes = @($packed.SelectNodes('/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions/uap:Extension[@Category="windows.fileTypeAssociation"]/uap:FileTypeAssociation[@Name="filedo.securecontainer"]/uap:SupportedFileTypes/uap:FileType', $pns) | ForEach-Object { $_.InnerText })
+if (($fdsecTypes -join ',') -cne '.fd-sec') {
+    [void]$problems.Add("FileDOGui .fd-sec association is '$($fdsecTypes -join ',')', expected .fd-sec")
+}
+# SP-0020: the Explorer command. One CLSID in three places - the verb, the COM class, and the
+# DLL's source - and the DLL the class names must be in the package; any disagreement is a
+# package that installs and then shows no menu.
+$pns.AddNamespace('desktop4', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/4')
+$pns.AddNamespace('desktop5', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/5')
+$pns.AddNamespace('com',      'http://schemas.microsoft.com/appx/manifest/com/windows10')
+$guiExt = '/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions'
+$verbs = @($packed.SelectNodes("$guiExt/desktop4:Extension[@Category='windows.fileExplorerContextMenus']/desktop4:FileExplorerContextMenus/desktop5:ItemType[@Type='*']/desktop5:Verb", $pns))
+$classes = @($packed.SelectNodes("$guiExt/com:Extension[@Category='windows.comServer']/com:ComServer/com:SurrogateServer/com:Class", $pns))
+$srcClsid = $null
+$cppText = Get-Content (Join-Path $root "shellext\FileDOShell.cpp") -Raw
+if ($cppText -match '//\s*\{([0-9A-Fa-f-]{36})\}\s*\r?\n\s*const CLSID CLSID_FileDOCommand') { $srcClsid = $Matches[1].ToUpperInvariant() }
+if ($verbs.Count -ne 1) { [void]$problems.Add("$($verbs.Count) Explorer command verbs on '*', expected 1") }
+if ($classes.Count -ne 1) { [void]$problems.Add("$($classes.Count) surrogate COM classes, expected 1") }
+if ($verbs.Count -eq 1 -and $classes.Count -eq 1) {
+    $vc = $verbs[0].GetAttribute('Clsid').ToUpperInvariant(); $cc = $classes[0].GetAttribute('Id').ToUpperInvariant()
+    if ($vc -ne $cc) { [void]$problems.Add("the Explorer verb names CLSID $vc but the COM class is $cc") }
+    if (-not $srcClsid) { [void]$problems.Add("shellext\FileDOShell.cpp carries no CLSID_FileDOCommand comment to compare with") }
+    elseif ($vc -ne $srcClsid) { [void]$problems.Add("the manifest CLSID $vc differs from FileDOShell.cpp's $srcClsid") }
+    $dllPath = $classes[0].GetAttribute('Path')
+    if ($entries -notcontains $dllPath) { [void]$problems.Add("the COM class names $dllPath, which is not in the package") }
 }
 foreach ($need in 'filedo_win.exe.config', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'Assets\StoreLogo.png') {
     if ($entries -notcontains $need) { [void]$problems.Add("$need is not in the package") }

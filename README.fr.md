@@ -29,7 +29,7 @@ filedo D: fill 1000 del
 
 # Recherche et gestion des doublons
 filedo C: check-duplicates
-filedo D: cd old del
+filedo D:\Photos cd old del
 
 # Copie avec suivi de progression
 filedo folder C:\Source copy D:\Backup
@@ -85,7 +85,7 @@ La désinstallation retire tout ce que le programme d'installation a écrit, y c
 
 #### Option 3 - Microsoft Store (MSIX)
 
-Un paquet, deux entrées: la tuile **FileDO** et la commande `filedo` dans le `PATH`. La version du Store n'a **pas** les entrées de l'Explorateur: un paquet ne peut les obtenir que via un gestionnaire shell signé, ce qui est un travail distinct.
+Un paquet, deux entrées: la tuile **FileDO** et la commande `filedo` dans le `PATH`. La version du Store n'a **pas** les entrées de l'Explorateur: un paquet ne peut les obtenir que via un gestionnaire shell signé, ce qui est un travail distinct. Elle prend **bien** en charge le type de fichier `.fd-sec`: un double-clic sur un conteneur ouvre la fenêtre FileDO sur la page *Ouvrir un fichier secret* avec ce conteneur déjà choisi, et le mot de passe y est demandé.
 
 #### Option 4 - Téléchargement manuel
 
@@ -161,10 +161,12 @@ filedo C:\temp clean
 
 ## Fichiers secrets (`.fd-sec`)
 
-Un fichier entre dans un conteneur, derrière un mot de passe, et en ressort - depuis la ligne de commande,
-depuis le menu de l'Explorateur, ou depuis les pages du groupe **Protéger** dans la fenêtre. Le vrai nom
-de l'original, sa taille réelle et ses horodatages y sont scellés ; le conteneur lui-même ne révèle que
-sa propre taille, son nom visible et ses horodatages (`rename` crée un bloc de données anonyme).
+Un fichier - ou un dossier, toute son arborescence - entre dans un conteneur, derrière un mot de passe, et
+en ressort - depuis la ligne de commande, depuis le menu de l'Explorateur, ou depuis les pages du groupe
+**Protéger** dans la fenêtre. Le vrai nom de l'original, sa taille réelle et ses horodatages y sont
+scellés, et pour un dossier le chemin, la taille et les horodatages de chaque élément ; le conteneur
+lui-même ne révèle que sa propre taille, son nom visible et ses horodatages (`rename` crée un bloc de
+données anonyme). Rien sur le disque ne distingue un conteneur de dossier d'un conteneur de fichier.
 
 ```bash
 # Empaqueter (le mot de passe est demandé deux fois, sans écho)
@@ -180,7 +182,32 @@ filedo report.fd-sec unsecure here
 
 # L'ouvrir dans le programme auquel il appartient, sans le déballer
 filedo report.fd-sec reveal
+
+# Un dossier s'empaquette de la même façon en un seul fichier, et revient avec toute son arborescence
+filedo "Impots 2025" secure
+filedo "Impots 2025.fd-sec" unsecure to D:\Restored
+
+# La suite discrète : une clé plus dure, aucune trace d'alignement - mais seul FileDO l'ouvre
+filedo report.docx secure suite2
 ```
+
+Un dossier est empaqueté en entier - sous-dossiers vides compris - et restauré en entier : d'abord dans un
+dossier temporaire neuf, mis à sa place seulement une fois chaque fichier vérifié, et jamais dans ni
+par-dessus un dossier qui existe déjà (avec `-y`, sous un nom suffixé d'un numéro). Un dossier qui
+contient une jonction, un lien symbolique ou un point de montage est refusé plutôt que suivi. `del` et
+`wipe` ne retirent l'arborescence d'origine qu'après la relecture du conteneur, et seulement si le dossier
+n'a pas changé depuis l'empaquetage. `reveal` ouvre un fichier : il refuse donc un conteneur de dossier et
+renvoie vers `unsecure`.
+
+`suite2` scelle un fichier (pas un dossier) avec la suite 2 au lieu de la suite 1 par défaut : une clé
+Argon2id à 256 Mio repliée avec un poivre et XChaCha20-Poly1305 en trames de 64 Kio, si bien que le fichier
+est du bruit dès son premier octet, sans même le motif de longueur par grappes de 512 octets de la suite 1.
+Il garde le vrai nom, la taille réelle et l'heure du chiffrement, mais pas les horodatages propres de
+l'original - le fichier restauré reçoit l'heure actuelle. Seul FileDO à partir de cette version l'ouvre :
+les anciennes versions de FileDO le signalent comme endommagé ou comme un mauvais mot de passe, et les
+applications FastMediaSorter ne peuvent pas l'ouvrir, donc la suite 1 reste celle par défaut. `unsecure`,
+`reveal`, `fdsec info` et `fdsec verify` trouvent la suite eux-mêmes ; rien d'autre ne change, et un mot de
+passe vide reste un simple camouflage.
 
 Cinq choses dites franchement, car une fonction de sécurité qui se surestime vaut moins que rien :
 
@@ -229,10 +256,11 @@ l'entrée du même nom dans le menu de l'Explorateur.
 
 ### **Gestion des Doublons de Fichiers**
 - **Détection de doublons intégrée** - intégrée dans l'application principale
-- **Multiples modes de sélection** (plus ancien/plus récent/alphabétique)
-- **Actions flexibles** (supprimer/déplacer les doublons)
-- **Identification fiable basée sur MD5**
-- **Mise en cache des hachages** pour des rescans plus rapides
+- **Multiples modes de sélection** (plus ancien/plus récent selon la date de création, alphabétique)
+- **Actions flexibles** (supprimer/déplacer les doublons) - chaque fichier fait l'objet d'une question, sauf avec `-y` (ou `--yes`) ; une exécution sans console et sans `-y` est refusée avant de toucher quoi que ce soit
+- **Regroupement par SHA-256 et comparaison octet par octet avec la copie conservée** juste avant chaque suppression ou déplacement ; un hachage, en cache ou frais, n'est jamais la seule preuve, et un déplacement ne remplace jamais un fichier existant, y compris vers un autre disque
+- **Liens physiques et second nom du même fichier** ne comptent jamais comme doublons ; la racine d'un disque ou d'un partage, Windows, Program Files et le TEMP système exigent une confirmation tapée même avec `-y`, et une analyse ignore Windows et Program Files sauf si elle commence à l'intérieur
+- **Mise en cache des hachages** pour des rescans plus rapides - le cache (`hash_cache.json`) se trouve dans `%LOCALAPPDATA%\FileDO\state\`, et un hachage en cache ne sert que tant que la taille, la date de modification, l'identifiant du fichier et le change time du fichier sont inchangés
 - **Sauvegarde/chargement des listes de doublons** pour le traitement par lots
 - **Architecture modulaire** avec le package fileduplicates dédié
 
@@ -267,7 +295,7 @@ l'entrée du même nom dans le menu de l'Explorateur.
 | `fill [taille]` | Remplir avec données de test | `filedo D: fill 1000` |
 | `clean` | Supprimer fichiers de test | `filedo C: clean` |
 | `check-duplicates` | Trouver doublons de fichiers | `filedo C: check-duplicates` |
-| `cd [mode] [action]` | Vérifier doublons (forme courte) | `filedo C: cd old del` |
+| `cd [mode] [action]` | Vérifier doublons (forme courte) | `filedo D:\Photos cd old del -y` |
 | `from <fichier>` | Exécuter commandes par lots | `filedo from script.txt` |
 | `hist` | Afficher historique des opérations | `filedo hist` |
 
@@ -278,10 +306,11 @@ l'entrée du même nom dans le menu de l'Explorateur.
 | `nodel` | Conserver fichiers de test | `filedo C: speed 100 nodel` |
 | `short` | Sortie brève seulement | `filedo D: speed 100 short` |
 | `max` | Taille maximale (10GB) | `filedo C: speed max` |
-| `old` | Garder le plus récent comme original (pour cd) | `filedo D: cd old del` |
-| `new` | Garder le plus ancien comme original (pour cd) | `filedo E: cd new move F:` |
+| `old` | Garder le plus récent comme original (pour cd) | `filedo D:\Photos cd old del` |
+| `new` | Garder le plus ancien comme original (pour cd) | `filedo E:\Photos cd new move F:\Dups` |
 | `abc` | Garder le dernier alphabétiquement (pour cd) | `filedo C: cd abc` |
 | `xyz` | Garder le premier alphabétiquement (pour cd) | `filedo C: cd xyz list dups.lst` |
+| `-y`, `--yes` | Supprimer/déplacer les doublons sans question par fichier (pour cd, requis sans console) | `filedo D:\Photos cd old del -y` |
 
 ---
 
@@ -374,7 +403,7 @@ filedo cmp D:\Data E:\Backup del old target    # seulement si le plus ancien est
 filedo cmp D:\Data E:\Backup del new source    # seulement si le plus récent est côté Source
 ```
 
-Notes: appariement par chemin relatif; égalité par taille seulement; mtime pour old/new; Windows insensible à la casse; logs: compare_report_*.log, delete_report_<mode>_*.log.
+Notes: appariement par chemin relatif; `del source` et `del target` ne suppriment une paire que si la taille et l'heure de modification concordent (`--by-hash` : même contenu ; `--allow-mismatch` : toute paire) - une paire qui diffère est signalée et conservée; deux écritures du même dossier, ou un dossier contenu dans l'autre, sont refusées; mtime pour old/new; Windows insensible à la casse, la suppression utilise le vrai nom du fichier; ce qui n'a pu être lu ou supprimé termine avec le code 2; logs: compare_report_*.log, delete_report_<mode>_*.log.
 
 ---
 
@@ -386,9 +415,9 @@ Notes: appariement par chemin relatif; égalité par taille seulement; mtime pou
 
 > **Suppression Sécurisée** : `fill <taille> del` écrase l'espace libre avec gestion optimisée des buffers et écriture contextuelle pour la suppression sécurisée des données.
 
-> **Fichiers de Test** : Crée des fichiers `FILL_*.tmp` et `speedtest_*.txt`. Utilisez la commande `clean` pour leur suppression automatique.
+> **Fichiers de Test** : Crée des fichiers `FILL_*.tmp` et `speedtest_*.txt`. `clean` supprime seulement ceux que FileDO a écrits - avec ses noms et son contenu, rien d'autre - après les avoir listés et avoir demandé ; `--yes` répond à la question.
 
-> **Architecture Modulaire** : Refactorisée avec des packages séparés `capacitytest` et `fileduplicates` pour une meilleure maintenabilité et extensibilité.
+> **Packages partagés** : `fileduplicates` (détection des doublons), `fsx` (identité des chemins et écriture atomique sans remplacement) et `statedir` (la racine d'état, `%LOCALAPPDATA%\FileDO\state`).
 
 ---
 
@@ -446,11 +475,14 @@ filedo E: fill max del
 # Trouver doublons dans le répertoire courant
 filedo . check-duplicates
 
-# Trouver et supprimer anciens doublons
-filedo C: cd old del
+# Trouver et supprimer anciens doublons (avec une question par fichier)
+filedo D:\Photos cd old del
+
+# La même chose sans question par fichier
+filedo D:\Photos cd old del -y
 
 # Trouver et déplacer nouveaux doublons vers sauvegarde
-filedo E: cd new move E:\Backup
+filedo E:\Photos cd new move E:\Backup
 
 # Sauvegarder liste de doublons pour traitement ultérieur
 filedo D: cd list duplicates.lst
@@ -475,10 +507,8 @@ filedo cd from list duplicates.lst xyz del
 ```
 FileDO/
 ├── main.go                    # Point d'entrée de l'application
-├── capacitytest/             # Module de test de capacité
-│   ├── types.go              # Interfaces et types principaux
-│   ├── test.go               # Logique de test principale
-│   └── utils.go              # Utilitaires et fonctions de vérification
+├── fsx/                      # Identité des chemins et écriture atomique
+├── statedir/                 # Emplacement des fichiers d'état (%LOCALAPPDATA%\FileDO\state)
 ├── fileduplicates/           # Gestion des doublons de fichiers
 │   ├── types.go              # Interfaces de détection de doublons
 │   ├── duplicates.go         # Logique principale des doublons
@@ -503,7 +533,7 @@ FileDO/
 - **InterruptHandler Amélioré** : Interruption thread-safe avec support contextuel
 - **Gestion Optimisée des Buffers** : Redimensionnement dynamique des buffers pour performance optimale
 - **Tests Complets** : Détection de fausse capacité avec vérification aléatoire
-- **Détection de Doublons** : Comparaison de fichiers basée sur MD5 avec mise en cache
+- **Détection de Doublons** : Comparaison de fichiers basée sur SHA-256 avec mise en cache, et vérification octet par octet avant toute suppression ou tout déplacement
 - **Traitement par Lots** : Exécution de scripts avec gestion d'erreurs
 - **Tenue d'Historique** : Suivi d'opérations basé sur JSON
 

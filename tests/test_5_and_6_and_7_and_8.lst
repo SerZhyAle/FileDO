@@ -1,3 +1,7 @@
+# Do not run this file directly: <TARGET_DRIVE> and <TARGET_DIR> are filled in
+# by tests\run-test-list.ps1 from FILEDO_TEST_TARGET (a mounted VHD or a folder
+# under %TEMP%), which refuses every other target.
+#   pwsh -File tests\run-test-list.ps1 -List tests\test_5_and_6_and_7_and_8.lst
 # =====================================================================
 # SECTION 5: DUPLICATE FILE MANAGEMENT
 # =====================================================================
@@ -23,8 +27,8 @@ hist
 # =====================================================================
 
 # Final cleanup
-device D: clean
-folder D:\TestFolder clean
+device <TARGET_DRIVE> clean
+folder <TARGET_DIR>\TestFolder clean
 network \\localhost\share clean
 
 # =====================================================================

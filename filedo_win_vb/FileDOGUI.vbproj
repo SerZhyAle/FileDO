@@ -99,6 +99,9 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Theme.vb" />
+    <Compile Include="Glyphs.vb" />
+    <Compile Include="MenuIcons.vb" />
+    <Compile Include="SvgPath.vb" />
     <Compile Include="Chrome.vb" />
     <Compile Include="ShellSettings.vb" />
     <Compile Include="Rail.vb" />
@@ -113,6 +116,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="WindowPlacement.vb" />
+    <Compile Include="TargetPath.vb" />
     <Compile Include="WipeSafety.vb" />
     <Compile Include="Program.vb" />
   </ItemGroup>
@@ -128,6 +132,25 @@
     <EmbeddedResource Include="..\cmd\filedo\testdata\events\sample-v1.jsonl">
       <Link>testdata\events\sample-v1.jsonl</Link>
       <LogicalName>FileDOGUI.events.sample-v1.jsonl</LogicalName>
+    </EmbeddedResource>
+    <!-- The credential-redaction vectors the CLI's test and this exe's self-test both run
+         (SP-0029 SHELL-01), so the run report redacts exactly as history.json does. -->
+    <EmbeddedResource Include="..\cmd\filedo\testdata\redaction\vectors.tsv">
+      <Link>testdata\redaction\vectors.tsv</Link>
+      <LogicalName>FileDOGUI.redaction.vectors.tsv</LogicalName>
+    </EmbeddedResource>
+    <!-- The vocabulary glyphs the shell draws and the shared palette its state colours are held to,
+         vendored from the iconography catalog by assets\sync-icon-glyphs.ps1 with the SHA-256 of
+         each in PROVENANCE.txt. Glyphs.vb hashes every one before it draws a byte of it. -->
+    <EmbeddedResource Include="..\assets\glyphs\*.svg;..\assets\glyphs\palette.json;..\assets\glyphs\PROVENANCE.txt">
+      <Link>glyphs\%(Filename)%(Extension)</Link>
+      <LogicalName>FileDOGUI.glyphs.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <!-- The Explorer icons filedo_win.exe writes with its write-menu-icons switch (MenuIcons.vb);
+         embedded so the self-test can hold each one to a fresh drawing of its glyph. -->
+    <EmbeddedResource Include="..\assets\menu-icons\*.ico">
+      <Link>menuicons\%(Filename)%(Extension)</Link>
+      <LogicalName>FileDOGUI.menuicons.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

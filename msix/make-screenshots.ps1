@@ -14,7 +14,7 @@
 
   Everything it changes is put back: the developer's HKCU\Software\FileDO values (language,
   theme, placement, folded rail groups) are snapshotted first and restored in a finally block,
-  and the demo file it creates for the "Make a file secret" page is deleted. The window is
+  and the demo file it creates for the "Secure a file" page is deleted. The window is
   killed rather than closed, because a graceful close writes the window placement.
 
   Output: msix\screenshots\<page>-<store-locale>.png (Partner Center locale codes), PNG,
@@ -54,7 +54,13 @@ param(
     # Grab the real screen (CopyFromScreen) instead of asking the window to print itself. Slower
     # and needs the window unobstructed, but it is exactly what a user sees: use it to tell a
     # real defect from a PrintWindow artefact.
-    [switch]$Live
+    [switch]$Live,
+    # Display to capture on, by device name (\\.\DISPLAY2). Default: the primary display. A
+    # display at another scaling is how the rail is proven at 100 % / 150 % (SP-0016 T3/T4).
+    [string]$Monitor,
+    # Rail groups to show folded, by key (rail_group_tidy; comma separated). Default: none - the
+    # Store set shows every group open. One folded group beside open ones is SP-0016 T3's proof.
+    [string]$CollapsedGroups
 )
 
 $ErrorActionPreference = "Stop"
@@ -233,7 +239,7 @@ function Invoke-RailRow($win, [string]$lang, [string]$key) {
     [FdMsaa]::DoDefault($h)
 }
 
-# A neutral path for the "Make a file secret" page: temp paths carry the user name.
+# A neutral path for the "Secure a file" page: temp paths carry the user name.
 $demoDir  = Join-Path $env:PUBLIC "Documents\FileDO-demo"
 $demoFile = Join-Path $demoDir "quarterly-report.docx"
 
@@ -246,18 +252,27 @@ try {
         New-Item -ItemType Directory -Force -Path $demoDir | Out-Null
         [System.IO.File]::WriteAllText($demoFile, "FileDO screenshot demo file`r`n")
     }
-    $screen = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+    $target = [System.Windows.Forms.Screen]::PrimaryScreen
+    if ($Monitor) {
+        $target = [System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceName -eq $Monitor } | Select-Object -First 1
+        if (-not $target) { throw "make-screenshots: no display named '$Monitor' (have $(([System.Windows.Forms.Screen]::AllScreens | ForEach-Object DeviceName) -join ' '))." }
+    }
+    $screen = $target.WorkingArea
+    # The window always opens on the primary display and is then moved, the way a user drags it:
+    # a window opened straight onto a display at another scaling gets no WM_DPICHANGED.
+    $launchArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 
     foreach ($lang in $Languages) {
         foreach ($pg in $Pages) {
             # settings first: the window reads them once, in its constructor
             Set-GuiSetting 'GuiLang' $lang
             Set-GuiSetting 'ShellTheme' $Theme
-            Clear-GuiSetting 'ShellRailCollapsed'
+            if ($CollapsedGroups) { Set-GuiSetting 'ShellRailCollapsed' ((@($CollapsedGroups -split '[,; ]+' | Where-Object { $_ })) -join ';') }
+            else { Clear-GuiSetting 'ShellRailCollapsed' }
             Set-GuiSetting 'ShellPlacementV' 3 'DWord'
             Clear-GuiSetting 'ShellDpi'                  # no saved DPI: the rectangle is taken as it stands
-            Set-GuiSetting 'ShellX' ($screen.Left + 40) 'DWord'
-            Set-GuiSetting 'ShellY' ($screen.Top + 40) 'DWord'
+            Set-GuiSetting 'ShellX' ($launchArea.Left + 40) 'DWord'
+            Set-GuiSetting 'ShellY' ($launchArea.Top + 40) 'DWord'
             Set-GuiSetting 'ShellW' 1400 'DWord'
             Set-GuiSetting 'ShellH' 900 'DWord'
             Set-GuiSetting 'ShellMax' 0 'DWord'
@@ -270,6 +285,10 @@ try {
                 if (-not $win) { throw "the shell window did not appear for $lang/$pg" }
                 $h = [IntPtr]$win.Current.NativeWindowHandle
                 Start-Sleep -Milliseconds 800
+                if ($Monitor) {
+                    [void][FdWin]::SetWindowPos($h, [IntPtr]::Zero, $screen.Left + 40, $screen.Top + 40, 0, 0, 0x0001 -bor 0x0004)  # NOSIZE, NOZORDER
+                    Start-Sleep -Milliseconds 1500   # the window re-scales to the new display's DPI
+                }
 
                 # size: client = design size * DPI/96, then move to the top-left of the work area
                 $scale = [FdWin]::GetDpiForWindow($h) / 96.0

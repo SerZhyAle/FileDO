@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -12,7 +11,7 @@ import (
 // isPathAccessible checks if a path exists and is accessible
 func isPathAccessible(path string) bool {
 	// Check for network paths specially
-	if len(path) > 2 && (path[0:2] == "\\" || path[0:2] == "//") {
+	if len(path) > 2 && (path[0:2] == `\\` || path[0:2] == "//") {
 		// For network paths, we need to check if they are accessible
 		// If it's a UNC path, just check if we can stat it
 		_, err := os.Stat(path)
@@ -121,30 +120,30 @@ func genericOperation(cmd *flag.FlagSet) (string, runKind) {
 	}
 }
 
-// redirectSystemDrive redirects C: to user's temp directory for write operations with user confirmation
+// printRedirectCleanNote says where a system-drive clean is looking.
+func printRedirectCleanNote(dir string) {
+	fmt.Printf("System drive: FileDO writes its test files to %s, so clean looks there.\n", dir)
+}
+
+// redirectSystemDrive redirects the system drive to the user's temp directory
+// for write operations, with confirmation. "The system drive" is decided by
+// isSystemVolumeRoot, which recognises every spelling of the root of the
+// volume holding Windows (CLI-18). With no answer to read - the GUI closes
+// the child's stdin - the prompt takes its default, which is the redirect.
 func redirectSystemDrive(path string) string {
-	if strings.ToLower(path) == "c:" {
+	if isSystemVolumeRoot(path) {
 		// Check if redirection is disabled by environment variable
 		if os.Getenv("FILEDO_DISABLE_REDIRECT") == "1" {
 			fmt.Printf("⚠️  System drive redirection disabled by FILEDO_DISABLE_REDIRECT=1\n")
-			fmt.Printf("   WARNING: Writing directly to C: - use with caution!\n")
+			fmt.Printf("   WARNING: Writing directly to the system drive - use with caution!\n")
 			return path
 		}
 
-		// Get user's temp directory from environment
-		tempDir := os.Getenv("TEMP")
-		if tempDir == "" {
-			tempDir = os.Getenv("TMP") // Fallback to TMP
-		}
-		if tempDir == "" {
-			tempDir = "C:\\TEMP" // Final fallback
-		}
-
 		// Create subdirectory for FileDO operations
-		fileDoTempDir := filepath.Join(tempDir, "FileDO_Operations")
+		fileDoTempDir := systemDriveRedirectDir()
 
 		// Show warning and ask for confirmation
-		fmt.Printf("⚠️  WARNING: Write operation requested on system drive C:\n")
+		fmt.Printf("⚠️  WARNING: Write operation requested on the system drive (%s)\n", path)
 		fmt.Printf("   For safety, redirecting to temporary directory:\n")
 		fmt.Printf("   %s\n\n", fileDoTempDir)
 		fmt.Printf("   This protects your system from potential issues during testing.\n")
@@ -175,7 +174,7 @@ func redirectSystemDrive(path string) string {
 			fmt.Printf("✓ Using safe location: %s\n", fileDoTempDir)
 			return fileDoTempDir
 		} else {
-			fmt.Printf("⚠️  User chose to proceed with system drive C: directly.\n")
+			fmt.Printf("⚠️  User chose to proceed with the system drive directly.\n")
 			fmt.Printf("   WARNING: This may affect system stability or performance.\n")
 			return path
 		}
@@ -198,7 +197,7 @@ type CommandHandler interface {
 	Info(path string, fullScan bool) (string, error)
 	SpeedTest(path, size string, noDelete, shortFormat bool) error
 	Fill(path, size string, autoDelete bool) error
-	FillClean(path string) error
+	FillClean(path string, assumeYes bool) error
 	FillVerify(path string) error
 	Test(path string, autoDelete bool, maxFiles int) error
 	Probe(path string, assumeYes bool, autoRepair bool) error
@@ -226,8 +225,8 @@ func (h DeviceHandler) Fill(path, size string, autoDelete bool) error {
 	return runDeviceFill(path, size, autoDelete)
 }
 
-func (h DeviceHandler) FillClean(path string) error {
-	return runDeviceFillClean(path)
+func (h DeviceHandler) FillClean(path string, assumeYes bool) error {
+	return runDeviceFillClean(path, assumeYes)
 }
 
 func (h DeviceHandler) FillVerify(path string) error {
@@ -247,12 +246,15 @@ func (h DeviceHandler) CheckDuplicates(path string, args []string) error {
 }
 
 func (h DeviceHandler) Copy(sourcePath, targetPath string) error {
-	// For device operations, delegate to handleCopyCommand
-	return handleCopyCommand([]string{"copy", sourcePath, targetPath})
+	// For device operations, delegate to handleCopyCommand. The device verb
+	// means the whole drive: `D:` alone is D:'s current directory to Windows.
+	return handleCopyCommand([]string{"copy", deviceRootPath(sourcePath), targetPath})
 }
 
 func (h DeviceHandler) Wipe(path string, args []string) error {
-	return handleWipeCommand(append([]string{path}, args...))
+	// `device D: wipe` means D:\ - a root, and therefore always the strong
+	// confirmation - never D:'s per-process current directory (WIPE-05).
+	return handleWipeCommand(append([]string{deviceRootPath(path)}, args...))
 }
 
 // FolderHandler implements CommandHandler for folders
@@ -274,12 +276,12 @@ func (h FolderHandler) Fill(path, size string, autoDelete bool) error {
 	return runFolderFill(path, size, autoDelete)
 }
 
-func (h FolderHandler) FillClean(path string) error {
-	return runFolderFillClean(path)
+func (h FolderHandler) FillClean(path string, assumeYes bool) error {
+	return runFolderFillClean(path, assumeYes)
 }
 
 func (h FolderHandler) FillVerify(path string) error {
-	return runDeviceFillVerify(path) // same logic: scan FILL_*.tmp in directory
+	return runCapacityFillVerify("Folder", path)
 }
 
 func (h FolderHandler) Test(path string, autoDelete bool, maxFiles int) error {
@@ -322,12 +324,12 @@ func (h NetworkHandler) Fill(path, size string, autoDelete bool) error {
 	return runNetworkFill(path, size, autoDelete, nil)
 }
 
-func (h NetworkHandler) FillClean(path string) error {
-	return runNetworkFillClean(path, nil)
+func (h NetworkHandler) FillClean(path string, assumeYes bool) error {
+	return runNetworkFillClean(path, assumeYes, nil)
 }
 
 func (h NetworkHandler) FillVerify(path string) error {
-	return runDeviceFillVerify(path) // same logic: scan FILL_*.tmp in directory
+	return runCapacityFillVerify("Network", path)
 }
 
 func (h NetworkHandler) Test(path string, autoDelete bool, maxFiles int) error {
@@ -370,7 +372,7 @@ func (h FileHandler) Fill(path, size string, autoDelete bool) error {
 	return fmt.Errorf("fill operation is not supported for files")
 }
 
-func (h FileHandler) FillClean(path string) error {
+func (h FileHandler) FillClean(path string, assumeYes bool) error {
 	return fmt.Errorf("fill clean operation is not supported for files")
 }
 
@@ -420,7 +422,10 @@ func getCommandHandler(cmdType CommandType) CommandHandler {
 
 // runGenericCommand generic function for executing commands
 func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, historyLogger *HistoryLogger) {
-	cmd.Parse(args)
+	// The set defines no flags; "--" makes every word positional, so a target
+	// that starts with a dash (a folder named -old) is a target and never a
+	// parse error that exits past the result and the history (CLI-23).
+	cmd.Parse(append([]string{"--"}, args...))
 	if cmd.NArg() < 1 {
 		beginRun(runActs, cmd.Name(), "", args)
 		runFailure(fmt.Errorf("'%s' command requires a path argument", cmd.Name()))
@@ -453,12 +458,10 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		return
 	}
 
-	// Redirect system drive for write operations (speed, fill, test)
+	// The system drive: writes (speed, fill, test) are redirected to the
+	// temp folder, and clean looks where they went (effectiveTarget).
 	if cmd.NArg() >= 2 {
-		operation := strings.ToLower(cmd.Arg(1))
-		if operation == "speed" || operation == "fill" || operation == "f" || operation == "test" {
-			path = redirectSystemDrive(path)
-		}
+		path = effectiveTarget(cmd.Arg(1), path)
 	}
 
 	handler := getCommandHandler(cmdType)
@@ -482,19 +485,31 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		if cleanParam == "cln" || cleanParam == "clean" || cleanParam == "c" {
 			historyLogger.SetCommand(cmdTypeName, path, "clean")
 			runStep("clean", path)
+			// clean lists what it will remove and asks; --yes skips the
+			// question, never the name-and-content check (SP-0026 CAP-14).
+			assumeYes := false
+			for i := 2; i < cmd.NArg(); i++ {
+				switch strings.ToLower(cmd.Arg(i)) {
+				case "--yes", "-y", "yes", "y", "--force", "/y":
+					assumeYes = true
+				default:
+					reportOpError(fmt.Errorf("unknown option %q for clean - the only option is --yes", cmd.Arg(i)), path, historyLogger)
+					return
+				}
+			}
+			if assumeYes {
+				historyLogger.SetParameter("assumeYes", true)
+			}
 			// Special handling for network clean to pass logger
+			var err error
 			if cmdTypeName == "network" {
-				err := runNetworkFillClean(path, historyLogger)
-				if err != nil {
-					reportOpError(err, path, historyLogger)
-					return
-				}
+				err = runNetworkFillClean(path, assumeYes, historyLogger)
 			} else {
-				err := handler.FillClean(path)
-				if err != nil {
-					reportOpError(err, path, historyLogger)
-					return
-				}
+				err = handler.FillClean(path, assumeYes)
+			}
+			if err != nil {
+				reportOpError(err, path, historyLogger)
+				return
 			}
 			historyLogger.SetSuccess()
 			return
@@ -526,35 +541,35 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	if cmd.NArg() >= 2 && strings.ToLower(cmd.Arg(1)) == "speed" {
 		historyLogger.SetCommand(cmdTypeName, path, "speed")
 		runStep("speed", path)
+		// speed [size|max] [nodel] [short], in any order. A word that is none
+		// of these is a usage error, never a silent 1 MB test (SP-0024 CLI-25).
 		sizeParam := "100" // Default size
-		if cmd.NArg() >= 3 {
-			sizeParam = cmd.Arg(2)
-		}
-		historyLogger.SetParameter("size", sizeParam)
-
-		// Check for no-delete option and short format
+		sizeSet := false
 		noDelete := false
 		shortFormat := false
-		startIndex := 3
-		if cmd.NArg() == 2 {
-			// No size parameter provided, check from index 2
-			startIndex = 2
-		}
-		for i := startIndex; i < cmd.NArg(); i++ {
+		for i := 2; i < cmd.NArg(); i++ {
 			arg := strings.ToLower(cmd.Arg(i))
-			if arg == "no" || arg == "nodel" || arg == "nodelete" {
+			switch {
+			case arg == "no" || arg == "nodel" || arg == "nodelete":
 				noDelete = true
 				historyLogger.SetParameter("noDelete", true)
-			} else if arg == "short" || arg == "s" {
+			case arg == "short" || arg == "s":
 				shortFormat = true
 				historyLogger.SetParameter("shortFormat", true)
+			case !sizeSet && arg == "max":
+				sizeParam, sizeSet = "10240", true // 10GB
+				historyLogger.SetParameter("actualSize", "10240MB")
+			case !sizeSet:
+				sizeParam, sizeSet = cmd.Arg(i), true
+			default:
+				reportOpError(fmt.Errorf("unexpected argument %q - usage: speed [size|max] [nodel] [short]", cmd.Arg(i)), path, historyLogger)
+				return
 			}
 		}
-
-		// Handle "max" as size parameter
-		if strings.ToLower(sizeParam) == "max" {
-			sizeParam = "10240" // 10GB
-			historyLogger.SetParameter("actualSize", "10240MB")
+		historyLogger.SetParameter("size", sizeParam)
+		if _, err := parseSizeMB(sizeParam, 1, 10240); err != nil {
+			reportOpError(err, path, historyLogger)
+			return
 		}
 
 		// Special handling for network speed test to pass logger
@@ -594,28 +609,36 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		historyLogger.SetCommand(cmdTypeName, path, "fill")
 		runStep("fill", path)
 
+		// fill [size] [del]. An unreadable or out-of-range size is a usage
+		// error and writes nothing: `fill clean`, the cleanup hint FileDO
+		// itself used to print, filled the whole drive with 100 MB files
+		// (SP-0026 CAP-05, SP-0024 CLI-03/CLI-25).
 		sizeParam := "100"
+		sizeSet := false
 		autoDelete := false
-
-		if cmd.NArg() >= 3 {
-			thirdArg := strings.ToLower(cmd.Arg(2))
-			if thirdArg == "del" || thirdArg == "delete" || thirdArg == "d" {
+		for i := 2; i < cmd.NArg(); i++ {
+			arg := strings.ToLower(cmd.Arg(i))
+			switch {
+			case arg == "del" || arg == "delete" || arg == "d":
 				autoDelete = true
-			} else {
-				sizeParam = cmd.Arg(2)
-			}
-		}
-
-		if cmd.NArg() >= 4 && !autoDelete {
-			fourthArg := strings.ToLower(cmd.Arg(3))
-			if fourthArg == "del" || fourthArg == "delete" || fourthArg == "d" {
-				autoDelete = true
+			case !sizeSet:
+				sizeParam, sizeSet = cmd.Arg(i), true
+			default:
+				reportOpError(fmt.Errorf("unexpected argument %q - usage: fill [size] [del], or fill verify", cmd.Arg(i)), path, historyLogger)
+				return
 			}
 		}
 
 		historyLogger.SetParameter("size", sizeParam)
 		if autoDelete {
 			historyLogger.SetParameter("autoDelete", true)
+		}
+		if _, err := parseSizeMB(sizeParam, 1, 10240); err != nil {
+			if w := strings.ToLower(sizeParam); w == "clean" || w == "cln" || w == "c" {
+				err = fmt.Errorf("%v - to remove FileDO's test files, run: %s", err, cleanupHint(path))
+			}
+			reportOpError(err, path, historyLogger)
+			return
 		}
 
 		// Special handling for network fill to pass logger
@@ -643,16 +666,25 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 
 		// Parse additional arguments: optional N (number of files) and optional "del"
 		// Supported forms: test | test N | test del | test N del
+		// A word that is neither a count nor del is a usage error, never
+		// silently ignored (SP-0024 CLI-25).
 		const defaultMaxFiles = 100
+		const maxTestFiles = 1000000
 		maxFiles := defaultMaxFiles
+		countSet := false
 		autoDelete := false
 		for i := 2; i < cmd.NArg(); i++ {
 			arg := strings.ToLower(strings.TrimSpace(cmd.Arg(i)))
 			if arg == "del" || arg == "delete" || arg == "d" {
 				autoDelete = true
-			} else if n, err := strconv.Atoi(arg); err == nil && n > 0 {
-				maxFiles = n
+				continue
 			}
+			n, err := strconv.Atoi(arg)
+			if countSet || err != nil || n < 1 || n > maxTestFiles {
+				reportOpError(fmt.Errorf("unexpected argument %q - usage: test [number of files, 1..%d] [del]", cmd.Arg(i), maxTestFiles), path, historyLogger)
+				return
+			}
+			maxFiles, countSet = n, true
 		}
 		if autoDelete {
 			historyLogger.SetParameter("autoDelete", true)

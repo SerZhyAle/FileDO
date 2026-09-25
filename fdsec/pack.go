@@ -1,6 +1,7 @@
 package fdsec
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -50,18 +51,54 @@ type Info struct {
 	Params       Params
 }
 
-// StreamOption tunes a Pack or Unpack call. The only option today is
-// WithProgress, used by the CLI for the progress line on large files.
+// StreamOption tunes a Pack or Unpack call, or one of the file-level calls
+// built on them: WithProgress for the progress line on large files, WithStop
+// for the caller's stop request, AllowReplace for an overwrite the user chose.
 type StreamOption func(*streamOpts)
 
 type streamOpts struct {
 	progress func(done, total int64)
+	stop     func() bool
+	replace  bool
 }
 
 // WithProgress registers a callback invoked at chunk boundaries with the
 // plaintext bytes processed so far and the total. It must not block.
 func WithProgress(fn func(done, total int64)) StreamOption {
 	return func(o *streamOpts) { o.progress = fn }
+}
+
+// WithStop registers the caller's stop request. It is asked at every chunk
+// boundary (and while the source is digested); when it answers true the call
+// returns ErrStopped and produces nothing complete. It must not block.
+func WithStop(fn func() bool) StreamOption {
+	return func(o *streamOpts) { o.stop = fn }
+}
+
+// AllowReplace lets a file-level pack (PackFile, PackFileSuite2,
+// PackTreeFile) replace an existing destination - the overwrite the user
+// chose for that exact path. The old destination is replaced only by the
+// final rename, after the new container was read back in full; until then it
+// is untouched, so a failed pack never costs the old file (FDSEC-03).
+func AllowReplace() StreamOption {
+	return func(o *streamOpts) { o.replace = true }
+}
+
+// stopped reports whether the caller asked the stream to end.
+func (o streamOpts) stopped() bool { return o.stop != nil && o.stop() }
+
+// stopReader returns ErrStopped from the first Read after a stop request, so
+// a whole-file pass (the digest of pass 1) is interruptible too.
+type stopReader struct {
+	r  io.Reader
+	so streamOpts
+}
+
+func (s stopReader) Read(p []byte) (int, error) {
+	if s.so.stopped() {
+		return 0, ErrStopped
+	}
+	return s.r.Read(p)
 }
 
 func newStreamOpts(opts []StreamOption) streamOpts {
@@ -102,7 +139,10 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 	if err != nil {
 		return info, err
 	}
-	n, err := io.Copy(dh, src)
+	n, err := io.Copy(dh, stopReader{r: src, so: so})
+	if errors.Is(err, ErrStopped) {
+		return info, ErrStopped
+	}
 	if err != nil {
 		return info, fmt.Errorf("fdsec: digest source: %w", err)
 	}
@@ -121,6 +161,7 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 	if err != nil {
 		return info, fmt.Errorf("fdsec: file key: %w", err)
 	}
+	defer clear(fileKey) // FDSEC-15
 	wrapNonce, err := randBytes(nonceSize)
 	if err != nil {
 		return info, fmt.Errorf("fdsec: wrap nonce: %w", err)
@@ -144,6 +185,8 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 	if err != nil {
 		return info, err
 	}
+	defer clear(maskKey) // FDSEC-15
+	defer clear(kek)
 	kekAEAD, err := newXAEAD(kek)
 	if err != nil {
 		return info, err
@@ -205,6 +248,9 @@ func Pack(dst io.Writer, src io.ReadSeeker, meta Metadata, cred Credential, p Pa
 	pt := make([]byte, capacity)
 	written := int64(0)
 	for i := int64(0); i < k; i++ {
+		if so.stopped() {
+			return info, ErrStopped
+		}
 		want := capacity
 		if i == k-1 {
 			want = last

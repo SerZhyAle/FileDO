@@ -11,7 +11,7 @@
   "StringFileInfo": {
     "Comments":         "https://github.com/SerZhyAle/FileDO",
     "CompanyName":      "SZA",
-    "FileDescription":  "FileDO Fill - Free space fill and secure wipe utility",
+    "FileDescription":  "FileDO Fill - free space fill (runs filedo.exe fill)",
     "FileVersion":      "26.4.27.0",
     "InternalName":     "filedo_fill",
     "LegalCopyright":   "Copyright (c) 2025 sza. MIT License.",

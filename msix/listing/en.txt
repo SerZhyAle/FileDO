@@ -29,7 +29,7 @@ PRIVATE BY DESIGN
 FileDO runs entirely on your device. It has no network code, no telemetry, no ads and no accounts. It is open source: https://github.com/SerZhyAle/FileDO
 
 GOOD TO KNOW
-- This is the Microsoft Store edition. It does not add Explorer context-menu entries or claim the .fd-sec file type - those come with the MSI installer. The same operations are available in the window and with the filedo command.
+- This is the Microsoft Store edition. It does not add Explorer context-menu entries; those come with the MSI installer. It does claim the .fd-sec file type, so double-clicking a container opens FileDO. The same operations are available in the window and with the filedo command.
 - FileDO needs full-trust desktop access to read and write raw disk and device data: capacity testing, speed benchmarking and secure wiping cannot work without it. Wipe and fill destroy data by design and always confirm before touching drive roots or system folders.
 - Windows 10 version 1903 or later.
 

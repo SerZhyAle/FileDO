@@ -37,6 +37,18 @@ Public Class CheckOptionsPanel
         Public Property Caption As Label
     End Class
 
+    ' The number options `check` reads with ParseFloat (check.go); every other one is an Int. A
+    ' value is valid when the CLI's own parser takes it, in every locale (GUI-15): "2,5" and "1,000"
+    ' are not numbers to it, and IsNumeric's say-so used to put them on the line anyway.
+    Private Shared ReadOnly DecimalOptions As String() = {
+        "min-mb", "max-mb", "max-seconds", "threshold", "warmup", "warmup-idle",
+        "ewma-alpha", "ewma-high-frac", "ewma-low-frac"}
+
+    Private Shared Function IsValidNumber(name As String, value As String) As Boolean
+        If Array.IndexOf(DecimalOptions, name) >= 0 Then Return Ui.IsDecimalNumber(value)
+        Return Ui.IsWholeNumber(value)
+    End Function
+
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly tips As New ToolTip()
     Private ReadOnly flags As New List(Of FlagControl)
@@ -221,7 +233,7 @@ Public Class CheckOptionsPanel
                     Dim box = CType(f.Editor, TextBox)
                     Dim v = box.Text.Trim()
                     If v = "" Then Continue For
-                    If f.Kind = FlagKind.Number AndAlso Not IsNumeric(v) Then Continue For
+                    If f.Kind = FlagKind.Number AndAlso Not IsValidNumber(f.Name, v) Then Continue For
                     args.Add("--" & f.Name)
                     args.Add(v)
             End Select
@@ -235,7 +247,7 @@ Public Class CheckOptionsPanel
         For Each f In flags
             If f.Kind <> FlagKind.Number Then Continue For
             Dim v = CType(f.Editor, TextBox).Text.Trim()
-            If v <> "" AndAlso Not IsNumeric(v) Then Return True
+            If v <> "" AndAlso Not IsValidNumber(f.Name, v) Then Return True
         Next
         Return False
     End Function
@@ -293,7 +305,7 @@ Public Class CheckOptionsPanel
                     ' The one piece of state this panel shows in colour, and it is also shown by
                     ' the value being absent from the command line above.
                     Dim v = box.Text.Trim()
-                    box.ForeColor = If(f.Kind = FlagKind.Number AndAlso v <> "" AndAlso Not IsNumeric(v), p.Danger, p.Text)
+                    box.ForeColor = If(f.Kind = FlagKind.Number AndAlso v <> "" AndAlso Not IsValidNumber(f.Name, v), p.Danger, p.Text)
             End Select
         Next
 

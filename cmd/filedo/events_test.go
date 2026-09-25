@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -90,9 +91,12 @@ func TestInterruptHandler_StopFile(t *testing.T) {
 	ih := NewInterruptHandler()
 	ih.WatchStopFile(stopFile)
 
-	cleaned := false
+	// The context is cancelled before the cleanups run (T1), so the test waits
+	// for both rather than reading the cleanup's mark the instant the context
+	// is done.
+	var cleanedFlag atomic.Bool
 	ih.AddCleanup(func() {
-		cleaned = true
+		cleanedFlag.Store(true)
 	})
 
 	if ih.IsCancelled() {
@@ -118,7 +122,11 @@ func TestInterruptHandler_StopFile(t *testing.T) {
 		t.Fatal("handler failed to cancel within deadline after stop file was created")
 	}
 
-	if !cleaned {
+	cleanupDeadline := time.Now().Add(time.Second)
+	for !cleanedFlag.Load() && time.Now().Before(cleanupDeadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !cleanedFlag.Load() {
 		t.Fatal("cleanup function was not invoked on stop")
 	}
 }

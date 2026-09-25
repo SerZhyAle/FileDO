@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-EXTERNAL` |
-| **Version** | 0.9 draft (no wire carrier) |
+| **Version** | 0.10 draft (no wire carrier) |
 | **Role** | consumer - the site and the READMEs name third-party services |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |
@@ -17,6 +17,8 @@
 - **Source on record.** Every glyph the product draws names its source: the font or the vendored file,
   and the licence notice in `THIRD-PARTY-NOTICES.txt` when the source requires one.
 
-**Status: adopted for rule 1, partial for rule 5.** The shell names its glyph font in `Theme.vb`; the
-verdict codepoints name their font glyph in a comment. The rail codepoints do not yet name theirs - that
-lands with the rail's mapping table (SP-0016 T1).
+**Status: adopted (rules 1 and 5).** Every vocabulary glyph the shell draws is a catalog file vendored
+under `assets/glyphs/` with its SHA-256 in `PROVENANCE.txt`, and its Material Icons (Apache-2.0) notice is
+in `THIRD-PARTY-NOTICES.txt`, which ships in every package; the Explorer icons in `assets/menu-icons/`
+are drawn from those same files. No Segoe stand-in is left; one a future control needs would name its
+codepoint and the font's own name for it (`GlyphRef.Waiting`).

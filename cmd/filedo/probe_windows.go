@@ -4,15 +4,12 @@ package main
 
 import (
 	"bufio"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
-	"time"
 	"unicode"
 	"unsafe"
 
@@ -20,30 +17,14 @@ import (
 )
 
 // runDeviceProbe performs a fast fake-capacity probe by writing unique markers
-// directly to raw LBA positions via \\.\D: and reading them back.
-// Requires administrator privileges.
-//
-// Algorithm:
-//  1. Open \\.\D: for read+write (requires admin)
-//  2. Distribute N probe points evenly across 95% of claimed capacity
-//  3. Write a unique 512-byte marker at each point
-//  4. Read all markers back and check for mismatches
-//
-// On a fake device the controller wraps addresses, so later writes overwrite
-// earlier ones - caught when we verify.
+// directly to raw sectors via \\.\D: and reading them back. Requires
+// administrator privileges. The plan and the verdict are probe_core.go's;
+// this function opens, locks and sizes the volume, and reports.
 func runDeviceProbe(devicePath string) error {
-	// Normalise: accept "D", "D:", "D:\"
-	driveLetter := rune(0)
-	for _, r := range devicePath {
-		if unicode.IsLetter(r) {
-			driveLetter = unicode.ToUpper(r)
-			break
-		}
+	driveLetter, err := probeExtractDriveLetter(devicePath)
+	if err != nil {
+		return err
 	}
-	if driveLetter == 0 {
-		return fmt.Errorf("probe requires a drive letter (e.g. D:), got: %s", devicePath)
-	}
-
 	rawPath := fmt.Sprintf(`\\.\%c:`, driveLetter)
 
 	fmt.Printf("Device Probe (fast fake-capacity detection)\n")
@@ -93,168 +74,108 @@ func runDeviceProbe(devicePath string) error {
 	}()
 	fmt.Printf("✓ Volume locked (exclusive write access granted)\n\n")
 
-	// ── Get disk geometry to find total sectors ──────────────────────────────
-	totalBytes, sectorSize, err := probeGetDiskSize(handle)
+	// ── Size of the VOLUME, not of the disk ─────────────────────────────────
+	// Offsets are applied to the volume handle, so the range must be the
+	// volume's length; the drive geometry is the whole disk, and on a disk with
+	// several partitions probes ran past the volume's end (CLI-28).
+	totalBytes, err := probeVolumeLength(handle)
 	if err != nil {
-		return fmt.Errorf("cannot read disk geometry: %w", err)
+		return fmt.Errorf("cannot read the volume length: %w", err)
 	}
-	if sectorSize < 512 {
-		sectorSize = 512
-	}
+	sectorSize := probeSectorSize(handle)
 
-	fmt.Printf("Disk size    : %.2f GB\n", float64(totalBytes)/(1<<30))
+	fmt.Printf("Volume size  : %.2f GB\n", float64(totalBytes)/(1<<30))
 	fmt.Printf("Sector size  : %d bytes\n\n", sectorSize)
 
-	// ── Distribute probe points ──────────────────────────────────────────────
-	const numProbes = 32
-	// Never touch the first sectors (partition boot/metadata area).
-	// Probe 5%..95% range to reduce risk of filesystem damage.
-	const probeStartPercent = 0.05
-	const probeEndPercent = 0.95
-	startOffset := int64(float64(totalBytes) * probeStartPercent)
-	endOffset := int64(float64(totalBytes) * probeEndPercent)
-
-	// Align each offset to sector boundary.
-	align := int64(sectorSize)
-	if startOffset < align*2048 {
-		startOffset = align * 2048 // 1MB minimum from start
-	}
-	if endOffset <= startOffset {
-		endOffset = startOffset + align*int64(numProbes+1)
-	}
-	step := float64(endOffset-startOffset) / float64(numProbes-1)
-
-	offsets := make([]int64, numProbes)
-	for i := 0; i < numProbes; i++ {
-		raw := startOffset + int64(float64(i)*step)
-		offsets[i] = (raw / align) * align
-	}
-
-	// ── Generate unique markers ──────────────────────────────────────────────
-	// Each marker fits in one sector. Format (first 64 bytes):
-	//   "FILEDO_PROBE <index> <hex-token>\n"
-	// followed by zeros to sector size.
-	tokens := make([]string, numProbes)
-	for i := range tokens {
-		buf := make([]byte, 8)
-		rand.Read(buf)
-		tokens[i] = hex.EncodeToString(buf)
-	}
-
-	bufSize := int(sectorSize)
-	// Sector-aligned buffers (required for FILE_FLAG_NO_BUFFERING)
-	writeBuf := probeMakeAlignedBuf(bufSize)
-	readBuf := probeMakeAlignedBuf(bufSize)
-
-	// ── Save original sector content ─────────────────────────────────────────
-	// We restore everything after the test so the filesystem is not damaged.
-	fmt.Printf("Saving original content of %d sectors...\n", numProbes)
-	originals := make([][]byte, numProbes)
-	for i, offset := range offsets {
-		orig := probeMakeAlignedBuf(bufSize)
-		if err := probeReadSector(handle, offset, orig); err != nil {
-			// Non-fatal: sector might be unreadable on a damaged device
-			fmt.Printf("  ⚠ Cannot read sector at %.2f MB: %v (will skip restore)\n",
-				float64(offset)/(1<<20), err)
-		}
-		originals[i] = orig
-	}
-	fmt.Printf("✓ Originals saved\n\n")
-
-	// Ensure we restore sectors even if we return early due to error
-	restored := false
-	defer func() {
-		if !restored {
-			probeRestoreOriginals(handle, offsets, originals)
-		}
-	}()
-
-	fmt.Printf("Writing %d probe markers across %.2f..%.2f GB...\n",
-		numProbes, float64(startOffset)/(1<<30), float64(endOffset)/(1<<30))
-	start := time.Now()
-
-	for i, offset := range offsets {
-		// Build sector-aligned marker
-		for j := range writeBuf {
-			writeBuf[j] = 0
-		}
-		marker := fmt.Sprintf("FILEDO_PROBE %02d %s\n", i, tokens[i])
-		copy(writeBuf, marker)
-
-		if err := probeWriteSector(handle, offset, writeBuf); err != nil {
-			probeRestoreOriginals(handle, offsets, originals)
-			restored = true
-			return fmt.Errorf("write failed at offset %.2f MB (probe %d): %w",
-				float64(offset)/(1<<20), i, err)
-		}
-		fmt.Printf("  Written probe %2d/%d at offset %10.2f MB\r",
-			i+1, numProbes, float64(offset)/(1<<20))
-	}
-	fmt.Printf("\n✓ All %d probes written in %s\n\n", numProbes, time.Since(start).Round(time.Millisecond))
-
-	// ── Read back and verify ─────────────────────────────────────────────────
-	fmt.Printf("Reading back %d probe markers...\n", numProbes)
-	mismatch := 0
-	firstBad := -1
-
-	for i, offset := range offsets {
-		if err := probeReadSector(handle, offset, readBuf); err != nil {
-			fmt.Printf("  ❌ Probe %2d: read error at offset %.2f MB: %v\n",
-				i, float64(offset)/(1<<20), err)
-			mismatch++
-			if firstBad < 0 {
-				firstBad = i
-			}
-			continue
-		}
-
-		expected := fmt.Sprintf("FILEDO_PROBE %02d %s\n", i, tokens[i])
-		got := string(readBuf[:len(expected)])
-		if got != expected {
-			mismatch++
-			if firstBad < 0 {
-				firstBad = i
-			}
-			// Try to decode what we actually found
-			line := ""
-			for j, b := range readBuf {
-				if b == '\n' || j >= 60 {
-					break
+	dev := &windowsSectorDevice{h: handle}
+	fmt.Printf("Saving originals, writing markers, reading them back...\n")
+	res, err := probeCore(dev, totalBytes, sectorSize, probeMakeAlignedBuf,
+		func(restore func()) func() {
+			// A forced exit skips every defer; the restore must still run
+			// before the process ends (CLI-07c). It is idempotent.
+			return globalInterruptHandler.AddCleanup(func() {
+				if globalInterruptHandler.IsForceExit() {
+					restore()
 				}
-				line += string(rune(b))
-			}
-			fmt.Printf("  ❌ Probe %2d at %.2f MB: expected token %s, found: %q\n",
-				i, float64(offset)/(1<<20), tokens[i], line)
+			})
+		},
+		runStopRequested)
+	if len(res.restoreErrs) > 0 {
+		fmt.Printf("❌ %d sector(s) could NOT be restored:\n", len(res.restoreErrs))
+		for _, e := range res.restoreErrs {
+			fmt.Printf("   %v\n", e)
 		}
+		fmt.Printf("   Run chkdsk %c: /f before using the drive.\n", driveLetter)
+	} else if res.written > 0 {
+		fmt.Printf("✓ All %d written sectors restored\n", res.written)
 	}
-
-	// ── Restore original sectors ─────────────────────────────────────────────
-	fmt.Printf("\nRestoring original sector content...\n")
-	probeRestoreOriginals(handle, offsets, originals)
-	restored = true
-	fmt.Printf("✓ All sectors restored\n\n")
+	if res.unreadable > 0 {
+		fmt.Printf("⚠ %d position(s) could not be read and were left untouched.\n", res.unreadable)
+	}
+	if err != nil {
+		return err
+	}
 
 	fmt.Println()
-	if mismatch == 0 {
-		fmt.Printf("✅ GENUINE: All %d probes verified - no fake capacity detected.\n", numProbes)
-		fmt.Printf("   Checked range: %.2f → %.2f GB\n", float64(startOffset)/(1<<30), float64(endOffset)/(1<<30))
-	} else {
-		// Estimate real capacity: last good probe before first bad one
-		realBytes := int64(0)
-		if firstBad > 0 {
-			realBytes = offsets[firstBad-1]
-		}
+	verdict := probeVerdict(res)
+	if errors.Is(verdict, errDefect) {
 		fmt.Printf("⚠️  FAKE CAPACITY DETECTED\n")
-		fmt.Printf("   Probes failed  : %d / %d\n", mismatch, numProbes)
-		if realBytes > 0 {
-			fmt.Printf("   Estimated real capacity: %.2f GB\n", float64(realBytes)/(1<<30))
+		fmt.Printf("   Markers wrong  : %d / %d (%d answered with another marker's content)\n", res.mismatches+res.aliases, res.written, res.aliases)
+		details := map[string]interface{}{
+			"claimedCapacityGB": float64(totalBytes) / (1 << 30),
+			"markersWrong":      res.mismatches + res.aliases,
+			"markersAliased":    res.aliases,
+			"markersWritten":    res.written,
+		}
+		if res.lastGoodOff > 0 {
+			fmt.Printf("   Estimated real capacity: under %.2f GB\n", float64(res.firstBadOff)/(1<<30))
+			details["estimatedRealCapacityGB"] = float64(res.firstBadOff) / (1 << 30)
 		} else {
-			fmt.Printf("   Fake starts at the very first sector - actual capacity near zero.\n")
+			fmt.Printf("   Fake starts at the first positions probed - the real capacity is very small.\n")
 		}
 		fmt.Printf("   Claimed size   : %.2f GB\n", float64(totalBytes)/(1<<30))
+		return recordedDefect("fake-capacity", verdict.Error(), details)
 	}
-
+	if verdict != nil {
+		return verdict
+	}
+	fmt.Printf("✅ GENUINE: all %d probe markers verified - no fake capacity detected.\n", res.written)
 	return nil
+}
+
+// windowsSectorDevice is sectorDevice over an open volume handle.
+type windowsSectorDevice struct{ h windows.Handle }
+
+func (d *windowsSectorDevice) ReadAt(p []byte, off int64) error  { return probeReadSector(d.h, off, p) }
+func (d *windowsSectorDevice) WriteAt(p []byte, off int64) error { return probeWriteSector(d.h, off, p) }
+
+// IOCTL_DISK_GET_LENGTH_INFO returns the length of the volume the handle is
+// open on.
+const ioctlDiskGetLengthInfo = 0x0007405C
+
+func probeVolumeLength(h windows.Handle) (int64, error) {
+	var length int64
+	var bytesReturned uint32
+	err := windows.DeviceIoControl(h, ioctlDiskGetLengthInfo, nil, 0,
+		(*byte)(unsafe.Pointer(&length)), uint32(unsafe.Sizeof(length)), &bytesReturned, nil)
+	if err == nil && length > 0 {
+		return length, nil
+	}
+	pos, seekErr := probeSeek(h, 0, 2 /*FILE_END*/)
+	if seekErr != nil || pos <= 0 {
+		return 0, fmt.Errorf("IOCTL_DISK_GET_LENGTH_INFO: %v; seek fallback: %v", err, seekErr)
+	}
+	return pos, nil
+}
+
+// probeSectorSize reads the sector size from the drive geometry; 512 when it
+// cannot be read or is smaller.
+func probeSectorSize(h windows.Handle) int {
+	_, sector, err := probeGetDiskSize(h)
+	if err != nil || sector < 512 {
+		return 512
+	}
+	return sector
 }
 
 // ── Windows raw I/O helpers ──────────────────────────────────────────────────
@@ -273,14 +194,6 @@ func probeLockVolume(h windows.Handle) error {
 func probeUnlockVolume(h windows.Handle) {
 	var bytesReturned uint32
 	windows.DeviceIoControl(h, fsctlUnlockVolume, nil, 0, nil, 0, &bytesReturned, nil)
-}
-
-func probeRestoreOriginals(h windows.Handle, offsets []int64, originals [][]byte) {
-	for i, offset := range offsets {
-		if originals[i] != nil {
-			probeWriteSector(h, offset, originals[i])
-		}
-	}
 }
 
 // probeMakeAlignedBuf allocates a buffer aligned to its own size (safe for
@@ -520,13 +433,17 @@ func runDeviceRecoverCheck(devicePath string, assumeYes bool, forceFormat bool) 
 	return nil
 }
 
+// probeExtractDriveLetter accepts a drive letter and nothing else: `D`, `D:`,
+// `D:\` or `D:/`. It used to take the first letter found anywhere in the
+// string, so `\\.\PhysicalDrive1` meant P: and `\\?\Volume{..} recover y fmt`
+// formatted V: - with `yes` and `fmt` switching off the confirmation that would
+// have shown the wrong letter (CLI-27).
 func probeExtractDriveLetter(devicePath string) (rune, error) {
-	for _, r := range devicePath {
-		if unicode.IsLetter(r) {
-			return unicode.ToUpper(r), nil
-		}
+	p := strings.TrimSpace(devicePath)
+	if isASCIILetter(p) || driveRootSpelling.MatchString(p) {
+		return unicode.ToUpper(rune(p[0])), nil
 	}
-	return 0, fmt.Errorf("probe requires a drive letter (e.g. D:), got: %s", devicePath)
+	return 0, usagef("probe and recover take a drive letter such as D: - %q is not one", devicePath)
 }
 
 func probeAskConfirmStart(driveLetter rune) error {

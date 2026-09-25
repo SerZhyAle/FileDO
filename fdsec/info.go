@@ -21,6 +21,13 @@ type HeaderInfo struct {
 	KDFLanes         uint8
 	Threshold        uint32
 	ContainerSize    int64
+
+	// A directory container (suite 3) also reports its sealed totals once
+	// the credential has authenticated: that it holds a folder, how many
+	// entries, how many bytes. Before that it reports nothing.
+	IsTree      bool
+	TreeEntries int64
+	TreeSize    int64
 }
 
 // ReadHeaderInfo opens the head of a container under cred and reports it. A
@@ -31,24 +38,42 @@ func ReadHeaderInfo(r io.ReadSeeker, cred Credential) (HeaderInfo, error) {
 	if _, err := r.Seek(0, io.SeekStart); err != nil {
 		return hi, fmt.Errorf("fdsec: seek container: %w", err)
 	}
-	h, _, err := openHead(r, cred)
+	c, err := Open(r, cred)
 	if err != nil {
 		return hi, err
+	}
+	if c.IsTree() {
+		tm, err := c.TreeMetadata()
+		if err != nil {
+			return hi, err
+		}
+		hi.IsTree, hi.TreeEntries, hi.TreeSize = true, tm.Entries, tm.TotalSize
 	}
 	size, err := r.Seek(0, io.SeekEnd)
 	if err != nil {
 		return hi, fmt.Errorf("fdsec: size container: %w", err)
 	}
+	hi.ContainerSize = size
+	if c.s2 != nil {
+		// Suite 2 has no head: the version is the document's, the frame is
+		// the suite's constant, and the profile is the try-list entry that
+		// authenticated. There is no cluster alignment and no fast branch.
+		p := c.s2.profile
+		hi.FormatVersion = FormatVersion
+		hi.SuiteID = SuiteID2
+		hi.ChunkSize = s2Frame
+		hi.KDFMemoryKiB, hi.KDFTime, hi.KDFLanes = p.MemoryKiB, p.Time, p.Lanes
+		return hi, nil
+	}
 	p := activeProfile
-	return HeaderInfo{
-		FormatVersion:    h.Version,
-		SuiteID:          h.Suite,
-		ClusterAlignment: h.ClusterAlignment,
-		ChunkSize:        h.ChunkSize,
-		KDFMemoryKiB:     p.MemoryKiB,
-		KDFTime:          p.Time,
-		KDFLanes:         p.Lanes,
-		Threshold:        p.Threshold,
-		ContainerSize:    size,
-	}, nil
+	hi.FormatVersion = c.h.Version
+	hi.SuiteID = c.h.Suite
+	hi.ClusterAlignment = c.h.ClusterAlignment
+	hi.ChunkSize = c.h.ChunkSize
+	hi.KDFMemoryKiB = p.MemoryKiB
+	hi.KDFTime = p.Time
+	hi.KDFLanes = p.Lanes
+	hi.Threshold = p.Threshold
+	hi.ContainerSize = size
+	return hi, nil
 }

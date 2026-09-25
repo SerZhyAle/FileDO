@@ -237,10 +237,11 @@ Public Class ShellForm
 
         jobView = New JobView() With {.Visible = False}
         AddHandler jobView.OpenInCommandRequested,
-            Sub(cmd)
+            Sub(cmd, credential)
                 SelectJobByKey("rail_job_command")
-                commandView.SetCommand(cmd)
+                commandView.SetCommand(cmd, credential)
             End Sub
+        AddHandler jobView.CleanRequested, AddressOf OpenCleanOn
         AddHandler jobView.RunFinished, AddressOf AnyRunFinished
 
         historyView = New HistoryView() With {.Visible = False}
@@ -323,7 +324,7 @@ Public Class ShellForm
         UpdateGroupAccessibility(e)
     End Sub
 
-    Private Sub AddEntry(key As String, glyph As String)
+    Private Sub AddEntry(key As String, glyph As GlyphRef)
         Dim e As New RailEntry With {
             .Key = key,
             .Name = "rail:" & key,
@@ -536,6 +537,15 @@ Public Class ShellForm
         End If
     End Sub
 
+    ' GUI-12: "Clean files" after a test opens Clean on the drive that was tested, with Clean's rail
+    ' row selected - not on whichever drive happens to be listed first.
+    Private Sub OpenCleanOn(target As String)
+        SelectJobByKey("rail_job_clean")
+        If jobView.CurrentJobId = "rail_job_clean" AndAlso Not String.IsNullOrEmpty(target) Then
+            jobView.SetTarget(target)
+        End If
+    End Sub
+
     Private Function EntryFor(key As String) As RailEntry
         For Each it In entries
             If it.Key = key Then Return it
@@ -685,21 +695,41 @@ Public Class ShellForm
     ' APP-BEHAVIOUR rule 10: the saved rectangle is put back defensively - onto a screen that
     ' exists, with its title strip reachable, at the scale of the monitor it lands on. The decision
     ' is WindowPlacement.Place, a pure function the self-test exercises without a display.
+    ' A placement that cannot be restored is logged and the window opens at its default size and
+    ' place (SHELL-09): settings never stop the window from opening.
     Private Sub RestorePlacement()
-        Dim p = ShellSettings.LoadPlacement()
-        If Not p.HasValue Then Return
-        Dim screens As New List(Of WindowPlacement.ScreenArea)
-        For Each s As Screen In Screen.AllScreens
-            screens.Add(New WindowPlacement.ScreenArea(s.WorkingArea, WindowPlacement.DpiOf(s)))
-        Next
-        Dim r = WindowPlacement.Place(New Rectangle(p.X, p.Y, p.Width, p.Height), p.Dpi, screens,
-                                      SystemInformation.CaptionHeight)
-        If Not r.IsEmpty Then
-            StartPosition = FormStartPosition.Manual
-            Bounds = r
-        End If
-        If p.Maximized Then WindowState = FormWindowState.Maximized
+        Try
+            Dim p = ShellSettings.LoadPlacement()
+            If Not p.HasValue Then Return
+            Dim screens As New List(Of WindowPlacement.ScreenArea)
+            For Each s As Screen In Screen.AllScreens
+                screens.Add(New WindowPlacement.ScreenArea(s.WorkingArea, WindowPlacement.DpiOf(s)))
+            Next
+            Dim r = WindowPlacement.Place(New Rectangle(p.X, p.Y, p.Width, p.Height), p.Dpi, screens,
+                                          SystemInformation.CaptionHeight)
+            If Not r.IsEmpty Then
+                StartPosition = FormStartPosition.Manual
+                Bounds = r
+            End If
+            If p.Maximized Then WindowState = FormWindowState.Maximized
+        Catch ex As Exception
+            ShellLog.Write("restore the window placement", ex)
+        End Try
     End Sub
+
+    ' SHELL-07: the state the window was last shown in, other than minimized. A window maximized,
+    ' then minimized, then closed from the taskbar reopens maximized.
+    Private lastShownState As FormWindowState = FormWindowState.Normal
+
+    Protected Overrides Sub OnResize(e As EventArgs)
+        MyBase.OnResize(e)
+        If WindowState <> FormWindowState.Minimized Then lastShownState = WindowState
+    End Sub
+
+    Friend Shared Function SavesMaximized(state As FormWindowState, lastShown As FormWindowState) As Boolean
+        If state = FormWindowState.Minimized Then Return lastShown = FormWindowState.Maximized
+        Return state = FormWindowState.Maximized
+    End Function
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
         ' A close with a run still active is a question, not a close (T5) - whether it came from the
@@ -719,7 +749,7 @@ Public Class ShellForm
         End If
 
         Dim b = If(WindowState = FormWindowState.Normal, Bounds, RestoreBounds)
-        ShellSettings.SavePlacement(b.X, b.Y, b.Width, b.Height, WindowState = FormWindowState.Maximized, DeviceDpi)
+        ShellSettings.SavePlacement(b.X, b.Y, b.Width, b.Height, SavesMaximized(WindowState, lastShownState), DeviceDpi)
         ShellLog.Debug("shell closed")
         MyBase.OnFormClosing(e)
     End Sub

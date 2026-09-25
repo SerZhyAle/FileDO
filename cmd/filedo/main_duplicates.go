@@ -2,10 +2,49 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"filedo/fileduplicates"
+
+	"golang.org/x/term"
 )
+
+// configureDuplicateRun tells the duplicate finder what only this process
+// knows: whether a person can answer its prompts, and how a stop arrives.
+//
+// A person can answer when stdin is a console and the caller did not start
+// us with a machine stop channel (the GUI's --stop-file): a run like that
+// has nobody at the keyboard, so a deleting run needs -y or is refused before
+// it touches anything (DUP-03). The stop is the one stop model every verb
+// obeys - Ctrl+C and the stop file both end the scan and the delete/move
+// phase (DUP-07).
+func configureDuplicateRun(o *fileduplicates.DuplicateOptions) {
+	o.Interactive = term.IsTerminal(int(os.Stdin.Fd())) && !machineStopChannel
+	if globalInterruptHandler != nil {
+		o.Context = globalInterruptHandler.Context()
+	}
+	o.Stop = runStopRequested
+}
+
+// recordDuplicateNumbers puts what the run found and did into result.numbers.
+func recordDuplicateNumbers(result *fileduplicates.DuplicateResult) {
+	if result == nil {
+		return
+	}
+	runNumber("filesScanned", result.TotalFiles)
+	runNumber("duplicateGroups", result.DuplicateGroups)
+	runNumber("duplicateFiles", result.DuplicateFiles)
+	runNumber("duplicateBytes", result.DuplicateSize)
+	a := result.Actions
+	if a.Deleted+a.Moved+a.Skipped+a.Refused+a.Failed > 0 {
+		runNumber("deleted", a.Deleted)
+		runNumber("moved", a.Moved)
+		runNumber("skipped", a.Skipped)
+		runNumber("refused", a.Refused)
+		runNumber("failed", a.Failed)
+	}
+}
 
 // findDuplicatesUsingPackage is a common function that utilizes the fileduplicates package
 func findDuplicatesUsingPackage(rootPath string, args []string) error {
@@ -13,9 +52,13 @@ func findDuplicatesUsingPackage(rootPath string, args []string) error {
 
 	// Parse options from command line arguments
 	options := fileduplicates.ParseArguments(args)
+	configureDuplicateRun(&options)
 
-	// Run the duplicate finder
+	// Run the duplicate finder. It checks the root itself (DUP-16), so a
+	// device target that skipped the generic path probe still ends in an
+	// error rather than in "no duplicate files found".
 	result, err := fileduplicates.FindDuplicates(rootPath, options)
+	recordDuplicateNumbers(result)
 	if err != nil {
 		return err
 	}
@@ -30,9 +73,6 @@ func findDuplicatesUsingPackage(rootPath string, args []string) error {
 			float64(result.DuplicateSize)/(1024*1024*1024))
 	}
 
-	// Processing is already handled by FindDuplicates function
-	// No additional processing needed here
-
 	return nil
 }
 
@@ -40,13 +80,8 @@ func findDuplicatesUsingPackage(rootPath string, args []string) error {
 func runDeviceCheckDuplicates(devicePath string, args []string) error {
 	fmt.Printf("Checking for duplicate files on device: %s\n", devicePath)
 
-	// Convert device path to directory format
-	deviceDir := devicePath
-	if len(devicePath) == 2 && devicePath[1] == ':' {
-		deviceDir = devicePath + "\\"
-	}
-
-	return findDuplicatesUsingPackage(deviceDir, args)
+	// `D:` alone is D:'s current directory; a device verb means its root.
+	return findDuplicatesUsingPackage(deviceRootPath(devicePath), args)
 }
 
 // runFolderCheckDuplicates performs duplicate file check in a folder

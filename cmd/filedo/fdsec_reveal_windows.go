@@ -77,7 +77,13 @@ func fdsecMarkUntrusted(path string) error {
 // the repository's existing helper rather than a seventh call to
 // GetDiskFreeSpaceEx.
 func fdsecFreeSpaceFor(dir string) (int64, error) {
-	return NewFolderTester(dir).GetAvailableSpace()
+	// A read-only query: the capacity tester's own free-space check now
+	// writes a probe file, which has no business in the reveal root.
+	free, _, err := diskSpaceQuery(dir)
+	if err != nil {
+		return 0, err
+	}
+	return clampToInt64(free), nil
 }
 
 // fdsecIsHeld reports whether something else has the file open in a way that

@@ -91,6 +91,33 @@ Module Ui
         End Try
     End Sub
 
+    ' One duration format for every place that shows how long a run took (SHELL-11): minutes and
+    ' seconds under an hour, the hours in front from one hour up - a 3 h 23 min test reads 3:23:00,
+    ' never 23:00.
+    Public Function FormatDuration(d As TimeSpan) As String
+        If d < TimeSpan.Zero Then d = TimeSpan.Zero
+        Dim hours = CLng(Math.Floor(d.TotalHours))
+        If hours >= 1 Then
+            Return hours.ToString(Globalization.CultureInfo.InvariantCulture) & ":" & d.ToString("mm\:ss")
+        End If
+        Return d.ToString("mm\:ss")
+    End Function
+
+    ' A number the CLI reads with strconv.Atoi: digits and nothing else (GUI-15). IsNumeric took
+    ' "1,000", "1e3" and "2.5", which Atoi refuses - the run then silently used its default - and
+    ' read "2,5" as a number in a locale whose decimal mark is a comma.
+    Public Function IsWholeNumber(text As String) As Boolean
+        Dim n As Long
+        Return Long.TryParse(text, Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture, n)
+    End Function
+
+    ' A number the CLI reads with strconv.ParseFloat: digits with at most one "." - in every locale.
+    Public Function IsDecimalNumber(text As String) As Boolean
+        Dim d As Double
+        Return Double.TryParse(text, Globalization.NumberStyles.AllowDecimalPoint,
+                               Globalization.CultureInfo.InvariantCulture, d)
+    End Function
+
     ' Opens a folder in Explorer. A folder that cannot be opened is said to be so, with where it is,
     ' so the user can go there by hand.
     Public Sub OpenFolder(owner As IWin32Window, folder As String)
@@ -177,6 +204,76 @@ Public Class ShellCard
             End Using
         End If
         MyBase.OnPaint(e)
+    End Sub
+
+End Class
+
+' A run's output drawer, fed from the runner's thread (SP-0029 GUI-14).
+'
+' A long run prints a line for every progress tick, and posting each one to the window and appending
+' it to a TextBox cost the UI thread more with every line - 100 000 lines measured at 16 s, with the
+' window frozen for most of it. Lines are queued here from any thread and appended in one piece
+' every 100 ms, and the box keeps only the end of the output: the whole of it is in the run's report.
+Public Class OutputPane
+
+    Friend Const MaxChars As Integer = 1024 * 1024
+    Private Const FlushMs As Integer = 100
+
+    Private ReadOnly box As TextBox
+    Private ReadOnly pending As New Concurrent.ConcurrentQueue(Of String)()
+    Private ReadOnly timer As Windows.Forms.Timer
+
+    Public Sub New(target As TextBox)
+        box = target
+        timer = New Windows.Forms.Timer With {.Interval = FlushMs}
+        AddHandler timer.Tick, Sub() Flush()
+    End Sub
+
+    ' From any thread.
+    Public Sub Add(line As String)
+        pending.Enqueue(If(line, ""))
+    End Sub
+
+    ' On the UI thread, when a run starts and when it has ended.
+    Public Sub Start()
+        timer.Start()
+    End Sub
+
+    Public Sub [Stop]()
+        timer.Stop()
+        Flush()
+    End Sub
+
+    Public Sub Clear()
+        Dim ignored As String = Nothing
+        While pending.TryDequeue(ignored)
+        End While
+        box.Clear()
+    End Sub
+
+    ' Appends everything queued since the last flush, as one piece. When the box would pass its
+    ' limit it is cut back to half of it, at a line start, so the cut happens once per half a
+    ' megabyte of output rather than on every tick.
+    Public Sub Flush()
+        If box.IsDisposed OrElse pending.IsEmpty Then Return
+        Dim sb As New System.Text.StringBuilder()
+        Dim line As String = Nothing
+        While pending.TryDequeue(line)
+            sb.Append(line).Append(Environment.NewLine)
+            If sb.Length > MaxChars * 2 Then sb.Remove(0, sb.Length - MaxChars)
+        End While
+        Dim chunk = sb.ToString()
+        If box.TextLength + chunk.Length <= MaxChars Then
+            box.AppendText(chunk)
+            Return
+        End If
+        Dim combined = box.Text & chunk
+        combined = combined.Substring(Math.Max(0, combined.Length - MaxChars \ 2))
+        Dim nl = combined.IndexOf(ControlChars.Lf)
+        If nl >= 0 AndAlso nl < combined.Length - 1 Then combined = combined.Substring(nl + 1)
+        box.Text = combined
+        box.SelectionStart = box.TextLength
+        box.ScrollToCaret()
     End Sub
 
 End Class

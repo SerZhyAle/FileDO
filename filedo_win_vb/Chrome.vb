@@ -71,10 +71,20 @@ Module Chrome
     Public Function Report() As String
         Return "dark-title-bar: " & lastDark &
                " | rounded-corners: " & lastCorners &
+               " | glyphs: " & GlyphReport() &
                " | glyph-font: " & If(Theme.HasGlyphFont(), Theme.GlyphFamily(), "(none - falling back)") &
                " | ui-font: " & Theme.UiFamily() &
                " | theme: " & If(Theme.Current.IsDark, "dark", "light") &
                " (setting: " & ShellSettings.ThemeChoice() & ")"
+    End Function
+
+    ' How many vendored drawings verified against PROVENANCE.txt, and the first reason one did not -
+    ' the line that explains a rail of bullets in a log a user sent (Glyphs.vb).
+    Private Function GlyphReport() As String
+        Dim problems = Glyphs.Problems()
+        Dim drawn = Glyphs.DrawableIds().Count()
+        If problems.Count = 0 Then Return drawn.ToString() & " verified (" & Glyphs.CatalogVersions() & ")"
+        Return drawn.ToString() & " verified, " & problems.Count.ToString() & " refused: " & problems(0)
     End Function
 
 End Module

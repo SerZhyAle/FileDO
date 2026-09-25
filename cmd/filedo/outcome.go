@@ -48,6 +48,21 @@ func defectf(format string, args ...interface{}) error {
 	return fmt.Errorf("%w: %s", errDefect, fmt.Sprintf(format, args...))
 }
 
+// recordedDefectError is a defect the verb has already recorded with its own
+// finding type and details (recordedDefect). It still satisfies
+// errors.Is(err, errDefect), so every caller reads it as a defect; runFailure
+// alone knows not to record it again.
+type recordedDefectError struct{ error }
+
+func (e recordedDefectError) Unwrap() error { return e.error }
+
+// recordedDefect records a finding of the given type and returns the defect
+// error the verb hands back up.
+func recordedDefect(findingType, message string, details map[string]interface{}) error {
+	runDefect(findingType, message, details)
+	return recordedDefectError{defectf("%s", message)}
+}
+
 // runKind separates a verb that answers a question about its target from one
 // that acts on it. It is the difference between `Passed` and `Done`, and
 // nothing else depends on it.
@@ -65,6 +80,9 @@ type runOutcome struct {
 	kind      runKind
 	defects   int
 	notProven bool
+	// failures counts every runFailure; a batch compares it before and after
+	// a line to know whether that line failed (CLI-12).
+	failures int
 	numbers   map[string]interface{}
 	filesLeft []string
 	reports   []string
@@ -114,6 +132,12 @@ func runFailure(err error) {
 	if err == nil {
 		return
 	}
+	// A defect whose finding the verb already recorded, with its own type
+	// and details, is not recorded a second time.
+	var rd recordedDefectError
+	if errors.As(err, &rd) {
+		return
+	}
 	if errors.Is(err, errDefect) {
 		runDefect("defect", err.Error(), nil)
 		return
@@ -121,8 +145,17 @@ func runFailure(err error) {
 	ensureRunForFinding()
 	currentRun.mu.Lock()
 	currentRun.notProven = true
+	currentRun.failures++
 	currentRun.mu.Unlock()
 	EmitFindingEvent("error", eventSafeErrorMessage(err), nil)
+}
+
+// runProblemCount is how many defects and failures the run has recorded so
+// far - what a batch compares across one line.
+func runProblemCount() int {
+	currentRun.mu.Lock()
+	defer currentRun.mu.Unlock()
+	return currentRun.defects + currentRun.failures
 }
 
 // ensureRunForFinding closes the old gap where a dispatch error could emit a
@@ -183,11 +216,15 @@ func (ro *runOutcome) verdict() Verdict {
 	if globalInterruptHandler != nil && globalInterruptHandler.IsInterrupted() {
 		return VerdictStopped
 	}
+	// A proven defect outranks "could not verify": a batch that found a fake
+	// on one line and could not reach a share on the next still found the
+	// fake, and losing that answer is the failure mode rule 11 exists to
+	// prevent (CLI-06).
 	switch {
-	case ro.notProven:
-		return VerdictNotProven
 	case ro.defects > 0:
 		return VerdictFailed
+	case ro.notProven:
+		return VerdictNotProven
 	case ro.kind == runJudges:
 		return VerdictPassed
 	default:

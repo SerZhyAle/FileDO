@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-BEHAVIOUR` |
-| **Version** | 1.1 (wire carrier: the exit-code classes of section 7.1) |
+| **Version** | 1.3 (wire carrier: the exit-code classes of section 7.1) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FD-SEC-CONTRACT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |
@@ -23,3 +23,5 @@
   temporary file or the console (`cmd/filedo/fdsec_redact.go`).
 - `go test ./fdsec/` covers the section 12.2 checklist. The interoperability claim of 12.3 may be stated
   only after a fresh run with its output cited.
+- **Suite 2 is chosen, never defaulted** (SP-0019 D2): `secure suite2` writes it, and every surface that offers it says
+  that only FileDO reads it and that it keeps no original timestamps (section 11.4).

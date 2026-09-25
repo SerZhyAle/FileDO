@@ -1,36 +1,11 @@
 @echo off
-rem Quick single-binary dev loop: filedo.exe with -race, nothing else.
-rem The distributable build - all five executables plus the MSI and the setup
-rem EXE - is build.ps1, and needs no switch:  .\build.ps1   (add -Test for the
-rem test gate).
-setlocal enabledelayedexpansion
-
-echo Getting version from Git...
-set "GIT_VERSION="
-for /f "tokens=*" %%g in ('git log -1 --format^="%%cd" --date^=format:"%%y%%m%%d%%H%%M"') do (
-    set "GIT_VERSION=%%g"
-)
-
-if "!GIT_VERSION!"=="" (
-    echo Warning: Failed to get version from Git. Using current time.
-    for /f "tokens=1-4 delims=/: " %%a in ("%TIME%") do (
-        set "HH=%%a"
-        set "MM=%%b"
-    )
-    for /f "tokens=1-3 delims=.-/ " %%a in ("%DATE%") do (
-        set "YY=%%c"
-        set "DD=%%a"
-        set "MO=%%b"
-    )
-    set "YY=!YY:~-2!"
-    set "GIT_VERSION=!YY!!MO!!DD!!HH!!MM!"
-)
-
-echo Building filedo.exe with version: !GIT_VERSION!
-
-set CGO_ENABLED=1
-go build -race -ldflags="-X 'main.version=!GIT_VERSION!'" -o filedo.exe .\cmd\filedo
-
-echo.
-echo Build complete.
-endlocal
+rem build.bat is build.ps1 for a cmd.exe prompt: every argument is passed on
+rem (build.bat -Test -SkipGui), and its exit code is build.ps1's - 0 built (and
+rem passed), 1 a defect, 2 could not verify.
+rem
+rem It used to build filedo.exe alone with -race and CGO on - which the local
+rem windows/386 toolchain cannot do without a C compiler - and then printed
+rem "Build complete." whatever had happened (SP-0030 REL-10). There is one build,
+rem the one the release ships, and it lives in build.ps1.
+pwsh -NoProfile -File "%~dp0build.ps1" %*
+exit /b %ERRORLEVEL%

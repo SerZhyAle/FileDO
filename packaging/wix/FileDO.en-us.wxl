@@ -31,7 +31,7 @@
 
   <!-- The feature tree. The one page that answers &quot;what am I getting?&quot; -->
   <String Id="CustomizeDlgTitle" Value="{\WixUI_Font_Title}Choose what to install" />
-  <String Id="CustomizeDlgDescription" Value="Click a feature to read what it does. FileDO itself is required; the two under it are conveniences you can add now, drop now, or change later with Change in Apps and features." />
+  <String Id="CustomizeDlgDescription" Value="Click a feature to read what it does. FileDO itself is required; the two under it are conveniences you can add now, drop now, or change later from FileDO's entry in Apps and features." />
 
   <!-- Ready page: one line, and it is the last chance to say it plainly. -->
   <String Id="VerifyReadyDlgInstallText" Value="Click Install to put the selected features on this computer. Windows will ask for administrator rights, because FileDO installs for every account." />

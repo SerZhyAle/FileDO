@@ -1,5 +1,8 @@
-// Package fdsec implements the FileDO secret-file container, format version 1,
-// suite 1. The on-disk contract is FDSEC-FORMAT.md, which lives outside this
+// Package fdsec implements the FileDO secret-file container, format version 1:
+// suite 1, one file; suite 3, one directory tree (FDSEC-FORMAT.md section 17;
+// tree.go, packtree.go, unpacktree.go); and suite 2, the quiet suite, one file
+// with no head at all (section 18; suite2.go). The on-disk contract is
+// FDSEC-FORMAT.md, which lives outside this
 // repository in the shared contracts catalog - see AGENTS.md "External
 // contracts" for where that is, and docs/contracts/FDSEC-FORMAT.md for what
 // this package owes it. Every offset, width and rule below cites the section of
@@ -130,7 +133,7 @@ func validateHeader(h *header) error {
 	switch {
 	case h.Version != FormatVersion:
 		return fmt.Errorf("%w: format version %d", ErrUnsupported, h.Version)
-	case h.Suite != SuiteID1:
+	case h.Suite != SuiteID1 && h.Suite != SuiteID3:
 		return fmt.Errorf("%w: suite id %d", ErrUnsupported, h.Suite)
 	case h.Flags != flagV1Conform:
 		return fmt.Errorf("%w: flags 0x%04x", ErrUnsupported, h.Flags)

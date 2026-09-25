@@ -1,144 +1,68 @@
-# FileDO FILL - Specialized Fill Operation Tool
+# filedo_fill - a shortcut for `filedo <target> fill`
 
-This is a standalone subproject that contains all the FILL functionality from the main FileDO project in a compact, specialized executable.
-
-## Project Structure
-
-```
-cmd/filedo-fill/
-├── main.go              # Main entry point and command parsing
-├── device_fill.go       # Device (drive) fill operations
-├── folder_fill.go       # Folder fill operations  
-├── network_fill.go      # Network share fill operations
-├── progress.go          # Progress tracking and reporting
-├── interrupt.go         # Ctrl+C interrupt handling
-├── utils.go             # Utility functions and file operations
-├── go.mod               # Go module definition
-├── BUILD_INSTRUCTIONS.cmd  # Build guide
-└── README.md            # This file
-```
-
-## Building
-
-1. Install Go 1.21+ from https://golang.org/dl/
-2. Open command prompt in the `cmd\filedo-fill` folder
-3. Run: `go mod tidy`
-4. Run: `go build -o filedo_fill.exe .`
+`filedo_fill.exe` is a launcher, not a second copy of the fill engine. It turns its command line
+into the equivalent `filedo.exe` command line, runs the `filedo.exe` that sits in its own folder
+with the same console, and ends with that exit code. Everything the run does - the files it
+writes, the prompts, the safety checks on the system drive and the verdict - is what
+`filedo.exe` does for that command, so it behaves exactly like the main tool and gets every fix
+the main tool gets.
 
 ## Usage
 
-### Fill Operations
-
-```bash
-# Fill drive with default 100MB files
-filedo_fill.exe C:
-
-# Fill drive with specific size files
-filedo_fill.exe D: 500
-
-# Fill drive with auto-delete (for testing)
-filedo_fill.exe E: 1000 del
-
-# Fill folder
-filedo_fill.exe C:\temp 200
-
-# Fill network share
-filedo_fill.exe \\server\share 100
+```cmd
+filedo_fill.exe <target> [size] [del] [global options]
+filedo_fill.exe <target> clean [global options]
 ```
 
-### Clean Operations
+| You type | filedo.exe runs |
+| --- | --- |
+| `filedo_fill.exe D:` | `filedo.exe D: fill 100` |
+| `filedo_fill.exe D: 500` | `filedo.exe D: fill 500` |
+| `filedo_fill.exe D: 1000 del` | `filedo.exe D: fill 1000 del` |
+| `filedo_fill.exe D: del 1000` | `filedo.exe D: fill 1000 del` |
+| `filedo_fill.exe D: del` | `filedo.exe D: fill 100 del` |
+| `filedo_fill.exe D:\Temp 200 del` | `filedo.exe D:\Temp fill 200 del` |
+| `filedo_fill.exe \\server\share` | `filedo.exe \\server\share fill 100` |
+| `filedo_fill.exe D: clean` | `filedo.exe D: clean` |
 
-```bash
-# Clean test files from drive
-filedo_fill.exe C: clean
+- **target** - a drive (`D:`), a folder (`D:\Temp`) or a network share (`\\server\share`). A
+  single letter (`D`) means that drive; a bare folder name (`Photos`) is passed as `.\Photos`,
+  so it can never be mistaken for one of `filedo.exe`'s verbs.
+- **size** - the size of each file in MB, 1-10240. Default 100.
+- **`del`**, `delete`, `d` - delete the files again once the target is full.
+- **`clean`**, `c` - delete the test files a fill or a test left on the target. It takes no size
+  and no `del`.
+- **Global options** are handed to `filedo.exe` unchanged: `--events <file>`,
+  `--stop-file <file>`, `--pause`, `--no-history`, `--no-ui`, `nohist`, and `-y`, `--yes`,
+  `--force`. What they do is what `filedo.exe` does with them for that verb.
+- `filedo_fill.exe -?` shows the usage and the version.
 
-# Clean test files from folder
-filedo_fill.exe C:\temp clean
+Anything else - an unknown word, a size out of range, `clean` together with a size - is refused
+before `filedo.exe` starts.
 
-# Clean test files from network share
-filedo_fill.exe \\server\share clean
+## Exit codes
+
+`filedo.exe`'s own: **0** done, **1** a defect was found, **2** could not verify.
+`filedo_fill.exe` adds nothing of its own except **2** for a command line it refuses and for a
+`filedo.exe` that is not in its folder or cannot be started.
+
+Ctrl+C reaches `filedo.exe` directly, because the two share the console; it stops the way it
+always does, and `filedo_fill.exe` waits for it and returns its exit code.
+
+## Where filedo.exe comes from
+
+Only from the folder `filedo_fill.exe` is in - never from the current folder and never from
+`PATH`. A winget install starts the tools through links in `WinGet\Links`; the launcher follows
+its own link back to the package folder first. The zip, the installer and winget all ship the two
+files together.
+
+## Building
+
+```cmd
+cd cmd\filedo-fill
+go build -o filedo_fill.exe .
+go test ./...
 ```
 
-### Help
-
-```bash
-filedo_fill.exe help
-filedo_fill.exe ?
-```
-
-## Features
-
-- **Complete FILL functionality** - All FILL operations from main FileDO
-- **Multi-target support** - Devices (C:, D:), folders, network shares
-- **Auto-delete option** - For testing without leaving files behind
-- **Progress tracking** - Real-time progress with speed reporting
-- **Interrupt handling** - Graceful Ctrl+C handling with cleanup
-- **Parallel operations** - Fast file creation using worker pools
-- **Compatible file formats** - Same file naming as main FileDO
-- **History logging** - Operations logged to history.json
-- **Error recovery** - Automatic handling of disk full and other errors
-
-## File Formats
-
-Creates files with the same naming convention as main FileDO:
-- `FILL_00001_ddHHmmss.tmp`
-- `FILL_00002_ddHHmmss.tmp`
-- etc.
-
-Where `ddHHmmss` is the timestamp when the operation started.
-
-## Compatibility
-
-- Fully compatible with main FileDO cleanup operations
-- Uses same file naming and formats
-- History logging compatible with main FileDO
-- Clean operations work on files created by either tool
-
-## Size Limits
-
-- Minimum file size: 1MB
-- Maximum file size: 10240MB (10GB)
-- Default file size: 100MB
-
-## Options
-
-- `del`, `delete`, `d` - Auto-delete files after creation
-- `clean`, `c` - Clean existing test files
-- `help`, `?` - Show help information
-
-## Examples
-
-```bash
-# Test drive capacity with auto-cleanup
-filedo_fill.exe F: 100 del
-
-# Fill temporary folder for testing
-filedo_fill.exe C:\temp 50 del
-
-# Fill until disk full, then clean up
-filedo_fill.exe D: 1000
-filedo_fill.exe D: clean
-
-# Clean all test files from multiple locations
-filedo_fill.exe C: clean
-filedo_fill.exe D: clean
-filedo_fill.exe C:\temp clean
-```
-
-## Technical Details
-
-- Written in Go 1.21+
-- Uses Windows APIs for disk space information
-- Parallel file operations for performance
-- Optimized buffer sizes for different storage types
-- Comprehensive error handling and recovery
-- Memory-efficient for large operations
-- Signal-safe interrupt handling
-
-## History Integration
-
-All operations are logged to `history.json` in the same format as main FileDO, allowing for:
-- Operation tracking and audit trails
-- Performance analysis and benchmarking
-- Integration with main FileDO history system
-- Troubleshooting and error analysis
+It is its own Go module with no dependencies outside the standard library. `go test` builds the
+launcher and a stub `filedo.exe` and runs them together; it never touches a real drive.

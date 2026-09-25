@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"filedo/statedir"
+
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -54,8 +56,15 @@ func runReg(t *testing.T, wd, seam string, args ...string) (string, int) {
 	cmd.Env = append(os.Environ(),
 		"FILEDO_FDSEC_NO_LAUNCH=1",
 		"FILEDO_FDSEC_REVEAL_ROOT="+revealRoot(wd),
+		statedir.EnvOverride+"="+wd,
 		"FILEDO_FDSEC_REG_ROOT="+seam,
 	)
+	// Whether the FileDO package is installed is a fact about the developer's
+	// machine, not about the code under test. A test that is about the package
+	// sets the seam itself; every other one runs as if there were none.
+	if os.Getenv(fdsecPackagedMenuEnv) == "" {
+		cmd.Env = append(cmd.Env, fdsecPackagedMenuEnv+"=0")
+	}
 	cmd.Stdin = strings.NewReader("")
 	out, err := cmd.CombinedOutput()
 	code := 0
@@ -358,6 +367,80 @@ func TestFdsecPerUserRegisterStandsDownForTheMachineCopy(t *testing.T) {
 	}
 	if _, ok := regString(t, userClasses+`\FileDO.SecureContainer\shell\open\command`, ""); ok {
 		t.Error("a per-user copy was written on top of the machine-wide one")
+	}
+}
+
+// FDSEC-17: a per-user copy left by an earlier portable register silently
+// wins over a later machine-wide one. register -all-users and unregister
+// -all-users both say so, and neither removes it on another account's behalf.
+func TestFdsecMachineRegisterReportsAPerUserCopy(t *testing.T) {
+	dir := t.TempDir()
+	seam, userClasses, _ := regSeam(t)
+
+	if out, code := runReg(t, dir, seam, "fdsec", "register"); code != 0 {
+		t.Fatalf("per-user register exit %d\n%s", code, out)
+	}
+	out, code := runReg(t, dir, seam, "fdsec", "register", "-all-users")
+	if code != 0 {
+		t.Fatalf("machine register exit %d\n%s", code, out)
+	}
+	if !strings.Contains(out, "per-user FileDO registration") {
+		t.Errorf("register -all-users does not report the per-user copy that wins\n%s", out)
+	}
+	if _, ok := regString(t, userClasses+`\FileDO.SecureContainer\shell\open\command`, ""); !ok {
+		t.Error("the per-user copy must be reported, not removed")
+	}
+	out, code = runReg(t, dir, seam, "fdsec", "unregister", "-all-users")
+	if code != 0 {
+		t.Fatalf("machine unregister exit %d\n%s", code, out)
+	}
+	if !strings.Contains(out, "per-user FileDO registration") {
+		t.Errorf("unregister -all-users does not report the per-user copy left behind\n%s", out)
+	}
+}
+
+// SP-0020 D3: with the FileDO package installed its first-level group is
+// already in the menu, so the per-user classic copy is the one that yields -
+// and says so. A machine-wide copy is still written, because it serves the
+// accounts the per-user package does not, and it says what this account sees.
+func TestFdsecRegisterStandsDownForThePackagedMenu(t *testing.T) {
+	dir := t.TempDir()
+	seam, userClasses, machineClasses := regSeam(t)
+	t.Setenv(fdsecPackagedMenuEnv, "1")
+
+	out, code := runReg(t, dir, seam, "fdsec", "register")
+	if code != 0 {
+		t.Fatalf("exit %d, want 0 (standing down is not a failure)\n%s", code, out)
+	}
+	if !strings.Contains(out, "FileDO package is installed") || !strings.Contains(out, "nothing written") {
+		t.Errorf("the stand-down does not say why nothing was written\n%s", out)
+	}
+	if _, ok := regString(t, userClasses+`\*\shell\FileDO`, "MUIVerb"); ok {
+		t.Error("a per-user classic group was written beside the packaged one")
+	}
+
+	out, code = runReg(t, dir, seam, "fdsec", "register", "-all-users")
+	if code != 0 {
+		t.Fatalf("machine register exit %d\n%s", code, out)
+	}
+	if !strings.Contains(out, "from both") {
+		t.Errorf("the machine-wide register does not say this account sees both\n%s", out)
+	}
+	if _, ok := regString(t, machineClasses+`\*\shell\FileDO`, "MUIVerb"); !ok {
+		t.Error("the machine-wide registration was not written")
+	}
+}
+
+// The package check itself, against the real API: a family that cannot exist
+// is not installed, and the Settings app - registered for every user of a
+// desktop Windows - is.
+func TestFdsecPackageFamilyInstalled(t *testing.T) {
+	if fdsecPackageFamilyInstalled("SZA.FileDO.NoSuchPackage_0000000000000") {
+		t.Error("a family nobody could have installed reports as installed")
+	}
+	const settings = "windows.immersivecontrolpanel_cw5n1h2txyewy"
+	if !fdsecPackageFamilyInstalled(settings) {
+		t.Skipf("%s is not installed here (a server or a stripped image); the positive answer is unproven on this machine", settings)
 	}
 }
 

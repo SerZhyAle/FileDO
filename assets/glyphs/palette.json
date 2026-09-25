@@ -1,0 +1,147 @@
+{
+  "contract": "ICON-RENDER 0.10, section 10 item D",
+  "generated": "scripts/docs/export-icon-contract.ps1 in FastMediaSorter Android, from its colour resources",
+  "onPlateRule": "white when white reaches 3:1 against the plate, otherwise #1F1F1F",
+  "hues": {
+    "accent": {
+      "day": "#1976D2",
+      "night": "#64B5F6",
+      "plate": "#1976D2",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 4.6,
+      "nightContrast": 8.46,
+      "onPlateContrast": 4.6,
+      "source": "colorPrimary of the base themes"
+    },
+    "category.image": {
+      "day": "#1976D2",
+      "night": "#90CAF9",
+      "plate": "#1976D2",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 4.6,
+      "nightContrast": 10.71,
+      "onPlateContrast": 4.6,
+      "source": "color_media_image"
+    },
+    "category.video": {
+      "day": "#7B1FA2",
+      "night": "#CE93D8",
+      "plate": "#7B1FA2",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 8.2,
+      "nightContrast": 7.84,
+      "onPlateContrast": 8.2,
+      "source": "color_media_video"
+    },
+    "category.audio": {
+      "day": "#00796B",
+      "night": "#80CBC4",
+      "plate": "#00796B",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 5.32,
+      "nightContrast": 10.04,
+      "onPlateContrast": 5.32,
+      "source": "color_media_music"
+    },
+    "category.document": {
+      "day": "#E65100",
+      "night": "#FFCC80",
+      "plate": "#E65100",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 3.79,
+      "nightContrast": 12.67,
+      "onPlateContrast": 3.79,
+      "source": "color_media_docs"
+    },
+    "category.other": {
+      "day": "#616161",
+      "night": "#B0BEC5",
+      "plate": "#616161",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 6.19,
+      "nightContrast": 9.83,
+      "onPlateContrast": 6.19,
+      "source": "color_media_other"
+    },
+    "source.local": {
+      "day": "#388E3C",
+      "night": "#81C784",
+      "plate": "#388E3C",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 4.12,
+      "nightContrast": 9.31,
+      "onPlateContrast": 4.12,
+      "source": "color_source_local"
+    },
+    "source.smb": {
+      "day": "#1976D2",
+      "night": "#64B5F6",
+      "plate": "#1976D2",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 4.6,
+      "nightContrast": 8.46,
+      "onPlateContrast": 4.6,
+      "source": "color_source_smb"
+    },
+    "source.sftp": {
+      "day": "#E65100",
+      "night": "#FFB74D",
+      "plate": "#E65100",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 3.79,
+      "nightContrast": 10.82,
+      "onPlateContrast": 3.79,
+      "source": "color_source_sftp"
+    },
+    "source.ftp": {
+      "day": "#8E24AA",
+      "night": "#BA68C8",
+      "plate": "#8E24AA",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 7.04,
+      "nightContrast": 5.27,
+      "onPlateContrast": 7.04,
+      "source": "color_source_ftp"
+    },
+    "source.cloud": {
+      "day": "#0097A7",
+      "night": "#4DD0E1",
+      "plate": "#0097A7",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 3.51,
+      "nightContrast": 10.19,
+      "onPlateContrast": 3.51,
+      "source": "color_source_cloud"
+    },
+    "state.ok": {
+      "day": "#2E7D32",
+      "night": "#81C784",
+      "plate": "#2E7D32",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 5.13,
+      "nightContrast": 9.31,
+      "onPlateContrast": 5.13,
+      "source": "success_color"
+    },
+    "state.warning": {
+      "day": "#F57C00",
+      "night": "#FFB74D",
+      "plate": "#F57C00",
+      "onPlate": "#1F1F1F",
+      "dayContrast": 2.7,
+      "nightContrast": 10.82,
+      "onPlateContrast": 6.1,
+      "source": "warning_color"
+    },
+    "state.error": {
+      "day": "#D32F2F",
+      "night": "#EF5350",
+      "plate": "#D32F2F",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 4.98,
+      "nightContrast": 5.37,
+      "onPlateContrast": 4.98,
+      "source": "error_color"
+    }
+  }
+}

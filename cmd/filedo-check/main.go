@@ -1,410 +1,174 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"runtime"
-	"runtime/debug"
 	"strings"
-	"time"
 )
 
-// version is stamped by build.ps1 and release.yml with -ldflags.
+// version is stamped by build.ps1 and release.yml with -ldflags "-X main.version=<stamp>".
 var version = "dev"
 
-var start_time time.Time
-var globalInterruptHandler *InterruptHandler
+const selfName = "filedo_check.exe"
 
-// HistoryEntry structure for logging
-type HistoryEntry struct {
-	Timestamp     time.Time              `json:"timestamp"`
-	Command       string                 `json:"command"`
-	Target        string                 `json:"target"`
-	Operation     string                 `json:"operation"`
-	FullCommand   string                 `json:"fullCommand"`
-	Parameters    map[string]interface{} `json:"parameters"`
-	Results       map[string]interface{} `json:"results"`
-	ResultSummary string                 `json:"resultSummary,omitempty"`
-	Duration      string                 `json:"duration"`
-	Success       bool                   `json:"success"`
-	ErrorMsg      string                 `json:"error,omitempty"`
+// checkOptions are the options of "filedo check" this companion documents,
+// each handed over under the same name; the value says whether it takes an
+// argument. The rest of filedo check's options are reached through filedo.exe
+// itself.
+var checkOptions = map[string]bool{
+	"--threshold":   true,
+	"--workers":     true,
+	"--max-files":   true,
+	"--min-mb":      true,
+	"--max-mb":      true,
+	"--include-ext": true,
+	"--exclude-ext": true,
+	"--report":      true,
+	"--verbose":     false,
+	"--quiet":       false,
+	"--precount":    false,
 }
 
-// HistoryLogger for compatibility with main project
-type HistoryLogger struct {
-	enabled      bool
-	startTime    time.Time
-	entry        HistoryEntry
-	originalArgs []string
-	historyFile  string
-	canWriteHist bool
+// withdrawnOptions were listed by the filedo_check that shipped before this
+// launcher, and the check engine does not do them. Accepting them would be a
+// promise nobody keeps, so they are refused with the reason.
+var withdrawnOptions = map[string]string{
+	"--resume":  "the check does not save its position, so there is nothing to resume from",
+	"--dry-run": "the check has no dry run",
 }
 
-func NewHistoryLogger(args []string) *HistoryLogger {
-	// Проверка флагов отключения истории
-	enabled := true
-	for _, arg := range args {
-		if arg == "nohist" || arg == "no_history" {
-			enabled = false
-			break
-		}
+var modeWords = map[string]string{
+	"quick": "quick", "q": "quick",
+	"balanced": "balanced", "b": "balanced",
+	"deep": "deep", "d": "deep",
+}
+
+// defaultMode is the mode filedo_check always documented as its default. It
+// is passed explicitly, because filedo check on its own defaults to quick.
+const defaultMode = "balanced"
+
+// mapArgs turns a filedo_check command line (without the program name) into
+// filedo.exe's:
+//
+//	filedo_check <target> [mode] [options]  ->  filedo check <target> --mode <mode|balanced> [options]
+//
+// with the global options appended unchanged. A drive is checked from its
+// root, as filedo_check always did: "D:" alone would be D:'s current folder.
+func mapArgs(args []string) ([]string, error) {
+	words, forwarded, err := splitGlobalOptions(args, nil)
+	if err != nil {
+		return nil, err
 	}
-
-	historyFile := "history.json"
-	canWriteHist := true
-
-	// Проверка возможности записи в файл истории
-	if enabled {
-		if file, err := os.OpenFile(historyFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
-			canWriteHist = false
+	var flags, rest []string
+	for i := 0; i < len(words); i++ {
+		w := words[i]
+		if !strings.HasPrefix(w, "--") {
+			rest = append(rest, w)
+			continue
+		}
+		name, value, inline := strings.Cut(w, "=")
+		if why, withdrawn := withdrawnOptions[name]; withdrawn {
+			return nil, usagef("%s is not supported: %s", name, why)
+		}
+		takesValue, known := checkOptions[name]
+		if !known {
+			return nil, usagef("unknown option %s (filedo.exe check <path> has more options; see filedo.exe help)", w)
+		}
+		if !takesValue {
+			if inline {
+				return nil, usagef("%s takes no value", name)
+			}
+			flags = append(flags, w)
+			continue
+		}
+		if inline {
+			flags = append(flags, w)
 		} else {
-			file.Close()
+			if i+1 >= len(words) {
+				return nil, usagef("%s needs a value after it", name)
+			}
+			i++
+			value = words[i]
+			flags = append(flags, name, value)
+		}
+		if name == "--report" {
+			if v := strings.ToLower(value); v != "csv" && v != "json" {
+				return nil, usagef("--report takes csv or json, not %q", value)
+			}
 		}
 	}
-
-	// Создание строки полной команды
-	fullCommand := strings.Join(args, " ")
-
-	return &HistoryLogger{
-		enabled:      enabled && canWriteHist,
-		startTime:    time.Now(),
-		originalArgs: args,
-		historyFile:  historyFile,
-		canWriteHist: canWriteHist,
-		entry: HistoryEntry{
-			Timestamp:   time.Now(),
-			FullCommand: fullCommand,
-			Parameters:  make(map[string]interface{}),
-			Results:     make(map[string]interface{}),
-		},
-	}
-}
-
-func (hl *HistoryLogger) SetCommand(command, target, operation string) {
-	if !hl.enabled {
-		return
-	}
-	hl.entry.Command = command
-	hl.entry.Target = target
-	hl.entry.Operation = operation
-}
-
-func (hl *HistoryLogger) SetParameter(key string, value interface{}) {
-	if !hl.enabled {
-		return
-	}
-	hl.entry.Parameters[key] = value
-}
-
-func (hl *HistoryLogger) SetResult(key string, value interface{}) {
-	if !hl.enabled {
-		return
-	}
-	hl.entry.Results[key] = value
-}
-
-func (hl *HistoryLogger) SetError(err error) {
-	if !hl.enabled {
-		return
-	}
-	hl.entry.Success = false
-	hl.entry.ErrorMsg = err.Error()
-}
-
-func (hl *HistoryLogger) SetSuccess() {
-	if !hl.enabled {
-		return
-	}
-	hl.entry.Success = true
-}
-
-func (hl *HistoryLogger) SetResultSummary(summary string) {
-	if !hl.enabled {
-		return
-	}
-	hl.entry.ResultSummary = summary
-}
-
-func (hl *HistoryLogger) Finish() {
-	if !hl.enabled {
-		return
-	}
-
-	hl.entry.Duration = formatDuration(time.Since(hl.startTime))
-
-	// Генерация краткого резюме результата
-	if hl.entry.ResultSummary == "" && hl.entry.Success {
-		hl.entry.ResultSummary = hl.generateResultSummary()
-	}
-
-	saveToHistory(hl.entry)
-}
-
-// generateResultSummary creates brief description of operation result
-func (hl *HistoryLogger) generateResultSummary() string {
-	var details []string
-
-	if found, ok := hl.entry.Results["filesFound"].(int64); ok {
-		details = append(details, fmt.Sprintf("Found: %d", found))
-	}
-	if checked, ok := hl.entry.Results["filesChecked"].(int64); ok {
-		details = append(details, fmt.Sprintf("Checked: %d", checked))
-	}
-	if damaged, ok := hl.entry.Results["filesDamaged"].(int64); ok {
-		details = append(details, fmt.Sprintf("Damaged: %d", damaged))
-	}
-	if speed, ok := hl.entry.Results["readSpeed"].(string); ok {
-		details = append(details, "Speed: "+speed)
-	}
-
-	return strings.Join(details, ", ")
-}
-
-func saveToHistory(entry HistoryEntry) error {
-	historyFile := "history.json"
-
-	var history []HistoryEntry
-	if data, err := os.ReadFile(historyFile); err == nil {
-		json.Unmarshal(data, &history)
-	}
-
-	history = append(history, entry)
-
-	if len(history) > 1000 {
-		history = history[len(history)-1000:]
-	}
-
-	data, err := json.MarshalIndent(history, "", "  ")
+	target, rest, err := takeTarget(rest)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return os.WriteFile(historyFile, data, 0644)
+	mode := ""
+	for _, w := range rest {
+		m, ok := modeWords[strings.ToLower(w)]
+		if !ok {
+			return nil, usagef("unexpected %q: filedo_check takes a target, then a mode (quick, balanced, deep) and options", w)
+		}
+		if mode != "" && mode != m {
+			return nil, usagef("two modes given (%s and %s)", mode, m)
+		}
+		mode = m
+	}
+	if mode == "" {
+		mode = defaultMode
+	}
+	out := []string{"check", driveRoot(target), "--mode", mode}
+	out = append(out, flags...)
+	return append(out, forwarded...), nil
 }
 
-func main() {
-	start_time = time.Now()
-
-	// GC optimization for better performance
-	debug.SetGCPercent(50)
-	runtime.GOMAXPROCS(0)
-
-	// Initialize global interrupt handler
-	globalInterruptHandler = NewInterruptHandler()
-
-	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " FileDO CHECK v" + version + " sza@ukr.net\n"
-	fmt.Print(hi_message)
-
-	// Ensure always printing completion message
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Fprintf(os.Stderr, "\nPanic: %v\n", r)
-		}
-		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + fmt.Sprintf("%.0fs", time.Since(start_time).Seconds()) + "\n"
-		fmt.Print(bue_message)
-	}()
-
-	args := os.Args
-
-	// Initialize history logger
-	historyLogger := NewHistoryLogger(os.Args)
-	defer historyLogger.Finish()
-
-	if len(args) < 2 {
-		showUsage()
-		return
+// driveRoot turns a bare drive ("D:") into its root ("D:\"). filedo check
+// walks the path it is given, and "D:" on its own names D:'s current folder,
+// which a console can have set to anywhere.
+func driveRoot(target string) string {
+	if len(target) == 2 && target[1] == ':' && isASCIILetter(target[0]) {
+		return target + `\`
 	}
-
-	// Check for help
-	if isHelpFlag(args[1]) {
-		showUsage()
-		return
-	}
-
-	// Parse arguments for CHECK command
-	// Expected format: filedo_check.exe C: [mode] [options]
-	// Should work as: filedo.exe C: check [mode] [options]
-
-	targetPath := args[1]
-
-	// Default values
-	checkMode := "balanced" // default mode
-	var checkOptions []string
-
-	// Parse additional arguments
-	for i := 2; i < len(args); i++ {
-		arg := strings.ToLower(strings.TrimSpace(args[i]))
-
-		// Проверка режимов проверки
-		if arg == "quick" || arg == "q" {
-			checkMode = "quick"
-			continue
-		}
-		if arg == "balanced" || arg == "b" {
-			checkMode = "balanced"
-			continue
-		}
-		if arg == "deep" || arg == "d" {
-			checkMode = "deep"
-			continue
-		}
-
-		// Все остальные аргументы передаем как опции
-		checkOptions = append(checkOptions, args[i])
-	}
-
-	var err error
-
-	err = handleCheckOperation(targetPath, checkMode, checkOptions, historyLogger)
-
-	if err != nil {
-		historyLogger.SetError(err)
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	historyLogger.SetSuccess()
+	return target
 }
 
-func showUsage() {
-	usage := fmt.Sprintf(`
-FileDO CHECK v%s - Specialized CHECK Operation Tool
-Created by sza@ukr.net
+func usageText() string {
+	return fmt.Sprintf(`
+FileDO CHECK v%s - a shortcut for "filedo.exe check" (read-check files for damage)
 
 USAGE:
-  filedo_check.exe <target> [mode] [options]
+  filedo_check.exe <target> [mode] [options] [global options]
 
-EXAMPLES:
-  filedo_check.exe C:                    → Check C: with balanced mode (default)
-  filedo_check.exe C: quick              → Quick check C: (fast scan)
-  filedo_check.exe C: deep               → Deep check C: (thorough scan)
-  filedo_check.exe D: balanced           → Balanced check D:
-  filedo_check.exe C:\folder             → Check specific folder
-  filedo_check.exe C:\folder quick       → Quick check folder
-  filedo_check.exe \\server\share        → Check network share
-  filedo_check.exe C: --threshold 5      → Check with 5 second threshold
-  filedo_check.exe C: --verbose          → Check with verbose output
+It runs the filedo.exe in its own folder with the equivalent command and ends
+with that exit code. What the run does - what counts as damage, the lists it
+keeps and the verdict - is what filedo.exe check does:
+  filedo_check.exe D:                  -> filedo.exe check D:\ --mode balanced
+  filedo_check.exe D: quick            -> filedo.exe check D:\ --mode quick
+  filedo_check.exe D:\Photos deep      -> filedo.exe check D:\Photos --mode deep
+  filedo_check.exe \\server\share      -> filedo.exe check \\server\share --mode balanced
+  filedo_check.exe D: --threshold 5    -> filedo.exe check D:\ --mode balanced --threshold 5
 
-TARGETS:
-  C:, D:, etc.        → Device/drive operations
-  C:\folder           → Folder operations  
-  \\server\share      → Network operations
-
+TARGET:  a drive (D:, checked from its root), a folder, a network share, or
+         one file
 MODES:
-  quick, q            → Quick scan (read only first part of files)
-  balanced, b         → Balanced scan (read first + middle of files) [DEFAULT]
-  deep, d             → Deep scan (read first + middle + end of files)
+  quick, q        -> read the start of each file
+  balanced, b     -> also read the middle of large files [DEFAULT]
+  deep, d         -> also read three points inside large files
+OPTIONS (the filedo check options of the same name):
+  --threshold <sec>     a read slower than this marks the file damaged (2)
+  --workers <n>         number of parallel readers (chosen from the drive type)
+  --max-files <n>       stop after this many files
+  --min-mb <n>          only files of at least n MB
+  --max-mb <n>          only files of at most n MB
+  --include-ext <list>  only these extensions, comma-separated
+  --exclude-ext <list>  skip these extensions, comma-separated
+  --report csv|json     also write check_report_<time>.csv or .json
+  --verbose, --quiet    more or less output
+  --precount            count the files first, for exact totals (the default)
 
-COMMON OPTIONS:
-  --threshold N       → Set delay threshold in seconds (default: 2.0)
-  --verbose           → Verbose output with detailed information
-  --quiet             → Quiet output with minimal information
-  --workers N         → Set number of worker threads
-  --report csv|json   → Generate report in specified format
-  --max-files N       → Limit number of files to check
-  --resume            → Resume from last saved position
+GLOBAL OPTIONS, handed to filedo.exe unchanged:
+  --events <file>  --stop-file <file>  --pause  --no-history  --no-ui  nohist
 
-ADVANCED OPTIONS:
-  --min-mb N          → Only check files larger than N MB
-  --max-mb N          → Only check files smaller than N MB
-  --include-ext exts  → Only check files with these extensions (comma-separated)
-  --exclude-ext exts  → Skip files with these extensions (comma-separated)
-  --dry-run           → Simulate operation without changes
-
-NOTES:
-• Scans files for read delays that indicate potential damage
-• Creates skip_files.list with damaged files automatically
-• Creates check_files.list with verified good files
-• Files taking > threshold seconds to read are marked as damaged
-• Compatible with main FileDO damage detection system
-• Use Ctrl+C to cancel operation safely
-• All operations are logged in history.json
-
-For advanced options and environment variables, see README.md
+EXIT CODES (filedo.exe's): 0 passed, 1 damaged files were found, 2 could not
+verify. filedo_check.exe itself exits 2 on a usage error and when filedo.exe
+is not in its folder.
 
 `, version)
-	fmt.Print(usage)
-}
-
-func handleCheckOperation(targetPath, mode string, options []string, logger *HistoryLogger) error {
-	// Установка режима через environment variable
-	os.Setenv("FILEDO_CHECK_MODE", mode)
-
-	// Определение типа пути (аналогично логике main filedo)
-	targetPath = strings.TrimSpace(targetPath)
-
-	// Проверка, является ли это буквой диска
-	if len(targetPath) > 0 && ((len(targetPath) == 1) || (len(targetPath) > 1 && len(targetPath) < 4 && string([]rune(targetPath)[1]) == ":")) {
-		if len(targetPath) == 1 {
-			targetPath += ":"
-		}
-		// Операция с устройством
-		logger.SetCommand("device", targetPath, "check")
-		logger.SetParameter("mode", mode)
-		logger.SetParameter("options", options)
-
-		switch mode {
-		case "quick":
-			return runDeviceCheckQuick(targetPath)
-		case "deep":
-			return runDeviceCheckDeep(targetPath)
-		default: // balanced
-			return runDeviceCheck(targetPath)
-		}
-	}
-
-	// Проверка, является ли это сетевым путем
-	if len(targetPath) > 2 && (targetPath[0:2] == "\\" || targetPath[0:2] == "//") {
-		// Сетевая операция
-		logger.SetCommand("network", targetPath, "check")
-		logger.SetParameter("mode", mode)
-		logger.SetParameter("options", options)
-
-		switch mode {
-		case "quick":
-			return runNetworkCheckQuick(targetPath, logger)
-		case "deep":
-			return runNetworkCheckDeep(targetPath, logger)
-		default: // balanced
-			return runNetworkCheck(targetPath, logger)
-		}
-	}
-
-	// Проверка, является ли это существующей папкой
-	if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
-		// Операция с папкой
-		logger.SetCommand("folder", targetPath, "check")
-		logger.SetParameter("mode", mode)
-		logger.SetParameter("options", options)
-
-		switch mode {
-		case "quick":
-			return runFolderCheckQuick(targetPath)
-		case "deep":
-			return runFolderCheckDeep(targetPath)
-		default: // balanced
-			return runFolderCheck(targetPath)
-		}
-	}
-
-	// Путь не существует или является файлом
-	if strings.HasSuffix(targetPath, "/") || strings.HasSuffix(targetPath, "\\") {
-		return fmt.Errorf("folder \"%s\" does not exist", targetPath)
-	} else {
-		return fmt.Errorf("path \"%s\" does not exist or is not a valid target", targetPath)
-	}
-}
-
-// Вспомогательные функции
-
-func isHelpFlag(arg string) bool {
-	helpFlags := []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
-	lowerArg := strings.ToLower(arg)
-	for _, flag := range helpFlags {
-		if lowerArg == flag {
-			return true
-		}
-	}
-	return false
 }

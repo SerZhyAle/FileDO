@@ -1,10 +1,10 @@
 package fileduplicates
 
 import (
-	"crypto/md5"
-	"encoding/json"
+	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"time"
 )
@@ -61,7 +61,10 @@ func (hw *HashWorker) worker() {
 		var result hashResult
 		result.file = job.file
 
-		if job.mode == QuickHash {
+		if hw.stop != nil && hw.stop() {
+			// A stopped run drains its queue without reading another byte.
+			result.err = ErrStopped
+		} else if job.mode == QuickHash {
 			hash, err := calculateQuickHash(job.file.Path)
 			if err != nil {
 				result.err = err
@@ -69,7 +72,7 @@ func (hw *HashWorker) worker() {
 				result.file.QuickHash = hash
 			}
 		} else {
-			hash, err := calculateFullHash(job.file.Path)
+			hash, err := calculateFullHash(job.file.Path, hw.stop)
 			if err != nil {
 				result.err = err
 			} else {
@@ -92,11 +95,11 @@ func calculateQuickHash(filePath string) (string, error) {
 	}
 	defer file.Close()
 
-	hasher := md5.New()
+	hasher := sha256.New()
 	buffer := make([]byte, QUICK_HASH_SIZE)
 
-	n, err := file.Read(buffer)
-	if err != nil && err != io.EOF {
+	n, err := io.ReadFull(file, buffer)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return "", fmt.Errorf("failed to read file for quick hash: %w", err)
 	}
 
@@ -104,41 +107,37 @@ func calculateQuickHash(filePath string) (string, error) {
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }
 
+// hashChunk is how much of a file is read between two looks at the stop
+// request, so a stop is honoured inside a large file too.
+const hashChunk = 1 << 20
+
 // Calculate a hash of the entire file
-func calculateFullHash(filePath string) (string, error) {
+func calculateFullHash(filePath string, stop func() bool) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open file for full hash: %w", err)
 	}
 	defer file.Close()
 
-	hasher := md5.New()
-	if _, err := io.Copy(hasher, file); err != nil {
-		return "", fmt.Errorf("failed to read file for full hash: %w", err)
+	hasher := sha256.New()
+	buf := make([]byte, hashChunk)
+	for {
+		if stop != nil && stop() {
+			return "", ErrStopped
+		}
+		n, rerr := file.Read(buf)
+		if n > 0 {
+			hasher.Write(buf[:n])
+		}
+		if rerr == io.EOF {
+			break
+		}
+		if rerr != nil {
+			return "", fmt.Errorf("failed to read file for full hash: %w", rerr)
+		}
 	}
 
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
-}
-
-// Load hash cache from disk
-func LoadHashCache() (*HashCache, error) {
-	cache := &HashCache{
-		Entries: make(map[string]CacheEntry),
-	}
-
-	data, err := os.ReadFile(GetHashCachePath())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return cache, nil // Not an error if file doesn't exist
-		}
-		return cache, fmt.Errorf("failed to read hash cache file: %w", err)
-	}
-
-	if err = json.Unmarshal(data, &cache.Entries); err != nil {
-		return cache, fmt.Errorf("failed to parse hash cache file: %w", err)
-	}
-
-	return cache, nil
 }
 
 // Get file information for duplicate detection
@@ -147,18 +146,20 @@ func GetFileInfo(path string) (DuplicateFileInfo, error) {
 	if err != nil {
 		return DuplicateFileInfo{}, err
 	}
+	return fileInfoFrom(path, info), nil
+}
 
-	fileInfo := DuplicateFileInfo{
-		Path:       path,
-		Size:       info.Size(),
-		ModTime:    info.ModTime(),
-		IsOriginal: false,
+// fileInfoFrom builds the record for one file from what the walk or a Stat
+// already returned. The creation time is the one "keep newest/oldest" compares
+// (DUP-09): an Explorer copy keeps the source's modification time, so the
+// modification times of every copy tie.
+func fileInfoFrom(path string, info fs.FileInfo) DuplicateFileInfo {
+	created, accessed := statTimes(info)
+	return DuplicateFileInfo{
+		Path:        path,
+		Size:        info.Size(),
+		ModTime:     info.ModTime(),
+		CreatedTime: created,
+		LastAccess:  accessed,
 	}
-
-	// Get create time and access time on Windows
-	// This implementation varies by platform
-	fileInfo.CreatedTime = info.ModTime() // Default to mod time for non-Windows
-	fileInfo.LastAccess = info.ModTime()  // Default to mod time for non-Windows
-
-	return fileInfo, nil
 }

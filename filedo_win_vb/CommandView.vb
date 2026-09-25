@@ -29,6 +29,14 @@ Public Class CommandView
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly runner As New Runner()
 
+    ' GUI-04: a Stop not honoured after this long turns into "End it now".
+    Private Const StopGraceSeconds As Integer = 10
+    Private stopGraceTimer As Windows.Forms.Timer
+    Private endNowOffered As Boolean = False
+
+    ' The output box's feed, batched (GUI-14).
+    Private outputPane As OutputPane
+
     ' What the verdict line is showing: "" (nothing), "running", "stopping", or a verdict word. The
     ' line's colour is a function of this and the palette, re-applied by ApplyTheme (T2).
     Private verdictState As String = ""
@@ -117,6 +125,7 @@ Public Class CommandView
     Private stopBtn As Button
     Private copyBtn As Button
     Private verdictLabel As Label
+    Private verdictGlyph As GlyphBox
     Private progressBar As ProgressBar
     Private outputBox As TextBox
 
@@ -465,9 +474,11 @@ Public Class CommandView
         UpdateRunButtonState()
     End Sub
 
-    ' The line under the password box, and the warning about an unanswerable question.
+    ' The line under the password box, and the warning about an unanswerable question. The verb is
+    ' the one the line names, when it names one (GUI-02).
     Private Sub UpdateFdsecNotice()
-        Dim op = CurrentOp()
+        Dim op = CredentialVerb(LineArgs())
+        If op = "" Then op = CurrentOp()
         If Not IsFdsecOp(op) Then
             fdsecNoticeLabel.Visible = False
             Return
@@ -502,19 +513,39 @@ Public Class CommandView
     ' choice.
     Private Sub UpdateRunButtonState()
         If runBtn Is Nothing OrElse runner.IsActive Then Return
-        Dim op = CurrentOp()
-        Dim mismatched = (op = "secure") AndAlso (credConfirmBox.Text <> credBox.Text)
+        Dim args = LineArgs()
+
+        ' GUI-02: the password block follows the line, not the operation list. A line handed over
+        ' from a Protect page, or typed by hand, is what runs - and when it names the window's
+        ' variable, the box that fills that variable is on screen.
+        Dim credVerb = CredentialVerb(args)
+        Dim namesVariable = NamesCredentialVariable(args)
+        credRow.Visible = credVerb <> "" OrElse namesVariable
+        credConfirmLabel.Visible = (credVerb = "secure")
+        credConfirmBox.Visible = (credVerb = "secure")
+
+        Dim mismatched = (credVerb = "secure") AndAlso (credConfirmBox.Text <> credBox.Text)
         If mismatched Then
             runBtn.Enabled = False
             tips.SetToolTip(runBtn, L("shell_cred_mismatch"))
             Return
         End If
 
-        ' A line that holds `wipe` - the wipe verb, or the overwrite disposition of secure - asks
-        ' for the typed word whether or not it also carries -y: a ticked checkbox is not a
-        ' confirmation (APP-BEHAVIOUR rule 5, SP-0006 section 8 item 1).
-        Dim args = LineArgs()
-        Dim wipes = args.Any(Function(a) String.Equals(a, "wipe", StringComparison.OrdinalIgnoreCase))
+        ' A line that writes a container, or restores one, from the window's variable with nothing
+        ' in the box would run with an empty credential - and SP-0025 FDSEC-19 makes filedo.exe
+        ' refuse exactly that. It is refused here first, with the reason.
+        If namesVariable AndAlso (credVerb = "secure" OrElse credVerb = "unsecure") AndAlso credBox.Text = "" Then
+            runBtn.Enabled = False
+            tips.SetToolTip(runBtn, L("shell_cmd_cred_needed"))
+            wipeRow.Visible = False
+            Return
+        End If
+
+        ' A line that holds a wipe - the wipe verb under any of its names, the overwrite disposition
+        ' of secure, or a batch list with one in it - asks for the typed word whether or not it also
+        ' carries -y: a ticked checkbox is not a confirmation (APP-BEHAVIOUR rule 5, SP-0006 section
+        ' 8 item 1, GUI-11).
+        Dim wipes = LineWipes(args)
         wipeRow.Visible = wipes
         wipeNotice.Visible = False
         If Not wipes Then
@@ -557,14 +588,77 @@ Public Class CommandView
         End Try
     End Function
 
-    ' The reason key when the line wipes a dangerous location: `<target> wipe`, the CLI's order.
+    ' The reason key when the line wipes a dangerous location: `<target> wipe` (or `w`), the CLI's
+    ' order. The target is read where filedo.exe will read it - a relative one inside its working
+    ' folder, %LOCALAPPDATA%\FileDO - so `.. wipe` is the danger it really is (SHELL-04).
     Private Shared Function WipeDanger(args As List(Of String)) As String
         For i = 1 To args.Count - 1
-            If String.Equals(args(i), "wipe", StringComparison.OrdinalIgnoreCase) Then
-                Return WipeSafety.DangerKey(args(i - 1))
+            If WipeSafety.IsWipeAlias(args(i)) Then
+                Return WipeSafety.DangerKey(TargetPath.AsChildSeesIt(args(i - 1)))
             End If
         Next
         Return ""
+    End Function
+
+    ' The CLI's words for a batch list (list_of_flags_for_from in main.go).
+    Private Shared ReadOnly BatchVerbs As String() = {"from", "batch", "script"}
+
+    ' True when running the line can wipe (GUI-11): a wipe alias anywhere in it, or a batch whose
+    ' list holds one - or a batch whose list cannot be read to say it does not.
+    Private Shared Function LineWipes(args As List(Of String)) As Boolean
+        For i = 0 To args.Count - 1
+            If WipeSafety.IsWipeAlias(args(i)) Then Return True
+            If Array.IndexOf(BatchVerbs, args(i).ToLowerInvariant()) >= 0 Then
+                If i + 1 >= args.Count OrElse BatchListWipes(args(i + 1)) Then Return True
+            End If
+        Next
+        Return False
+    End Function
+
+    Private Shared Function BatchListWipes(listPath As String) As Boolean
+        Try
+            Dim full = TargetPath.AsChildSeesIt(listPath)
+            Dim info As New FileInfo(full)
+            If Not info.Exists OrElse info.Length > 4 * 1024 * 1024 Then Return True
+            For Each raw In File.ReadAllLines(full)
+                Dim line = raw.Trim()
+                If line = "" OrElse line.StartsWith("#") Then Continue For
+                For Each field In line.Split(New Char() {" "c, ControlChars.Tab}, StringSplitOptions.RemoveEmptyEntries)
+                    If WipeSafety.IsWipeAlias(field) Then Return True
+                Next
+            Next
+            Return False
+        Catch
+            Return True
+        End Try
+    End Function
+
+    ' The secret-file verb the line itself names - "secure", "unsecure", "reveal", "fdsec info" or
+    ' "fdsec verify" - read off its arguments in any of the CLI's spellings, or "" (GUI-02).
+    Private Shared Function CredentialVerb(args As List(Of String)) As String
+        For i = 0 To args.Count - 1
+            Select Case args(i).ToLowerInvariant()
+                Case "secure", "sec" : Return "secure"
+                Case "unsecure", "uns", "unsec" : Return "unsecure"
+                Case "reveal", "rev" : Return "reveal"
+                Case "fdsec", "fds"
+                    If i + 1 < args.Count Then
+                        Select Case args(i + 1).ToLowerInvariant()
+                            Case "info" : Return "fdsec info"
+                            Case "verify" : Return "fdsec verify"
+                        End Select
+                    End If
+                    Return ""
+            End Select
+        Next
+        Return ""
+    End Function
+
+    Private Shared Function NamesCredentialVariable(args As List(Of String)) As Boolean
+        For Each a In args
+            If String.Equals(a, "pe:" & CredentialEnvName, StringComparison.OrdinalIgnoreCase) Then Return True
+        Next
+        Return False
     End Function
 
     ' ---- seams for SelfTest.vb -------------------------------------------
@@ -597,6 +691,12 @@ Public Class CommandView
         End Get
     End Property
 
+    Friend ReadOnly Property VerdictGlyphForTest As GlyphBox
+        Get
+            Return verdictGlyph
+        End Get
+    End Property
+
     ' ---- the run, as the window sees it -----------------------------------
 
     Public ReadOnly Property IsRunning As Boolean
@@ -606,7 +706,7 @@ Public Class CommandView
     End Property
 
     Public Sub RequestStopFromShell()
-        If Not runner.IsActive Then Return
+        If Not runner.IsActive OrElse endNowOffered Then Return
         StopRun()
     End Sub
 
@@ -615,11 +715,35 @@ Public Class CommandView
     End Sub
 
     Private Sub StopRun()
+        ' The second press, after the grace period: the process is ended outright (GUI-04).
+        If endNowOffered Then
+            ShellLog.Info("the user ended a run that had not stopped")
+            stopBtn.Enabled = False
+            runner.ForceKill()
+            Return
+        End If
         runner.RequestStop()
         stopBtn.Enabled = False
         verdictLabel.Text = L("shell_stop_requested")
         verdictState = "stopping"
         PaintVerdict(Theme.Current)
+        If stopGraceTimer Is Nothing Then
+            stopGraceTimer = New Windows.Forms.Timer With {.Interval = StopGraceSeconds * 1000}
+            AddHandler stopGraceTimer.Tick, Sub() StopGraceElapsed()
+        End If
+        stopGraceTimer.Stop()
+        stopGraceTimer.Start()
+    End Sub
+
+    ' GUI-04: a stop the run has not honoured within the grace period turns the button into
+    ' "End it now", rather than leaving a disabled Stop beside a run that says it is stopping.
+    Private Sub StopGraceElapsed()
+        stopGraceTimer.Stop()
+        If Not runner.IsActive Then Return
+        endNowOffered = True
+        stopBtn.Text = L("shell_btn_end_run_now")
+        verdictLabel.Text = L("shell_stop_not_honoured")
+        stopBtn.Enabled = True
     End Sub
 
     Private Sub RuleChanged()
@@ -713,7 +837,18 @@ Public Class CommandView
         btnFlow.Controls.Add(stopBtn)
         btnFlow.Controls.Add(copyBtn)
 
-        verdictLabel = New Label With {.Text = "", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 6)}
+        verdictLabel = New Label With {.Text = "", .AutoSize = True, .Margin = New Padding(0)}
+        ' The verdict's state glyph beside its word (Theme.VerdictGlyph, SP-0016 T2). It is decoration:
+        ' the word carries the verdict, so a screen reader meets it once (APP-BEHAVIOUR rule 9).
+        verdictGlyph = New GlyphBox With {.Tier = 20, .Margin = Ui.PxPad(Me, 0, 0, 6, 0), .Visible = False}
+        Dim verdictRow As New FlowLayoutPanel With {
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .WrapContents = False,
+            .Margin = Ui.PxPad(Me, 0, 0, 0, 6)
+        }
+        verdictRow.Controls.Add(verdictGlyph)
+        verdictRow.Controls.Add(verdictLabel)
 
         ' The run's progress, drawn by the same rule as the job page's (RunProgress, T6). It is on
         ' screen only while something runs.
@@ -733,18 +868,19 @@ Public Class CommandView
             .Margin = New Padding(0)
         }
         outputBox.AccessibleName = L("shell_btn_show_output")
+        outputPane = New OutputPane(outputBox)
 
         t.Controls.Add(runHeader, 0, 0)
         t.Controls.Add(cmdLabel, 0, 1)
         t.Controls.Add(cmdLineBox, 0, 2)
         t.Controls.Add(wipeRow, 0, 3)
         t.Controls.Add(btnFlow, 0, 4)
-        t.Controls.Add(verdictLabel, 0, 5)
+        t.Controls.Add(verdictRow, 0, 5)
         t.Controls.Add(progressBar, 0, 6)
         t.Controls.Add(outputBox, 0, 7)
 
         runCard.Controls.Add(t)
-        Ui.Wrap(verdictLabel, runCard, Ui.Px(Me, 36))
+        Ui.Wrap(verdictLabel, runCard, Ui.Px(Me, 36 + 26))
         Ui.Wrap(wipeLabel, runCard, Ui.Px(Me, 36))
         Ui.Wrap(wipeNotice, runCard, Ui.Px(Me, 36))
     End Sub
@@ -921,8 +1057,10 @@ Public Class CommandView
         flagCheckRw.Visible = (op = "reveal")
         flagCheckKeep.Visible = (op = "reveal")
         ' -y belongs to wipe and to the secret-file verbs, where it is what lets a delete or an
-        ' overwrite go through without a console to confirm it on.
-        flagCheckForce.Visible = (op = "wipe") OrElse (op = "secure") OrElse (op = "unsecure")
+        ' overwrite go through without a console to confirm it on - and to the duplicate scan, whose
+        ' del and move run in batch mode only by it (SP-0028 DUP-03): without it, from this window,
+        ' filedo.exe stops before touching anything.
+        flagCheckForce.Visible = (op = "wipe") OrElse (op = "secure") OrElse (op = "unsecure") OrElse (op = "cd")
         flagCheckNoHist.Visible = (op <> "help")
         flagsLabel.Visible = AnyFlagVisible()
 
@@ -965,10 +1103,29 @@ Public Class CommandView
         Return False
     End Function
 
-    ' "Open in Command" hands over the exact command a job page would have run (section 10 item 2).
-    Public Sub SetCommand(cmd As String)
+    ' "Open in Command" hands over the exact command a job page would have run (section 10 item 2),
+    ' and the password that line takes from the window's variable (GUI-02). Whatever was in the box
+    ' before is replaced, never reused: a password left over from an earlier line is the wrong one.
+    Public Sub SetCommand(cmd As String, Optional credential As String = "")
+        credShowCheck.Checked = False
+        credBox.Text = If(credential, "")
+        credConfirmBox.Text = If(credential, "")
         cmdLineBox.Text = cmd
+        UpdateFdsecNotice()
+        UpdateRunButtonState()
     End Sub
+
+    Friend ReadOnly Property CredentialBlockShownForTest As Boolean
+        Get
+            Return credRow.Visible
+        End Get
+    End Property
+
+    Friend ReadOnly Property RunEnabledNowForTest As Boolean
+        Get
+            Return runBtn.Enabled
+        End Get
+    End Property
 
     ' The three below exist for SelfTest.vb: with twenty-three operations on one page, "every one
     ' of them writes a command and explains itself in every locale" is a claim that should be
@@ -1119,13 +1276,14 @@ Public Class CommandView
     End Function
 
     Private Sub HookRunner()
+        ' Output lines are queued and drawn in batches (GUI-14), never one post per line.
         AddHandler runner.OutputLineReceived,
             Sub(line, isErr)
-                PostToUi(Sub() outputBox.AppendText(line & Environment.NewLine))
+                outputPane.Add(line)
             End Sub
         AddHandler runner.NoteReported,
             Sub(msg)
-                PostToUi(Sub() outputBox.AppendText("[note] " & msg & Environment.NewLine))
+                outputPane.Add("[note] " & msg)
             End Sub
         AddHandler runner.ProgressReported,
             Sub(p)
@@ -1148,14 +1306,16 @@ Public Class CommandView
     Private Async Sub RunBtn_Click(sender As Object, e As EventArgs)
         If runner.IsActive Then Return
 
-        outputBox.Clear()
+        outputPane.Clear()
         verdictLabel.Text = L("shell_state_running")
         verdictState = "running"
         PaintVerdict(Theme.Current)
         runBtn.Enabled = False
         stopBtn.Enabled = True
+        endNowOffered = False
         RunProgress.Begin(progressBar)
         progressBar.Visible = True
+        outputPane.Start()
 
         Dim cmd = cmdLineBox.Text.Trim()
         If cmd.StartsWith("filedo.exe ", StringComparison.OrdinalIgnoreCase) Then
@@ -1171,7 +1331,7 @@ Public Class CommandView
         ' the line rather than off the operation, so a hand-edited command that still names the
         ' variable keeps working - and one that does not, gets nothing.
         Dim env As Dictionary(Of String, String) = Nothing
-        If cmd.Contains("pe:" & CredentialEnvName) Then
+        If cmd.IndexOf("pe:" & CredentialEnvName, StringComparison.OrdinalIgnoreCase) >= 0 Then
             env = New Dictionary(Of String, String) From {{CredentialEnvName, credBox.Text}}
         End If
 
@@ -1179,6 +1339,9 @@ Public Class CommandView
         ' quoted path with a space in it stays one argument (ArgQuoting.SplitArgs).
         Dim res = Await runner.ExecuteAsync(ArgQuoting.SplitArgs(cmd), envVars:=env)
 
+        If stopGraceTimer IsNot Nothing Then stopGraceTimer.Stop()
+        endNowOffered = False
+        outputPane.Stop()
         stopBtn.Enabled = False
         stopBtn.Text = L("shell_btn_stop")
         progressBar.Visible = False
@@ -1190,10 +1353,11 @@ Public Class CommandView
 
     Private Sub ShowVerdict(res As Runner.RunResult)
         Dim word = L("shell_verdict_" & res.Verdict.ToLowerInvariant().Replace(" ", "_"))
-        Dim line = Theme.Glyph(Theme.VerdictGlyph(res.Verdict)) & " " & word & " - " &
-                   Localization.Format(L("shell_result_summary_fmt"), res.Duration.ToString("mm\:ss"), res.ExitCode)
+        Dim line = word & " - " &
+                   Localization.Format(L("shell_result_summary_fmt"), Ui.FormatDuration(res.Duration), res.ExitCode)
         If Not String.IsNullOrEmpty(res.Reason) Then line &= Environment.NewLine & L(res.Reason)
 
+        verdictGlyph.Glyph = Theme.VerdictGlyph(res.Verdict)
         verdictLabel.Text = line
         verdictState = res.Verdict
         PaintVerdict(Theme.Current)
@@ -1207,6 +1371,10 @@ Public Class CommandView
             Case "running", "stopping" : verdictLabel.ForeColor = p.Accent
             Case Else : verdictLabel.ForeColor = Theme.VerdictColor(verdictState, p)
         End Select
+        ' The glyph is there only for a verdict, never while a run is going or before the first one.
+        Dim judged = verdictState <> "" AndAlso verdictState <> "running" AndAlso verdictState <> "stopping"
+        verdictGlyph.Visible = judged
+        If judged Then verdictGlyph.ForeColor = Theme.VerdictColor(verdictState, p)
     End Sub
 
     ' Run looks like Run when it can be pressed, and like any inactive control while the typed WIPE

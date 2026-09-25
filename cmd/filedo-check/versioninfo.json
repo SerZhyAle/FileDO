@@ -11,7 +11,7 @@
   "StringFileInfo": {
     "Comments":         "https://github.com/SerZhyAle/FileDO",
     "CompanyName":      "SZA",
-    "FileDescription":  "FileDO Check - File and storage health scanner",
+    "FileDescription":  "FileDO Check - file read check (runs filedo.exe check)",
     "FileVersion":      "26.4.27.0",
     "InternalName":     "filedo_check",
     "LegalCopyright":   "Copyright (c) 2025 sza. MIT License.",

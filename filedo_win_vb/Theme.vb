@@ -6,9 +6,11 @@
 ' search on every build - which is why it is written as a rule rather than as an intention.
 '
 ' Item 8 of the same section makes contrast part of "good-looking": every text token below is meant
-' to be at least 4.5:1 against the surface it is used on, in both themes (a claim, not yet a
-' measurement). Where a colour carries meaning (success, warning, danger) it never carries it alone -
-' the control that uses it also shows a word and a glyph.
+' to be at least 4.5:1 against the surface it is used on, in both themes. For the text tokens that is
+' still a claim; for every glyph and every verdict colour it is a measurement - the self-test's
+' contrast: rows compute each pair from this table (ContrastRatio below). Where a colour carries
+' meaning (success, warning, danger) it never carries it alone - the control that uses it also shows
+' a word and a glyph.
 '
 ' APP-STYLE (the shared theme contract, FileDO a consumer). Section 2: three modes - Follow Windows
 ' (the default), light, dark - applied live and following WM_SETTINGCHANGE (ShellForm.WndProc).
@@ -21,6 +23,7 @@
 '   ControlHover    control.hover         Accent          accent
 '   SurfaceSelected surface.selected      AccentText      accent.ink
 '   Success, Warning, Danger              success, warning, danger (proposed roles)
+'   StateOk, StateWarning, StateError     ICON-RENDER's state role: a status glyph and a verdict plate
 ' Section 5, the surfaces that stay outside the theme, and why. They are native Win32 controls that
 ' WinForms cannot recolour without owner-drawing them whole:
 '   - the scroll bars of text boxes, list boxes and scrolled pages (system-drawn);
@@ -50,6 +53,9 @@ Module Theme
         Public Property Success As Color
         Public Property Warning As Color
         Public Property Danger As Color
+        Public Property StateOk As Color         ' palette.json state.ok
+        Public Property StateWarning As Color    ' palette.json state.warning (dark only, see below)
+        Public Property StateError As Color      ' palette.json state.error
     End Class
 
     ' The tokens are the ones the product's own pages use, so the window and the site are visibly
@@ -60,6 +66,19 @@ Module Theme
     '   --danger #e5534b, --text #16210f / #f1f5ee, --muted #5f6b54 / #94a08c
     ' Where the site's token would fall under 4.5:1 as text (the light-mode green), the stronger
     ' variant of the same token is used, because item 8 of section 11 outranks an exact match.
+    '
+    ' The three State roles are not the site's: they are the portfolio's shared state hues
+    ' (ICON-RENDER section 10 item D, the catalog's palette.json, vendored in assets/glyphs/), which
+    ' the owner chose to take as exact tones on 2026-09-25 once a contrast proof held (SP-0016 D2).
+    ' They paint the verdict glyph, the verdict line of the Command page and the verdict badge. The
+    ' proof is the self-test's contrast: rows, and its state-tone: rows hold each role to the
+    ' vendored palette - so a changed tone in the catalog fails here rather than drifting.
+    ' One tone did not hold: state.warning's day tone #F57C00 is 2.70:1 against white, under the 3:1
+    ' of rule 3 and of item D itself. The light StateWarning therefore stays the shell's own Warning
+    ' - a dated exception, reported to the owner - and the self-test fails the day the catalog's tone
+    ' reaches 3:1, which is the day it should be taken. The text roles Success, Warning and Danger
+    ' stay APP-STYLE's own, because they are held to 4.5:1 as text on every surface of the shell,
+    ' where state.error's day tone is 4.4:1 on the window and 4.1:1 on the rail.
 
     Private ReadOnly LightPalette As Palette = Derive(New Palette With {
         .IsDark = False,
@@ -73,7 +92,10 @@ Module Theme
         .AccentText = Color.FromArgb(255, 255, 255),
         .Success = Color.FromArgb(38, 122, 48),
         .Warning = Color.FromArgb(126, 86, 15),
-        .Danger = Color.FromArgb(179, 38, 30)
+        .Danger = Color.FromArgb(179, 38, 30),
+        .StateOk = Color.FromArgb(46, 125, 50),        ' #2E7D32 state.ok day
+        .StateWarning = Color.FromArgb(126, 86, 15),   ' the shell's Warning: #F57C00 fails 3:1
+        .StateError = Color.FromArgb(211, 47, 47)      ' #D32F2F state.error day
     })
 
     Private ReadOnly DarkPalette As Palette = Derive(New Palette With {
@@ -88,7 +110,10 @@ Module Theme
         .AccentText = Color.FromArgb(4, 19, 12),
         .Success = Color.FromArgb(86, 211, 100),
         .Warning = Color.FromArgb(227, 179, 65),
-        .Danger = Color.FromArgb(229, 83, 75)
+        .Danger = Color.FromArgb(229, 83, 75),
+        .StateOk = Color.FromArgb(129, 199, 132),      ' #81C784 state.ok night
+        .StateWarning = Color.FromArgb(255, 183, 77),  ' #FFB74D state.warning night
+        .StateError = Color.FromArgb(239, 83, 80)      ' #EF5350 state.error night
     })
 
     ' The roles that are a mix of two others, mixed here once per palette (APP-STYLE section 4). A
@@ -181,6 +206,43 @@ Module Theme
         Return Math.Max(0, Math.Min(255, CInt(Math.Round(ia + (ib - ia) * amount))))
     End Function
 
+    ' A role colour at a glyph part's own opacity (SvgPath reads opacity from the catalog's file).
+    ' The colour is still the role's; only its alpha is the drawing's.
+    Friend Function Faded(c As Color, opacity As Single) As Color
+        Dim a = Math.Max(0, Math.Min(255, CInt(Math.Round(c.A * opacity))))
+        Return Color.FromArgb(a, c)
+    End Function
+
+    ' The WCAG 2.1 contrast ratio of two opaque colours, 1 to 21 - what the self-test measures the
+    ' glyph and verdict pairs of this table with (ICON-RENDER rule 3: 3:1 for a glyph; 4.5:1 for text).
+    Friend Function ContrastRatio(a As Color, b As Color) As Double
+        Dim la = RelativeLuminance(a)
+        Dim lb = RelativeLuminance(b)
+        Return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05)
+    End Function
+
+    Private Function RelativeLuminance(c As Color) As Double
+        Return 0.2126 * Linear(c.R) + 0.7152 * Linear(c.G) + 0.0722 * Linear(c.B)
+    End Function
+
+    Private Function Linear(channel As Byte) As Double
+        Dim s = channel / 255.0
+        Return If(s <= 0.04045, s / 12.92, Math.Pow((s + 0.055) / 1.055, 2.4))
+    End Function
+
+    ' "#2E7D32" as a colour, for the self-test's reading of the vendored palette.json. Nothing
+    ' outside this file may name a colour, and a hex string read from a file is still one.
+    Friend Function FromHex(hex As String) As Color
+        Dim h = If(hex, "").Trim().TrimStart("#"c)
+        If h.Length <> 6 Then Return Color.Empty
+        Try
+            Return Color.FromArgb(255, Convert.ToInt32(h.Substring(0, 2), 16),
+                                  Convert.ToInt32(h.Substring(2, 2), 16), Convert.ToInt32(h.Substring(4, 2), 16))
+        Catch
+            Return Color.Empty
+        End Try
+    End Function
+
     ' ---- type ------------------------------------------------------------
     ' Item 5: Segoe UI Variable where available, Segoe UI otherwise, and a fixed scale of five
     ' sizes. Sizes are in points and scale with the DPI declaration rather than against it.
@@ -228,10 +290,13 @@ Module Theme
     End Function
 
     ' ---- glyphs ----------------------------------------------------------
-    ' Item 4: icons are glyphs, not bitmaps, so the shell gains no image resources and stays crisp
-    ' at every DPI. Segoe Fluent Icons is present on Windows 11; Segoe MDL2 Assets covers Windows
-    ' 10. If a machine has neither, the label still carries the meaning and the glyph falls back to
-    ' a character every font has - the rail must never become unreadable over an icon.
+    ' Item 4 said icons are glyphs, not bitmaps, so the shell gains no image resources and stays
+    ' crisp at every DPI. That still holds, one level down: a glyph is now the vocabulary's own
+    ' vector drawing (Glyphs.vb, SP-0016 D1), filled as a path at the size of its tier. The platform
+    ' icon font stays for one job only - the stand-in of a meaning the vocabulary has no record for
+    ' yet (GlyphRef.Waiting). Segoe Fluent Icons is present on Windows 11; Segoe MDL2 Assets covers
+    ' Windows 10. If a machine has neither, the label still carries the meaning and the glyph falls
+    ' back to a character every font has - the rail must never become unreadable over an icon.
 
     Private glyphFamilyCache As String = Nothing
 
@@ -251,59 +316,53 @@ Module Theme
         Return GlyphFamily() <> ""
     End Function
 
-    Public Function FontGlyph() As Font
-        If HasGlyphFont() Then Return New Font(GlyphFamily(), 12.0F, FontStyle.Regular, GraphicsUnit.Point)
-        Return New Font(UiFamily(), 10.0F, FontStyle.Regular, GraphicsUnit.Point)
+    ' The chevron of a collapsible rail group. ICON-SET: a shut group offers nav.expand (chevron
+    ' down), an open one nav.collapse (chevron up). A chevron pointing right is nav.go-to - "this
+    ' row opens its own screen" - which the vocabulary lists as distinct from expand, so it is not
+    ' used here (SP-0016 T3). The fallback is a pair of geometric arrows every UI font on Windows
+    ' has rather than a bullet, because on a group header the arrow is the only thing that carries
+    ' the state (ICON-RENDER rule 4).
+    Private ReadOnly ExpandGlyph As GlyphRef = GlyphRef.Vocabulary("nav.expand", ChrW(&H25BE))
+    Private ReadOnly CollapseGlyph As GlyphRef = GlyphRef.Vocabulary("nav.collapse", ChrW(&H25B4))
+
+    Public Function ChevronGlyph(collapsed As Boolean) As GlyphRef
+        Return If(collapsed, ExpandGlyph, CollapseGlyph)
     End Function
 
-    ' The fallback character is deliberately a bullet rather than a letter: a letter would read as
-    ' part of the label.
-    Public Function Glyph(code As String) As String
-        If HasGlyphFont() Then Return code
-        Return ChrW(&H2022)
-    End Function
-
-    ' The chevron of a collapsible rail group. It gets its own pair rather than going through
-    ' Glyph() above, because the bullet fallback would say nothing about open or shut - and on a
-    ' group header the arrow is the only thing that carries the state. The fallback characters are
-    ' geometric arrows that every UI font on Windows has.
-    ' ICON-SET: a shut group offers nav.expand (chevron down), an open one nav.collapse (chevron
-    ' up). A chevron pointing right is nav.go-to - "this row opens its own screen" - which the
-    ' vocabulary lists as distinct from expand, so it is not used here (SP-0016 T3).
-    Public Function ChevronGlyph(collapsed As Boolean) As String
-        If HasGlyphFont() Then Return If(collapsed, ChrW(&HE70D), ChrW(&HE70E))
-        Return If(collapsed, ChrW(&H25BE), ChrW(&H25B4))
-    End Function
-
-    ' Drawn at the 16 px tier of ICON-RENDER rule 5 (12 pt at 96 DPI), the same size as the rail's
-    ' own glyphs.
-    Public Function FontChevron() As Font
-        If HasGlyphFont() Then Return New Font(GlyphFamily(), 12.0F, FontStyle.Regular, GraphicsUnit.Point)
-        Return New Font(UiFamily(), 10.0F, FontStyle.Regular, GraphicsUnit.Point)
-    End Function
+    ' The one tone of the Explorer icons (MenuIcons.vb, SP-0016 T8). Explorer draws them on a light
+    ' or a dark menu without asking FileDO which, so no palette role applies: ICON-RENDER 0.12
+    ' rule 9 names #808080, which holds 3:1 on both (3.9:1 on white, 3.6:1 on #2B2B2B).
+    Public ReadOnly MenuIconTone As Color = Color.FromArgb(&H80, &H80, &H80)
 
     ' ---- verdict glyphs --------------------------------------------------
     ' One mapping for both pages that show a verdict (the job page and the Command page), so the
     ' two cannot drift. Passed and Done draw status.ok (check mark in a filled circle), Failed
     ' draws status.error (exclamation mark in a circle) - the plain check is action.confirm and
     ' the plain cross nav.close, both listed as distinct from those states (SP-0016 T2).
-    ' Stopped and Not proven keep their interim glyphs until the vocabulary gives them ids
-    ' (SP-0016 B3, status.stopped and status.not-proven); ICON-SET rule 5 puts the id first.
-    Public Function VerdictGlyph(verdict As String) As String
+    ' Stopped draws status.stopped (a square cut out of a filled circle - not media.stop's transport
+    ' square) and Not proven status.not-proven (a filled square with a dash - not app.help's question
+    ' mark); both entered the vocabulary in ICON-SET 0.14 at FileDO's request (SP-0016 B3).
+    Private ReadOnly OkGlyph As GlyphRef = GlyphRef.Vocabulary("status.ok")
+    Private ReadOnly ErrorGlyph As GlyphRef = GlyphRef.Vocabulary("status.error")
+    Private ReadOnly StoppedGlyph As GlyphRef = GlyphRef.Vocabulary("status.stopped")
+    Private ReadOnly NotProvenGlyph As GlyphRef = GlyphRef.Vocabulary("status.not-proven")
+
+    Public Function VerdictGlyph(verdict As String) As GlyphRef
         Select Case If(verdict, "").ToLowerInvariant()
-            Case "passed", "done" : Return ChrW(&HEC61)   ' CompletedSolid - status.ok
-            Case "failed" : Return ChrW(&HE783)           ' Error - status.error
-            Case "stopped" : Return ChrW(&HE71A)          ' Stop - interim, no id yet
-            Case Else : Return ChrW(&HE9CE)               ' Unknown - interim, no id yet
+            Case "passed", "done" : Return OkGlyph
+            Case "failed" : Return ErrorGlyph
+            Case "stopped" : Return StoppedGlyph
+            Case Else : Return NotProvenGlyph
         End Select
     End Function
 
-    ' A state glyph takes the state's colour (ICON-RENDER rules 2 and 10C).
+    ' A state glyph takes the state's colour (ICON-RENDER rules 2 and 10C), and so does the
+    ' Command page's verdict line beside it - the contrast: rows hold each at 4.5:1 on the card.
     Public Function VerdictColor(verdict As String, p As Palette) As Color
         Select Case If(verdict, "").ToLowerInvariant()
-            Case "passed", "done" : Return p.Success
-            Case "failed" : Return p.Danger
-            Case "stopped" : Return p.Warning
+            Case "passed", "done" : Return p.StateOk
+            Case "failed" : Return p.StateError
+            Case "stopped" : Return p.StateWarning
             Case Else : Return p.MutedText
         End Select
     End Function
@@ -311,12 +370,12 @@ Module Theme
     ' The verdict badge: its fill and its text, as one function of (verdict, palette). The result
     ' path and ApplyTheme both call it, so a theme switch with a result on screen repaints the badge
     ' in the new palette instead of keeping the old one (APP-STYLE section 3, "a reference resolved
-    ' once at load").
+    ' once at load"). The fill is the state's own hue, the plate of the glyph beside it.
     Public Function VerdictBack(verdict As String, p As Palette) As Color
         Select Case If(verdict, "").ToLowerInvariant()
-            Case "passed" : Return p.Success
-            Case "failed" : Return p.Danger
-            Case "stopped" : Return p.Warning
+            Case "passed" : Return p.StateOk
+            Case "failed" : Return p.StateError
+            Case "stopped" : Return p.StateWarning
             Case "done" : Return p.Accent
             Case Else : Return p.SurfaceAlt
         End Select

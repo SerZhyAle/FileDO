@@ -21,29 +21,92 @@ Public Module SelfTest
         report.Clear()
         failures = 0
 
-        Check("ArgQuoting", ArgQuotingTests.RunTests())
-        CheckCatalogue()
-        CheckJobPages()
-        CheckExpertPage()
-        CheckRailTargets()
-        CheckVerdictTable()
-        CheckVerdictGlyphs()
-        CheckEventStreamTailer()
-        CheckEventStreamSample()
+        ' The failures some rows provoke on purpose are logged; they go to a file of the self-test's
+        ' own, never to the user's filedo_win.log.
+        Dim testLog = Path.Combine(Path.GetTempPath(), "filedo_selftest_shell_" & Guid.NewGuid().ToString("N") & ".log")
+        ShellLog.PathForTest = testLog
+        Try
+            RunAll()
+        Finally
+            ShellLog.PathForTest = Nothing
+            Try
+                File.Delete(testLog)
+            Catch
+            End Try
+        End Try
+        Return WriteLog()
+    End Function
+
+    Private Sub RunAll()
+        ' SHELL-15: every group of rows runs inside Guard, so a check that throws is a FAIL row with
+        ' the exception's type - and the rows after it still run - instead of a process that dies
+        ' before the log is written.
+        Guard("ArgQuoting", Sub() Check("ArgQuoting", ArgQuotingTests.RunTests()))
+        Guard("argquoting", AddressOf CheckArgQuotingCases)
+        Guard("catalogue", AddressOf CheckCatalogue)
+        Guard("page", AddressOf CheckJobPages)
+        Guard("expert", AddressOf CheckExpertPage)
+        Guard("rail", AddressOf CheckRailTargets)
+        Guard("verdict", AddressOf CheckVerdictTable)
+        Guard("glyph", AddressOf CheckVerdictGlyphs)
+
+        ' SP-0016: the iconography contracts - the vendored drawings, the rail's glyph map, the shared
+        ' state tones, and the contrast of every glyph against the surface it is drawn on.
+        Guard("icons", AddressOf CheckGlyphProvenance)
+        Guard("rail-glyph", AddressOf CheckRailGlyphs)
+        Guard("menu-icon", AddressOf CheckMenuIcons)
+        Guard("state-tone", AddressOf CheckStateTones)
+        Guard("contrast", AddressOf CheckGlyphContrast)
+
+        Guard("tailer", AddressOf CheckEventStreamTailer)
+        Guard("tailer-long-line", AddressOf CheckEventStreamLongLine)
+        Guard("sample", AddressOf CheckEventStreamSample)
+        Guard("fdsec", AddressOf CheckFdsecReportRedaction)
 
         ' SP-0014: the shared desktop contracts APP-BEHAVIOUR and APP-STYLE, rung by rung.
-        CheckPaletteCompleteness()
-        CheckThemeRoundTrip()
-        CheckRailPaint()
-        CheckRailLabels()
-        CheckProgressRule()
-        CheckLocalizedFormat()
-        CheckAccessibleNames()
-        CheckPlacement()
-        CheckWipeRules()
-        CheckDialogEscape()
+        Guard("palette", AddressOf CheckPaletteCompleteness)
+        Guard("theme", AddressOf CheckThemeRoundTrip)
+        Guard("rail-paint", AddressOf CheckRailPaint)
+        Guard("rail-label", AddressOf CheckRailLabels)
+        Guard("progress", AddressOf CheckProgressRule)
+        Guard("format", AddressOf CheckLocalizedFormat)
+        Guard("a11y", AddressOf CheckAccessibleNames)
+        Guard("placement", AddressOf CheckPlacement)
+        Guard("wipe", AddressOf CheckWipeRules)
+        Guard("dialog", AddressOf CheckDialogEscape)
 
-        Dim logFile As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "filedo_win_selftest.log")
+        ' SP-0029: the shell's robustness remediation, ticket by ticket.
+        Guard("target", AddressOf CheckTargetRules)
+        Guard("dup", AddressOf CheckDuplicatesPage)
+        Guard("command-cred", AddressOf CheckCommandCredential)
+        Guard("redirect", AddressOf CheckRedirectNotice)
+        Guard("runner", AddressOf CheckRunnerChild)
+        Guard("runner-start", AddressOf CheckStartFailure)
+        Guard("report", AddressOf CheckReportRedaction)
+        Guard("history", AddressOf CheckHistory)
+        Guard("output", AddressOf CheckOutputBounds)
+        Guard("params", AddressOf CheckParameters)
+        Guard("clean", AddressOf CheckCleanCarriesTarget)
+        Guard("cause", AddressOf CheckCauses)
+        Guard("duration", AddressOf CheckDurationFormat)
+        Guard("about", AddressOf CheckAboutStamp)
+        Guard("logs", AddressOf CheckLogArchives)
+    End Sub
+
+    Private Sub Guard(name As String, body As Action)
+        Try
+            body()
+        Catch ex As Exception
+            Check(name, False, "threw " & ex.GetType().Name & ": " & ex.Message)
+        End Try
+    End Sub
+
+    Private Function LogFilePath() As String
+        Return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "filedo_win_selftest.log")
+    End Function
+
+    Private Function WriteLog() As Integer
+        Dim logFile = LogFilePath()
         Dim verdict As String = If(failures = 0,
                                    "selftest: PASS (" & CountChecks().ToString() & ")",
                                    "selftest: FAIL (" & failures.ToString() & "): " & FailureNames())
@@ -56,6 +119,17 @@ Public Module SelfTest
         End Try
 
         Return If(failures = 0, 0, 1)
+    End Function
+
+    ' The last resort of Program.Main: something outside every Guard threw. The rows written so far
+    ' and the crash still reach the log, and the gate fails rather than going silent.
+    Public Function WriteCrash(ex As Exception) As Integer
+        Try
+            Check("selftest-crash", False, If(ex Is Nothing, "unknown", ex.GetType().Name & ": " & ex.Message))
+            Return WriteLog()
+        Catch
+            Return 2
+        End Try
     End Function
 
     Private Sub Check(name As String, ok As Boolean, Optional detail As String = "")
@@ -103,6 +177,18 @@ Public Module SelfTest
                 Check("page:" & job.Id & ":builds", cmd.StartsWith("filedo.exe "), cmd)
                 Check("page:" & job.Id & ":verb", CommandNames(cmd, job.DefaultVerb), cmd)
                 Check("page:" & job.Id & ":target", cmd.Contains(SampleTargetFor(job)), cmd)
+
+                ' SP-0025 FDSEC-19: filedo.exe refuses a pe: variable that is empty, so an
+                ' empty password - the page's documented obfuscation-only choice - travels as
+                ' the visible p:, and a real one by variable name.
+                If job.DefaultVerb = "secure" OrElse job.DefaultVerb = "unsecure" OrElse job.DefaultVerb = "reveal" Then
+                    view.SetCredentialForTest("")
+                    Dim emptyCmd = view.CurrentCommand()
+                    Check("page:" & job.Id & ":empty-cred-is-p", emptyCmd.EndsWith(" p:") AndAlso Not emptyCmd.Contains("pe:"), emptyCmd)
+                    view.SetCredentialForTest("selftest-pw")
+                    Dim credCmd = view.CurrentCommand()
+                    Check("page:" & job.Id & ":cred-by-variable", credCmd.Contains("pe:FILEDO_SHELL_CRED") AndAlso Not credCmd.Contains("selftest-pw"), credCmd)
+                End If
             Catch ex As Exception
                 Check("page:" & job.Id, False, ex.GetType().Name & ": " & ex.Message)
             Finally
@@ -152,6 +238,29 @@ Public Module SelfTest
     ' ShellForm applies this design-pixel value through Ui.Px, so it scales together with the form.
     Private Sub CheckRailTargets()
         Check("rail:target-height", ShellForm.RailTargetHeight >= 44, ShellForm.RailTargetHeight.ToString())
+    End Sub
+
+    ' SP-0005 section 12: a reveal's sealed true name is allowed on screen,
+    ' but never in the shell's retained report.  Exercise every output shape
+    ' that names a copy - reveal's "Revealed" line and indented fallback,
+    ' unsecure start's "OK" line with the name repeated in parentheses - in
+    ' both line endings, and leave ordinary output and the sandbox intact.
+    Private Sub CheckFdsecReportRedaction()
+        Const sealedName As String = "fdsec report (name) token.txt"
+        Const box As String = "C:\Users\user\AppData\Local\FileDO\reveal\"
+        Dim lines = {
+            "Revealed C:\box.fd-sec -> " & box & "rv-test\" & sealedName & " (12 B)",
+            "  " & box & "rv-test\" & sealedName,
+            "OK C:\box.fd-sec -> " & box & "us-test\" & sealedName & " (" & sealedName & ", 12 B)",
+            "ordinary output"}
+        For Each eol In {vbLf, vbCrLf}
+            Dim cleaned = Runner.RedactReportOutput(String.Join(eol, lines) & eol)
+            Dim ok = Not cleaned.Contains("report (name)") AndAlso
+                     cleaned.Contains(box & "rv-test\<protected reveal copy>" & eol) AndAlso
+                     cleaned.Contains(box & "us-test\<protected reveal copy>" & eol) AndAlso
+                     cleaned.Contains(eol & "ordinary output" & eol)
+            Check("fdsec:report-redaction" & If(eol = vbLf, "", "-crlf"), ok, cleaned)
+        Next
     End Sub
 
     ' Rung 2 of the CLI-EVENT-STREAM conformance ladder: every (verdict, exit
@@ -207,29 +316,275 @@ Public Module SelfTest
     End Sub
 
     ' ICON-SET / ICON-RENDER (SP-0016 T2): each verdict of CLI-EVENT-STREAM, plus one this build
-    ' does not know, draws its state glyph in its state colour. The plain check (E73E, the
-    ' vocabulary's action.confirm) and the plain cross (E711, nav.close) are the two pictures the
-    ' vocabulary lists as distinct from status.ok and status.error, so they must never come back.
+    ' does not know, shows its state glyph in its state colour. Passed, Done and Failed draw the
+    ' vocabulary's status.ok and status.error, Stopped and Not proven status.stopped and
+    ' status.not-proven (ICON-SET 0.14) - every verdict a vocabulary drawing. The plain check (the
+    ' vocabulary's action.confirm, Segoe E73E) and the plain cross (nav.close, E711) are the two
+    ' pictures listed as distinct from status.ok and status.error, so neither may come back.
     Private Sub CheckVerdictGlyphs()
         Dim p = Theme.Current
         Dim cases = New Object()() {
-            New Object() {"Passed", &HEC61, p.Success},
-            New Object() {"Done", &HEC61, p.Success},
-            New Object() {"Failed", &HE783, p.Danger},
-            New Object() {"Stopped", &HE71A, p.Warning},
-            New Object() {"Not proven", &HE9CE, p.MutedText},
-            New Object() {"Quarantined", &HE9CE, p.MutedText}
+            New Object() {"Passed", "status.ok", p.StateOk},
+            New Object() {"Done", "status.ok", p.StateOk},
+            New Object() {"Failed", "status.error", p.StateError},
+            New Object() {"Stopped", "status.stopped", p.StateWarning},
+            New Object() {"Not proven", "status.not-proven", p.MutedText},
+            New Object() {"Quarantined", "status.not-proven", p.MutedText}
         }
         For Each c In cases
             Dim verdict = DirectCast(c(0), String)
             Dim glyph = Theme.VerdictGlyph(verdict)
-            Dim code = AscW(glyph(0)) And &HFFFF
-            Check("glyph:" & verdict & ":codepoint", code = CInt(c(1)), code.ToString("X4"))
-            Check("glyph:" & verdict & ":not-confirm-or-close", code <> &HE73E AndAlso code <> &HE711, code.ToString("X4"))
+            Check("glyph:" & verdict & ":meaning", glyph.Meaning = DirectCast(c(1), String), glyph.ToString())
+            Dim code = AscW(glyph.Interim) And &HFFFF
+            Check("glyph:" & verdict & ":not-confirm-or-close", code <> &HE73E AndAlso code <> &HE711, glyph.ToString())
+            Check("glyph:" & verdict & ":drawn", glyph.IsVocabulary AndAlso Glyphs.IsDrawable(glyph.Id), glyph.ToString())
             Dim want = DirectCast(c(2), Color)
             Dim got = Theme.VerdictColor(verdict, p)
             Check("glyph:" & verdict & ":colour", got.ToArgb() = want.ToArgb(), got.ToString())
         Next
+    End Sub
+
+    ' ---- SP-0016: the vocabulary's drawings -----------------------------------
+
+    ' Every vocabulary id the shell draws: the rail's glyph map, the group chevrons, the verdicts,
+    ' and the Explorer icons it writes (MenuIcons.vb).
+    Private Function MappedVocabularyIds() As HashSet(Of String)
+        Dim ids As New HashSet(Of String)(MenuIcons.Ids, StringComparer.Ordinal)
+        Dim refs As New List(Of GlyphRef)()
+        For Each row In RailRow.All
+            If row.Glyph IsNot Nothing Then refs.Add(row.Glyph)
+        Next
+        refs.Add(Theme.ChevronGlyph(True))
+        refs.Add(Theme.ChevronGlyph(False))
+        For Each verdict In New String() {"Passed", "Done", "Failed", "Stopped", "Not proven"}
+            refs.Add(Theme.VerdictGlyph(verdict))
+        Next
+        For Each r In refs
+            If r.IsVocabulary Then ids.Add(r.Id)
+        Next
+        Return ids
+    End Function
+
+    ' T10, ICON-EXTERNAL rule 5 and the compatibility law's "a higher MAJOR is refused cleanly":
+    ' every vendored file is embedded and matches its SHA-256 line in PROVENANCE.txt, which was
+    ' mapped against this build's ICON-SET MAJOR; every vocabulary id the shell draws is among
+    ' them and every one of them is drawn by something; each lands on its 24 grid and actually
+    ' paints - the pixel test, because a reader that misses part of the SVG subset draws another
+    ' picture rather than failing.
+    Private Sub CheckGlyphProvenance()
+        Dim problems = Glyphs.Problems()
+        Check("icons:provenance", problems.Count = 0,
+              If(problems.Count = 0, Glyphs.RecordedFileCount().ToString() & " files verified, " & Glyphs.CatalogVersions(),
+                 String.Join("; ", problems.ToArray())))
+        Check("icons:icon-set-major", Glyphs.CatalogVersions().StartsWith("ICON-SET " & Glyphs.MappedIconSetMajor.ToString() & ".",
+                                                                          StringComparison.Ordinal),
+              Glyphs.CatalogVersions())
+
+        Dim mapped = MappedVocabularyIds()
+        For Each id In mapped.OrderBy(Function(s) s)
+            Check("icons:mapped:" & id, Glyphs.IsDrawable(id),
+                  If(Glyphs.IsDrawable(id), "vendored, verified", "not vendored or not verified - run assets\sync-icon-glyphs.ps1"))
+        Next
+
+        Dim p = Theme.PaletteFor(False)
+        For Each id In Glyphs.DrawableIds().OrderBy(Function(s) s)
+            Check("icons:used:" & id, mapped.Contains(id), If(mapped.Contains(id), "drawn by the shell", "vendored but drawn by nothing"))
+            Dim box = Glyphs.InkBounds(id)
+            Check("icons:grid:" & id, box.Width > 0 AndAlso box.Height > 0 AndAlso box.Left >= 0 AndAlso box.Top >= 0 AndAlso
+                                      box.Right <= 24 AndAlso box.Bottom <= 24, box.ToString())
+            Dim inked = 0
+            Using bmp As New Bitmap(24, 24)
+                Using g = Graphics.FromImage(bmp)
+                    Using back As New SolidBrush(p.Surface)
+                        g.FillRectangle(back, 0, 0, 24, 24)
+                    End Using
+                    Glyphs.Draw(g, GlyphRef.Vocabulary(id), New Rectangle(0, 0, 24, 24), p.Text)
+                End Using
+                For y = 0 To 23
+                    For x = 0 To 23
+                        If bmp.GetPixel(x, y).ToArgb() <> p.Surface.ToArgb() Then inked += 1
+                    Next
+                Next
+            End Using
+            Check("icons:paints:" & id, inked >= 24, inked.ToString() & " of 576 px inked at 24 px")
+        Next
+    End Sub
+
+    ' The rows that draw a stand-in. Zero since ICON-SET 0.14 (2026-09-25) took the twelve meanings
+    ' FileDO proposed; a new row never joins them - a new control starts from the vocabulary (ICON-SET
+    ' rule 5) - so raising this is an amendment with a reason, not a fix.
+    Private Const WaitingRailRowsBaseline As Integer = 0
+
+    ' T1, ICON-SET rules 1, 4 and 5 on the rail: every job row shows a glyph; a vocabulary one is
+    ' drawable; a waiting one names the id proposed for it and a Segoe stand-in in the private-use
+    ' area with that font's own name for it (ICON-EXTERNAL rule 5); and no two rows that show
+    ' different meanings share a picture - neither one vocabulary drawing nor one stand-in.
+    Private Sub CheckRailGlyphs()
+        Dim meaningOf As New Dictionary(Of String, String)(StringComparer.Ordinal)
+        Dim waiting As New List(Of String)()
+        For Each row In RailRow.All
+            Dim glyph = row.Glyph
+            If row.IsGroup Then
+                Check("rail-glyph:" & row.Key, glyph Is Nothing, "a group header draws its chevron, not a glyph")
+                Continue For
+            End If
+            If glyph Is Nothing Then
+                Check("rail-glyph:" & row.Key, False, "no glyph")
+                Continue For
+            End If
+            Dim code = AscW(glyph.Interim) And &HFFFF
+            If glyph.IsVocabulary Then
+                Check("rail-glyph:" & row.Key, Glyphs.IsDrawable(glyph.Id), glyph.ToString())
+            Else
+                waiting.Add(row.Key)
+                Check("rail-glyph:" & row.Key, glyph.Pending.Contains(".") AndAlso code >= &HE000 AndAlso code <= &HF8FF AndAlso
+                                               glyph.FontName <> "", glyph.ToString())
+            End If
+            Dim picture = If(glyph.IsVocabulary, glyph.Id, "U+" & code.ToString("X4"))
+            Dim other As String = Nothing
+            If meaningOf.TryGetValue(picture, other) Then
+                Check("rail-glyph:shared:" & row.Key, other = glyph.Meaning, picture & " already shows " & other)
+            Else
+                meaningOf(picture) = glyph.Meaning
+            End If
+        Next
+        Check("rail-glyph:waiting", waiting.Count <= WaitingRailRowsBaseline,
+              waiting.Count.ToString() & " rows draw a stand-in (baseline " & WaitingRailRowsBaseline.ToString() &
+              ", PROPOSAL-2026-09-23-filedo-meanings.md): " & String.Join(", ", waiting.ToArray()))
+    End Sub
+
+    ' T8, ICON-SET rule 7 and ICON-RENDER 0.12 rule 9 on the Explorer surfaces: every icon the
+    ' writers name is embedded (it came from assets\menu-icons\), carries every size, paints in the
+    ' one menu tone, and still is the drawing of its glyph - each size is drawn afresh and compared
+    ' with the copy. The tolerance is for anti-aliasing that may differ by a step between Windows
+    ' builds; a changed drawing moves whole pixels and fails. The fix is to re-run
+    ' `filedo_win.exe --write-menu-icons assets\menu-icons` and rebuild.
+    Private Sub CheckMenuIcons()
+        Const tolerance As Integer = 24
+        For Each id In MenuIcons.Ids
+            Dim ico = MenuIcons.EmbeddedIco(id)
+            If ico Is Nothing Then
+                Check("menu-icon:" & id, False, "not embedded - assets\menu-icons\" & id & ".ico is missing")
+                Continue For
+            End If
+            Dim images = MenuIcons.ReadIco(ico)
+            Try
+                For Each size In MenuIcons.Sizes
+                    Dim stored As Bitmap = Nothing
+                    If Not images.TryGetValue(size, stored) Then
+                        Check("menu-icon:" & id & ":" & size.ToString(), False, "no " & size.ToString() & " px image")
+                        Continue For
+                    End If
+                    Dim worst = 0, inked = 0, offTone = 0
+                    Using fresh = MenuIcons.Render(id, size)
+                        For y = 0 To size - 1
+                            For x = 0 To size - 1
+                                Dim a = fresh.GetPixel(x, y), b = stored.GetPixel(x, y)
+                                worst = Math.Max(worst, Math.Abs(CInt(a.A) - b.A))
+                                If b.A > 0 Then
+                                    inked += 1
+                                    If b.A >= 32 AndAlso (Math.Abs(CInt(b.R) - MenuIcons.Tone.R) > 3 OrElse Math.Abs(CInt(b.G) - MenuIcons.Tone.G) > 3 OrElse
+                                       Math.Abs(CInt(b.B) - MenuIcons.Tone.B) > 3) Then offTone += 1
+                                End If
+                            Next
+                        Next
+                    End Using
+                    Check("menu-icon:" & id & ":" & size.ToString(), worst <= tolerance AndAlso offTone = 0 AndAlso inked * 16 >= size * size,
+                          "alpha differs by " & worst.ToString() & " at most, " & inked.ToString() & " px inked, " &
+                          offTone.ToString() & " off the menu tone")
+                Next
+            Finally
+                For Each bmp In images.Values
+                    bmp.Dispose()
+                Next
+            End Try
+        Next
+    End Sub
+
+    ' T11, ICON-RENDER section 10 item D taken as exact tones (SP-0016 D2): each state role of both
+    ' palettes is the vendored palette.json's day or night tone - except the light warning, whose
+    ' day tone fails 3:1 (the exception in Theme.vb). That row fails the day the catalog's tone
+    ' reaches 3:1 on the light card, so the exception cannot outlive its reason.
+    Private Sub CheckStateTones()
+        Dim json = Glyphs.VerifiedData("palette.json")
+        If json Is Nothing Then
+            Check("state-tone:palette", False, "palette.json is not vendored or did not verify")
+            Return
+        End If
+        Dim hues As Dictionary(Of String, Object) = Nothing
+        Try
+            Dim root = New Web.Script.Serialization.JavaScriptSerializer().Deserialize(Of Dictionary(Of String, Object))(json)
+            hues = DirectCast(root("hues"), Dictionary(Of String, Object))
+        Catch ex As Exception
+            Check("state-tone:palette", False, ex.GetType().Name & ": " & ex.Message)
+            Return
+        End Try
+
+        Dim light = Theme.PaletteFor(False)
+        Dim dark = Theme.PaletteFor(True)
+        Dim rows = New Object()() {
+            New Object() {"state.ok", "day", light.StateOk},
+            New Object() {"state.ok", "night", dark.StateOk},
+            New Object() {"state.error", "day", light.StateError},
+            New Object() {"state.error", "night", dark.StateError},
+            New Object() {"state.warning", "night", dark.StateWarning}
+        }
+        For Each r In rows
+            Dim key = DirectCast(r(0), String)
+            Dim tone = DirectCast(r(1), String)
+            Dim got = DirectCast(r(2), Color)
+            Dim want = PaletteTone(hues, key, tone)
+            Check("state-tone:" & key & ":" & tone, Not want.IsEmpty AndAlso want.ToArgb() = got.ToArgb(),
+                  HexOf(got) & " (palette.json " & HexOf(want) & ")")
+        Next
+
+        Dim warnDay = PaletteTone(hues, "state.warning", "day")
+        Dim ratio = Theme.ContrastRatio(warnDay, light.Surface)
+        Check("state-tone:state.warning:day-exception",
+              Not warnDay.IsEmpty AndAlso ratio < 3.0 AndAlso light.StateWarning.ToArgb() = light.Warning.ToArgb(),
+              "palette.json " & HexOf(warnDay) & " is " & ratio.ToString("0.00", Globalization.CultureInfo.InvariantCulture) &
+              ":1 on the light card; the light StateWarning stays the shell's " & HexOf(light.StateWarning))
+    End Sub
+
+    Private Function PaletteTone(hues As Dictionary(Of String, Object), key As String, tone As String) As Color
+        Dim hue As Object = Nothing
+        If hues Is Nothing OrElse Not hues.TryGetValue(key, hue) Then Return Nothing
+        Dim fields = TryCast(hue, Dictionary(Of String, Object))
+        Dim value As Object = Nothing
+        If fields Is Nothing OrElse Not fields.TryGetValue(tone, value) Then Return Nothing
+        Return Theme.FromHex(TryCast(value, String))
+    End Function
+
+    Private Function HexOf(c As Color) As String
+        If c.IsEmpty Then Return "(none)"
+        Return "#" & c.R.ToString("X2") & c.G.ToString("X2") & c.B.ToString("X2")
+    End Function
+
+    ' ICON-RENDER rule 3 and conformance rung 4, measured rather than claimed: every glyph the
+    ' shell draws against every surface it is drawn on, in both palettes - 3:1 for a glyph, and
+    ' 4.5:1 for the verdict word the Command page paints in the glyph's colour and for the verdict
+    ' badge's word on its fill.
+    Private Sub CheckGlyphContrast()
+        For Each dark In New Boolean() {False, True}
+            Dim p = Theme.PaletteFor(dark)
+            Dim t = If(dark, "dark", "light")
+            ContrastPair("contrast:" & t & ":rail-glyph:plain", p.Text, p.SurfaceAlt, 3.0)
+            ContrastPair("contrast:" & t & ":rail-glyph:hover", p.Text, p.ControlHover, 3.0)
+            ContrastPair("contrast:" & t & ":rail-glyph:selected", p.Text, p.SurfaceSelected, 3.0)
+            ContrastPair("contrast:" & t & ":chevron:plain", p.MutedText, p.SurfaceAlt, 3.0)
+            ContrastPair("contrast:" & t & ":chevron:hover", p.MutedText, p.ControlHover, 3.0)
+            For Each verdict In New String() {"Passed", "Done", "Failed", "Stopped", "Not proven"}
+                ContrastPair("contrast:" & t & ":verdict:" & verdict, Theme.VerdictColor(verdict, p), p.Surface, 4.5)
+                ContrastPair("contrast:" & t & ":badge:" & verdict, Theme.VerdictFore(verdict, p), Theme.VerdictBack(verdict, p), 4.5)
+            Next
+        Next
+    End Sub
+
+    Private Sub ContrastPair(name As String, fore As Color, back As Color, need As Double)
+        Dim ratio = Theme.ContrastRatio(fore, back)
+        Dim inv = Globalization.CultureInfo.InvariantCulture
+        Check(name, ratio >= need, ratio.ToString("0.00", inv) & ":1, needs " & need.ToString("0.0", inv) & " - " &
+              HexOf(fore) & " on " & HexOf(back))
     End Sub
 
     ' Rung 3 of the same ladder, plus the two ways a line can be lost. A reader
@@ -384,8 +739,9 @@ Public Module SelfTest
     End Sub
 
     ' APP-STYLE section 3, the defect class "a reference resolved once at load": a Failed result on
-    ' screen under one palette, the other palette applied, and the badge must carry the new
-    ' palette's Danger. The palette is switched through Theme's test seam, never through HKCU.
+    ' screen under one palette, the other palette applied, and the badge and both verdict glyphs
+    ' must carry the new palette's StateError. The palette is switched through Theme's test seam,
+    ' never through HKCU.
     Private Sub CheckThemeRoundTrip()
         Dim jv As JobView = Nothing
         Dim cv As CommandView = Nothing
@@ -397,17 +753,25 @@ Public Module SelfTest
             cv = New CommandView()
             cv.ShowVerdictForTest("Failed")
             Dim light = Theme.PaletteFor(False)
-            Check("theme:job-badge-light", jv.VerdictBadgeForTest.BackColor.ToArgb() = light.Danger.ToArgb(),
+            Check("theme:job-badge-light", jv.VerdictBadgeForTest.BackColor.ToArgb() = light.StateError.ToArgb(),
                   jv.VerdictBadgeForTest.BackColor.ToString())
 
             Theme.UsePaletteForTest(True)
             jv.ApplyTheme()
             cv.ApplyTheme()
             Dim dark = Theme.PaletteFor(True)
-            Check("theme:job-badge-follows", jv.VerdictBadgeForTest.BackColor.ToArgb() = dark.Danger.ToArgb(),
+            Check("theme:job-badge-follows", jv.VerdictBadgeForTest.BackColor.ToArgb() = dark.StateError.ToArgb(),
                   jv.VerdictBadgeForTest.BackColor.ToString())
-            Check("theme:command-verdict-follows", cv.VerdictLabelForTest.ForeColor.ToArgb() = dark.Danger.ToArgb(),
+            Check("theme:job-glyph-follows", jv.VerdictGlyphForTest.ForeColor.ToArgb() = dark.StateError.ToArgb() AndAlso
+                  jv.VerdictGlyphForTest.Glyph IsNot Nothing AndAlso jv.VerdictGlyphForTest.Glyph.Meaning = "status.error",
+                  jv.VerdictGlyphForTest.ForeColor.ToString())
+            Check("theme:command-verdict-follows", cv.VerdictLabelForTest.ForeColor.ToArgb() = dark.StateError.ToArgb(),
                   cv.VerdictLabelForTest.ForeColor.ToString())
+            Check("theme:command-glyph-follows", cv.VerdictGlyphForTest.ForeColor.ToArgb() = dark.StateError.ToArgb() AndAlso
+                  cv.VerdictGlyphForTest.Glyph IsNot Nothing AndAlso cv.VerdictGlyphForTest.Glyph.Meaning = "status.error",
+                  cv.VerdictGlyphForTest.ForeColor.ToString())
+            Check("theme:command-line-has-no-glyph", Not cv.VerdictLabelForTest.Text.Any(Function(ch) AscW(ch) >= &HE000 AndAlso AscW(ch) <= &HF8FF),
+                  cv.VerdictLabelForTest.Text)
         Catch ex As Exception
             Check("theme", False, ex.GetType().Name & ": " & ex.Message)
         Finally
@@ -429,6 +793,8 @@ Public Module SelfTest
             Dim themeName = If(dark, "dark", "light")
             Try
                 For Each row In RailRow.All
+                    Dim text = RailText(dict, row, "rail-paint:" & themeName & ":" & row.Key)
+                    If text Is Nothing Then Continue For
                     For Each stateName In New String() {"plain", "hover", "selected", "collapsed-holding"}
                         If stateName = "collapsed-holding" AndAlso Not row.IsGroup Then Continue For
                         If stateName = "selected" AndAlso row.IsGroup Then Continue For
@@ -436,7 +802,7 @@ Public Module SelfTest
                             .Key = row.Key,
                             .Glyph = row.Glyph,
                             .IsGroupHeader = row.IsGroup,
-                            .Text = If(row.IsGroup, dict(row.Key).ToUpperInvariant(), dict(row.Key)),
+                            .Text = text,
                             .RowUnit = 44,
                             .Size = New Size(236, 44)
                         }
@@ -465,6 +831,18 @@ Public Module SelfTest
             End Try
         Next
     End Sub
+
+    ' A rail row's label as the window draws it, or Nothing - with a FAIL row under the check's name -
+    ' when the table has no such key (SHELL-15: a missing key used to throw KeyNotFoundException out
+    ' of the whole run).
+    Private Function RailText(dict As Dictionary(Of String, String), row As RailRow, name As String) As String
+        Dim v As String = Nothing
+        If dict Is Nothing OrElse Not dict.TryGetValue(row.Key, v) Then
+            Check(name, False, "no text for " & row.Key)
+            Return Nothing
+        End If
+        Return If(row.IsGroup, v.ToUpperInvariant(), v)
+    End Function
 
     Private Function CountPureRed(bmp As Bitmap) As Integer
         Dim n = 0
@@ -495,12 +873,14 @@ Public Module SelfTest
         For Each lang In Localization.Languages
             Dim dict = Localization.GetDict(lang)
             For Each row In RailRow.All
+                Dim text = RailText(dict, row, "rail-label:" & lang & ":" & row.Key)
+                If text Is Nothing Then Continue For
                 Using e As New RailEntry With {
                     .Key = row.Key,
                     .IsGroupHeader = row.IsGroup,
                     .Glyph = row.Glyph,
                     .RowUnit = unit,
-                    .Text = If(row.IsGroup, dict(row.Key).ToUpperInvariant(), dict(row.Key))
+                    .Text = text
                 }
                     Dim detail As String = ""
                     Dim fits = e.LabelFits(rowWidth, detail)
@@ -667,6 +1047,23 @@ Public Module SelfTest
 
         r = WindowPlacement.Place(New Rectangle(0, 0, 800, 600), 96, New List(Of WindowPlacement.ScreenArea)(), caption)
         Check("placement:no-screens", r.IsEmpty, r.ToString())
+
+        ' SHELL-08: a window spread over both monitors, its title strip on the first, stays spread.
+        r = WindowPlacement.Place(New Rectangle(1500, 100, 1200, 800), 144, both, caption)
+        Check("placement:spanning", r = New Rectangle(1500, 100, 1200, 800), r.ToString())
+
+        ' SHELL-09: values no real window has are not restored at all - they used to overflow the
+        ' scaling and keep the window from opening.
+        Check("placement:huge-x", Not ShellSettings.PlacementIsSane(2147483000, 100, 1200, 800, 96), "")
+        Check("placement:tiny-dpi", Not ShellSettings.PlacementIsSane(100, 100, 1200, 800, 1), "")
+        Check("placement:zero-width", Not ShellSettings.PlacementIsSane(100, 100, 0, 800, 96), "")
+        Check("placement:sane", ShellSettings.PlacementIsSane(-1920, 0, 1200, 800, 144) AndAlso
+                                ShellSettings.PlacementIsSane(100, 100, 1200, 800, 0), "")
+
+        ' SHELL-07: maximized, then minimized, then closed - it reopens maximized.
+        Check("placement:min-after-max", ShellForm.SavesMaximized(FormWindowState.Minimized, FormWindowState.Maximized) AndAlso
+                                         Not ShellForm.SavesMaximized(FormWindowState.Minimized, FormWindowState.Normal) AndAlso
+                                         ShellForm.SavesMaximized(FormWindowState.Maximized, FormWindowState.Maximized), "")
     End Sub
 
     ' T10 and T11, rule 5: the Wipe page confirms what is really there, and only what it can run.
@@ -718,6 +1115,32 @@ Public Module SelfTest
             Check("command:wipe-without-y-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\sample wipe", ""), "")
             Check("command:wipe-root-refused", Not cv.RunEnabledForTest("filedo.exe D:\ wipe -y", "WIPE"), "")
             Check("command:no-wipe-no-word", cv.RunEnabledForTest("filedo.exe E: info", ""), "")
+
+            ' GUI-11: the CLI's other word for wipe asks for the typed word too, and so does a batch
+            ' whose list wipes.
+            Check("command:wipe-alias-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\sample w -y", ""), "")
+            Check("command:wipe-alias-typed-runs", cv.RunEnabledForTest("filedo.exe C:\sample w -y", "WIPE"), "")
+            Dim listDir = Path.Combine(Path.GetTempPath(), "filedo_selftest_lists_" & Guid.NewGuid().ToString("N"))
+            Directory.CreateDirectory(listDir)
+            Try
+                Dim wipingList = Path.Combine(listDir, "wipes.lst")
+                File.WriteAllText(wipingList, "# a batch" & vbLf & "C:\sample-x info" & vbLf & "C:\sample-x W -y" & vbLf)
+                Dim plainList = Path.Combine(listDir, "plain.lst")
+                File.WriteAllText(plainList, "C:\sample-x info" & vbLf)
+                Check("command:from-wipe-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(wipingList), ""), "")
+                Check("command:from-plain-no-word", cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(plainList), ""), "")
+                Check("command:from-missing-asks-word",
+                      Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(Path.Combine(listDir, "none.lst")), ""), "")
+            Finally
+                Try
+                    Directory.Delete(listDir, True)
+                Catch
+                End Try
+            End Try
+
+            ' SHELL-04 on the Command page: a relative target is read where filedo.exe runs, and
+            ' ".." there is LocalAppData - which holds FileDO's own data.
+            Check("command:relative-wipe-refused", Not cv.RunEnabledForTest("filedo.exe .. wipe -y", "WIPE"), "")
         Catch ex As Exception
             Check("wipe", False, ex.GetType().Name & ": " & ex.Message)
         Finally
@@ -733,6 +1156,496 @@ Public Module SelfTest
             Check("dialog:escape-is-no-action", cancel = "Keep running", cancel)
         Catch ex As Exception
             Check("dialog", False, ex.GetType().Name & ": " & ex.Message)
+        End Try
+    End Sub
+
+    ' ---- SP-0029: the shell's robustness remediation --------------------------
+
+    ' GUI-20, GUI-21: the argument rules, one row per case.
+    Private Sub CheckArgQuotingCases()
+        For Each c In ArgQuotingTests.NamedCases()
+            Check("argquoting:" & c.Key, c.Value)
+        Next
+    End Sub
+
+    ' GUI-01 and SHELL-04: what a page does with the text of step 2.
+    Private Sub CheckTargetRules()
+        Dim en = Localization.GetDict(ShellSettings.Language())
+        Dim notAbsolute = en("shell_target_not_absolute")
+        Dim jv As JobView = Nothing
+        Dim reason As String = ""
+        Try
+            jv = New JobView()
+
+            ' GUI-01: a folder with "(" in its name is a folder, not a drive row.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_duplicates"))
+            jv.SetTarget("D:\Photos (2019)")
+            Dim cmd = jv.CurrentCommand()
+            Check("page:cd:paren", cmd.Contains("""D:\Photos (2019)""") AndAlso Not cmd.Contains(" D: "), cmd)
+
+            jv.SetJob(JobCatalogue.GetJob("rail_job_reveal"))
+            jv.SetTarget("C:\taxes (1).pdf.fd-sec")
+            cmd = jv.CurrentCommand()
+            Check("page:reveal:paren", cmd.Contains("""C:\taxes (1).pdf.fd-sec"""), cmd)
+
+            ' A drive row the page listed itself is still read as its letter.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_capacity"))
+            Dim row = jv.TargetTextForTest
+            cmd = jv.CurrentCommand()
+            Check("page:drive-row-is-a-letter", row = "" OrElse Not row.Contains("(") OrElse
+                                                (Not cmd.Contains("(") AndAlso cmd.Contains(" " & row.Substring(0, 2) & " ")),
+                  row & " -> " & cmd)
+
+            ' SHELL-04: relative and drive-relative targets are refused with the reason.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_wipe"))
+            jv.SetTarget("..")
+            jv.SetWipeInputsForTest("WIPE", True)
+            Dim runs = jv.RunStateForTest(reason)
+            Check("wipe:relative-refused", Not runs AndAlso reason = notAbsolute, runs.ToString() & " / " & reason)
+            jv.SetTarget("D:x")
+            jv.SetWipeInputsForTest("WIPE", True)
+            runs = jv.RunStateForTest(reason)
+            Check("wipe:drive-relative-refused", Not runs AndAlso reason = notAbsolute, runs.ToString() & " / " & reason)
+            jv.SetTarget("C:\sample-that-is-not-there\sub\..")
+            jv.SetWipeInputsForTest("WIPE", True)
+            runs = jv.RunStateForTest(reason)
+            cmd = jv.CurrentCommand()
+            Check("wipe:absolute-folded", runs AndAlso cmd.Contains("C:\sample-that-is-not-there wipe") AndAlso Not cmd.Contains(".."),
+                  cmd & " / " & reason)
+
+            jv.SetJob(JobCatalogue.GetJob("rail_job_compare"))
+            jv.SetTarget("C:\sample-a")
+            runs = jv.RunStateForTest(reason)
+            Check("page:compare-needs-dest", Not runs, runs.ToString())
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+
+        Check("target:resolve-folds-dots", TargetPath.Resolve("C:\a\..\b") = "C:\b", TargetPath.Resolve("C:\a\..\b"))
+        Check("target:drive-token-kept", TargetPath.Resolve("E:") = "E:", TargetPath.Resolve("E:"))
+        Check("target:relative-refused", TargetPath.Resolve("reports") Is Nothing AndAlso TargetPath.Resolve("D:x") Is Nothing AndAlso
+                                         TargetPath.Resolve("\x") Is Nothing, "")
+        Check("target:unc-kept", TargetPath.Resolve("\\server\share\x") = "\\server\share\x", TargetPath.Resolve("\\server\share\x"))
+
+        ' SHELL-04: the Explorer start - a bare name is the file in the folder it was typed in.
+        Dim dir = Path.Combine(Path.GetTempPath(), "filedo_selftest_start_" & Guid.NewGuid().ToString("N"))
+        Dim oldCwd = Environment.CurrentDirectory
+        Try
+            Directory.CreateDirectory(dir)
+            File.WriteAllText(Path.Combine(dir, "notes.txt"), "x")
+            Environment.CurrentDirectory = dir
+            Dim got = Program.StartupTargetFrom(New String() {"filedo_win.exe", "notes.txt"})
+            Check("startup:relative-target", String.Equals(got, Path.Combine(dir, "notes.txt"), StringComparison.OrdinalIgnoreCase), got)
+            Check("startup:switch-skipped", Program.StartupTargetFrom(New String() {"filedo_win.exe", "-debug"}) Is Nothing, "")
+        Finally
+            Environment.CurrentDirectory = oldCwd
+            Try
+                Directory.Delete(dir, True)
+            Catch
+            End Try
+        End Try
+
+        ' SP-0027 WIPE-02, mirrored: FileDO's data, LocalAppData above it and the profile are asked
+        ' about twice on a console, so the Wipe page refuses them up front.
+        Dim localApp = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+        For Each pair In New String()() {
+            New String() {"wipe-safety:filedo-data", Path.Combine(localApp, "FileDO")},
+            New String() {"wipe-safety:localappdata", localApp},
+            New String() {"wipe-safety:profile", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)},
+            New String() {"wipe-safety:windows", Environment.GetEnvironmentVariable("SystemRoot")}}
+            Dim key = WipeSafety.DangerKey(pair(1))
+            Check(pair(0), key = "shell_wipe_danger_system", pair(1) & " -> " & key)
+        Next
+        Check("wipe-safety:drive-token-is-root", WipeSafety.DangerKey("E:") = "shell_wipe_danger_root", WipeSafety.DangerKey("E:"))
+    End Sub
+
+    ' GUI-03: Delete and Move are destructive on the page, and pass -y only behind a typed word.
+    Private Sub CheckDuplicatesPage()
+        Dim dict = Localization.GetDict(ShellSettings.Language())
+        Dim jv As JobView = Nothing
+        Dim reason As String = ""
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_duplicates"))
+            jv.SetTarget("C:\sample-dups")
+
+            Dim runs = jv.RunStateForTest(reason)
+            Dim cmd = jv.CurrentCommand()
+            Check("dup:report-is-reversible", runs AndAlso Not jv.DestructiveBadgeShownForTest AndAlso
+                  jv.ReversibilityForTest = dict("shell_rev_reversible") AndAlso Not cmd.Contains("-y"), cmd)
+            Check("count:dup-report-does-not-count", Not jv.CountRowShownForTest, "")
+
+            jv.SetDupActionForTest("delete")
+            runs = jv.RunStateForTest(reason)
+            cmd = jv.CurrentCommand()
+            Check("dup:delete-is-destructive", Not runs AndAlso jv.DestructiveBadgeShownForTest AndAlso
+                  jv.ReversibilityForTest = dict("shell_rev_permanent"), cmd)
+            Check("count:dup-delete-counts", jv.CountRowShownForTest, "")
+            jv.SetConfirmWordForTest("delete")
+            Check("dup:delete-word-is-exact", Not jv.RunStateForTest(reason), "")
+            jv.SetConfirmWordForTest("DELETE")
+            runs = jv.RunStateForTest(reason)
+            Check("dup:delete-typed-runs", runs AndAlso cmd.Contains(" del -y"), cmd)
+
+            jv.SetDupActionForTest("move", "C:\sample-dups-moved")
+            runs = jv.RunStateForTest(reason)
+            cmd = jv.CurrentCommand()
+            Check("dup:move-is-destructive", Not runs AndAlso jv.DestructiveBadgeShownForTest AndAlso
+                  jv.ReversibilityForTest = dict("shell_rev_partly_reversible"), cmd)
+            jv.SetConfirmWordForTest("MOVE")
+            runs = jv.RunStateForTest(reason)
+            Check("dup:move-typed-runs", runs AndAlso cmd.Contains("move C:\sample-dups-moved -y"), cmd)
+
+            jv.SetDupActionForTest("report")
+            runs = jv.RunStateForTest(reason)
+            Check("dup:back-to-report", runs AndAlso Not jv.DestructiveBadgeShownForTest AndAlso Not jv.CurrentCommand().Contains("-y"),
+                  jv.CurrentCommand())
+
+            ' GUI-17: pages that delete nothing do not walk the target.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_fill"))
+            jv.SetTarget("E:")
+            Check("count:fill-does-not-count", Not jv.CountRowShownForTest, "")
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' GUI-02: a line handed over from a Protect page carries its password, and one handed over
+    ' without it is not run with an empty one.
+    Private Sub CheckCommandCredential()
+        Dim cv As CommandView = Nothing
+        Try
+            cv = New CommandView()
+            cv.SelectOperation(0)
+            cv.SetCommand("filedo.exe C:\a.txt secure pe:FILEDO_SHELL_CRED")
+            Check("command:open-secure-without-cred", Not cv.RunEnabledNowForTest AndAlso cv.CredentialBlockShownForTest,
+                  "run " & cv.RunEnabledNowForTest.ToString() & ", block " & cv.CredentialBlockShownForTest.ToString())
+
+            cv.SetCommand("filedo.exe C:\a.txt secure pe:FILEDO_SHELL_CRED", "selftest-handed-over")
+            Check("command:open-secure-with-cred", cv.RunEnabledNowForTest AndAlso cv.CredentialBlockShownForTest,
+                  "run " & cv.RunEnabledNowForTest.ToString() & ", block " & cv.CredentialBlockShownForTest.ToString())
+
+            ' Handing over a line with no password clears the one an earlier line left.
+            cv.SetCommand("filedo.exe C:\b.txt unsecure pe:FILEDO_SHELL_CRED")
+            Check("command:stale-cred-not-reused", Not cv.RunEnabledNowForTest, cv.RunEnabledNowForTest.ToString())
+
+            cv.SetCommand("filedo.exe E: info")
+            Check("command:no-cred-block-for-info", Not cv.CredentialBlockShownForTest AndAlso cv.RunEnabledNowForTest, "")
+        Finally
+            If cv IsNot Nothing Then cv.Dispose()
+        End Try
+    End Sub
+
+    ' GUI-18: the redirect notice is shown for the root of the system volume in its spellings, and
+    ' for nothing below it.
+    Private Sub CheckRedirectNotice()
+        Dim sys = Environment.GetEnvironmentVariable("SystemRoot")
+        Dim letter = If(String.IsNullOrEmpty(sys), "C", sys.Substring(0, 1))
+        Dim jv As JobView = Nothing
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_fill"))
+            For Each shown In New String() {letter & ":", letter & ":\", letter.ToLowerInvariant() & ":/", "\\?\" & letter & ":\"}
+                jv.SetTarget(shown)
+                Check("redirect:shown:" & shown, jv.RedirectNoticeShownForTest, jv.CurrentCommand())
+            Next
+            For Each hidden In New String() {letter & ":\x", letter & ":\Users"}
+                jv.SetTarget(hidden)
+                Check("redirect:hidden:" & hidden, Not jv.RedirectNoticeShownForTest, jv.CurrentCommand())
+            Next
+            jv.SetJob(JobCatalogue.GetJob("rail_job_clean"))
+            jv.SetTarget(letter & ":\")
+            Check("redirect:clean-shown", jv.RedirectNoticeShownForTest, jv.CurrentCommand())
+            jv.SetJob(JobCatalogue.GetJob("rail_job_info"))
+            jv.SetTarget(letter & ":\")
+            Check("redirect:info-hidden", Not jv.RedirectNoticeShownForTest, jv.CurrentCommand())
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' GUI-04 and GUI-06: a child that reads stdin until it ends is started the way a run is. It ends
+    ' by itself because its stdin is closed, and it is in the window's job while it runs.
+    Private Sub CheckRunnerChild()
+        Dim sortExe = Path.Combine(Environment.SystemDirectory, "sort.exe")
+        If Not File.Exists(sortExe) Then
+            Check("runner:stdin-closed", False, "no " & sortExe)
+            Return
+        End If
+        Dim inJob = False
+        Dim exited = False
+        Dim sw = Diagnostics.Stopwatch.StartNew()
+        Runner.RunChildForTest(sortExe, "", 5000, inJob, exited)
+        Check("runner:stdin-closed", exited, "sort.exe ended after " & sw.ElapsedMilliseconds.ToString() & " ms")
+        Check("runner:child-in-job", inJob, "")
+    End Sub
+
+    ' SHELL-13: a data folder that cannot be written ends the run Not proven, with the page idle.
+    Private Sub CheckStartFailure()
+        Dim dict = Localization.GetDict(ShellSettings.Language())
+        Dim jv As JobView = Nothing
+        Runner.RunsDirForTest = Function() As String
+                                    Throw New UnauthorizedAccessException("selftest: the runs folder is unavailable")
+                                End Function
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_info"))
+            jv.SetTarget(Path.GetTempPath())
+            jv.PressRunForTest()
+            Check("runner:start-failure-not-proven", jv.VerdictTextForTest = dict("shell_verdict_not_proven") AndAlso Not jv.IsRunning,
+                  jv.VerdictTextForTest & " / running " & jv.IsRunning.ToString())
+        Finally
+            Runner.RunsDirForTest = Nothing
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' SHELL-01: the report's Command line is redacted like history.json, and a run that can print a
+    ' sealed name keeps no output at all.
+    Private Sub CheckReportRedaction()
+        ' The vectors the CLI's redactCredentialArgs is tested against, from the copy embedded here.
+        Dim vectors As String = Nothing
+        Using source = GetType(SelfTest).Assembly.GetManifestResourceStream("FileDOGUI.redaction.vectors.tsv")
+            If source IsNot Nothing Then
+                Using r As New StreamReader(source, Encoding.UTF8)
+                    vectors = r.ReadToEnd()
+                End Using
+            End If
+        End Using
+        If vectors Is Nothing Then
+            Check("report:vectors", False, "missing FileDOGUI.redaction.vectors.tsv")
+        Else
+            Dim n = 0
+            For Each raw In vectors.Replace(vbCr, "").Split(ControlChars.Lf)
+                If raw.Trim() = "" OrElse raw.StartsWith("#") Then Continue For
+                n += 1
+                Dim sep = raw.IndexOf(vbTab & "=>" & vbTab, StringComparison.Ordinal)
+                If sep < 0 Then
+                    Check("report:vector:" & n.ToString(), False, "no => in " & raw)
+                    Continue For
+                End If
+                Dim input = raw.Substring(0, sep).Split(ControlChars.Tab)
+                Dim want = String.Join(vbTab, raw.Substring(sep + 4).Split(ControlChars.Tab))
+                Dim got = String.Join(vbTab, Runner.RedactCredentialArgs(input))
+                Check("report:vector:" & n.ToString(), got = want, got.Replace(vbTab, " "))
+            Next
+            Check("report:vectors", n > 0, n.ToString() & " vectors")
+        End If
+
+        ' SP-0025 FDSEC-18, which this port follows: a sub-verb is one only right after fdsec. In
+        ' the target-first form the parser takes it as the password, so it is redacted like one;
+        ' "start" is an option word of unsecure and is kept.
+        Dim redacted = Runner.RedactCredentialArgs(New String() {"a.txt", "secure", "verify", "hunter2"})
+        Check("report:target-first-subverb-redacted", String.Join(" ", redacted) = "a.txt secure *** ***", String.Join(" ", redacted))
+        redacted = Runner.RedactCredentialArgs(New String() {"a.fd-sec", "unsecure", "start", "pe:FILEDO_SHELL_CRED"})
+        Check("report:start-kept", String.Join(" ", redacted) = "a.fd-sec unsecure start pe:FILEDO_SHELL_CRED", String.Join(" ", redacted))
+
+        Check("report:sensitive-verbs",
+              Runner.IsSensitiveRun(New String() {"C:\x.fd-sec", "rev"}) AndAlso
+              Runner.IsSensitiveRun(New String() {"fdsec", "info", "C:\x.fd-sec"}) AndAlso
+              Runner.IsSensitiveRun(New String() {"C:\x.fd-sec", "unsecure", "start"}) AndAlso
+              Not Runner.IsSensitiveRun(New String() {"C:\x", "secure", "p:secret"}) AndAlso
+              Not Runner.IsSensitiveRun(New String() {"E:", "info"}), "")
+
+        Dim dir = Path.Combine(Path.GetTempPath(), "filedo_selftest_report_" & Guid.NewGuid().ToString("N"))
+        Try
+            Directory.CreateDirectory(dir)
+            Dim spool = Path.Combine(dir, "run.out")
+            File.WriteAllText(spool, "Revealed C:\box.fd-sec -> C:\Users\u\AppData\Local\FileDO\reveal\rv-1\secret-name.docx (12 B)" & vbLf &
+                                     "true name: secret-name.docx" & vbLf)
+            Dim report1 = Path.Combine(dir, "report_1.log")
+            Runner.WriteReport(report1, "1", New String() {"--events", "e.jsonl", "C:\box.fd-sec", "reveal", "pe:FILEDO_SHELL_CRED"},
+                               "Done", 0, TimeSpan.FromSeconds(3), spool, Nothing)
+            Dim text1 = File.ReadAllText(report1)
+            Check("report:fdsec-redaction:reveal", Not text1.Contains("secret-name") AndAlso text1.Contains("Verdict: Done") AndAlso
+                                                   text1.Contains("Exit Code: 0"), text1.Replace(vbCrLf, " | "))
+
+            File.WriteAllText(spool, "Secured C:\x.txt" & vbLf)
+            Dim report2 = Path.Combine(dir, "report_2.log")
+            Runner.WriteReport(report2, "2", New String() {"C:\x.txt", "secure", "p:secret"}, "Done", 0, TimeSpan.FromSeconds(3), spool, Nothing)
+            Dim text2 = File.ReadAllText(report2)
+            Check("report:fdsec-redaction:typed-password", Not text2.Contains("secret") AndAlso text2.Contains("p:***") AndAlso
+                                                           text2.Contains("Secured C:\x.txt"), text2.Replace(vbCrLf, " | "))
+        Finally
+            Try
+                Directory.Delete(dir, True)
+            Catch
+            End Try
+        End Try
+    End Sub
+
+    ' SHELL-02 and SHELL-03: the sweep keeps what is young and removes what is old, and a report too
+    ' big to show whole is shown by its head and its end.
+    Private Sub CheckHistory()
+        Dim dir = Path.Combine(Path.GetTempPath(), "filedo_selftest_sweep_" & Guid.NewGuid().ToString("N"))
+        Try
+            Directory.CreateDirectory(dir)
+            Dim old = Path.Combine(dir, "report_old.log")
+            Dim young = Path.Combine(dir, "report_young.log")
+            File.WriteAllText(old, "old")
+            File.WriteAllText(young, "young")
+            File.SetLastWriteTime(old, DateTime.Now.AddDays(-40))
+            File.SetLastWriteTime(young, DateTime.Now.AddDays(-5))
+            Dim removed = Runner.SweepDirectory(dir, 30)
+            Check("history:sweep", removed = 1 AndAlso Not File.Exists(old) AndAlso File.Exists(young), removed.ToString())
+
+            Dim big = Path.Combine(dir, "report_big.log")
+            Using w As New StreamWriter(big, False, New UTF8Encoding(False))
+                w.WriteLine("FileDO Run Report")
+                w.WriteLine("Verdict: Failed")
+                For i = 1 To 40000
+                    w.WriteLine("line " & i.ToString() & " of a long run's output - Фото")
+                Next
+                w.WriteLine("the last line")
+            End Using
+            Dim view = HistoryView.ReadReportView(big, "TRUNCATED")
+            Check("history:report-tail", view.StartsWith("FileDO Run Report") AndAlso view.Contains("Verdict: Failed") AndAlso
+                                         view.Contains("TRUNCATED") AndAlso view.TrimEnd().EndsWith("the last line") AndAlso
+                                         view.Length < HistoryView.ReportHeadBytes + HistoryView.ReportTailBytes + 200,
+                  view.Length.ToString() & " chars")
+            Dim smallView = HistoryView.ReadReportView(young, "TRUNCATED")
+            Check("history:report-small-whole", smallView = "young", smallView)
+        Finally
+            Try
+                Directory.Delete(dir, True)
+            Catch
+            End Try
+        End Try
+    End Sub
+
+    ' GUI-10: a result line past the old 2 MB limit is read, and its verdict received.
+    Private Sub CheckEventStreamLongLine()
+        Dim eventsPath = Path.Combine(Path.GetTempPath(), "filedo_selftest_long_" & Guid.NewGuid().ToString("N") & ".jsonl")
+        Try
+            Dim sb As New StringBuilder()
+            sb.Append("{""schemaVersion"":1,""kind"":""result"",""data"":{""verdict"":""Failed"",""filesLeft"":[")
+            Dim n = 0
+            While sb.Length < 3 * 1024 * 1024
+                If n > 0 Then sb.Append(","c)
+                sb.Append("""E:\\FILL_").Append(n.ToString("D8")).Append(".tmp""")
+                n += 1
+            End While
+            sb.Append("]}}").Append(vbLf)
+            File.WriteAllText(eventsPath, sb.ToString())
+            Dim verdict = ""
+            Dim left = 0
+            Using stream As New EventStream(eventsPath)
+                AddHandler stream.ResultReceived, Sub(r)
+                                                      verdict = r.Verdict
+                                                      left = r.FilesLeft.Count
+                                                  End Sub
+                stream.Poll()
+            End Using
+            Check("tailer:3mb-result", verdict = "Failed" AndAlso left = n, verdict & " / " & left.ToString() & " of " & n.ToString())
+        Finally
+            Try
+                File.Delete(eventsPath)
+            Catch
+            End Try
+        End Try
+    End Sub
+
+    ' GUI-14: the output box and the runner's memory both stay bounded, and both keep the end.
+    Private Sub CheckOutputBounds()
+        Using box As New TextBox With {.Multiline = True}
+            Dim h = box.Handle
+            Dim pane As New OutputPane(box)
+            For i = 1 To 200000
+                pane.Add("output line " & i.ToString("D6") & " - some text to make it longer")
+                If i Mod 5000 = 0 Then pane.Flush()
+            Next
+            pane.Flush()
+            Check("output:pane-bounded", box.TextLength <= OutputPane.MaxChars AndAlso box.Text.TrimEnd().EndsWith("line 200000 - some text to make it longer"),
+                  box.TextLength.ToString() & " chars")
+        End Using
+
+        Dim bounded As New BoundedText(64 * 1024, 1024 * 1024)
+        For i = 1 To 500000
+            bounded.AppendLine("line " & i.ToString("D6") & " of a long run")
+        Next
+        Dim kept = bounded.ToString()
+        Check("output:runner-bounded", kept.Length < 64 * 1024 + 1024 * 1024 + 200 AndAlso kept.StartsWith("line 000001") AndAlso
+                                       kept.TrimEnd().EndsWith("line 500000 of a long run") AndAlso kept.Contains("lines not kept"),
+              kept.Length.ToString() & " chars")
+    End Sub
+
+    ' GUI-15: the size box takes what Atoi takes.
+    Private Sub CheckParameters()
+        Dim jv As JobView = Nothing
+        Dim reason As String = ""
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_capacity"))
+            jv.SetTarget("E:")
+            For Each bad In New String() {"1,000", "1e3", "2.5", "-5"}
+                jv.SetSizeForTest(bad)
+                Check("params:size-refused:" & bad, Not jv.RunStateForTest(reason), jv.CurrentCommand())
+            Next
+            jv.SetSizeForTest("1000")
+            Check("params:size-accepted:1000", jv.RunStateForTest(reason) AndAlso jv.CurrentCommand().Contains(" test 1000"), jv.CurrentCommand())
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+        Check("params:decimal-invariant", Ui.IsDecimalNumber("2.5") AndAlso Not Ui.IsDecimalNumber("2,5") AndAlso Not Ui.IsWholeNumber("2.5"), "")
+    End Sub
+
+    ' GUI-12: "Clean files" opens Clean on the target that was tested.
+    Private Sub CheckCleanCarriesTarget()
+        Dim jv As JobView = Nothing
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_capacity"))
+            jv.CleanAfterRunForTest("Q:")
+            Check("clean:carries-target", jv.CurrentJobId = "rail_job_clean" AndAlso jv.TargetTextForTest = "Q:" AndAlso
+                                          jv.CurrentCommand().Contains("Q: clean"), jv.CurrentJobId & " / " & jv.CurrentCommand())
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' SHELL-10: only the clipboard's own code is "another program is using it".
+    Private Sub CheckCauses()
+        Dim gdi As New Runtime.InteropServices.ExternalException("A generic error occurred in GDI+.", &H80004005)
+        Check("cause:gdi", Problems.CauseKey(gdi) = "shell_cause_unexpected", Problems.CauseKey(gdi))
+        Dim clip As New Runtime.InteropServices.ExternalException("Requested Clipboard operation did not succeed.", CInt(Problems.ClipboardCantOpen - &H100000000L))
+        Check("cause:clipboard", Problems.CauseKey(clip) = "shell_cause_busy", Problems.CauseKey(clip))
+        Dim seh As New Runtime.InteropServices.SEHException()
+        Check("cause:seh", Problems.CauseKey(seh) = "shell_cause_unexpected", Problems.CauseKey(seh))
+    End Sub
+
+    ' SHELL-11: one duration format, with hours from one hour up.
+    Private Sub CheckDurationFormat()
+        Check("format:duration", Ui.FormatDuration(TimeSpan.FromMinutes(203)) = "3:23:00", Ui.FormatDuration(TimeSpan.FromMinutes(203)))
+        Check("format:duration-short", Ui.FormatDuration(New TimeSpan(0, 5, 7)) = "05:07", Ui.FormatDuration(New TimeSpan(0, 5, 7)))
+        Check("format:duration-days", Ui.FormatDuration(TimeSpan.FromHours(26.5)) = "26:30:00", Ui.FormatDuration(TimeSpan.FromHours(26.5)))
+    End Sub
+
+    ' SHELL-14: About and Send logs show the release stamp, or say the build is a local one.
+    Private Sub CheckAboutStamp()
+        Dim stamp = LogReport.BuildStamp()
+        Check("about:stamp", Text.RegularExpressions.Regex.IsMatch(stamp, "^\d{10}$") OrElse stamp.StartsWith("dev"), stamp)
+    End Sub
+
+    ' SHELL-05: an archive older than a week is gone at the next Send logs; a new one stays.
+    Private Sub CheckLogArchives()
+        Dim dir = Path.Combine(Path.GetTempPath(), "filedo_selftest_logs_" & Guid.NewGuid().ToString("N"))
+        Try
+            Directory.CreateDirectory(dir)
+            Dim old = Path.Combine(dir, "filedo-logs-20260101-000000.zip")
+            Dim young = Path.Combine(dir, "filedo-logs-20260920-000000.zip")
+            Dim other = Path.Combine(dir, "someone-else.zip")
+            For Each f In New String() {old, young, other}
+                File.WriteAllText(f, "x")
+                File.SetLastWriteTime(f, DateTime.Now.AddDays(If(f = young, -2, -30)))
+            Next
+            Dim removed = LogReport.SweepOldArchives(dir)
+            Check("logs:old-archives-swept", removed = 1 AndAlso Not File.Exists(old) AndAlso File.Exists(young) AndAlso File.Exists(other),
+                  removed.ToString())
+        Finally
+            Try
+                Directory.Delete(dir, True)
+            Catch
+            End Try
         End Try
     End Sub
 
@@ -761,11 +1674,13 @@ Public Module SelfTest
         Return False
     End Function
 
+    ' The paths hold a "(" on purpose (GUI-01): a page that read any text with a colon and a "(" as
+    ' a drive row cut them to "C:", and the target row fails the moment that comes back.
     Private Function SampleTargetFor(job As JobDefinition) As String
         Select Case job.TargetKind
-            Case JobDefinition.TargetType.File : Return "C:\sample\one.fd-sec"
+            Case JobDefinition.TargetType.File : Return "C:\sample (1)\one.fd-sec"
             Case JobDefinition.TargetType.Drive : Return "E:"
-            Case Else : Return "C:\sample"
+            Case Else : Return "C:\sample (1)\x"
         End Select
     End Function
 

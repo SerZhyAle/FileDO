@@ -28,7 +28,7 @@ PRIVATSPHÄRE
 FileDO läuft vollständig auf Ihrem Gerät. Es enthält keinen Netzwerkcode, keine Telemetrie, keine Werbung und keine Konten. Der Quellcode ist offen: https://github.com/SerZhyAle/FileDO
 
 GUT ZU WISSEN
-- Dies ist die Microsoft-Store-Edition. Sie fügt keine Einträge zum Explorer-Kontextmenü hinzu und beansprucht den Dateityp .fd-sec nicht - beides gehört zum MSI-Installer. Dieselben Vorgänge stehen im Fenster und mit dem Befehl filedo zur Verfügung.
+- Dies ist die Microsoft-Store-Edition. Sie fügt keine Einträge zum Explorer-Kontextmenü hinzu; diese gehören zum MSI-Installer. Sie beansprucht den Dateityp .fd-sec, daher öffnet ein Doppelklick auf einen Container FileDO. Dieselben Vorgänge stehen im Fenster und mit dem Befehl filedo zur Verfügung.
 - FileDO braucht den Full-Trust-Zugriff einer Desktop-App auf rohe Laufwerks- und Gerätedaten: Kapazitätstest, Geschwindigkeitsmessung und sicheres Löschen funktionieren ohne ihn nicht. Überschreiben und Füllen zerstören Daten bestimmungsgemäß und fragen vor Laufwerkswurzeln und Systemordnern immer nach.
 - Windows 10 Version 1903 oder neuer.
 

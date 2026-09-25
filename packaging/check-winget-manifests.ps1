@@ -14,6 +14,7 @@
     * PackageIdentifier is the frozen anchor SerZhyAle.FileDO in all three files.
     * The five PortableCommandAlias values are the frozen set; renaming one orphans installs.
     * Every RelativeFilePath is its alias plus .exe - the zip layout the aliases resolve against.
+    * ArchiveBinariesDependOnPath is true: the GUI must start beside its .config (PKG-04).
     * PackageVersion is one 10-digit stamp shared by all three files.
     * InstallerUrl, and the ReleaseNotesUrl of the locale file, carry that same version.
 
@@ -141,6 +142,11 @@ for ($i = 0; $i -lt $aliases.Count; $i++) {
     if ($paths[$i] -cne "$($aliases[$i]).exe") { $badPath += "$($paths[$i]) is not $($aliases[$i]).exe" }
 }
 Check "every RelativeFilePath is its alias plus .exe, at the zip root" ($badPath.Count -eq 0) ($badPath -join '; ')
+# SP-0030 PKG-04: the package folder goes on PATH instead of a symlink per alias. .NET Framework
+# reads <exe>.config beside the path it was launched from, so through a symlink in WinGet\Links
+# filedo_win.exe would start without filedo_win.exe.config - and without its DPI declaration.
+$dependsOnPath = Get-Field $raw['installer'] 'ArchiveBinariesDependOnPath'
+Check "ArchiveBinariesDependOnPath is true (the GUI starts beside its .config)" ($dependsOnPath -ceq 'true') "found: $dependsOnPath"
 
 # --- version consistency -----------------------------------------------------
 Write-Host "VERSION" -ForegroundColor Cyan
@@ -211,14 +217,26 @@ if ($Install) {
         Check "winget install --manifest succeeds (exit $LASTEXITCODE)" ($LASTEXITCODE -eq 0) ($iOut.Trim())
         $dir = @(Get-ChildItem $pkgRoot -Directory -Filter "$AnchorIdentifier*" -ErrorAction SilentlyContinue)
         Check "the package landed in $pkgRoot" ($dir.Count -eq 1) "found $($dir.Count) directories"
-        # Every alias must be a real shim, and the one that matters must run: an exe named in
-        # the manifest but absent from the zip produces a link that resolves to nothing.
-        $noShim = @($AnchorAliases | Where-Object { -not (Test-Path (Join-Path $links "$_.exe")) })
-        Check "all five shims were created in $links" ($noShim.Count -eq 0) ($noShim -join ', ')
-        $shim = Join-Path $links "filedo.exe"
-        if (Test-Path $shim) {
+        if ($dependsOnPath -ceq 'true') {
+            # ArchiveBinariesDependOnPath: no symlinks; the package folder itself joins the
+            # user PATH, so every alias is an exe (and the GUI's .config) in that folder.
+            $pkgDir = if ($dir.Count -eq 1) { $dir[0].FullName } else { $null }
+            $noExe = @($AnchorAliases | Where-Object { -not $pkgDir -or -not (Test-Path (Join-Path $pkgDir "$_.exe")) })
+            Check "all five executables are in the package folder" ($noExe.Count -eq 0) ($noExe -join ', ')
+            Check "filedo_win.exe.config sits beside filedo_win.exe" ([bool]$pkgDir -and (Test-Path (Join-Path $pkgDir 'filedo_win.exe.config'))) "the GUI would start without its DPI declaration"
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            Check "the package folder is on the user PATH" ([bool]$pkgDir -and (@($userPath -split ';') -contains $pkgDir)) "user PATH does not name $pkgDir"
+            $shim = if ($pkgDir) { Join-Path $pkgDir "filedo.exe" } else { $null }
+        } else {
+            # Every alias must be a real shim, and the one that matters must run: an exe named in
+            # the manifest but absent from the zip produces a link that resolves to nothing.
+            $noShim = @($AnchorAliases | Where-Object { -not (Test-Path (Join-Path $links "$_.exe")) })
+            Check "all five shims were created in $links" ($noShim.Count -eq 0) ($noShim -join ', ')
+            $shim = Join-Path $links "filedo.exe"
+        }
+        if ($shim -and (Test-Path $shim)) {
             $sOut = & $shim "-?" 2>&1 | Out-String
-            Check "the filedo shim runs" ($LASTEXITCODE -eq 0 -and $sOut -match 'FileDO') (($sOut.Trim() -split "`n" | Select-Object -First 2) -join ' / ')
+            Check "the installed filedo runs" ($LASTEXITCODE -eq 0 -and $sOut -match 'FileDO') (($sOut.Trim() -split "`n" | Select-Object -First 2) -join ' / ')
         }
         $uOut = & winget uninstall $AnchorIdentifier --disable-interactivity 2>&1 | Out-String
         Check "winget uninstall succeeds (exit $LASTEXITCODE)" ($LASTEXITCODE -eq 0) ($uOut.Trim())

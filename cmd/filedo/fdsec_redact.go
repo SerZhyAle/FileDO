@@ -28,16 +28,12 @@ func fdsecSubVerb(s string) bool {
 	return false
 }
 
-// fdsecStructureWord lists option words - tokens that are never the
-// credential.
-func fdsecStructureWord(s string) bool {
-	switch s {
-	case "del", "delete", "wipe", "rename", "ren", "here", "to",
-		"-y", "y", "--force", "force", "-rw", "rw", "-keep", "keep",
-		"-all-users":
-		return true
-	}
-	return fdsecSubVerb(s)
+// fdsecRedactKeeps reports whether an option word survives redaction. The
+// vocabulary is the parser's own (fdsecOptionWords), so a word the parser
+// would take as the password is never one kept here (FDSEC-18); -all-users
+// belongs to register and unregister.
+func fdsecRedactKeeps(s string) bool {
+	return fdsecOptionWords[s] || s == "-all-users"
 }
 
 // redactCredentialArgs returns a copy of args with credential material
@@ -51,8 +47,10 @@ func fdsecStructureWord(s string) bool {
 // Two tokens are deliberately kept because they are paths, not secrets, and a
 // history entry without them says nothing: the destination after `to`, and
 // the container path after a sub-verb of the verb-first form
-// (`filedo fdsec verify <container> <password>`). In the target-first form
-// the target sits ahead of the verb and is never touched at all.
+// (`filedo fdsec verify <container> <password>`). A sub-verb is one only
+// right after `fdsec`: in the target-first form (`a.txt secure verify`) the
+// parser takes `verify` as the password, so it is redacted like one. In the
+// target-first form the target sits ahead of the verb and is never touched.
 func redactCredentialArgs(args []string) []string {
 	out := make([]string, len(args))
 	copy(out, args)
@@ -69,8 +67,18 @@ func redactCredentialArgs(args []string) []string {
 	if verbAt < 0 {
 		return out
 	}
-	keepNext := false // set after "to" and after a sub-verb: a path follows
-	for i := verbAt + 1; i < len(out); i++ {
+	start := verbAt + 1
+	fam := strings.ToLower(out[verbAt])
+	if (fam == "fdsec" || fam == "fds") && start < len(out) && fdsecSubVerb(strings.ToLower(out[start])) {
+		sub := strings.ToLower(out[start])
+		start++
+		// info and verify name the container next; it is a path.
+		if (sub == "info" || sub == "verify") && start < len(out) {
+			start++
+		}
+	}
+	keepNext := false // set after "to": a path follows
+	for i := start; i < len(out); i++ {
 		t := out[i]
 		lt := strings.ToLower(t)
 		if keepNext {
@@ -78,13 +86,13 @@ func redactCredentialArgs(args []string) []string {
 			continue
 		}
 		switch {
-		case lt == "to", fdsecSubVerb(lt):
+		case lt == "to":
 			keepNext = true
 		case strings.HasPrefix(t, "p:"):
 			out[i] = "p:***"
 		case strings.HasPrefix(t, "pf:"), strings.HasPrefix(t, "pe:"), strings.HasPrefix(t, "k:"):
 			// path or variable name: kept, it is not the secret
-		case fdsecStructureWord(lt):
+		case fdsecRedactKeeps(lt):
 			// option word
 		default:
 			out[i] = "***"

@@ -2,7 +2,10 @@ package fileduplicates
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,6 +23,8 @@ type DuplicateResult struct {
 	DuplicateSize   int64                          // Total size of duplicate files
 	Groups          map[string][]DuplicateFileInfo // Map of groups by hash
 	ProcessingTime  time.Duration                  // Total processing time
+	RootPath        string                         // The folder that was scanned, absolute
+	Actions         ActionSummary                  // What the delete/move phase did
 }
 
 // Progress information for ongoing search
@@ -33,7 +38,36 @@ type ProgressInfo struct {
 	EstimatedETA string        // Estimated time remaining
 }
 
-// FindDuplicates finds duplicate files in a directory tree
+// checkRoot is the first thing a scan does (DUP-16): a root that does not
+// exist, is not a folder, or cannot be listed is an error, never "no
+// duplicate files found".
+func checkRoot(root string) error {
+	info, err := os.Stat(root)
+	if err != nil {
+		return fmt.Errorf("cannot scan %s: %w", root, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("cannot scan %s: not a folder", root)
+	}
+	f, err := os.Open(root)
+	if err != nil {
+		return fmt.Errorf("cannot scan %s: %w", root, err)
+	}
+	defer f.Close()
+	if _, err := f.Readdirnames(1); err != nil && err != io.EOF {
+		return fmt.Errorf("cannot scan %s: %w", root, err)
+	}
+	return nil
+}
+
+// FindDuplicates finds duplicate files in a directory tree, and deletes or
+// moves them when the options say so.
+//
+// Nothing is touched until every check that can refuse the run has passed:
+// the words (Validate), consent (-y or somebody to ask), the root itself, and
+// the protected-location guard. The report named by `list` is written for
+// every scan that gets that far, even one that finds nothing, so an old list
+// never survives a clean rescan (DUP-08).
 func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult, error) {
 	startTime := time.Now()
 
@@ -41,287 +75,162 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	result := &DuplicateResult{
 		Groups: make(map[string][]DuplicateFileInfo),
 	}
+	rs := newRunState(&options)
+
+	if err := options.Validate(); err != nil {
+		return result, err
+	}
+	if err := options.CheckConsent(); err != nil {
+		return result, err
+	}
+	root, err := filepath.Abs(rootPath)
+	if err != nil {
+		return result, fmt.Errorf("cannot scan %s: %w", rootPath, err)
+	}
+	result.RootPath = root
+	if err := checkRoot(root); err != nil {
+		return result, err
+	}
+	if options.Action != NoAction {
+		if protected, reason := classifyProtected(root); protected {
+			if err := rs.confirmProtected(root, reason); err != nil {
+				return result, err
+			}
+		}
+		if err := options.prepareTarget(); err != nil {
+			return result, err
+		}
+	}
 
 	// Load hash cache
 	cache, err := LoadHashCache()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed to load hash cache: %v\n", err)
-		cache = &HashCache{
-			Entries: make(map[string]CacheEntry),
-		}
+		fmt.Fprintf(os.Stderr, "Warning: %v (starting with an empty cache)\n", err)
 	}
 
 	// Create worker pool for hash calculation
 	workerCount := GetOptimalWorkerCount()
-	worker := NewHashWorker(workerCount)
 
 	if options.Verbose {
 		fmt.Printf("Using %d workers for hash calculation\n", workerCount)
 	}
 
-	// First scan to estimate total file count (for progress reporting)
-	totalFiles := 0
-	if options.Verbose {
-		fmt.Println("Scanning directory for files...")
-		err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return nil // Skip files with errors
-			}
-			if !info.IsDir() && info.Size() >= MIN_DUPLICATE_FILE_SIZE {
-				totalFiles++
-			}
-			return nil
-		})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Error during file scan: %v\n", err)
-		}
-		fmt.Printf("Found %d files to check.\n", totalFiles)
-	}
+	excluded := scanExclusions(root)
 
 	// Maps to track duplicates
 	filesBySize := make(map[int64][]DuplicateFileInfo)
-	filesByQuickHash := make(map[string][]DuplicateFileInfo)
 
-	// Scan files and calculate quick hashes
+	// Scan files
 	filesScanned := 0
+	unreadable := 0
 	fmt.Println("Scanning for duplicates...")
 
 	// Progress tracking variables
 	lastProgressUpdate := time.Now()
 	progressUpdateInterval := 500 * time.Millisecond
 
-	err = filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if rs.stopped() {
+			return filepath.SkipAll
+		}
 		if err != nil {
+			if path == root {
+				return err
+			}
+			unreadable++
+			if d != nil && d.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil // Skip files with errors
 		}
 
-		if !info.IsDir() && info.Size() >= MIN_DUPLICATE_FILE_SIZE {
-			filesScanned++
-
-			// Update progress
-			now := time.Now()
-			if options.Verbose && now.Sub(lastProgressUpdate) > progressUpdateInterval {
-				lastProgressUpdate = now
-				elapsed := now.Sub(startTime)
-
-				// Calculate progress percentage and ETA
-				percentDone := 0.0
-				eta := "unknown"
-				if totalFiles > 0 {
-					percentDone = float64(filesScanned) * 100 / float64(totalFiles)
-					if filesScanned > 0 && percentDone > 0 {
-						timePerFile := elapsed.Seconds() / float64(filesScanned)
-						remainingFiles := totalFiles - filesScanned
-						rs := timePerFile * float64(remainingFiles)
-						eta = formatETA(time.Duration(rs) * time.Second)
-					}
+		if d.IsDir() {
+			for _, ex := range excluded {
+				if strings.EqualFold(path, ex) {
+					fmt.Printf("Skipping %s (a system folder; start the scan inside it to include it)\n", path)
+					return filepath.SkipDir
 				}
-
-				// Update progress display
-				fmt.Printf("\rScanning: %s [%d/%d files, %.1f%%, ETA: %s]",
-					path, filesScanned, totalFiles, percentDone, eta)
 			}
-
-			// Get file info
-			fileInfo, err := GetFileInfo(path)
-			if err != nil {
-				return nil // Skip problematic files
-			}
-
-			// Group by file size first
-			filesBySize[fileInfo.Size] = append(filesBySize[fileInfo.Size], fileInfo)
+			return nil
 		}
+		// Regular files only: links and reparse points are not followed.
+		if !d.Type().IsRegular() {
+			return nil
+		}
+		info, ierr := d.Info()
+		if ierr != nil {
+			unreadable++
+			return nil
+		}
+		if info.Size() < MIN_DUPLICATE_FILE_SIZE {
+			return nil
+		}
+		filesScanned++
+
+		// Update progress
+		now := time.Now()
+		if options.Verbose && now.Sub(lastProgressUpdate) > progressUpdateInterval {
+			lastProgressUpdate = now
+			fmt.Printf("\rScanning: %s [%d files]", path, filesScanned)
+		}
+
+		fileInfo := fileInfoFrom(path, info)
+		filesBySize[fileInfo.Size] = append(filesBySize[fileInfo.Size], fileInfo)
 		return nil
 	})
 
 	if options.Verbose {
 		fmt.Println() // End the progress line
 	}
-
 	if err != nil {
-		return nil, fmt.Errorf("error walking directory: %v", err)
+		return result, fmt.Errorf("error walking %s: %w", root, err)
 	}
+	if rs.stopped() {
+		return result, fmt.Errorf("%w: during the scan; nothing was deleted or moved", ErrStopped)
+	}
+	result.TotalFiles = filesScanned
 
-	// Process potential duplicates by size
+	// Candidates: files that share their size with another. Each gets its
+	// object identity, and one file under two names (a hard link, or the
+	// same file reached twice) is kept once - it is not a duplicate of
+	// itself (DUP-06).
 	var potentialDuplicates []DuplicateFileInfo
 	for _, files := range filesBySize {
-		if len(files) > 1 {
-			potentialDuplicates = append(potentialDuplicates, files...)
+		if rs.stopped() {
+			return result, fmt.Errorf("%w: during the scan; nothing was deleted or moved", ErrStopped)
 		}
+		if len(files) < 2 {
+			continue
+		}
+		distinct := collapseSameObjects(identifyAll(files, &unreadable))
+		if len(distinct) > 1 {
+			potentialDuplicates = append(potentialDuplicates, distinct...)
+		}
+	}
+	if unreadable > 0 {
+		fmt.Fprintf(os.Stderr, "Warning: %d files or folders could not be read and were left out of the scan.\n", unreadable)
 	}
 
 	if len(potentialDuplicates) == 0 {
 		fmt.Println("No duplicate files found.")
-		return result, nil
+		result.ProcessingTime = time.Since(startTime)
+		return result, finishReport(result, options, nil)
 	}
 
-	// Calculate quick hashes for potential duplicates
-	if options.Verbose {
-		fmt.Printf("Found %d potential duplicates by size. Calculating quick hashes...\n",
-			len(potentialDuplicates))
+	filesByQuickHash, err := hashStage(rs, cache, workerCount, potentialDuplicates, QuickHash, options.Verbose)
+	if err != nil {
+		return result, err
 	}
 
-	// Submit jobs to calculate quick hashes.
-	// Flow: cache lookup (read-only) -> misses go to the worker pool ->
-	// results are stored in the cache and aggregated by a consumer goroutine.
-	resultsMutex := sync.Mutex{}
-	processedCount := int64(0)
-	totalCount := int64(len(potentialDuplicates))
-	quickHashStartTime := time.Now()
-
-	reportQuick := func() {
-		processed := atomic.AddInt64(&processedCount, 1)
-		if options.Verbose && processed%100 == 0 {
-			elapsed := time.Since(quickHashStartTime)
-			percent := float64(processed) / float64(totalCount) * 100
-			eta := "unknown"
-			if processed > 0 {
-				timePerFile := elapsed.Seconds() / float64(processed)
-				remainingFiles := totalCount - processed
-				rs := timePerFile * float64(remainingFiles)
-				eta = formatETA(time.Duration(rs) * time.Second)
-			}
-			fmt.Printf("Quick hash progress: %d/%d (%.1f%%, ETA: %s)\r",
-				processed, totalCount, percent, eta)
-		}
-	}
-
-	// Consumer goroutine: started BEFORE submitting so workers never block on a
-	// full results channel (which would otherwise deadlock the submit loop).
-	quickConsumerDone := make(chan struct{})
-	go func() {
-		defer close(quickConsumerDone)
-		for result := range worker.results {
-			if result.err == nil {
-				cache.StoreHash(result.file, QuickHash)
-				resultsMutex.Lock()
-				filesByQuickHash[result.file.QuickHash] = append(
-					filesByQuickHash[result.file.QuickHash], result.file)
-				resultsMutex.Unlock()
-			}
-			reportQuick()
-		}
-	}()
-
-	for _, file := range potentialDuplicates {
-		// Use a copy of file to avoid race condition in the closure
-		fileCopy := file
-
-		// Read-only cache lookup; never compute on the main goroutine.
-		if quickHash, found := cache.LookupHash(fileCopy, QuickHash); found {
-			fileCopy.QuickHash = quickHash
-			resultsMutex.Lock()
-			filesByQuickHash[quickHash] = append(filesByQuickHash[quickHash], fileCopy)
-			resultsMutex.Unlock()
-			reportQuick()
-		} else {
-			// Cache miss: let a worker compute the hash.
-			worker.AddJob(fileCopy, QuickHash)
-		}
-	}
-
-	// Wait for all queued jobs, then for the consumer to drain all results.
-	worker.Wait()
-	<-quickConsumerDone
-
-	// Final progress update
-	if options.Verbose {
-		fmt.Printf("Quick hash progress: %d/%d (100.0%%) - Complete\n",
-			totalCount, totalCount)
-	}
-
-	// Process files with matching quick hashes for full hash comparison
-	var duplicateGroups [][]DuplicateFileInfo
-
-	// New worker for full hashes
-	worker = NewHashWorker(workerCount)
-	filesByFullHash := make(map[string][]DuplicateFileInfo)
-
-	// Count files that need full hash calculation
-	fullHashCount := int64(0)
+	var fullCandidates []DuplicateFileInfo
 	for _, files := range filesByQuickHash {
 		if len(files) > 1 {
-			fullHashCount += int64(len(files))
+			fullCandidates = append(fullCandidates, files...)
 		}
 	}
-
-	fullHashProcessed := int64(0)
-	fullHashStartTime := time.Now()
-	if options.Verbose && fullHashCount > 0 {
-		fmt.Printf("Found %d files requiring full hash calculation...\n", fullHashCount)
-	}
-
-	reportFull := func() {
-		processed := atomic.AddInt64(&fullHashProcessed, 1)
-		if options.Verbose && processed%50 == 0 {
-			elapsed := time.Since(fullHashStartTime)
-			percent := float64(processed) / float64(fullHashCount) * 100
-			eta := "unknown"
-			if processed > 0 {
-				timePerFile := elapsed.Seconds() / float64(processed)
-				remainingFiles := fullHashCount - processed
-				rs := timePerFile * float64(remainingFiles)
-				eta = formatETA(time.Duration(rs) * time.Second)
-			}
-			fmt.Printf("Full hash progress: %d/%d (%.1f%%, ETA: %s)\r",
-				processed, fullHashCount, percent, eta)
-		}
-	}
-
-	// Consumer goroutine: started BEFORE submitting (see quick-hash stage).
-	fullConsumerDone := make(chan struct{})
-	go func() {
-		defer close(fullConsumerDone)
-		for result := range worker.results {
-			if result.err == nil {
-				cache.StoreHash(result.file, FullHash)
-				resultsMutex.Lock()
-				filesByFullHash[result.file.FullHash] = append(
-					filesByFullHash[result.file.FullHash], result.file)
-				resultsMutex.Unlock()
-			}
-			reportFull()
-		}
-	}()
-
-	// Find groups with matching quick hashes
-	for _, files := range filesByQuickHash {
-		if len(files) > 1 {
-			// Submit for full hash calculation
-			for _, file := range files {
-				fileCopy := file
-
-				// Read-only cache lookup; never compute on the main goroutine.
-				if fullHash, found := cache.LookupHash(fileCopy, FullHash); found {
-					fileCopy.FullHash = fullHash
-					resultsMutex.Lock()
-					filesByFullHash[fullHash] = append(filesByFullHash[fullHash], fileCopy)
-					resultsMutex.Unlock()
-					reportFull()
-				} else {
-					// Cache miss: let a worker compute the hash.
-					worker.AddJob(fileCopy, FullHash)
-				}
-			}
-		}
-	}
-
-	// Wait for all queued jobs, then for the consumer to drain all results.
-	worker.Wait()
-	<-fullConsumerDone
-
-	// Final progress update
-	if options.Verbose && fullHashCount > 0 {
-		fmt.Printf("Full hash progress: %d/%d (100.0%%) - Complete\n",
-			fullHashCount, fullHashCount)
-	}
-
-	// Find true duplicates by full hash
-	for fullHash, files := range filesByFullHash {
-		if len(files) > 1 {
-			duplicateGroups = append(duplicateGroups, files)
-			result.Groups[fullHash] = files
-		}
+	filesByFullHash, err := hashStage(rs, cache, workerCount, fullCandidates, FullHash, options.Verbose)
+	if err != nil {
+		return result, err
 	}
 
 	// Save cache
@@ -329,266 +238,256 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 		fmt.Fprintf(os.Stderr, "Warning: Failed to save hash cache: %v\n", err)
 	}
 
+	// Find true duplicates by full hash
+	var duplicateGroups [][]DuplicateFileInfo
+	for key, files := range filesByFullHash {
+		if len(files) > 1 {
+			duplicateGroups = append(duplicateGroups, files)
+			result.Groups[key] = files
+		}
+	}
+
 	// No duplicates found
 	if len(duplicateGroups) == 0 {
 		fmt.Println("No duplicate files found.")
-		return result, nil
+		result.ProcessingTime = time.Since(startTime)
+		return result, finishReport(result, options, nil)
 	}
 
-	// Process duplicate groups - mark original files and apply actions
-	options.BatchMode = ProcessDuplicateGroups(duplicateGroups, options)
+	// Decide the keeper of every group before anything else, so the report
+	// says what the action phase is about to do.
+	planGroups(duplicateGroups, options.SelectionMode)
 
 	// Calculate statistics
-	result.TotalFiles = filesScanned
 	result.DuplicateGroups = len(duplicateGroups)
-	result.ProcessingTime = time.Since(startTime)
-
-	// Count duplicates and size
 	for _, group := range duplicateGroups {
 		// Count all but one file in each group as duplicates
 		result.DuplicateFiles += len(group) - 1
-
-		// Calculate wasted space
-		if len(group) > 0 {
-			// Multiply by number of duplicates (all files minus the original)
-			result.DuplicateSize += group[0].Size * int64(len(group)-1)
-		}
+		result.DuplicateSize += group[0].Size * int64(len(group)-1)
 	}
+	result.ProcessingTime = time.Since(startTime)
 
-	// Output results
-	if options.Verbose {
-		OutputResults(result, options, duplicateGroups)
+	reportErr := finishReport(result, options, duplicateGroups)
+
+	// Process duplicate groups - apply the action to all but the keeper
+	summary, actErr := rs.process(duplicateGroups)
+	result.Actions = summary
+	result.ProcessingTime = time.Since(startTime)
+
+	if actErr != nil {
+		return result, actErr
 	}
-
-	return result, nil
+	return result, reportErr
 }
 
-// ProcessDuplicateGroups marks original files and processes duplicates according to options
-// It returns a boolean indicating if the batch mode was enabled during processing.
-func ProcessDuplicateGroups(duplicateGroups [][]DuplicateFileInfo, options DuplicateOptions) bool {
-	// Process each group
-	for i := range duplicateGroups {
-		group := duplicateGroups[i]
-
-		// Sort the group according to selection mode
-		sortDuplicateGroup(&group, options.SelectionMode)
-
-		// Mark the first file as original
-		if len(group) > 0 {
-			group[0].IsOriginal = true
+// identifyAll reads the object identity of every file; a file that cannot be
+// opened for it is left out (it could not be hashed or compared either).
+func identifyAll(files []DuplicateFileInfo, unreadable *int) []DuplicateFileInfo {
+	out := files[:0:0]
+	for _, f := range files {
+		if err := identify(&f); err != nil {
+			*unreadable++
+			continue
 		}
+		out = append(out, f)
+	}
+	return out
+}
 
-		// Apply action to duplicate files (all but first)
-		if options.Action != NoAction {
-			for j := 1; j < len(group); j++ {
-				file := group[j]
-
-				// Check if file still exists before processing
-				if _, err := os.Stat(file.Path); os.IsNotExist(err) {
-					// File doesn't exist anymore (already processed), skip
-					continue
-				}
-
-				switch options.Action {
-				case DeleteAction:
-					// Check if we're in interactive mode
-					if !options.BatchMode {
-						// Ask for confirmation if deleting
-						fmt.Printf("Delete duplicate file: %s? (y/n/a, a=all): ", file.Path)
-						var response string
-						fmt.Scanln(&response)
-						responseLower := strings.ToLower(response)
-
-						if responseLower == "a" {
-							// Set batch mode to true so we don't ask for future files
-							options.BatchMode = true
-							// Fall through to delete code
-						} else if responseLower != "y" {
-							// Skip this file if response is not "y" or "a"
-							fmt.Println("Skipped")
-							continue
-						}
-					}
-
-					// Delete the file
-					if err := os.Remove(file.Path); err != nil {
-						fmt.Fprintf(os.Stderr, "Error deleting file %s: %v\n", file.Path, err)
-					} else {
-						fmt.Printf("Deleted: %s\n", file.Path)
-					}
-
-				case MoveAction:
-					if options.TargetDir != "" {
-						// Create target directory if it doesn't exist
-						if err := os.MkdirAll(options.TargetDir, 0755); err != nil {
-							fmt.Fprintf(os.Stderr, "Error creating target directory: %v\n", err)
-							continue
-						}
-
-						// Get base filename
-						fileName := filepath.Base(file.Path)
-						targetPath := filepath.Join(options.TargetDir, fileName)
-
-						// Handle filename collision
-						counter := 1
-						for {
-							if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-								break // File doesn't exist, so we can use this name
-							}
-
-							ext := filepath.Ext(fileName)
-							name := fileName[:len(fileName)-len(ext)]
-							targetPath = filepath.Join(options.TargetDir,
-								fmt.Sprintf("%s_(%d)%s", name, counter, ext))
-							counter++
-						}
-
-						// Move the file
-						if err := os.Rename(file.Path, targetPath); err != nil {
-							fmt.Fprintf(os.Stderr, "Error moving file %s: %v\n", file.Path, err)
-						} else {
-							fmt.Printf("Moved: %s -> %s\n", file.Path, targetPath)
-						}
-					}
-				}
+// collapseSameObjects keeps one entry per object: two names with the same
+// volume serial and file index are one file. The alphabetically first name
+// represents it, so the choice does not depend on walk order.
+func collapseSameObjects(files []DuplicateFileInfo) []DuplicateFileInfo {
+	sort.SliceStable(files, func(i, j int) bool { return pathLess(files[i].Path, files[j].Path) })
+	type objectKey struct {
+		vol uint32
+		idx uint64
+	}
+	seen := make(map[objectKey]bool)
+	out := files[:0:0]
+	for _, f := range files {
+		if f.identified {
+			k := objectKey{f.VolSerial, f.FileIndex}
+			if seen[k] {
+				continue
 			}
+			seen[k] = true
 		}
-
-		// Update the group in case files were moved/deleted
-		duplicateGroups[i] = group
+		out = append(out, f)
 	}
-	return options.BatchMode
+	return out
 }
 
-// Sort a group of duplicate files according to selection mode
-func sortDuplicateGroup(group *[]DuplicateFileInfo, mode DuplicateSelectionMode) {
-	switch mode {
-	case OldestAsOriginal:
-		// Sort by creation time ascending (oldest first)
-		sort.Slice(*group, func(i, j int) bool {
-			return (*group)[i].CreatedTime.Before((*group)[j].CreatedTime)
-		})
+// hashStage computes (or takes from the cache) one kind of hash for every
+// candidate and returns them grouped by size and hash. Flow: cache lookup
+// (read-only) -> misses go to the worker pool -> results are stored in the
+// cache and aggregated by a consumer goroutine.
+func hashStage(rs *runState, cache *HashCache, workerCount int, candidates []DuplicateFileInfo,
+	mode FileHashType, verbose bool) (map[string][]DuplicateFileInfo, error) {
 
-	case NewestAsOriginal:
-		// Sort by creation time descending (newest first)
-		sort.Slice(*group, func(i, j int) bool {
-			return (*group)[i].CreatedTime.After((*group)[j].CreatedTime)
-		})
-
-	case FirstAlphaAsOriginal:
-		// Sort alphabetically ascending
-		sort.Slice(*group, func(i, j int) bool {
-			return (*group)[i].Path < (*group)[j].Path
-		})
-
-	case LastAlphaAsOriginal:
-		// Sort alphabetically descending
-		sort.Slice(*group, func(i, j int) bool {
-			return (*group)[i].Path > (*group)[j].Path
-		})
+	grouped := make(map[string][]DuplicateFileInfo)
+	if len(candidates) == 0 {
+		return grouped, nil
 	}
+	label := "Quick hash"
+	every := int64(100)
+	if mode == FullHash {
+		label = "Full hash"
+		every = 50
+	}
+	if verbose {
+		fmt.Printf("%s: %d candidate files...\n", label, len(candidates))
+	}
+
+	keyOf := func(f DuplicateFileInfo) string {
+		h := f.QuickHash
+		if mode == FullHash {
+			h = f.FullHash
+		}
+		return fmt.Sprintf("%d:%s", f.Size, h)
+	}
+
+	var mu sync.Mutex
+	processed := int64(0)
+	total := int64(len(candidates))
+	stageStart := time.Now()
+	report := func() {
+		n := atomic.AddInt64(&processed, 1)
+		if verbose && n%every == 0 {
+			elapsed := time.Since(stageStart)
+			percent := float64(n) / float64(total) * 100
+			timePerFile := elapsed.Seconds() / float64(n)
+			eta := formatETA(time.Duration(timePerFile*float64(total-n)) * time.Second)
+			fmt.Printf("%s progress: %d/%d (%.1f%%, ETA: %s)\r", label, n, total, percent, eta)
+		}
+	}
+
+	worker := NewHashWorker(workerCount)
+	worker.stop = rs.stopped
+
+	// Consumer goroutine: started BEFORE submitting so workers never block on a
+	// full results channel (which would otherwise deadlock the submit loop).
+	consumerDone := make(chan struct{})
+	go func() {
+		defer close(consumerDone)
+		for result := range worker.results {
+			if result.err == nil {
+				cache.StoreHash(result.file, mode)
+				mu.Lock()
+				k := keyOf(result.file)
+				grouped[k] = append(grouped[k], result.file)
+				mu.Unlock()
+			}
+			report()
+		}
+	}()
+
+	for _, file := range candidates {
+		if rs.stopped() {
+			break
+		}
+		fileCopy := file
+		// Read-only cache lookup; never compute on the main goroutine.
+		if h, found := cache.LookupHash(fileCopy, mode); found {
+			if mode == QuickHash {
+				fileCopy.QuickHash = h
+			} else {
+				fileCopy.FullHash = h
+			}
+			mu.Lock()
+			k := keyOf(fileCopy)
+			grouped[k] = append(grouped[k], fileCopy)
+			mu.Unlock()
+			report()
+		} else {
+			// Cache miss: let a worker compute the hash.
+			worker.AddJob(fileCopy, mode)
+		}
+	}
+
+	// Wait for all queued jobs, then for the consumer to drain all results.
+	worker.Wait()
+	<-consumerDone
+
+	if rs.stopped() {
+		return nil, fmt.Errorf("%w: while hashing; nothing was deleted or moved", ErrStopped)
+	}
+	if verbose {
+		fmt.Printf("%s progress: %d/%d (100.0%%) - Complete\n", label, total, total)
+	}
+	return grouped, nil
 }
 
-// OutputResults writes duplicate information to console and file
-func OutputResults(result *DuplicateResult, options DuplicateOptions, duplicateGroups [][]DuplicateFileInfo) {
-	// Print summary to console
+// finishReport prints the console summary (unless quiet) and writes the
+// report file whenever one was asked for - quiet or not, duplicates or not.
+func finishReport(result *DuplicateResult, options DuplicateOptions, groups [][]DuplicateFileInfo) error {
+	if options.Verbose {
+		printSummary(result)
+	}
+	if !options.OutputFileSpecified {
+		return nil
+	}
+	if err := writeReport(result, options, groups); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing the duplicate list %s: %v\n", options.OutputPath, err)
+		return fmt.Errorf("cannot write the duplicate list %s: %w", options.OutputPath, err)
+	}
+	fmt.Printf("Duplicate list saved to: %s\n", options.OutputPath)
+	return nil
+}
+
+func printSummary(result *DuplicateResult) {
 	fmt.Printf("\nDuplicate files summary:\n")
 	fmt.Printf("Total files scanned: %d\n", result.TotalFiles)
 	fmt.Printf("Duplicate groups: %d\n", result.DuplicateGroups)
 	fmt.Printf("Duplicate files: %d\n", result.DuplicateFiles)
 	fmt.Printf("Wasted space: %.2f MB\n", float64(result.DuplicateSize)/(1024*1024))
 	fmt.Printf("Processing time: %v\n\n", result.ProcessingTime)
-
-	// Output to file if specified
-	if options.OutputFileSpecified {
-		file, err := os.Create(options.OutputPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
-			return
-		}
-		defer file.Close()
-
-		writer := bufio.NewWriter(file)
-		defer writer.Flush()
-
-		// Write header
-		fmt.Fprintf(writer, "# Duplicate files report\n")
-		fmt.Fprintf(writer, "# Date: %s\n", time.Now().Format(time.RFC1123))
-		fmt.Fprintf(writer, "# Root path: %s\n", options.OutputPath)
-		fmt.Fprintf(writer, "# Total files: %d\n", result.TotalFiles)
-		fmt.Fprintf(writer, "# Duplicate groups: %d\n", result.DuplicateGroups)
-		fmt.Fprintf(writer, "# Duplicate files: %d\n", result.DuplicateFiles)
-		fmt.Fprintf(writer, "# Wasted space: %.2f MB\n\n", float64(result.DuplicateSize)/(1024*1024))
-
-		// Write each group
-		for i, group := range duplicateGroups {
-			fmt.Fprintf(writer, "# Group %d (%d files, %.2f MB each)\n",
-				i+1, len(group), float64(group[0].Size)/(1024*1024))
-
-			for _, file := range group {
-				originalMark := " "
-				if file.IsOriginal {
-					originalMark = "*"
-				}
-				fmt.Fprintf(writer, "%s %s\n", originalMark, file.Path)
-			}
-			fmt.Fprintf(writer, "\n")
-		}
-
-		fmt.Printf("Duplicate list saved to: %s\n", options.OutputPath)
-	}
 }
 
-// ParseArguments parses command line arguments for duplicate processing
-func ParseArguments(args []string) DuplicateOptions {
-	options := DefaultOptions()
+// writeReport writes the duplicate list: the header, then one block per
+// group with the kept copy marked `*`. An empty scan writes the header with
+// zero groups, which replaces any older list at that path.
+func writeReport(result *DuplicateResult, options DuplicateOptions, groups [][]DuplicateFileInfo) error {
+	file, err := os.Create(options.OutputPath)
+	if err != nil {
+		return err
+	}
+	writer := bufio.NewWriter(file)
 
-	// Process arguments in any order
-	for i := 0; i < len(args); i++ {
-		arg := strings.ToLower(args[i])
+	// Write header
+	fmt.Fprintf(writer, "# Duplicate files report\n")
+	fmt.Fprintf(writer, "# Date: %s\n", time.Now().Format(time.RFC1123))
+	fmt.Fprintf(writer, "# Root path: %s\n", result.RootPath)
+	fmt.Fprintf(writer, "# Total files: %d\n", result.TotalFiles)
+	fmt.Fprintf(writer, "# Duplicate groups: %d\n", len(groups))
+	fmt.Fprintf(writer, "# Duplicate files: %d\n", result.DuplicateFiles)
+	fmt.Fprintf(writer, "# Wasted space: %.2f MB\n\n", float64(result.DuplicateSize)/(1024*1024))
 
-		// Check for output file specification
-		if arg == "list" && i+1 < len(args) {
-			options.OutputPath = args[i+1]
-			options.OutputFileSpecified = true
-			i++ // Skip the next argument as it's the filename
-			continue
-		}
+	// Write each group
+	for i, group := range groups {
+		fmt.Fprintf(writer, "# Group %d (%d files, %.2f MB each)\n",
+			i+1, len(group), float64(group[0].Size)/(1024*1024))
 
-		// Check for verbosity options
-		if arg == "quiet" || arg == "q" || arg == "short" || arg == "s" {
-			options.Verbose = false
-			continue
-		}
-
-		// Check for selection mode options
-		switch arg {
-		case "old":
-			options.SelectionMode = NewestAsOriginal // Keep newest as original, move/delete older files
-		case "new":
-			options.SelectionMode = OldestAsOriginal // Keep oldest as original, move/delete newer files
-		case "abc":
-			options.SelectionMode = LastAlphaAsOriginal // Keep last alphabetically as original
-		case "xyz":
-			options.SelectionMode = FirstAlphaAsOriginal // Keep first alphabetically as original
-		case "move":
-			if i+1 < len(args) {
-				options.Action = MoveAction
-				options.TargetDir = args[i+1]
-				i++ // Skip the next argument as it's the target directory
-			} else {
-				fmt.Fprintf(os.Stderr, "Warning: 'move' option specified without a target directory\n")
+		for _, f := range group {
+			originalMark := " "
+			if f.IsOriginal {
+				originalMark = "*"
 			}
-		case "delete", "del":
-			options.Action = DeleteAction
-			// If we have a selection mode specified, enable batch mode
-			if options.SelectionMode != NewestAsOriginal {
-				options.BatchMode = true
-			}
+			fmt.Fprintf(writer, "%s %s\n", originalMark, f.Path)
 		}
+		fmt.Fprintf(writer, "\n")
 	}
 
-	return options
+	if err := writer.Flush(); err != nil {
+		file.Close()
+		return err
+	}
+	return file.Close()
+}
+
+// OutputResults writes duplicate information to console and file
+func OutputResults(result *DuplicateResult, options DuplicateOptions, duplicateGroups [][]DuplicateFileInfo) {
+	_ = finishReport(result, options, duplicateGroups)
 }
 
 // LoadFileList loads a list of files to check from a file
@@ -624,36 +523,65 @@ func LoadFileList(filePath string) ([]string, error) {
 	return files, nil
 }
 
-// ProcessDuplicateGroupsFromList processes duplicate groups loaded from a file
+// ProcessDuplicateGroupsFromList processes duplicate groups loaded from a
+// file. A list is a claim, possibly stale and possibly hand-edited, so
+// nothing in it is trusted (DUP-01): every entry is looked up again, the same
+// file named twice (the same path, a case variant, a hard link) counts once,
+// groups that share a file are merged, and each removal is preceded by the
+// byte comparison with the kept copy that ProcessDuplicateGroups makes.
 func ProcessDuplicateGroupsFromList(duplicateGroups map[string][]DuplicateFileInfo, options DuplicateOptions) error {
-	// Convert map of groups to slice for processing
-	var groupsSlice [][]DuplicateFileInfo
+	rs := newRunState(&options)
+	if err := options.Validate(); err != nil {
+		return err
+	}
+	if err := options.CheckConsent(); err != nil {
+		return err
+	}
+
+	keys := make([]string, 0, len(duplicateGroups))
+	for k := range duplicateGroups {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	skippedFiles := 0
 	totalFiles := 0
-
-	for _, group := range duplicateGroups {
-		totalFiles += len(group)
-		// Verify files actually exist before processing
+	var groupsSlice [][]DuplicateFileInfo
+	for _, k := range keys {
+		totalFiles += len(duplicateGroups[k])
 		var validFiles []DuplicateFileInfo
-		for _, file := range group {
-			if stat, err := os.Stat(file.Path); err == nil {
-				// Update size and modtime from actual file
-				file.Size = stat.Size()
-				file.ModTime = stat.ModTime()
-				validFiles = append(validFiles, file)
-			} else {
-				fmt.Printf("Warning: File not found: %s, skipping\n", file.Path)
+		for _, entry := range duplicateGroups[k] {
+			info, err := os.Stat(entry.Path)
+			if err != nil || !info.Mode().IsRegular() {
+				if err == nil {
+					err = errors.New("not a regular file")
+				}
+				fmt.Printf("Warning: %s: %v, skipping\n", entry.Path, err)
 				skippedFiles++
+				continue
 			}
+			f := fileInfoFrom(entry.Path, info)
+			f.FullHash = entry.FullHash
+			if err := identify(&f); err != nil {
+				fmt.Printf("Warning: cannot identify %s: %v, skipping\n", entry.Path, err)
+				skippedFiles++
+				continue
+			}
+			validFiles = append(validFiles, f)
 		}
+		groupsSlice = append(groupsSlice, validFiles)
+	}
 
-		// Only include groups with at least 2 files
-		if len(validFiles) >= 2 {
-			groupsSlice = append(groupsSlice, validFiles)
+	groupsSlice = mergeGroupsSharingFiles(groupsSlice)
+	var usable [][]DuplicateFileInfo
+	for _, g := range groupsSlice {
+		g = collapseSameObjects(g)
+		if len(g) >= 2 {
+			usable = append(usable, g)
 		}
 	}
 
-	if len(groupsSlice) == 0 {
+	if len(usable) == 0 {
 		if skippedFiles > 0 {
 			return fmt.Errorf("no valid duplicate groups found (%d files were skipped due to errors)", skippedFiles)
 		}
@@ -661,10 +589,63 @@ func ProcessDuplicateGroupsFromList(duplicateGroups map[string][]DuplicateFileIn
 	}
 
 	fmt.Printf("Found %d duplicate groups from list (%d of %d files are valid)\n",
-		len(groupsSlice), totalFiles-skippedFiles, totalFiles)
+		len(usable), totalFiles-skippedFiles, totalFiles)
 
-	// Process the groups
-	ProcessDuplicateGroups(groupsSlice, options)
+	// Process the groups: a listed file inside the Windows folder or Program
+	// Files needs a person to confirm first (DUP-06).
+	_, err := rs.guardAndProcess(usable)
+	return err
+}
 
-	return nil
+// mergeGroupsSharingFiles joins groups that name the same file (by object
+// identity): a file listed in two groups makes them one claim, and handling
+// them apart could let each group delete the other's keeper.
+func mergeGroupsSharingFiles(groups [][]DuplicateFileInfo) [][]DuplicateFileInfo {
+	parent := make([]int, len(groups))
+	for i := range parent {
+		parent[i] = i
+	}
+	var find func(int) int
+	find = func(i int) int {
+		for parent[i] != i {
+			parent[i] = parent[parent[i]]
+			i = parent[i]
+		}
+		return i
+	}
+	type objectKey struct {
+		vol uint32
+		idx uint64
+	}
+	owner := make(map[objectKey]int)
+	for gi, g := range groups {
+		for _, f := range g {
+			if !f.identified {
+				continue
+			}
+			k := objectKey{f.VolSerial, f.FileIndex}
+			if other, ok := owner[k]; ok {
+				a, b := find(gi), find(other)
+				if a != b {
+					parent[a] = b
+				}
+			} else {
+				owner[k] = gi
+			}
+		}
+	}
+	merged := make(map[int][]DuplicateFileInfo)
+	var order []int
+	for gi, g := range groups {
+		r := find(gi)
+		if _, ok := merged[r]; !ok {
+			order = append(order, r)
+		}
+		merged[r] = append(merged[r], g...)
+	}
+	out := make([][]DuplicateFileInfo, 0, len(order))
+	for _, r := range order {
+		out = append(out, merged[r])
+	}
+	return out
 }

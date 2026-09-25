@@ -1,0 +1,10 @@
+# Vendored contract artifacts are held byte for byte to the SHA-256 in their PROVENANCE.txt, and the
+# shell refuses a glyph whose hash does not match (filedo_win_vb/Glyphs.vb). An end-of-line conversion
+# on checkout - core.autocrlf, on a developer machine or on the release runner - would change every
+# hash, so these files are never converted (assets/sync-icon-glyphs.ps1).
+assets/glyphs/** -text
+
+# The fdsec conformance vectors are held to their PROVENANCE.txt the same way (TestVectors_Suite1/2/3).
+fdsec/testdata/vectors/** -text
+# The Explorer icons (MenuIcons.vb) are compared pixel by pixel by the shell's self-test.
+assets/menu-icons/*.ico binary

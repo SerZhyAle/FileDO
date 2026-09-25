@@ -1,10 +1,11 @@
 package main
 
 import (
-    "bufio"
+    "context"
+    "errors"
     "flag"
-    "encoding/json"
     "fmt"
+    "io"
     "math"
     "os"
     "path/filepath"
@@ -49,7 +50,7 @@ type checkConfig struct {
     dryRun        bool
     verbose       bool
     quiet         bool
-    resume        bool
+    resume        bool // skip files already on the good list
     report        string // "", "csv", "json"
     reportFile    string
     hddSleepMs    int
@@ -66,6 +67,7 @@ type checkJob struct {
     path string
     size int64
     vol  string
+    mod  time.Time
 }
 
 type volumeWarmup struct {
@@ -249,7 +251,7 @@ func HandleCheckArgs(root string, args []string) error {
     dryRun := fs.Bool("dry-run", false, "Do not modify state, just simulate (FILEDO_CHECK_DRYRUN=1)")
     verbose := fs.Bool("verbose", false, "Verbose output (FILEDO_CHECK_VERBOSE=1)")
     quiet := fs.Bool("quiet", false, "Quiet output (FILEDO_CHECK_QUIET=1)")
-    resume := fs.Bool("resume", false, "Resume from last saved state (FILEDO_CHECK_RESUME=1)")
+    resume := fs.Bool("resume", false, "Carry on: skip files an earlier run already read cleanly - the good list (FILEDO_CHECK_RESUME=1)")
     report := fs.String("report", "", "Report format: csv|json (FILEDO_CHECK_REPORT)")
     reportFile := fs.String("report-file", "", "Report file path (FILEDO_CHECK_REPORT_FILE)")
     hddSleepMs := fs.Int("hdd-sleep-ms", -1, "Fixed inter-file sleep for HDD in ms (FILEDO_CHECK_HDD_SLEEP_MS)")
@@ -280,6 +282,9 @@ func HandleCheckArgs(root string, args []string) error {
         case "workers":
             os.Setenv("FILEDO_CHECK_WORKERS", fmt.Sprintf("%d", *workers))
         case "buf-kb":
+            if *bufKB < checkMinBufKB || *bufKB > checkMaxBufKB {
+                return fmt.Errorf("check: --buf-kb must be %d..%d, got %d", checkMinBufKB, checkMaxBufKB, *bufKB)
+            }
             os.Setenv("FILEDO_CHECK_BUF_KB", fmt.Sprintf("%d", *bufKB))
         case "mode":
             os.Setenv("FILEDO_CHECK_MODE", *mode)
@@ -349,16 +354,183 @@ func HandleCheckArgs(root string, args []string) error {
     return CheckFolder(root)
 }
 
+// Read buffer bounds for --buf-kb (CHK-09). Zero bytes read nothing and so
+// passed every file; a negative size panicked.
+const (
+    checkMinBufKB = 4
+    checkMaxBufKB = 64 * 1024
+)
+
+// errCheckLimit ends the walk when --max-files or --max-seconds was reached;
+// errCheckStopped when the run was asked to stop.
+var (
+    errCheckLimit   = errors.New("check limit reached")
+    errCheckStopped = errors.New("check stopped")
+)
+
+// checkOutcome is what reading one file said about it.
+type checkOutcome int
+
+const (
+    checkOK checkOutcome = iota
+    checkDamaged
+    // checkUnverified: the file could not be read for a reason that is not
+    // the media's - locked, access denied - so nothing was learned (CHK-04).
+    checkUnverified
+    checkStopped
+)
+
+type checkResult struct {
+    outcome checkOutcome
+    first   time.Duration
+    status  string
+    detail  string
+}
+
+// checkFile reads one file the way the mode asks and judges it. A slow read
+// or a device-level I/O error is damage; a sharing violation or an access
+// denial is "could not verify" and is never recorded as damage (SP-0023 T3).
+func checkFile(ctx context.Context, job checkJob, cfg *checkConfig, buf []byte, warmup func(*os.File), warmupUsed *int32, readBytes *int64) checkResult {
+    p, size := job.path, job.size
+    judgeErr := func(first time.Duration, err error) checkResult {
+        if ctx.Err() != nil || isStopError(err) {
+            return checkResult{outcome: checkStopped, first: first}
+        }
+        if isDeviceIOError(err) {
+            return checkResult{outcome: checkDamaged, first: first, status: "read-error", detail: fmt.Sprintf("read error: %v", err)}
+        }
+        return checkResult{outcome: checkUnverified, first: first, status: "not-verified", detail: err.Error()}
+    }
+
+    f, err := os.Open(p)
+    if err != nil {
+        r := judgeErr(0, err)
+        if r.outcome == checkDamaged {
+            r.status = "open-error"
+        }
+        return r
+    }
+    done := make(chan struct{})
+    go func() {
+        select {
+        case <-ctx.Done():
+            f.Close()
+        case <-done:
+        }
+    }()
+    defer func() {
+        close(done)
+        f.Close()
+    }()
+    if warmup != nil {
+        warmup(f)
+    }
+
+    probe := func(off int64) (time.Duration, bool, error) {
+        if off > 0 {
+            if _, err := f.Seek(off, io.SeekStart); err != nil { return 0, false, err }
+        }
+        t0 := time.Now()
+        n, rerr := f.Read(buf)
+        d := time.Since(t0)
+        if n > 0 { atomic.AddInt64(readBytes, int64(n)) }
+        if rerr != nil && rerr != io.EOF { return d, false, rerr }
+        if d > cfg.threshold {
+            if d <= cfg.threshold+checkRetryWindow {
+                time.Sleep(checkRetrySleep)
+                if f2, e2 := os.Open(p); e2 == nil {
+                    if off > 0 { f2.Seek(off, io.SeekStart) }
+                    t1 := time.Now()
+                    n2, r2 := f2.Read(buf)
+                    d2 := time.Since(t1)
+                    f2.Close()
+                    if n2 > 0 { atomic.AddInt64(readBytes, int64(n2)) }
+                    if r2 == nil || r2 == io.EOF { return d2, d2 > cfg.threshold, nil }
+                    return d2, false, r2
+                }
+            }
+            return d, true, nil
+        }
+        return d, false, nil
+    }
+
+    e1, slow, rerr := probe(0)
+    if rerr != nil {
+        return judgeErr(e1, rerr)
+    }
+    if slow {
+        // One slow first read per run is the disk spinning up, not damage.
+        if !(e1 <= cfg.warmupGrace && atomic.CompareAndSwapInt32(warmupUsed, 0, 1)) {
+            return checkResult{outcome: checkDamaged, first: e1, status: "delay-first",
+                detail: fmt.Sprintf(">%.1fs read delay (%.1fs)", cfg.threshold.Seconds(), e1.Seconds())}
+        }
+    }
+    if cfg.mode != modeQuick {
+        minBytes := cfg.minSizeBytes
+        if minBytes == 0 { minBytes = toBytesMBEnv(float64(cfg.balancedMinMB)) }
+        if size >= minBytes {
+            var points []float64
+            if cfg.mode == modeBalanced { points = []float64{0.5} } else { points = []float64{0.25, 0.5, 0.75} }
+            for _, frac := range points {
+                off := int64(float64(size-int64(len(buf))) * frac)
+                if off < 0 { off = 0 }
+                if off > size-int64(len(buf)) { off = size - int64(len(buf)) }
+                e, slowMid, err := probe(off)
+                if err != nil {
+                    return judgeErr(e1, err)
+                }
+                if slowMid {
+                    return checkResult{outcome: checkDamaged, first: e1, status: "delay-probe",
+                        detail: fmt.Sprintf(">%.1fs read delay mid (%.1fs)", cfg.threshold.Seconds(), e.Seconds())}
+                }
+            }
+        }
+    }
+    if ctx.Err() != nil {
+        return checkResult{outcome: checkStopped, first: e1}
+    }
+    return checkResult{outcome: checkOK, first: e1}
+}
+
+// checkNotes prints the first few files check could not judge and counts
+// the rest, so a sweep over a locked profile does not flood the console.
+type checkNotes struct {
+    mu     sync.Mutex
+    shown  int
+    hidden int
+}
+
+func (n *checkNotes) add(quiet bool, format string, args ...interface{}) {
+    n.mu.Lock()
+    defer n.mu.Unlock()
+    if quiet || n.shown >= 20 {
+        n.hidden++
+        return
+    }
+    n.shown++
+    fmt.Printf("\n"+format+"\n", args...)
+}
+
 // CheckFolder scans all files under root and performs a fast read test.
 // If a file's first read takes > 2s (except a one-time warm-up up to 10s),
-// it is marked as damaged and appended to skip_files.list immediately.
+// it is marked as damaged and recorded in check's damaged list.
 //
 // root may also be a single file. filepath.Walk already visits exactly that
 // one file, so the engine below needs no second shape - but two of its rules
 // are about narrowing a sweep and have no business narrowing an explicit
-// choice, so a single file is never filtered out by size or extension and is
-// never skipped for being on the good list. A user who points at one file is
-// asking about that file, today.
+// choice, so a single file is never filtered out by size or extension, never
+// skipped for being on the good list and never answered from the damaged
+// list. A user who points at one file is asking about that file, today.
+//
+// The lists live in the state root (%LOCALAPPDATA%\FileDO\state), never
+// beside the files checked (CHK-10), and they are check's own: copy's skip
+// list is a different file (CHK-04). An entry names a file by path, size and
+// modification time, so a file that changed is read again.
+//
+// The verdict (CHK-03): a file on the damaged list is a defect again - it is
+// re-reported, not re-read; a folder that cannot be listed or a file that
+// cannot be opened (locked, denied) is "could not verify"; and a sweep that
+// read nothing at all verified nothing.
 func CheckFolder(root string) error {
     info, err := os.Stat(root)
     if err != nil {
@@ -370,77 +542,52 @@ func CheckFolder(root string) error {
     }
 
     cfg := loadCheckConfig(root)
+    if cfg.bufSize < checkMinBufKB*1024 || cfg.bufSize > checkMaxBufKB*1024 {
+        return fmt.Errorf("check: the read buffer must be %d..%d KB, got %d KB (--buf-kb / FILEDO_CHECK_BUF_KB)",
+            checkMinBufKB, checkMaxBufKB, cfg.bufSize/1024)
+    }
 
     ih := globalInterruptHandler
     if ih == nil {
         ih = NewInterruptHandler()
     }
+    ctx := ih.Context()
 
-    damaged, err := NewDamagedDiskHandlerQuiet()
-    if err != nil {
-        return fmt.Errorf("failed to init damaged handler: %v", err)
+    // Check's own lists, in the state root.
+    damagedList, derr := openStateList(checkDamagedName, false)
+    if derr != nil {
+        fmt.Printf("Warning: cannot read the damaged list: %v\n", derr)
     }
-    defer damaged.Close()
-
-    // Load good files list (check_files.list) with optional override via env
-    wd, _ := os.Getwd()
-    goodFile := os.Getenv("FILEDO_CHECK_GOODLIST")
-    if strings.TrimSpace(goodFile) == "" {
-        goodFile = filepath.Join(wd, "check_files.list")
+    defer damagedList.Close()
+    var goodList *fileStateList
+    var gerr error
+    if goodFile := strings.TrimSpace(os.Getenv("FILEDO_CHECK_GOODLIST")); goodFile != "" {
+        goodList, gerr = loadStateList(goodFile)
+    } else {
+        goodList, gerr = openStateList(checkGoodListName, true)
     }
-    goodSet := make(map[string]bool)
-    var goodMu sync.Mutex
-    normGood := func(p string) string {
-        if p == "" { return p }
-        if ap, err := filepath.Abs(p); err == nil { p = ap }
-        p = filepath.Clean(p)
-        return strings.ToLower(p)
+    if gerr != nil {
+        fmt.Printf("Warning: cannot read the good list: %v\n", gerr)
     }
-    // Load existing good list if present
-    if f, e := os.Open(goodFile); e == nil {
-        scanner := bufio.NewScanner(f)
-        for scanner.Scan() {
-            s := strings.TrimSpace(scanner.Text())
-            if s != "" && !strings.HasPrefix(s, "#") {
-                goodSet[normGood(s)] = true
-            }
-        }
-        f.Close()
+    defer goodList.Close()
+    // A dry run changes no state; a single-file check never reads the good
+    // list, so it has no business writing one.
+    if cfg.dryRun {
+        damagedList.readOnly = true
+        goodList.readOnly = true
     }
-    goodHas := func(p string) bool {
-        key := normGood(p)
-        goodMu.Lock()
-        _, ok := goodSet[key]
-        goodMu.Unlock()
-        return ok
-    }
-    goodAppend := func(p string) {
-        if p == "" { return }
-        // A single-file check never reads the good list, so it has no
-        // business writing one - least of all into whatever directory the
-        // shell happened to hand it as a working directory. The Explorer
-        // entry would otherwise drop check_files.list beside the user's file
-        // on every click.
-        if singleFile { return }
-        key := normGood(p)
-        goodMu.Lock()
-        if goodSet[key] {
-            goodMu.Unlock()
-            return
-        }
-        if f, e := os.OpenFile(goodFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); e == nil {
-            fmt.Fprintln(f, p)
-            f.Close()
-            goodSet[key] = true
-        }
-        goodMu.Unlock()
+    if singleFile {
+        goodList.readOnly = true
     }
     if !cfg.quiet {
-        if fi, err := os.Stat(goodFile); err == nil && !fi.IsDir() {
-            fmt.Printf("Using good list: %s : %d\n", goodFile, len(goodSet))
+        if !singleFile && cfg.resume {
+            fmt.Printf("Resuming: files already on the good list are not read again (%s : %d)\n", goodList.Path(), goodList.Len())
         }
-        if fi, err := os.Stat(damaged.config.SkipListFile); err == nil && !fi.IsDir() {
-            fmt.Printf("Using damaged list: %s : %d\n", damaged.config.SkipListFile, damaged.GetSkippedStats())
+        if !singleFile && damagedList.Len() > 0 {
+            fmt.Printf("Using damaged list: %s : %d\n", damagedList.Path(), damagedList.Len())
+        }
+        if n := goodList.LegacyIgnored() + damagedList.LegacyIgnored(); n > 0 {
+            fmt.Printf("Note: %d older list entries carry no size or time and are not trusted.\n", n)
         }
     }
 
@@ -456,39 +603,41 @@ func CheckFolder(root string) error {
     }
 
     jobs := make(chan checkJob, 1024)
-    var totalFiles int64
-    var skippedFiles int64
-    var damagedFiles int64
-    var processedFiles int64
+    var foundFiles int64   // files the walk handed on or answered itself
+    var skippedGood int64  // on the good list (--resume): not read again
+    var knownDamaged int64 // on the damaged list: re-reported, not read
+    var damagedFiles int64 // found damaged in this run
+    var checkedFiles int64 // read and judged in this run
+    var unverifiedFiles int64
+    var walkErrors int64
     var totalReadBytes int64
     var lastDamaged atomic.Value // string
     var warmupUsed int32 = 0
-    var stopFlag int32 = 0
-    var stopMu sync.Mutex
+    var notes checkNotes
 
-    // Resume support
-    var resumeUntil string
-    if cfg.resume {
-        if st := loadCheckState(); st != nil {
-            resumeUntil = st.LastProcessedPath
-            if resumeUntil != "" && !cfg.quiet {
-                fmt.Printf("Resuming after: %s\n", resumeUntil)
-            }
-        }
-    }
+    // The first worker to reach a limit closes stop; the walker's send
+    // selects on it and on the run's context, so a walker can never block on
+    // a full queue that no worker will drain again (CHK-02).
+    stop := make(chan struct{})
+    var stopOnce sync.Once
+    stopWorkers := func() { stopOnce.Do(func() { close(stop) }) }
+    start := time.Now()
 
     walkerErrCh := make(chan error, 1)
     go func() {
-        walkerErrCh <- filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
-            if err != nil { return nil }
+        walkErr := filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
+            if ih.IsForceExit() || ih.IsInterrupted() { return errCheckStopped }
+            select {
+            case <-stop:
+                return errCheckLimit
+            default:
+            }
+            if err != nil {
+                atomic.AddInt64(&walkErrors, 1)
+                notes.add(cfg.quiet, "Could not read %s: %v - not checked", p, err)
+                return nil
+            }
             if fi.IsDir() { return nil }
-        if ih.IsForceExit() || ih.IsInterrupted() { return fmt.Errorf("interrupted") }
-        stopMu.Lock()
-        if atomic.LoadInt32(&stopFlag) != 0 {
-            stopMu.Unlock()
-            return fmt.Errorf("stopped")
-        }
-        stopMu.Unlock()            // Filters
             sz := fi.Size()
             if sz == 0 { return nil }
             if !singleFile {
@@ -499,38 +648,40 @@ func CheckFolder(root string) error {
                     if cfg.includeExt != nil && !cfg.includeExt[ext] { return nil }
                     if cfg.excludeExt != nil && cfg.excludeExt[ext] { return nil }
                 }
-
-                // Skip if previously checked good
-                if goodHas(p) {
-                    atomic.AddInt64(&skippedFiles, 1)
+            }
+            atomic.AddInt64(&foundFiles, 1)
+            if !singleFile {
+                if cfg.resume && goodList.HasInfo(p, fi) {
+                    atomic.AddInt64(&skippedGood, 1)
+                    return nil
+                }
+                if damagedList.HasInfo(p, fi) {
+                    atomic.AddInt64(&knownDamaged, 1)
+                    lastDamaged.Store(p)
+                    if rep != nil { rep.Write(p, sz, 0, "known-damaged") }
                     return nil
                 }
             }
-
-            atomic.AddInt64(&totalFiles, 1)
-            if !singleFile && damaged.ShouldSkipFile(p) {
-                atomic.AddInt64(&skippedFiles, 1)
+            select {
+            case jobs <- checkJob{path: p, size: sz, vol: volumeOf(p), mod: fi.ModTime()}:
                 return nil
+            case <-stop:
+                return errCheckLimit
+            case <-ctx.Done():
+                return errCheckStopped
             }
-            if cfg.resume && resumeUntil != "" {
-                if strings.EqualFold(p, resumeUntil) {
-                    resumeUntil = "" // reached marker, start processing next files
-                }
-                return nil
-            }
-            jobs <- checkJob{path: p, size: sz, vol: volumeOf(p)}
-            return nil
         })
         close(jobs)
+        walkerErrCh <- walkErr
     }()
 
-    // Optional pre-count for better ETA. It is an estimate for a sweep, and
-    // for a single file it is both pointless and wrong: it stores a total the
-    // walker then adds to, so the summary would report two files where there
-    // is one.
+    // Optional pre-count for a better ETA. It is an estimate for a sweep and
+    // is kept apart from the walker's own count: stored into the same
+    // counter, the walker added to it and a 3-file folder reported 6.
+    var precTotal int64
     if cfg.precount && !singleFile {
-        var precTotal int64
         filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
+            if ih.IsInterrupted() { return errCheckStopped }
             if err != nil || fi == nil || fi.IsDir() { return nil }
             sz := fi.Size()
             if sz == 0 { return nil }
@@ -541,20 +692,19 @@ func CheckFolder(root string) error {
                 if cfg.includeExt != nil && !cfg.includeExt[ext] { return nil }
                 if cfg.excludeExt != nil && cfg.excludeExt[ext] { return nil }
             }
-            // Skip previously good and damaged
-            if goodHas(p) { return nil }
-            if damaged.ShouldSkipFile(p) { return nil }
+            if cfg.resume && goodList.HasInfo(p, fi) { return nil }
+            if damagedList.HasInfo(p, fi) { return nil }
             atomic.AddInt64(&precTotal, 1)
             return nil
         })
-        atomic.StoreInt64(&totalFiles, precTotal)
     }
 
     // Progress ticker
-    start := time.Now()
     ticker := time.NewTicker(1 * time.Second)
     quit := make(chan struct{})
+    tickerDone := make(chan struct{})
     go func() {
+        defer close(tickerDone)
         lastLen := 0
         for {
             select {
@@ -563,16 +713,21 @@ func CheckFolder(root string) error {
                 if elapsed <= 0 { elapsed = 1 }
                 readMB := float64(atomic.LoadInt64(&totalReadBytes)) / (1024.0 * 1024.0)
                 speed := readMB / elapsed
-                checked := atomic.LoadInt64(&processedFiles)
-                found := atomic.LoadInt64(&totalFiles)
+                checked := atomic.LoadInt64(&checkedFiles) + atomic.LoadInt64(&unverifiedFiles)
+                toRead := atomic.LoadInt64(&precTotal)
+                if toRead == 0 {
+                    toRead = atomic.LoadInt64(&foundFiles) - atomic.LoadInt64(&skippedGood) - atomic.LoadInt64(&knownDamaged)
+                }
                 rate := float64(checked) / elapsed
-                remaining := math.Max(0, float64(found-checked))
+                remaining := math.Max(0, float64(toRead-checked))
                 eta := time.Duration(0)
                 if rate > 0 {
                     eta = time.Duration(float64(time.Second) * remaining / rate)
                 }
-                line := fmt.Sprintf("\rCHECK: found=%d, checked=%d, damaged=%d, skipped=%d, read=%.1f MB, speed=%.1f MB/s, rate=%.1f chk/s, ETA=%s",
-                    found, checked, atomic.LoadInt64(&damagedFiles), atomic.LoadInt64(&skippedFiles), readMB, speed, rate, formatETA(eta))
+                line := fmt.Sprintf("\rCHECK: found=%d, checked=%d, damaged=%d, known-damaged=%d, not-read=%d, skipped-good=%d, read=%.1f MB, speed=%.1f MB/s, rate=%.1f chk/s, ETA=%s",
+                    atomic.LoadInt64(&foundFiles), atomic.LoadInt64(&checkedFiles), atomic.LoadInt64(&damagedFiles),
+                    atomic.LoadInt64(&knownDamaged), atomic.LoadInt64(&unverifiedFiles), atomic.LoadInt64(&skippedGood),
+                    readMB, speed, rate, formatETA(eta))
                 if v := lastDamaged.Load(); v != nil && cfg.verbose {
                     line += fmt.Sprintf(", last=%s", v.(string))
                 }
@@ -589,6 +744,50 @@ func CheckFolder(root string) error {
             }
         }
     }()
+
+    // handle counts one judged file; it reports whether the worker must stop.
+    handle := func(job checkJob, r checkResult) bool {
+        switch r.outcome {
+        case checkStopped:
+            return true
+        case checkDamaged:
+            atomic.AddInt64(&damagedFiles, 1)
+            atomic.AddInt64(&checkedFiles, 1)
+            lastDamaged.Store(job.path)
+            if err := damagedList.Add(job.path, job.size, job.mod); err != nil {
+                notes.add(cfg.quiet, "Warning: cannot record %s in the damaged list: %v", job.path, err)
+            }
+            if rep != nil { rep.Write(job.path, job.size, r.first, r.status) }
+        case checkUnverified:
+            atomic.AddInt64(&unverifiedFiles, 1)
+            notes.add(cfg.quiet, "Could not read %s (%s) - not judged", job.path, r.detail)
+            if rep != nil { rep.Write(job.path, job.size, r.first, r.status) }
+        default:
+            atomic.AddInt64(&checkedFiles, 1)
+            if rep != nil { rep.Write(job.path, job.size, r.first, "ok") }
+            goodList.Add(job.path, job.size, job.mod)
+        }
+        done := atomic.LoadInt64(&checkedFiles) + atomic.LoadInt64(&unverifiedFiles)
+        if cfg.maxFiles > 0 && done >= cfg.maxFiles {
+            stopWorkers()
+            return true
+        }
+        if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration {
+            stopWorkers()
+            return true
+        }
+        return false
+    }
+    // stopped reports whether a worker must end before its next file.
+    stopped := func() bool {
+        if ih.IsForceExit() || ih.IsInterrupted() { return true }
+        select {
+        case <-stop:
+            return true
+        default:
+            return false
+        }
+    }
 
     // Workers or single-reader depending on drive type
     rootVol := volumeOf(root)
@@ -613,130 +812,32 @@ func CheckFolder(root string) error {
             defer wg.Done()
             buf := make([]byte, cfg.bufSize)
             var vw volumeWarmup
+            warmup := func(f *os.File) {
+                if cfg.warmupGrace <= 0 { return }
+                now := time.Now()
+                if !vw.used || (cfg.warmupIdle > 0 && now.Sub(vw.last) >= cfg.warmupIdle) {
+                    vw.used = true
+                    vw.last = now
+                    f.Read(make([]byte, 4))
+                    f.Seek(0, io.SeekStart)
+                } else {
+                    vw.last = now
+                }
+            }
             var ewma float64
             sleepMs := 0
             for job := range jobs {
-                if ih.IsForceExit() || ih.IsInterrupted() { return }
-                stopMu.Lock()
-                if atomic.LoadInt32(&stopFlag) != 0 {
-                    stopMu.Unlock()
-                    return
-                }
-                stopMu.Unlock()
-                p := job.path
-                size := job.size
-                if size == 0 { continue }
-                f, err := os.Open(p)
-                if err != nil {
-                    damaged.LogDamagedFile(p, "check-open-error", size, 1, fmt.Sprintf("open error: %v", err))
-                    lastDamaged.Store(p)
-                    atomic.AddInt64(&damagedFiles, 1)
-                    atomic.AddInt64(&processedFiles, 1)
-                    if rep != nil { rep.Write(p, size, 0, "open-error") }
-                    continue
-                }
-
-                done := make(chan struct{})
-                go func(ff *os.File) {
-                    select {
-                    case <-ih.Context().Done():
-                        ff.Close()
-                    case <-done:
-                    }
-                }(f)
-
-                var firstElapsed time.Duration
-                var status string
-                var damagedMark bool
-
-                // Simple warmup per root volume
-                if cfg.warmupGrace > 0 {
-                    now := time.Now()
-                    if !vw.used || (cfg.warmupIdle > 0 && now.Sub(vw.last) >= cfg.warmupIdle) {
-                        vw.used = true
-                        vw.last = now
-                        f.Read(make([]byte, 4))
-                    } else {
-                        vw.last = now
-                    }
-                }
-
-                probe := func(off int64) (time.Duration, bool) {
-                    if off > 0 {
-                        if _, err := f.Seek(off, 0); err != nil { return 0, true }
-                    }
-                    t0 := time.Now()
-                    n, rerr := f.Read(buf)
-                    d := time.Since(t0)
-                    if n > 0 { atomic.AddInt64(&totalReadBytes, int64(n)) }
-                    if rerr != nil && rerr.Error() != "EOF" { return d, true }
-                    if d > cfg.threshold {
-                        if d <= cfg.threshold+checkRetryWindow {
-                            time.Sleep(checkRetrySleep)
-                            if f2, e2 := os.Open(p); e2 == nil {
-                                if off > 0 { f2.Seek(off, 0) }
-                                t1 := time.Now()
-                                n2, r2 := f2.Read(buf)
-                                d2 := time.Since(t1)
-                                f2.Close()
-                                if n2 > 0 { atomic.AddInt64(&totalReadBytes, int64(n2)) }
-                                if r2 == nil || (r2 != nil && r2.Error() == "EOF") {
-                                    if d2 <= cfg.threshold { return d2, false }
-                                }
-                                return d2, true
-                            }
-                        }
-                        return d, true
-                    }
-                    return d, false
-                }
-
-                e1, bad1 := probe(0)
-                firstElapsed = e1
-                if bad1 {
-                    if atomic.LoadInt32(&warmupUsed) == 0 && e1 <= cfg.warmupGrace {
-                        atomic.StoreInt32(&warmupUsed, 1)
-                    } else {
-                        damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.0fs read delay (%.0fs)", cfg.threshold.Seconds(), e1.Seconds()))
-                        lastDamaged.Store(p)
-                        damagedMark = true
-                        status = "delay-first"
-                    }
-                }
-
-                if !damagedMark && cfg.mode != modeQuick {
-                    minBytes := cfg.minSizeBytes
-                    if minBytes == 0 { minBytes = toBytesMBEnv(float64(cfg.balancedMinMB)) }
-                    if size >= minBytes {
-                        var points []float64
-                        if cfg.mode == modeBalanced { points = []float64{0.5} } else { points = []float64{0.25, 0.5, 0.75} }
-                        for _, frac := range points {
-                            off := int64(float64(size-int64(len(buf))) * frac)
-                            if off < 0 { off = 0 }
-                            if off > size-int64(len(buf)) { off = size - int64(len(buf)) }
-                            e, bad := probe(off)
-                            if bad {
-                                damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.1fs read delay mid (%.1fs)", cfg.threshold.Seconds(), e.Seconds()))
-                                lastDamaged.Store(p)
-                                damagedMark = true
-                                status = "delay-probe"
-                                break
-                            }
-                        }
-                    }
-                }
-
-                close(done)
-                f.Close()
+                if stopped() { return }
+                r := checkFile(ctx, job, cfg, buf, warmup, &warmupUsed, &totalReadBytes)
 
                 // EWMA update for adaptive throttling
-                if firstElapsed > 0 {
+                if r.first > 0 {
                     if ewma == 0 {
-                        ewma = firstElapsed.Seconds()
+                        ewma = r.first.Seconds()
                     } else {
                         alpha := cfg.ewmaAlpha
                         if alpha < 0 { alpha = 0 } else if alpha > 1 { alpha = 1 }
-                        ewma = alpha*firstElapsed.Seconds() + (1-alpha)*ewma
+                        ewma = alpha*r.first.Seconds() + (1-alpha)*ewma
                     }
                     high := cfg.ewmaHighFrac * cfg.threshold.Seconds()
                     low := cfg.ewmaLowFrac * cfg.threshold.Seconds()
@@ -747,173 +848,109 @@ func CheckFolder(root string) error {
                     if ewma > high { sleepMs = int(math.Min(float64(maxS), float64(sleepMs+step))) }
                     if ewma < low { sleepMs = int(math.Max(0, float64(sleepMs-step))) }
                 }
-
-                if damagedMark {
-                    atomic.AddInt64(&damagedFiles, 1)
-                    atomic.AddInt64(&processedFiles, 1)
-                    if rep != nil { rep.Write(p, size, firstElapsed, status) }
-                } else {
-                    atomic.AddInt64(&processedFiles, 1)
-                    if rep != nil { rep.Write(p, size, firstElapsed, "ok") }
-                    goodAppend(p)
-                }
-
-                if cfg.maxFiles > 0 && atomic.LoadInt64(&processedFiles) >= cfg.maxFiles {
-                    stopMu.Lock()
-                    atomic.StoreInt32(&stopFlag, 1)
-                    stopMu.Unlock()
-                    return
-                }
-                if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration {
-                    stopMu.Lock()
-                    atomic.StoreInt32(&stopFlag, 1)
-                    stopMu.Unlock()
-                    return
-                }
-
+                if handle(job, r) { return }
                 if sleepMs > 0 { time.Sleep(time.Duration(sleepMs) * time.Millisecond) }
             }
         }()
     } else {
-        // Parallel workers as before
+        // Parallel workers
         workerCount := decideWorkers(root, cfg)
         wg.Add(workerCount)
         for i := 0; i < workerCount; i++ {
             go func() {
                 defer wg.Done()
                 buf := make([]byte, cfg.bufSize)
-                var vwMu sync.Mutex
                 vw := make(map[string]*volumeWarmup)
                 for job := range jobs {
-                    if ih.IsForceExit() || ih.IsInterrupted() { return }
-                    stopMu.Lock()
-                    if atomic.LoadInt32(&stopFlag) != 0 {
-                        stopMu.Unlock()
-                        return
-                    }
-                    stopMu.Unlock()
-                    p := job.path
-                    size := job.size
-                    if size == 0 { continue }
-                    f, err := os.Open(p)
-                    if err != nil {
-                        damaged.LogDamagedFile(p, "check-open-error", size, 1, fmt.Sprintf("open error: %v", err))
-                        lastDamaged.Store(p)
-                        atomic.AddInt64(&damagedFiles, 1)
-                        atomic.AddInt64(&processedFiles, 1)
-                        if rep != nil { rep.Write(p, size, 0, "open-error") }
-                        continue
-                    }
-                    done := make(chan struct{})
-                    go func(ff *os.File) { select { case <-ih.Context().Done(): ff.Close(); case <-done: } }(f)
-                    var firstElapsed time.Duration
-                    var status string
-                    var damagedMark bool
+                    if stopped() { return }
+                    var warmup func(*os.File)
                     if job.vol != "" && cfg.warmupGrace > 0 {
-                        vwMu.Lock()
-                        v := vw[job.vol]
-                        now := time.Now()
-                        if v == nil { v = &volumeWarmup{}; vw[job.vol] = v }
-                        if !v.used { v.used = true; v.last = now; f.Read(make([]byte, 4)) } else if cfg.warmupIdle > 0 && now.Sub(v.last) >= cfg.warmupIdle { v.last = now; f.Read(make([]byte, 4)) } else { v.last = now }
-                        vwMu.Unlock()
-                    }
-                    probe := func(off int64) (time.Duration, bool) {
-                        if off > 0 { if _, err := f.Seek(off, 0); err != nil { return 0, true } }
-                        t0 := time.Now()
-                        n, rerr := f.Read(buf)
-                        d := time.Since(t0)
-                        if n > 0 { atomic.AddInt64(&totalReadBytes, int64(n)) }
-                        if rerr != nil && rerr.Error() != "EOF" { return d, true }
-                        if d > cfg.threshold {
-                            if d <= cfg.threshold+checkRetryWindow {
-                                time.Sleep(checkRetrySleep)
-                                if f2, e2 := os.Open(p); e2 == nil {
-                                    if off > 0 { f2.Seek(off, 0) }
-                                    t1 := time.Now()
-                                    n2, r2 := f2.Read(buf)
-                                    d2 := time.Since(t1)
-                                    f2.Close()
-                                    if n2 > 0 { atomic.AddInt64(&totalReadBytes, int64(n2)) }
-                                    if r2 == nil || (r2 != nil && r2.Error() == "EOF") { if d2 <= cfg.threshold { return d2, false } }
-                                    return d2, true
-                                }
-                            }
-                            return d, true
-                        }
-                        return d, false
-                    }
-                    if e1, bad1 := probe(0); true {
-                        firstElapsed = e1
-                        if bad1 {
-                            if atomic.LoadInt32(&warmupUsed) == 0 && e1 <= cfg.warmupGrace { atomic.StoreInt32(&warmupUsed, 1) } else { damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.1fs read delay (%.1fs)", cfg.threshold.Seconds(), e1.Seconds())); lastDamaged.Store(p); damagedMark = true; status = "delay-first" }
-                        }
-                    }
-                    if !damagedMark && cfg.mode != modeQuick {
-                        minBytes := cfg.minSizeBytes
-                        if minBytes == 0 { minBytes = toBytesMBEnv(float64(cfg.balancedMinMB)) }
-                        if size >= minBytes {
-                            var points []float64
-                            if cfg.mode == modeBalanced { points = []float64{0.5} } else { points = []float64{0.25, 0.5, 0.75} }
-                            for _, frac := range points {
-                                off := int64(float64(size-int64(len(buf))) * frac)
-                                if off < 0 { off = 0 }
-                                if off > size-int64(len(buf)) { off = size - int64(len(buf)) }
-                                if e, bad := probe(off); bad {
-                                    damaged.LogDamagedFile(p, "check-delay", size, 1, fmt.Sprintf(">%.1fs read delay mid (%.1fs)", cfg.threshold.Seconds(), e.Seconds()))
-                                    lastDamaged.Store(p)
-                                    damagedMark = true
-                                    status = "delay-probe"
-                                    break
-                                }
+                        vol := job.vol
+                        warmup = func(f *os.File) {
+                            v := vw[vol]
+                            now := time.Now()
+                            if v == nil { v = &volumeWarmup{}; vw[vol] = v }
+                            if !v.used || (cfg.warmupIdle > 0 && now.Sub(v.last) >= cfg.warmupIdle) {
+                                v.used = true
+                                v.last = now
+                                f.Read(make([]byte, 4))
+                                f.Seek(0, io.SeekStart)
+                            } else {
+                                v.last = now
                             }
                         }
                     }
-                    close(done)
-                    f.Close()
-                    if damagedMark { atomic.AddInt64(&damagedFiles, 1); atomic.AddInt64(&processedFiles, 1); if rep != nil { rep.Write(p, size, firstElapsed, status) } } else { atomic.AddInt64(&processedFiles, 1); if rep != nil { rep.Write(p, size, firstElapsed, "ok") }; goodAppend(p) }
-                    if cfg.maxFiles > 0 && atomic.LoadInt64(&processedFiles) >= cfg.maxFiles {
-                        stopMu.Lock()
-                        atomic.StoreInt32(&stopFlag, 1)
-                        stopMu.Unlock()
-                        return
-                    }
-                    if cfg.maxDuration > 0 && time.Since(start) >= cfg.maxDuration {
-                        stopMu.Lock()
-                        atomic.StoreInt32(&stopFlag, 1)
-                        stopMu.Unlock()
-                        return
-                    }
+                    r := checkFile(ctx, job, cfg, buf, warmup, &warmupUsed, &totalReadBytes)
+                    if handle(job, r) { return }
                     if cfg.hddSleepMs > 0 { time.Sleep(time.Duration(cfg.hddSleepMs) * time.Millisecond) }
                 }
             }()
         }
     }
 
-    if err := <-walkerErrCh; err != nil && err.Error() != "interrupted" && err.Error() != "stopped" {
-        return fmt.Errorf("walk error: %v", err)
-    }
+    walkErr := <-walkerErrCh
     wg.Wait()
 
     close(quit)
+    <-tickerDone
     ticker.Stop()
     if !cfg.quiet { fmt.Print("\n") }
 
-    // What the sweep found, on the machine channel and in the exit code. A
-    // file that reads slowly or not at all is a judgement about the target,
-    // so the run ends `Failed` and exits 1; a sweep that found nothing ends
-    // `Passed` and exits 0 (CLI-EVENT-STREAM rules 10 and 11).
-    runNumber("totalFiles", atomic.LoadInt64(&totalFiles))
-    runNumber("skippedFiles", atomic.LoadInt64(&skippedFiles))
-    runNumber("damagedFiles", atomic.LoadInt64(&damagedFiles))
-    if n := atomic.LoadInt64(&damagedFiles); n > 0 {
+    if walkErr != nil && !errors.Is(walkErr, errCheckLimit) && !errors.Is(walkErr, errCheckStopped) {
+        atomic.AddInt64(&walkErrors, 1)
+        notes.add(cfg.quiet, "The walk ended early: %v", walkErr)
+    }
+
+    found := atomic.LoadInt64(&foundFiles)
+    checked := atomic.LoadInt64(&checkedFiles)
+    newDamaged := atomic.LoadInt64(&damagedFiles)
+    oldDamaged := atomic.LoadInt64(&knownDamaged)
+    unverified := atomic.LoadInt64(&unverifiedFiles)
+    walkErrs := atomic.LoadInt64(&walkErrors)
+    good := atomic.LoadInt64(&skippedGood)
+
+    runNumber("totalFiles", found)
+    runNumber("checkedFiles", checked)
+    runNumber("skippedGoodFiles", good)
+    runNumber("damagedFiles", newDamaged+oldDamaged)
+    runNumber("newlyDamagedFiles", newDamaged)
+    runNumber("knownDamagedFiles", oldDamaged)
+    runNumber("unverifiedFiles", unverified)
+    runNumber("unreadableEntries", walkErrs)
+
+    // A file that reads slowly or not at all is a judgement about the
+    // target, and so is one this list already knows: `Failed`, exit 1.
+    if n := newDamaged + oldDamaged; n > 0 {
         runDefect("damaged-files",
-            fmt.Sprintf("%d file(s) read slowly or not at all and were logged as damaged", n),
-            map[string]interface{}{"damagedFiles": n, "totalFiles": atomic.LoadInt64(&totalFiles)})
+            fmt.Sprintf("%d file(s) read slowly or not at all (%d found in this run, %d already on the damaged list)", n, newDamaged, oldDamaged),
+            map[string]interface{}{"damagedFiles": n, "newlyDamagedFiles": newDamaged, "knownDamagedFiles": oldDamaged, "totalFiles": found})
+    }
+
+    var problems []string
+    if unverified > 0 {
+        problems = append(problems, fmt.Sprintf("%d file(s) could not be opened or read (locked or access denied) and were not judged", unverified))
+    }
+    if walkErrs > 0 {
+        problems = append(problems, fmt.Sprintf("%d folder(s) or entries could not be listed", walkErrs))
+    }
+    isStopped := ih.IsInterrupted()
+    if !isStopped && checked == 0 && newDamaged+oldDamaged == 0 && len(problems) == 0 {
+        if good > 0 {
+            problems = append(problems, fmt.Sprintf("nothing was read: all %d file(s) are already on the good list (--resume) - run without --resume to read them again", good))
+        } else {
+            problems = append(problems, "nothing was read: there is no non-empty file to check here")
+        }
     }
 
     if !cfg.quiet {
-        fmt.Printf("\nCHECK completed: total=%d, skipped(damaged-before)=%d, newly-damaged=%d\n",
-            atomic.LoadInt64(&totalFiles), atomic.LoadInt64(&skippedFiles), atomic.LoadInt64(&damagedFiles))
+        fmt.Printf("\nCHECK completed: found=%d, checked=%d, damaged(new)=%d, damaged(known, not re-read)=%d, not-read=%d, skipped(good, --resume)=%d\n",
+            found, checked, newDamaged, oldDamaged, unverified, good)
+        if n := notes.hidden; n > 0 {
+            fmt.Printf("(%d more unreadable entries not listed)\n", n)
+        }
+        if newDamaged > 0 && !cfg.dryRun {
+            fmt.Printf("Damaged list: %s\n", damagedList.Path())
+        }
         // One file gets one sentence. The counters above answer a sweep;
         // they do not answer "is this file all right", which is the only
         // question a single-file check was asked.
@@ -921,18 +958,24 @@ func CheckFolder(root string) error {
             switch {
             case info.Size() == 0:
                 fmt.Printf("%s is empty - there is nothing to read, so nothing to judge.\n", root)
-            case atomic.LoadInt64(&damagedFiles) > 0:
+            case newDamaged > 0:
                 fmt.Printf("%s reads SLOWLY or not at all and was logged as damaged.\n", root)
-            case atomic.LoadInt64(&processedFiles) > 0:
+            case unverified > 0:
+                fmt.Printf("%s could not be read (locked or access denied) - not judged.\n", root)
+            case checked > 0:
                 fmt.Printf("%s reads cleanly.\n", root)
             }
         }
+    }
+    if len(problems) > 0 && !isStopped {
+        return fmt.Errorf("check could not verify everything: %s", strings.Join(problems, "; "))
     }
     return nil
 }
 
 // Reporting
 type reportWriter struct {
+    mu   sync.Mutex
     kind string
     f    *os.File
     n    int
@@ -950,8 +993,11 @@ func newReportWriter(kind, path string) (*reportWriter, error) {
     return w, nil
 }
 
+// Write adds one row. Workers call it concurrently.
 func (w *reportWriter) Write(path string, size int64, elapsed time.Duration, status string) {
     if w == nil || w.f == nil { return }
+    w.mu.Lock()
+    defer w.mu.Unlock()
     ms := float64(elapsed.Milliseconds())
     if w.kind == "csv" {
         fmt.Fprintf(w.f, "%q,%d,%.1f,%q\n", path, size, ms, status)
@@ -964,30 +1010,10 @@ func (w *reportWriter) Write(path string, size int64, elapsed time.Duration, sta
 
 func (w *reportWriter) Close() {
     if w == nil || w.f == nil { return }
+    w.mu.Lock()
+    defer w.mu.Unlock()
     if w.kind == "json" {
         fmt.Fprintln(w.f, "\n]")
     }
     w.f.Close()
-}
-
-// Resume state
-type checkState struct {
-    LastProcessedPath string    `json:"lastProcessedPath"`
-    Timestamp         time.Time `json:"timestamp"`
-}
-
-func loadCheckState() *checkState {
-    b, err := os.ReadFile("check_state.json")
-    if err != nil { return nil }
-    var s checkState
-    if jsonErr := json.Unmarshal(b, &s); jsonErr != nil { return nil }
-    return &s
-}
-
-func saveCheckState(path string) {
-    if path == "" { return }
-    s := checkState{LastProcessedPath: path, Timestamp: time.Now()}
-    if b, err := json.MarshalIndent(s, "", "  "); err == nil {
-        _ = os.WriteFile("check_state.json", b, 0644)
-    }
 }

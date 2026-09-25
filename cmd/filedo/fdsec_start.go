@@ -46,6 +46,8 @@ type fdsecStartSandbox struct {
 
 	scheduled bool // the close was handed to the console-hold queue
 	once      sync.Once
+	// removeCleanup unregisters the force-exit cleanup once close has run.
+	removeCleanup func()
 }
 
 // fdsecStartRoot prepares the sandbox root and answers the free-space
@@ -89,7 +91,16 @@ func fdsecStartSandboxOpen(root string) (*fdsecStartSandbox, error) {
 		s.releaseLock()
 		return nil, fmt.Errorf("cannot create the sandbox for the restored copy %s: %w", s.dir, err)
 	}
-	globalInterruptHandler.AddCleanup(s.close)
+	// Force exit only. A graceful stop is observed by the restore itself, and
+	// its deferred closeUnlessScheduled removes the sandbox once the
+	// temporary file inside it is closed. Run on every stop, this cleanup
+	// spent the sync.Once while the file was still open - the removal failed
+	// and the later close then did nothing (FDSEC-02).
+	s.removeCleanup = globalInterruptHandler.AddCleanup(func() {
+		if globalInterruptHandler.IsForceExit() {
+			s.close()
+		}
+	})
 	return s, nil
 }
 
@@ -172,6 +183,9 @@ func (s *fdsecStartSandbox) close() {
 			os.Remove(s.dir)
 		}
 		s.releaseLock()
+		if s.removeCleanup != nil {
+			s.removeCleanup()
+		}
 	})
 }
 

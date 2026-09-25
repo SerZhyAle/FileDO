@@ -17,6 +17,13 @@ const (
 	adPrefixMeta  = "FDSEC1/meta"
 	adPrefixChunk = "FDSEC1/chunk"
 	noncePrefix   = "FDSEC1/nonce/"
+
+	// Suite 3 (FDSEC-FORMAT.md sections 17.3, 17.5). The head is suite 1's,
+	// so slot 0 keeps its "FDSEC1/slot0" binding and the nonce derivation
+	// keeps its prefix; only what is sealed after the head is new.
+	adPrefixDir      = "FDSEC3/dir"
+	adPrefixManifest = "FDSEC3/manifest"
+	adPrefixEntry    = "FDSEC3/entry"
 )
 
 func newXAEAD(key []byte) (cipher.AEAD, error) {

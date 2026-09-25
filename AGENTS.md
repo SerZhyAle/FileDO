@@ -31,19 +31,25 @@ release, one tag, a companion binary, *not* a separate edition. Distributed on t
 (GitHub Release + winget + Microsoft Store) plus a direct-download setup EXE (and its bare MSI).
 
 - **Source root.** Four `cmd/<binary>/` mains (`filedo`, `filedo-check`, `filedo-fill`, `filedo-test`) +
-  shared top-level packages `fileduplicates/`, `helpers/`, `capacitytest/`. **Multi-module**: 4 separate
-  `go.mod`/`go.sum`, mixed Go versions (1.24.4 / 1.21). Module path `filedo` (a frozen anchor).
+  shared top-level packages `fileduplicates/`, `helpers/`, `fsx/`, `statedir/`. **Multi-module**: 4
+  separate `go.mod`/`go.sum`, mixed `go` language lines (1.25.0 / 1.21) but **one toolchain**: the root
+  `go.mod`'s `toolchain go1.26.1` is what every channel builds with - `release.yml` installs it,
+  `build.ps1` and `msix/build-msix.ps1` refuse any other local Go. Module path `filedo` (a frozen anchor).
 - **Version shape.** Separator-less `yyMMddHHmm` (e.g. `2606120121`) - a sortable 10-digit integer. Git
-  tag `v<stamp>`, validated by `release.ps1` as `^\d{10}$` before it prefixes the `v`, and stamped into
-  the binaries via `-ldflags "-X main.version="`. Remapped mechanically for MSIX and the PE
-  `VS_VERSIONINFO` only.
+  tag `v<stamp>`, validated by `release.ps1` as a real date newer than every `v\d{10}` tag before it
+  prefixes the `v`, and stamped into the binaries via `-ldflags "-X main.version="`. Remapped
+  mechanically for the PE `VS_VERSIONINFO` (`yy.M.d.HHmm`), the MSI and setup EXE
+  (`yy.M.<minute of the month>` - Windows Installer compares three fields) and MSIX only; the table is
+  in [`RELEASE.md`](RELEASE.md) "Version scheme".
 - **Release-mechanics** are top-level channel siblings (no `publishing/` umbrella): `winget/`, `msix/`,
   `packaging/wix/`, committed `exe_to_download/`. `winget/` holds the three manifests and **nothing else**:
   `winget validate` is pointed at the directory and parses every file in it as YAML, which is why the
   manifest checker lives in `packaging/` (below) and not beside what it checks.
 - **Frozen anchors** (reserve once; changing orphans installs): winget `PackageIdentifier
   SerZhyAle.FileDO`; WiX MSI `UpgradeCode 4d6b3b1f-7c8e-4a25-9f1d-8e3b2c5a7d91` (+ `HKLM\Software\FileDO`);
-  MSIX Identity `Name`/`Publisher`; Go module `filedo`; the 5 winget `PortableCommandAlias` names; the
+  the MSIX Identity `Name` **`SZA.FileDO`** and `Publisher` **`CN=F98ACEDB-1E22-4C39-AF63-F9FCFE807DCD`**
+  (Store ID `9PH1LPCMRG83`, family `SZA.FileDO_fdk7e19xt9z9j`; reserved in Partner Center and recorded in
+  `msix/identity.json`, live in the Store since 2026-09-23); Go module `filedo`; the 5 winget `PortableCommandAlias` names; the
   document type id **`FileDO.SecureContainer`** and the fixed component GUIDs in `FileDO.wxs` (an MSI
   component keeps its GUID for the product's life, or an upgrade leaves the old copy installed); the
   **bundle `UpgradeCode 033d2348-b26c-477f-8885-c68d9cfff47f`** in `FileDO-bundle.wxs` - a separate
@@ -58,9 +64,12 @@ is built by a plain `.\build.ps1` locally and by the release workflow on the run
 **Two artifacts, one package.** `FileDO-<version>-setup.exe` is a WiX Burn bundle
 (`packaging/wix/FileDO-bundle.wxs`) that carries `FileDO-<version>-windows-x64.msi` inside it; both ship on
 every release and the EXE is the one a person downloads. The bundle defines **no install behaviour of its
-own** - its UI is the MSI's feature tree (`bal:DisplayInternalUICondition="1"`, and the bootstrapper's own
-theme is `none` so there is not a second wizard), so a change to what is installed is a change to the wxs
-and never to the bundle. `.\build.ps1 -Install` builds both and then runs the EXE on this machine - the
+own** - its UI is the MSI's feature tree (`bal:WixInternalUIBootstrapperApplication` shows the primary
+MSI's own UI and draws no wizard of its own), so a change to what is installed is a change to the wxs
+and never to the bundle. It is the one FileDO entry in Apps and features, and `DisableModify="button"`
+makes that entry's Uninstall/Change run the bundle in maintenance mode, where the same bootstrapper opens
+the MSI's maintenance page - Change is the feature tree (SP-0030 PKG-02; the standard bootstrapper it
+replaced planned nothing for an installed MSI, which is why Modify used to be disabled). `.\build.ps1 -Install` builds both and then runs the EXE on this machine - the
 only switch in either script that changes the machine it runs on, which is why it is a switch and not the
 default that building them is.
 
@@ -85,7 +94,10 @@ and Repair are the supported way to turn the integration on and off later.
 MSI) and `cmd/filedo/fdsec_register*.go` (`filedo fdsec register`, HKCU or HKLM, for the channels where no
 installer runs - the portable zip, winget's `zip`+`portable` package, `go install`). Key names, labels,
 command lines and the `FileDO.RegisteredBy` mark are one contract; change one file and the other changes in
-the same commit. Two things are registered and nothing else (SP-0005 9.1, as amended 2026-09-20): the
+the same commit. `TestRegistryParity_TheMSIAndFdsecRegisterWriteTheSameShellIntegration`
+(`cmd/filedo/registry_parity_test.go`) holds them together value for value: it parses the wxs's
+`ShellIntegration` group, runs the real `fdsec register -all-users` into a scratch key, and compares every
+key, value name, type and data in both directions. Two things are registered and nothing else (SP-0005 9.1, as amended 2026-09-20): the
 cascading `File DO..` group on all files - `*\shell\FileDO`, `SubCommands` an **empty** string, entries in
 the `shell` subkey named `10Secure` .. `90Info` so the digits fix the order - and the `.fd-sec` document
 type with its icon, whose open verb is exactly the group's `65UnsecureStart` entry. The document type
@@ -111,28 +123,78 @@ Four rules that are not style:
 - **`DefaultIcon` needs a file on disk** - `FileDO.ico` beside the exe, staged from `assets/icon.ico` by
   both the workflow and `build.ps1`. The icon embedded in the MSI is gone once the installer is.
 
-The **Store (MSIX) build has no Explorer entries**: a packaged build can only declare them through a signed
-shell command handler (SP-0005 9.3, still unbuilt). Say that plainly rather than implying parity.
+**The Store (MSIX) build carries the group as a packaged Explorer command, not as registry keys** (SP-0020,
+built 2026-09-25, **not released**). `shellext/FileDOShell.cpp` is the product's **third codebase**: a native C++
+`IExplorerCommand`, one COM class, static CRT, importing `kernel32` and `ole32` only (`shellext/build-shellext.ps1`
+fails the build on any other import), declared in `msix/AppxManifest.xml` through
+`desktop4:FileExplorerContextMenus` on `Type="*"` and hosted by a COM surrogate (`com:SurrogateServer`), so it runs
+in a `dllhost.exe` and a fault in it never takes Explorer down. It is the only way to the Windows 11 first-level
+menu. Four rules that are not style:
+- **It does nothing but hand a path to `filedo.exe`**, the one beside it in the package - no file I/O, no state,
+  `GetState` always enabled. It is called on every right-click.
+- **Its menu is `fdsecMenuItems`, entry for entry.** The table between `BEGIN/END MENU TABLE` in the .cpp is read
+  by `TestShellExtMenuMatchesClassic` (`cmd/filedo/shellext_contract_test.go`): key, label, arguments, separators,
+  the `--pause --no-history` suffix and the group label. That makes **three writers** of the one menu - the wxs,
+  `fdsec_register*.go`, and the .cpp - and all three change in the same commit.
+- **The CLSID `7B369FE8-B2BC-41EA-AA71-5427ACAD6E8E` is an anchor** and lives in three places (the verb, the COM
+  class, the .cpp); `TestShellExtClsidAgrees` and `build-msix.ps1`'s packed-manifest check both hold them together.
+- **The classic copy yields to the package** (SP-0020 D3): a per-user `fdsec register` stands down when
+  `GetPackagesByPackageFamily` finds either FileDO family (`fdsecPackagedMenuFamilies` - the Store PFN and the
+  local-test one, both derived from their identities by `TestPackagedMenuFamiliesMatchTheIdentities`);
+  `-all-users` still writes, because the package is per-user, and says this account sees both. Tests pin the
+  answer with `FILEDO_FDSEC_PACKAGED_MENU=0|1`, because a sideloaded test package on the developer's machine
+  would otherwise make every registration test stand down.
+
+Only the MSIX ships the DLL (SP-0020 D2). The MSI, winget and the zip keep the classic registration, which on
+Windows 11 lives under "Show more options" - say that plainly rather than implying parity. Building the MSIX
+therefore needs the Visual Studio C++ x64 tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`).
 
 ## Code map (`cmd/filedo`)
 The main CLI has **two dispatch layers**, and they are the thing that costs an hour to rediscover.
 
-1. **Verb dispatch** - `main.go` matches raw `os.Args` against the `list_of_flags_for_*` alias slices
-   (`copy`/`cp`, `wipe`/`w`, `cd`/`check-duplicates`, ..), falling back to path sniffing (drive letter,
-   `\\` prefix, `os.Stat`) to infer `device`/`folder`/`file`/`network` when arg 1 is not a known verb.
-   **`executeInternalCommand` in the same file is a second, near-duplicate copy of that switch**, used by
-   batch mode (`from`/`batch`). A new verb therefore needs four edits: its own alias slice,
-   `list_of_flags_for_all`, the `main()` switch, and the `executeInternalCommand` switch - miss the last
-   and the verb works interactively but silently not from a `.lst`.
+1. **Verb dispatch** - `dispatchLine` (`dispatch.go`) is the **one** verb switch, and both entry points
+   call it: `main()` with the command line, and the `from`/`batch` path (`batch.go`) with each line of a
+   `.lst` through the thin `executeInternalCommand`. `verbOf` maps an alias of the `list_of_flags_for_*`
+   slices (`copy`/`cp`, `cd`/`check-duplicates`, ..) to its canonical verb; when the first word is not a
+   verb, `classifyTarget` decides `device`/`folder`/`file`/`network` (only an ASCII letter with an
+   optional `:`, `:\` or `:/` is a device; `\\` and `//` are shares; `\\?\X:\..` and `\\.\X:` name the
+   local path; `.` is a folder). A new verb is **two edits**: its alias slice (plus `list_of_flags_for_all`)
+   and its entry in `verbOf` with a case in `dispatchLine`. Until SP-0024 (CLI-30) there were two copies of
+   the switch and they drifted; there is nothing left to drift. A batch line is never run as an external
+   program, a batch file that includes itself is refused, and no line starts after a stop.
 2. **Target dispatch** - only the four target verbs go on to `runGenericCommand` (`command_handlers.go`),
    which picks `DeviceHandler`/`FolderHandler`/`NetworkHandler`/`FileHandler` behind the `CommandHandler`
    interface. Sub-operations there are matched by **positional string compare** on `cmd.Arg(1)` (`speed`,
-   `fill`, `test`, `clean`, `cd`, ..); the `flag.FlagSet` is parsed but defines no options, so nothing is
-   flag-driven. `copy`/`compare`/`check`/`wipe` never reach this layer - they are handled straight out of
-   the `main.go` switch.
+   `fill`, `test`, `clean`, `cd`, ..); the `flag.FlagSet` defines no options and is parsed after a `--`, so
+   a target starting with a dash is a target. `copy`/`compare`/`check` never reach this layer - they are
+   two-path verbs of `dispatchLine`.
 
-`redirectSystemDrive` (`command_handlers.go`) is the single choke point sending `speed`/`fill`/`test`
-writes on `C:` to `%TEMP%\FileDO_Operations`.
+`effectiveTarget` (`sysdrive_windows.go`) is the single choke point for the system drive: `speed`/`fill`/
+`test` on the root of the volume holding Windows - in any spelling, resolved by the filesystem, never by
+comparing text - go through the confirming redirect to `%TEMP%\FileDO_Operations`, and `clean` there
+cleans that folder. A folder below the root is the user's explicit choice and is not redirected.
+
+**Shared mechanisms every verb uses** (SP-0023 themes; build on them, never beside them):
+- **Stop** - `interrupt.go`. State is read through atomics, cleanups run outside the lock after the
+  context is cancelled, and `AddCleanup` returns the function that unregisters it: a per-item
+  registration is removed when its item completes. A graceful stop is observed by the operation itself
+  (`runStopRequested()`, the context, `fdsec.WithStop`); interrupt cleanups that touch files act only on a
+  forced exit (`IsForceExit()`), so they never race an operation that still owns the handle.
+- **Path identity** - root package `fsx/` (`fsx.IdentityOf`, `SameFile`, `Resolve`, `Overlap`,
+  `IsVolumeRoot`): final path, volume, volume serial + file ID. "Same file", "inside", "a root" and "the
+  system drive" are decided here and never on strings.
+- **Atomic writes** - `fsx.CreatePartial`/`Commit` and `fsx.RenameNoReplace`: `<name>.filedo-partial`,
+  flushed, timed, renamed with **no replace**. Go's `os.Rename` on Windows replaces its target, so it is
+  never the final step for user data.
+- **Error classes** - `errclass_windows.go`: environmental errors (access denied, write-protected, not
+  ready, disk full, sharing violation, network gone) are "could not verify"; only device-level I/O errors
+  may become a defect (`ioJudgement`).
+- **Runtime state** - root package `statedir/`: everything the CLI writes for itself (history.json, the
+  copy skip list, check's lists and state, the hash cache) lives in `%LOCALAPPDATA%\FileDO\state\`, with a
+  one-time import of a legacy copy from the current directory or beside the exe (copied, never moved).
+  `FILEDO_STATE_DIR` moves it and is the tests' seam; the black-box harness points it at each test's
+  working directory. history.json is written under a lock, atomically, only by a run that did something,
+  and a file that does not parse is kept as `history.json.corrupt-<time>`.
 
 **The verdict and the exit code have one site, and it is `outcome.go`.** A verb never writes an exit code
 and never emits a `result`: it *records* - `beginRun` when it starts, `runStep` per phase, `runDefect`
@@ -146,18 +208,33 @@ about the target must be wrapped with `defectf` or it reports as "could not judg
 prints an error and returns must reach `reportOpError`/`reportRunError` or the run silently exits 0 -
 which is exactly what every branch did before SP-0010.
 
-**The fake-capacity engine exists twice.** The live one is `main_types.go`: interface
-`FakeCapacityTester`, driver `runGenericFakeCapacityTest`, and the `verify*` family; `DeviceTester`
-(`device_windows.go`), `FolderTester` (`folder.go`) and `NetworkTester` (`network_windows.go`) implement
-it. Top-level `capacitytest/` is an exported near-copy of the same code of which **only two helpers are
-actually called** (`CalibrateOptimalBufferSize`, `WriteTestFileWithBufferContext`, both from
-`network_windows.go`). Detection fixes belong in `main_types.go`; editing `capacitytest/` changes nothing.
+**The fake-capacity engine exists once** (SP-0026 retired the `capacitytest/` near-copy, whose writer the
+verifier could not read). The driver is `main_types.go`: interface `FakeCapacityTester`,
+`runGenericFakeCapacityTest` and the `verify*` family; `DeviceTester` (`device_windows.go`),
+`FolderTester` (`folder.go`) and `NetworkTester` (`network_windows.go`) implement it and differ only in how
+they reach the target. The test-file format is `capacity_format.go`, the one writer and the unbuffered
+read-back `capacity_io_windows.go`, the plan arithmetic `capacity_plan.go`, and `fill` / `fill verify` /
+`clean` for all three target kinds `capacity_fill_windows.go`. Every tester and every fill writes through
+the same writer, so the verifier always reads what it was written for. The companion `filedo_test.exe`
+still carries an old copy (SP-0028 COMP-02).
 
-Detection rests on three independent signals inside `runGenericFakeCapacityTest` - keep all three: header
-== footer (`FILEDO_TEST_<name>_<ts>`), a per-file body tag `F<seq>_` woven through the payload so a
-controller aliasing block ranges is caught by reading any middle offset, and write speed staying within
-0.1x..10x of the 3-file baseline. File 1 is re-verified after *every* write. On failure the test files are
-deliberately **kept, never cleaned up** - they are the evidence for the estimated-real-capacity report.
+Detection rests on three independent signals - keep all three: header == footer (`FILEDO_TEST2 <name>
+<run nonce> <size> <ts>`); a body that names its file, its run and its offset - every 4 KiB block starts
+`F<seq>_<nonce>_<block>` and the rest is xorshift output keyed by the same three - so a controller that
+aliases block ranges, returns another address's data or an earlier run's leftovers is caught at any
+offset, and a compressing or deduplicating target cannot shrink the body; and write speed staying within
+0.1x..10x of the 3-file baseline. Every read-back opens with `FILE_FLAG_NO_BUFFERING` (`openForVerify`),
+file 1 is re-verified after *every* write, and a final pass re-reads every file before a PASS. A speed
+anomaly alone is never a verdict: it re-reads every file written so far, and only data that does not read
+back - or a device-class I/O error from the shared classifier - is a defect; an environmental error
+(access denied, write protection, a vanished device or share, a full disk) is "could not verify". On a
+defect the test files are deliberately **kept, never cleaned up** - they are the evidence for the
+estimated-real-capacity report - and a stop removes them whenever it comes. `clean` removes only files
+with a FileDO name *and* FileDO content, lists them and asks (`--yes` skips the question); `fill verify`
+still reads the old `FILEDO_TEST_<name>_<ts>` header for one release and names it as the weaker check.
+The in-process tests stub the volume through `diskSpaceQuery` and `capacityVolumeFacts`; the black-box
+ones cap the free space the capacity verbs believe in with `FILEDO_TEST_FREE_BYTES`, which can only ever
+make a run write less.
 
 **Secret files (`fdsec`) are a third shape.** The format core is the root package `fdsec/` (pack, unpack,
 KDF, AEAD, the sealed metadata; `FDSEC-FORMAT.md`, in the shared contracts folder outside git, is its
@@ -170,6 +247,28 @@ verb-first `fdsec info|verify` command did take the four edits of layer 1. Two r
 every credential-bearing surface passes through `redactCredentialArgs` (`fdsec_redact.go`) before it is
 written or echoed, and nothing is removed before `PackFile`/`Unpack` has verified the bytes end to end.
 
+**A folder is a target too** (SP-0009, FDSEC-FORMAT suite 3): `secure` on a folder packs the whole tree
+into one container (`fdsec.ScanTree` + `PackTreeFile`), and `unsecure` restores it through
+`cmd/filedo/fdsec_tree.go`. `fdsec.Open` is the one key derivation that learns which suite a container
+holds; `Unpack` refuses a folder container with `ErrTreeContainer`, which is how `reveal` and `unsecure
+start` refuse it. Three rules there are not style: the walk refuses a reparse point anywhere in the tree
+(the caller passes `hasReparsePoint`, so there is one classification); a restore goes into a fresh
+`.fdsec-restore-*` folder beside the destination and is renamed into place only when every file verified,
+never merged into an existing folder; and `del`/`wipe` of the original tree re-walk it first and touch
+nothing if it changed since the pack, then remove entry by entry from the manifest - never a recursive
+delete.
+
+**Suite 2, the quiet suite** (SP-0019, FDSEC-FORMAT section 18), is the third shape and the only one
+chosen by an option: `secure suite2` writes it, the default stays suite 1 (`fdsec/suite2.go`,
+`PackFileSuite2`). It has no head at all - salt, nonce, then XChaCha20-Poly1305 frames of 64 KiB under a
+pepper-folded Argon2id key - so `fdsec.Open` finds it by opening in a fixed order: the suite-1/3 head
+first, suite 2's try-list only when that head does not authenticate. Three rules there are not style: a
+refusal from an authenticated suite-1 head (damaged, unsupported) never falls through to suite 2; the
+pepper and every pinned try-list entry are frozen for the life of every file written under them
+(`TestVectors_Suite2` fails if either drifts, and a new profile is appended, never swapped in); and
+`ScreenLength` must accept any length a suite-2 file can have, because suite 2 has no cluster rule. The
+tests lower the try-list through the `suite2Profiles` seam, the same kind as `activeProfile`.
+
 A container carries **no marker of any kind** - no magic, no version in the clear, nothing a scanner can
 read (`FDSEC-FORMAT.md` sections 4, 13.4). Three consequences bind every edit here. The password is
 needed before anything can be read, so `fdsec info` takes one like every other verb. Screening a file
@@ -177,7 +276,9 @@ without the password can only ever be the length test of `fdsec.ScreenLength`, n
 And "wrong password", "not a container" and "damaged head" are one outcome: a message that names only one
 of the three is a bug, not a wording choice. The KDF work factor lives in the format version, not in the
 file, for the same reason - the mask has to be derived before the head can be read; `fdsec`'s tests lower
-it through the `activeProfile` seam, and `TestVectors_Suite1` puts the real one back.
+it through the `activeProfile` seam, and `TestVectors_Suite1` puts the real one back. A wrong password
+therefore pays suite 1's derivation and suite 2's - about 0.3 s on the owner's machine, 1.2 s on one core
+(the SP-0019 D3 measurement: `FDSEC_MEASURE_SUITE2=1 go test ./fdsec -run TestMeasure_Suite2Profile -v`).
 
 **The reveal (`cmd/filedo/fdsec_reveal*.go`) is where the plaintext lives, so it has rules of its own.**
 It copies the original into `%LOCALAPPDATA%\FileDO\reveal\<random>\`, a directory created with an access
@@ -229,7 +330,15 @@ check a new one with `git check-ignore -v <path>` rather than with a `git status
 
 **The shell's password never reaches a command line.** `JobView` passes `pe:FILEDO_SHELL_CRED` and sets
 that variable on the child process alone, so the process list, the run report and `history.json` see a
-variable name. `cmd/filedo/fdsec_surfaces_test.go` asserts this structurally, along with the rest of the
+variable name. `filedo.exe` removes the variable from its own environment the moment it reads it, so the
+program a reveal or `unsecure start` launches never inherits the password, and a `pe:` naming an unset or
+empty variable is a usage error - never an empty password (SP-0025 FDSEC-07, FDSEC-19).
+Four more rules from SP-0025 bind the container verbs: a final rename never replaces what it finds
+(`fdsec.ErrExists` sends the collision rule round again); "overwrite" replaces the old destination only
+through that final rename, after the new bytes verified (`fdsec.AllowReplace`); a stop ends a pack or an
+unpack at a chunk boundary (`fdsec.WithStop`) and nothing is deleted, wiped or launched after one; and
+the original is compared with its pre-pack snapshot (size, time, file ID) immediately before it is
+removed. `cmd/filedo/fdsec_surfaces_test.go` asserts the credential rule structurally, along with the rest of the
 ship-together surface set - the four claims in every README locale, the site guide in all three authored
 locales plus its sitemap row, and all of the shell's fdsec strings in all five locale tables.
 
@@ -244,10 +353,17 @@ randomness and `activeProfile` for the KDF work factor. Both are test-only by co
 written under a lowered profile opens only under that same profile - which is why no shipped path assigns
 either one.
 
-**Shared packages are main-module only.** `fileduplicates/`, `helpers/` and `capacitytest/` are imported
-as `filedo/...` and are reachable only from `cmd/filedo`. The three companion binaries are separate
+**Shared packages are main-module only.** `fileduplicates/`, `helpers/`, `fsx/` and `statedir/` are
+imported as `filedo/...` and are reachable only from the root module (`cmd/filedo` and each other). The
+three companion binaries are separate
 modules (`filedo_check`, `filedo_fill`, `filedo_test`) with no `replace` back to the root, so whatever
 they need is copy-pasted into their own directory - that duplication is structural, not an oversight.
+Since SP-0028 (option A) they are **thin launchers** and carry no engine: each maps its own command
+line onto `filedo.exe`'s (`filedo_fill D: 500` runs `filedo D: fill 500`) and runs the `filedo.exe` in
+its own folder - its path resolved through symlinks for winget's `Links`, never the current folder or
+`PATH` - with the console inherited, ending with that exit code. A fill, test or check fix therefore
+lands in `cmd/filedo` only. What the three share is `launcher.go` and its two test files, identical in
+every module and held together by `TestSharedFilesMatchTheOtherCompanions`.
 
 ## Build / release (which script is which)
 <!-- canon-ok: the canon owns "a build is not a release"; what is repo-specific is which of the two
@@ -264,13 +380,29 @@ they need is copy-pasted into their own directory - that duplication is structur
   is absent says nothing about the code that just compiled. The step adds `WixToolset.UI.wixext` and
   `WixToolset.BootstrapperApplications.wixext` **pinned to the tool's own version**: unpinned they resolve
   to the newest release (7.x), which a WiX 5 build refuses with *"Could not find expected package root
-  folder wixext5"*. `dist/` keeps only the current build's pair - every run stamps a new version, and a
-  folder of near-identical 20 MB pairs is a folder nobody reads.
+  folder wixext5"*; the skip matches name **and** version, so a 7.x copy in the cache does not count.
+  `dist/` keeps only the current build's pair - every run stamps a new version, and a folder of
+  near-identical 20 MB pairs is a folder nobody reads.
+  **What it builds is what ships** (SP-0030 REL-04): the Go exes exactly as `release.yml` builds them -
+  `windows/amd64`, CGO off, the pinned toolchain, `goversioninfo -64` (PE version + `app.manifest`),
+  `-trimpath` - and the gate's `go test` runs as amd64 too. So `exe_to_download/` holds **amd64** exes
+  (they were 386 before), and a host that cannot run amd64, a different local Go, or a goversioninfo other
+  than `v1.4.1` is exit 2 before anything is built. It works from any directory. **Deploying is opt-in**:
+  `-DeployTo <folder>` or `FILEDO_DEPLOY_DIR`, run last, after the gate and the installer, copying only
+  `*.exe`, `*.bat` and `*.config` - a plain run writes nowhere outside the repository.
 - **`.\release.ps1`** = RELEASE ("релиз"): the **only** thing that tags `v*` and triggers GitHub CI, then
   fans out to winget (`wingetcreate submit`) and an MSIX build; the Microsoft Store step is a manual
-  Partner Center upload. Its gate re-runs `build.ps1 -Test -Msi` when WiX is present (a wxs that does not
-  compile must fail before the tag, not inside the tagged run) and plain `-Test` when it is not, and it
-  aborts on any non-zero exit.
+  Partner Center upload. Its preflight refuses a tree with anything uncommitted or untracked outside
+  `exe_to_download/`, a stamp that is not a real date or not newer than every `v*` tag, and an MSI
+  version not greater than the one the latest release's MSI carries. Its gate re-runs
+  `build.ps1 -Test -Msi` when WiX is present (a wxs that does not compile must fail before the tag, not
+  inside the tagged run) and plain `-Test` when it is not, then the full fdsec run and `govulncheck
+  -mode=binary` over the four Go exes (the workflow repeats that scan after the tag, so it must pass
+  before), and it aborts on any non-zero exit. It commits
+  `exe_to_download/` and nothing else. After the tag a failed channel (winget sync, push, submit, the
+  MSIX) is reported `[ ]` with its reason and makes the exit code 1; **`-Resume -Version <stamp>`**
+  continues a release whose tag is already on origin, from the wait for the GitHub Release on - never cut
+  a new version to repair one.
 
 **Channel pre-publication checks** (`packaging/`, run by the two flows above - never by hand at release time):
 - **`packaging/check-winget-manifests.ps1`** gates `winget/`. `release.ps1` runs it **twice**: in the
@@ -278,14 +410,28 @@ they need is copy-pasted into their own directory - that duplication is structur
   *synced* manifests with `-Version` (schema via `winget validate`, the version in every URL, and
   `InstallerSha256` against the `.sha256` the release published) - **before** the commit and the
   winget-pkgs PR, because microsoft/winget-pkgs re-validates only after the tag is already out.
-  `-Install` adds the end-to-end install/run-a-shim/uninstall cycle; it writes to the operator's profile,
+  `-Install` adds the end-to-end install/run/uninstall cycle; it writes to the operator's profile,
   so it is opt-in (`release.ps1 -WingetInstallTest`) and refuses outright if that package is already
   installed. winget's own output is localized - only its exit code is read (`0`, or `-1978335192` for
-  warnings, which winget-pkgs accepts).
+  warnings, which winget-pkgs accepts). The installer manifest carries `ArchiveBinariesDependOnPath: true`
+  (checked here): winget puts the package folder on PATH instead of a symlink per alias, because .NET
+  Framework reads `filedo_win.exe.config` beside the path the GUI was started from (SP-0030 PKG-04).
 - **`packaging/verify-sha256-sidecars.ps1`** is called by `release.yml` after the three artifacts are
   built: it re-reads every `.sha256` and re-hashes the asset it names. That file is the download page's
   integrity contract *and* the source `InstallerSha256` is synced from, so a drifted sidecar is wrong in
   two channels at once.
+- **`packaging/check-third-party-notices.ps1`** is a `build.ps1 -Test` step: every Go module each shipped
+  executable links (`go list -deps`, windows/amd64) must have a section in `THIRD-PARTY-NOTICES.txt` at
+  that version, and every module section must still be linked by something. The file is written by hand;
+  this is what notices a dependency added or bumped without its license (SP-0030 REL-18).
+- **`release.yml` validates before it publishes** (SP-0030 CI-01..03): the tag reaches its scripts only
+  through `env:`, must be `v` + a real `yyMMddHHmm` date whose commit is on `origin/main`, and there is no
+  `0.0.0.0` fallback; the release becomes Latest only when its stamp is newer than the current Latest's.
+  Every action is pinned by commit SHA (version in a comment), checkout does not persist the token, WiX is
+  `5.0.2`, Go is `1.26.1` with `GOTOOLCHAIN=local` and checked against `go.mod`, `govulncheck
+  -mode=binary` reads every Go exe, and the Windows build job has `contents: read` - only a separate
+  publish job, which runs no project code, may write the release. Bumping Go means `go.mod`'s toolchain
+  line and the workflow's `go-version` together; the gate fails when they differ.
 - **`msix/test-store-package.ps1`** is the Store-submission path, not the release gate: WACK
   (`appcert.exe`, its own kit directory - **not** the SDK `bin\<ver>\x64` that `Find-SdkTool` searches)
   against the `-SelfSign` package, and a GET on the published privacy-policy URL. It needs an **elevated**
@@ -306,9 +452,14 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 - **No Store package is ever built from placeholders.** `msix/build-msix.ps1` refuses without a reserved
   identity (`-IdentityName`, or `msix/identity.json`) and without a `CN=<GUID>` Publisher. The Publisher
   (`CN=F98ACEDB-1E22-4C39-AF63-F9FCFE807DCD`) and `PublisherDisplayName` (`SZA`) are account-wide; only
-  `Package/Identity/Name` is per product, and **it is not reserved yet**. Reserving it is a manual, permanent
-  Partner Center step, and the value is recorded in `identity.json` only as read from the *Product identity* page
-  - the `SZA.<name>` pattern of the sibling products is an expectation, never a fact to build on.
+  `Package/Identity/Name` is per product. FileDO's is **reserved: `SZA.FileDO`** (Store ID `9PH1LPCMRG83`,
+  family `SZA.FileDO_fdk7e19xt9z9j`), recorded in `msix/identity.json` as read from Partner Center's
+  *Product identity* page, and live since 2026-09-23 - so it is a **frozen anchor** (listed with the others
+  in "Project shape"): a package under another name is a different app, and every install of this one is
+  orphaned. `identity.json` changes only if that page says something else.
+- **The Store GUI carries the release stamp** (SP-0030 PKG-03): `build-msix.ps1` builds `filedo_win.exe` with
+  `/p:BuildStamp` and `/p:AssemblyVersion` exactly as `build.ps1` does and reads its FileVersion back from the
+  stage, and it refuses a local Go other than `go.mod`'s toolchain pin.
 - **A test build cannot pass for a Store build**: `-SelfSign` and `-Register` carry `SZA.FileDO.LocalTest` and
   write `_LOCALTEST` files. `-Register` (Developer Mode) is the only switch that changes the machine.
 - **The console application is visible.** The Store rejects a hidden (`AppListEntry="none"`) application as
@@ -325,16 +476,26 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate is `build.ps1 -Test`, in five steps: smoke every shipped executable for its stamped version;
-  compile-check `cmd\filedo-test` and validate `packaging/check-placement.jsonl`; `go test ./fdsec/ -count=1
-  -short`; `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`; and
-  `filedo_win.exe --selftest` (skipped only with `-SkipGui`). Its last line is `build-gate <stamp>: PASS`,
+- The real gate is `build.ps1 -Test`, in seven steps: smoke every shipped executable for its stamped version
+  and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); compile-check
+  `cmd\filedo-test` and validate `packaging/check-placement.jsonl`; `go test ./fdsec/ -count=1 -short`;
+  `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`;
+  `filedo_win.exe --selftest` (skipped only with `-SkipGui`; its old log is deleted first, and a missing log
+  is exit 2); `packaging/check-third-party-notices.ps1`; and `release.yml`'s Go pin against `go.mod`'s. The
+  Go builds and tests all run as windows/amd64 - the binary that ships - and the `cmd/filedo` suite's own
+  exe is linked with the same version resource and manifest. Its last line is `build-gate <stamp>: PASS`,
   `FAIL`, or `NOT VERIFIED`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate
-  could not verify**. Exit 2 is not a pass and not a defect report; treat it as "nothing was proven".
+  could not verify** (a missing prerequisite - Go other than the pin, goversioninfo, MSBuild without
+  `-SkipGui` - is 2 as well). Exit 2 is not a pass and not a defect report; treat it as "nothing was proven".
 - `cmd/filedo-test` is **its own module**, so the compile-check must run from inside it
   (`cd cmd\filedo-test; go test ./...`). Addressing that module from the repository root fails with
   *main module (filedo) does not contain package* - a trap worth knowing, because the console line
-  `build.ps1` used to print that failing form.
+  `build.ps1` used to print that failing form. Since the launcher conversion (SP-0028) that run is a real
+  test and not only a compile: each companion's `main_test.go` pins every documented command line to the
+  exact `filedo.exe` argv, and the shared `launcher_test.go` builds the launcher beside a stub `filedo.exe`
+  and proves exit-code and argv forwarding, exit 2 with no `filedo.exe`, no current-folder/`PATH` lookup,
+  the symlink case and Ctrl+Break. `cmd\filedo-check` and `cmd\filedo-fill` carry the same suite, run the
+  same way from inside each module.
 - **Two packages carry real tests** and both are part of the gate:
   - `fdsec/` - the container format, its boundary corpus, every tampering class and the committed vectors.
     It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip (about 90 s); `release.ps1`
@@ -351,18 +512,25 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   stop-file/schema-version combination `Runner.Judge` can meet) and the `tailer:` rows (a line written in
   two halves, an unparseable timestamp, a newer MAJOR) - and the `APP-BEHAVIOUR`/`APP-STYLE` rungs:
   `palette:`, `theme:`, `rail-paint:`, `rail-label:` (every label in five languages), `progress:`,
-  `format:`, `a11y:`, `placement:`, `wipe:` and `command:` rows. Its palette switch goes through
+  `format:`, `a11y:`, `placement:`, `wipe:` and `command:` rows - and the iconography ones: `icons:`
+  (every vendored drawing hashed against `PROVENANCE.txt`, mapped, on its grid, painting), `rail-glyph:`
+  (the rail's glyph map, with a shrink-only count of Segoe stand-ins), `glyph:` (the verdicts),
+  `state-tone:` (the shared `state.*` tones) and `contrast:` (every glyph against its surface). Its palette switch goes through
   `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe
   and exits 0, 1, or 2 (the last means its log could not be written). It is a GUI-subsystem process, so from PowerShell it needs
   `Start-Process .\filedo_win.exe --selftest -Wait -PassThru` to have an exit code at all.
-- Add or adjust tests in `cmd\filedo-test/` for user-visible changes that the two Go suites do not reach;
-  use `tests\prepare_test_env.cmd` for list-driven scenarios; note any disk, drive-letter, or admin
-  requirement in the PR.
-- **A verb that works interactively can silently not work from a `.lst` batch file**, because `main()` and
-  `executeInternalCommand()` are two separate dispatches. Whatever the verb, its acceptance test is a batch
-  run; the interactive path is the secondary check. Note that `runGenericCommand` probes the target with
-  `os.Stat` before dispatching, so anything taking a mask target has to be dispatched ahead of it
-  (`fdsecDispatchTarget` is the worked example, called from both entry points).
+- A change to a companion's command line is tested in that companion's `main_test.go`; the companions
+  cannot reach the main CLI's code, so a fill, test or check behaviour is tested in `cmd/filedo`. Note
+  any disk, drive-letter, or admin requirement in the PR. List-driven scenarios (`tests\*.lst`) fill,
+  wipe and scan what they name, so they name placeholders (`<TARGET_DRIVE>`, `<TARGET_DIR>`) and run only
+  through `tests\run-test-list.ps1`, which takes the target from `FILEDO_TEST_TARGET` and refuses anything
+  but a mounted VHD's drive letter or a folder under `%TEMP%` (`tests\prepare_test_env.cmd` = its
+  `-PrepareOnly`). Never point them at a real data volume.
+- **A verb's acceptance test is still a batch run**, even though `main()` and the batch now share one
+  dispatch (`dispatchLine`): the batch adds its own tokenizer (BOM, UTF-16, quotes, a `filedo.exe`
+  prefix), its stop rule and its per-line history, and a regression there is only seen from a `.lst`.
+  Note that `runGenericCommand` probes the target with `os.Stat` before dispatching, so anything taking a
+  mask target has to be dispatched ahead of it (`fdsecDispatchTarget` is the worked example).
 - **Destructive-tool safety is the pass/fail line, not friction.** For `wipe`/`fill` the persona test
   inverts: `wipe` must demand typing `WIPE`; `--force`/`-y` skips only the *prompt*, never the safety
   checks on drive/share roots, reparse points, and system TEMP; writes at `C:` redirect to
@@ -394,7 +562,19 @@ code, each held by a gate:
 - **No `String.Format` on a translation** - `Localization.Format`, which never throws.
 - **A running job is never lost.** A job row clicked mid-run keeps the running page; closing mid-run asks.
 
-Three rules a change here must not break:
+**The child-process contract** (SP-0023 theme T7; `Runner.vb`): the child's stdin is redirected and closed
+right after `Start()`, so every CLI prompt reads end-of-input and takes its safe branch (the system-drive
+redirect's default is "redirect"; a delete, a wipe or an overwrite is "no"); a page that needs a "yes"
+confirms it itself and passes the explicit token (`-y`, typed `WIPE`/`DELETE`/`MOVE`). Output is read as
+UTF-8, batched into the pane every 100 ms with a bounded tail, and spooled to the report rather than held
+whole. Non-elevated children run in a Job Object with kill-on-close, so a GUI that dies takes its
+filedo.exe with it (programs a reveal opens break away and stay). The run report's `Command:` line goes
+through the same redaction as history.json - `cmd/filedo/testdata/redaction/vectors.tsv` is read by both
+the Go test and `--selftest` - and a reveal, `fdsec info|verify` or `unsecure .. start` report keeps the
+verdict and the exit code only, never the output that names a sealed file. An empty password on a
+Protect page travels as the visible `p:`; a real one only as `pe:FILEDO_SHELL_CRED`.
+
+Four rules a change here must not break:
 - **`Theme.vb` is the only file allowed to name a colour.** No `Color.`, `FromArgb` or `RGB(` anywhere
   else in the shell - and mixing two tokens counts as naming one, which is why `Theme.Blend` is private to
   it and a mix a view needs becomes a named palette role. `cmd/filedo/shell_contract_test.go` makes the
@@ -402,6 +582,17 @@ Three rules a change here must not break:
   what once painted the light theme's selected rail row as a red cross.
 - **No fixed coordinates.** Layout comes from `TableLayoutPanel`, `FlowLayoutPanel`, docking and
   anchoring - a `System.Drawing.Point(..)` is exactly what a per-monitor-DPI window must not have.
+- **A glyph is the vocabulary's drawing, and the drawing is the catalog's file.** The shell's icons are
+  the `ICON-SET` Material filled paths vendored under `assets/glyphs/` by `assets/sync-icon-glyphs.ps1`
+  and embedded in the exe; `Glyphs.vb` hashes each against `PROVENANCE.txt` before drawing it. A control
+  names its meaning - `GlyphRef.Vocabulary("<id>")`, or `GlyphRef.Waiting("<proposed id>", ..)` with a
+  Segoe stand-in while the catalog has no record - never a codepoint of its own. Mapping a new meaning is
+  three edits: the id in the sync script's list, the import, and the control; never hand-edit the folder,
+  and never drop `.gitattributes`' `-text` on it, or a checkout's line endings change every hash. The
+  Explorer entries' and the `.fd-sec` type's icons are the same drawings as `.ico` files in
+  `assets/menu-icons/`, written by `filedo_win.exe --write-menu-icons assets\menu-icons` (`MenuIcons.vb`)
+  and never by hand; `--selftest` redraws each and fails on a stale one. The MSI, `fdsec register` and the
+  packaged `FileDOShell.dll` all name them as `icons\<id>.ico` beside the exe.
 - **The DPI declaration is two files and both must ship.** `app.manifest` is linked into the exe;
   `app.config` becomes a separate `filedo_win.exe.config` that `build.ps1`, `packaging/wix/FileDO.wxs`,
   `msix/build-msix.ps1` and the release workflow each have to carry. Shipping the manifest without the
@@ -413,8 +604,9 @@ Two traps: VB rejects a **comment line inside an array initializer**, and a key 
 will silently fall back rather than fail.
 
 ## Coding style
-Go defaults via `gofmt` before committing. Keep Windows-specific behavior in `*_windows.go` and
-cross-platform fallbacks in `*_unsupported.go`; prefer small, focused files over growing `main.go`.
+Go defaults via `gofmt` before committing. `cmd/filedo` is **Windows-only** (owner decision D5,
+2026-09-25: no supported channel targets another OS), so it carries no `*_unsupported.go` fallbacks; keep
+Windows-specific behavior in `*_windows.go` anyway, and prefer small, focused files over growing `main.go`.
 
 ## Site (`docs/`)
 Hand-authored, **no generator** - so the pages are edited in place and are not render targets. The tree
@@ -462,17 +654,17 @@ What this repository implements, with its pointer file:
 
 | Contract | Version | Catalog folder | Pointer here |
 | --- | --- | --- | --- |
-| `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte | 1.1 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
-| `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.1 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
+| `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte (suite 1 one file, suite 3 one directory tree) | 1.2 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
+| `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.2 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
 | `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.9 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
 | `INSTALL-TRUST` - what a user reads in the thirty seconds after Windows warned them about an unsigned build | 1.0 | `install-trust/` | [`docs/contracts/INSTALL-TRUST.md`](docs/contracts/INSTALL-TRUST.md) |
 | `CHECK-VERDICT` - the exit code and final machine-readable line emitted by an automated check | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-VERDICT.md`](docs/contracts/CHECK-VERDICT.md) |
 | `CHECK-BASELINE` - the shrink-only file carrying accepted check debt | 0.9 draft | `automated-checks/` | [`docs/contracts/CHECK-BASELINE.md`](docs/contracts/CHECK-BASELINE.md) |
 | `CHECK-PLACEMENT` - the record mapping every check to its runner | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-PLACEMENT.md`](docs/contracts/CHECK-PLACEMENT.md) |
 | `BUILD-EVIDENCE` - the version carried by an artifact and the gate judging it | 0.9 draft | `automated-checks/` | [`docs/contracts/BUILD-EVIDENCE.md`](docs/contracts/BUILD-EVIDENCE.md) |
-| `ICON-SET` - the glyph vocabulary: one meaning, one glyph, one name, on every surface that shows a picture (consumer) | 0.11 draft | `iconography/` | [`docs/contracts/ICON-SET.md`](docs/contracts/ICON-SET.md) |
-| `ICON-RENDER` - how a glyph is drawn: colour role, themes, sizes, accessible name, the product mark on system surfaces (consumer) | 0.11 draft | `iconography/` | [`docs/contracts/ICON-RENDER.md`](docs/contracts/ICON-RENDER.md) |
-| `ICON-EXTERNAL` - third-party marks, other apps' icons, downloaded pictures (consumer) | 0.9 draft | `iconography/` | [`docs/contracts/ICON-EXTERNAL.md`](docs/contracts/ICON-EXTERNAL.md) |
+| `ICON-SET` - the glyph vocabulary: one meaning, one glyph, one name, on every surface that shows a picture (consumer) | 0.15 draft | `iconography/` | [`docs/contracts/ICON-SET.md`](docs/contracts/ICON-SET.md) |
+| `ICON-RENDER` - how a glyph is drawn: colour role, themes, sizes, accessible name, the product mark on system surfaces (consumer) | 0.13 draft | `iconography/` | [`docs/contracts/ICON-RENDER.md`](docs/contracts/ICON-RENDER.md) |
+| `ICON-EXTERNAL` - third-party marks, other apps' icons, downloaded pictures (consumer) | 0.10 draft | `iconography/` | [`docs/contracts/ICON-EXTERNAL.md`](docs/contracts/ICON-EXTERNAL.md) |
 | `REPO-STAMP` - the canon adoption stamp `.sza-canon.json`, written by the canon's adoption run (producer) | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-STAMP.md`](docs/contracts/REPO-STAMP.md) |
 
 What this repository consumes:
@@ -484,6 +676,7 @@ What this repository consumes:
 | `APP-STYLE` - the theme mechanism (system/light/dark, live), one palette table, the role vocabulary, declared out-of-theme surfaces | 0.10 draft | `desktop-app-ux/` | [`docs/contracts/APP-STYLE.md`](docs/contracts/APP-STYLE.md) |
 | `REPO-LAYOUT` - the root and `docs/` names a shared tool may address without asking | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-LAYOUT.md`](docs/contracts/REPO-LAYOUT.md) |
 | `RULE-DELIVERY` - how the canon arrives through the `sza` plugin, and how staleness is judged | 0.9 draft | `rule-adoption/` | [`docs/contracts/RULE-DELIVERY.md`](docs/contracts/RULE-DELIVERY.md) |
+| `DOC-INTERNAL-QUALITY` / `DOC-EXTERNAL-QUALITY` - what the internal docs and the published site plus READMEs owe their readers: registry, links, style, freshness, termbase, SEO | 0.9 draft / 0.9 draft | `documentation-quality/` | [`docs/contracts/DOC-INTERNAL-QUALITY.md`](docs/contracts/DOC-INTERNAL-QUALITY.md), [`DOC-EXTERNAL-QUALITY.md`](docs/contracts/DOC-EXTERNAL-QUALITY.md) |
 
 Four rules, because a shared contract breaks differently from ordinary code:
 
@@ -501,7 +694,7 @@ Four rules, because a shared contract breaks differently from ordinary code:
   with a reason and an `until` date is a plan; the same deviation unrecorded is a violation. Never weaken
   a contract to match this code: if the code is right, write the amendment with the evidence.
 - **The vectors are the arbiter, and they are generated.** `fdsec/testdata/vectors/` is this repository's
-  test fixture, produced by `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run TestVectors_Suite1`; the copy in
+  test fixture, produced by `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Suite1|TestVectors_Suite3"` (suite 3 in its `suite3/` subfolder); the copy in
   the catalog's `secure-container/vectors/` is what an outside implementation checks itself against.
   Regenerate the fixture, then copy it across - never hand-edit either one.
 

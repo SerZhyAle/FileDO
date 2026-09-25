@@ -95,6 +95,10 @@ func subKey(root []byte, label string) ([]byte, error) {
 // deriveKeys returns the mask key and the key-encryption key of one container.
 func deriveKeys(cred Credential, salt []byte) (maskKey, kek []byte, err error) {
 	root := deriveRoot(cred, salt)
+	// Best-effort overwrite of key material once it is no longer needed
+	// (FDSEC-BEHAVIOUR 8.2, FDSEC-15). Go may have copied it; this clears
+	// the copy this package owns.
+	defer clear(root)
 	if maskKey, err = subKey(root, maskLabel); err != nil {
 		return nil, nil, err
 	}

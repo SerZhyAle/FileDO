@@ -1,48 +1,58 @@
 @echo off
-echo FileDO CHECK Test Suite
-echo ======================
+rem Manual walk-through of filedo_check.exe against a real filedo.exe.
+rem filedo_check.exe runs the filedo.exe in its own folder, so run this from a
+rem folder that holds both (exe_to_download\, or an installed FileDO). Every
+rem step only reads files, and only in the current folder; nothing here touches
+rem a whole drive. The automated tests are "go test ./..." in cmd\filedo-check.
+echo FileDO CHECK walk-through
+echo =========================
+
+if not exist filedo_check.exe goto :missing
+if not exist filedo.exe goto :missing
 
 echo.
-echo Testing basic functionality...
-
-echo.
-echo 1. Testing help display
+echo 1. Help (exit 0, shows the version)
 filedo_check.exe /?
+echo exit code %errorlevel%
 
 echo.
-echo 2. Testing with non-existent path (should show error)
-filedo_check.exe Z:\nonexistent 2>nul
-if errorlevel 1 echo [OK] Error handling works correctly
+echo 2. A usage error is refused before filedo.exe starts (exit 2)
+filedo_check.exe "%CD%" --resume
+if %errorlevel%==2 (echo [OK] exit 2) else (echo [FAIL] exit %errorlevel%, want 2)
 
 echo.
-echo 3. Testing current directory quick check
-if exist "%CD%" (
-    echo Testing quick check on current directory...
-    filedo_check.exe "%CD%" quick --max-files 5 --verbose
-) else (
-    echo [SKIP] Current directory test
-)
+echo 3. A path that does not exist cannot be verified (exit 2)
+filedo_check.exe Z:\nonexistent
+if %errorlevel%==2 (echo [OK] exit 2) else (echo [FAIL] exit %errorlevel%, want 2)
 
 echo.
-echo 4. Testing C: drive quick check (limited files for safety)
-filedo_check.exe C: quick --max-files 10 --verbose --threshold 1.0
+echo 4. Quick check of the current folder, at most 5 files
+filedo_check.exe "%CD%" quick --max-files 5 --verbose
+echo exit code %errorlevel% (0 passed, 1 damaged files found, 2 could not verify)
 
 echo.
-echo 5. Testing with various options
-filedo_check.exe "%CD%" balanced --max-files 3 --report csv --verbose
+echo 5. Balanced check with a CSV report, at most 3 files
+filedo_check.exe "%CD%" balanced --max-files 3 --report csv
+echo exit code %errorlevel%
 
 echo.
-echo 6. Testing environment variable override
-set FILEDO_CHECK_MODE=quick
-set FILEDO_CHECK_VERBOSE=1
+echo 6. An environment setting filedo.exe reads (FILEDO_CHECK_MAX_FILES)
 set FILEDO_CHECK_MAX_FILES=5
 filedo_check.exe "%CD%" --quiet
+echo exit code %errorlevel%
+set FILEDO_CHECK_MAX_FILES=
 
 echo.
-echo Test completed. Check generated files:
+echo Done. filedo.exe wrote into the current folder:
 echo - history.json (operation log)
-echo - check_files.list (good files)
-echo - skip_files.list (problematic files)
-echo - check_report_*.csv (if report was generated)
+echo - check_files.list (files that read cleanly)
+echo - skip_files.list (files judged damaged, if any)
+echo - check_report_*.csv (from step 5)
+goto :end
 
+:missing
+echo filedo_check.exe and filedo.exe must both be in the current folder.
+exit /b 2
+
+:end
 pause

@@ -1,0 +1,10 @@
+# Vendored copy of the FDSEC-FORMAT suite-2 conformance vectors from the shared contracts catalog.
+# Never edit the vectors here: re-vendor them from the catalog and rewrite the sha256 rows.
+# Asserted by TestVectors_Suite2.
+contract: FDSEC-FORMAT
+version: 1.3
+vendored: 2026-09-25
+sha256 quiet-empty.bin 84daf278930393bfda690c2462cc58076e09db2b8ee0c3efc727ddf17d7b533d
+sha256 quiet-multiframe.bin 44ab78bb6ba9a39ca1b759829d5b6efde8cfb8efd5ec26aed4a564f26caaef27
+sha256 quiet-onebyte.bin d656107e9addf30808449d66f3cb97068a71efe1a91e23980b420da06025d3d8
+sha256 vectors.json 145744103d386d08cbce59a86e20a74da4beb019a10015e3e4f6d9ae556e0038

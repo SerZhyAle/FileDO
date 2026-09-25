@@ -241,8 +241,13 @@ a fresh install cannot catch an identity mistake.
 
 ## 7. What the Store build does not do
 
-- No Explorer context-menu entries and no `.fd-sec` file type: a packaged app can only declare them through a
-  signed shell command handler (not built). Say so in the listing (it does).
+- No classic registry context-menu entries. From SP-0020 (built 2026-09-25, not yet released) the package
+  declares the `File DO..` group instead as a packaged Explorer command - `FileDOShell.dll`, built by
+  `shellext\build-shellext.ps1` on every `build-msix.ps1` run and hosted in a COM surrogate - which is what
+  reaches the Windows 11 first-level menu. `build-msix.ps1` fails the package if the DLL is missing or the
+  CLSID of the verb, the COM class and the DLL source disagree. It also declares the `.fd-sec` association, so
+  double-clicking a container starts the GUI with that file. Do not advertise the first-level menu in the
+  listing until it has been seen in the Store build (SP-0020 section 5).
 - `filedo fdsec register` must **not** be advertised for this build. Inside the package it refuses as a usage error
   (exit 2) and writes nothing: Windows keeps a packaged app's `Software\Classes` writes to the app, where Explorer
   never looks, and the command lines would point into `C:\Program Files\WindowsApps\..`, which Explorer cannot run.

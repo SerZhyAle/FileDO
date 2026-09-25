@@ -3,9 +3,8 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"filedo/statedir"
 
 	"golang.org/x/term"
 )
@@ -141,18 +142,25 @@ func runAfterConsoleHold() {
 	}
 }
 
+// findUIExecutable finds the GUI beside this executable - through a winget
+// Links symlink to the real install folder when there is one - or on PATH.
+// Never in the current directory: a filedo_win.exe planted in a folder the
+// user runs FileDO from would otherwise be launched (CLI-26); exec.LookPath's
+// ErrDot answer is refused for the same reason.
 func findUIExecutable() string {
 	if exePath, err := os.Executable(); err == nil {
-		dir := filepath.Dir(exePath)
-		target := filepath.Join(dir, "filedo_win.exe")
-		if _, err := os.Stat(target); err == nil {
-			return target
+		dirs := []string{filepath.Dir(exePath)}
+		if real, rerr := filepath.EvalSymlinks(exePath); rerr == nil {
+			dirs = append(dirs, filepath.Dir(real))
+		}
+		for _, dir := range dirs {
+			target := filepath.Join(dir, "filedo_win.exe")
+			if _, err := os.Stat(target); err == nil {
+				return target
+			}
 		}
 	}
-	if _, err := os.Stat("filedo_win.exe"); err == nil {
-		return "filedo_win.exe"
-	}
-	if path, err := exec.LookPath("filedo_win.exe"); err == nil {
+	if path, err := exec.LookPath("filedo_win.exe"); err == nil && filepath.IsAbs(path) {
 		return path
 	}
 	return ""
@@ -187,9 +195,11 @@ type HistoryLogger struct {
 	startTime    time.Time
 	entry        HistoryEntry
 	originalArgs []string
-	historyFile  string
-	canWriteHist bool
 	finished     bool
+	// touched records that the run did something worth a history line. A
+	// run that only printed help, listed the history or opened the window
+	// writes nothing at all - not even an empty file (CLI-31).
+	touched bool
 }
 
 func NewHistoryLogger(args []string) *HistoryLogger {
@@ -202,31 +212,17 @@ func NewHistoryLogger(args []string) *HistoryLogger {
 		}
 	}
 
-	historyFile := "history.json"
-	canWriteHist := true
-
-	// Check if we can write to the history file
-	if enabled {
-		// Try to open the file for writing to check permissions
-		if file, err := os.OpenFile(historyFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
-			canWriteHist = false
-			// Don't disable entirely, just note we can't write
-		} else {
-			file.Close()
-		}
-	}
-
 	// Create full command string from args. Credential material of the fdsec
 	// family is redacted HERE, before anything is written: a password that
 	// reaches history.json is on the user's disk permanently (spec 12).
 	fullCommand := strings.Join(redactCredentialArgs(args), " ")
 
+	// Nothing touches the disk here: the file is located, created and
+	// written only by Finish, and only for a run that did something.
 	return &HistoryLogger{
-		enabled:      enabled && canWriteHist,
+		enabled:      enabled,
 		startTime:    time.Now(),
 		originalArgs: args,
-		historyFile:  historyFile,
-		canWriteHist: canWriteHist,
 		entry: HistoryEntry{
 			Timestamp:   time.Now(),
 			FullCommand: fullCommand,
@@ -240,9 +236,32 @@ func (hl *HistoryLogger) SetCommand(command, target, operation string) {
 	if !hl.enabled {
 		return
 	}
+	hl.touched = true
 	hl.entry.Command = command
 	hl.entry.Target = target
 	hl.entry.Operation = operation
+}
+
+// HideTarget replaces the target - in the target field and in the recorded
+// command line - with the folder that holds it. `secure rename` exists so
+// that nothing links the anonymous blob to the original's name, and a history
+// line saying "salary-2026.xlsx -> QgTZ.." was exactly that link (CLI-21).
+func (hl *HistoryLogger) HideTarget(path string) {
+	if !hl.enabled {
+		return
+	}
+	dir := filepath.Dir(path)
+	if abs, err := filepath.Abs(path); err == nil {
+		dir = filepath.Dir(abs)
+	}
+	hl.entry.Target = dir
+	args := redactCredentialArgs(hl.originalArgs)
+	for i, a := range args {
+		if a == path {
+			args[i] = dir
+		}
+	}
+	hl.entry.FullCommand = strings.Join(args, " ")
 }
 
 func (hl *HistoryLogger) SetParameter(key string, value interface{}) {
@@ -263,14 +282,19 @@ func (hl *HistoryLogger) SetError(err error) {
 	if !hl.enabled {
 		return
 	}
+	hl.touched = true
 	hl.entry.Success = false
-	hl.entry.ErrorMsg = err.Error()
+	// The same screened message the event stream gets: an error that carries
+	// a container's sealed name keeps it on the console and out of this
+	// permanent file (FDSEC-06).
+	hl.entry.ErrorMsg = eventSafeErrorMessage(err)
 }
 
 func (hl *HistoryLogger) SetSuccess() {
 	if !hl.enabled {
 		return
 	}
+	hl.touched = true
 	hl.entry.Success = true
 }
 
@@ -282,7 +306,7 @@ func (hl *HistoryLogger) SetResultSummary(summary string) {
 }
 
 func (hl *HistoryLogger) Finish() {
-	if !hl.enabled || hl.finished {
+	if !hl.enabled || hl.finished || !hl.touched {
 		return
 	}
 	hl.finished = true
@@ -294,7 +318,9 @@ func (hl *HistoryLogger) Finish() {
 		hl.entry.ResultSummary = hl.generateResultSummary()
 	}
 
-	saveToHistory(hl.entry)
+	if err := saveToHistory(hl.entry); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: history not saved: %v\n", err)
+	}
 }
 
 // generateResultSummary creates a short summary of the operation results
@@ -325,12 +351,40 @@ func (hl *HistoryLogger) generateResultSummary() string {
 	return strings.Join(details, ", ")
 }
 
+// historyFilePath is where history.json lives: the state root, with a
+// one-time import of the file earlier versions left in the current directory
+// or beside the executable (SP-0024 section 4).
+func historyFilePath() (string, error) {
+	return statedir.Path("history.json", statedir.LegacyInCwd("history.json"), statedir.LegacyBesideExe("history.json"))
+}
+
+// saveToHistory appends one entry. The read-modify-write runs under a lock
+// file, so two FileDO processes never lose each other's entries; the write
+// goes through a temporary file and a rename, so a crash never leaves half a
+// file; and a file that does not parse is set aside as
+// history.json.corrupt-<time>, never overwritten - it is the user's record
+// (CLI-16).
 func saveToHistory(entry HistoryEntry) error {
-	historyFile := "history.json"
+	historyFile, err := historyFilePath()
+	if err != nil {
+		return err
+	}
+	unlock, err := statedir.Lock(historyFile, 5*time.Second)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 
 	var history []HistoryEntry
-	if data, err := os.ReadFile(historyFile); err == nil {
-		json.Unmarshal(data, &history)
+	if data, err := os.ReadFile(historyFile); err == nil && len(bytes.TrimSpace(data)) > 0 {
+		if uerr := json.Unmarshal(data, &history); uerr != nil {
+			kept := historyFile + ".corrupt-" + time.Now().Format("20060102-150405")
+			if rerr := os.Rename(historyFile, kept); rerr != nil {
+				return fmt.Errorf("history.json does not parse (%v) and could not be set aside: %w", uerr, rerr)
+			}
+			fmt.Fprintf(os.Stderr, "Warning: history.json did not parse (%v); kept it as %s and started a new one.\n", uerr, kept)
+			history = nil
+		}
 	}
 
 	history = append(history, entry)
@@ -344,7 +398,7 @@ func saveToHistory(entry HistoryEntry) error {
 		return err
 	}
 
-	return os.WriteFile(historyFile, data, 0644)
+	return statedir.WriteFileAtomic(historyFile, data, 0o644)
 }
 
 var shortUsage = fmt.Sprintf(`
@@ -451,15 +505,29 @@ Capacity & Integrity Testing:
 Space Management:
   filedo.exe C: fill 500           → Fill device with 500MB files until full
   filedo.exe device D: fill 1000 del → Fill and auto-delete (secure wipe)
-  filedo.exe device E: clean       → Delete all test files (FILL_*, speedtest_*)
+  filedo.exe device E: fill verify → Read back what fill wrote (fake capacity check)
+  filedo.exe device E: clean       → Delete FileDO's test files (lists them, asks; --yes skips)
 
 File Organization:
   filedo.exe C: check-duplicates   → Find duplicate files on the device
   filedo.exe device D: cd          → Short form of check-duplicates command
-  filedo.exe C: cd old move E:\Dups → Move older duplicate files to E:\Dups
-  filedo.exe device D: cd del new  → Delete newer duplicate files (order doesn't matter)
-  filedo.exe device D: cd del old  → Delete older duplicate files (flexible order)
-  filedo.exe cd from list dups.lst del new → Process duplicates from saved list file
+  filedo.exe D:\Photos cd old move E:\Dups → Move the older copies to E:\Dups, asking per file
+  filedo.exe D:\Photos cd del new  → Delete the newer copies, asking before each one
+  filedo.exe D:\Photos cd -y del old → Delete the older copies without asking
+  filedo.exe cd from list dups.lst del new -y → Process duplicates from a saved list file
+  Rules - each word names what is removed; word order does not matter:
+    old → remove the older copies, keep the newest (the default)
+    new → remove the newer copies, keep the oldest
+    abc → keep the alphabetically last name, remove the others
+    xyz → keep the alphabetically first name, remove the others
+  Newest and oldest compare creation times; a tie keeps the first path.
+  del and move ask before each file; -y (or --yes) answers yes for all of
+  them, and is required where nobody can answer (no console, or a run given
+  --stop-file). Each copy is compared byte for byte with the kept one right
+  before it goes; a move never replaces a file. A drive or share root,
+  Windows, Program Files and the system TEMP ask for a typed confirmation,
+  -y or not, and a scan skips Windows and Program Files unless it starts
+  inside them.
 
 ═══════════════════════════════════════════════════════════════════════════════
 FOLDER OPERATIONS (Local directories)
@@ -486,8 +554,10 @@ Space Management:
 File Organization:
   filedo.exe C:\Temp check-duplicates → Find duplicate files in the folder
   filedo.exe folder D:\Data cd     → Short form of check-duplicates command
-  filedo.exe folder E:\Data cd move F:\Backup abc → Move alphabetically last duplicates (parameters in any order)
-  filedo.exe cd from list my_dups.lst del → Process duplicates from previously saved list
+  filedo.exe folder E:\Data cd move F:\Backup abc → Keep the alphabetically last name, move the others
+  filedo.exe folder E:\Data cd abc -y move F:\Backup → The same without asking (any word order)
+  filedo.exe cd from list my_dups.lst del → Process duplicates from a saved list, asking per file
+  (Rules, -y and the guarded places: DEVICE OPERATIONS, File Organization.)
 
 ═══════════════════════════════════════════════════════════════════════════════
 FILE OPERATIONS (Individual files)
@@ -500,9 +570,10 @@ File Analysis:
 ═══════════════════════════════════════════════════════════════════════════════
 SECRET FILES (.fd-sec containers)
 
-  A container holds exactly one file. The true name, the real size and the
-  timestamps are sealed inside it; only the container's own size and its
-  format parameters are visible without the password.
+  A container holds one file, or one folder with its whole tree. The true
+  name, the real size and the timestamps are sealed inside it - for a folder,
+  every entry's path, size and timestamps too; only the container's own size
+  and its format parameters are visible without the password.
 
 Pack and restore:
   filedo.exe secret.txt secure           → Pack into secret.fd-sec (asks twice)
@@ -514,6 +585,12 @@ Pack and restore:
                                            you can read it and goes when the
                                            window closes
   filedo.exe *.jpg secure p:hunter2      → One container per matched file
+  filedo.exe "Tax 2025" secure           → Pack a whole folder into
+                                           Tax 2025.fd-sec (junctions and
+                                           symlinks inside are refused)
+  filedo.exe "Tax 2025.fd-sec" unsecure to D:\Restored
+                                         → Restore the tree; an existing
+                                           folder is never merged into
 
 Open without unpacking (reveal):
   filedo.exe holiday.fd-sec reveal       → Open in the registered app, then
@@ -574,6 +651,13 @@ Options (order does not matter):
                    volumes an overwrite-in-place lowers the odds of recovery
                    but does not guarantee erasure.
   rename / ren   → write a random name with no extension (a nameless blob)
+  suite2         → secure one file with suite 2 instead of the default
+                   suite 1: pepper-folded Argon2id at 256 MiB, and a file
+                   with no alignment either. It keeps the true name, the
+                   real size and the time of encryption, but NOT the
+                   original's timestamps, and only FileDO reads it - other
+                   programs that read .fd-sec do not. unsecure, reveal, info
+                   and verify find the suite themselves
   here           → restore into the current folder (unsecure only)
   start          → hand the restored file to its registered handler
                    (unsecure only, no executable/script refusal - like an
@@ -616,7 +700,7 @@ Space Management:
 File Organization:
   filedo.exe \\server\share check-duplicates → Find duplicate files on network share
   filedo.exe network \\pc\temp cd → Short form of check-duplicates command
-  filedo.exe network \\server\share cd xyz del → Delete alphabetically first duplicates (any param order)
+  filedo.exe network \\server\share\Photos cd xyz del → Keep the alphabetically first name, delete the others
 
 ═══════════════════════════════════════════════════════════════════════════════
 COPY & WIPE OPERATIONS
@@ -669,15 +753,17 @@ Safe Copy for Damaged/Problematic Drives:
   filedo.exe damaged C:\Problem E:\Safe    → Automatic damaged file detection and skip list
 
 Fast Content Wiping:
-  filedo.exe folder D:\Temp wipe          → Fast wipe folder contents (delete & recreate)
-  filedo.exe device D: wipe               → Wipe device contents (standard method for system folders)
+  filedo.exe folder D:\Temp wipe          → Delete everything inside the folder (the folder, its access list and attributes stay)
+  filedo.exe device D: wipe               → Delete everything on D:\ (a root: always the typed confirmation)
   filedo.exe network \\server\temp wipe   → Wipe network folder contents
   filedo.exe folder C:\Cache w            → Short form of wipe command
   filedo.exe folder D:\Temp wipe --force  → Skip the interactive prompt (automation)
   Note: wipe always asks "Type WIPE to continue" before deleting. --force (or -y)
-        skips that prompt for normal targets only. Drive/share roots, reparse
-        points (junctions/symlinks) and the system TEMP folder ALWAYS require
-        interactive confirmation and are never bypassed by --force.
+        skips that prompt for normal targets only. Drive/share roots and the
+        TEMP, profile, Windows and Program Files folders (and every folder
+        above them) ALWAYS require interactive confirmation and are never
+        bypassed by --force. A junction or symlink is refused - wipe the
+        folder it points to by its own path. Anything left undeleted: exit 2.
 
 Folder Compare:
 	filedo.exe compare D:\Source E:\Target   → Compare directory trees and report differences
@@ -691,12 +777,18 @@ Folder Compare:
 		filedo.exe cmp D:\Source E:\Target del big target    → Delete only when bigger side is Target
 		filedo.exe cmp D:\Source E:\Target del old target    → Delete only when older side is Target
 		filedo.exe cmp D:\Source E:\Target del new source    → Delete only when newer side is Source
-	Notes: matching by relative path; size-only comparison; mtime used for old/new; permanent delete; no confirmation
+	Notes: matching by relative path; del source|target deletes a pair only when size and time match
+	       (--by-hash: equal content; --allow-mismatch: any pair); mtime used for old/new;
+	       the two folders must not be one folder or nest; permanent delete; no confirmation
 
 Folder Health Check:
 	filedo.exe check D:\Data                 → Read-check all files; mark damaged on read delay > 2.0s
 	filedo.exe check D:\Data\one.mkv         → Read-check that one file and say whether it reads cleanly
-	Notes: one-time warm-up up to 10.0s before first read; uses 'skip_files.list' immediately; parallel workers; Ctrl+C supported
+	filedo.exe check D:\Data --resume        → Carry on: skip files an earlier run already read cleanly
+	Notes: one-time warm-up up to 10.0s before first read; parallel workers; Ctrl+C supported
+	       damaged and good lists live in %%LOCALAPPDATA%%\FileDO\state (never beside your files);
+	       a file already on the damaged list is reported again without being read; a changed file is read again
+	       locked or unreadable files and folders are "could not verify" (exit 2), never "damaged"
 	       a single file is never skipped by the good list and never filtered out by size or extension
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -725,10 +817,12 @@ Exit codes (all non-container verbs):
 File Management:
   del, delete, d  → Auto-delete test files after successful operation
   nodel, nodelete → Keep test files on target (don't delete)
-  clean, cln, c   → Delete all existing test files
+  clean, cln, c   → Delete FileDO's test files (asks first; --yes skips the question)
 
 Size Specifications:
   <number>        → Size in megabytes (e.g., 100, 500, 1000)
+  <n>k/m/g/t      → Size with a unit (e.g., 500m, 2g, 1.5g); a size that does not
+                    parse or is out of range is an error, never a default
   max             → Use maximum size (10GB for speed tests)
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -744,7 +838,7 @@ Network Speed Test:
   filedo.exe \\server\backup speed max short → Max speed test, brief results
 
 Process Saved Duplicate List:
-  filedo.exe cd from list my_dups.lst del new → Delete newer duplicate files from list
+  filedo.exe cd from list my_dups.lst del new -y → Delete the newer copies of every listed group, without asking
 
 Secure Space Wiping:
   filedo.exe C: fill 5000 del      → Fill 5GB then secure delete (data recovery prevention)
@@ -755,7 +849,7 @@ Fast Backup & Cleanup:
   filedo.exe fastcopy D:\SlowHDD E:\FastSSD → Optimized parallel copy for large datasets
   filedo.exe fc \\NAS\Photos C:\LocalBackup → High-speed copy from slow network/extFAT drives
   filedo.exe synccopy D:\HDD1 D:\HDD2       → Synchronized copy for diagnosing I/O speeds
-  filedo.exe folder D:\TempFiles wipe      → Fast wipe temporary folder (delete & recreate)
+  filedo.exe folder D:\TempFiles wipe      → Empty a temporary folder (the folder itself stays)
   filedo.exe network \\server\temp w       → Quick wipe of network temp folder
 
 Batch Testing Multiple Locations:
@@ -772,24 +866,37 @@ Batch Testing Multiple Locations:
 IMPORTANT NOTES
 
 • Damaged Disk Protection (safe/rescue): Files that show no read progress for
-	10 seconds are skipped and appended immediately to 'skip_files.list'.
-	Timeout can be overridden via env var FILEDO_TIMEOUT_NOPROGRESS_SECONDS.
+	10 seconds are skipped and recorded at once in the skip list
+	(%%LOCALAPPDATA%%\FileDO\state\skip_files.list) with their size and time;
+	a file that changes is tried again. Timeout can be overridden via env var
+	FILEDO_TIMEOUT_NOPROGRESS_SECONDS.
 
-• Fake Capacity Detection: The 'test' command creates 100 files, each 1%% of
-  total capacity, to expose counterfeit storage devices that cheerfully claim
-  sizes they do not actually have.
-  Uses optimized smart verification - full verification for first 5 files and
-  every 10th file, fast header-only checks for recent files between milestones.
+• Fake Capacity Detection: The 'test' command writes 100 files over 95%% of the
+  free space (on the system drive it keeps the larger of 10 GB and 10%% free) to
+  expose counterfeit storage devices that cheerfully claim sizes they do not
+  actually have. Every block of every file names its file, its offset and its
+  run; every read-back bypasses the Windows cache, file 1 is re-read after every
+  write, and all files are re-read before a PASS. A speed change alone is never
+  a verdict. Exit 1 means the data did not read back; exit 2 means the target
+  could not be tested (write-protected, full, gone) - nothing was proven.
 
 • Secure Wiping: Use 'fill <size> del' to overwrite free space and prevent
   recovery of previously deleted files.
 
-• Automatic Hardware Protection: All copy commands automatically detect
-  hardware errors (buffer overflows, memory issues, I/O errors) and switch
-  to SAFE RESCUE mode with minimal stress settings for damaged drives.
+• Automatic Hardware Protection: copy, fastcopy, balanced and maxcopy retry
+  the files that stalled or hit device I/O errors in SAFE RESCUE mode.
 
-• Test Files: Operations create files named FILL_#####_ddHHmmss.tmp and
-  speedtest_*.txt. Use 'clean' to remove them.
+• Copy Safety: every copy writes <name>.filedo-partial and renames it into
+  place only when complete, with the source's modification time; an existing
+  different file is never overwritten; a file already at the target (same
+  size and time) is skipped. A copy onto itself or into its own subfolder is
+  refused. Any file not at the target at the end: exit 2. The bytes, the
+  modification time and the read-only flag are copied; other attributes,
+  alternate data streams and access lists are not.
+
+• Test Files: Operations create files named FILL_#####_ddHHmmss_<run>.tmp and
+  speedtest_*.txt. Use 'clean' to remove them: it removes only files with a
+  FileDO name and FileDO content, and asks first (--yes skips the question).
 
 • Batch Files: Commands in batch files support # comments and empty lines.
   Each line should contain one complete filedo command.
@@ -850,349 +957,6 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func executeFromFile(filePath string, historyLogger *HistoryLogger) error {
-	historyLogger.SetCommand("from", filePath, "batch")
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		historyLogger.SetError(fmt.Errorf("failed to open file: %w", err))
-		return fmt.Errorf("cannot open file '%s': %w", filePath, err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	commandCount := 0
-	successCount := 0
-	var errors []string
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		commandCount++
-		// The echo repeats the command line, so the same redaction as history
-		// applies (invariant 8: no credential on the console either).
-		fmt.Printf("\n[%d] Executing: %s\n", commandCount, strings.Join(redactCredentialArgs(strings.Fields(line)), " "))
-
-		// Split command into arguments
-		args := strings.Fields(line)
-		if len(args) == 0 {
-			continue
-		}
-		var err error
-
-		// Check if it's a filedo command (starts with filedo or is a known internal command)
-		if args[0] == "filedo" || args[0] == "./filedo.exe" || args[0] == "filedo.exe" {
-			// Execute as internal command (remove "filedo" prefix)
-			err = executeInternalCommand(args[1:])
-		} else if contains(list_of_flags_for_all, strings.ToLower(args[0])) || isValidPath(args[0]) {
-			// Execute as internal command (all args)
-			err = executeInternalCommand(args)
-		} else {
-			// Execute as external command
-			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			err = cmd.Run()
-		}
-
-		if err != nil {
-			errorMsg := fmt.Sprintf("Command %d failed: %v", commandCount, err)
-			fmt.Printf("%s\n", errorMsg)
-			errors = append(errors, errorMsg)
-		} else {
-			successCount++
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		readErr := fmt.Errorf("error reading file: %w", err)
-		historyLogger.SetError(readErr)
-		return readErr
-	}
-
-	fmt.Printf("\nBatch execution complete: %d/%d commands succeeded\n", successCount, commandCount)
-
-	historyLogger.SetResult("totalCommands", commandCount)
-	historyLogger.SetResult("successfulCommands", successCount)
-
-	if len(errors) > 0 {
-		batchErr := fmt.Errorf("batch execution failed: %d out of %d commands failed", len(errors), commandCount)
-		historyLogger.SetError(batchErr)
-		return batchErr
-	}
-
-	historyLogger.SetSuccess()
-	return nil
-}
-
-func executeInternalCommand(args []string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("empty command")
-	}
-
-	// Create a new history logger for internal command
-	internalLogger := NewHistoryLogger(append([]string{"filedo"}, args...))
-	defer internalLogger.Finish()
-
-	// Each batch line asks for --precount on its own; none inherits it.
-	copyPrecount = false
-
-	// The target-first fdsec grammar is dispatched before the path probe:
-	// a mask target (secure *.txt) never passes os.Stat, and the family owns
-	// its own not-found message and exit code. This is the SAME call main()
-	// makes, so a verb that works interactively cannot silently fail here.
-	if handled, err := fdsecDispatchTarget(args, internalLogger); handled {
-		if err != nil {
-			internalLogger.SetError(err)
-			fdsecSetExit(err)
-			runFailure(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-		return nil
-	}
-
-	// Parse command similar to main function logic
-	command := ""
-	var add_args []string
-
-	// Convert only commands to lowercase for comparison, preserve paths
-	lowerArgs := make([]string, len(args))
-	copy(lowerArgs, args)
-
-	// Convert first argument (command) to lowercase for comparison
-	if len(lowerArgs) >= 1 {
-		arg := lowerArgs[0]
-		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && !strings.Contains(arg, ".") {
-			lowerArgs[0] = strings.ToLower(lowerArgs[0])
-		}
-	}
-
-	// Convert potential operation arguments to lowercase (but preserve paths)
-	for i := 1; i < len(lowerArgs); i++ {
-		arg := lowerArgs[i]
-		// Only convert to lowercase if it doesn't look like a path
-		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") &&
-			!strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
-			lowerArgs[i] = strings.ToLower(lowerArgs[i])
-		}
-	}
-
-	firstArg := args[0] // Use original arg to preserve case in paths
-
-	if contains(list_of_flags_for_all, lowerArgs[0]) {
-		command = lowerArgs[0]
-		add_args = args[1:] // Use original args to preserve paths
-	} else {
-		// Auto-detect based on path
-		firstArgLower := strings.ToLower(firstArg) // Only for comparison
-		if len(firstArgLower) > 0 && ((len(firstArgLower) == 1) || (len(firstArgLower) > 1 && len(firstArgLower) < 4 && string([]rune(firstArgLower)[1]) == ":")) {
-			if len(firstArg) == 1 {
-				args[0] += ":" // Modify original
-			}
-			command = "device"
-			add_args = args // Use original args
-		} else if len(firstArg) > 2 && (firstArg[0:2] == "\\" || firstArg[0:2] == "//") {
-			command = "network"
-			add_args = args // Use original args
-		} else {
-			// Check if the path exists
-			if info, err := os.Stat(args[0]); err == nil {
-				if info.IsDir() {
-					command = "folder"
-					add_args = args // Use original args
-				} else {
-					command = "file"
-					add_args = args // Use original args
-				}
-			} else {
-				// Path doesn't exist - determine if it looks like a folder or file path
-				// and provide a more helpful message
-				if strings.HasSuffix(args[0], "/") || strings.HasSuffix(args[0], "\\") {
-					return fmt.Errorf("the folder %q does not exist", args[0])
-				} else if strings.Contains(args[0], ".") {
-					return fmt.Errorf("the file %q does not exist", args[0])
-				} else {
-					return fmt.Errorf("the path %q does not exist", args[0])
-				}
-			}
-		}
-	}
-
-	// Create flag sets that don't exit on error
-	switch {
-	case contains(list_of_flags_for_device, command):
-		deviceCmd := flag.NewFlagSet("device", flag.ContinueOnError)
-		deviceCmd.SetOutput(os.Stdout) // Suppress error output
-		runGenericCommand(deviceCmd, CommandDevice, add_args, internalLogger)
-	case contains(list_of_flags_for_fdsec, command):
-		if err := handleFdsecCommand(add_args, internalLogger); err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_folder, command):
-		folderCmd := flag.NewFlagSet("folder", flag.ContinueOnError)
-		folderCmd.SetOutput(os.Stdout)
-		runGenericCommand(folderCmd, CommandFolder, add_args, internalLogger)
-	case contains(list_of_flags_for_file, command):
-		fileCmd := flag.NewFlagSet("file", flag.ContinueOnError)
-		fileCmd.SetOutput(os.Stdout)
-		runGenericCommand(fileCmd, CommandFile, add_args, internalLogger)
-	case contains(list_of_flags_for_network, command):
-		networkCmd := flag.NewFlagSet("network", flag.ContinueOnError)
-		networkCmd.SetOutput(os.Stdout)
-		runGenericCommand(networkCmd, CommandNetwork, add_args, internalLogger)
-	case contains(list_of_flags_for_duplicates, command):
-		// Handle check-duplicates command
-		if len(args) > 1 && strings.ToLower(args[1]) == "from" {
-			internalLogger.SetCommand(command, "from", "check-duplicates")
-			err := handleCheckDuplicatesCommand(args)
-			if err != nil {
-				internalLogger.SetError(err)
-				return err
-			}
-			internalLogger.SetSuccess()
-		} else {
-			return fmt.Errorf("invalid format for duplicate command: %s", strings.Join(args, " "))
-		}
-	case contains(list_of_flags_for_hist, command):
-		// Handle history command
-		internalLogger.SetCommand(command, "", "history")
-		handleHistoryCommand(args)
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_compare, command):
-		if len(args) < 3 {
-			return fmt.Errorf("compare command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "compare")
-		if err := handleCompareCommand(args[1], args[2], args[3:]...); err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_copy, command):
-		// Handle intelligent copy command with automatic strategy selection
-		if len(args) < 3 {
-			return fmt.Errorf("copy command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "auto-copy")
-		copyPrecount = wantsCopyPrecount(args[3:])
-		err := handleAutoCopyCommand(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_fastcopy, command):
-		// Handle fast copy command
-		if len(args) < 3 {
-			return fmt.Errorf("fastcopy command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "fastcopy")
-		err := handleFastCopyCommand(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_synccopy, command):
-		// Handle synchronized copy command
-		if len(args) < 3 {
-			return fmt.Errorf("synccopy command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "synccopy")
-		err := handleSyncCopyCommand(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_balanced, command):
-		// Handle balanced copy command optimized for HDD-to-HDD
-		if len(args) < 3 {
-			return fmt.Errorf("balanced command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "balanced")
-		err := handleBalancedCopyCommand(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_maxcopy, command):
-		// Handle maximum performance copy command
-		if len(args) < 3 {
-			return fmt.Errorf("maxcopy command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "maxcopy")
-		err := handleMaxCopyCommand(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_smartcopy, command):
-		// Handle smart copy command with advanced drive analysis
-		if len(args) < 3 {
-			return fmt.Errorf("smartcopy command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "smartcopy")
-		err := handleSmartCopyCommand(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_safecopy, command):
-		// Handle safe copy command for damaged drives
-		if len(args) < 3 {
-			return fmt.Errorf("safecopy command requires source and target paths")
-		}
-		internalLogger.SetCommand(command, args[1], "safecopy")
-		err := SafeCopy(args[1], args[2])
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_check, command):
-		// Handle check command with flags
-		if len(args) < 2 {
-			return fmt.Errorf("check command requires a folder or a file path")
-		}
-		internalLogger.SetCommand(command, args[1], "check")
-		if err := HandleCheckArgs(args[1], args[2:]); err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_from, command):
-		// Handle from file command (nested call)
-		if len(args) < 2 {
-			return fmt.Errorf("missing file path for 'from' command")
-		}
-		internalLogger.SetCommand(command, args[1], "batch")
-		err := executeFromFile(args[1], internalLogger)
-		if err != nil {
-			internalLogger.SetError(err)
-			return err
-		}
-		internalLogger.SetSuccess()
-	case contains(list_of_flags_for_ui, command):
-		return fmt.Errorf("cannot launch UI shell from batch script")
-	default:
-		return fmt.Errorf("unknown command: %s", command)
-	}
-
-	return nil
-}
-
 // handleFastCopyCommand handles the fastcopy command with optimized performance
 func handleFastCopyCommand(sourcePath, targetPath string) error {
 	return FastCopy(sourcePath, targetPath)
@@ -1215,6 +979,9 @@ func handleMaxCopyCommand(sourcePath, targetPath string) error {
 
 // handleAutoCopyCommand provides simple copy with automatic optimization (user-friendly)
 func handleAutoCopyCommand(sourcePath, targetPath string) error {
+	if err := refuseCopyPaths("copy", sourcePath, targetPath); err != nil {
+		return err
+	}
 	// Perform silent advanced strategy analysis
 	analysis, err := AnalyzeCopyStrategyQuiet(sourcePath, targetPath)
 	if err != nil {
@@ -1240,25 +1007,12 @@ func handleSmartCopyCommand(sourcePath, targetPath string) error {
 	return ExecuteSelectedStrategy(analysis, sourcePath, targetPath)
 }
 
-func isValidPath(path string) bool {
-	// Check if it's a drive letter
-	if len(path) > 0 && ((len(path) == 1) || (len(path) > 1 && len(path) < 4 && string([]rune(path)[1]) == ":")) {
-		return true
-	}
-	// Check if it's a network path
-	if len(path) > 2 && (path[0:2] == "\\" || path[0:2] == "//") {
-		return true
-	}
-	// Check if it's a file or folder that exists
-	if _, err := os.Stat(path); err == nil {
-		return true
-	}
-	// For batch processing, we also consider paths that might not exist yet as valid syntax
-	return false
-}
-
 func ShowLastHistory(count int) {
-	historyFile := "history.json"
+	historyFile, perr := historyFilePath()
+	if perr != nil {
+		fmt.Printf("Error locating history: %v\n", perr)
+		return
+	}
 
 	if _, err := os.Stat(historyFile); os.IsNotExist(err) {
 		fmt.Println("No history found")
@@ -1469,34 +1223,6 @@ func main() {
 	defer finishRun()
 	defer recoverRunPanic()
 
-	// Convert only the first few arguments (commands/flags) to lowercase, preserve paths
-	lowerArgs := make([]string, len(args))
-	copy(lowerArgs, args)
-
-	// Convert first argument (command) to lowercase for comparison
-	if len(lowerArgs) >= 2 {
-		lowerArgs[1] = strings.ToLower(lowerArgs[1])
-	}
-
-	// Convert potential second command/flag to lowercase
-	if len(lowerArgs) >= 3 {
-		// Check if it looks like a command/flag, not a path
-		arg := lowerArgs[2]
-		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") && !strings.Contains(arg, ".") {
-			lowerArgs[2] = strings.ToLower(lowerArgs[2])
-		}
-	}
-
-	// Convert operation arguments to lowercase (but preserve paths)
-	for i := 3; i < len(lowerArgs); i++ {
-		arg := lowerArgs[i]
-		// Only convert to lowercase if it doesn't look like a path
-		if !strings.Contains(arg, ":") && !strings.Contains(arg, "\\") && !strings.Contains(arg, "/") &&
-			!strings.Contains(arg, ".") && len(arg) < 20 { // Short non-path arguments
-			lowerArgs[i] = strings.ToLower(lowerArgs[i])
-		}
-	}
-
 	if len(args) < 2 {
 		fmt.Println(shortUsage)
 		if !noUI && os.Getenv("FILEDO_NO_UI") != "1" {
@@ -1507,288 +1233,6 @@ func main() {
 		return
 	}
 
-	if contains(list_fo_flags_for_help, lowerArgs[1]) {
-		if contains(list_fo_flags_for_short_help, lowerArgs[1]) {
-			fmt.Println(shortUsage)
-		} else {
-			fmt.Println(usage)
-		}
-		return
-	}
-
-	// Target-first fdsec ops (<file> secure|unsecure|reveal ..) are handled
-	// before the generic path probe - see fdsecDispatchTarget. The batch
-	// path calls exactly the same function, so a verb cannot work
-	// interactively and silently fail from a .lst file.
-	if handled, err := fdsecDispatchTarget(args[1:], historyLogger); handled {
-		if err != nil {
-			historyLogger.SetError(err)
-			fdsecSetExit(err)
-			runFailure(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	}
-
-	// Check for direct cd from command (without device/folder/network context)
-	if contains(list_of_flags_for_duplicates, lowerArgs[1]) && len(args) > 2 && lowerArgs[2] == "from" {
-		historyLogger.SetCommand(lowerArgs[1], "from", "check-duplicates")
-		// Pass original command to handler (preserve case in paths)
-		err := handleCheckDuplicatesCommand(args[1:])
-		if err != nil {
-			historyLogger.SetError(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	}
-
-	var command string
-	var add_args []string
-
-	if contains(list_of_flags_for_all, lowerArgs[1]) {
-		command = lowerArgs[1]
-		add_args = args[2:] // Use original args to preserve case in paths
-
-		// Special handling for short copy command 'c'
-		// If 'c' is used with 3+ arguments, treat it as copy
-		if lowerArgs[1] == "c" && len(args) >= 4 {
-			command = "copy"
-			add_args = args[2:] // Use original args
-		}
-	} else {
-		firstArg := args[1] // Use original arg to preserve case in paths
-
-		// For drive C can be used as "C:" or "C:\"
-		if len(firstArg) > 0 && ((len(firstArg) == 1) || (len(firstArg) > 1 && len(firstArg) < 4 && string([]rune(firstArg)[1]) == ":")) {
-			if len(firstArg) == 1 {
-				args[1] += ":"
-			}
-
-			command = "device"
-			add_args = args[1:]
-		} else {
-			if len(firstArg) > 2 && (firstArg[0:2] == "\\" || firstArg[0:2] == "//") {
-				command = "network"
-				add_args = args[1:]
-			} else {
-				// Check if args[1] is an existing file or folder
-				if info, err := os.Stat(args[1]); err == nil {
-					if info.IsDir() {
-						command = "folder"
-						add_args = args[1:]
-					} else {
-						command = "file"
-						add_args = args[1:]
-					}
-				} else {
-					// Path doesn't exist - try to determine what it might be
-					if strings.HasPrefix(lowerArgs[1], "folder") || strings.HasPrefix(lowerArgs[1], "dir") {
-						command = lowerArgs[1]
-						add_args = args[2:]
-					} else if strings.HasSuffix(args[1], "/") || strings.HasSuffix(args[1], "\\") {
-						err := fmt.Errorf("the folder %q does not exist", args[1])
-						reportRunError(err, historyLogger)
-						return
-					} else if strings.Contains(args[1], ".") {
-						err := fmt.Errorf("the file %q does not exist", args[1])
-						reportRunError(err, historyLogger)
-						return
-					} else {
-						// Could be a command or non-existent path
-						command = lowerArgs[1] // Use lowercase for command comparison
-						add_args = args[2:]
-					}
-				}
-			}
-		}
-	}
-
-	runNetworkCommand := func(cmd *flag.FlagSet) {
-		runGenericCommand(cmd, CommandNetwork, add_args, historyLogger)
-	}
-
-	runDeviceCommand := func(cmd *flag.FlagSet) {
-		runGenericCommand(cmd, CommandDevice, add_args, historyLogger)
-	}
-
-	runFolderCommand := func(cmd *flag.FlagSet) {
-		runGenericCommand(cmd, CommandFolder, add_args, historyLogger)
-	}
-
-	runFileCommand := func(cmd *flag.FlagSet) {
-		runGenericCommand(cmd, CommandFile, add_args, historyLogger)
-	}
-
-	switch {
-	case contains(list_of_flags_for_device, command):
-		deviceCmd := flag.NewFlagSet("device", flag.ExitOnError)
-		runDeviceCommand(deviceCmd)
-	case contains(list_of_flags_for_fdsec, command):
-		if err := handleFdsecCommand(add_args, historyLogger); err != nil {
-			historyLogger.SetError(err)
-			fdsecSetExit(err)
-			runFailure(err)
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			return
-		}
-		historyLogger.SetSuccess()
-	case contains(list_of_flags_for_folder, command):
-		folderCmd := flag.NewFlagSet("folder", flag.ExitOnError)
-		runFolderCommand(folderCmd)
-	case contains(list_of_flags_for_file, command):
-		fileCmd := flag.NewFlagSet("file", flag.ExitOnError)
-		runFileCommand(fileCmd)
-	case contains(list_of_flags_for_network, command):
-		networkCmd := flag.NewFlagSet("network", flag.ExitOnError)
-		runNetworkCommand(networkCmd)
-	case contains(list_of_flags_for_from, command):
-		if len(add_args) < 1 {
-			usageFailure(command, args, "Missing file path for 'from' command")
-			return
-		}
-		if err := executeFromFile(add_args[0], historyLogger); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-	case contains(list_of_flags_for_hist, command):
-		handleHistoryCommand(os.Args[1:])
-		return
-	case contains(list_of_flags_for_compare, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Compare command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "compare")
-		beginRun(runActs, "compare", add_args[0], args)
-		if err := handleCompareCommand(add_args[0], add_args[1], add_args[2:]...); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_copy, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "auto-copy")
-		beginRun(runActs, "auto-copy", add_args[0], args)
-		copyPrecount = wantsCopyPrecount(add_args[2:])
-		if err := handleAutoCopyCommand(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_fastcopy, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Fast copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "fastcopy")
-		beginRun(runActs, "fastcopy", add_args[0], args)
-		if err := handleFastCopyCommand(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_synccopy, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Sync copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "synccopy")
-		beginRun(runActs, "synccopy", add_args[0], args)
-		if err := handleSyncCopyCommand(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_balanced, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Balanced copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "balanced")
-		beginRun(runActs, "balanced", add_args[0], args)
-		if err := handleBalancedCopyCommand(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_maxcopy, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Max copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "maxcopy")
-		beginRun(runActs, "maxcopy", add_args[0], args)
-		if err := handleMaxCopyCommand(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_smartcopy, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Smart copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "smartcopy")
-		beginRun(runActs, "smartcopy", add_args[0], args)
-		if err := handleSmartCopyCommand(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_safecopy, command):
-		if len(add_args) < 2 {
-			usageFailure(command, args, "Safe copy command requires source and target paths")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "safecopy")
-		beginRun(runActs, "safecopy", add_args[0], args)
-		if err := SafeCopy(add_args[0], add_args[1]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_check, command):
-		if len(add_args) < 1 {
-			usageFailure(command, args, "CHECK command requires a folder or a file path")
-			return
-		}
-		historyLogger.SetCommand(command, add_args[0], "check")
-		beginRun(runJudges, "check", add_args[0], args)
-		if err := HandleCheckArgs(add_args[0], add_args[1:]); err != nil {
-			reportRunError(err, historyLogger)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	case contains(list_of_flags_for_ui, command):
-		historyLogger.SetCommand("ui", "", "ui")
-		beginRun(runActs, "ui", "", args)
-		if err := launchUI(add_args...); err != nil {
-			fmt.Fprintf(os.Stderr, "GUI is available as filedo_win.exe (download from https://github.com/SerZhyAle/FileDO/releases)\nError: %v\n", err)
-			historyLogger.SetError(err)
-			runFailure(err)
-			return
-		}
-		historyLogger.SetSuccess()
-		return
-	default:
-		usageFailure(command, args, "Unknown command %q", os.Args[1])
-		fmt.Println(usage)
-		return
-	}
+	// The one dispatch, shared with the batch path (dispatch.go, CLI-30).
+	dispatchLine(args[1:], historyLogger, false)
 }

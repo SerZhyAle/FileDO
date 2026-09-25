@@ -100,7 +100,9 @@
     </Feature>
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="FileDO" />
+      <Directory Id="INSTALLFOLDER" Name="FileDO">
+        <Directory Id="MENUICONSFOLDER" Name="icons" />
+      </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -193,7 +195,7 @@
           <!-- The mark `filedo fdsec unregister` looks for. One contract, two
                writers: without it the CLI would refuse to touch these keys. -->
           <RegistryValue Name="FileDO.RegisteredBy" Type="string" Value="[INSTALLFOLDER]filedo.exe" />
-          <RegistryValue Key="DefaultIcon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="DefaultIcon" Type="string" Value="[INSTALLFOLDER]icons\content.secret-file.ico" />
           <RegistryValue Key="shell" Type="string" Value="open" />
           <RegistryValue Key="shell\open" Type="string" Value="Unsecure and start with FileDO" />
           <RegistryValue Key="shell\open" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
@@ -254,35 +256,35 @@
 
           <RegistryValue Key="shell\10Secure" Type="string" Value="Secure" />
           <RegistryValue Key="shell\10Secure" Name="MUIVerb" Type="string" Value="Secure" />
-          <RegistryValue Key="shell\10Secure" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\10Secure" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.secure.ico" />
           <RegistryValue Key="shell\10Secure" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\10Secure\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure --pause --no-history" />
 
           <RegistryValue Key="shell\20SecureDel" Type="string" Value="Secure and delete original" />
           <RegistryValue Key="shell\20SecureDel" Name="MUIVerb" Type="string" Value="Secure and delete original" />
-          <RegistryValue Key="shell\20SecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\20SecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.secure.ico" />
           <RegistryValue Key="shell\20SecureDel" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\20SecureDel\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure del -y --pause --no-history" />
 
           <RegistryValue Key="shell\30SecureWipe" Type="string" Value="Secure and wipe original" />
           <RegistryValue Key="shell\30SecureWipe" Name="MUIVerb" Type="string" Value="Secure and wipe original" />
-          <RegistryValue Key="shell\30SecureWipe" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\30SecureWipe" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.secure.ico" />
           <RegistryValue Key="shell\30SecureWipe" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\30SecureWipe\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure wipe --pause --no-history" />
 
           <RegistryValue Key="shell\40SecureRename" Type="string" Value="Secure with a random name" />
           <RegistryValue Key="shell\40SecureRename" Name="MUIVerb" Type="string" Value="Secure with a random name" />
-          <RegistryValue Key="shell\40SecureRename" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\40SecureRename" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.secure.ico" />
           <RegistryValue Key="shell\40SecureRename" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\40SecureRename\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; secure rename --pause --no-history" />
 
           <RegistryValue Key="shell\50Unsecure" Type="string" Value="Unsecure" />
           <RegistryValue Key="shell\50Unsecure" Name="MUIVerb" Type="string" Value="Unsecure" />
-          <RegistryValue Key="shell\50Unsecure" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\50Unsecure" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.unsecure.ico" />
           <RegistryValue Key="shell\50Unsecure" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\50Unsecure" Name="CommandFlags" Type="integer" Value="32" />
           <RegistryValue Key="shell\50Unsecure\command" Type="string"
@@ -290,21 +292,21 @@
 
           <RegistryValue Key="shell\60UnsecureDel" Type="string" Value="Unsecure and delete container" />
           <RegistryValue Key="shell\60UnsecureDel" Name="MUIVerb" Type="string" Value="Unsecure and delete container" />
-          <RegistryValue Key="shell\60UnsecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\60UnsecureDel" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.unsecure.ico" />
           <RegistryValue Key="shell\60UnsecureDel" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\60UnsecureDel\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; unsecure del -y --pause --no-history" />
 
           <RegistryValue Key="shell\65UnsecureStart" Type="string" Value="Unsecure and start" />
           <RegistryValue Key="shell\65UnsecureStart" Name="MUIVerb" Type="string" Value="Unsecure and start" />
-          <RegistryValue Key="shell\65UnsecureStart" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\65UnsecureStart" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.unsecure.ico" />
           <RegistryValue Key="shell\65UnsecureStart" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\65UnsecureStart\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; &quot;%1&quot; unsecure start --pause --no-history" />
 
           <RegistryValue Key="shell\70Wipe" Type="string" Value="Wipe this file" />
           <RegistryValue Key="shell\70Wipe" Name="MUIVerb" Type="string" Value="Wipe this file" />
-          <RegistryValue Key="shell\70Wipe" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\70Wipe" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.wipe.ico" />
           <RegistryValue Key="shell\70Wipe" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\70Wipe" Name="CommandFlags" Type="integer" Value="32" />
           <RegistryValue Key="shell\70Wipe\command" Type="string"
@@ -312,14 +314,14 @@
 
           <RegistryValue Key="shell\80Check" Type="string" Value="Check this file" />
           <RegistryValue Key="shell\80Check" Name="MUIVerb" Type="string" Value="Check this file" />
-          <RegistryValue Key="shell\80Check" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\80Check" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\action.verify.ico" />
           <RegistryValue Key="shell\80Check" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\80Check\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; check &quot;%1&quot; --pause --no-history" />
 
           <RegistryValue Key="shell\90Info" Type="string" Value="Info" />
           <RegistryValue Key="shell\90Info" Name="MUIVerb" Type="string" Value="Info" />
-          <RegistryValue Key="shell\90Info" Name="Icon" Type="string" Value="[INSTALLFOLDER]FileDO.ico" />
+          <RegistryValue Key="shell\90Info" Name="Icon" Type="string" Value="[INSTALLFOLDER]icons\app.info.ico" />
           <RegistryValue Key="shell\90Info" Name="MultiSelectModel" Type="string" Value="Player" />
           <RegistryValue Key="shell\90Info\command" Type="string"
                          Value="&quot;[INSTALLFOLDER]filedo.exe&quot; file &quot;%1&quot; info --pause --no-history" />
@@ -349,6 +351,27 @@
            time, long after the installer is gone. -->
       <Component Id="FileDOIconFile" Guid="*">
         <File Source="$(var.StageDir)\FileDO.ico" KeyPath="yes" />
+      </Component>
+      <!-- The Explorer entries' and the document type's icons (SP-0016 T8): each its ICON-SET
+           meaning's glyph, drawn by filedo_win.exe from the vocabulary (assets\menu-icons). The
+           product mark stays on the group entry and the open verb only (ICON-SET rule 7). -->
+      <Component Id="MenuIconSecure" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\action.secure.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="MenuIconUnsecure" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\action.unsecure.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="MenuIconWipe" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\action.wipe.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="MenuIconVerify" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\action.verify.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="MenuIconInfo" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\app.info.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="MenuIconSecretFile" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\content.secret-file.ico" KeyPath="yes" />
       </Component>
       <Component Id="FileDOCheckExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_check.exe" KeyPath="yes" />

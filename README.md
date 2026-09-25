@@ -33,7 +33,7 @@ filedo D: fill 1000 del
 
 # Find and manage duplicate files
 filedo C: check-duplicates
-filedo D: cd old del
+filedo D:\Photos cd old del
 
 # Copy files with progress tracking
 filedo folder C:\Source copy D:\Backup
@@ -70,7 +70,7 @@ filedo cmp D:\Data E:\Backup del old target    # only if older is on Target
 filedo cmp D:\Data E:\Backup del new source    # only if newer is on Source
 ```
 
-Notes: matching by relative path, size-only equality; optional side qualifier for old/new/small/big; mtime used for old/new; Windows compare is case-insensitive; logs: compare_report_*.log, delete_report_<mode>_*.log.
+Notes: matching by relative path; `del source` and `del target` delete a pair only when size and modification time match (`--by-hash`: equal content; `--allow-mismatch`: any pair) - a pair that differs is reported and kept; two spellings of one folder, or a folder inside the other, are refused; optional side qualifier for old/new/small/big; mtime used for old/new; Windows compare is case-insensitive and deletes use each file's real name; an entry that cannot be read or deleted ends the run with exit 2; logs: compare_report_*.log, delete_report_<mode>_*.log.
 
 ### Health CHECK (fast read check)
 
@@ -101,7 +101,7 @@ Flags mirror FILEDO_CHECK_* environment variables and have precedence. Use them 
 	- `--dry-run` (FILEDO_CHECK_DRYRUN)
 	- `--verbose` (FILEDO_CHECK_VERBOSE)
 	- `--quiet` (FILEDO_CHECK_QUIET)
-	- `--resume` (FILEDO_CHECK_RESUME)
+	- `--resume` (FILEDO_CHECK_RESUME) - carry on: skip the files an earlier run already read cleanly (the good list)
 - Reporting
 	- `--report csv|json` (FILEDO_CHECK_REPORT)
 	- `--report-file <path>` (FILEDO_CHECK_REPORT_FILE)
@@ -132,8 +132,8 @@ filedo check D:\Data --good-list D:\check_files.list --quiet
 ```
 
 - One-time warm-up allowance up to 10.0s before the first read (spin-up)
-- Uses skip_files.list for immediate, persistent recording (no damaged_files.log)
-- Skips paths already in skip_files.list; parallel workers; Ctrl+C supported
+- The damaged and good lists live in `%LOCALAPPDATA%\FileDO\state` (never beside your files) and name each file by path, size and modification time, so a changed file is read again; copy keeps its own skip list
+- A file already on the damaged list is reported again without being read (exit 1); a locked or unreadable file or folder is *could not verify* (exit 2), never *damaged*; parallel workers; Ctrl+C supported
 
 ### Installation
 
@@ -191,7 +191,7 @@ Uninstalling removes everything the installer wrote, the registry entries includ
 
 #### Option 3 - Microsoft Store (MSIX)
 
-One package, two entries: a clickable **FileDO** tile - a GUI with a page per job, whose Command page builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the graphical window and the CLI together. The Store build does **not** carry the Explorer entries: a packaged build can only get them through a signed shell handler, which is separate work.
+One package, two entries: a clickable **FileDO** tile - a GUI with a page per job, whose Command page builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the graphical window and the CLI together. The Store build does **not** carry the Explorer entries: a packaged build can only get them through a signed shell handler, which is separate work. It **does** claim the `.fd-sec` file type: a double-click on a container opens the FileDO window on its *Open a secret file* page with that container already chosen, and the password is asked there.
 
 #### Option 4 - Manual download
 
@@ -292,10 +292,11 @@ filedo C:\temp clean
 
 ## Secret Files (`.fd-sec`)
 
-One file goes into one container, behind a password, and comes back out - from the command line, from the
-Explorer menu, or from the **Protect** pages in the window. The original's true name, its real size and
-its timestamps are sealed inside; the container itself reveals only its own size, its visible name, and
-its timestamps (`rename` writes a nameless blob).
+One file - or one folder, its whole tree - goes into one container, behind a password, and comes back
+out - from the command line, from the Explorer menu, or from the **Protect** pages in the window. The
+original's true name, its real size and its timestamps are sealed inside, and for a folder every entry's
+path, size and timestamps too; the container itself reveals only its own size, its visible name, and its
+timestamps (`rename` writes a nameless blob). Nothing on disk tells a folder container from a file one.
 
 ```bash
 # Pack it (asks for the password twice, with no echo)
@@ -311,7 +312,30 @@ filedo report.fd-sec unsecure here
 
 # Open it in the program it belongs to, without unpacking it
 filedo report.fd-sec reveal
+
+# A folder packs to one file the same way, and comes back as the whole tree
+filedo "Tax 2025" secure
+filedo "Tax 2025.fd-sec" unsecure to D:\Restored
+
+# The quiet suite: a harder key, no trace of alignment - but only FileDO opens it
+filedo report.docx secure suite2
 ```
+
+A folder is packed whole - empty subfolders included - and restored whole: into a fresh temporary folder
+first, moved into place only after every file has verified, and never into or over a folder that already
+exists (`-y` restores under a suffixed name instead). A folder holding a junction, a symbolic link or a
+mount point is refused rather than followed. `del` and `wipe` remove the original tree only after the
+container has been read back, and only if the folder has not changed since it was packed. `reveal` opens
+one file, so it refuses a folder container and points at `unsecure`.
+
+`suite2` seals one file (not a folder) with suite 2 instead of the default suite 1: a pepper-folded
+Argon2id key at 256 MiB and XChaCha20-Poly1305 in 64 KiB frames, so the file is noise from its first byte,
+without even the 512-byte cluster length pattern suite 1 has. It keeps the true name, the real size and
+the time of encryption, but not the original's own timestamps - the restored file gets the current time.
+Only FileDO from this version on opens it: older FileDO builds report it as damaged or as a wrong password,
+and FastMediaSorter apps cannot open it, so suite 1 stays the default. `unsecure`, `reveal`, `fdsec info`
+and `fdsec verify` find the suite themselves; nothing else changes, and an empty password is still
+obfuscation only.
 
 Five things said plainly, because a security feature that oversells itself is worse than none:
 
@@ -355,12 +379,17 @@ report and no history file. A double-click on a `.fd-sec` does not open that win
 - Configurable file sizes (1MB to 10GB)
 
 ### **Duplicate File Management**
-- Multiple selection modes (oldest/newest/alphabetical)
-- Flexible actions (delete/move duplicates)
-- MD5 hash-based reliable identification
-- Hash caching for faster repeated scans - the cache (`hash_cache.json`) lives next to the executable, and
-  a cached hash is reused only while the file's size **and** modification time still match, so an edited
-  file never counts as a duplicate
+- Multiple selection modes (oldest/newest by creation time, alphabetical)
+- Flexible actions (delete/move duplicates) - each file is asked about unless `-y` (or `--yes`) is given,
+  and a run with no console and no `-y` is refused before it touches anything
+- SHA-256 grouping, and a byte-for-byte comparison with the kept copy right before every delete or move -
+  a hash, cached or fresh, is never the only proof; a move never replaces a file, across drives too
+- Hard links and a second name of the same file never count as duplicates; a drive or share root, Windows,
+  Program Files and the system TEMP ask for a typed confirmation even with `-y`, and a scan skips Windows
+  and Program Files unless it starts inside them
+- Hash caching for faster repeated scans - the cache (`hash_cache.json`) lives in
+  `%LOCALAPPDATA%\FileDO\state\`, and a cached hash is reused only while the file's size, modification
+  time, file ID and change time still match, so an edited file never counts as a duplicate
 - Support for saving/loading duplicate lists
 
 ### **Copy Operations**
@@ -372,22 +401,21 @@ report and no history file. A double-click on a `.fd-sec` does not open that win
 - **Robust error handling** - continues copying even if individual files fail
 - **Universal support** - works with devices, folders, network shares, and individual files
 
-### **Fast Wipe Operations**
-- **Ultra-fast method** - delete entire folder and recreate (milliseconds)
-- **Standard fallback** - file-by-file deletion with progress for restricted folders
-- **Metadata preservation** - maintains original folder permissions and timestamps
-- **Smart error handling** - works with system folders and access restrictions
-- **Universal compatibility** - supports devices, folders, and network shares
+### **Wipe Operations**
+- **Contents only** - every entry inside the folder is deleted; the folder itself stays, with its access list, owner, encryption, compression and attributes
+- **Honest result** - an entry that cannot be deleted (in use, locked, access denied) is listed and the run exits 2
+- **Universal compatibility** - supports devices (`device D: wipe` always means `D:\`), folders, and network shares
 - **Confirmation guardrails** - `wipe` always asks `Type WIPE to continue` before
   deleting. Add `--force` (or `-y`) to skip the prompt in automation. Dangerous
-  targets - drive/share roots, reparse points (junctions/symlinks) and the system
-  TEMP folder - always require interactive confirmation and are never bypassed by
-  `--force`.
+  targets - drive/share roots in any spelling, and the TEMP, profile, Windows,
+  Program Files and FileDO folders together with every folder above them - always
+  require interactive confirmation and are never bypassed by `--force`. A junction
+  or symlink target is refused outright: wipe the folder it points to by its own path.
 
 ### **Security Features**
 - High-speed secure data wiping to prevent recovery (4.7+ GB/s)
 - Fill operations with parallel writing and automatic cleanup
-- Secret files: one file per `.fd-sec` container behind a password, with a bounded plaintext window when
+- Secret files: one file or one whole folder per `.fd-sec` container behind a password, with a bounded plaintext window when
   one is opened - see [Secret Files](#secret-files-fd-sec) for what each choice does and does not promise
 - Batch processing for multiple targets
 - Comprehensive operation history, with credentials redacted before anything is written to it
@@ -417,9 +445,9 @@ report and no history file. A double-click on a `.fd-sec` does not open that win
 | `fill [size]` | Fill with test data | `filedo D: fill 1000` |
 | `clean` | Remove test files | `filedo C: clean` |
 | `check-duplicates` | Find duplicate files | `filedo C: check-duplicates` |
-| `cd [mode] [action]` | Check duplicates (short) | `filedo C: cd old del` |
+| `cd [mode] [action]` | Check duplicates (short) | `filedo D:\Photos cd old del -y` |
 | `copy <target>` | Copy files with progress | `filedo C: copy D:\backup` |
-| `wipe` | Fast wipe folder contents | `filedo folder C:\temp wipe` |
+| `wipe` | Delete everything inside a folder | `filedo folder C:\temp wipe` |
 | `from <file>` | Execute batch commands | `filedo from script.txt` |
 | `hist` | Show operation history | `filedo hist` |
 
@@ -447,10 +475,11 @@ report and no history file. A double-click on a `.fd-sec` does not open that win
 | `nodel` | Keep test files | `filedo C: speed 100 nodel` |
 | `short` | Brief output only | `filedo D: speed 100 short` |
 | `max` | Maximum size (10GB) | `filedo C: speed max` |
-| `old` | Keep newest as original (for cd) | `filedo D: cd old del` |
-| `new` | Keep oldest as original (for cd) | `filedo E: cd new move F:` |
+| `old` | Keep newest as original (for cd) | `filedo D:\Photos cd old del` |
+| `new` | Keep oldest as original (for cd) | `filedo E:\Photos cd new move F:\Dups` |
 | `abc` | Keep alphabetically last (for cd) | `filedo C: cd abc` |
 | `xyz` | Keep alphabetically first (for cd) | `filedo C: cd xyz list dups.lst` |
+| `-y`, `--yes` | Delete/move duplicates without asking per file (for cd; required with no console) | `filedo D:\Photos cd old del -y` |
 
 ---
 
@@ -529,11 +558,11 @@ filedo network \\pc\share info
 
 > **Secure Wiping**: `fill <size> del` overwrites free space with optimized buffer management and context-aware writing for secure data deletion.
 
-> **Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. Use `clean` command to remove them automatically.
+> **Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. `clean` removes the ones FileDO wrote - its own names and its own content, nothing else - after listing them and asking; `--yes` answers the question.
 
-> **Modular Architecture**: Refactored with separate `capacitytest` and `fileduplicates` packages for better maintainability and extensibility.
+> **Shared packages**: `fileduplicates` (duplicate detection), `fsx` (path identity and atomic, non-replacing writes) and `statedir` (the runtime state root, `%LOCALAPPDATA%\FileDO\state`).
 
-> **CHECK Command**: Marks a file as damaged if initial read delay exceeds 2.0s. Allows a one-time warm-up up to 10.0s. Writes immediately to `skip_files.list` and respects existing entries. No `damaged_files.log`.
+> **CHECK Command**: Marks a file as damaged if initial read delay exceeds 2.0s. Allows a one-time warm-up up to 10.0s. Records damaged files at once in its own list under `%LOCALAPPDATA%\FileDO\state` and reports them again on the next sweep without re-reading them. No `damaged_files.log`.
 
 ---
 
@@ -591,11 +620,14 @@ filedo E: fill max del
 # Find duplicates in current directory
 filedo . check-duplicates
 
-# Find and delete older duplicates
-filedo C: cd old del
+# Find and delete older duplicates (asks before each file)
+filedo D:\Photos cd old del
+
+# The same without a question per file
+filedo D:\Photos cd old del -y
 
 # Find and move newer duplicates to backup
-filedo E: cd new move E:\Backup
+filedo E:\Photos cd new move E:\Backup
 
 # Save duplicates list for later processing
 filedo D: cd list duplicates.lst
@@ -620,10 +652,8 @@ filedo cd from list duplicates.lst xyz del
 ```
 FileDO/
 ├── main.go                    # Application entry point
-├── capacitytest/             # Capacity testing module
-│   ├── types.go              # Core interfaces and types
-│   ├── test.go               # Main testing logic
-│   └── utils.go              # Utility functions and verification
+├── fsx/                      # Path identity and atomic writes
+├── statedir/                 # Where state files live (%LOCALAPPDATA%\FileDO\state)
 ├── fileduplicates/           # Duplicate file management
 │   ├── types.go              # Duplicate detection interfaces
 │   ├── duplicates.go         # Core duplicate logic
@@ -638,7 +668,6 @@ FileDO/
 │   ├── filedo-check/        # Standalone health check utility
 │   ├── filedo-fill/         # Standalone fill utility
 │   └── filedo-test/         # Standalone test utility
-├── capacitytest/             # Capacity-testing shared logic
 ├── fileduplicates/           # Duplicate detection logic
 └── helpers/                  # Shared helpers
 ```
@@ -647,7 +676,7 @@ FileDO/
 - **Enhanced InterruptHandler**: Thread-safe interruption with context support
 - **Optimized Buffer Management**: Dynamic buffer sizing for optimal performance
 - **Comprehensive Testing**: Fake capacity detection with random verification
-- **Duplicate Detection**: MD5-based file comparison with caching
+- **Duplicate Detection**: SHA-256 file comparison with caching, and a byte-for-byte check before any delete or move
 - **Batch Processing**: Script execution with error handling
 - **History Logging**: JSON-based operation tracking
 

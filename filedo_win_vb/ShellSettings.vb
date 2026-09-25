@@ -127,16 +127,29 @@ Module ShellSettings
         If Not ReadInt("ShellPlacementV", stamp) OrElse stamp <> PlacementVersion Then Return p
 
         Dim x, y, w, h As Integer
-        If ReadInt("ShellX", x) AndAlso ReadInt("ShellY", y) AndAlso
-           ReadInt("ShellW", w) AndAlso ReadInt("ShellH", h) Then
-            p.X = x : p.Y = y : p.Width = w : p.Height = h
-            p.HasValue = True
-        End If
+        If Not (ReadInt("ShellX", x) AndAlso ReadInt("ShellY", y) AndAlso
+                ReadInt("ShellW", w) AndAlso ReadInt("ShellH", h)) Then Return p
+        Dim d As Integer = 0
+        ReadInt("ShellDpi", d)
+        If Not PlacementIsSane(x, y, w, h, d) Then Return p
+
+        p.X = x : p.Y = y : p.Width = w : p.Height = h
+        p.HasValue = True
         Dim m As Integer
         If ReadInt("ShellMax", m) Then p.Maximized = (m <> 0)
-        Dim d As Integer
-        If ReadInt("ShellDpi", d) AndAlso d > 0 Then p.Dpi = d
+        If d > 0 Then p.Dpi = d
         Return p
+    End Function
+
+    ' SHELL-09: the values come from the user's registry, and a hand edit or a broken writer can put
+    ' anything there. A value no real window has is not restored - scaling ShellX 2147483000, or a
+    ' width by ShellDpi 1, overflowed in the window's constructor and kept it from opening on every
+    ' start, until somebody found the key and edited it by hand. A missing DPI (0) is allowed.
+    Friend Function PlacementIsSane(x As Integer, y As Integer, w As Integer, h As Integer, dpi As Integer) As Boolean
+        If Math.Abs(CLng(x)) >= 100000 OrElse Math.Abs(CLng(y)) >= 100000 Then Return False
+        If w <= 0 OrElse h <= 0 OrElse w >= 100000 OrElse h >= 100000 Then Return False
+        If dpi <> 0 AndAlso (dpi < 48 OrElse dpi > 960) Then Return False
+        Return True
     End Function
 
     Public Sub SavePlacement(x As Integer, y As Integer, width As Integer, height As Integer, maximized As Boolean, dpi As Integer)

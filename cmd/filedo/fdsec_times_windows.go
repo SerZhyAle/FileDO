@@ -28,9 +28,11 @@ func fdsecMetadataFromStat(fi os.FileInfo) fdsec.Metadata {
 	return meta
 }
 
-// fdsecRestoreTimes restores the original's timestamps to the recovered file,
-// best-effort: modification and access via Chtimes, creation via
+// fdsecRestoreTimes restores the original's timestamps to the recovered file
+// or folder, best-effort: modification and access via Chtimes, creation via
 // SetFileTime. Failures are ignored - timestamps are fidelity, not safety.
+// The handle asks for attribute access only, and backup semantics is what
+// lets CreateFile open a folder at all (SP-0009 restores whole trees).
 func fdsecRestoreTimes(path string, m fdsec.Metadata) {
 	_ = os.Chtimes(path, m.AccessedAt, m.ModifiedAt)
 	if m.CreatedAt.IsZero() {
@@ -40,8 +42,8 @@ func fdsecRestoreTimes(path string, m fdsec.Metadata) {
 	if err != nil {
 		return
 	}
-	h, err := windows.CreateFile(p, windows.GENERIC_WRITE, windows.FILE_SHARE_READ, nil,
-		windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
+	h, err := windows.CreateFile(p, windows.FILE_WRITE_ATTRIBUTES, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil,
+		windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS, 0)
 	if err != nil {
 		return
 	}

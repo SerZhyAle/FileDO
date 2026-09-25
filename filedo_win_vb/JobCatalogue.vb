@@ -95,6 +95,10 @@ Public Module JobCatalogue
         })
 
         ' Tidy group
+        '
+        ' Finding duplicates changes nothing, so the job is reversible. Delete and Move are answers
+        ' on its page, and the page turns the badge, the accent and a typed word on when one is
+        ' chosen (SP-0029 GUI-03), the way the Protect pages do for their dispositions.
         Register(New JobDefinition With {
             .Id = "rail_job_duplicates",
             .GroupKey = "rail_group_tidy",

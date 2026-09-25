@@ -44,6 +44,27 @@ func fdsecHasPackageIdentity() bool {
 	return r != appmodelErrorNoPackage
 }
 
+// fdsecPackageFamilyInstalled asks whether any package of the family is
+// installed for this user. GetPackagesByPackageFamily with no buffer answers
+// with the count alone: ERROR_INSUFFICIENT_BUFFER and a non-zero count when
+// there is one, success and zero when there is none. Any other answer, or a
+// Windows without the function, is "not installed" - the classic
+// registration then proceeds, which is the state that always works.
+func fdsecPackageFamilyInstalled(family string) bool {
+	proc := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetPackagesByPackageFamily")
+	if proc.Find() != nil {
+		return false
+	}
+	name, err := windows.UTF16PtrFromString(family)
+	if err != nil {
+		return false
+	}
+	var count, bufLen uint32
+	r, _, _ := proc.Call(uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(&count)), 0,
+		uintptr(unsafe.Pointer(&bufLen)), 0)
+	return windows.Errno(r) == windows.ERROR_INSUFFICIENT_BUFFER && count > 0
+}
+
 // fdsecPreviousProgIDValue holds whatever owned .fd-sec before FileDO did, so
 // that unregister gives it back rather than leaving the extension orphaned.
 const fdsecPreviousProgIDValue = "FileDO.PreviousProgID"
@@ -196,6 +217,22 @@ func fdsecShellRegister(allUsers bool) error {
 	if err != nil {
 		return fmt.Errorf("cannot resolve this executable's own path: %w", err)
 	}
+	// SP-0020 D3: the packaged first-level group wins over a classic copy, for
+	// this user. A machine-wide copy is still written - it serves every other
+	// account on the machine, which the package (installed per user) does not -
+	// but it says what this user will see.
+	if fam, ok := fdsecPackagedMenuInstalled(); ok {
+		if !allUsers {
+			fmt.Println("The FileDO package is installed for this user (" + fam + ") and already puts")
+			fmt.Println("the File DO.. group in Explorer's menu - nothing written.")
+			fmt.Println("A classic copy beside it would show every entry twice. The package's group")
+			fmt.Println("goes away with the package; register again after uninstalling it if you")
+			fmt.Println("want the classic one.")
+			return nil
+		}
+		fmt.Println("Note: the FileDO package is installed for this user (" + fam + "), so this")
+		fmt.Println("account will see the File DO.. group from both. Other accounts see only this one.")
+	}
 	if !allUsers {
 		if cmd, ok := fdsecShellRegisteredIn(true); ok {
 			fmt.Println("Already registered for all users on this machine - nothing written.")
@@ -228,7 +265,7 @@ func fdsecShellRegister(allUsers bool) error {
 		{fdsecProgID, "", fdsecTypeLabel},
 		{fdsecProgID, "FriendlyTypeName", fdsecTypeLabel},
 		{fdsecProgID, fdsecOwnerValue, exe},
-		{fdsecProgID + `\DefaultIcon`, "", icon},
+		{fdsecProgID + `\DefaultIcon`, "", fdsecDocumentIcon(exe)},
 		{fdsecProgID + `\shell`, "", "open"},
 		{fdsecProgID + `\shell\open`, "", fdsecOpenVerbLabel},
 		{fdsecProgID + `\shell\open`, "Icon", icon},
@@ -257,13 +294,15 @@ func fdsecShellRegister(allUsers bool) error {
 		steps = append(steps,
 			struct{ sub, name, value string }{sub, "", it.label},
 			struct{ sub, name, value string }{sub, "MUIVerb", it.label},
-			struct{ sub, name, value string }{sub, "Icon", icon},
 			// One invocation per selected file, which is Q10's "a multi-file
 			// selection packs one container per file" said in the only place
 			// the shell reads it.
 			struct{ sub, name, value string }{sub, "MultiSelectModel", "Player"},
 			struct{ sub, name, value string }{sub + `\command`, "", fdsecMenuCommand(exe, it)},
 		)
+		if ico, ok := fdsecMeaningIcon(exe, it.icon); ok {
+			steps = append(steps, struct{ sub, name, value string }{sub, "Icon", ico})
+		}
 	}
 	for _, st := range steps {
 		if err := scope.setString(st.sub, st.name, st.value); err != nil {
@@ -284,6 +323,15 @@ func fdsecShellRegister(allUsers bool) error {
 		}
 	}
 
+	// An earlier build put the product mark on every entry (SP-0016 T8). An
+	// exe without the icons folder writes no Icon, so the old value is taken
+	// away rather than left standing for a meaning.
+	for _, it := range fdsecMenuItems {
+		if _, ok := fdsecMeaningIcon(exe, it.icon); !ok {
+			scope.deleteValue(group+`\shell\`+it.key, "Icon")
+		}
+	}
+
 	// An earlier build wrote a (Default) on the group, which is what made the
 	// sub-menu open empty. Writing the new shape over the old one does not
 	// remove it, so a re-register takes it away.
@@ -297,7 +345,26 @@ func fdsecShellRegister(allUsers bool) error {
 
 	fdsecNotifyAssociationsChanged()
 	fdsecRegisterReport(allUsers, exe)
+	if allUsers {
+		fdsecWarnPerUserCopy()
+	}
 	return nil
+}
+
+// fdsecWarnPerUserCopy reports a per-user registration left behind by an
+// earlier `filedo fdsec register` (a portable or winget install) under this
+// account. The shell merges both scopes and the per-user one wins, so the menu
+// keeps running whatever exe that copy names - often one that no longer
+// exists - while the machine-wide copy looks installed (FDSEC-17). It is
+// reported, not removed: an elevated run's HKCU may be another account's, and
+// removal stays by mark, by the account that owns it.
+func fdsecWarnPerUserCopy() {
+	if cmd, ok := fdsecShellRegisteredIn(false); ok {
+		fmt.Println("Note: this account also has a per-user FileDO registration, and it takes")
+		fmt.Println("precedence over the machine-wide one in Explorer:")
+		fmt.Println("  " + cmd)
+		fmt.Println("Remove it with `filedo fdsec unregister` (without -all-users), run as this account.")
+	}
 }
 
 // fdsecShellUnregister removes exactly what fdsecShellRegister wrote, and
@@ -361,6 +428,9 @@ func fdsecShellUnregister(allUsers bool) error {
 	}
 
 	fdsecNotifyAssociationsChanged()
+	if allUsers {
+		defer fdsecWarnPerUserCopy()
+	}
 	if removed == 0 {
 		fmt.Printf("Nothing to remove for %s - FileDO is not registered there.\n", fdsecScopeWord(allUsers))
 		return nil

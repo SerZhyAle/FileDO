@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -35,54 +36,56 @@ type CopyAnalysis struct {
 }
 
 // AnalyzeCopyStrategy performs a brief analysis (max 15 seconds) to determine optimal copy strategy
+//
+// The analysis runs on its own goroutine and hands its result back by value
+// over a buffered channel (COPY-18): on a timeout the goroutine can still
+// finish and exit - an unbuffered send used to block it forever - and it
+// never writes into a struct the caller is already reading.
 func AnalyzeCopyStrategy(sourcePath, targetPath string) (*CopyAnalysis, error) {
 	start := time.Now()
-	analysis := &CopyAnalysis{}
-	
+
 	fmt.Printf("🔍 Analyzing copy strategy (max 15 seconds)...\n")
-	
-	// Create timeout channel
-	timeout := time.After(15 * time.Second)
-	done := make(chan bool)
-	
+
+	type result struct {
+		sourceType, targetType string
+		size, files            int64
+		strategy               CopyStrategy
+		name, reason           string
+	}
+	done := make(chan result, 1)
+
 	go func() {
-		defer func() { done <- true }()
-		
+		var r result
 		// Analyze source and target
 		sourceInfo, sourceType := analyzeLocation(sourcePath)
 		_, targetType := analyzeLocation(targetPath)
-		
-		analysis.SourceType = sourceType
-		analysis.TargetType = targetType
-		
-		fmt.Printf("Source: %s (%s)\n", sourcePath, sourceType)
-		fmt.Printf("Target: %s (%s)\n", targetPath, targetType)
-		
+		r.sourceType, r.targetType = sourceType, targetType
+
 		// Quick size estimation for directories
 		if sourceInfo != nil && sourceInfo.IsDir() {
-			estimateSize, estimateFiles := quickDirectorySizeEstimate(sourcePath, 5*time.Second)
-			analysis.EstimatedSize = estimateSize
-			analysis.EstimatedFileCount = estimateFiles
+			r.size, r.files = quickDirectorySizeEstimate(sourcePath, 5*time.Second)
 		} else if sourceInfo != nil {
-			analysis.EstimatedSize = sourceInfo.Size()
-			analysis.EstimatedFileCount = 1
+			r.size, r.files = sourceInfo.Size(), 1
 		} else {
 			// Source doesn't exist yet, use minimal estimates
-			analysis.EstimatedSize = 1024 * 1024 // 1MB
-			analysis.EstimatedFileCount = 1
+			r.size, r.files = 1024*1024, 1
 		}
-		
-		// Determine strategy based on analysis
-		analysis.Strategy, analysis.StrategyName, analysis.Reason = selectOptimalStrategy(
-			sourceType, targetType, analysis.EstimatedSize, analysis.EstimatedFileCount)
+
+		r.strategy, r.name, r.reason = selectOptimalStrategy(sourceType, targetType, r.size, r.files)
+		done <- r
 	}()
-	
-	// Wait for completion or timeout
+
+	analysis := &CopyAnalysis{}
 	select {
-	case <-done:
+	case r := <-done:
+		analysis.SourceType, analysis.TargetType = r.sourceType, r.targetType
+		analysis.EstimatedSize, analysis.EstimatedFileCount = r.size, r.files
+		analysis.Strategy, analysis.StrategyName, analysis.Reason = r.strategy, r.name, r.reason
 		analysis.AnalysisDuration = time.Since(start)
+		fmt.Printf("Source: %s (%s)\n", sourcePath, r.sourceType)
+		fmt.Printf("Target: %s (%s)\n", targetPath, r.targetType)
 		fmt.Printf("✅ Analysis completed in %v\n", analysis.AnalysisDuration)
-	case <-timeout:
+	case <-time.After(15 * time.Second):
 		analysis.AnalysisDuration = 15 * time.Second
 		// Default strategy if analysis times out
 		analysis.Strategy = StrategyFast
@@ -90,7 +93,7 @@ func AnalyzeCopyStrategy(sourcePath, targetPath string) (*CopyAnalysis, error) {
 		analysis.Reason = "Analysis timed out, using default fast strategy"
 		fmt.Printf("⏰ Analysis timed out after 15s, using default fast strategy\n")
 	}
-	
+
 	fmt.Printf("📋 Selected strategy: %s (%s)\n", analysis.StrategyName, analysis.Reason)
 	return analysis, nil
 }
@@ -354,73 +357,81 @@ func analyzeDriveType(driveLetter string) string {
 	}
 }
 
+// estimateWalk is the walk quickDirectorySizeEstimate samples with. It is a
+// variable so a test can make it slow (COPY-18).
+var estimateWalk = filepath.Walk
+
 // quickDirectorySizeEstimate performs a quick sampling of directory contents
+//
+// The sampling walk runs on its own goroutine and keeps its counts in
+// atomics; the result comes back by value over a buffered channel, so a
+// timeout neither races with the walk nor leaves it blocked on a send nobody
+// will receive (COPY-18).
 func quickDirectorySizeEstimate(dirPath string, maxTime time.Duration) (int64, int64) {
 	start := time.Now()
-	var totalSize int64
-	var fileCount int64
-	var sampledDirs int
 	const maxSampledDirs = 10
-	
-	// Create timeout channel for safety
-	timeout := time.After(maxTime)
-	done := make(chan bool)
-	
+
+	type sample struct {
+		size, files int64
+		dirs        int
+	}
+	var liveSize, liveFiles atomic.Int64
+	var liveDirs atomic.Int32
+	done := make(chan sample, 1)
+
 	go func() {
+		var s sample
 		defer func() {
 			if r := recover(); r != nil {
 				fmt.Printf("Warning: Directory scan panicked: %v\n", r)
 			}
-			done <- true
+			done <- s
 		}()
-		
-		err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+
+		err := estimateWalk(dirPath, func(path string, info os.FileInfo, err error) error {
 			if time.Since(start) > maxTime {
 				return fmt.Errorf("timeout")
 			}
-			
 			if err != nil {
 				return nil // Skip errors, continue sampling
 			}
-			
 			if info.IsDir() {
-				sampledDirs++
-				if sampledDirs > maxSampledDirs {
+				s.dirs++
+				liveDirs.Add(1)
+				if s.dirs > maxSampledDirs {
 					return filepath.SkipDir // Skip remaining subdirs to save time
 				}
 				return nil
 			}
-			
-			totalSize += info.Size()
-			fileCount++
+			s.size += info.Size()
+			s.files++
+			liveSize.Add(info.Size())
+			liveFiles.Add(1)
 			return nil
 		})
-		
 		if err != nil && !strings.Contains(err.Error(), "timeout") {
 			fmt.Printf("Warning: Directory walk failed: %v\n", err)
 		}
 	}()
-	
-	// Wait for completion or timeout
+
+	var s sample
 	select {
-	case <-done:
-		// Completed normally
-	case <-timeout:
-		// Timed out
+	case s = <-done:
+	case <-time.After(maxTime):
+		// What the walk had counted by now; it finishes on its own.
+		s = sample{size: liveSize.Load(), files: liveFiles.Load(), dirs: int(liveDirs.Load())}
 		fmt.Printf("Directory size estimation timed out after %v\n", maxTime)
 	}
-	
+
 	// Extrapolate if we hit limits or return defaults
-	if totalSize == 0 && fileCount == 0 {
+	if s.size == 0 && s.files == 0 {
 		return 1024 * 1024 * 100, 100 // Default: 100MB, 100 files
 	}
-	
-	if sampledDirs >= maxSampledDirs {
-		totalSize = totalSize * 3 // Rough extrapolation
-		fileCount = fileCount * 3
+	if s.dirs >= maxSampledDirs {
+		s.size *= 3 // Rough extrapolation
+		s.files *= 3
 	}
-	
-	return totalSize, fileCount
+	return s.size, s.files
 }
 
 // selectOptimalStrategy chooses the best copy strategy based on analysis

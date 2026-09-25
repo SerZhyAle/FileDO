@@ -4,28 +4,34 @@ import (
 	"fmt"
 	"strings"
 
+	"filedo/fileduplicates"
 	"filedo/helpers"
 )
 
-// handleCheckDuplicatesCommand handles the check-duplicates command,
-// including processing from a file list.
+// handleCheckDuplicatesCommand handles `cd from list <file> [options]`.
+//
+// Every way this can fail returns an error - a missing list, a list with no
+// valid group, a refused or failed removal, a usage mistake - and never just
+// prints one, so the caller's reportRunError turns it into exit 2 and a
+// `result` event (DUP-11). The words are compared case-insensitively here and
+// again in helpers, so `cd FROM LIST` is the same command.
 func handleCheckDuplicatesCommand(args []string) error {
-	if len(args) < 3 {
-		return fmt.Errorf("not enough arguments for the command. Usage: cd from list <file_path> [options]")
+	if len(args) < 4 {
+		return &fileduplicates.UsageError{Msg: "not enough arguments for the command. Usage: cd from list <file_path> [options]"}
 	}
 
 	cmd := strings.ToLower(args[0])
 	if cmd != "cd" && cmd != "check-duplicates" && cmd != "duplicate" {
-		return fmt.Errorf("unknown command: %s", args[0])
+		return &fileduplicates.UsageError{Msg: fmt.Sprintf("unknown command: %s", args[0])}
 	}
 
-	// Проверяем, что команда имеет формат "cd from list file.lst [options]"
-	if strings.ToLower(args[1]) != "from" || strings.ToLower(args[2]) != "list" {
-		return fmt.Errorf("invalid command format. Usage: cd from list <file_path> [options]")
+	// The command must read "cd from list file.lst [options]"
+	if !strings.EqualFold(args[1], "from") || !strings.EqualFold(args[2], "list") {
+		return &fileduplicates.UsageError{Msg: "invalid command format. Usage: cd from list <file_path> [options]"}
 	}
 
-	// Передаем все аргументы после "cd", т.е. "from list file.lst [options]"
-	return helpers.CheckDuplicatesFromFile(args[1:])
+	// Everything after "cd": "from list file.lst [options]"
+	return helpers.CheckDuplicatesFromFile(args[1:], configureDuplicateRun)
 }
 
 // handleHistoryCommand обрабатывает команду просмотра истории

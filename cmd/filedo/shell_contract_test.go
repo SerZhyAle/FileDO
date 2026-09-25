@@ -257,3 +257,114 @@ func TestShell_TheRailDoesNotCutLabels(t *testing.T) {
 		}
 	}
 }
+
+// vbStringArray returns the quoted strings of one VB array initializer,
+// `<name> As String() = { .. }`, which may span lines.
+func vbStringArray(t *testing.T, body, name string) []string {
+	t.Helper()
+	re := regexp.MustCompile(`(?s)\b` + regexp.QuoteMeta(name) + `\s+As\s+String\(\)\s*=\s*\{(.*?)\}`)
+	m := re.FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("no %s array in the shell's sources", name)
+	}
+	var out []string
+	for _, q := range regexp.MustCompile(`"([^"]*)"`).FindAllStringSubmatch(m[1], -1) {
+		out = append(out, q[1])
+	}
+	if len(out) == 0 {
+		t.Fatalf("the %s array is empty", name)
+	}
+	return out
+}
+
+func sameWords(a, b []string) bool {
+	x := append([]string(nil), a...)
+	y := append([]string(nil), b...)
+	sort.Strings(x)
+	sort.Strings(y)
+	return strings.Join(x, "\x00") == strings.Join(y, "\x00")
+}
+
+// SP-0029 GUI-11: the Command page asks for the typed WIPE whenever the line
+// wipes, under any of the CLI's names for it. The window's list is read here
+// and held to list_of_flags_for_wipe, so an alias added to one side fails the
+// build until the other has it too - `D:\data w -y` once ran with no WIPE box.
+func TestShell_WipeAliasesMatchTheCLI(t *testing.T) {
+	vb := shellSources(t)["WipeSafety.vb"]
+	got := vbStringArray(t, vb, "WipeAliases")
+	if !sameWords(got, list_of_flags_for_wipe) {
+		t.Errorf("WipeSafety.vb WipeAliases = %q, cmd/filedo list_of_flags_for_wipe = %q - the Command page's typed-WIPE check would miss a wipe", got, list_of_flags_for_wipe)
+	}
+}
+
+// SP-0029 L10N-01: GetDict splits a table line on its FIRST "|", so a "|"
+// inside a value only works by luck - the day a key's value is reordered, the
+// text is cut. No value may hold one.
+func TestShell_NoPipeInsideALocalizationValue(t *testing.T) {
+	root := repoRoot(t)
+	body := strings.ReplaceAll(readSurface(t, root, filepath.Join("filedo_win_vb", "Localization.vb")), "\r\n", "\n")
+	lines := 0
+	for n, ln := range strings.Split(body, "\n") {
+		m := locLine.FindStringSubmatch(ln)
+		if m == nil {
+			continue
+		}
+		lines++
+		if strings.Contains(m[2], "|") {
+			t.Errorf("Localization.vb:%d %s holds a \"|\" in its value - GetDict splits on the first one; use \" - \" or \", \"", n+1, m[1])
+		}
+	}
+	if lines == 0 {
+		t.Fatal("no key|value line found in Localization.vb")
+	}
+}
+
+// SP-0029 SHELL-01: the run report's Command line passes the same redaction as
+// history.json. The window's port (Runner.RedactCredentialArgs) and the CLI's
+// redactCredentialArgs are held to one vector file: this test runs the CLI's
+// side over it, and filedo_win.exe --selftest runs the window's side over the
+// copy embedded in the exe - so a change to either redaction fails one gate
+// until the vectors, and with them the other side, agree again. The family
+// tokens are compared as lists too, since they decide whether a line is
+// redacted at all.
+func TestShell_ReportRedactionMatchesTheCLI(t *testing.T) {
+	vb := shellSources(t)["Runner.vb"]
+	family := vbStringArray(t, vb, "FdsecFamilyTokens")
+	var goFamily []string
+	for k := range fdsecFamilyToken {
+		goFamily = append(goFamily, k)
+	}
+	if !sameWords(family, goFamily) {
+		t.Errorf("Runner.vb FdsecFamilyTokens = %q, fdsecFamilyToken = %q", family, goFamily)
+	}
+
+	root := repoRoot(t)
+	body := strings.ReplaceAll(readSurface(t, root, filepath.Join("cmd", "filedo", "testdata", "redaction", "vectors.tsv")), "\r\n", "\n")
+	vectors := 0
+	for n, ln := range strings.Split(body, "\n") {
+		if strings.TrimSpace(ln) == "" || strings.HasPrefix(ln, "#") {
+			continue
+		}
+		parts := strings.Split(ln, "\t=>\t")
+		if len(parts) != 2 {
+			t.Errorf("vectors.tsv:%d has no tab-separated => between input and expected output", n+1)
+			continue
+		}
+		vectors++
+		in := strings.Split(parts[0], "\t")
+		want := strings.Split(parts[1], "\t")
+		got := redactCredentialArgs(in)
+		if strings.Join(got, "\t") != strings.Join(want, "\t") {
+			t.Errorf("vectors.tsv:%d redactCredentialArgs(%q) = %q, the vector says %q", n+1, in, got, want)
+		}
+	}
+	if vectors == 0 {
+		t.Fatal("vectors.tsv holds no vector")
+	}
+
+	// The embedded copy is the file itself, not a second list to keep in step.
+	proj := readSurface(t, root, filepath.Join("filedo_win_vb", "FileDOGUI.vbproj"))
+	if !strings.Contains(proj, `..\cmd\filedo\testdata\redaction\vectors.tsv`) {
+		t.Error("FileDOGUI.vbproj does not embed cmd/filedo/testdata/redaction/vectors.tsv, so the window's redaction is held to nothing")
+	}
+}

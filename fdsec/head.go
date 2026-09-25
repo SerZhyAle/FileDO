@@ -14,11 +14,16 @@ import (
 // ScreenLength reports whether a file of this length could be a container at
 // all. It is the whole of what a caller can screen without the credential: a
 // container carries no marker, so only its length is readable from outside.
-// Every container is a whole number of clusters (FDSEC-FORMAT.md section 9)
-// and the smallest possible one still holds a head, the sealed metadata and
-// one empty chunk, so a file that fails either test is certainly not a
-// container - and a file that passes both still says nothing.
+// A container of suite 1 or 3 is a whole number of clusters (FDSEC-FORMAT.md
+// section 9) and holds at least a head, the sealed metadata and one empty
+// chunk; a suite-2 file has no alignment but is at least 9308 bytes and never
+// ends in a frame too short for a tag and a byte (section 18.4). A file that
+// fits neither shape is certainly not a container - and a file that fits one
+// still says nothing.
 func ScreenLength(n int64) error {
+	if suite2LengthPossible(n) {
+		return nil
+	}
 	const minAlign = 512
 	minPre := (int64(preMeta+metaSize) + minAlign - 1) / minAlign * minAlign
 	minTotal := (minPre + tagSize + minAlign - 1) / minAlign * minAlign
@@ -26,7 +31,7 @@ func ScreenLength(n int64) error {
 	case n < minTotal:
 		return fmt.Errorf("%w: %d bytes is smaller than the smallest possible container (%d bytes)", ErrDamaged, n, minTotal)
 	case n%minAlign != 0:
-		return fmt.Errorf("%w: %d bytes is not a whole number of %d-byte clusters, which every container is", ErrDamaged, n, minAlign)
+		return fmt.Errorf("%w: %d bytes is neither a whole number of %d-byte clusters nor a length a suite-2 container can have", ErrDamaged, n, minAlign)
 	}
 	return nil
 }
@@ -63,6 +68,8 @@ func openHead(r io.Reader, cred Credential) (*header, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	defer clear(maskKey) // FDSEC-15
+	defer clear(kek)
 	if err := mask(maskKey, b[maskOff:]); err != nil {
 		return nil, nil, err
 	}

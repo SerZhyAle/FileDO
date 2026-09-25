@@ -21,8 +21,15 @@
 #    4. filedo_test.exe   - standalone "test" tool   (cmd\filedo-test)
 #    5. filedo_win.exe    - Windows GUI front-end    (filedo_win_vb, VB.NET)
 #
-#  Requirements: Go toolchain on PATH (Go variants) and MSBuild / VS Build
-#  Tools (the Windows GUI).
+#  Requirements: Go toolchain on PATH - exactly the version go.mod's `toolchain`
+#  line pins - plus goversioninfo v1.4.1 (Go variants), and MSBuild / VS Build
+#  Tools (the Windows GUI). The host must be able to run amd64 executables.
+#
+#  The Go executables are built exactly as .github/workflows/release.yml builds
+#  them (SP-0030 REL-04, CI-03): windows/amd64, CGO off, the pinned toolchain,
+#  goversioninfo -64 (PE version + app.manifest), -trimpath. The gate therefore
+#  tests the binary that ships, not a 386 build of the same source, and the go
+#  test runs of the gate are amd64 as well.
 #
 #  A plain `.\build.ps1` produces EVERYTHING that is distributable - the five
 #  executables AND both installer artifacts. No switch is needed for the normal
@@ -35,6 +42,12 @@
 #    .\build.ps1 -SkipGui              # Go variants only (no MSBuild needed)
 #    .\build.ps1 -SkipInstaller        # no dist\ artifacts (fast inner loop)
 #    .\build.ps1 -Install              # build, then RUN the installer here
+#    .\build.ps1 -DeployTo C:\Tools    # ..and copy the exes there once all passed
+#
+#  Deploying is opt-in: -DeployTo <folder>, or the FILEDO_DEPLOY_DIR environment
+#  variable. It runs last - after the gate and the installer - and copies only
+#  the *.exe, *.bat and *.config files, so a build that failed never overwrites
+#  working tools and no log or history file travels along (REL-07).
 #
 #  The installer is built from the same wxs files the release workflow uses and
 #  from the same staged files, so an installer defect is found here rather than
@@ -83,11 +96,27 @@ param(
     # Build the installer and RUN it - the setup EXE starts, Windows asks for
     # elevation, and this script waits for it and reports how it ended. This
     # is the only switch that changes the machine it runs on.
-    [switch]$Install
+    [switch]$Install,
+    # Copy the built executables into this folder after everything else passed.
+    # Default: the FILEDO_DEPLOY_DIR environment variable; with neither, nothing
+    # is copied anywhere.
+    [string]$DeployTo = $env:FILEDO_DEPLOY_DIR
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+# StrictMode refuses to read an automatic variable no native command has set yet.
+# Global, never script-scoped: a script-scoped copy would shadow every later exit code.
+$global:LASTEXITCODE = 0
 $root = $PSScriptRoot
+
+# REL-06: every relative path below (`go test ./fdsec/`, `go vet ./cmd/filedo/`) means
+# the repository, whatever directory the caller stands in. The try below has no body
+# indentation of its own; it exists so that every `exit` - there are many - leaves
+# through the finally at the end, which puts the caller's location and Go environment back.
+Push-Location $root
+$savedGoEnv = @{ GOOS = $env:GOOS; GOARCH = $env:GOARCH; CGO_ENABLED = $env:CGO_ENABLED }
+try {
 
 # A commit implies the test gate: we never commit an untested build.
 if ($Commit) { $Test = $true }
@@ -105,8 +134,33 @@ if ($Msi -and $SkipInstaller) {
 # Version = current build date/time in yyMMddHHmm format unless a release pins it.
 if (-not $Version) { $Version = Get-Date -Format "yyMMddHHmm" }
 $version = $Version
+# REL-05: ten digits are not yet a stamp - month 13 or day 32 must not reach a binary.
+try {
+    $stampDate = [datetime]::ParseExact($version, 'yyMMddHHmm', [Globalization.CultureInfo]::InvariantCulture)
+} catch {
+    Write-Host "Cannot verify: version '$version' is not a real yyMMddHHmm date." -ForegroundColor Yellow
+    exit 2
+}
 
-Write-Host "Version: $version"
+# The installer's version (PKG-01). Windows Installer compares only the first three fields
+# of ProductVersion, so the old yy.MM.dd.HHmm mapping made two releases of one day the same
+# version and the older MSI stayed installed beside the newer one. The minute of the month
+# goes into field 3 instead: yy . M . ((d-1)*1440 + H*60 + m) - at most 99, 12 and 44 639,
+# inside MSI's 255 / 255 / 65 535. The setup EXE carries the same version (Burn compares
+# four fields and reads a missing fourth as 0). release.yml derives the identical triple,
+# and release.ps1 asserts it is greater than the last published MSI's before it tags.
+# Only this derived mapping changed; the stamp and the PE version below did not.
+function Get-InstallerVersion([datetime]$when) {
+    "{0}.{1}.{2}" -f ($when.Year % 100), $when.Month, (($when.Day - 1) * 1440 + $when.Hour * 60 + $when.Minute)
+}
+$installerVersion = Get-InstallerVersion $stampDate
+# The PE VS_VERSIONINFO keeps yy.M.d.HHmm - the mapping release.yml, the GUI build and
+# msix\build-msix.ps1 all use, and what About and the smoke test read back.
+$vMaj = $stampDate.Year % 100; $vMin = $stampDate.Month; $vPat = $stampDate.Day
+$vBld = $stampDate.Hour * 100 + $stampDate.Minute
+$peVersion = "$vMaj.$vMin.$vPat.$vBld"
+
+Write-Host "Version: $version   (PE $peVersion, installer $installerVersion)"
 Write-Host ""
 
 $out = "$root\exe_to_download"
@@ -128,6 +182,20 @@ function Write-BuildSummary {
     }
 }
 
+# REL-16: a native command whose failure means "stop" goes through here, so no exit
+# code is left unread. The calls that judge their own exit code - the gate's go test
+# and go vet runs, wix extension list, git symbolic-ref - read it right after the call.
+function Invoke-Checked([string]$Label, [scriptblock]$Block, [int]$FailCode = 1) {
+    $nativeOut = & $Block
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "$Label failed (exit $LASTEXITCODE)." -ForegroundColor Red
+        if ($nativeOut) { Write-Host ($nativeOut | Out-String) }
+        exit $FailCode
+    }
+    # No output is no output: emitting $null would make @(...) a one-element array.
+    if ($null -ne $nativeOut) { $nativeOut }
+}
+
 function Write-GateVerdict([int]$code, [string[]]$failures, [string[]]$unverified, [int]$ran, [int]$skipped) {
     if ($code -eq 0) {
         Write-Host "build-gate ${version}: PASS (ran $ran, skipped $skipped)" -ForegroundColor Green
@@ -147,6 +215,76 @@ if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
     exit 2
 }
 
+# REL-04: the release ships windows/amd64, so that is what is built and tested here. A host
+# that cannot run an amd64 executable could only test some other build - which proves nothing
+# about the one that ships, so it is "could not verify", never a quiet fall-back to 386.
+$osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+$runsAmd64 = ($osArch -eq 'X64') -or ($osArch -eq 'Arm64' -and [Environment]::OSVersion.Version.Build -ge 22000)
+if (-not $runsAmd64) {
+    Write-Host "Cannot verify: this $osArch Windows cannot run the amd64 executables the release ships." -ForegroundColor Yellow
+    exit 2
+}
+
+# CI-03: one toolchain for every channel. go.mod's `toolchain` line is the pin (the `go` line
+# stays the language floor); release.yml installs the same version and the gate checks that
+# it does. A different local Go would compile a different binary from the one the tag ships.
+$goModText = Get-Content "$root\go.mod" -Raw
+if ($goModText -notmatch '(?m)^toolchain\s+(go\d+\.\d+(?:\.\d+)?)\s*$') {
+    Write-Host "go.mod has no 'toolchain goX.Y.Z' line - the release toolchain is not pinned." -ForegroundColor Red
+    exit 1
+}
+$pinnedToolchain = $Matches[1]
+$localToolchain = (& go env GOVERSION | Out-String).Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Cannot verify: 'go env GOVERSION' failed ($LASTEXITCODE): $localToolchain" -ForegroundColor Yellow
+    exit 2
+}
+if ($localToolchain -ne $pinnedToolchain) {
+    Write-Host "Cannot verify: the local Go is $localToolchain, the release builds with $pinnedToolchain (go.mod toolchain)." -ForegroundColor Yellow
+    Write-Host "  Install $pinnedToolchain, or set GOTOOLCHAIN=$pinnedToolchain so go fetches it, or move the pin" -ForegroundColor Yellow
+    Write-Host "  (go.mod 'toolchain' and release.yml 'go-version') to the new version together." -ForegroundColor Yellow
+    exit 2
+}
+
+# goversioninfo writes the PE version and links app.manifest (long paths, UTF-8 code page).
+# Pinned to the version release.yml and msix\build-msix.ps1 install.
+$goversioninfoPin = 'v1.4.1'
+$gvi = Get-Command goversioninfo -ErrorAction SilentlyContinue
+$gviVersion = $null
+if ($gvi) {
+    foreach ($line in ((& go version -m $gvi.Source | Out-String) -split "`r?`n")) {
+        if ($line -match '^\s*mod\s+github\.com/josephspurrier/goversioninfo\s+(\S+)') { $gviVersion = $Matches[1]; break }
+    }
+}
+if ($gviVersion -ne $goversioninfoPin) {
+    $found = if ($gvi) { "goversioninfo $gviVersion at $($gvi.Source)" } else { "no goversioninfo on PATH" }
+    Write-Host "Cannot verify: $found; the release embeds its resources with goversioninfo $goversioninfoPin." -ForegroundColor Yellow
+    Write-Host "  go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@$goversioninfoPin" -ForegroundColor Yellow
+    exit 2
+}
+
+# From here on every go command in this process - builds, go test, go vet - targets what
+# ships. The finally at the end of the script restores the caller's values.
+$env:GOOS = 'windows'; $env:GOARCH = 'amd64'; $env:CGO_ENABLED = '0'
+
+# goversioninfo -64 into resource.syso, which `go build` links from the package directory:
+# the PE version fields and app.manifest, exactly the release.yml invocation. The file is
+# removed again right after each use - a stale amd64 .syso would break any later 386 build.
+function New-VersionResource([string]$dir) {
+    Push-Location $dir
+    try {
+        $gviOut = & goversioninfo -64 -ver-major $vMaj -ver-minor $vMin -ver-patch $vPat -ver-build $vBld `
+            -product-ver-major $vMaj -product-ver-minor $vMin -product-ver-patch $vPat -product-ver-build $vBld `
+            -file-version $peVersion -product-version $peVersion -o resource.syso versioninfo.json 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "goversioninfo exit $LASTEXITCODE in ${dir}: $gviOut" }
+    } finally {
+        Pop-Location
+    }
+}
+function Remove-VersionResource([string]$dir) {
+    Remove-Item (Join-Path $dir 'resource.syso') -Force -ErrorAction SilentlyContinue
+}
+
 $builds = @(
     @{ Name = "filedo";       Dir = "$root\cmd\filedo";       Out = "$out\filedo.exe" },
     @{ Name = "filedo_fill";  Dir = "$root\cmd\filedo-fill";  Out = "$out\filedo_fill.exe" },
@@ -163,16 +301,24 @@ foreach ($b in $builds) {
 
     Push-Location $b.Dir
     try {
-        go build -ldflags "-X main.version=$version" -o $b.Out . 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "exit code $LASTEXITCODE" }
+        # The release.yml build line, flag for flag: the version resource, -trimpath, the
+        # stamp. No -s -w - stripped Go binaries draw more antivirus false positives.
+        New-VersionResource $b.Dir
+        $goOut = go build -trimpath -ldflags "-X main.version=$version" -o $b.Out . 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "exit code $LASTEXITCODE`n$goOut" }
         Write-Host " OK"
     } catch {
         Write-Host " FAILED: $_"
         $failed += $name
     } finally {
+        Remove-VersionResource $b.Dir
         Pop-Location
     }
 }
+
+# MSBuild missing is a prerequisite, not a defect (REL-06): the GUI could not be built, so
+# nothing about it was proven - exit 2 after the Go results, unless -SkipGui asked for that.
+$guiUnverified = $null
 
 # ---- Windows GUI variant (filedo_win.exe) ----------------------------------
 # Built every run as a first-class variant. Requires MSBuild (VS Build Tools).
@@ -186,8 +332,7 @@ if ($SkipGui) {
         $msbuild = & $vsw -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
     }
     if ($msbuild -and (Test-Path $msbuild)) {
-        if ($version -notmatch '^(\d{2})(\d{2})(\d{2})(\d{4})$') { throw "version '$version' is not yyMMddHHmm" }
-        $guiVersion = "$([int]$Matches[1]).$([int]$Matches[2]).$([int]$Matches[3]).$([int]$Matches[4])"
+        $guiVersion = $peVersion
         & $msbuild "$root\filedo_win_vb\FileDOGUI.vbproj" /t:Rebuild /p:Configuration=Release /p:Platform=AnyCPU /p:BuildStamp=$version /p:AssemblyVersion=$guiVersion /v:quiet /nologo | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Host " FAILED: MSBuild exit code $LASTEXITCODE"
@@ -203,30 +348,22 @@ if ($SkipGui) {
             Write-Host " OK"
         }
     } else {
-        Write-Host " FAILED: MSBuild not found (install VS Build Tools to build the GUI)"
-        $failed += "filedo_win"
+        Write-Host " NOT BUILT: MSBuild not found (install VS Build Tools, or pass -SkipGui)" -ForegroundColor Yellow
+        $guiUnverified = "MSBuild not found - filedo_win.exe was not built"
     }
 }
 
 Write-Host ""
-if ($failed.Count -eq 0) {
-    Write-Host "All builds successful."
-} else {
+if ($failed.Count -ne 0) {
+    # A build error outranks a missing tool: exit 1 even when MSBuild was absent too.
     Write-Host "Failed: $($failed -join ', ')"
     exit 1
 }
-
-# ---- Optional local deploy --------------------------------------------------
-$deploy = "C:\GD\tc\SZA\_APP"
-if (Test-Path $deploy) {
-    Write-Host ""
-    Write-Host "Copying to $deploy ..." -NoNewline
-    Copy-Item "$out\*" $deploy -Force
-    Write-Host " OK"
-} else {
-    Write-Host ""
-    Write-Host "Deploy folder $deploy not found - skipping copy."
+if ($guiUnverified) {
+    Write-Host "Cannot verify: $guiUnverified." -ForegroundColor Yellow
+    exit 2
 }
+Write-Host "All builds successful."
 
 # ---- Local test gate (-Test / implied by -Commit) ---------------------------
 # Cheap, deterministic checks that the freshly built artifacts actually run.
@@ -265,15 +402,28 @@ if ($Test) {
         exit 2
     }
 
-    # 1) Each Go executable says the stamp it was built with. The GUI is a
+    # 1) Each Go executable says the stamp it was built with, and is the shape
+    # the release ships (REL-04): amd64, -trimpath, the pinned toolchain, and the
+    # goversioninfo resource - the PE version and app.manifest. The GUI is a
     # WinExe, so its stamped PE FileVersion is the smoke surface instead.
-    Write-Host "Smoke: all shipped executables carry $version ..." -NoNewline
+    Write-Host "Smoke: all shipped executables carry $version and the release build shape ..." -NoNewline
     $smokeProblems = [System.Collections.Generic.List[string]]::new()
     foreach ($exe in @('filedo.exe', 'filedo_fill.exe', 'filedo_check.exe', 'filedo_test.exe')) {
         $path = Join-Path $out $exe
         if (-not (Test-Path $path)) { $smokeProblems.Add("$exe is missing"); continue }
         $smoke = & $path '-?' 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { $smokeProblems.Add("$exe -? exited $LASTEXITCODE") }
         if ($smoke -notmatch [regex]::Escape($version)) { $smokeProblems.Add("$exe does not print $version") }
+        $buildInfo = & go version -m $path 2>&1 | Out-String
+        if ($buildInfo -notmatch "(?m):\s+$([regex]::Escape($pinnedToolchain))\s*$") { $smokeProblems.Add("$exe was not built with $pinnedToolchain") }
+        if ($buildInfo -notmatch '(?m)^\s*build\s+GOARCH=amd64\s*$') { $smokeProblems.Add("$exe is not an amd64 build") }
+        if ($buildInfo -notmatch '(?m)^\s*build\s+-trimpath=true\s*$') { $smokeProblems.Add("$exe was built without -trimpath") }
+        $fileVersion = (Get-Item $path).VersionInfo.FileVersion
+        if ($fileVersion -ne $peVersion) { $smokeProblems.Add("$exe PE version is '$fileVersion', want '$peVersion'") }
+        # The manifest is stored as plain XML in the PE's resources.
+        if (-not [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($path)).Contains('longPathAware')) {
+            $smokeProblems.Add("$exe carries no app.manifest")
+        }
     }
     if (-not $SkipGui) {
         $guiPath = Join-Path $out 'filedo_win.exe'
@@ -281,12 +431,7 @@ if ($Test) {
             $smokeProblems.Add('filedo_win.exe is missing')
         } else {
             $guiStamp = (Get-Item $guiPath).VersionInfo.FileVersion
-            if ($version -notmatch '^(\d{2})(\d{2})(\d{2})(\d{4})$') {
-                $smokeProblems.Add("$version is not yyMMddHHmm")
-            } else {
-                $expectedGuiStamp = "$([int]$Matches[1]).$([int]$Matches[2]).$([int]$Matches[3]).$([int]$Matches[4])"
-                if ($guiStamp -ne $expectedGuiStamp) { $smokeProblems.Add("filedo_win.exe PE version is '$guiStamp', want '$expectedGuiStamp'") }
-            }
+            if ($guiStamp -ne $peVersion) { $smokeProblems.Add("filedo_win.exe PE version is '$guiStamp', want '$peVersion'") }
         }
     }
     if ($smokeProblems.Count) {
@@ -338,13 +483,21 @@ if ($Test) {
         Record-GateStep 'fdsec' 0
     }
 
+    # The suite builds its own filedo.exe from this package directory. The version resource
+    # is put back for the length of the run, so that exe carries the same app.manifest (UTF-8
+    # code page, long paths) as the one that ships - a manifest-dependent defect fails here.
     Write-Host "go test ./cmd/filedo/ and vet baseline ..." -NoNewline
     $oldRootRequirement = $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT
     $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT = '1'
     try {
+        New-VersionResource "$root\cmd\filedo"
         $cliOut = go test ./cmd/filedo/ -count=1 -vet=off 2>&1 | Out-String
         $cliNativeCode = $LASTEXITCODE
+    } catch {
+        $cliOut = "could not prepare the version resource: $_"
+        $cliNativeCode = 1
     } finally {
+        Remove-VersionResource "$root\cmd\filedo"
         if ($null -eq $oldRootRequirement) { Remove-Item Env:FILEDO_FDSEC_REQUIRE_REPO_ROOT -ErrorAction SilentlyContinue }
         else { $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT = $oldRootRequirement }
     }
@@ -404,26 +557,57 @@ if ($Test) {
         Write-Host "filedo_win.exe --selftest ... SKIPPED (-SkipGui)" -ForegroundColor Yellow
     } elseif (Test-Path $guiExe) {
         Write-Host "filedo_win.exe --selftest ..." -NoNewline
-        $selfTest = Start-Process $guiExe -ArgumentList "--selftest" -PassThru -Wait
+        # SP-0029 SHELL-15: the log from an earlier run must not stand in for this one. A
+        # selftest that dies before writing leaves no log, which is "could not verify" - never
+        # the previous run's lines printed as this run's details.
         $log = "$out\filedo_win_selftest.log"
-        if ($selfTest.ExitCode -ne 0) {
+        $staleLog = $null
+        if (Test-Path $log) {
+            try { Remove-Item $log -Force -ErrorAction Stop } catch { $staleLog = $_.Exception.Message }
+        }
+        if ($staleLog) {
+            Record-GateStep 'gui-selftest' 2 "could not verify: the previous selftest log could not be removed ($staleLog)"
+        } else {
+            $selfTest = Start-Process $guiExe -ArgumentList "--selftest" -PassThru -Wait
             if (-not (Test-Path $log)) {
-                Record-GateStep 'gui-selftest' 2 'could not verify: no selftest log'
-            } else {
+                Record-GateStep 'gui-selftest' 2 "could not verify: no selftest log (exit $($selfTest.ExitCode))"
+            } elseif ($selfTest.ExitCode -ne 0) {
                 $logLines = Get-Content $log
                 Record-GateStep 'gui-selftest' $selfTest.ExitCode (($logLines | Where-Object { $_ -like 'FAIL *' -or $_ -like 'selftest:*' }) -join "`n")
+            } else {
+                Record-GateStep 'gui-selftest' 0
             }
-        } elseif (-not (Test-Path $log)) {
-            Record-GateStep 'gui-selftest' 2 'could not verify: no selftest log'
-        } else {
-            Record-GateStep 'gui-selftest' 0
         }
     } else {
         $gateSkipped++
         Write-Host "filedo_win.exe --selftest ... SKIPPED (no GUI in this build)" -ForegroundColor Yellow
     }
 
-    # A failed step outranks a step that could not verify. All five steps run
+    # 6) THIRD-PARTY-NOTICES.txt against the Go modules each shipped executable links
+    #    (REL-18). The file is edited by hand; a dependency added or bumped without its
+    #    license section would otherwise ship without one (canon invariant 12).
+    Write-Host "third-party notices vs linked modules ..." -NoNewline
+    $noticesOut = & "$root\packaging\check-third-party-notices.ps1" *>&1 | Out-String
+    $noticesCode = $LASTEXITCODE
+    Record-GateStep 'third-party-notices' $noticesCode $(if ($noticesCode -eq 2) { ($noticesOut.Trim() -split "`r?`n")[-1] } else { $noticesOut })
+
+    # 7) The pins that make this gate's binary the release's binary (CI-03): the Go the
+    #    workflow installs is go.mod's toolchain line, which the local Go was checked
+    #    against before the build. Drift between the two files would only surface inside the
+    #    tagged run - one irreversible step too late.
+    Write-Host "release.yml pins the same Go ($pinnedToolchain) ..." -NoNewline
+    $workflow = "$root\.github\workflows\release.yml"
+    if (-not (Test-Path $workflow)) {
+        Record-GateStep 'release-pins' 2 "could not verify: $workflow is missing"
+    } else {
+        $workflowGo = @([regex]::Matches((Get-Content $workflow -Raw), "(?m)^\s*go-version:\s*'?`"?([0-9.]+)'?`"?\s*$") | ForEach-Object { "go$($_.Groups[1].Value)" })
+        $pinProblems = @()
+        if ($workflowGo.Count -eq 0) { $pinProblems += "release.yml sets no go-version" }
+        foreach ($w in $workflowGo) { if ($w -ne $pinnedToolchain) { $pinProblems += "release.yml installs $w, go.mod pins $pinnedToolchain" } }
+        Record-GateStep 'release-pins' ([int]($pinProblems.Count -gt 0)) ($pinProblems -join '; ')
+    }
+
+    # A failed step outranks a step that could not verify. All seven steps run
     # before this decision, so one run names every defect it found.
     $gateExit = if ($gateFailures.Count) { 1 } elseif ($gateUnverified.Count) { 2 } else { 0 }
     if ($gateExit -ne 0) {
@@ -449,7 +633,7 @@ if ($buildInstaller -and -not $wixPresent) {
     Write-Host ""
     Write-Host "== Installer =="
     Write-Host "Skipped: the WiX tool is not on PATH, so dist\ has no installer." -ForegroundColor Yellow
-    Write-Host "  dotnet tool install --global wix --version 5.*"
+    Write-Host "  dotnet tool install --global wix --version 5.0.2   (the version release.yml pins)"
     # A missing packaging tool is not a defect in the code that was just built
     # - unless the caller asked for the installer by name.
     if ($installerNeeded) { exit 2 }
@@ -472,7 +656,10 @@ function Build-FileDOInstaller {
     $wixVersion = ((& wix --version) | Select-Object -First 1) -replace '\+.*', ''
     $extList = & wix extension list --global 2>&1 | Out-String
     foreach ($ext in @("WixToolset.UI.wixext", "WixToolset.BootstrapperApplications.wixext")) {
-        if ($extList -match [regex]::Escape($ext)) { continue }
+        # REL-08: the name AND the tool's version. A 7.x copy of the extension in the global
+        # cache matches the name alone, skips the pinned add, and `wix build` then fails on
+        # "wixext5".
+        if ($extList -match "(?m)^\s*$([regex]::Escape($ext))\s+$([regex]::Escape($wixVersion))(\s|$)") { continue }
         Write-Host "Adding $ext/$wixVersion ..." -NoNewline
         & wix extension add --global "$ext/$wixVersion" 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
@@ -484,15 +671,10 @@ function Build-FileDOInstaller {
         Write-Host " OK"
     }
 
-    # yyMMddHHmm -> Major.Minor.Patch.Build, the same mapping release.yml uses.
+    # The installer version, not the PE one: see Get-InstallerVersion at the top (PKG-01).
     # MSI version fields are numeric and bounded, so the stamp cannot be the
     # product version verbatim; the stamp stays the truth everywhere else.
-    if ($version -match '^(\d{2})(\d{2})(\d{2})(\d{4})$') {
-        $productVersion = "$([int]$Matches[1]).$([int]$Matches[2]).$([int]$Matches[3]).$([int]$Matches[4])"
-    } else {
-        Write-Host "Cannot verify: version '$version' is not the yyMMddHHmm stamp." -ForegroundColor Yellow
-        exit 2
-    }
+    $productVersion = $installerVersion
 
     $dist  = "$root\dist"
     $stage = "$dist\FileDO"
@@ -521,12 +703,17 @@ function Build-FileDOInstaller {
     Copy-Item "$root\THIRD-PARTY-NOTICES.txt" $stage -Force
     Copy-Item "$root\README.md"         $stage -Force
     Copy-Item "$root\assets\icon.ico"   "$stage\FileDO.ico" -Force
+    # The Explorer entries' and the document type's meaning icons (SP-0016 T8).
+    New-Item -ItemType Directory -Force -Path "$stage\icons" | Out-Null
+    Copy-Item "$root\assets\menu-icons\*.ico" "$stage\icons" -Force
 
     # Every file the wxs names must be in the stage, or wix reports it one at
     # a time. Saying so here names them all at once.
     $required = @("filedo.exe", "filedo_win.exe", "filedo_win.exe.config", "filedo_check.exe",
                   "filedo_fill.exe", "filedo_test.exe", "FileDO.ico", "LICENSE", "THIRD-PARTY-NOTICES.txt", "README.md",
-                  "filedo_cd.bat", "filedo_clean.bat", "filedo_fill.bat", "filedo_speed.bat", "filedo_test.bat")
+                  "filedo_cd.bat", "filedo_clean.bat", "filedo_fill.bat", "filedo_speed.bat", "filedo_test.bat",
+                  "icons\action.secure.ico", "icons\action.unsecure.ico", "icons\action.wipe.ico",
+                  "icons\action.verify.ico", "icons\app.info.ico", "icons\content.secret-file.ico")
     $missing = $required | Where-Object { -not (Test-Path "$stage\$_") }
     if ($missing) {
         Write-Host "No installer this run: the stage is missing $($missing -join ', ')." -ForegroundColor Yellow
@@ -640,21 +827,41 @@ if ($Commit) {
     Write-Host "== Commit =="
     Push-Location $root
     try {
-        if ((git symbolic-ref -q HEAD) -eq $null) {
+        # `git symbolic-ref -q` answers a detached HEAD with exit 1 and no output; the
+        # output is what is read here.
+        if ($null -eq (git symbolic-ref -q HEAD)) {
             Write-Host "Refusing to commit: detached HEAD."; exit 1
         }
-        git add -A
-        $staged = git diff --cached --name-only
+        Invoke-Checked 'git add -A' { git add -A } | Out-Null
+        $staged = Invoke-Checked 'git diff --cached' { git diff --cached --name-only }
         if (-not $staged) {
             Write-Host "Nothing to commit - working tree clean."
         } else {
-            git commit -m $Commit
-            if ($LASTEXITCODE -ne 0) { Write-Host "Commit FAILED."; exit 1 }
+            Invoke-Checked 'git commit' { git commit -m $Commit }
             Write-Host "Committed: $Commit"
             Write-Host "(Not pushed, not tagged. Use release.ps1 to publish.)"
         }
     } finally {
         Pop-Location
+    }
+}
+
+# ---- Optional local deploy (-DeployTo / FILEDO_DEPLOY_DIR) -----------------
+# Last, because only now has everything that was asked for passed: the build, the
+# gate (-Test), the installer, the install (-Install). It was the first thing
+# after the build once, and a build that then failed its gate had already
+# overwritten the developer's working tools (REL-07). Only the programs travel -
+# the executables, the .bat helpers and the GUI's .config; never a log, a
+# history.json or anything else a run leaves in exe_to_download\.
+if ($DeployTo) {
+    Write-Host ""
+    if (-not (Test-Path $DeployTo -PathType Container)) {
+        Write-Host "Deploy skipped: $DeployTo is not a folder (from -DeployTo or FILEDO_DEPLOY_DIR)." -ForegroundColor Yellow
+    } else {
+        $deployFiles = @(Get-ChildItem $out -File | Where-Object { $_.Extension -in '.exe', '.bat', '.config' })
+        Write-Host "Deploying $($deployFiles.Count) files to $DeployTo ..." -NoNewline
+        $deployFiles | Copy-Item -Destination $DeployTo -Force
+        Write-Host " OK"
     }
 }
 
@@ -668,3 +875,15 @@ if ($Test) {
 # code is whatever the last native command left in $LASTEXITCODE - `go vet`,
 # which exits 1 on the accepted baseline debt - and a passing gate reads as 1.
 exit 0
+} catch {
+    # A terminating error nobody expected proves nothing - exit 2 with the reason, never a
+    # stale $LASTEXITCODE that reads as a pass to the caller (release.ps1 runs this in-process).
+    Write-Host "Cannot verify: unexpected error at line $($_.InvocationInfo.ScriptLineNumber): $($_.Exception.Message)" -ForegroundColor Yellow
+    if ($Test) { Write-Host "build-gate ${version}: NOT VERIFIED (unexpected error: $($_.Exception.Message))" -ForegroundColor Yellow }
+    exit 2
+} finally {
+    # Every exit above leaves through here: the caller gets back its own directory and
+    # Go environment (this script may run inside release.ps1's process).
+    foreach ($k in @($savedGoEnv.Keys)) { [Environment]::SetEnvironmentVariable($k, $savedGoEnv[$k], 'Process') }
+    Pop-Location
+}

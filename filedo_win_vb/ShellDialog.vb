@@ -194,6 +194,9 @@ End Class
 ' the platform's text in the platform's language, and it goes to the log (APP-BEHAVIOUR rule 6).
 Module Problems
 
+    ' CLIPBRD_E_CANT_OPEN, the one ExternalException that means "another program has it".
+    Friend Const ClipboardCantOpen As Long = &H800401D0L
+
     Public Function CauseKey(ex As Exception) As String
         If ex Is Nothing Then Return "shell_cause_unexpected"
 
@@ -223,8 +226,11 @@ Module Problems
                 Case Else : Return "shell_cause_io"
             End Select
         End If
-        ' The clipboard throws ExternalException while another program holds it open.
-        If TypeOf ex Is Runtime.InteropServices.ExternalException Then Return "shell_cause_busy"
+        ' The clipboard throws ExternalException with CLIPBRD_E_CANT_OPEN while another program holds
+        ' it open - that code, and no other (SHELL-10). GDI+'s "generic error" and an SEHException
+        ' are ExternalExceptions too, and neither means somebody else is using anything.
+        If TypeOf ex Is Runtime.InteropServices.ExternalException AndAlso
+           (CLng(ex.HResult) And &HFFFFFFFFL) = ClipboardCantOpen Then Return "shell_cause_busy"
         Return "shell_cause_unexpected"
     End Function
 

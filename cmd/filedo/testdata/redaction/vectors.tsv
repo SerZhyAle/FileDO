@@ -1,0 +1,20 @@
+# Credential redaction vectors (SP-0029 SHELL-01): redactCredentialArgs in cmd/filedo/fdsec_redact.go
+# and Runner.RedactCredentialArgs in filedo_win_vb (the run report's Command line) are both held to
+# this file - TestShell_ReportRedactionMatchesTheCLI reads it, and filedo_win.exe --selftest reads the
+# copy embedded in the exe. One vector per line: the input tokens, a lone "=>", the expected tokens,
+# every token separated by a tab. A line starting with # is a comment.
+C:\x.txt	secure	p:secret	to	D:\out	-y	=>	C:\x.txt	secure	p:***	to	D:\out	-y
+fdsec	verify	c.fd-sec	hunter2	=>	fdsec	verify	c.fd-sec	***
+fdsec	info	c.fd-sec	p:hunter2	=>	fdsec	info	c.fd-sec	p:***
+fds	register	-all-users	=>	fds	register	-all-users
+fdsec	unregister	=>	fdsec	unregister
+C:\x	reveal	pe:FILEDO_SHELL_CRED	-keep	=>	C:\x	reveal	pe:FILEDO_SHELL_CRED	-keep
+C:\x	wipe	-y	=>	C:\x	wipe	-y
+--events	e.jsonl	--stop-file	s.stop	a.txt	secure	hunter2	=>	--events	e.jsonl	--stop-file	s.stop	a.txt	secure	***
+a.txt	SEC	del	wipe	rename	here	suite2	-rw	-keep	y	--force	p:x	=>	a.txt	SEC	del	wipe	rename	here	suite2	-rw	-keep	y	--force	p:***
+a	REVEAL	pf:C:\pw.txt	k:C:\key	=>	a	REVEAL	pf:C:\pw.txt	k:C:\key
+a.fd-sec	uns	pe:FILEDO_SHELL_CRED	here	=>	a.fd-sec	uns	pe:FILEDO_SHELL_CRED	here
+a.fd-sec	unsec	delete	ren	rw	keep	force	-y	hunter2	=>	a.fd-sec	unsec	delete	ren	rw	keep	force	-y	***
+a.txt	secure	to	=>	a.txt	secure	to
+a	rev	garbage	words	=>	a	rev	***	***
+x	info	=>	x	info

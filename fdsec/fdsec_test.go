@@ -24,8 +24,13 @@ func fastParams() Params {
 // test setting.
 var testProfile = kdfProfile{MemoryKiB: 1024, Time: 1, Lanes: 1, Threshold: 8}
 
+// testSuite2Profiles is suite 2's try-list under test, lowered for the same
+// reason; TestVectors_Suite2 puts the real one back.
+var testSuite2Profiles = []Suite2Profile{{MemoryKiB: 1024, Time: 1, Lanes: 1}}
+
 func TestMain(m *testing.M) {
 	activeProfile = testProfile
+	suite2Profiles = testSuite2Profiles
 	os.Exit(m.Run())
 }
 

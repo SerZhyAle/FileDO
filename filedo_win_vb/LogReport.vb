@@ -15,7 +15,7 @@ Imports System.Text
 
 Module LogReport
 
-    Public Const AuthorEmail As String = "serzhyale@gmail.com"
+    Public Const AuthorEmail As String = "sza@ukr.net"
 
     ' An archive a mail provider rejects is worse than no archive.
     Private Const MaxFiles As Integer = 40
@@ -31,12 +31,19 @@ Module LogReport
         "check_report_*.log",
         "check_report_*.json",
         "check_report_*.csv",
-        "check_state.json",
+        "check_damaged.list",
         "compare_report_*.log",
         "delete_report_*.log",
         "skip_files.list",
         "damaged_files.log"
     }
+
+    ' In the data folder itself, the shell's own log and its one older generation - nothing else:
+    ' the reports there are excluded on purpose, and the CLI's files live in its state folder.
+    Private ReadOnly shellLogPatterns As String() = {"filedo_win.log", "filedo_win.log.1"}
+
+    ' Send logs leaves no pile behind: an archive this old is gone at the next Send logs (SHELL-05).
+    Private Const ArchiveRetentionDays As Integer = 7
 
     Private Class Candidate
         Public Tag As String            ' short name of the directory it came from
@@ -46,16 +53,25 @@ Module LogReport
         Public Skip As String = ""      ' non-empty means it was left out, with this reason
     End Class
 
+    Private Class SearchRoot
+        Public Tag As String
+        Public Dir As String
+        Public Patterns As String()
+    End Class
+
     ' ---- collection -------------------------------------------------------
 
-    ' Directories FileDO can leave artifacts in. One level deep on purpose: recursing through a
-    ' user profile is slow and picks up files that are none of our business.
-    Private Function SearchRoots() As List(Of KeyValuePair(Of String, String))
-        Dim roots As New List(Of KeyValuePair(Of String, String))
+    ' The folders that are FileDO's own, and only those (SHELL-05): the state folder the CLI keeps
+    ' its files in (%LOCALAPPDATA%\FileDO\state - history, the skip and check lists, the check
+    ' state), the shell's log beside it, and the folder the programs run from. The profile root and
+    ' %TEMP% are not searched any more: a history.json or check_state.json there can be another
+    ' program's, and the report promises "only files FileDO wrote". One level deep on purpose.
+    Private Function SearchRoots() As List(Of SearchRoot)
+        Dim roots As New List(Of SearchRoot)
         Dim seen As New List(Of String)
 
-        Dim add As Action(Of String, String) =
-            Sub(tag As String, dir As String)
+        Dim add As Action(Of String, String, String()) =
+            Sub(tag As String, dir As String, patterns As String())
                 If String.IsNullOrEmpty(dir) Then Return
                 Dim full As String
                 Try
@@ -67,18 +83,16 @@ Module LogReport
                     If String.Equals(s, full, StringComparison.OrdinalIgnoreCase) Then Return
                 Next
                 seen.Add(full)
-                roots.Add(New KeyValuePair(Of String, String)(tag, full))
+                roots.Add(New SearchRoot With {.Tag = tag, .Dir = full, .Patterns = patterns})
             End Sub
 
-        add("app", AppFolder())
-        ' The shell's own log (ShellLog) lives here, beside the run reports.
+        add("app", AppFolder(), logPatterns)
         Try
-            add("appdata", Runner.GetAppDataDir())
+            Dim data = Runner.GetAppDataDir()
+            add("state", Path.Combine(data, "state"), logPatterns)
+            add("appdata", data, shellLogPatterns)
         Catch
         End Try
-        add("profile", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
-        add("temp-ops", Path.Combine(Path.GetTempPath(), "FileDO_Operations"))
-        add("temp", Path.GetTempPath())
         Return roots
     End Function
 
@@ -95,12 +109,12 @@ Module LogReport
     Private Function Collect() As List(Of Candidate)
         Dim found As New List(Of Candidate)
 
-        For Each root As KeyValuePair(Of String, String) In SearchRoots()
-            If Not Directory.Exists(root.Value) Then Continue For
-            For Each pattern As String In logPatterns
+        For Each root As SearchRoot In SearchRoots()
+            If Not Directory.Exists(root.Dir) Then Continue For
+            For Each pattern As String In root.Patterns
                 Dim hits As String()
                 Try
-                    hits = Directory.GetFiles(root.Value, pattern, SearchOption.TopDirectoryOnly)
+                    hits = Directory.GetFiles(root.Dir, pattern, SearchOption.TopDirectoryOnly)
                 Catch
                     Continue For
                 End Try
@@ -116,7 +130,7 @@ Module LogReport
                     Try
                         Dim fi As New FileInfo(hit)
                         found.Add(New Candidate With {
-                            .Tag = root.Key,
+                            .Tag = root.Tag,
                             .FullPath = fi.FullName,
                             .Length = fi.Length,
                             .Modified = fi.LastWriteTime
@@ -163,6 +177,7 @@ Module LogReport
         Dim stamp As String = DateTime.Now.ToString("yyyyMMdd-HHmmss")
         Dim dir As String = Path.Combine(Path.GetTempPath(), "FileDO_Logs")
         Directory.CreateDirectory(dir)
+        SweepOldArchives(dir)
         ' Never overwrite an archive the user may be about to attach, even on a second press
         ' inside the same second.
         Dim zipPath As String = Path.Combine(dir, "filedo-logs-" & stamp & ".zip")
@@ -196,8 +211,28 @@ Module LogReport
         Return zipPath
     End Function
 
+    ' The archives an earlier Send logs left, older than a week. Only this program's own names.
+    Friend Function SweepOldArchives(dir As String) As Integer
+        Dim removed = 0
+        Try
+            Dim cutoff = DateTime.Now.AddDays(-ArchiveRetentionDays)
+            For Each f In Directory.GetFiles(dir, "filedo-logs-*.zip", SearchOption.TopDirectoryOnly)
+                Try
+                    If File.GetLastWriteTime(f) < cutoff Then
+                        File.Delete(f)
+                        removed += 1
+                    End If
+                Catch
+                End Try
+            Next
+        Catch ex As Exception
+            ShellLog.Write("send logs: sweep old archives", ex)
+        End Try
+        Return removed
+    End Function
+
     Private Sub AddFile(zip As ZipArchive, c As Candidate)
-        ' Same name can exist in two roots (history.json in both the app folder and the profile),
+        ' Same name can exist in two roots (history.json in both the app folder and the state folder),
         ' so the source directory tag becomes the entry folder.
         Dim entryName As String = c.Tag & "/" & Path.GetFileName(c.FullPath)
         Dim entry As ZipArchiveEntry = zip.CreateEntry(entryName, CompressionLevel.Optimal)
@@ -295,21 +330,18 @@ Module LogReport
     End Function
 
     ''' <summary>
-    ''' Best available build identity for the GUI. The GUI carries no version resource, so the
-    ''' file's own write time - which is what the yyMMddHHmm version scheme is derived from - is
-    ''' the honest fallback.
+    ''' The GUI's build identity: the release stamp build.ps1 compiled in (BuildVersion.Stamp, the
+    ''' same yyMMddHHmm the CLI and the tag carry). The PE version is not it - it is the stamp
+    ''' remapped into four 16-bit fields, and an MSIX build may carry 0.0.0.0 there (SHELL-14). A
+    ''' local build has no stamp and says so: "dev", with the time the exe was written.
     ''' </summary>
     Public Function BuildStamp() As String
-        Dim exe As String = SafeExecutablePath()
+        Dim stamp As String = FileDOGUI.BuildVersion.Stamp
+        If Not String.IsNullOrEmpty(stamp) AndAlso stamp <> "dev" Then Return stamp
         Try
-            Dim v As String = CleanVersion(FileVersionInfo.GetVersionInfo(exe).FileVersion)
-            If v <> "" Then Return v
+            Return "dev (" & File.GetLastWriteTime(SafeExecutablePath()).ToString("yyMMddHHmm") & ")"
         Catch
-        End Try
-        Try
-            Return File.GetLastWriteTime(exe).ToString("yyMMddHHmm")
-        Catch
-            Return "unknown"
+            Return "dev"
         End Try
     End Function
 

@@ -11,8 +11,8 @@ package main
 // Run them with:  go test ./cmd/filedo/ -count=1 -vet=off
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,37 +20,46 @@ import (
 	"time"
 )
 
-// fillFile writes one FILL test file whose embedded header names `embeds`.
-// A file that names itself is what an honest drive reads back; a file that
-// names a later one is what a fake controller leaves behind when it wraps its
-// address space, and it is the one defect this repository can stage on a real
-// disk without a fake disk (device_windows.go, runDeviceFillVerify).
-func fillFile(t *testing.T, dir, name, embeds string) {
+// writeTestFill writes one FILL file with fill's own per-file writer - the
+// bytes a real `fill` leaves on a disk. The fixture used to write a header by
+// hand, which is how it missed that folder and network fills wrote files
+// `fill verify` could not read (SP-0026 CAP-02).
+func writeTestFill(t *testing.T, dir string, seq int64) string {
 	t.Helper()
-	body := make([]byte, 4096)
-	header := fmt.Sprintf("FILEDO_TEST_%s_20260324_012341\n", embeds)
-	copy(body, header)
-	if err := os.WriteFile(filepath.Join(dir, name), body, 0o644); err != nil {
+	p := filepath.Join(dir, capacityFileName(seq, 5, "01000000", "0c0ffee0"))
+	if _, err := writeFillFile(context.Background(), p, 256<<10, nil); err != nil {
 		t.Fatal(err)
 	}
+	return p
 }
 
+// genuineFillDir is what an honest drive reads back after a fill that ran to
+// the end: the capacity verbs are told the scratch volume has no free space
+// left, so the two files cover it.
 func genuineFillDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	for _, n := range []string{"FILL_00001_021504.tmp", "FILL_00002_021505.tmp"} {
-		fillFile(t, dir, n, n)
-	}
+	writeTestFill(t, dir, 1)
+	writeTestFill(t, dir, 2)
+	t.Setenv(testFreeBytesEnv, "0")
 	return dir
 }
 
+// fakeFillDir is what a fake controller leaves behind when it wraps its
+// address space: the first file reads back as the second one. It is the one
+// defect this repository can stage on a real disk without a fake disk.
 func fakeFillDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	// The first file reads back as the second one: the wrap a fake controller
-	// leaves behind.
-	fillFile(t, dir, "FILL_00001_021504.tmp", "FILL_00002_021505.tmp")
-	fillFile(t, dir, "FILL_00002_021505.tmp", "FILL_00002_021505.tmp")
+	first := writeTestFill(t, dir, 1)
+	second := writeTestFill(t, dir, 2)
+	data, err := os.ReadFile(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(first, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	return dir
 }
 
@@ -58,6 +67,16 @@ func fakeFillDir(t *testing.T) string {
 // the code it must exit and the verdict its `result` event must carry. Before
 // the outcome layer existed every one of these rows exited 0, so a failed check
 // and a passed one were the same thing to any caller.
+// emptyBatch is a batch file holding only a comment.
+func emptyBatch(t *testing.T) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "empty.lst")
+	if err := os.WriteFile(p, []byte("# nothing to run\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
 func TestExitCodeVocabulary(t *testing.T) {
 	genuine := genuineFillDir(t)
 	fake := fakeFillDir(t)
@@ -103,6 +122,21 @@ func TestExitCodeVocabulary(t *testing.T) {
 		{
 			name:     "an acting verb that did what it was asked",
 			args:     []string{plain, "info"},
+			wantCode: 0,
+			wantVerd: "Done",
+		},
+		{
+			// DUP-11: it printed an error and exited 0 with no result.
+			name:     "a duplicate list that is not there",
+			args:     []string{"cd", "from", "list", filepath.Join(t.TempDir(), "missing.lst")},
+			wantCode: 2,
+			wantVerd: "Not proven",
+		},
+		{
+			// CLI-11: `from` opens the run itself, so even an empty batch
+			// ends with a result.
+			name:     "a verb-first line from a batch",
+			args:     []string{"from", emptyBatch(t)},
 			wantCode: 0,
 			wantVerd: "Done",
 		},

@@ -45,6 +45,8 @@ history.json
 hash_cache.json
 damaged_files.log
 skip_files.list
+# The good-files list `filedo check` writes into the current directory (SP-0030 REL-12).
+check_files.list
 *.tmp
 
 # Test files created by FileDO
@@ -112,8 +114,16 @@ msix/stage/
 msix/out/
 msix/*.pfx
 msix/*.cer
+# The packaged Explorer command (SP-0020), built into the MSIX stage.
+shellext/out/
 
-# Secrets and signing material - pre-empt the leak, never catch it afterwards.
+# Secrets and signing material - pre-empt the leak, never catch it afterwards. Anywhere in
+# the tree, not only msix\ (SP-0030 REL-01): release.ps1 refuses a dirty tree, and this is
+# what keeps a key dropped at the root from being "dirty" in the first place.
+*.pfx
+*.p12
+*.pem
+*.key
 *.snk
 *.jks
 *.keystore

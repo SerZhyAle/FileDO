@@ -13,15 +13,29 @@
   downloads, it upgrades a previous FileDO in one step, and it is the only
   place a prerequisite could later be chained in without touching the MSI.
 
-  The UI is the MSI's own feature tree (DisplayInternalUI). The bootstrapper
-  therefore draws no window of its own - two license pages and two progress
-  bars for one install is worse than one of each.
+  The UI is the MSI's own wizard, feature tree included. The bootstrapper is
+  WixInternalUIBootstrapperApplication, whose whole job is to show the primary
+  MSI's internal UI and draw no wizard of its own - two license pages and two
+  progress bars for one install is worse than one of each.
+
+  Change is the same wizard again (SP-0030 PKG-02). DisableModify="button"
+  gives the one Apps-and-features entry a single Uninstall/Change action that
+  starts this bundle in maintenance mode, and this bootstrapper then runs the
+  MSI with its full UI whatever its state - so an installed FileDO opens the
+  MSI's maintenance page: Change (the feature tree - the Explorer integration
+  and the desktop icon on or off), Repair, Remove. The standard bootstrapper
+  used before planned nothing for an MSI already present, so a Change there
+  would have shown nothing at all; that is why DisableModify was "yes" until
+  this.
 
   Build (build.ps1 -Msi does this after the MSI):
       wix build packaging\wix\FileDO-bundle.wxs -arch x64 ^
         -ext WixToolset.BootstrapperApplications.wixext ^
         -d ProductVersion=... -d MsiFile=... -d IconFile=... -d LicenseRtf=... ^
         -o dist\FileDO-<version>-setup.exe
+  ProductVersion is the installer version yy.M.<minute of the month> that the
+  MSI carries too (build.ps1 Get-InstallerVersion, PKG-01); LicenseRtf is
+  accepted and unused here, the MSI shows the license.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
@@ -36,7 +50,7 @@
       HelpUrl="https://github.com/SerZhyAle/FileDO/issues"
       UpdateUrl="https://github.com/SerZhyAle/FileDO/releases/latest"
       Compressed="yes"
-      DisableModify="yes">
+      DisableModify="button">
 
     <!-- A bundle's UpgradeCode is its identity, exactly like the MSI's: the
          value below is how every future setup EXE recognises the one already
@@ -44,22 +58,23 @@
          features. It is frozen for the product's life. It is NOT the MSI's
          UpgradeCode - two different installers, two different identities. -->
     <BootstrapperApplication>
-      <bal:WixStandardBootstrapperApplication
-          Theme="none"
-          LicenseFile="$(var.LicenseRtf)" />
+      <!-- The license page is the MSI's own (WixUI_FeatureTree shows License.rtf),
+           so this bootstrapper takes no LicenseFile: one license page, not two. -->
+      <bal:WixInternalUIBootstrapperApplication />
     </BootstrapperApplication>
 
     <Chain>
       <!-- Vital: if the MSI fails, the bundle fails - there is nothing else in
            the chain that could be called a partial success.
-           DisplayInternalUI: the feature checkboxes (Explorer integration,
-           desktop shortcut) are the MSI's UI, and this is what shows it. -->
+           PrimaryPackageType="default": the one package whose internal UI the
+           bootstrapper shows, on install and on Change alike - the feature
+           checkboxes (Explorer integration, desktop shortcut) are that UI. -->
       <MsiPackage
           Id="FileDOMsi"
           SourceFile="$(var.MsiFile)"
           Vital="yes"
           Compressed="yes"
-          bal:DisplayInternalUICondition="1" />
+          bal:PrimaryPackageType="default" />
     </Chain>
 
   </Bundle>

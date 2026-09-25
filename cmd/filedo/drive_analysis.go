@@ -427,13 +427,15 @@ func calculateSmallFileThreshold(source, target *DriveInfo) int64 {
 // calculateOptimalBufferSize determines the best buffer size for the drive combination
 func calculateOptimalBufferSize(source, target *DriveInfo) int {
 	// Start with cluster-aligned buffer sizes
-	maxClusterSize := source.ClusterSize
-	if target.ClusterSize > maxClusterSize {
-		maxClusterSize = target.ClusterSize
+	// In uint64: a 4 MB exFAT cluster times 1024 is 4 GB, which wrapped a
+	// uint32 to 0 and clamped to the 1 MB floor (SP-0026 CAP-21).
+	maxClusterSize := uint64(source.ClusterSize)
+	if uint64(target.ClusterSize) > maxClusterSize {
+		maxClusterSize = uint64(target.ClusterSize)
 	}
 	
 	// Base buffer size on drive types
-	var bufferSize uint32
+	var bufferSize uint64
 	
 	sourceType := source.DriveType
 	targetType := target.DriveType
@@ -454,8 +456,8 @@ func calculateOptimalBufferSize(source, target *DriveInfo) int {
 	}
 	
 	// Set reasonable bounds based on file system
-	minSize := uint32(1 * 1024 * 1024)  // 1MB minimum
-	maxSize := uint32(64 * 1024 * 1024) // 64MB maximum
+	minSize := uint64(1 * 1024 * 1024)  // 1MB minimum
+	maxSize := uint64(64 * 1024 * 1024) // 64MB maximum
 	
 	// Adjust maximums based on file systems
 	if source.FileSystem == "FAT32" || target.FileSystem == "FAT32" {

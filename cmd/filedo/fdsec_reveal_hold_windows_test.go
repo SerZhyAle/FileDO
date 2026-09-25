@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"filedo/statedir"
+
 	"golang.org/x/sys/windows"
 )
 
@@ -83,6 +85,7 @@ func startReveal(t *testing.T, wd string, args ...string) (*exec.Cmd, *bytes.Buf
 	cmd.Env = append(os.Environ(),
 		"FILEDO_FDSEC_NO_LAUNCH=1",
 		"FILEDO_FDSEC_REVEAL_ROOT="+revealRoot(wd),
+		statedir.EnvOverride+"="+wd,
 	)
 	cmd.Stdin = strings.NewReader("")
 	var mu sync.Mutex

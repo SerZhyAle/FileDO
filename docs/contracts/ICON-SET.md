@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-SET` |
-| **Version** | 0.13 draft (no wire carrier - the vocabulary is read by people, never by a shipped product) |
+| **Version** | 0.15 draft (no wire carrier - the vocabulary is read by people, never by a shipped product). Adopted as a draft on 2026-09-25; the adoption is re-checked when the contract reaches 1.0 |
 | **Role** | consumer - the shell, the site, the READMEs and the Explorer integration show glyphs |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. A new meaning or a new language is proposed in the catalog, not decided here |
@@ -23,9 +23,33 @@
 - A meaning FileDO needs and the vocabulary lacks is proposed in the catalog first; the code waits for the
   id.
 
-**Status: partially adopted.** Held: the verdict glyph of the job and Command pages (`status.ok`,
-`status.error`, one mapping in `Theme.vb`, asserted by `--selftest`), the rail group chevrons
-(`nav.expand` / `nav.collapse`), the rail label of the clean job, the site's back-to-top control
-(`nav.scroll-top`) and copy buttons, and emoji-free READMEs. Open: the rail glyphs that draw another
-meaning's picture or have no id, the Stopped and Not proven verdicts, and the Explorer sub-verbs - each
-waits for an id or a decision proposed in the catalog. The full inventory and the tickets are SP-0016.
+## How the drawings get here
+
+The shell draws the catalog's own glyph files, not a copy made by hand. `assets/sync-icon-glyphs.ps1`
+imports the declared subset into `assets/glyphs/` beside a `PROVENANCE.txt` holding the catalog versions,
+the vocabulary's SHA-256 and the SHA-256 of every file; `filedo_win.exe` embeds that folder and refuses to
+draw a file whose hash is not its line, or a set mapped against another `ICON-SET` MAJOR. Never edit the
+folder by hand, and keep `.gitattributes`' `-text` on it - a line-ending conversion changes every hash.
+
+`pwsh -NoProfile -File assets/sync-icon-glyphs.ps1 -Check` compares the vendored files with the catalog
+itself (exit 0 in sync, 1 drift, 2 catalog unreachable) and reports a meaning a control waits for
+(`GlyphRef.Waiting`) once the catalog has its glyph. After an import that changes a drawing the Explorer
+icons use, run `filedo_win.exe --write-menu-icons assets\menu-icons` and rebuild; the self-test fails
+until then. The catalog root comes from `-CatalogRoot` or `SZA_CONTRACTS_ROOT`. Run it
+after any change in the catalog's `iconography/` folder and before mapping a new meaning; the import is the
+same command without `-Check`.
+
+**Status: adopted, draft.** Held: every glyph FileDO draws is a vocabulary drawing - the rail's glyph map
+in `Rail.vb`, the chevrons and the five verdicts in `Theme.vb`, and the Explorer surfaces - and the
+self-test's `icons:`, `rail-glyph:` (stand-ins held at zero), `glyph:` and `menu-icon:` rows hold it. The
+fifteen meanings FileDO proposed entered the vocabulary in 0.14 (`feature.capacity-test`,
+`feature.speed-test`, `action.verify`, `feature.raw-probe`, `action.recover-drive`,
+`action.find-duplicates`, `action.compare`, `action.fill-space`, `action.wipe`, `action.secure`,
+`action.unsecure`, `content.secret-file`, `app.command-line`, `status.stopped`, `status.not-proven`), with
+`de` and `fr` names for every meaning FileDO ships. Each entry of the `File DO..` Explorer group shows its
+meaning's icon and the `.fd-sec` document type `content.secret-file`: `icons\<id>.ico` beside the exe,
+drawn by `filedo_win.exe --write-menu-icons assets\menu-icons` from the same vendored files, named alike
+by all three writers (`packaging/wix/FileDO.wxs`, `fdsec register`, `shellext/FileDOShell.cpp`); the group
+keeps the product mark. Labels use the meanings' names (German clean job "löschen", English "Secure a
+file" / "Unsecure a file"); "About" and the verdict words are the qualified forms the 0.14 notes declare.
+The site's back-to-top control and copy buttons; emoji-free READMEs. The full inventory is SP-0016.
