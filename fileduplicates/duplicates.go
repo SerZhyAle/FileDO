@@ -207,17 +207,23 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			potentialDuplicates = append(potentialDuplicates, distinct...)
 		}
 	}
-	if unreadable > 0 {
-		fmt.Fprintf(os.Stderr, "Warning: %d files or folders could not be read and were left out of the scan.\n", unreadable)
+	// One warning names everything the scan had to leave out: walk and
+	// identity failures here, hashing failures after the hash stages
+	// (AUD-12-F1).
+	warnUnreadable := func() {
+		if unreadable > 0 {
+			fmt.Fprintf(os.Stderr, "Warning: %d files or folders could not be read and were left out of the scan.\n", unreadable)
+		}
 	}
 
 	if len(potentialDuplicates) == 0 {
+		warnUnreadable()
 		fmt.Println("No duplicate files found.")
 		result.ProcessingTime = time.Since(startTime)
 		return result, finishReport(result, options, nil)
 	}
 
-	filesByQuickHash, err := hashStage(rs, cache, workerCount, potentialDuplicates, QuickHash, options.Verbose)
+	filesByQuickHash, err := hashStage(rs, cache, workerCount, potentialDuplicates, QuickHash, options.Verbose, &unreadable)
 	if err != nil {
 		return result, err
 	}
@@ -228,10 +234,11 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 			fullCandidates = append(fullCandidates, files...)
 		}
 	}
-	filesByFullHash, err := hashStage(rs, cache, workerCount, fullCandidates, FullHash, options.Verbose)
+	filesByFullHash, err := hashStage(rs, cache, workerCount, fullCandidates, FullHash, options.Verbose, &unreadable)
 	if err != nil {
 		return result, err
 	}
+	warnUnreadable()
 
 	// Save cache
 	if err := cache.Save(); err != nil {
@@ -268,6 +275,11 @@ func FindDuplicates(rootPath string, options DuplicateOptions) (*DuplicateResult
 	result.ProcessingTime = time.Since(startTime)
 
 	reportErr := finishReport(result, options, duplicateGroups)
+	if reportErr != nil && options.Action != NoAction {
+		// The list was asked for as the record of what this run touches;
+		// without it nothing is deleted or moved (AUD-12-F2).
+		return result, reportErr
+	}
 
 	// Process duplicate groups - apply the action to all but the keeper
 	summary, actErr := rs.process(duplicateGroups)
@@ -321,9 +333,10 @@ func collapseSameObjects(files []DuplicateFileInfo) []DuplicateFileInfo {
 // hashStage computes (or takes from the cache) one kind of hash for every
 // candidate and returns them grouped by size and hash. Flow: cache lookup
 // (read-only) -> misses go to the worker pool -> results are stored in the
-// cache and aggregated by a consumer goroutine.
+// cache and aggregated by a consumer goroutine. A candidate that cannot be
+// read is left out and counted in unreadable (not when the run was stopped).
 func hashStage(rs *runState, cache *HashCache, workerCount int, candidates []DuplicateFileInfo,
-	mode FileHashType, verbose bool) (map[string][]DuplicateFileInfo, error) {
+	mode FileHashType, verbose bool, unreadable *int) (map[string][]DuplicateFileInfo, error) {
 
 	grouped := make(map[string][]DuplicateFileInfo)
 	if len(candidates) == 0 {
@@ -376,6 +389,10 @@ func hashStage(rs *runState, cache *HashCache, workerCount int, candidates []Dup
 				mu.Lock()
 				k := keyOf(result.file)
 				grouped[k] = append(grouped[k], result.file)
+				mu.Unlock()
+			} else if !errors.Is(result.err, ErrStopped) {
+				mu.Lock()
+				*unreadable++
 				mu.Unlock()
 			}
 			report()

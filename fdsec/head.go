@@ -1,6 +1,7 @@
 package fdsec
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -62,7 +63,7 @@ func buildHead(h *header, slot0 *slotRecord, maskKey []byte) ([]byte, error) {
 func openHead(r io.Reader, cred Credential) (*header, []byte, error) {
 	b := make([]byte, preMeta)
 	if _, err := io.ReadFull(r, b); err != nil {
-		return nil, nil, fmt.Errorf("%w: file is too short to be a container (%v)", ErrDamaged, err)
+		return nil, nil, containerReadErr("file is too short to be a container", "container head", err)
 	}
 	maskKey, kek, err := deriveKeys(cred, b[:saltSize])
 	if err != nil {
@@ -99,4 +100,19 @@ func openHead(r io.Reader, cred Credential) (*header, []byte, error) {
 		return nil, nil, err
 	}
 	return h, fileKey, nil
+}
+
+// containerReadErr classifies a read of container bytes that failed
+// (AUD-11-F1). Running out of bytes is the container's own fault - it is
+// shorter than its structure says - and is damage (class B), reported as
+// damage. Any other read error belongs to the environment - a byte-range
+// lock, a sharing violation, a share or a device that went away - and is
+// class C (FDSEC-FORMAT.md section 12): it is returned wrapped, never as
+// ErrDamaged, so the caller says "could not verify" instead of passing a
+// verdict on a container it never read.
+func containerReadErr(damage, what string, err error) error {
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return fmt.Errorf("%w: %s (%v)", ErrDamaged, damage, err)
+	}
+	return fmt.Errorf("fdsec: read %s: %w", what, err)
 }

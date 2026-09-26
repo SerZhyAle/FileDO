@@ -38,7 +38,7 @@ func (c *Container) readDirBlock() (TreeMetadata, int64, [digestSize]byte, error
 	}
 	sealed := make([]byte, metaSize)
 	if _, err := io.ReadFull(c.src, sealed); err != nil {
-		return TreeMetadata{}, 0, [digestSize]byte{}, fmt.Errorf("%w: directory block unreadable (%v)", ErrDamaged, err)
+		return TreeMetadata{}, 0, [digestSize]byte{}, containerReadErr("directory block unreadable", "directory block", err)
 	}
 	nonce, err := deriveNonce(c.fileKey, dirCtx())
 	if err != nil {
@@ -92,7 +92,7 @@ func (c *Container) openStream(dst io.Writer, id streamID, off, n int64, so stre
 			return sum, fmt.Errorf("fdsec: seek chunk %d: %w", i, err)
 		}
 		if _, err := io.ReadFull(c.src, ct[:want]); err != nil {
-			return sum, fmt.Errorf("%w: chunk %d unreadable (%v)", ErrDamaged, i, err)
+			return sum, containerReadErr(fmt.Sprintf("chunk %d unreadable", i), fmt.Sprintf("chunk %d", i), err)
 		}
 		nonce, err := deriveNonce(c.fileKey, id.nonceCtx(i))
 		if err != nil {

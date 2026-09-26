@@ -432,7 +432,7 @@ func openSuite2(src io.ReadSeeker, cred Credential) (*suite2State, error) {
 	}
 	lead := make([]byte, s2Lead)
 	if _, err := io.ReadFull(src, lead); err != nil {
-		return nil, fmt.Errorf("%w: file is too short to be a container (%v)", ErrDamaged, err)
+		return nil, containerReadErr("file is too short to be a container", "container head", err)
 	}
 	f0 := int64(s2Frame)
 	if k == 1 {
@@ -440,7 +440,7 @@ func openSuite2(src io.ReadSeeker, cred Credential) (*suite2State, error) {
 	}
 	ct := make([]byte, f0)
 	if _, err := io.ReadFull(src, ct); err != nil {
-		return nil, fmt.Errorf("%w: frame 0 unreadable (%v)", ErrDamaged, err)
+		return nil, containerReadErr("frame 0 unreadable", "frame 0", err)
 	}
 	salt, nonce := lead[:s2SaltSize], lead[s2SaltSize:]
 	ad := suite2FrameAD(0, k == 1)
@@ -506,7 +506,7 @@ func (c *Container) unpackSuite2(dst io.Writer, so streamOpts) (Metadata, [diges
 				return meta, digest, fmt.Errorf("fdsec: seek frame %d: %w", i, err)
 			}
 			if _, err := io.ReadFull(c.src, ct[:want]); err != nil {
-				return meta, digest, fmt.Errorf("%w: frame %d unreadable (%v)", ErrDamaged, i, err)
+				return meta, digest, containerReadErr(fmt.Sprintf("frame %d unreadable", i), fmt.Sprintf("frame %d", i), err)
 			}
 			var fail error
 			pt, fail = st.aead.Open(plain[:0], suite2FrameNonce(st.nonce, i), ct[:want], suite2FrameAD(i, i == st.frames-1))

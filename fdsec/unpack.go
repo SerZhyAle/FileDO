@@ -105,7 +105,7 @@ func (c *Container) Unpack(dst io.Writer, opts ...StreamOption) (Metadata, error
 	}
 	sealedMeta := make([]byte, metaSize)
 	if _, err := io.ReadFull(src, sealedMeta); err != nil {
-		return meta, fmt.Errorf("%w: metadata unreadable (%v)", ErrDamaged, err)
+		return meta, containerReadErr("metadata unreadable", "metadata", err)
 	}
 	metaNonce, err := deriveNonce(fileKey, metaCtx())
 	if err != nil {
@@ -168,7 +168,7 @@ func (c *Container) Unpack(dst io.Writer, opts ...StreamOption) (Metadata, error
 			return meta, fmt.Errorf("fdsec: seek chunk %d: %w", i, err)
 		}
 		if _, err := io.ReadFull(src, ct[:want]); err != nil {
-			return meta, fmt.Errorf("%w: chunk %d unreadable (%v)", ErrDamaged, i, err)
+			return meta, containerReadErr(fmt.Sprintf("chunk %d unreadable", i), fmt.Sprintf("chunk %d", i), err)
 		}
 		nonce, err := deriveNonce(fileKey, string(chunkCtx(i)))
 		if err != nil {

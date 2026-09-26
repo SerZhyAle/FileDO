@@ -1106,3 +1106,73 @@ func TestFilesLeftIsCapped(t *testing.T) {
 		t.Fatalf("filesLeft %d, total %v", len(currentRun.filesLeft), currentRun.numbers["filesLeftTotal"])
 	}
 }
+
+// AUD-24-F1: a passed test without del keeps every test file, and the result
+// event names them, as it does on a defect or a could-not-verify ending.
+func TestPassWithoutDelNamesFilesLeft(t *testing.T) {
+	withCapacityStubs(t, 1<<40, 1<<41)
+	ft := &fixedSpaceTester{FolderTester: NewFolderTester(t.TempDir()), free: 110 << 20}
+	logger := NewHistoryLogger([]string{"test"})
+	res, err := runGenericFakeCapacityTest(ft, false, 4, logger)
+	if err != nil || !res.TestPassed {
+		t.Fatalf("passed %v, err %v", res.TestPassed, err)
+	}
+	for _, p := range res.CreatedFiles {
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("test file %s is not on disk: %v", p, err)
+		}
+	}
+	if len(res.CreatedFiles) != 4 {
+		t.Fatalf("created %d files, want 4", len(res.CreatedFiles))
+	}
+	if len(currentRun.filesLeft) != 4 || currentRun.numbers["filesLeftTotal"] != 4 {
+		t.Fatalf("filesLeft %d, filesLeftTotal %v - want the 4 kept files named", len(currentRun.filesLeft), currentRun.numbers["filesLeftTotal"])
+	}
+	if got := logger.entry.Results["filesDeleted"]; got != false {
+		t.Errorf("history filesDeleted = %v, want false", got)
+	}
+}
+
+// failCleanupTester refuses to delete one test file, as a file held open by
+// another process is refused.
+type failCleanupTester struct {
+	*fixedSpaceTester
+	failSeq string
+}
+
+func (f *failCleanupTester) CleanupTestFile(p string) error {
+	if testFileSeq(filepath.Base(p)) == f.failSeq {
+		return &os.PathError{Op: "remove", Path: p, Err: windows.ERROR_SHARING_VIOLATION}
+	}
+	return f.fixedSpaceTester.CleanupTestFile(p)
+}
+
+// AUD-24-F1: with del, a file whose deletion failed is named, and history
+// does not claim the files were deleted.
+func TestPassWithDelNamesUndeletedFiles(t *testing.T) {
+	withCapacityStubs(t, 1<<40, 1<<41)
+	ft := &failCleanupTester{
+		fixedSpaceTester: &fixedSpaceTester{FolderTester: NewFolderTester(t.TempDir()), free: 110 << 20},
+		failSeq:          "002",
+	}
+	logger := NewHistoryLogger([]string{"test"})
+	res, err := runGenericFakeCapacityTest(ft, true, 4, logger)
+	if err != nil || !res.TestPassed {
+		t.Fatalf("passed %v, err %v", res.TestPassed, err)
+	}
+	var kept []string
+	for _, p := range res.CreatedFiles {
+		if _, err := os.Stat(p); err == nil {
+			kept = append(kept, p)
+		}
+	}
+	if len(kept) != 1 || testFileSeq(filepath.Base(kept[0])) != "002" {
+		t.Fatalf("files on disk after del: %v, want only file 002", kept)
+	}
+	if len(currentRun.filesLeft) != 1 || currentRun.filesLeft[0] != kept[0] || currentRun.numbers["filesLeftTotal"] != 1 {
+		t.Fatalf("filesLeft %v, filesLeftTotal %v - want %s named", currentRun.filesLeft, currentRun.numbers["filesLeftTotal"], kept[0])
+	}
+	if got := logger.entry.Results["filesDeleted"]; got != false {
+		t.Errorf("history filesDeleted = %v, want false when a file stayed", got)
+	}
+}

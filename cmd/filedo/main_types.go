@@ -737,12 +737,17 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 	fmt.Printf("  Maximum speed: %.2f MB/s\n", result.MaxSpeedMBps)
 	fmt.Printf("  Total data written: %.2f MB\n", float64(result.TotalDataBytes)/float64(capMiB))
 
+	// kept is every test file the run leaves on disk: all of them without
+	// del, the ones that could not be deleted with it. They are named in the
+	// result event, as on the defect and could-not-verify endings (AUD-24-F1).
+	var kept []string
 	if autoDelete {
 		fmt.Printf("\n🗑️  Auto-delete enabled, cleaning up test files...\n")
 		deletedCount := 0
 		for _, filePath := range result.CreatedFiles {
 			if err := tester.CleanupTestFile(filePath); err != nil {
 				fmt.Printf("Warning: Failed to delete file: %v\n", err)
+				kept = append(kept, filePath)
 			} else {
 				deletedCount++
 			}
@@ -754,7 +759,9 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 		fmt.Printf("   Location: %s\n", filepath.Join(targetPath, plan.SubDir))
 		fmt.Printf("   Files: %s .. %s\n", filepath.Base(result.CreatedFiles[0]), filepath.Base(result.CreatedFiles[len(result.CreatedFiles)-1]))
 		fmt.Printf("   Use '%s' to remove them later.\n", tester.GetCleanupCommand())
+		kept = append(kept, result.CreatedFiles...)
 	}
+	recordFilesLeft(kept)
 
 	if logger != nil {
 		logger.SetResult("testPassed", result.TestPassed)
@@ -763,7 +770,7 @@ func runGenericFakeCapacityTest(tester FakeCapacityTester, autoDelete bool, maxF
 		logger.SetResult("maxSpeedMBps", result.MaxSpeedMBps)
 		logger.SetResult("baselineSpeedMBps", result.BaselineSpeedMBps)
 		logger.SetResult("totalDataMB", float64(result.TotalDataBytes)/float64(capMiB))
-		logger.SetResult("filesDeleted", autoDelete)
+		logger.SetResult("filesDeleted", autoDelete && len(kept) == 0)
 		logger.SetSuccess()
 	}
 

@@ -79,10 +79,16 @@ func TestReadError_EnvironmentIsNotDamage(t *testing.T) {
 		t.Fatal(err)
 	}
 	s3 := s3buf.Bytes()
-	h3, _, err := openHead(bytes.NewReader(s3), cred)
+	c3, err := Open(bytes.NewReader(s3), cred)
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, mlen, _, err := c3.readDirBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	h3 := c3.h
+	firstEntry, _ := h3.streamEnd(h3.preLen(), mlen) // the first file's stream follows the manifest
 
 	unpackFile := func(r io.ReadSeeker) error {
 		_, err := Unpack(io.Discard, r, cred)
@@ -112,7 +118,7 @@ func TestReadError_EnvironmentIsNotDamage(t *testing.T) {
 		{"suite 2 middle frame", s2, s2Lead + s2Frame + 10, 0, unpackFile},
 		{"suite 3 directory block", s3, preMeta + 10, 0, verifyTree},
 		{"suite 3 manifest", s3, h3.preLen() + 10, 0, verifyTree},
-		{"suite 3 last entry chunk", s3, int64(len(s3)) - 10, 0, verifyTree},
+		{"suite 3 first entry chunk", s3, firstEntry + 10, 0, verifyTree},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

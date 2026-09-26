@@ -241,6 +241,61 @@ func TestDuplicatesCLI_UnknownWordExits2(t *testing.T) {
 	}
 }
 
+// AUD-12-F1: a candidate that cannot be read for hashing is counted in the
+// "could not be read" warning, not dropped in silence. The share-none handle
+// lets the scan's identity probe (attributes only) through but not the hash.
+func TestDuplicatesCLI_UnhashableFileIsReported(t *testing.T) {
+	dir := t.TempDir()
+	data := bytes.Repeat([]byte("duplicate payload "), 2000)
+	a, b := filepath.Join(dir, "a.bin"), filepath.Join(dir, "b.bin")
+	for _, p := range []string{a, b} {
+		if err := os.WriteFile(p, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p, _ := windows.UTF16PtrFromString(b)
+	h, err := windows.CreateFile(p, windows.GENERIC_READ, 0, nil, windows.OPEN_EXISTING, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer windows.CloseHandle(h)
+
+	out, _ := runDupCLI(t, nil, dir, "cd")
+	if !strings.Contains(out, "1 files or folders could not be read") {
+		t.Fatalf("a file the scan could not hash was left out without a warning\n%s", out)
+	}
+}
+
+// AUD-12-F2: a list that was asked for and cannot be written refuses a
+// deleting or moving run before it touches anything.
+func TestDuplicatesCLI_ListWriteFailureStopsDelete(t *testing.T) {
+	for _, verb := range []string{"del", "move"} {
+		dir, paths := dupCopies(t)
+		list := filepath.Join(t.TempDir(), "no-such-folder", "dups.lst")
+		args := []string{dir, "cd"}
+		target := ""
+		if verb == "move" {
+			target = filepath.Join(t.TempDir(), "moved")
+			args = append(args, "move", target)
+		} else {
+			args = append(args, "del")
+		}
+		args = append(args, "-y", "list", list)
+		out, code := runDupCLI(t, nil, args...)
+		if code != 2 {
+			t.Errorf("%s: exit %d, want 2\n%s", verb, code, out)
+		}
+		if survivors(paths) != 3 {
+			t.Errorf("%s: %d of 3 files left after the list could not be written\n%s", verb, survivors(paths), out)
+		}
+		if target != "" {
+			if entries, _ := os.ReadDir(target); len(entries) != 0 {
+				t.Errorf("move: %d files moved after the list could not be written\n%s", len(entries), out)
+			}
+		}
+	}
+}
+
 // DUP-10: --help, the README modifier table and the parser say the same thing
 // about every rule word, and -y is documented in the help and in every README
 // locale (theme T10).
