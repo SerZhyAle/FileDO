@@ -210,6 +210,68 @@ func TestFillVerifyPartialCoverageIsNotProven(t *testing.T) {
 	}
 }
 
+// writeTruncatedFillRun writes three fill files of one run into dir and
+// truncates the second to half its size and the third to 0 bytes - what an
+// interrupted fill leaves behind. It returns the paths.
+func writeTruncatedFillRun(t *testing.T, dir string) []string {
+	t.Helper()
+	const size = 1 << 20
+	var paths []string
+	for i := int64(1); i <= 3; i++ {
+		p := filepath.Join(dir, capacityFileName(i, 5, "01000000", "0badf00d"))
+		if _, err := writeFillFile(context.Background(), p, size, nil); err != nil {
+			t.Fatal(err)
+		}
+		paths = append(paths, p)
+	}
+	if err := os.Truncate(paths[1], size/2); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Truncate(paths[2], 0); err != nil {
+		t.Fatal(err)
+	}
+	return paths
+}
+
+// AUD-05-F1: the files an interrupted fill leaves - one cut short, one empty -
+// are incomplete, not evidence: could not verify, never FAKE CAPACITY.
+func TestFillVerifyInterruptedLeftoverIsNotADefect(t *testing.T) {
+	withCapacityStubs(t, 0, 1<<30)
+	dir := t.TempDir()
+	writeTruncatedFillRun(t, dir)
+	err := runCapacityFillVerify("Folder", dir)
+	if currentRun.defects != 0 {
+		t.Fatalf("an interrupted fill's leftovers recorded %d defects (err %v) - they are incomplete, not fake capacity", currentRun.defects, err)
+	}
+	if err == nil || errors.Is(err, errDefect) {
+		t.Fatalf("err %v - want could not verify", err)
+	}
+}
+
+// AUD-05-F1: a byte that does not read back inside the part of a cut-short
+// file that was written is still a defect.
+func TestFillVerifyCatchesMismatchInPartialFile(t *testing.T) {
+	withCapacityStubs(t, 0, 1<<30)
+	dir := t.TempDir()
+	paths := writeTruncatedFillRun(t, dir)
+	f, err := os.OpenFile(paths[1], os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, _ := f.Stat()
+	if _, err := f.WriteAt([]byte{'#'}, st.Size()-100); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	f.Close()
+	if err := runCapacityFillVerify("Folder", dir); err != nil && !errors.Is(err, errDefect) {
+		t.Logf("fill verify: %v", err)
+	}
+	if currentRun.defects == 0 {
+		t.Fatal("a flipped byte inside a cut-short file's written part recorded no defect")
+	}
+}
+
 // CAP-03: a non-anchor file damaged after its own check is caught by the
 // final pass, and the damage reads back from the media, not the cache.
 func TestFakeCapacityCatchesDelayedCorruptionOfNonAnchorFile(t *testing.T) {

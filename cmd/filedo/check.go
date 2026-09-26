@@ -2,6 +2,8 @@ package main
 
 import (
     "context"
+    "encoding/csv"
+    "encoding/json"
     "errors"
     "flag"
     "fmt"
@@ -540,6 +542,19 @@ func CheckFolder(root string) error {
     if singleFile && !info.Mode().IsRegular() {
         return fmt.Errorf("%s is neither a folder nor a regular file", root)
     }
+    // filepath.Walk Lstats its root: a junction or a volume mounted in a
+    // folder is a reparse point to it, not a directory, so the walk never
+    // descended and the sweep read nothing (AUD-08-F3). The root the user
+    // named is walked as the folder it names - a trailing separator makes
+    // Lstat resolve it - while links inside the tree are still not followed.
+    // filepath.Join drops the separator again, so the lists keep the
+    // spelling the user gave.
+    walkRoot := root
+    if !singleFile {
+        if li, lerr := os.Lstat(root); lerr == nil && !li.IsDir() && !os.IsPathSeparator(root[len(root)-1]) {
+            walkRoot = root + string(os.PathSeparator)
+        }
+    }
 
     cfg := loadCheckConfig(root)
     if cfg.bufSize < checkMinBufKB*1024 || cfg.bufSize > checkMaxBufKB*1024 {
@@ -625,7 +640,7 @@ func CheckFolder(root string) error {
 
     walkerErrCh := make(chan error, 1)
     go func() {
-        walkErr := filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
+        walkErr := filepath.Walk(walkRoot, func(p string, fi os.FileInfo, err error) error {
             if ih.IsForceExit() || ih.IsInterrupted() { return errCheckStopped }
             select {
             case <-stop:
@@ -680,7 +695,7 @@ func CheckFolder(root string) error {
     // counter, the walker added to it and a 3-file folder reported 6.
     var precTotal int64
     if cfg.precount && !singleFile {
-        filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
+        filepath.Walk(walkRoot, func(p string, fi os.FileInfo, err error) error {
             if ih.IsInterrupted() { return errCheckStopped }
             if err != nil || fi == nil || fi.IsDir() { return nil }
             sz := fi.Size()
@@ -999,11 +1014,18 @@ func (w *reportWriter) Write(path string, size int64, elapsed time.Duration, sta
     w.mu.Lock()
     defer w.mu.Unlock()
     ms := float64(elapsed.Milliseconds())
+    // Go's %q is neither CSV nor JSON quoting: it doubled every backslash in
+    // the CSV and wrote a DEL in a name as \x7f (AUD-08-F8). The columns and
+    // keys are unchanged.
     if w.kind == "csv" {
-        fmt.Fprintf(w.f, "%q,%d,%.1f,%q\n", path, size, ms, status)
+        cw := csv.NewWriter(w.f)
+        cw.Write([]string{path, strconv.FormatInt(size, 10), fmt.Sprintf("%.1f", ms), status})
+        cw.Flush()
     } else if w.kind == "json" {
         if w.n > 0 { fmt.Fprintln(w.f, ",") }
-        fmt.Fprintf(w.f, "  {\n    \"path\": %q,\n    \"size\": %d,\n    \"first_read_ms\": %.1f,\n    \"status\": %q\n  }", path, size, ms, status)
+        jp, _ := json.Marshal(path)
+        js, _ := json.Marshal(status)
+        fmt.Fprintf(w.f, "  {\n    \"path\": %s,\n    \"size\": %d,\n    \"first_read_ms\": %.1f,\n    \"status\": %s\n  }", jp, size, ms, js)
         w.n++
     }
 }

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,6 +37,9 @@ func createSpeedSource(name string, sizeMB int, showProgress bool) (string, erro
 		p := filepath.Join(dir, name)
 		if err := createRandomFile(p, sizeMB, showProgress); err != nil {
 			os.Remove(p)
+			if errors.Is(err, errRunStopped) {
+				return "", err
+			}
 			lastErr = err
 			continue
 		}

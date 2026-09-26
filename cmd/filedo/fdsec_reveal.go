@@ -97,6 +97,16 @@ var fdsecNeverLaunch = map[string]bool{
 	".cer": true, ".crt": true, ".der": true, ".xll": true, ".xbap": true,
 	".vsmacros": true, ".mcf": true, ".cnt": true, ".grp": true, ".prf": true,
 	".crx": true, ".xnk": true, ".mmc": true,
+	// The rest of Outlook's Level-1 list (AUD-09-F2): shell deep links, BGInfo
+	// and printer-restore files, data links, Access shortcuts, web archives
+	// and components, project and package files. .tmp, .pst and .cab are
+	// refused too, because Level-1 lists them and a refusal is cheap.
+	".apk": true, ".app": true, ".appcontent-ms": true, ".asp": true,
+	".aspx": true, ".asx": true, ".bas": true, ".bgi": true, ".cab": true,
+	".fxp": true, ".hpj": true, ".htc": true, ".its": true, ".mad": true,
+	".mag": true, ".mau": true, ".mht": true, ".mhtml": true, ".osd": true,
+	".printerexport": true, ".pst": true, ".tmp": true, ".udl": true,
+	".vbp": true, ".vsw": true, ".webpnp": true,
 	// Script hosts.
 	".vbs": true, ".vbe": true, ".vb": true, ".js": true, ".jse": true,
 	".wsf": true, ".wsh": true, ".ws": true, ".wsc": true,
@@ -104,6 +114,7 @@ var fdsecNeverLaunch = map[string]bool{
 	".psc1": true, ".psc2": true, ".psm1": true, ".psd1": true,
 	".mshxml": true, ".msh": true, ".msh1": true, ".msh2": true,
 	".msh1xml": true, ".msh2xml": true,
+	".cdxml": true, ".pssc": true, ".psdm1": true,
 	// Interpreters a machine may have installed.
 	".py": true, ".pyw": true, ".pyz": true, ".pyzw": true, ".pyc": true,
 	".pyo": true, ".pl": true, ".rb": true, ".rbw": true, ".tcl": true,

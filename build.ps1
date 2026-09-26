@@ -607,7 +607,25 @@ if ($Test) {
         Record-GateStep 'release-pins' ([int]($pinProblems.Count -gt 0)) ($pinProblems -join '; ')
     }
 
-    # A failed step outranks a step that could not verify. All seven steps run
+    # 8) The documentation corpus against DOC-INTERNAL-QUALITY (SP-0061): every document
+    #    declared in docs/DOCUMENT_REGISTRY.jsonl and every declared one on disk, every
+    #    relative link and anchor resolving, and the internal corpus in house style with no
+    #    remote embeds. The flag tables are held to the parser by go test (step 4).
+    Write-Host "documentation registry, links and style ..." -NoNewline
+    $docsOut = & "$root\packaging\check-internal-docs.ps1" *>&1 | Out-String
+    $docsCode = $LASTEXITCODE
+    Record-GateStep 'internal-docs' $docsCode $(if ($docsCode -eq 2) { ($docsOut.Trim() -split "`r?`n")[-1] } else { $docsOut })
+
+    # 9) The published site and the READMEs against DOC-EXTERNAL-QUALITY (SP-0062): glossary
+    #    and subject index, the sitemap against the page set, the SEO block, every locale
+    #    present and its translation not older than the English, the termbase, screenshots,
+    #    and prose hygiene. An EN edit fails here until check-external-docs.ps1 -Record.
+    Write-Host "published site and READMEs ..." -NoNewline
+    $siteOut = & "$root\packaging\check-external-docs.ps1" *>&1 | Out-String
+    $siteCode = $LASTEXITCODE
+    Record-GateStep 'external-docs' $siteCode $(if ($siteCode -eq 2) { ($siteOut.Trim() -split "`r?`n")[-1] } else { $siteOut })
+
+    # A failed step outranks a step that could not verify. All nine steps run
     # before this decision, so one run names every defect it found.
     $gateExit = if ($gateFailures.Count) { 1 } elseif ($gateUnverified.Count) { 2 } else { 0 }
     if ($gateExit -ne 0) {

@@ -457,6 +457,17 @@ Public Class ShellForm
         rail.ResumeLayout(True)
     End Sub
 
+    ' Capture.vb's seams: open a page as a click on its row would, optionally on a target, and
+    ' draw what the client area shows - the window's own frame is Windows', not the product's.
+    Friend Sub ShowPageForCapture(key As String, target As String)
+        SelectJobByKey(key)
+        If Not String.IsNullOrEmpty(target) AndAlso JobCatalogue.GetJob(key) IsNot Nothing Then jobView.SetTarget(target)
+    End Sub
+
+    Friend Sub DrawClientForCapture(bmp As Bitmap)
+        root.DrawToBitmap(bmp, New Rectangle(0, 0, bmp.Width, bmp.Height))
+    End Sub
+
     Private Sub SelectJobByKey(key As String)
         For Each it In entries
             If it.Key = key Then

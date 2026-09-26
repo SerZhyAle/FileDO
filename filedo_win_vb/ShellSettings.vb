@@ -166,7 +166,11 @@ Module ShellSettings
     ' GuiLang, the value the retired command builder wrote too, so a language chosen there carries
     ' over. One program, one language (SP-0006 section 13).
 
+    ' Capture.vb's seam: a language in force for this process only, never written to HKCU.
+    Friend LanguageOverride As String = Nothing
+
     Public Function Language() As String
+        If LanguageOverride IsNot Nothing Then Return LanguageOverride
         Dim v = TryCast(ReadValue("GuiLang"), String)
         If v IsNot Nothing AndAlso Localization.Languages.Contains(v) Then Return v
         Dim c = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant()

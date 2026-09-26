@@ -75,15 +75,18 @@ unchanged for a `cmd.exe` prompt.
   (`go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1`),
   or a Windows that cannot run amd64 programs. A missing MSBuild is exit 2 as
   well, unless `-SkipGui` said so.
-- `-Test` runs seven gate steps: stamped-executable smoke tests, which also
+- `-Test` runs nine gate steps: stamped-executable smoke tests, which also
   read each exe's build info (amd64, `-trimpath`, the pinned Go, the PE
   version, the manifest); the separate test-module compile check and placement
   registry; fdsec short tests; the fdsec command-surface tests plus its vet
   baseline; the GUI self-test (its log is deleted first, so a missing log is
   `NOT VERIFIED`, never the previous run's); `THIRD-PARTY-NOTICES.txt` against
   the Go modules each shipped executable links
-  (`packaging\check-third-party-notices.ps1`); and `release.yml`'s Go pin
-  against `go.mod`'s. Its final `build-gate <stamp>:` line is `PASS`, `FAIL`,
+  (`packaging\check-third-party-notices.ps1`); `release.yml`'s Go pin
+  against `go.mod`'s; and the documentation corpus - registry, links and
+  anchors, house style (`packaging\check-internal-docs.ps1`); and the published
+  site and READMEs - sitemap, SEO block, locales and translation freshness,
+  termbase, screenshots (`packaging\check-external-docs.ps1`). Its final `build-gate <stamp>:` line is `PASS`, `FAIL`,
   or `NOT VERIFIED`; exit codes are 0, 1, and 2 respectively. (Root
   `go test ./...` is known-broken per `AGENTS.md`, so it is intentionally not
   run.)

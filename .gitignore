@@ -130,3 +130,7 @@ shellext/out/
 .env
 *token*
 *secret*
+# ..but not the vendored catalog glyphs and menu icons: `content.secret-file` is an ICON-SET id
+# and a build input (SP-0049 AUD-18-F1). Re-include exactly these two folders' icon files.
+!assets/glyphs/*.svg
+!assets/menu-icons/*.ico

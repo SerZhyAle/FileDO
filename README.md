@@ -91,8 +91,8 @@ Flags mirror FILEDO_CHECK_* environment variables and have precedence. Use them 
 	- `--buf-kb <int>` (FILEDO_CHECK_BUF_KB)
 	- `--mode quick|balanced|deep` (FILEDO_CHECK_MODE)
 	- `--balanced-min-mb <int>` (FILEDO_CHECK_BALANCED_MIN_MB)
-	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB/MAX_MB)
-	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"`
+	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)
+	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"` (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)
 - Limits
 	- `--max-files <int>` (FILEDO_CHECK_MAX_FILES)
 	- `--max-seconds <float>` (FILEDO_CHECK_MAX_DURATION_SEC)
@@ -114,6 +114,7 @@ Flags mirror FILEDO_CHECK_* environment variables and have precedence. Use them 
 	- `--ewma-low-frac <float>` (FILEDO_CHECK_EWMA_LOW_FRAC)
 	- `--max-sleep-ms <int>` (FILEDO_CHECK_MAX_SLEEP_MS)
 	- `--sleep-step-ms <int>` (FILEDO_CHECK_SLEEP_STEP_MS)
+	- `--hdd-sleep-ms <int>` (FILEDO_CHECK_HDD_SLEEP_MS) - a fixed pause after each file, per reader
 
 Examples:
 
@@ -169,7 +170,7 @@ Download `FileDO-<version>-setup.exe` from [Releases](https://github.com/SerZhyA
 
 The installer is not code-signed, so on first run Windows may show *Windows protected your PC* and then ask for administrator permission. Compare the SHA256 (the `.sha256` file published next to the download; `certutil -hashfile FileDO-<version>-setup.exe SHA256`), then choose *More info* and *Run anyway*. Why the warning appears, what the administrator prompt is used for, and what FileDO never does: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html).
 
-The last two are features you can deselect on the installer's Customize page, and turn on or off later with **Change** in Apps & features. For an unattended rollout:
+The last two are features you can deselect on the installer's "Choose what to install" page, and turn on or off later with **Change** in Apps & features. For an unattended rollout:
 
 ```powershell
 # everything, no questions asked

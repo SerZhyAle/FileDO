@@ -3,59 +3,72 @@
   Canonical public pages only. The /ru/, /ua/, /de/ and /fr/ index files are
   redirect stubs that canonicalise to the site root, so they are deliberately
   absent - listing a non-canonical redirect is what makes a sitemap lie.
+  packaging/check-external-docs.ps1 holds this list to the public page set both ways.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://serzhyale.github.io/FileDO/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/</loc>
-    <lastmod>2026-09-21</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/check-storage.html</loc>
-    <lastmod>2026-07-19</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/files-and-copies.html</loc>
-    <lastmod>2026-07-27</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/gui-command-builder.html</loc>
-    <lastmod>2026-09-21</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/install-and-explorer.html</loc>
-    <lastmod>2026-09-22</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/install-trust.html</loc>
-    <lastmod>2026-09-22</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://serzhyale.github.io/FileDO/guides/fd-sec-containers.html</loc>
-    <lastmod>2026-09-20</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://serzhyale.github.io/FileDO/guides/glossary.html</loc>
+    <lastmod>2026-09-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://serzhyale.github.io/FileDO/guides/topics.html</loc>
+    <lastmod>2026-09-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://serzhyale.github.io/FileDO/privacy.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>

@@ -56,6 +56,14 @@ Module Program
             Return
         End If
 
+        ' `--capture-screens <folder>` renders the guide screenshots (Capture.vb) and exits: 0 when
+        ' every file was written, 1 otherwise. It builds windows but writes no setting.
+        Dim captureAt = Array.IndexOf(argv, "--capture-screens")
+        If captureAt >= 0 Then
+            Environment.Exit(If(captureAt + 1 < argv.Length, Capture.Run(argv(captureAt + 1)), 1))
+            Return
+        End If
+
         If Environment.GetCommandLineArgs().Contains("--selftest") Then
             ' SHELL-15: whatever happens inside, the gate ends with a log and a code - a crash is a
             ' FAIL, never a process that dies with nothing written.

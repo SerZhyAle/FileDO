@@ -624,3 +624,62 @@ func TestTree_RestoreNeverOverwrites(t *testing.T) {
 		t.Fatal("an existing file was overwritten")
 	}
 }
+
+// caseSensitiveDir makes dir case-sensitive (the per-directory flag WSL sets),
+// or skips when the machine refuses it.
+func caseSensitiveDir(t *testing.T, dir string) {
+	t.Helper()
+	if runtime.GOOS != "windows" {
+		t.Skip("the per-directory case-sensitive flag is a Windows construct")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("fsutil", "file", "setCaseSensitiveInfo", dir, "enable").CombinedOutput(); err != nil {
+		t.Skipf("cannot make a case-sensitive folder here: %v %s", err, out)
+	}
+}
+
+// TestTree_CaseOnlyTwinsAreRefused is AUD-21-F1: two names of one folder that
+// differ only in case pack and read back, but can never be restored into an
+// ordinary (case-insensitive) folder, so ScanTree refuses them by name.
+func TestTree_CaseOnlyTwinsAreRefused(t *testing.T) {
+	base := t.TempDir()
+	t.Run("files in the root", func(t *testing.T) {
+		src := filepath.Join(base, "flat")
+		caseSensitiveDir(t, src)
+		os.WriteFile(filepath.Join(src, "a.txt"), []byte("lower"), 0o644)
+		os.WriteFile(filepath.Join(src, "A.txt"), []byte("upper"), 0o644)
+		if des, _ := os.ReadDir(src); len(des) != 2 {
+			t.Skip("the folder did not keep both case twins")
+		}
+		_, err := ScanTree(src, ScanOptions{})
+		if err == nil || !strings.Contains(err.Error(), src) || !strings.Contains(err.Error(), "case") {
+			t.Fatalf("case-only twins were not refused by name: %v", err)
+		}
+	})
+	t.Run("a file and a folder one level down", func(t *testing.T) {
+		src := filepath.Join(base, "deep")
+		sub := filepath.Join(src, "sub")
+		os.MkdirAll(src, 0o755)
+		caseSensitiveDir(t, sub)
+		os.WriteFile(filepath.Join(sub, "Readme"), []byte("file"), 0o644)
+		os.Mkdir(filepath.Join(sub, "README"), 0o755)
+		if des, _ := os.ReadDir(sub); len(des) != 2 {
+			t.Skip("the folder did not keep both case twins")
+		}
+		_, err := ScanTree(src, ScanOptions{})
+		if err == nil || !strings.Contains(err.Error(), sub) {
+			t.Fatalf("case-only twins one level down were not refused by name: %v", err)
+		}
+	})
+	t.Run("names differing beyond case still pack", func(t *testing.T) {
+		src := filepath.Join(base, "ok")
+		caseSensitiveDir(t, src)
+		os.WriteFile(filepath.Join(src, "a.txt"), []byte("1"), 0o644)
+		os.WriteFile(filepath.Join(src, "B.txt"), []byte("2"), 0o644)
+		if _, err := ScanTree(src, ScanOptions{}); err != nil {
+			t.Fatalf("a folder without twins was refused: %v", err)
+		}
+	})
+}

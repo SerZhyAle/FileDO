@@ -129,8 +129,13 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 		return
 	}
 	if sig == syscall.SIGTERM || (func() bool { sb := sigBreakSignal(); return sb != nil && sig == sb })() {
-		// SIGTERM - graceful shutdown
-		ih.Interrupt()
+		// SIGTERM / Ctrl+Break - graceful shutdown. Cancel here, but run the
+		// cleanups off the signal goroutine like the first Ctrl+C does, so a
+		// cleanup blocked on a hung device cannot keep a later Ctrl+C from
+		// reaching the force exit (AUD-14-F2).
+		if ih.beginStop() {
+			go ih.runCleanups()
+		}
 	}
 	// Other signals ignored
 }
@@ -210,15 +215,24 @@ func (ih *InterruptHandler) cleanupCount() int {
 // Interrupt is the graceful stop: the stop file, SIGTERM and Ctrl+Break all end
 // here. The context is cancelled before any cleanup runs.
 func (ih *InterruptHandler) Interrupt() {
+	if ih.beginStop() {
+		ih.runCleanups()
+	}
+}
+
+// beginStop marks the run interrupted and cancels the context, once. It
+// reports whether this call was the one that stopped the run, and so owes the
+// cleanups.
+func (ih *InterruptHandler) beginStop() bool {
 	if !ih.interrupted.CompareAndSwap(false, true) {
-		return // Already interrupted
+		return false // Already interrupted
 	}
 	ih.mu.Lock()
 	ih.firstCtrlC = time.Now()
 	ih.mu.Unlock()
 
 	ih.cancel()
-	ih.runCleanups()
+	return true
 }
 
 func (ih *InterruptHandler) Context() context.Context {

@@ -12,6 +12,7 @@ import (
 	"golang.org/x/term"
 
 	"filedo/fdsec"
+	"filedo/fsx"
 )
 
 // Folder containers (SP-0009): `secure` on a folder packs the whole tree into
@@ -61,7 +62,18 @@ func fdsecSecureTree(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histo
 	if err != nil {
 		return err
 	}
-	if dabs, derr := filepath.Abs(dstPath); derr == nil && fdsecPathInside(strings.ToLower(dabs), strings.ToLower(abs)) {
+	inside := false
+	if dabs, derr := filepath.Abs(dstPath); derr == nil {
+		inside = fdsecPathInside(strings.ToLower(dabs), strings.ToLower(abs))
+	}
+	// A junction, subst drive or other spelling of the folder passes the
+	// lexical test, so the resolved location decides as well (AUD-09-F6).
+	if !inside {
+		if w, werr := fsx.Within(dstPath, abs); werr == nil {
+			inside = w
+		}
+	}
+	if inside {
 		return usagef("the container would be written inside the folder it packs (%s); name a destination outside it with to <path>", dstPath)
 	}
 	// Force exit only; a graceful stop ends the pack at a chunk boundary and
@@ -317,7 +329,13 @@ func fdsecUnsecureTree(path string, c *fdsec.Container, src *os.File, containerS
 		return errFdsecStopped
 	}
 	if err != nil {
-		return err
+		// A write error names <tmpDir>\<sealed entry path>, so it is screened
+		// like the single-file restore's (AUD-09-F1). The container's own
+		// classes never echo an entry path and keep their event text.
+		if errors.Is(err, fdsec.ErrCredentialOrTamper) || errors.Is(err, fdsec.ErrDamaged) || errors.Is(err, fdsec.ErrUnsupported) {
+			return err
+		}
+		return fdsecScreenEventError(err)
 	}
 	if runStopRequested() {
 		fmt.Printf("%sStopped: nothing was restored and the container is untouched.\n", fdsecEndProgress())
@@ -336,7 +354,15 @@ func fdsecUnsecureTree(path string, c *fdsec.Container, src *os.File, containerS
 	if _, serr := os.Lstat(finalPath); serr == nil {
 		return fdsecScreenEventError(fmt.Errorf("%s appeared while the folder was being restored; nothing was moved into place", finalPath))
 	}
-	if err := os.Rename(tmpDir, finalPath); err != nil {
+	if fdsecBeforeTreeRename != nil {
+		fdsecBeforeTreeRename(finalPath)
+	}
+	// os.Rename would replace a file that appeared since the check above;
+	// the move into place never replaces anything (AUD-09-F5).
+	if err := renameNoReplace(tmpDir, finalPath); err != nil {
+		if errors.Is(err, errDestinationExists) {
+			return fdsecScreenEventError(fmt.Errorf("%s appeared while the folder was being restored; nothing was moved into place", finalPath))
+		}
 		return fdsecScreenEventError(err)
 	}
 	done = true
@@ -359,6 +385,11 @@ func fdsecUnsecureTree(path string, c *fdsec.Container, src *os.File, containerS
 	}
 	return nil
 }
+
+// fdsecBeforeTreeRename is a test seam: called with the destination after the
+// last existence check and before the restored folder is moved into place.
+// nil in every shipped path, the same kind of seam as fdsecBeforeDisposition.
+var fdsecBeforeTreeRename func(finalPath string)
 
 // fdsecResolveTreeCollision is fdsecResolveCollision for a folder: the whole
 // restore is decided before anything is written, and there is no overwrite

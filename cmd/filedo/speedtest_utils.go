@@ -120,6 +120,10 @@ func parseSizeMB(sizeStr string, minMB, maxMB int) (int, error) {
 	return n, nil
 }
 
+// speedStopRequested is the stop the speed test's loops ask (AUD-02-F5); a
+// variable so a test can trip it.
+var speedStopRequested = runStopRequested
+
 // createRandomFile creates a test file with the specified size in MB
 func createRandomFile(fileName string, sizeMB int, showProgress bool) error {
 	file, err := os.Create(fileName)
@@ -141,6 +145,9 @@ func createRandomFile(fileName string, sizeMB int, showProgress bool) error {
 	blockNumber := 1
 
 	for written < sizeBytes {
+		if speedStopRequested() {
+			return errRunStopped
+		}
 		remaining := sizeBytes - written
 		blockSize := int64(blockSizeBytes)
 		if remaining < blockSize {

@@ -4,10 +4,50 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Use the FileDO window (GUI)" />
+    <meta property="og:description" content="A guide to the FileDO window: a rail of jobs with one page each, the Command page for any operation, and the Protect pages for secret files." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Use the FileDO window (GUI)",
+        "headline": "Use the FileDO window (GUI)",
+        "description": "A guide to the FileDO window: a rail of jobs with one page each, the Command page for any operation, and the Protect pages for secret files.",
+        "url": "https://serzhyale.github.io/FileDO/guides/gui-command-builder.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
     <title>Use the FileDO window (GUI)</title>
     <meta
       name="description"
-      content="A practical guide to the FileDO window on Windows: a rail of jobs with one page per job, the Command page for any operation, and the Protect pages for secret files."
+      content="A guide to the FileDO window: a rail of jobs with one page each, the Command page for any operation, and the Protect pages for secret files."
     />
     <script>
       (function () {
@@ -66,7 +106,7 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container">
+    <main class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · FileDO GUI</span
@@ -262,6 +302,44 @@
         <div class="copybox">
           filedo_win<button class="copy" data-copy="filedo_win"><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
+        <figure class="shot">
+          <span data-l="ru"
+            ><img
+              src="../assets/guides/gui-target-info-ru.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="Окно FileDO: слева список задач, выбрана «Информация о цели»; справа шаги 1-4 с целью C:\ и командой filedo.exe C:\ info"
+          /></span
+          ><span data-l="en"
+            ><img
+              src="../assets/guides/gui-target-info-en.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="The FileDO window: the rail of jobs on the left with Target info selected; steps 1-4 on the right with the target C:\ and the command filedo.exe C:\ info"
+          /></span
+          ><span data-l="ua"
+            ><img
+              src="../assets/guides/gui-target-info-ua.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="Вікно FileDO: ліворуч список завдань, вибрано «Інформація про ціль»; праворуч кроки 1-4 з ціллю C:\ і командою filedo.exe C:\ info"
+          /></span>
+          <figcaption>
+            <span data-l="ru"
+              >«Информация о цели»: шаг 4 показывает цель и точную команду до
+              запуска.</span
+            ><span data-l="en"
+              >Target info: step 4 shows the target and the exact command before
+              anything runs.</span
+            ><span data-l="ua"
+              >«Інформація про ціль»: крок 4 показує ціль і точну команду до
+              запуску.</span
+            >
+          </figcaption>
+        </figure>
       </section>
       <section class="section">
         <h2>
@@ -277,7 +355,7 @@
             скорости, сведений о цели, проверки повреждённых файлов, прямой
             проверки ёмкости, восстановления накопителя, дубликатов, сравнения
             двух папок, заполнения свободного места, копирования файлов и
-            стирания папки; рядом - страницы защиты, «История», «Настройки» и
+            затирания папки; рядом - страницы защиты, «История», «Настройки» и
             «О программе». Все параметры, которые CLI принимает для задачи,
             есть на её странице.</span
           ><span data-l="en"
@@ -301,6 +379,44 @@
             сторінці.</span
           >
         </p>
+        <figure class="shot">
+          <span data-l="ru"
+            ><img
+              src="../assets/guides/gui-command-ru.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="Страница «Команда»: операция info, цель, флаги short и nohist и редактируемая строка filedo.exe C: info над кнопкой «Выполнить команду»"
+          /></span
+          ><span data-l="en"
+            ><img
+              src="../assets/guides/gui-command-en.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="The Command page: the info operation, the target, the short and nohist flags, and the editable line filedo.exe C: info above the Run command button"
+          /></span
+          ><span data-l="ua"
+            ><img
+              src="../assets/guides/gui-command-ua.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="Сторінка «Команда»: операція info, ціль, прапорці short і nohist та редагований рядок filedo.exe C: info над кнопкою запуску"
+          /></span>
+          <figcaption>
+            <span data-l="ru"
+              >Страница «Команда»: операция, цель, флаги и сама командная строка,
+              которую можно править.</span
+            ><span data-l="en"
+              >The Command page: operation, target, flags, and the command line
+              itself, editable.</span
+            ><span data-l="ua"
+              >Сторінка «Команда»: операція, ціль, прапорці й сам командний
+              рядок, який можна редагувати.</span
+            >
+          </figcaption>
+        </figure>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
@@ -537,15 +653,15 @@
       window.guideMeta = {
         ru: {
           title: "Окно FileDO (GUI): как им пользоваться",
-          description: "Практическое руководство по FileDO GUI.",
+          description: "Руководство по окну FileDO: список задач со страницей на каждую, страница «Команда» для любой операции и страницы защиты секретных файлов.",
         },
         en: {
           title: "Use the FileDO window (GUI)",
-          description: "A practical FileDO GUI guide.",
+          description: "A guide to the FileDO window: a rail of jobs with one page each, the Command page for any operation, and the Protect pages for secret files.",
         },
         ua: {
           title: "Вікно FileDO (GUI): як ним користуватися",
-          description: "Практичний посібник із FileDO GUI.",
+          description: "Посібник з вікна FileDO: список завдань зі сторінкою на кожне, сторінка «Команда» для будь-якої операції та сторінки захисту секретних файлів.",
         },
       };
     </script>

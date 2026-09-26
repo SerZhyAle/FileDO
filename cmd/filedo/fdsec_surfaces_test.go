@@ -454,6 +454,8 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 		{filepath.Join("docs", "guides", "install-and-explorer.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "install-trust.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "fd-sec-containers.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "glossary.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "topics.html"), `href="../#get"`},
 	} {
 		body := readSurface(t, root, header.rel)
 		start := strings.Index(body, `<header class="site-header">`)
@@ -495,11 +497,44 @@ func TestSurfaces_TheSiteOnlyTrustsKnownStoredPreferences(t *testing.T) {
 		filepath.Join("docs", "guides", "install-and-explorer.html"),
 		filepath.Join("docs", "guides", "install-trust.html"),
 		filepath.Join("docs", "guides", "fd-sec-containers.html"),
+		filepath.Join("docs", "guides", "glossary.html"),
+		filepath.Join("docs", "guides", "topics.html"),
 	} {
 		body := readSurface(t, root, rel)
 		if !strings.Contains(body, `t !== "dark" && t !== "light"`) ||
 			!strings.Contains(body, `l !== "ru" && l !== "en" && l !== "ua"`) {
 			t.Errorf("%s does not whitelist stored theme and language values", rel)
+		}
+	}
+}
+
+// DOC-EXTERNAL-QUALITY rule 1 (SP-0062 T1): the guide corpus has an entry
+// portal, a glossary and a subject index, in every authored locale, and all of
+// them are published. packaging/check-external-docs.ps1 holds the finer
+// structure (every guide indexed, one glossary entry per termbase term); this
+// pins that the pages exist and are reachable, so the portal cannot lose them.
+func TestSurfaces_TheGuideHubLeadsToTheGlossaryAndSubjectIndex(t *testing.T) {
+	root := repoRoot(t)
+	hub := readSurface(t, root, filepath.Join("docs", "guides", "index.html"))
+	sitemap := readSurface(t, root, filepath.Join("docs", "sitemap.xml"))
+	for _, page := range []string{"glossary.html", "topics.html"} {
+		if !strings.Contains(hub, `href="`+page+`"`) {
+			t.Errorf("the guide hub does not link %s", page)
+		}
+		if !strings.Contains(sitemap, "guides/"+page) {
+			t.Errorf("%s is published but absent from docs/sitemap.xml", page)
+		}
+		body := readSurface(t, root, filepath.Join("docs", "guides", page))
+		for _, lang := range []string{`data-l="ru"`, `data-l="en"`, `data-l="ua"`} {
+			if !strings.Contains(body, lang) {
+				t.Errorf("%s has no %s text at all", page, lang)
+			}
+		}
+	}
+	glossary := readSurface(t, root, filepath.Join("docs", "guides", "glossary.html"))
+	for _, id := range []string{"container", "secure", "unsecure", "reveal", "wipe", "fill", "capacity-test"} {
+		if !strings.Contains(glossary, `id="term-`+id+`"`) {
+			t.Errorf("the glossary has no entry for %s", id)
 		}
 	}
 }

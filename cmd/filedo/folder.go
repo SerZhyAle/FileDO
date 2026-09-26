@@ -4,13 +4,63 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
+
+// infoWalkStarted is a test seam: it is called once per full `info` walk.
+var infoWalkStarted = func(root string) {}
+
+// infoWalkStopped reports whether the run was asked to stop: the stop file,
+// a first Ctrl+C or the handler's cancelled context.
+func infoWalkStopped() bool {
+	return runStopRequested() || capacityContext().Err() != nil
+}
+
+type infoTreeTotals struct {
+	size           uint64
+	files, folders int64
+	accessErrors   bool
+}
+
+// walkInfoTree is the full `info` walk of folders and devices. It counts the
+// entries below root (and their sizes when withSizes is set), notes entries
+// it could not read, and ends with errRunStopped as soon as the run is asked
+// to stop, so a partial count is never printed as the tree's size (AUD-10-F1).
+func walkInfoTree(root string, withSizes bool) (infoTreeTotals, error) {
+	infoWalkStarted(root)
+	var t infoTreeTotals
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if infoWalkStopped() {
+			return errRunStopped
+		}
+		if err != nil {
+			t.accessErrors = true
+			return nil
+		}
+		if d.IsDir() {
+			if p != root {
+				t.folders++
+			}
+			return nil
+		}
+		t.files++
+		if withSizes {
+			info, err := d.Info()
+			if err != nil {
+				t.accessErrors = true
+				return nil
+			}
+			t.size += uint64(info.Size())
+		}
+		return nil
+	})
+	return t, err
+}
 
 func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 	stat, err := os.Stat(path)
@@ -26,34 +76,12 @@ func getFolderInfo(path string, fullScan bool) (FolderInfo, error) {
 	var accessErrors bool
 
 	if fullScan {
-		err = filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
-			if err != nil {
-				if os.IsPermission(err) || strings.Contains(err.Error(), "being used by another process") || strings.Contains(err.Error(), "cannot access the file") {
-					accessErrors = true
-					return nil
-				}
-				accessErrors = true
-				return nil
-			}
-			if d.IsDir() {
-				if p != path {
-					folderCount++
-				}
-			} else {
-				fileCount++
-				info, err := d.Info()
-				if err != nil {
-					if os.IsPermission(err) || strings.Contains(err.Error(), "being used by another process") || strings.Contains(err.Error(), "cannot access the file") {
-						accessErrors = true
-						return nil
-					}
-					accessErrors = true
-					return nil
-				}
-				size += uint64(info.Size())
-			}
-			return nil
-		})
+		var totals infoTreeTotals
+		totals, err = walkInfoTree(path, true)
+		if errors.Is(err, errRunStopped) {
+			return FolderInfo{}, err
+		}
+		size, fileCount, folderCount, accessErrors = totals.size, totals.files, totals.folders, totals.accessErrors
 	} else {
 		entries, err := os.ReadDir(path)
 		if err != nil {

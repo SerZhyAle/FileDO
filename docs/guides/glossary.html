@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/glossary.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/glossary.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/glossary.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="FileDO glossary - the words the guides use" />
+    <meta property="og:description" content="FileDO glossary: capacity test, fake drive, fill, wipe, .fd-sec container, secure, unsecure and reveal - one meaning, one word in each language." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "DefinedTermSet",
+        "name": "FileDO glossary - the words the guides use",
+        "description": "FileDO glossary: capacity test, fake drive, fill, wipe, .fd-sec container, secure, unsecure and reveal - one meaning, one word in each language.",
+        "url": "https://serzhyale.github.io/FileDO/guides/glossary.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO glossary - the words the guides use</title>
+    <meta
+      name="description"
+      content="FileDO glossary: capacity test, fake drive, fill, wipe, .fd-sec container, secure, unsecure and reveal - one meaning, one word in each language."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">FileDO · глоссарий</span
+          ><span data-l="en">FileDO · glossary</span
+          ><span data-l="ua">FileDO · глосарій</span>
+        </p>
+        <h1>
+          <span data-l="ru">Слова, которыми говорят руководства.</span
+          ><span data-l="en">The words the guides use.</span
+          ><span data-l="ua">Слова, якими говорять посібники.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >Одно понятие - одно слово на каждом языке, на всех страницах и в
+            README. Если слово здесь есть, оно значит именно это.</span
+          ><span data-l="en"
+            >One concept, one word in each language, on every page and in the
+            README. If a word is listed here, this is what it means.</span
+          ><span data-l="ua"
+            >Одне поняття - одне слово кожною мовою, на всіх сторінках і в
+            README. Якщо слово тут є, воно означає саме це.</span
+          >
+        </p>
+      </section>
+      <section class="section">
+        <dl class="term-list">
+          <dt id="term-capacity-test">
+            <span data-l="ru">Тест ёмкости</span
+            ><span data-l="en">Capacity test</span
+            ><span data-l="ua">Тест ємності</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Записывает тестовые данные и читает их обратно, доказывая,
+              сколько носитель хранит на самом деле. Так находят поддельный
+              накопитель. <code>filedo E: test</code> -
+              <a href="check-storage.html">проверка носителя</a>.</span
+            ><span data-l="en"
+              >Writes test data and reads it back, proving how much a drive
+              really stores. It is how a fake drive is caught.
+              <code>filedo E: test</code> -
+              <a href="check-storage.html">checking storage</a>.</span
+            ><span data-l="ua"
+              >Записує тестові дані й читає їх назад, доводячи, скільки носій
+              зберігає насправді. Так знаходять підроблений накопичувач.
+              <code>filedo E: test</code> -
+              <a href="check-storage.html">перевірка носія</a>.</span
+            >
+          </dd>
+          <dt id="term-fake-drive">
+            <span data-l="ru">Поддельный накопитель</span
+            ><span data-l="en">Fake drive</span
+            ><span data-l="ua">Підроблений накопичувач</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Флешка или карта, которая сообщает больше места, чем может
+              хранить: данные сверх настоящего объёма теряются молча. Её
+              показывает только тест ёмкости.</span
+            ><span data-l="en"
+              >A USB drive or card that reports more space than it can hold:
+              data written past the real size is lost without a word. Only a
+              capacity test shows it.</span
+            ><span data-l="ua"
+              >Флешка чи картка, що повідомляє більше місця, ніж може
+              зберігати: дані понад справжній обсяг губляться мовчки. Її
+              показує лише тест ємності.</span
+            >
+          </dd>
+          <dt id="term-fill">
+            <span data-l="ru">Заполнение</span
+            ><span data-l="en">Fill</span
+            ><span data-l="ua">Заповнення</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Пишет тестовые файлы, пока не закончится свободное место. С
+              <code>del</code> они потом удаляются - и старое свободное место
+              при этом перезаписано. <code>filedo D: fill 1000 del</code></span
+            ><span data-l="en"
+              >Writes test files until the free space is used up. With
+              <code>del</code> they are removed afterwards, and the old free
+              space has been overwritten on the way.
+              <code>filedo D: fill 1000 del</code></span
+            ><span data-l="ua"
+              >Пише тестові файли, доки не скінчиться вільне місце. З
+              <code>del</code> їх потім видаляють - і старе вільне місце при
+              цьому перезаписане. <code>filedo D: fill 1000 del</code></span
+            >
+          </dd>
+          <dt id="term-wipe">
+            <span data-l="ru">Затирание</span
+            ><span data-l="en">Wipe</span
+            ><span data-l="ua">Затирання</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Перезаписать на месте, затем удалить - не обычное удаление.
+              Всегда просит напечатать <code>WIPE</code>. На SSD и файловых
+              системах с копированием при записи оно снижает шансы
+              восстановления и ничего не обещает.</span
+            ><span data-l="en"
+              >Overwrite in place, then remove - not an ordinary delete. It
+              always asks you to type <code>WIPE</code>. On SSDs and
+              copy-on-write file systems it lowers the odds of recovery and
+              promises nothing.</span
+            ><span data-l="ua"
+              >Перезаписати на місці, потім видалити - не звичайне видалення.
+              Завжди просить надрукувати <code>WIPE</code>. На SSD і файлових
+              системах із копіюванням під час запису воно знижує шанси
+              відновлення й нічого не обіцяє.</span
+            >
+          </dd>
+          <dt id="term-container">
+            <span data-l="ru">Контейнер <code>.fd-sec</code></span
+            ><span data-l="en"><code>.fd-sec</code> container</span
+            ><span data-l="ua">Контейнер <code>.fd-sec</code></span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Один файл или папка под одним паролем в одном файле
+              <code>.fd-sec</code>. Настоящее имя, размер и отметки времени
+              запечатаны внутри.
+              <a href="fd-sec-containers.html">Секретные файлы</a>.</span
+            ><span data-l="en"
+              >One file or folder under one password, in one
+              <code>.fd-sec</code> file. The true name, the size and the
+              timestamps are sealed inside.
+              <a href="fd-sec-containers.html">Secret files</a>.</span
+            ><span data-l="ua"
+              >Один файл чи тека під одним паролем в одному файлі
+              <code>.fd-sec</code>. Справжнє ім'я, розмір і позначки часу
+              запечатані всередині.
+              <a href="fd-sec-containers.html">Секретні файли</a>.</span
+            >
+          </dd>
+          <dt id="term-secure">
+            <span data-l="ru">Сделать секретным (<code>secure</code>)</span
+            ><span data-l="en">Secure (<code>secure</code>)</span
+            ><span data-l="ua">Зробити секретним (<code>secure</code>)</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Упаковать файл или папку в контейнер рядом. Оригинал остаётся,
+              пока вы не попросите его убрать (<code>del</code> или
+              <code>wipe</code>).</span
+            ><span data-l="en"
+              >Pack a file or folder into a container beside it. The original
+              stays until you ask for it to go (<code>del</code> or
+              <code>wipe</code>).</span
+            ><span data-l="ua"
+              >Запакувати файл чи теку в контейнер поруч. Оригінал лишається,
+              доки ви не попросите його прибрати (<code>del</code> або
+              <code>wipe</code>).</span
+            >
+          </dd>
+          <dt id="term-unsecure">
+            <span data-l="ru">Вернуть оригинал (<code>unsecure</code>)</span
+            ><span data-l="en">Unsecure (<code>unsecure</code>)</span
+            ><span data-l="ua">Повернути оригінал (<code>unsecure</code>)</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Вернуть оригинал из контейнера навсегда - под запечатанным
+              именем и с его отметками времени. Существующий файл никогда не
+              перезаписывается молча.</span
+            ><span data-l="en"
+              >Bring the original back out of a container for good - under its
+              sealed name and with its own timestamps. An existing file is
+              never overwritten silently.</span
+            ><span data-l="ua"
+              >Повернути оригінал із контейнера назавжди - під запечатаним
+              іменем і з його позначками часу. Наявний файл ніколи не
+              перезаписується мовчки.</span
+            >
+          </dd>
+          <dt id="term-reveal">
+            <span data-l="ru">Открыть, не распаковывая (<code>reveal</code>)</span
+            ><span data-l="en">Reveal (<code>reveal</code>)</span
+            ><span data-l="ua">Відкрити, не розпаковуючи (<code>reveal</code>)</span>
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Открыть содержимое в его программе из временной копии, которая
+              потом убирается: после просмотра ничего не остаётся.</span
+            ><span data-l="en"
+              >Open the content in its own program from a temporary copy that
+              is taken away again: nothing is kept after the look.</span
+            ><span data-l="ua"
+              >Відкрити вміст у його програмі з тимчасової копії, яку потім
+              прибирають: після перегляду нічого не лишається.</span
+            >
+          </dd>
+        </dl>
+      </section>
+      <section class="section">
+        <p class="actions">
+          <a class="btn btn-ghost btn-sm" href="topics.html"
+            ><span data-l="ru">Предметный указатель</span
+            ><span data-l="en">Subject index</span
+            ><span data-l="ua">Предметний покажчик</span></a
+          ><a class="btn btn-ghost btn-sm" href="./"
+            ><span data-l="ru">Все руководства</span
+            ><span data-l="en">All guides</span
+            ><span data-l="ua">Усі посібники</span></a
+          >
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="../">FileDO</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Глоссарий FileDO - слова, которыми говорят руководства",
+          description:
+            "Глоссарий FileDO: тест ёмкости, поддельный накопитель, заполнение, затирание, контейнер .fd-sec, secure, unsecure и reveal.",
+        },
+        en: {
+          title: "FileDO glossary - the words the guides use",
+          description:
+            "FileDO glossary: capacity test, fake drive, fill, wipe, .fd-sec container, secure, unsecure and reveal - one meaning, one word in each language.",
+        },
+        ua: {
+          title: "Глосарій FileDO - слова, якими говорять посібники",
+          description:
+            "Глосарій FileDO: тест ємності, підроблений накопичувач, заповнення, затирання, контейнер .fd-sec, secure, unsecure і reveal.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

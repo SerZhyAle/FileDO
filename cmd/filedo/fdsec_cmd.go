@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/blake2b"
@@ -148,6 +149,17 @@ func fdsecTypeWord(s string) bool {
 // so the generic path probe can never be what dispatches it.
 func fdsecTargetKind(target string) string {
 	if len(target) > 2 && (target[0:2] == `\\` || target[0:2] == "//") {
+		// A file, or a folder below the root, on a share or spelled \\?\ is
+		// what it is; the network refusal is for a share or volume root, a
+		// device path and a path that cannot be reached (AUD-03-F2).
+		if fi, err := os.Stat(target); err == nil {
+			switch {
+			case fi.Mode().IsRegular():
+				return "file"
+			case fi.IsDir() && !fdsecRootTarget(target):
+				return "folder"
+			}
+		}
 		return "network"
 	}
 	// An existing regular file wins over the one-letter drive heuristic: a
@@ -162,6 +174,17 @@ func fdsecTargetKind(target string) string {
 		return "folder"
 	}
 	return "file"
+}
+
+// fdsecRootTarget reports whether a \\-spelled folder is a share or volume
+// root, by spelling and then by identity; an identity that cannot be read
+// counts as a root, so the doubt keeps the refusal.
+func fdsecRootTarget(p string) bool {
+	if wipeRootBySpelling(p) != "" {
+		return true
+	}
+	id, err := pathIdentityOf(p)
+	return err != nil || id.IsVolumeRoot()
 }
 
 func isASCIILetter(s string) bool {
@@ -427,14 +450,7 @@ func resolveFdsecCredential(o *fdsecOpts, confirm bool) (fdsec.Credential, error
 	case "pf":
 		return fdsecCredentialFromFile(o.credVal, false)
 	case "pe":
-		v, ok := os.LookupEnv(o.credVal)
-		// The variable leaves this process's environment the moment it is
-		// read, before anything can start a child: a reveal or `unsecure
-		// start` hands the copy to Word or a player, and every program those
-		// start would otherwise inherit the password (FDSEC-07).
-		if ok {
-			_ = os.Unsetenv(o.credVal)
-		}
+		v, ok := fdsecLookupCredentialEnv(o.credVal)
 		// A named variable that is unset or empty is a mistake, never a
 		// choice: the GUI's "Open in Command" once lost the password this way
 		// and `secure wipe -y` then wrote a container with no secrecy and
@@ -477,6 +493,35 @@ func resolveFdsecCredential(o *fdsecOpts, confirm bool) (fdsec.Credential, error
 		return nil, fmt.Errorf("the two passwords differ; nothing was written")
 	}
 	return fdsec.NewCredential(first), nil
+}
+
+// fdsecConsumedEnv keeps the value of every variable a pe: credential has
+// already taken out of the environment, keyed by its upper-cased name (Windows
+// names are case-insensitive), so a later line of the same batch that names it
+// again resolves to the same password (AUD-03-F5).
+var (
+	fdsecConsumedEnvMu sync.Mutex
+	fdsecConsumedEnv   = map[string]string{}
+)
+
+// fdsecLookupCredentialEnv reads a pe: variable. The variable leaves this
+// process's environment the moment it is read, before anything can start a
+// child: a reveal or `unsecure start` hands the copy to Word or a player, and
+// every program those start would otherwise inherit the password (FDSEC-07).
+// The value stays in this process only, for the next line of a batch.
+func fdsecLookupCredentialEnv(name string) (string, bool) {
+	fdsecConsumedEnvMu.Lock()
+	defer fdsecConsumedEnvMu.Unlock()
+	key := strings.ToUpper(name)
+	if v, ok := fdsecConsumedEnv[key]; ok {
+		return v, true
+	}
+	v, ok := os.LookupEnv(name)
+	if ok {
+		_ = os.Unsetenv(name)
+		fdsecConsumedEnv[key] = v
+	}
+	return v, ok
 }
 
 func fdsecCredentialFromFile(path string, keyfile bool) (fdsec.Credential, error) {
@@ -538,7 +583,7 @@ func fdsecSecure(path string, args []string, hl *HistoryLogger) error {
 	masked := strings.ContainsAny(filepath.Base(path), "*?")
 	targets := []string{path}
 	if masked {
-		matches, gerr := filepath.Glob(path)
+		matches, gerr := fdsecExpandMask(path)
 		if gerr != nil {
 			return fmt.Errorf("expand mask %s: %w", path, gerr)
 		}
@@ -982,7 +1027,9 @@ func fdsecRandomName() string {
 // of malware staging rather than of opening a file. The reveal is deliberately
 // one file at a time.
 func fdsecRefuseMask(path, verb string) error {
-	if !strings.ContainsAny(path, "*?") {
+	// The volume name is not part of a mask: the ? of a \\?\ prefix is the
+	// long-path spelling, not a wildcard (AUD-03-F2).
+	if !strings.ContainsAny(path[len(filepath.VolumeName(path)):], "*?") {
 		return nil
 	}
 	if verb == "reveal" {
@@ -1408,7 +1455,12 @@ func fdsecVerify(path string, args []string, hl *HistoryLogger) error {
 		return err
 	}
 	if c.IsTree() {
-		tm, entries, err := c.VerifyTree()
+		// A verify observes a stop at every chunk boundary like pack and
+		// unpack, and a stopped one claims nothing (AUD-03-F4).
+		tm, entries, err := c.VerifyTree(fdsecStreamStop())
+		if fdsecStopped(err) || (err == nil && runStopRequested()) {
+			return errFdsecStopped
+		}
 		if err != nil {
 			return err
 		}
@@ -1425,7 +1477,10 @@ func fdsecVerify(path string, args []string, hl *HistoryLogger) error {
 		hl.SetResult("entries", tm.Entries)
 		return nil
 	}
-	meta, err := c.Unpack(io.Discard)
+	meta, err := c.Unpack(io.Discard, fdsecStreamStop())
+	if fdsecStopped(err) || (err == nil && runStopRequested()) {
+		return errFdsecStopped
+	}
 	if err != nil {
 		return err
 	}
@@ -1493,11 +1548,39 @@ func fdsecRenameError(err error) error {
 // removeFdsecPartials removes the temporary files PackFile may have left at
 // an interrupted destination (registered as a Ctrl+C cleanup).
 func removeFdsecPartials(dstPath string) {
-	dir, base := filepath.Split(dstPath)
-	matches, _ := filepath.Glob(filepath.Join(dir, base+".fdsec-partial-*"))
+	matches, _ := fdsecExpandMask(dstPath + ".fdsec-partial-*")
 	for _, m := range matches {
 		os.Remove(m)
 	}
+}
+
+// fdsecExpandMask lists the entries of the mask's folder whose names match its
+// last component. The folder part is literal, and in the name only * and ? are
+// wildcards: filepath.Glob reads [..] in every component as a character class,
+// so "a[1]\*.txt" once packed - and with del removed - the files of a1, a
+// folder nobody named (AUD-03-F3). A folder that does not exist matches
+// nothing, as it did under Glob.
+func fdsecExpandMask(mask string) ([]string, error) {
+	dir, pattern := filepath.Split(mask)
+	listDir := dir
+	if listDir == "" {
+		listDir = "."
+	}
+	entries, err := os.ReadDir(listDir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	pattern = strings.ReplaceAll(pattern, "[", "[[]")
+	var out []string
+	for _, e := range entries {
+		if ok, _ := filepath.Match(pattern, e.Name()); ok {
+			out = append(out, filepath.Join(dir, e.Name()))
+		}
+	}
+	return out, nil
 }
 
 func readConsoleLine() (string, error) {
@@ -1522,19 +1605,29 @@ func newFdsecTracker(op string, total int64) fdsec.StreamOption {
 	if total < fdsecProgressThreshold {
 		return fdsec.WithProgress(nil)
 	}
+	fdsecProgressShown = true
+	return fdsec.WithProgress(fdsecProgressFunc(op, total))
+}
+
+// fdsecProgressFunc is the callback newFdsecTracker hands to the stream. The
+// item count is derived from the bytes done, never from the number of calls: a
+// folder container calls back once per chunk of every entry, so a tree of many
+// small files makes far more calls than it has chunks (AUD-29-F4).
+func fdsecProgressFunc(op string, total int64) func(done, total int64) {
 	capacity := int64(fdsec.DefaultChunkSize) - 16
 	chunks := (total + capacity - 1) / capacity
 	if chunks < 1 {
 		chunks = 1
 	}
 	pt := NewProgressTrackerWithInterval(chunks, total, 500*time.Millisecond)
-	i := int64(0)
-	fdsecProgressShown = true
-	return fdsec.WithProgress(func(done, _ int64) {
-		i++
+	return func(done, _ int64) {
+		i := (done + capacity - 1) / capacity
+		if i > chunks {
+			i = chunks
+		}
 		pt.Update(i, done)
 		pt.PrintProgress(op)
-	})
+	}
 }
 
 // fdsecEndProgress closes the progress line if there was one, so a small file

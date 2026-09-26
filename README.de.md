@@ -67,7 +67,7 @@ Auch im [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) erhäl
 
 Das Installationsprogramm ist nicht code-signiert; deshalb zeigt Windows beim ersten Start möglicherweise *Der Computer wurde durch Windows geschützt* und fragt danach nach Administratorrechten. Die SHA256 vergleichen (die `.sha256`-Datei liegt neben dem Download; `certutil -hashfile FileDO-<Version>-setup.exe SHA256`) und dann *Weitere Informationen* und *Trotzdem ausführen* wählen. Warum die Warnung erscheint, wofür die Administratorrechte verwendet werden und was FileDO niemals tut: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html) (Seite auf EN/RU/UA).
 
-Die beiden letzten Punkte sind Features, die sich auf der Seite „Customize" abwählen und später über **Ändern** in „Apps & Features" ein- oder ausschalten lassen. Unbeaufsichtigt:
+Die beiden letzten Punkte sind Features, die sich auf der Seite „Choose what to install" abwählen und später über **Ändern** in „Apps & Features" ein- oder ausschalten lassen. Unbeaufsichtigt:
 
 ```powershell
 FileDO-<Version>-setup.exe /quiet

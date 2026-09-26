@@ -783,6 +783,46 @@ func TestCopyCaseCollisionReported(t *testing.T) {
 	}
 }
 
+// AUD-07-F2: Win32 drops trailing dots and spaces from a name, so `f.` written
+// through `\\?\` (or listed on an SMB share) is opened and statted as `f`. The
+// walk used to judge it "already at the target" and exit 0 without ever
+// reading it; the collision key folds what Win32 folds.
+func TestCopyTrailingDotNameCollisionReported(t *testing.T) {
+	src := filepath.Join(t.TempDir(), "src")
+	if err := os.MkdirAll(src, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "f"), []byte("plain"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(`\\?\`+filepath.Join(src, "f."), []byte("the trailing-dot file bytes"), 0o644); err != nil {
+		t.Skipf("cannot create a trailing-dot name here: %v", err)
+	}
+	if names, _ := os.ReadDir(src); len(names) != 2 {
+		t.Skipf("the folder holds %d names, want f and f.", len(names))
+	}
+	for _, verb := range []string{"fastcopy", "folder-copy"} {
+		t.Run(verb, func(t *testing.T) {
+			wd := t.TempDir()
+			dst := filepath.Join(wd, "dst")
+			args := []string{"fastcopy", src, dst}
+			if verb == "folder-copy" {
+				args = []string{"folder", src, "copy", dst}
+			}
+			out, code := run(t, wd, args...)
+			if code != 2 {
+				t.Errorf("exit %d, want 2\n%s", code, out)
+			}
+			if !strings.Contains(out, "NAME COLLISION: "+filepath.Join(src, "f.")) {
+				t.Errorf("the trailing-dot name is not reported as a collision\n%s", out)
+			}
+			if got, _ := os.ReadFile(filepath.Join(dst, "f")); string(got) != "plain" {
+				t.Errorf("the target holds %q, want the first name's bytes only", got)
+			}
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // COPY-15: copies given up on after a stall are bounded.
 // ---------------------------------------------------------------------------

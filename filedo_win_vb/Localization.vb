@@ -98,6 +98,11 @@ Module Localization
     ' dialog of the session.
     Private shellDict As Dictionary(Of String, String) = Nothing
 
+    ' Capture.vb switches the language inside one process, so the copy is dropped and rebuilt.
+    Friend Sub ResetShellDict()
+        shellDict = Nothing
+    End Sub
+
     Public Function ForShell() As Dictionary(Of String, String)
         If shellDict Is Nothing Then shellDict = GetDict(ShellSettings.Language())
         Return shellDict

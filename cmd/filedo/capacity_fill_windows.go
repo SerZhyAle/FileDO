@@ -518,6 +518,9 @@ type fillCheck struct {
 	state  fillCheckState
 	detail string
 	head   []byte // the first bytes, for a file with no header
+	// incomplete marks a file an interrupted fill left: cut short or empty,
+	// with everything that was written intact. It proves nothing either way.
+	incomplete bool
 }
 
 // fillVerifySamples is how many body blocks fill verify reads per file, beside
@@ -548,9 +551,29 @@ func checkFillFile(f fillFileEntry) fillCheck {
 		return judgeErr(rerr)
 	}
 	head = head[:n]
+	if size == 0 {
+		// CREATE_NEW, then an exit before the first write: a file size is
+		// file-system metadata a fake controller does not change (AUD-05-F1).
+		c.state = fillCheckUnreadable
+		c.incomplete = true
+		c.detail = "empty - left by an interrupted fill"
+		return c
+	}
 	line, ok := headerLine(head)
 	switch {
 	case ok && strings.HasPrefix(line, tfHeaderPrefix):
+		if meta, err := parseTestFileHeader(line); err == nil && meta.Name == f.name && size < meta.Size {
+			// The writer is sequential: an interrupted fill leaves the
+			// header and a prefix of the body. What was written must read
+			// back; what was never written is not evidence (AUD-05-F1).
+			if err := verifyFillPrefix(f.path, meta, fillVerifySamples); err != nil {
+				return judgeErr(err)
+			}
+			c.state = fillCheckUnreadable
+			c.incomplete = true
+			c.detail = fmt.Sprintf("incomplete - left by an interrupted fill (%d of %d bytes written; what was written reads back intact)", size, meta.Size)
+			return c
+		}
 		if err := verifyTestFileSampled(f.path, fillVerifySamples); err != nil {
 			return judgeErr(err)
 		}
@@ -562,6 +585,56 @@ func checkFillFile(f fillFileEntry) fillCheck {
 	c.state = fillCheckNoHeader
 	c.head = head
 	return c
+}
+
+// verifyFillPrefix reads back, past the cache, the part of a cut-short
+// current-format file that was written: its first block, its last written
+// block and k sampled blocks between them. Any byte that is not the one
+// written is a tfMismatchError, as in verifyTestFileWith.
+func verifyFillPrefix(path string, meta *testFileMeta, k int) error {
+	r, err := openForVerify(path)
+	if err != nil {
+		return fmt.Errorf("could not open test file: %w", err)
+	}
+	defer r.Close()
+	present := r.Size()
+	if present > meta.Size {
+		present = meta.Size
+	}
+	got := make([]byte, tfBlockSize)
+	want := make([]byte, tfBlockSize)
+	check := func(b int64) error {
+		off := b * tfBlockSize
+		n := int64(tfBlockSize)
+		if off+n > present {
+			n = present - off
+		}
+		if n <= 0 {
+			return nil
+		}
+		nr, err := r.ReadAt(got[:n], off)
+		if int64(nr) < n {
+			if err == nil || errors.Is(err, io.EOF) {
+				return &tfMismatchError{Path: path, Offset: off + int64(nr), What: "is missing - the file ends early"}
+			}
+			return fmt.Errorf("could not read offset %d: %w", off, err)
+		}
+		return meta.check(path, got[:n], off, want)
+	}
+	blocks := (present + tfBlockSize - 1) / tfBlockSize
+	picks := []int64{0}
+	if blocks > 1 {
+		picks = append(picks, blocks-1)
+	}
+	if blocks > 2 {
+		picks = append(picks, stratifiedBlocks(1, blocks-2, k)...)
+	}
+	for _, b := range picks {
+		if err := check(b); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // checkLegacyFillFile is the old format's check, kept for one release: the
@@ -698,7 +771,7 @@ wait:
 			intactRuns[c.file.runID] = true
 		}
 	}
-	var good, goodLegacy, bad, notOurs, unreadable int
+	var good, goodLegacy, bad, notOurs, unreadable, incomplete int
 	var goodBytes int64
 	var badExamples, otherExamples []fillCheck
 	for i := range checks {
@@ -727,6 +800,9 @@ wait:
 			}
 		case fillCheckUnreadable:
 			unreadable++
+			if c.incomplete {
+				incomplete++
+			}
 			if len(otherExamples) < 5 {
 				otherExamples = append(otherExamples, *c)
 			}
@@ -787,6 +863,9 @@ wait:
 				detail = "no FileDO header - written by something else, or by an older FileDO fill that wrote none"
 			}
 			fmt.Printf("  %-36s → %s\n", c.file.name, detail)
+		}
+		if incomplete > 0 {
+			fmt.Printf("%d files were left by an interrupted fill. Remove them with: %s\n", incomplete, cleanupHint(targetPath))
 		}
 		return fmt.Errorf("could not verify %d of %d FILL files (%d without a FileDO header, %d unreadable) - re-run fill and verify again",
 			notOurs+unreadable, len(files), notOurs, unreadable)

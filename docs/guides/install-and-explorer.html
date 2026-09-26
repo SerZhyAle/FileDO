@@ -4,10 +4,46 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0a0f0a" />
-    <link
-      rel="canonical"
-      href="https://serzhyale.github.io/FileDO/guides/install-and-explorer.html"
-    />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/install-and-explorer.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/install-and-explorer.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/install-and-explorer.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Install FileDO and add it to Explorer" />
+    <meta property="og:description" content="Which FileDO install to choose, what the MSI writes to your machine, and how to add or remove the Explorer entries yourself." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Install FileDO and add it to Explorer",
+        "headline": "Install FileDO and add it to Explorer",
+        "description": "Which FileDO install to choose, what the MSI writes to your machine, and how to add or remove the Explorer entries yourself.",
+        "url": "https://serzhyale.github.io/FileDO/guides/install-and-explorer.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
     <title>Install FileDO and add it to Explorer</title>
     <meta
       name="description"
@@ -70,7 +106,7 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container">
+    <main class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · Установка</span
@@ -311,15 +347,15 @@
         </h2>
         <p class="intro">
           <span data-l="ru"
-            >На странице «Customize» три компонента. Первый обязателен, два
+            >На странице «Choose what to install» три компонента. Первый обязателен, два
             других можно снять сразу или переключить позже через
             «Изменить» в «Приложения и возможности».</span
           ><span data-l="en"
-            >The Customize page offers three features. The first is required;
+            >The "Choose what to install" page offers three features. The first is required;
             the other two you can untick now, or switch later with Change in
             Apps &amp; features.</span
           ><span data-l="ua"
-            >На сторінці «Customize» три компоненти. Перший обов'язковий, два
+            >На сторінці «Choose what to install» три компоненти. Перший обов'язковий, два
             інші можна зняти одразу або перемкнути пізніше через «Змінити» в
             «Програми та можливості».</span
           >
@@ -327,47 +363,68 @@
         <ol class="steps">
           <li>
             <span data-l="ru"
-              ><b>FileDO</b> - программы в <code>C:\Program Files\FileDO</code>,
+              ><b>FileDO program</b> - программы в <code>C:\Program Files\FileDO</code>,
               <code>filedo</code> в системном <code>PATH</code> и пункт в меню
               «Пуск».</span
             ><span data-l="en"
-              ><b>FileDO</b> - the programs in
+              ><b>FileDO program</b> - the programs in
               <code>C:\Program Files\FileDO</code>, <code>filedo</code> on the
               system <code>PATH</code>, and a Start menu entry.</span
             ><span data-l="ua"
-              ><b>FileDO</b> - програми в <code>C:\Program Files\FileDO</code>,
+              ><b>FileDO program</b> - програми в <code>C:\Program Files\FileDO</code>,
               <code>filedo</code> у системному <code>PATH</code> і пункт у меню
               «Пуск».</span
             >
           </li>
           <li>
             <span data-l="ru"
-              ><b>Explorer integration</b> - группа <code>File DO..</code>
+              ><b>Explorer right-click menu</b> - группа <code>File DO..</code>
               в меню любого файла и тип документа <code>.fd-sec</code> со своим
               значком.</span
             ><span data-l="en"
-              ><b>Explorer integration</b> - the <code>File DO..</code> group in
+              ><b>Explorer right-click menu</b> - the <code>File DO..</code> group in
               the menu of every file, and the <code>.fd-sec</code> document type
               with its own icon.</span
             ><span data-l="ua"
-              ><b>Explorer integration</b> - група
+              ><b>Explorer right-click menu</b> - група
               <code>File DO..</code> у меню будь-якого файлу і тип
               документа <code>.fd-sec</code> із власною піктограмою.</span
             >
           </li>
           <li>
             <span data-l="ru"
-              ><b>Desktop shortcut</b> - значок на рабочем столе, открывающий то
+              ><b>Desktop icon</b> - значок на рабочем столе, открывающий то
               же окно, что и пункт в меню «Пуск».</span
             ><span data-l="en"
-              ><b>Desktop shortcut</b> - a desktop icon that opens the same
+              ><b>Desktop icon</b> - a desktop icon that opens the same
               window as the Start menu entry.</span
             ><span data-l="ua"
-              ><b>Desktop shortcut</b> - піктограма на робочому столі, що
+              ><b>Desktop icon</b> - піктограма на робочому столі, що
               відкриває те саме вікно, що й пункт у меню «Пуск».</span
             >
           </li>
         </ol>
+        <figure class="shot">
+          <img
+            src="../assets/guides/msi-customize.png"
+            width="807"
+            height="631"
+            loading="lazy"
+            alt="FileDO Setup, page Choose what to install: the feature tree FileDO program with Explorer right-click menu and Desktop icon under it"
+          />
+          <figcaption>
+            <span data-l="ru"
+              >Установщик на английском на любом языке Windows, поэтому снимок
+              один для всех.</span
+            ><span data-l="en"
+              >The installer is in English on every Windows language, so one
+              picture serves all.</span
+            ><span data-l="ua"
+              >Інсталятор англійською на будь-якій мові Windows, тому знімок
+              один для всіх.</span
+            >
+          </figcaption>
+        </figure>
         <p class="intro">
           <span data-l="ru"
             >Для развёртывания без вопросов компоненты выбираются по

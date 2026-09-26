@@ -252,6 +252,8 @@ func (s *copyRunStats) problemParts() []string {
 // name (COPY-14). A case-sensitive folder or an SMB share can hold `A.txt`
 // and `a.txt`; a Windows target cannot, and copying both would leave the last
 // one written - or, with parallel workers, an interleaving of the two.
+// The key also drops trailing dots and spaces, as Win32 does (AUD-07-F2):
+// `f.` written through `\\?\` is opened and statted as `f`.
 func caseCollisionLosers(dir string) map[string]string {
 	f, err := os.Open(dir)
 	if err != nil {
@@ -266,7 +268,7 @@ func caseCollisionLosers(dir string) map[string]string {
 	seen := make(map[string]string, len(names))
 	var losers map[string]string
 	for _, n := range names {
-		k := strings.ToLower(n)
+		k := strings.TrimRight(strings.ToLower(n), ". ")
 		if first, ok := seen[k]; ok {
 			if losers == nil {
 				losers = make(map[string]string)

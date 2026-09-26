@@ -476,12 +476,20 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate is `build.ps1 -Test`, in seven steps: smoke every shipped executable for its stamped version
+- The real gate is `build.ps1 -Test`, in nine steps: smoke every shipped executable for its stamped version
   and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); compile-check
   `cmd\filedo-test` and validate `packaging/check-placement.jsonl`; `go test ./fdsec/ -count=1 -short`;
   `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`;
   `filedo_win.exe --selftest` (skipped only with `-SkipGui`; its old log is deleted first, and a missing log
-  is exit 2); `packaging/check-third-party-notices.ps1`; and `release.yml`'s Go pin against `go.mod`'s. The
+  is exit 2); `packaging/check-third-party-notices.ps1`; `release.yml`'s Go pin against `go.mod`'s; and
+  `packaging/check-internal-docs.ps1` - every document declared in `docs/DOCUMENT_REGISTRY.jsonl` (a new
+  `.md`/`.html` needs a record there, or the gate fails), every relative link and anchor resolving, and
+  the internal corpus in house style with no remote embeds; and packaging/check-external-docs.ps1 - the
+  published site and the READMEs against `DOC-EXTERNAL-QUALITY`: glossary and subject index, `sitemap.xml`
+  against the page set, the full SEO block, every `data-l` group in ru/en/ua, translation freshness against
+  `docs/translation-fingerprints.json`, the `docs/termbase.json` forbidden synonyms, screenshots and prose
+  hygiene. **An EN edit on the site or in `README.md` fails it** until the translations are updated and
+  `check-external-docs.ps1 -Record` re-records the fingerprints. The
   Go builds and tests all run as windows/amd64 - the binary that ships - and the `cmd/filedo` suite's own
   exe is linked with the same version resource and manifest. Its last line is `build-gate <stamp>: PASS`,
   `FAIL`, or `NOT VERIFIED`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate

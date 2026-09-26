@@ -13,6 +13,9 @@ type ProgressTracker struct {
 	currentBytes   int64
 	lastUpdate     time.Time
 	updateInterval time.Duration
+	// completionShown records that the line for reaching totalItems was
+	// printed; see PrintProgress.
+	completionShown bool
 }
 
 func NewProgressTracker(totalItems, totalBytes int64) *ProgressTracker {
@@ -85,8 +88,16 @@ func (pt *ProgressTracker) GetCurrentSpeed() float64 {
 }
 
 func (pt *ProgressTracker) PrintProgress(operation string) {
-	if !pt.ShouldUpdate() && pt.currentItem < pt.totalItems {
+	// The throttle holds, with one exception: the first time the count
+	// reaches its total, so the bar ends on its last value. Only the first
+	// time - a total that is an estimate (the container's chunk count) can be
+	// passed by every later call, and each of those used to print a line and
+	// emit an event, unthrottled (AUD-29-F4).
+	if !pt.ShouldUpdate() && (pt.currentItem < pt.totalItems || pt.completionShown) {
 		return
+	}
+	if pt.currentItem >= pt.totalItems {
+		pt.completionShown = true
 	}
 
 	pt.lastUpdate = time.Now()

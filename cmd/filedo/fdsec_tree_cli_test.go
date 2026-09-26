@@ -13,6 +13,10 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"golang.org/x/sys/windows"
+
+	"filedo/fdsec"
 )
 
 // folderWorkdir builds a scratch directory holding one folder "Album" with an
@@ -309,4 +313,156 @@ func TestFdsecFolderRefusals(t *testing.T) {
 			t.Fatalf("a mask over two folders did not give two containers\n%s", out)
 		}
 	})
+}
+
+// TestFdsecFolderRestoreFailureKeepsEntryNamesSealed is AUD-09-F1: an
+// environmental failure while the tree is written (here: the new files are
+// denied by an inherit-only ACE on the destination's parent, no elevation
+// needed) must not put a sealed entry name into history.json or the event
+// stream. The console may keep the full message.
+func TestFdsecFolderRestoreFailureKeepsEntryNamesSealed(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("the access list is a Windows construct")
+	}
+	dir := t.TempDir()
+	const sealed = "TopSecretMerger"
+	if err := os.MkdirAll(filepath.Join(dir, "Secret"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "Secret", sealed+".txt"), []byte("merger terms"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, code := run(t, dir, "Secret", "secure", "p:pw"); code != 0 {
+		t.Fatalf("secure exited %d\n%s", code, out)
+	}
+	os.Remove(filepath.Join(dir, "history.json"))
+
+	out := filepath.Join(dir, "Out")
+	if err := os.Mkdir(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tu, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := "*" + tu.User.Sid.String()
+	if o, err := exec.Command("icacls", out, "/deny", sid+":(CI)(IO)(WD)").CombinedOutput(); err != nil {
+		t.Skipf("cannot set the deny entry here: %v %s", err, o)
+	}
+	t.Cleanup(func() { exec.Command("icacls", out, "/remove:d", sid, "/T").Run() })
+
+	events := filepath.Join(dir, "ev.jsonl")
+	console, code := run(t, dir, "--events", events, "Secret.fd-sec", "unsecure", "p:pw", "to", filepath.Join("Out", "R"))
+	if code == 0 {
+		t.Fatalf("a restore whose files were denied succeeded\n%s", console)
+	}
+	for _, f := range []string{"ev.jsonl", "history.json"} {
+		b, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("%s was not written: %v", f, err)
+		}
+		if bytes.Contains(b, []byte(sealed)) {
+			t.Errorf("%s carries the sealed entry name\n%s", f, b)
+		}
+	}
+	if exists(filepath.Join(out, "R")) {
+		t.Error("a failed restore left the destination folder")
+	}
+}
+
+// TestFdsecFolderPackRefusesAContainerInsideItThroughAJunction is AUD-09-F6:
+// "inside the folder it packs" is decided on the resolved location, so a
+// junction spelling of the folder is refused like the direct one.
+func TestFdsecFolderPackRefusesAContainerInsideItThroughAJunction(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("junctions are a Windows construct")
+	}
+	dir, items := folderWorkdir(t)
+	j := filepath.Join(dir, "J")
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", j, filepath.Join(dir, "Album")).CombinedOutput(); err != nil {
+		t.Skipf("cannot create a junction here: %v %s", err, out)
+	}
+	out, code := run(t, dir, "Album", "secure", "-y", "p:pw", "to", filepath.Join("J", "Album.fd-sec"))
+	if code != 2 {
+		t.Fatalf("exit %d, want 2 (usage)\n%s", code, out)
+	}
+	if exists(filepath.Join(dir, "Album", "Album.fd-sec")) {
+		t.Fatal("the container was written inside the folder it packs")
+	}
+	assertFolder(t, filepath.Join(dir, "Album"), items)
+}
+
+// TestFdsecFolderRestoreNeverReplacesANameThatAppeared is AUD-09-F5: a file
+// created under the destination name after the last check is not replaced
+// by the folder's move into place.
+func TestFdsecFolderRestoreNeverReplacesANameThatAppeared(t *testing.T) {
+	saved := globalInterruptHandler
+	globalInterruptHandler = newInterruptHandlerNoSignals()
+	defer func() { globalInterruptHandler = saved }()
+
+	dir, _ := folderWorkdir(t)
+	if out, code := run(t, dir, "Album", "secure", "p:pw"); code != 0 {
+		t.Fatalf("secure exited %d\n%s", code, out)
+	}
+	dest := filepath.Join(dir, "Restored")
+	precious := []byte("created in the check-to-rename window")
+	fdsecBeforeTreeRename = func(p string) { os.WriteFile(p, precious, 0o644) }
+	defer func() { fdsecBeforeTreeRename = nil }()
+
+	containerPath := filepath.Join(dir, "Album.fd-sec")
+	src, err := os.Open(containerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer src.Close()
+	fi, _ := src.Stat()
+	c, err := fdsec.Open(src, fdsec.NewCredential("pw"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hl := NewHistoryLogger(nil)
+	hl.enabled = false
+	err = fdsecUnsecureTree(containerPath, c, src, fi.Size(), &fdsecOpts{haveTo: true, to: dest, assumeYes: true}, hl)
+	if err == nil {
+		t.Fatal("the restore reported success over a name that appeared")
+	}
+	if got, rerr := os.ReadFile(dest); rerr != nil || !bytes.Equal(got, precious) {
+		t.Fatalf("the file that appeared was replaced or lost: %v", rerr)
+	}
+	assertNoPartials(t, dir)
+}
+
+// TestFdsecFolderWithCaseOnlyTwinsIsNotSecured is AUD-21-F1: a folder from a
+// case-sensitive directory holding "Readme.txt" and "README.txt" used to pack,
+// read back and have its originals deleted by "secure del -y", after which no
+// "unsecure" could restore it. It is refused up front with both originals kept.
+func TestFdsecFolderWithCaseOnlyTwinsIsNotSecured(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("the per-directory case-sensitive flag is a Windows construct")
+	}
+	dir := t.TempDir()
+	src := filepath.Join(dir, "Twins")
+	if err := os.Mkdir(src, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("fsutil", "file", "setCaseSensitiveInfo", src, "enable").CombinedOutput(); err != nil {
+		t.Skipf("cannot make a case-sensitive folder here: %v %s", err, out)
+	}
+	lower, upper := filepath.Join(src, "Readme.txt"), filepath.Join(src, "README.txt")
+	os.WriteFile(lower, []byte("lower"), 0o644)
+	os.WriteFile(upper, []byte("upper"), 0o644)
+	if des, _ := os.ReadDir(src); len(des) != 2 {
+		t.Skip("the folder did not keep both case twins")
+	}
+	out, code := run(t, dir, "Twins", "secure", "del", "-y", "p:pw")
+	if code == 0 {
+		t.Fatalf("a folder with case-only twins was secured\n%s", out)
+	}
+	if exists(filepath.Join(dir, "Twins.fd-sec")) {
+		t.Fatal("a refused folder left a container")
+	}
+	if a, b := mustRead(t, lower), mustRead(t, upper); string(a) != "lower" || string(b) != "upper" {
+		t.Fatal("a refused folder lost an original")
+	}
+	assertNoPartials(t, dir)
 }

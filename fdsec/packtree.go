@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
+	"unicode"
 
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/text/unicode/norm"
@@ -67,6 +69,12 @@ func ScanTree(root string, o ScanOptions) (*Tree, error) {
 	t := &Tree{Meta: TreeMetadata{Name: name}}
 	t.Meta.CreatedAt, t.Meta.AccessedAt, t.Meta.ModifiedAt = scanTimes(rfi, o)
 	osPath := make(map[string]string)
+	// folded holds every path as Windows compares names (simple per-rune
+	// upper-casing, as the NTFS upcase table does). A case-sensitive folder
+	// (WSL, fsutil setCaseSensitiveInfo) can hold two names that differ only
+	// in case; the container would carry both, but no ordinary folder could
+	// take them back, so the pair is refused like the NFC twins.
+	folded := make(map[string]bool)
 	var walk func(dir, rel string) error
 	walk = func(dir, rel string) error {
 		des, err := os.ReadDir(dir)
@@ -96,6 +104,11 @@ func ScanTree(root string, o ScanOptions) (*Tree, error) {
 			if _, dup := osPath[p]; dup {
 				return fmt.Errorf("%s: two names in this folder become the same name once normalised to NFC", full)
 			}
+			fp := strings.Map(unicode.ToUpper, p)
+			if folded[fp] {
+				return fmt.Errorf("%s: two names in this folder differ only in case and could not both be restored into a folder that ignores case", full)
+			}
+			folded[fp] = true
 			osPath[p] = full
 			e := TreeEntry{Path: p, Kind: KindFile}
 			e.CreatedAt, e.AccessedAt, e.ModifiedAt = scanTimes(fi, o)

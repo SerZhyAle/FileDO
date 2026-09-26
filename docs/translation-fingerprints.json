@@ -1,0 +1,2552 @@
+{
+  "_about": "Translation freshness record (DOC-EXTERNAL-QUALITY rule 3). Rewritten by packaging/check-external-docs.ps1 -Record after the translations were read against the English; never edited by hand.",
+  "pages": {
+    "docs/index.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "94fe8a53dccc1c16",
+        "en": "3cb36edbb47e70fd",
+        "ua": "7ef19fe9378f7b27"
+      },
+      {
+        "ru": "d2755a3a9746f807",
+        "en": "dbfb84c02229cb18",
+        "ua": "3bee1a01e239c57d"
+      },
+      {
+        "ru": "9098c70cf3e4bbfc",
+        "en": "00a92b9da78c0842",
+        "ua": "3af927a1036aa6a6"
+      },
+      {
+        "ru": "bf47c78293c0c129",
+        "en": "62eaf8ed6a90d53f",
+        "ua": "a33e92ce76bd0e7e"
+      },
+      {
+        "ru": "04afc09e60bdc004",
+        "en": "9460f16ac9b5171e",
+        "ua": "de578ba8bb35714e"
+      },
+      {
+        "ru": "6ec2a966999527e4",
+        "en": "9ccfeb9a8422b92d",
+        "ua": "720bd0d4c71f9d78"
+      },
+      {
+        "ru": "722b745b09824be2",
+        "en": "e14c702aa77a90d2",
+        "ua": "54b9b0be6f7faabc"
+      },
+      {
+        "ru": "f7949c9612c9eede",
+        "en": "cf822e15ccb82264",
+        "ua": "96ab321a27780590"
+      },
+      {
+        "ru": "be0d36ce0331fdf7",
+        "en": "e61a3d78c65133c7",
+        "ua": "95278a4b92710a8b"
+      },
+      {
+        "ru": "5f5a403f5d6a6142",
+        "en": "ae65d096550ff4eb",
+        "ua": "02864ea17f7aadbe"
+      },
+      {
+        "ru": "1919a311997d1242",
+        "en": "10082f606a8d2583",
+        "ua": "e25ebfb0f17f86e3"
+      },
+      {
+        "ru": "9088ca9c0de94ffd",
+        "en": "abc7e9892806b047",
+        "ua": "2cc3306f483a9eed"
+      },
+      {
+        "ru": "db33250bb7d281d1",
+        "en": "9c49e2bceb8eecb2",
+        "ua": "450e70f959fc4bfb"
+      },
+      {
+        "ru": "e8560c60c2959a81",
+        "en": "93c28c39252a5670",
+        "ua": "508d4ed0e9380273"
+      },
+      {
+        "ru": "54141a702518be7a",
+        "en": "bfd8a96a103ddbcb",
+        "ua": "206f01c1a0062ce2"
+      },
+      {
+        "ru": "04afc09e60bdc004",
+        "en": "9460f16ac9b5171e",
+        "ua": "de578ba8bb35714e"
+      },
+      {
+        "ru": "9ee7eb14e6973a05",
+        "en": "89ecd9850858d6e4",
+        "ua": "bf41b118199a7f7b"
+      },
+      {
+        "ru": "27c5f968de1f0390",
+        "en": "06a2b8293613b39e",
+        "ua": "e86a17d6e22eee52"
+      },
+      {
+        "ru": "8bbdc40904914543",
+        "en": "a39dfe4cb6d322f9",
+        "ua": "81f4e0e866825c62"
+      },
+      {
+        "ru": "5a5e674a662935cd",
+        "en": "c006059c390e7fad",
+        "ua": "5d908a092204301c"
+      },
+      {
+        "ru": "e0989802783aa753",
+        "en": "ef1a88eac6fdab15",
+        "ua": "19a674fcceb6342d"
+      },
+      {
+        "ru": "1f995334f015bcd5",
+        "en": "c6b972131907255f",
+        "ua": "b55945c04be2ffa2"
+      },
+      {
+        "ru": "96562ab96319fdc0",
+        "en": "bd6e5d3e4d26dd96",
+        "ua": "30c66446137ef66e"
+      },
+      {
+        "ru": "3f489835b05251cd",
+        "en": "90686eff242bf90f",
+        "ua": "029f297cb6c06128"
+      },
+      {
+        "ru": "244d004f9089307b",
+        "en": "5a849aad570d5bbf",
+        "ua": "60f9c33228afd7d8"
+      },
+      {
+        "ru": "3c6d2884571b88df",
+        "en": "a7c6885bbb71e760",
+        "ua": "d7633b97b34b8465"
+      },
+      {
+        "ru": "408baed2ffb68a38",
+        "en": "a3ff790ef180c8dd",
+        "ua": "9093f78aa5205440"
+      },
+      {
+        "ru": "a95642d636d1afea",
+        "en": "c3fc54aa5390dc2c",
+        "ua": "55b287a3c0bbbc64"
+      },
+      {
+        "ru": "7235914d7f82a4f6",
+        "en": "36028ffb6680eba3",
+        "ua": "9e0b7dea7239d272"
+      },
+      {
+        "ru": "283c3904ab69c778",
+        "en": "c1f142c0e0be9f44",
+        "ua": "55c6f9c60be268e8"
+      },
+      {
+        "ru": "199635d650b50f35",
+        "en": "5a728d537c8e532c",
+        "ua": "8ae31d21934faa4b"
+      },
+      {
+        "ru": "ce2d0c8689e40e31",
+        "en": "1d09f6fa23235881",
+        "ua": "ce2d0c8689e40e31"
+      },
+      {
+        "ru": "860fec77d0d1598f",
+        "en": "6f79aa271b00e395",
+        "ua": "d85d52549a9f53b8"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "4c078fd3f1124f8c",
+        "en": "bf046c7395cb38ee",
+        "ua": "7c01a100f245ba6a"
+      },
+      {
+        "ru": "9b293328feba99c0",
+        "en": "fc1350d177c5b320",
+        "ua": "23b37cf22d0b5652"
+      },
+      {
+        "ru": "0cc2c2f170127e88",
+        "en": "c68b26a6b1442b24",
+        "ua": "f9eee76178f162ba"
+      },
+      {
+        "ru": "0fd8e12e3cff2087",
+        "en": "e28f5f1ee9cdea68",
+        "ua": "7fb31b292131ea3f"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "49cf521f018b502f",
+        "en": "ddca9a57e6760d26",
+        "ua": "578c87d521c6eb9d"
+      },
+      {
+        "ru": "476660e484a3390c",
+        "en": "c52b21b4b74df010",
+        "ua": "5de49acc594b15ed"
+      },
+      {
+        "ru": "7c6297be0254ebcb",
+        "en": "bb6b121974b61363",
+        "ua": "4467848a1571d2cc"
+      },
+      {
+        "ru": "f516915b6350655c",
+        "en": "74f67c68138fd41b",
+        "ua": "0f95275a8b224aea"
+      },
+      {
+        "ru": "54e91c8790fd7b8f",
+        "en": "686aeaefbb2a53cc",
+        "ua": "077ec8afe80d7e8d"
+      },
+      {
+        "ru": "a9aba87991e110f2",
+        "en": "f88a016d8052d861",
+        "ua": "2494070fb09b8a97"
+      },
+      {
+        "ru": "2ea41b2ad1907f3f",
+        "en": "1c7145323a525ebe",
+        "ua": "e3cd1e8abd210f04"
+      },
+      {
+        "ru": "5c2cfead2cce47ca",
+        "en": "f0955b7ba076511d",
+        "ua": "970ad1f963339434"
+      },
+      {
+        "ru": "b892282b5bce87f5",
+        "en": "1caef4c240f2e69e",
+        "ua": "a47054f2c0c6cf87"
+      },
+      {
+        "ru": "ca0623d6581df6a7",
+        "en": "85e45da8b28657e7",
+        "ua": "82b2a59302834c44"
+      },
+      {
+        "ru": "41729234f21c7d27",
+        "en": "fdcb78bde2b21e66",
+        "ua": "abe688b1a09eb083"
+      },
+      {
+        "ru": "176643a39e823148",
+        "en": "d7cb7d032f8c1300",
+        "ua": "9d0961b348f5e1cd"
+      },
+      {
+        "ru": "48a6b33f052861e0",
+        "en": "174a5b8786564d83",
+        "ua": "05b46d4e7f885ea5"
+      },
+      {
+        "ru": "0e208d63ffc30355",
+        "en": "392af3df39bada3a",
+        "ua": "3ab5d41301e7a6f4"
+      },
+      {
+        "ru": "d82a3ea37fc2589a",
+        "en": "801012086a1b6bd8",
+        "ua": "47f97ca6e2f3f823"
+      },
+      {
+        "ru": "fe17eb3b68915e7b",
+        "en": "f967b08f113e9792",
+        "ua": "88b6f8d1f8473608"
+      },
+      {
+        "ru": "2151a114563b21d9",
+        "en": "a3e586be3eff5fb9",
+        "ua": "780559dcb486bac6"
+      },
+      {
+        "ru": "428ed33b6ea117ed",
+        "en": "25f7b3721119f1ec",
+        "ua": "683c07699f116860"
+      },
+      {
+        "ru": "e5818c51365c6d79",
+        "en": "427dc4be5aecb63d",
+        "ua": "123f26e832f5ad7e"
+      },
+      {
+        "ru": "672f6074b806c345",
+        "en": "897891df0418e9c6",
+        "ua": "f38d928640e10ec1"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "d71ab571d3ef0464",
+        "en": "79b102e24a0ca93d",
+        "ua": "5410f9ba0c8a43e3"
+      },
+      {
+        "ru": "94380352b3d46a03",
+        "en": "580115d540544936",
+        "ua": "9592b7a4dd8df9ca"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "39450bcf595bbae5",
+        "en": "0d792a69bc692a7f",
+        "ua": "7ae85a50f0555a08"
+      },
+      {
+        "ru": "d8f18f5604f76344",
+        "en": "fa1f59835739b607",
+        "ua": "8ef3dd7f03f7467e"
+      },
+      {
+        "ru": "4d1a5ef4a9fac809",
+        "en": "7d938da05df9b296",
+        "ua": "77ae6a0e0e027bd8"
+      },
+      {
+        "ru": "6c56ca5ed007f563",
+        "en": "f226f068b6eb04d6",
+        "ua": "07e1a73ea7c56364"
+      },
+      {
+        "ru": "f0f0e0c0e3ecc5a0",
+        "en": "ddf6f9fec51e1411",
+        "ua": "45cc7dbf1deca36f"
+      },
+      {
+        "ru": "5eb36ade39691401",
+        "en": "66f002ab22931e8f",
+        "ua": "abba71b6badf5a75"
+      },
+      {
+        "ru": "4263674825a195aa",
+        "en": "f34689888bc24ee9",
+        "ua": "e713da6f243ccf3a"
+      },
+      {
+        "ru": "594dae76ce6384da",
+        "en": "a96e66b204b47d72",
+        "ua": "753f02ec8c8bdfcc"
+      },
+      {
+        "ru": "e748ceeffa094230",
+        "en": "312a08d052b41fec",
+        "ua": "b88e533575052b85"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "b2a808137301afe2",
+        "en": "24399f45b08f65c1",
+        "ua": "c0f580dd15241e7a"
+      },
+      {
+        "ru": "0af5facee714d9d8",
+        "en": "67f7c4cea3f84873",
+        "ua": "710997b0d87a578a"
+      },
+      {
+        "ru": "000a0075291c3a5c",
+        "en": "f952fee736ed2287",
+        "ua": "ab1e5c979abb1a1d"
+      },
+      {
+        "ru": "0cb6eb1d56cebbb5",
+        "en": "97436e2733f82318",
+        "ua": "3bfac7534c1d5eab"
+      },
+      {
+        "ru": "773213ad9137ce61",
+        "en": "c46a0b4d78f1008f",
+        "ua": "4672012463df13ee"
+      },
+      {
+        "ru": "37d44a52d928738d",
+        "en": "a39dfe4cb6d322f9",
+        "ua": "cc83585042e3a334"
+      },
+      {
+        "ru": "c48769bdbb93c6f3",
+        "en": "f07717970637e0f0",
+        "ua": "03d676bdc68772cb"
+      },
+      {
+        "ru": "ea1f40824607e0d1",
+        "en": "ed077f3d8125d60d",
+        "ua": "85b907329702c992"
+      },
+      {
+        "ru": "ed3cfac8e96c3be0",
+        "en": "bb8692b955d707bb",
+        "ua": "7101b6f1de98484e"
+      },
+      {
+        "ru": "3113c67b2a48e74f",
+        "en": "73453bdc6a8523f3",
+        "ua": "ed2232d7f9b0dcea"
+      },
+      {
+        "ru": "ea1f40824607e0d1",
+        "en": "ed077f3d8125d60d",
+        "ua": "85b907329702c992"
+      },
+      {
+        "ru": "245618c29c80c318",
+        "en": "05b69fc77c7998d1",
+        "ua": "8b78e726a990c70b"
+      },
+      {
+        "ru": "613108981e652fea",
+        "en": "0de508fc97528489",
+        "ua": "8e882aafa15077f0"
+      },
+      {
+        "ru": "ea1f40824607e0d1",
+        "en": "ed077f3d8125d60d",
+        "ua": "85b907329702c992"
+      },
+      {
+        "ru": "d6f4a644a6c1fd34",
+        "en": "77848213ac05923f",
+        "ua": "a94731c96b67ca15"
+      },
+      {
+        "ru": "ef49db5c80c82c7f",
+        "en": "878e3f739b166bb7",
+        "ua": "0e4e8a4e033e8780"
+      },
+      {
+        "ru": "ea1f40824607e0d1",
+        "en": "ed077f3d8125d60d",
+        "ua": "85b907329702c992"
+      },
+      {
+        "ru": "99a2fecab19842af",
+        "en": "dae9d87b9a633e6c",
+        "ua": "e5bf6825d03d04d9"
+      },
+      {
+        "ru": "da29d6ef56e979eb",
+        "en": "a92ddfc559203007",
+        "ua": "9948c53df4df5b8d"
+      },
+      {
+        "ru": "ea1f40824607e0d1",
+        "en": "ed077f3d8125d60d",
+        "ua": "85b907329702c992"
+      },
+      {
+        "ru": "41729234f21c7d27",
+        "en": "fdcb78bde2b21e66",
+        "ua": "abe688b1a09eb083"
+      },
+      {
+        "ru": "5c6f9df06e1df489",
+        "en": "d3ce1b78ff4dd688",
+        "ua": "b6898b88d382d393"
+      },
+      {
+        "ru": "ea1f40824607e0d1",
+        "en": "ed077f3d8125d60d",
+        "ua": "85b907329702c992"
+      },
+      {
+        "ru": "3af7b71a227c33f1",
+        "en": "0b5543efa44ab7b2",
+        "ua": "70108c637193f282"
+      },
+      {
+        "ru": "c0bb8c8f26e73686",
+        "en": "adc02f7c2f192967",
+        "ua": "b498f75b18842d7e"
+      },
+      {
+        "ru": "6d5c24967752a415",
+        "en": "54a57c3147c49f33",
+        "ua": "dca43e30fc120616"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "d2d08c715ee66cbd",
+        "en": "8d525e5f158b9afe",
+        "ua": "d19980613c41ba3f"
+      }
+    ],
+    "docs/privacy.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "3ba8eaa5d624cefb",
+        "en": "ba445cff3898a3f2",
+        "ua": "dfeaaa3c7d5fbecb"
+      },
+      {
+        "ru": "6e921975b41d44cc",
+        "en": "1d599f13fe605204",
+        "ua": "612b1ab385fc459a"
+      },
+      {
+        "ru": "bc0c9f89ad9b4331",
+        "en": "249d8b885207f827",
+        "ua": "d0a1f5c344b8f373"
+      },
+      {
+        "ru": "3d3c13d1e327d252",
+        "en": "a5b3016a2e593637",
+        "ua": "5d0934edfdbf6862"
+      },
+      {
+        "ru": "6e05394764ba4140",
+        "en": "ee4832c56c8d3154",
+        "ua": "7cec3fdbc90941ae"
+      },
+      {
+        "ru": "bbcdc7c01ea0cc15",
+        "en": "177116ee517769eb",
+        "ua": "8662aad50d365115"
+      },
+      {
+        "ru": "474d7f630d715583",
+        "en": "67a0d2e0dab41fca",
+        "ua": "88c7709bb1d43ccb"
+      },
+      {
+        "ru": "dd00f5c57edcd596",
+        "en": "725c1fb44b060dad",
+        "ua": "d23b59bf5caa4980"
+      },
+      {
+        "ru": "f1a07b6e15383076",
+        "en": "9806cc329a13b248",
+        "ua": "cdb4153b4b3e137f"
+      },
+      {
+        "ru": "250ed25f409c0666",
+        "en": "1f764ee3bf4f584b",
+        "ua": "d3789d0d9bf1f824"
+      },
+      {
+        "ru": "3a42d2327c1e0763",
+        "en": "9e90b1ac82acf529",
+        "ua": "3a42d2327c1e0763"
+      },
+      {
+        "ru": "6577e51eaace2db9",
+        "en": "2b8f31a934c08c3b",
+        "ua": "9992bcf8d8d7c204"
+      },
+      {
+        "ru": "00e8c6adadbffbd6",
+        "en": "5c27b065b69fa75b",
+        "ua": "3b7bd3f17315c294"
+      },
+      {
+        "ru": "19dc96a2407c2b77",
+        "en": "276bf5794c42bdab",
+        "ua": "6ce1f3411b47f68a"
+      },
+      {
+        "ru": "21fe9143359a1796",
+        "en": "6f83b578cf21ded3",
+        "ua": "12e53622a99e031c"
+      },
+      {
+        "ru": "04ce2c530aee7617",
+        "en": "d46b35c1456abded",
+        "ua": "b74d0953ee5a16c1"
+      },
+      {
+        "ru": "f165f6031da2538c",
+        "en": "0187116ef62ab691",
+        "ua": "2684223dbeb95b3f"
+      },
+      {
+        "ru": "ae895895133f545b",
+        "en": "db40b398ace3d506",
+        "ua": "39710e6d0dd4c896"
+      },
+      {
+        "ru": "ea04dc9b71ece045",
+        "en": "28456b3c0ca2e004",
+        "ua": "d79c620ff17bf954"
+      },
+      {
+        "ru": "08ef5528904e83ff",
+        "en": "769795d28028b631",
+        "ua": "430d0b3afb492603"
+      },
+      {
+        "ru": "e91be89e1913d733",
+        "en": "3eb605808fed091b",
+        "ua": "5c1b8279974962d5"
+      },
+      {
+        "ru": "8a33e4d85dddd0e0",
+        "en": "88934d1c236eb56b",
+        "ua": "79cbb84c48807bf9"
+      },
+      {
+        "ru": "b618cbc7a104d908",
+        "en": "c7ac70f4b58a1fc5",
+        "ua": "fe6d0e02fa1f849f"
+      },
+      {
+        "ru": "547280dd5f8b4459",
+        "en": "04912b0971609d8d",
+        "ua": "3a3c451c8b22ec64"
+      },
+      {
+        "ru": "f242456b22736979",
+        "en": "50009ce1da4d15e1",
+        "ua": "f242456b22736979"
+      },
+      {
+        "ru": "3355cb440e701ecb",
+        "en": "452fbb269fbe60f4",
+        "ua": "1e00b5ea26966469"
+      },
+      {
+        "ru": "70accf22e1066e51",
+        "en": "395c1bd623c98371",
+        "ua": "03e95dca689a8d21"
+      },
+      {
+        "ru": "653e2aee53ca387b",
+        "en": "be28ae8858fec4c2",
+        "ua": "cecae292396c351c"
+      },
+      {
+        "ru": "600be6a60bf02d71",
+        "en": "32d93cd8d4fd565f",
+        "ua": "d1e41aaf1c4abb54"
+      },
+      {
+        "ru": "83ddc65a60b4de56",
+        "en": "ca3bc9fcc652161b",
+        "ua": "f5507b67d8d76ff2"
+      },
+      {
+        "ru": "e86bff7c2f385d5b",
+        "en": "8a7bda9067d667b2",
+        "ua": "401cbdd4f8f0e5e4"
+      },
+      {
+        "ru": "13736515e40f7484",
+        "en": "becdb5a8f1d7c866",
+        "ua": "2ec0f1df591e8761"
+      },
+      {
+        "ru": "1a35aca65b4d98fb",
+        "en": "709e449bc245fda3",
+        "ua": "6441d0394eb9620d"
+      },
+      {
+        "ru": "6d9d9c4f91469e2f",
+        "en": "6ba7505f5a15f4b4",
+        "ua": "712d01cbbe0f1ae6"
+      },
+      {
+        "ru": "dc19514599c4e511",
+        "en": "1337d1ae20365594",
+        "ua": "3543cb8f84980fd8"
+      },
+      {
+        "ru": "f194893059781f21",
+        "en": "edde6d4a62c6ae19",
+        "ua": "b2bc4b1c33b78b35"
+      },
+      {
+        "ru": "547f84139c919fd7",
+        "en": "925e31c869a20b4c",
+        "ua": "b1e20364dfbe9238"
+      },
+      {
+        "ru": "a005a779ecfd9901",
+        "en": "2610d227b7e0d5b1",
+        "ua": "1799384039feb298"
+      },
+      {
+        "ru": "f49d1eee9f12329f",
+        "en": "473ea697a80c01fa",
+        "ua": "a48c2e39e54a9d30"
+      },
+      {
+        "ru": "feab4b5f89abaf96",
+        "en": "df5cba62341795d2",
+        "ua": "057384963a9ed60b"
+      },
+      {
+        "ru": "5d4ec467626e2a27",
+        "en": "dd20c6ab1b26dc52",
+        "ua": "4853d9b37bcc4bfe"
+      },
+      {
+        "ru": "910b7958cd603558",
+        "en": "e596ecc637308edd",
+        "ua": "0b698bb2d414f3cf"
+      },
+      {
+        "ru": "064b9f0b94e47fb7",
+        "en": "5eaf7d5c4ac8afd8",
+        "ua": "2e3c57ea96ea0b9f"
+      },
+      {
+        "ru": "8beeaf7d4fb1081c",
+        "en": "e87f36f377ef3517",
+        "ua": "2d3fd5e351bc9a33"
+      },
+      {
+        "ru": "490b0942add6696f",
+        "en": "892fa0c1dca69a4a",
+        "ua": "b32f16d1256e613f"
+      },
+      {
+        "ru": "6bbea898475bd20c",
+        "en": "212b7172b38ac430",
+        "ua": "dd80e1470eb94575"
+      },
+      {
+        "ru": "5ef524b8cae138a6",
+        "en": "29bb56f3ca24dcf9",
+        "ua": "964fd50dbe86a577"
+      },
+      {
+        "ru": "03a6c06c23b6a2bd",
+        "en": "33efe346c336a85a",
+        "ua": "9bfb4682e3e143b0"
+      },
+      {
+        "ru": "6a9d8f79d9b2a9f1",
+        "en": "b749a54c52a5684e",
+        "ua": "dcda69bec3b37452"
+      },
+      {
+        "ru": "57f66f9b293e5b47",
+        "en": "2cb49847660ee139",
+        "ua": "ec4de0116112110b"
+      },
+      {
+        "ru": "f96347bce5e1b374",
+        "en": "bfb74026c4dff693",
+        "ua": "c478499a4d36ad13"
+      },
+      {
+        "ru": "71391110ed1c23ef",
+        "en": "077440e291bf51d8",
+        "ua": "6caf56e43bcf5c7c"
+      },
+      {
+        "ru": "be35f1fc2119ffaa",
+        "en": "60a8621d9e059dfe",
+        "ua": "838a596e8e738ed0"
+      },
+      {
+        "ru": "18544a487b5c32ba",
+        "en": "8fee14ec70c68e63",
+        "ua": "78240c0644b58f7e"
+      },
+      {
+        "ru": "4ed55c3dce697c7c",
+        "en": "eb7806124042b4da",
+        "ua": "b4e8abc12e0dcc63"
+      },
+      {
+        "ru": "4b5e2d08508165ea",
+        "en": "13cf4d29c26c0dd1",
+        "ua": "caf4d86b778596f7"
+      },
+      {
+        "ru": "6fa61629da31c4e1",
+        "en": "737f15cb593589d5",
+        "ua": "bed7b8dcc26c9cb2"
+      },
+      {
+        "ru": "19ad0b9f4edcf810",
+        "en": "60b896e5173a5e7d",
+        "ua": "77ae7674d9f3da22"
+      },
+      {
+        "ru": "f8f8fa059240a340",
+        "en": "62b93acacf678c23",
+        "ua": "f0df0904f78da7c7"
+      },
+      {
+        "ru": "74aa9ab3b1484620",
+        "en": "216c3a3bb1416263",
+        "ua": "9d0b93f6501693ba"
+      },
+      {
+        "ru": "da6e3087a96aee9c",
+        "en": "a6329d3519cd0fda",
+        "ua": "ba4bfde6a8cf8e56"
+      },
+      {
+        "ru": "a0fbba5484f557f0",
+        "en": "991055a9ccae0ddd",
+        "ua": "4c441a03fc7e9d62"
+      },
+      {
+        "ru": "17d0571b5f2b02dd",
+        "en": "10a931282531ff10",
+        "ua": "0875f56694ece2b7"
+      },
+      {
+        "ru": "9ffb555ef6090594",
+        "en": "149d95418e37e6c7",
+        "ua": "e043faf9d3dbbd9b"
+      },
+      {
+        "ru": "11cd87f800db2cef",
+        "en": "7d0095d62edd600c",
+        "ua": "caa18b4d3b6498bc"
+      },
+      {
+        "ru": "0c6ffb8697d0e597",
+        "en": "ef251d6220debecb",
+        "ua": "094561dd880492c5"
+      },
+      {
+        "ru": "755c5eb534230db5",
+        "en": "5d961d526a6bbd92",
+        "ua": "d44fa9f0b2de611a"
+      },
+      {
+        "ru": "9acc3fbe204025ac",
+        "en": "17507dcf845793fa",
+        "ua": "981cb242b9a054d3"
+      },
+      {
+        "ru": "78b0c89ad34e2b64",
+        "en": "8531fc5026bba6e5",
+        "ua": "a4af7a7e2a06cd08"
+      },
+      {
+        "ru": "eec7b025b7e59378",
+        "en": "f778606f686e5118",
+        "ua": "47e1398fbb9d0390"
+      },
+      {
+        "ru": "c0bb8c8f26e73686",
+        "en": "adc02f7c2f192967",
+        "ua": "b498f75b18842d7e"
+      },
+      {
+        "ru": "8eb70e7a57154a75",
+        "en": "8eb70e7a57154a75",
+        "ua": "8eb70e7a57154a75"
+      }
+    ],
+    "docs/guides/index.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "9e63bfbf370f7f6a",
+        "en": "86b5a206b2a716b6",
+        "ua": "795c69d2a7b343c4"
+      },
+      {
+        "ru": "8e4b321e2de14c6c",
+        "en": "1b5b2e489f96a9af",
+        "ua": "6c77def1b3459e46"
+      },
+      {
+        "ru": "2c7bb1bd81c14b70",
+        "en": "71ff4f585e928f8e",
+        "ua": "66be5f6c69c3ef35"
+      },
+      {
+        "ru": "1eb2d496937faa2b",
+        "en": "a39dfe4cb6d322f9",
+        "ua": "81f4e0e866825c62"
+      },
+      {
+        "ru": "654ed6127b4463a2",
+        "en": "297117a89c955168",
+        "ua": "c9ccfcf3f4c2b3f4"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "befbd50c332d2420",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "d71ab571d3ef0464",
+        "en": "a70356b40bc1aab2",
+        "ua": "5410f9ba0c8a43e3"
+      },
+      {
+        "ru": "7c33e3e0ea926cdb",
+        "en": "52600c815ed86162",
+        "ua": "e8da62e776b0197a"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "befbd50c332d2420",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "28c99fd5658c4455",
+        "en": "83227abf292d4ecd",
+        "ua": "4d6ff118d2fe957e"
+      },
+      {
+        "ru": "920cb628e32fba46",
+        "en": "a3152da703552fd2",
+        "ua": "1722fb30dcf6bc2b"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "befbd50c332d2420",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "66507fd552ec9a55",
+        "en": "1667e5b07a30261a",
+        "ua": "922df8b1ce23b916"
+      },
+      {
+        "ru": "5afd6cad7629f575",
+        "en": "2bc60af8f32c91de",
+        "ua": "c5dcd7155c37a38c"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "befbd50c332d2420",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "a78c7c82dfd00302",
+        "en": "df11cbaf9a710375",
+        "ua": "da2b6d55f0a3e421"
+      },
+      {
+        "ru": "f0e43a4987002326",
+        "en": "e74a7c7e8071b081",
+        "ua": "e6d3b78f20c52340"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "befbd50c332d2420",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "41729234f21c7d27",
+        "en": "fdcb78bde2b21e66",
+        "ua": "abe688b1a09eb083"
+      },
+      {
+        "ru": "514b0e384c3c4ef6",
+        "en": "82fff3bf65dc855a",
+        "ua": "6d404c747ae4af03"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "befbd50c332d2420",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "a72ef63e340dbb54",
+        "en": "63adfb2bd804805a",
+        "ua": "eeaec8e3c8ac01f7"
+      },
+      {
+        "ru": "ec9d48a5acda1a28",
+        "en": "e767af17aebc5f23",
+        "ua": "4a2433530b6bf292"
+      },
+      {
+        "ru": "9c052964cdd725d5",
+        "en": "4c4e436f9a453c77",
+        "ua": "a63674a1ace5e34b"
+      },
+      {
+        "ru": "0662eaa156c183a2",
+        "en": "46f110fa951129af",
+        "ua": "b63f192f83d6523a"
+      },
+      {
+        "ru": "aad03279f38f9e6f",
+        "en": "b6cd39a857950be5",
+        "ua": "fcef82fa4dc67cff"
+      },
+      {
+        "ru": "930a2d5146fbfe77",
+        "en": "c10312d5edcbc229",
+        "ua": "e73ec24c4f58b4c3"
+      }
+    ],
+    "docs/guides/check-storage.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "a7c6457e1e30d843",
+        "en": "c003bde8c20f5e89",
+        "ua": "a3a1a30971efda70"
+      },
+      {
+        "ru": "a5e049025e1cb852",
+        "en": "c5fe73796a63c96e",
+        "ua": "5e1585f2de2496a8"
+      },
+      {
+        "ru": "6f1b323612b1f043",
+        "en": "4e4c9dc2207e8eb9",
+        "ua": "80c954c1f44dd2a6"
+      },
+      {
+        "ru": "a867e57c4b0f4ecd",
+        "en": "13de039dea77ccae",
+        "ua": "85539f933786ac85"
+      },
+      {
+        "ru": "1c383c70a696f997",
+        "en": "07747a69741b8238",
+        "ua": "d66abfb19b5669d6"
+      },
+      {
+        "ru": "64118dd7243ad486",
+        "en": "7c3560aa524e26fc",
+        "ua": "07ed4ef18152a005"
+      },
+      {
+        "ru": "0a65940328fbe38a",
+        "en": "eafe86193bd86538",
+        "ua": "4193e908fa624caf"
+      },
+      {
+        "ru": "ec87d0e2aa55b508",
+        "en": "c63b7cadb71135eb",
+        "ua": "8911805ea0a3277d"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "5300d4f535cdc61d",
+        "en": "aaec4a0437fece07",
+        "ua": "38bc191413dbd2e0"
+      },
+      {
+        "ru": "54f1d7acc58238a9",
+        "en": "5029e270af835319",
+        "ua": "4df26cdf69ee8214"
+      },
+      {
+        "ru": "7a790ddad8315288",
+        "en": "33eeb6bb12f25f58",
+        "ua": "459fbc84734f3407"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "70e98e32147cf4ec",
+        "en": "c372fee9b4566b85",
+        "ua": "b4cd56d48782979c"
+      },
+      {
+        "ru": "929528d5e5488e7b",
+        "en": "4078b829382cf17e",
+        "ua": "3074f13328f9102e"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "3570866b0e826c5b",
+        "en": "f79e34f8f5af8f6e",
+        "ua": "5e05010bd4fedf5d"
+      },
+      {
+        "ru": "d645c4787ca5c5f3",
+        "en": "acd2d6928fff9674",
+        "ua": "8bd2f9bbab72488d"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1fb655541338c75d",
+        "en": "11159c6c3b3646ec",
+        "ua": "7c9e1538241b56e3"
+      },
+      {
+        "ru": "63c106ebeeeeb681",
+        "en": "e27c8214be8b7cf5",
+        "ua": "14993d578fa2fb92"
+      },
+      {
+        "ru": "a4b076448e980fed",
+        "en": "65449f47a2af4516",
+        "ua": "df5e4b83c9cbfc59"
+      },
+      {
+        "ru": "2af49e4832cac5c3",
+        "en": "2af49e4832cac5c3",
+        "ua": "2af49e4832cac5c3"
+      },
+      {
+        "ru": "4a63a5cae4b65d36",
+        "en": "57cab6cb7d50b052",
+        "ua": "880ebccd150b09ed"
+      }
+    ],
+    "docs/guides/files-and-copies.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "fa7a7a561f8d8a6d",
+        "en": "f56966843ddf13af",
+        "ua": "34399ccf9710a08f"
+      },
+      {
+        "ru": "e637115ce42cb584",
+        "en": "06b334d7264f3614",
+        "ua": "962ae1f50cda5fc3"
+      },
+      {
+        "ru": "e87e13c2a891b87c",
+        "en": "b1ab715781502298",
+        "ua": "15010df54f77a8f2"
+      },
+      {
+        "ru": "982d675cba65eb41",
+        "en": "1977c43c1e406017",
+        "ua": "05043f179e6a6eca"
+      },
+      {
+        "ru": "2f117e9cc0327fec",
+        "en": "64cd989efc140a82",
+        "ua": "64bf81efb4181043"
+      },
+      {
+        "ru": "118a3d6098543627",
+        "en": "666e6902f98aaf94",
+        "ua": "4e8180a02da72198"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "2a368d5ee4a96500",
+        "en": "e1267dda13c63103",
+        "ua": "0dc28eddf2e0881b"
+      },
+      {
+        "ru": "3f032ffa75c19080",
+        "en": "62501f00f92a151c",
+        "ua": "4d2238f3a207f441"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "221e1047f89bb945",
+        "en": "79095df6520d770a",
+        "ua": "c2f92d434d751033"
+      },
+      {
+        "ru": "8bd3bed5e79997fa",
+        "en": "afcbf94d1f673edd",
+        "ua": "34972380930da6f6"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "62157694cf8eb134",
+        "en": "6c847dbae51b8e71",
+        "ua": "ae1404137a261cfe"
+      },
+      {
+        "ru": "1aa7e759c7d12402",
+        "en": "a9983f21fb86040e",
+        "ua": "69aef1f43438383b"
+      },
+      {
+        "ru": "41614aae6bbd5a14",
+        "en": "7cb056b4ca2486c2",
+        "ua": "921333284c8b398f"
+      },
+      {
+        "ru": "0c94407a7848d7b6",
+        "en": "7e615e8897df0396",
+        "ua": "5154a3a68c415490"
+      },
+      {
+        "ru": "303c2b490a512178",
+        "en": "3f1e41fa5f7f38cb",
+        "ua": "ff7ec2c86eb2738c"
+      },
+      {
+        "ru": "358eca1c5a043221",
+        "en": "1126a38c020f490a",
+        "ua": "b5374ca6d5e09a7a"
+      },
+      {
+        "ru": "61aed6ac6ee0c181",
+        "en": "584a11f0834d0089",
+        "ua": "bbc32e89e351d094"
+      },
+      {
+        "ru": "55d1069121bd114c",
+        "en": "04e871176ff586e7",
+        "ua": "d42ed18e3f5a0739"
+      }
+    ],
+    "docs/guides/gui-command-builder.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "8fa6204ab7f84975",
+        "en": "1360fb1cacebb36e",
+        "ua": "9b19f7ca86f4b6fe"
+      },
+      {
+        "ru": "3d0dc5c8d4c48cce",
+        "en": "ccd0434f59f4e015",
+        "ua": "0aad46113118b243"
+      },
+      {
+        "ru": "af6ae8a3487a382e",
+        "en": "5baf4aa4995c6857",
+        "ua": "0f5c50e911a8e5d3"
+      },
+      {
+        "ru": "9eda45c2e1f94a6a",
+        "en": "83b2506a43c3b076",
+        "ua": "30bd0427d29ad6ca"
+      },
+      {
+        "ru": "fb8c7bf53ee27b67",
+        "en": "d1089a284ffc7aac",
+        "ua": "e0a88017bc0b87e8"
+      },
+      {
+        "ru": "90eb0e2c5a51dd7e",
+        "en": "66348b00eb99f59f",
+        "ua": "3375390679f0e2b4"
+      },
+      {
+        "ru": "4f01ea3bf95a0220",
+        "en": "242bde7f4e4645ce",
+        "ua": "cd13870f71affc01"
+      },
+      {
+        "ru": "fbf430192d5d8eaa",
+        "en": "a4b264a3da6d7b9e",
+        "ua": "70dfa5ce3e142d82"
+      },
+      {
+        "ru": "9cfa53bd51166479",
+        "en": "f31f05a20ea9ffd3",
+        "ua": "0abbc9c1e01af416"
+      },
+      {
+        "ru": "cea650e00096489b",
+        "en": "8e511d81605619a9",
+        "ua": "f016eb3cf87dac52"
+      },
+      {
+        "ru": "dbf1fb86880a3643",
+        "en": "68cb888cfbb5d2ee",
+        "ua": "292f7df8a2dd5838"
+      },
+      {
+        "ru": "4ed87aa9611265f5",
+        "en": "7ba627aeeecf3d02",
+        "ua": "9f501eb1baf4259a"
+      },
+      {
+        "ru": "4620eedc3a507162",
+        "en": "b0fb19a7a02a5333",
+        "ua": "524d5dbf28f2517d"
+      },
+      {
+        "ru": "93a7f7e4804d7511",
+        "en": "92d6a6f90d084eef",
+        "ua": "c2a1c6a4aefcbd11"
+      },
+      {
+        "ru": "9adf4974ab741ba7",
+        "en": "407b5f87a33f8558",
+        "ua": "fe6694d17b3b7b97"
+      },
+      {
+        "ru": "5c57b0875e89dea0",
+        "en": "a99a0f3820fe45e1",
+        "ua": "ba6b8449fed46b02"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "d75decbc71a5d3c8",
+        "en": "6ada940cc0e4198d",
+        "ua": "460a0a384dad4015"
+      },
+      {
+        "ru": "b68e500be6d2d25f",
+        "en": "6c7c636d2b17d090",
+        "ua": "c3fbbe912ca8731c"
+      },
+      {
+        "ru": "a8f6ec95f8671b63",
+        "en": "e70ebe5ae361f3df",
+        "ua": "b0aa3cd0660d48d7"
+      },
+      {
+        "ru": "8b4897f292caac65",
+        "en": "25a7af881e11c4e2",
+        "ua": "7896457c1e7e00a1"
+      },
+      {
+        "ru": "e53683ecd1dd1b1f",
+        "en": "4595637a7d13eaf7",
+        "ua": "cbc70e2f31f71a65"
+      },
+      {
+        "ru": "bd9e74d6e4357ed3",
+        "en": "0eb4dd781f694c05",
+        "ua": "3517c74d33a84378"
+      },
+      {
+        "ru": "4f9f803452acdc3a",
+        "en": "7b5d2d41951043ed",
+        "ua": "aa98c5f09fdc94f1"
+      },
+      {
+        "ru": "a281c3629178ae7c",
+        "en": "2570935cd60ea45e",
+        "ua": "934c1ff6a8aab9b2"
+      },
+      {
+        "ru": "44f77c25168927a0",
+        "en": "03dc35136d98b7a5",
+        "ua": "d77bb50ac1cb7461"
+      },
+      {
+        "ru": "031eda6636f2cf96",
+        "en": "1ed09a502efed734",
+        "ua": "3655b4e8578bf443"
+      },
+      {
+        "ru": "7f3f3afc7ba84868",
+        "en": "336dba22a3174d50",
+        "ua": "0e80cda8dfcebbea"
+      },
+      {
+        "ru": "fbc17822fd778ecb",
+        "en": "b4208ca0e6a1f59d",
+        "ua": "9817e4c10bfaa15c"
+      },
+      {
+        "ru": "d84d58ec757ee5ca",
+        "en": "e13049764a7bc205",
+        "ua": "f43d58e8edc3bb01"
+      },
+      {
+        "ru": "5cb6e46d71bd4373",
+        "en": "ce98af4b775206cb",
+        "ua": "224408044b0a6faa"
+      },
+      {
+        "ru": "7877121bb3774825",
+        "en": "4feee43a6ca9b65d",
+        "ua": "f4fca143028e128b"
+      },
+      {
+        "ru": "71b8338ecfe76269",
+        "en": "71659e0efd980566",
+        "ua": "589d9817b5bed6e7"
+      },
+      {
+        "ru": "322ba0734d370393",
+        "en": "92e03f20fd6598ab",
+        "ua": "4466bab7f1e0e428"
+      },
+      {
+        "ru": "edb90ffbfaae4d1c",
+        "en": "da89354d1a32f15f",
+        "ua": "4807e4d7e5de0b39"
+      },
+      {
+        "ru": "a8beec1dce595e71",
+        "en": "3c02f3823b52191e",
+        "ua": "6ac023ab65777f2e"
+      },
+      {
+        "ru": "dc0b37f458f76c24",
+        "en": "14649d473920aef6",
+        "ua": "dc0bf397696974f0"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      }
+    ],
+    "docs/guides/install-and-explorer.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "beb15476202e641a",
+        "en": "a7fa30de2bb68cea",
+        "ua": "e0a6a37d1c0ba516"
+      },
+      {
+        "ru": "da1d38ef80c78f25",
+        "en": "cd5af2bbaea6d087",
+        "ua": "a7c04ebaa92349f8"
+      },
+      {
+        "ru": "aa37b0b33a3ac1ca",
+        "en": "1fa55bc2c337de5f",
+        "ua": "3f060842cbb3a5d6"
+      },
+      {
+        "ru": "637b7f185b101f05",
+        "en": "d5735b8d951da996",
+        "ua": "c003cb70bd184430"
+      },
+      {
+        "ru": "fce8a401c6285e70",
+        "en": "21dd646cf87f33d3",
+        "ua": "42901101f913fa99"
+      },
+      {
+        "ru": "f287ebfe18067f0b",
+        "en": "510fd054ad2c39bf",
+        "ua": "c9ad9c967eb73598"
+      },
+      {
+        "ru": "9584002b18780b08",
+        "en": "c9d1a45b62903e73",
+        "ua": "82d45b37f2b97d22"
+      },
+      {
+        "ru": "630f5d59fc8acfa2",
+        "en": "511a30c547f27174",
+        "ua": "fb185e55b5c250f1"
+      },
+      {
+        "ru": "6ee110eb8963c1bf",
+        "en": "3d5ac0baa93d195b",
+        "ua": "252b608b42f6fcfb"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "50569f5c60f3bc54",
+        "en": "50569f5c60f3bc54",
+        "ua": "50569f5c60f3bc54"
+      },
+      {
+        "ru": "4ad70acc34de5cb0",
+        "en": "f19ffcd6cfb5c760",
+        "ua": "e70ace0f5a89743f"
+      },
+      {
+        "ru": "f494720614443fc8",
+        "en": "dfd3689f655968b0",
+        "ua": "3aaa2cd321c2f7b1"
+      },
+      {
+        "ru": "af95c2c24a52d950",
+        "en": "68b8c56e10a5d1ab",
+        "ua": "d6a9538097e6aea3"
+      },
+      {
+        "ru": "e040d87234d9bcd4",
+        "en": "749065cbe2cb27e5",
+        "ua": "183f096e3663647d"
+      },
+      {
+        "ru": "816da6fb21a4fc0d",
+        "en": "1660787b9bb9c46d",
+        "ua": "fbfbfe093760479f"
+      },
+      {
+        "ru": "dba2fb980757ccff",
+        "en": "4f384e82c95b8bbd",
+        "ua": "c0499e4ce87ba22e"
+      },
+      {
+        "ru": "8c9f8459f468d3a2",
+        "en": "00ef3f8e43335c9b",
+        "ua": "e47c04096d1ba620"
+      },
+      {
+        "ru": "0add4a5abe783b99",
+        "en": "4312f1f47c5adb37",
+        "ua": "6114f174352cedfc"
+      },
+      {
+        "ru": "c66ff727dc55e06c",
+        "en": "29393ac404b4154a",
+        "ua": "e92fb95b2cf127be"
+      },
+      {
+        "ru": "6d3202b71688dc23",
+        "en": "af4294967ad95e5e",
+        "ua": "25268dfc909e0b0a"
+      },
+      {
+        "ru": "af4b8aff1357ddca",
+        "en": "4dcc3ad33a7d6674",
+        "ua": "c4b6e5bba1846b32"
+      },
+      {
+        "ru": "90327d71f7b65b85",
+        "en": "7578a0b70aa74eb4",
+        "ua": "a20d1192c970912f"
+      },
+      {
+        "ru": "e718c6e641f76f10",
+        "en": "60040fe7b188df57",
+        "ua": "5735d8ea6b5dd463"
+      },
+      {
+        "ru": "783f2ba0fd348cee",
+        "en": "bbe5e882b9d64a6b",
+        "ua": "a2d4d32895e2350e"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "8b344dba0d68e3db",
+        "en": "4f426bb560cffd77",
+        "ua": "9b7d08935e862437"
+      },
+      {
+        "ru": "0933b69f4b56fd8d",
+        "en": "8f961469b95c058c",
+        "ua": "f44091a5940e579e"
+      },
+      {
+        "ru": "7757fc645d0d2032",
+        "en": "6b31011a03c106d9",
+        "ua": "0a793fc19ec6a0bc"
+      },
+      {
+        "ru": "a49e0d80b78af2a6",
+        "en": "80dc21673e554c7b",
+        "ua": "a3fa8cafc3fff979"
+      },
+      {
+        "ru": "3847d4be9f171f3c",
+        "en": "f98f2ed22b70ea59",
+        "ua": "e2af7d55641c8eb0"
+      },
+      {
+        "ru": "f754a3ce0fdd1961",
+        "en": "900689db8e06a068",
+        "ua": "eaba74eb69f9c582"
+      },
+      {
+        "ru": "162e91772792e282",
+        "en": "c798a210bf78269e",
+        "ua": "092c5f39bdb2f9da"
+      },
+      {
+        "ru": "1db2f23b12270a56",
+        "en": "e667d0377cc85cb3",
+        "ua": "ca7ba9d8e53884f4"
+      },
+      {
+        "ru": "8ffbdb62ff06f927",
+        "en": "06092958e618c922",
+        "ua": "f67ec8ee963d5a03"
+      },
+      {
+        "ru": "e2ac022ebe973334",
+        "en": "addb6b72de8784ca",
+        "ua": "bc31fbe4bde2cbdb"
+      },
+      {
+        "ru": "ac69e2b6acf564b6",
+        "en": "3754ec22a3c5d7c6",
+        "ua": "ac160b23c4aeacd6"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "fef6804f66f136d9",
+        "en": "129e4db8ba1c4fda",
+        "ua": "fe4498c9e84019ed"
+      },
+      {
+        "ru": "f719bf13c4e94b7d",
+        "en": "7b38118663203290",
+        "ua": "48abf56c69205887"
+      },
+      {
+        "ru": "8029593213d5fa7f",
+        "en": "16ab4acd133130c0",
+        "ua": "f95e2d492b4fedeb"
+      },
+      {
+        "ru": "f4f110e6bac780d5",
+        "en": "c3c5717dc6f965fa",
+        "ua": "794057a70123a707"
+      },
+      {
+        "ru": "74740f3ee8dca46c",
+        "en": "20f3c7d76f2782a3",
+        "ua": "324039bd21deb489"
+      },
+      {
+        "ru": "254d381757ba7447",
+        "en": "254d381757ba7447",
+        "ua": "254d381757ba7447"
+      },
+      {
+        "ru": "d51c6c1d07d583a6",
+        "en": "c3ddad7f59ada1a0",
+        "ua": "2029477090267498"
+      },
+      {
+        "ru": "3ad8ced5ed52c07e",
+        "en": "6a78d3191c7ba339",
+        "ua": "f4286ca0bf4bef87"
+      },
+      {
+        "ru": "9412ed1fe4b996ee",
+        "en": "63715a2c9a6ce1ec",
+        "ua": "c9ac12475e1c2875"
+      }
+    ],
+    "docs/guides/install-trust.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "98b78293c7e32c00",
+        "en": "40367e610d6a670d",
+        "ua": "20520780b27471ea"
+      },
+      {
+        "ru": "a970bd324b6886e9",
+        "en": "5544b7aaaebc9156",
+        "ua": "6875ed2895f9cf43"
+      },
+      {
+        "ru": "00e1c0fae3dc296c",
+        "en": "5ef1d0c5d450992f",
+        "ua": "351a1eb559d90cd1"
+      },
+      {
+        "ru": "0d5d1d4c657ddf79",
+        "en": "209fd49baf21be4d",
+        "ua": "7173e3265468d320"
+      },
+      {
+        "ru": "1246369a7653daf2",
+        "en": "b21a9faebe9d4d31",
+        "ua": "0b2b24fbea45bbe6"
+      },
+      {
+        "ru": "cd9911f458777569",
+        "en": "1d258318169971cd",
+        "ua": "97fb0689299f4a57"
+      },
+      {
+        "ru": "65540d2aa170b9ef",
+        "en": "2f0a44c9c3e37df5",
+        "ua": "3f469ac120e81b7b"
+      },
+      {
+        "ru": "f14e8aa7e341de4a",
+        "en": "907ccc326a33ec49",
+        "ua": "5669ba2b66a92774"
+      },
+      {
+        "ru": "db307349b548a92e",
+        "en": "76d4e8241be270e5",
+        "ua": "7ea94cb48404f47b"
+      },
+      {
+        "ru": "245463718f79a8f7",
+        "en": "345ee5b499e7cae0",
+        "ua": "45a41551241ebd4c"
+      },
+      {
+        "ru": "48ae7f58bced5da3",
+        "en": "184eb7ec9c2574e6",
+        "ua": "f129bc172078d05e"
+      },
+      {
+        "ru": "11ebf91f0bdc19a9",
+        "en": "418a0fb318590dc3",
+        "ua": "7d05ff0201a7924f"
+      },
+      {
+        "ru": "3e932546cffa5186",
+        "en": "fd42b2d25f3b7920",
+        "ua": "77d92e7979291221"
+      },
+      {
+        "ru": "0f4bb2425b0b5645",
+        "en": "84afe3e5227dcdd3",
+        "ua": "48960cdac9477076"
+      },
+      {
+        "ru": "c6c3470bae3ddaaa",
+        "en": "123841948ffb7712",
+        "ua": "fd63be90a753a005"
+      },
+      {
+        "ru": "92b02ed63aca0e79",
+        "en": "871da3d14cf1279e",
+        "ua": "ac008f06b436f7bb"
+      },
+      {
+        "ru": "fee7d4ff3f112c60",
+        "en": "817ca50dde7ea1be",
+        "ua": "f1520f5cd04bd5ac"
+      },
+      {
+        "ru": "b1e535fffa3c1fd5",
+        "en": "a9e62cbe6b858e3d",
+        "ua": "63eb1371aaed18db"
+      },
+      {
+        "ru": "014de15b02b2e864",
+        "en": "f7435f0ca2128126",
+        "ua": "80b2ca13b3915856"
+      },
+      {
+        "ru": "bdaf45f70b2b13d6",
+        "en": "4a16aca9e0534a50",
+        "ua": "8ec9b3048b06f455"
+      },
+      {
+        "ru": "c5d581efddad595b",
+        "en": "baf3b8d10f00d1c8",
+        "ua": "6a942d043e866f50"
+      },
+      {
+        "ru": "526e1eb1e127463d",
+        "en": "833366ff617578dc",
+        "ua": "849e0094036f4004"
+      },
+      {
+        "ru": "14c334c91872e3b8",
+        "en": "00b9917a691e9199",
+        "ua": "a2305656454d0c22"
+      },
+      {
+        "ru": "1ff74f09193f3bf5",
+        "en": "1cd2f038edf09b63",
+        "ua": "87da086a0ab434c3"
+      },
+      {
+        "ru": "c41ee50474fbbfbc",
+        "en": "e5839d24dc00c772",
+        "ua": "27566e9a022e330e"
+      },
+      {
+        "ru": "4b83e9e0cbb3a8a1",
+        "en": "448c1d7a7b1c4500",
+        "ua": "043f7ab4eed99893"
+      },
+      {
+        "ru": "6583c8a3eafacadf",
+        "en": "7289110c69d25787",
+        "ua": "d0929812e17b3083"
+      },
+      {
+        "ru": "962f403295567237",
+        "en": "86fdd636dbf2216e",
+        "ua": "446491b53292c850"
+      },
+      {
+        "ru": "43df13e7a8e52f0a",
+        "en": "47921b47d9bcdf5f",
+        "ua": "0a341273f40e8c0d"
+      },
+      {
+        "ru": "156f3bbcc82bdf1e",
+        "en": "38726572bff4e436",
+        "ua": "e8a66673cdf04cbd"
+      },
+      {
+        "ru": "4d293a92004e5994",
+        "en": "26d732c824663e0a",
+        "ua": "5e6c99570396643f"
+      },
+      {
+        "ru": "2b10c4a44b5edf4f",
+        "en": "a8c5e21a903cc396",
+        "ua": "4b67ff93f657be48"
+      },
+      {
+        "ru": "5f7684b85f073d9a",
+        "en": "3e8c62f71eb9562b",
+        "ua": "d040ff2cf9959ff1"
+      },
+      {
+        "ru": "5dac8eda968c3af2",
+        "en": "0cddc0f0564fcafb",
+        "ua": "789382c6d7fd4283"
+      },
+      {
+        "ru": "14fbde88cbdfcb36",
+        "en": "1a43eb9863be7ecd",
+        "ua": "9c38181d8663bdb6"
+      },
+      {
+        "ru": "02012b798331c147",
+        "en": "b657c8ed89bd27c6",
+        "ua": "b1353dc13aa57416"
+      },
+      {
+        "ru": "8e702576dd3c03f6",
+        "en": "95b072ce650dbc3f",
+        "ua": "0a66a1778db448b7"
+      },
+      {
+        "ru": "f8942db30b8588c1",
+        "en": "b9e66deb635f1464",
+        "ua": "468901e8d1280634"
+      },
+      {
+        "ru": "0a793b22b0a55234",
+        "en": "a59d583f9118608a",
+        "ua": "a55ffa82341f94b8"
+      },
+      {
+        "ru": "befc23f921f3f922",
+        "en": "540b8627e20dc465",
+        "ua": "9a2aebc9f4a15de8"
+      }
+    ],
+    "docs/guides/fd-sec-containers.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "ee2645039dcf07f9",
+        "en": "e648bc105efac0ad",
+        "ua": "28edc70bbd1e073d"
+      },
+      {
+        "ru": "1692e3c17e8211e7",
+        "en": "5bb4aa25df1dedca",
+        "ua": "cdc40128da4e132f"
+      },
+      {
+        "ru": "5e8107d163e8aa9e",
+        "en": "0886f1a33eca2e4e",
+        "ua": "252c3c9e8da5c05c"
+      },
+      {
+        "ru": "d3fa5da2e7d5c516",
+        "en": "c1b0e62d2401f0ea",
+        "ua": "9bd297a8ef8b1eb6"
+      },
+      {
+        "ru": "2cec04d7c947470b",
+        "en": "a8e810093aec9658",
+        "ua": "3b014b63307331bd"
+      },
+      {
+        "ru": "c99dc680356c25e8",
+        "en": "80dc21673e554c7b",
+        "ua": "a3fa8cafc3fff979"
+      },
+      {
+        "ru": "dddb20df34854a23",
+        "en": "143a7a04bf4b8f2e",
+        "ua": "f2642f3534c77d87"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "eecdaef04a20d052",
+        "en": "2a7e870fbc0f2b08",
+        "ua": "ac6a325b9fabe62d"
+      },
+      {
+        "ru": "8522ed87caf6719a",
+        "en": "1f3d23bf8c3c956b",
+        "ua": "db9a2aedaac3faaa"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "128808d69e405ecf",
+        "en": "486f8fcab44829b9",
+        "ua": "efc4c31241aeef8c"
+      },
+      {
+        "ru": "c7a7b4734e5ec559",
+        "en": "3ac1b211efacc877",
+        "ua": "e6f0dd8aae46dd7f"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "e04568ecc97f10c2",
+        "en": "80cd97fafefaecd7",
+        "ua": "7ef29b00203e7dbe"
+      },
+      {
+        "ru": "a1faf4ea4380aa89",
+        "en": "2cfbe067e88d66af",
+        "ua": "93db2f68f0926dac"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "ed7550e86c53de16",
+        "en": "82b7c64066ecd04e",
+        "ua": "da2c0e1cba97455c"
+      },
+      {
+        "ru": "14c3abc36d60f0e9",
+        "en": "c0e2ddd6ed410a1e",
+        "ua": "37fcf5574945f4c5"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "66714ea702018f00",
+        "en": "bac44e56b3535981",
+        "ua": "d79d7b3b068bec1a"
+      },
+      {
+        "ru": "562e38c926bcf49e",
+        "en": "2e73b3c1e67d14e7",
+        "ua": "717c38e59b3e28f4"
+      },
+      {
+        "ru": "b544d424359a78bc",
+        "en": "6d86d3a2322bab78",
+        "ua": "fbccaee9b5348761"
+      },
+      {
+        "ru": "0bc62df344ddd05c",
+        "en": "10acec4a1eb7a644",
+        "ua": "ee30f1c32706a454"
+      },
+      {
+        "ru": "6a3cb00da7aad98c",
+        "en": "fd4f0efd6285bcd3",
+        "ua": "ca5b70d41d4bcd9f"
+      },
+      {
+        "ru": "40b3497c55e3445b",
+        "en": "fd97c508ece62720",
+        "ua": "431996dd5c0c21eb"
+      },
+      {
+        "ru": "f78ebb265f939abe",
+        "en": "36bac5839891e124",
+        "ua": "d87612a7f067a66c"
+      },
+      {
+        "ru": "83e5cd63e119cb44",
+        "en": "2d2ff3e430f9e297",
+        "ua": "0f04fb6e6b0f6f44"
+      },
+      {
+        "ru": "73ae7abfee98c37a",
+        "en": "3e94a9a22dcec863",
+        "ua": "958ae1de7ae2a0c1"
+      },
+      {
+        "ru": "a72dbe1d80c97bb4",
+        "en": "ff9b153ffa1ede5c",
+        "ua": "7a7b211f4f006153"
+      },
+      {
+        "ru": "831d657c7187967d",
+        "en": "63463045b5e7d6fd",
+        "ua": "56e2ac301d895941"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      }
+    ],
+    "docs/guides/glossary.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "eae82d4f54e8e3e4",
+        "en": "de96a4232559ce3b",
+        "ua": "e4e7b8233574c30e"
+      },
+      {
+        "ru": "988840c9c1c7dc5b",
+        "en": "6ee9bb5cb83657a2",
+        "ua": "1d05c720e4e9a2ad"
+      },
+      {
+        "ru": "d3adc3b2f7aaab77",
+        "en": "2a9e1677439d66cf",
+        "ua": "a74a64edfde120a5"
+      },
+      {
+        "ru": "6f14945faafdf9a0",
+        "en": "4f5025c17a47efe0",
+        "ua": "4cc4fe8d7e897c7d"
+      },
+      {
+        "ru": "64ce09ddf15682ac",
+        "en": "304180ea493584e1",
+        "ua": "f57c309b0493b9c3"
+      },
+      {
+        "ru": "999f2064f4b8bab6",
+        "en": "0a2c8af4d2b7121d",
+        "ua": "dda556781c54f0c7"
+      },
+      {
+        "ru": "091c2ceeb2929841",
+        "en": "f59e4125d20d22c6",
+        "ua": "29a3af7bafd7f262"
+      },
+      {
+        "ru": "02993ddcf39394eb",
+        "en": "033955d469b620d6",
+        "ua": "852a30ba4a5fdcde"
+      },
+      {
+        "ru": "d7b416fde27bf08d",
+        "en": "ccba113c4d538f48",
+        "ua": "ef01790a613b90b0"
+      },
+      {
+        "ru": "55ea6b81046cf4f3",
+        "en": "3404644e01177ee9",
+        "ua": "8000fd1c82a15d8b"
+      },
+      {
+        "ru": "2983553221b1dcea",
+        "en": "fc07a9b00cca15f0",
+        "ua": "46f0ea6af68409ab"
+      },
+      {
+        "ru": "0b3b6a8e61e42c42",
+        "en": "0447e37a03ad2e73",
+        "ua": "0b3b6a8e61e42c42"
+      },
+      {
+        "ru": "942ddfa6db7c90ee",
+        "en": "50656438a8fa0eb5",
+        "ua": "dce4c13f22f3c7bb"
+      },
+      {
+        "ru": "242c9f4dd0f14611",
+        "en": "1f1035d44c8fe94e",
+        "ua": "c6efa052979a065f"
+      },
+      {
+        "ru": "3a3d6421f078edd3",
+        "en": "71252bab21863c57",
+        "ua": "51554408d7ba8407"
+      },
+      {
+        "ru": "fd6725caca70defe",
+        "en": "41921e7d91e0659e",
+        "ua": "2d368b12725409af"
+      },
+      {
+        "ru": "b8ac461ba3062b5c",
+        "en": "b8879f409b8096c2",
+        "ua": "5cab22186776bfd5"
+      },
+      {
+        "ru": "2ebf9ee0fd2d606b",
+        "en": "20c2bf859abd3dfe",
+        "ua": "ad6f977ad61b1f97"
+      },
+      {
+        "ru": "abe1d3bdaca02f36",
+        "en": "09149c347bbf2e6b",
+        "ua": "d4ecc57071c0cb2d"
+      },
+      {
+        "ru": "0662eaa156c183a2",
+        "en": "46f110fa951129af",
+        "ua": "b63f192f83d6523a"
+      },
+      {
+        "ru": "3af7b71a227c33f1",
+        "en": "0b5543efa44ab7b2",
+        "ua": "70108c637193f282"
+      }
+    ],
+    "docs/guides/topics.html": [
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "2ccfb1839675c966",
+        "en": "f805531a106bcac9",
+        "ua": "2da082641c54abbc"
+      },
+      {
+        "ru": "a423869a16c4f6ed",
+        "en": "bdbdcc2169a2b12c",
+        "ua": "46d2bb26af96b86c"
+      },
+      {
+        "ru": "a7fab6aa698b1fe9",
+        "en": "de76469fac839166",
+        "ua": "fcc25a4c465c7452"
+      },
+      {
+        "ru": "9d1cd96d8fc13f7c",
+        "en": "15f755e9bff88695",
+        "ua": "2822e7a9de579d41"
+      },
+      {
+        "ru": "7f0f37e0abebdade",
+        "en": "362bf48ad25758c0",
+        "ua": "0312b60cf473a087"
+      },
+      {
+        "ru": "91df6ea69767c4a5",
+        "en": "1d91e9d34e6109bb",
+        "ua": "cd7f690769eaab80"
+      },
+      {
+        "ru": "c84cd703ee1c01cf",
+        "en": "698966dc769c325b",
+        "ua": "b16333b53b43eb68"
+      },
+      {
+        "ru": "7f0f37e0abebdade",
+        "en": "362bf48ad25758c0",
+        "ua": "0312b60cf473a087"
+      },
+      {
+        "ru": "2ee8e667e8db6a13",
+        "en": "3f5dcb46d4381c49",
+        "ua": "8b11d9a0198bd943"
+      },
+      {
+        "ru": "c5e92da8933c88c4",
+        "en": "3bbb3ab685796d37",
+        "ua": "4098ce283e53a91b"
+      },
+      {
+        "ru": "d1ea1417de01da38",
+        "en": "871ccfe6bad204fd",
+        "ua": "766aaa0e7db6b89a"
+      },
+      {
+        "ru": "73e838c09073473b",
+        "en": "cc4ac79e1e7343cd",
+        "ua": "107f21acefeef29b"
+      },
+      {
+        "ru": "aca7f7edc6fc1c9d",
+        "en": "1b464c5ee57d756c",
+        "ua": "86aff5e36f468bf3"
+      },
+      {
+        "ru": "50a77bd44f2259e7",
+        "en": "a6e6db5580f7d8c7",
+        "ua": "e4f31ccfc6445982"
+      },
+      {
+        "ru": "aca7f7edc6fc1c9d",
+        "en": "1b464c5ee57d756c",
+        "ua": "86aff5e36f468bf3"
+      },
+      {
+        "ru": "f505cadd4d77d5c4",
+        "en": "302de8679ddd54c1",
+        "ua": "7f7a584f4144a9f7"
+      },
+      {
+        "ru": "aca7f7edc6fc1c9d",
+        "en": "1b464c5ee57d756c",
+        "ua": "86aff5e36f468bf3"
+      },
+      {
+        "ru": "fd56a4c273ef12b7",
+        "en": "2221d00fefb2e149",
+        "ua": "07381a7d9d62a3cb"
+      },
+      {
+        "ru": "33ed9251b49aa2a0",
+        "en": "6b37d0b9da89ffcc",
+        "ua": "0036180daf7ee86c"
+      },
+      {
+        "ru": "f31336a2a6ddda78",
+        "en": "686cc897be0d519c",
+        "ua": "c6af214d52432170"
+      },
+      {
+        "ru": "e61dcdefad5e01b6",
+        "en": "6e4badb4f9a31678",
+        "ua": "f06fd98b62a9ddb2"
+      },
+      {
+        "ru": "2ee8e667e8db6a13",
+        "en": "3f5dcb46d4381c49",
+        "ua": "8b11d9a0198bd943"
+      },
+      {
+        "ru": "0a90e126f4fe3c03",
+        "en": "ceb1dff296a44ebd",
+        "ua": "c750190c77bf0815"
+      },
+      {
+        "ru": "2ee8e667e8db6a13",
+        "en": "3f5dcb46d4381c49",
+        "ua": "8b11d9a0198bd943"
+      },
+      {
+        "ru": "b09c8917c12c5176",
+        "en": "e01bafdf91db2473",
+        "ua": "ada6bfeabe52068a"
+      },
+      {
+        "ru": "33ed9251b49aa2a0",
+        "en": "6b37d0b9da89ffcc",
+        "ua": "0036180daf7ee86c"
+      },
+      {
+        "ru": "c84776da36aedae8",
+        "en": "42b9fe5e81585d6b",
+        "ua": "9333bd3dac07c7fb"
+      },
+      {
+        "ru": "2bb8c270e566b112",
+        "en": "2b72811d5f06762f",
+        "ua": "6ece7065a0d6eb71"
+      },
+      {
+        "ru": "887f7663a438a2c4",
+        "en": "9f74ac317e1c385e",
+        "ua": "f9522743e4df6f03"
+      },
+      {
+        "ru": "d1ea1417de01da38",
+        "en": "871ccfe6bad204fd",
+        "ua": "766aaa0e7db6b89a"
+      },
+      {
+        "ru": "efc910d68cd73e85",
+        "en": "60e971e860daff70",
+        "ua": "cd88abe3d52cf4ac"
+      },
+      {
+        "ru": "91df6ea69767c4a5",
+        "en": "1d91e9d34e6109bb",
+        "ua": "cd7f690769eaab80"
+      },
+      {
+        "ru": "ed5304a2b0431149",
+        "en": "885516d74f5a3e91",
+        "ua": "2e6f0253c7b97632"
+      },
+      {
+        "ru": "7f0f37e0abebdade",
+        "en": "362bf48ad25758c0",
+        "ua": "0312b60cf473a087"
+      },
+      {
+        "ru": "938c397fe4763f67",
+        "en": "57c5ebd207695ace",
+        "ua": "b8a58585e7a989ce"
+      },
+      {
+        "ru": "33ed9251b49aa2a0",
+        "en": "6b37d0b9da89ffcc",
+        "ua": "0036180daf7ee86c"
+      },
+      {
+        "ru": "fea7d18579eaf23c",
+        "en": "862ebec502c0b058",
+        "ua": "8aee437117a27998"
+      },
+      {
+        "ru": "30079cce686083c5",
+        "en": "dd61592b305f89cb",
+        "ua": "31403fa517f37352"
+      },
+      {
+        "ru": "2ee8e667e8db6a13",
+        "en": "3f5dcb46d4381c49",
+        "ua": "8b11d9a0198bd943"
+      },
+      {
+        "ru": "1ede8cb47ee418d9",
+        "en": "83a94c4d4f0feccf",
+        "ua": "8637cc7824095652"
+      },
+      {
+        "ru": "245618c29c80c318",
+        "en": "f54f6b4168450c4c",
+        "ua": "8b78e726a990c70b"
+      },
+      {
+        "ru": "d1ea1417de01da38",
+        "en": "871ccfe6bad204fd",
+        "ua": "766aaa0e7db6b89a"
+      },
+      {
+        "ru": "9c052964cdd725d5",
+        "en": "4c4e436f9a453c77",
+        "ua": "a63674a1ace5e34b"
+      },
+      {
+        "ru": "3af7b71a227c33f1",
+        "en": "0b5543efa44ab7b2",
+        "ua": "70108c637193f282"
+      }
+    ],
+    "docs/guides/guide.js": [
+      {
+        "ru": "c0bb8c8f26e73686",
+        "en": "adc02f7c2f192967",
+        "ua": "b498f75b18842d7e"
+      },
+      {
+        "ru": "1ecddf40bfeb28ab",
+        "en": "e21f935f11d7e966",
+        "ua": "649c3911c6703993"
+      },
+      {
+        "ru": "d2d08c715ee66cbd",
+        "en": "8d525e5f158b9afe",
+        "ua": "d19980613c41ba3f"
+      }
+    ]
+  },
+  "readmes": {
+    "README.md": [
+      {
+        "en": "2e696100370f8b3d",
+        "ru": "986f8e7373be9f6d",
+        "ua": "0fa2d7cb458abf1d",
+        "de": "0eb58c9c2630db12",
+        "fr": "7ba09f6c39403a79"
+      },
+      {
+        "en": "dbe436ceadfe336c",
+        "ru": "2001447e25e81cc4",
+        "ua": "b98bd2f56b6a6896",
+        "de": "1fb2ed599cb3785d",
+        "fr": "1104d5297408c5e2"
+      },
+      {
+        "en": "9cb02f57e6acc47e",
+        "ru": "dfa3aa5934bd3bd9",
+        "ua": "e6e77ad95f79bdd4",
+        "de": "adfa42e0b85efd42",
+        "fr": "23d7e57f7515fd6e"
+      },
+      {
+        "en": "9db37af404a7c954",
+        "ru": "af46469a3713e845",
+        "ua": "8f9c5188f7d9f360",
+        "de": "c015d1b509ff5050",
+        "fr": "62e64d2ec430162d"
+      },
+      {
+        "en": "6a239ef5ac840eec",
+        "ru": "9add993b4be0eccc",
+        "ua": "c67da1b6d0aa8007",
+        "de": "ad711b8b18d2da86",
+        "fr": "9baeae8e82e3a71c"
+      },
+      {
+        "en": "c16dd689de8267c7",
+        "ru": "f6e16d6916d422cf",
+        "ua": "eb21acf3a765221a",
+        "de": "2c21b76f4ff35924",
+        "fr": "3ecb043a17f381e3"
+      },
+      {
+        "en": "ac7eee044b96c035",
+        "ru": "02fcbe49ad31b989",
+        "ua": "65f68e2c5ac51fd4",
+        "de": "4bf0798ed1067781",
+        "fr": "65d2ad7a081e2983"
+      },
+      {
+        "en": "e5066202b1c262df",
+        "ru": "f61655dcd2edf215",
+        "ua": "35922e72dd7e524a",
+        "de": "f00c744c94245f46",
+        "fr": "a740f539f7d8c7d6"
+      },
+      {
+        "en": "01003105ba4ea9cd",
+        "ru": "8ccf3268fb7aac04",
+        "ua": "472b1fc6179c05cd",
+        "de": "a3a52e6e8718c0a3",
+        "fr": "bfc5ef10c06681b8"
+      },
+      {
+        "en": "2c8378b8a6e31b04",
+        "ru": "30f9bdfa63ca3566",
+        "ua": "4146a792a4dbaa2e",
+        "de": "679d241936411c01",
+        "fr": "95f2915b66a19280"
+      },
+      {
+        "en": "8018732724d1124c",
+        "ru": "3489e8d50e0d04db",
+        "ua": "412e31d3743d0da3",
+        "de": "9ebe9e64f9ce29e5",
+        "fr": "308b661d926bdc39"
+      },
+      {
+        "en": "99f957eaae34bb98",
+        "ru": "277e604c4f0f0692",
+        "ua": "e5016f0fca8f3bea",
+        "de": "98f4e4bd73bd56fd",
+        "fr": "775269a23ab705f8"
+      }
+    ]
+  }
+}

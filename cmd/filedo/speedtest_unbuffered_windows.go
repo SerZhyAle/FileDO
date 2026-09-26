@@ -126,6 +126,9 @@ func doCopy(e *copyEnds, buf []byte, fileSize int64) (int64, error) {
 	}
 	var total int64
 	for total < fileSize {
+		if speedStopRequested() {
+			return total, errRunStopped
+		}
 		want := int64(len(buf))
 		if fileSize-total < want {
 			want = fileSize - total

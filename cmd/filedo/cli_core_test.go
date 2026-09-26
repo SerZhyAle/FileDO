@@ -8,7 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 	"unicode/utf16"
 )
 
@@ -519,6 +522,125 @@ func TestSecureRenameHistoryHidesNames(t *testing.T) {
 		n := e.Name()
 		if len(n) == 24 && !strings.Contains(n, ".") && strings.Contains(hist, n) {
 			t.Fatalf("history names the anonymous blob %s", n)
+		}
+	}
+}
+
+// TestProbeUnreadablePositionsAreNotAPass is AUD-02-F1: a counterfeit that
+// answers every read above its real capacity with an I/O error leaves those
+// positions untested; the probe must not call that a pass.
+func TestProbeUnreadablePositionsAreNotAPass(t *testing.T) {
+	d := newMemDevice(512)
+	d.origErrOnce = map[int64]bool{}
+	for _, off := range probePlan(64*gib, 512) {
+		if off >= 4*gib {
+			d.origErrOnce[off] = true
+		}
+	}
+	res, err := runProbe(t, d, 64*gib)
+	if res.unreadable == 0 {
+		t.Fatal("the fake left no position unreadable; the test proves nothing")
+	}
+	if err == nil {
+		t.Fatalf("%d of %d probe positions unreadable: verdict nil (a pass), want could not verify", res.unreadable, res.planned)
+	}
+	if errors.Is(err, errDefect) {
+		t.Fatalf("unreadable positions: verdict %v, want could not verify, not a defect", err)
+	}
+}
+
+// slowDevice wraps a memDevice, sleeps inside every call and counts calls
+// that overlap, to see a restore racing the probe's own I/O.
+type slowDevice struct {
+	mu       sync.Mutex
+	d        *memDevice
+	inFlight int32
+	overlaps int32
+}
+
+func (s *slowDevice) enter() {
+	if atomic.AddInt32(&s.inFlight, 1) > 1 {
+		atomic.AddInt32(&s.overlaps, 1)
+	}
+	time.Sleep(200 * time.Microsecond)
+}
+
+func (s *slowDevice) ReadAt(p []byte, off int64) error {
+	s.enter()
+	defer atomic.AddInt32(&s.inFlight, -1)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.d.ReadAt(p, off)
+}
+
+func (s *slowDevice) WriteAt(p []byte, off int64) error {
+	s.enter()
+	defer atomic.AddInt32(&s.inFlight, -1)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.d.WriteAt(p, off)
+}
+
+// TestProbeForcedRestoreDuringWritesLeavesNoMarker is AUD-02-F2: the
+// force-exit restore runs on another goroutine while the probe is writing.
+// No device call may overlap it, and no marker may stay on the device.
+func TestProbeForcedRestoreDuringWritesLeavesNoMarker(t *testing.T) {
+	sd := &slowDevice{d: newMemDevice(512)}
+	var restore func()
+	done := make(chan struct{})
+	calls := 0
+	stop := func() bool {
+		calls++
+		if calls == 10 {
+			go func() { restore(); close(done) }()
+		}
+		return false
+	}
+	_, err := probeCore(sd, 64*gib, 512, nil, func(r func()) func() { restore = r; return func() {} }, stop)
+	<-done
+	if n := atomic.LoadInt32(&sd.overlaps); n != 0 {
+		t.Fatalf("%d device calls overlapped the forced restore", n)
+	}
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	left := 0
+	for _, b := range sd.d.mem {
+		if bytes.HasPrefix(b, []byte("FILEDO_PROBE")) {
+			left++
+		}
+	}
+	if left != 0 {
+		t.Fatalf("%d markers left on the device after the forced restore (probe returned %v)", left, err)
+	}
+}
+
+// TestSpeedStopRemovesFiles is AUD-02-F5: the speed test observes a stop in
+// every loop, ends stopped, and leaves no test file behind.
+func TestSpeedStopRemovesFiles(t *testing.T) {
+	saved := speedStopRequested
+	t.Cleanup(func() { speedStopRequested = saved })
+
+	calls := 0
+	speedStopRequested = func() bool { calls++; return calls > 1 }
+	data := make([]byte, 3*unbufferedChunkSize)
+	var out bytes.Buffer
+	n, err := doCopy(&copyEnds{src: bytes.NewReader(data), dst: &out, align: 4096}, make([]byte, unbufferedChunkSize), int64(len(data)))
+	if !errors.Is(err, errRunStopped) {
+		t.Fatalf("doCopy with a stop after the first chunk: copied %d, err %v, want errRunStopped", n, err)
+	}
+
+	speedStopRequested = func() bool { return true }
+	cwd := t.TempDir()
+	target := t.TempDir()
+	t.Chdir(cwd)
+	err = runSpeedTest("Folder", target, "1", false, true, nil)
+	if !errors.Is(err, errRunStopped) {
+		t.Fatalf("a stopped speed test: %v, want errRunStopped", err)
+	}
+	for _, dir := range []string{cwd, target} {
+		left, _ := filepath.Glob(filepath.Join(dir, "speedtest_*"))
+		if len(left) != 0 {
+			t.Fatalf("a stopped speed test left %v", left)
 		}
 	}
 }

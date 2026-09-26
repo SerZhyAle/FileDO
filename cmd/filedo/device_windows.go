@@ -4,8 +4,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -166,24 +166,11 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 	var accessErrors bool
 
 	if fullScan {
-		walkErr := filepath.WalkDir(rootPath, func(p string, d fs.DirEntry, err error) error {
-			if err != nil {
-				if os.IsPermission(err) || strings.Contains(err.Error(), "being used by another process") || strings.Contains(err.Error(), "cannot access the file") {
-					accessErrors = true
-					return nil
-				}
-				accessErrors = true
-				return nil
-			}
-			if d.IsDir() {
-				if p != rootPath {
-					folderCount++
-				}
-			} else {
-				fileCount++
-			}
-			return nil
-		})
+		totals, walkErr := walkInfoTree(rootPath, false)
+		if errors.Is(walkErr, errRunStopped) {
+			return DeviceInfo{}, walkErr
+		}
+		fileCount, folderCount, accessErrors = totals.files, totals.folders, totals.accessErrors
 		if walkErr != nil && !accessErrors {
 			return DeviceInfo{}, fmt.Errorf("failed to walk directory '%s': %w", rootPath, walkErr)
 		}

@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -87,7 +88,11 @@ func getNetworkInfo(path string, fullScan bool) (NetworkInfo, error) {
 
 	if canRead {
 		if fullScan {
-			size, fileCount, folderCount, accessErrors = scanNetworkPath(normalizedPath)
+			var err error
+			size, fileCount, folderCount, accessErrors, err = scanNetworkPath(normalizedPath)
+			if err != nil {
+				return NetworkInfo{}, err
+			}
 		} else {
 			size, fileCount, folderCount, accessErrors = scanNetworkPathRoot(normalizedPath)
 		}
@@ -168,12 +173,17 @@ func scanNetworkPathRoot(path string) (uint64, int64, int64, bool) {
 	return totalSize, fileCount, folderCount, accessErrors
 }
 
-func scanNetworkPath(path string) (uint64, int64, int64, bool) {
+// scanNetworkPath walks the share for `info`. Its error is only the stop
+// (errRunStopped); every other walk error is folded into accessErrors.
+func scanNetworkPath(path string) (uint64, int64, int64, bool, error) {
 	var totalSize uint64
 	var fileCount, folderCount int64
 	var accessErrors bool
 
 	walkErr := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
+		if infoWalkStopped() {
+			return errRunStopped
+		}
 		if err != nil {
 			if os.IsPermission(err) || isNetworkError(err) {
 				accessErrors = true
@@ -195,11 +205,14 @@ func scanNetworkPath(path string) (uint64, int64, int64, bool) {
 		return nil
 	})
 
+	if errors.Is(walkErr, errRunStopped) {
+		return 0, 0, 0, false, walkErr
+	}
 	if walkErr != nil {
 		accessErrors = true
 	}
 
-	return totalSize, fileCount, folderCount, accessErrors
+	return totalSize, fileCount, folderCount, accessErrors, nil
 }
 
 func isNetworkError(err error) bool {

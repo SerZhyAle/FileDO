@@ -120,6 +120,24 @@ func genericOperation(cmd *flag.FlagSet) (string, runKind) {
 	}
 }
 
+// isOperationWord reports whether a word after a target is one the branches of
+// runGenericCommand act on - an operation, a word that means info, or the
+// history switch NewHistoryLogger reads. Anything else used to fall through to
+// info and end Done, exit 0, so a misspelt `wipe` or `test` in a script read
+// as a success (AUD-29-F3).
+func isOperationWord(word string) bool {
+	switch strings.ToLower(word) {
+	case "cln", "clean", "c",
+		"check-duplicates", "cd", "duplicate",
+		"speed", "fill", "f", "test", "probe", "recover", "repair",
+		"copy", "cp", "wipe", "w",
+		"info", "i", "short", "s",
+		"nohist", "no_history":
+		return true
+	}
+	return false
+}
+
 // printRedirectCleanNote says where a system-drive clean is looking.
 func printRedirectCleanNote(dir string) {
 	fmt.Printf("System drive: FileDO writes its test files to %s, so clean looks there.\n", dir)
@@ -455,6 +473,15 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		// Nothing was measured, so nothing is claimed: an unreachable target
 		// is *Not proven* and exit 2, never the zero it used to be.
 		runFailure(fmt.Errorf("%s %q does not exist or is not accessible", strings.ToLower(resourceType), path))
+		return
+	}
+
+	// A word that is no operation is a usage error, the same one an unknown
+	// first word gets, and nothing about the target is printed or recorded.
+	if cmd.NArg() >= 2 && !isOperationWord(cmd.Arg(1)) {
+		err := fmt.Errorf("Unknown command %q", cmd.Arg(1))
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		runFailure(err)
 		return
 	}
 
@@ -850,25 +877,29 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		fullScan = true
 	}
 
-	result, err := handler.Info(path, fullScan)
+	// Folder and device short format print the short form of the one scan;
+	// it used to scan a second time after handler.Info (AUD-10-F1).
+	var result string
+	var err error
+	switch {
+	case shortFormat && cmdType == CommandFolder:
+		var info FolderInfo
+		if info, err = getFolderInfo(path, fullScan); err == nil {
+			result = info.StringShort()
+		}
+	case shortFormat && cmdType == CommandDevice:
+		var info DeviceInfo
+		if info, err = getDeviceInfo(path, fullScan); err == nil {
+			result = info.StringShort()
+		}
+	default:
+		result, err = handler.Info(path, fullScan)
+	}
 	if err != nil {
 		reportOpError(err, path, historyLogger)
 		return
 	}
-
-	// Special handling for folder and device short format
-	if shortFormat && (cmdType == CommandFolder || cmdType == CommandDevice) {
-		switch cmdType {
-		case CommandFolder:
-			info, _ := getFolderInfo(path, fullScan)
-			fmt.Print(info.StringShort())
-		case CommandDevice:
-			info, _ := getDeviceInfo(path, fullScan)
-			fmt.Print(info.StringShort())
-		}
-	} else {
-		fmt.Print(result)
-	}
+	fmt.Print(result)
 
 	historyLogger.SetSuccess()
 }

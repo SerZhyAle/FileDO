@@ -67,7 +67,7 @@ Téléchargez `FileDO-<version>-setup.exe` depuis les [releases](https://github.
 
 Le programme d'installation n'est pas signé numériquement: au premier lancement, Windows peut afficher *Windows a protégé votre ordinateur* puis demander les droits d'administrateur. Comparez le SHA256 (le fichier `.sha256` publié à côté du téléchargement; `certutil -hashfile FileDO-<version>-setup.exe SHA256`), puis choisissez *Informations complémentaires* et *Exécuter quand même*. Pourquoi l'avertissement apparaît, à quoi servent les droits d'administrateur et ce que FileDO ne fait jamais: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html) (page en EN/RU/UA).
 
-Ces deux derniers points sont des fonctionnalités que l'on peut décocher sur la page « Customize » du programme d'installation, puis activer ou désactiver plus tard via **Modifier** dans « Applications et fonctionnalités ». Sans surveillance:
+Ces deux derniers points sont des fonctionnalités que l'on peut décocher sur la page « Choose what to install » du programme d'installation, puis activer ou désactiver plus tard via **Modifier** dans « Applications et fonctionnalités ». Sans surveillance:
 
 ```powershell
 FileDO-<version>-setup.exe /quiet

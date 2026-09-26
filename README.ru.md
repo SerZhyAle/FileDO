@@ -94,8 +94,8 @@ filedo check F:\Mov
 	- `--buf-kb <int>` (FILEDO_CHECK_BUF_KB)
 	- `--mode quick|balanced|deep` (FILEDO_CHECK_MODE)
 	- `--balanced-min-mb <int>` (FILEDO_CHECK_BALANCED_MIN_MB)
-	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB/MAX_MB)
-	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"`
+	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)
+	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"` (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)
 - Ограничения
 	- `--max-files <int>` (FILEDO_CHECK_MAX_FILES)
 	- `--max-seconds <float>` (FILEDO_CHECK_MAX_DURATION_SEC)
@@ -117,6 +117,7 @@ filedo check F:\Mov
 	- `--ewma-low-frac <float>` (FILEDO_CHECK_EWMA_LOW_FRAC)
 	- `--max-sleep-ms <int>` (FILEDO_CHECK_MAX_SLEEP_MS)
 	- `--sleep-step-ms <int>` (FILEDO_CHECK_SLEEP_STEP_MS)
+	- `--hdd-sleep-ms <int>` (FILEDO_CHECK_HDD_SLEEP_MS) - постоянная пауза после каждого файла, у каждого читателя
 
 Примеры:
 
@@ -156,7 +157,7 @@ winget install SerZhyAle.FileDO
 
 Установщик не подписан цифровой подписью, поэтому при первом запуске Windows может показать «Windows защитила ваш компьютер», а затем запросить права администратора. Сверьте SHA256 (файл `.sha256` опубликован рядом с загрузкой; `certutil -hashfile FileDO-<версия>-setup.exe SHA256`), затем выберите «Подробнее» и «Выполнить в любом случае». Почему предупреждение появляется, зачем нужны права администратора и чего FileDO никогда не делает: [Windows предупредила о FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html).
 
-Последние два пункта - компоненты, которые можно снять на странице «Customize» установщика и включить или выключить позже через **«Изменить»** в «Приложения и возможности». Для развёртывания без вопросов:
+Последние два пункта - компоненты, которые можно снять на странице «Choose what to install» установщика и включить или выключить позже через **«Изменить»** в «Приложения и возможности». Для развёртывания без вопросов:
 
 ```powershell
 # всё сразу, молча

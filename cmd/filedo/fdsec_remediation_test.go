@@ -333,6 +333,25 @@ func TestRevealRwWithoutDash(t *testing.T) {
 
 // TestRevealNeverLaunchTable is FDSEC-08: the table covers the interpreter
 // and Outlook Level-1 types the audit named, and a reveal refuses them.
+// outlookLevel1 is a pinned copy of Outlook's Level-1 blocked attachment
+// extensions (support.microsoft.com "Blocked attachments in Outlook", read
+// 2026-09-26 for AUD-09-F2). FDSEC-08 requires every one of them in the
+// never-launch table; a later omission fails TestRevealNeverLaunchTable.
+var outlookLevel1 = []string{
+	".ade", ".adp", ".apk", ".app", ".appcontent-ms", ".application", ".appref-ms", ".asp", ".aspx",
+	".asx", ".bas", ".bat", ".bgi", ".cab", ".cdxml", ".cer", ".chm", ".cmd", ".cnt", ".com", ".cpl",
+	".crt", ".csh", ".der", ".diagcab", ".exe", ".fxp", ".gadget", ".grp", ".hlp", ".hpj", ".hta",
+	".htc", ".inf", ".ins", ".iso", ".isp", ".its", ".jar", ".jnlp", ".js", ".jse", ".ksh", ".lnk",
+	".mad", ".maf", ".mag", ".mam", ".maq", ".mar", ".mas", ".mat", ".mau", ".mav", ".maw", ".mcf",
+	".mda", ".mdb", ".mde", ".mdt", ".mdw", ".mdz", ".mht", ".mhtml", ".msc", ".msh", ".msh1",
+	".msh2", ".mshxml", ".msh1xml", ".msh2xml", ".msi", ".msp", ".mst", ".msu", ".ops", ".osd",
+	".pcd", ".pif", ".pl", ".plg", ".prf", ".prg", ".printerexport", ".ps1", ".ps1xml", ".ps2",
+	".ps2xml", ".psc1", ".psc2", ".psd1", ".psdm1", ".psm1", ".pssc", ".pst", ".py", ".pyc", ".pyo",
+	".pyw", ".pyz", ".pyzw", ".reg", ".scf", ".scr", ".sct", ".settingcontent-ms", ".shb", ".shs",
+	".theme", ".tmp", ".udl", ".url", ".vb", ".vbe", ".vbp", ".vbs", ".vhd", ".vhdx", ".vsmacros",
+	".vsw", ".webpnp", ".website", ".ws", ".wsb", ".wsc", ".wsf", ".wsh", ".xbap", ".xll", ".xnk",
+}
+
 func TestRevealNeverLaunchTable(t *testing.T) {
 	required := []string{".py", ".pyw", ".pyz", ".pyzw", ".pl", ".rb", ".appref-ms", ".wsb", ".xll",
 		".msix", ".msixbundle", ".appx", ".appxbundle", ".appinstaller", ".msu", ".mst", ".psc1",
@@ -345,7 +364,12 @@ func TestRevealNeverLaunchTable(t *testing.T) {
 			t.Errorf("%s is missing from the never-launch table", ext)
 		}
 	}
-	for _, name := range []string{"invoice.py", "app.appref-ms", "disk.iso"} {
+	for _, ext := range outlookLevel1 {
+		if !fdsecNeverLaunch[ext] {
+			t.Errorf("%s (Outlook Level-1) is missing from the never-launch table", ext)
+		}
+	}
+	for _, name := range []string{"invoice.py", "app.appref-ms", "disk.iso", "link.appcontent-ms"} {
 		dir, _ := workdir(t)
 		os.WriteFile(filepath.Join(dir, name), []byte("payload"), 0o644)
 		secret := secureOne(t, dir, name)

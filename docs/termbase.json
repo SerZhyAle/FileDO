@@ -1,0 +1,88 @@
+{
+  "_about": "Termbase of the external corpus (DOC-EXTERNAL-QUALITY rule 4): the site and the five READMEs. 'forms' is the word each locale uses for the concept - a stem, matched from a word start, and it must be in use. 'forbidden' are regular-expression fragments, matched case-insensitively from a word start, that must not appear in that locale's prose (code is not prose). Checked by packaging/check-external-docs.ps1; the glossary page (docs/guides/glossary.html) has one entry per term, id=\"term-<id>\".",
+  "terms": [
+    {
+      "id": "container",
+      "concept": "A .fd-sec file: one file packed under a password.",
+      "forms": { "en": "container", "ru": "контейнер", "ua": "контейнер", "de": "Container", "fr": "conteneur" },
+      "forbidden": {
+        "en": ["vault", "encrypted archive"],
+        "ru": ["сейф", "криптоконтейнер", "зашифрованн\\w* архив"],
+        "ua": ["сейф", "криптоконтейнер", "зашифрован\\w* архів"],
+        "de": ["Tresor"],
+        "fr": ["coffre-fort"]
+      }
+    },
+    {
+      "id": "secure",
+      "concept": "secure: pack a file into a .fd-sec container.",
+      "forms": { "en": "secure", "ru": "секретн", "ua": "секретн" },
+      "forbidden": {
+        "en": ["password-lock"],
+        "ru": ["засекьюр", "секьюр"],
+        "ua": ["засек'юр", "сек'юр"]
+      }
+    },
+    {
+      "id": "unsecure",
+      "concept": "unsecure: bring the original back out of a container for good.",
+      "forms": { "en": "unsecure" },
+      "forbidden": {
+        "en": ["decrypt"],
+        "ru": ["дешифр", "расшифров\\w* контейнер"],
+        "ua": ["дешифр", "розшифров\\w* контейнер"]
+      }
+    },
+    {
+      "id": "reveal",
+      "concept": "reveal: open the content of a container for one look, keeping nothing afterwards.",
+      "forms": { "en": "reveal" },
+      "forbidden": {
+        "en": ["peek"],
+        "ru": ["предпросмотр\\w* (?:контейнер|секретн)"],
+        "ua": ["попередн\\w* перегляд\\w* (?:контейнер|секретн)"]
+      }
+    },
+    {
+      "id": "wipe",
+      "concept": "wipe: overwrite in place, then remove - not an ordinary delete.",
+      "forms": { "en": "wipe", "ru": "затир", "ua": "затир" },
+      "forbidden": {
+        "en": ["shred"],
+        "ru": ["стирани\\w* папк", "стер\\w* папк", "стереть файл", "шреддер"],
+        "ua": ["стиранн\\w* тек", "стерти теку", "стерти файл", "шредер"],
+        "de": ["schredder"],
+        "fr": ["déchiquet"]
+      }
+    },
+    {
+      "id": "fill",
+      "concept": "fill: write test files until the free space is used up.",
+      "forms": { "en": "fill", "ru": "заполн", "ua": "заповн" },
+      "forbidden": {
+        "ru": ["забив\\w* (?:диск|носител|накопител)"],
+        "ua": ["забив\\w* (?:диск|носі|накопичувач)"]
+      }
+    },
+    {
+      "id": "capacity-test",
+      "concept": "The capacity test: proves how much a drive really stores, which is how a fake drive is caught.",
+      "forms": { "en": "capacity test", "ru": "тест ёмкости", "ua": "тест ємності" },
+      "forbidden": {
+        "en": ["size test", "volume test"],
+        "ru": ["емкост"],
+        "ua": ["ємкост"]
+      }
+    },
+    {
+      "id": "fake-drive",
+      "concept": "A drive that reports more capacity than it can hold.",
+      "forms": { "en": "fake", "ru": "поддел", "ua": "підроб" },
+      "forbidden": {
+        "en": ["counterfeit drive"],
+        "ru": ["фейков"],
+        "ua": ["фейков"]
+      }
+    }
+  ]
+}

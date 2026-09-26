@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppIcon.vb" />
+    <Compile Include="Capture.vb" />
     <Compile Include="ArgQuoting.vb" />
     <Compile Include="Ui.vb" />
     <Compile Include="Links.vb" />

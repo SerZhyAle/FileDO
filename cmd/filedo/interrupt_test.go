@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -141,5 +143,47 @@ func TestVerdictDefectOutranksNotProven(t *testing.T) {
 	ro = &runOutcome{notProven: true, kind: runJudges}
 	if v := ro.verdict(); v != VerdictNotProven {
 		t.Fatalf("verdict = %q, want %q", v, VerdictNotProven)
+	}
+}
+
+// TestBreakSignalLeavesSignalGoroutineFree is AUD-14-F2: Ctrl+Break and SIGTERM
+// used to run every cleanup on the one goroutine that reads signals, so a
+// cleanup blocked on a hung device kept each later Ctrl+C unread and the
+// double-Ctrl+C force exit never came. handleSignal must return at once with
+// the context cancelled, and the cleanups must still run.
+func TestBreakSignalLeavesSignalGoroutineFree(t *testing.T) {
+	sigs := []os.Signal{syscall.SIGTERM}
+	if s := sigBreakSignal(); s != nil {
+		sigs = append(sigs, s)
+	}
+	for _, sig := range sigs {
+		ih := newInterruptHandlerNoSignals()
+		release := make(chan struct{})
+		started := make(chan struct{})
+		ih.AddCleanup(func() {
+			close(started)
+			<-release
+		})
+
+		done := make(chan struct{})
+		go func() {
+			ih.handleSignal(sig)
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			close(release)
+			t.Fatalf("handleSignal(%v) did not return within 1 s: a blocked cleanup holds the signal goroutine", sig)
+		}
+		if !ih.IsCancelled() || !ih.IsInterrupted() {
+			t.Fatalf("handleSignal(%v) must cancel the context and mark the run interrupted before returning", sig)
+		}
+		select {
+		case <-started:
+		case <-time.After(time.Second):
+			t.Fatalf("handleSignal(%v): the cleanups never ran", sig)
+		}
+		close(release)
 	}
 }

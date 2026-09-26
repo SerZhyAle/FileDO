@@ -137,6 +137,11 @@ func parseProbeMarker(buf []byte, token string) (int64, bool) {
 // probeRun is one probe in flight. restore puts every original back exactly
 // once, whoever calls it first - the probe itself, or the force-exit cleanup
 // (CLI-07).
+//
+// The force-exit cleanup calls restore on another goroutine while the probe
+// may still be writing, so every device call after the originals are saved
+// goes through mu, and once restored is set the probe touches the device no
+// more: a marker written after the restore would stay (AUD-02-F2).
 type probeRun struct {
 	dev       sectorDevice
 	sector    int
@@ -146,10 +151,33 @@ type probeRun struct {
 	once      sync.Once
 	restoreEr []error
 	newBuf    func(int) []byte
+	mu        sync.Mutex
+	restored  bool
+}
+
+// errProbeRestored is returned by probeRun.io once the restore has run.
+var errProbeRestored = errors.New("the probe was restored by a forced exit")
+
+// io performs one device call under mu; a write records its offset first, so
+// even a failed write is restored.
+func (p *probeRun) io(write bool, buf []byte, off int64) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.restored {
+		return errProbeRestored
+	}
+	if write {
+		p.written = append(p.written, off)
+		return p.dev.WriteAt(buf, off)
+	}
+	return p.dev.ReadAt(buf, off)
 }
 
 func (p *probeRun) restore() []error {
 	p.once.Do(func() {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		p.restored = true
 		// Newest first: on a device that aliases addresses, a physical sector
 		// then ends holding its own original whichever alias wrote it last.
 		for i := len(p.written) - 1; i >= 0; i-- {
@@ -220,9 +248,11 @@ func probeCore(dev sectorDevice, totalBytes int64, sector int, newBuf func(int) 
 			return res, errProbeStopped
 		}
 		probeMarker(writeBuf, token, off)
-		run.written = append(run.written, off)
-		if err := dev.WriteAt(writeBuf, off); err != nil {
+		if err := run.io(true, writeBuf, off); err != nil {
 			finish()
+			if errors.Is(err, errProbeRestored) {
+				return res, errProbeStopped
+			}
 			return res, fmt.Errorf("write failed at offset %d: %w", off, err)
 		}
 		res.written++
@@ -231,7 +261,10 @@ func probeCore(dev sectorDevice, totalBytes int64, sector int, newBuf func(int) 
 	readBuf := newBuf(sector)
 	for _, off := range run.written {
 		bad := false
-		if err := dev.ReadAt(readBuf, off); err != nil {
+		if err := run.io(false, readBuf, off); errors.Is(err, errProbeRestored) {
+			finish()
+			return res, errProbeStopped
+		} else if err != nil {
 			res.readErrors++
 			bad = true
 		} else if named, ok := parseProbeMarker(readBuf, token); ok {
@@ -277,6 +310,12 @@ func probeVerdict(res probeResult) error {
 	}
 	if restoreErr != nil {
 		return restoreErr
+	}
+	// A position whose original could not be read was never tested; a device
+	// that answers reads above its real capacity with an error would otherwise
+	// pass on its low, real positions alone (AUD-02-F1).
+	if res.unreadable > 0 {
+		return fmt.Errorf("%d of %d probe positions could not be read, so the probe could not verify the device", res.unreadable, res.planned)
 	}
 	if res.readErrors > 0 {
 		return fmt.Errorf("%d of %d probe markers could not be read back, so the probe could not verify the device", res.readErrors, res.written)
