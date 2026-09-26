@@ -44,8 +44,12 @@ Public Class CheckOptionsPanel
         "min-mb", "max-mb", "max-seconds", "threshold", "warmup", "warmup-idle",
         "ewma-alpha", "ewma-high-frac", "ewma-low-frac"}
 
+    ' The Int options go through Go's flag package, which parses base 0 (AUD-28-F3): "09" is a parse
+    ' error after the run has started and "010" is octal 8. A leading zero is refused here, not in
+    ' Ui.IsWholeNumber, whose other callers feed base-10 Atoi.
     Private Shared Function IsValidNumber(name As String, value As String) As Boolean
         If Array.IndexOf(DecimalOptions, name) >= 0 Then Return Ui.IsDecimalNumber(value)
+        If value.Length > 1 AndAlso value(0) = "0"c Then Return False
         Return Ui.IsWholeNumber(value)
     End Function
 

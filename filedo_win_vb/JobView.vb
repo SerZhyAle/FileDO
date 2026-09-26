@@ -415,7 +415,8 @@ Public Class JobView
         If job Is Nothing Then Return
         Dim verb = job.DefaultVerb
 
-        optionsCheckAutoDel.Visible = (verb = "test" OrElse verb = "speed" OrElse verb = "fill")
+        ' `speed` deletes its file unless told `nodel` and takes no `del` (AUD-26-F1).
+        optionsCheckAutoDel.Visible = (verb = "test" OrElse verb = "fill")
         optionsCheckNoDel.Visible = (verb = "speed")
         optionsCheckShort.Visible = (verb = "info" OrElse verb = "speed")
         optionsCheckVerify.Visible = (verb = "fill")
@@ -470,14 +471,8 @@ Public Class JobView
     Private Sub UpdateOptionExclusions()
         If job Is Nothing Then Return
 
-        If job.DefaultVerb = "speed" Then
-            ' del and nodel answer the same question twice.
-            optionsCheckAutoDel.Enabled = Not optionsCheckNoDel.Checked
-            optionsCheckNoDel.Enabled = Not optionsCheckAutoDel.Checked
-        Else
-            optionsCheckAutoDel.Enabled = True
-            optionsCheckNoDel.Enabled = True
-        End If
+        optionsCheckAutoDel.Enabled = True
+        optionsCheckNoDel.Enabled = True
 
         If job.DefaultVerb = "fill" Then
             ' `fill verify` is its own operation - it checks what a previous fill wrote and takes
@@ -962,7 +957,7 @@ Public Class JobView
             .Margin = Ui.PxPad(Me, 0, 6, 0, 4)
         }
         optionsCheckAutoDel = New CheckBox With {.Text = L("shell_opt_autodel"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
-        AddHandler optionsCheckAutoDel.CheckedChanged, Sub() UpdatePlanCard()
+        AddHandler optionsCheckAutoDel.CheckedChanged, Sub() OptionChanged()
 
         optionsCheckForce = New CheckBox With {.Text = L("shell_opt_force"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
         AddHandler optionsCheckForce.CheckedChanged, Sub() UpdatePlanCard()
@@ -1709,6 +1704,24 @@ Public Class JobView
         UpdatePlanCard()
     End Sub
 
+    ' The two "what happens to the test file" boxes, ticked as a user would (AUD-26-F1).
+    Friend Sub SetDeleteOptionsForTest(autoDel As Boolean, noDel As Boolean)
+        optionsCheckAutoDel.Checked = autoDel
+        optionsCheckNoDel.Checked = noDel
+    End Sub
+
+    Friend ReadOnly Property AutoDelOfferedForTest As Boolean
+        Get
+            Return optionsCheckAutoDel.Visible
+        End Get
+    End Property
+
+    Friend ReadOnly Property NoDelEnabledForTest As Boolean
+        Get
+            Return optionsCheckNoDel.Enabled
+        End Get
+    End Property
+
     ' "Clean files" after a run on this target, with no window listening (GUI-12).
     Friend Sub CleanAfterRunForTest(testedTarget As String)
         lastRunTarget = testedTarget
@@ -2231,7 +2244,8 @@ Public Class JobView
                     Dim mb = sizeBox.Text.Trim()
                     args.Add(If(mb = "", "100", mb))
                 End If
-                If optionsCheckAutoDel.Checked AndAlso Not optionsCheckVerify.Checked Then args.Add("del")
+                If optionsCheckAutoDel.Checked AndAlso Not optionsCheckVerify.Checked AndAlso
+                   job.DefaultVerb <> "speed" Then args.Add("del")
                 If optionsCheckNoDel.Checked AndAlso job.DefaultVerb = "speed" Then args.Add("nodel")
                 If optionsCheckShort.Checked AndAlso job.DefaultVerb = "speed" Then args.Add("short")
 

@@ -27,14 +27,22 @@ func TestPackFileReadBackGuard(t *testing.T) {
 	corrupted := ""
 	beforeReadBack = func(tmpPath string) {
 		corrupted = tmpPath
-		f, err := os.OpenFile(tmpPath, os.O_WRONLY, 0)
+		f, err := os.OpenFile(tmpPath, os.O_RDWR, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer f.Close()
 		// preLen is at least headerSize+slotsSize+metaSize rounded up to a
-		// cluster; 1 KiB past it is inside the first sealed chunk.
-		if _, err := f.WriteAt([]byte{0xff}, int64(preMeta+metaSize)+4096+1024); err != nil {
+		// cluster; 1 KiB past it is inside the first sealed chunk. Flip the
+		// byte rather than overwrite it: a fixed value equals the random
+		// ciphertext byte about once in 256 runs and corrupts nothing.
+		at := int64(preMeta+metaSize) + 4096 + 1024
+		b := make([]byte, 1)
+		if _, err := f.ReadAt(b, at); err != nil {
+			t.Fatal(err)
+		}
+		b[0] ^= 0xff
+		if _, err := f.WriteAt(b, at); err != nil {
 			t.Fatal(err)
 		}
 	}

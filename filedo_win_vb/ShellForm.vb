@@ -670,6 +670,7 @@ Public Class ShellForm
         commandView.ApplyTheme()
         aboutView.ApplyTheme()
         settingsView.ApplyTheme()
+        Ui.KeepCaptionsReadable(Me)
 
         Chrome.Apply(Me)
         Invalidate(True)

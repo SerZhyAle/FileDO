@@ -66,6 +66,7 @@ Public Module SelfTest
         ' SP-0014: the shared desktop contracts APP-BEHAVIOUR and APP-STYLE, rung by rung.
         Guard("palette", AddressOf CheckPaletteCompleteness)
         Guard("theme", AddressOf CheckThemeRoundTrip)
+        Guard("disabled-caption", AddressOf CheckDisabledCaptions)
         Guard("rail-paint", AddressOf CheckRailPaint)
         Guard("rail-label", AddressOf CheckRailLabels)
         Guard("progress", AddressOf CheckProgressRule)
@@ -86,6 +87,7 @@ Public Module SelfTest
         Guard("history", AddressOf CheckHistory)
         Guard("output", AddressOf CheckOutputBounds)
         Guard("params", AddressOf CheckParameters)
+        Guard("check-options", AddressOf CheckCheckOptions)
         Guard("clean", AddressOf CheckCleanCarriesTarget)
         Guard("cause", AddressOf CheckCauses)
         Guard("duration", AddressOf CheckDurationFormat)
@@ -780,6 +782,98 @@ Public Module SelfTest
             If cv IsNot Nothing Then cv.Dispose()
         End Try
     End Sub
+
+    ' A disabled control's caption is readable and stays where it was. WinForms draws it in a darker
+    ' shade of the back colour, which on the dark theme left the Run button of a page waiting for its
+    ' target near-black on near-black (Ui.KeepCaptionsReadable). Each kind the shell disables is drawn
+    ' twice on the palette's own colours: disabled, and enabled with TextDisabled as its fore colour -
+    ' the caption WinForms itself draws in that colour. Both must put their ink - pixels at 3:1 or more
+    ' against the control's back colour - in the same place, and there must be some.
+    Private Sub CheckDisabledCaptions()
+        For Each dark In New Boolean() {False, True}
+            Theme.UsePaletteForTest(dark)
+            Dim themeName = If(dark, "dark", "light")
+            Try
+                Dim p = Theme.Current
+                For Each kind In New String() {"button", "check", "radio"}
+                    Using host As New Panel With {.BackColor = p.Surface, .Size = New Size(900, 200)}
+                        Dim twin = CaptionControl(kind, p)
+                        Dim off = CaptionControl(kind, p)
+                        off.Enabled = False
+                        host.Controls.Add(twin)
+                        host.Controls.Add(off)
+                        Ui.KeepCaptionsReadable(host)
+                        Dim want = CaptionInk(twin)
+                        Dim got = CaptionInk(off)
+                        Check("disabled-caption:" & themeName & ":" & kind, Not got.IsEmpty AndAlso got = want,
+                              "enabled " & want.ToString() & ", disabled " & got.ToString())
+                    End Using
+                Next
+            Catch ex As Exception
+                Check("disabled-caption:" & themeName, False, ex.GetType().Name & ": " & ex.Message)
+            Finally
+                Theme.UsePaletteForTest(Nothing)
+            End Try
+        Next
+
+        ' The window hooks every button, check box and radio button it has, not only the ones above.
+        Dim shell As ShellForm = Nothing
+        Try
+            shell = New ShellForm()
+            Dim missed As New List(Of String)
+            For Each c In AllControls(shell)
+                Dim b = TryCast(c, ButtonBase)
+                If b IsNot Nothing AndAlso Not Ui.CaptionKeptReadable(b) Then missed.Add(b.GetType().Name & " '" & b.Text & "'")
+            Next
+            Check("disabled-caption:window", missed.Count = 0, String.Join("; ", missed.Take(8).ToArray()))
+        Finally
+            If shell IsNot Nothing Then shell.Dispose()
+        End Try
+    End Sub
+
+    ' A control of one kind as the shell builds it: the Run button's style, or a body-text option.
+    Private Function CaptionControl(kind As String, p As Theme.Palette) As ButtonBase
+        Dim c As ButtonBase
+        Select Case kind
+            Case "button"
+                c = New Button With {.Font = Theme.FontBodyStrong(), .Padding = New Padding(18, 7, 18, 7)}
+                Ui.StyleButton(DirectCast(c, Button), p.SurfaceAlt, p.TextDisabled, p.Border)
+            Case "check"
+                c = New CheckBox With {.Font = Theme.FontBody(), .ForeColor = p.TextDisabled}
+            Case Else
+                c = New RadioButton With {.Font = Theme.FontBody(), .ForeColor = p.TextDisabled}
+        End Select
+        c.Text = "Run: check for damage"
+        c.Size = c.GetPreferredSize(Size.Empty)
+        Return c
+    End Function
+
+    ' The bounds of a control's caption ink, right of a check box's or radio button's glyph.
+    Private Function CaptionInk(c As ButtonBase) As Rectangle
+        Using bmp As New Bitmap(c.Width, c.Height)
+            c.DrawToBitmap(bmp, New Rectangle(0, 0, c.Width, c.Height))
+            Dim fromX = 0
+            If Not TypeOf c Is Button Then
+                Using g = Graphics.FromImage(bmp)
+                    Dim glyph = If(TypeOf c Is CheckBox,
+                                   CheckBoxRenderer.GetGlyphSize(g, VisualStyles.CheckBoxState.UncheckedNormal).Width,
+                                   RadioButtonRenderer.GetGlyphSize(g, VisualStyles.RadioButtonState.UncheckedNormal).Width)
+                    fromX = c.Padding.Left + glyph + 1
+                End Using
+            End If
+            Dim back = c.BackColor
+            Dim minX = Integer.MaxValue, minY = Integer.MaxValue, maxX = -1, maxY = -1
+            For y = 0 To bmp.Height - 1
+                For x = fromX To bmp.Width - 1
+                    If Theme.ContrastRatio(bmp.GetPixel(x, y), back) < 3.0 Then Continue For
+                    minX = Math.Min(minX, x) : minY = Math.Min(minY, y)
+                    maxX = Math.Max(maxX, x) : maxY = Math.Max(maxY, y)
+                Next
+            Next
+            If maxX < 0 Then Return Rectangle.Empty
+            Return Rectangle.FromLTRB(minX, minY, maxX + 1, maxY + 1)
+        End Using
+    End Function
 
     ' ---- SP-0014: the rail ----------------------------------------------------
 
@@ -1583,10 +1677,57 @@ Public Module SelfTest
             Next
             jv.SetSizeForTest("1000")
             Check("params:size-accepted:1000", jv.RunStateForTest(reason) AndAlso jv.CurrentCommand().Contains(" test 1000"), jv.CurrentCommand())
+
+            ' AUD-26-F1: `test` and `fill` take `del`; `speed` takes only `nodel` and `short`, and
+            ' any other word is a usage error (CLI-25), so the Speed page never offers or writes `del`.
+            jv.SetDeleteOptionsForTest(True, False)
+            Check("params:test-keeps-del", Array.IndexOf(jv.CurrentCommand().Split(" "c), "del") >= 0, jv.CurrentCommand())
+            jv.SetDeleteOptionsForTest(False, False)
+            jv.SetJob(JobCatalogue.GetJob("rail_job_speed"))
+            jv.SetTarget("E:")
+            jv.SetDeleteOptionsForTest(True, False)
+            Check("params:speed-no-del", Not jv.AutoDelOfferedForTest AndAlso
+                  Array.IndexOf(jv.CurrentCommand().Split(" "c), "del") < 0, jv.CurrentCommand())
+            jv.SetDeleteOptionsForTest(True, True)
+            Check("params:speed-nodel-stays-free", jv.NoDelEnabledForTest AndAlso
+                  Array.IndexOf(jv.CurrentCommand().Split(" "c), "nodel") >= 0, jv.CurrentCommand())
         Finally
             If jv IsNot Nothing Then jv.Dispose()
         End Try
         Check("params:decimal-invariant", Ui.IsDecimalNumber("2.5") AndAlso Not Ui.IsDecimalNumber("2,5") AndAlso Not Ui.IsWholeNumber("2.5"), "")
+    End Sub
+
+    ' AUD-28-F3: the check verb reads its Int options with Go's flag package, which parses base 0:
+    ' "09" is a parse error after the run has started and "010" is octal 8. A value with a leading
+    ' zero is therefore not a number to the panel - it is flagged and left off the line - while "0",
+    ' "8" and "10" still go through, and a decimal option keeps its base-10 reading.
+    Private Sub CheckCheckOptions()
+        Using panel As New CheckOptionsPanel()
+            Dim workers As TextBox = Nothing
+            Dim minMb As TextBox = Nothing
+            For Each c In AllControls(panel)
+                If TypeOf c Is TextBox AndAlso c.AccessibleName = "--workers" Then workers = CType(c, TextBox)
+                If TypeOf c Is TextBox AndAlso c.AccessibleName = "--min-mb" Then minMb = CType(c, TextBox)
+            Next
+            Check("check-options:fields-found", workers IsNot Nothing AndAlso minMb IsNot Nothing, "")
+            If workers Is Nothing OrElse minMb Is Nothing Then Return
+            For Each bad In New String() {"09", "010", "00"}
+                workers.Text = bad
+                Check("check-options:leading-zero:" & bad, panel.HasInvalidNumber() AndAlso
+                      panel.ToArgs().IndexOf("--workers") < 0, String.Join(" ", panel.ToArgs()))
+            Next
+            For Each good In New String() {"0", "8", "10"}
+                workers.Text = good
+                Dim args = panel.ToArgs()
+                Dim i = args.IndexOf("--workers")
+                Check("check-options:whole-number:" & good, Not panel.HasInvalidNumber() AndAlso
+                      i >= 0 AndAlso i + 1 < args.Count AndAlso args(i + 1) = good, String.Join(" ", args))
+            Next
+            workers.Text = ""
+            minMb.Text = "010.5"
+            Check("check-options:decimal-leading-zero-kept", Not panel.HasInvalidNumber() AndAlso
+                  panel.ToArgs().IndexOf("--min-mb") >= 0, String.Join(" ", panel.ToArgs()))
+        End Using
     End Sub
 
     ' GUI-12: "Clean files" opens Clean on the target that was tested.

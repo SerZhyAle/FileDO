@@ -74,7 +74,102 @@ Module Ui
         b.BackColor = back
         b.ForeColor = fore
         b.UseVisualStyleBackColor = False
+        KeepCaptionReadable(b)
     End Sub
+
+    ' A disabled button, check box or radio button draws its caption in the palette's TextDisabled.
+    '
+    ' WinForms ignores ForeColor on a disabled ButtonBase and derives the caption from the back
+    ' colour instead - a darker shade of it - so on the dark theme a disabled control was near-black
+    ' text on a near-black surface: the Run button of a page still waiting for its target could not
+    ' be read at all. The caption is painted again over the one WinForms drew, in the rectangle
+    ' WinForms drew it in, so nothing moves when a control is disabled. The whole window is walked
+    ' once its views are built (ShellForm.ApplyTheme), and every StyleButton call covers the buttons
+    ' of a dialog; the table below keeps a control from being hooked twice.
+    Private ReadOnly readableCaptions As New Runtime.CompilerServices.ConditionalWeakTable(Of ButtonBase, Object)()
+
+    Public Sub KeepCaptionsReadable(root As Control)
+        If root Is Nothing Then Return
+        Dim b = TryCast(root, ButtonBase)
+        If b IsNot Nothing Then KeepCaptionReadable(b)
+        For Each c As Control In root.Controls
+            KeepCaptionsReadable(c)
+        Next
+    End Sub
+
+    Private Sub KeepCaptionReadable(b As ButtonBase)
+        Dim hooked As Object = Nothing
+        If b Is Nothing OrElse readableCaptions.TryGetValue(b, hooked) Then Return
+        readableCaptions.Add(b, Nothing)
+        AddHandler b.Paint, AddressOf PaintDisabledCaption
+    End Sub
+
+    Friend Function CaptionKeptReadable(b As ButtonBase) As Boolean
+        Dim hooked As Object = Nothing
+        Return b IsNot Nothing AndAlso readableCaptions.TryGetValue(b, hooked)
+    End Function
+
+    Private Sub PaintDisabledCaption(sender As Object, e As PaintEventArgs)
+        Dim b = TryCast(sender, ButtonBase)
+        If b Is Nothing OrElse b.Enabled OrElse String.IsNullOrEmpty(b.Text) Then Return
+        Dim bounds As Rectangle
+        Dim flags As TextFormatFlags
+        If Not CaptionBounds(b, e.Graphics, bounds, flags) Then Return
+        If b.BackColor.A = 255 Then
+            Using fill As New SolidBrush(b.BackColor)
+                e.Graphics.FillRectangle(fill, bounds)
+            End Using
+        End If
+        TextRenderer.DrawText(e.Graphics, b.Text, b.Font, bounds, Theme.Current.TextDisabled, flags)
+    End Sub
+
+    ' Where WinForms (GDI text, visual styles) puts the caption of the kinds the shell uses: a flat
+    ' button with its caption centred, and a check box or radio button with the box and the caption
+    ' on the left. It follows the framework's own button layout - the border, two pixels of padding
+    ' for a flat button, the glyph and one pixel for a check box, and a two-pixel inset around the
+    ' text - and was measured equal to it, pixel for pixel, for all three kinds; the self-test's
+    ' disabled-caption: rows hold that on every build. Any other kind - a system-drawn button,
+    ' another alignment, right-to-left, an image, a high-contrast theme, where Windows's own
+    ' GrayText is already readable - is left to WinForms.
+    Private Function CaptionBounds(b As ButtonBase, g As Graphics, ByRef bounds As Rectangle, ByRef flags As TextFormatFlags) As Boolean
+        If SystemInformation.HighContrast OrElse b.RightToLeft = RightToLeft.Yes OrElse b.Image IsNot Nothing Then Return False
+        flags = TextFormatFlags.VerticalCenter Or TextFormatFlags.WordBreak Or TextFormatFlags.TextBoxControl Or
+                If(b.UseMnemonic, TextFormatFlags.HidePrefix, TextFormatFlags.NoPrefix)
+        Dim client As New Rectangle(b.Padding.Left, b.Padding.Top,
+                                    b.ClientSize.Width - b.Padding.Horizontal, b.ClientSize.Height - b.Padding.Vertical)
+        Dim field As Rectangle
+        Dim centred = False
+        Dim btn = TryCast(b, Button)
+        Dim check = TryCast(b, CheckBox)
+        Dim radio = TryCast(b, RadioButton)
+        If btn IsNot Nothing Then
+            If btn.FlatStyle <> FlatStyle.Flat OrElse btn.TextAlign <> ContentAlignment.MiddleCenter Then Return False
+            Dim inset = btn.FlatAppearance.BorderSize + 2
+            field = Rectangle.Inflate(client, -inset, -inset)
+            flags = flags Or TextFormatFlags.HorizontalCenter
+            centred = True
+        ElseIf check IsNot Nothing Then
+            If check.FlatStyle <> FlatStyle.Standard OrElse check.Appearance <> Appearance.Normal OrElse
+               check.CheckAlign <> ContentAlignment.MiddleLeft OrElse check.TextAlign <> ContentAlignment.MiddleLeft Then Return False
+            Dim glyph = CheckBoxRenderer.GetGlyphSize(g, VisualStyles.CheckBoxState.UncheckedDisabled).Width
+            field = New Rectangle(client.X + glyph + 1, client.Y, client.Width - glyph - 1, client.Height)
+        ElseIf radio IsNot Nothing Then
+            If radio.FlatStyle <> FlatStyle.Standard OrElse radio.Appearance <> Appearance.Normal OrElse
+               radio.CheckAlign <> ContentAlignment.MiddleLeft OrElse radio.TextAlign <> ContentAlignment.MiddleLeft Then Return False
+            Dim glyph = RadioButtonRenderer.GetGlyphSize(g, VisualStyles.RadioButtonState.UncheckedDisabled).Width
+            field = New Rectangle(client.X + glyph + 1, client.Y, client.Width - glyph - 1, client.Height)
+        Else
+            Return False
+        End If
+        Dim textArea = Rectangle.Inflate(field, -2, -2)
+        Dim measured = TextRenderer.MeasureText(b.Text, b.Font, textArea.Size, flags)
+        Dim x = If(centred, textArea.X + (textArea.Width - measured.Width) \ 2, textArea.X)
+        Dim y = textArea.Y + (textArea.Height - measured.Height) \ 2
+        ' A check box's caption sits one pixel higher than a radio button's (measured).
+        If check IsNot Nothing Then y -= 1
+        bounds = Rectangle.Intersect(New Rectangle(x, y, measured.Width, measured.Height), field)
+        Return True
+    End Function
 
     ' Puts text on the clipboard. Another program holding the clipboard open makes Windows refuse,
     ' and that refusal is a named cause with a retry rather than an exception dialog.
