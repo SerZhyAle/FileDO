@@ -3,7 +3,7 @@
   "terms": [
     {
       "id": "container",
-      "concept": "A .fd-sec file: one file packed under a password.",
+      "concept": "A .fd-sec file (one file or folder packed under a password) or a .fdd disk container (one file holding a whole volume).",
       "forms": { "en": "container", "ru": "контейнер", "ua": "контейнер", "de": "Container", "fr": "conteneur" },
       "forbidden": {
         "en": ["vault", "encrypted archive"],
@@ -72,6 +72,23 @@
         "en": ["size test", "volume test"],
         "ru": ["емкост"],
         "ua": ["ємкост"]
+      }
+    },
+    {
+      "id": "virtual-disk",
+      "concept": "A .fdd container: one file that holds a whole volume, mounted as a drive letter or read without mounting.",
+      "forms": { "en": "virtual disk", "ru": "виртуальн", "ua": "віртуальн", "de": "virtuell", "fr": "virtuel" }
+    },
+    {
+      "id": "obfuscation",
+      "concept": "What an empty password gives: hidden from a casual look, readable by anyone who has the file and FileDO. Never called encryption.",
+      "forms": { "en": "obfuscat", "ru": "маскиров", "ua": "маскуванн", "de": "verschleier", "fr": "camoufl" },
+      "forbidden": {
+        "en": ["weak encryption", "light encryption", "encrypted without a password"],
+        "ru": ["слаб\\w* шифровани", "л[её]гк\\w* шифровани", "зашифрован\\w* без пароля"],
+        "ua": ["слабк\\w* шифруванн", "легк\\w* шифруванн", "зашифрован\\w* без пароля"],
+        "de": ["schwache Verschlüsselung", "ohne Passwort verschlüsselt"],
+        "fr": ["chiffrement faible", "chiffré sans mot de passe"]
       }
     },
     {

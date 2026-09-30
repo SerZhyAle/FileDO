@@ -24,12 +24,16 @@ EFFACER
 PROTÉGER
 - Placer un fichier dans un conteneur .fd-sec protégé par mot de passe, récupérer l'original ou ouvrir le contenu dans le programme qui lui correspond sans le décompresser - depuis une copie en lecture seule que seul votre compte peut lire et qui est supprimée dès que vous avez terminé. Un mot de passe vide est accepté et ne signifie qu'une simple dissimulation, pas un secret ; FileDO le dit à l'endroit où vous le saisissez. Le format du conteneur est publié en entier : vos données restent lisibles sans FileDO.
 
+DISQUES VIRTUELS
+- Un conteneur .fdd contient un volume entier dans un seul fichier. Dans cette édition, vous pouvez en créer un, lire ses informations, le relire entièrement à la recherche de dommages, l'exporter en image brute ou en VHD que Windows ouvre lui-même, l'agrandir ou le compacter, le copier, changer son mot de passe ou le supprimer - sans droits d'administrateur. Sans mot de passe, un conteneur est camouflé, pas chiffré : quiconque a le fichier et FileDO peut le lire. Monter un conteneur comme lettre de lecteur n'est pas possible dans cette édition (voir plus bas).
+
 VIE PRIVÉE
-FileDO fonctionne entièrement sur votre appareil. Il ne contient ni code réseau, ni télémétrie, ni publicité, ni compte. Le code source est ouvert : https://github.com/SerZhyAle/FileDO
+FileDO fonctionne entièrement sur votre appareil. Il ne se connecte ni à Internet ni à aucun autre ordinateur, et il n'a ni télémétrie, ni publicité, ni compte. Le code source est ouvert : https://github.com/SerZhyAle/FileDO
 
 BON À SAVOIR
 - Voici l'édition Microsoft Store. Elle n'ajoute pas d'entrées au menu contextuel de l'Explorateur ; elles viennent avec l'installateur MSI. Elle prend en charge le type de fichier .fd-sec : un double-clic sur un conteneur ouvre FileDO. Les mêmes opérations sont disponibles dans la fenêtre et avec la commande filedo.
 - FileDO a besoin de l'accès complet (full trust) d'une application de bureau aux données brutes des disques et des périphériques : le test de capacité, la mesure de vitesse et l'effacement sécurisé ne peuvent pas fonctionner sans lui. L'effacement et le remplissage détruisent des données par conception et demandent toujours confirmation avant de toucher aux racines de disque ou aux dossiers système.
+- Le montage des disques virtuels .fdd n'est pas disponible dans l'édition Microsoft Store : une application empaquetée ne peut ni configurer l'initiateur iSCSI de Windows ni demander des droits d'administrateur. Un double-clic sur un .fdd ouvre FileDO sur ce conteneur, que l'on peut lire, vérifier et exporter ici ; pour le monter, prenez le setup ou la version portable sur GitHub.
 - Windows 10 version 1903 ou ultérieure.
 
 @@Feature1
@@ -84,4 +88,4 @@ protéger fichier mot de passe
 faux usb capacité
 
 @@ReleaseNotes
-Pages de tâches de la fenêtre et fichiers secrets (.fd-sec) améliorés. Le paquet inclut désormais les mentions de licence des composants tiers.
+Nouveau : disques virtuels .fdd. Dans cette édition, on peut les créer, les lire et les vérifier, les exporter en image brute ou en VHD, les agrandir, les compacter, les copier et changer leur mot de passe ; pour en monter un comme lettre de lecteur, il faut le setup ou la version portable sur GitHub. Sans mot de passe, un conteneur est camouflé, pas chiffré.

@@ -36,6 +36,9 @@ func refuseCopyPaths(verb, source, target string) error {
 		return fmt.Errorf("%s: source %q and target %q are the same file; refusing - a copy onto itself would empty it", verb, source, target)
 	}
 	if info.IsDir() {
+		if err := refuseLinkedSourceRoot(verb, source); err != nil {
+			return err
+		}
 		inside, err := pathWithin(target, source)
 		if err != nil {
 			return fmt.Errorf("%s: cannot resolve %q against %q: %v", verb, target, source, err)
@@ -45,6 +48,30 @@ func refuseCopyPaths(verb, source, target string) error {
 		}
 	}
 	return nil
+}
+
+// refuseLinkedSourceRoot refuses a source folder that is itself a junction,
+// a volume mount point or a directory link (AUD-07-F1). The walk does not
+// descend such a root - it met the link as one entry that is not a regular
+// file - so the run used to copy nothing and end "Done". FileDO does not
+// follow reparse points (SP-0009), so the source is refused as a usage error
+// before anything is created at the target, and the message names where the
+// link leads so the user can give that folder directly. Both engines reach
+// this through refuseCopyPaths.
+func refuseLinkedSourceRoot(verb, source string) error {
+	kind, isLink := copySourceRootLink(source)
+	if !isLink {
+		return nil
+	}
+	id, err := pathIdentityOf(source)
+	if err != nil || id.Final == "" {
+		return fmt.Errorf(`%s: source "%s" is %s whose target cannot be resolved; links are not followed - give the folder it points to as the source instead`,
+			verb, source, kind)
+	}
+	// Paths are quoted plainly, not with %q: a doubled backslash is not a
+	// path the user can paste back.
+	return fmt.Errorf(`%s: source "%s" is %s to "%s"; links are not followed - give the target folder "%s" as the source instead`,
+		verb, source, kind, id.Final, id.Final)
 }
 
 // singleFileTarget resolves the target of a one-file copy. An existing folder,
@@ -166,15 +193,18 @@ func (s *copyRunStats) recordPartialSource(path string) {
 	s.note(fmt.Sprintf("SKIPPED: %s is an unfinished copy (%s) and is not copied", path, partialSuffix))
 }
 
-// recordSpecial counts a source that is not a regular file.
+// recordSpecial counts a source that is not a regular file - above all a
+// junction or a directory link inside the tree, whose subtree is not walked.
+// It is something left behind, so it counts toward incomplete() (AUD-07-F1).
 func (s *copyRunStats) recordSpecial(path string) {
 	s.specialSkipped.Add(1)
-	s.note(fmt.Sprintf("SKIPPED: %s is not a regular file", path))
+	s.note(fmt.Sprintf("SKIPPED: %s is not a regular file (a junction or link is not followed) - not copied", path))
 }
 
 // incomplete is the number of files the run left behind.
 func (s *copyRunStats) incomplete() int64 {
-	return s.kept.Load() + s.unverified.Load() + s.failed.Load() + s.damagedSkipped.Load() + s.collisions.Load()
+	return s.kept.Load() + s.unverified.Load() + s.failed.Load() + s.damagedSkipped.Load() + s.collisions.Load() +
+		s.specialSkipped.Load()
 }
 
 // wantsSafeRetry: the run failed files a damaged-disk pass could still get.
@@ -195,6 +225,7 @@ func (s *copyRunStats) finish() error {
 	runNumber("failedFiles", s.failed.Load())
 	runNumber("damagedSkippedFiles", s.damagedSkipped.Load())
 	runNumber("nameCollisions", s.collisions.Load())
+	runNumber("notRegularFiles", s.specialSkipped.Load())
 
 	fmt.Printf("\n%s summary: %d copied (%s), %d already at the target",
 		s.verb, s.copied.Load(), formatFileSize(s.copiedBytes.Load()), s.alreadyThere.Load())
@@ -205,9 +236,6 @@ func (s *copyRunStats) finish() error {
 	fmt.Println()
 	if n := s.partialsSkipped.Load(); n > 0 {
 		fmt.Printf("  %d unfinished copies (%s) in the source were not copied\n", n, partialSuffix)
-	}
-	if n := s.specialSkipped.Load(); n > 0 {
-		fmt.Printf("  %d entries that are not regular files were not copied\n", n)
 	}
 
 	if runStopRequested() {
@@ -244,6 +272,7 @@ func (s *copyRunStats) problemParts() []string {
 	add(s.unverified.Load(), "could not be checked at the target")
 	add(s.damagedSkipped.Load(), "skipped as damaged")
 	add(s.collisions.Load(), "name collisions")
+	add(s.specialSkipped.Load(), "not regular files (links are not followed)")
 	return parts
 }
 

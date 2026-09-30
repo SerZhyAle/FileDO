@@ -23,6 +23,8 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | --- | --- | --- |
 | [`FDSEC-FORMAT.md`](FDSEC-FORMAT.md) | the `.fd-sec` container, byte for byte | producer and consumer (Owner) |
 | [`FDSEC-BEHAVIOUR.md`](FDSEC-BEHAVIOUR.md) | what `secure` / `unsecure` must do to be safe | producer and consumer (Owner) |
+| [`FDD-FORMAT.md`](FDD-FORMAT.md) | the `.fdd` disk container, byte for byte (draft; `vdisk/`, unreleased) | producer and consumer (Owner) |
+| [`FDD-BEHAVIOUR.md`](FDD-BEHAVIOUR.md) | what a program that reads and writes `.fdd` containers must do: read path, classes 2-8, clean marker (draft; `vdisk/` and `filedo vd`, unreleased) | producer and consumer (Owner) |
 | [`CLI-EVENT-STREAM.md`](CLI-EVENT-STREAM.md) | how the CLI reports a run to the shell that started it | producer (CLI) and consumer (shell) (Owner) |
 | [`INSTALL-TRUST.md`](INSTALL-TRUST.md) | what a user reads after Windows warns about an unsigned build | producer |
 | [`APP-BEHAVIOUR.md`](APP-BEHAVIOUR.md) | shared desktop application UX moments | consumer (GUI shell) |
@@ -57,3 +59,13 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`UPDATE-MANIFEST.md`](UPDATE-MANIFEST.md) | standalone release discovery and integrity checks | consumer |
 | [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | Explorer verb integration and process invocation | consumer |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
+
+### Read against this repository and found not to bind it
+
+A contract the catalog added that FileDO neither produces nor consumes, read once so the next run does not
+read it again. One line each: the id and the version read, the date, and why. A contract that starts to
+bind leaves this table for one of the tables above and gets a pointer.
+
+| Contract | Read | Why it does not bind |
+| --- | --- | --- |
+| `CAPTURE-OUTPUT` 0.1 draft (`capture-output/`) | 2026-09-26 | FileDO creates none of its nine kinds - photo, video, screenshot, recording, frame, note, OCR text, translation. Its own files are another contract's (`.fd-sec`, the diagnostic zip), a test payload `clean` finds by name (`FILL_*.tmp`, `speedtest_*.txt`), the shell's state under `%LOCALAPPDATA%\FileDO`, a copy the user asked for, or a site render target (`--capture-screens`). Open: whether a tool's report of its own run (`compare_report_*.log`, `delete_report_*.log`, `check --report`) is in scope - asked of the owner in `PROPOSAL-2026-09-26-filedo-tool-reports.md`; FileDO reads it as outside. Registry row dated 2026-09-26. |

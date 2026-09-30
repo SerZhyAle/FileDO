@@ -36,14 +36,26 @@
                      upload unless the account holds the HeadlessAppBypass waiver.
                      none = ship the GUI only (the fallback if the Store rejects the CLI app).
 
+.PARAMETER ExplorerCommand
+  Opt-in (AUD-17-F1, owner decision 2026-09-26): build shellext\FileDOShell.dll, stage it, and keep
+  the packaged Explorer command of SP-0020 in the manifest - the desktop4:FileExplorerContextMenus
+  verb on every file and the com:SurrogateServer class that loads the DLL. Without it (the default,
+  and what release.ps1 builds) the package carries neither extension nor the DLL, and the
+  packed-manifest check fails a package that does. The Store listing and the README say the Store
+  edition adds no Explorer entries: a Store package built with this switch contradicts them, and
+  ships only once SP-0020's exit criterion and SP-0005 G3 are met and those surfaces change in one
+  edit. Any mode takes it; -SelfSign / -Register with it is how SP-0020 is proven.
+
 .EXAMPLE
   .\msix\build-msix.ps1 -IdentityName "SZA.FileDO"          # Store package
 .EXAMPLE
   .\msix\build-msix.ps1 -Register                            # local run under MSIX, no cert
+.EXAMPLE
+  .\msix\build-msix.ps1 -SelfSign -ExplorerCommand           # local test WITH the Explorer command
 .NOTES
-  Needs Go, goversioninfo, VS Build Tools (MSBuild), the VS C++ x64 tools (MSVC, for
-  shellext\FileDOShell.dll - component Microsoft.VisualStudio.Component.VC.Tools.x86.x64)
-  and the Windows SDK (makeappx).
+  Needs Go, goversioninfo, VS Build Tools (MSBuild) and the Windows SDK (makeappx). With
+  -ExplorerCommand also the VS C++ x64 tools (MSVC, for shellext\FileDOShell.dll - component
+  Microsoft.VisualStudio.Component.VC.Tools.x86.x64).
     winget install Microsoft.WindowsSDK.10.0.26100
     go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1
 #>
@@ -58,11 +70,13 @@ param(
     [ValidateSet('visible', 'hidden', 'none')]
     [string]$Cli = 'visible',
     [switch]$SelfSign,
-    [switch]$Register
+    [switch]$Register,
+    [switch]$ExplorerCommand
 )
 
 $ErrorActionPreference = "Stop"
 $msix      = $PSScriptRoot
+. (Join-Path $msix "msix-manifest.ps1")
 $root      = Split-Path $msix -Parent
 $stage     = Join-Path $msix "stage"
 $outDir    = Join-Path $msix "out"
@@ -136,6 +150,12 @@ Write-Host "  identity    : $IdentityName"
 Write-Host "  publisher   : $Publisher"
 Write-Host "  display name: $PublisherDisplayName"
 Write-Host "  CLI app     : $Cli"
+Write-Host "  Explorer cmd: $(if ($ExplorerCommand) { 'ON (FileDOShell.dll + manifest verb, -ExplorerCommand)' } else { 'off (default; no Explorer entries, no FileDOShell.dll)' })"
+if ($ExplorerCommand -and -not $testMode) {
+    Write-Host "  WARNING: a Store package WITH the Explorer command. The listing and the README say the Store" -ForegroundColor Yellow
+    Write-Host "           edition adds no Explorer entries; do not upload it until SP-0020's exit criterion and" -ForegroundColor Yellow
+    Write-Host "           SP-0005 G3 are met and those surfaces change in one edit (AUD-17-F1)." -ForegroundColor Yellow
+}
 Write-Host ""
 
 # --- tools -------------------------------------------------------------------
@@ -241,13 +261,16 @@ Copy-Item $cfg (Join-Path $stage "filedo_win.exe.config") -Force
 Write-Host " OK"
 
 # --- FileDOShell.dll (the first-level Explorer command, SP-0020) -------------
-# The manifest declares it; a package that declares a COM class and lacks the DLL installs
-# fine and then shows nothing, so it is built on every run and asserted in the package below.
-Write-Host "Building FileDOShell.dll (Explorer command)..." -NoNewline
-$shellOut = Join-Path $outDir "shellext"
-& (Join-Path $root "shellext\build-shellext.ps1") -OutDir $shellOut -FileVersion "$vMaj.$vMin.$vPat.$vBld" | Out-Null
-Copy-Item (Join-Path $shellOut "FileDOShell.dll") (Join-Path $stage "FileDOShell.dll") -Force
-Write-Host " OK"
+# Opt-in (-ExplorerCommand, AUD-17-F1). With it the manifest declares the command, and a package
+# that declares a COM class and lacks the DLL installs fine and then shows nothing, so the DLL is
+# built and asserted in the package below. Without it neither the DLL nor the declaration ships.
+if ($ExplorerCommand) {
+    Write-Host "Building FileDOShell.dll (Explorer command)..." -NoNewline
+    $shellOut = Join-Path $outDir "shellext"
+    & (Join-Path $root "shellext\build-shellext.ps1") -OutDir $shellOut -FileVersion "$vMaj.$vMin.$vPat.$vBld" | Out-Null
+    Copy-Item (Join-Path $shellOut "FileDOShell.dll") (Join-Path $stage "FileDOShell.dll") -Force
+    Write-Host " OK"
+}
 
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt") -Force
 Copy-Item (Join-Path $root "THIRD-PARTY-NOTICES.txt") (Join-Path $stage "THIRD-PARTY-NOTICES.txt") -Force
@@ -287,72 +310,67 @@ foreach ($size in 16, 24, 32, 48, 256) {
     }
 }
 
-# The .fd-sec file type shows its ICON-SET meaning (content.secret-file), not the product mark
-# (SP-0016 T8, ICON-SET rule 7): its PNGs are cut from the same .ico the MSI and the classic
-# registration use, so the three channels show one picture. The Explorer command (FileDOShell.dll)
-# reads the menu icons from icons\ beside it, as the classic registration does.
+# The .fd-sec and .fdd file types show their ICON-SET meanings (content.secret-file,
+# content.disk-container), not the product mark (SP-0016 T8, ICON-SET rule 7; SP-0004 T6.27): their
+# PNGs are cut from the same .ico files the MSI and the classic registration use, so the three
+# channels show one picture. The Explorer command (FileDOShell.dll) reads the menu icons from icons\
+# beside it, as the classic registration does.
 $menuIconsSrc = Join-Path $root "assets\menu-icons"
 $menuIconsOut = Join-Path $stage "icons"
 New-Item -ItemType Directory -Force -Path $menuIconsOut | Out-Null
 Copy-Item (Join-Path $menuIconsSrc "*.ico") $menuIconsOut -Force
 $menuIconEntries = @(Get-ChildItem $menuIconsOut -Filter *.ico | ForEach-Object { "icons\$($_.Name)" })
-if ($menuIconEntries.Count -ne 6) { Fail "assets\menu-icons holds $($menuIconEntries.Count) icons, expected 6 - run filedo_win.exe --write-menu-icons assets\menu-icons" }
-function New-SecretFileLogo([string]$dst, [int]$size) {
-    $ico = New-Object System.Drawing.Icon((Join-Path $menuIconsSrc "content.secret-file.ico"), $size, $size)
+if ($menuIconEntries.Count -ne 7) { Fail "assets\menu-icons holds $($menuIconEntries.Count) icons, expected 7 - run filedo_win.exe --write-menu-icons assets\menu-icons" }
+function New-TypeLogo([string]$icoPath, [string]$dst, [int]$size) {
+    $ico = New-Object System.Drawing.Icon($icoPath, $size, $size)
     try {
         $bmp = $ico.ToBitmap()
         try {
-            if ($bmp.Width -ne $size) { Fail "content.secret-file.ico has no $size px image" }
+            if ($bmp.Width -ne $size) { Fail "$(Split-Path $icoPath -Leaf) has no $size px image" }
             $bmp.Save($dst, [System.Drawing.Imaging.ImageFormat]::Png)
         } finally { $bmp.Dispose() }
     } finally { $ico.Dispose() }
 }
+# One logo set per file type: <Base>.png (the name the manifest gives) and <Base>.targetsize-N.png.
 # The 256 px image is a PNG inside the .ico, which System.Drawing.Icon skips; it is copied out
 # byte for byte. The unqualified 44 px asset the manifest names is scaled from it (the .ico has
 # no 44): Windows picks a targetsize form whenever one fits, so that one is the fallback only.
-$secret256 = Join-Path $assetsOut "SecretFile.targetsize-256.png"
-$icoBytes = [System.IO.File]::ReadAllBytes((Join-Path $menuIconsSrc "content.secret-file.ico"))
-$png = $null
-for ($i = 0; $i -lt [BitConverter]::ToUInt16($icoBytes, 4); $i++) {
-    $at = 6 + 16 * $i
-    if ($icoBytes[$at] -eq 0) {
-        $len = [BitConverter]::ToInt32($icoBytes, $at + 8); $off = [BitConverter]::ToInt32($icoBytes, $at + 12)
-        $png = New-Object byte[] $len
-        [Array]::Copy($icoBytes, $off, $png, 0, $len)
+foreach ($type in @(@{ Ico = "content.secret-file.ico"; Base = "SecretFile" },
+                    @{ Ico = "content.disk-container.ico"; Base = "DiskContainer" })) {
+    $icoPath = Join-Path $menuIconsSrc $type.Ico
+    $big = Join-Path $assetsOut "$($type.Base).targetsize-256.png"
+    $icoBytes = [System.IO.File]::ReadAllBytes($icoPath)
+    $png = $null
+    for ($i = 0; $i -lt [BitConverter]::ToUInt16($icoBytes, 4); $i++) {
+        $at = 6 + 16 * $i
+        if ($icoBytes[$at] -eq 0) {
+            $len = [BitConverter]::ToInt32($icoBytes, $at + 8); $off = [BitConverter]::ToInt32($icoBytes, $at + 12)
+            $png = New-Object byte[] $len
+            [Array]::Copy($icoBytes, $off, $png, 0, $len)
+        }
     }
-}
-if (-not $png -or $png[1] -ne 0x50) { Fail "content.secret-file.ico carries no 256 px PNG image" }
-[System.IO.File]::WriteAllBytes($secret256, $png)
-New-Logo $secret256 (Join-Path $assetsOut "SecretFile.png") 44
-$logoVariants.Add("Assets\SecretFile.png")
-foreach ($size in 16, 24, 32, 48, 256) {
-    $leaf = "SecretFile.targetsize-$size.png"
-    if ($size -ne 256) { New-SecretFileLogo (Join-Path $assetsOut $leaf) $size }
-    $logoVariants.Add("Assets\$leaf")
+    if (-not $png -or $png[1] -ne 0x50) { Fail "$($type.Ico) carries no 256 px PNG image" }
+    [System.IO.File]::WriteAllBytes($big, $png)
+    New-Logo $big (Join-Path $assetsOut "$($type.Base).png") 44
+    $logoVariants.Add("Assets\$($type.Base).png")
+    foreach ($size in 16, 24, 32, 48, 256) {
+        $leaf = "$($type.Base).targetsize-$size.png"
+        if ($size -ne 256) { New-TypeLogo $icoPath (Join-Path $assetsOut $leaf) $size }
+        $logoVariants.Add("Assets\$leaf")
+    }
 }
 foreach ($entry in $menuIconEntries) { $logoVariants.Add($entry) }
 Write-Host " OK"
 
 # --- manifest ----------------------------------------------------------------
-$text = Get-Content (Join-Path $msix "AppxManifest.xml") -Raw
-$text = $text.Replace("{{IDENTITY_NAME}}", $IdentityName).
-              Replace("{{PUBLISHER}}", $Publisher).
-              Replace("{{PUBLISHER_DISPLAY_NAME}}", $PublisherDisplayName).
-              Replace("{{VERSION}}", $storeVer)
-if ($text -match '\{\{[A-Z_]+\}\}') { Fail "an unfilled placeholder is left in the manifest: $($Matches[0])" }
-
-$xml = New-Object System.Xml.XmlDocument
-$xml.PreserveWhitespace = $true
-$xml.LoadXml($text)
-$ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
-$ns.AddNamespace('m',   'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
-$ns.AddNamespace('uap', 'http://schemas.microsoft.com/appx/manifest/uap/windows10')
-$cliApp = $xml.SelectSingleNode("//m:Application[@Id='FileDO']", $ns)
-if (-not $cliApp) { Fail "the manifest template has no Application Id='FileDO' (the CLI application)." }
-switch ($Cli) {
-    'none'   { [void]$cliApp.ParentNode.RemoveChild($cliApp) }
-    'hidden' { $cliApp.SelectSingleNode('uap:VisualElements', $ns).SetAttribute('AppListEntry', 'none') }
-}
+# msix-manifest.ps1 fills the template and shapes it: the CLI application (-Cli) and, only with
+# -ExplorerCommand, the packaged Explorer command (the template carries it; a default build drops it).
+try {
+    $xml = New-FileDOManifest -TemplatePath (Join-Path $msix "AppxManifest.xml") -IdentityName $IdentityName `
+        -Publisher $Publisher -PublisherDisplayName $PublisherDisplayName -Version $storeVer -Cli $Cli `
+        -ExplorerCommand:$ExplorerCommand
+} catch { Fail $_.Exception.Message }
+$ns = New-FileDOManifestNs $xml
 [System.IO.File]::WriteAllText((Join-Path $stage "AppxManifest.xml"), $xml.OuterXml, (New-Object System.Text.UTF8Encoding($false)))
 
 # A PRI is not cosmetic: without it Windows ignores the targetsize-* and unplated forms above.
@@ -425,28 +443,13 @@ $fdsecTypes = @($packed.SelectNodes('/m:Package/m:Applications/m:Application[@Id
 if (($fdsecTypes -join ',') -cne '.fd-sec') {
     [void]$problems.Add("FileDOGui .fd-sec association is '$($fdsecTypes -join ',')', expected .fd-sec")
 }
-# SP-0020: the Explorer command. One CLSID in three places - the verb, the COM class, and the
-# DLL's source - and the DLL the class names must be in the package; any disagreement is a
-# package that installs and then shows no menu.
-$pns.AddNamespace('desktop4', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/4')
-$pns.AddNamespace('desktop5', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/5')
-$pns.AddNamespace('com',      'http://schemas.microsoft.com/appx/manifest/com/windows10')
-$guiExt = '/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions'
-$verbs = @($packed.SelectNodes("$guiExt/desktop4:Extension[@Category='windows.fileExplorerContextMenus']/desktop4:FileExplorerContextMenus/desktop5:ItemType[@Type='*']/desktop5:Verb", $pns))
-$classes = @($packed.SelectNodes("$guiExt/com:Extension[@Category='windows.comServer']/com:ComServer/com:SurrogateServer/com:Class", $pns))
-$srcClsid = $null
-$cppText = Get-Content (Join-Path $root "shellext\FileDOShell.cpp") -Raw
-if ($cppText -match '//\s*\{([0-9A-Fa-f-]{36})\}\s*\r?\n\s*const CLSID CLSID_FileDOCommand') { $srcClsid = $Matches[1].ToUpperInvariant() }
-if ($verbs.Count -ne 1) { [void]$problems.Add("$($verbs.Count) Explorer command verbs on '*', expected 1") }
-if ($classes.Count -ne 1) { [void]$problems.Add("$($classes.Count) surrogate COM classes, expected 1") }
-if ($verbs.Count -eq 1 -and $classes.Count -eq 1) {
-    $vc = $verbs[0].GetAttribute('Clsid').ToUpperInvariant(); $cc = $classes[0].GetAttribute('Id').ToUpperInvariant()
-    if ($vc -ne $cc) { [void]$problems.Add("the Explorer verb names CLSID $vc but the COM class is $cc") }
-    if (-not $srcClsid) { [void]$problems.Add("shellext\FileDOShell.cpp carries no CLSID_FileDOCommand comment to compare with") }
-    elseif ($vc -ne $srcClsid) { [void]$problems.Add("the manifest CLSID $vc differs from FileDOShell.cpp's $srcClsid") }
-    $dllPath = $classes[0].GetAttribute('Path')
-    if ($entries -notcontains $dllPath) { [void]$problems.Add("the COM class names $dllPath, which is not in the package") }
-}
+# SP-0004 T6.27: .fdd once, for the GUI app, its logo packed, and no verb - this build cannot mount.
+foreach ($p in (Test-DiskContainerAssociation -Manifest $packed -Entries $entries)) { [void]$problems.Add($p) }
+# SP-0020 / AUD-17-F1: the Explorer command matches the switch. Default: neither the
+# fileExplorerContextMenus nor the comServer extension, and no FileDOShell.dll. -ExplorerCommand:
+# one CLSID in three places (verb, COM class, the DLL's source) and the DLL in the package.
+$srcClsid = if ($ExplorerCommand) { Get-FileDOShellClsid (Join-Path $root "shellext\FileDOShell.cpp") } else { $null }
+foreach ($p in (Test-ExplorerCommand -Manifest $packed -Entries $entries -ExplorerCommand ([bool]$ExplorerCommand) -SourceClsid $srcClsid)) { [void]$problems.Add($p) }
 foreach ($need in 'filedo_win.exe.config', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'Assets\StoreLogo.png') {
     if ($entries -notcontains $need) { [void]$problems.Add("$need is not in the package") }
 }
@@ -500,6 +503,11 @@ if ($SelfSign) {
     Write-Host "  GUI  : explorer.exe shell:AppsFolder\$($pkg.PackageFamilyName)!FileDOGui   (Add-AppxPackage does not launch)"
     Write-Host "  CLI  : open a NEW terminal and run: filedo -?"
     Write-Host "  Remove: Get-AppxPackage $TestIdentity | Remove-AppxPackage"
+} elseif ($ExplorerCommand) {
+    Write-Host ""
+    Write-Host "Unsigned Store package WITH the Explorer command - do NOT upload it while the listing says the" -ForegroundColor Yellow
+    Write-Host "Store edition adds no Explorer entries (AUD-17-F1; SP-0020 exit criterion, SP-0005 G3):" -ForegroundColor Yellow
+    Write-Host "  $outMsix"
 } else {
     Write-Host ""
     Write-Host "Unsigned Store package - upload to Partner Center (Microsoft re-signs at certification):" -ForegroundColor Green

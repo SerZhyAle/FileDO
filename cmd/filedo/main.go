@@ -238,7 +238,9 @@ func (hl *HistoryLogger) SetCommand(command, target, operation string) {
 	}
 	hl.touched = true
 	hl.entry.Command = command
-	hl.entry.Target = target
+	// A credential-shaped p: token named as the target is still a password
+	// (AUD-09-F3): the field gets the redacted form, like the command line.
+	hl.entry.Target = redactCredentialTarget(target)
 	hl.entry.Operation = operation
 }
 
@@ -421,6 +423,10 @@ MAIN OPERATIONS:
   secure   → Pack a file into a .fd-sec container behind a password
   unsecure → Restore the original from a .fd-sec container
   reveal   → Open a container in its app, in a sandbox that is swept after
+  vd       → Virtual disks: .fdd containers mounted as drive letters
+             (new, mount, unmount, info, verify, export, save, compact, grow,
+             format, seal, clone, pass, destroy, list, status, add, forget,
+             auto, stop) - obfuscated, or encrypted with a password
   compare  → Compare directory trees
   check    → Check files for corruption
 
@@ -439,6 +445,8 @@ EXAMPLES:
   filedo.exe copy C:\src D:\dst   → Smart copy with optimization
   filedo.exe C:\temp wipe         → Fast wipe folder
   filedo.exe secret.txt secure    → Pack into secret.fd-sec
+  filedo.exe vd new work.fdd 20G  → Create a 20 GB virtual disk (obfuscated)
+  filedo.exe work.fdd mount       → Mount it as a drive letter
 
 COPY MODES:
   copy      → Smart auto-detection (recommended)
@@ -678,6 +686,115 @@ Credentials are redacted from history.json and from the batch echo. The
 argument form is still visible in the system process list while it runs.
 
 ═══════════════════════════════════════════════════════════════════════════════
+VIRTUAL DISKS (.fdd containers)
+
+  A container is one file that holds a whole volume. Mounted, it is a drive
+  letter like any other; unmounted, it is a file you can copy, back up or
+  read with FileDO alone. Without a password it is OBFUSCATED, NOT ENCRYPTED:
+  it keeps the volume from a casual look and from tools that scan for disk
+  images, and from nobody who has the file and FileDO. With a password it is
+  ENCRYPTED: the file is unreadable without it. A mounted volume is open to
+  every program on this machine either way.
+
+  Two forms: filedo <file.fdd> <verb> ..  and  filedo vd <verb> <name|path> ..
+  (vd is also vdisk; the vd form also takes a name registered with vd add).
+
+Create and mount:
+  filedo.exe vd new work.fdd 20G         → New container (plain: grows as used)
+  filedo.exe vd new w.fdd 20G fast       → fast: the whole size allocated now
+  filedo.exe vd new r.fdd 4G ram         → ram: the volume lives in memory and
+                                           is saved to the file every few
+                                           seconds; a crash loses the rest
+  filedo.exe vd new s.fdd 5G vault       → vault: encrypted, a password is
+                                           required (asked twice); losing it
+                                           loses the data, there is no recovery
+  filedo.exe vd new w.fdd 20G p:Pass123  → any profile, encrypted
+  filedo.exe work.fdd mount              → Mount at the first free letter; the
+                                           first mount formats it NTFS
+  filedo.exe work.fdd mount ro as X:     → Read-only, at X: (also: mnt, attach)
+  filedo.exe work.fdd mount noscan       → Exclude the file from Defender
+                                           while mounted
+  filedo.exe X: unmount                  → Flush, mark clean, detach (also
+                                           umount, detach); force detaches a
+                                           volume in use and marks it unclean;
+                                           nosave drops a ram volume's unsaved
+                                           writes
+  filedo.exe X: save                     → ram: save to the file now
+  mount, unmount, save, format, vd auto and an image mount need administrator
+  consent (the Windows iSCSI initiator, the disk), asked once per command; a
+  batch never raises that prompt - run it elevated.
+
+Read without mounting (no elevation, no network, nothing written to the
+container; export writes only its destination):
+  filedo.exe work.fdd info               → Profile, size, obfuscated or
+                                           encrypted, closed clean, last save
+  filedo.exe *.fdd info                  → Several containers, each reported
+  filedo.exe work.fdd verify             → Headers, map and every allocated
+                                           cluster read (also vfy); damage is
+                                           exit 4. Format 1.0 has no digest
+                                           table: the data is read, not verified
+  filedo.exe work.fdd export D:\w.img raw → The volume as a raw image (also
+                                           extract, ext; to <dest> names it)
+  filedo.exe work.fdd export D:\w.vhd vhd → A fixed VHD Windows attaches
+                                           itself. An export of an encrypted
+                                           container is NOT encrypted. The
+                                           files inside are exported by
+                                           mounting; this build has no file
+                                           tree export
+
+Change (unmounted only - a mounted container is refused, exit 8):
+  filedo.exe work.fdd compact            → Give unused space back (also shrink)
+  filedo.exe work.fdd grow 40G           → Larger volume (also resize); extend
+                                           the volume inside at the next mount
+                                           (Disk Management "Extend Volume")
+  filedo.exe work.fdd format             → ERASE the volume: an empty NTFS one
+                                           (fs exfat, label <text>); asks y/N
+  filedo.exe work.fdd seal s.fdd         → A sealed copy: read-only for good
+  filedo.exe work.fdd clone c.fdd        → A writable copy with its own id
+  filedo.exe s.fdd clone o.fdd nopass    → An OBFUSCATED copy of an encrypted
+                                           one - anyone with the file reads it
+                                           (seal takes nopass too). This is the
+                                           only way a password comes off
+  filedo.exe s.fdd pass                  → Change the password (current once,
+                                           new twice): pass p:old new p:new.
+                                           The data is not rewritten, and old
+                                           copies of the file keep the old one
+  filedo.exe work.fdd destroy            → Remove the container file (also
+                                           erase); asks y/N. wipe overwrites it
+                                           first (typed WIPE), with the same
+                                           caveat as wipe on SSDs
+
+Bookkeeping:
+  filedo.exe vd list | status | stop     → Registered containers | what is
+                                           mounted | stop the block server
+  filedo.exe vd add C:\v\work.fdd as work → A short name; then: vd mount work
+  filedo.exe vd forget work              → Remove the name, keep the file
+  filedo.exe vd auto work logon          → Mount at your logon (obfuscated
+                                           containers only); vd auto off work
+  filedo.exe vd register [-all-users]    → The .fdd file type in Explorer: its
+                                           icon, and Mount / Mount read-only /
+                                           Unmount opening the FileDO window
+                                           (the setup installs it already);
+                                           vd unregister removes it
+  filedo.exe disk.vhdx mount | unmount   → A .vhd, .vhdx or .iso, through
+                                           Windows' own image support
+
+The password: the same forms as the .fd-sec containers above - omitted is a
+prompt, or p:<password>, pf:<file>, pe:<VAR>, k:<keyfile>. A bare password is
+taken only by mount, as its one word after the container; p: is required
+whenever an option is present. An EMPTY password means obfuscation only -
+never encryption. On an obfuscated container a given password is not used,
+and says so.
+
+Options: force (or -y) skips a question, never a check; a batch needs force
+for format and destroy, because a batch never answers a question yes.
+
+Exit codes: 0 ok, 2 usage, 3 wrong credential, 4 damaged, 5 I/O,
+            6 unsupported (the Microsoft Store build cannot mount),
+            7 transport unavailable (initiator, consent, drive letter),
+            8 busy (mounted, open, or the state is locked). A batch: 0/1/2.
+
+═══════════════════════════════════════════════════════════════════════════════
 NETWORK OPERATIONS (SMB shares, network drives)
 
 Information & Analysis:
@@ -779,7 +896,9 @@ Folder Compare:
 		filedo.exe cmp D:\Source E:\Target del new source    → Delete only when newer side is Source
 	Notes: matching by relative path; del source|target deletes a pair only when size and time match
 	       (--by-hash: equal content; --allow-mismatch: any pair); mtime used for old/new;
-	       the two folders must not be one folder or nest; permanent delete; no confirmation
+	       the two folders must not be one folder or nest; permanent delete
+	       a delete rule lists the count and the mode and asks "(y/N)" before deleting;
+	       --yes (or -y) skips the question, never a check; no answer (closed stdin): nothing deleted, exit 2
 
 Folder Health Check:
 	filedo.exe check D:\Data                 → Read-check all files; mark damaged on read delay > 2.0s
@@ -946,7 +1065,7 @@ var list_of_flags_for_ui = []string{"ui", "gui"}
 var list_fo_flags_for_help = []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
 var list_fo_flags_for_short_help = []string{"?", "/?", "-?", "--help"}
 var list_fo_flags_for_full_help = []string{"help", "h", "/help"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_vd...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
@@ -1154,6 +1273,12 @@ func main() {
 	// Initialize global interrupt handler first
 	globalInterruptHandler = NewInterruptHandler()
 
+	// The internal steps of a virtual-disk mount (the block server and the
+	// elevated initiator step) are not runs: no banner, no history, no events.
+	if isVdInternal(os.Args) {
+		os.Exit(vdInternalMain(os.Args[2:]))
+	}
+
 	// Lifetime mechanism 3 (spec 8.2): every FileDO start reclaims any reveal
 	// sandbox left behind by a previous one, before anything else runs. This
 	// is the only remedy for a handler that never locks its input and for a
@@ -1162,8 +1287,14 @@ func main() {
 	// in use right now, in another FileDO, holds a lock and is stepped around.
 	fdsecSweepReveals()
 
+	// A document for a program (`vd status json`, SP-0063 8.1) is the whole of
+	// stdout: no banner before it and no finish line after it.
+	machineOutput := vdMachineOutput(os.Args)
+
 	hi_message := "\n" + start_time.Format("2006-01-02 15:04:05") + " sza@ukr.net " + version + "\n"
-	fmt.Print(hi_message)
+	if !machineOutput {
+		fmt.Print(hi_message)
+	}
 
 	// Registered first, so it runs last: --pause holds the window open after
 	// the finish line, not before it. The flag itself is read a few lines
@@ -1173,6 +1304,9 @@ func main() {
 	// Ensure bue_message is always printed. Panic recovery is registered after
 	// finishRun below so it records Not proven before the result is emitted.
 	defer func() {
+		if machineOutput {
+			return
+		}
 		bue_message := "\n Finish:" + time.Now().Format("2006-01-02 15:04:05") + ", Duration: " + formatDurationDetailed(time.Since(start_time)) + "\n"
 		fmt.Print(bue_message)
 	}()
@@ -1206,9 +1340,11 @@ func main() {
 		}
 		// os.Exit skips every remaining defer, so the window has to be held
 		// here rather than in the deferred call registered above.
-		if fdsecExitCode != 0 {
+		// A container command's class, unless the run was a batch of
+		// several lines, whose digit is rule 11's (AUD-29-F1).
+		if code := containerExitCode(); code != 0 {
 			holdConsoleIfAsked()
-			os.Exit(fdsecExitCode)
+			os.Exit(code)
 		}
 		if globalExitCode != 0 {
 			holdConsoleIfAsked()

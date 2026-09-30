@@ -1,0 +1,60 @@
+# FileDO virtual disks (SP-0004 P6 T6.11): every verb that needs no elevation, end to end, as a batch.
+#
+# The acceptance run of the vd surface is a batch run (spec 5.7): each line below goes through
+# `filedo from`, the same dispatch as a typed command, and the run ends 0/1/2 by the batch rule.
+# Every path is relative, so the list writes only into the folder it is run from - run it from a
+# scratch folder under %TEMP%, never from the repository. It needs two things there first: the new
+# password in vdb_new.txt, and the old one in the environment variable FILEDO_VDB_OLD. From
+# PowerShell, with the exe to test in $exe:
+#
+#   $w = New-Item -ItemType Directory -Force "$env:TEMP\filedo-vd-batch"; Push-Location $w
+#   Set-Content vdb_new.txt 'batch-new-pass' -NoNewline; $env:FILEDO_VDB_OLD = 'batch-old-pass'
+#   $env:FILEDO_STATE_DIR = "$w\state"   # keeps the run's history and vd add out of your own state
+#   & $exe --events vd_batch.events.jsonl from <repo>\tests\vd_batch.lst; "exit $LASTEXITCODE"
+#   Pop-Location
+#
+# Expected: exit 0, and the last event of vd_batch.events.jsonl is a `result` with the verdict Passed
+# (info and verify make it a run that judges).
+# The .fdd files are destroyed by the list itself; the exported images and vdb_new.txt stay, and the
+# folder is removed by hand. mount, unmount, save, format and auto need administrator rights and
+# are in the manual kit, not here: a batch never raises a consent prompt.
+
+# ---- an obfuscated container: create, read, export, change, copy
+vd new vdb_plain.fdd 64M label VdBatch
+vdb_plain.fdd info
+vdb_plain.fdd verify
+vdb_plain.fdd export vdb_plain.img raw
+vdb_plain.fdd extract to vdb_plain.vhd vhd
+vdb_plain.fdd grow 96M
+vdb_plain.fdd compact
+vdb_plain.fdd clone vdb_clone.fdd
+vd vfy vdb_clone.fdd
+vdb_plain.fdd seal vdb_plain_sealed.fdd
+
+# ---- an encrypted container: the credential by pe: and pf:, never on the line
+vd new vdb_vault.fdd 32M vault pe:FILEDO_VDB_OLD
+vdb_vault.fdd verify pe:FILEDO_VDB_OLD
+vdb_vault.fdd pass pe:FILEDO_VDB_OLD new pf:vdb_new.txt
+vdb_vault.fdd verify pf:vdb_new.txt
+vdb_vault.fdd export vdb_vault.img raw pf:vdb_new.txt
+vdb_vault.fdd grow 48M pf:vdb_new.txt
+vdb_vault.fdd compact pf:vdb_new.txt
+vdb_vault.fdd clone vdb_vault_copy.fdd pf:vdb_new.txt
+vdb_vault.fdd clone vdb_open.fdd nopass pf:vdb_new.txt
+vdb_vault.fdd seal vdb_sealed.fdd nopass pf:vdb_new.txt
+
+# ---- several containers at once, each reported (T6.12)
+vd info vdb_*.fdd
+vdb_*.fdd verify pf:vdb_new.txt
+
+# ---- the registry, and destroy (a batch says force; one goes through wipe)
+vd add vdb_clone.fdd as vdbclone
+vd list
+vd destroy vdbclone force
+vdb_plain.fdd destroy force
+vdb_plain_sealed.fdd erase -y
+vdb_vault.fdd destroy wipe force
+vdb_vault_copy.fdd destroy force
+vdb_open.fdd destroy force
+vdb_sealed.fdd destroy force
+vd status

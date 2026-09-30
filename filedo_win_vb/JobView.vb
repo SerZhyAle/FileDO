@@ -30,6 +30,14 @@ Public Class JobView
     ' listens, because a close the user asked for while the run was active waits for this.
     Public Event RunFinished()
 
+    ' A Disks result asks for another page on a target - the list's "Unmount" and "Turn off
+    ' auto-mount" (SP-0004 P6, spec 7.1). The window opens the page; a page with no window does it
+    ' itself.
+    Public Event DiskJobRequested(key As String, target As String, preset As String)
+
+    ' The list's "Open in Disk manager" (SP-0063 4.2): the window opens it.
+    Public Event DiskManagerRequested()
+
     Private ReadOnly runner As New Runner()
     Private job As JobDefinition
 
@@ -130,6 +138,15 @@ Public Class JobView
     Private copyStrategyCombo As ComboBox
     Private copyStrategyNotice As Label
     Private checkOptions As CheckOptionsPanel
+
+    ' The Disks pages (SP-0004 P6): step 3 is one panel, the result card gains the list's table and
+    ' the drive a mount attached, and what `info` says about the container in step 2 is read off the
+    ' window's thread, the newest read winning.
+    Private diskPanel As DiskOptionsPanel
+    Private diskResult As DiskResultPanel
+    Private diskFactsTimer As Windows.Forms.Timer
+    Private diskFactsGeneration As Integer = 0
+    Private diskFactsPath As String = ""
 
     ' What step 3 holds for the job on screen. These are fields rather than the controls' own
     ' Visible property for the reason UpdateParamsVisibility already documents: a control reports
@@ -348,6 +365,14 @@ Public Class JobView
         secondTargetRow.Visible = pair
         secondTargetLabel.Visible = pair
         blastRadiusRow.Visible = False
+
+        ' A job with no target (the Disks list) has no step 2 to show.
+        targetCard.Visible = (job Is Nothing OrElse job.TargetKind <> JobDefinition.TargetType.None)
+        If diskFactsTimer IsNot Nothing Then diskFactsTimer.Stop()
+        diskFactsGeneration += 1
+        diskFactsPath = ""
+        diskPanel.Reset()
+        diskResult.Clear()
         ApplyJobShape()
 
         outputPane.Clear()
@@ -387,6 +412,22 @@ Public Class JobView
                 targetBrowseBtn.Text = L("shell_btn_browse_folder")
         End Select
 
+        ' A Disks page names a container file - a new one for Create, one that may also be given by
+        ' its drive letter for Unmount.
+        If IsDisk() Then
+            Select Case job.DefaultVerb
+                Case "new" : targetLabel.Text = L("vd_lbl_new_container")
+                Case "unmount" : targetLabel.Text = L("vd_lbl_unmount_target")
+                Case Else : targetLabel.Text = L("vd_lbl_container")
+            End Select
+            targetBrowseBtn.Text = L("shell_btn_browse_file")
+        End If
+        targetCombo.AccessibleName = targetLabel.Text
+
+        ' "Open in Command" hands over one password; `pass` needs two, so its line is not offered
+        ' there half-equipped.
+        openInCmdBtn.Visible = Not (IsDisk() AndAlso job.DefaultVerb = "pass")
+
         Select Case job.DefaultVerb
             Case "speed"
                 presetQuick.Text = L("shell_preset_quick_speed")
@@ -413,7 +454,11 @@ Public Class JobView
     ' control is on screen exactly when the command line below can carry it.
     Private Sub ApplyOptionShape()
         If job Is Nothing Then Return
-        Dim verb = job.DefaultVerb
+        ' A Disks verb shares words with the drive jobs ("info") but none of their options: its
+        ' whole step 3 is the Disks panel, so the shared controls see no verb at all.
+        Dim verb = If(IsDisk(), "", job.DefaultVerb)
+        diskPanel.Visible = IsDisk()
+        If IsDisk() Then diskPanel.Configure(job.DefaultVerb)
 
         ' `speed` deletes its file unless told `nodel` and takes no `del` (AUD-26-F1).
         optionsCheckAutoDel.Visible = (verb = "test" OrElse verb = "fill")
@@ -427,7 +472,8 @@ Public Class JobView
         ' answered on the page instead (UpdateParamsVisibility), and a secret-file page adds -y
         ' itself when a destructive disposition is chosen.
         optionsCheckForce.Visible = (verb = "wipe")
-        optionsCheckNoHist.Visible = Not IsFdsec()
+        ' `nohist` is a word of the drive verbs; a vd line would read it as an unknown word.
+        optionsCheckNoHist.Visible = Not IsFdsec() AndAlso Not IsDisk()
         optionChecksShown = AnyOptionCheckRequested(verb)
 
         showsDup = (verb = "cd")
@@ -459,6 +505,7 @@ Public Class JobView
     ' The verbs that own at least one of the shared option checkboxes. Kept next to the list that
     ' shows them, so the two cannot drift apart.
     Private Function AnyOptionCheckRequested(verb As String) As Boolean
+        If IsDisk() Then Return False
         Select Case verb
             Case "test", "speed", "fill", "info", "unsecure", "probe", "recover", "wipe"
                 Return True
@@ -527,6 +574,8 @@ Public Class JobView
             UpdateParamsVisibility()
             UpdateBlastRadius()
         End If
+        ' The Compare rule decides the same for its page (AUD-16-F1).
+        If showsCompare Then UpdateParamsVisibility()
         ' Some of these controls carry the danger colour while they are on, so the page is
         ' re-themed the moment one is chosen rather than at the next page change.
         ApplyTheme()
@@ -543,6 +592,19 @@ Public Class JobView
 
     Private Function DupConfirmWord() As String
         Return If(dupActionMove.Checked, DupMoveWord, DupDeleteWord)
+    End Function
+
+    ' AUD-16-F1: a Compare rule other than "none" deletes one side of the matched pairs for good,
+    ' so the page is destructive and permanent - badge, accent and the typed DELETE - the way
+    ' DupIsDestructiveNow makes the Duplicates page. The job itself is not: comparing changes nothing.
+    Private Function CmpIsDestructiveNow() As Boolean
+        If job Is Nothing OrElse job.DefaultVerb <> "compare" OrElse cmpRuleCombo Is Nothing Then Return False
+        Return cmpRuleCombo.SelectedIndex > 0
+    End Function
+
+    ' The Disks jobs (SP-0004 P6): every job of the rail's Disks group.
+    Private Function IsDisk() As Boolean
+        Return job IsNot Nothing AndAlso job.GroupKey = DiskCommands.GroupKey
     End Function
 
     ' The three secret-file jobs, and which of the fields each one asks for.
@@ -695,9 +757,15 @@ Public Class JobView
         ' still asked rather than assumed: a job added later with no parameters gets no empty card.
         Dim any = showsPresets OrElse showsSize OrElse showsDup OrElse showsCompare OrElse
                   showsCopy OrElse showsCheck OrElse job.IsDestructive OrElse IsFdsec() OrElse
-                  optionChecksShown
+                  optionChecksShown OrElse IsDisk()
         paramsCard.Visible = any
         planHeader.Text = If(any, L("shell_step4"), L("shell_step3_check"))
+        paramsHeader.Text = L("shell_step3")
+        ' A job with no step 2 (the Disks list) counts 2, 3 rather than 3, 4.
+        If job.TargetKind = JobDefinition.TargetType.None Then
+            paramsHeader.Text = L("shell_step2_params")
+            planHeader.Text = If(any, L("shell_step3_check"), L("shell_step2_check"))
+        End If
 
         ' The typed WIPE follows the disposition rather than the page, so it
         ' appears the moment "overwrite the original" is chosen and goes again
@@ -719,6 +787,15 @@ Public Class JobView
             wipeConfirmRow.Visible = destructive
         End If
 
+        ' And a Compare run with a delete rule (AUD-16-F1). The word is cleared when the rule goes
+        ' back to "none", so a later delete rule asks for it again.
+        If job.DefaultVerb = "compare" Then
+            Dim destructive = CmpIsDestructiveNow()
+            If Not destructive Then wipeConfirmBox.Text = ""
+            wipeConfirmLabel.Text = L("shell_cmp_delete_confirm")
+            wipeConfirmRow.Visible = destructive
+        End If
+
         ' The CLI asks a probe and a recover to have their target typed out on the console before
         ' either touches the volume (probe_windows.go). Started from this window there is no
         ' console to answer on, so the question is asked here and the run carries `yes`: the
@@ -728,6 +805,26 @@ Public Class JobView
             wipeConfirmRow.Visible = True
         End If
     End Sub
+
+    Private Sub ApplyDestructiveAccent()
+        Dim p = Theme.Current
+        Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse
+                          CmpIsDestructiveNow() OrElse DiskIsDestructiveNow()
+        If paramsCard.Accented <> destructive Then
+            paramsCard.Accented = destructive
+            paramsCard.AccentColour = p.Danger
+            paramsCard.Invalidate()
+        End If
+        If planCard.Accented <> destructive Then
+            planCard.Accented = destructive
+            planCard.AccentColour = p.Danger
+            planCard.Invalidate()
+        End If
+    End Sub
+
+    Private Function DiskIsDestructiveNow() As Boolean
+        Return IsDisk() AndAlso diskPanel.IsDestructiveNow(job.IsDestructive)
+    End Function
 
     Private Function NeedsDriveConfirm() As Boolean
         If job Is Nothing Then Return False
@@ -1030,6 +1127,7 @@ Public Class JobView
         Ui.Wrap(credNoticeLabel, paramsCard, Ui.Px(Me, 36))
         Ui.Wrap(credHintLabel, paramsCard, Ui.Px(Me, 36))
         Ui.Wrap(fdsecNoticeLabel, paramsCard, Ui.Px(Me, 36))
+        diskPanel.WrapIn(paramsCard, Ui.Px(Me, 36))
     End Sub
 
     Private Function NewOption(key As String) As CheckBox
@@ -1061,10 +1159,20 @@ Public Class JobView
                 UpdatePlanCard()
             End Sub
 
+        diskPanel = New DiskOptionsPanel()
+        ' The panel re-themes itself; the page only moves the danger accent, which follows the
+        ' answers (Unmount without its final save), and rewrites the plan.
+        AddHandler diskPanel.Changed,
+            Sub()
+                ApplyDestructiveAccent()
+                UpdatePlanCard()
+            End Sub
+
         extrasFlow.Controls.Add(dupRow)
         extrasFlow.Controls.Add(cmpRow)
         extrasFlow.Controls.Add(copyRow)
         extrasFlow.Controls.Add(checkOptions)
+        extrasFlow.Controls.Add(diskPanel)
     End Sub
 
     ' The duplicate scan asks two separate questions - which copy is the original, and what
@@ -1461,8 +1569,12 @@ Public Class JobView
         resultCard = NewCard()
         resultCard.Visible = False
 
-        Dim table = NewTable(1, 6)
+        Dim table = NewTable(1, 7)
         table.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+
+        diskResult = New DiskResultPanel()
+        AddHandler diskResult.JobRequested, AddressOf OnDiskJobRequested
+        AddHandler diskResult.ManagerRequested, Sub() RaiseEvent DiskManagerRequested()
 
         Dim vRow As New FlowLayoutPanel With {
             .AutoSize = True,
@@ -1511,9 +1623,11 @@ Public Class JobView
         table.Controls.Add(resultNumbersLabel, 0, 2)
         table.Controls.Add(filesLeftLabel, 0, 3)
         table.Controls.Add(reportsLabel, 0, 4)
-        table.Controls.Add(actRow, 0, 5)
+        table.Controls.Add(diskResult, 0, 5)
+        table.Controls.Add(actRow, 0, 6)
 
         resultCard.Controls.Add(table)
+        diskResult.WrapIn(resultCard, Ui.Px(Me, 36))
 
         Ui.Wrap(verdictReasonLabel, resultCard, Ui.Px(Me, 36))
         Ui.Wrap(resultNumbersLabel, resultCard, Ui.Px(Me, 36))
@@ -1669,6 +1783,13 @@ Public Class JobView
         End Select
     End Sub
 
+    ' The Compare destination and rule, as the box and the combo would set them; "" is "none".
+    Friend Sub SetCompareForTest(dest As String, rule As String)
+        secondTargetBox.Text = dest
+        cmpRuleCombo.SelectedIndex = Math.Max(Array.IndexOf(CliRules.CmpRuleTokens, rule), 0)
+        UpdatePlanCard()
+    End Sub
+
     Friend Sub SetConfirmWordForTest(typed As String)
         wipeConfirmBox.Text = typed
     End Sub
@@ -1746,6 +1867,68 @@ Public Class JobView
         End Get
     End Property
 
+    ' The Disks page's answers and passwords, as a user would give them (SP-0004 P6).
+    Friend Sub SetDiskForTest(o As DiskOptions, password As String, newPassword As String, typed As String)
+        diskPanel.SetForTest(o, password, newPassword, typed)
+        UpdatePlanCard()
+    End Sub
+
+    Friend Sub SetDiskFactsForTest(f As ContainerFacts)
+        diskFactsGeneration += 1
+        diskFactsPath = GetRawTarget()
+        diskPanel.SetFacts(f)
+        UpdatePlanCard()
+    End Sub
+
+    Friend ReadOnly Property DiskPanelForTest As DiskOptionsPanel
+        Get
+            Return diskPanel
+        End Get
+    End Property
+
+    Friend ReadOnly Property DiskResultForTest As DiskResultPanel
+        Get
+            Return diskResult
+        End Get
+    End Property
+
+    ' The environment the run would be given, and whether it would be started elevated.
+    Friend Function RunEnvironmentForTest() As Dictionary(Of String, String)
+        If IsFdsec() Then Return New Dictionary(Of String, String) From {{CredentialEnvName, credBox.Text}}
+        If IsDisk() Then Return diskPanel.EnvironmentForRun()
+        Return Nothing
+    End Function
+
+    Friend ReadOnly Property ElevatesRunForTest As Boolean
+        Get
+            Return ElevatesRun()
+        End Get
+    End Property
+
+    Friend ReadOnly Property OpenInCommandOfferedForTest As Boolean
+        Get
+            Return openInCmdBtn.Visible
+        End Get
+    End Property
+
+    Friend ReadOnly Property TargetCardShownForTest As Boolean
+        Get
+            Return targetCard.Visible
+        End Get
+    End Property
+
+    ' A finished run, as the runner would hand it back, drawn on the result card.
+    Friend Sub ShowRunResultForTest(res As Runner.RunResult, showMounted As Boolean)
+        ShowResultCard(res)
+        If IsDisk() Then ShowDiskResult(res, showMounted)
+    End Sub
+
+    Friend ReadOnly Property VerdictReasonForTest As String
+        Get
+            Return If(verdictReasonLabel.Visible, verdictReasonLabel.Text, "")
+        End Get
+    End Property
+
     ' ---- step 2 - the target ---------------------------------------------
 
     ' Drives carry their label, file system, size and free space on the row, because a letter alone
@@ -1804,6 +1987,7 @@ Public Class JobView
     ' one place for the checks on this page and another for the run. A path that is not fully
     ' qualified is shown as typed, and TargetRefused keeps Run from taking it.
     Private Function GetRawTarget() As String
+        If job IsNot Nothing AndAlso job.TargetKind = JobDefinition.TargetType.None Then Return ""
         Dim text = TargetText()
         If text = "" Then Return ""
         Return If(TargetPath.Resolve(text), text)
@@ -1832,8 +2016,94 @@ Public Class JobView
     End Function
 
     Private Sub TargetChanged()
+        ScheduleDiskFacts()
         UpdatePlanCard()
         UpdateBlastRadius()
+    End Sub
+
+    ' ---- step 2 of a Disks page - what the container is --------------------
+
+    ' The container named in step 2 is read by the console (`filedo.exe <x.fdd> info`) a moment
+    ' after the typing stops, off the window's thread. What it says - obfuscated or encrypted,
+    ' mounted, closed cleanly - is shown on the page and decides what Run is offered for.
+    Private Sub ScheduleDiskFacts()
+        If Not IsDisk() OrElse Not DiskCommands.ActsOnContainer(job.DefaultVerb) Then Return
+        Dim path = GetRawTarget()
+        If String.Equals(path, diskFactsPath, StringComparison.OrdinalIgnoreCase) AndAlso diskPanel.Facts IsNot Nothing Then Return
+        diskFactsGeneration += 1
+        If diskFactsTimer IsNot Nothing Then diskFactsTimer.Stop()
+        If Not DiskCommands.IsFddPath(path) OrElse TargetRefused() Then
+            diskFactsPath = ""
+            diskPanel.ClearFacts()
+            Return
+        End If
+        diskFactsPath = path
+        diskPanel.SetFactsChecking(path)
+        If Not DiskProbe.Enabled Then
+            diskPanel.SetFacts(ContainerFacts.Unknown(path))
+            Return
+        End If
+        If diskFactsTimer Is Nothing Then
+            diskFactsTimer = New Windows.Forms.Timer With {.Interval = 400}
+            AddHandler diskFactsTimer.Tick, Sub() StartDiskFactsRead()
+        End If
+        diskFactsTimer.Start()
+    End Sub
+
+    Private Sub StartDiskFactsRead()
+        diskFactsTimer.Stop()
+        Dim generation = diskFactsGeneration
+        Dim path = diskFactsPath
+        Task.Run(Sub()
+                     Dim f = DiskProbe.Info(path)
+                     PostToUi(Sub()
+                                  If generation <> diskFactsGeneration Then Return
+                                  diskPanel.SetFacts(f)
+                                  ApplyDestructiveAccent()
+                                  UpdatePlanCard()
+                              End Sub)
+                 End Sub)
+    End Sub
+
+    ' What a start on a `.fdd` already knows (DiskRoute): the facts read before the window opened,
+    ' and read-only for --mount-ro. The page does not read the container a second time.
+    Public Sub ApplyDiskStart(decision As DiskRoute.Decision)
+        If decision Is Nothing OrElse Not IsDisk() Then Return
+        If decision.Facts IsNot Nothing AndAlso decision.Facts.Read Then
+            diskFactsGeneration += 1
+            If diskFactsTimer IsNot Nothing Then diskFactsTimer.Stop()
+            diskFactsPath = GetRawTarget()
+            diskPanel.SetFacts(decision.Facts)
+        End If
+        If decision.ReadOnly Then diskPanel.ApplyPreset("ro")
+        ApplyTheme()
+        UpdatePlanCard()
+    End Sub
+
+    ' A preset the list asked for ("off" on the auto-mount page).
+    Public Sub ApplyDiskPreset(preset As String)
+        If Not IsDisk() OrElse String.IsNullOrEmpty(preset) Then Return
+        diskPanel.ApplyPreset(preset)
+        UpdatePlanCard()
+    End Sub
+
+    ' Run, pressed by the window for a double-click that has nothing left to ask (spec 6.4). It
+    ' runs only when the page would offer Run itself.
+    Public Sub RunFromShell()
+        If runner.IsActive OrElse Not startBtn.Enabled Then Return
+        StartBtn_Click(Me, EventArgs.Empty)
+    End Sub
+
+    Private Sub OnDiskJobRequested(key As String, target As String, preset As String)
+        If DiskJobRequestedEvent IsNot Nothing Then
+            RaiseEvent DiskJobRequested(key, target, preset)
+            Return
+        End If
+        Dim nextJob = JobCatalogue.GetJob(key)
+        If nextJob Is Nothing Then Return
+        SetJob(nextJob)
+        If target <> "" Then SetTarget(target)
+        ApplyDiskPreset(preset)
     End Sub
 
     ' "The target holds N files" is counted for the two runs that delete what is there - a wipe and
@@ -2019,9 +2289,14 @@ Public Class JobView
                 reversibility = "partly reversible"
             End If
         End If
+        ' A Compare delete rule removes files with no copy kept anywhere (AUD-16-F1).
+        If CmpIsDestructiveNow() Then reversibility = "permanent"
+        ' An unmount without its final save loses what was not saved yet (SP-0004 5.2).
+        If IsDisk() Then reversibility = diskPanel.ReversibilityNow(reversibility)
         reversibilityBadge.Text = L("shell_rev_" & reversibility.Replace(" ", "_"))
 
-        destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow()
+        destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse CmpIsDestructiveNow() OrElse
+                                   DiskIsDestructiveNow()
         destructiveBadge.Text = L("shell_badge_destructive")
         elevationBadge.Visible = job.NeedsElevation
         elevationBadge.Text = L("shell_badge_elevation")
@@ -2059,7 +2334,7 @@ Public Class JobView
         End If
 
         Dim target = GetRawTarget()
-        If String.IsNullOrEmpty(target) Then
+        If String.IsNullOrEmpty(target) AndAlso job.TargetKind <> JobDefinition.TargetType.None Then
             startBtn.Enabled = False
             tips.SetToolTip(startBtn, L("shell_need_target"))
             If job.Id = "rail_job_wipe" Then wipeConfirmRow.Visible = True
@@ -2081,6 +2356,18 @@ Public Class JobView
            String.IsNullOrEmpty(secondTargetBox.Text.Trim()) Then
             startBtn.Enabled = False
             tips.SetToolTip(startBtn, L("shell_need_dest"))
+            Return
+        End If
+
+        ' A Disks page: what the container is, what this build can do and what step 3 answered,
+        ' each refused here with its reason rather than by the console after the run (spec 7.4).
+        If IsDisk() Then
+            Dim reason = diskPanel.BlockReason(target)
+            startBtn.Enabled = (reason = "")
+            If reason <> "" Then
+                ShowRunBlocked(reason)
+                tips.SetToolTip(startBtn, reason)
+            End If
             Return
         End If
 
@@ -2146,6 +2433,14 @@ Public Class JobView
         ' console - so the question is asked here, as a word typed out, before -y is passed.
         If DupIsDestructiveNow() Then
             startBtn.Enabled = (wipeConfirmBox.Text.Trim() = DupConfirmWord())
+            If Not startBtn.Enabled Then tips.SetToolTip(startBtn, wipeConfirmLabel.Text)
+            Return
+        End If
+
+        ' AUD-16-F1: filedo.exe asks before a Compare delete, and this run has no console to
+        ' answer on, so the question is the typed DELETE here, before --yes is passed.
+        If CmpIsDestructiveNow() Then
+            startBtn.Enabled = (wipeConfirmBox.Text.Trim() = DupDeleteWord)
             If Not startBtn.Enabled Then tips.SetToolTip(startBtn, wipeConfirmLabel.Text)
             Return
         End If
@@ -2225,6 +2520,13 @@ Public Class JobView
         Dim target = GetRawTarget()
         Dim hasTarget = Not String.IsNullOrEmpty(target)
 
+        ' A Disks page writes the console grammar of SP-0004 P6 (DiskCommands.Build). Its verbs
+        ' share words with the drive jobs - `info` above all - so they never reach the cases below.
+        If IsDisk() Then
+            args.AddRange(DiskCommands.Build(job.DefaultVerb, target, diskPanel.ToOptions()))
+            Return args
+        End If
+
         Select Case job.DefaultVerb
             Case "test", "speed", "fill"
                 If hasTarget Then args.Add(target)
@@ -2295,6 +2597,10 @@ Public Class JobView
                 ' "del old target" is three words to the CLI, and it is three arguments here.
                 Dim rule = CliRules.CmpRuleTokens(Math.Max(cmpRuleCombo.SelectedIndex, 0))
                 If rule <> "" Then args.AddRange(rule.Split(" "c))
+                ' --yes skips filedo.exe's question and nothing else: the pair checks still run.
+                ' The question was asked here, as the typed DELETE, before Run was offered
+                ' (AUD-16-F1).
+                If CmpIsDestructiveNow() Then args.Add("--yes")
 
             Case "copy"
                 args.Add(CliRules.CopyVerbs(Math.Max(copyStrategyCombo.SelectedIndex, 0)))
@@ -2429,6 +2735,25 @@ Public Class JobView
     ' ---- buttons ---------------------------------------------------------
 
     Private Sub BrowseTarget_Click(sender As Object, e As EventArgs)
+        ' A Disks page browses for a container: an existing one, or - for Create - a new name.
+        If IsDisk() Then
+            If job.DefaultVerb = "new" Then
+                Using dlg As New SaveFileDialog()
+                    dlg.Title = L("vd_lbl_new_container")
+                    dlg.Filter = DiskCommands.FileFilter(L("vd_filter_fdd"), "*.fdd", L("vd_filter_all"))
+                    dlg.OverwritePrompt = False
+                    If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.FileName
+                End Using
+            Else
+                Using dlg As New OpenFileDialog()
+                    dlg.Title = L("vd_lbl_container")
+                    dlg.Filter = DiskCommands.FileFilter(L("vd_filter_fdd"), "*.fdd", L("vd_filter_all"))
+                    If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.FileName
+                End Using
+            End If
+            Return
+        End If
+
         If job IsNot Nothing AndAlso job.TargetKind = JobDefinition.TargetType.File Then
             Using dlg As New OpenFileDialog()
                 dlg.Title = L("shell_dlg_select_file")
@@ -2469,7 +2794,7 @@ Public Class JobView
     End Function
 
     Private Sub OpenInCmdBtn_Click(sender As Object, e As EventArgs)
-        RaiseEvent OpenInCommandRequested(commandBox.Text, If(IsFdsec(), credBox.Text, ""))
+        RaiseEvent OpenInCommandRequested(commandBox.Text, If(IsFdsec(), credBox.Text, If(IsDisk(), diskPanel.Credential, "")))
     End Sub
 
     Private Async Sub StartBtn_Click(sender As Object, e As EventArgs)
@@ -2512,8 +2837,12 @@ Public Class JobView
         Dim env As Dictionary(Of String, String) = Nothing
         If IsFdsec() Then
             env = New Dictionary(Of String, String) From {{CredentialEnvName, credBox.Text}}
+        ElseIf IsDisk() Then
+            ' FILEDO_SHELL_CRED and, for `pass`, FILEDO_SHELL_CRED_NEW - on the child alone.
+            env = diskPanel.EnvironmentForRun()
         End If
-        Dim res = Await runner.ExecuteAsync(args, envVars:=env, elevate:=job.NeedsElevation)
+        Dim diskShowMounted = IsDisk() AndAlso diskPanel.ToOptions().ShowMounted
+        Dim res = Await runner.ExecuteAsync(args, envVars:=env, elevate:=ElevatesRun())
 
         runTimer.Stop()
         runTimer.Dispose()
@@ -2523,6 +2852,7 @@ Public Class JobView
         outputPane.Stop()
 
         ShowResultCard(res)
+        If IsDisk() Then ShowDiskResult(res, diskShowMounted)
         ' Another view was in front when the run ended: the result waits on this page until its
         ' row is chosen again, rather than being reset away.
         resultUnseen = Not Visible
@@ -2643,6 +2973,31 @@ Public Class JobView
         End If
     End Sub
 
+    ' T6.22, the elevation split (spec 7.2 item 3): a Disks run is never started elevated by this
+    ' window. `runas` cannot carry the child-only variable the password travels in, so the password
+    ' would have to cross the boundary another way - and it must not. filedo.exe asks Windows for
+    ' consent itself, for the one step that attaches or detaches the disk, and that step is handed
+    ' no credential; the block server that reads the container runs as the user.
+    Private Function ElevatesRun() As Boolean
+        If job Is Nothing OrElse IsDisk() Then Return False
+        Return job.NeedsElevation
+    End Function
+
+    ' A Disks run's result, beside the verdict: the sentence of its exit class (T6.25 - a missing
+    ' transport or a packaged build says what is missing rather than failing in general terms), the
+    ' list as a table, and the drive a mount attached.
+    Private Sub ShowDiskResult(res As Runner.RunResult, showMounted As Boolean)
+        Dim key = DiskCommands.ExitKey(res.ExitCode)
+        If key <> "" Then
+            Dim sentence = L(key)
+            verdictReasonLabel.Text = If(verdictReasonLabel.Visible AndAlso verdictReasonLabel.Text <> "",
+                                         verdictReasonLabel.Text & Environment.NewLine & sentence, sentence)
+            verdictReasonLabel.Visible = True
+        End If
+        diskResult.ShowResult(job.DefaultVerb, showMounted, res)
+        diskResult.ApplyTheme()
+    End Sub
+
     ' The verdict's colours, one function of (verdict, palette) for both the result path and a theme
     ' change (APP-STYLE section 3).
     Private Sub PaintVerdict(p As Theme.Palette)
@@ -2692,7 +3047,8 @@ Public Class JobView
 
         ' The Erase group is visually distinct, and by more than a colour: it keeps an accent bar
         ' on the card's edge (section 8 item 3).
-        Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow()
+        Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse
+                          CmpIsDestructiveNow() OrElse DiskIsDestructiveNow()
         paramsCard.Accented = destructive
         paramsCard.AccentColour = p.Danger
         planCard.Accented = destructive
@@ -2770,6 +3126,8 @@ Public Class JobView
         If sizeText <> "" AndAlso Not Ui.IsWholeNumber(sizeText) Then sizeBox.ForeColor = p.Danger
 
         checkOptions.ApplyTheme()
+        diskPanel.ApplyTheme()
+        diskResult.ApplyTheme()
 
         ' The secret-file fields. The notice under the password is the one
         ' label on this page whose colour carries meaning: it warns while the

@@ -489,13 +489,24 @@ func (s fdsecRegScope) requireOurs(key, commandKey string) error {
 // elevation refusal is the expected outcome of running it from an ordinary
 // console, not a defect.
 func fdsecRequireWritableScope(scope fdsecRegScope) error {
-	k, _, err := registry.CreateKey(scope.hive, scope.path(""), registry.CREATE_SUB_KEY)
+	err := scope.writeDenied()
 	if err == nil {
-		k.Close()
 		return nil
 	}
 	return fmt.Errorf("%w: writing the machine-wide registration needs an elevated console (%s\\%s: %v)\nwithout -all-users the same entries are written for this user only",
 		fdsec.ErrUnsupported, scope.name, scope.path(""), err)
+}
+
+// writeDenied is the raw answer to "can this scope be written": nil when it
+// can, the registry's own error when it cannot. Each document type's command
+// (fdsec register, vd register) words the refusal in its own exit class.
+func (s fdsecRegScope) writeDenied() error {
+	k, _, err := registry.CreateKey(s.hive, s.path(""), registry.CREATE_SUB_KEY)
+	if err != nil {
+		return err
+	}
+	k.Close()
+	return nil
 }
 
 // fdsecNotifyAssociationsChanged tells the running Explorer that file

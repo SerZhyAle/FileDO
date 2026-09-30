@@ -1,0 +1,16 @@
+{
+  "vector": "truncated.fdd",
+  "contract": "FDD-FORMAT document 0.1 (draft), wire version 1.0",
+  "generator": "FileDO vdisk, SP-0004 stage S2: FDD_WRITE_VECTORS=1 go test ./vdisk/ -run TestVD_Vectors",
+  "derived_from": "plain-onefile.fdd",
+  "mutation": "the file cut to its first 1114889 bytes, inside physical cluster 1 of the data region",
+  "file_size": 1114889,
+  "sha256": "519cff69eea2fc648ef2aad9639efa2268ab83bd0b91510d3bf052ad1e748888",
+  "expected": {
+    "outcome": "damaged",
+    "exit_class": 4,
+    "header_source": "primary",
+    "missing_bytes": 2624759,
+    "note": "the header opens and names the missing bytes; the map references clusters past the end; damaged, not a crash"
+  }
+}

@@ -17,7 +17,7 @@
     <title>FileDO privacy - no network, no telemetry, no accounts</title>
     <meta
       name="description"
-      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
+      content="FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
     />
     <meta
       property="og:title"
@@ -25,7 +25,7 @@
     />
     <meta
       property="og:description"
-      content="FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
+      content="FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
     />
     <script type="application/ld+json">
       {
@@ -275,20 +275,21 @@
           </h1>
           <p class="lead">
             <span data-l="ru"
-              >FileDO не отправляет никуда ничего. В программе нет сетевого
-              кода, телеметрии, аналитики, рекламы, аккаунтов и проверки
-              обновлений. Всё, что она читает и пишет, остаётся на вашем
+              >FileDO не отправляет никуда ничего. Программа не выходит в
+              интернет, и в ней нет телеметрии, аналитики, рекламы, аккаунтов и
+              проверки обновлений. Всё, что она читает и пишет, остаётся на вашем
               диске.</span
             >
             <span data-l="en"
-              >FileDO sends nothing anywhere. It contains no networking code, no
-              telemetry, no analytics, no ads, no accounts and no update check.
+              >FileDO sends nothing anywhere. It never connects to the internet,
+              and it has no telemetry, no analytics, no ads, no accounts and no
+              update check.
               Everything it reads and writes stays on your own disk.</span
             >
             <span data-l="ua"
-              >FileDO нікуди нічого не надсилає. У програмі немає мережевого
-              коду, телеметрії, аналітики, реклами, акаунтів і перевірки
-              оновлень. Усе, що вона читає та пише, лишається на вашому
+              >FileDO нікуди нічого не надсилає. Програма не виходить в
+              інтернет, і в ній немає телеметрії, аналітики, реклами, акаунтів і
+              перевірки оновлень. Усе, що вона читає та пише, лишається на вашому
               диску.</span
             >
           </p>
@@ -386,20 +387,32 @@
               </h3>
               <p>
                 <span data-l="ru"
-                  >В исходном коде FileDO нет ни одного сетевого вызова:
-                  сетевые библиотеки в него просто не подключены. Пакет для
+                  >FileDO не подключается ни к интернету, ни к другим
+                  компьютерам. Единственный сокет, который он открывает, отдаёт
+                  подключённый виртуальный диск <code>.fdd</code> инициатору
+                  iSCSI самой Windows и слушает только адрес 127.0.0.1: ничего
+                  не уходит с этого компьютера, и контейнер никогда не попадает
+                  ни в какую сеть. Пакет для
                   Microsoft Store не объявляет разрешения на доступ в интернет,
                   поэтому Windows его и не даст.</span
                 >
                 <span data-l="en"
-                  >There is not a single network call in the FileDO source: the
-                  networking libraries are simply not linked in. The Microsoft
+                  >FileDO connects neither to the internet nor to any other
+                  computer. The one socket it opens serves a mounted
+                  <code>.fdd</code> virtual disk to the iSCSI initiator of
+                  Windows itself and listens on 127.0.0.1 only: nothing leaves
+                  this computer, and the container never goes to any network.
+                  The Microsoft
                   Store package declares no internet capability, so Windows
                   would not grant one anyway.</span
                 >
                 <span data-l="ua"
-                  >У вихідному коді FileDO немає жодного мережевого виклику:
-                  мережеві бібліотеки до нього просто не під'єднані. Пакет для
+                  >FileDO не під'єднується ні до інтернету, ні до інших
+                  комп'ютерів. Єдиний сокет, який він відкриває, віддає
+                  підключений віртуальний диск <code>.fdd</code> ініціатору
+                  iSCSI самої Windows і слухає лише адресу 127.0.0.1: ніщо не
+                  залишає цей комп'ютер, і контейнер ніколи не потрапляє в жодну
+                  мережу. Пакет для
                   Microsoft Store не оголошує дозволу на доступ до інтернету,
                   тож Windows його й не надасть.</span
                 >
@@ -512,22 +525,22 @@
                 ><b>Сетевые папки - это папки SMB, а не интернет.</b> Когда
                 FileDO работает с адресом вида <code>\\server\share</code>, он
                 обращается к нему как к обычному пути файловой системы средствами
-                Windows. Собственных сетевых соединений программа не
+                Windows. Собственных соединений с другими компьютерами программа не
                 открывает.</span
               >
               <span data-l="en"
                 ><b>"Network" here means an SMB share, not the internet.</b>
                 When FileDO works with a path like
                 <code>\\server\share</code> it treats it as an ordinary
-                filesystem path through Windows. The app opens no network
-                connections of its own.</span
+                filesystem path through Windows. The app opens no connection of
+                its own to any other computer.</span
               >
               <span data-l="ua"
                 ><b>«Мережеві» теки - це теки SMB, а не інтернет.</b> Коли
                 FileDO працює з адресою на кшталт
                 <code>\\server\share</code>, він звертається до неї як до
                 звичайного шляху файлової системи засобами Windows. Власних
-                мережевих з'єднань програма не відкриває.</span
+                з'єднань з іншими комп'ютерами програма не відкриває.</span
               >
             </li>
           </ul>
@@ -723,19 +736,25 @@
                   </td>
                   <td>
                     <span data-l="ru"
-                      >Пути, размеры и даты изменения файлов: те, что копирование
+                      >Пути, размеры и даты изменения файлов, серийный номер тома
+                      и номер файла на томе (чтобы запись относилась только к тому
+                      носителю, на котором сделана): те, что копирование
                       пропускает как повреждённые; те, что проверка признала
                       повреждёнными; и те, что проверка уже прочитала без ошибок
                       (для <code>--resume</code>). Содержимого файлов нет.</span
                     >
                     <span data-l="en"
-                      >File paths, sizes and modification times: the files a copy
+                      >File paths, sizes and modification times, the volume serial
+                      number and the file's ID on that volume (so an entry applies
+                      only to the medium it was recorded on): the files a copy
                       skips as damaged, the files a check found damaged, and the
                       files a check has already read cleanly (for
                       <code>--resume</code>). No file contents.</span
                     >
                     <span data-l="ua"
-                      >Шляхи, розміри й дати зміни файлів: ті, що копіювання
+                      >Шляхи, розміри й дати зміни файлів, серійний номер тому й
+                      номер файлу на томі (щоб запис стосувався лише того носія,
+                      на якому зроблений): ті, що копіювання
                       пропускає як пошкоджені; ті, що перевірка визнала
                       пошкодженими; і ті, що перевірка вже прочитала без помилок
                       (для <code>--resume</code>). Вмісту файлів немає.</span
@@ -888,6 +907,25 @@
                     >
                     <span data-l="ua"
                       >Структуровані JSON-звіти про завершені операції та вердикти. Зберігаються 30 днів, видаляються під час запуску програми.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>vdisk-state.json</code>, <code>vdisk.log</code></td>
+                  <td>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                    <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                    <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Виртуальные диски <code>.fdd</code>: короткие имена, которые вы дали контейнерам (<code>vd add</code>), их пути, что подключено сейчас, и журнал подключений и отключений; пока диск подключён, рядом лежат его служебные файлы. Пароль контейнера сюда никогда не пишется. Блочный сервер подключённого диска слушает только адрес 127.0.0.1: ничего не уходит с этого компьютера, и контейнер никогда не попадает ни в какую сеть.</span
+                    >
+                    <span data-l="en"
+                      >Virtual disks (<code>.fdd</code>): the short names you gave containers (<code>vd add</code>), their paths, what is mounted now, and a log of mounts and unmounts; while a disk is mounted, its working files sit beside them. A container's password is never written here. The block server of a mounted disk listens on 127.0.0.1 only: nothing leaves this computer, and the container never goes to any network.</span
+                    >
+                    <span data-l="ua"
+                      >Віртуальні диски <code>.fdd</code>: короткі імена, які ви дали контейнерам (<code>vd add</code>), їхні шляхи, що підключено зараз, і журнал підключень та відключень; поки диск підключений, поруч лежать його службові файли. Пароль контейнера сюди ніколи не пишеться. Блоковий сервер підключеного диска слухає лише адресу 127.0.0.1: ніщо не залишає цей комп'ютер, і контейнер ніколи не потрапляє в жодну мережу.</span
                     >
                   </td>
                 </tr>
@@ -1449,15 +1487,15 @@
         var meta = {
           ru: {
             t: "Конфиденциальность FileDO - без сети, телеметрии, аккаунтов",
-            d: "FileDO работает только на вашем устройстве: нет сетевых вызовов, телеметрии и аккаунтов. Что программа читает, что пишет локально и как этим управлять.",
+            d: "FileDO работает только на вашем устройстве: ничего не отправляет, нет телеметрии и аккаунтов. Что программа читает, что пишет локально и как этим управлять.",
           },
           en: {
             t: "FileDO privacy - no network, no telemetry, no accounts",
-            d: "FileDO runs entirely on your device: no network calls, no telemetry, no accounts. What it reads, what it writes locally, and how to control it.",
+            d: "FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it.",
           },
           ua: {
             t: "Конфіденційність FileDO - без мережі, телеметрії, акаунтів",
-            d: "FileDO працює лише на вашому пристрої: немає мережевих викликів, телеметрії та акаунтів. Що програма читає, що пише локально і як цим керувати.",
+            d: "FileDO працює лише на вашому пристрої: нічого не надсилає, немає телеметрії та акаунтів. Що програма читає, що пише локально і як цим керувати.",
           },
         };
         function lang(l) {

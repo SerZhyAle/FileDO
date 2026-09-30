@@ -45,6 +45,10 @@ filedo folder D:\Cache w
 filedo C: info
 ```
 
+### Lese-Check (check)
+
+`filedo check <Ordner>` liest die Dateien und markiert eine Datei als beschädigt, die langsam (> 2,0 s) oder mit einem Gerätefehler gelesen wird. Die Listen beschädigter und gut gelesener Dateien liegen in `%LOCALAPPDATA%\FileDO\state` und benennen eine Datei über Pfad, Größe, Änderungszeit sowie das Volume und die Datei, auf denen sie erfasst wurde: eine geänderte Datei oder eine Kopie unter demselben Pfad auf einer anderen Karte mit demselben Laufwerksbuchstaben wird erneut gelesen; Einträge älterer Versionen ohne Volume gelten nicht. Eine reine Online-Datei (ein Platzhalter von OneDrive oder einer anderen Cloud, oder eine Offline-Datei) wird nie geöffnet - weder beim Durchlauf noch wenn genau sie geprüft wird -, also wird nichts heruntergeladen. Sie zählt als `not-read(online-only)`, wird nie als beschädigt erfasst und macht den Lauf zu „konnte nicht prüfen“ (Code 2), sofern keine beschädigte Datei gefunden wurde (Code 1).
+
 ### Installation
 
 #### Variante 1 - winget
@@ -63,11 +67,12 @@ Auch im [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) erhäl
 
 - legt die Dateien nach `C:\Program Files\FileDO` und nimmt `filedo` in den System-`PATH` auf;
 - erstellt einen **Startmenü-Eintrag** und ein **Desktop-Symbol** für das FileDO-Fenster (`filedo_win.exe`);
-- registriert die **Explorer-Integration**: eine Gruppe `File DO..` im Kontextmenü jeder Datei - Secure (Original behalten, löschen oder überschreiben, oder ein zufälliger Containername), Unsecure (optional den Container löschen oder die wiederhergestellte Datei sofort starten), Wipe this file, Check this file, Info - dazu den Dokumenttyp `.fd-sec` mit eigenem Symbol: der Doppelklick ist genau der Eintrag Unsecure and start: eine Konsole fragt dort das Kennwort ab, stellt das Original unter seinem echten Namen in `%LOCALAPPDATA%\FileDO\reveal` wieder her - einem Ordner, den nur dieses Konto und das System lesen können -, übergibt es dem Programm, dem seine echte Erweiterung gehört, und entfernt diese Kopie wieder, sobald das Konsolenfenster geschlossen wird. Unter Windows 11 steht die Gruppe unter *Weitere Optionen anzeigen*.
+- registriert die **Explorer-Integration**: eine Gruppe `File DO..` im Kontextmenü jeder Datei - Secure (Original behalten, löschen oder überschreiben, oder ein zufälliger Containername), Unsecure (optional den Container löschen oder die wiederhergestellte Datei sofort starten), Wipe this file, Check this file, Info - dazu den Dokumenttyp `.fd-sec` mit eigenem Symbol: der Doppelklick ist genau der Eintrag Unsecure and start: eine Konsole fragt dort das Kennwort ab, stellt das Original unter seinem echten Namen in `%LOCALAPPDATA%\FileDO\reveal` wieder her - einem Ordner, den nur dieses Konto und das System lesen können -, übergibt es dem Programm, dem seine echte Erweiterung gehört, und entfernt diese Kopie wieder, sobald das Konsolenfenster geschlossen wird. Unter Windows 11 steht die Gruppe unter *Weitere Optionen anzeigen*;
+- registriert den **Dateityp `.fdd` der Datenträger-Container** (Feature *Disk container files (.fdd)*): ein eigenes Symbol, einen Doppelklick, der das FileDO-Fenster öffnet und den virtuellen Datenträger einbindet, und *Mount read-only* und *Unmount* im Kontextmenü - siehe den Abschnitt *Virtuelle Datenträger* weiter unten.
 
 Das Installationsprogramm ist nicht code-signiert; deshalb zeigt Windows beim ersten Start möglicherweise *Der Computer wurde durch Windows geschützt* und fragt danach nach Administratorrechten. Die SHA256 vergleichen (die `.sha256`-Datei liegt neben dem Download; `certutil -hashfile FileDO-<Version>-setup.exe SHA256`) und dann *Weitere Informationen* und *Trotzdem ausführen* wählen. Warum die Warnung erscheint, wofür die Administratorrechte verwendet werden und was FileDO niemals tut: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html) (Seite auf EN/RU/UA).
 
-Die beiden letzten Punkte sind Features, die sich auf der Seite „Choose what to install" abwählen und später über **Ändern** in „Apps & Features" ein- oder ausschalten lassen. Unbeaufsichtigt:
+Die drei letzten Punkte sind Features, die sich auf der Seite „Choose what to install" abwählen und später über **Ändern** in „Apps & Features" ein- oder ausschalten lassen. Unbeaufsichtigt:
 
 ```powershell
 FileDO-<Version>-setup.exe /quiet
@@ -77,15 +82,15 @@ FileDO-<Version>-setup.exe /uninstall
 Dasselbe Release veröffentlicht auch die blanke `FileDO-<Version>-windows-x64.msi` - genau diese Datei steckt in der Setup-EXE - für Verteilwerkzeuge, die Paket und Feature-Namen direkt brauchen:
 
 ```powershell
-msiexec /i FileDO-<Version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DesktopShortcut
-msiexec /i FileDO-<Version>-windows-x64.msi /qn ADDLOCAL=Main
+msiexec /i FileDO-<Version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut
+msiexec /i FileDO-<Version>-windows-x64.msi /qn ADDLOCAL=Main   # ohne Explorer-Einträge, ohne .fdd-Typ, ohne Desktop-Symbol
 ```
 
 Das Deinstallieren entfernt alles, was das Installationsprogramm geschrieben hat, die Registrierungseinträge eingeschlossen.
 
 #### Variante 3 - Microsoft Store (MSIX)
 
-Ein Paket, zwei Einstiege: die anklickbare Kachel **FileDO** und der Befehl `filedo` im `PATH`. Die Store-Version hat die Explorer-Einträge **nicht**: ein Paket bekommt sie nur über einen signierten Shell-Handler, und das ist eigene Arbeit. Den Dateityp `.fd-sec` beansprucht sie **doch**: ein Doppelklick auf einen Container öffnet das FileDO-Fenster auf der Seite *Geheime Datei öffnen* mit diesem Container bereits ausgewählt, und dort wird nach dem Passwort gefragt.
+Ein Paket, zwei Einstiege: die anklickbare Kachel **FileDO** und der Befehl `filedo` im `PATH`. Die Store-Version hat die Explorer-Einträge **nicht**: ein Paket bekommt sie nur über einen signierten Shell-Handler, und das ist eigene Arbeit. Den Dateityp `.fd-sec` beansprucht sie **doch**: ein Doppelklick auf einen Container öffnet das FileDO-Fenster auf der Seite *Geheime Datei öffnen* mit diesem Container bereits ausgewählt, und dort wird nach dem Passwort gefragt. Auch den Typ `.fdd` beansprucht sie, doch die Store-Version kann keine virtuellen Datenträger einbinden: ein Doppelklick öffnet das FileDO-Fenster auf diesem Container, wo er sich lesen, prüfen und exportieren lässt - siehe den Abschnitt *Virtuelle Datenträger* weiter unten.
 
 #### Variante 4 - Manueller Download
 
@@ -239,6 +244,102 @@ Explorer-Menüeintrag.
 
 ---
 
+## Virtuelle Datenträger (`.fdd`)
+
+Ein Container ist eine gewöhnliche `.fdd`-Datei, die ein ganzes Volume enthält. Eingebunden ist er ein
+Laufwerksbuchstabe wie jeder andere; nicht eingebunden ist er eine Datei, die Sie kopieren, sichern oder
+allein mit FileDO lesen können, ohne ihn einzubinden. Das Format ist vollständig als Vertrag `FDD-FORMAT`
+veröffentlicht, und was ein Programm tun muss, das ihn liest oder schreibt, als `FDD-BEHAVIOUR` - die Daten
+hängen also nicht davon ab, dass es FileDO weiter gibt.
+
+```bash
+# Einen Container mit 20 GB anlegen (plain: die Datei wächst beim Schreiben) und einbinden
+filedo vd new work.fdd 20G
+filedo work.fdd mount
+
+# Sichern, als sauber geschlossen markieren, trennen
+filedo X: unmount
+
+# Ein verschlüsselter: vault fragt immer nach einem Passwort (zweimal)
+filedo vd new private.fdd 5G vault
+
+# Ohne Einbinden lesen - ohne Administratorrechte, in den Container wird nichts geschrieben
+filedo work.fdd info
+filedo work.fdd verify
+filedo work.fdd export D:\work.vhd vhd
+
+# Ändern, solange er nicht eingebunden ist
+filedo work.fdd grow 40G
+filedo private.fdd pass
+filedo private.fdd clone open-copy.fdd nopass
+```
+
+Vier Profile für `vd new`: `plain` wächst mit dem Inhalt, `fast` belegt sofort die ganze Größe, `ram` hält
+das Volume im Speicher, solange es eingebunden ist, und sichert es alle paar Sekunden in die Datei (ein
+Absturz verliert, was nach der letzten Sicherung geschrieben wurde), und `vault` ist immer verschlüsselt.
+`seal` schreibt eine Kopie, die für immer schreibgeschützt ist, `clone` eine beschreibbare Kopie mit eigener
+Identität, `compact` gibt den ungenutzten Platz der Datei zurück. `format` löscht das Volume (`fs ntfs` oder
+`fs exfat`) und `destroy` entfernt die Containerdatei (`wipe` überschreibt sie vorher): beide fragen zuerst,
+und beide lehnen einen eingebundenen Container ab - kein Schalter hebt diese Prüfung auf.
+`vd add work.fdd as work` gibt ihm einen kurzen Namen, `vd list` und `vd status` zeigen, was bekannt und
+was eingebunden ist, und `vd auto work logon` bindet einen verschleierten Container bei der Anmeldung ein.
+Eine `.vhd`, `.vhdx` oder `.iso` wird über die Bordmittel von Windows eingebunden: `filedo disk.vhdx mount`.
+
+Zwei Wörter, zwei verschiedene Versprechen, und FileDO vertauscht sie nie:
+
+- **Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt.** Die Verschleierung verbirgt das
+  Volume vor einem flüchtigen Blick und vor Werkzeugen, die nach Datenträgerabbildern suchen - und vor
+  niemandem, der die Datei und FileDO hat. `info` sagt, welcher der beiden Fälle vorliegt.
+- **Mit Passwort ist er verschlüsselt**: ohne das Passwort ist die Datei nicht lesbar. Es gibt keine
+  Wiederherstellung - ein vergessenes Passwort ist ein verlorener Container. `pass` ändert das Passwort,
+  ohne die Daten neu zu schreiben; früher erstellte Kopien der Datei öffnen sich daher weiter mit dem alten.
+- **Ein Passwort wird nie an Ort und Stelle entfernt.** Ein leeres neues Passwort wird abgelehnt;
+  stattdessen schreibt `clone <new.fdd> nopass` eine verschleierte Kopie, und das verschlüsselte Original
+  bleibt, wie es war.
+- **Verschlüsselung schützt die Datei, nicht ein eingebundenes Volume.** Solange es eingebunden ist, kann
+  jedes Programm, das Sie starten, es lesen wie jedes andere Laufwerk. Ein `export` eines verschlüsselten
+  Containers ist ebenfalls nicht verschlüsselt, und bei `ram` mit Passwort kann Windows unverschlüsselte
+  Daten in die Auslagerungsdatei schreiben.
+- **`verify` liest, es beweist nichts.** Es liest die Header, die Karte und jeden belegten Cluster und
+  meldet Schäden (Code 4), aber Format 1.0 speichert keine Prüfsummen der Daten, daher werden die Daten
+  gelesen, nicht verifiziert.
+
+Was die Plattform braucht, offen gesagt:
+
+- **Nur Windows.** Den Laufwerksbuchstaben liefert der in Windows eingebaute iSCSI-Initiator, der mit
+  einem Blockserver in `filedo.exe` spricht; der Server lauscht nur auf 127.0.0.1 - nichts verlässt diesen
+  Computer, und der Container gelangt nie in ein Netzwerk.
+- **Einbinden braucht Administratorrechte.** `mount`, `unmount`, `save`, `format` und `vd auto` bitten Windows um
+  die Zustimmung eines Administrators für den Schritt mit dem Initiator; das Passwort gelangt nie dorthin,
+  und der Blockserver selbst läuft nie mit erhöhten Rechten. Ein Batch zeigt diese Abfrage nie - starten Sie
+  ihn aus einer erhöhten Konsole. Lässt sich der Dienst Microsoft iSCSI-Initiator nicht nutzen, endet der
+  Lauf mit Code 7, und nichts wird eingebunden.
+- **Die Microsoft-Store-Version kann keine Container einbinden.** Eine paketierte App kann den
+  iSCSI-Initiator weder konfigurieren noch Administratorrechte anfordern, deshalb enden dort `mount`,
+  `unmount`, `save`, `format`, `vd auto` und `vd register` mit Code 6. `info`, `verify`, `export`,
+  `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` und
+  `vd forget` funktionieren auch dort; zum Einbinden nehmen Sie das Setup oder die portable Version von
+  GitHub.
+- **Eine Einbindung überdauert das Fenster.** Wird das FileDO-Fenster geschlossen, bleiben Laufwerk und
+  Server bestehen, und ein neues Fenster listet sie wieder auf; trennen Sie auf den Seiten der Gruppe
+  *Datenträger* oder mit `filedo X: unmount`.
+
+Exit-Codes eines einzelnen Container-Befehls: 0 erledigt, 2 Aufruf falsch, 3 falsches Passwort,
+4 beschädigt, 5 E/A-Fehler, 6 nicht unterstützt, 7 Transport nicht verfügbar, 8 belegt (eingebunden,
+geöffnet oder gesperrt). Ein Batch behält 0/1/2.
+
+Im Explorer gibt das Setup-Feature *Disk container files (.fdd)* (`DiskContainerIntegration`) dem Typ
+`.fdd` sein Symbol und drei Einträge, die das FileDO-Fenster öffnen. Ein Doppelklick bindet ein: einen
+sauber geschlossenen verschleierten Container sofort; ein verschlüsselter fragt im Fenster nach seinem
+Passwort, nie auf einer Befehlszeile; einer, der nicht sauber geschlossen wurde, sagt das zuerst, mit der
+Zeit seiner letzten vollständigen Sicherung, und wartet; ein bereits eingebundener öffnet sein Laufwerk.
+Das Kontextmenü ergänzt *Mount read-only* und *Unmount* (unter Windows 11 unter *Weitere Optionen
+anzeigen*). Ohne Installationsprogramm schreibt `filedo vd register` dasselbe (`-all-users` für den ganzen
+Rechner), und `filedo vd unregister` nimmt es zurück. Im Fenster hat die Gruppe **Datenträger** eine Seite
+je Operation und benennt beide Schutzarten genau wie die Konsole.
+
+---
+
 ## Hauptfunktionen
 
 ### **Fake-Kapazität-Erkennung**
@@ -365,9 +466,10 @@ filedo cmp D:\Data E:\Backup del small source  # nur wenn kleiner auf Source
 filedo cmp D:\Data E:\Backup del big target    # nur wenn größer auf Target
 filedo cmp D:\Data E:\Backup del old target    # nur wenn älter auf Target
 filedo cmp D:\Data E:\Backup del new source    # nur wenn neuer auf Source
+filedo cmp D:\Data E:\Backup del source --yes  # ohne Frage (Skripte); die Prüfungen bleiben
 ```
 
-Hinweise: Abgleich per relativem Pfad; `del source` und `del target` löschen ein Paar nur, wenn Größe und Änderungszeit übereinstimmen (`--by-hash`: gleicher Inhalt; `--allow-mismatch`: jedes Paar) - ein abweichendes Paar wird gemeldet und bleibt; zwei Schreibweisen desselben Ordners oder ein Ordner im anderen werden abgelehnt; mtime für old/new; Windows ohne Groß-/Kleinschreibung, gelöscht wird unter dem echten Dateinamen; was nicht gelesen oder gelöscht werden konnte, endet mit Exit-Code 2; Logs: compare_report_*.log, delete_report_<mode>_*.log.
+Hinweise: Abgleich per relativem Pfad; `del source` und `del target` löschen ein Paar nur, wenn Größe und Änderungszeit übereinstimmen (`--by-hash`: gleicher Inhalt; `--allow-mismatch`: jedes Paar) - ein abweichendes Paar wird gemeldet und bleibt; zwei Schreibweisen desselben Ordners oder ein Ordner im anderen werden abgelehnt; jede Löschregel nennt zuerst die Anzahl der Dateien und den Modus und fragt `(y/N)` - `--yes` (oder `-y`) überspringt die Frage, nie eine Prüfung, und ohne Antwort (geschlossenes stdin, ein Skript) wird nichts gelöscht und der Lauf endet mit Exit-Code 2; mtime für old/new; Windows ohne Groß-/Kleinschreibung, gelöscht wird unter dem echten Dateinamen; was nicht gelesen oder gelöscht werden konnte, endet mit Exit-Code 2; Logs: compare_report_*.log, delete_report_<mode>_*.log.
 
 
 ### Stapelverarbeitung
@@ -541,6 +643,12 @@ FileDO/
 ---
 
 ## Versionshistorie
+
+**Noch nicht veröffentlicht** (die nächste Version)
+- **Virtuelle Datenträger (`.fdd`)**: ein ganzes Volume in einer Datei, eingebunden als Laufwerksbuchstabe - `filedo vd new`, `mount`, `unmount`, dazu `info`, `verify` und `export` (Rohabbild oder VHD) ohne Einbinden sowie `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; ohne Passwort verschleiert, mit Passwort verschlüsselt, und nie das eine als das andere bezeichnet
+- **Explorer**: das neue Setup-Feature *Disk container files (.fdd)* (`DiskContainerIntegration`) gibt `.fdd` ein Symbol, einen Doppelklick zum Einbinden und *Mount read-only* / *Unmount*; ohne Installationsprogramm tut `filedo vd register` dasselbe
+- **GUI**: eine neue Gruppe **Datenträger** - eine Seite je Operation, und eine Einbindung überdauert das Fenster
+- **Grenzen**: nur Windows; Einbinden fragt nach Administratorzustimmung; die Microsoft-Store-Version liest, prüft und exportiert Container, kann sie aber nicht einbinden
 
 **v2609241700** (Aktuell)
 - **Geheime Dateien (`.fd-sec`)**: eine Datei wird in einen passwortgeschützten Container gepackt und wieder herausgeholt - `secure`, `unsecure`, `reveal` - per Kommandozeile, über das Explorer-Menü oder auf den Protect-Seiten des Fensters; Name, Größe und Zeitstempel des Originals sind darin versiegelt

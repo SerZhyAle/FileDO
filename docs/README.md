@@ -19,6 +19,7 @@ edited in place:
 | [`guides/install-and-explorer.html`](guides/install-and-explorer.html) | Choosing an install, what the MSI writes, and the Explorer entries. |
 | [`guides/install-trust.html`](guides/install-trust.html) | The `INSTALL-TRUST` page: what the Windows warning is, why it appears, exactly what to click, and what the app never does - in that order. Its fourth section says the same thing as `privacy.html`, the MSIX capability list and the Store data-safety answers, so the four change together. When the build becomes signed the page is **updated, not deleted** - users of older builds still meet the warning. |
 | [`guides/fd-sec-containers.html`](guides/fd-sec-containers.html) | `.fd-sec` containers - packing, restoring, revealing, and what each choice promises. |
+| [`guides/virtual-disks.html`](guides/virtual-disks.html) | `.fdd` virtual disks - create, mount, read and export without mounting, obfuscated against encrypted, and what Windows and the Store build can and cannot do. |
 | [`guides/glossary.html`](guides/glossary.html) | Glossary - one entry per term in [`termbase.json`](termbase.json), `id="term-<id>"`. |
 | [`guides/topics.html`](guides/topics.html) | Subject index - every subject the guides cover and the page for it; it links every guide. |
 | [`privacy.html`](privacy.html) | Privacy policy - no network, no telemetry, no accounts. |

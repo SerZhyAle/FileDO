@@ -24,7 +24,7 @@
 
   <!-- Welcome page. What the program is, and what this install will do. -->
   <String Id="WelcomeDlgTitle" Value="{\WixUI_Font_Bigger}Install FileDO" />
-  <String Id="WelcomeDlgDescription" Value="FileDO tells you what a drive really is: its true capacity behind what the label claims, its real speed, which files it can still read, and where your duplicates are. It also packs single files into password-protected .fd-sec containers - an empty password is accepted and means obfuscation only, not secrecy.&#13;&#10;&#13;&#10;This installs the command line and the FileDO window, adds them to PATH, and offers the Explorer right-click entries. No network connection, no telemetry." />
+  <String Id="WelcomeDlgDescription" Value="FileDO tells you what a drive really is: its true capacity behind what the label claims, its real speed, which files it can still read, and where your duplicates are. It also packs single files into password-protected .fd-sec containers - an empty password is accepted and means obfuscation only, not secrecy. It mounts .fdd virtual disks as drives, under the same rule: without a password a disk is obfuscated, not encrypted.&#13;&#10;&#13;&#10;This installs the command line and the FileDO window, adds them to PATH, and offers the Explorer right-click entries and the .fdd disk type. Nothing is sent over the internet, no telemetry." />
 
   <!-- License page. -->
   <String Id="LicenseAgreementDlgDescription" Value="FileDO is free and open source, under the MIT licence. In short: use it for anything, and it comes with no warranty." />

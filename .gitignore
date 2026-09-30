@@ -134,3 +134,8 @@ shellext/out/
 # and a build input (SP-0049 AUD-18-F1). Re-include exactly these two folders' icon files.
 !assets/glyphs/*.svg
 !assets/menu-icons/*.ico
+
+# Virtual-disk containers (SP-0004): a test run can leave a multi-gigabyte .fdd behind.
+*.fdd
+# ..but the conformance fixtures are tracked, byte-identical to the FDD-FORMAT vectors.
+!vdisk/testdata/vectors/*.fdd

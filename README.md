@@ -68,9 +68,10 @@ filedo cmp D:\Data E:\Backup del small source  # only if smaller is on Source
 filedo cmp D:\Data E:\Backup del big target    # only if bigger is on Target
 filedo cmp D:\Data E:\Backup del old target    # only if older is on Target
 filedo cmp D:\Data E:\Backup del new source    # only if newer is on Source
+filedo cmp D:\Data E:\Backup del source --yes  # no question (scripts); the checks still apply
 ```
 
-Notes: matching by relative path; `del source` and `del target` delete a pair only when size and modification time match (`--by-hash`: equal content; `--allow-mismatch`: any pair) - a pair that differs is reported and kept; two spellings of one folder, or a folder inside the other, are refused; optional side qualifier for old/new/small/big; mtime used for old/new; Windows compare is case-insensitive and deletes use each file's real name; an entry that cannot be read or deleted ends the run with exit 2; logs: compare_report_*.log, delete_report_<mode>_*.log.
+Notes: matching by relative path; `del source` and `del target` delete a pair only when size and modification time match (`--by-hash`: equal content; `--allow-mismatch`: any pair) - a pair that differs is reported and kept; two spellings of one folder, or a folder inside the other, are refused; every delete rule first lists how many files it will delete and by which mode and asks `(y/N)` - `--yes` (or `-y`) skips the question, never a check, and with no answer (a closed stdin, a script) nothing is deleted and the run ends with exit 2; optional side qualifier for old/new/small/big; mtime used for old/new; Windows compare is case-insensitive and deletes use each file's real name; an entry that cannot be read or deleted ends the run with exit 2; logs: compare_report_*.log, delete_report_<mode>_*.log.
 
 ### Health CHECK (fast read check)
 
@@ -78,6 +79,9 @@ Notes: matching by relative path; `del source` and `del target` delete a pair on
 # Check folder by reading files; mark as damaged if initial read delay > 2.0s
 filedo check F:\Mov
 ```
+
+- The damaged and good lists name a file by path, size, modification time and the volume and file it was recorded on: a changed file, or a copy at the same path on another card at the same drive letter, is read again. Entries written by older versions carry no volume and are not trusted
+- An online-only file (a OneDrive or other cloud placeholder, or an offline file) is never opened - not in a sweep and not when it is the one file you check - so nothing is downloaded. It is counted as `not-read(online-only)`, is never recorded as damaged, and makes the run "could not verify" (exit 2) unless a damaged file was found (exit 1)
 
 ### CHECK: CLI flags (flags override env)
 
@@ -166,11 +170,12 @@ Download `FileDO-<version>-setup.exe` from [Releases](https://github.com/SerZhyA
 
 - installs the binaries into `C:\Program Files\FileDO` and puts `filedo` on the system `PATH`;
 - creates a **Start menu entry** and a **desktop icon** for the FileDO window (`filedo_win.exe`);
-- registers the **Explorer integration**: a `File DO..` group in the right-click menu of every file - Secure (keeping, deleting or wiping the original, or under a random name), Unsecure (optionally deleting the container or starting the restored file), Wipe this file, Check this file, Info - plus the `.fd-sec` document type with its own icon, whose double-click is exactly the Unsecure-and-start entry: a console asks for the password there, restores the original under its true name into `%LOCALAPPDATA%\FileDO\reveal` - readable by this account and the system only - hands it to whatever program owns its real extension, and takes that copy away again when the console window closes. On Windows 11 the group lives under *Show more options*.
+- registers the **Explorer integration**: a `File DO..` group in the right-click menu of every file - Secure (keeping, deleting or wiping the original, or under a random name), Unsecure (optionally deleting the container or starting the restored file), Wipe this file, Check this file, Info - plus the `.fd-sec` document type with its own icon, whose double-click is exactly the Unsecure-and-start entry: a console asks for the password there, restores the original under its true name into `%LOCALAPPDATA%\FileDO\reveal` - readable by this account and the system only - hands it to whatever program owns its real extension, and takes that copy away again when the console window closes. On Windows 11 the group lives under *Show more options*;
+- registers the **`.fdd` disk container type** (feature *Disk container files (.fdd)*): its icon, a double-click that opens the FileDO window and mounts the virtual disk, and *Mount read-only* and *Unmount* in the right-click menu - see [Virtual Disks](#virtual-disks-fdd).
 
 The installer is not code-signed, so on first run Windows may show *Windows protected your PC* and then ask for administrator permission. Compare the SHA256 (the `.sha256` file published next to the download; `certutil -hashfile FileDO-<version>-setup.exe SHA256`), then choose *More info* and *Run anyway*. Why the warning appears, what the administrator prompt is used for, and what FileDO never does: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html).
 
-The last two are features you can deselect on the installer's "Choose what to install" page, and turn on or off later with **Change** in Apps & features. For an unattended rollout:
+The last three are features you can deselect on the installer's "Choose what to install" page, and turn on or off later with **Change** in Apps & features. For an unattended rollout:
 
 ```powershell
 # everything, no questions asked
@@ -184,15 +189,15 @@ FileDO-<version>-setup.exe /uninstall
 The same release also publishes the bare `FileDO-<version>-windows-x64.msi` - the setup EXE carries exactly that file inside it - for deployment tools that want the package and the feature names directly:
 
 ```powershell
-msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DesktopShortcut
-msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main   # no Explorer entries, no desktop icon
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main   # no Explorer entries, no .fdd type, no desktop icon
 ```
 
 Uninstalling removes everything the installer wrote, the registry entries included.
 
 #### Option 3 - Microsoft Store (MSIX)
 
-One package, two entries: a clickable **FileDO** tile - a GUI with a page per job, whose Command page builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the graphical window and the CLI together. The Store build does **not** carry the Explorer entries: a packaged build can only get them through a signed shell handler, which is separate work. It **does** claim the `.fd-sec` file type: a double-click on a container opens the FileDO window on its *Open a secret file* page with that container already chosen, and the password is asked there.
+One package, two entries: a clickable **FileDO** tile - a GUI with a page per job, whose Command page builds and runs any command - and the `filedo` command exposed on `PATH` for any terminal. Best when you want the graphical window and the CLI together. The Store build does **not** carry the Explorer entries: a packaged build can only get them through a signed shell handler, which is separate work. It **does** claim the `.fd-sec` file type: a double-click on a container opens the FileDO window on its *Open a secret file* page with that container already chosen, and the password is asked there. It claims the `.fdd` type too, but the Store build cannot mount a virtual disk: a double-click opens the FileDO window on that container, where it can be read, verified and exported - see [Virtual Disks](#virtual-disks-fdd).
 
 #### Option 4 - Manual download
 
@@ -361,6 +366,93 @@ In the window, the **Protect** group carries the same three operations as pages:
 typed twice when packing, and handed to `filedo.exe` out of sight - it reaches no command line, no run
 report and no history file. A double-click on a `.fd-sec` does not open that window; it runs
 **Unsecure and start** on the console, exactly as the Explorer menu entry of the same name does.
+
+---
+
+## Virtual Disks (`.fdd`)
+
+A container is one ordinary `.fdd` file that holds a whole volume. Mounted, it is a drive letter like any
+other; unmounted, it is a file you can copy, back up, or read with FileDO alone, without mounting it. The
+format is published in full as the `FDD-FORMAT` contract, and what a program that reads or writes one must
+do as `FDD-BEHAVIOUR`, so the data does not depend on FileDO staying around.
+
+```bash
+# Create a 20 GB container (plain: the file grows as data is written), then mount it
+filedo vd new work.fdd 20G
+filedo work.fdd mount
+
+# Save, mark it closed cleanly, detach
+filedo X: unmount
+
+# An encrypted one: vault always asks for a password (twice)
+filedo vd new private.fdd 5G vault
+
+# Read it without mounting - no administrator rights, nothing written to the container
+filedo work.fdd info
+filedo work.fdd verify
+filedo work.fdd export D:\work.vhd vhd
+
+# Change it while it is not mounted
+filedo work.fdd grow 40G
+filedo private.fdd pass
+filedo private.fdd clone open-copy.fdd nopass
+```
+
+Four profiles for `vd new`: `plain` grows as it fills, `fast` reserves the whole size now, `ram` keeps the
+volume in memory while it is mounted and saves it to the file every few seconds (a crash loses what came
+after the last save), and `vault` is always encrypted. `seal` writes a copy that is read-only for good,
+`clone` a writable copy with its own identity, `compact` gives the file's unused space back. `format` erases
+the volume (`fs ntfs` or `fs exfat`) and `destroy` removes the container file (`wipe` overwrites it first):
+both ask first, and both refuse a mounted container - no flag skips that check. `vd add work.fdd as work`
+gives it a short name, `vd list` and `vd status` show what is known and what is mounted, and
+`vd auto work logon` mounts an obfuscated container when you sign in. A `.vhd`, `.vhdx` or `.iso` mounts
+through Windows' own image support: `filedo disk.vhdx mount`.
+
+Two words, two different promises, and FileDO never swaps them:
+
+- **Without a password a container is obfuscated, not encrypted.** Obfuscation keeps the volume from a
+  casual look and from tools that scan for disk images - and from nobody who has the file and FileDO.
+  `info` says which of the two a container is.
+- **With a password it is encrypted**: the file cannot be read without it. There is no recovery - a
+  forgotten password is a lost container. `pass` changes the password without rewriting the data, so
+  copies of the file made earlier still open with the old one.
+- **A password is never removed in place.** An empty new password is refused; `clone <new.fdd> nopass`
+  writes an obfuscated copy instead, and the encrypted original stays as it was.
+- **Encryption protects the file, not a mounted volume.** While it is mounted, every program you run can
+  read it, like any other drive. An `export` of an encrypted container is not encrypted either, and `ram`
+  with a password may let Windows page unencrypted data out to the page file.
+- **`verify` reads, it does not prove.** It reads the headers, the map and every allocated cluster and
+  reports damage (exit 4), but format 1.0 keeps no checksums of the data, so the data is read, not
+  verified.
+
+What the platform needs, said plainly:
+
+- **Windows only.** The drive letter comes from the iSCSI initiator built into Windows, talking to a block
+  server inside `filedo.exe` that listens on 127.0.0.1 only - nothing leaves this computer, and the
+  container never goes to any network.
+- **Mounting needs administrator rights.** `mount`, `unmount`, `save`, `format` and `vd auto` ask Windows for
+  administrator consent for the initiator step; the password never goes there, and the block server itself
+  never runs elevated. A batch never raises that prompt - run it from an elevated console. When the
+  Microsoft iSCSI Initiator service cannot be used, the run ends with exit 7 and nothing is mounted.
+- **The Microsoft Store build cannot mount.** A packaged app can neither configure the iSCSI initiator nor
+  ask for administrator rights, so there `mount`, `unmount`, `save`, `format`, `vd auto` and `vd register`
+  end with exit 6. `info`, `verify`, `export`, `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`,
+  `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` work there too; to mount, use the setup or the
+  portable build from GitHub.
+- **A mount outlives the window.** Closing the FileDO window leaves the drive and its server in place, and a
+  new window lists them again; unmount on the Disks pages or with `filedo X: unmount`.
+
+Exit codes of one container command: 0 done, 2 usage, 3 wrong credential, 4 damaged, 5 I/O, 6 unsupported,
+7 transport unavailable, 8 busy (mounted, open or locked). A batch keeps 0/1/2.
+
+In Explorer, the setup EXE's *Disk container files (.fdd)* feature (`DiskContainerIntegration`) gives `.fdd`
+its icon and three entries that open the FileDO window. A double-click mounts: a clean obfuscated container
+at once; an encrypted one asks for its password in the window, never on a command line; one that was not
+closed cleanly says so first, with the time of its last complete save, and waits; one already mounted opens
+its drive. The right-click menu adds *Mount read-only* and *Unmount* (on Windows 11 under *Show more
+options*). Without the installer, `filedo vd register` (add `-all-users` for the whole machine) writes the
+same and `filedo vd unregister` takes it back. In the window, the **Disks** group has a page for each
+operation, and it words both protections exactly as the console does.
 
 ---
 
@@ -684,6 +776,12 @@ FileDO/
 ---
 
 ## Version History
+
+**Unreleased** (the next version)
+- **Virtual disks (`.fdd`)**: a whole volume in one file, mounted as a drive letter - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` and `export` (raw image or VHD) without mounting, and `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; obfuscated without a password, encrypted with one, and never called the other
+- **Explorer**: the setup EXE's new *Disk container files (.fdd)* feature (`DiskContainerIntegration`) gives `.fdd` its icon, a double-click that mounts, and *Mount read-only* / *Unmount*; `filedo vd register` does the same without an installer
+- **GUI**: a new **Disks** group - one page per operation, and a mount that outlives the window
+- **Limits**: Windows only; mounting asks for administrator consent; the Microsoft Store build reads, verifies and exports containers but cannot mount them
 
 **v2609241700** (Current)
 - **Secret files (`.fd-sec`)**: pack one file into a password-protected container and get it back - `secure`, `unsecure`, `reveal` - from the command line, the Explorer menu or the window's Protect pages; the original's name, size and timestamps are sealed inside

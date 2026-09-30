@@ -24,12 +24,16 @@ LÖSCHEN
 SCHÜTZEN
 - Eine Datei mit Passwort in einen .fd-sec-Container packen, das Original zurückholen oder den Inhalt im zugehörigen Programm öffnen, ohne ihn zu entpacken - aus einer schreibgeschützten Kopie, die nur Ihr Konto lesen kann und die entfernt wird, sobald Sie fertig sind. Ein leeres Passwort ist erlaubt und bedeutet nur Verschleierung, keine Geheimhaltung; FileDO sagt das dort, wo Sie es eingeben. Das Containerformat ist vollständig veröffentlicht, Ihre Daten lassen sich also auch ohne FileDO lesen.
 
+VIRTUELLE DATENTRÄGER
+- Ein .fdd-Container enthält ein ganzes Volume in einer Datei. In dieser Edition können Sie ihn anlegen, seine Eckdaten lesen, ihn vollständig auf Schäden lesen, ihn als Rohabbild oder als VHD exportieren, die Windows selbst öffnet, ihn vergrößern oder verkleinern, kopieren, sein Passwort ändern oder ihn entfernen - ohne Administratorrechte. Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt: Jeder mit der Datei und FileDO kann ihn lesen. Einen Container als Laufwerksbuchstaben einbinden kann diese Edition nicht (siehe unten).
+
 PRIVATSPHÄRE
-FileDO läuft vollständig auf Ihrem Gerät. Es enthält keinen Netzwerkcode, keine Telemetrie, keine Werbung und keine Konten. Der Quellcode ist offen: https://github.com/SerZhyAle/FileDO
+FileDO läuft vollständig auf Ihrem Gerät. Es verbindet sich weder mit dem Internet noch mit einem anderen Computer, und es hat keine Telemetrie, keine Werbung und keine Konten. Der Quellcode ist offen: https://github.com/SerZhyAle/FileDO
 
 GUT ZU WISSEN
 - Dies ist die Microsoft-Store-Edition. Sie fügt keine Einträge zum Explorer-Kontextmenü hinzu; diese gehören zum MSI-Installer. Sie beansprucht den Dateityp .fd-sec, daher öffnet ein Doppelklick auf einen Container FileDO. Dieselben Vorgänge stehen im Fenster und mit dem Befehl filedo zur Verfügung.
 - FileDO braucht den Full-Trust-Zugriff einer Desktop-App auf rohe Laufwerks- und Gerätedaten: Kapazitätstest, Geschwindigkeitsmessung und sicheres Löschen funktionieren ohne ihn nicht. Überschreiben und Füllen zerstören Daten bestimmungsgemäß und fragen vor Laufwerkswurzeln und Systemordnern immer nach.
+- Das Einbinden virtueller .fdd-Datenträger ist in der Microsoft-Store-Edition nicht verfügbar: Eine paketierte App kann den iSCSI-Initiator von Windows weder konfigurieren noch Administratorrechte anfordern. Ein Doppelklick auf eine .fdd öffnet FileDO auf diesem Container, der sich hier lesen, prüfen und exportieren lässt; zum Einbinden nehmen Sie das Setup oder die portable Version von GitHub.
 - Windows 10 Version 1903 oder neuer.
 
 @@Feature1
@@ -84,4 +88,4 @@ datei mit passwort schützen
 usb stick test
 
 @@ReleaseNotes
-Verbesserte Aufgabenseiten im Fenster und verbesserte geheime Dateien (.fd-sec). Das Paket enthält jetzt die Lizenzhinweise der Drittanbieter-Komponenten.
+Neu: virtuelle .fdd-Datenträger. In dieser Edition lassen sie sich anlegen, lesen und prüfen, als Rohabbild oder VHD exportieren, vergrößern, verkleinern, kopieren und mit neuem Passwort versehen; zum Einbinden als Laufwerksbuchstabe braucht es das Setup oder die portable Version von GitHub. Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt.

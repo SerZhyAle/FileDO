@@ -161,7 +161,7 @@ func EmitRunEvent(version, command, target string, args []string) {
 	globalEventManager.Emit(EventKindRun, map[string]interface{}{
 		"version": version,
 		"command": command,
-		"target":  target,
+		"target":  redactCredentialTarget(target),
 		"args":    redactCredentialArgs(args),
 	})
 }

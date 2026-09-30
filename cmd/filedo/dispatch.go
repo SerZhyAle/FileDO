@@ -45,6 +45,7 @@ func verbOf(word string) string {
 		{"safecopy", list_of_flags_for_safecopy},
 		{"check", list_of_flags_for_check},
 		{"fdsec", list_of_flags_for_fdsec},
+		{"vd", list_of_flags_for_vd},
 		{"ui", list_of_flags_for_ui},
 	} {
 		if contains(v.aliases, w) {
@@ -149,6 +150,18 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 		return nil
 	}
 
+	// Virtual disks claim every container verb on a .fdd target (`x.fdd info`,
+	// `*.fdd verify`, ..) and `X: unmount|save` before the generic chain reads
+	// a sub-operation (SP-0004 spec 5.3 row 3; the verbs are vdisk_verbs.go's).
+	if handled, err := vdDispatchTarget(args, hl, batch); handled {
+		if err != nil {
+			reportVdError(err, hl)
+			return err
+		}
+		hl.SetSuccess()
+		return nil
+	}
+
 	verb := verbOf(first)
 	var kind, target string
 	rest := args[1:]
@@ -196,6 +209,14 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 	case "fdsec":
 		if err := handleFdsecCommand(rest, hl); err != nil {
 			reportFdsecError(err, hl)
+			return err
+		}
+		hl.SetSuccess()
+		return nil
+
+	case "vd":
+		if err := handleVdCommand(rest, hl, batch); err != nil {
+			reportVdError(err, hl)
 			return err
 		}
 		hl.SetSuccess()
@@ -306,6 +327,8 @@ func executeInternalCommand(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("empty command")
 	}
+	// A batch of several lines ends with rule 11's digit (AUD-29-F1).
+	noteBatchLine()
 	internalLogger := NewHistoryLogger(append([]string{"filedo"}, args...))
 	defer internalLogger.Finish()
 	// Each batch line asks for --precount on its own; none inherits it.

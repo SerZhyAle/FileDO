@@ -76,7 +76,9 @@ option the CLI takes for a job is on its page:
   destructive, both ask for Administrator
 - **Duplicate files** - the rule (`old`, `new`, `abc`, `xyz`), what happens to the rest (report,
   `del`, `move <folder>`), `list <file>` and `quiet`
-- **Compare two folders** - all eleven delete rules, each explained in the chosen language
+- **Compare two folders** - all eleven delete rules, each explained in the chosen language; a rule
+  other than "none" makes the page destructive and permanent and asks for the typed `DELETE`, then
+  passes `--yes`, because the CLI asks before its delete phase on a console a window run does not have
 - **Fill the free space** - the file size, `del`, and `fill verify`
 - **Copy files** - the strategy: `copy`, `fastcopy`, `synccopy`, `balanced`, `maxcopy`,
   `smartcopy` or `safecopy`
@@ -84,6 +86,7 @@ option the CLI takes for a job is on its page:
   run does not have; an empty folder is said to be empty, and a drive root, a share root, a junction or
   TEMP is sent to the console, where FileDO asks twice
 - **Protect** - see below
+- **Disks** - the `.fdd` virtual disks, seventeen pages; see below
 - Every job except the three secret-file ones also offers `nohist`
 
 The **Command** page is the expert builder: all twenty-eight operations `filedo.exe` takes -
@@ -119,11 +122,41 @@ before reading the code:
   mechanism here: there is no console to press Enter in, so the shell writes the stop file `filedo.exe`
   is already watching.
 
+## Virtual disks (the Disks pages)
+
+The **Disks** group carries the `.fdd` containers of `filedo vd` as seventeen pages: Disks and mounts (a
+table of what `vd list` and `vd status` report, with Open the drive, Unmount and Turn off auto-mount on each
+row), Create a disk, Mount, Unmount, Disk info, Verify a disk, Export an image, Save now (ram), Compact,
+Grow, Format, Seal a copy, Clone, Change password, Destroy, Auto-mount and Remember a name. Each page builds
+the console line of the verb it is named after (`DiskJobs.vb`); the window never reads a container itself -
+what a page says about one is what `filedo.exe <x.fdd> info` printed. Things worth knowing before reading
+the code:
+
+- **Obfuscated is never called encrypted.** An empty password on Create, and Clone or Seal without a
+  password, say in the page's own words that the result is obfuscated, not encrypted - anyone with the file
+  and FileDO reads it. Change password refuses an empty new one and points at Clone without a password,
+  because a password is never taken off in place.
+- **The password never reaches a command line.** It travels as `pe:FILEDO_SHELL_CRED`, a new one for
+  Change password as `new pe:FILEDO_SHELL_CRED_NEW`, set on the child process alone.
+- **Elevation is `filedo.exe`'s, not the window's.** Mount, Unmount, Save now, Format and Auto-mount carry
+  the Administrator badge: `filedo.exe` asks Windows for consent for the iSCSI initiator step only, and that
+  step never carries the password. The window itself never starts elevated.
+- **A mount outlives the window.** The block server is started outside the window's Job Object, so closing
+  the window leaves the drive attached, and a new window's Disks and mounts page lists it again.
+- **What cannot run is said, not offered.** A mounted container's Compact, Grow, Change password, Format and
+  Destroy pages say it is mounted (the console would refuse it with exit 8); in the Microsoft Store build the verbs that
+  need the transport say that build cannot attach disks, while Info, Verify and Export work.
+- **Double-click.** `filedo_win.exe "<x.fdd>"` mounts, `--mount-ro "<x.fdd>"` mounts read-only and
+  `--unmount "<x.fdd>"` unmounts - the three Explorer entries of the `.fdd` type. A clean obfuscated
+  container mounts at once, an encrypted one waits for its password, one not closed cleanly is reported
+  first and waits, and one already mounted opens its drive with no window at all.
+
 ## Usage
 
 ```powershell
 filedo_win                      # if on PATH (winget / Store)
 filedo_win.exe                  # next to filedo.exe in the portable zip
 filedo_win.exe C:\a\secret.fd-sec   # opens on that container's page
+filedo_win.exe C:\v\work.fdd    # mounts that virtual disk (--mount-ro, --unmount)
 filedo_win.exe -debug           # adds diagnostic lines to %LOCALAPPDATA%\FileDO\filedo_win.log
 ```

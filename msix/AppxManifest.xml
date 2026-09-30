@@ -27,13 +27,18 @@
   to machines where the graphical shell cannot start.
 
   The Store build cannot write the classic `HKCU\Software\Classes` context-menu
-  keys (they are virtualized into the package), so its "File DO.." group is the
-  packaged Explorer command of SP-0020: FileDOShell.dll, an IExplorerCommand
+  keys (they are virtualized into the package), so its "File DO.." group would be
+  the packaged Explorer command of SP-0020: FileDOShell.dll, an IExplorerCommand
   declared below through desktop4:FileExplorerContextMenus and hosted by a COM
   surrogate (com:SurrogateServer), so a fault in it ends a dllhost.exe and not
-  Explorer. That is what reaches the Windows 11 first-level menu. It also
-  declares the `.fd-sec` file type, so Windows starts the GUI with a selected
-  container's path on double-click.
+  Explorer. That is what reaches the Windows 11 first-level menu. It is OPT-IN
+  (AUD-17-F1): build-msix.ps1 keeps those two extensions and packs the DLL only
+  with -ExplorerCommand; a default build removes both from the staged manifest,
+  and its packed-manifest check fails a default package that carries either or
+  the DLL. The template keeps them so the CLSID has one reviewed home. The
+  manifest also declares the `.fd-sec` file type, so Windows starts the GUI with
+  a selected container's path on double-click, and the `.fdd` disk container
+  type, for the GUI's info and export page and with no mount verb (SP-0004 T6.27).
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -100,10 +105,26 @@
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>
+        <!-- SP-0004 T6.27 (spec 5.8 item 2, decided yes): the .fdd disk container, for this GUI
+             app only - a double-click starts filedo_win.exe "<x.fdd>", which in the package opens
+             the container's Mount page, where the window says this build cannot mount. NO verb is declared: this build cannot mount
+             (a packaged app can neither configure the iSCSI initiator nor elevate), so Mount,
+             Mount read-only and Unmount exist only in the classic registration (FileDO.wxs,
+             `filedo vd register`). build-msix.ps1 and test-store-tools.ps1 refuse a manifest
+             that declares one (Test-DiskContainerAssociation in msix-manifest.ps1). Its logo is
+             the ICON-SET meaning content.disk-container. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="filedo.diskcontainer">
+            <uap:Logo>Assets\DiskContainer.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.fdd</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
         <!-- SP-0020: the "File DO.." group at the Windows 11 first level, on every file
              (Type="*", as the classic `*\shell\FileDO`). The Clsid is the handler's one
              identity and appears twice - here and on the COM class - and in FileDOShell.cpp;
-             build-msix.ps1 checks that all three agree. -->
+             build-msix.ps1 checks that all three agree. Kept only with -ExplorerCommand. -->
         <desktop4:Extension Category="windows.fileExplorerContextMenus">
           <desktop4:FileExplorerContextMenus>
             <desktop5:ItemType Type="*">

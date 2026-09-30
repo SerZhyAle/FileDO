@@ -347,15 +347,15 @@
         </h2>
         <p class="intro">
           <span data-l="ru"
-            >На странице «Choose what to install» три компонента. Первый обязателен, два
+            >На странице «Choose what to install» четыре компонента. Первый обязателен, три
             других можно снять сразу или переключить позже через
             «Изменить» в «Приложения и возможности».</span
           ><span data-l="en"
-            >The "Choose what to install" page offers three features. The first is required;
-            the other two you can untick now, or switch later with Change in
+            >The "Choose what to install" page offers four features. The first is required;
+            the other three you can untick now, or switch later with Change in
             Apps &amp; features.</span
           ><span data-l="ua"
-            >На сторінці «Choose what to install» три компоненти. Перший обов'язковий, два
+            >На сторінці «Choose what to install» чотири компоненти. Перший обов'язковий, три
             інші можна зняти одразу або перемкнути пізніше через «Змінити» в
             «Програми та можливості».</span
           >
@@ -389,6 +389,27 @@
               ><b>Explorer right-click menu</b> - група
               <code>File DO..</code> у меню будь-якого файлу і тип
               документа <code>.fd-sec</code> із власною піктограмою.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Disk container files (.fdd)</b> - тип файла <code>.fdd</code>
+              виртуальных дисков со своим значком: двойной клик открывает окно
+              FileDO и подключает контейнер, правый клик добавляет «Mount
+              read-only» и «Unmount».
+              <a href="virtual-disks.html#explorer">Виртуальные диски</a>.</span
+            ><span data-l="en"
+              ><b>Disk container files (.fdd)</b> - the <code>.fdd</code> file
+              type of the virtual disks with its own icon: a double-click opens
+              the FileDO window and mounts the container, and the right-click
+              menu adds Mount read-only and Unmount.
+              <a href="virtual-disks.html#explorer">Virtual disks</a>.</span
+            ><span data-l="ua"
+              ><b>Disk container files (.fdd)</b> - тип файлу <code>.fdd</code>
+              віртуальних дисків із власною піктограмою: подвійний клік відкриває
+              вікно FileDO і підключає контейнер, правий клік додає «Mount
+              read-only» і «Unmount».
+              <a href="virtual-disks.html#explorer">Віртуальні диски</a>.</span
             >
           </li>
           <li>
@@ -439,6 +460,12 @@
           FileDO-&lt;version&gt;-setup.exe /quiet<button
             class="copy"
             data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <div class="copybox">
+          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
+            class="copy"
+            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
           ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">

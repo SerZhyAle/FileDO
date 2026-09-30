@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Virtual disks with FileDO" />
+    <meta property="og:description" content="A FileDO guide to .fdd virtual disks: a whole volume in one file, mounted as a drive letter or read without mounting, and what each choice promises." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Virtual disks with FileDO",
+        "headline": "Virtual disks with FileDO",
+        "description": "A FileDO guide to .fdd virtual disks: a whole volume in one file, mounted as a drive letter or read without mounting, and what each choice promises.",
+        "url": "https://serzhyale.github.io/FileDO/guides/virtual-disks.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Virtual disks with FileDO</title>
+    <meta
+      name="description"
+      content="A FileDO guide to .fdd virtual disks: a whole volume in one file, mounted as a drive letter or read without mounting, and what each choice promises."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · виртуальные диски</span
+          ><span data-l="en">Guide · virtual disks</span
+          ><span data-l="ua">Посібник · віртуальні диски</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Целый диск в одном файле - подключается буквой, когда нужно, и
+            читается без подключения, когда нет.</span
+          ><span data-l="en"
+            >A whole disk in one file - a drive letter when you want one, and
+            readable without mounting when you do not.</span
+          ><span data-l="ua"
+            >Цілий диск в одному файлі - підключається літерою, коли треба, і
+            читається без підключення, коли ні.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >Контейнер <code>.fdd</code> - это обычный файл, в котором лежит
+            целый том. Подключённый, он становится буквой диска, как любой
+            другой; отключённый - это файл, который можно копировать, хранить в
+            резервной копии и читать одним FileDO, без подключения. Формат
+            опубликован полностью - как контракт <code>FDD-FORMAT</code>, а то,
+            что обязана делать читающая или пишущая его программа, - как
+            <code>FDD-BEHAVIOUR</code>, - поэтому данные не зависят от того,
+            останется ли FileDO.</span
+          ><span data-l="en"
+            >A <code>.fdd</code> container is one ordinary file that holds a
+            whole volume. Mounted, it is a drive letter like any other;
+            unmounted, it is a file you can copy, back up and read with FileDO
+            alone, without mounting it. The format is published in full as the
+            <code>FDD-FORMAT</code> contract, and what a program that reads or
+            writes one must do as <code>FDD-BEHAVIOUR</code>, so the data does
+            not depend on FileDO staying around.</span
+          ><span data-l="ua"
+            >Контейнер <code>.fdd</code> - це звичайний файл, у якому лежить
+            цілий том. Підключений, він стає літерою диска, як будь-який
+            інший; відключений - це файл, який можна копіювати, зберігати в
+            резервній копії й читати самим FileDO, без підключення. Формат
+            опубліковано повністю - як контракт <code>FDD-FORMAT</code>, а те,
+            що мусить робити програма, яка його читає чи пише, - як
+            <code>FDD-BEHAVIOUR</code>, - тож дані не залежать від того, чи
+            лишиться FileDO.</span
+          >
+        </p>
+      </section>
+      <section class="section" id="create">
+        <h2>
+          <span data-l="ru">Создать, подключить, отключить</span
+          ><span data-l="en">Create, mount, unmount</span
+          ><span data-l="ua">Створити, підключити, відключити</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Создать</span><span data-l="en">Create</span
+              ><span data-l="ua">Створити</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Новый контейнер на 20 ГБ. Существующий файл никогда не
+                перезаписывается. Первое подключение форматирует том в
+                NTFS.</span
+              ><span data-l="en"
+                >A new 20 GB container. An existing file is never overwritten.
+                The first mount formats the volume NTFS.</span
+              ><span data-l="ua"
+                >Новий контейнер на 20 ГБ. Наявний файл ніколи не
+                перезаписується. Перше підключення форматує том у NTFS.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo vd new work.fdd 20G<button
+                class="copy"
+                data-copy="filedo vd new work.fdd 20G"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Подключить</span><span data-l="en">Mount</span
+              ><span data-l="ua">Підключити</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >На первую свободную букву; <code>ro</code> - только для чтения,
+                <code>as X:</code> - на выбранную букву. Windows спросит
+                согласие администратора.</span
+              ><span data-l="en"
+                >At the first free letter; <code>ro</code> for read-only,
+                <code>as X:</code> for a letter of your choice. Windows asks for
+                administrator consent.</span
+              ><span data-l="ua"
+                >На першу вільну літеру; <code>ro</code> - лише для читання,
+                <code>as X:</code> - на вибрану літеру. Windows запитає згоду
+                адміністратора.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo work.fdd mount<button
+                class="copy"
+                data-copy="filedo work.fdd mount"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Отключить</span><span data-l="en">Unmount</span
+              ><span data-l="ua">Відключити</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Всё несохранённое записывается, контейнер помечается как
+                закрытый корректно, и только потом буква уходит.</span
+              ><span data-l="en"
+                >Everything pending is saved and the container is marked closed
+                cleanly before the letter goes.</span
+              ><span data-l="ua"
+                >Усе незбережене записується, контейнер позначається як
+                коректно закритий, і лише потім літера зникає.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo X: unmount<button
+                class="copy"
+                data-copy="filedo X: unmount"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Четыре профиля</span
+            ><span data-l="en">Four profiles</span
+            ><span data-l="ua">Чотири профілі</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>plain</code> растёт по мере записи. <code>fast</code> сразу
+              занимает весь размер, чтобы запись никогда не ждала роста файла.
+              <code>ram</code> держит том в памяти, пока он подключён, и
+              сохраняет его в файл каждые несколько секунд: сбой или отключение
+              питания теряют всё, что записано после последнего сохранения.
+              <code>vault</code> всегда зашифрован и потому всегда требует
+              пароль. Любой профиль с паролем (<code>p:</code> или вопрос)
+              зашифрован; без пароля - замаскирован, а не зашифрован.</span
+            ><span data-l="en"
+              ><code>plain</code> grows as data is written. <code>fast</code>
+              takes the whole size now, so a write never waits for the file to
+              grow. <code>ram</code> keeps the volume in memory while it is
+              mounted and saves it to the file every few seconds: a crash or a
+              power loss loses what was written since the last save.
+              <code>vault</code> is always encrypted, so it always needs a
+              password. Any profile given a password (<code>p:</code> or the
+              prompt) is encrypted; without one it is obfuscated, not
+              encrypted.</span
+            ><span data-l="ua"
+              ><code>plain</code> росте в міру запису. <code>fast</code> одразу
+              займає весь розмір, щоб запис ніколи не чекав, поки файл виросте.
+              <code>ram</code> тримає том у пам'яті, поки він підключений, і
+              зберігає його у файл кожні кілька секунд: збій або вимкнення
+              живлення втрачають усе, що записано після останнього збереження.
+              <code>vault</code> завжди зашифрований, тому завжди потребує
+              пароля. Будь-який профіль із паролем (<code>p:</code> або
+              запит) зашифрований; без пароля - замаскований, а не
+              зашифрований.</span
+            >
+          </p>
+          <div class="copybox">
+            filedo vd new private.fdd 5G vault<button
+              class="copy"
+              data-copy="filedo vd new private.fdd 5G vault"
+            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          </div>
+        </div>
+      </section>
+      <section class="section" id="read">
+        <h2>
+          <span data-l="ru">Прочитать, не подключая</span
+          ><span data-l="en">Read without mounting</span
+          ><span data-l="ua">Прочитати, не підключаючи</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Этим трём командам не нужны ни права администратора, ни iSCSI, ни
+            сеть, и в сам контейнер они ничего не пишут. Они работают в каждой
+            сборке, включая сборку из Microsoft Store.</span
+          ><span data-l="en"
+            >These three need no administrator rights, no iSCSI and no network,
+            and they write nothing into the container. They work in every
+            build, the Microsoft Store one included.</span
+          ><span data-l="ua"
+            >Цим трьом командам не потрібні ні права адміністратора, ні iSCSI,
+            ні мережа, і в сам контейнер вони нічого не пишуть. Вони працюють у
+            кожній збірці, зокрема у збірці з Microsoft Store.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Сведения</span><span data-l="en">Info</span
+              ><span data-l="ua">Відомості</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Профиль, размер, замаскирован он или зашифрован, был ли закрыт
+                корректно и когда в последний раз полностью сохранён. Пароль не
+                нужен.</span
+              ><span data-l="en"
+                >Profile, size, whether it is obfuscated or encrypted, whether it
+                was closed cleanly and when it last saved completely. No
+                password needed.</span
+              ><span data-l="ua"
+                >Профіль, розмір, замаскований він чи зашифрований, чи був
+                коректно закритий і коли востаннє повністю збережений. Пароль
+                не потрібен.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo work.fdd info<button
+                class="copy"
+                data-copy="filedo work.fdd info"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Прочитать целиком</span
+              ><span data-l="en">Verify</span
+              ><span data-l="ua">Прочитати цілком</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Заголовки, карта и каждый занятый кластер; повреждение - код
+                выхода 4. Формат 1.0 не хранит контрольных сумм данных, поэтому
+                данные прочитаны, но не сверены.</span
+              ><span data-l="en"
+                >Headers, the map and every allocated cluster; damage is exit
+                code 4. Format 1.0 keeps no checksums of the data, so the data
+                is read, not verified.</span
+              ><span data-l="ua"
+                >Заголовки, карта й кожен зайнятий кластер; пошкодження - код
+                виходу 4. Формат 1.0 не зберігає контрольних сум даних, тому
+                дані прочитано, але не звірено.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo work.fdd verify<button
+                class="copy"
+                data-copy="filedo work.fdd verify"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Выгрузить образ</span
+              ><span data-l="en">Export an image</span
+              ><span data-l="ua">Вивантажити образ</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><code>raw</code> - простой образ диска, <code>vhd</code> -
+                фиксированный VHD, который Windows подключит сама, без FileDO.
+                Образ зашифрованного контейнера не зашифрован. Отдельные файлы
+                в этой сборке выгружаются только через подключение.</span
+              ><span data-l="en"
+                ><code>raw</code> gives a plain disk image, <code>vhd</code> a
+                fixed VHD that Windows attaches by itself, with no FileDO. The
+                image of an encrypted container is not encrypted. In this build
+                single files come out only by mounting.</span
+              ><span data-l="ua"
+                ><code>raw</code> - простий образ диска, <code>vhd</code> -
+                фіксований VHD, який Windows підключить сама, без FileDO. Образ
+                зашифрованого контейнера не зашифрований. Окремі файли в цій
+                збірці виходять лише через підключення.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo work.fdd export D:\work.vhd vhd<button
+                class="copy"
+                data-copy="filedo work.fdd export D:\work.vhd vhd"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="protection">
+        <h2>
+          <span data-l="ru">Замаскирован или зашифрован</span
+          ><span data-l="en">Obfuscated or encrypted</span
+          ><span data-l="ua">Замаскований чи зашифрований</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="ru">Без пароля</span
+            ><span data-l="en">Without a password</span
+            ><span data-l="ua">Без пароля</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >Без пароля контейнер замаскирован, а не зашифрован. Маскировка
+              прячет том от случайного взгляда и от программ, которые ищут
+              образы дисков, - и ни от кого, у кого есть файл и FileDO.
+              FileDO никогда не называет её шифрованием.</span
+            ><span data-l="en"
+              >Without a password a container is obfuscated, not encrypted.
+              Obfuscation keeps the volume from a casual look and from tools that
+              scan for disk images - and from nobody who has the file and FileDO.
+              FileDO never calls it encryption.</span
+            ><span data-l="ua"
+              >Без пароля контейнер замаскований, а не зашифрований. Маскування
+              ховає том від випадкового погляду й від програм, які шукають
+              образи дисків, - і ні від кого, хто має файл і FileDO. FileDO
+              ніколи не називає його шифруванням.</span
+            >
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="ru">С паролем</span
+            ><span data-l="en">With a password</span
+            ><span data-l="ua">З паролем</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >С паролем контейнер зашифрован: без пароля файл не прочесть.
+              Восстановления нет - забытый пароль означает потерянный
+              контейнер. <code>pass</code> меняет пароль, не переписывая
+              данные, поэтому копии файла, сделанные раньше, по-прежнему
+              открываются старым паролем.</span
+            ><span data-l="en"
+              >With a password a container is encrypted: the file cannot be read
+              without it. There is no recovery - a forgotten password is a lost
+              container. <code>pass</code> changes the password without
+              rewriting the data, so copies of the file made earlier still open
+              with the old one.</span
+            ><span data-l="ua"
+              >З паролем контейнер зашифрований: без пароля файл не прочитати.
+              Відновлення немає - забутий пароль означає втрачений контейнер.
+              <code>pass</code> змінює пароль, не переписуючи дані, тому копії
+              файлу, зроблені раніше, і далі відкриваються старим
+              паролем.</span
+            >
+          </p>
+          <div class="copybox">
+            filedo private.fdd pass<button
+              class="copy"
+              data-copy="filedo private.fdd pass"
+            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Снять пароль</span
+            ><span data-l="en">Taking the password off</span
+            ><span data-l="ua">Зняти пароль</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >Пароль никогда не снимается на месте: пустой новый пароль
+              отклоняется. Вместо этого <code>clone</code> с
+              <code>nopass</code> пишет новую замаскированную копию - её прочтёт
+              любой, у кого есть этот файл и FileDO, - а зашифрованный оригинал
+              остаётся как был.</span
+            ><span data-l="en"
+              >A password is never removed in place: an empty new password is
+              refused. Instead, <code>clone</code> with <code>nopass</code>
+              writes a new, obfuscated copy - anyone who has that file and FileDO
+              reads it - and the encrypted original stays as it was.</span
+            ><span data-l="ua"
+              >Пароль ніколи не знімається на місці: порожній новий пароль
+              відхилено. Натомість <code>clone</code> з <code>nopass</code>
+              пише нову замасковану копію - її прочитає будь-хто, хто має цей
+              файл і FileDO, - а зашифрований оригінал лишається як був.</span
+            >
+          </p>
+          <div class="copybox">
+            filedo private.fdd clone open-copy.fdd nopass<button
+              class="copy"
+              data-copy="filedo private.fdd clone open-copy.fdd nopass"
+            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Подключённый том</span
+            ><span data-l="en">A mounted volume</span
+            ><span data-l="ua">Підключений том</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >Шифрование защищает файл, а не подключённый том: пока он
+              подключён, его читает любая программа, которую вы запускаете,
+              как любой другой диск. <code>ram</code> с паролем: Windows может
+              выгрузить эту память в файл подкачки, и туда попадут
+              незашифрованные данные. Новый том создаётся с выключенным
+              индексированием; <code>mount noscan</code> исключает файл
+              контейнера из проверки Microsoft Defender на время подключения -
+              файлы на самом томе проверяются по-прежнему.</span
+            ><span data-l="en"
+              >Encryption protects the file, not a mounted volume: while it is
+              mounted, every program you run can read it, like any other drive.
+              <code>ram</code> with a password: Windows may page that memory
+              out, so unencrypted data can reach the page file. A new volume is
+              made with indexing off; <code>mount noscan</code> excludes the
+              container file from Microsoft Defender scanning for the life of
+              the mount - files on the volume itself are still scanned.</span
+            ><span data-l="ua"
+              >Шифрування захищає файл, а не підключений том: поки він
+              підключений, його читає будь-яка програма, яку ви запускаєте, як
+              будь-який інший диск. <code>ram</code> з паролем: Windows може
+              вивантажити цю пам'ять у файл підкачки, і туди потраплять
+              незашифровані дані. Новий том створюється з вимкненим
+              індексуванням; <code>mount noscan</code> виключає файл контейнера
+              з перевірки Microsoft Defender на час підключення - файли на
+              самому томі перевіряються, як і раніше.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section class="section" id="platform">
+        <h2>
+          <span data-l="ru">Что нужно от Windows</span
+          ><span data-l="en">What Windows has to provide</span
+          ><span data-l="ua">Що потрібно від Windows</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>Только Windows.</b> Букву диска даёт встроенный в Windows
+              инициатор iSCSI, который говорит с блочным сервером внутри
+              <code>filedo.exe</code>. Сервер слушает только адрес 127.0.0.1:
+              ничего не уходит с этого компьютера, и контейнер никогда не
+              попадает ни в какую сеть.</span
+            ><span data-l="en"
+              ><b>Windows only.</b> The drive letter comes from the iSCSI
+              initiator built into Windows, talking to a block server inside
+              <code>filedo.exe</code>. The server listens on 127.0.0.1 only:
+              nothing leaves this computer, and the container never goes to any
+              network.</span
+            ><span data-l="ua"
+              ><b>Лише Windows.</b> Літеру диска дає вбудований у Windows
+              ініціатор iSCSI, який говорить із блоковим сервером усередині
+              <code>filedo.exe</code>. Сервер слухає лише адресу 127.0.0.1:
+              ніщо не залишає цей комп'ютер, і контейнер ніколи не потрапляє в
+              жодну мережу.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Подключение требует прав администратора.</b>
+              <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> и
+              <code>vd auto</code> просят у Windows согласие администратора - на
+              настройку инициатора, и только на неё: пароль туда не передаётся,
+              а сам блочный сервер никогда не работает с повышенными правами.
+              Пакетный файл такого запроса не показывает - запускайте его из
+              консоли администратора. Если службой «Инициатор iSCSI
+              (Майкрософт)» воспользоваться нельзя или согласия нет, запуск
+              заканчивается кодом 7, и ничего не подключено.</span
+            ><span data-l="en"
+              ><b>Mounting needs administrator rights.</b> <code>mount</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code> and <code>vd auto</code>
+              ask Windows for administrator consent - for the initiator step,
+              and for nothing else: the password never goes there, and the block
+              server itself never runs elevated. A batch never raises that
+              prompt - run it from an elevated console. If the Microsoft iSCSI
+              Initiator service cannot be used, or consent is not given, the run
+              ends with exit code 7 and nothing is mounted.</span
+            ><span data-l="ua"
+              ><b>Підключення потребує прав адміністратора.</b>
+              <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> і
+              <code>vd auto</code> просять у Windows згоду адміністратора - на
+              налаштування ініціатора, і лише на нього: пароль туди не
+              передається, а сам блоковий сервер ніколи не працює з підвищеними
+              правами. Пакетний файл такого запиту не показує - запускайте його
+              з консолі адміністратора. Якщо службою «Ініціатор iSCSI
+              (Microsoft)» скористатися не можна або згоди немає, запуск
+              закінчується кодом 7, і нічого не підключено.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Сборка из Microsoft Store не может подключать диски.</b>
+              Упакованное приложение не может ни настроить инициатор iSCSI, ни
+              попросить права администратора, поэтому там <code>mount</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code>,
+              <code>vd auto</code> и <code>vd register</code> заканчиваются
+              кодом 6 (не поддерживается). <code>info</code>,
+              <code>verify</code>, <code>export</code>, <code>compact</code>,
+              <code>grow</code>, <code>seal</code>, <code>clone</code>,
+              <code>pass</code>, <code>destroy</code>, <code>vd new</code>,
+              <code>vd list</code>, <code>vd status</code>,
+              <code>vd add</code> и <code>vd forget</code> работают и там. Для
+              подключения поставьте установщик или переносимую сборку с
+              GitHub.</span
+            ><span data-l="en"
+              ><b>The Microsoft Store build cannot mount.</b> A packaged app can
+              neither configure the iSCSI initiator nor ask for administrator
+              rights, so there <code>mount</code>, <code>unmount</code>,
+              <code>save</code>, <code>format</code>, <code>vd auto</code> and
+              <code>vd register</code> end with exit code 6 (unsupported).
+              <code>info</code>, <code>verify</code>, <code>export</code>,
+              <code>compact</code>, <code>grow</code>, <code>seal</code>,
+              <code>clone</code>, <code>pass</code>, <code>destroy</code>,
+              <code>vd new</code>, <code>vd list</code>,
+              <code>vd status</code>, <code>vd add</code> and
+              <code>vd forget</code> work there too. To mount, install the setup
+              or the portable build from GitHub.</span
+            ><span data-l="ua"
+              ><b>Збірка з Microsoft Store не може підключати диски.</b>
+              Запакований застосунок не може ні налаштувати ініціатор iSCSI, ні
+              попросити права адміністратора, тому там <code>mount</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code>,
+              <code>vd auto</code> і <code>vd register</code> закінчуються
+              кодом 6 (не підтримується). <code>info</code>,
+              <code>verify</code>, <code>export</code>, <code>compact</code>,
+              <code>grow</code>, <code>seal</code>, <code>clone</code>,
+              <code>pass</code>, <code>destroy</code>, <code>vd new</code>,
+              <code>vd list</code>, <code>vd status</code>,
+              <code>vd add</code> і <code>vd forget</code> працюють і там. Для
+              підключення встановіть інсталятор або переносну збірку з
+              GitHub.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Подключение переживает окно.</b> Если закрыть окно FileDO с
+              подключённым диском, буква и её сервер остаются; новое окно
+              снова покажет их в списке. Отключайте на странице группы
+              «Диски» или командой <code>filedo X: unmount</code>.</span
+            ><span data-l="en"
+              ><b>A mount outlives the window.</b> Close the FileDO window with a
+              disk mounted and the letter and its server stay; a new window lists
+              them again. Unmount on the Disks pages or with
+              <code>filedo X: unmount</code>.</span
+            ><span data-l="ua"
+              ><b>Підключення переживає вікно.</b> Якщо закрити вікно FileDO з
+              підключеним диском, літера та її сервер лишаються; нове вікно
+              знову покаже їх у списку. Відключайте на сторінці групи «Диски»
+              або командою <code>filedo X: unmount</code>.</span
+            >
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="change">
+        <h2>
+          <span data-l="ru">Изменить контейнер</span
+          ><span data-l="en">Changing a container</span
+          ><span data-l="ua">Змінити контейнер</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Только отключённый: подключённый контейнер отклоняется с кодом 8, и
+            этот запрет не снимает ни один ключ. <code>grow 40G</code>
+            увеличивает диск - том внутри расширяется при следующем подключении
+            («Расширить том» в «Управлении дисками»). <code>compact</code>
+            возвращает диску неиспользуемое место файла. <code>seal</code>
+            пишет копию только для чтения навсегда, <code>clone</code> -
+            записываемую копию со своим идентификатором. <code>format</code>
+            стирает том (<code>fs ntfs</code> или <code>fs exfat</code>),
+            <code>destroy</code> удаляет файл контейнера, а с
+            <code>wipe</code> сначала его затирает. Оба сначала спрашивают;
+            <code>force</code> пропускает вопрос, но не проверку, а пакетный
+            файл без <code>force</code> их не выполнит.</span
+          ><span data-l="en"
+            >Unmounted only: a mounted container is refused with exit code 8,
+            and no flag skips that check. <code>grow 40G</code> makes the disk
+            larger - the volume inside is extended at the next mount (Disk
+            Management, Extend Volume). <code>compact</code> gives the file's
+            unused space back to the drive. <code>seal</code> writes a copy that
+            is read-only for good, <code>clone</code> a writable copy with its
+            own identity. <code>format</code> erases the volume
+            (<code>fs ntfs</code> or <code>fs exfat</code>), <code>destroy</code>
+            removes the container file, and with <code>wipe</code> overwrites
+            it first. Both ask first; <code>force</code> skips the question,
+            never the check, and a batch without <code>force</code> does not
+            run them.</span
+          ><span data-l="ua"
+            >Лише відключений: підключений контейнер відхилено з кодом 8, і цю
+            заборону не знімає жоден ключ. <code>grow 40G</code> збільшує диск
+            - том усередині розширюється під час наступного підключення
+            («Розширити том» у «Керуванні дисками»). <code>compact</code>
+            повертає диску невикористане місце файлу. <code>seal</code> пише
+            копію лише для читання назавжди, <code>clone</code> - записувану
+            копію з власним ідентифікатором. <code>format</code> стирає том
+            (<code>fs ntfs</code> або <code>fs exfat</code>),
+            <code>destroy</code> видаляє файл контейнера, а з
+            <code>wipe</code> спершу його затирає. Обидва спочатку питають;
+            <code>force</code> пропускає питання, але не перевірку, а пакетний
+            файл без <code>force</code> їх не виконає.</span
+          >
+        </p>
+        <p class="intro">
+          <span data-l="ru"
+            >Коды выхода одной команды над контейнером: 0 готово, 2 команда
+            отклонена как написана, 3 неверный пароль, 4 повреждение, 5 ошибка
+            чтения или записи, 6 не поддерживается, 7 транспорт недоступен, 8
+            занят. Пакетный файл сохраняет свои 0/1/2.</span
+          ><span data-l="en"
+            >Exit codes of one container command: 0 done, 2 refused as written,
+            3 wrong password, 4 damaged, 5 a read or write failed, 6
+            unsupported, 7 transport unavailable, 8 busy. A batch keeps its
+            0/1/2.</span
+          ><span data-l="ua"
+            >Коди виходу однієї команди над контейнером: 0 готово, 2 команду
+            відхилено як написано, 3 хибний пароль, 4 пошкодження, 5 помилка
+            читання чи запису, 6 не підтримується, 7 транспорт недоступний, 8
+            зайнятий. Пакетний файл зберігає свої 0/1/2.</span
+          >
+        </p>
+      </section>
+      <section class="section" id="explorer">
+        <h2>
+          <span data-l="ru">Двойной клик, Проводник и окно</span
+          ><span data-l="en">The double-click, Explorer and the window</span
+          ><span data-l="ua">Подвійний клік, Провідник і вікно</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Установщик предлагает тип <code>.fdd</code> отдельным компонентом
+            «Disk container files (.fdd)», который можно снять
+            (<code>DiskContainerIntegration</code> в <code>ADDLOCAL</code>). Без
+            установщика то же самое записывает
+            <code>filedo vd register</code> - для этого пользователя, или с
+            <code>-all-users</code> для всей машины, - а
+            <code>filedo vd unregister</code> убирает. Все три пункта открывают
+            окно FileDO. Двойной клик подключает: чистый замаскированный
+            контейнер - сразу; зашифрованный спрашивает пароль в окне, никогда
+            не в командной строке; контейнер, который не был закрыт корректно,
+            сначала показывает это со временем последнего полного сохранения и
+            ждёт вас; уже подключённый открывает свой диск. Правый клик
+            добавляет «Mount read-only» и «Unmount»; в Windows 11 они в
+            «Показать дополнительные параметры». В окне группа «Диски» несёт
+            по странице на каждую операцию. В сборке из Microsoft Store пунктов
+            меню нет, но двойной клик по <code>.fdd</code> открывает окно
+            FileDO на этом контейнере, и окно прямо говорит, что эта сборка
+            подключать не умеет.</span
+          ><span data-l="en"
+            >The installer offers the <code>.fdd</code> type as its own feature,
+            "Disk container files (.fdd)", which you can untick
+            (<code>DiskContainerIntegration</code> in <code>ADDLOCAL</code>).
+            Without the installer, <code>filedo vd register</code> writes the
+            same - for this user, or with <code>-all-users</code> for the whole
+            machine - and <code>filedo vd unregister</code> takes it back. All
+            three entries open the FileDO window. A double-click mounts: a clean
+            obfuscated container at once; an encrypted one asks for its password
+            in the window, never on a command line; one that was not closed
+            cleanly says so first, with the time of its last complete save, and
+            waits for you; one already mounted opens its drive. The right-click
+            menu adds "Mount read-only" and "Unmount"; on Windows 11 they are
+            under "Show more options". In the window, the Disks group has a page
+            for each operation. The Microsoft Store build has no menu entries,
+            but a double-click on a <code>.fdd</code> opens the FileDO window on
+            that container, and the window says plainly that this build cannot
+            mount.</span
+          ><span data-l="ua"
+            >Інсталятор пропонує тип <code>.fdd</code> окремим компонентом
+            «Disk container files (.fdd)», який можна зняти
+            (<code>DiskContainerIntegration</code> в <code>ADDLOCAL</code>). Без
+            інсталятора те саме записує <code>filedo vd register</code> - для
+            цього користувача, або з <code>-all-users</code> для всієї машини,
+            - а <code>filedo vd unregister</code> прибирає. Усі три пункти
+            відкривають вікно FileDO. Подвійний клік підключає: чистий
+            замаскований контейнер - одразу; зашифрований запитує пароль у
+            вікні, ніколи не в командному рядку; контейнер, який не було
+            коректно закрито, спершу показує це з часом останнього повного
+            збереження і чекає на вас; уже підключений відкриває свій диск.
+            Правий клік додає «Mount read-only» і «Unmount»; у Windows 11 вони
+            в «Показати додаткові параметри». У вікні група «Диски» має по
+            сторінці на кожну операцію. У збірці з Microsoft Store пунктів меню
+            немає, але подвійний клік на <code>.fdd</code> відкриває вікно
+            FileDO на цьому контейнері, і вікно прямо каже, що ця збірка
+            підключати не вміє.</span
+          >
+        </p>
+        <div class="copybox">
+          filedo vd register<button
+            class="copy"
+            data-copy="filedo vd register"
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Виртуальные диски с FileDO",
+          description:
+            "Руководство FileDO по виртуальным дискам .fdd: создать, подключить, прочитать без подключения, и что обещает каждый выбор.",
+        },
+        en: {
+          title: "Virtual disks with FileDO",
+          description:
+            "A FileDO guide to .fdd virtual disks: a whole volume in one file, mounted as a drive letter or read without mounting, and what each choice promises.",
+        },
+        ua: {
+          title: "Віртуальні диски з FileDO",
+          description:
+            "Посібник FileDO з віртуальних дисків .fdd: створити, підключити, прочитати без підключення, і що обіцяє кожен вибір.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

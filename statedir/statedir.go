@@ -10,6 +10,11 @@
 // happened to start in the same directory. The root is
 // %LOCALAPPDATA%\FileDO\state\; FILEDO_STATE_DIR moves it, which is the seam
 // the tests use and the only override.
+//
+// The line format of the per-file lists kept here (check_damaged.list,
+// check_files.list, skip_files.list) is written down in STATE-LISTS.md next
+// to this file; it is format 2, and cmd/filedo/state_lists.go reads and
+// writes it.
 package statedir
 
 import (

@@ -3,6 +3,9 @@ package main
 // SP-0027 compare tickets: CHK-01 (one folder under two spellings),
 // CHK-05 (a pair that differs is never deleted), CHK-06 (unreadable entries
 // and failed deletes are not "Done") and CHK-07 (case kept in delete paths).
+// AUD-16-F1: the delete phase asks; --yes skips the question, a closed stdin
+// cancels. The other delete runs here pass --yes so each proves its own
+// safety check, not the prompt.
 
 import (
 	"os"
@@ -11,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"filedo/statedir"
 )
 
 // compareTree writes the same small tree into a folder.
@@ -39,15 +44,15 @@ func TestCompareDeleteSameFolderRefused(t *testing.T) {
 	compareTree(t, x)
 
 	rows := [][]string{
-		{"cmp", x, strings.ToLower(x) + `\`, "del", "source"},
-		{"compare", x, `\\?\` + x, "del", "target"},
-		{"cmp", x, filepath.Join(x, "sub"), "del", "source"},
-		{"cmp", filepath.Join(x, "sub"), x, "del", "target"},
+		{"cmp", x, strings.ToLower(x) + `\`, "del", "source", "--yes"},
+		{"compare", x, `\\?\` + x, "del", "target", "--yes"},
+		{"cmp", x, filepath.Join(x, "sub"), "del", "source", "--yes"},
+		{"cmp", filepath.Join(x, "sub"), x, "del", "target", "--yes"},
 		{"cmp", x, strings.ToUpper(x)},
 	}
 	junction := filepath.Join(wd, "Alias")
 	if out, err := exec.Command("cmd", "/c", "mklink", "/J", junction, x).CombinedOutput(); err == nil {
-		rows = append(rows, []string{"cmp", x, junction, "del", "source"})
+		rows = append(rows, []string{"cmp", x, junction, "del", "source", "--yes"})
 	} else {
 		t.Logf("mklink /J unavailable (%v: %s); junction row skipped", err, out)
 	}
@@ -59,7 +64,7 @@ func TestCompareDeleteSameFolderRefused(t *testing.T) {
 		assertTreeIntact(t, x)
 	}
 	lst := filepath.Join(wd, "cmp.lst")
-	writeFile(t, lst, []byte("cmp "+x+" "+strings.ToLower(x)+" del source\r\n"))
+	writeFile(t, lst, []byte("cmp "+x+" "+strings.ToLower(x)+" del source --yes\r\n"))
 	if out, code := run(t, wd, "from", lst); code != 2 {
 		t.Errorf("batch self-compare exited %d, want 2\n%s", code, out)
 	}
@@ -85,7 +90,7 @@ func TestCompareDeleteNeedsEqualSizeAndTime(t *testing.T) {
 	put(filepath.Join(src, "touched.txt"), "same again", stamp)
 	put(filepath.Join(dst, "touched.txt"), "same again", stamp.Add(time.Hour))
 
-	out, code := run(t, wd, "cmp", src, dst, "del", "source")
+	out, code := run(t, wd, "cmp", src, dst, "del", "source", "--yes")
 	if code != 2 {
 		t.Errorf("a delete that kept mismatched pairs exited %d, want 2\n%s", code, out)
 	}
@@ -99,7 +104,7 @@ func TestCompareDeleteNeedsEqualSizeAndTime(t *testing.T) {
 		t.Errorf("a pair with different times was deleted without --by-hash")
 	}
 
-	out, code = run(t, wd, "cmp", src, dst, "del", "source", "--by-hash")
+	out, code = run(t, wd, "cmp", src, dst, "del", "source", "--by-hash", "--yes")
 	if exists(filepath.Join(src, "touched.txt")) {
 		t.Errorf("--by-hash did not delete a pair with equal content\n%s", out)
 	}
@@ -107,7 +112,7 @@ func TestCompareDeleteNeedsEqualSizeAndTime(t *testing.T) {
 		t.Fatalf("--by-hash deleted a pair of different sizes")
 	}
 
-	out, code = run(t, wd, "cmp", src, dst, "del", "source", "--allow-mismatch")
+	out, code = run(t, wd, "cmp", src, dst, "del", "source", "--allow-mismatch", "--yes")
 	if code != 0 || exists(filepath.Join(src, "photo.jpg")) {
 		t.Errorf("--allow-mismatch did not delete the mismatched pair (exit %d)\n%s", code, out)
 	}
@@ -132,7 +137,7 @@ func TestCompareKeepsOriginalCase(t *testing.T) {
 	dst := filepath.Join(wd, "dst")
 	writeFile(t, filepath.Join(dst, "a.txt"), []byte("lower"))
 
-	out, code := run(t, wd, "cmp", cs, dst, "del", "source", "--allow-mismatch")
+	out, code := run(t, wd, "cmp", cs, dst, "del", "source", "--allow-mismatch", "--yes")
 	if code != 2 {
 		t.Errorf("names that differ only in case exited %d, want 2 (CHK-07)\n%s", code, out)
 	}
@@ -151,8 +156,74 @@ func TestCompareKeepsOriginalCase(t *testing.T) {
 	os.Chtimes(filepath.Join(src, "Report.TXT"), stamp, stamp)
 	os.Chtimes(filepath.Join(dst, "report.txt"), stamp, stamp)
 	os.Remove(filepath.Join(dst, "a.txt"))
-	out, code = run(t, wd, "cmp", src, dst, "del", "source")
+	out, code = run(t, wd, "cmp", src, dst, "del", "source", "--yes")
 	if code != 0 || exists(filepath.Join(src, "Report.TXT")) {
 		t.Errorf("the pair was not deleted by its own name (exit %d)\n%s", code, out)
 	}
+}
+
+// runAnswering runs filedo with the given text on stdin.
+func runAnswering(t *testing.T, wd, stdin string, args ...string) (string, int) {
+	t.Helper()
+	cmd := exec.Command(filedoExe, args...)
+	cmd.Dir = wd
+	cmd.Env = append(os.Environ(), statedir.EnvOverride+"="+wd)
+	cmd.Stdin = strings.NewReader(stdin)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if err != nil {
+		ee, ok := err.(*exec.ExitError)
+		if !ok {
+			t.Fatalf("running filedo %v: %v", args, err)
+		}
+		code = ee.ExitCode()
+	}
+	return string(out), code
+}
+
+func TestCompareDeleteAsksFirst(t *testing.T) {
+	wd := t.TempDir()
+	src := filepath.Join(wd, "src")
+	dst := filepath.Join(wd, "dst")
+	compareTree(t, src)
+	compareTree(t, dst)
+
+	// A closed stdin is no answer: nothing is deleted and the run is Not
+	// proven, exit 2 - on the command line and from a batch file.
+	out, code := run(t, wd, "compare", src, dst, "del", "source")
+	if code != 2 {
+		t.Errorf("an unanswered delete exited %d, want 2 (AUD-16-F1)\n%s", code, out)
+	}
+	if !strings.Contains(out, "3 files") || !strings.Contains(out, "SOURCE mode") {
+		t.Errorf("the question does not name the count and the mode\n%s", out)
+	}
+	assertTreeIntact(t, src)
+	assertTreeIntact(t, dst)
+
+	lst := filepath.Join(wd, "cmp.lst")
+	writeFile(t, lst, []byte("cmp "+src+" "+dst+" del old target\r\n"+"cmp "+src+" "+dst+" del source\r\n"))
+	if out, code := run(t, wd, "from", lst); code != 2 {
+		t.Errorf("an unanswered delete in a batch exited %d, want 2\n%s", code, out)
+	}
+	assertTreeIntact(t, src)
+	assertTreeIntact(t, dst)
+
+	// "n" is an answer: nothing deleted, the compare itself is done.
+	out, code = runAnswering(t, wd, "n\r\n", "compare", src, dst, "del", "source")
+	if code != 0 || !strings.Contains(out, "Nothing deleted") {
+		t.Errorf("a declined delete exited %d, want 0 with \"Nothing deleted\"\n%s", code, out)
+	}
+	assertTreeIntact(t, src)
+
+	// --yes skips the question and deletes; the other side is untouched.
+	out, code = run(t, wd, "compare", src, dst, "del", "source", "--yes")
+	if code != 0 {
+		t.Errorf("compare .. del source --yes exited %d, want 0\n%s", code, out)
+	}
+	for _, rel := range []string{"a.txt", filepath.Join("sub", "b.txt"), filepath.Join("sub", "deep", "c.txt")} {
+		if exists(filepath.Join(src, rel)) {
+			t.Errorf("%s was not deleted under --yes\n%s", rel, out)
+		}
+	}
+	assertTreeIntact(t, dst)
 }

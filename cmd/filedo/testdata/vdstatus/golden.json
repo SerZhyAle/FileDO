@@ -1,0 +1,189 @@
+{
+  "at": "<TIME>",
+  "disks": [
+    {
+      "auto": true,
+      "clean": true,
+      "container_id": "<ID 1>",
+      "file": "ok",
+      "kind": "container",
+      "last_good_save": "<TIME>",
+      "logical_size": 1048576,
+      "mount": null,
+      "name": "archive",
+      "path": "<DIR>\\archive.fdd",
+      "profile": "plain",
+      "protection": "obfuscated",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": null,
+      "container_id": "<ID 2>",
+      "file": "missing",
+      "kind": "container",
+      "last_good_save": null,
+      "logical_size": 1048576,
+      "mount": null,
+      "name": "backup",
+      "path": "<DIR>\\backup.fdd",
+      "profile": "plain",
+      "protection": "",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": null,
+      "container_id": "<ID 3>",
+      "file": "unreadable",
+      "file_error": "vdisk: damaged container, or not a container: the file is 22 bytes, shorter than any container (20480)",
+      "kind": "container",
+      "last_good_save": null,
+      "logical_size": 5242880,
+      "mount": null,
+      "name": "junk",
+      "path": "<DIR>\\junk.fdd",
+      "profile": "plain",
+      "protection": "",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": null,
+      "container_id": "<ID 4>",
+      "file": "different",
+      "kind": "container",
+      "last_good_save": null,
+      "logical_size": 1048576,
+      "mount": null,
+      "name": "moved",
+      "path": "<DIR>\\moved.fdd",
+      "profile": "plain",
+      "protection": "",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": true,
+      "container_id": "<ID 5>",
+      "file": "ok",
+      "kind": "container",
+      "last_good_save": "<TIME>",
+      "logical_size": 1048576,
+      "mount": {
+        "letter": "S:",
+        "mounted_at": "<TIME>",
+        "ram": null,
+        "read_only": false,
+        "server_alive": false
+      },
+      "name": "old",
+      "path": "<DIR>\\old.fdd",
+      "profile": "plain",
+      "protection": "obfuscated",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": true,
+      "container_id": "<ID 6>",
+      "file": "ok",
+      "kind": "container",
+      "last_good_save": "<TIME>",
+      "logical_size": 1048576,
+      "mount": {
+        "letter": "R:",
+        "mounted_at": "<TIME>",
+        "ram": {
+          "dirty_bytes": 188743680,
+          "last_good_save": "<TIME>",
+          "saving": false
+        },
+        "read_only": false,
+        "server_alive": true
+      },
+      "name": "scratch",
+      "path": "<DIR>\\scratch.fdd",
+      "profile": "ram",
+      "protection": "obfuscated",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": true,
+      "container_id": "<ID 7>",
+      "file": "ok",
+      "kind": "container",
+      "last_good_save": "<TIME>",
+      "logical_size": 1048576,
+      "mount": {
+        "letter": "X:",
+        "mounted_at": "<TIME>",
+        "ram": null,
+        "read_only": true,
+        "server_alive": true
+      },
+      "name": "secrets",
+      "path": "<DIR>\\secrets.fdd",
+      "profile": "vault",
+      "protection": "encrypted",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": true,
+      "container_id": "<ID 8>",
+      "file": "ok",
+      "kind": "container",
+      "last_good_save": "<TIME>",
+      "logical_size": 1048576,
+      "mount": {
+        "letter": "W:",
+        "mounted_at": "<TIME>",
+        "ram": null,
+        "read_only": false,
+        "server_alive": true
+      },
+      "name": "work",
+      "path": "<DIR>\\work.fdd",
+      "profile": "plain",
+      "protection": "obfuscated",
+      "registered": true
+    },
+    {
+      "auto": false,
+      "clean": true,
+      "container_id": "<ID 9>",
+      "file": "ok",
+      "kind": "container",
+      "last_good_save": "<TIME>",
+      "logical_size": 1048576,
+      "mount": {
+        "letter": "U:",
+        "mounted_at": "<TIME>",
+        "ram": null,
+        "read_only": false,
+        "server_alive": true
+      },
+      "name": "",
+      "path": "<DIR>\\loose.fdd",
+      "profile": "plain",
+      "protection": "obfuscated",
+      "registered": false
+    },
+    {
+      "kind": "image",
+      "letter": "I:",
+      "mounted_at": "<TIME>",
+      "path": "<DIR>\\disc.iso"
+    }
+  ],
+  "packaged": false,
+  "schema": "filedo.vd-status",
+  "transport": {
+    "initiator_service": "running",
+    "ready": true,
+    "reason": ""
+  },
+  "version": 1
+}

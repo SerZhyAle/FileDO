@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"runtime"
 	"strconv"
 	"time"
 
-	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/text/unicode/norm"
 )
@@ -73,11 +71,7 @@ var suite2Pepper = [32]byte{
 
 // Suite2Profile is one Argon2id work factor of suite 2. Nothing on disk names
 // it: the reader walks the try-list until frame 0 authenticates.
-type Suite2Profile struct {
-	MemoryKiB uint32
-	Time      uint32
-	Lanes     uint8
-}
+type Suite2Profile = KDFParams
 
 // suite2ProfilesV1 is the try-list of suite 2, current profile first. A
 // profile is appended when a harder one becomes current and is never removed
@@ -97,18 +91,9 @@ func Suite2Profiles() []Suite2Profile { return append([]Suite2Profile(nil), suit
 // deriveSuite2Key = Argon2id(BLAKE2b-512(key = pepper, msg = credential), salt,
 // T, M, P, 32). There is no length threshold: every credential, empty
 // included, takes the one derivation.
+// It is the shared DeriveKey under suite 2's pepper.
 func deriveSuite2Key(cred Credential, salt []byte, p Suite2Profile) ([]byte, error) {
-	h, err := blake2b.New512(suite2Pepper[:])
-	if err != nil {
-		return nil, err
-	}
-	h.Write(cred)
-	// The 256 MiB this derivation takes is the largest allocation FileDO
-	// makes, and under the dispatch it follows suite 1's 64 MiB. Collecting
-	// first lets the heap reuse that block instead of reserving both, which
-	// matters in the 32-bit build (SP-0019 D3 measurement).
-	runtime.GC()
-	return argon2.IDKey(h.Sum(nil), salt, p.Time, p.MemoryKiB, p.Lanes, fileKeySize), nil
+	return DeriveKey(cred, suite2Pepper[:], salt, p)
 }
 
 // suite2FrameNonce XORs u64le(i) into the last eight bytes of the file nonce.

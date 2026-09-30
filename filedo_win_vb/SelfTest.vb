@@ -25,9 +25,13 @@ Public Module SelfTest
         ' own, never to the user's filedo_win.log.
         Dim testLog = Path.Combine(Path.GetTempPath(), "filedo_selftest_shell_" & Guid.NewGuid().ToString("N") & ".log")
         ShellLog.PathForTest = testLog
+        ' A Disks page reads its container through filedo.exe; the self-test never starts filedo.exe.
+        DiskProbe.Enabled = False
         Try
             RunAll()
         Finally
+            DiskProbe.Enabled = True
+            Packaging.OverrideForTest = Nothing
             ShellLog.PathForTest = Nothing
             Try
                 File.Delete(testLog)
@@ -79,6 +83,7 @@ Public Module SelfTest
         ' SP-0029: the shell's robustness remediation, ticket by ticket.
         Guard("target", AddressOf CheckTargetRules)
         Guard("dup", AddressOf CheckDuplicatesPage)
+        Guard("cmp", AddressOf CheckComparePage)
         Guard("command-cred", AddressOf CheckCommandCredential)
         Guard("redirect", AddressOf CheckRedirectNotice)
         Guard("runner", AddressOf CheckRunnerChild)
@@ -93,6 +98,27 @@ Public Module SelfTest
         Guard("duration", AddressOf CheckDurationFormat)
         Guard("about", AddressOf CheckAboutStamp)
         Guard("logs", AddressOf CheckLogArchives)
+
+        ' SP-0004 P6: the Disks jobs - the command of every page, the credential kept out of every
+        ' line, the elevation split, the double-click routes, a mount outliving the window, and the
+        ' five locales holding the same keys.
+        Guard("disk-cmd", AddressOf CheckDiskCommands)
+        Guard("disk-run", AddressOf CheckDiskRunRules)
+        Guard("disk-facts", AddressOf CheckDiskFacts)
+        Guard("disk-result", AddressOf CheckDiskResults)
+        Guard("disk-route", AddressOf CheckDiskRoutes)
+        Guard("disk-outlives", AddressOf CheckMountOutlivesWindow)
+
+        ' SP-0063: the Disk Manager - the snapshot's reader over the golden document, the states and
+        ' their precedence, the action matrix over every combination, the quick actions' lines, the
+        ' window itself, and the pieces around it.
+        Guard("disk-snap", AddressOf CheckDiskSnapshot)
+        Guard("disk-state", AddressOf CheckDiskStates)
+        Guard("disk-matrix", AddressOf CheckDiskMatrix)
+        Guard("disk-quick", AddressOf CheckDiskQuick)
+        Guard("disk-mgr", AddressOf CheckDiskManagerWindow)
+        Guard("disk-host", AddressOf CheckDiskHost)
+        Guard("locale-keys", AddressOf CheckLocaleKeySets)
     End Sub
 
     Private Sub Guard(name As String, body As Action)
@@ -178,7 +204,12 @@ Public Module SelfTest
                 Dim cmd = view.CurrentCommand()
                 Check("page:" & job.Id & ":builds", cmd.StartsWith("filedo.exe "), cmd)
                 Check("page:" & job.Id & ":verb", CommandNames(cmd, job.DefaultVerb), cmd)
-                Check("page:" & job.Id & ":target", cmd.Contains(SampleTargetFor(job)), cmd)
+                ' A job with no target (the Disks list) shows no step 2 and carries none.
+                If job.TargetKind = JobDefinition.TargetType.None Then
+                    Check("page:" & job.Id & ":no-target", Not view.TargetCardShownForTest AndAlso Not cmd.Contains(SampleTargetFor(job)), cmd)
+                Else
+                    Check("page:" & job.Id & ":target", cmd.Contains(SampleTargetFor(job)), cmd)
+                End If
 
                 ' SP-0025 FDSEC-19: filedo.exe refuses a pe: variable that is empty, so an
                 ' empty password - the page's documented obfuscation-only choice - travels as
@@ -358,6 +389,11 @@ Public Module SelfTest
         Next
         refs.Add(Theme.ChevronGlyph(True))
         refs.Add(Theme.ChevronGlyph(False))
+        ' The Disk Manager's state glyphs (SP-0063 5.4).
+        For Each state As DiskRowState In [Enum].GetValues(GetType(DiskRowState))
+            Dim g = DiskStates.GlyphOf(state)
+            If g IsNot Nothing Then refs.Add(g)
+        Next
         For Each verdict In New String() {"Passed", "Done", "Failed", "Stopped", "Not proven"}
             refs.Add(Theme.VerdictGlyph(verdict))
         Next
@@ -415,7 +451,12 @@ Public Module SelfTest
     ' The rows that draw a stand-in. Zero since ICON-SET 0.14 (2026-09-25) took the twelve meanings
     ' FileDO proposed; a new row never joins them - a new control starts from the vocabulary (ICON-SET
     ' rule 5) - so raising this is an amendment with a reason, not a fix.
-    Private Const WaitingRailRowsBaseline As Integer = 0
+    '
+    ' Amended 2026-09-27 (SP-0004 P6): ten Disks rows - create, mount, unmount, compact, grow,
+    ' format, seal, change password, auto-mount, remember - show meanings the
+    ' vocabulary has no record for (Rail.vb says which). They draw stand-ins under proposed ids until
+    ' the records land; the number goes back down as each one is vendored, never up.
+    Private Const WaitingRailRowsBaseline As Integer = 10
 
     ' T1, ICON-SET rules 1, 4 and 5 on the rail: every job row shows a glyph; a vocabulary one is
     ' drawable; a waiting one names the id proposed for it and a Segoe stand-in in the private-use
@@ -1331,6 +1372,13 @@ Public Module SelfTest
             Dim got = Program.StartupTargetFrom(New String() {"filedo_win.exe", "notes.txt"})
             Check("startup:relative-target", String.Equals(got, Path.Combine(dir, "notes.txt"), StringComparison.OrdinalIgnoreCase), got)
             Check("startup:switch-skipped", Program.StartupTargetFrom(New String() {"filedo_win.exe", "-debug"}) Is Nothing, "")
+            ' SP-0004 spec 7.2 item 2: a credential-shaped token never reaches the -debug start line;
+            ' a double-clicked container and the window's switches are kept as they are.
+            Dim startLine = Program.StartLogLine(New String() {"--mount-ro", "C:\disks\v.fdd", "p:hunter2", "-debug"})
+            Check("startup:debug-line-screens-credential", Not startLine.Contains("hunter2") AndAlso
+                  startLine.Contains("C:\disks\v.fdd") AndAlso startLine.Contains("--mount-ro"), startLine)
+            Dim vdLine = Program.StartLogLine(New String() {"C:\disks\v.fdd", "mount", "hunter2"})
+            Check("startup:debug-line-screens-vd-line", Not vdLine.Contains("hunter2"), vdLine)
         Finally
             Environment.CurrentDirectory = oldCwd
             Try
@@ -1399,6 +1447,50 @@ Public Module SelfTest
             jv.SetJob(JobCatalogue.GetJob("rail_job_fill"))
             jv.SetTarget("E:")
             Check("count:fill-does-not-count", Not jv.CountRowShownForTest, "")
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' AUD-16-F1: a Compare delete rule is destructive and permanent on the page, and passes --yes
+    ' only behind the typed DELETE; "none" stays reversible and passes nothing.
+    Private Sub CheckComparePage()
+        Dim dict = Localization.GetDict(ShellSettings.Language())
+        Dim jv As JobView = Nothing
+        Dim reason As String = ""
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_compare"))
+            jv.SetTarget("C:\sample-cmp-a")
+            jv.SetCompareForTest("C:\sample-cmp-b", "")
+
+            Dim runs = jv.RunStateForTest(reason)
+            Dim cmd = jv.CurrentCommand()
+            Check("cmp:none-is-reversible", runs AndAlso Not jv.DestructiveBadgeShownForTest AndAlso
+                  jv.ReversibilityForTest = dict("shell_rev_reversible") AndAlso Not cmd.Contains("--yes") AndAlso
+                  Not cmd.Contains(" del"), cmd)
+
+            jv.SetCompareForTest("C:\sample-cmp-b", "del source")
+            runs = jv.RunStateForTest(reason)
+            cmd = jv.CurrentCommand()
+            Dim destructive = Not runs AndAlso jv.DestructiveBadgeShownForTest AndAlso
+                              jv.ReversibilityForTest = dict("shell_rev_permanent")
+            jv.SetConfirmWordForTest("delete")
+            Dim exact = Not jv.RunStateForTest(reason)
+            jv.SetConfirmWordForTest("DELETE")
+            runs = jv.RunStateForTest(reason)
+            cmd = jv.CurrentCommand()
+            Check("cmp:delete-is-destructive", destructive AndAlso exact AndAlso runs AndAlso
+                  cmd.Contains(" del source --yes"), cmd)
+
+            ' Back to "none": the badge goes, the word is cleared, and no --yes is passed.
+            jv.SetCompareForTest("C:\sample-cmp-b", "")
+            runs = jv.RunStateForTest(reason)
+            cmd = jv.CurrentCommand()
+            Check("cmp:back-to-none", runs AndAlso Not jv.DestructiveBadgeShownForTest AndAlso
+                  jv.ReversibilityForTest = dict("shell_rev_reversible") AndAlso Not cmd.Contains("--yes"), cmd)
+            jv.SetCompareForTest("C:\sample-cmp-b", "del old target")
+            Check("cmp:word-asked-again", Not jv.RunStateForTest(reason), jv.CurrentCommand())
         Finally
             If jv IsNot Nothing Then jv.Dispose()
         End Try
@@ -1806,6 +1898,8 @@ Public Module SelfTest
     ' whichever strategy is chosen - so the check is "names the verb or one of its faces".
     Private Function CommandNames(cmd As String, verb As String) As Boolean
         If cmd.Contains(" " & verb) Then Return True
+        ' The Disks list reads the machine-readable snapshot since SP-0063 (M1).
+        If verb = "list" AndAlso cmd.EndsWith(" vd status json") Then Return True
         If verb = "info" AndAlso cmd.Contains(" short") Then Return True
         If verb = "copy" Then
             For Each v In CliRules.CopyVerbs
@@ -1818,11 +1912,964 @@ Public Module SelfTest
     ' The paths hold a "(" on purpose (GUI-01): a page that read any text with a colon and a "(" as
     ' a drive row cut them to "C:", and the target row fails the moment that comes back.
     Private Function SampleTargetFor(job As JobDefinition) As String
+        If job.GroupKey = DiskCommands.GroupKey Then Return DiskSample
         Select Case job.TargetKind
             Case JobDefinition.TargetType.File : Return "C:\sample (1)\one.fd-sec"
             Case JobDefinition.TargetType.Drive : Return "E:"
             Case Else : Return "C:\sample (1)\x"
         End Select
     End Function
+
+    ' ---- SP-0004 P6: the Disks jobs -------------------------------------------
+
+    ' A container path with a space and a "(" in it, so a page that loses the quoting or cuts the
+    ' path at the parenthesis fails here.
+    Private Const DiskSample As String = "C:\sample (1)\one.fdd"
+    Private Const DiskSampleQuoted As String = """C:\sample (1)\one.fdd"""
+
+    ' Passwords no user would type, so finding one in a line is unambiguous.
+    Private Const DiskSecret As String = "selftest-vd-secret-9f3"
+    Private Const DiskNewSecret As String = "selftest-vd-new-secret-7c1"
+
+    Private Function DiskFacts(protection As DiskProtection, clean As Boolean, letter As String) As ContainerFacts
+        Return New ContainerFacts With {.Path = DiskSample, .Read = True, .Protection = protection, .Clean = clean,
+                                        .MountedLetter = letter, .Profile = "plain"}
+    End Function
+
+    ' T6.20/T6.21: every Disks page writes the console grammar of the P6 brief, word for word, and
+    ' no password it was given appears in the line, in the copy for cmd.exe or in the redacted
+    ' report line - it is in the child's environment under FILEDO_SHELL_CRED (and, for `pass`, the
+    ' new one under FILEDO_SHELL_CRED_NEW), and nowhere else. No Disks run is started elevated
+    ' by the window (T6.22).
+    Private Sub CheckDiskCommands()
+        Dim Q = DiskSampleQuoted
+        Dim cases As New List(Of Object())()
+        ' name, job, options, password, new password, typed word, facts (Nothing = not read), expected line
+        cases.Add(New Object() {"list", "list", New DiskOptions(), "", "", "", Nothing, "filedo.exe vd status json"})
+        cases.Add(New Object() {"status", "list", New DiskOptions With {.ShowMounted = True}, "", "", "", Nothing, "filedo.exe vd status json"})
+        cases.Add(New Object() {"new-vault", "new", New DiskOptions With {.Size = "20G", .Profile = "vault", .Label = "Work"}, DiskSecret, "", "", Nothing,
+                                "filedo.exe vd new " & Q & " 20G vault label Work pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"new-obfuscated", "new", New DiskOptions With {.Size = "512M", .Profile = "plain"}, "", "", "", Nothing,
+                                "filedo.exe vd new " & Q & " 512M plain p:"})
+        cases.Add(New Object() {"new-ram", "new", New DiskOptions With {.Size = "1.5T", .Profile = "ram"}, DiskSecret, "", "", Nothing,
+                                "filedo.exe vd new " & Q & " 1.5T ram pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"mount", "mount", New DiskOptions With {.ReadOnly = True, .Letter = "X:"}, DiskSecret, "", "", Nothing,
+                                "filedo.exe " & Q & " mount ro as X: pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"mount-obfuscated", "mount", New DiskOptions With {.NoScan = True}, DiskSecret, "", "", DiskFacts(DiskProtection.Obfuscated, True, ""),
+                                "filedo.exe " & Q & " mount noscan"})
+        cases.Add(New Object() {"mount-encrypted", "mount", New DiskOptions(), DiskSecret, "", "", DiskFacts(DiskProtection.Encrypted, True, ""),
+                                "filedo.exe " & Q & " mount pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"unmount", "unmount", New DiskOptions(), "", "", "", Nothing, "filedo.exe " & Q & " unmount"})
+        cases.Add(New Object() {"unmount-force", "unmount", New DiskOptions With {.Force = True}, "", "", "", Nothing, "filedo.exe " & Q & " unmount force"})
+        cases.Add(New Object() {"unmount-nosave", "unmount", New DiskOptions With {.NoSave = True}, "", "", DiskOptionsPanel.DiscardWord, Nothing,
+                                "filedo.exe " & Q & " unmount force nosave"})
+        cases.Add(New Object() {"info", "info", New DiskOptions(), "", "", "", Nothing, "filedo.exe " & Q & " info"})
+        cases.Add(New Object() {"verify", "verify", New DiskOptions(), DiskSecret, "", "", Nothing, "filedo.exe " & Q & " verify pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"export-vhd", "export", New DiskOptions With {.ExportForm = "vhd", .Dest = "C:\out\disk.vhd"}, DiskSecret, "", "", Nothing,
+                                "filedo.exe " & Q & " export C:\out\disk.vhd vhd pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"export-raw", "export", New DiskOptions With {.Dest = "C:\out\disk.img"}, "", "", "", DiskFacts(DiskProtection.Obfuscated, True, ""),
+                                "filedo.exe " & Q & " export C:\out\disk.img raw"})
+        cases.Add(New Object() {"save", "save", New DiskOptions(), "", "", "", Nothing, "filedo.exe " & Q & " save"})
+        cases.Add(New Object() {"compact", "compact", New DiskOptions(), DiskSecret, "", "", Nothing, "filedo.exe " & Q & " compact pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"grow", "grow", New DiskOptions With {.Size = "40G"}, DiskSecret, "", "", Nothing, "filedo.exe " & Q & " grow 40G pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"format", "format", New DiskOptions With {.FileSystem = "exfat", .Label = "Data"}, DiskSecret, "", DiskOptionsPanel.FormatWord, Nothing,
+                                "filedo.exe " & Q & " format fs exfat label Data force pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"seal-nopass", "seal", New DiskOptions With {.Dest = "C:\out\sealed.fdd", .NoPass = True}, DiskSecret, "", "", Nothing,
+                                "filedo.exe " & Q & " seal C:\out\sealed.fdd nopass pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"clone", "clone", New DiskOptions With {.Dest = "C:\out\copy.fdd"}, DiskSecret, "", "", Nothing,
+                                "filedo.exe " & Q & " clone C:\out\copy.fdd pe:FILEDO_SHELL_CRED"})
+        cases.Add(New Object() {"pass", "pass", New DiskOptions(), DiskSecret, DiskNewSecret, "", Nothing,
+                                "filedo.exe " & Q & " pass pe:FILEDO_SHELL_CRED new pe:FILEDO_SHELL_CRED_NEW"})
+        cases.Add(New Object() {"destroy-wipe", "destroy", New DiskOptions With {.Wipe = True}, "", "", DiskOptionsPanel.DestroyWord, Nothing,
+                                "filedo.exe " & Q & " destroy wipe force"})
+        cases.Add(New Object() {"auto-on", "auto", New DiskOptions With {.AutoOn = True}, "", "", "", Nothing, "filedo.exe vd auto " & Q & " logon"})
+        cases.Add(New Object() {"auto-off", "auto", New DiskOptions With {.AutoOn = False}, "", "", "", Nothing, "filedo.exe vd auto off " & Q})
+        cases.Add(New Object() {"add", "add", New DiskOptions With {.Name = "work"}, "", "", "", Nothing, "filedo.exe vd add " & Q & " as work"})
+        cases.Add(New Object() {"forget", "add", New DiskOptions With {.Remember = False}, "", "", "", Nothing, "filedo.exe vd forget " & Q})
+
+        Dim jv As JobView = Nothing
+        Try
+            jv = New JobView()
+            For Each c In cases
+                Dim name = "disk-cmd:" & DirectCast(c(0), String)
+                Dim job = JobCatalogue.GetJob("rail_job_vd_" & DirectCast(c(1), String))
+                If job Is Nothing Then
+                    Check(name, False, "no job rail_job_vd_" & DirectCast(c(1), String))
+                    Continue For
+                End If
+                jv.SetJob(job)
+                If job.TargetKind <> JobDefinition.TargetType.None Then jv.SetTarget(DiskSample)
+                Dim facts = TryCast(c(6), ContainerFacts)
+                If facts IsNot Nothing Then jv.SetDiskFactsForTest(facts)
+                jv.SetDiskForTest(DirectCast(c(2), DiskOptions), DirectCast(c(3), String), DirectCast(c(4), String), DirectCast(c(5), String))
+
+                Dim cmd = jv.CurrentCommand()
+                Dim expected = DirectCast(c(7), String)
+                Check(name, cmd = expected, cmd & " (want " & expected & ")")
+
+                ' Nothing a password was typed as reaches a line of any kind.
+                Dim forCmd = jv.CommandForCmd()
+                Dim redacted = ArgQuoting.JoinArgs(Runner.RedactCredentialArgs(ArgQuoting.SplitArgs(cmd.Substring("filedo.exe ".Length))))
+                Dim leaks = cmd.Contains(DiskSecret) OrElse cmd.Contains(DiskNewSecret) OrElse
+                            forCmd.Contains(DiskSecret) OrElse forCmd.Contains(DiskNewSecret) OrElse
+                            redacted.Contains(DiskSecret) OrElse redacted.Contains(DiskNewSecret)
+                Check(name & ":no-secret", Not leaks, cmd)
+
+                ' The environment carries exactly the passwords the line names.
+                Dim env = jv.RunEnvironmentForTest()
+                Dim credOk As Boolean
+                If cmd.Replace("pe:FILEDO_SHELL_CRED_NEW", "").Contains("pe:FILEDO_SHELL_CRED") Then
+                    credOk = env IsNot Nothing AndAlso env.ContainsKey(DiskCommands.CredentialEnvName) AndAlso env(DiskCommands.CredentialEnvName) = DiskSecret
+                Else
+                    credOk = env Is Nothing OrElse Not env.ContainsKey(DiskCommands.CredentialEnvName)
+                End If
+                If cmd.Contains("pe:FILEDO_SHELL_CRED_NEW") Then
+                    credOk = credOk AndAlso env.ContainsKey(DiskCommands.NewCredentialEnvName) AndAlso env(DiskCommands.NewCredentialEnvName) = DiskNewSecret
+                End If
+                Check(name & ":env", credOk, If(env Is Nothing, "no environment", String.Join(",", env.Keys.ToArray())))
+
+                ' T6.22: the window never elevates a Disks run itself.
+                Check(name & ":not-elevated", Not jv.ElevatesRunForTest, job.NeedsElevation.ToString())
+            Next
+
+            ' `pass` needs two passwords, and "Open in Command" can hand over one: it is not offered.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_pass"))
+            Check("disk-cmd:pass-no-open-in-command", Not jv.OpenInCommandOfferedForTest, "")
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_mount"))
+            Check("disk-cmd:mount-open-in-command", jv.OpenInCommandOfferedForTest, "")
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' Opens a Disks page on the sample, with facts, answers and passwords, and returns whether Run
+    ' is offered and the reason line.
+    Private Function DiskRunState(jv As JobView, verb As String, o As DiskOptions, password As String, newPassword As String,
+                                  typed As String, facts As ContainerFacts, ByRef reason As String) As Boolean
+        jv.SetJob(JobCatalogue.GetJob("rail_job_vd_" & verb))
+        jv.SetTarget(DiskSample)
+        If facts IsNot Nothing Then jv.SetDiskFactsForTest(facts)
+        jv.SetDiskForTest(o, password, newPassword, typed)
+        Return jv.RunStateForTest(reason)
+    End Function
+
+    ' T6.24, T6.25 and spec 7.4: what the page refuses before a run, each with its own sentence -
+    ' and the profile consequences printed beside the choice.
+    Private Sub CheckDiskRunRules()
+        Dim en = Localization.GetDict(ShellSettings.Language())
+        Dim jv As JobView = Nothing
+        Dim reason As String = ""
+        Try
+            jv = New JobView()
+
+            ' `pass`: an empty new password is refused with the way to an obfuscated copy.
+            Dim ok = DiskRunState(jv, "pass", New DiskOptions(), DiskSecret, "", "", Nothing, reason)
+            Check("disk-run:pass-empty-new-refused", Not ok AndAlso reason = en("vd_pass_empty_new") AndAlso reason.Contains("clone"), reason)
+            ok = DiskRunState(jv, "pass", New DiskOptions(), DiskSecret, DiskNewSecret, "", Nothing, reason)
+            Check("disk-run:pass-offered", ok, reason)
+            jv.DiskPanelForTest.SetNewConfirmForTest("different")
+            ok = jv.RunStateForTest(reason)
+            Check("disk-run:pass-new-asked-twice", Not ok AndAlso reason = en("shell_cred_mismatch"), reason)
+            ok = DiskRunState(jv, "pass", New DiskOptions(), DiskSecret, DiskNewSecret, "", DiskFacts(DiskProtection.Obfuscated, True, ""), reason)
+            Check("disk-run:pass-obfuscated-refused", Not ok AndAlso reason = en("vd_block_pass_obfuscated"), reason)
+
+            ' Create: a vault needs a password; an empty one elsewhere is called obfuscation.
+            ok = DiskRunState(jv, "new", New DiskOptions With {.Size = "20G", .Profile = "vault"}, "", "", "", Nothing, reason)
+            Check("disk-run:vault-needs-password", Not ok AndAlso reason = en("vd_cred_vault_needs"), reason)
+            ok = DiskRunState(jv, "new", New DiskOptions With {.Size = "", .Profile = "plain"}, "", "", "", Nothing, reason)
+            Check("disk-run:new-needs-size", Not ok AndAlso reason = en("vd_need_size"), reason)
+            ok = DiskRunState(jv, "new", New DiskOptions With {.Size = "20G", .Profile = "plain"}, "", "", "", Nothing, reason)
+            Check("disk-run:new-obfuscated-offered", ok, reason)
+
+            ' T6.24: each profile's consequence, beside the choice.
+            For Each pair In New String()() {
+                New String() {"plain", "vd_profile_plain_note"}, New String() {"fast", "vd_profile_fast_note"},
+                New String() {"ram", "vd_profile_ram_note"}, New String() {"vault", "vd_profile_vault_note"}}
+                DiskRunState(jv, "new", New DiskOptions With {.Size = "20G", .Profile = pair(0)}, DiskSecret, "", "", Nothing, reason)
+                Check("disk-run:profile-note:" & pair(0), jv.DiskPanelForTest.ProfileNoticeForTest = en(pair(1)), jv.DiskPanelForTest.ProfileNoticeForTest)
+            Next
+
+            ' Format and Destroy: the typed word, and never while mounted.
+            ok = DiskRunState(jv, "format", New DiskOptions(), "", "", "", Nothing, reason)
+            Check("disk-run:format-needs-word", Not ok AndAlso reason = en("vd_confirm_format"), reason)
+            ok = DiskRunState(jv, "format", New DiskOptions(), "", "", DiskOptionsPanel.FormatWord, Nothing, reason)
+            Check("disk-run:format-offered", ok, reason)
+            ok = DiskRunState(jv, "format", New DiskOptions(), "", "", DiskOptionsPanel.FormatWord, DiskFacts(DiskProtection.Obfuscated, False, "X:"), reason)
+            Check("disk-run:format-refused-while-mounted", Not ok AndAlso reason = Localization.Format(en("vd_block_mounted_fmt"), "X:"), reason)
+            ok = DiskRunState(jv, "destroy", New DiskOptions(), "", "", DiskOptionsPanel.DestroyWord, DiskFacts(DiskProtection.Obfuscated, False, "X:"), reason)
+            Check("disk-run:destroy-refused-while-mounted", Not ok AndAlso reason = Localization.Format(en("vd_block_mounted_fmt"), "X:"), reason)
+            Check("disk-run:destroy-destructive", jv.DestructiveBadgeShownForTest, "")
+
+            ' Unmount without the final save: destructive and permanent while it is chosen.
+            ok = DiskRunState(jv, "unmount", New DiskOptions With {.NoSave = True}, "", "", "", Nothing, reason)
+            Check("disk-run:nosave-needs-word", Not ok AndAlso reason = en("vd_confirm_nosave"), reason)
+            Check("disk-run:nosave-destructive", jv.DestructiveBadgeShownForTest AndAlso jv.ReversibilityForTest = en("shell_rev_permanent"),
+                  jv.ReversibilityForTest)
+            DiskRunState(jv, "unmount", New DiskOptions(), "", "", "", Nothing, reason)
+            Check("disk-run:unmount-not-destructive", Not jv.DestructiveBadgeShownForTest, "")
+
+            ' Mount: an encrypted container waits for its password; an obfuscated one asks none; a
+            ' mounted one is not mounted twice.
+            ok = DiskRunState(jv, "mount", New DiskOptions(), "", "", "", DiskFacts(DiskProtection.Encrypted, True, ""), reason)
+            Check("disk-run:mount-encrypted-needs-password", Not ok AndAlso reason = en("vd_cred_needed"), reason)
+            ok = DiskRunState(jv, "mount", New DiskOptions(), "", "", "", DiskFacts(DiskProtection.Obfuscated, True, ""), reason)
+            Check("disk-run:mount-obfuscated-no-password", ok AndAlso Not jv.DiskPanelForTest.CredentialShownForTest, reason)
+            ok = DiskRunState(jv, "mount", New DiskOptions(), "", "", "", DiskFacts(DiskProtection.Obfuscated, False, "E:"), reason)
+            Check("disk-run:mount-already-mounted", Not ok AndAlso reason = Localization.Format(en("vd_block_already_mounted_fmt"), "E:"), reason)
+
+            ' T6.25 before the run: a packaged build is told what is missing instead of offered a
+            ' mount; the read path (Export) stays offered.
+            Packaging.OverrideForTest = True
+            ok = DiskRunState(jv, "mount", New DiskOptions(), "", "", "", DiskFacts(DiskProtection.Obfuscated, True, ""), reason)
+            Check("disk-run:packaged-no-mount", Not ok AndAlso reason = en("vd_packaged"), reason)
+            ok = DiskRunState(jv, "export", New DiskOptions With {.Dest = "C:\selftest-no-such-dir\out.img"}, "", "", "", DiskFacts(DiskProtection.Obfuscated, True, ""), reason)
+            Check("disk-run:packaged-export-offered", ok, reason)
+            Packaging.OverrideForTest = False
+
+            ' A path that is not a container is not offered to a container verb.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_info"))
+            jv.SetTarget("C:\sample (1)\one.fd-sec")
+            ok = jv.RunStateForTest(reason)
+            Check("disk-run:needs-fdd", Not ok AndAlso reason = en("vd_need_fdd"), reason)
+            ' Unmount takes a drive letter as well.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_unmount"))
+            jv.SetTarget("X:")
+            ok = jv.RunStateForTest(reason)
+            Check("disk-run:unmount-by-letter", ok AndAlso jv.CurrentCommand() = "filedo.exe X: unmount", jv.CurrentCommand() & " / " & reason)
+        Finally
+            Packaging.OverrideForTest = Nothing
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' What `info` prints, read by the lines the console writes - and "not encrypted" in the
+    ' obfuscated note is never read as encrypted.
+    Private Sub CheckDiskFacts()
+        Dim obf = String.Join(vbLf, New String() {
+            "Container:     C:\d\work.fdd", "Format:        FDD 1.0", "Profile:       ram",
+            "Protection:    obfuscated (obfuscated, not encrypted: anyone holding the file and the published format can read it)",
+            "Volume size:   20 GiB", "Closed clean:  NO - it was not closed cleanly, or it is mounted now",
+            "Last good save: 2026-09-27 10:00:00", "Container id:  abc", "Mounted now:   x:"})
+        Dim f = ContainerFacts.Parse("C:\d\work.fdd", obf, 0)
+        Check("disk-facts:obfuscated", f.Read AndAlso f.Protection = DiskProtection.Obfuscated AndAlso f.Profile = "ram" AndAlso
+                                       f.Clean.HasValue AndAlso Not f.Clean.Value AndAlso f.MountedLetter = "X:" AndAlso
+                                       f.LastGoodSave = "2026-09-27 10:00:00", f.Protection.ToString() & " " & f.MountedLetter)
+        Dim enc = "Protection:    encrypted (encrypted)" & vbCrLf & "Closed clean:  yes" & vbCrLf
+        f = ContainerFacts.Parse("C:\d\s.fdd", enc, 0)
+        Check("disk-facts:encrypted", f.Read AndAlso f.Protection = DiskProtection.Encrypted AndAlso f.Clean.Value AndAlso Not f.IsMounted,
+              f.Protection.ToString())
+        f = ContainerFacts.Parse("C:\d\s.fdd", "vd: the file is damaged", 4)
+        Check("disk-facts:unread", Not f.Read AndAlso f.Protection = DiskProtection.Unknown, f.Protection.ToString())
+    End Sub
+
+    ' T6.25 after the run, and T6.20's table: each exit class says what happened in a sentence, the
+    ' list comes back as rows, and a mount offers its drive.
+    Private Sub CheckDiskResults()
+        Dim en = Localization.GetDict(ShellSettings.Language())
+        Dim jv As JobView = Nothing
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_mount"))
+            jv.SetTarget(DiskSample)
+            For Each code In New Integer() {2, 3, 4, 5, 6, 7, 8}
+                jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = code, .Verdict = "Failed", .Output = "", .Duration = TimeSpan.Zero}, False)
+                Check("disk-result:exit-" & code.ToString(), jv.VerdictReasonForTest.Contains(en("vd_exit_" & code.ToString())), jv.VerdictReasonForTest)
+            Next
+            jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 0, .Verdict = "Done", .Duration = TimeSpan.Zero,
+                                    .Output = "Container C:\d\work.fdd: plain, 20 GiB, encrypted." & vbLf & "Mounted read-only at X:. Unmount with: filedo X: unmount" & vbLf}, False)
+            Check("disk-result:mount-opens-drive", jv.DiskResultForTest.OpenDriveTextForTest = Localization.Format(en("vd_btn_open_drive_fmt"), "X:"),
+                  jv.DiskResultForTest.OpenDriveTextForTest)
+
+            ' SP-0063 M1: the list is the snapshot of `vd status json`, two views of one document.
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_list"))
+            Dim snapOut = GoldenSnapshotLine()
+            jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 0, .Verdict = "Passed", .Output = snapOut, .Duration = TimeSpan.Zero}, False)
+            Check("disk-result:list-registered", jv.DiskResultForTest.RowCountForTest = 8, jv.DiskResultForTest.RowCountForTest.ToString())
+            jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 0, .Verdict = "Passed", .Output = snapOut, .Duration = TimeSpan.Zero}, True)
+            Check("disk-result:list-mounted", jv.DiskResultForTest.RowCountForTest = 6, jv.DiskResultForTest.RowCountForTest.ToString())
+            jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 0, .Verdict = "Passed", .Duration = TimeSpan.Zero,
+                                    .Output = "No containers are registered. Register one with: filedo vd add <file.fdd> [as <name>]" & vbLf}, False)
+            Check("disk-result:list-not-a-snapshot", jv.DiskResultForTest.RowCountForTest = 0 AndAlso
+                                                      jv.DiskResultForTest.MessageForTest = en("vd_mgr_stale_failed"), jv.DiskResultForTest.MessageForTest)
+            Dim empty = "{""schema"":""filedo.vd-status"",""version"":1,""at"":null,""packaged"":false,""transport"":{""ready"":true},""disks"":[]}"
+            jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 0, .Verdict = "Passed", .Output = empty, .Duration = TimeSpan.Zero}, True)
+            Check("disk-result:list-none-mounted", jv.DiskResultForTest.MessageForTest = en("vd_list_none_mounted"), jv.DiskResultForTest.MessageForTest)
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
+    End Sub
+
+    ' T6.18: the three double-click routes, decided from what `info` said - and a `.fdd` opened by
+    ' the window never lands on the secure page.
+    Private Sub CheckDiskRoutes()
+        Dim d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Mount, DiskFacts(DiskProtection.Obfuscated, False, "E:"), False)
+        Check("disk-route:mounted-opens-drive", d.Action = DiskRoute.RouteAction.OpenDrive AndAlso d.Letter = "E:", d.Action.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Mount, DiskFacts(DiskProtection.Obfuscated, True, ""), False)
+        Check("disk-route:clean-obfuscated-mounts", d.Action = DiskRoute.RouteAction.OpenPage AndAlso d.JobKey = "rail_job_vd_mount" AndAlso d.AutoRun,
+              d.JobKey & " " & d.AutoRun.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Mount, DiskFacts(DiskProtection.Obfuscated, False, ""), False)
+        Check("disk-route:unclean-waits", d.JobKey = "rail_job_vd_mount" AndAlso Not d.AutoRun, d.AutoRun.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Mount, DiskFacts(DiskProtection.Encrypted, True, ""), False)
+        Check("disk-route:encrypted-waits-for-password", d.JobKey = "rail_job_vd_mount" AndAlso Not d.AutoRun, d.AutoRun.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Mount, DiskFacts(DiskProtection.Obfuscated, True, ""), True)
+        Check("disk-route:packaged-waits", Not d.AutoRun, d.AutoRun.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Mount, ContainerFacts.Unknown(DiskSample), False)
+        Check("disk-route:unread-waits", d.JobKey = "rail_job_vd_mount" AndAlso Not d.AutoRun, d.AutoRun.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.MountReadOnly, DiskFacts(DiskProtection.Obfuscated, True, ""), False)
+        Check("disk-route:mount-ro", d.JobKey = "rail_job_vd_mount" AndAlso d.ReadOnly, d.ReadOnly.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Unmount, DiskFacts(DiskProtection.Obfuscated, False, "E:"), False)
+        Check("disk-route:unmount-mounted", d.Action = DiskRoute.RouteAction.OpenPage AndAlso d.JobKey = "rail_job_vd_unmount" AndAlso d.AutoRun,
+              d.JobKey & " " & d.AutoRun.ToString())
+        d = DiskRoute.Decide(DiskSample, DiskRoute.StartMode.Unmount, DiskFacts(DiskProtection.Obfuscated, True, ""), False)
+        Check("disk-route:unmount-not-mounted-waits", d.JobKey = "rail_job_vd_unmount" AndAlso Not d.AutoRun, d.AutoRun.ToString())
+
+        Check("disk-route:switch-mount-ro", DiskRoute.ModeFrom(New String() {"filedo_win.exe", "--mount-ro", "C:\a.fdd"}) = DiskRoute.StartMode.MountReadOnly, "")
+        Check("disk-route:switch-unmount", DiskRoute.ModeFrom(New String() {"filedo_win.exe", "--unmount", "C:\a.fdd"}) = DiskRoute.StartMode.Unmount, "")
+        Check("disk-route:switch-none", DiskRoute.ModeFrom(New String() {"filedo_win.exe", "C:\a.fdd"}) = DiskRoute.StartMode.None, "")
+
+        ' The window itself, started on a real (empty) .fdd file: the switch's path is the target,
+        ' and each start lands on its Disks page - never on Secure.
+        Dim dir = Path.Combine(Path.GetTempPath(), "filedo_selftest_vd_" & Guid.NewGuid().ToString("N"))
+        Directory.CreateDirectory(dir)
+        Dim fdd = Path.Combine(dir, "double click.fdd")
+        File.WriteAllBytes(fdd, New Byte() {})
+        Try
+            Check("disk-route:switch-target", String.Equals(Program.StartupTargetFrom(New String() {"filedo_win.exe", "--mount-ro", fdd}), fdd,
+                                                            StringComparison.OrdinalIgnoreCase), fdd)
+            For Each start In New Object()() {
+                New Object() {"plain", Nothing, "rail_job_vd_mount", False},
+                New Object() {"mount-ro", DiskRoute.Decide(fdd, DiskRoute.StartMode.MountReadOnly, ContainerFacts.Unknown(fdd), False), "rail_job_vd_mount", True},
+                New Object() {"unmount", DiskRoute.Decide(fdd, DiskRoute.StartMode.Unmount, ContainerFacts.Unknown(fdd), False), "rail_job_vd_unmount", False}}
+                Dim shell As ShellForm = Nothing
+                Try
+                    shell = New ShellForm(fdd, TryCast(start(1), DiskRoute.Decision))
+                    Dim page = shell.CurrentJobIdForTest
+                    Dim cmd = shell.JobViewForTest.CurrentCommand()
+                    Dim want = DirectCast(start(2), String)
+                    Dim ro = DirectCast(start(3), Boolean)
+                    Check("disk-route:window-" & DirectCast(start(0), String), page = want AndAlso page <> "rail_job_secure" AndAlso cmd.Contains(fdd) AndAlso
+                                                                                (Not ro OrElse cmd.Contains(" mount ro")), page & ": " & cmd)
+                Finally
+                    If shell IsNot Nothing Then shell.Dispose()
+                End Try
+            Next
+        Finally
+            Try
+                Directory.Delete(dir, True)
+            Catch
+            End Try
+        End Try
+    End Sub
+
+    ' T6.25a, as far as it can be automated: the window's job ends filedo.exe with the window
+    ' (kill-on-close) and lets everything filedo.exe starts go (silent breakaway) - checked on the
+    ' job's flags as Windows reports them, and on a real grandchild, which is found outside the job.
+    ' The block server additionally asks for CREATE_BREAKAWAY_FROM_JOB itself (vdStartServer). The
+    ' end-to-end proof - close the window with a volume mounted, the volume and the server stay,
+    ' and `vd status` from a fresh window lists them - needs a real mount and is the manual check.
+    Private Sub CheckMountOutlivesWindow()
+        Dim childInJob = False, found = False, grandInJob = True
+        Runner.RunGrandchildForTest(childInJob, found, grandInJob)
+        Check("disk-outlives:job-flags", ChildJob.BreakawayAndKillFlagsSet(), "0x" & ChildJob.LimitFlagsForTest().ToString("X"))
+        Check("disk-outlives:child-in-job", childInJob, "")
+        Check("disk-outlives:grandchild-found", found, "")
+        Check("disk-outlives:grandchild-outside-job", found AndAlso Not grandInJob, "in job " & grandInJob.ToString())
+    End Sub
+
+    ' SP-0004 7.3, T6.23: every table holds exactly the keys English holds. The merged dictionary
+    ' falls back to English in silence, so the tables are compared as they are written.
+    Private Sub CheckLocaleKeySets()
+        Dim en = Localization.OwnKeysForTest("en")
+        For Each lang In Localization.Languages
+            If lang = "en" Then Continue For
+            Dim own = Localization.OwnKeysForTest(lang)
+            Dim missing = en.Where(Function(k) Not own.Contains(k)).OrderBy(Function(k) k).ToList()
+            Dim extra = own.Where(Function(k) Not en.Contains(k)).OrderBy(Function(k) k).ToList()
+            Check("locale-keys:" & lang, missing.Count = 0 AndAlso extra.Count = 0,
+                  en.Count.ToString() & " keys; missing " & String.Join(",", missing.Take(8).ToArray()) &
+                  "; extra " & String.Join(",", extra.Take(8).ToArray()))
+        Next
+        ' Every Disks job has its label and purpose in every table.
+        For Each lang In Localization.Languages
+            Dim own = Localization.OwnKeysForTest(lang)
+            Dim gaps As New List(Of String)()
+            For Each job In JobCatalogue.GetAllJobs()
+                If job.GroupKey <> DiskCommands.GroupKey Then Continue For
+                If Not own.Contains(job.LabelKey) Then gaps.Add(job.LabelKey)
+                If Not own.Contains(job.PurposeKey) Then gaps.Add(job.PurposeKey)
+            Next
+            If Not own.Contains(DiskCommands.GroupKey) Then gaps.Add(DiskCommands.GroupKey)
+            ' The Disk Manager's row (SP-0063) is no job, and needs its label and purpose all the same.
+            For Each key In New String() {RailRow.DiskManagerKey, "purpose_job_vd_manager"}
+                If Not own.Contains(key) Then gaps.Add(key)
+            Next
+            Check("locale-keys:disks:" & lang, gaps.Count = 0, String.Join(",", gaps.ToArray()))
+        Next
+        ' Every key the Disk Manager names in code is in the English table (a key missing there shows
+        ' as the key itself on screen, in every language).
+        Dim enDict = Localization.GetDict("en")
+        Dim missingKeys As New List(Of String)
+        For Each key In DiskManagerKeys()
+            If Not enDict.ContainsKey(key) Then missingKeys.Add(key)
+        Next
+        Check("locale-keys:disk-manager", missingKeys.Count = 0, String.Join(",", missingKeys.Take(12).ToArray()))
+    End Sub
+
+    ' The keys the manager's decisions can return: every state word, every action label, every
+    ' reason an action is not offered, and the transport's.
+    Private Function DiskManagerKeys() As HashSet(Of String)
+        Dim keys As New HashSet(Of String)(StringComparer.Ordinal)
+        For Each verb In New String() {"mount", "unmount", "verify", "save", "queued", "info"}
+            keys.Add(DiskStates.BusyKey(verb))
+        Next
+        Dim sample = MgrRecord()
+        For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+            keys.Add(DiskStates.LabelKey(a, Nothing))
+            For Each state As DiskRowState In [Enum].GetValues(GetType(DiskRowState))
+                For Each packaged In New Boolean() {False, True}
+                    For Each reason In New String() {"", "initiator_missing", "initiator_disabled"}
+                        For Each r In MgrVariants()
+                            Dim why = DiskStates.WhyNot(a, r, state, New DiskContext With {.Packaged = packaged, .TransportReady = (reason = ""), .TransportReason = reason})
+                            If why <> "" Then keys.Add(why)
+                        Next
+                    Next
+                Next
+            Next
+        Next
+        keys.Add(DiskStates.WhyNotAll(DiskAction.Mount, New List(Of DiskRecord) From {sample, sample}, New List(Of DiskRowState) From {DiskRowState.NotMounted, DiskRowState.Mounted}, New DiskContext()))
+        keys.Add(DiskStates.WhyNotAll(DiskAction.MountAs, New List(Of DiskRecord) From {sample, sample}, New List(Of DiskRowState) From {DiskRowState.NotMounted, DiskRowState.NotMounted}, New DiskContext()))
+        For Each k In New String() {"vd_mgr_state_server_gone", "vd_mgr_state_unsaved_fmt", "vd_mgr_state_mounted_ro", "vd_mgr_state_mounted",
+                                   "vd_mgr_state_image", "vd_mgr_state_missing", "vd_mgr_state_different", "vd_mgr_state_unreadable",
+                                   "vd_mgr_state_unclean", "vd_mgr_state_not_mounted", "vd_mgr_prot_obfuscated", "vd_mgr_prot_encrypted",
+                                   "vd_mgr_stale_failed", "vd_mgr_stale_timeout", "vd_mgr_stale_format", "vd_mgr_stale_old_cli"}
+            keys.Add(k)
+        Next
+        keys.Remove("")
+        Return keys
+    End Function
+
+    ' ---- SP-0063: the Disk Manager ---------------------------------------------
+
+    ' The golden `vd status json` document the CLI's test holds its output to, from the copy
+    ' embedded here, on one line as filedo.exe prints it.
+    Private Function GoldenSnapshotLine() As String
+        Using source = GetType(SelfTest).Assembly.GetManifestResourceStream("FileDOGUI.vdstatus.golden.json")
+            If source Is Nothing Then Return ""
+            Using r As New StreamReader(source, Encoding.UTF8)
+                Return String.Join("", r.ReadToEnd().Replace(vbCr, "").Split(ControlChars.Lf).Select(Function(l) l.Trim()).ToArray())
+            End Using
+        End Using
+    End Function
+
+    Private Function GoldenSnapshot() As DiskSnapshot
+        Dim problem As String = ""
+        Return DiskSnapshot.Parse(GoldenSnapshotLine(), problem)
+    End Function
+
+    ' A container at rest, the base the rows below vary.
+    Private Function MgrRecord() As DiskRecord
+        Return New DiskRecord With {.Name = "work", .Path = DiskSample, .ContainerId = "11111111-2222-4333-8444-555555555555",
+                                    .Registered = True, .FileState = "ok", .Profile = "plain", .Protection = DiskProtection.Obfuscated,
+                                    .LogicalSize = 20L << 30, .Clean = True}
+    End Function
+
+    Private Function MgrVariant(change As Action(Of DiskRecord)) As DiskRecord
+        Dim r = MgrRecord()
+        change(r)
+        Return r
+    End Function
+
+    Private Function MgrVariants() As List(Of DiskRecord)
+        Return New List(Of DiskRecord) From {
+            MgrRecord(),
+            MgrVariant(Sub(r) r.Protection = DiskProtection.Encrypted),
+            MgrVariant(Sub(r) r.Protection = DiskProtection.Unknown),
+            MgrVariant(Sub(r)
+                           r.Profile = "ram" : r.Letter = "R:" : r.ServerAlive = True : r.HasRam = True : r.RamDirty = 1 << 20
+                       End Sub),
+            MgrVariant(Sub(r)
+                           r.Letter = "X:" : r.ReadOnly = True : r.ServerAlive = True
+                       End Sub),
+            MgrVariant(Sub(r)
+                           r.Registered = False : r.Name = "" : r.Letter = "U:" : r.ServerAlive = True
+                       End Sub),
+            MgrVariant(Sub(r) r.AutoMount = True),
+            MgrVariant(Sub(r)
+                           r.Kind = "image" : r.Letter = "I:" : r.ServerAlive = True
+                       End Sub)}
+    End Function
+
+    ' The record a state is made of, for the matrix below: a mount for S2-S4, an image for S5, the
+    ' file's state for S6-S8, the clean marker for S9.
+    Private Function RecordFor(state As DiskRowState, profile As String, protection As DiskProtection) As DiskRecord
+        Dim r = MgrRecord()
+        r.Profile = profile
+        r.Protection = protection
+        Select Case state
+            Case DiskRowState.ServerGone
+                r.Letter = "S:" : r.ServerAlive = False
+            Case DiskRowState.Unsaved
+                r.Letter = "R:" : r.ServerAlive = True : r.HasRam = True : r.RamDirty = 180L << 20
+            Case DiskRowState.Mounted
+                r.Letter = "W:" : r.ServerAlive = True
+            Case DiskRowState.Image
+                r.Kind = "image" : r.Letter = "I:" : r.ServerAlive = True : r.Protection = DiskProtection.Unknown
+            Case DiskRowState.Missing
+                r.FileState = "missing" : r.Clean = Nothing
+            Case DiskRowState.Different
+                r.FileState = "different" : r.Clean = Nothing
+            Case DiskRowState.Unreadable
+                r.FileState = "unreadable" : r.FileError = "damaged" : r.Clean = Nothing
+            Case DiskRowState.Unclean
+                r.Clean = False
+        End Select
+        Return r
+    End Function
+
+    ' Section 10: the reader of the snapshot over the golden document, an unknown field, a missing
+    ' optional one, and the shapes it must refuse whole.
+    Private Sub CheckDiskSnapshot()
+        Dim line = GoldenSnapshotLine()
+        Check("disk-snap:golden-embedded", line.StartsWith("{"), line.Length.ToString() & " chars")
+        Dim problem As String = ""
+        Dim s = DiskSnapshot.Parse(line, problem)
+        Check("disk-snap:golden-reads", s IsNot Nothing AndAlso s.Version = 1 AndAlso s.Disks.Count = 10 AndAlso s.TransportReady AndAlso Not s.Packaged,
+              If(s Is Nothing, problem, s.Disks.Count.ToString()))
+        If s Is Nothing Then Return
+        Dim byName = Function(n As String) s.Disks.FirstOrDefault(Function(d) d.Name = n)
+        Dim expect = New Object()() {
+            New Object() {"archive", DiskRowState.NotMounted}, New Object() {"backup", DiskRowState.Missing},
+            New Object() {"junk", DiskRowState.Unreadable}, New Object() {"moved", DiskRowState.Different},
+            New Object() {"old", DiskRowState.ServerGone}, New Object() {"scratch", DiskRowState.Unsaved},
+            New Object() {"secrets", DiskRowState.Mounted}, New Object() {"work", DiskRowState.Mounted}}
+        For Each e In expect
+            Dim d = byName(DirectCast(e(0), String))
+            Dim want = DirectCast(e(1), DiskRowState)
+            Dim got = If(d Is Nothing, CType(-1, DiskRowState), DiskStates.StateOf(d, ""))
+            Check("disk-snap:state:" & DirectCast(e(0), String), d IsNot Nothing AndAlso got = want, got.ToString())
+        Next
+        Dim archive = byName("archive")
+        Check("disk-snap:archive", archive IsNot Nothing AndAlso archive.AutoMount AndAlso archive.Clean.HasValue AndAlso archive.Clean.Value AndAlso
+                                   archive.Protection = DiskProtection.Obfuscated AndAlso archive.Registered AndAlso Not archive.IsMounted, "")
+        Dim secrets = byName("secrets")
+        Check("disk-snap:secrets", secrets IsNot Nothing AndAlso secrets.Protection = DiskProtection.Encrypted AndAlso secrets.ReadOnly AndAlso
+                                   secrets.Letter = "X:" AndAlso secrets.Profile = "vault", "")
+        Dim scratch = byName("scratch")
+        Check("disk-snap:ram", scratch IsNot Nothing AndAlso scratch.HasRam AndAlso scratch.RamDirty = 180L << 20 AndAlso scratch.IsRam, "")
+        Dim junk = byName("junk")
+        Check("disk-snap:unreadable-says-why", junk IsNot Nothing AndAlso junk.FileError <> "" AndAlso Not junk.Clean.HasValue AndAlso
+                                                junk.Protection = DiskProtection.Unknown, "")
+        Dim loose = s.Disks.FirstOrDefault(Function(d) Not d.Registered AndAlso Not d.IsImage)
+        Check("disk-snap:unregistered-mount", loose IsNot Nothing AndAlso loose.Letter = "U:" AndAlso loose.BaseName = "loose", "")
+        Dim image = s.Disks.FirstOrDefault(Function(d) d.IsImage)
+        Check("disk-snap:image", image IsNot Nothing AndAlso image.Letter = "I:" AndAlso image.ImageFormat = "iso" AndAlso
+                                 DiskStates.StateOf(image, "") = DiskRowState.Image, "")
+
+        ' An unknown field is ignored; a missing optional one takes its default.
+        Dim future = "{""schema"":""filedo.vd-status"",""version"":1,""future"":{""x"":[1,2]},""transport"":{""ready"":true,""new"":1}," &
+                     """disks"":[{""kind"":""container"",""name"":""a"",""path"":""C:\\a.fdd"",""registered"":true,""file"":""ok"",""future"":true}," &
+                     "{""kind"":""container"",""name"":""b"",""path"":""C:\\b.fdd"",""registered"":true,""mount"":{""letter"":""B:"",""server_alive"":true}}]}"
+        s = DiskSnapshot.Parse(future, problem)
+        Check("disk-snap:unknown-field", s IsNot Nothing AndAlso s.Disks.Count = 2, problem)
+        If s IsNot Nothing AndAlso s.Disks.Count = 2 Then
+            Dim a = s.Disks(0)
+            Check("disk-snap:missing-optional", a.Letter = "" AndAlso Not a.Clean.HasValue AndAlso Not a.LastGoodSave.HasValue AndAlso
+                                                a.Protection = DiskProtection.Unknown AndAlso Not a.HasRam AndAlso s.Disks(1).Letter = "B:" AndAlso
+                                                Not s.Disks(1).HasRam, a.Letter)
+        End If
+        ' A banner or a warning on the same stream does not stop the read.
+        s = DiskSnapshot.Parse("Warning: x" & vbLf & line & vbLf & " Finish: y" & vbLf, problem)
+        Check("disk-snap:among-lines", s IsNot Nothing AndAlso s.Disks.Count = 10, problem)
+        ' Principle 3: a protection word other than the two is not taken for either.
+        s = DiskSnapshot.Parse(future.Replace("""file"":""ok"",", """file"":""ok"",""protection"":""protected"","), problem)
+        Check("disk-snap:only-two-words", s IsNot Nothing AndAlso s.Disks(0).Protection = DiskProtection.Unknown, "")
+
+        ' Refused whole, each with the sentence of why.
+        For Each c In New String()() {
+            New String() {"newer-major", line.Replace("""version"": 1", """version"": 2").Replace("""version"":1", """version"":2"), "vd_mgr_stale_format"},
+            New String() {"other-schema", line.Replace("filedo.vd-status", "filedo.other"), "vd_mgr_stale_format"},
+            New String() {"no-disks", "{""schema"":""filedo.vd-status"",""version"":1}", "vd_mgr_stale_format"},
+            New String() {"broken", "{""schema"":""filedo.vd-status"",""version"":1,""disks"":[", "vd_mgr_stale_format"},
+            New String() {"no-document", "Nothing is mounted. No block server is running.", "vd_mgr_stale_failed"}}
+            s = DiskSnapshot.Parse(c(1), problem)
+            Check("disk-snap:refuses:" & c(0), s Is Nothing AndAlso problem = c(2), problem)
+        Next
+    End Sub
+
+    ' Section 5.4: the precedence of the states, their words and their glyphs.
+    Private Sub CheckDiskStates()
+        Dim ui = Localization.GetDict(ShellSettings.Language())
+        Dim gone = RecordFor(DiskRowState.ServerGone, "ram", DiskProtection.Obfuscated)
+        gone.HasRam = True : gone.RamDirty = 5
+        Check("disk-state:server-gone-beats-unsaved", DiskStates.StateOf(gone, "") = DiskRowState.ServerGone, "")
+        Check("disk-state:busy-beats-all", DiskStates.StateOf(gone, "unmount") = DiskRowState.Busy AndAlso
+                                          DiskStates.StateText(gone, DiskRowState.Busy, "unmount", ui) = ui("vd_mgr_state_busy_unmount"), "")
+        Dim missing = RecordFor(DiskRowState.Missing, "plain", DiskProtection.Obfuscated)
+        missing.Clean = False
+        Check("disk-state:missing-beats-unclean", DiskStates.StateOf(missing, "") = DiskRowState.Missing, "")
+        Dim mountedMissing = RecordFor(DiskRowState.Mounted, "plain", DiskProtection.Obfuscated)
+        mountedMissing.FileState = "missing"
+        Check("disk-state:mounted-beats-file", DiskStates.StateOf(mountedMissing, "") = DiskRowState.Mounted, "")
+        Dim unknownClean = MgrRecord()
+        unknownClean.Clean = Nothing
+        Check("disk-state:no-marker-is-not-unclean", DiskStates.StateOf(unknownClean, "") = DiskRowState.NotMounted, "")
+        Dim cleanRam = RecordFor(DiskRowState.Mounted, "ram", DiskProtection.Obfuscated)
+        cleanRam.HasRam = True : cleanRam.RamDirty = 0
+        Check("disk-state:saved-ram-is-mounted", DiskStates.StateOf(cleanRam, "") = DiskRowState.Mounted, "")
+
+        Dim unsaved = RecordFor(DiskRowState.Unsaved, "ram", DiskProtection.Obfuscated)
+        Dim text = DiskStates.StateText(unsaved, DiskRowState.Unsaved, "", ui)
+        Check("disk-state:unsaved-says-how-much", text.Contains("180 MiB"), text)
+        Dim ro = RecordFor(DiskRowState.Mounted, "plain", DiskProtection.Encrypted)
+        ro.ReadOnly = True
+        Check("disk-state:read-only-in-words", DiskStates.StateText(ro, DiskRowState.Mounted, "", ui) = ui("vd_mgr_state_mounted_ro"), "")
+
+        ' Principle 1: every state has words, and they differ from one another.
+        Dim words As New HashSet(Of String)
+        For Each state As DiskRowState In [Enum].GetValues(GetType(DiskRowState))
+            Dim w = DiskStates.StateText(RecordFor(state, "plain", DiskProtection.Obfuscated), state, "mount", ui)
+            Check("disk-state:words:" & state.ToString(), w <> "" AndAlso Not w.StartsWith("vd_mgr_"), w)
+            words.Add(w)
+        Next
+        Check("disk-state:words-differ", words.Count = [Enum].GetValues(GetType(DiskRowState)).Length, words.Count.ToString())
+
+        ' The glyph of each state: ok, warning, error - and none for a disk at rest or at work.
+        Dim glyphOf = Function(st As DiskRowState) If(DiskStates.GlyphOf(st) Is Nothing, "", DiskStates.GlyphOf(st).Id)
+        Check("disk-state:glyphs", glyphOf(DiskRowState.Mounted) = "status.ok" AndAlso glyphOf(DiskRowState.Image) = "status.ok" AndAlso
+                                   glyphOf(DiskRowState.Unsaved) = "status.warning" AndAlso glyphOf(DiskRowState.Unclean) = "status.warning" AndAlso
+                                   glyphOf(DiskRowState.ServerGone) = "status.error" AndAlso glyphOf(DiskRowState.Unreadable) = "status.error" AndAlso
+                                   glyphOf(DiskRowState.NotMounted) = "" AndAlso glyphOf(DiskRowState.Busy) = "", "")
+
+        ' Principle 3 in every language: the two protection words differ, and the obfuscated one is
+        ' never the word for encrypted.
+        For Each lang In Localization.Languages
+            Dim d = Localization.GetDict(lang)
+            Dim obf = DiskStates.ProtectionText(MgrRecord(), d)
+            Dim enc = DiskStates.ProtectionText(MgrVariant(Sub(r) r.Protection = DiskProtection.Encrypted), d)
+            Dim unk = DiskStates.ProtectionText(MgrVariant(Sub(r) r.Protection = DiskProtection.Unknown), d)
+            Check("disk-state:protection:" & lang, obf <> enc AndAlso Not obf.Contains(enc) AndAlso unk = "-" AndAlso Not obf.StartsWith("vd_mgr_"),
+                  obf & " / " & enc)
+        Next
+
+        Check("disk-state:sizes", DiskStates.SizeText(20L << 30) = "20 GiB" AndAlso DiskStates.SizeText(180L << 20) = "180 MiB" AndAlso
+                                  DiskStates.SizeText(2L << 40) = "2 TiB" AndAlso DiskStates.SizeText(3L << 29) = "1.5 GiB",
+              DiskStates.SizeText(3L << 29))
+
+        ' Spec 4.1: mounted first, by letter; then the rest by name.
+        Dim rows = New List(Of DiskRecord) From {
+            MgrVariant(Sub(r) r.Name = "b"), MgrVariant(Sub(r)
+                                                            r.Name = "z" : r.Letter = "X:"
+                                                        End Sub),
+            MgrVariant(Sub(r) r.Name = "a"), MgrVariant(Sub(r)
+                                                            r.Name = "y" : r.Letter = "E:"
+                                                        End Sub)}
+        rows.Sort(AddressOf DiskStates.DefaultOrder)
+        Check("disk-state:default-order", String.Join(",", rows.Select(Function(r) r.Name).ToArray()) = "y,z,a,b",
+              String.Join(",", rows.Select(Function(r) r.Name).ToArray()))
+    End Sub
+
+    ' Section 6.1 over every (state x profile x protection x packaged x transport) combination: each
+    ' rule the console holds, held here as an invariant with its violations named.
+    Private Sub CheckDiskMatrix()
+        Dim ui = Localization.GetDict("en")
+        Dim profiles = New String() {"plain", "fast", "ram", "sealed", "vault"}
+        Dim protections = New DiskProtection() {DiskProtection.Obfuscated, DiskProtection.Encrypted, DiskProtection.Unknown}
+        Dim transports = New String() {"", "initiator_missing", "initiator_disabled", "service_manager"}
+        Dim rules As New Dictionary(Of String, List(Of String))
+        For Each name In New String() {"mount", "unmount", "open", "save", "never-while-mounted", "auto-never-encrypted", "packaged-refuses",
+                                       "packaged-read-path", "busy-accepts-nothing", "reason-has-words", "image-only-its-drive",
+                                       "no-password-for-obfuscated", "default-action-safe"}
+            rules(name) = New List(Of String)
+        Next
+        Dim combos = 0
+        Dim fail = Sub(rule As String, what As String)
+                       If rules(rule).Count < 6 Then rules(rule).Add(what)
+                       If rules(rule).Count = 6 Then rules(rule).Add("..")
+                   End Sub
+        Dim mountedStates = {DiskRowState.ServerGone, DiskRowState.Unsaved, DiskRowState.Mounted}
+        For Each state As DiskRowState In [Enum].GetValues(GetType(DiskRowState))
+            For Each profile In profiles
+                For Each protection In protections
+                    For Each packaged In New Boolean() {False, True}
+                        For Each reason In transports
+                            combos += 1
+                            Dim r = RecordFor(state, profile, protection)
+                            If state = DiskRowState.Unsaved AndAlso profile <> "ram" Then r.Profile = "ram"
+                            Dim ctx As New DiskContext With {.Packaged = packaged, .TransportReady = (reason = "" OrElse reason = "service_manager"),
+                                                             .TransportReason = reason}
+                            If reason = "service_manager" Then ctx.TransportReady = False
+                            Dim tag = state.ToString() & "/" & r.Profile & "/" & protection.ToString() & "/" & If(packaged, "pkg", "setup") & "/" & reason
+                            Dim ok = Function(a As DiskAction) DiskStates.WhyNot(a, r, state, ctx) = ""
+                            Dim transportRefuses = (reason = "initiator_missing" OrElse reason = "initiator_disabled")
+
+                            Dim wantMount = (state = DiskRowState.NotMounted OrElse state = DiskRowState.Unclean) AndAlso Not packaged AndAlso Not transportRefuses
+                            If ok(DiskAction.Mount) <> wantMount Then fail("mount", tag)
+                            Dim wantUnmount = mountedStates.Contains(state) AndAlso Not packaged
+                            If ok(DiskAction.Unmount) <> wantUnmount Then fail("unmount", tag)
+                            Dim wantOpen = (state = DiskRowState.Unsaved OrElse state = DiskRowState.Mounted OrElse state = DiskRowState.Image)
+                            If ok(DiskAction.OpenDrive) <> wantOpen Then fail("open", tag)
+                            Dim wantSave = (state = DiskRowState.Unsaved OrElse state = DiskRowState.Mounted) AndAlso r.IsRam AndAlso Not r.ReadOnly AndAlso Not packaged
+                            If ok(DiskAction.SaveNow) <> wantSave Then fail("save", tag)
+                            If mountedStates.Contains(state) OrElse state = DiskRowState.Busy Then
+                                For Each a In {DiskAction.Format, DiskAction.Destroy, DiskAction.Compact, DiskAction.Grow, DiskAction.ChangePassword, DiskAction.Verify}
+                                    If ok(a) Then fail("never-while-mounted", tag & ":" & a.ToString())
+                                Next
+                            End If
+                            If protection = DiskProtection.Encrypted AndAlso ok(DiskAction.AutoOn) Then fail("auto-never-encrypted", tag)
+                            If packaged Then
+                                For Each a In {DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Unmount, DiskAction.SaveNow,
+                                               DiskAction.Format, DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.UnmountImage}
+                                    If ok(a) Then fail("packaged-refuses", tag & ":" & a.ToString())
+                                Next
+                                If state = DiskRowState.NotMounted AndAlso Not (ok(DiskAction.Info) AndAlso ok(DiskAction.Verify) AndAlso ok(DiskAction.Export)) Then
+                                    fail("packaged-read-path", tag)
+                                End If
+                            End If
+                            For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+                                Dim why = DiskStates.WhyNot(a, r, state, ctx)
+                                If why <> "" AndAlso (Not ui.ContainsKey(why) OrElse ui(why) = "") Then fail("reason-has-words", tag & ":" & why)
+                                If state = DiskRowState.Busy AndAlso why = "" AndAlso
+                                   Not (a = DiskAction.CopyPath OrElse a = DiskAction.ShowInFolder OrElse DiskStates.IsGlobal(a)) Then
+                                    fail("busy-accepts-nothing", tag & ":" & a.ToString())
+                                End If
+                                If state = DiskRowState.Image AndAlso why = "" AndAlso
+                                   Not (a = DiskAction.UnmountImage OrElse a = DiskAction.OpenDrive OrElse a = DiskAction.CopyPath OrElse
+                                        a = DiskAction.ShowInFolder OrElse DiskStates.IsGlobal(a)) Then
+                                    fail("image-only-its-drive", tag & ":" & a.ToString())
+                                End If
+                                If protection <> DiskProtection.Encrypted AndAlso DiskStates.AsksPassword(a, r) Then fail("no-password-for-obfuscated", tag & ":" & a.ToString())
+                            Next
+                            ' D3: a double-click mounts a disk at rest or opens a mounted one - nothing else, ever.
+                            Dim d = DiskStates.DefaultAction(state)
+                            If d.HasValue AndAlso Not (d.Value = DiskAction.Mount AndAlso Not mountedStates.Contains(state) AndAlso state <> DiskRowState.Image OrElse
+                                                       d.Value = DiskAction.OpenDrive) Then
+                                fail("default-action-safe", tag & ":" & d.Value.ToString())
+                            End If
+                        Next
+                    Next
+                Next
+            Next
+        Next
+        For Each kv In rules
+            Check("disk-matrix:" & kv.Key, kv.Value.Count = 0, combos.ToString() & " combinations" &
+                  If(kv.Value.Count = 0, "", "; " & String.Join("; ", kv.Value.ToArray())))
+        Next
+        ' Spec 6.2 and section 9: Del is Remove from list, which touches no file - never Destroy.
+        Check("disk-matrix:del-is-not-destructive", DiskStates.KindOf(DiskAction.Forget) <> DiskActionKind.Destructive AndAlso
+                                                     DiskStates.KindOf(DiskAction.Destroy) = DiskActionKind.Destructive AndAlso
+                                                     DiskStates.KindOf(DiskAction.Format) = DiskActionKind.Destructive, "")
+        ' Several rows: an action applies when it applies to every one of them.
+        Dim a1 = MgrRecord()
+        Dim a2 = RecordFor(DiskRowState.Mounted, "plain", DiskProtection.Obfuscated)
+        Dim why2 = DiskStates.WhyNotAll(DiskAction.Mount, New List(Of DiskRecord) From {a1, a2},
+                                        New List(Of DiskRowState) From {DiskRowState.NotMounted, DiskRowState.Mounted}, New DiskContext())
+        Check("disk-matrix:many-mixed", why2 = "vd_mgr_why_mixed", why2)
+        why2 = DiskStates.WhyNotAll(DiskAction.MountAs, New List(Of DiskRecord) From {a1, a1},
+                                    New List(Of DiskRowState) From {DiskRowState.NotMounted, DiskRowState.NotMounted}, New DiskContext())
+        Check("disk-matrix:many-one-at-a-time", why2 = "vd_mgr_why_one_at_a_time", why2)
+        why2 = DiskStates.WhyNotAll(DiskAction.NewDisk, New List(Of DiskRecord) From {a2, a2},
+                                    New List(Of DiskRowState) From {DiskRowState.Busy, DiskRowState.Busy}, New DiskContext())
+        Check("disk-matrix:global-ignores-selection", why2 = "", why2)
+        ' Every delegated action opens a job the catalogue has (spec 7.3).
+        For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+            Dim key = DiskStates.JobKeyOf(a)
+            If key = "" Then Continue For
+            Check("disk-matrix:delegates:" & a.ToString(), JobCatalogue.GetJob(key) IsNot Nothing, key)
+        Next
+    End Sub
+
+    ' Principle 4 and spec 7.1: every quick action's line is DiskCommands.Build's, a password travels
+    ' by variable name only, and the ones that need consent are the ones that run one at a time.
+    Private Sub CheckDiskQuick()
+        Dim Q = DiskSampleQuoted
+        Dim obf = MgrRecord()
+        Dim enc = MgrVariant(Sub(r) r.Protection = DiskProtection.Encrypted)
+        Dim mounted = MgrVariant(Sub(r)
+                                     r.Letter = "W:" : r.ServerAlive = True
+                                 End Sub)
+        Dim ram = MgrVariant(Sub(r)
+                                 r.Profile = "ram" : r.Letter = "R:" : r.ServerAlive = True : r.HasRam = True : r.RamDirty = 5
+                             End Sub)
+        Dim image = New DiskRecord With {.Kind = "image", .Path = "C:\i\a disc.iso", .Letter = "I:"}
+        Dim withCred = New DiskOptions With {.HasCredential = True}
+        Dim cases = New Object()() {
+            New Object() {"mount", DiskAction.Mount, obf, New DiskOptions(), Q & " mount"},
+            New Object() {"mount-cred-ignored-obfuscated", DiskAction.Mount, obf, New DiskOptions With {.HasCredential = True}, Q & " mount"},
+            New Object() {"mount-encrypted", DiskAction.Mount, enc, withCred, Q & " mount pe:FILEDO_SHELL_CRED"},
+            New Object() {"mount-ro", DiskAction.MountReadOnly, obf, New DiskOptions(), Q & " mount ro"},
+            New Object() {"mount-as", DiskAction.MountAs, obf, New DiskOptions With {.Letter = "X:", .ReadOnly = True, .NoScan = True}, Q & " mount ro noscan as X:"},
+            New Object() {"unmount", DiskAction.Unmount, mounted, New DiskOptions(), "W: unmount"},
+            New Object() {"unmount-image", DiskAction.UnmountImage, image, New DiskOptions(), "I: unmount"},
+            New Object() {"save", DiskAction.SaveNow, ram, New DiskOptions(), "R: save"},
+            New Object() {"info", DiskAction.Info, enc, withCred, Q & " info"},
+            New Object() {"verify", DiskAction.Verify, enc, withCred, Q & " verify pe:FILEDO_SHELL_CRED"},
+            New Object() {"auto-on", DiskAction.AutoOn, obf, New DiskOptions(), "vd auto " & Q & " logon"},
+            New Object() {"auto-off", DiskAction.AutoOff, obf, New DiskOptions(), "vd auto off " & Q},
+            New Object() {"add", DiskAction.AddToList, MgrVariant(Sub(r) r.Registered = False), New DiskOptions With {.Name = "work2"}, "vd add " & Q & " as work2"},
+            New Object() {"forget", DiskAction.Forget, obf, New DiskOptions(), "vd forget work"},
+            New Object() {"mount-image", DiskAction.MountImage, image, withCred, """C:\i\a disc.iso"" mount"}}
+        For Each c In cases
+            Dim args = DiskStates.QuickCommand(DirectCast(c(1), DiskAction), DirectCast(c(2), DiskRecord), DirectCast(c(3), DiskOptions))
+            Dim line = If(args Is Nothing, "(none)", ArgQuoting.JoinArgs(args))
+            Check("disk-quick:" & DirectCast(c(0), String), line = DirectCast(c(4), String), line & " (want " & DirectCast(c(4), String) & ")")
+            ' The line the run report keeps is the line itself: nothing in it is a password.
+            If args IsNot Nothing Then
+                Dim redacted = ArgQuoting.JoinArgs(Runner.RedactCredentialArgs(args))
+                Check("disk-quick:" & DirectCast(c(0), String) & ":redaction-keeps-it", redacted = line, redacted)
+            End If
+        Next
+        For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+            If DiskStates.Elevates(a) AndAlso Not DiskStates.Serial(a) Then Check("disk-quick:elevating-is-serial:" & a.ToString(), False, "")
+        Next
+        Check("disk-quick:reads-run-beside", Not DiskStates.Serial(DiskAction.Info) AndAlso Not DiskStates.Serial(DiskAction.Verify) AndAlso
+                                             DiskStates.Serial(DiskAction.Mount) AndAlso DiskStates.Elevates(DiskAction.Unmount) AndAlso
+                                             Not DiskStates.Elevates(DiskAction.Verify), "")
+        Check("disk-quick:password-only-encrypted", DiskStates.AsksPassword(DiskAction.Mount, enc) AndAlso Not DiskStates.AsksPassword(DiskAction.Mount, obf) AndAlso
+                                                   Not DiskStates.AsksPassword(DiskAction.Unmount, enc) AndAlso Not DiskStates.AsksPassword(DiskAction.Info, enc), "")
+        ' The snapshot's own command line, and nothing in it the redaction would take.
+        Dim probe = ArgQuoting.JoinArgs(DiskStateProbe.Arguments)
+        Check("disk-quick:snapshot-line", probe = "--no-history vd status json" AndAlso
+                                          ArgQuoting.JoinArgs(Runner.RedactCredentialArgs(DiskStateProbe.Arguments)) = probe, probe)
+    End Sub
+
+    ' The window itself, built and fed snapshots but never shown: the rows in their order and words,
+    ' the toolbar and the detail pane saying why, a failed read that keeps the last good state, a busy
+    ' row, the packaged build, and every control named.
+    Private Sub CheckDiskManagerWindow()
+        Dim ui = Localization.GetDict(ShellSettings.Language())
+        Dim m As DiskManagerForm = Nothing
+        Try
+            m = New DiskManagerForm()
+            ' Never read: the window says the state is being read, never "no disks".
+            Check("disk-mgr:before-first-read", Not m.ListShownForTest AndAlso m.EmptyTextForTest = ui("vd_mgr_reading"), m.EmptyTextForTest)
+            m.ApplySnapshotForTest(Nothing, "vd_mgr_stale_timeout")
+            Check("disk-mgr:first-read-failed", Not m.ListShownForTest AndAlso m.EmptyTextForTest.Contains(ui("vd_mgr_stale_timeout")) AndAlso
+                                                 m.EmptyTextForTest <> ui("vd_mgr_empty"), m.EmptyTextForTest)
+
+            Dim snap = GoldenSnapshot()
+            m.ApplySnapshotForTest(snap, "")
+            Dim rows = m.RowTextsForTest
+            Check("disk-mgr:rows", rows.Count = 10 AndAlso m.ListShownForTest, rows.Count.ToString())
+            If rows.Count <> 10 Then Return
+            Dim order = String.Join(",", rows.Select(Function(r) If(r(1) = "", r(0), r(1))).ToArray())
+            Check("disk-mgr:order", order = "I:,R:,S:,U:,W:,X:,archive,backup,junk,moved", order)
+            Dim rowOf = Function(name As String) rows.First(Function(r) r(0) = name)
+            Check("disk-mgr:state-words", rowOf("scratch")(2).Contains("180 MiB") AndAlso rowOf("old")(2) = ui("vd_mgr_state_server_gone") AndAlso
+                                          rowOf("secrets")(2) = ui("vd_mgr_state_mounted_ro") AndAlso rowOf("backup")(2) = ui("vd_mgr_state_missing") AndAlso
+                                          rowOf("moved")(2) = ui("vd_mgr_state_different") AndAlso rowOf("archive")(2) = ui("vd_mgr_state_not_mounted"),
+                  rowOf("scratch")(2))
+            Check("disk-mgr:protection-words", rowOf("secrets")(4) = ui("vd_mgr_prot_encrypted") AndAlso rowOf("work")(4) = ui("vd_mgr_prot_obfuscated") AndAlso
+                                               rowOf("backup")(4) = "-" AndAlso rows(0)(4) = "-", rowOf("work")(4))
+            Check("disk-mgr:image-name", rows(0)(0) = ui("vd_mgr_name_image") AndAlso rows(0)(3) = "iso", rows(0)(0))
+            Check("disk-mgr:auto-column", rowOf("archive")(6) = ui("vd_mgr_auto_yes") AndAlso rowOf("work")(6) = "", rowOf("archive")(6))
+
+            Dim key = Function(name As String) snap.Disks.First(Function(d) d.Name = name).Key
+            Dim reason As String = ""
+
+            m.SelectForTest(key("secrets"))
+            Check("disk-mgr:mounted-no-mount", Not m.ToolbarStateForTest("mount", reason) AndAlso reason.Contains(ui("vd_mgr_why_already_mounted")), reason)
+            Check("disk-mgr:mounted-unmount", m.ToolbarStateForTest("unmount", reason), reason)
+            Check("disk-mgr:not-ram-no-save", Not m.ToolbarStateForTest("save", reason) AndAlso reason.Contains(ui("vd_mgr_why_not_ram")), reason)
+            Dim detail = m.DetailForTest
+            Check("disk-mgr:detail-encrypted", detail.Contains(ui("vd_facts_encrypted")) AndAlso detail.Contains(ui("vd_mgr_detail_open_while_mounted")) AndAlso
+                                               Not detail.Contains(ui("vd_facts_obfuscated")), detail)
+            Check("disk-mgr:detail-says-why", detail.Contains(ui("vd_mgr_why_not_ram")), detail)
+            Dim menu = m.MenuForTest(True)
+            Check("disk-mgr:menu-destructive-last", menu.Count > 2 AndAlso menu(menu.Count - 1).StartsWith(ui("vd_mgr_act_destroy")) AndAlso
+                                                    menu(menu.Count - 2).StartsWith(ui("vd_mgr_act_format")) AndAlso menu(menu.Count - 3) = "-",
+                  String.Join(" | ", menu.ToArray()))
+            Check("disk-mgr:menu-no-format-while-mounted", menu.Any(Function(i) i.StartsWith(ui("vd_mgr_act_format") & " [") AndAlso i.Contains(ui("vd_mgr_why_mounted"))),
+                  String.Join(" | ", menu.ToArray()))
+
+            m.SelectForTest(key("archive"))
+            Check("disk-mgr:at-rest-mounts", m.ToolbarStateForTest("mount", reason), reason)
+            Check("disk-mgr:at-rest-buttons", m.DetailButtonsForTest.Contains(ui("vd_mgr_act_mount")) AndAlso
+                                              m.DetailButtonsForTest.Contains(ui("vd_mgr_act_auto_off")), String.Join(",", m.DetailButtonsForTest.ToArray()))
+            Check("disk-mgr:detail-obfuscated", m.DetailForTest.Contains(ui("vd_facts_obfuscated")) AndAlso m.DetailForTest.Contains(ui("vd_mgr_detail_clean_yes")),
+                  m.DetailForTest)
+
+            m.SelectForTest(key("old"))
+            Check("disk-mgr:server-gone-no-open", Not m.ToolbarStateForTest("open", reason) AndAlso m.ToolbarStateForTest("unmount", reason), reason)
+            m.SelectForTest(key("scratch"))
+            Check("disk-mgr:ram-saves", m.ToolbarStateForTest("save", reason), reason)
+
+            ' Several rows: what applies to all of them, and a count.
+            m.SelectForTest(key("work"), key("secrets"))
+            Check("disk-mgr:many", m.DetailForTest.StartsWith(Localization.Format(ui("vd_mgr_detail_many_fmt"), 2)) AndAlso m.ToolbarStateForTest("unmount", reason),
+                  m.DetailForTest)
+
+            ' A busy row accepts nothing else and says what it is doing.
+            m.SetBusyForTest(key("work"), "unmount")
+            m.SelectForTest(key("work"))
+            Check("disk-mgr:busy-row", m.RowTextsForTest.First(Function(r) r(0) = "work")(2) = ui("vd_mgr_state_busy_unmount") AndAlso
+                                       Not m.ToolbarStateForTest("open", reason) AndAlso reason.Contains(ui("vd_mgr_why_busy")), reason)
+            m.SetBusyForTest(key("work"), "")
+
+            ' A read that fails keeps the last good state on screen and says so (principle 6).
+            m.ApplySnapshotForTest(Nothing, "vd_mgr_stale_timeout")
+            Check("disk-mgr:stale-keeps-rows", m.RowTextsForTest.Count = 10 AndAlso m.ListShownForTest, m.RowTextsForTest.Count.ToString())
+            Check("disk-mgr:stale-says-so", m.SummaryForTest.Contains(ui("vd_mgr_stale_timeout")), m.SummaryForTest)
+            m.ApplySnapshotForTest(snap, "")
+            Check("disk-mgr:fresh-again", Not m.SummaryForTest.Contains(ui("vd_mgr_stale_timeout")), m.SummaryForTest)
+
+            ' The Store build keeps the read path and says why it cannot mount.
+            Packaging.OverrideForTest = True
+            m.SelectForTest(key("archive"))
+            Check("disk-mgr:packaged", Not m.ToolbarStateForTest("mount", reason) AndAlso reason.Contains(ui("vd_packaged")), reason)
+            Packaging.OverrideForTest = Nothing
+
+            ' Both themes apply without throwing, and every control a user operates has a name.
+            For Each dark In New Boolean() {False, True}
+                Theme.UsePaletteForTest(dark)
+                m.ApplyTheme()
+            Next
+            Theme.UsePaletteForTest(Nothing)
+            Dim problems As New List(Of String)
+            WalkAccessible(m, problems)
+            Check("a11y:disk-manager", problems.Count = 0, String.Join("; ", problems.Take(8).ToArray()))
+            For Each dlg As Form In New Form() {New DiskPasswordDialog(ui, "work", Nothing), New DiskMountAsDialog(ui, "work", Nothing),
+                                                New DiskNameDialog(ui, DiskSample, "work", New HashSet(Of String)(StringComparer.OrdinalIgnoreCase), Nothing)}
+                Using dlg
+                    Dim dp As New List(Of String)
+                    WalkAccessible(dlg, dp)
+                    Check("a11y:" & dlg.GetType().Name, dp.Count = 0 AndAlso dlg.CancelButton IsNot Nothing, String.Join("; ", dp.Take(8).ToArray()))
+                End Using
+            Next
+        Catch ex As Exception
+            Check("disk-mgr", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            Packaging.OverrideForTest = Nothing
+            Theme.UsePaletteForTest(Nothing)
+            If m IsNot Nothing Then m.Dispose()
+        End Try
+    End Sub
+
+    ' The pieces around the window: the start switch, the files the watcher reacts to, the lines of
+    ' `info` kept for the detail pane, and the names a container is added under.
+    Private Sub CheckDiskHost()
+        Check("disk-host:switch", Program.WantsDiskManager(New String() {"filedo_win.exe", "--disks"}) AndAlso
+                                  Program.WantsDiskManager(New String() {"filedo_win.exe", "--DISKS"}) AndAlso
+                                  Not Program.WantsDiskManager(New String() {"filedo_win.exe"}) AndAlso
+                                  Not Program.WantsDiskManager(New String() {"--disks"}), "")
+        Check("disk-host:no-file-target", Program.StartupTargetFrom(New String() {"filedo_win.exe", "--disks"}) Is Nothing, "")
+        Check("disk-host:message", AppHost.ShowDisksMessage <> 0, AppHost.ShowDisksMessage.ToString())
+        Check("disk-host:watched", DiskManagerForm.IsWatchedName("vdisk-state.json") AndAlso DiskManagerForm.IsWatchedName("VD-REGISTRY.JSON") AndAlso
+                                   DiskManagerForm.IsWatchedName("vd-0123abcd.status.json") AndAlso Not DiskManagerForm.IsWatchedName("vd-0123abcd.handoff.json") AndAlso
+                                   Not DiskManagerForm.IsWatchedName("history.json"), "")
+        Check("disk-host:state-root", DiskManagerForm.StateRoot().EndsWith("state", StringComparison.OrdinalIgnoreCase), DiskManagerForm.StateRoot())
+        Dim info = DiskManagerForm.InfoLines(vbLf & "2026-09-30 00:59:27 sza@ukr.net 2609300059" & vbLf & "Container:     C:\a.fdd" & vbLf &
+                                             "Protection:    obfuscated" & vbLf & vbLf & " Finish:2026-09-30 00:59:28, Duration: 0s" & vbLf)
+        Check("disk-host:info-lines", info = "Container:     C:\a.fdd" & Environment.NewLine & "Protection:    obfuscated", info)
+        Dim taken As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {"work", "WORK-2"}
+        Check("disk-host:name-free", DiskNameDialog.Suggest("backup", taken) = "backup", "")
+        Check("disk-host:name-taken", DiskNameDialog.Suggest("Work", taken) = "Work-3", DiskNameDialog.Suggest("Work", taken))
+        Check("disk-host:name-cleaned", DiskNameDialog.Suggest("my disk (1)", taken) = "my-disk--1", DiskNameDialog.Suggest("my disk (1)", taken))
+        Check("disk-host:name-empty", DiskNameDialog.Suggest("Диск", taken) = "disk", DiskNameDialog.Suggest("Диск", taken))
+        Check("disk-host:name-rule", DiskStates.IsUsableName("work") AndAlso DiskStates.IsUsableName("a_b-1") AndAlso Not DiskStates.IsUsableName("-x") AndAlso
+                                     Not DiskStates.IsUsableName(New String("a"c, 41)) AndAlso Not DiskStates.IsUsableName("C:") AndAlso
+                                     Not DiskStates.IsUsableName("work 1") AndAlso Not DiskStates.IsUsableName(""), "")
+        Check("disk-host:image-paths", DiskManagerForm.IsImagePath("C:\a.VHDX") AndAlso DiskManagerForm.IsImagePath("a.iso") AndAlso
+                                       Not DiskManagerForm.IsImagePath("a.fdd"), "")
+    End Sub
 
 End Module

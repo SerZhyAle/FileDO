@@ -109,6 +109,9 @@ Public Module JobCatalogue
             .Reversibility = "reversible"
         })
 
+        ' Comparing changes nothing, so the job is reversible. A delete rule is an answer on its
+        ' page, and the page turns the badge, the accent, "permanent" and the typed DELETE on when
+        ' one is chosen, the way it does for Duplicates (AUD-16-F1).
         Register(New JobDefinition With {
             .Id = "rail_job_compare",
             .GroupKey = "rail_group_tidy",
@@ -203,6 +206,52 @@ Public Module JobCatalogue
             .TargetKind = JobDefinition.TargetType.File,
             .DefaultVerb = "reveal",
             .Reversibility = "reversible"
+        })
+
+        ' Disks group - the .fdd containers of SP-0004 (P6, spec 7.1), one job per verb that makes
+        ' sense in a window. The verb is the console's (the P6 brief's grammar); DiskCommands writes
+        ' the line. Elevation is the badge of the verbs that attach or detach a disk or create a
+        ' scheduled task - the window never starts them elevated itself (T6.22): filedo.exe asks
+        ' Windows for consent for that one step, and that step never carries the password.
+        '
+        ' Destructive are the two that remove a volume's contents for good: Format and Destroy.
+        ' Unmount turns destructive on the page when its "without the final save" answer is chosen,
+        ' the way the Protect pages do for their dispositions.
+        RegisterDisk("list", JobDefinition.TargetType.None, "reversible")
+        RegisterDisk("new", JobDefinition.TargetType.File, "reversible")
+        RegisterDisk("mount", JobDefinition.TargetType.File, "reversible", elevation:=True)
+        RegisterDisk("unmount", JobDefinition.TargetType.File, "reversible", elevation:=True)
+        RegisterDisk("info", JobDefinition.TargetType.File, "reversible")
+        RegisterDisk("verify", JobDefinition.TargetType.File, "reversible")
+        RegisterDisk("export", JobDefinition.TargetType.File, "reversible")
+        RegisterDisk("save", JobDefinition.TargetType.File, "reversible", elevation:=True)
+        RegisterDisk("compact", JobDefinition.TargetType.File, "reversible")
+        ' A grown disk is not shrunk back; nothing on it is lost.
+        RegisterDisk("grow", JobDefinition.TargetType.File, "partly reversible")
+        RegisterDisk("format", JobDefinition.TargetType.File, "permanent", destructive:=True, elevation:=True)
+        RegisterDisk("seal", JobDefinition.TargetType.File, "reversible")
+        RegisterDisk("clone", JobDefinition.TargetType.File, "reversible")
+        ' The old password stops opening this file; copies made earlier still open with it.
+        RegisterDisk("pass", JobDefinition.TargetType.File, "partly reversible")
+        RegisterDisk("destroy", JobDefinition.TargetType.File, "permanent", destructive:=True)
+        RegisterDisk("auto", JobDefinition.TargetType.File, "reversible", elevation:=True)
+        RegisterDisk("add", JobDefinition.TargetType.File, "reversible")
+    End Sub
+
+    ' One Disks job: its rail key is rail_job_vd_<verb>, its label that key, and its purpose
+    ' purpose_job_vd_<verb> - the names ShellForm derives the purpose from.
+    Private Sub RegisterDisk(verb As String, kind As JobDefinition.TargetType, reversibility As String,
+                             Optional destructive As Boolean = False, Optional elevation As Boolean = False)
+        Register(New JobDefinition With {
+            .Id = "rail_job_vd_" & verb,
+            .GroupKey = "rail_group_disks",
+            .LabelKey = "rail_job_vd_" & verb,
+            .PurposeKey = "purpose_job_vd_" & verb,
+            .TargetKind = kind,
+            .DefaultVerb = verb,
+            .IsDestructive = destructive,
+            .NeedsElevation = elevation,
+            .Reversibility = reversibility
         })
     End Sub
 

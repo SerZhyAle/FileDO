@@ -86,6 +86,11 @@ func fdsecSetExit(err error) {
 	default:
 		fdsecExitCode = fdsecExitIO
 	}
+	// The digit is the last container line's; the answer it carries is kept
+	// for the whole run, so a batch of several lines that reads rule 11's
+	// vocabulary still ends Failed on a wrong credential or a damaged
+	// container on any line (AUD-29-F1).
+	runContainerClass(fdsecExitCode)
 }
 
 // reportFdsecError is how a container verb's error ends a run, from either
@@ -294,6 +299,15 @@ func handleFdsecCommand(args []string, hl *HistoryLogger) error {
 			return usagef("fdsec %s needs a container path", sub)
 		}
 		path := args[1]
+		// A credential in the container slot is the slip of order
+		// `fdsec verify p:<password> <container>`. It is refused before
+		// anything is opened or recorded as a target, and the message quotes
+		// neither token: either one may be the password (AUD-09-F3,
+		// FDSEC-BEHAVIOUR 1.4 section 8.2). A drive-relative path on P: is
+		// written in full instead.
+		if fdsecCredentialToken(path) {
+			return usagef("fdsec %s: the container path comes first: filedo fdsec %s <container> [p:<password>]; a path on drive P: is written in full (P:\\folder\\file.fd-sec)", sub, sub)
+		}
 		hl.SetCommand("fdsec", path, sub)
 		// info and verify answer a question about the container, so their
 		// success is `Passed` rather than `Done` (rule 10); their digits stay
@@ -375,14 +389,10 @@ func parseFdsecArgs(args []string, verb string) (*fdsecOpts, error) {
 			}
 			o.to, o.haveTo = args[i+1], true
 			i++
-		case strings.HasPrefix(t, "p:"):
-			o.credSrc, o.credVal = "p", t[2:]
-		case strings.HasPrefix(t, "pf:"):
-			o.credSrc, o.credVal = "pf", t[3:]
-		case strings.HasPrefix(t, "pe:"):
-			o.credSrc, o.credVal = "pe", t[3:]
-		case strings.HasPrefix(t, "k:"):
-			o.credSrc, o.credVal = "k", t[2:]
+		case isCredentialToken(t):
+			// The shared grammar (credential_args.go).
+			a, _ := credentialToken(t)
+			o.credSrc, o.credVal = a.src, a.val
 		default:
 			if bare != "" {
 				// Neither token is quoted back: either one may be the password,
@@ -444,55 +454,7 @@ func parseFdsecArgs(args []string, verb string) (*fdsecOpts, error) {
 // lock the data behind a password the owner never meant. An empty credential
 // is accepted; the honest label is printed by the caller.
 func resolveFdsecCredential(o *fdsecOpts, confirm bool) (fdsec.Credential, error) {
-	switch o.credSrc {
-	case "p", "bare":
-		return fdsec.NewCredential(o.credVal), nil
-	case "pf":
-		return fdsecCredentialFromFile(o.credVal, false)
-	case "pe":
-		v, ok := fdsecLookupCredentialEnv(o.credVal)
-		// A named variable that is unset or empty is a mistake, never a
-		// choice: the GUI's "Open in Command" once lost the password this way
-		// and `secure wipe -y` then wrote a container with no secrecy and
-		// overwrote the original (FDSEC-19, GUI-02). An empty password is
-		// still possible - typed at the prompt or as p: - where it is visible.
-		if !ok {
-			return nil, usagef("environment variable %s is not set, so no password was given; nothing was written", o.credVal)
-		}
-		if v == "" {
-			return nil, usagef("environment variable %s is empty, so no password was given; nothing was written (an empty password is typed at the prompt or given as p: on purpose)", o.credVal)
-		}
-		return fdsec.NewCredential(v), nil
-	case "k":
-		return fdsecCredentialFromFile(o.credVal, true)
-	}
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return nil, usagef("no password given and stdin is not a terminal; use p:<password>, pf:<file>, pe:<VAR> or k:<keyfile>")
-	}
-	read := func(prompt string) (string, error) {
-		fmt.Print(prompt)
-		b, err := term.ReadPassword(int(os.Stdin.Fd()))
-		fmt.Println()
-		if err != nil {
-			return "", err
-		}
-		return string(b), nil
-	}
-	first, err := read("Password (no echo; empty = obfuscation only, no secrecy): ")
-	if err != nil {
-		return nil, err
-	}
-	if !confirm {
-		return fdsec.NewCredential(first), nil
-	}
-	second, err := read("Password again: ")
-	if err != nil {
-		return nil, err
-	}
-	if first != second {
-		return nil, fmt.Errorf("the two passwords differ; nothing was written")
-	}
-	return fdsec.NewCredential(first), nil
+	return resolveCredential(credArg{o.credSrc, o.credVal}, confirm, "Password (no echo; empty = obfuscation only, no secrecy): ")
 }
 
 // fdsecConsumedEnv keeps the value of every variable a pe: credential has

@@ -8,12 +8,14 @@
   two Explorer verbs. So this installer does the four things a Windows program
   is expected to do, and each one is a feature the user can deselect:
 
-    Main                 - the binaries, PATH, and the Start menu shortcut
+    Main                 - the binaries, PATH, and two Start menu shortcuts:
+                           FileDO and FileDO Disk Manager (the disks window)
     ExplorerIntegration  - the .fd-sec document type and the two verbs
+    DiskContainerIntegration - the .fdd disk container type and its verbs
     DesktopShortcut      - the desktop icon
 
   Silent installs choose with ADDLOCAL, e.g.
-      msiexec /i FileDO.msi /qn ADDLOCAL=Main,ExplorerIntegration
+      msiexec /i FileDO.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration
       msiexec /i FileDO.msi /qn ADDLOCAL=Main              (no integration)
 
   The registry shape written by ExplorerIntegration is the SAME shape
@@ -35,6 +37,10 @@
        a dangling file type no uninstall will find. The same string is the
        fdsecProgID constant in cmd\filedo\fdsec_register.go. -->
   <?define ProgId = "FileDO.SecureContainer" ?>
+  <!-- The .fdd disk container's document type (SP-0004 spec 5.8 item 6), an
+       anchor of the same kind from the first shipped container. The same
+       string is the vdProgID constant in cmd\filedo\vdisk_register_windows.go. -->
+  <?define DiskProgId = "FileDO.DiskContainer" ?>
 
   <Package
       Name="FileDO"
@@ -55,13 +61,17 @@
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="MainIcon" SourceFile="$(var.IconFile)" />
+    <!-- The Disk Manager shortcut's own drawing: the ICON-SET content.disk-container
+         glyph, read from the same staged icons\ folder the .fdd type's DefaultIcon
+         file comes from, so no new define is asked of build.ps1 or release.yml. -->
+    <Icon Id="DiskManagerIcon" SourceFile="$(var.StageDir)\icons\content.disk-container.ico" />
     <Property Id="ARPPRODUCTICON" Value="MainIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/SerZhyAle/FileDO/issues" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/SerZhyAle/FileDO" />
     <Property Id="ARPCONTACT" Value="https://github.com/SerZhyAle" />
     <!-- The line Apps and features shows under the entry. The only place a
          person meets this program again is that list, months later. -->
-    <Property Id="ARPCOMMENTS" Value="Storage speed and fake-capacity testing, readability checks, duplicate management, secure wipe, and encrypted .fd-sec containers. No network, no telemetry." />
+    <Property Id="ARPCOMMENTS" Value="Storage speed and fake-capacity testing, readability checks, duplicate management, secure wipe, password-protected .fd-sec containers and .fdd virtual disks. Nothing sent over the internet, no telemetry." />
     <!-- Change and Repair are deliberately NOT suppressed: the features above
          are the reason. Turning the Explorer integration on or off later is
          "Change" in Apps and Features, and a repair is what puts the registry
@@ -83,14 +93,25 @@
          place the installer can answer "what is this, and why would I want
          it?". Each one says what lands on the machine. -->
     <Feature Id="Main" Title="FileDO program" Level="1" Display="expand" AllowAbsent="no"
-             Description="The program itself, into C:\Program Files\FileDO: the FileDO window, the filedo command line and its three companion tools (check, fill, test), and the helper scripts. Adds the folder to the system PATH so filedo works in any terminal, and puts FileDO in the Start menu. Required.">
+             Description="The program itself, into C:\Program Files\FileDO: the FileDO window, the filedo command line and its three companion tools (check, fill, test), and the helper scripts. Adds the folder to the system PATH so filedo works in any terminal, and puts FileDO and its Disk Manager in the Start menu. Required.">
       <ComponentGroupRef Id="FileDOFiles" />
       <ComponentRef Id="EnvPath" />
       <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DiskManagerShortcut" />
 
       <Feature Id="ExplorerIntegration" Title="Explorer right-click menu" Level="1" AllowAbsent="yes"
                Description="A 'File DO..' group in the right-click menu of any file: secure it into a password-protected .fd-sec container (keeping, deleting or wiping the original), unsecure one back, wipe a file, read-check it, and show its details. Plus the .fd-sec file type itself, with its own icon: a double-click is exactly the group's 'Unsecure and start' entry - a console asks for the password, restores the original into a folder only you and the system can read, hands it to whatever program it belongs to, and removes that copy when the console window closes. On Windows 11 the group is under 'Show more options'. Uninstalling removes it.">
         <ComponentGroupRef Id="ShellIntegration" />
+      </Feature>
+
+      <!-- SP-0004 spec 5.8 item 7: a feature of its own, not a part of
+           ExplorerIntegration - it does not inherit that feature's release
+           block (R9) and it does not tie a .fdd checkbox to the menu on every
+           file. Same shape: selected by default, deselectable here and by
+           ADDLOCAL, carried across upgrades by MigrateFeatures. -->
+      <Feature Id="DiskContainerIntegration" Title="Disk container files (.fdd)" Level="1" AllowAbsent="yes"
+               Description="The .fdd file type of FileDO's virtual disks, with its own icon: a double-click opens the FileDO window and mounts the container as a drive letter, and the right-click menu adds 'Mount read-only' and 'Unmount'. A container with a password asks for it in the window, never on a command line. Nothing is mounted until you click. On Windows 11 the two extra entries are under 'Show more options'. Uninstalling removes the file type; the containers themselves stay where they are.">
+        <ComponentGroupRef Id="DiskContainerShell" />
       </Feature>
 
       <Feature Id="DesktopShortcut" Title="Desktop icon" Level="1" AllowAbsent="yes"
@@ -143,6 +164,30 @@
       <RegistryValue Root="HKLM"
                      Key="Software\FileDO"
                      Name="GuiShortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+  <!-- SP-0063: the Disk Manager window has its own Start menu entry. It is the same
+       filedo_win.exe as the FileDO entry, started with its disks option (see the
+       Arguments below), so there is no new executable. A component of its own with its own GUID (the StartMenuShortcut
+       component above keeps its key path and GUID for the product's life), in Main
+       and not in DiskContainerIntegration: the window is part of the program, and
+       is there whether or not the .fdd file type was chosen. -->
+  <Fragment>
+    <Component Id="DiskManagerShortcut" Directory="AppProgramMenuDir" Guid="6d261312-d66c-4644-951f-1d9a87d3999c">
+      <Shortcut Id="FileDODiskManagerShortcut"
+                Name="FileDO Disk Manager"
+                Description="FileDO - see and mount your virtual disks"
+                Target="[INSTALLFOLDER]filedo_win.exe"
+                Arguments="--disks"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="DiskManagerIcon" />
+      <RegistryValue Root="HKLM"
+                     Key="Software\FileDO"
+                     Name="DiskManagerShortcut"
                      Type="integer"
                      Value="1"
                      KeyPath="yes" />
@@ -331,6 +376,62 @@
     </ComponentGroup>
   </Fragment>
 
+  <!-- ==================================================================
+       The .fdd disk container type (SP-0004 spec 6.1-6.2, P6 section 4.1),
+       the DiskContainerIntegration feature. Its own ProgId with its own icon,
+       and three verbs on the type itself - there is no group on every file
+       for them to live in (a deliberate divergence from the .fd-sec type,
+       spec 6.1). All three open the WINDOW, not the console (spec 6.4, 5.8
+       item 8, another deliberate divergence): the window asks the unclean
+       question before attaching, asks for the credential out of band, and
+       says what elevation it needs.
+
+       This file and cmd/filedo/vdisk_register_windows.go write the SAME
+       keys, labels and commands, held together value for value by
+       TestRegistryParity_TheMSIAndVdRegisterWriteTheSameDiskContainerType.
+       A change to one is a change to both, in the same commit.
+
+       .fdd lists the type under OpenWithProgids as well as naming it the
+       default, so FileDO stays in "Open with" when another program claims
+       .fdd later (spec 6.2). ForceDeleteOnUninstall takes both keys away, so
+       no .fdd is left pointing at a handler that is gone.
+       ================================================================== -->
+  <Fragment>
+    <ComponentGroup Id="DiskContainerShell" Directory="INSTALLFOLDER">
+
+      <Component Id="DiskContainerType" Guid="7b0dc3fb-5803-446d-9c7a-d65a6d56fb96">
+        <RegistryKey Root="HKLM" Key="Software\Classes\$(var.DiskProgId)" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="FileDO disk container" KeyPath="yes" />
+          <RegistryValue Name="FriendlyTypeName" Type="string" Value="FileDO disk container" />
+          <!-- The mark `filedo vd unregister` looks for. -->
+          <RegistryValue Name="FileDO.RegisteredBy" Type="string" Value="[INSTALLFOLDER]filedo.exe" />
+          <RegistryValue Key="DefaultIcon" Type="string" Value="[INSTALLFOLDER]icons\content.disk-container.ico" />
+          <RegistryValue Key="shell" Type="string" Value="mount" />
+          <RegistryValue Key="shell\mount" Name="MUIVerb" Type="string" Value="Mount with FileDO" />
+          <RegistryValue Key="shell\mount\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo_win.exe&quot; &quot;%1&quot;" />
+          <RegistryValue Key="shell\mountro" Name="MUIVerb" Type="string" Value="Mount read-only" />
+          <RegistryValue Key="shell\mountro\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo_win.exe&quot; --mount-ro &quot;%1&quot;" />
+          <!-- Always present (spec 6.1 as amended 2026-09-26): a classic verb
+               cannot be shown conditionally; on a container that is not
+               mounted the window says so. -->
+          <RegistryValue Key="shell\unmount" Name="MUIVerb" Type="string" Value="Unmount" />
+          <RegistryValue Key="shell\unmount\command" Type="string"
+                         Value="&quot;[INSTALLFOLDER]filedo_win.exe&quot; --unmount &quot;%1&quot;" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="DiskContainerExtension" Guid="e903ea1f-e463-49c0-bb41-ae02480a9cd3">
+        <RegistryKey Root="HKLM" Key="Software\Classes\.fdd" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="$(var.DiskProgId)" KeyPath="yes" />
+          <RegistryValue Key="OpenWithProgids" Name="$(var.DiskProgId)" Type="string" Value="" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+  </Fragment>
+
   <Fragment>
     <ComponentGroup Id="FileDOFiles" Directory="INSTALLFOLDER">
       <Component Id="FileDOExe" Guid="*">
@@ -372,6 +473,12 @@
       </Component>
       <Component Id="MenuIconSecretFile" Directory="MENUICONSFOLDER" Guid="*">
         <File Source="$(var.StageDir)\icons\content.secret-file.ico" KeyPath="yes" />
+      </Component>
+      <!-- The .fdd type's icon (ICON-SET content.disk-container). In Main, not in
+           DiskContainerIntegration, like the .fd-sec type's: `filedo vd register`
+           run from this folder reads it too, whichever features were chosen. -->
+      <Component Id="MenuIconDiskContainer" Directory="MENUICONSFOLDER" Guid="*">
+        <File Source="$(var.StageDir)\icons\content.disk-container.ico" KeyPath="yes" />
       </Component>
       <Component Id="FileDOCheckExe" Guid="*">
         <File Source="$(var.StageDir)\filedo_check.exe" KeyPath="yes" />

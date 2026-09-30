@@ -9,7 +9,9 @@
             the house text style, and the locale set of AppxManifest.xml.
   MANIFEST  AppxManifest.xml against the Store policies that can be read off the template:
             the declared capabilities (10.6), no hidden application, and the language set
-            behind the listing locales (10.7).
+            behind the listing locales (10.7). Plus the opt-in Explorer command (AUD-17-F1):
+            build-msix.ps1's own manifest generation and packed-manifest check (msix-manifest.ps1),
+            run on the template in both shapes - default without it, -ExplorerCommand with it.
   BUILDER   build-store-listing-csv.ps1 against msix\testdata\listingData.fixture.csv, a real
             export's structure (453 rows, BOM, CRLF records, minimal quoting, no final newline)
             with every copy cell emptied. It carries no product data: the field IDs are the
@@ -109,6 +111,71 @@ Check "no Application is hidden (AppListEntry='none' is rejected on this account
 # The association is owned by the GUI, which already accepts a file argument.
 $fdsecTypes = @($manifest.SelectNodes('/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions/uap:Extension[@Category="windows.fileTypeAssociation"]/uap:FileTypeAssociation[@Name="filedo.securecontainer"]/uap:SupportedFileTypes/uap:FileType', $mns) | ForEach-Object { $_.InnerText })
 Check "manifest associates .fd-sec with the GUI (SP-0005 9.2)" (($fdsecTypes -join ',') -ceq '.fd-sec') "types: $($fdsecTypes -join ',')"
+
+# AUD-17-F1: the packaged Explorer command is opt-in (build-msix.ps1 -ExplorerCommand). The listing
+# claim above ("no Explorer entries") holds only because a DEFAULT build drops it. These run the
+# same manifest generation and packed-manifest assertion build-msix.ps1 runs, on the template,
+# with synthetic package entry lists - no SDK, no build.
+. (Join-Path $msix "msix-manifest.ps1")
+$genArgs = @{ TemplatePath = (Join-Path $msix "AppxManifest.xml"); IdentityName = 'SZA.FileDO.LocalTest'
+              Publisher = 'CN=SZA-LocalTest'; PublisherDisplayName = 'SZA (local test)'; Version = '26.926.1200.0' }
+$cppClsid = Get-FileDOShellClsid (Join-Path (Split-Path $msix -Parent) "shellext\FileDOShell.cpp")
+$baseEntries = @('AppxManifest.xml', 'filedo.exe', 'filedo_win.exe')
+$withDll     = $baseEntries + 'FileDOShell.dll'
+try {
+    $defXml = New-FileDOManifest @genArgs
+    $expXml = New-FileDOManifest @genArgs -ExplorerCommand
+    $defCats = @($defXml.SelectNodes("//*[@Category]") | ForEach-Object { $_.GetAttribute('Category') })
+    $expCats = @($expXml.SelectNodes("//*[@Category]") | ForEach-Object { $_.GetAttribute('Category') })
+    Check "default manifest has no windows.fileExplorerContextMenus / windows.comServer extension" (-not ($defCats | Where-Object { $_ -in 'windows.fileExplorerContextMenus', 'windows.comServer' })) "categories: $($defCats -join ',')"
+    Check "default manifest keeps the .fd-sec and .fdd associations and the CLI alias" (@($defCats | Where-Object { $_ -eq 'windows.fileTypeAssociation' }).Count -eq 2 -and 'windows.fileTypeAssociation' -in $defCats -and 'windows.appExecutionAlias' -in $defCats) "categories: $($defCats -join ',')"
+    Check "-ExplorerCommand manifest carries both extensions" ('windows.fileExplorerContextMenus' -in $expCats -and 'windows.comServer' -in $expCats) "categories: $($expCats -join ',')"
+    Check "default manifest + no FileDOShell.dll passes the package check" ((Test-ExplorerCommand -Manifest $defXml -Entries $baseEntries -ExplorerCommand $false).Count -eq 0)
+    $p = Test-ExplorerCommand -Manifest $defXml -Entries $withDll -ExplorerCommand $false
+    Check "default build that packs FileDOShell.dll is refused" ($p.Count -eq 1 -and $p[0] -match 'FileDOShell\.dll') ($p -join '; ')
+    $p = Test-ExplorerCommand -Manifest $expXml -Entries $baseEntries -ExplorerCommand $false
+    Check "default build whose manifest keeps the command is refused (both extensions named)" ($p.Count -eq 2) ($p -join '; ')
+    $p = Test-ExplorerCommand -Manifest $expXml -Entries $withDll -ExplorerCommand $true -SourceClsid $cppClsid
+    Check "-ExplorerCommand manifest + FileDOShell.dll passes (CLSID agrees with FileDOShell.cpp)" ($cppClsid -and $p.Count -eq 0) ($p -join '; ')
+    $p = Test-ExplorerCommand -Manifest $expXml -Entries $baseEntries -ExplorerCommand $true -SourceClsid $cppClsid
+    Check "-ExplorerCommand build without FileDOShell.dll is refused" ($p.Count -ge 1 -and ($p -join ' ') -match 'FileDOShell\.dll') ($p -join '; ')
+    $p = Test-ExplorerCommand -Manifest $defXml -Entries $withDll -ExplorerCommand $true -SourceClsid $cppClsid
+    Check "-ExplorerCommand build whose manifest lacks the command is refused" ($p.Count -ge 2) ($p -join '; ')
+
+    # SP-0004 T6.27: .fdd is declared for the GUI app only (its info and export page), once, with
+    # no verb - the Store build cannot mount. The same check build-msix.ps1 runs on the packed
+    # manifest, here on the template in both shapes and on four broken copies of it.
+    $fddEntries = $baseEntries + 'Assets\DiskContainer.png'
+    foreach ($shape in @(@{ Name = 'default'; Xml = $defXml }, @{ Name = '-ExplorerCommand'; Xml = $expXml })) {
+        $p = Test-DiskContainerAssociation -Manifest $shape.Xml -Entries $fddEntries
+        Check "$($shape.Name) manifest declares .fdd once, for the GUI, with no verb (T6.27)" ($p.Count -eq 0) ($p -join '; ')
+    }
+    $p = Test-DiskContainerAssociation -Manifest $defXml -Entries $baseEntries
+    Check ".fdd association whose logo is not packed is refused" ($p.Count -eq 1 -and $p[0] -match 'logo') ($p -join '; ')
+    $uapNs = 'http://schemas.microsoft.com/appx/manifest/uap/windows10'
+    $fddAssoc = "//*[local-name()='FileTypeAssociation'][@Name='filedo.diskcontainer']"
+    $bad = $defXml.Clone()
+    $sv = $bad.CreateElement('uap', 'SupportedVerbs', $uapNs)
+    $vb = $bad.CreateElement('uap', 'Verb', $uapNs); $vb.SetAttribute('Id', 'mount'); $vb.InnerText = 'Mount'
+    [void]$sv.AppendChild($vb); [void]$bad.SelectSingleNode($fddAssoc).AppendChild($sv)
+    $p = Test-DiskContainerAssociation -Manifest $bad -Entries $fddEntries
+    Check "a mount verb on the .fdd association is refused" ($p.Count -ge 1 -and ($p -join ' ') -match 'verb') ($p -join '; ')
+    $bad = $defXml.Clone()
+    $ext = $bad.SelectSingleNode($fddAssoc).ParentNode; [void]$ext.ParentNode.RemoveChild($ext)
+    $p = Test-DiskContainerAssociation -Manifest $bad -Entries $fddEntries
+    Check "a manifest without the .fdd association is refused" ($p.Count -eq 1 -and $p[0] -match '0 filedo.diskcontainer') ($p -join '; ')
+    $bad = $defXml.Clone()
+    $ft = $bad.CreateElement('uap', 'FileType', $uapNs); $ft.InnerText = '.fdd'
+    [void]$bad.SelectSingleNode("//*[local-name()='FileTypeAssociation'][@Name='filedo.securecontainer']/*[local-name()='SupportedFileTypes']").AppendChild($ft)
+    $p = Test-DiskContainerAssociation -Manifest $bad -Entries $fddEntries
+    Check ".fdd declared a second time (on the .fd-sec association) is refused" ($p.Count -eq 1 -and $p[0] -match '2 times') ($p -join '; ')
+    $bad = $expXml.Clone()
+    $bad.SelectSingleNode("//*[local-name()='ItemType'][@Type='*']").SetAttribute('Type', '.fdd')
+    $p = Test-DiskContainerAssociation -Manifest $bad -Entries $fddEntries
+    Check "an Explorer command on .fdd is refused" ($p.Count -eq 1 -and $p[0] -match 'Explorer command') ($p -join '; ')
+} catch {
+    Check "manifest generation (msix-manifest.ps1) runs" $false $_.Exception.Message
+}
 
 # ---------------------------------------------------------------------------------------------
 Write-Host "BUILDER" -ForegroundColor Cyan

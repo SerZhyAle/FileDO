@@ -33,6 +33,14 @@
 ' before that the rows drew Segoe stand-ins, several of them another meaning's picture. A future
 ' row whose meaning the vocabulary lacks takes GlyphRef.Waiting with the id proposed for it, and
 ' SelfTest holds the number of such rows at zero unless the baseline is raised with a reason.
+'
+' The Disks group (SP-0004 P6) is partly that case. Its list of containers draws the .fdd type's
+' own meaning, content.disk-container (ICON-SET 0.16), the drawing the Explorer type icon is made
+' from. Six rows mean what a vocabulary record already means - info, verify, export, save, a copy
+' (Clone), a delete (Destroy) - and draw that drawing. The other ten are meanings ICON-SET has no
+' record for (nothing for create, mount, unmount, compact, grow, format, seal, a password change, a
+' schedule or a name), so they draw a Segoe stand-in under a proposed id until the records land and
+' assets\sync-icon-glyphs.ps1 vendors them; SelfTest's baseline says so.
 Public Class RailRow
     Public ReadOnly Key As String
     Public ReadOnly Glyph As GlyphRef
@@ -43,6 +51,11 @@ Public Class RailRow
         Me.Glyph = glyph
         Me.IsGroup = isGroup
     End Sub
+
+    ' The Disks group's first row opens the Disk Manager, a window of its own (SP-0063 4.2, D1) -
+    ' not a page of the shell, so it is no job of the catalogue. It shows the .fdd type's own
+    ' meaning, as the list does (D8: no new catalog record).
+    Public Const DiskManagerKey As String = "rail_job_vd_manager"
 
     ' Every row leads somewhere today. A row for a job that is still being written is not listed as
     ' "coming later": a rail is navigation, not a roadmap, and a row that answers nothing when it
@@ -68,6 +81,25 @@ Public Class RailRow
         New RailRow("rail_job_secure", GlyphRef.Vocabulary("action.secure"), False),
         New RailRow("rail_job_unsecure", GlyphRef.Vocabulary("action.unsecure"), False),
         New RailRow("rail_job_reveal", GlyphRef.Vocabulary("nav.open-external"), False),
+        New RailRow("rail_group_disks", Nothing, True),
+        New RailRow(DiskManagerKey, DiskGlyphs.DiskContainer, False),
+        New RailRow("rail_job_vd_list", DiskGlyphs.DiskContainer, False),
+        New RailRow("rail_job_vd_new", DiskGlyphs.CreateDisk, False),
+        New RailRow("rail_job_vd_mount", DiskGlyphs.MountDisk, False),
+        New RailRow("rail_job_vd_unmount", DiskGlyphs.UnmountDisk, False),
+        New RailRow("rail_job_vd_info", GlyphRef.Vocabulary("app.info"), False),
+        New RailRow("rail_job_vd_verify", GlyphRef.Vocabulary("action.verify"), False),
+        New RailRow("rail_job_vd_export", GlyphRef.Vocabulary("action.export"), False),
+        New RailRow("rail_job_vd_save", GlyphRef.Vocabulary("action.save"), False),
+        New RailRow("rail_job_vd_compact", DiskGlyphs.CompactDisk, False),
+        New RailRow("rail_job_vd_grow", DiskGlyphs.GrowDisk, False),
+        New RailRow("rail_job_vd_format", DiskGlyphs.FormatDisk, False),
+        New RailRow("rail_job_vd_seal", DiskGlyphs.SealDisk, False),
+        New RailRow("rail_job_vd_clone", GlyphRef.Vocabulary("action.copy"), False),
+        New RailRow("rail_job_vd_pass", DiskGlyphs.ChangePassword, False),
+        New RailRow("rail_job_vd_destroy", GlyphRef.Vocabulary("action.delete"), False),
+        New RailRow("rail_job_vd_auto", DiskGlyphs.AutoMount, False),
+        New RailRow("rail_job_vd_add", DiskGlyphs.RememberName, False),
         New RailRow("rail_group_records", Nothing, True),
         New RailRow("rail_job_history", GlyphRef.Vocabulary("content.history"), False),
         New RailRow("rail_group_expert", Nothing, True),

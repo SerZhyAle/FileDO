@@ -16,8 +16,10 @@ permissions: {}
 
 # Serialize runs that target the same tag. A manual re-dispatch of a tag that is
 # already building now queues instead of racing the original run and clobbering a
-# half-published release. cancel-in-progress is intentionally FALSE: cancelling a
-# release mid-upload would leave a partial GitHub Release behind.
+# half-published release; once the first run has published, the queued one is refused
+# by "Refuse to overwrite a published release" below (AUD-20-F1). cancel-in-progress is
+# intentionally FALSE: cancelling a release mid-upload would leave a partial GitHub
+# Release behind.
 concurrency:
   group: release-${{ github.event.inputs.tag || github.ref_name }}
   cancel-in-progress: false
@@ -393,6 +395,49 @@ jobs:
           name: release-assets
           path: dist
 
+      # AUD-20-F1: a published release is never overwritten. The build is not reproducible
+      # (zip mtimes, MSI/bundle codes and timestamps), and winget-pkgs and every user who
+      # compared a SHA256 hold the first run's hashes, so re-uploading the six assets breaks
+      # `winget install` and the download page. A tag whose release already carries any of the
+      # six names is refused here, before anything is written; a run that failed before
+      # publishing (no release, or a release with none of them) still goes through. A broken
+      # published release is fixed by a new stamp; a partial one is deleted by hand first (the
+      # release, never the tag) - RELEASE.md. Names come in through env only (CI-01).
+      - name: Refuse to overwrite a published release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+          SETUP_NAME: ${{ needs.build.outputs.setup_name }}
+          ZIP_NAME: ${{ needs.build.outputs.zip_name }}
+          MSI_NAME: ${{ needs.build.outputs.msi_name }}
+        run: |
+          if ($env:TAG -cnotmatch '^v\d{10}$') { throw "'$env:TAG' is not a release tag - nothing is published." }
+          $six = foreach ($n in $env:SETUP_NAME, $env:ZIP_NAME, $env:MSI_NAME) {
+            if (-not $n) { throw "an asset name is missing from the build job's outputs - nothing is published." }
+            $n; "$n.sha256"
+          }
+          $out = (& gh release view $env:TAG --json assets --jq '.assets[].name' 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 0) {
+            if ($out -notmatch 'release not found') { throw "could not read release $($env:TAG): $($out.Trim())" }
+            # No release for this tag yet - the normal first publish. Clear the native exit code.
+            $global:LASTEXITCODE = 0
+            Write-Host "no release for $env:TAG yet - publishing"
+            exit 0
+          }
+          $have = @($out -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+          $clash = @($six | Where-Object { $have -ccontains $_ })
+          if ($clash.Count) {
+            Write-Host "::error title=Release already published::$env:TAG already carries $($clash -join ', ')"
+            throw ("release $env:TAG already carries $($clash.Count) of the six assets ($($clash -join ', ')). " +
+                   "A published release is never overwritten: its hashes are in winget-pkgs and on users' screens. " +
+                   "Fix a broken release with a NEW stamp. If this is a partial release from a run that failed " +
+                   "mid-upload, delete that release by hand (gh release delete $env:TAG - the release, NOT the tag) " +
+                   "and re-dispatch. See RELEASE.md.")
+          }
+          Write-Host "release $env:TAG exists with none of the six assets ($($have.Count) other asset(s)) - publishing"
+
       # CI-01: "Latest" is what the site's download button and releases/latest serve. It
       # moves only forward: a re-dispatched or back-dated tag is published, but it never
       # takes Latest from a newer release.
@@ -428,6 +473,9 @@ jobs:
           generate_release_notes: true
           make_latest: ${{ steps.latest.outputs.make_latest }}
           fail_on_unmatched_files: true
+          # Second guard behind "Refuse to overwrite a published release" (AUD-20-F1): the
+          # action's default is true, which would replace an asset of the same name in place.
+          overwrite_files: false
           files: |
             dist/${{ needs.build.outputs.setup_name }}
             dist/${{ needs.build.outputs.setup_name }}.sha256
@@ -453,13 +501,15 @@ jobs:
             Customize page - the Explorer integration: the `File DO..` group
             on every file (Secure, Unsecure, Wipe this file, Check this file,
             Info) and the `.fd-sec` document type with its own icon. On
-            Windows 11 the group lives under "Show more options". Silent
-            install:
-            `msiexec /i <msi> /qn ADDLOCAL=Main,ExplorerIntegration,DesktopShortcut`.
+            Windows 11 the group lives under "Show more options". A second
+            feature you can deselect registers the `.fdd` disk-container type:
+            double-click mounts it in the FileDO window. Silent install:
+            `msiexec /i <msi> /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut`.
 
             **The portable ZIP** registers nothing by itself. Run
-            `filedo fdsec register` (add `-all-users` from an elevated console)
-            to get the same entries, and `filedo fdsec unregister` to remove
+            `filedo fdsec register` and `filedo vd register` (add `-all-users`
+            from an elevated console) to get the same entries, and
+            `filedo fdsec unregister` and `filedo vd unregister` to remove
             them.
 
             **SHA256** (`${{ needs.build.outputs.setup_name }}`):

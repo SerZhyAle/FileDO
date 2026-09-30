@@ -17,6 +17,11 @@ Module Links
     Public Const GitHub As String = "https://github.com/SerZhyAle/FileDO"
     Public Const Issues As String = "https://github.com/SerZhyAle/FileDO/issues"
     Public Const Privacy As String = "https://serzhyale.github.io/FileDO/privacy.html"
+    ' The guides of the site, and the one about virtual disks - what the Disk manager's help sends a
+    ' user to (SP-0063). The site chooses its own language from the browser's.
+    Public Const Guides As String = "https://serzhyale.github.io/FileDO/guides/"
+    Public Const DiskGuide As String = "https://serzhyale.github.io/FileDO/guides/virtual-disks.html"
+    Public Const Readme As String = "https://github.com/SerZhyAle/FileDO#readme"
     Public Const Portfolio As String = "https://sza.od.ua"
 
     ' A link that cannot be opened says so with the address in front of the user and a button that

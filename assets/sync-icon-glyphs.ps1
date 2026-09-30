@@ -52,12 +52,15 @@ trap {
 # The catalog remains the source of truth; mapping a new meaning means adding it here as well, and
 # the shell's self-test fails on an id it draws that is not vendored.
 $glyphIds = @(
-    'action.compare', 'action.copy', 'action.delete', 'action.fill-space', 'action.find-duplicates',
-    'action.recover-drive', 'action.secure', 'action.unsecure', 'action.verify', 'action.wipe',
-    'app.command-line', 'app.info', 'app.settings', 'content.history', 'content.secret-file',
+    'action.cancel', 'action.clear-all', 'action.clear-input', 'action.compare', 'action.copy', 'action.delete',
+    'action.export', 'action.fill-space',
+    'action.find-duplicates', 'action.recover-drive', 'action.refresh', 'action.remove', 'action.save', 'action.secure',
+    'action.unsecure', 'action.verify', 'action.wipe',
+    'app.command-line', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
+    'content.history', 'content.secret-file',
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
-    'nav.collapse', 'nav.expand', 'nav.open-external',
-    'status.error', 'status.not-proven', 'status.ok', 'status.stopped'
+    'nav.close', 'nav.collapse', 'nav.expand', 'nav.more', 'nav.open-external',
+    'status.error', 'status.not-proven', 'status.ok', 'status.stopped', 'status.warning'
 )
 $dataFiles = @('palette.json')
 

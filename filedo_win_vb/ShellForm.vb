@@ -60,12 +60,22 @@ Public Class ShellForm
     ' The window then opens on the page that file is for, with step 2 already
     ' answered, instead of on the builder the user did not ask for.
     Public Sub New(openTarget As String)
+        Me.New(openTarget, Nothing)
+    End Sub
+
+    ' diskStart is how a start on a `.fdd` was answered before the window existed (DiskRoute,
+    ' SP-0004 6.4): which Disks page, read-only or not, the facts `info` gave, and whether the run
+    ' has nothing left to ask and goes at once when the window is shown.
+    Private diskStart As DiskRoute.Decision = Nothing
+
+    Public Sub New(openTarget As String, diskDecision As DiskRoute.Decision)
         dict = Localization.GetDict(ShellSettings.Language())
         Theme.Refresh()
         BuildLayout()
         ApplyTheme()
         RestorePlacement()
 
+        diskStart = diskDecision
         If Not OpenOnTarget(openTarget) Then
             ' D5: Default to Command page after first-run tour / on startup
             SelectJobByKey("rail_job_command")
@@ -75,6 +85,10 @@ Public Class ShellForm
     ' A container opens its reveal page; any other file opens the page that
     ' makes one. Nothing else is guessed: a path that is not a file at all
     ' leaves the window where it would have opened anyway.
+    '
+    ' A `.fdd` is a disk container (SP-0004 6.4) and never opens the secure page - packing a disk
+    ' image into a .fd-sec is not what dropping or double-clicking one means. It opens the Disks
+    ' page its start asked for: Mount, or Unmount for --unmount.
     Private Function OpenOnTarget(path As String) As Boolean
         If String.IsNullOrWhiteSpace(path) Then Return False
         Try
@@ -83,12 +97,45 @@ Public Class ShellForm
             Return False
         End Try
 
+        If DiskRoute.IsContainer(path) Then
+            If diskStart Is Nothing Then
+                diskStart = DiskRoute.Decide(path, DiskRoute.StartMode.Mount, ContainerFacts.Unknown(path), Packaging.IsPackaged())
+            End If
+            SelectJobByKey(diskStart.JobKey)
+            jobView.SetTarget(path)
+            jobView.ApplyDiskStart(diskStart)
+            Return True
+        End If
+
         Dim key = If(path.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase),
                      "rail_job_reveal", "rail_job_secure")
         SelectJobByKey(key)
         jobView.SetTarget(path)
         Return True
     End Function
+
+    ' A double-click with nothing left to ask runs when the window is on screen (spec 6.4: the
+    ' open path goes straight to the mount and runs it). The page runs it only if it offers Run.
+    Protected Overrides Sub OnShown(e As EventArgs)
+        MyBase.OnShown(e)
+        If diskStart IsNot Nothing AndAlso diskStart.AutoRun AndAlso jobView.CurrentJobId = diskStart.JobKey Then
+            diskStart.AutoRun = False
+            jobView.RunFromShell()
+        End If
+    End Sub
+
+    ' For SelfTest.vb: the page a start opened.
+    Friend ReadOnly Property CurrentJobIdForTest As String
+        Get
+            Return jobView.CurrentJobId
+        End Get
+    End Property
+
+    Friend ReadOnly Property JobViewForTest As JobView
+        Get
+            Return jobView
+        End Get
+    End Property
 
     Private Function L(key As String) As String
         Dim v As String = Nothing
@@ -242,6 +289,8 @@ Public Class ShellForm
                 commandView.SetCommand(cmd, credential)
             End Sub
         AddHandler jobView.CleanRequested, AddressOf OpenCleanOn
+        AddHandler jobView.DiskJobRequested, AddressOf OpenDiskJobOn
+        AddHandler jobView.DiskManagerRequested, Sub() AppHost.OpenDiskManager()
         AddHandler jobView.RunFinished, AddressOf AnyRunFinished
 
         historyView = New HistoryView() With {.Visible = False}
@@ -481,6 +530,13 @@ Public Class ShellForm
         Dim chosen = TryCast(sender, RailEntry)
         If chosen Is Nothing Then Return
 
+        ' The Disk Manager is a window of its own (SP-0063 D1): its row opens it, or brings it
+        ' forward, and leaves the page on screen here as it was.
+        If chosen.Key = RailRow.DiskManagerKey Then
+            AppHost.OpenDiskManager()
+            Return
+        End If
+
         ' A job is running on the job page. Another job's row would reset that page - hiding its run
         ' strip and its Stop button while the run carries on - so it is refused: the running job's
         ' row is chosen again and the header says why (APP-BEHAVIOUR rule 3). History, Settings,
@@ -557,6 +613,25 @@ Public Class ShellForm
         End If
     End Sub
 
+    ' A delegated operation of the Disk Manager (SP-0063 7.3): the shell comes forward - shown when
+    ' the manager was started alone - on the job page with the container chosen, which keeps its plan
+    ' card, its consequences and its typed confirmation.
+    Friend Sub OpenDiskJob(key As String, target As String, preset As String)
+        If Not Visible Then Show()
+        If WindowState = FormWindowState.Minimized Then WindowState = lastShownState
+        Activate()
+        OpenDiskJobOn(key, target, preset)
+    End Sub
+
+    ' The Disks list's next steps (SP-0004 P6): Unmount or Turn off auto-mount open their own page
+    ' on the row's container, with the rail row selected, and wait for Run there.
+    Private Sub OpenDiskJobOn(key As String, target As String, preset As String)
+        SelectJobByKey(key)
+        If jobView.CurrentJobId <> key Then Return
+        If Not String.IsNullOrEmpty(target) Then jobView.SetTarget(target)
+        jobView.ApplyDiskPreset(preset)
+    End Sub
+
     Private Function EntryFor(key As String) As RailEntry
         For Each it In entries
             If it.Key = key Then Return it
@@ -591,6 +666,8 @@ Public Class ShellForm
     End Function
 
     Private Sub AnyRunFinished()
+        ' A run here may have changed a disk: the Disk Manager, when it is open, reads the state.
+        AppHost.ShellRunFinished()
         If Not AnyRunActive() Then HideBusy()
         If closeWhenIdle AndAlso Not AnyRunActive() Then
             ' The run the user asked to stop has ended and its report is written; the close they
@@ -674,6 +751,8 @@ Public Class ShellForm
 
         Chrome.Apply(Me)
         Invalidate(True)
+        ' One theme for the process: a choice made on the Settings page reaches the Disk Manager too.
+        AppHost.ThemeChanged()
     End Sub
 
     ' Moving the window to a display with another scaling changes what a design pixel is worth, so

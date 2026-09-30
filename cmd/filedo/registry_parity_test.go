@@ -73,19 +73,32 @@ func parityID(keyPath, name string) string {
 // HKLM\Software\Classes, with [INSTALLFOLDER] replaced by installDir.
 func wxsShellRegistry(t *testing.T, installDir string) map[string]parityEntry {
 	t.Helper()
+	return wxsGroupRegistry(t, "ShellIntegration", installDir)
+}
+
+// wxsGroupRegistry returns what one component group of the MSI writes, below
+// HKLM\Software\Classes, with [INSTALLFOLDER] replaced by installDir.
+func wxsGroupRegistry(t *testing.T, groupID, installDir string) map[string]parityEntry {
+	t.Helper()
 	root := repoRoot(t)
 	raw := readSurface(t, root, filepath.Join("packaging", "wix", "FileDO.wxs"))
 
-	// The one preprocessor variable the keys use. Substituted before parsing, the way the
-	// WiX preprocessor does it; any other $(var.*) left in a shell value fails below.
-	define := regexp.MustCompile(`<\?define\s+ProgId\s*=\s*"([^"]+)"\s*\?>`).FindStringSubmatch(raw)
-	if define == nil {
-		t.Fatal("FileDO.wxs no longer defines ProgId - the parity test needs updating with it")
+	// The preprocessor variables the keys use - one ProgId per document type, each equal to
+	// its writer's constant. Substituted before parsing, the way the WiX preprocessor does
+	// it; any other $(var.*) left in a shell value fails below.
+	for _, d := range []struct{ name, want, writer string }{
+		{"ProgId", fdsecProgID, "fdsec register"},
+		{"DiskProgId", vdProgID, "vd register"},
+	} {
+		define := regexp.MustCompile(`<\?define\s+` + d.name + `\s*=\s*"([^"]+)"\s*\?>`).FindStringSubmatch(raw)
+		if define == nil {
+			t.Fatalf("FileDO.wxs no longer defines %s - the parity test needs updating with it", d.name)
+		}
+		if define[1] != d.want {
+			t.Errorf("the MSI's %s is %q, %s's is %q", d.name, define[1], d.writer, d.want)
+		}
+		raw = strings.ReplaceAll(raw, "$(var."+d.name+")", define[1])
 	}
-	if define[1] != fdsecProgID {
-		t.Errorf("the MSI's ProgId is %q, fdsec register's is %q", define[1], fdsecProgID)
-	}
-	raw = strings.ReplaceAll(raw, "$(var.ProgId)", define[1])
 
 	var doc parityWxs
 	if err := xml.Unmarshal([]byte(raw), &doc); err != nil {
@@ -96,7 +109,7 @@ func wxsShellRegistry(t *testing.T, installDir string) map[string]parityEntry {
 	groups := 0
 	for _, f := range doc.Fragments {
 		for _, g := range f.Groups {
-			if g.ID != "ShellIntegration" {
+			if g.ID != groupID {
 				continue
 			}
 			groups++
@@ -127,7 +140,7 @@ func wxsShellRegistry(t *testing.T, installDir string) map[string]parityEntry {
 		}
 	}
 	if groups != 1 || len(out) == 0 {
-		t.Fatalf("found %d ShellIntegration component groups with %d values in FileDO.wxs", groups, len(out))
+		t.Fatalf("found %d %s component groups with %d values in FileDO.wxs", groups, groupID, len(out))
 	}
 	return out
 }
@@ -267,5 +280,62 @@ func TestRegistryParity_TheMSIAndFdsecRegisterWriteTheSameShellIntegration(t *te
 	}
 	if len(problems) == 0 {
 		t.Logf("%d registry values agree between FileDO.wxs and fdsec register", len(want))
+	}
+}
+
+// parityDiff lists every disagreement between the MSI's values and a writer's, in both
+// directions: a value only one of them writes, a different type, a different datum.
+func parityDiff(want, got map[string]parityEntry, writer string) []string {
+	var problems []string
+	for id, w := range want {
+		g, ok := got[id]
+		switch {
+		case !ok:
+			problems = append(problems, fmt.Sprintf("the MSI writes %s = %s %q; %s does not write it", id, w.typ, w.data, writer))
+		case g.typ != w.typ:
+			problems = append(problems, fmt.Sprintf("%s is a %s in the MSI and a %s from %s", id, w.typ, g.typ, writer))
+		case g.data != w.data:
+			problems = append(problems, fmt.Sprintf("%s differs:\n      MSI: %q\n      %s: %q", id, w.data, writer, g.data))
+		}
+	}
+	for id, g := range got {
+		if _, ok := want[id]; !ok {
+			problems = append(problems, fmt.Sprintf("%s writes %s = %s %q; the MSI does not write it", writer, id, g.typ, g.data))
+		}
+	}
+	sort.Strings(problems)
+	return problems
+}
+
+// SP-0004 P6 T6.16/T6.17: the .fdd disk container type has the same two classic writers -
+// the MSI's DiskContainerIntegration feature (its DiskContainerShell group) and `vd register
+// -all-users` - and they are held together the same way, value for value in both directions.
+func TestRegistryParity_TheMSIAndVdRegisterWriteTheSameDiskContainerType(t *testing.T) {
+	installDir := vdTestInstallDir(t, true)
+	seam, _, machineClasses := regSeam(t)
+	if out, code := runRegExe(t, filepath.Join(installDir, "filedo.exe"), installDir, seam, "vd", "register", "-all-users"); code != 0 {
+		t.Fatalf("vd register -all-users: exit %d\n%s", code, out)
+	}
+	got := map[string]parityEntry{}
+	readRegistryTree(t, machineClasses, "", got)
+
+	mark, ok := got[parityID(vdProgID, fdsecOwnerValue)]
+	if !ok || !strings.EqualFold(filepath.Base(mark.data), "filedo.exe") {
+		t.Fatalf("vd register left no usable %s mark on the document type: %+v", fdsecOwnerValue, mark)
+	}
+	resolvedDir := filepath.Dir(mark.data)
+	a, errA := os.Stat(resolvedDir)
+	b, errB := os.Stat(installDir)
+	if errA != nil || errB != nil || !os.SameFile(a, b) {
+		t.Fatalf("the registered exe is in %q, not in the install folder %q", resolvedDir, installDir)
+	}
+
+	want := wxsGroupRegistry(t, "DiskContainerShell", resolvedDir)
+	problems := parityDiff(want, got, "vd register")
+	for _, p := range problems {
+		t.Error(p)
+	}
+	if len(problems) == 0 {
+		t.Logf("%d registry values agree between FileDO.wxs and vd register", len(want))
 	}
 }

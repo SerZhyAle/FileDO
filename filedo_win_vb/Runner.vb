@@ -65,6 +65,16 @@ Public Class Runner
         End Get
     End Property
 
+    ' The report the last run wrote, or "" when it wrote none (history off, or the folder refused).
+    ' The Disk Manager links a failure to it (SP-0063 7.1).
+    Private lastReport As String = ""
+
+    Public ReadOnly Property LastReportPath As String
+        Get
+            Return lastReport
+        End Get
+    End Property
+
     Public Shared Function GetAppDataDir() As String
         Dim appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         Dim dir = Path.Combine(appData, "FileDO")
@@ -550,12 +560,14 @@ Public Class Runner
     ' off. When it is off, no report file is written at all - not an empty one, not a shorter one.
     Private Sub SaveReport(runId As String, args As IList(Of String), verdict As String, exitCode As Integer,
                            duration As TimeSpan, spoolPath As String)
+        lastReport = ""
         If Not ShellSettings.HistoryEnabled() Then Return
         Try
             Dim reportFile = Path.Combine(GetReportsDir(), "report_" & runId & ".log")
             Dim fromSpool = If(spoolBroken, Nothing, spoolPath)
             WriteReport(reportFile, runId, args, verdict, exitCode, duration, fromSpool,
                         If(fromSpool Is Nothing, OutputText(), Nothing))
+            lastReport = reportFile
         Catch ex As Exception
             ShellLog.Write("save the run report", ex)
         End Try
@@ -632,6 +644,14 @@ Public Class Runner
                 Exit For
             End If
         Next
+
+        ' The disk-container family: whichever family's verb stands first owns the line.
+        Dim vdTarget = -1
+        Dim vdVerb = VdLocate(out, vdTarget)
+        If vdVerb >= 0 AndAlso (verbAt < 0 OrElse vdVerb <= verbAt) Then
+            RedactVdArgs(out, vdVerb, vdTarget)
+            Return out
+        End If
         If verbAt < 0 Then Return out
 
         ' A sub-verb is one only right after fdsec: info and verify name the container next, and
@@ -668,6 +688,148 @@ Public Class Runner
         Next
         Return out
     End Function
+
+    ' The vd family (SP-0004 P5 T5.3): the CLI's vdLocate and redactVdArgs, step for step, held to the
+    ' same vectors. What is known to be safe is kept; anything unrecognised after the verb is redacted.
+    Friend Shared ReadOnly VdRedactVerbs As String() = {
+        "new", "create", "mount", "mnt", "attach", "unmount", "umount", "detach", "save", "seal",
+        "info", "i", "pass", "export", "extract", "ext", "verify", "vfy", "compact", "shrink", "grow", "resize",
+        "format", "destroy", "erase", "clone", "add", "forget", "list", "ls", "auto", "status", "stop",
+        "register", "unregister"}
+    ' new is pass's word before the new credential, which is itself prefixed.
+    Friend Shared ReadOnly VdRedactKeeps As String() = {
+        "plain", "fast", "ram", "vault", "sealed", "ro", "readonly", "noscan", "force", "-y", "y",
+        "nosave", "off", "logon", "short", "-all-users", "nopass", "new", "raw", "vhd", "wipe",
+        "fs", "ntfs", "exfat"}
+    Friend Shared ReadOnly VdRedactValueWords As String() = {"as", "label", "to"}
+    ' The verbs that take no container or name: their line has no subject slot to keep.
+    Friend Shared ReadOnly VdSubjectless As String() = {"list", "ls", "status", "stop", "register", "unregister"}
+
+    Private Shared Function VdContainerLike(t As String) As Boolean
+        ' Go's filepath.Ext by hand: the last dot after the last separator. Path.GetExtension
+        ' throws on " < > | under .NET Framework, which would make the two sides disagree.
+        Dim ext = ""
+        For i = t.Length - 1 To 0 Step -1
+            If t(i) = "\"c OrElse t(i) = "/"c Then Exit For
+            If t(i) = "."c Then
+                ext = t.Substring(i).ToLowerInvariant()
+                Exit For
+            End If
+        Next
+        Return ext = ".fdd" OrElse ext = ".vhd" OrElse ext = ".vhdx" OrElse ext = ".iso"
+    End Function
+
+    Private Shared Function VdDriveSpelling(t As String) As Boolean
+        If t.Length < 2 OrElse t.Length > 3 OrElse t(1) <> ":"c Then Return False
+        Dim c = Char.ToLowerInvariant(t(0))
+        Return c >= "a"c AndAlso c <= "z"c AndAlso (t.Length = 2 OrElse t(2) = "\"c OrElse t(2) = "/"c)
+    End Function
+
+    Private Shared Function VdMountWord(t As String) As Boolean
+        Dim lt = t.ToLowerInvariant()
+        Return lt = "ro" OrElse lt = "readonly" OrElse lt = "noscan" OrElse lt = "as" OrElse VdDriveSpelling(t)
+    End Function
+
+    Private Shared Function IsCredentialPrefix(t As String) As Boolean
+        Return t.StartsWith("p:", StringComparison.Ordinal) OrElse t.StartsWith("pf:", StringComparison.Ordinal) OrElse
+               t.StartsWith("pe:", StringComparison.Ordinal) OrElse t.StartsWith("k:", StringComparison.Ordinal)
+    End Function
+
+    ' A p: token that is a credential, not a path on drive P: (fdsecCredentialToken).
+    Private Shared Function IsPasswordToken(t As String) As Boolean
+        If Not t.StartsWith("p:", StringComparison.Ordinal) Then Return False
+        Dim v = t.Substring(2)
+        Return v = "" OrElse (v(0) <> "\"c AndAlso v(0) <> "/"c)
+    End Function
+
+    Private Shared Function VdSizeShaped(t As String) As Boolean
+        Dim i = 0, dots = 0
+        While i < t.Length AndAlso ((t(i) >= "0"c AndAlso t(i) <= "9"c) OrElse t(i) = "."c)
+            If t(i) = "."c Then dots += 1
+            i += 1
+        End While
+        If i = 0 OrElse dots > 1 OrElse i = dots Then Return False
+        Dim rest = t.Substring(i).ToLowerInvariant()
+        Return IsOneOf(rest, {"", "k", "m", "g", "t", "kb", "mb", "gb", "tb"})
+    End Function
+
+    Private Shared Function VdLocate(out As List(Of String), ByRef target As Integer) As Integer
+        For i = 0 To out.Count - 2
+            Dim lt = out(i).ToLowerInvariant()
+            ' Any word after vd is its verb, known or not.
+            If lt = "vd" OrElse lt = "vdisk" Then
+                target = i + 2
+                Return i + 1
+            End If
+            If VdContainerLike(out(i)) AndAlso IsOneOf(out(i + 1).ToLowerInvariant(), VdRedactVerbs) Then
+                target = i
+                Return i + 1
+            End If
+        Next
+        target = -1
+        Return -1
+    End Function
+
+    Private Shared Sub RedactVdArgs(out As List(Of String), verbAt As Integer, target As Integer)
+        Dim verb = out(verbAt).ToLowerInvariant()
+        Dim start = verbAt + 1
+        If Not IsOneOf(verb, VdRedactVerbs) Then target = -1
+        If IsOneOf(verb, VdSubjectless) Then target = -1
+        If target > verbAt AndAlso target < out.Count Then
+            If IsPasswordToken(out(target)) Then
+                target = verbAt
+            Else
+                start = target + 1
+            End If
+        End If
+        If (verb = "new" OrElse verb = "create") AndAlso target > verbAt Then
+            start = target + 2
+            Dim s = target + 1
+            If s < out.Count AndAlso Not VdSizeShaped(out(s)) Then out(s) = "***"
+        End If
+        ' mount's bare trailing token: the one word after the container, when it is neither an
+        ' option nor a prefixed credential, is the password.
+        If (verb = "mount" OrElse verb = "mnt" OrElse verb = "attach") AndAlso start = out.Count - 1 Then
+            Dim t = out(start)
+            If Not IsCredentialPrefix(t) AndAlso Not VdMountWord(t) Then
+                out(start) = "***"
+                Return
+            End If
+        End If
+        ' One positional word is kept by what the verb's parser takes it for: export's destination
+        ' (the first word that is no option, unless to named it) and grow's size, when it reads as one.
+        Dim destFree = (verb = "export" OrElse verb = "extract" OrElse verb = "ext")
+        Dim sizeFree = (verb = "grow" OrElse verb = "resize")
+        Dim keepNext = False
+        For i = start To out.Count - 1
+            Dim t = out(i)
+            Dim lt = t.ToLowerInvariant()
+            If keepNext Then
+                keepNext = False
+                Continue For
+            End If
+            If destFree AndAlso Not IsCredentialPrefix(t) AndAlso Not IsOneOf(lt, VdRedactKeeps) AndAlso Not IsOneOf(lt, VdRedactValueWords) Then
+                ' export's destination: a path, which the parser never takes as a credential
+                destFree = False
+            ElseIf t.StartsWith("p:", StringComparison.Ordinal) Then
+                out(i) = "p:***"
+            ElseIf t.StartsWith("pf:", StringComparison.Ordinal) OrElse t.StartsWith("pe:", StringComparison.Ordinal) OrElse
+                   t.StartsWith("k:", StringComparison.Ordinal) Then
+                ' a path or a variable name: kept, it is not the secret
+            ElseIf IsOneOf(lt, VdRedactValueWords) Then
+                keepNext = True
+                If lt = "to" Then destFree = False
+            ElseIf IsOneOf(lt, VdRedactKeeps) OrElse VdContainerLike(t) OrElse VdDriveSpelling(t) Then
+                ' an option word, a container path, a drive
+            ElseIf sizeFree AndAlso VdSizeShaped(t) Then
+                sizeFree = False
+            ElseIf verb = "status" AndAlso lt = "json" Then
+                ' the bare word of `vd status json` (SP-0063 8.1), and only there
+            Else
+                out(i) = "***"
+            End If
+        Next
+    End Sub
 
     ' True when what the run prints can name a container's sealed true name: a reveal, fdsec info
     ' or verify, an unsecure .. start - or a batch list holding one, or a batch list that cannot be
@@ -761,6 +923,60 @@ Public Class Runner
                 Catch
                 End Try
             End If
+        End Using
+    End Sub
+
+    ' T6.25a without a container: a child started the way a run is starts a grandchild of its own -
+    ' as filedo.exe starts the block server - and the grandchild must be outside the window's job,
+    ' so that the job's kill-on-close, which ends a hung filedo.exe with the window, never ends it.
+    ' cmd.exe runs ping for about three seconds as the grandchild.
+    Friend Shared Sub RunGrandchildForTest(ByRef childInJob As Boolean, ByRef grandchildFound As Boolean,
+                                           ByRef grandchildInJob As Boolean)
+        childInJob = False
+        grandchildFound = False
+        grandchildInJob = True
+        Dim cmdExe = Path.Combine(Environment.SystemDirectory, "cmd.exe")
+        Using p As New Process With {.StartInfo = NewStartInfo(cmdExe, "/d /c ping -n 4 127.0.0.1 >nul", Path.GetTempPath(), False)}
+            AddHandler p.OutputDataReceived, Sub(s, e)
+                                             End Sub
+            AddHandler p.ErrorDataReceived, Sub(s, e)
+                                            End Sub
+            p.Start()
+            ChildJob.Assign(p)
+            childInJob = ChildJob.Contains(p)
+            p.BeginOutputReadLine()
+            p.BeginErrorReadLine()
+            FeedAndCloseStdin(p, Nothing)
+            Try
+                Dim deadline = DateTime.Now.AddSeconds(3)
+                Dim pids As New List(Of Integer)()
+                While DateTime.Now < deadline AndAlso Not p.HasExited
+                    pids = ChildJob.ChildrenOf(p.Id, "PING.EXE")
+                    If pids.Count > 0 Then Exit While
+                    Thread.Sleep(50)
+                End While
+                For Each pid In pids
+                    Try
+                        Using g = Process.GetProcessById(pid)
+                            grandchildFound = True
+                            grandchildInJob = ChildJob.Contains(g)
+                            Try
+                                g.Kill()
+                            Catch
+                            End Try
+                        End Using
+                    Catch
+                    End Try
+                    Exit For
+                Next
+            Finally
+                If Not p.WaitForExit(5000) Then
+                    Try
+                        p.Kill()
+                    Catch
+                    End Try
+                End If
+            End Try
         End Using
     End Sub
 
@@ -951,6 +1167,94 @@ Friend Module ChildJob
         Catch
             Return False
         End Try
+    End Function
+
+    ' ---- T6.25a: a mount outlives the window (SP-0004 spec 7.2 item 4) ------------------------
+    '
+    ' The block server behind a mounted container is started by filedo.exe, detached, with
+    ' CREATE_BREAKAWAY_FROM_JOB (cmd/filedo vdStartServer) - and the job's SILENT_BREAKAWAY_OK puts
+    ' every process filedo.exe starts outside the job even without that flag. So closing or losing
+    ' this window ends filedo.exe but never the server: the volume stays mounted under the user's
+    ' programs, and `vd status` from a fresh window shows it. The two seams below let the self-test
+    ' pin both halves: the job's flags as Windows holds them, and a real grandchild found outside.
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Function QueryInformationJobObject(job As IntPtr, infoClass As Integer,
+                                               ByRef info As JOBOBJECT_EXTENDED_LIMIT_INFORMATION, size As UInteger,
+                                               ByRef returned As UInteger) As Boolean
+    End Function
+
+    <StructLayout(LayoutKind.Sequential, CharSet:=CharSet.Unicode)>
+    Private Structure PROCESSENTRY32W
+        Public dwSize As UInteger
+        Public cntUsage As UInteger
+        Public th32ProcessID As UInteger
+        Public th32DefaultHeapID As IntPtr
+        Public th32ModuleID As UInteger
+        Public cntThreads As UInteger
+        Public th32ParentProcessID As UInteger
+        Public pcPriClassBase As Integer
+        Public dwFlags As UInteger
+        <MarshalAs(UnmanagedType.ByValTStr, SizeConst:=260)>
+        Public szExeFile As String
+    End Structure
+
+    Private Const TH32CS_SNAPPROCESS As UInteger = &H2UI
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Function CreateToolhelp32Snapshot(flags As UInteger, processId As UInteger) As IntPtr
+    End Function
+
+    <DllImport("kernel32.dll", CharSet:=CharSet.Unicode, SetLastError:=True)>
+    Private Function Process32FirstW(snapshot As IntPtr, ByRef entry As PROCESSENTRY32W) As Boolean
+    End Function
+
+    <DllImport("kernel32.dll", CharSet:=CharSet.Unicode, SetLastError:=True)>
+    Private Function Process32NextW(snapshot As IntPtr, ByRef entry As PROCESSENTRY32W) As Boolean
+    End Function
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Function CloseHandle(handle As IntPtr) As Boolean
+    End Function
+
+    ' The limit flags of the window's job as Windows reports them; 0 when there is no job.
+    Friend Function LimitFlagsForTest() As UInteger
+        Dim h = Job()
+        If h = IntPtr.Zero Then Return 0UI
+        Dim info As New JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        Dim returned As UInteger = 0
+        If Not QueryInformationJobObject(h, JobObjectExtendedLimitInformation, info,
+                                         CUInt(Marshal.SizeOf(GetType(JOBOBJECT_EXTENDED_LIMIT_INFORMATION))), returned) Then
+            Return 0UI
+        End If
+        Return info.BasicLimitInformation.LimitFlags
+    End Function
+
+    Friend Function BreakawayAndKillFlagsSet() As Boolean
+        Dim f = LimitFlagsForTest()
+        Return (f And JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK) <> 0UI AndAlso (f And JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) <> 0UI
+    End Function
+
+    ' The pids of the running processes whose parent is parentPid and whose image is exeName.
+    Friend Function ChildrenOf(parentPid As Integer, exeName As String) As List(Of Integer)
+        Dim found As New List(Of Integer)()
+        Dim snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0UI)
+        If snap = IntPtr.Zero OrElse snap = New IntPtr(-1) Then Return found
+        Try
+            Dim e As New PROCESSENTRY32W()
+            e.dwSize = CUInt(Marshal.SizeOf(GetType(PROCESSENTRY32W)))
+            Dim more = Process32FirstW(snap, e)
+            While more
+                If CInt(e.th32ParentProcessID) = parentPid AndAlso
+                   String.Equals(e.szExeFile, exeName, StringComparison.OrdinalIgnoreCase) Then
+                    found.Add(CInt(e.th32ProcessID))
+                End If
+                more = Process32NextW(snap, e)
+            End While
+        Finally
+            CloseHandle(snap)
+        End Try
+        Return found
     End Function
 
 End Module

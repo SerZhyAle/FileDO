@@ -91,7 +91,7 @@ func newDamagedDiskHandler(quiet bool) (*DamagedDiskHandler, error) {
 			fmt.Printf("Loaded %d previously damaged files from %s\n", n, list.Path())
 		}
 		if n := list.LegacyIgnored(); n > 0 {
-			fmt.Printf("Note: %d older skip-list entries carry no size or time and are not trusted - those files will be tried again.\n", n)
+			fmt.Printf("Note: %d older skip-list entries carry no volume identity and are not trusted - those files will be tried again.\n", n)
 		}
 	}
 	return h, nil

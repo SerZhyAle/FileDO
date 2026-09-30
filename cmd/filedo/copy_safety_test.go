@@ -875,7 +875,9 @@ func writeBigSkipList(t *testing.T, dir string, entries int, real ...string) {
 	}
 	stamp := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := 0; i < entries; i++ {
-		if err := l.Add(fmt.Sprintf(`Z:\nowhere\file%06d.bin`, i), int64(i), stamp); err != nil {
+		// Files that do not exist have no volume to resolve: the entry is
+		// written with a made-up identity, which is all a lookup miss needs.
+		if err := l.addStamp(fmt.Sprintf(`Z:\nowhere\file%06d.bin`, i), fileStamp{size: int64(i), mod: stamp, vol: 0x1234ABCD, fid: uint64(i)}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -914,7 +916,7 @@ func BenchmarkCopySkipListLookup(b *testing.B) {
 	l, _ := loadStateList(filepath.Join(dir, copySkipListName))
 	stamp := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	for i := 0; i < 50000; i++ {
-		l.Add(fmt.Sprintf(`Z:\nowhere\file%06d.bin`, i), int64(i), stamp)
+		l.addStamp(fmt.Sprintf(`Z:\nowhere\file%06d.bin`, i), fileStamp{size: int64(i), mod: stamp, vol: 0x1234ABCD, fid: uint64(i)})
 	}
 	l.Close()
 	b.ResetTimer()

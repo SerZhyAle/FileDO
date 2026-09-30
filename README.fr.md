@@ -45,6 +45,10 @@ filedo folder D:\Cache w
 filedo C: info
 ```
 
+### Vérification de lecture (check)
+
+`filedo check <dossier>` lit les fichiers et marque comme endommagé celui qui se lit lentement (> 2,0 s) ou avec une erreur du périphérique. Les listes des fichiers endommagés et bien lus se trouvent dans `%LOCALAPPDATA%\FileDO\state` et désignent un fichier par son chemin, sa taille, son heure de modification ainsi que le volume et le fichier sur lesquels il a été enregistré : un fichier modifié, ou une copie au même chemin sur une autre carte sous la même lettre de lecteur, est relu ; les entrées des anciennes versions sans volume ne sont pas prises pour acquises. Un fichier uniquement en ligne (un espace réservé de OneDrive ou d'un autre cloud, ou un fichier hors ligne) n'est jamais ouvert - ni pendant un parcours, ni quand c'est justement lui qu'on vérifie -, donc rien n'est téléchargé. Il est compté comme `not-read(online-only)`, n'est jamais enregistré comme endommagé et rend l'exécution « vérification impossible » (code 2), sauf si un fichier endommagé a été trouvé (code 1).
+
 ### Installation
 
 #### Option 1 - winget
@@ -63,11 +67,12 @@ Téléchargez `FileDO-<version>-setup.exe` depuis les [releases](https://github.
 
 - installe les fichiers dans `C:\Program Files\FileDO` et ajoute `filedo` au `PATH` système;
 - crée une **entrée dans le menu Démarrer** et une **icône sur le bureau** pour la fenêtre FileDO (`filedo_win.exe`);
-- enregistre l'**intégration à l'Explorateur**: un groupe `File DO..` dans le menu contextuel de tout fichier - Secure (garder, supprimer ou effacer l'original, ou un nom de conteneur aléatoire), Unsecure (en option, supprimer le conteneur ou démarrer aussitôt le fichier restauré), Wipe this file, Check this file, Info - ainsi que le type de document `.fd-sec` avec sa propre icône: le double-clic est exactement l'entrée Unsecure and start: une console y demande le mot de passe, restaure l'original sous son vrai nom dans `%LOCALAPPDATA%\FileDO\reveal` - un dossier que seuls ce compte et le système peuvent lire -, le confie au programme auquel appartient sa véritable extension, puis retire cette copie à la fermeture de la fenêtre de console. Sous Windows 11, le groupe se trouve sous *Afficher d'autres options*.
+- enregistre l'**intégration à l'Explorateur**: un groupe `File DO..` dans le menu contextuel de tout fichier - Secure (garder, supprimer ou effacer l'original, ou un nom de conteneur aléatoire), Unsecure (en option, supprimer le conteneur ou démarrer aussitôt le fichier restauré), Wipe this file, Check this file, Info - ainsi que le type de document `.fd-sec` avec sa propre icône: le double-clic est exactement l'entrée Unsecure and start: une console y demande le mot de passe, restaure l'original sous son vrai nom dans `%LOCALAPPDATA%\FileDO\reveal` - un dossier que seuls ce compte et le système peuvent lire -, le confie au programme auquel appartient sa véritable extension, puis retire cette copie à la fermeture de la fenêtre de console. Sous Windows 11, le groupe se trouve sous *Afficher d'autres options*;
+- enregistre le **type `.fdd` des conteneurs de disque** (fonctionnalité *Disk container files (.fdd)*): sa propre icône, un double-clic qui ouvre la fenêtre FileDO et monte le disque virtuel, et *Mount read-only* et *Unmount* dans le menu contextuel - voir la section *Disques virtuels* plus bas.
 
 Le programme d'installation n'est pas signé numériquement: au premier lancement, Windows peut afficher *Windows a protégé votre ordinateur* puis demander les droits d'administrateur. Comparez le SHA256 (le fichier `.sha256` publié à côté du téléchargement; `certutil -hashfile FileDO-<version>-setup.exe SHA256`), puis choisissez *Informations complémentaires* et *Exécuter quand même*. Pourquoi l'avertissement apparaît, à quoi servent les droits d'administrateur et ce que FileDO ne fait jamais: [Windows warned you about FileDO](https://serzhyale.github.io/FileDO/guides/install-trust.html) (page en EN/RU/UA).
 
-Ces deux derniers points sont des fonctionnalités que l'on peut décocher sur la page « Choose what to install » du programme d'installation, puis activer ou désactiver plus tard via **Modifier** dans « Applications et fonctionnalités ». Sans surveillance:
+Ces trois derniers points sont des fonctionnalités que l'on peut décocher sur la page « Choose what to install » du programme d'installation, puis activer ou désactiver plus tard via **Modifier** dans « Applications et fonctionnalités ». Sans surveillance:
 
 ```powershell
 FileDO-<version>-setup.exe /quiet
@@ -77,15 +82,15 @@ FileDO-<version>-setup.exe /uninstall
 La même release publie aussi le `FileDO-<version>-windows-x64.msi` nu - c'est exactement ce fichier qui se trouve dans le setup EXE - pour les outils de déploiement qui veulent le paquet et les noms de fonctionnalités directement:
 
 ```powershell
-msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DesktopShortcut
-msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut
+msiexec /i FileDO-<version>-windows-x64.msi /qn ADDLOCAL=Main   # sans entrées de l'Explorateur, sans type .fdd, sans icône
 ```
 
 La désinstallation retire tout ce que le programme d'installation a écrit, y compris les entrées de registre.
 
 #### Option 3 - Microsoft Store (MSIX)
 
-Un paquet, deux entrées: la tuile **FileDO** et la commande `filedo` dans le `PATH`. La version du Store n'a **pas** les entrées de l'Explorateur: un paquet ne peut les obtenir que via un gestionnaire shell signé, ce qui est un travail distinct. Elle prend **bien** en charge le type de fichier `.fd-sec`: un double-clic sur un conteneur ouvre la fenêtre FileDO sur la page *Ouvrir un fichier secret* avec ce conteneur déjà choisi, et le mot de passe y est demandé.
+Un paquet, deux entrées: la tuile **FileDO** et la commande `filedo` dans le `PATH`. La version du Store n'a **pas** les entrées de l'Explorateur: un paquet ne peut les obtenir que via un gestionnaire shell signé, ce qui est un travail distinct. Elle prend **bien** en charge le type de fichier `.fd-sec`: un double-clic sur un conteneur ouvre la fenêtre FileDO sur la page *Ouvrir un fichier secret* avec ce conteneur déjà choisi, et le mot de passe y est demandé. Elle prend aussi en charge le type `.fdd`, mais la version du Store ne peut pas monter de disque virtuel: un double-clic ouvre la fenêtre FileDO sur ce conteneur, où l'on peut le lire, le vérifier et l'exporter - voir la section *Disques virtuels* plus bas.
 
 #### Option 4 - Téléchargement manuel
 
@@ -236,6 +241,101 @@ passe est masqué, saisi deux fois à l'empaquetage, et transmis à `filedo.exe`
 aucune ligne de commande, aucun rapport d'exécution et aucun fichier d'historique. Un double-clic sur un
 `.fd-sec` n'ouvre pas cette fenêtre - il exécute **Unsecure and start** dans la console, exactement comme
 l'entrée du même nom dans le menu de l'Explorateur.
+
+---
+
+## Disques virtuels (`.fdd`)
+
+Un conteneur est un fichier `.fdd` ordinaire qui contient un volume entier. Monté, c'est une lettre de
+lecteur comme une autre; démonté, c'est un fichier que l'on peut copier, sauvegarder ou lire avec FileDO
+seul, sans le monter. Le format est publié en entier comme contrat `FDD-FORMAT`, et ce que doit faire un
+programme qui le lit ou l'écrit comme `FDD-BEHAVIOUR` - les données ne dépendent donc pas de la survie de
+FileDO.
+
+```bash
+# Créer un conteneur de 20 Go (plain: le fichier grandit à l'écriture), puis le monter
+filedo vd new work.fdd 20G
+filedo work.fdd mount
+
+# Enregistrer, marquer comme fermé proprement, détacher
+filedo X: unmount
+
+# Un conteneur chiffré: vault demande toujours un mot de passe (deux fois)
+filedo vd new private.fdd 5G vault
+
+# Lire sans monter - sans droits d'administrateur, rien n'est écrit dans le conteneur
+filedo work.fdd info
+filedo work.fdd verify
+filedo work.fdd export D:\work.vhd vhd
+
+# Modifier tant qu'il n'est pas monté
+filedo work.fdd grow 40G
+filedo private.fdd pass
+filedo private.fdd clone open-copy.fdd nopass
+```
+
+Quatre profils pour `vd new`: `plain` grandit à mesure qu'il se remplit, `fast` réserve toute la taille
+tout de suite, `ram` garde le volume en mémoire tant qu'il est monté et l'enregistre dans le fichier toutes
+les quelques secondes (un plantage perd ce qui a été écrit depuis le dernier enregistrement), et `vault` est
+toujours chiffré. `seal` écrit une copie en lecture seule pour toujours, `clone` une copie modifiable avec
+sa propre identité, `compact` rend au lecteur la place inutilisée du fichier. `format` efface le volume
+(`fs ntfs` ou `fs exfat`) et `destroy` supprime le fichier du conteneur (`wipe` l'écrase d'abord): les deux
+demandent d'abord, et les deux refusent un conteneur monté - aucune option ne lève ce contrôle.
+`vd add work.fdd as work` lui donne un nom court, `vd list` et `vd status` montrent ce qui est connu et ce
+qui est monté, et `vd auto work logon` monte un conteneur camouflé à l'ouverture de votre session. Un
+`.vhd`, `.vhdx` ou `.iso` se monte par les moyens de Windows lui-même: `filedo disk.vhdx mount`.
+
+Deux mots, deux promesses différentes, et FileDO ne les confond jamais:
+
+- **Sans mot de passe, un conteneur est camouflé, pas chiffré.** Le camouflage soustrait le volume à un
+  coup d'œil rapide et aux outils qui cherchent des images disque - mais pas à quiconque a le fichier et
+  FileDO.
+  `info` dit lequel des deux cas vous avez devant vous.
+- **Avec un mot de passe, il est chiffré**: sans lui, le fichier est illisible. Il n'y a aucune
+  récupération - un mot de passe oublié est un conteneur perdu. `pass` change le mot de passe sans réécrire
+  les données; les copies du fichier faites auparavant s'ouvrent donc toujours avec l'ancien.
+- **Un mot de passe n'est jamais retiré sur place.** Un nouveau mot de passe vide est refusé; à la place,
+  `clone <new.fdd> nopass` écrit une copie camouflée, et l'original chiffré reste tel quel.
+- **Le chiffrement protège le fichier, pas un volume monté.** Tant qu'il est monté, tout programme que vous
+  lancez peut le lire, comme n'importe quel lecteur. Un `export` d'un conteneur chiffré n'est pas chiffré
+  non plus, et avec `ram` et un mot de passe, Windows peut paginer des données non chiffrées dans le
+  fichier d'échange.
+- **`verify` lit, il ne prouve rien.** Il lit les en-têtes, la carte et chaque cluster alloué et signale les
+  dommages (code 4), mais le format 1.0 ne garde aucune somme de contrôle des données: elles sont donc
+  lues, pas vérifiées.
+
+Ce qu'il faut à la plateforme, dit franchement:
+
+- **Windows uniquement.** La lettre de lecteur vient de l'initiateur iSCSI intégré à Windows, qui parle à un
+  serveur de blocs dans `filedo.exe`; ce serveur n'écoute que sur 127.0.0.1 - rien ne quitte cet
+  ordinateur, et le conteneur ne passe jamais par aucun réseau.
+- **Monter demande des droits d'administrateur.** `mount`, `unmount`, `save`, `format` et `vd auto` demandent à
+  Windows l'accord d'un administrateur pour l'étape de l'initiateur; le mot de passe n'y va jamais, et le
+  serveur de blocs lui-même ne tourne jamais avec des droits élevés. Un lot n'affiche jamais cette
+  demande - lancez-le depuis une console administrateur. Si le service Initiateur iSCSI de Microsoft ne
+  peut pas être utilisé, l'exécution se termine avec le code 7 et rien n'est monté.
+- **La version du Microsoft Store ne peut pas monter de disque.** Une application empaquetée ne peut ni
+  configurer l'initiateur iSCSI ni demander des droits d'administrateur, donc `mount`, `unmount`, `save`,
+  `format`, `vd auto` et `vd register` s'y terminent avec le code 6. `info`, `verify`, `export`,
+  `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` et
+  `vd forget` y fonctionnent aussi; pour monter, prenez le setup ou la version portable sur GitHub.
+- **Un montage survit à la fenêtre.** Fermer la fenêtre FileDO laisse le lecteur et son serveur en place,
+  et une nouvelle fenêtre les liste de nouveau; démontez sur les pages du groupe *Disques* ou avec
+  `filedo X: unmount`.
+
+Codes de sortie d'une commande de conteneur: 0 terminé, 2 commande incorrecte, 3 mauvais mot de passe,
+4 endommagé, 5 erreur d'E/S, 6 non pris en charge, 7 transport indisponible, 8 occupé (monté, ouvert ou
+verrouillé). Un lot garde 0/1/2.
+
+Dans l'Explorateur, la fonctionnalité *Disk container files (.fdd)* du setup (`DiskContainerIntegration`)
+donne à `.fdd` son icône et trois entrées qui ouvrent la fenêtre FileDO. Un double-clic monte: un conteneur
+camouflé fermé proprement tout de suite; un conteneur chiffré demande son mot de passe dans la fenêtre,
+jamais sur une ligne de commande; un conteneur qui n'a pas été fermé proprement le dit d'abord, avec l'heure
+de son dernier enregistrement complet, et attend; un conteneur déjà monté ouvre son lecteur. Le menu
+contextuel ajoute *Mount read-only* et *Unmount* (sous Windows 11, sous *Afficher d'autres options*). Sans
+programme d'installation, `filedo vd register` écrit la même chose (`-all-users` pour toute la machine), et
+`filedo vd unregister` la retire. Dans la fenêtre, le groupe **Disques** a une page par opération et nomme
+les deux protections exactement comme la console.
 
 ---
 
@@ -401,9 +501,10 @@ filedo cmp D:\Data E:\Backup del small source  # seulement si le plus petit est 
 filedo cmp D:\Data E:\Backup del big target    # seulement si le plus grand est côté Target
 filedo cmp D:\Data E:\Backup del old target    # seulement si le plus ancien est côté Target
 filedo cmp D:\Data E:\Backup del new source    # seulement si le plus récent est côté Source
+filedo cmp D:\Data E:\Backup del source --yes  # sans question (scripts); les vérifications restent
 ```
 
-Notes: appariement par chemin relatif; `del source` et `del target` ne suppriment une paire que si la taille et l'heure de modification concordent (`--by-hash` : même contenu ; `--allow-mismatch` : toute paire) - une paire qui diffère est signalée et conservée; deux écritures du même dossier, ou un dossier contenu dans l'autre, sont refusées; mtime pour old/new; Windows insensible à la casse, la suppression utilise le vrai nom du fichier; ce qui n'a pu être lu ou supprimé termine avec le code 2; logs: compare_report_*.log, delete_report_<mode>_*.log.
+Notes: appariement par chemin relatif; `del source` et `del target` ne suppriment une paire que si la taille et l'heure de modification concordent (`--by-hash` : même contenu ; `--allow-mismatch` : toute paire) - une paire qui diffère est signalée et conservée; deux écritures du même dossier, ou un dossier contenu dans l'autre, sont refusées; chaque règle de suppression indique d'abord le nombre de fichiers et le mode, puis demande `(y/N)` - `--yes` (ou `-y`) saute la question, jamais une vérification, et sans réponse (stdin fermé, script) rien n'est supprimé et le code de sortie est 2; mtime pour old/new; Windows insensible à la casse, la suppression utilise le vrai nom du fichier; ce qui n'a pu être lu ou supprimé termine avec le code 2; logs: compare_report_*.log, delete_report_<mode>_*.log.
 
 ---
 
@@ -540,6 +641,12 @@ FileDO/
 ---
 
 ## Historique des Versions
+
+**Pas encore publiée** (la prochaine version)
+- **Disques virtuels (`.fdd`)**: un volume entier dans un fichier, monté comme lettre de lecteur - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` et `export` (image brute ou VHD) sans montage, et `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre
+- **Explorateur**: la nouvelle fonctionnalité *Disk container files (.fdd)* du setup (`DiskContainerIntegration`) donne à `.fdd` une icône, un double-clic qui monte et *Mount read-only* / *Unmount*; sans programme d'installation, `filedo vd register` fait de même
+- **GUI**: un nouveau groupe **Disques** - une page par opération, et un montage qui survit à la fenêtre
+- **Limites**: Windows uniquement; monter demande l'accord d'un administrateur; la version du Microsoft Store lit, vérifie et exporte les conteneurs mais ne peut pas les monter
 
 **v2609241700** (Actuelle)
 - **Fichiers secrets (`.fd-sec`)** : un fichier est placé dans un conteneur protégé par mot de passe puis restauré - `secure`, `unsecure`, `reveal` - en ligne de commande, depuis le menu de l'Explorateur ou les pages Protect de la fenêtre ; le vrai nom, la taille et les dates de l'original sont scellés à l'intérieur

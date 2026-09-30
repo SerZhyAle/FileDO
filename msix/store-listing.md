@@ -51,13 +51,13 @@ SP-0007 C6).
 FileDO is a full-trust Win32 desktop application, not a UWP app: a Go command-line engine (filedo.exe) and a .NET Framework window (filedo_win.exe) that starts it. runFullTrust is required to run as a normal desktop process and to call the Win32 storage APIs its core features depend on:
 - Direct device/volume access (CreateFile on \\.\PhysicalDrive and volume handles, SetFilePointer, raw read/write): needed to measure true disk speed and to detect fake-capacity drives by writing and reading back data across the full device. It accesses storage the user explicitly targets; it does not scan the system or read personal files on its own.
 - High-throughput file I/O for secure wipe/fill: overwrites free space or user-specified folders to prevent recovery. Destructive actions confirm first and never auto-force drive roots, reparse points, or system TEMP.
-These APIs are available only to full-trust desktop apps. FileDO runs entirely locally, makes no network connections, and collects no user data. Open source: https://github.com/SerZhyAle/FileDO
+These APIs are available only to full-trust desktop apps. FileDO runs entirely locally, never connects to the internet or to any other computer, and collects no user data. Open source: https://github.com/SerZhyAle/FileDO
 ```
 
 ### Short variant (if a brief reason is also requested)
 
 ```
-Full-trust Win32 desktop app (Go command-line engine plus a .NET Framework window). Needs runFullTrust for raw disk/volume access (CreateFile on \\.\PhysicalDrive, raw read/write) used for speed testing, fake-capacity detection, and secure wiping - APIs only available to full-trust desktop apps. Runs locally, no network, no data collection. https://github.com/SerZhyAle/FileDO
+Full-trust Win32 desktop app (Go command-line engine plus a .NET Framework window). Needs runFullTrust for raw disk/volume access (CreateFile on \\.\PhysicalDrive, raw read/write) used for speed testing, fake-capacity detection, and secure wiping - APIs only available to full-trust desktop apps. Runs locally, no internet connection, no data collection. https://github.com/SerZhyAle/FileDO
 ```
 
 ## Export compliance - encryption (answer this BEFORE the first submission carrying secret files)
@@ -69,14 +69,17 @@ not legal advice: the owner confirms it before pressing Submit, and this section
 submission cannot be the first place the question is read.
 
 ```
-Yes. FileDO uses cryptography for one feature: packing a single user-chosen file into a
-password-protected .fd-sec container and opening it again.
+Yes. FileDO uses cryptography for two features: packing a single user-chosen file into a
+password-protected .fd-sec container and opening it again, and keeping a .fdd virtual disk
+container (one file holding a whole volume) encrypted under a password - or, without one,
+obfuscated with a key kept in the file itself, which is not encryption - and reading it again.
 
-It uses standard published algorithms only, from a permissively licensed, widely distributed
-library (the Go project's golang.org/x/crypto). It implements no cryptographic algorithm of
-its own, provides no cryptographic service to other programs, and has no networking code of
-any kind, so nothing is encrypted in transit. The container format is published in full, with
-test vectors, so the data can be read without FileDO.
+It uses standard published algorithms only, from permissively licensed, widely distributed
+libraries (the Go standard library and the Go project's golang.org/x/crypto). It implements no
+cryptographic algorithm of its own, provides no cryptographic service to other programs, and
+never connects to the internet or to any other computer, so nothing is encrypted in transit.
+Both container formats are published in full, with test vectors, so the data can be read
+without FileDO.
 
 This is the ordinary ancillary use of published algorithms in a mass-market tool, not a
 cryptographic product.
@@ -91,7 +94,12 @@ the owner rather than being resolved by accepting a smaller reach.
 **What the Store build does NOT carry.** No Explorer context-menu entries: a packaged build can
 only declare a context-menu handler through a signed shell command handler, which is not built
 (SP-0005 9.3). It **does** declare the `.fd-sec` association, so double-clicking a container opens
-FileDO. The verbs work from the terminal in the Store build exactly as everywhere else.
+FileDO. The verbs work from the terminal in the Store build exactly as everywhere else. It also
+declares `.fdd` for the window only, with no verb, and it **cannot mount** a `.fdd` virtual disk: a
+packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights, so
+`mount`, `unmount`, `save`, `format`, `vd auto` and `vd register` return class 6 there. The read path -
+info, verify, export, and the file-level changes - works. The listing says exactly that and
+promises no mounting.
 
 ## Privacy policy
 
@@ -105,8 +113,10 @@ The hosted page (`docs/privacy.html`) is the single source of truth. The Partner
 data-collection form and the summary below are *rendered from it* - if the page changes,
 re-derive them; never edit the summary on its own.
 
-Partner Center data collection: declare **no** data collection (the app has no networking
-code at all and the package declares no `internetClient` capability).
+Partner Center data collection: declare **no** data collection (the app never connects to the
+internet or to any other computer - in this build it opens no socket at all, because the loopback
+block server of a mounted virtual disk does not run in the package - and the package declares no
+`internetClient` capability).
 
 ```
 FileDO does not collect, store, or transmit any personal data. It runs entirely on your
@@ -139,6 +149,10 @@ item below):
   your account and the system only. It is removed when you say so or when the program that
   opened it lets go; after a power loss the next FileDO start removes it. Passwords are never
   written to any of these files, and neither is the name sealed inside a container.
+- vdisk-state.json and vdisk.log - the short names you gave .fdd virtual disks, their paths, what
+  is mounted and a log of mounts, in the same %LOCALAPPDATA%\FileDO\state\ folder. No container
+  password is written there. Outside the Store build, the block server of a mounted disk listens
+  on 127.0.0.1 only: nothing leaves the device, and the container never goes to any network.
 
 Sending logs to the author is entirely yours to start: the About window of the GUI has a
 button that packs those local log files into a zip in your TEMP folder, shows it to you in

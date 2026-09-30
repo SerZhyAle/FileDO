@@ -467,8 +467,9 @@ if ($Test) {
     }
     Record-GateStep 'compile-test-module' $compileCode $compileDetail
 
-    # 3) The real tests. Two packages carry `func Test*` today and both must be
-    #    green: fdsec (the container format and its vectors) and cmd\filedo
+    # 3) The real tests. Three packages carry `func Test*` today and all must be
+    #    green: fdsec (the container format and its vectors), vdisk (the disk
+    #    container and its vectors) and cmd\filedo
     #    (the black-box fdsec command surface, which builds its own exe and
     #    asserts exit codes, history redaction and the destructive paths).
     #    -short drops the >4 GiB round trip, which belongs to a full run, not
@@ -481,6 +482,16 @@ if ($Test) {
         Record-GateStep 'fdsec' 1 $fdsecOut
     } else {
         Record-GateStep 'fdsec' 0
+    }
+
+    # vdisk (SP-0004): the disk container, its abrupt-failure cases and the
+    # FDD-FORMAT vectors. Vet-clean like fdsec, so it runs plainly.
+    Write-Host "go test ./vdisk/ ..." -NoNewline
+    $vdiskOut = go test ./vdisk/ -count=1 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        Record-GateStep 'vdisk' 1 $vdiskOut
+    } else {
+        Record-GateStep 'vdisk' 0
     }
 
     # The suite builds its own filedo.exe from this package directory. The version resource
@@ -638,7 +649,8 @@ if ($Test) {
 # ---- Optional installer (-Msi) ---------------------------------------------
 # The MSI is what turns four executables into a Windows program: it puts
 # filedo on PATH, creates the shortcuts, and - as a feature the user can
-# deselect - registers the .fd-sec document type and the two Explorer verbs
+# deselect - registers the .fd-sec document type and the two Explorer verbs,
+# and, as a second such feature, the .fdd disk-container type
 # (packaging\wix\FileDO.wxs). Building it here means an installer defect
 # surfaces during a build rather than inside a tagged release run.
 #
@@ -731,7 +743,8 @@ function Build-FileDOInstaller {
                   "filedo_fill.exe", "filedo_test.exe", "FileDO.ico", "LICENSE", "THIRD-PARTY-NOTICES.txt", "README.md",
                   "filedo_cd.bat", "filedo_clean.bat", "filedo_fill.bat", "filedo_speed.bat", "filedo_test.bat",
                   "icons\action.secure.ico", "icons\action.unsecure.ico", "icons\action.wipe.ico",
-                  "icons\action.verify.ico", "icons\app.info.ico", "icons\content.secret-file.ico")
+                  "icons\action.verify.ico", "icons\app.info.ico", "icons\content.secret-file.ico",
+                  "icons\content.disk-container.ico")
     $missing = $required | Where-Object { -not (Test-Path "$stage\$_") }
     if ($missing) {
         Write-Host "No installer this run: the stage is missing $($missing -join ', ')." -ForegroundColor Yellow

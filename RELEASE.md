@@ -204,7 +204,14 @@ What it does, in order:
    its PE version and `BuildStamp`). The identity comes from
    `msix\identity.json` - `SZA.FileDO`, reserved in Partner Center and a
    frozen anchor - or from `-StoreIdentityName`. There is no placeholder
-   default: without a reserved identity the step refuses.
+   default: without a reserved identity the step refuses. The package carries
+   **no Explorer command**: the packaged `File DO..` group of SP-0020
+   (`FileDOShell.dll` and its manifest verb) is opt-in through
+   `build-msix.ps1 -ExplorerCommand`, which `release.ps1` never passes, and
+   the packed-manifest check fails a default package that carries it
+   (AUD-17-F1). That is what keeps the listing's "no Explorer entries" true;
+   a Store build with the switch waits for SP-0020's exit criterion, SP-0005
+   G3, and a listing/README edit (`msix/README.md` section 7).
 9. **Checklist** - prints what is done, what failed and why, and the one
    manual step left. A channel that failed after the tag (winget sync, push,
    submit, or the MSIX) does not stop the ones after it, is shown as `[ ]`
@@ -254,6 +261,15 @@ the tag:
 - **Latest only moves forward.** The release is marked Latest - what the
   site's download button serves - only when its stamp is greater than the
   current Latest's.
+- **A published release is never overwritten** (AUD-20-F1). The build is not
+  reproducible (zip mtimes, MSI and bundle codes and timestamps), and
+  winget-pkgs and every user who compared a SHA256 hold the first run's
+  hashes. So the publish job reads `gh release view <tag> --json assets`
+  first and fails - "Refuse to overwrite a published release" - if the
+  release already carries any of the six asset names; the upload step also
+  runs with `overwrite_files: false`. There is no override input. A run that
+  failed before publishing (no release, or a release with none of the six)
+  still goes through.
 - **Least privilege.** Every action is pinned to a commit SHA, checkout does
   not persist the token, WiX is pinned to `5.0.2`, and the Go is `1.26.1`
   (`GOTOOLCHAIN=local`, checked against `go.mod`). The Windows build job can
@@ -334,7 +350,10 @@ the result into the PR - a fresh install alone does not prove an upgrade:
    password and then opens the original in whatever program owns its real
    extension. Nothing named `Secure with FileDO` or `Unsecure here` is left.
 5. **Deselecting works.** `msiexec /i <msi> /qn ADDLOCAL=Main` leaves no
-   Explorer entries and no desktop icon.
+   Explorer entries, no `.fdd` type and no desktop icon. The `.fdd` feature
+   (`DiskContainerIntegration`) has its own checklist - install, deselect,
+   the double-click routes, uninstall with `reg query` before and after - in
+   `tests/vd_manual.md`, sections 1 to 3.
 6. **Uninstall leaves nothing.** After a removal, `HKLM\Software\Classes\.fd-sec`
    and `...\FileDO.SecureContainer` are gone, and so is the `PATH` entry.
 7. **The portable path still works.** From the unzipped build,
@@ -356,15 +375,30 @@ label and command line with what the wxs writes, in both directions.
 
 ### If something fails mid-release
 
-Never cut a new version to repair a release whose tag is out - resume it.
+A release whose tag is out and whose CI failed before publishing is resumed,
+not re-cut. A release that was **published** and is broken is never repaired
+in place: it is fixed by a new stamp (a new release), because its hashes are
+already in winget-pkgs and on users' screens, and the workflow refuses to
+overwrite it anyway.
 
-- **Tag pushed, CI failed or is still running** - fix what failed, then
-  re-dispatch the workflow from the Actions tab for the same tag (the workflow
-  serializes per tag), and continue with
-  `.\release.ps1 -Resume -Version <stamp>`: it checks that `v<stamp>` is on
-  origin, skips steps 1-4, waits for the release to carry all six assets, and
-  goes on with winget and the Store. The same command covers a wait that
-  timed out.
+- **Tag pushed, CI still running** - wait for the run. Do not re-dispatch
+  it: the duplicate queues behind the first (the workflow serializes per
+  tag) and, once the first has published, fails at "Refuse to overwrite a
+  published release". `.\release.ps1 -Resume -Version <stamp>` covers a wait
+  that timed out.
+- **Tag pushed, CI failed before publishing** (the build job failed, or the
+  publish job failed before "Create GitHub Release") - fix what failed,
+  re-dispatch the workflow from the Actions tab for the same tag, and
+  continue with `.\release.ps1 -Resume -Version <stamp>`: it checks that
+  `v<stamp>` is on origin, skips steps 1-4, waits for the release to carry
+  all six assets, and goes on with winget and the Store.
+- **A partial release exists** (the run failed mid-upload, so the release
+  carries some of the six assets) - the re-dispatch is refused until that
+  release is gone. Delete the **release, not the tag**, by hand
+  (`gh release delete v<stamp> --repo SerZhyAle/FileDO`, no `--cleanup-tag`),
+  then re-dispatch and resume as above. Only while nothing of it has reached
+  winget: if `winget\` was already synced or submitted from it, cut a new
+  stamp instead.
 - **winget step failed** (sync check, commit, push, or submit) -
   `.\release.ps1 -Resume -Version <stamp> -SkipStore`. It re-syncs `winget\`
   (it may already be rewritten; `-Resume` allows changes there and nowhere

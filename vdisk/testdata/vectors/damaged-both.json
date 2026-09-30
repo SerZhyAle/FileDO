@@ -1,0 +1,14 @@
+{
+  "vector": "damaged-both.fdd",
+  "contract": "FDD-FORMAT document 0.1 (draft), wire version 1.0",
+  "generator": "FileDO vdisk, SP-0004 stage S2: FDD_WRITE_VECTORS=1 go test ./vdisk/ -run TestVD_Vectors",
+  "derived_from": "plain-empty.fdd",
+  "mutation": "bytes 164 and 16548 (inside each header's sealed region) XOR 0x01",
+  "file_size": 20480,
+  "sha256": "a6cbe991dd8cef335a14ecd3c18735e7915ea780d6d7d9d82584cefb82c0b37e",
+  "expected": {
+    "outcome": "damaged",
+    "exit_class": 4,
+    "note": "damaged with or without a credential; never a wrong credential"
+  }
+}

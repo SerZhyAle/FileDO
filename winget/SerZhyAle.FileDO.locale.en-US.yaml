@@ -23,8 +23,12 @@ Description: |-
   It also packs a single file into a password-protected .fd-sec container and takes it back out, or opens
   what is inside in the program it belongs to without unpacking it - from a read-only copy that only your
   account can read and that is removed when you are done with it. An empty password is accepted and means
-  obfuscation only, not secrecy, and FileDO says so where you type it. The package registers nothing in
-  Explorer on its own: run "filedo fdsec register" if you want the menu entries and the .fd-sec type.
+  obfuscation only, not secrecy, and FileDO says so where you type it.
+  Virtual disks: a .fdd container holds a whole volume in one file, mounted as a drive letter through the
+  Windows iSCSI initiator (mounting asks for administrator consent) or read, verified and exported without
+  mounting. Without a password a container is obfuscated, not encrypted; with one it is encrypted.
+  The package registers nothing in Explorer on its own: run "filedo fdsec register" if you want the menu
+  entries and the .fd-sec type, and "filedo vd register" for the .fdd type.
 Moniker: filedo
 Tags:
 - benchmark

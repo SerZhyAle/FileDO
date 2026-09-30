@@ -16,6 +16,7 @@ import (
     "strings"
     "sync"
     "sync/atomic"
+    "syscall"
     "time"
 )
 
@@ -363,6 +364,31 @@ const (
     checkMaxBufKB = 64 * 1024
 )
 
+// The attributes of a file whose data is not on this disk: a Cloud Files
+// placeholder (OneDrive "online-only") carries RECALL_ON_DATA_ACCESS or
+// RECALL_ON_OPEN, an HSM-migrated file carries OFFLINE. Reading one makes the
+// provider download it - onto the disk being checked - and a slow download is
+// not a slow sector (AUD-08-F1).
+const (
+    fileAttributeOffline            = 0x00001000
+    fileAttributeRecallOnOpen       = 0x00040000
+    fileAttributeRecallOnDataAccess = 0x00400000
+    fileAttributeOnlineOnlyMask     = fileAttributeOffline | fileAttributeRecallOnOpen | fileAttributeRecallOnDataAccess
+)
+
+// isOnlineOnly reports whether a file's data lives elsewhere. It reads the
+// attributes the directory listing (Lstat) already returned and never opens
+// the file, so asking cannot start a download.
+func isOnlineOnly(fi os.FileInfo) bool {
+    if fi == nil {
+        return false
+    }
+    if a, ok := fi.Sys().(*syscall.Win32FileAttributeData); ok && a != nil {
+        return a.FileAttributes&fileAttributeOnlineOnlyMask != 0
+    }
+    return false
+}
+
 // errCheckLimit ends the walk when --max-files or --max-seconds was reached;
 // errCheckStopped when the run was asked to stop.
 var (
@@ -526,13 +552,21 @@ func (n *checkNotes) add(quiet bool, format string, args ...interface{}) {
 //
 // The lists live in the state root (%LOCALAPPDATA%\FileDO\state), never
 // beside the files checked (CHK-10), and they are check's own: copy's skip
-// list is a different file (CHK-04). An entry names a file by path, size and
-// modification time, so a file that changed is read again.
+// list is a different file (CHK-04). An entry names a file by path, size,
+// modification time and the volume and file ID it was recorded on, so a file
+// that changed, or a copy of it at the same path on another card, is read
+// again (AUD-14-F1).
+//
+// An online-only file - a cloud placeholder or an offline file - is never
+// opened, in a sweep or when it is the one file asked about: reading it would
+// download it, and the download time says nothing about this disk. It is
+// counted as "not read (online-only)" and is never recorded as damage
+// (AUD-08-F1).
 //
 // The verdict (CHK-03): a file on the damaged list is a defect again - it is
-// re-reported, not re-read; a folder that cannot be listed or a file that
-// cannot be opened (locked, denied) is "could not verify"; and a sweep that
-// read nothing at all verified nothing.
+// re-reported, not re-read; a folder that cannot be listed, a file that
+// cannot be opened (locked, denied) or an online-only file is "could not
+// verify"; and a sweep that read nothing at all verified nothing.
 func CheckFolder(root string) error {
     info, err := os.Stat(root)
     if err != nil {
@@ -602,7 +636,7 @@ func CheckFolder(root string) error {
             fmt.Printf("Using damaged list: %s : %d\n", damagedList.Path(), damagedList.Len())
         }
         if n := goodList.LegacyIgnored() + damagedList.LegacyIgnored(); n > 0 {
-            fmt.Printf("Note: %d older list entries carry no size or time and are not trusted.\n", n)
+            fmt.Printf("Note: %d older list entries carry no volume identity and are not trusted - those files are read again.\n", n)
         }
     }
 
@@ -624,6 +658,7 @@ func CheckFolder(root string) error {
     var damagedFiles int64 // found damaged in this run
     var checkedFiles int64 // read and judged in this run
     var unverifiedFiles int64
+    var onlineOnlyFiles int64 // cloud placeholders and offline files: never opened
     var walkErrors int64
     var totalReadBytes int64
     var lastDamaged atomic.Value // string
@@ -665,6 +700,15 @@ func CheckFolder(root string) error {
                 }
             }
             atomic.AddInt64(&foundFiles, 1)
+            // Before any list lookup: resolving a listed file's identity
+            // opens it for attributes, and an online-only file is not to be
+            // touched beyond what the listing already said.
+            if isOnlineOnly(fi) {
+                atomic.AddInt64(&onlineOnlyFiles, 1)
+                notes.add(cfg.quiet, "Not read (online-only): %s - its data is not on this disk, and reading it would download it", p)
+                if rep != nil { rep.Write(p, sz, 0, "online-only") }
+                return nil
+            }
             if !singleFile {
                 if cfg.resume && goodList.HasInfo(p, fi) {
                     atomic.AddInt64(&skippedGood, 1)
@@ -707,6 +751,7 @@ func CheckFolder(root string) error {
                 if cfg.includeExt != nil && !cfg.includeExt[ext] { return nil }
                 if cfg.excludeExt != nil && cfg.excludeExt[ext] { return nil }
             }
+            if isOnlineOnly(fi) { return nil }
             if cfg.resume && goodList.HasInfo(p, fi) { return nil }
             if damagedList.HasInfo(p, fi) { return nil }
             atomic.AddInt64(&precTotal, 1)
@@ -731,7 +776,7 @@ func CheckFolder(root string) error {
                 checked := atomic.LoadInt64(&checkedFiles) + atomic.LoadInt64(&unverifiedFiles)
                 toRead := atomic.LoadInt64(&precTotal)
                 if toRead == 0 {
-                    toRead = atomic.LoadInt64(&foundFiles) - atomic.LoadInt64(&skippedGood) - atomic.LoadInt64(&knownDamaged)
+                    toRead = atomic.LoadInt64(&foundFiles) - atomic.LoadInt64(&skippedGood) - atomic.LoadInt64(&knownDamaged) - atomic.LoadInt64(&onlineOnlyFiles)
                 }
                 rate := float64(checked) / elapsed
                 remaining := math.Max(0, float64(toRead-checked))
@@ -739,9 +784,9 @@ func CheckFolder(root string) error {
                 if rate > 0 {
                     eta = time.Duration(float64(time.Second) * remaining / rate)
                 }
-                line := fmt.Sprintf("\rCHECK: found=%d, checked=%d, damaged=%d, known-damaged=%d, not-read=%d, skipped-good=%d, read=%.1f MB, speed=%.1f MB/s, rate=%.1f chk/s, ETA=%s",
+                line := fmt.Sprintf("\rCHECK: found=%d, checked=%d, damaged=%d, known-damaged=%d, not-read=%d, online-only=%d, skipped-good=%d, read=%.1f MB, speed=%.1f MB/s, rate=%.1f chk/s, ETA=%s",
                     atomic.LoadInt64(&foundFiles), atomic.LoadInt64(&checkedFiles), atomic.LoadInt64(&damagedFiles),
-                    atomic.LoadInt64(&knownDamaged), atomic.LoadInt64(&unverifiedFiles), atomic.LoadInt64(&skippedGood),
+                    atomic.LoadInt64(&knownDamaged), atomic.LoadInt64(&unverifiedFiles), atomic.LoadInt64(&onlineOnlyFiles), atomic.LoadInt64(&skippedGood),
                     readMB, speed, rate, formatETA(eta))
                 if v := lastDamaged.Load(); v != nil && cfg.verbose {
                     line += fmt.Sprintf(", last=%s", v.(string))
@@ -921,6 +966,7 @@ func CheckFolder(root string) error {
     newDamaged := atomic.LoadInt64(&damagedFiles)
     oldDamaged := atomic.LoadInt64(&knownDamaged)
     unverified := atomic.LoadInt64(&unverifiedFiles)
+    onlineOnly := atomic.LoadInt64(&onlineOnlyFiles)
     walkErrs := atomic.LoadInt64(&walkErrors)
     good := atomic.LoadInt64(&skippedGood)
 
@@ -931,6 +977,7 @@ func CheckFolder(root string) error {
     runNumber("newlyDamagedFiles", newDamaged)
     runNumber("knownDamagedFiles", oldDamaged)
     runNumber("unverifiedFiles", unverified)
+    runNumber("onlineOnlyFiles", onlineOnly)
     runNumber("unreadableEntries", walkErrs)
 
     // A file that reads slowly or not at all is a judgement about the
@@ -945,6 +992,9 @@ func CheckFolder(root string) error {
     if unverified > 0 {
         problems = append(problems, fmt.Sprintf("%d file(s) could not be opened or read (locked or access denied) and were not judged", unverified))
     }
+    if onlineOnly > 0 {
+        problems = append(problems, fmt.Sprintf("%d file(s) are online-only (a cloud placeholder or an offline file) and were not read, so nothing was downloaded and they were not judged", onlineOnly))
+    }
     if walkErrs > 0 {
         problems = append(problems, fmt.Sprintf("%d folder(s) or entries could not be listed", walkErrs))
     }
@@ -958,8 +1008,8 @@ func CheckFolder(root string) error {
     }
 
     if !cfg.quiet {
-        fmt.Printf("\nCHECK completed: found=%d, checked=%d, damaged(new)=%d, damaged(known, not re-read)=%d, not-read=%d, skipped(good, --resume)=%d\n",
-            found, checked, newDamaged, oldDamaged, unverified, good)
+        fmt.Printf("\nCHECK completed: found=%d, checked=%d, damaged(new)=%d, damaged(known, not re-read)=%d, not-read=%d, not-read(online-only)=%d, skipped(good, --resume)=%d\n",
+            found, checked, newDamaged, oldDamaged, unverified, onlineOnly, good)
         if n := notes.hidden; n > 0 {
             fmt.Printf("(%d more unreadable entries not listed)\n", n)
         }
@@ -973,6 +1023,8 @@ func CheckFolder(root string) error {
             switch {
             case info.Size() == 0:
                 fmt.Printf("%s is empty - there is nothing to read, so nothing to judge.\n", root)
+            case onlineOnly > 0:
+                fmt.Printf("%s is online-only (a cloud placeholder or an offline file) - it was not read, so nothing was downloaded and nothing was judged.\n", root)
             case newDamaged > 0:
                 fmt.Printf("%s reads SLOWLY or not at all and was logged as damaged.\n", root)
             case unverified > 0:

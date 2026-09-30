@@ -9,7 +9,8 @@ and the owner's decision.
 | Path | Role |
 | --- | --- |
 | `AppxManifest.xml` | Manifest **template**: placeholders for the identity and version, `runFullTrust`, two applications (the window and the console tool), five languages. |
-| `build-msix.ps1` | version, build both exes, stage, logos, fill manifest, `makeappx pack`, **read the packed manifest back and assert it**. Three modes: Store, `-SelfSign`, `-Register`. |
+| `build-msix.ps1` | version, build both exes, stage, logos, fill manifest, `makeappx pack`, **read the packed manifest back and assert it**. Three modes: Store, `-SelfSign`, `-Register`; the packaged Explorer command only with `-ExplorerCommand` (section 7). |
+| `msix-manifest.ps1` | Manifest generation and the Explorer-command package check, shared by `build-msix.ps1` and `test-store-tools.ps1` (dot-sourced; runs nothing on its own). |
 | `stage/resources.pri` | Generated resource index. It is what lets Windows select the target-size and unplated forms of the 44 px logo; never edit or package a PRI by hand. |
 | `identity.json` | The reserved Store identity, recorded once (**absent until the name is reserved**, see section 2). |
 | `listing/<code>.txt` | The listing copy per language (`en ru uk de fr`) + `shared.txt`. **The single source**; the console is a render target. |
@@ -17,7 +18,7 @@ and the owner's decision.
 | `make-screenshots.ps1` | Captures the window per page and language into `screenshots/`. |
 | `screenshots/` | `<page>-<locale>.png`, 1920x1200, dark theme. Order = `DesktopScreenshot1..5`. |
 | `store-listing.md` | What the CSV does **not** carry: the `runFullTrust` justification, the export-compliance answer, the privacy declaration. |
-| `test-store-tools.ps1`, `testdata/` | Self-test of the listing sources and the CSV builder (50 checks, no Partner Center session). |
+| `test-store-tools.ps1`, `testdata/` | Self-test of the listing sources, the manifest template (including the default-off Explorer command) and the CSV builder (62 checks, no Partner Center session, no build). |
 | `stage/`, `out/` | Generated, git-ignored. `out/FileDO_<ver>.msix` is what you upload. |
 
 ## 1. Prerequisites
@@ -84,6 +85,9 @@ Output `out\FileDO_<ver>.msix` (unsigned) and a `.sha256`. What it does and asse
   `Executable` and logo present, the 16/24/32/48/256 target-size/unplated logo variants and
   `resources.pri`, all five manifest languages, and no hidden application. A mismatch aborts before the
   file is offered.
+- **No Explorer command by default** (AUD-17-F1). A default build packs no `FileDOShell.dll` and its manifest
+  declares neither `windows.fileExplorerContextMenus` nor `windows.comServer`; the read-back fails a default
+  package that carries any of the three. `-ExplorerCommand` inverts it (section 7).
 
 ### Two applications, and the "headless" rule
 
@@ -241,15 +245,30 @@ a fresh install cannot catch an identity mistake.
 
 ## 7. What the Store build does not do
 
-- No classic registry context-menu entries. From SP-0020 (built 2026-09-25, not yet released) the package
-  declares the `File DO..` group instead as a packaged Explorer command - `FileDOShell.dll`, built by
-  `shellext\build-shellext.ps1` on every `build-msix.ps1` run and hosted in a COM surrogate - which is what
-  reaches the Windows 11 first-level menu. `build-msix.ps1` fails the package if the DLL is missing or the
-  CLSID of the verb, the COM class and the DLL source disagree. It also declares the `.fd-sec` association, so
-  double-clicking a container starts the GUI with that file. Do not advertise the first-level menu in the
-  listing until it has been seen in the Store build (SP-0020 section 5).
+- **No Explorer context-menu entries** - neither classic registry keys nor, by default, the packaged Explorer
+  command. SP-0020 (built 2026-09-25, not released) can declare the `File DO..` group as a packaged Explorer
+  command - `FileDOShell.dll`, built by `shellext\build-shellext.ps1` and hosted in a COM surrogate - which is
+  what reaches the Windows 11 first-level menu. It is **opt-in at build time** (AUD-17-F1, owner decision
+  2026-09-26): only `build-msix.ps1 -ExplorerCommand` builds and stages the DLL and keeps the
+  `desktop4:FileExplorerContextMenus` verb and the `com:SurrogateServer` class in the manifest (the template
+  carries both; a default build removes them). `release.ps1` never passes the switch, so the Store package
+  matches the listing and README ("no Explorer entries"). With the switch, `build-msix.ps1` fails the package
+  if the DLL is missing or the CLSID of the verb, the COM class and the DLL source disagree; without it, it
+  fails a package that carries either extension or the DLL. Use it for local proofs
+  (`-SelfSign -ExplorerCommand`, `-Register -ExplorerCommand`). A Store package built with it must not be
+  uploaded until SP-0020's exit criterion and SP-0005 G3 are met and the listing and README change in one
+  edit. The package always declares the `.fd-sec` association, so double-clicking a container starts the GUI
+  with that file.
+- The package also declares `.fdd` (SP-0004 T6.27) for the GUI app: a double-click starts
+  `filedo_win.exe "<x.fdd>"`, which in the package opens the container's info and export page. It declares
+  **no verb** - this build cannot mount (a packaged app can neither configure the iSCSI initiator nor elevate),
+  so Mount / Mount read-only / Unmount exist only in the MSI's `DiskContainerIntegration` feature and
+  `filedo vd register`. `build-msix.ps1` fails a package whose `.fdd` declaration is missing, repeated, carries
+  a verb or an Explorer command, or lacks its logo (`Test-DiskContainerAssociation`, `msix-manifest.ps1`), and
+  `test-store-tools.ps1` proves that check on the template.
 - `filedo fdsec register` must **not** be advertised for this build. Inside the package it refuses as a usage error
   (exit 2) and writes nothing: Windows keeps a packaged app's `Software\Classes` writes to the app, where Explorer
   never looks, and the command lines would point into `C:\Program Files\WindowsApps\..`, which Explorer cannot run.
+  `filedo vd register` refuses the same way, as unsupported (exit 6, the vd family's class).
 - The window needs .NET Framework 4.8, which is in the box from Windows 10 1903; the manifest floor
   (`10.0.18362.0`) says so. The MSI and zip channels have no such floor.

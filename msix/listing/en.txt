@@ -25,12 +25,16 @@ ERASE
 PROTECT
 - Pack one file into a password-protected .fd-sec container, get the original back, or open the contents in the program they belong to without unpacking - from a read-only copy that only your account can read and that is removed when you are done with it. An empty password is accepted and means obfuscation only, not secrecy; FileDO says so where you type it. The container format is published in full, so your data can be read without FileDO.
 
+VIRTUAL DISKS
+- A .fdd container holds a whole volume in one file. In this edition you can create one, read its facts, read it through for damage, export it as a raw image or a VHD that Windows opens by itself, grow or compact it, copy it, change its password or remove it - no administrator rights needed. Without a password a container is obfuscated, not encrypted: anyone with the file and FileDO can read it. Mounting a container as a drive letter is not available in this edition (see below).
+
 PRIVATE BY DESIGN
-FileDO runs entirely on your device. It has no network code, no telemetry, no ads and no accounts. It is open source: https://github.com/SerZhyAle/FileDO
+FileDO runs entirely on your device. It never connects to the internet or to any other computer, and it has no telemetry, no ads and no accounts. It is open source: https://github.com/SerZhyAle/FileDO
 
 GOOD TO KNOW
 - This is the Microsoft Store edition. It does not add Explorer context-menu entries; those come with the MSI installer. It does claim the .fd-sec file type, so double-clicking a container opens FileDO. The same operations are available in the window and with the filedo command.
 - FileDO needs full-trust desktop access to read and write raw disk and device data: capacity testing, speed benchmarking and secure wiping cannot work without it. Wipe and fill destroy data by design and always confirm before touching drive roots or system folders.
+- Mounting .fdd virtual disks is not available in the Microsoft Store edition: a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights. Double-clicking a .fdd opens FileDO on that container, which can be read, verified and exported here; to mount one, use the setup or the portable build from GitHub.
 - Windows 10 version 1903 or later.
 
 @@Feature1
@@ -85,4 +89,4 @@ password protect file
 usb flash checker
 
 @@ReleaseNotes
-Improvements to the window's job pages and to secret files (.fd-sec). The package now includes the third-party license notices.
+New: .fdd virtual disks. In this edition you can create them, read and verify them, export them as a raw image or a VHD, grow, compact, copy and change their password; mounting one as a drive letter needs the setup or the portable build from GitHub. Without a password a container is obfuscated, not encrypted.

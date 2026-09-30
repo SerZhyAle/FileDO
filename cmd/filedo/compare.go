@@ -70,6 +70,9 @@ type compareOptions struct {
     byHash bool
     // allowMismatch: delete a pair even when size or time differ.
     allowMismatch bool
+    // assumeYes: --yes skips the question before the delete phase, never a
+    // safety check (AUD-16-F1).
+    assumeYes bool
 }
 
 // splitCompareArgs takes the flags out of a compare's extra words.
@@ -82,6 +85,8 @@ func splitCompareArgs(extra []string) (compareOptions, []string) {
             opts.byHash = true
         case "--allow-mismatch":
             opts.allowMismatch = true
+        case "--yes", "-y", "--force", "/y":
+            opts.assumeYes = true
         default:
             rest = append(rest, a)
         }
@@ -335,6 +340,11 @@ type delStats struct {
     dstBytes int64
 }
 
+// compareConfirm asks before compare deletes anything. It is clean's question
+// (cleanConfirm): a line from stdin, "y" or "yes" is yes, and a closed stdin
+// is no answer. A variable so a test can answer.
+var compareConfirm = func(prompt string) (answered, yes bool) { return cleanConfirm(prompt) }
+
 var compareDeleteModes = map[string]bool{"source": true, "target": true, "old": true, "new": true, "small": true, "big": true}
 
 // sameContent hashes two files and compares the digests.
@@ -467,6 +477,36 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
     if len(tasks) == 0 {
         fmt.Printf("No files to delete for mode '%s'.\n", mode)
         return problems
+    }
+
+    // The delete phase asks, the way clean does: the count and the rule, a
+    // few of the names, then y/N. --yes skips the question and nothing else
+    // (the pair checks below still run); a closed stdin - the GUI's, a
+    // script's - is no answer, so nothing is deleted and the run is
+    // Not proven (AUD-16-F1).
+    modeText := strings.ToUpper(mode) + " mode"
+    if sideOnly != "" {
+        modeText += ", " + strings.ToUpper(sideOnly) + " only"
+    }
+    fmt.Printf("\nCompare will permanently delete %d files (%s):\n", len(tasks), modeText)
+    for i, t := range tasks {
+        if i == 10 {
+            fmt.Printf("  .. and %d more\n", len(tasks)-10)
+            break
+        }
+        fmt.Printf("  %s: %s\n", t.side, t.rel)
+    }
+    if opts.assumeYes {
+        fmt.Printf("Confirmation skipped (--yes).\n")
+    } else {
+        answered, yes := compareConfirm(fmt.Sprintf("\nDelete these %d files (%s)? (y/N): ", len(tasks), modeText))
+        if !answered {
+            return append(problems, fmt.Sprintf("the delete needs a confirmation: %d files listed (%s), nothing deleted - pass --yes to delete them without a prompt", len(tasks), modeText))
+        }
+        if !yes {
+            fmt.Printf("Nothing deleted.\n")
+            return problems
+        }
     }
 
     fmt.Printf("Deleting %d files (%s mode)...\n", len(tasks), strings.ToUpper(mode))

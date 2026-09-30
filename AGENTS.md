@@ -50,7 +50,10 @@ release, one tag, a companion binary, *not* a separate edition. Distributed on t
   the MSIX Identity `Name` **`SZA.FileDO`** and `Publisher` **`CN=F98ACEDB-1E22-4C39-AF63-F9FCFE807DCD`**
   (Store ID `9PH1LPCMRG83`, family `SZA.FileDO_fdk7e19xt9z9j`; reserved in Partner Center and recorded in
   `msix/identity.json`, live in the Store since 2026-09-23); Go module `filedo`; the 5 winget `PortableCommandAlias` names; the
-  document type id **`FileDO.SecureContainer`** and the fixed component GUIDs in `FileDO.wxs` (an MSI
+  document type id **`FileDO.SecureContainer`**; the disk container's extension **`.fdd`**, its ProgId
+  **`FileDO.DiskContainer`** and its MSI feature id **`DiskContainerIntegration`** (SP-0004 spec 6.2: an
+  association in users' registries outlives any rename, and a renamed feature drops the user's choice
+  across an upgrade); and the fixed component GUIDs in `FileDO.wxs` (an MSI
   component keeps its GUID for the product's life, or an upgrade leaves the old copy installed); the
   **bundle `UpgradeCode 033d2348-b26c-477f-8885-c68d9cfff47f`** in `FileDO-bundle.wxs` - a separate
   identity from the MSI's, and what lets a setup EXE replace the previously installed one instead of
@@ -84,8 +87,14 @@ build to fail. The feature **descriptions** are in the wxs, because the Customiz
 description of whatever the user clicks - that is where "what is this and why would I want it" is
 answered.
 
-Three features, and the user chooses: **Main** (binaries, `PATH`, Start menu entry - `AllowAbsent="no"`),
-**ExplorerIntegration**, **DesktopShortcut**. The checkboxes come from `WixUI_FeatureTree`, so there is no
+Four features, and the user chooses: **Main** (binaries, `PATH`, Start menu entry - `AllowAbsent="no"`),
+**ExplorerIntegration**, **DiskContainerIntegration** (the `.fdd` type of SP-0004 - its icon and the Mount,
+Mount read-only and Unmount verbs, all opening `filedo_win.exe`; `filedo vd register` is its second writer,
+held to it by `TestRegistryParity_TheMSIAndVdRegisterWriteTheSameDiskContainerType`), **DesktopShortcut**.
+Main also carries a second Start menu entry, **FileDO Disk Manager** (`filedo_win.exe --disks`): a component
+of its own with its own GUID, always installed with Main and never tied to `DiskContainerIntegration`, its icon
+the `content.disk-container` drawing embedded in the MSI (`TestMSIDiskManagerShortcut_HoldsItsContract` pins it).
+The checkboxes come from `WixUI_FeatureTree`, so there is no
 hand-written dialog to maintain; silent installs pick with `ADDLOCAL`. `MigrateFeatures="yes"` is what
 keeps a user's choice across an upgrade, and `ARPNOMODIFY`/`ARPNOREPAIR` are deliberately *gone* - Change
 and Repair are the supported way to turn the integration on and off later.
@@ -123,8 +132,10 @@ Four rules that are not style:
 - **`DefaultIcon` needs a file on disk** - `FileDO.ico` beside the exe, staged from `assets/icon.ico` by
   both the workflow and `build.ps1`. The icon embedded in the MSI is gone once the installer is.
 
-**The Store (MSIX) build carries the group as a packaged Explorer command, not as registry keys** (SP-0020,
-built 2026-09-25, **not released**). `shellext/FileDOShell.cpp` is the product's **third codebase**: a native C++
+**The Store (MSIX) build can carry the group as a packaged Explorer command, not as registry keys** (SP-0020,
+built 2026-09-25, **not released**). It is opt-in: only `build-msix.ps1 -ExplorerCommand` adds the manifest
+extension and `FileDOShell.dll`; the default build (and `release.ps1`) ships neither, and the packed-manifest check
+asserts it (AUD-17-F1). `shellext/FileDOShell.cpp` is the product's **third codebase**: a native C++
 `IExplorerCommand`, one COM class, static CRT, importing `kernel32` and `ole32` only (`shellext/build-shellext.ps1`
 fails the build on any other import), declared in `msix/AppxManifest.xml` through
 `desktop4:FileExplorerContextMenus` on `Type="*"` and hosted by a COM surrogate (`com:SurrogateServer`), so it runs
@@ -479,7 +490,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 - The real gate is `build.ps1 -Test`, in nine steps: smoke every shipped executable for its stamped version
   and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); compile-check
   `cmd\filedo-test` and validate `packaging/check-placement.jsonl`; `go test ./fdsec/ -count=1 -short`;
-  `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`;
+  `go test ./vdisk/ -count=1`; `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`;
   `filedo_win.exe --selftest` (skipped only with `-SkipGui`; its old log is deleted first, and a missing log
   is exit 2); `packaging/check-third-party-notices.ps1`; `release.yml`'s Go pin against `go.mod`'s; and
   `packaging/check-internal-docs.ps1` - every document declared in `docs/DOCUMENT_REGISTRY.jsonl` (a new
@@ -504,10 +515,14 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   and proves exit-code and argv forwarding, exit 2 with no `filedo.exe`, no current-folder/`PATH` lookup,
   the symlink case and Ctrl+Break. `cmd\filedo-check` and `cmd\filedo-fill` carry the same suite, run the
   same way from inside each module.
-- **Two packages carry real tests** and both are part of the gate:
+- **Three packages carry real tests** and all are part of the gate:
   - `fdsec/` - the container format, its boundary corpus, every tampering class and the committed vectors.
     It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip (about 90 s); `release.ps1`
     runs it without `-short` before tagging.
+  - `vdisk/` - the disk container (SP-0004): a naive reference it is compared with byte for byte after
+    every step of seeded operation sequences, abrupt-failure sweeps over every write and flush of the
+    commit, extend and shrink orders, and the `FDD-FORMAT` vectors, checked by an independent reader.
+    Vet-clean; `FDD_CATALOG_VECTORS` adds the byte comparison with the catalog, as `fdsec`'s does.
   - `cmd/filedo/` - the black-box acceptance suite for the fdsec command surface. It builds its own exe and
     asserts exit codes, `history.json` redaction, the batch `.lst` path and the destructive rules. It needs
     **`-vet=off`**, because package main carries the pre-existing vet debt recorded, never suppressed, in
@@ -664,6 +679,8 @@ What this repository implements, with its pointer file:
 | --- | --- | --- | --- |
 | `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte (suite 1 one file, suite 3 one directory tree) | 1.2 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
 | `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.2 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
+| `FDD-FORMAT` - the on-disk format of a `.fdd` virtual-disk container, byte for byte; implemented by `vdisk/` (SP-0004), unreleased | 0.1 draft | `disk-container/` | [`docs/contracts/FDD-FORMAT.md`](docs/contracts/FDD-FORMAT.md) |
+| `FDD-BEHAVIOUR` - what a program that reads and writes `.fdd` containers must do: the read path with no mount, exit classes 2-8, the clean marker, obfuscated never called encrypted; implemented by `vdisk/` and `filedo vd` / `filedo <x.fdd>` (SP-0004), unreleased | 0.1 draft | `disk-container/` | [`docs/contracts/FDD-BEHAVIOUR.md`](docs/contracts/FDD-BEHAVIOUR.md) |
 | `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.9 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
 | `INSTALL-TRUST` - what a user reads in the thirty seconds after Windows warned them about an unsigned build | 1.0 | `install-trust/` | [`docs/contracts/INSTALL-TRUST.md`](docs/contracts/INSTALL-TRUST.md) |
 | `CHECK-VERDICT` - the exit code and final machine-readable line emitted by an automated check | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-VERDICT.md`](docs/contracts/CHECK-VERDICT.md) |
@@ -693,7 +710,8 @@ Four rules, because a shared contract breaks differently from ordinary code:
   where those documents live, so moving the catalog costs one edit rather than forty. Tracked files may
   cite a contract; they must not link to it, for the same reason `PLAN/` may not be linked - whoever
   clones this repository does not have `P:\`. `docs/contracts/` holds a pointer per contract, and a
-  pointer is an id, a version, a role and what we owe it - never a copy of the text.
+  pointer is an id, a version, a role and what we owe it - never a copy of the text. A contract read against this repository and found not to bind it is
+  listed, dated, at the end of that folder's `README.md`, so the next run does not read it again.
 - **The contract changes before the code does.** A format or protocol edit is agreed in the catalog, the
   version is bumped, the vectors are regenerated, the registry row is updated, and only then does an
   implementation follow. Code that ships ahead of its contract is how two projects stop being able to

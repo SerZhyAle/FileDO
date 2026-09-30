@@ -83,12 +83,61 @@ type runOutcome struct {
 	// failures counts every runFailure; a batch compares it before and after
 	// a line to know whether that line failed (CLI-12).
 	failures int
-	numbers   map[string]interface{}
-	filesLeft []string
-	reports   []string
+	// batchLines counts the command lines a `from` batch has run (nested
+	// batches included). A run of more than one line speaks rule 11's
+	// vocabulary even when a line was a container verb (AUD-29-F1).
+	batchLines int
+	// containerNo records that a container line answered "no" - a wrong
+	// credential, tampering or damage - so a batch keeps that answer after
+	// a later container line overwrote fdsecExitCode.
+	containerNo bool
+	numbers     map[string]interface{}
+	filesLeft   []string
+	reports     []string
 }
 
 var currentRun = &runOutcome{numbers: make(map[string]interface{})}
+
+// noteBatchLine counts one line of a `from` batch; executeInternalCommand is
+// its only caller.
+func noteBatchLine() {
+	currentRun.mu.Lock()
+	currentRun.batchLines++
+	currentRun.mu.Unlock()
+}
+
+// runContainerClass records the answer a container line's exit class carries
+// (fdsecSetExit is its only caller).
+func runContainerClass(code int) {
+	if verdictForFdsecExit(code) != VerdictFailed {
+		return
+	}
+	currentRun.mu.Lock()
+	currentRun.containerNo = true
+	currentRun.mu.Unlock()
+}
+
+// containerDigits reports whether the process exit code is a container verb's
+// class (FDSEC-BEHAVIOUR section 7.1) rather than rule 11's three digits. It
+// is, for one container command - typed, or the only line of a batch - and
+// never for a batch of several lines: there the container classes survive
+// only in the lines' own findings, and the digit is rule 11's, so it can
+// agree with the one verdict of the run (CLI-EVENT-STREAM 0.10 rule 12,
+// AUD-29-F1). The caller holds ro.mu.
+func (ro *runOutcome) containerDigits() bool {
+	return fdsecExitCode != 0 && ro.batchLines <= 1
+}
+
+// containerExitCode is the container class main() exits with, or 0 when the
+// run's digit is rule 11's (finishRun has then set globalExitCode).
+func containerExitCode() int {
+	currentRun.mu.Lock()
+	defer currentRun.mu.Unlock()
+	if currentRun.containerDigits() {
+		return fdsecExitCode
+	}
+	return 0
+}
 
 // beginRun opens the run: the first call emits `run`, every later one emits a
 // `step`. The second shape is the batch path - `filedo from list.lst` runs many
@@ -102,7 +151,7 @@ func beginRun(kind runKind, command, target string, args []string) {
 		if kind == runJudges {
 			currentRun.kind = runJudges
 		}
-		EmitStepEvent(command, target)
+		EmitStepEvent(command, redactCredentialTarget(target))
 		return
 	}
 	currentRun.begun = true
@@ -207,8 +256,13 @@ func runReportFile(path string) {
 // verdict is the decision, and it is made here and nowhere else.
 func (ro *runOutcome) verdict() Verdict {
 	// A container verb's digits are FDSEC-BEHAVIOUR's, so its verdict is read
-	// off those classes rather than off this function's counters (rule 12).
-	if fdsecExitCode != 0 {
+	// off those classes rather than off this function's counters (rule 12) -
+	// except that a defect the run recorded is never lost to a container
+	// class: it ends Failed whatever a container line set (AUD-29-F1).
+	if ro.containerDigits() {
+		if ro.defects > 0 {
+			return VerdictFailed
+		}
 		return verdictForFdsecExit(fdsecExitCode)
 	}
 	// A stop is not a failure and it is not a result either: the run ended
@@ -220,8 +274,11 @@ func (ro *runOutcome) verdict() Verdict {
 	// on one line and could not reach a share on the next still found the
 	// fake, and losing that answer is the failure mode rule 11 exists to
 	// prevent (CLI-06).
+	// In a batch of several lines a container line's "no" (wrong credential,
+	// tampering, damage) is a Failed answer like a defect; its other classes
+	// already counted as not proven through runFailure.
 	switch {
-	case ro.defects > 0:
+	case ro.defects > 0, ro.containerNo:
 		return VerdictFailed
 	case ro.notProven:
 		return VerdictNotProven
@@ -293,6 +350,7 @@ func finishRun() {
 	}
 	currentRun.finished = true
 	v := currentRun.verdict()
+	containerDigits := currentRun.containerDigits()
 	numbers := currentRun.numbers
 	filesLeft := currentRun.filesLeft
 	reports := currentRun.reports
@@ -300,9 +358,9 @@ func finishRun() {
 
 	EmitResultEvent(string(v), numbers, filesLeft, reports)
 
-	// The container verbs keep their own classes; everything else gets the
-	// three digits of rule 11.
-	if fdsecExitCode != 0 {
+	// One container command keeps its own classes; everything else - a batch
+	// of several lines included - gets the three digits of rule 11.
+	if containerDigits {
 		return
 	}
 	setExitCode(exitCodeFor(v))

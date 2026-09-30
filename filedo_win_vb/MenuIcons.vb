@@ -19,11 +19,13 @@ Imports System.IO
 
 Public Module MenuIcons
 
-    ' The meanings the Explorer surfaces show: the ten menu entries share five, the document type
-    ' is the sixth. Which entry takes which is the writers' table (fdsecMenuItems, FileDO.wxs,
-    ' FileDOShell.cpp), held equal by their parity tests.
+    ' The meanings the Explorer surfaces show: the ten menu entries share five, the .fd-sec document
+    ' type is the sixth, and the .fdd disk container type (SP-0004 6.1, ICON-SET 0.16) the seventh.
+    ' Which entry takes which is the writers' table (fdsecMenuItems, FileDO.wxs, FileDOShell.cpp),
+    ' held equal by their parity tests.
     Public ReadOnly Ids As String() = {
-        "action.secure", "action.unsecure", "action.wipe", "action.verify", "app.info", "content.secret-file"
+        "action.secure", "action.unsecure", "action.wipe", "action.verify", "app.info", "content.secret-file",
+        "content.disk-container"
     }
 
     ' ICON-RENDER 0.12 rule 9: one tone for a menu whose theme the product cannot see. Named in

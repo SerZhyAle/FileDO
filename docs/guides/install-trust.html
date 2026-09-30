@@ -494,19 +494,37 @@
             <span data-l="ru"
               >Если вы оставили компонент «Explorer integration» - пишет группу
               <code>File DO..</code> в контекстное меню файлов и тип документа
-              <code>.fd-sec</code> с его значком. Это единственные две записи
-              такого рода, и ничего больше в реестр не пишется.</span
+              <code>.fd-sec</code> с его значком.</span
             ><span data-l="en"
               >If you kept the &ldquo;Explorer integration&rdquo; feature,
               writes the <code>File DO..</code> group into the file context
-              menu and the <code>.fd-sec</code> document type with its icon.
-              Those are the only two registrations of that kind, and nothing
-              else is written to the registry.</span
+              menu and the <code>.fd-sec</code> document type with its
+              icon.</span
             ><span data-l="ua"
               >Якщо ви залишили компонент «Explorer integration» - пише групу
               <code>File DO..</code> у контекстне меню файлів і тип документа
-              <code>.fd-sec</code> з його піктограмою. Це єдині два записи
-              такого роду, і більше нічого в реєстр не пишеться.</span
+              <code>.fd-sec</code> з його піктограмою.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Если вы оставили компонент «Disk container files (.fdd)» - пишет
+              тип файла <code>.fdd</code> виртуальных дисков с его значком и
+              пунктами «Mount with FileDO», «Mount read-only» и «Unmount». Это
+              единственные три записи такого рода, и ничего больше в реестр не
+              пишется.</span
+            ><span data-l="en"
+              >If you kept the &ldquo;Disk container files (.fdd)&rdquo;
+              feature, writes the <code>.fdd</code> file type of the virtual
+              disks with its icon and the entries Mount with FileDO, Mount
+              read-only and Unmount. Those are the only three registrations of
+              that kind, and nothing else is written to the registry.</span
+            ><span data-l="ua"
+              >Якщо ви залишили компонент «Disk container files (.fdd)» - пише
+              тип файлу <code>.fdd</code> віртуальних дисків із його
+              піктограмою і пунктами «Mount with FileDO», «Mount read-only» та
+              «Unmount». Це єдині три записи такого роду, і більше нічого в
+              реєстр не пишеться.</span
             >
           </li>
         </ul>
@@ -561,34 +579,70 @@
               <code>filedo fdsec unregister -all-users</code>.</span
             >
           </li>
+          <li>
+            <span data-l="ru"
+              ><b>Виртуальные диски</b>: <code>mount</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code> и <code>vd auto</code>
+              просят согласие администратора при каждом запуске - только на
+              шаг, который настраивает встроенный в Windows инициатор iSCSI;
+              пароль контейнера этому шагу не передаётся. Тип
+              <code>.fdd</code> для всей машины пишет
+              <code>filedo vd register -all-users</code> из консоли
+              администратора, а убирает
+              <code>filedo vd unregister -all-users</code>.</span
+            ><span data-l="en"
+              ><b>Virtual disks</b>: <code>mount</code>, <code>unmount</code>,
+              <code>save</code>, <code>format</code> and <code>vd auto</code> ask for administrator
+              consent on every run - for the step that configures the iSCSI
+              initiator built into Windows, and nothing else; the container's
+              password never reaches that step. The machine-wide
+              <code>.fdd</code> type is written by
+              <code>filedo vd register -all-users</code> from an elevated
+              console and removed by
+              <code>filedo vd unregister -all-users</code>.</span
+            ><span data-l="ua"
+              ><b>Віртуальні диски</b>: <code>mount</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code> і <code>vd auto</code>
+              просять згоду адміністратора під час кожного запуску - лише на
+              крок, який налаштовує вбудований у Windows ініціатор iSCSI;
+              пароль контейнера цьому кроку не передається. Тип
+              <code>.fdd</code> для всієї машини пише
+              <code>filedo vd register -all-users</code> із консолі
+              адміністратора, а прибирає
+              <code>filedo vd unregister -all-users</code>.</span
+            >
+          </li>
         </ul>
         <div class="note">
           <p>
             <span data-l="ru"
               ><b>Всё это снимается одним действием.</b> «Параметры» →
               «Приложения» → FileDO → «Удалить» убирает файлы,
-              <code>PATH</code>, ярлыки, пункты Проводника и тип документа
+              <code>PATH</code>, ярлыки, пункты Проводника и оба типа файлов
               вместе. Для отдельного пакета MSI пункт «Изменить» там же
               позволяет отключить только пункты меню; в установщике setup EXE или
-              переносимой сборке то же самое делает команда
-              <code>filedo fdsec unregister</code> (добавьте
+              переносимой сборке то же самое делают команды
+              <code>filedo fdsec unregister</code> и
+              <code>filedo vd unregister</code> (добавьте
               <code>-all-users</code>, если регистрация выполнялась для всей
               машины).</span
             ><span data-l="en"
               ><b>All of it comes off in one action.</b> Settings → Apps →
               FileDO → Uninstall removes the files, the <code>PATH</code>
-              entry, the shortcuts, the Explorer entries and the document type
+              entry, the shortcuts, the Explorer entries and both file types
               together. For the standalone MSI, use Change in the same place to
               remove only the menu entries; for the setup EXE or portable
-              build, use <code>filedo fdsec unregister</code> (add
+              build, use <code>filedo fdsec unregister</code> and
+              <code>filedo vd unregister</code> (add
               <code>-all-users</code> if registered machine-wide).</span
             ><span data-l="ua"
               ><b>Усе це знімається однією дією.</b> «Параметри» → «Програми» →
               FileDO → «Видалити» прибирає файли, <code>PATH</code>, ярлики,
-              пункти Провідника і тип документа разом. Для окремого пакета MSI
+              пункти Провідника і обидва типи файлів разом. Для окремого пакета MSI
               пункт «Змінити» там само дозволяє вимкнути лише пункти меню; у
-              встановлювачі setup EXE або переносній збірці те саме робить
-              команда <code>filedo fdsec unregister</code> (додайте
+              встановлювачі setup EXE або переносній збірці те саме роблять
+              команди <code>filedo fdsec unregister</code> і
+              <code>filedo vd unregister</code> (додайте
               <code>-all-users</code>, якщо реєстрація виконувалася для всієї
               машини).</span
             >
@@ -623,20 +677,26 @@
         <ul class="steps">
           <li>
             <span data-l="ru"
-              ><b>Не выходит в сеть.</b> В исходном коде FileDO нет ни одного
-              сетевого вызова: сетевые библиотеки в него просто не подключены.
-              Пакет для Microsoft Store не объявляет разрешения на доступ в
-              интернет, поэтому Windows его и не даст.</span
+              ><b>Не выходит в сеть.</b> FileDO не подключается ни к интернету,
+              ни к другим компьютерам. Единственный сокет, который он открывает,
+              отдаёт подключённый виртуальный диск инициатору iSCSI самой Windows
+              и слушает только адрес 127.0.0.1: ничего не уходит с этого
+              компьютера. Пакет для Microsoft Store не объявляет разрешения на
+              доступ в интернет, поэтому Windows его и не даст.</span
             ><span data-l="en"
-              ><b>It never goes online.</b> There is not a single network call
-              in the FileDO source: the networking libraries are simply not
-              linked in. The Microsoft Store package declares no internet
-              capability, so Windows would not grant one anyway.</span
+              ><b>It never goes online.</b> FileDO connects neither to the
+              internet nor to any other computer. The one socket it opens serves
+              a mounted virtual disk to Windows' own iSCSI initiator and listens
+              on 127.0.0.1 only: nothing leaves this computer. The Microsoft
+              Store package declares no internet capability, so Windows would not
+              grant one anyway.</span
             ><span data-l="ua"
-              ><b>Не виходить у мережу.</b> У вихідному коді FileDO немає
-              жодного мережевого виклику: мережеві бібліотеки до нього просто
-              не під'єднані. Пакет для Microsoft Store не оголошує дозволу на
-              доступ до інтернету, тож Windows його й не надасть.</span
+              ><b>Не виходить у мережу.</b> FileDO не під'єднується ні до
+              інтернету, ні до інших комп'ютерів. Єдиний сокет, який він
+              відкриває, віддає підключений віртуальний диск ініціатору iSCSI
+              самої Windows і слухає лише адресу 127.0.0.1: ніщо не залишає цей
+              комп'ютер. Пакет для Microsoft Store не оголошує дозволу на доступ
+              до інтернету, тож Windows його й не надасть.</span
             >
           </li>
           <li>
