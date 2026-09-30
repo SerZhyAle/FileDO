@@ -101,6 +101,8 @@ Public Class DiskOptions
     Public Property Dest As String = ""
     Public Property AutoOn As Boolean = True
     Public Property Remember As Boolean = True
+    ' The shutdown guard's switch (SP-0080): on creates its scheduled task, off removes it.
+    Public Property GuardOn As Boolean = True
     Public Property Name As String = ""
     Public Property ShowMounted As Boolean = False
     Public Property HasCredential As Boolean = False
@@ -134,10 +136,11 @@ Public Module DiskCommands
     End Function
 
     ' The verbs that need the iSCSI transport or elevation, which a packaged build refuses as
-    ' class 6 (brief, T6.26).
+    ' class 6 (brief, T6.26). The guard is one of them: its whole work is unmounting, which needs
+    ' the rights the packaged build never asks for.
     Public Function NeedsTransport(verb As String) As Boolean
         Select Case verb
-            Case "mount", "unmount", "save", "format", "auto"
+            Case "mount", "unmount", "save", "format", "auto", "guard"
                 Return True
         End Select
         Return False
@@ -194,6 +197,12 @@ Public Module DiskCommands
                     a.Add("off")
                     If hasTarget Then a.Add(target)
                 End If
+                Return a
+
+            Case "guard"
+                a.Add("vd")
+                a.Add("guard")
+                a.Add(If(o.GuardOn, "on", "off"))
                 Return a
 
             Case "add"

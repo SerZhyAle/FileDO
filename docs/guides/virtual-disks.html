@@ -106,7 +106,7 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container">
+    <main class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · виртуальные диски</span
@@ -637,18 +637,20 @@
             <span data-l="ru"
               ><b>Подключение переживает окно.</b> Если закрыть окно FileDO с
               подключённым диском, буква и её сервер остаются; новое окно
-              снова покажет их в списке. Отключайте на странице группы
-              «Диски» или командой <code>filedo X: unmount</code>.</span
+              снова покажет их в списке. Отключайте в Диспетчере дисков, на
+              странице группы «Диски» или командой
+              <code>filedo X: unmount</code>.</span
             ><span data-l="en"
               ><b>A mount outlives the window.</b> Close the FileDO window with a
               disk mounted and the letter and its server stay; a new window lists
-              them again. Unmount on the Disks pages or with
-              <code>filedo X: unmount</code>.</span
+              them again. Unmount in the Disk manager, on the Disks pages, or
+              with <code>filedo X: unmount</code>.</span
             ><span data-l="ua"
               ><b>Підключення переживає вікно.</b> Якщо закрити вікно FileDO з
               підключеним диском, літера та її сервер лишаються; нове вікно
-              знову покаже їх у списку. Відключайте на сторінці групи «Диски»
-              або командою <code>filedo X: unmount</code>.</span
+              знову покаже їх у списку. Відключайте в Диспетчері дисків, на
+              сторінці групи «Диски» або командою
+              <code>filedo X: unmount</code>.</span
             >
           </li>
         </ol>
@@ -742,7 +744,9 @@
             ждёт вас; уже подключённый открывает свой диск. Правый клик
             добавляет «Mount read-only» и «Unmount»; в Windows 11 они в
             «Показать дополнительные параметры». В окне группа «Диски» несёт
-            по странице на каждую операцию. В сборке из Microsoft Store пунктов
+            по странице на каждую операцию, а <a href="#manager">Диспетчер
+            дисков</a> показывает все диски в одном месте. В сборке из
+            Microsoft Store пунктов
             меню нет, но двойной клик по <code>.fdd</code> открывает окно
             FileDO на этом контейнере, и окно прямо говорит, что эта сборка
             подключать не умеет.</span
@@ -760,7 +764,9 @@
             waits for you; one already mounted opens its drive. The right-click
             menu adds "Mount read-only" and "Unmount"; on Windows 11 they are
             under "Show more options". In the window, the Disks group has a page
-            for each operation. The Microsoft Store build has no menu entries,
+            for each operation, and <a href="#manager">the Disk manager</a> lists
+            every disk in one place. The Microsoft Store build has no menu
+            entries,
             but a double-click on a <code>.fdd</code> opens the FileDO window on
             that container, and the window says plainly that this build cannot
             mount.</span
@@ -778,7 +784,9 @@
             збереження і чекає на вас; уже підключений відкриває свій диск.
             Правий клік додає «Mount read-only» і «Unmount»; у Windows 11 вони
             в «Показати додаткові параметри». У вікні група «Диски» має по
-            сторінці на кожну операцію. У збірці з Microsoft Store пунктів меню
+            сторінці на кожну операцію, а <a href="#manager">Диспетчер дисків</a>
+            показує всі диски в одному місці. У збірці з Microsoft Store
+            пунктів меню
             немає, але подвійний клік на <code>.fdd</code> відкриває вікно
             FileDO на цьому контейнері, і вікно прямо каже, що ця збірка
             підключати не вміє.</span
@@ -789,6 +797,726 @@
             class="copy"
             data-copy="filedo vd register"
           ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+        </div>
+      </section>
+      <section class="section" id="manager">
+        <h2>
+          <span data-l="ru">Диспетчер дисков</span
+          ><span data-l="en">The Disk manager</span
+          ><span data-l="ua">Диспетчер дисків</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >У окна FileDO есть второе окно для виртуальных дисков - Диспетчер
+            дисков. Это графическая оболочка <code>filedo.exe</code>, а не
+            новая программа: <code>filedo_win.exe</code> лишь открывает ещё
+            одно окно. Диспетчер собирает все виртуальные диски в одном месте, по
+            строке на диск: диски из вашего списка, диски, подключённые сейчас,
+            и образы дисков (VHD, VHDX, ISO), которые подключил FileDO. Окно само
+            поддерживает актуальность без ручного обновления - подключение,
+            сделанное в другом месте, появляется в течение нескольких
+            секунд.</span
+          ><span data-l="en"
+            >The FileDO window has a second window for virtual disks: the Disk
+            manager. It is the graphical shell of <code>filedo.exe</code>, not
+            a new program - <code>filedo_win.exe</code> only opens another
+            window. It gathers every virtual disk in one place, one row per
+            disk: the disks in your list, the ones mounted now, and the disk
+            images (VHD, VHDX, ISO) FileDO mounted. It keeps itself true without
+            a manual refresh - a mount done elsewhere shows up within
+            seconds.</span
+          ><span data-l="ua"
+            >У вікна FileDO є друге вікно для віртуальних дисків - Диспетчер
+            дисків. Це графічна оболонка <code>filedo.exe</code>, а не нова
+            програма: <code>filedo_win.exe</code> лише відкриває ще одне вікно.
+            Диспетчер збирає всі віртуальні диски в одному місці, по рядку на диск:
+            диски з вашого списку, диски, підключені зараз, і образи дисків
+            (VHD, VHDX, ISO), які підключив FileDO. Вікно саме підтримує актуальність без
+            ручного оновлення - підключення, зроблене деінде, з'являється за
+            кілька секунд.</span
+          >
+        </p>
+        <figure class="shot">
+          <span data-l="ru"
+            ><img
+              src="../assets/guides/gui-disk-manager-ru.png"
+              width="1052"
+              height="733"
+              loading="lazy"
+              alt="Окно Диспетчера дисков: панель кнопок «Новый диск..», «Добавить..», «Подключить», «Отключить», «Открыть», «Сохранить», «Ещё», «Обновить», «Справка» и «Главное окно»; строка фильтра; список со столбцами «Имя», «Диск», «Состояние», «Профиль», «Защита», «Размер» и «Авто», где у каждой строки состояние словами и значок; под списком панель подробностей выбранного диска secrets, подключённого только для чтения"
+          /></span
+          ><span data-l="en"
+            ><img
+              src="../assets/guides/gui-disk-manager-en.png"
+              width="1052"
+              height="733"
+              loading="lazy"
+              alt="The Disk manager window: a toolbar with New disk.., Add.., Mount, Unmount, Open, Save, More actions, Refresh, Help and Main window; a filter row; a list with the columns Name, Drive, State, Profile, Protection, Size and Auto, where each row shows its state in words beside a glyph; and under the list the detail pane of the selected disk, secrets, mounted read-only"
+          /></span
+          ><span data-l="ua"
+            ><img
+              src="../assets/guides/gui-disk-manager-ua.png"
+              width="1052"
+              height="733"
+              loading="lazy"
+              alt="Вікно Диспетчера дисків: панель кнопок «Новий диск..», «Додати..», «Підключити», «Відключити», «Відкрити», «Зберегти», «Ще», «Оновити», «Довідка» та «Головне вікно»; рядок фільтра; список зі стовпцями «Ім'я», «Диск», «Стан», «Профіль», «Захист», «Розмір» та «Авто», де в кожного рядка стан словами і значок; під списком панель подробиць вибраного диска secrets, підключеного лише для читання"
+          /></span>
+          <figcaption>
+            <span data-l="ru"
+              >Диспетчер дисков на примере списка: по строке на диск, состояние
+              словами и панель подробностей выбранного.</span
+            ><span data-l="en"
+              >The Disk manager on a sample list: one row per disk, its state in
+              words, and the detail pane of the selected one.</span
+            ><span data-l="ua"
+              >Диспетчер дисків на прикладі списку: по рядку на диск, стан
+              словами і панель подробиць вибраного.</span
+            >
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Строка - это диск</span
+              ><span data-l="en">One row, one disk</span
+              ><span data-l="ua">Рядок - це диск</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Состояние написано словами, рядом со значком: «Подключён»;
+                «Подключён, только чтение»; «Подключён, не сохранено 180 MiB»
+                (диск <code>ram</code> - объём, которого ещё нет в файле);
+                «Сервер пропал - том недоступен»; «Образ подключён»; «Файл
+                пропал»; «По этому пути другой контейнер»; «Не читается»;
+                «Закрыт некорректно»; «Не подключён».</span
+              ><span data-l="en"
+                >The state is written in words, beside a glyph: "Mounted";
+                "Mounted, read-only"; "Mounted, 180 MiB not saved" (a
+                <code>ram</code> disk - the amount not yet in the file); "Server
+                gone - volume offline"; "Image mounted"; "File missing"; "A
+                different container is at this path"; "Unreadable"; "Not closed
+                cleanly"; "Not mounted".</span
+              ><span data-l="ua"
+                >Стан написано словами, поруч зі значком: «Підключений»;
+                «Підключений, лише читання»; «Підключений, не збережено 180 MiB»
+                (диск <code>ram</code> - обсяг, якого ще немає у файлі); «Сервер
+                зник - том недоступний»; «Образ підключено»; «Файл зник»; «За
+                цим шляхом інший контейнер»; «Не читається»; «Закритий
+                некоректно»; «Не підключений».</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Панель, фильтр, подробности</span
+              ><span data-l="en">Toolbar, filter, details</span
+              ><span data-l="ua">Панель, фільтр, подробиці</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >У каждой кнопки панели есть значок: «Новый диск..»,
+                «Добавить..», «Подключить», «Отключить», «Открыть» (в
+                Проводнике), «Сохранить» (записывает диск <code>ram</code> в
+                файл сейчас),
+                «Ещё», «Обновить», «Справка» и «Главное окно». Под панелью -
+                строка фильтра: подпись, поле и крестик, который его очищает.
+                Под списком панель подробностей описывает выбранный диск
+                предложениями и несёт кнопки, которые к нему применимы; она
+                закрывается крестиком у правого края, а вернуть её можно
+                щелчком по узкой полосе «Показать подробности» или из меню
+                «Ещё». Недоступная
+                кнопка серая, а почему - сказано в её подсказке и в панели
+                подробностей. Сборка из Microsoft Store подключать не может
+                вовсе, поэтому прячет элементы подключения, а не делает их
+                серыми.</span
+              ><span data-l="en"
+                >Every toolbar button carries a glyph: New disk.., Add.., Mount,
+                Unmount, Open (in Explorer), Save (writes a <code>ram</code>
+                disk back to its file now), More actions, Refresh, Help and Main
+                window. A filter row
+                sits under it: a label, a box and a cross that clears it. Under
+                the list a detail pane describes the selected disk in sentences,
+                with the buttons that apply to it; it closes with a cross at its
+                right edge and comes back from a slim "Show details" bar or from
+                the More actions menu. A button that cannot be used now is grey,
+                and its tooltip and the detail pane say why. The Microsoft Store
+                build can never mount, so it hides the mount controls instead of
+                greying them.</span
+              ><span data-l="ua"
+                >У кожної кнопки панелі є значок: «Новий диск..», «Додати..»,
+                «Підключити», «Відключити», «Відкрити» (в Провіднику), «Зберегти»
+                (записує диск <code>ram</code> у файл зараз), «Ще», «Оновити»,
+                «Довідка» та
+                «Головне вікно». Під панеллю - рядок фільтра: підпис, поле та
+                хрестик, що його очищає. Під списком панель подробиць описує
+                вибраний диск реченнями й несе кнопки, які до нього застосовні;
+                вона закривається хрестиком біля правого краю, а повернути її
+                можна кліком по вузькій смузі «Показати подробиці» або з меню
+                «Ще». Недоступна
+                кнопка сіра, а чому - сказано в її підказці та в панелі
+                подробиць. Збірка з Microsoft Store підключати не може взагалі,
+                тому ховає елементи підключення, а не робить їх сірими.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Один жест</span
+              ><span data-l="en">One gesture</span
+              ><span data-l="ua">Один жест</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Двойной клик или <kbd>Enter</kbd> подключает неподключённый
+                диск и открывает том подключённого - никогда не отключает.
+                Правый клик по строке открывает её меню: сначала быстрые
+                действия, под разделителем - те, что передаются странице
+                задания; «Форматировать» и «Уничтожить» - в самом конце и цветом
+                опасности. Перетащите файлы <code>.fdd</code> на список, чтобы
+                добавить их; перетащите <code>.vhd</code>, <code>.vhdx</code>
+                или <code>.iso</code>, чтобы подключить образ после одного
+                подтверждения. Клик с <kbd>Ctrl</kbd> или <kbd>Shift</kbd>
+                выбирает несколько дисков.</span
+              ><span data-l="en"
+                >A double-click or <kbd>Enter</kbd> mounts a disk at rest and
+                opens the drive of a mounted one - it never unmounts. A
+                right-click on a row opens its menu: the quick actions first,
+                the ones handed to a job page under a separator, Format and
+                Destroy last and in the danger colour. Drag
+                <code>.fdd</code> files onto the list to add them; drag a
+                <code>.vhd</code>, <code>.vhdx</code> or <code>.iso</code> to
+                mount the image after one confirmation. A click with
+                <kbd>Ctrl</kbd> or <kbd>Shift</kbd> selects several disks.</span
+              ><span data-l="ua"
+                >Подвійний клік або <kbd>Enter</kbd> підключає непідключений
+                диск і відкриває том підключеного - ніколи не відключає. Правий
+                клік по рядку відкриває його меню: спершу швидкі дії, під
+                роздільником - ті, що передаються сторінці завдання;
+                «Форматувати» і «Знищити» - в самому кінці й кольором небезпеки.
+                Перетягніть файли <code>.fdd</code> на список, щоб додати їх;
+                перетягніть <code>.vhd</code>, <code>.vhdx</code> або
+                <code>.iso</code>, щоб підключити образ після одного
+                підтвердження. Клік із <kbd>Ctrl</kbd> або <kbd>Shift</kbd>
+                вибирає кілька дисків.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Операции с параметрами</span
+              ><span data-l="en">Operations with parameters</span
+              ><span data-l="ua">Операції з параметрами</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Операция с параметрами или без пути назад - «Новый диск»,
+                «Экспорт», «Сжать», «Увеличить», «Запечатанная копия»,
+                «Клонировать», «Сменить пароль», «Форматировать», «Уничтожить» -
+                открывает свою страницу задания в главном окне, с уже выбранным
+                контейнером. Сам диспетчер эти командные строки не собирает, а
+                «Форматировать» и «Уничтожить» сохраняют подтверждение, которое
+                нужно набрать на странице задания.</span
+              ><span data-l="en"
+                >An operation with parameters, or with no way back - New disk,
+                Export, Compact, Grow, Seal copy, Clone, Change password, Format,
+                Destroy - opens its own job page in the main window with the
+                container already chosen. The manager itself never builds those
+                command lines, and Format and Destroy keep the confirmation you
+                have to type on the job page.</span
+              ><span data-l="ua"
+                >Операція з параметрами або без шляху назад - «Новий диск»,
+                «Експорт», «Стиснути», «Збільшити», «Запечатана копія»,
+                «Клонувати», «Змінити пароль», «Форматувати», «Знищити» -
+                відкриває свою сторінку завдання в головному вікні, з уже
+                вибраним контейнером. Сам диспетчер ці командні рядки не
+                збирає, а «Форматувати» і «Знищити» зберігають підтвердження,
+                яке треба набрати на сторінці завдання.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="manager-keys">
+        <h2>
+          <span data-l="ru">Клавиатура диспетчера</span
+          ><span data-l="en">Disk manager keyboard</span
+          ><span data-l="ua">Клавіатура диспетчера</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Те же клавиши перечислены в справке диспетчера - её открывает
+            <kbd>F1</kbd>.</span
+          ><span data-l="en"
+            >The same keys are listed in the manager's own help, which
+            <kbd>F1</kbd> opens.</span
+          ><span data-l="ua"
+            >Ті самі клавіші перелічено в довідці диспетчера - її відкриває
+            <kbd>F1</kbd>.</span
+          >
+        </p>
+        <div class="tablewrap">
+          <table class="keytable">
+            <thead>
+              <tr>
+                <th>
+                  <span data-l="ru">Клавиши</span><span data-l="en">Keys</span
+                  ><span data-l="ua">Клавіші</span>
+                </th>
+                <th>
+                  <span data-l="ru">Действие</span
+                  ><span data-l="en">What it does</span
+                  ><span data-l="ua">Дія</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><kbd>Ctrl+N</kbd></td>
+                <td>
+                  <span data-l="ru">Новый диск..</span
+                  ><span data-l="en">New disk..</span
+                  ><span data-l="ua">Новий диск..</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+O</kbd></td>
+                <td>
+                  <span data-l="ru">Главное окно</span
+                  ><span data-l="en">Main window</span
+                  ><span data-l="ua">Головне вікно</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+O</kbd></td>
+                <td>
+                  <span data-l="ru">Добавить..</span
+                  ><span data-l="en">Add..</span
+                  ><span data-l="ua">Додати..</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+M</kbd></td>
+                <td>
+                  <span data-l="ru">Подключить</span
+                  ><span data-l="en">Mount</span
+                  ><span data-l="ua">Підключити</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+M</kbd></td>
+                <td>
+                  <span data-l="ru">Подключить только для чтения</span
+                  ><span data-l="en">Mount read-only</span
+                  ><span data-l="ua">Підключити лише для читання</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+U</kbd></td>
+                <td>
+                  <span data-l="ru">Отключить</span
+                  ><span data-l="en">Unmount</span
+                  ><span data-l="ua">Відключити</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+E</kbd></td>
+                <td>
+                  <span data-l="ru">Открыть в Проводнике</span
+                  ><span data-l="en">Open in Explorer</span
+                  ><span data-l="ua">Відкрити в Провіднику</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+S</kbd></td>
+                <td>
+                  <span data-l="ru">Сохранить сейчас</span
+                  ><span data-l="en">Save now</span
+                  ><span data-l="ua">Зберегти зараз</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+I</kbd></td>
+                <td>
+                  <span data-l="ru">Сведения</span
+                  ><span data-l="en">Info</span
+                  ><span data-l="ua">Відомості</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+V</kbd></td>
+                <td>
+                  <span data-l="ru">Проверить</span
+                  ><span data-l="en">Verify</span
+                  ><span data-l="ua">Перевірити</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Enter</kbd></td>
+                <td>
+                  <span data-l="ru"
+                    >Подключить неподключённый диск или открыть том
+                    подключённого</span
+                  ><span data-l="en"
+                    >Mount a disk at rest, or open the drive of a mounted
+                    one</span
+                  ><span data-l="ua"
+                    >Підключити непідключений диск або відкрити том
+                    підключеного</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Del</kbd></td>
+                <td>
+                  <span data-l="ru">Убрать из списка (никогда не «Уничтожить»)</span
+                  ><span data-l="en">Remove from list (never Destroy)</span
+                  ><span data-l="ua">Прибрати зі списку (ніколи не «Знищити»)</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+C</kbd></td>
+                <td>
+                  <span data-l="ru">Копировать путь</span
+                  ><span data-l="en">Copy path</span
+                  ><span data-l="ua">Копіювати шлях</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+A</kbd></td>
+                <td>
+                  <span data-l="ru">Выбрать все диски в списке</span
+                  ><span data-l="en">Select every disk in the list</span
+                  ><span data-l="ua">Вибрати всі диски у списку</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Menu</kbd> / <kbd>Shift+F10</kbd></td>
+                <td>
+                  <span data-l="ru">Открыть меню выбранного диска</span
+                  ><span data-l="en">Open the menu of the selected disk</span
+                  ><span data-l="ua">Відкрити меню вибраного диска</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>F5</kbd></td>
+                <td>
+                  <span data-l="ru">Обновить</span
+                  ><span data-l="en">Refresh</span
+                  ><span data-l="ua">Оновити</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+F</kbd></td>
+                <td>
+                  <span data-l="ru">Перейти в поле фильтра</span
+                  ><span data-l="en">Go to the filter box</span
+                  ><span data-l="ua">Перейти в поле фільтра</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Esc</kbd></td>
+                <td>
+                  <span data-l="ru">Очистить фильтр</span
+                  ><span data-l="en">Clear the filter</span
+                  ><span data-l="ua">Очистити фільтр</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>F1</kbd></td>
+                <td>
+                  <span data-l="ru">Открыть справку</span
+                  ><span data-l="en">Open the help</span
+                  ><span data-l="ua">Відкрити довідку</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">В главном окне FileDO</span
+            ><span data-l="en">In the FileDO main window</span
+            ><span data-l="ua">У головному вікні FileDO</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><kbd>Ctrl+Shift+D</kbd> открывает Диспетчер дисков.</span
+            ><span data-l="en"
+              ><kbd>Ctrl+Shift+D</kbd> opens the Disk manager.</span
+            ><span data-l="ua"
+              ><kbd>Ctrl+Shift+D</kbd> відкриває Диспетчер дисків.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section class="section" id="manager-start">
+        <h2>
+          <span data-l="ru">Как открыть, справка и первый запуск</span
+          ><span data-l="en">Opening it, the help and the first run</span
+          ><span data-l="ua">Як відкрити, довідка і перший запуск</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>Меню «Пуск».</b> Установщик добавляет отдельный пункт
+              <b>FileDO Disk Manager</b>: он входит в основной компонент, так
+              что есть всегда. Он запускает
+              <code>filedo_win.exe --disks</code> и открывает диспетчер сразу,
+              без главного окна.</span
+            ><span data-l="en"
+              ><b>The Start menu.</b> The installer adds an entry of its own,
+              <b>FileDO Disk Manager</b>, as part of the main feature, so it is
+              always there. It runs <code>filedo_win.exe --disks</code> and
+              opens the manager straight, with no main window.</span
+            ><span data-l="ua"
+              ><b>Меню «Пуск».</b> Інсталятор додає окремий пункт
+              <b>FileDO Disk Manager</b>: він входить в основний компонент, тож
+              є завжди. Він запускає <code>filedo_win.exe --disks</code> і
+              відкриває диспетчер одразу, без головного вікна.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Главное окно.</b> Кнопка «Диспетчер дисков» в его заголовке,
+              справа вверху, и первая строка группы «Диски» в левом списке;
+              то же делает <kbd>Ctrl+Shift+D</kbd>.</span
+            ><span data-l="en"
+              ><b>The main window.</b> The "Disk manager" button in its header,
+              at the top right, and the first row of the Disks group in its left
+              rail; <kbd>Ctrl+Shift+D</kbd> does the same.</span
+            ><span data-l="ua"
+              ><b>Головне вікно.</b> Кнопка «Диспетчер дисків» у його
+              заголовку, праворуч угорі, і перший рядок групи «Диски» в лівому
+              списку; те саме робить <kbd>Ctrl+Shift+D</kbd>.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Командная строка.</b> Ключ <code>--disks</code>.</span
+            ><span data-l="en"
+              ><b>The command line.</b> The <code>--disks</code> switch.</span
+            ><span data-l="ua"
+              ><b>Командний рядок.</b> Ключ <code>--disks</code>.</span
+            >
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo_win.exe --disks<button
+            class="copy"
+            data-copy="filedo_win.exe --disks"
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <p class="intro">
+          <span data-l="ru"
+            >Два окна ссылаются друг на друга. Кнопка «Главное окно» в
+            диспетчере, со знаком FileDO, выводит главное окно FileDO вперёд, а
+            если диспетчер запущен один - открывает его. Кнопка «Диспетчер
+            дисков» в главном окне открывает диспетчер или выводит его
+            вперёд.</span
+          ><span data-l="en"
+            >The two windows point at each other. The manager's "Main window"
+            button, with the FileDO mark, brings the FileDO main window forward
+            - and opens it if the manager was started alone. The main window's
+            "Disk manager" button opens the manager, or brings it forward.</span
+          ><span data-l="ua"
+            >Два вікна посилаються одне на одне. Кнопка «Головне вікно» в
+            диспетчері, зі знаком FileDO, виводить головне вікно FileDO вперед,
+            а якщо диспетчер запущено сам - відкриває його. Кнопка «Диспетчер
+            дисків» у головному вікні відкриває диспетчер або виводить його
+            вперед.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Справка</span><span data-l="en">Help</span
+              ><span data-l="ua">Довідка</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><kbd>F1</kbd> открывает окно справки: что говорит строка,
+                таблица клавиш, немного полезного и ссылки. Кнопка «Справка»
+                открывает меню: «Справка и сочетания клавиш», «Первые шаги..» и
+                ссылки - «Руководство: виртуальные диски», «Все руководства»,
+                «Сайт FileDO», «Документация и исходный код» на GitHub и
+                «Сообщить о проблеме». Ссылка открывается только по щелчку;
+                сама по себе программа ничего не загружает.</span
+              ><span data-l="en"
+                ><kbd>F1</kbd> opens the help window: what a row says, the
+                keyboard table, a few things good to know, and links. The Help
+                button opens a menu: "Help and keyboard shortcuts", "First
+                steps..", and links to "Guide: virtual disks", "All guides",
+                "FileDO website", "Documentation and source" on GitHub and
+                "Report a problem". A link is followed only when you click it;
+                nothing is fetched by itself.</span
+              ><span data-l="ua"
+                ><kbd>F1</kbd> відкриває вікно довідки: що каже рядок, таблиця
+                клавіш, дещо корисне й посилання. Кнопка «Довідка» відкриває
+                меню: «Довідка та скорочення клавіш», «Перші кроки..» і
+                посилання - «Посібник: віртуальні диски», «Усі посібники», «Сайт
+                FileDO», «Документація та вихідний код» на GitHub і «Повідомити
+                про проблему». Посилання відкривається лише за кліком; сама
+                собою програма нічого не завантажує.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Первый запуск</span
+              ><span data-l="en">First run</span
+              ><span data-l="ua">Перший запуск</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >При первом открытии диспетчер один раз показывает окно
+                «Добро пожаловать в Диспетчер дисков». Оно говорит, что такое
+                виртуальный диск, и разделяет два обещания: «Замаскирован, а не
+                зашифрован: его прочтёт любой, у кого есть этот файл и FileDO.
+                Открывается без пароля.» «Зашифрован: открывается только своим
+                паролем.» Оно говорит и о том, что Windows спрашивает согласие
+                администратора при каждом подключении и отключении, и о том,
+                что диски остаются подключёнными, когда окно закрыто. Окно
+                предлагает четыре ответа: «Создать мой первый диск..», «Добавить файл .fdd,
+                который у меня уже есть..», «Прочитать руководство на сайте» и
+                «Не сейчас» - это настоящий ответ, после него остаётся рабочее
+                окно. Открыть его снова можно через «Справка», «Первые
+                шаги..»; пустой список показывает те же способы начать.</span
+              ><span data-l="en"
+                >The first time the Disk manager opens, it shows "Welcome to the
+                Disk manager" once. It says what a virtual disk is and puts the
+                two promises apart: "Obfuscated, not encrypted: anyone with this
+                file and FileDO can read it. It opens without a password."
+                "Encrypted: it opens only with its password." It says that
+                Windows asks for administrator consent every time a disk is
+                mounted or unmounted, and that your disks stay mounted when the
+                window closes. It offers four answers: "Create my first disk..",
+                "Add a .fdd file
+                I already have..", "Read the guide on the website" and "Not now"
+                - a real answer, which leaves a working window. It opens again
+                from Help, First steps.., and an empty list shows the same ways
+                to start.</span
+              ><span data-l="ua"
+                >Під час першого відкриття диспетчер один раз показує вікно
+                «Ласкаво просимо до Диспетчера дисків». Воно каже, що таке
+                віртуальний диск, і розділяє дві обіцянки: «Замаскований, а не
+                зашифрований: його прочитає будь-хто, у кого є цей файл і FileDO.
+                Відкривається без пароля.» «Зашифрований: відкривається лише
+                своїм паролем.» Воно каже й про те, що Windows питає згоду
+                адміністратора під час кожного підключення й відключення, і про
+                те, що диски лишаються підключеними, коли вікно закрито. Вікно
+                пропонує чотири відповіді: «Створити мій перший диск..», «Додати файл .fdd, який
+                у мене вже є..», «Прочитати посібник на сайті» і «Не зараз» - це
+                справжня відповідь, після неї лишається робоче вікно. Відкрити
+                його знову можна через «Довідка», «Перші кроки..»; порожній
+                список показує ті самі способи почати.</span
+              >
+            </p>
+          </article>
+        </div>
+        <figure class="shot narrow">
+          <span data-l="ru"
+            ><img
+              src="../assets/guides/gui-disk-help-ru.png"
+              width="695"
+              height="1020"
+              loading="lazy"
+              alt="Первый экран справки Диспетчера дисков: заголовок, введение и раздел «Что говорит строка» - каждое состояние словами, со значком и пояснением; таблица клавиш ниже"
+          /></span
+          ><span data-l="en"
+            ><img
+              src="../assets/guides/gui-disk-help-en.png"
+              width="695"
+              height="1020"
+              loading="lazy"
+              alt="The first screen of the Disk manager help window: the heading, an introduction and What a row says - each state in words with its glyph and a sentence of explanation; the keyboard table follows below"
+          /></span
+          ><span data-l="ua"
+            ><img
+              src="../assets/guides/gui-disk-help-ua.png"
+              width="695"
+              height="1020"
+              loading="lazy"
+              alt="Перший екран довідки Диспетчера дисків: заголовок, вступ і розділ «Що каже рядок» - кожен стан словами, зі значком і поясненням; таблиця клавіш нижче"
+          /></span>
+          <figcaption>
+            <span data-l="ru"
+              >Справка открывается на разделе «Что говорит строка»; ниже -
+              таблица клавиш, несколько замечаний и ссылки.</span
+            ><span data-l="en"
+              >The help opens on What a row says; the keyboard table, a few
+              notes and the links are below it.</span
+            ><span data-l="ua"
+              >Довідка відкривається на розділі «Що каже рядок»; нижче -
+              таблиця клавіш, кілька зауважень і посилання.</span
+            >
+          </figcaption>
+        </figure>
+        <figure class="shot narrow">
+          <span data-l="ru"
+            ><img
+              src="../assets/guides/gui-disk-welcome-ru.png"
+              width="594"
+              height="595"
+              loading="lazy"
+              alt="Окно первого запуска «Добро пожаловать в Диспетчер дисков»: короткое объяснение, слова о замаскированном и зашифрованном, замечание о согласии администратора и кнопки «Создать мой первый диск..», «Добавить файл .fdd, который у меня уже есть..», «Прочитать руководство на сайте» и «Не сейчас»"
+          /></span
+          ><span data-l="en"
+            ><img
+              src="../assets/guides/gui-disk-welcome-en.png"
+              width="594"
+              height="551"
+              loading="lazy"
+              alt="The first-run window, Welcome to the Disk manager: a short explanation, the words on obfuscated and encrypted, the note on administrator consent, and the buttons Create my first disk.., Add a .fdd file I already have.., Read the guide on the website and Not now"
+          /></span
+          ><span data-l="ua"
+            ><img
+              src="../assets/guides/gui-disk-welcome-ua.png"
+              width="594"
+              height="551"
+              loading="lazy"
+              alt="Вікно першого запуску «Ласкаво просимо до Диспетчера дисків»: коротке пояснення, слова про замаскований і зашифрований, зауваження про згоду адміністратора та кнопки «Створити мій перший диск..», «Додати файл .fdd, який у мене вже є..», «Прочитати посібник на сайті» і «Не зараз»"
+          /></span>
+          <figcaption>
+            <span data-l="ru"
+              >Окно первого запуска: три способа начать и «Не сейчас» как
+              настоящий ответ.</span
+            ><span data-l="en"
+              >The first-run window: three ways to start, and "Not now" as a
+              real answer.</span
+            ><span data-l="ua"
+              >Вікно першого запуску: три способи почати і «Не зараз» як
+              справжня відповідь.</span
+            >
+          </figcaption>
+        </figure>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Остальное не меняется</span
+            ><span data-l="en">Nothing else changes</span
+            ><span data-l="ua">Решта не змінюється</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >Формат и правила безопасности те же, что выше. Подключение
+              переживает окно, и закрытие окна никогда не отключает диск.
+              «Форматировать» и «Уничтожить» сохраняют подтверждение, которое
+              нужно набрать на странице задания. Два слова сохраняют смысл: без
+              пароля контейнер замаскирован, а не зашифрован; с паролем он
+              зашифрован.</span
+            ><span data-l="en"
+              >The format and the safety rules are the ones above. A mount
+              outlives the window, and closing the window never unmounts. Format
+              and Destroy keep the confirmation you have to type on the job page.
+              The two words keep their meaning: without a password a container
+              is obfuscated, not encrypted; with one it is encrypted.</span
+            ><span data-l="ua"
+              >Формат і правила безпеки ті самі, що вище. Підключення переживає
+              вікно, і закриття вікна ніколи не відключає диск. «Форматувати» і
+              «Знищити» зберігають підтвердження, яке треба набрати на сторінці
+              завдання. Два слова зберігають зміст: без пароля контейнер
+              замаскований, а не зашифрований; з паролем він зашифрований.</span
+            >
+          </p>
         </div>
       </section>
     </main>

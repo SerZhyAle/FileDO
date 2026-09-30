@@ -74,6 +74,7 @@
     <Compile Include="AppIcon.vb" />
     <Compile Include="Capture.vb" />
     <Compile Include="ArgQuoting.vb" />
+    <Compile Include="ShortcutWriter.vb" />
     <Compile Include="Ui.vb" />
     <Compile Include="Links.vb" />
     <Compile Include="AboutView.vb">

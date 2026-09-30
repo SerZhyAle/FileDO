@@ -23,13 +23,13 @@ func formatDurationDetailed(d time.Duration) string {
 	if d < time.Second {
 		return "0s"
 	}
-	
+
 	totalSeconds := int64(d.Seconds())
 	days := totalSeconds / 86400
 	hours := (totalSeconds % 86400) / 3600
 	minutes := (totalSeconds % 3600) / 60
 	seconds := totalSeconds % 60
-	
+
 	if days > 0 {
 		return fmt.Sprintf("%dd/%02d:%02d:%02d", days, hours, minutes, seconds)
 	} else if hours > 0 {

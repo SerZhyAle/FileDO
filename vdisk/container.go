@@ -139,6 +139,10 @@ type Container struct {
 	allocHint uint64
 	pending   bool // the working map differs from the committed one
 	session   bool // clean = 0 has been written in this session
+	// openedClean is the clean marker as the file had it when it was opened.
+	// beginSession clears the marker for the session; closeSession puts "closed
+	// cleanly" back only where that is true (see keepMarker).
+	openedClean bool
 
 	cipher *sectorCipher
 	ram    *ramState
@@ -306,7 +310,7 @@ func createOn(ctx context.Context, b backing, o CreateOptions) (*Container, erro
 	metaEnd := h.MapOffset + h.MapStride + m
 	h.DataOffset, _ = alignUp(metaEnd, max(uint64(dataAlign), h.clusterSize()))
 
-	c := &Container{b: b, mode: OpenWrite, saltP: saltP, saltB: saltB, used: newBitset()}
+	c := &Container{b: b, mode: OpenWrite, saltP: saltP, saltB: saltB, used: newBitset(), openedClean: true} // a new container has no history to keep
 	if c.cipher, err = newSectorCipher(dataKey, h.SectorShift); err != nil {
 		return nil, err
 	}
@@ -441,7 +445,7 @@ func openOn(ctx context.Context, b backing, cred fdsec.Credential, mode OpenMode
 		}
 		return nil, err
 	}
-	c := &Container{b: b, mode: mode, res: res, hdr: h, fileLen: L, entries: entries, used: newBitset(), meta: h.metaClusters()}
+	c := &Container{b: b, mode: mode, res: res, hdr: h, fileLen: L, entries: entries, used: newBitset(), meta: h.metaClusters(), openedClean: h.Clean == 1}
 	c.saltP = append([]byte(nil), res.saltP[:]...)
 	if res.backupSaltKnown {
 		c.saltB = append([]byte(nil), res.saltB[:]...)
@@ -1134,8 +1138,17 @@ func (c *Container) closeSession() error {
 			return err
 		}
 	}
+	// "Closed cleanly" is put back only where it is true (FDD-BEHAVIOUR 5 rules
+	// 2 and 3, AUD-36-F1/F2): never beside an interrupted save - the reader
+	// refuses clean 1 with save_in_progress 1 as damaged, and a ram container cut
+	// inside a save would become unopenable after any writer verb - and never by
+	// a session that did not mount over a container that was not clean when it
+	// was opened (a grow or compact does not recover a volume Windows had mounted).
+	keepMarker := c.hdr.SaveInProgress == 1 || (c.mode != OpenMount && !c.openedClean)
 	markClean := func(h *header) {
-		h.Clean = 1
+		if !keepMarker {
+			h.Clean = 1
+		}
 	}
 	if c.pending {
 		return c.commit(markClean)
@@ -1144,7 +1157,7 @@ func (c *Container) closeSession() error {
 		return c.fail(err)
 	}
 	h := c.hdr
-	h.Clean = 1
+	markClean(&h)
 	h.PhysicalSize = uint64(c.fileLen)
 	h.LastGoodSave = uint64(nowFunc().UnixNano())
 	return c.writeHeaderPair(h)

@@ -163,23 +163,12 @@ func protectedPlaces() []protectedPlace {
 // relToVolume is id's final path below its volume root, with a leading
 // separator: `\Windows\System32` for both `C:\Windows\System32` and
 // `\\localhost\C$\Windows\System32`.
-func relToVolume(id fsx.Identity) string {
-	vol := strings.TrimRight(id.Volume, `\`)
-	rel := id.Final
-	if fsx.HasPrefixFold(rel, vol) {
-		rel = rel[len(vol):]
-	}
-	return `\` + strings.TrimLeft(rel, `\`)
-}
+func relToVolume(id fsx.Identity) string { return id.RelToVolume() }
 
 // identityWithin reports whether child is parent itself or lies below it, on
-// the same volume, however either was spelled.
-func identityWithin(child, parent fsx.Identity) bool {
-	if child.VolSerial != parent.VolSerial {
-		return false
-	}
-	return fsx.CanonicalWithin(relToVolume(child), relToVolume(parent))
-}
+// the same volume, however either was spelled. The rule is fsx's, shared with
+// the copy, compare and wipe guards (AUD-06-F1).
+func identityWithin(child, parent fsx.Identity) bool { return child.LiesWithin(parent) }
 
 // resolvedPlace is a protected place with its identity looked up.
 type resolvedPlace struct {

@@ -2,6 +2,7 @@ package vdisk
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/subtle"
@@ -49,7 +50,22 @@ const (
 	cmdWindow         = 32 // MaxCmdSN - ExpCmdSN + 1
 	maxPendingWrites  = 32 // writes waiting for Data-Out on one connection
 	loginTimeout      = 30 * time.Second
+
+	// The port is reachable by every local process of every user, so what it
+	// costs before anyone has authenticated is bounded (AUD-35-F2): at most
+	// maxConnections in all and maxUnauthConnections that have not finished
+	// logging in, on 4 KiB buffers until they have. Extra connections are
+	// closed at once.
+	maxConnections       = 8
+	maxUnauthConnections = 4
+	loginBufSize         = 4096
+	dataBufSize          = 1 << 20 // the buffers of the logged-in normal session
 )
+
+// discoveryIdle is how long a Discovery session may sit without a PDU. It has
+// no authentication, so it must not be a place to park a connection for good.
+// A variable so a test can shorten it.
+var discoveryIdle = 30 * time.Second
 
 // ChapSecretLen is the length of a mount's CHAP secret. The Windows initiator
 // takes 12 to 16 bytes.
@@ -105,6 +121,10 @@ type Server struct {
 	closed  bool
 	tsih    uint16
 	wg      sync.WaitGroup
+
+	preLogin    int       // connections that have not finished logging in
+	refused     int       // connections refused for a limit since the last log line
+	refusedLast time.Time // when the refused count was last logged
 }
 
 // NewServer validates cfg and binds loopbackAddr.
@@ -157,7 +177,7 @@ func (s *Server) Serve() error {
 		if tc, ok := nc.(*net.TCPConn); ok {
 			_ = tc.SetNoDelay(true)
 		}
-		c := &conn{s: s, nc: nc, r: bufio.NewReaderSize(nc, 1<<20), w: bufio.NewWriterSize(nc, 1<<20),
+		c := &conn{s: s, nc: nc, r: bufio.NewReaderSize(nc, loginBufSize), w: bufio.NewWriterSize(nc, loginBufSize),
 			id: nc.RemoteAddr().String(), pending: map[uint32]*writeTask{},
 			initMRDSL: 8192, maxBurst: ourMaxBurst, firstBurst: ourFirstBurst, immediate: true}
 		s.mu.Lock()
@@ -166,7 +186,23 @@ func (s *Server) Serve() error {
 			nc.Close()
 			return nil
 		}
+		if len(s.conns) >= maxConnections || s.preLogin >= maxUnauthConnections {
+			s.refused++
+			logLine := ""
+			if now := time.Now(); now.Sub(s.refusedLast) >= time.Minute {
+				logLine = fmt.Sprintf("refused %d connection(s): at most %d, %d before login", s.refused, maxConnections, maxUnauthConnections)
+				s.refused, s.refusedLast = 0, now
+			}
+			s.mu.Unlock()
+			nc.Close()
+			if logLine != "" {
+				s.logf("%s", logLine)
+			}
+			continue
+		}
 		s.conns[c] = true
+		s.preLogin++
+		c.counted = true
 		s.wg.Add(1)
 		s.mu.Unlock()
 		go func() {
@@ -218,8 +254,22 @@ func (s *Server) nextTSIH() uint16 {
 	return s.tsih
 }
 
+// loggedIn ends a connection's time in the pre-login count.
+func (s *Server) loggedIn(c *conn) {
+	s.mu.Lock()
+	if c.counted {
+		c.counted = false
+		s.preLogin--
+	}
+	s.mu.Unlock()
+}
+
 func (s *Server) drop(c *conn) {
 	s.mu.Lock()
+	if c.counted {
+		c.counted = false
+		s.preLogin--
+	}
 	delete(s.conns, c)
 	if s.session == c {
 		s.session = nil
@@ -253,12 +303,21 @@ type conn struct {
 	normal     bool
 	authMethod string // "", "None" or "CHAP", once chosen
 	authed     bool
-	chapID     byte
-	chapChal   []byte
-	ffp        bool
-	sentTPGT   bool
-	declMRDSL  bool
-	isid       [6]byte
+	// typeSet: the first login stage has fixed SessionType and TargetName. They
+	// are honoured only there - a later PDU that changes either is refused
+	// (RFC 7143 section 6.3) - so a Discovery security stage (AuthMethod None)
+	// can never be turned into a normal session.
+	typeSet bool
+	counted bool // still in the server's pre-login count; guarded by Server.mu
+	// chapOK: the CHAP response verified. A normal session reaches full feature
+	// phase only with it; authed from a Discovery stage never satisfies it.
+	chapOK    bool
+	chapID    byte
+	chapChal  []byte
+	ffp       bool
+	sentTPGT  bool
+	declMRDSL bool
+	isid      [6]byte
 
 	// Sequence numbers.
 	statSN   uint32
@@ -304,6 +363,9 @@ func (c *conn) loop() error {
 			if err := c.w.Flush(); err != nil {
 				return err
 			}
+		}
+		if c.discovery && c.ffp {
+			_ = c.nc.SetReadDeadline(time.Now().Add(discoveryIdle)) // idle is bounded for every PDU
 		}
 		if _, err := io.ReadFull(c.r, bhs[:]); err != nil {
 			return err
@@ -429,7 +491,12 @@ func (c *conn) login(bhs *[bhsLen]byte, data []byte) error {
 			tsih = c.s.nextTSIH()
 		}
 		put16(resp[14:], tsih)
-		if c.normal && !c.s.claimSession(c) {
+		if c.normal && !c.chapOK {
+			// A normal session never reaches full feature phase without a
+			// verified CHAP response, whatever earlier stage set authed.
+			class, detail = 0x02, 0x01
+			out = nil
+		} else if c.normal && !c.s.claimSession(c) {
 			class, detail = 0x02, 0x02 // authorization failure: one session per target
 			out = nil
 		} else {
@@ -448,10 +515,33 @@ func (c *conn) login(bhs *[bhsLen]byte, data []byte) error {
 		return err
 	}
 	if c.ffp {
-		_ = c.nc.SetReadDeadline(time.Time{})
+		c.s.loggedIn(c)
+		if c.discovery {
+			// No authentication: idle is bounded, and the buffers stay small.
+			_ = c.nc.SetReadDeadline(time.Now().Add(discoveryIdle))
+		} else {
+			_ = c.nc.SetReadDeadline(time.Time{})
+			if err := c.growBuffers(); err != nil {
+				return err
+			}
+		}
 		c.logf("logged in: discovery=%v MRDSL=%d MaxBurst=%d FirstBurst=%d ImmediateData=%v",
 			c.discovery, c.initMRDSL, c.maxBurst, c.firstBurst, c.immediate)
 	}
+	return nil
+}
+
+// growBuffers gives the logged-in normal session the large buffers its data
+// path wants. Until then a connection costs 8 KiB, not 2 MiB. Whatever the
+// small reader already holds is carried over, and the writer is flushed first.
+func (c *conn) growBuffers() error {
+	if err := c.w.Flush(); err != nil {
+		return err
+	}
+	held, _ := c.r.Peek(c.r.Buffered())
+	rest := append([]byte(nil), held...)
+	c.r = bufio.NewReaderSize(io.MultiReader(bytes.NewReader(rest), c.nc), dataBufSize)
+	c.w = bufio.NewWriterSize(c.nc, dataBufSize)
 	return nil
 }
 
@@ -466,12 +556,20 @@ func (c *conn) loginStage(csg byte, keys []kv) ([]kv, byte, byte) {
 		}
 		return "", false
 	}
+	first := !c.typeSet
+	c.typeSet = true
 	if st, ok := get("SessionType"); ok {
+		if !first && (st == "Discovery") != c.discovery {
+			return nil, 0x02, 0x00 // the session type is fixed by the first login stage
+		}
 		c.discovery = st == "Discovery"
 	}
 	if tn, ok := get("TargetName"); ok {
 		if tn != c.s.cfg.IQN {
 			return nil, 0x02, 0x03 // not found
+		}
+		if !first && !c.normal {
+			return nil, 0x02, 0x00 // a connection that began as Discovery never becomes a normal session
 		}
 		c.normal = true
 	}
@@ -494,6 +592,9 @@ func (c *conn) loginStage(csg byte, keys []kv) ([]kv, byte, byte) {
 				return nil, 0x02, 0x01 // a normal session must pass the security stage
 			}
 			c.authed = true // discovery may skip it (RFC 7143 section 6.3)
+		}
+		if c.normal && !c.chapOK {
+			return nil, 0x02, 0x01 // a normal session goes on only with a verified CHAP response
 		}
 		for _, k := range keys {
 			if r, ok := c.negotiate(k); ok {
@@ -560,6 +661,7 @@ func (c *conn) security(keys []kv) ([]kv, byte, byte) {
 				return nil, 0x02, 0x01
 			}
 			c.authed = true
+			c.chapOK = true
 		}
 	}
 	if c.normal && c.authMethod == "" {

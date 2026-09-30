@@ -94,6 +94,36 @@ Public Class DiskRecord
     End Property
 End Class
 
+' The shutdown guard's state (SP-0080 4-5), as the snapshot's `guard` object said it - Nothing
+' when the CLI that answered predates the field, which reads as "off" and nothing more. Its rows
+' are the last run's: what the guard did to each container at the session's end.
+Public Class DiskGuardRunRow
+    Public Property Name As String = ""
+    Public Property Path As String = ""
+    ' save or unmount.
+    Public Property Action As String = ""
+    ' saved, unmounted, skipped or unfinished.
+    Public Property Outcome As String = ""
+    Public Property Reason As String = ""
+    Public Property BytesSaved As Long = 0
+End Class
+
+Public Class DiskGuardState
+    Public Property Installed As Boolean = False
+    Public Property Running As Boolean = False
+    Public Property LastRun As DateTimeOffset? = Nothing
+    ' The session's end is one thing (SP-0080 D7): the value is "session" or empty.
+    Public Property Ended As String = ""
+    Public ReadOnly Property Containers As New List(Of DiskGuardRunRow)
+
+    ' Whether the last run left something behind: a row the report cannot call saved or unmounted.
+    Public ReadOnly Property HasLeftovers As Boolean
+        Get
+            Return Containers.Any(Function(r) r.Outcome <> "saved" AndAlso r.Outcome <> "unmounted")
+        End Get
+    End Property
+End Class
+
 Public Class DiskSnapshot
     Public Const Schema As String = "filedo.vd-status"
     ' The MAJOR this build reads. A higher one is refused with the sentence that says to update.
@@ -106,6 +136,9 @@ Public Class DiskSnapshot
     Public Property InitiatorService As String = ""
     ' "", packaged, initiator_missing, initiator_disabled or service_manager.
     Public Property TransportReason As String = ""
+    ' The shutdown guard (SP-0080): Nothing when the snapshot carries no guard field, which an
+    ' older CLI's document does not - the unknown-field rule, read from this side.
+    Public Property Guard As DiskGuardState = Nothing
     Public ReadOnly Property Disks As New List(Of DiskRecord)
 
     Public ReadOnly Property MountedCount As Integer
@@ -159,6 +192,7 @@ Public Class DiskSnapshot
             s.InitiatorService = Str(tr, "initiator_service")
             s.TransportReason = Str(tr, "reason")
         End If
+        s.Guard = GuardOf(doc)
         Dim list = TryCast(Value(doc, "disks"), IEnumerable)
         If list Is Nothing Then
             ' A snapshot with no list is not "nothing is mounted" - it is a snapshot that says nothing.
@@ -171,6 +205,33 @@ Public Class DiskSnapshot
             s.Disks.Add(RecordOf(d))
         Next
         Return s
+    End Function
+
+    ' The `guard` object, or Nothing when the document has none. A field this build does not know
+    ' inside it is ignored, exactly as a field it does not know at the top is.
+    Private Shared Function GuardOf(doc As Dictionary(Of String, Object)) As DiskGuardState
+        Dim g = Obj(doc, "guard")
+        If g Is Nothing Then Return Nothing
+        Dim out As New DiskGuardState With {
+            .Installed = Bool(g, "installed"),
+            .Running = Bool(g, "running"),
+            .LastRun = Stamp(g, "last_run"),
+            .Ended = Str(g, "ended")}
+        Dim rows = TryCast(Value(g, "containers"), IEnumerable)
+        If rows IsNot Nothing Then
+            For Each item In rows
+                Dim r = TryCast(item, Dictionary(Of String, Object))
+                If r Is Nothing Then Continue For
+                out.Containers.Add(New DiskGuardRunRow With {
+                    .Name = Str(r, "name"),
+                    .Path = Str(r, "path"),
+                    .Action = Str(r, "action"),
+                    .Outcome = Str(r, "outcome"),
+                    .Reason = Str(r, "reason"),
+                    .BytesSaved = CLng(Num(r, "bytes_saved"))})
+            Next
+        End If
+        Return out
     End Function
 
     Private Shared Function RecordOf(d As Dictionary(Of String, Object)) As DiskRecord

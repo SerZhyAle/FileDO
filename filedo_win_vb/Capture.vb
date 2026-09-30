@@ -26,6 +26,10 @@ Module Capture
         New String() {"rail_job_command", "command", ""}
     }
 
+    ' The Disk manager's three pictures (SP-0063): the window with its disks, the help, the first
+    ' steps. Built from the golden `vd status json` document, so a capture needs no disk and no state.
+    Private ReadOnly DiskPages As String() = {"disk-manager", "disk-help", "disk-welcome"}
+
     ' Design pixels, so a capture is the same picture at any display scale.
     Private Const DesignWidth As Integer = 1180
     Private Const DesignHeight As Integer = 760
@@ -50,6 +54,17 @@ Module Capture
                         Console.Error.WriteLine("capture failed: " & file & " (" & ex.GetType().Name & ", see the shell log)")
                     End Try
                 Next
+                For Each page In DiskPages
+                    Dim file = IO.Path.Combine(folder, "gui-" & page & "-" & lang(1) & ".png")
+                    Try
+                        CaptureDisk(page, file)
+                        Console.WriteLine(file)
+                    Catch ex As Exception
+                        failed = True
+                        ShellLog.Write("capture " & file, ex)
+                        Console.Error.WriteLine("capture failed: " & file & " (" & ex.GetType().Name & ", see the shell log)")
+                    End Try
+                Next
             Next
         Catch ex As Exception
             failed = True
@@ -62,6 +77,96 @@ Module Capture
         End Try
         Return If(failed, 1, 0)
     End Function
+
+    ' One of the Disk manager's pictures. The window never writes the user's settings here: it is opened
+    ' without its first run, and disposed without being closed, so its placement is not saved either.
+    Private Sub CaptureDisk(kind As String, file As String)
+        Dim dict = Localization.GetDict(ShellSettings.Language())
+        DiskManagerForm.SuppressWelcome = True
+        DiskManagerForm.SuppressReads = True
+        Select Case kind
+            Case "disk-manager"
+                Dim m As New DiskManagerForm()
+                Try
+                    m.StartPosition = FormStartPosition.Manual
+                    m.ShowInTaskbar = False
+                    m.Bounds = New Rectangle(-32000, -32000, Ui.Px(m, 1100), Ui.Px(m, 640))
+                    m.Show()
+                    Dim problem As String = ""
+                    Dim snap = DiskSnapshot.Parse(SampleSnapshotLine(), problem)
+                    m.ApplySnapshotForTest(snap, "")
+                    m.SelectForTest(snap.Disks.First(Function(d) d.Name = "secrets").Key)
+                    For i = 1 To 6
+                        Application.DoEvents()
+                        Threading.Thread.Sleep(40)
+                    Next
+                    Using bmp As New Bitmap(m.ClientRectangle.Width, m.ClientRectangle.Height)
+                        m.DrawClientForCapture(bmp)
+                        ' A native list view does not print: the rows are drawn by the painters the list uses.
+                        Using g = Graphics.FromImage(bmp)
+                            m.PaintListForCapture(g, m.ListOriginForCapture())
+                        End Using
+                        bmp.Save(file, Imaging.ImageFormat.Png)
+                    End Using
+                Finally
+                    m.Dispose()
+                End Try
+            Case "disk-help"
+                Using dlg As New DiskHelpDialog(dict, Nothing, False)
+                    SaveDialog(dlg, file)
+                End Using
+            Case Else
+                Using dlg As New DiskWelcomeDialog(dict, Nothing, False)
+                    SaveDialog(dlg, file)
+                End Using
+        End Select
+    End Sub
+
+    ' What the guide's picture of the window shows: a plausible machine, not the test fixture (whose paths
+    ' are placeholders and whose mounts have no time). One line, the way `vd status json` prints it.
+    Private Function SampleSnapshotLine() As String
+        Const t As String = "2026-09-30T09:12:40+02:00"
+        
+        Dim disks As New List(Of String)
+        disks.Add("{""kind"":""image"",""letter"":""I:"",""mounted_at"":""" & t & """,""path"":""D:\\ISO\\install.iso""}")
+        disks.Add(SampleDisk("scratch", "D:\\Disks\\scratch.fdd", "ram", "obfuscated", 4294967296L, "R:", False, True, t, False, 188743680L))
+        disks.Add(SampleDisk("old", "D:\\Disks\\old.fdd", "plain", "obfuscated", 10737418240L, "S:", False, False, t, False, -1L))
+        disks.Add(SampleDisk("work", "D:\\Disks\\work.fdd", "plain", "obfuscated", 21474836480L, "W:", False, True, t, False, -1L))
+        disks.Add(SampleDisk("secrets", "D:\\Vaults\\secrets.fdd", "vault", "encrypted", 5368709120L, "X:", True, True, "2026-09-30T09:15:02+02:00", False, -1L))
+        disks.Add(SampleDisk("archive", "D:\\Disks\\archive.fdd", "fast", "obfuscated", 2147483648L, "", False, False, "", True, -1L))
+        disks.Add("{""kind"":""container"",""name"":""backup"",""path"":""E:\\Backup\\backup.fdd"",""container_id"":""6b0a"",""registered"":true," &
+                  """file"":""missing"",""profile"":""plain"",""protection"":"""",""logical_size"":53687091200,""clean"":null,""last_good_save"":null,""auto"":false,""mount"":null}")
+        Return "{""schema"":""filedo.vd-status"",""version"":1,""at"":""" & t & """,""packaged"":false," &
+               """transport"":{""ready"":true,""initiator_service"":""running"",""reason"":""""},""disks"":[" & String.Join(",", disks.ToArray()) & "]}"
+    End Function
+
+    Private Function SampleDisk(name As String, path As String, profile As String, protection As String, size As Long, letter As String,
+                                readOnly_ As Boolean, alive As Boolean, mountedAt As String, auto As Boolean, dirty As Long) As String
+        Dim mount = "null"
+        If letter <> "" Then
+            Dim ram = If(dirty >= 0, "{""dirty_bytes"":" & dirty.ToString() & ",""saving"":false,""last_good_save"":""2026-09-30T09:40:00+02:00""}", "null")
+            mount = "{""letter"":""" & letter & """,""read_only"":" & readOnly_.ToString().ToLowerInvariant() & ",""mounted_at"":""" & mountedAt &
+                    """,""server_alive"":" & alive.ToString().ToLowerInvariant() & ",""ram"":" & ram & "}"
+        End If
+        Return "{""kind"":""container"",""name"":""" & name & """,""path"":""" & path & """,""container_id"":""" & name & "-id"",""registered"":true," &
+               """file"":""ok"",""profile"":""" & profile & """,""protection"":""" & protection & """,""logical_size"":" & size.ToString() &
+               ",""clean"":true,""last_good_save"":""2026-09-29T21:10:00+02:00"",""auto"":" & auto.ToString().ToLowerInvariant() & ",""mount"":" & mount & "}"
+    End Function
+
+    Private Sub SaveDialog(dlg As DiskPageDialog, file As String)
+        dlg.StartPosition = FormStartPosition.Manual
+        dlg.ShowInTaskbar = False
+        dlg.Location = New Point(-32000, -32000)
+        dlg.Show()
+        For i = 1 To 5
+            Application.DoEvents()
+            Threading.Thread.Sleep(40)
+        Next
+        Using bmp As New Bitmap(dlg.ClientRectangle.Width, dlg.ClientRectangle.Height)
+            dlg.DrawClientForCapture(bmp)
+            bmp.Save(file, Imaging.ImageFormat.Png)
+        End Using
+    End Sub
 
     Private Sub CapturePage(key As String, target As String, file As String)
         Dim shell As New ShellForm()

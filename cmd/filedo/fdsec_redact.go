@@ -165,7 +165,7 @@ var vdRedactVerbs = map[string]bool{
 	"info": true, "i": true, "pass": true, "export": true, "extract": true, "ext": true,
 	"verify": true, "vfy": true, "compact": true, "shrink": true, "grow": true, "resize": true,
 	"format": true, "destroy": true, "erase": true, "clone": true, "add": true, "forget": true,
-	"list": true, "ls": true, "auto": true, "status": true, "stop": true,
+	"list": true, "ls": true, "auto": true, "guard": true, "status": true, "stop": true,
 	"register": true, "unregister": true,
 }
 
@@ -176,9 +176,9 @@ var vdRedactVerbs = map[string]bool{
 var vdRedactKeeps = map[string]bool{
 	"plain": true, "fast": true, "ram": true, "vault": true, "sealed": true,
 	"ro": true, "readonly": true, "noscan": true, "force": true, "-y": true, "y": true,
-	"nosave": true, "off": true, "logon": true, "short": true, "-all-users": true,
+	"nosave": true, "off": true, "on": true, "logon": true, "short": true, "-all-users": true,
 	"nopass": true, "new": true, "raw": true, "vhd": true, "wipe": true,
-	"fs": true, "ntfs": true, "exfat": true,
+	"fs": true, "ntfs": true, "exfat": true, "run": true,
 }
 
 // vdRedactValueWords take a value that is not a secret: a drive letter, a

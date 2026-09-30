@@ -384,24 +384,24 @@
           <span data-l="ru"
             ><img
               src="../assets/guides/gui-command-ru.png"
-              width="2041"
-              height="1266"
+              width="1457"
+              height="903"
               loading="lazy"
               alt="Страница «Команда»: операция info, цель, флаги short и nohist и редактируемая строка filedo.exe C: info над кнопкой «Выполнить команду»"
           /></span
           ><span data-l="en"
             ><img
               src="../assets/guides/gui-command-en.png"
-              width="2041"
-              height="1266"
+              width="1457"
+              height="903"
               loading="lazy"
               alt="The Command page: the info operation, the target, the short and nohist flags, and the editable line filedo.exe C: info above the Run command button"
           /></span
           ><span data-l="ua"
             ><img
               src="../assets/guides/gui-command-ua.png"
-              width="2041"
-              height="1266"
+              width="1457"
+              height="903"
               loading="lazy"
               alt="Сторінка «Команда»: операція info, ціль, прапорці short і nohist та редагований рядок filedo.exe C: info над кнопкою запуску"
           /></span>
@@ -443,6 +443,30 @@
                 стосуються вибраної операції, і самим командним рядком, який
                 можна редагувати внизу. Прочитайте його, відредагуйте вручну,
                 скопіюйте або запустіть.</span
+              >
+            </p>
+            <p>
+              <span data-l="ru"
+                >Кнопка «Создать ярлык» сохраняет эту строку на рабочем столе.
+                Двойной щелчок запускает её в консоли; флажок по умолчанию
+                оставляет окно открытым, чтобы прочитать результат. Ярлык хранит
+                аргументы, поэтому строку с паролем <code>p:</code> или
+                <code>pe:FILEDO_SHELL_CRED</code> сохранить нельзя: уберите
+                такой аргумент и введите пароль в консоли.</span
+              ><span data-l="en"
+                >Create shortcut saves this line on your desktop. Double-click
+                it to run the command in a console; the default checkbox keeps
+                the window open so you can read the result. A shortcut stores
+                its arguments, so a line containing a <code>p:</code> password
+                or <code>pe:FILEDO_SHELL_CRED</code> cannot be saved. Remove
+                that argument and enter the password in the console.</span
+              ><span data-l="ua"
+                >Кнопка «Створити ярлик» зберігає цей рядок на робочому столі.
+                Подвійне клацання запускає команду в консолі; позначений за
+                замовчуванням прапорець залишає вікно відкритим для читання
+                результату. Ярлик зберігає аргументи, тому рядок із паролем
+                <code>p:</code> або <code>pe:FILEDO_SHELL_CRED</code> зберегти
+                не можна: приберіть цей аргумент і введіть пароль у консолі.</span
               >
             </p>
             <p>
@@ -550,7 +574,9 @@
                 прочитать целиком, выгрузить образ и остальные операции.
                 Каждая страница говорит, замаскирован контейнер или зашифрован,
                 до того как что-то запустится; пароль скрыт и в командную строку
-                не попадает. Подключённый диск остаётся и после закрытия окна.
+                не попадает. Подключённый диск остаётся и после закрытия окна. Первая
+                строка группы открывает Диспетчер дисков - второе окно, которое
+                показывает все диски одним списком.
                 <a href="virtual-disks.html">Руководство по виртуальным
                 дискам</a>.</span
               ><span data-l="en"
@@ -559,7 +585,9 @@
                 an image and the other operations. Each page says whether the
                 container is obfuscated or encrypted before anything runs; the
                 password is masked and never reaches a command line. A mounted
-                disk stays mounted when the window closes.
+                disk stays mounted when the window closes. The first row of the group
+                opens the Disk manager, a second window that lists every disk in
+                one place.
                 <a href="virtual-disks.html">The virtual disks guide</a>.</span
               ><span data-l="ua"
                 >Сімнадцять сторінок для віртуальних дисків <code>.fdd</code>:
@@ -567,7 +595,9 @@
                 відомості, прочитати цілком, вивантажити образ та інші операції.
                 Кожна сторінка каже, замаскований контейнер чи зашифрований, ще
                 до запуску; пароль приховано, і до командного рядка він не
-                потрапляє. Підключений диск лишається й після закриття вікна.
+                потрапляє. Підключений диск лишається й після закриття вікна. Перший
+                рядок групи відкриває Диспетчер дисків - друге вікно, що
+                показує всі диски одним списком.
                 <a href="virtual-disks.html">Посібник з віртуальних
                 дисків</a>.</span
               >
@@ -586,7 +616,7 @@
               режимы удаления обратимыми. Перед запуском проверьте цель и
               команду; для необратимых действий сделайте резервную копию.
               «Прямая проверка ёмкости» и «Восстановить накопитель» помечены
-              как разрушающие и просят права администратора; «Затереть папку»
+              как разрушающие и просят права администратора; «Очистить папку»
               по-прежнему требует набрать <code>WIPE</code> и отметить <code>-y</code>, а
               корень диска, общую папку или TEMP отправляет в консоль.</span
             ><span data-l="en"
@@ -602,7 +632,7 @@
               режими видалення зворотними. Перед запуском перевірте ціль і
               команду; перед незворотними діями зробіть резервну копію. «Пряма
               перевірка ємності» та «Відновити накопичувач» позначені як
-              руйнівні й просять права адміністратора; «Затерти теку»
+              руйнівні й просять права адміністратора; «Очистити теку»
               як і раніше вимагає набрати <code>WIPE</code> і позначити <code>-y</code>, а
               корінь диска, спільну теку чи TEMP відправляє в консоль.</span
             >

@@ -124,6 +124,7 @@ Public Class CommandView
     Private runBtn As Button
     Private stopBtn As Button
     Private copyBtn As Button
+    Private shortcutBtn As GlyphButton
     Private verdictLabel As Label
     Private verdictGlyph As GlyphBox
     Private progressBar As ProgressBar
@@ -833,9 +834,16 @@ Public Class CommandView
         AddHandler copyBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), cmdLineBox.Text)
         secondaryButtons.Add(copyBtn)
 
+        shortcutBtn = New GlyphButton With {.Text = L("shortcut_create"),
+            .Glyph = GlyphRef.Waiting("action.create-shortcut", &HE71B, "Link"),
+            .Tier = 20, .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
+        AddHandler shortcutBtn.Click, Sub() ShortcutDialog.ShowFor(ShellDialog.OwnerOf(Me), cmdLineBox.Text,
+                                                                  LineWipes(LineArgs()))
+
         btnFlow.Controls.Add(runBtn)
         btnFlow.Controls.Add(stopBtn)
         btnFlow.Controls.Add(copyBtn)
+        btnFlow.Controls.Add(shortcutBtn)
 
         verdictLabel = New Label With {.Text = "", .AutoSize = True, .Margin = New Padding(0)}
         ' The verdict's state glyph beside its word (Theme.VerdictGlyph, SP-0016 T2). It is decoration:
@@ -1518,6 +1526,8 @@ Public Class CommandView
             b.Font = Theme.FontBody()
             Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
         Next
+        shortcutBtn.Font = Theme.FontBody()
+        shortcutBtn.Invalidate()
 
         Invalidate(True)
     End Sub

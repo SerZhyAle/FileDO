@@ -115,7 +115,7 @@
       </Feature>
 
       <Feature Id="DesktopShortcut" Title="Desktop icon" Level="1" AllowAbsent="yes"
-               Description="A FileDO icon on the desktop for every account on this computer. It opens the same window as the Start menu entry - this is convenience, nothing else.">
+               Description="A FileDO icon on the desktop for every account on this computer. It opens the same window as the FileDO entry in the Start menu (the Disk Manager has its own entry there) - this is convenience, nothing else.">
         <ComponentRef Id="DesktopShortcut" />
       </Feature>
     </Feature>

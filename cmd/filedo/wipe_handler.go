@@ -68,6 +68,14 @@ func handleFileWipeCommand(path string, args []string) error {
 	if hasReparsePoint(path) {
 		return fmt.Errorf("%s is a reparse point (junction/symlink/mount point) and is refused: it would overwrite whatever it points at", path)
 	}
+	// A hard link is a second name for the same data: the overwrite would
+	// reach every name, so a file that has one is refused before the prompt
+	// (AUD-03-F1). wipeFileInPlace asks again on the handle it writes.
+	if refusal, lerr := wipeLinkRefusal(path); lerr != nil {
+		return lerr
+	} else if refusal != nil {
+		return refusal
+	}
 
 	fmt.Printf("\nWIPE will overwrite and then remove:\n  %s (%s)\n", wipeDisplayPath(path), formatBytes(uint64(fi.Size())))
 	fmt.Printf("There is no container and no copy - the content is gone.\n")
@@ -514,8 +522,13 @@ func protectedByCanonical(canonTarget string) string {
 			}
 			return "target contains " + pp.label + " (" + canon + ")"
 		}
-		if pp.inside && canonicalWithin(canonTarget, canon) {
-			return "target is inside " + pp.label + " (" + canon + ")"
+		// "Inside" is decided on the volume and the path below its root, not
+		// on the spelling: `\\localhost\C$\Windows\x` is inside C:\Windows
+		// and a string test cannot see it (AUD-16-F2).
+		if pp.inside {
+			if in, werr := pathWithin(canonTarget, pp.path); werr == nil && in {
+				return "target is inside " + pp.label + " (" + canon + ")"
+			}
 		}
 	}
 	return ""

@@ -90,15 +90,7 @@ func runDeviceProbe(devicePath string) error {
 	dev := &windowsSectorDevice{h: handle}
 	fmt.Printf("Saving originals, writing markers, reading them back...\n")
 	res, err := probeCore(dev, totalBytes, sectorSize, probeMakeAlignedBuf,
-		func(restore func()) func() {
-			// A forced exit skips every defer; the restore must still run
-			// before the process ends (CLI-07c). It is idempotent.
-			return globalInterruptHandler.AddCleanup(func() {
-				if globalInterruptHandler.IsForceExit() {
-					restore()
-				}
-			})
-		},
+		registerProbeRestore(globalInterruptHandler),
 		runStopRequested)
 	if len(res.restoreErrs) > 0 {
 		fmt.Printf("❌ %d sector(s) could NOT be restored:\n", len(res.restoreErrs))
@@ -146,8 +138,10 @@ func runDeviceProbe(devicePath string) error {
 // windowsSectorDevice is sectorDevice over an open volume handle.
 type windowsSectorDevice struct{ h windows.Handle }
 
-func (d *windowsSectorDevice) ReadAt(p []byte, off int64) error  { return probeReadSector(d.h, off, p) }
-func (d *windowsSectorDevice) WriteAt(p []byte, off int64) error { return probeWriteSector(d.h, off, p) }
+func (d *windowsSectorDevice) ReadAt(p []byte, off int64) error { return probeReadSector(d.h, off, p) }
+func (d *windowsSectorDevice) WriteAt(p []byte, off int64) error {
+	return probeWriteSector(d.h, off, p)
+}
 
 // IOCTL_DISK_GET_LENGTH_INFO returns the length of the volume the handle is
 // open on.
@@ -297,6 +291,22 @@ func probeSeek(h windows.Handle, offset int64, whence uint32) (int64, error) {
 
 var procSetFilePointer = syscall.MustLoadDLL("kernel32.dll").MustFindProc("SetFilePointer")
 
+// registerProbeRestore is how a probe hands its restore to the stop model. A
+// forced exit skips every defer, so the restore must still run before the
+// process ends (CLI-07c); it is idempotent, and a graceful stop leaves it to
+// the probe's own way out. It is a critical cleanup: the forced exit waits for
+// it instead of cutting it after the 2 s budget, because a cut restore leaves
+// the volume holding the probe's markers (AUD-02-F2).
+func registerProbeRestore(ih *InterruptHandler) func(restore func()) func() {
+	return func(restore func()) func() {
+		return ih.AddCriticalCleanup(func() {
+			if ih.IsForceExit() {
+				restore()
+			}
+		})
+	}
+}
+
 // runDeviceProbeCheck is the entry-point used by command_handlers.go.
 // It also checks admin elevation and gives a friendly message if not elevated.
 func runDeviceProbeCheck(devicePath string, assumeYes bool, autoRepair bool) error {
@@ -313,25 +323,32 @@ func runDeviceProbeCheck(devicePath string, assumeYes bool, autoRepair bool) err
 	if err != nil {
 		return err
 	}
+	return probeDriveFlow(devicePath, driveLetter, assumeYes, autoRepair)
+}
 
+// The three things probeDriveFlow does to the world, as seams: a test stands in
+// for the volume, the probe and the format, and asserts what the flow decides
+// without a drive or an elevated shell (AUD-02-F3).
+var (
+	probeStatRoot = os.Stat
+	probeRunFn    = runDeviceProbe
+	probeFormatFn = probeQuickFormat
+)
+
+// probeDriveFlow is the probe's decision: confirm, probe, and - only when the
+// drive was readable before and is not after - offer the quick format that
+// `fix` asks for.
+func probeDriveFlow(devicePath string, driveLetter rune, assumeYes bool, autoRepair bool) error {
 	root := fmt.Sprintf("%c:\\", driveLetter)
-	if _, err := os.Stat(root); err != nil {
-		if !autoRepair {
-			return fmt.Errorf("drive %c: is not accessible now. Use 'filedo %c: probe fix' for guided quick format", driveLetter, driveLetter)
-		}
-		fmt.Printf("⚠️  Drive %c: is already inaccessible.\n", driveLetter)
-		fmt.Printf("Skipping probe and starting recovery format flow.\n")
-		if !assumeYes {
-			if err := probeAskConfirmFormat(driveLetter); err != nil {
-				return err
-			}
-		}
-		if err := probeQuickFormat(driveLetter); err != nil {
-			probePrintDiskpartGuide(driveLetter)
-			return fmt.Errorf("quick format failed for %c:: %w", driveLetter, err)
-		}
-		fmt.Printf("✅ Quick format completed. Drive %c: should be usable now.\n", driveLetter)
-		return nil
+	if _, err := probeStatRoot(root); err != nil {
+		// A drive that cannot be read before the probe is not a drive the probe
+		// damaged, and the reason is usually the environment: a BitLocker-locked
+		// volume, a root this account cannot list, a card reader that is not
+		// ready. None of them is a reason to format, so `fix` does not apply
+		// here and `yes` has nothing to skip: the run could not verify anything
+		// (AUD-02-F3). `recover` is the repair verb, and it asks for the drive
+		// letter before it does anything.
+		return fmt.Errorf("drive %c: cannot be read before the probe (%v); nothing was probed and nothing was changed. If the drive needs repair, run 'filedo %c: recover' - it asks you to type the drive letter first", driveLetter, err, driveLetter)
 	}
 
 	if !assumeYes {
@@ -340,11 +357,11 @@ func runDeviceProbeCheck(devicePath string, assumeYes bool, autoRepair bool) err
 		}
 	}
 
-	if err := runDeviceProbe(devicePath); err != nil {
+	if err := probeRunFn(devicePath); err != nil {
 		return err
 	}
 
-	if _, err := os.Stat(root); err == nil {
+	if _, err := probeStatRoot(root); err == nil {
 		return nil
 	}
 
@@ -363,7 +380,7 @@ func runDeviceProbeCheck(devicePath string, assumeYes bool, autoRepair bool) err
 		}
 	}
 
-	if err := probeQuickFormat(driveLetter); err != nil {
+	if err := probeFormatFn(driveLetter); err != nil {
 		probePrintDiskpartGuide(driveLetter)
 		return fmt.Errorf("quick format failed for %c:: %w", driveLetter, err)
 	}

@@ -46,4 +46,4 @@ owner-less dialog (rule 1, the static sweep), no ellipsis in the rail (rule 2). 
 3), the Wipe page's confirmations (rule 5), the formatter's failure cases (rule 7), every control of every
 page walked for a name and every rail row for a default action (rule 9, rung 2), placement cases (rule 10).
 
-**Status: implemented, rule 8 narrowed.** FileDO has no adoption row in the catalog registry yet; writing it is the catalog owner's step.
+**Status: implemented, rule 8 narrowed.** FileDO's adoption row and the dated loopback-listener exception are in the catalog registry.

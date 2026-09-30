@@ -4,7 +4,8 @@ A VB.NET (Windows Forms, .NET Framework 4.8) window for `filedo.exe`: the **shel
 the left and one numbered page per job, described under "The shell's pages" below. The command builder
 that shipped before the shell has been retired; its successor is the shell's **Command** page, where any
 FileDO command can be assembled or typed by hand. `--legacy-builder` is still accepted on the command line
-and simply opens the shell.
+and simply opens the shell. A second window, the **Disk manager**, lists the `.fdd` virtual disks and starts
+with `--disks`; it is the same program, described under "The Disk manager (a second window)" below.
 
 ## When something fails
 
@@ -86,7 +87,7 @@ option the CLI takes for a job is on its page:
   run does not have; an empty folder is said to be empty, and a drive root, a share root, a junction or
   TEMP is sent to the console, where FileDO asks twice
 - **Protect** - see below
-- **Disks** - the `.fdd` virtual disks, seventeen pages; see below
+- **Disks** - the `.fdd` virtual disks, seventeen pages, and the row that opens the Disk manager; see below
 - Every job except the three secret-file ones also offers `nohist`
 
 The **Command** page is the expert builder: all twenty-eight operations `filedo.exe` takes -
@@ -95,6 +96,14 @@ two `fdsec` inspections, `from`, `hist` and the two Explorer registrations - wit
 rule pickers that belong to whichever one is chosen, and the command line itself editable
 underneath. A line that holds `wipe` - with `-y` or without - runs only once `WIPE` is typed beside it,
 and progress is drawn by the same rule as on a job page.
+
+**Create shortcut** beside Copy command saves the edited line as a `.lnk` on your desktop. Give it a
+name and choose whether the console stays open after the run (on by default, with `--pause`). A
+double-click then runs `filedo.exe` in a console, where you can answer prompts and read the verdict.
+The shortcut stores its arguments, so the window refuses a line containing `p:<password>` or
+`pe:FILEDO_SHELL_CRED`; for a credential-taking command, remove that argument and let the console
+ask for the password. An existing desktop shortcut is never overwritten. Uninstalling FileDO does
+not remove shortcuts you created.
 
 The five verbs that need a password get a masked field of their own on that page, `secure` asking
 twice. The password never enters the command line: what the line carries is `pe:FILEDO_SHELL_CRED`,
@@ -151,6 +160,44 @@ the code:
   container mounts at once, an encrypted one waits for its password, one not closed cleanly is reported
   first and waits, and one already mounted opens its drive with no window at all.
 
+## The Disk manager (a second window)
+
+`filedo_win.exe` has a second window, the **Disk manager** (SP-0063): one row per virtual disk - the containers in
+the user's list, the ones mounted now, and the VHD, VHDX or ISO images FileDO mounted - each with its state in
+words and a glyph, kept true without a manual refresh. It is the same program and the same process as the shell,
+not a new executable (`filedo_win.exe` is a frozen anchor): `AppHost.vb` owns the windows of the process and
+ends it when the last one has closed. Ways in: `filedo_win.exe --disks` starts straight into the manager with
+no shell window (the Start menu's **FileDO Disk Manager** entry, which the MSI installs, runs exactly that); the
+**Disk manager** button in the shell's header, the first row of the rail's Disks group and **Ctrl+Shift+D** open
+it from the shell; and the manager's **Main window** button brings the shell forward, opening it if the manager
+was started alone.
+
+Things worth knowing before reading the code:
+
+- **State comes from one place.** The window learns state from `filedo vd status json` - schema
+  `filedo.vd-status`, version 1, the one machine-readable snapshot - and from nothing else: it never opens a
+  container, `vd-registry.json` or `vdisk-state.json` itself. A read is one child process, coalesced and killed
+  after eight seconds; a read that fails keeps the last good state on screen and says so.
+- **Everyday operations run from the row, the rest are delegated.** Mount, unmount, open, save, info, verify,
+  auto-mount and the list's names build their `filedo.exe` line through `DiskCommands.Build` and run like a job.
+  New, export, compact, grow, seal, clone, change password, format and destroy open their existing job page in the
+  shell with the container chosen, so the page that builds a destructive line stays the only one - and Format and
+  Destroy keep their typed confirmation there.
+- **A disabled action says why** - in its tooltip, in the menu and in the detail pane - and a build that can never
+  mount (the Microsoft Store one) hides the mount controls instead of greying them.
+- **Closing never unmounts.** A mount outlives the manager, as it outlives the shell.
+- **The keyboard is data**: `DiskShortcuts.All` in `DiskHelp.vb`. The key handler, every tooltip and menu item
+  that shows a shortcut and the help window's table all read it, and `--selftest` walks it.
+- **The first run** shows the welcome window once (`DiskWelcomeDialog`); Help, First steps.. opens it again. Neither
+  the help nor the welcome makes a network call: a link is followed only when it is clicked.
+
+Where the code lives: `DiskManager.vb` (the window), `DiskHelp.vb` (the keyboard table, the help and the welcome
+windows), `GlyphButton.vb` (the glyph buttons), `DiskGlyphs.vb` (one glyph per meaning), `DiskStates.vb` (the state
+of a row and which action applies, as pure functions), `DiskSnapshot.vb` (the `vd status json` reader),
+`DiskDialogs.vb` (the password, Mount as.. and the name a container is added under) and `AppHost.vb` (the windows
+of the process). `filedo_win.exe --capture-screens <folder>` renders the site's three pictures of it
+(`gui-disk-manager-*`, `gui-disk-help-*`, `gui-disk-welcome-*`).
+
 ## Usage
 
 ```powershell
@@ -158,5 +205,6 @@ filedo_win                      # if on PATH (winget / Store)
 filedo_win.exe                  # next to filedo.exe in the portable zip
 filedo_win.exe C:\a\secret.fd-sec   # opens on that container's page
 filedo_win.exe C:\v\work.fdd    # mounts that virtual disk (--mount-ro, --unmount)
+filedo_win.exe --disks          # opens the Disk manager alone, with no shell window
 filedo_win.exe -debug           # adds diagnostic lines to %LOCALAPPDATA%\FileDO\filedo_win.log
 ```

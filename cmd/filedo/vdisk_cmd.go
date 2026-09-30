@@ -41,6 +41,7 @@ import (
 //	filedo vd list | status [json] | stop
 //	filedo vd add <file.fdd> [as <name>] | forget <name|path>
 //	filedo vd auto <name|path> logon | auto off <name|path>
+//	filedo vd guard on | off | run | status       - the shutdown guard (SP-0080)
 //	filedo vd register [-all-users] | unregister [-all-users]   - the .fdd type in Explorer
 //
 // A password is the shared grammar of credential_args.go: omitted is a
@@ -273,6 +274,8 @@ func runVd(args []string, hl *HistoryLogger, batch bool) error {
 		return vdList()
 	case "auto":
 		return vdAuto(rest, batch)
+	case "guard":
+		return vdGuard(rest, batch)
 	case "status":
 		if statusJSON {
 			return vdStatusJSON()

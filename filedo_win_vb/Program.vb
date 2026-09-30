@@ -94,6 +94,10 @@ Module Program
         Dim first = ClaimSingleInstance()
         If target Is Nothing AndAlso Not first Then
             If disksOnly AndAlso AppHost.HandOverDisks() Then Return
+            ' A plain start asks the running copy for its shell window - which it opens if the copy was
+            ' started as the Disk Manager alone (the Start menu's FileDO entry after its Disk Manager
+            ' entry). A copy that does not listen (an older one) is focused as before.
+            If Not disksOnly AndAlso AppHost.HandOverShell() Then Return
             If HandOverToRunningCopy() Then Return
         End If
 

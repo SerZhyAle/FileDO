@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -165,7 +165,7 @@ func vdImageStep(req vdRequest) (vdResult, error) {
 // vdImageRun mounts (or dismounts) one image and returns the drive letters of
 // its volumes.
 func vdImageRun(path string, dismount, ro bool) (string, error) {
-	q := "'" + strings.ReplaceAll(path, "'", "''") + "'"
+	q := psQuote(path)
 	var script string
 	if dismount {
 		script = "$ErrorActionPreference = 'Stop'\nDismount-DiskImage -ImagePath " + q + " | Out-Null\n"
@@ -190,14 +190,17 @@ func vdImageRun(path string, dismount, ro bool) (string, error) {
 		}
 		return "", fmt.Errorf("Windows could not %s the image: %s", map[bool]string{true: "dismount", false: "mount"}[dismount], strings.TrimSpace(out))
 	}
-	return strings.TrimSpace(out), nil
+	letters := strings.TrimSpace(out)
+	// A mount answers with drive letters, or with nothing when the image has no
+	// lettered volume. Anything else is not an answer: it must never be printed
+	// as the drive or recorded as a mounted disk (AUD-34-F2).
+	if !dismount && !vdDriveLetters.MatchString(letters) {
+		first := strings.TrimSpace(strings.SplitN(letters, "\n", 2)[0])
+		return "", fmt.Errorf("Windows could not mount the image: %s", first)
+	}
+	return letters, nil
 }
 
-func vdPowerShell(script string) (string, error) {
-	sys, _ := windows.GetSystemDirectory()
-	ps := filepath.Join(sys, `WindowsPowerShell\v1.0\powershell.exe`)
-	cmd := exec.Command(ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-")
-	cmd.Stdin = strings.NewReader(script)
-	out, err := cmd.CombinedOutput()
-	return strings.ReplaceAll(string(out), "\r", ""), err
-}
+// vdDriveLetters matches what a successful image mount prints: `E:`, `E: F:`
+// or nothing at all.
+var vdDriveLetters = regexp.MustCompile(`^([A-Za-z]:( [A-Za-z]:)*)?$`)

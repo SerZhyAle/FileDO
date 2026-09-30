@@ -176,6 +176,10 @@ func launchUI(args ...string) error {
 	return cmd.Start()
 }
 
+// uiLauncher is the seam the verb tests swap out, so dispatching `ui` or `dm`
+// in a test never starts a real window.
+var uiLauncher = launchUI
+
 type HistoryEntry struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	Command       string                 `json:"command"`
@@ -411,7 +415,8 @@ BASIC USAGE:
   filedo.exe <target> [operation] [options]
 
 MAIN OPERATIONS:
-  ui       → Open the graphical UI shell
+  ui       → Open the graphical UI shell (ui or -ui)
+  dm       → Open the Disk Manager window (dm or -dm)
   info     → Show device/folder information
   speed    → Test read/write speed 
   test     → Test storage capacity (detect fake devices)
@@ -438,6 +443,7 @@ TARGETS:
 
 EXAMPLES:
   filedo.exe ui                   → Open the graphical UI shell
+  filedo.exe dm                   → Open the Disk Manager
   filedo.exe D: info              → Show drive info
   filedo.exe E: speed 100         → Test speed with 100MB
   filedo.exe F: test del          → Test capacity, auto-cleanup
@@ -622,6 +628,8 @@ the same three operations as pages - the password is masked and typed twice on
 secure, the disposition of the original is chosen before anything runs, and a
 reveal's copy is removed by the button on the page rather than by a keypress in
 a console. The password never reaches a command line from there.
+filedo.exe dm (or -dm) opens the window's Disk Manager page - the virtual
+disks of the vd verb - without opening the whole shell first.
 
 Inspect:
   filedo.exe fdsec info c.fd-sec p:pwd   → Layout facts (the password is needed:
@@ -1061,11 +1069,12 @@ var list_of_flags_for_safecopy = []string{"safecopy", "safe", "rescue", "damaged
 var list_of_flags_for_check = []string{"check"}
 var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_of_flags_for_fdsec = []string{"fdsec", "fds"}
-var list_of_flags_for_ui = []string{"ui", "gui"}
+var list_of_flags_for_ui = []string{"ui", "gui", "-ui"}
+var list_of_flags_for_dm = []string{"dm", "-dm"}
 var list_fo_flags_for_help = []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
 var list_fo_flags_for_short_help = []string{"?", "/?", "-?", "--help"}
 var list_fo_flags_for_full_help = []string{"help", "h", "/help"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_vd...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_dm...), list_of_flags_for_vd...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {

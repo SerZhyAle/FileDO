@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -267,5 +268,94 @@ func TestVD_State(t *testing.T) {
 	}
 	if vdServerAlive(vdMountRow{ServerPID: cmd.Process.Pid}) {
 		t.Fatal("an exited process is taken for a live server")
+	}
+}
+
+// SP-0067 AUD-31-F4: the elevated _task step accepts data, never instructions.
+// The request file sits in a folder a process of the same user can write, and
+// is read after the consent prompt; the task is therefore built inside the
+// elevated step from the registered container, this executable and the owner's
+// SID, and a request that carries XML of its own gets nothing from it.
+func TestVD_TaskStepAcceptsDataNotInstructions(t *testing.T) {
+	t.Setenv("FILEDO_STATE_DIR", t.TempDir())
+	if err := vdUpdateRegistry(func(r *vdRegistry) error {
+		r.Containers = append(r.Containers, vdRegEntry{Name: "work", Path: `C:\data\work.fdd`})
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	const sid = "S-1-5-21-1-2-3-1001"
+
+	// A request from a hostile file: its own XML, a task outside the folder, a
+	// name that climbs out of it.
+	hostile := `{"task_name":"\\FileDO\\FileDO Mount work","task_xml":"<Task><Actions><Exec><Command>calc.exe</Command></Exec></Actions></Task>","task_sid":"` + sid + `"}`
+	var req vdRequest
+	if err := json.Unmarshal([]byte(hostile), &req); err != nil {
+		t.Fatal(err)
+	}
+	built, err := vdBuildTaskXML("work", req.TaskSID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(built, "calc.exe") {
+		t.Fatalf("the task carries the request's XML:\n%s", built)
+	}
+	if !strings.Contains(built, "vd mount work") || !strings.Contains(built, sid) {
+		t.Errorf("the task built by the step is not FileDO's logon mount of the registered container:\n%s", built)
+	}
+
+	for _, name := range []string{
+		`\Microsoft\Windows\Defrag\ScheduledDefrag`,
+		`\FileDO\..\Microsoft\Evil`,
+		`\FileDO\FileDO Mount ..\..\Evil`,
+		`\FileDO\FileDO Mount work" /F`,
+		`\FileDO\FileDO Mount `,
+		`\FileDO\FileDO Mount a b`,
+		`FileDO Mount work`,
+	} {
+		if _, err := vdTaskStep(vdRequest{TaskName: name, TaskSID: sid}); err == nil {
+			t.Errorf("the step accepted the task name %q", name)
+		}
+		if _, err := vdTaskStep(vdRequest{TaskName: name, TaskDelete: true}); err == nil {
+			t.Errorf("the step accepted deleting the task %q", name)
+		}
+	}
+	if _, err := vdTaskStep(vdRequest{TaskName: vdTaskName("ghost"), TaskSID: sid}); err == nil || !strings.Contains(err.Error(), "not a registered container") {
+		t.Errorf("a task for a container nobody registered: %v", err)
+	}
+	if _, err := vdBuildTaskXML("work", "not-a-sid"); err == nil {
+		t.Error("an invalid owner SID was accepted")
+	}
+}
+
+// SP-0068 AUD-32-F3: a mount formats a disk with no partition table only when
+// the container has never held data.
+func TestVD_MountFormatsOnlyAContainerThatNeverHeldData(t *testing.T) {
+	fresh := vdisk.Info{AllocatedClusters: 0}
+	used := vdisk.Info{AllocatedClusters: 12, MountCount: 2}
+	fastFresh := vdisk.Info{AllocatedClusters: 4096} // the fast profile allocates every cluster when it is created
+	fastUsed := vdisk.Info{AllocatedClusters: 4096, MountCount: 1}
+	fromBackup := vdisk.Info{AllocatedClusters: 0, FromBackup: true}
+	for name, c := range map[string]struct {
+		blank, formatOnly bool
+		info              vdisk.Info
+		refused           bool
+	}{
+		"fresh and blank formats":              {true, false, fresh, false},
+		"fresh fast profile formats":           {true, false, fastFresh, false},
+		"mounted fast profile and blank":       {true, false, fastUsed, true},
+		"used and blank is refused":            {true, false, used, true},
+		"backup header and blank is refused":   {true, false, fromBackup, true},
+		"used with a table mounts":             {false, false, used, false},
+		"explicit format of a used container":  {true, true, used, false},
+		"explicit format on a disk with table": {false, true, used, false},
+	} {
+		err := vdMayFormatOnMount(c.blank, c.formatOnly, vdNeverHeldData(c.info), 3)
+		if (err != nil) != c.refused {
+			t.Errorf("%s: err=%v, refused want %v", name, err, c.refused)
+		}
+		if err != nil && (!strings.Contains(err.Error(), "nothing was formatted") || vdExitClass(err) != vdisk.ExitUsage) {
+			t.Errorf("%s: the refusal is %v (class %d)", name, err, vdExitClass(err))
+		}
 	}
 }

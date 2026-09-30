@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CLI-EVENT-STREAM` |
-| **Version** | 0.9, draft (wire carrier: `schemaVersion` 1 on every line) |
+| **Version** | 0.10, draft (wire carrier: `schemaVersion` 1 on every line) |
 | **Home** | shared contracts catalog, folder `cli-event-stream/` |
 | **Role** | producer (`cmd/filedo`) and consumer (`filedo_win_vb`) - both implementations live here |
 | **Owner** | FileDO. Amendments are written in the catalog first |

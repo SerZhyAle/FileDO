@@ -479,7 +479,8 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   step with the manifest `Resources` and the builder's locale map). The Partner Center console is a render
   target and `store-listing.md` carries only what the CSV cannot. `msix/test-store-tools.ps1` gates both.
 - **`msix/make-screenshots.ps1` takes the foreground**: run it on an idle machine. It chooses rail rows
-  through UI Automation (each row is named `rail:<key>` and has a default action), captures either theme
+  through UI Automation (each row is named `rail:<key>` and has a default action; the rail is an accordion, so
+  it first folds every group but the page's own), captures either theme
   (`-Theme light|dark`), and refuses to save a shot in which a control painted as a WinForms red-cross
   placeholder rather than ship it.
 - **Nothing in `msix/` publishes.** The upload, the listing import and the submission are the owner's.
@@ -487,7 +488,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate is `build.ps1 -Test`, in nine steps: smoke every shipped executable for its stamped version
+- The real gate is `build.ps1 -Test`, in ten steps: smoke every shipped executable for its stamped version
   and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); compile-check
   `cmd\filedo-test` and validate `packaging/check-placement.jsonl`; `go test ./fdsec/ -count=1 -short`;
   `go test ./vdisk/ -count=1`; `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`;
@@ -500,7 +501,10 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   against the page set, the full SEO block, every `data-l` group in ru/en/ua, translation freshness against
   `docs/translation-fingerprints.json`, the `docs/termbase.json` forbidden synonyms, screenshots and prose
   hygiene. **An EN edit on the site or in `README.md` fails it** until the translations are updated and
-  `check-external-docs.ps1 -Record` re-records the fingerprints. The
+  `check-external-docs.ps1 -Record` re-records the fingerprints; and `packaging/check-build-inputs.ps1` - no
+  build input (a glyph, an icon, a source, project or installer file) is on disk yet git-ignored, because
+  `git add -A` and the clean-tree check skip such a file silently and the tagged run builds from a checkout
+  that lacks it (SP-0049 AUD-18-F1). The
   Go builds and tests all run as windows/amd64 - the binary that ships - and the `cmd/filedo` suite's own
   exe is linked with the same version resource and manifest. Its last line is `build-gate <stamp>: PASS`,
   `FAIL`, or `NOT VERIFIED`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate
@@ -537,7 +541,9 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `palette:`, `theme:`, `rail-paint:`, `rail-label:` (every label in five languages), `progress:`,
   `format:`, `a11y:`, `placement:`, `wipe:` and `command:` rows - and the iconography ones: `icons:`
   (every vendored drawing hashed against `PROVENANCE.txt`, mapped, on its grid, painting), `rail-glyph:`
-  (the rail's glyph map, with a shrink-only count of Segoe stand-ins), `glyph:` (the verdicts),
+  (the rail's glyph map, with a shrink-only count of Segoe stand-ins), `rail-hue:`, `rail-group:`,
+  `rail-accordion:` and `rail-band:` (the group icons' hues, no group of one job, one group open, the checker of
+  bands), `glyph:` (the verdicts),
   `state-tone:` (the shared `state.*` tones) and `contrast:` (every glyph against its surface). Its palette switch goes through
   `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe
   and exits 0, 1, or 2 (the last means its log could not be written). It is a GUI-subsystem process, so from PowerShell it needs
@@ -566,6 +572,24 @@ its entry point. The command builder that shipped before it (`MainForm`, `AboutF
 `--legacy-builder` is still accepted and simply opens the shell, so an old shortcut keeps working. The
 shell's Command page is where a hand-written command line lives. `filedo_win.exe` is a frozen anchor (one
 name, one winget alias, one MSIX `Application Id`), so the shell is a **form**, never a second program.
+
+**One process, one shell window, plus the Disk manager** (SP-0063, which amends SP-0006 D15's "never a
+second window"). `DiskManagerForm` (`DiskManager.vb`, with `DiskHelp.vb`, `GlyphButton.vb`, `DiskGlyphs.vb`,
+`DiskStates.vb`, `DiskSnapshot.vb`, `DiskDialogs.vb`) is a companion window of the **same** `filedo_win.exe`,
+hosted with the shell by `AppHost` (`--disks` starts it alone; the MSI's *FileDO Disk Manager* Start menu
+entry runs exactly that). The two open each other - the shell's header button and `Ctrl+Shift+D`, the
+manager's *Main window* button and `Ctrl+Shift+O`. Its rules: it learns state **only** from
+`filedo vd status json` (schema `filedo.vd-status` v1, one snapshot child, coalesced, killed at 8 s, the last
+good state kept and marked stale on a failed read - never an empty list); every quick action's command line
+comes from `DiskCommands.Build`, the one function the Disks job pages use, and anything with parameters or no
+way back (new, export, compact, grow, seal, clone, pass, format, destroy) opens its **job page** in the shell
+with the container chosen, so the page that holds a typed confirmation stays the only one; the rail's Disks
+rows and the window's toolbar, menus and buttons draw their meanings from the one table in `DiskGlyphs.vb`;
+the keyboard map is the data table `DiskShortcuts.All` that the key handler, every tooltip and the help
+window all read; a control the build can never run (the Store build cannot mount) is **hidden**, not greyed
+(`DiskStates.HiddenInBuild`, APP-BEHAVIOUR rule 11). Its gate is `--selftest` (`disk-snap:`, `disk-state:`,
+`disk-matrix:`, `disk-quick:`, `disk-mgr:`, `disk-host:`, `disk-ui:`); `--capture-screens` also renders its
+three guide pictures; `tests/vd_manual.md` sections 5b and 7 are what only a screen can prove.
 
 **The program can be started on a file.** `Program.StartupTarget` takes the first argument that is not a
 switch and is a file on disk, and hands it to `ShellForm`, which opens the reveal page for a `.fd-sec` and
@@ -677,17 +701,17 @@ What this repository implements, with its pointer file:
 
 | Contract | Version | Catalog folder | Pointer here |
 | --- | --- | --- | --- |
-| `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte (suite 1 one file, suite 3 one directory tree) | 1.2 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
-| `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.2 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
+| `FDSEC-FORMAT` - the on-disk format of a `.fd-sec` container, byte for byte (suite 1 one file, suite 3 one directory tree) | 1.3 | `secure-container/` | [`docs/contracts/FDSEC-FORMAT.md`](docs/contracts/FDSEC-FORMAT.md) |
+| `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.4 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
 | `FDD-FORMAT` - the on-disk format of a `.fdd` virtual-disk container, byte for byte; implemented by `vdisk/` (SP-0004), unreleased | 0.1 draft | `disk-container/` | [`docs/contracts/FDD-FORMAT.md`](docs/contracts/FDD-FORMAT.md) |
 | `FDD-BEHAVIOUR` - what a program that reads and writes `.fdd` containers must do: the read path with no mount, exit classes 2-8, the clean marker, obfuscated never called encrypted; implemented by `vdisk/` and `filedo vd` / `filedo <x.fdd>` (SP-0004), unreleased | 0.1 draft | `disk-container/` | [`docs/contracts/FDD-BEHAVIOUR.md`](docs/contracts/FDD-BEHAVIOUR.md) |
-| `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.9 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
+| `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.10 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
 | `INSTALL-TRUST` - what a user reads in the thirty seconds after Windows warned them about an unsigned build | 1.0 | `install-trust/` | [`docs/contracts/INSTALL-TRUST.md`](docs/contracts/INSTALL-TRUST.md) |
 | `CHECK-VERDICT` - the exit code and final machine-readable line emitted by an automated check | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-VERDICT.md`](docs/contracts/CHECK-VERDICT.md) |
 | `CHECK-BASELINE` - the shrink-only file carrying accepted check debt | 0.9 draft | `automated-checks/` | [`docs/contracts/CHECK-BASELINE.md`](docs/contracts/CHECK-BASELINE.md) |
 | `CHECK-PLACEMENT` - the record mapping every check to its runner | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-PLACEMENT.md`](docs/contracts/CHECK-PLACEMENT.md) |
 | `BUILD-EVIDENCE` - the version carried by an artifact and the gate judging it | 0.9 draft | `automated-checks/` | [`docs/contracts/BUILD-EVIDENCE.md`](docs/contracts/BUILD-EVIDENCE.md) |
-| `ICON-SET` - the glyph vocabulary: one meaning, one glyph, one name, on every surface that shows a picture (consumer) | 0.15 draft | `iconography/` | [`docs/contracts/ICON-SET.md`](docs/contracts/ICON-SET.md) |
+| `ICON-SET` - the glyph vocabulary: one meaning, one glyph, one name, on every surface that shows a picture (consumer) | 0.16 draft | `iconography/` | [`docs/contracts/ICON-SET.md`](docs/contracts/ICON-SET.md) |
 | `ICON-RENDER` - how a glyph is drawn: colour role, themes, sizes, accessible name, the product mark on system surfaces (consumer) | 0.13 draft | `iconography/` | [`docs/contracts/ICON-RENDER.md`](docs/contracts/ICON-RENDER.md) |
 | `ICON-EXTERNAL` - third-party marks, other apps' icons, downloaded pictures (consumer) | 0.10 draft | `iconography/` | [`docs/contracts/ICON-EXTERNAL.md`](docs/contracts/ICON-EXTERNAL.md) |
 | `REPO-STAMP` - the canon adoption stamp `.sza-canon.json`, written by the canon's adoption run (producer) | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-STAMP.md`](docs/contracts/REPO-STAMP.md) |
@@ -702,6 +726,7 @@ What this repository consumes:
 | `REPO-LAYOUT` - the root and `docs/` names a shared tool may address without asking | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-LAYOUT.md`](docs/contracts/REPO-LAYOUT.md) |
 | `RULE-DELIVERY` - how the canon arrives through the `sza` plugin, and how staleness is judged | 0.9 draft | `rule-adoption/` | [`docs/contracts/RULE-DELIVERY.md`](docs/contracts/RULE-DELIVERY.md) |
 | `DOC-INTERNAL-QUALITY` / `DOC-EXTERNAL-QUALITY` - what the internal docs and the published site plus READMEs owe their readers: registry, links, style, freshness, termbase, SEO | 0.9 draft / 0.9 draft | `documentation-quality/` | [`docs/contracts/DOC-INTERNAL-QUALITY.md`](docs/contracts/DOC-INTERNAL-QUALITY.md), [`DOC-EXTERNAL-QUALITY.md`](docs/contracts/DOC-EXTERNAL-QUALITY.md) |
+| `PACKAGE-VERSIONING` - the package stamp and ordering grammar; FileDO's frozen stamp differs from the draft | 0.1 draft, exception proposed | `package-versioning/` | [`docs/contracts/PACKAGE-VERSIONING.md`](docs/contracts/PACKAGE-VERSIONING.md) |
 
 Four rules, because a shared contract breaks differently from ordinary code:
 

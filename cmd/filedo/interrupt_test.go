@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -185,5 +186,94 @@ func TestBreakSignalLeavesSignalGoroutineFree(t *testing.T) {
 			t.Fatalf("handleSignal(%v): the cleanups never ran", sig)
 		}
 		close(release)
+	}
+}
+
+// AUD-02-F2 (CLI-07c): a forced exit gives ordinary cleanups the short budget
+// and abandons the ones that outlast it, but it waits for a critical cleanup -
+// the probe's sector restore - because cutting that one leaves the user's
+// file system holding the probe's markers.
+func TestForcedExitWaitsForACriticalCleanup(t *testing.T) {
+	ih := newInterruptHandlerNoSignals()
+	const work = 300 * time.Millisecond
+	var ordinaryDone, criticalDone atomic.Bool
+	ih.AddCleanup(func() {
+		time.Sleep(work)
+		ordinaryDone.Store(true)
+	})
+	ih.AddCriticalCleanup(func() {
+		time.Sleep(work)
+		criticalDone.Store(true)
+	})
+
+	var announced int
+	started := time.Now()
+	normalOK, criticalOK := ih.runForcedCleanups(20*time.Millisecond, 5*time.Second, func(n int) { announced = n })
+	if normalOK {
+		t.Error("an ordinary cleanup that outlasts its budget was reported as finished")
+	}
+	if !criticalOK || !criticalDone.Load() {
+		t.Fatalf("the forced exit did not wait for the critical cleanup (finished=%v, ran to the end=%v)", criticalOK, criticalDone.Load())
+	}
+	if since := time.Since(started); since < work {
+		t.Errorf("the forced cleanups returned after %v, before the critical cleanup's %v of work", since, work)
+	}
+	if announced != 1 {
+		t.Errorf("the forced exit announced %d critical cleanup(s) still running, want 1", announced)
+	}
+}
+
+// A critical cleanup is bounded too: a device that never answers cannot keep
+// the process alive for ever, and the caller is told it was cut.
+func TestForcedExitBoundsACriticalCleanup(t *testing.T) {
+	ih := newInterruptHandlerNoSignals()
+	release := make(chan struct{})
+	defer close(release)
+	ih.AddCriticalCleanup(func() { <-release })
+
+	started := time.Now()
+	_, criticalOK := ih.runForcedCleanups(10*time.Millisecond, 150*time.Millisecond, nil)
+	if criticalOK {
+		t.Error("a critical cleanup that never returned was reported as finished")
+	}
+	if since := time.Since(started); since > 2*time.Second {
+		t.Errorf("the forced cleanups took %v; the critical budget is 150 ms", since)
+	}
+}
+
+// With nothing registered as critical the forced exit costs the short budget
+// at most, as before.
+func TestForcedExitWithoutCriticalCleanupsIsShort(t *testing.T) {
+	ih := newInterruptHandlerNoSignals()
+	ih.AddCleanup(func() {})
+	started := time.Now()
+	normalOK, criticalOK := ih.runForcedCleanups(time.Second, time.Minute, func(int) { t.Error("announced a critical cleanup that does not exist") })
+	if !normalOK || !criticalOK {
+		t.Errorf("normal=%v critical=%v, want both finished", normalOK, criticalOK)
+	}
+	if time.Since(started) > 500*time.Millisecond {
+		t.Errorf("an empty forced exit took %v", time.Since(started))
+	}
+}
+
+// The probe's restore is registered as critical, and a graceful stop leaves it
+// alone (the probe restores on its own way out).
+func TestProbeRestoreIsACriticalForcedExitCleanup(t *testing.T) {
+	ih := newInterruptHandlerNoSignals()
+	restores := 0
+	unregister := registerProbeRestore(ih)(func() { restores++ })
+	defer unregister()
+
+	if got := ih.criticalCount(); got != 1 {
+		t.Fatalf("the probe registered %d critical cleanups, want 1", got)
+	}
+	ih.runCleanups() // a graceful stop: not a forced exit
+	if restores != 0 {
+		t.Errorf("a graceful stop ran the forced-exit restore %d time(s)", restores)
+	}
+	ih.forceExit.Store(true)
+	ih.runCleanups()
+	if restores != 1 {
+		t.Errorf("a forced exit ran the restore %d time(s), want 1", restores)
 	}
 }

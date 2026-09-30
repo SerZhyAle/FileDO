@@ -59,6 +59,7 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`UPDATE-MANIFEST.md`](UPDATE-MANIFEST.md) | standalone release discovery and integrity checks | consumer |
 | [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | Explorer verb integration and process invocation | consumer |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
+| [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; dated draft exception |
 
 ### Read against this repository and found not to bind it
 

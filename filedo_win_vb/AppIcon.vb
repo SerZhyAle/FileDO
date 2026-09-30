@@ -20,6 +20,18 @@ Module AppIcon
         If form IsNot Nothing AndAlso appIconValue IsNot Nothing Then form.Icon = appIconValue
     End Sub
 
+    ''' <summary>The product mark as a picture of the given size, for a button that stands for the product itself (ICON-RENDER rule 9: the mark, not a glyph).</summary>
+    Public Function Mark(px As Integer) As Bitmap
+        If appIconValue Is Nothing OrElse px <= 0 Then Return Nothing
+        Try
+            Using sized As New Icon(appIconValue, New Size(px, px))
+                Return sized.ToBitmap()
+            End Using
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
     Private Function Load() As Icon
         Try
             Using stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)

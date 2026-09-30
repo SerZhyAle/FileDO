@@ -63,6 +63,9 @@ var vdVerbs = []vdVerb{
 	{name: "forget", words: []string{"forget"}},
 	{name: "list", words: []string{"list", "ls"}, judges: true},
 	{name: "auto", words: []string{"auto"}, transport: true},
+	// The shutdown guard (SP-0080): the task, the watcher and its state. It
+	// unmounts, which the packaged build refuses, so it is a transport verb.
+	{name: "guard", words: []string{"guard"}, transport: true},
 	{name: "status", words: []string{"status"}, judges: true},
 	// The Explorer registration of .fdd (T6.16, vdisk_register_windows.go).
 	// Not a transport verb: inside the package it refuses with its own

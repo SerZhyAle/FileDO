@@ -113,26 +113,20 @@ func vdAuto(args []string, batch bool) error {
 	} else if !info.Obfuscated {
 		return vdUsagef("%s is encrypted, and an automatic mount would need its credential stored where the machine can read it without you; this version stores none, so it does not mount encrypted containers automatically", e.Name)
 	}
-	exe, err := os.Executable()
+	exe, err := vdTaskExe()
 	if err != nil {
 		return err
-	}
-	if strings.Contains(strings.ToLower(exe), `\windowsapps\`) {
-		// A packaged app's own path is not something a task can start; the
-		// execution alias is.
-		exe = "filedo.exe"
 	}
 	sid, err := vdCurrentUserSID()
 	if err != nil {
 		return err
 	}
-	taskXML := vdTaskXML(e.Name, e.Path, exe, sid)
 
 	fmt.Printf("This creates the scheduled task %s: at your logon it runs\n  %s --no-history vd mount %s\n", vdTaskName(e.Name), exe, e.Name)
 	fmt.Println("with administrator rights and without asking, so the volume is there when you log on.")
 	fmt.Println("The container is obfuscated, not encrypted: anyone who has the file reads it, and once mounted the volume is open to every program that runs as you.")
 	fmt.Printf("It stays until you remove it with: filedo vd auto off %s  (an uninstall of FileDO does not remove it).\n", e.Name)
-	res, err := vdRunElevated("_task", vdRequest{TaskName: vdTaskName(e.Name), TaskXML: taskXML}, batch, nil)
+	res, err := vdRunElevated("_task", vdRequest{TaskName: vdTaskName(e.Name), TaskSID: sid}, batch, nil)
 	if err != nil {
 		return err
 	}
@@ -154,24 +148,83 @@ func vdAutoOff(name string, batch bool) error {
 	return nil
 }
 
+// vdTaskExe is the command an automatic-mount task starts: this executable, or
+// the execution alias when this one is a packaged app's own path, which a task
+// cannot start. The elevated step asks it too, so the executable is never a
+// value the request carries.
+func vdTaskExe() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(strings.ToLower(exe), `\windowsapps\`) {
+		exe = "filedo.exe"
+	}
+	return exe, nil
+}
+
+// vdTaskContainerName is the registered container a task name refers to, or an
+// error when the name is not one FileDO would have made: the task folder, the
+// fixed words, and a valid container name - nothing that could name another
+// task or climb out of the folder.
+func vdTaskContainerName(taskName string) (string, error) {
+	prefix := vdTaskName("")
+	if len(taskName) <= len(prefix) || !strings.EqualFold(taskName[:len(prefix)], prefix) {
+		return "", vdUsagef("refusing a task outside %s: %s", vdTaskFolder, taskName)
+	}
+	name := taskName[len(prefix):]
+	if !vdNameSpelling.MatchString(name) {
+		return "", vdUsagef("refusing a task whose name is not a container name: %s", taskName)
+	}
+	return name, nil
+}
+
 // vdTaskStep is the elevated half: it registers or deletes the task, and
-// nothing else.
+// nothing else. It accepts data, never instructions (AUD-31-F4): the task's
+// name is either a FileDO mount task of a valid container name
+// (vdTaskContainerName) or the fixed name of the shutdown guard
+// (vdGuardTask), and a task it registers is built here from constants, the
+// registered container of that name, this executable and the owner's SID -
+// the request carries no XML, so whatever a process of the same user did to
+// the request file between the consent prompt and this read, the most it can
+// ask for is FileDO's own logon mount of a container the owner registered, or
+// the guard.
 func vdTaskStep(req vdRequest) (vdResult, error) {
 	var res vdResult
-	if !strings.HasPrefix(req.TaskName, vdTaskName("")) {
-		return res, vdUsagef("refusing a task outside %s: %s", vdTaskFolder, req.TaskName)
+	guard := strings.EqualFold(req.TaskName, vdGuardTask)
+	name := ""
+	if !guard {
+		var err error
+		name, err = vdTaskContainerName(req.TaskName)
+		if err != nil {
+			return res, err
+		}
 	}
 	var cmd *exec.Cmd
 	if req.TaskDelete {
-		cmd = exec.Command(vdSchtasks(), "/Delete", "/TN", req.TaskName, "/F")
+		task := vdTaskName(name)
+		if guard {
+			task = vdGuardTask
+		}
+		cmd = exec.Command(vdSchtasks(), "/Delete", "/TN", task, "/F")
 	} else {
+		var taskXML string
+		var err error
+		if guard {
+			taskXML, err = vdBuildGuardTaskXML(req.TaskSID)
+		} else {
+			taskXML, err = vdBuildTaskXML(name, req.TaskSID)
+		}
+		if err != nil {
+			return res, err
+		}
 		f, err := os.CreateTemp("", "filedo-task-*.xml")
 		if err != nil {
 			return res, err
 		}
 		defer os.Remove(f.Name())
 		// schtasks reads task XML as UTF-16 with a byte-order mark.
-		u := utf16.Encode([]rune(req.TaskXML))
+		u := utf16.Encode([]rune(taskXML))
 		buf := []byte{0xFF, 0xFE}
 		for _, c := range u {
 			buf = append(buf, byte(c), byte(c>>8))
@@ -189,6 +242,27 @@ func vdTaskStep(req vdRequest) (vdResult, error) {
 	return res, nil
 }
 
+// vdBuildTaskXML is the XML of the logon task of the registered container name,
+// for the account with SID sid.
+func vdBuildTaskXML(name, sid string) (string, error) {
+	if _, err := windows.StringToSid(sid); err != nil {
+		return "", vdUsagef("the task's owner is not a valid SID: %v", err)
+	}
+	r, err := vdLoadRegistry()
+	if err != nil {
+		return "", err
+	}
+	i := r.find(name)
+	if i < 0 || r.Containers[i].Name != name {
+		return "", vdUsagef("%s is not a registered container; no task was created", name)
+	}
+	exe, err := vdTaskExe()
+	if err != nil {
+		return "", err
+	}
+	return vdTaskXML(name, r.Containers[i].Path, exe, sid), nil
+}
+
 func vdCurrentUserSID() (string, error) {
 	u, err := windows.GetCurrentProcessToken().GetTokenUser()
 	if err != nil {
@@ -197,12 +271,72 @@ func vdCurrentUserSID() (string, error) {
 	return u.User.Sid.String(), nil
 }
 
-func vdTaskXML(name, path, exe, sid string) string {
-	esc := func(s string) string {
-		var b strings.Builder
-		xml.EscapeText(&b, []byte(s))
-		return b.String()
+func vdXMLEsc(s string) string {
+	var b strings.Builder
+	xml.EscapeText(&b, []byte(s))
+	return b.String()
+}
+
+// vdBuildGuardTaskXML is the XML of the shutdown guard's task (SP-0080 3.1),
+// for the account with SID sid. Unlike a mount task it is resident, so its
+// execution time limit is off (PT0S).
+func vdBuildGuardTaskXML(sid string) (string, error) {
+	if _, err := windows.StringToSid(sid); err != nil {
+		return "", vdUsagef("the task's owner is not a valid SID: %v", err)
 	}
+	exe, err := vdTaskExe()
+	if err != nil {
+		return "", err
+	}
+	return vdGuardTaskXML(exe, sid), nil
+}
+
+func vdGuardTaskXML(exe, sid string) string {
+	esc := vdXMLEsc
+	dir := filepath.Dir(exe)
+	if dir == "." {
+		dir = os.Getenv("USERPROFILE")
+	}
+	return `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>FileDO</Author>
+    <Description>Saves dirty ram disks, largest first, and unmounts every mounted FileDO container when your session ends - a shutdown, a restart or a sign-out - so each is closed cleanly at the next logon. Created by: filedo vd guard on. Remove with: filedo vd guard off</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>` + esc(sid) + `</UserId>
+      <Delay>PT10S</Delay>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>` + esc(sid) + `</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Enabled>true</Enabled>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>` + esc(exe) + `</Command>
+      <Arguments>--no-history vd guard run</Arguments>
+      <WorkingDirectory>` + esc(dir) + `</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
+`
+}
+
+func vdTaskXML(name, path, exe, sid string) string {
+	esc := vdXMLEsc
 	dir := filepath.Dir(exe)
 	if dir == "." {
 		dir = os.Getenv("USERPROFILE")

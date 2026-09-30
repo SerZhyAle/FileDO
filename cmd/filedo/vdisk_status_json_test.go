@@ -34,14 +34,28 @@ func vdSnapFixture(t *testing.T) (string, string) {
 	stateDir := os.Getenv("FILEDO_STATE_DIR")
 
 	tasks, transport, alive, now := vdSnapshotTasks, vdSnapshotTransport, vdSnapshotAlive, vdSnapshotNow
+	guard := vdSnapshotGuard
 	t.Cleanup(func() {
 		vdSnapshotTasks, vdSnapshotTransport, vdSnapshotAlive, vdSnapshotNow = tasks, transport, alive, now
+		vdSnapshotGuard = guard
 	})
 	vdSnapshotTasks = func() map[string]bool { return map[string]bool{"archive": true} }
 	vdSnapshotTransport = func() vdSnapTransport { return vdSnapTransport{Ready: true, InitiatorService: "running"} }
 	// A row with a server process id is alive; the "gone" row has none.
 	vdSnapshotAlive = func(m vdMountRow) bool { return m.ServerPID != 0 }
 	vdSnapshotNow = func() time.Time { return time.Date(2026, 9, 27, 12, 2, 11, 0, time.UTC) }
+	// The shutdown guard (SP-0080): installed and running, with a last run
+	// that saved one ram disk and left nothing behind. The other half of the
+	// unknown-field rule - a snapshot without the guard key - is an older
+	// CLI's document, and the reader takes its defaults (TestVD_GuardSnapshot).
+	vdSnapshotGuard = func() vdSnapGuard {
+		return vdSnapGuard{Installed: true, Running: true,
+			LastRun: vdStamp(time.Date(2026, 9, 27, 5, 12, 33, 0, time.UTC)), Ended: "session",
+			Containers: []vdSnapGuardRow{
+				{Name: "scratch", Path: `C:\vd\scratch.fdd`, Action: "save", Outcome: "saved", BytesSaved: 180 << 20},
+				{Name: "work", Path: `C:\vd\work.fdd`, Action: "unmount", Outcome: "unmounted"},
+			}}
+	}
 
 	mk := func(name string, profile vdisk.Profile, cred string) string {
 		p := filepath.Join(dir, name+".fdd")
@@ -154,7 +168,7 @@ func vdSnapNormalize(t *testing.T, line, dir string) string {
 			return x
 		case string:
 			switch key {
-			case "at", "mounted_at", "last_good_save":
+			case "at", "mounted_at", "last_good_save", "last_run":
 				if !stamp.MatchString(x) {
 					t.Errorf("%s is not an RFC 3339 time to the second: %q", key, x)
 				}

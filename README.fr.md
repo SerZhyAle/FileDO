@@ -66,7 +66,7 @@ Installe les outils en ligne de commande (`filedo`, `filedo_check`, `filedo_fill
 Téléchargez `FileDO-<version>-setup.exe` depuis les [releases](https://github.com/SerZhyAle/FileDO/releases/latest) et lancez-le. C'est cette option qui fait de FileDO un programme Windows ordinaire plutôt qu'un dossier d'exécutables:
 
 - installe les fichiers dans `C:\Program Files\FileDO` et ajoute `filedo` au `PATH` système;
-- crée une **entrée dans le menu Démarrer** et une **icône sur le bureau** pour la fenêtre FileDO (`filedo_win.exe`);
+- crée une **entrée dans le menu Démarrer** et une **icône sur le bureau** pour la fenêtre FileDO (`filedo_win.exe`) et une seconde entrée du menu Démarrer, **FileDO Disk Manager**, qui ouvre directement le Gestionnaire de disques (`filedo_win.exe --disks`);
 - enregistre l'**intégration à l'Explorateur**: un groupe `File DO..` dans le menu contextuel de tout fichier - Secure (garder, supprimer ou effacer l'original, ou un nom de conteneur aléatoire), Unsecure (en option, supprimer le conteneur ou démarrer aussitôt le fichier restauré), Wipe this file, Check this file, Info - ainsi que le type de document `.fd-sec` avec sa propre icône: le double-clic est exactement l'entrée Unsecure and start: une console y demande le mot de passe, restaure l'original sous son vrai nom dans `%LOCALAPPDATA%\FileDO\reveal` - un dossier que seuls ce compte et le système peuvent lire -, le confie au programme auquel appartient sa véritable extension, puis retire cette copie à la fermeture de la fenêtre de console. Sous Windows 11, le groupe se trouve sous *Afficher d'autres options*;
 - enregistre le **type `.fdd` des conteneurs de disque** (fonctionnalité *Disk container files (.fdd)*): sa propre icône, un double-clic qui ouvre la fenêtre FileDO et monte le disque virtuel, et *Mount read-only* et *Unmount* dans le menu contextuel - voir la section *Disques virtuels* plus bas.
 
@@ -221,6 +221,9 @@ Cinq choses dites franchement, car une fonction de sécurité qui se surestime v
 - **`wipe` réduit les chances de récupération et ne promet rien.** Sur SSD et sur les systèmes de fichiers
   à copie sur écriture ou journalisés, écraser un fichier sur place ne garantit pas que les anciens blocs
   ont disparu.
+- **`wipe` n'écrase jamais un fichier qui a un autre lien physique.** L'écrasement sur place atteint tous
+  les noms du fichier : l'original est donc conservé et l'exécution le dit ; retirez d'abord les liens en
+  trop, ou utilisez `del`.
 - **Une copie révélée vit dans `%LOCALAPPDATA%\FileDO\reveal`**, en lecture seule, lisible par ce compte
   et le système uniquement. Elle disparaît quand vous le dites, ou quand le programme qui l'a ouverte la
   relâche.
@@ -320,7 +323,7 @@ Ce qu'il faut à la plateforme, dit franchement:
   `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` et
   `vd forget` y fonctionnent aussi; pour monter, prenez le setup ou la version portable sur GitHub.
 - **Un montage survit à la fenêtre.** Fermer la fenêtre FileDO laisse le lecteur et son serveur en place,
-  et une nouvelle fenêtre les liste de nouveau; démontez sur les pages du groupe *Disques* ou avec
+  et une nouvelle fenêtre les liste de nouveau; démontez dans le Gestionnaire de disques, sur les pages du groupe *Disques* ou avec
   `filedo X: unmount`.
 
 Codes de sortie d'une commande de conteneur: 0 terminé, 2 commande incorrecte, 3 mauvais mot de passe,
@@ -336,6 +339,10 @@ contextuel ajoute *Mount read-only* et *Unmount* (sous Windows 11, sous *Affiche
 programme d'installation, `filedo vd register` écrit la même chose (`-all-users` pour toute la machine), et
 `filedo vd unregister` la retire. Dans la fenêtre, le groupe **Disques** a une page par opération et nomme
 les deux protections exactement comme la console.
+
+Le **Gestionnaire de disques** (en anglais *Disk manager*) est une seconde fenêtre du même `filedo_win.exe` - pas un nouveau programme - avec une ligne par disque virtuel: les disques de votre liste, ceux qui sont montés maintenant et les images VHD, VHDX ou ISO que FileDO a montées. Chaque ligne dit son état en toutes lettres à côté d'une icône (*Monté*, *Monté, lecture seule*, *Monté, 180 MiB non enregistrés* pour un disque `ram`, *Serveur disparu - volume hors ligne*, *Image montée*, *Fichier absent*, *Un autre conteneur se trouve à ce chemin*, *Illisible*, *Mal fermé*, *Non monté*), et la liste se tient à jour sans actualisation manuelle. Autour d'elle: une barre d'outils (*Nouveau disque..*, *Ajouter..*, *Monter*, *Démonter*, *Ouvrir*, *Enregistrer*, *Autres actions*, *Actualiser*, *Aide*, *Fenêtre principale*), une ligne de filtre et un volet de détails avec les boutons qui s'appliquent; un bouton inutilisable dit pourquoi dans son info-bulle et dans le volet, et la version du Microsoft Store, qui ne peut jamais monter, masque les commandes de montage au lieu de les griser. Un double-clic ou Entrée monte un disque au repos et ouvre le lecteur d'un disque monté - il ne démonte jamais; faites glisser des fichiers `.fdd` sur la liste pour les ajouter, ou un `.vhd`, `.vhdx` ou `.iso` pour monter une image après une confirmation. *Nouveau disque*, *Exporter*, *Compacter*, *Agrandir*, *Copie scellée*, *Cloner*, *Changer le mot de passe*, *Formater* et *Détruire* ouvrent leur page de tâche dans la fenêtre principale avec le conteneur choisi; *Formater* et *Détruire* y gardent la confirmation à saisir.
+
+On l'ouvre par l'entrée **FileDO Disk Manager** du menu Démarrer (le programme d'installation l'ajoute; elle lance `filedo_win.exe --disks`), par le bouton **«Gestionnaire de disques»** en haut à droite de la fenêtre FileDO ou la première ligne de son groupe *Disques* (aussi **Ctrl+Shift+D**), ou avec `filedo_win.exe --disks`; son bouton **«Fenêtre principale»** ramène la fenêtre FileDO au premier plan. **F1** ouvre l'aide - ce que dit une ligne, le tableau des touches, des liens. À la première ouverture, une fenêtre de bienvenue explique ce qu'est un disque virtuel et dit: *Camouflé, pas chiffré: quiconque a ce fichier et FileDO peut le lire. Il s'ouvre sans mot de passe.* *Chiffré: il ne s'ouvre qu'avec son mot de passe.* Elle précise aussi que Windows demande l'accord d'un administrateur à chaque montage et démontage; elle propose *Créer mon premier disque..*, *Ajouter un fichier .fdd que j'ai déjà..*, *Lire le guide sur le site* et *Pas maintenant*. Le tableau des touches et les images sont dans le [guide des disques virtuels](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Fermer le gestionnaire ne démonte jamais un disque.
 
 ---
 
@@ -434,7 +441,7 @@ les deux protections exactement comme la console.
 filedo_win.exe          # Interface Windows GUI
 ```
 
-Les pages **«Protéger»** traitent les fichiers secrets `.fd-sec` - rendre un fichier secret, récupérer l'original, ou l'ouvrir sans le décompresser. Le mot de passe est masqué et n'entre jamais dans une ligne de commande. Donner directement un chemin `.fd-sec` à la fenêtre l'ouvre sur la page de ce conteneur (`filedo_win.exe C:\a\x.fd-sec`); un double-clic dans l'Explorateur ne passe pas du tout par la fenêtre - il exécute **Unsecure and start** dans la console, comme décrit plus haut. «Historique», «Réglages» et «À propos» ont leurs propres pages; l'ancienne fenêtre constructeur de commandes est retirée, et une ligne de commande écrite à la main se saisit sur la page **«Commande»**.
+Les pages **«Protéger»** traitent les fichiers secrets `.fd-sec` - rendre un fichier secret, récupérer l'original, ou l'ouvrir sans le décompresser. Le mot de passe est masqué et n'entre jamais dans une ligne de commande. Donner directement un chemin `.fd-sec` à la fenêtre l'ouvre sur la page de ce conteneur (`filedo_win.exe C:\a\x.fd-sec`); un double-clic dans l'Explorateur ne passe pas du tout par la fenêtre - il exécute **Unsecure and start** dans la console, comme décrit plus haut. «Historique», «Réglages» et «À propos» ont leurs propres pages; l'ancienne fenêtre constructeur de commandes est retirée, et une ligne de commande écrite à la main se saisit sur la page **«Commande»**. Le **Gestionnaire de disques** - une seconde fenêtre pour les disques virtuels, ouverte par **Ctrl+Shift+D**, le bouton en haut à droite ou `filedo_win.exe --disks` - est décrit dans la section *Disques virtuels* plus haut.
 
 **Fonctionnalités :**
 - Construit avec VB.NET Windows Forms pour une expérience native Windows
@@ -645,7 +652,7 @@ FileDO/
 **Pas encore publiée** (la prochaine version)
 - **Disques virtuels (`.fdd`)**: un volume entier dans un fichier, monté comme lettre de lecteur - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` et `export` (image brute ou VHD) sans montage, et `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre
 - **Explorateur**: la nouvelle fonctionnalité *Disk container files (.fdd)* du setup (`DiskContainerIntegration`) donne à `.fdd` une icône, un double-clic qui monte et *Mount read-only* / *Unmount*; sans programme d'installation, `filedo vd register` fait de même
-- **GUI**: un nouveau groupe **Disques** - une page par opération, et un montage qui survit à la fenêtre
+- **GUI**: un nouveau groupe **Disques** - une page par opération - et le **Gestionnaire de disques**, une seconde fenêtre avec une ligne par disque virtuel, son état en toutes lettres, et monter, démonter, ouvrir et enregistrer depuis la ligne; un montage survit à la fenêtre, et le programme d'installation ajoute l'entrée *FileDO Disk Manager* au menu Démarrer, qui l'ouvre directement
 - **Limites**: Windows uniquement; monter demande l'accord d'un administrateur; la version du Microsoft Store lit, vérifie et exporte les conteneurs mais ne peut pas les monter
 
 **v2609241700** (Actuelle)

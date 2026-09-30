@@ -47,6 +47,7 @@ func verbOf(word string) string {
 		{"fdsec", list_of_flags_for_fdsec},
 		{"vd", list_of_flags_for_vd},
 		{"ui", list_of_flags_for_ui},
+		{"dm", list_of_flags_for_dm},
 	} {
 		if contains(v.aliases, w) {
 			return v.name
@@ -256,14 +257,23 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 		}
 		return nil
 
-	case "ui":
+	case "ui", "dm":
+		// `dm` is the Disk Manager window of the same shell: filedo_win.exe
+		// --disks (SP-0063). Both spell the GUI out beside this executable;
+		// -ui and -dm are the dashed spellings of the same two verbs.
+		launchArgs := rest
+		what := "the UI shell"
+		if verb == "dm" {
+			launchArgs = append([]string{"--disks"}, rest...)
+			what = "the Disk Manager"
+		}
 		if batch {
-			usageFailure("ui", args, "cannot launch the UI shell from a batch file")
+			usageFailure(verb, args, "cannot launch %s from a batch file", what)
 			return errLineFailed
 		}
-		hl.SetCommand("ui", "", "ui")
-		beginRun(runActs, "ui", "", args)
-		if err := launchUI(rest...); err != nil {
+		hl.SetCommand(verb, "", verb)
+		beginRun(runActs, verb, "", args)
+		if err := uiLauncher(launchArgs...); err != nil {
 			fmt.Fprintf(os.Stderr, "GUI is available as filedo_win.exe (download from https://github.com/SerZhyAle/FileDO/releases)\n")
 			reportRunError(err, hl)
 			return err
@@ -286,8 +296,11 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 		op  string
 		run func(src, dst string, extra []string) error
 	}{
-		"compare":   {"compare", func(s, d string, x []string) error { return handleCompareCommand(s, d, x...) }},
-		"copy":      {"auto-copy", func(s, d string, x []string) error { copyPrecount = wantsCopyPrecount(x); return handleAutoCopyCommand(s, d) }},
+		"compare": {"compare", func(s, d string, x []string) error { return handleCompareCommand(s, d, x...) }},
+		"copy": {"auto-copy", func(s, d string, x []string) error {
+			copyPrecount = wantsCopyPrecount(x)
+			return handleAutoCopyCommand(s, d)
+		}},
 		"fastcopy":  {"fastcopy", func(s, d string, _ []string) error { return handleFastCopyCommand(s, d) }},
 		"synccopy":  {"synccopy", func(s, d string, _ []string) error { return handleSyncCopyCommand(s, d) }},
 		"balanced":  {"balanced", func(s, d string, _ []string) error { return handleBalancedCopyCommand(s, d) }},

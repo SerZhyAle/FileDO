@@ -279,14 +279,21 @@ type vdRequest struct {
 	Letter   string `json:"letter,omitempty"`
 	ReadOnly bool   `json:"read_only"`
 	Force    bool   `json:"force"`
-	Session  string `json:"session,omitempty"`
+	// NeverHeld is the caller's fact about the container: no data cluster was
+	// ever allocated, so a disk with no partition table is a container that has
+	// never been formatted. Only then may the mount format it (AUD-32-F3).
+	NeverHeld bool   `json:"never_held,omitempty"`
+	Session   string `json:"session,omitempty"`
 	// NoScan names the backing file to exclude from Microsoft Defender for
 	// this mount (the opt-in word noscan), or to un-exclude at unmount.
 	NoScan string `json:"no_scan,omitempty"`
-	// TaskName and TaskXML (or TaskDelete) are the automatic-mount task the
-	// _task step registers or removes (vdisk_auto_windows.go).
+	// TaskName and TaskSID (or TaskDelete) name the automatic-mount task the
+	// _task step registers or removes (vdisk_auto_windows.go). They are data:
+	// the step builds the task itself from the registered container of that
+	// name, its own executable and TaskSID, never from XML in this file
+	// (AUD-31-F4).
 	TaskName   string `json:"task_name,omitempty"`
-	TaskXML    string `json:"task_xml,omitempty"`
+	TaskSID    string `json:"task_sid,omitempty"`
 	TaskDelete bool   `json:"task_delete,omitempty"`
 	// ImagePath is the .vhd or .vhdx the _image step mounts, or dismounts
 	// when ImageDetach is set.
@@ -355,7 +362,18 @@ func vdElevatedMain(verb string, args []string) error {
 		res.OK = true
 	}
 	out, _ := json.Marshal(res)
-	return os.WriteFile(resPath, out, 0o600)
+	// CREATE_NEW: the caller never creates the result file, so one that is
+	// already there is somebody else's, and a reparse point planted at that
+	// name must not be written through by an elevated process (AUD-31-F4).
+	f, ferr := os.OpenFile(resPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if ferr != nil {
+		return ferr
+	}
+	if _, werr := f.Write(out); werr != nil {
+		f.Close()
+		return werr
+	}
+	return f.Close()
 }
 
 // vdEnsureInitiator starts MSiSCSI when it is stopped. It never changes the
@@ -518,6 +536,9 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 	blank, err := diskIsBlank(disk)
 	if err != nil {
 		return res, fmt.Errorf("could not read the partition table of disk %d: %w", disk, err)
+	}
+	if err := vdMayFormatOnMount(blank, req.FormatOnly, req.NeverHeld, disk); err != nil {
+		return res, err
 	}
 	if blank || req.FormatOnly {
 		if req.ReadOnly {
@@ -1145,7 +1166,7 @@ func vdMount(args []string, batch bool) error {
 		fmt.Println("Connecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.")
 	}
 	req := vdRequest{Port: h.Port, IQN: h.IQN, Secret: h.Secret, Serial: h.Serial,
-		Label: h.Label, Letter: letter, ReadOnly: ro}
+		Label: h.Label, Letter: letter, ReadOnly: ro, NeverHeld: vdNeverHeldData(info)}
 	if o.NoScan {
 		req.NoScan = path
 	}
@@ -1279,7 +1300,6 @@ func vdUnmount(args []string, batch bool) error {
 		}
 		return err
 	}
-	alive := vdServerAlive(row)
 	if nosave {
 		if row.Profile != vdisk.ProfileRAM.String() {
 			return vdUsagef("nosave is for a ram container; %s is %s and keeps nothing in memory", row.Path, row.Profile)
@@ -1298,51 +1318,13 @@ func vdUnmount(args []string, batch bool) error {
 	if !windows.GetCurrentProcessToken().IsElevated() && !batch {
 		fmt.Println("Disconnecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.")
 	}
-	// A volume whose server is gone is dead already: it can be neither locked
-	// nor flushed, so its detach is a forced one whatever was asked.
-	req := vdRequest{Port: row.Port, IQN: row.IQN, Serial: row.Serial,
-		Session: row.Session, Force: force || !alive, ReadOnly: row.ReadOnly}
-	if row.ScanExcluded {
-		req.NoScan = row.Path
-	}
-	res, err := vdRunElevated("_detach", req, batch, nil)
+	alive, how, res, err := vdUnmountOne(row, force, nosave, batch)
 	if err != nil {
 		return err
 	}
 	if res.Warning != "" {
 		fmt.Printf("Warning: the Defender exclusion of %s could not be removed: %s\n", row.Path, res.Warning)
 	}
-	how := "clean"
-	switch {
-	case !alive:
-		how = "unclean"
-	case nosave: // unclean as well, and without the save an Abandon would make
-		how = "nosave"
-	case res.Unclean:
-		how = "unclean"
-	}
-	if alive {
-		_, stopPath, _ := vdFiles(row.ContainerID)
-		if err := os.WriteFile(stopPath, []byte(how), 0o600); err != nil {
-			return err
-		}
-		if !vdWaitExit(row.ServerPID, 120*time.Second) {
-			return fmt.Errorf("the disk is detached, but the block server (process %d) did not exit within 120 s; the container may not be marked clean", row.ServerPID)
-		}
-	}
-	if err := vdUpdateState(func(s *vdState) error {
-		kept := s.Mounts[:0]
-		for _, m := range s.Mounts {
-			if !strings.EqualFold(m.ContainerID, row.ContainerID) {
-				kept = append(kept, m)
-			}
-		}
-		s.Mounts = kept
-		return nil
-	}); err != nil {
-		return err
-	}
-	vdLogf("unmount %s from %s: %s", row.Path, row.Letter, how)
 	switch {
 	case !alive:
 		fmt.Printf("Cleaned up %s: its block server had already gone, so %s was not closed cleanly; the next mount reports it.\n", row.Letter, row.Path)
@@ -1354,6 +1336,59 @@ func vdUnmount(args []string, batch bool) error {
 		fmt.Printf("Unmounted %s. %s is closed cleanly.\n", row.Letter, row.Path)
 	}
 	return nil
+}
+
+// vdUnmountOne is the machine work of unmounting one mounted container: the
+// detach step, the stop to its server, the wait, the state row. The unmount
+// verb adds its printing and the shutdown guard its recording (SP-0080 3.2);
+// neither assembles the steps again. batch governs the consent question
+// exactly as the verb's does - a batch never raises one, and neither does the
+// guard, whose caller has nobody to answer it.
+func vdUnmountOne(row vdMountRow, force, nosave, batch bool) (alive bool, how string, res vdResult, err error) {
+	// A volume whose server is gone is dead already: it can be neither locked
+	// nor flushed, so its detach is a forced one whatever was asked.
+	alive = vdServerAlive(row)
+	req := vdRequest{Port: row.Port, IQN: row.IQN, Serial: row.Serial,
+		Session: row.Session, Force: force || !alive, ReadOnly: row.ReadOnly}
+	if row.ScanExcluded {
+		req.NoScan = row.Path
+	}
+	res, err = vdRunElevated("_detach", req, batch, nil)
+	if err != nil {
+		return alive, "", res, err
+	}
+	how = "clean"
+	switch {
+	case !alive:
+		how = "unclean"
+	case nosave: // unclean as well, and without the save an Abandon would make
+		how = "nosave"
+	case res.Unclean:
+		how = "unclean"
+	}
+	if alive {
+		_, stopPath, _ := vdFiles(row.ContainerID)
+		if err = os.WriteFile(stopPath, []byte(how), 0o600); err != nil {
+			return alive, "", res, err
+		}
+		if !vdWaitExit(row.ServerPID, 120*time.Second) {
+			return alive, how, res, fmt.Errorf("the disk is detached, but the block server (process %d) did not exit within 120 s; the container may not be marked clean", row.ServerPID)
+		}
+	}
+	if err = vdUpdateState(func(s *vdState) error {
+		kept := s.Mounts[:0]
+		for _, m := range s.Mounts {
+			if !strings.EqualFold(m.ContainerID, row.ContainerID) {
+				kept = append(kept, m)
+			}
+		}
+		s.Mounts = kept
+		return nil
+	}); err != nil {
+		return alive, how, res, err
+	}
+	vdLogf("unmount %s from %s: %s", row.Path, row.Letter, how)
+	return alive, how, res, nil
 }
 
 // vdMountedRow finds the mount a target names: a drive letter, or a container
@@ -1506,4 +1541,27 @@ func vdReadServeCredential() (fdsec.Credential, error) {
 		return nil, vdUsagef("the credential is longer than %d bytes", vdMaxCredential)
 	}
 	return fdsec.Credential(b), nil
+}
+
+// vdNeverHeldData reports whether a container has never held data: no data
+// cluster was ever allocated in it, or it was never mounted (the fast profile
+// allocates every cluster when it is created, so its count alone says nothing),
+// and its header is its own (a header read back from the backup may be older
+// than the data). Only such a container may be formatted by a mount that finds
+// no partition table (AUD-32-F3).
+func vdNeverHeldData(info vdisk.Info) bool {
+	return !info.FromBackup && (info.AllocatedClusters == 0 || info.MountCount == 0)
+}
+
+// vdMayFormatOnMount is the decision a mount takes when the disk it attached
+// shows no partition table. An explicit `vd format` (formatOnly) formats. A
+// mount formats only a container that has never held data: on any other a
+// damaged table (a failed save, a stray write, a bad sector) looks exactly like
+// a blank disk, and a quick format over it would empty the volume behind a
+// one-line "formatted". The refusal touches nothing and names the ways out.
+func vdMayFormatOnMount(blank, formatOnly, neverHeld bool, disk int) error {
+	if blank && !formatOnly && !neverHeld {
+		return vdUsagef("disk %d shows no partition table, but this container has held data; nothing was formatted. If its volume is damaged, copy the container file first, then run `filedo vd format` on it (that empties it, and asks first)", disk)
+	}
+	return nil
 }

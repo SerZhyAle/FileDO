@@ -794,8 +794,21 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 			}
 			return true, nil
 		}
+		// keptForLinks is the answer to an original with another name: the
+		// overwrite would reach every name, so the container stands and the
+		// original stays exactly as it was (AUD-03-F1).
+		keptForLinks := func(e *hardLinkedError) {
+			kept(fmt.Sprintf("it has %d hard links and an overwrite would destroy the other names too; remove the extra links, or use del", e.Links))
+			hl.SetResult("original", "kept")
+		}
 		switch {
 		case o.wipe:
+			if refusal, lerr := wipeLinkRefusal(path); lerr != nil {
+				return lerr
+			} else if refusal != nil {
+				keptForLinks(refusal)
+				return nil
+			}
 			// The caveat is information, not a prompt, so -y does not skip it
 			// (invariant 9): a user who automates the wipe still has to be
 			// told what an overwrite-in-place is worth on modern storage.
@@ -814,6 +827,11 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 				return cerr
 			}
 			if werr := wipeFileInPlace(path); werr != nil {
+				var linked *hardLinkedError
+				if errors.As(werr, &linked) {
+					keptForLinks(linked)
+					return nil
+				}
 				return werr
 			}
 			fmt.Printf("Original overwritten and removed: %s\n", path)
@@ -1469,6 +1487,18 @@ func wipeFileInPlace(path string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		return err
+	}
+	// Asked on the handle that is about to be written, so a link made after
+	// the caller's own check is caught too: the overwrite reaches every name
+	// of the file, not the one that was typed (AUD-03-F1).
+	links, err := hardLinkCount(f)
+	if err != nil {
+		f.Close()
+		return err
+	}
+	if links > 1 {
+		f.Close()
+		return &hardLinkedError{Path: path, Links: links}
 	}
 	block := make([]byte, 1<<20)
 	if _, err := io.ReadFull(rand.Reader, block); err != nil {

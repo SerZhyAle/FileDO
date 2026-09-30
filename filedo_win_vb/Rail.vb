@@ -40,17 +40,51 @@
 ' (Clone), a delete (Destroy) - and draw that drawing. The other ten are meanings ICON-SET has no
 ' record for (nothing for create, mount, unmount, compact, grow, format, seal, a password change, a
 ' schedule or a name), so they draw a Segoe stand-in under a proposed id until the records land and
-' assets\sync-icon-glyphs.ps1 vendors them; SelfTest's baseline says so.
+' assets\sync-icon-glyphs.ps1 vendors them; SelfTest's baseline says so. Those meanings - and the rest
+' of the Disks rows' pictures - are defined once, in DiskGlyphs.vb, which the Disk manager's toolbar,
+' menus and buttons read too, so a meaning looks the same wherever it is shown (ICON-SET rule 1).
+'
+' The groups (the owner, 2026-09-30: the folded headers ran into one another). Three things follow:
+'
+'   - A group header carries the vocabulary's glyph of what the group is about, in the colour look of
+'     ICON-RENDER section 10 (Hue names the FileDO tone in Theme.vb), and the chevron moves to the
+'     right edge. Its rows keep the mono look: they are actions, and the header says the kind.
+'   - A group with one job is no group: the job stands in the rail by itself (RailRow.Alone), in the
+'     hue the group would have had, and a section with one row has no header to fold.
+'   - The rail is a checker of bands: each block (a header with its rows, or a lone job) is one
+'     band, and neighbouring blocks alternate (ShellForm.BuildRail), so shut headers read as
+'     separate rows instead of one dark column.
 Public Class RailRow
     Public ReadOnly Key As String
     Public ReadOnly Glyph As GlyphRef
     Public ReadOnly IsGroup As Boolean
 
-    Public Sub New(key As String, glyph As GlyphRef, isGroup As Boolean)
+    ' The Theme.GroupTone key the row's glyph is drawn in - a header's, or a lone job's. Empty for a
+    ' row inside a group, which draws in the text colour.
+    Public ReadOnly Hue As String
+
+    ' A job that stands at the level of the headers because its group would have held only it.
+    Public ReadOnly IsAlone As Boolean
+
+    Private Sub New(key As String, glyph As GlyphRef, isGroup As Boolean, hue As String, isAlone As Boolean)
         Me.Key = key
         Me.Glyph = glyph
         Me.IsGroup = isGroup
+        Me.Hue = hue
+        Me.IsAlone = isAlone
     End Sub
+
+    Public Shared Function Group(key As String, glyph As GlyphRef, hue As String) As RailRow
+        Return New RailRow(key, glyph, True, hue, False)
+    End Function
+
+    Public Shared Function Job(key As String, glyph As GlyphRef) As RailRow
+        Return New RailRow(key, glyph, False, "", False)
+    End Function
+
+    Public Shared Function Alone(key As String, glyph As GlyphRef, hue As String) As RailRow
+        Return New RailRow(key, glyph, False, hue, True)
+    End Function
 
     ' The Disks group's first row opens the Disk Manager, a window of its own (SP-0063 4.2, D1) -
     ' not a page of the shell, so it is no job of the catalogue. It shows the .fdd type's own
@@ -61,52 +95,49 @@ Public Class RailRow
     ' "coming later": a rail is navigation, not a roadmap, and a row that answers nothing when it
     ' is clicked costs the reader more than the announcement is worth.
     Public Shared ReadOnly All As RailRow() = {
-        New RailRow("rail_group_check", Nothing, True),
-        New RailRow("rail_job_capacity", GlyphRef.Vocabulary("feature.capacity-test"), False),
-        New RailRow("rail_job_speed", GlyphRef.Vocabulary("feature.speed-test"), False),
-        New RailRow("rail_job_info", GlyphRef.Vocabulary("app.info"), False),
-        New RailRow("rail_job_damaged", GlyphRef.Vocabulary("action.verify"), False),
-        New RailRow("rail_job_probe", GlyphRef.Vocabulary("feature.raw-probe"), False),
-        New RailRow("rail_job_recover", GlyphRef.Vocabulary("action.recover-drive"), False),
-        New RailRow("rail_group_tidy", Nothing, True),
-        New RailRow("rail_job_duplicates", GlyphRef.Vocabulary("action.find-duplicates"), False),
-        New RailRow("rail_job_compare", GlyphRef.Vocabulary("action.compare"), False),
-        New RailRow("rail_job_clean", GlyphRef.Vocabulary("action.delete"), False),
-        New RailRow("rail_group_move", Nothing, True),
-        New RailRow("rail_job_copy", GlyphRef.Vocabulary("action.copy"), False),
-        New RailRow("rail_group_erase", Nothing, True),
-        New RailRow("rail_job_fill", GlyphRef.Vocabulary("action.fill-space"), False),
-        New RailRow("rail_job_wipe", GlyphRef.Vocabulary("action.wipe"), False),
-        New RailRow("rail_group_protect", Nothing, True),
-        New RailRow("rail_job_secure", GlyphRef.Vocabulary("action.secure"), False),
-        New RailRow("rail_job_unsecure", GlyphRef.Vocabulary("action.unsecure"), False),
-        New RailRow("rail_job_reveal", GlyphRef.Vocabulary("nav.open-external"), False),
-        New RailRow("rail_group_disks", Nothing, True),
-        New RailRow(DiskManagerKey, DiskGlyphs.DiskContainer, False),
-        New RailRow("rail_job_vd_list", DiskGlyphs.DiskContainer, False),
-        New RailRow("rail_job_vd_new", DiskGlyphs.CreateDisk, False),
-        New RailRow("rail_job_vd_mount", DiskGlyphs.MountDisk, False),
-        New RailRow("rail_job_vd_unmount", DiskGlyphs.UnmountDisk, False),
-        New RailRow("rail_job_vd_info", GlyphRef.Vocabulary("app.info"), False),
-        New RailRow("rail_job_vd_verify", GlyphRef.Vocabulary("action.verify"), False),
-        New RailRow("rail_job_vd_export", GlyphRef.Vocabulary("action.export"), False),
-        New RailRow("rail_job_vd_save", GlyphRef.Vocabulary("action.save"), False),
-        New RailRow("rail_job_vd_compact", DiskGlyphs.CompactDisk, False),
-        New RailRow("rail_job_vd_grow", DiskGlyphs.GrowDisk, False),
-        New RailRow("rail_job_vd_format", DiskGlyphs.FormatDisk, False),
-        New RailRow("rail_job_vd_seal", DiskGlyphs.SealDisk, False),
-        New RailRow("rail_job_vd_clone", GlyphRef.Vocabulary("action.copy"), False),
-        New RailRow("rail_job_vd_pass", DiskGlyphs.ChangePassword, False),
-        New RailRow("rail_job_vd_destroy", GlyphRef.Vocabulary("action.delete"), False),
-        New RailRow("rail_job_vd_auto", DiskGlyphs.AutoMount, False),
-        New RailRow("rail_job_vd_add", DiskGlyphs.RememberName, False),
-        New RailRow("rail_group_records", Nothing, True),
-        New RailRow("rail_job_history", GlyphRef.Vocabulary("content.history"), False),
-        New RailRow("rail_group_expert", Nothing, True),
-        New RailRow("rail_job_command", GlyphRef.Vocabulary("app.command-line"), False),
-        New RailRow("rail_group_program", Nothing, True),
-        New RailRow("rail_job_settings", GlyphRef.Vocabulary("app.settings"), False),
-        New RailRow("rail_job_about", GlyphRef.Vocabulary("app.info"), False)
+        RailRow.Group("rail_group_check", GlyphRef.Vocabulary("action.verify"), "program.check"),
+        RailRow.Job("rail_job_capacity", GlyphRef.Vocabulary("feature.capacity-test")),
+        RailRow.Job("rail_job_speed", GlyphRef.Vocabulary("feature.speed-test")),
+        RailRow.Job("rail_job_info", GlyphRef.Vocabulary("app.info")),
+        RailRow.Job("rail_job_damaged", GlyphRef.Vocabulary("action.verify")),
+        RailRow.Job("rail_job_probe", GlyphRef.Vocabulary("feature.raw-probe")),
+        RailRow.Job("rail_job_recover", GlyphRef.Vocabulary("action.recover-drive")),
+        RailRow.Group("rail_group_tidy", GlyphRef.Vocabulary("action.sort"), "program.tidy"),
+        RailRow.Job("rail_job_duplicates", GlyphRef.Vocabulary("action.find-duplicates")),
+        RailRow.Job("rail_job_compare", GlyphRef.Vocabulary("action.compare")),
+        RailRow.Job("rail_job_clean", GlyphRef.Vocabulary("action.delete")),
+        RailRow.Alone("rail_job_copy", GlyphRef.Vocabulary("action.copy"), "program.copy"),
+        RailRow.Group("rail_group_erase", GlyphRef.Vocabulary("action.delete"), "program.erase"),
+        RailRow.Job("rail_job_fill", GlyphRef.Vocabulary("action.fill-space")),
+        RailRow.Job("rail_job_wipe", GlyphRef.Vocabulary("action.wipe")),
+        RailRow.Group("rail_group_protect", GlyphRef.Vocabulary("action.secure"), "program.protect"),
+        RailRow.Job("rail_job_secure", GlyphRef.Vocabulary("action.secure")),
+        RailRow.Job("rail_job_unsecure", GlyphRef.Vocabulary("action.unsecure")),
+        RailRow.Job("rail_job_reveal", GlyphRef.Vocabulary("nav.open-external")),
+        RailRow.Group("rail_group_disks", GlyphRef.Vocabulary("system.storage"), "program.disks"),
+        RailRow.Job(DiskManagerKey, DiskGlyphs.DiskContainer),
+        RailRow.Job("rail_job_vd_list", DiskGlyphs.DiskContainer),
+        RailRow.Job("rail_job_vd_new", DiskGlyphs.CreateDisk),
+        RailRow.Job("rail_job_vd_mount", DiskGlyphs.MountDisk),
+        RailRow.Job("rail_job_vd_unmount", DiskGlyphs.UnmountDisk),
+        RailRow.Job("rail_job_vd_info", GlyphRef.Vocabulary("app.info")),
+        RailRow.Job("rail_job_vd_verify", GlyphRef.Vocabulary("action.verify")),
+        RailRow.Job("rail_job_vd_export", GlyphRef.Vocabulary("action.export")),
+        RailRow.Job("rail_job_vd_save", GlyphRef.Vocabulary("action.save")),
+        RailRow.Job("rail_job_vd_compact", DiskGlyphs.CompactDisk),
+        RailRow.Job("rail_job_vd_grow", DiskGlyphs.GrowDisk),
+        RailRow.Job("rail_job_vd_format", DiskGlyphs.FormatDisk),
+        RailRow.Job("rail_job_vd_seal", DiskGlyphs.SealDisk),
+        RailRow.Job("rail_job_vd_clone", GlyphRef.Vocabulary("action.copy")),
+        RailRow.Job("rail_job_vd_pass", DiskGlyphs.ChangePassword),
+        RailRow.Job("rail_job_vd_destroy", GlyphRef.Vocabulary("action.delete")),
+        RailRow.Job("rail_job_vd_auto", DiskGlyphs.AutoMount),
+        RailRow.Job("rail_job_vd_add", DiskGlyphs.RememberName),
+        RailRow.Alone("rail_job_history", GlyphRef.Vocabulary("content.history"), "program.history"),
+        RailRow.Alone("rail_job_command", GlyphRef.Vocabulary("app.command-line"), "program.command"),
+        RailRow.Group("rail_group_program", GlyphRef.Vocabulary("app.settings"), "program.app"),
+        RailRow.Job("rail_job_settings", GlyphRef.Vocabulary("app.settings")),
+        RailRow.Job("rail_job_about", GlyphRef.Vocabulary("app.info"))
     }
 End Class
 
@@ -119,6 +150,14 @@ Public Class RailEntry
     Public Property Glyph As GlyphRef = Nothing
     Public Property Key As String = ""          ' the localization key, kept for a relayout
     Public Property IsGroupHeader As Boolean = False
+
+    ' The Theme.GroupTone key the glyph is drawn in (the colour look), or "" for the text colour.
+    Public Property Hue As String = ""
+
+    ' Which of the rail's two bands the row sits on: 0 the rail's own surface, 1 the step beside it.
+    ' A block - a header with its rows, or a lone job - is one band, and the next block takes the
+    ' other, so the rail reads as a checker instead of one column of the same dark.
+    Public Property Band As Integer = 0
 
     ' The height of a one-line row at the current DPI (ShellForm.RailTargetHeight through Ui.Px).
     ' The glyph column and the label's left edge are measured from it rather than from Height, so a
@@ -144,11 +183,12 @@ Public Class RailEntry
         If fontBody IsNot Nothing Then Return
         fontBody = Theme.FontBody()
         fontStrong = Theme.FontBodyStrong()
-        fontCaption = Theme.FontCaption()
+        fontCaption = Theme.FontCaptionStrong()
     End Sub
 
     ' The font a label is drawn in. A row is measured in its bold face whether or not it is
-    ' selected, so choosing a row never makes it grow a line.
+    ' selected, so choosing a row never makes it grow a line. A header is always the bold caption:
+    ' it names a kind of job and has to stay a heading among the rows it holds.
     Friend Shared Function LabelFont(isHeader As Boolean, selected As Boolean) As Font
         EnsureFonts()
         If isHeader Then Return fontCaption
@@ -214,13 +254,16 @@ Public Class RailEntry
     ' The rectangle the label is drawn into, for a row of this width and height. Paint, the row's
     ' height and SelfTest's overflow check all use this one function, so they cannot disagree.
     Friend Function LabelBounds(width As Integer, height As Integer) As Rectangle
-        Dim left As Integer
-        If IsGroupHeader Then
-            left = CInt(RowUnit * 0.15) + CInt(RowUnit * 0.9)
-        Else
-            left = CInt(RowUnit * 0.2) + CInt(RowUnit * 1.1)
-        End If
-        Return New Rectangle(left, 0, Math.Max(1, width - left - 4), height)
+        ' A header's icon sits in the column every row's glyph has, so its label starts where theirs
+        ' do; the chevron takes the right edge, which the label keeps clear of.
+        Dim left = CInt(RowUnit * 0.2) + CInt(RowUnit * 1.1)
+        Dim right = If(IsGroupHeader, ChevronColumn(), 4)
+        Return New Rectangle(left, 0, Math.Max(1, width - left - right), height)
+    End Function
+
+    ' The width the chevron of a header takes at the right edge: its glyph and a margin each side.
+    Private Function ChevronColumn() As Integer
+        Return GlyphPixels() + CInt(RowUnit * 0.4)
     End Function
 
     ' The glyph tier of a rail row and of a group's chevron: 20, the dense-row tier of ICON-RENDER
@@ -236,15 +279,13 @@ Public Class RailEntry
     ' centred on the row's height as the label is.
     Friend Function GlyphSquare(height As Integer) As Rectangle
         Dim px = GlyphPixels()
-        Dim columnLeft, columnWidth As Integer
-        If IsGroupHeader Then
-            columnLeft = CInt(RowUnit * 0.15)
-            columnWidth = CInt(RowUnit * 0.9)
-        Else
-            columnLeft = CInt(RowUnit * 0.2)
-            columnWidth = px
-        End If
-        Return New Rectangle(columnLeft + (columnWidth - px) \ 2, Math.Max(0, (height - px) \ 2), px, px)
+        Return New Rectangle(CInt(RowUnit * 0.3), Math.Max(0, (height - px) \ 2), px, px)
+    End Function
+
+    ' A header's chevron: the same tier, in the column at the right edge.
+    Friend Function ChevronSquare(width As Integer, height As Integer) As Rectangle
+        Dim px = GlyphPixels()
+        Return New Rectangle(width - ChevronColumn() + (ChevronColumn() - px) \ 2, Math.Max(0, (height - px) \ 2), px, px)
     End Function
 
     ' The vertical breathing room above and below a label that has wrapped.
@@ -390,13 +431,13 @@ Public Class RailEntry
         Dim g = e.Graphics
         g.TextRenderingHint = Drawing.Text.TextRenderingHint.ClearTypeGridFit
 
-        Using b As New SolidBrush(p.SurfaceAlt)
+        Using b As New SolidBrush(BackColourFor(p))
             g.FillRectangle(b, ClientRectangle)
         End Using
 
         If IsGroupHeader Then
             If hot Then
-                Using b As New SolidBrush(p.ControlHover)
+                Using b As New SolidBrush(HoverColourFor(p))
                     g.FillRectangle(b, ClientRectangle)
                 End Using
             End If
@@ -407,20 +448,22 @@ Public Class RailEntry
                 DrawAccentBar(g, p)
             End If
 
-            Glyphs.Draw(g, Theme.ChevronGlyph(Collapsed), GlyphSquare(Height), p.MutedText)
+            ' What the group is about, in its hue; whether it is open, at the right edge.
+            Glyphs.Draw(g, Glyph, GlyphSquare(Height), Theme.GroupTone(Hue, p))
+            Glyphs.Draw(g, Theme.ChevronGlyph(Collapsed), ChevronSquare(Width, Height), p.MutedText)
 
-            DrawLabel(g, p.MutedText, LabelFont(True, False))
+            DrawLabel(g, p.Text, LabelFont(True, False))
             DrawFocus(g, p)
             Return
         End If
 
-        ' The row's own background: selected, hot, or nothing at all.
+        ' The row's own background: selected, hot, or the band's.
         If Selected Then
             Using b As New SolidBrush(p.SurfaceSelected)
                 g.FillRectangle(b, ClientRectangle)
             End Using
         ElseIf hot Then
-            Using b As New SolidBrush(p.ControlHover)
+            Using b As New SolidBrush(HoverColourFor(p))
                 g.FillRectangle(b, ClientRectangle)
             End Using
         End If
@@ -429,11 +472,25 @@ Public Class RailEntry
         ' does not depend on the fill above.
         If Selected Then DrawAccentBar(g, p)
 
-        If Glyph IsNot Nothing Then Glyphs.Draw(g, Glyph, GlyphSquare(Height), p.Text)
+        ' A lone job stands where a header would, so it shows the colour look; a row inside a group
+        ' is mono.
+        If Glyph IsNot Nothing Then
+            Glyphs.Draw(g, Glyph, GlyphSquare(Height), If(Hue <> "", Theme.GroupTone(Hue, p), p.Text))
+        End If
 
         DrawLabel(g, p.Text, LabelFont(False, Selected))
         DrawFocus(g, p)
     End Sub
+
+    ' The surfaces a row can be painted on, one function so the paint and the self-test's contrast
+    ' rows read the same roles.
+    Friend Function BackColourFor(p As Theme.Palette) As Color
+        Return If(Band = 1, p.SurfaceBand, p.SurfaceAlt)
+    End Function
+
+    Friend Function HoverColourFor(p As Theme.Palette) As Color
+        Return If(Band = 1, p.BandHover, p.ControlHover)
+    End Function
 
     ' The label, wrapped inside its rectangle and centred on the row's height as a block.
     Private Sub DrawLabel(g As Graphics, colour As Color, f As Font)

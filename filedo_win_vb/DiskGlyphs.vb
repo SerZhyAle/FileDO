@@ -24,6 +24,9 @@ Public Module DiskGlyphs
     Public ReadOnly ChangePassword As GlyphRef = GlyphRef.Waiting("action.change-password", &HE8D7, "Permissions")
     Public ReadOnly AutoMount As GlyphRef = GlyphRef.Waiting("action.auto-mount", &HE823, "Recent")
     Public ReadOnly RememberName As GlyphRef = GlyphRef.Waiting("action.remember-name", &HE8EC, "Tag")
+    ' The Autostart surface (SP-0080 5): the logon mounts and the shutdown guard in one place. The
+    ' picture is the power button - the session's end is the guard's half of it.
+    Public ReadOnly Autostart As GlyphRef = GlyphRef.Waiting("action.autostart", &HE7E8, "PowerButton")
 
     Public ReadOnly DiskContainer As GlyphRef = GlyphRef.Vocabulary("content.disk-container")
 
@@ -51,6 +54,7 @@ Public Module DiskGlyphs
             Case DiskAction.Info : Return GlyphRef.Vocabulary("app.info")
             Case DiskAction.Verify : Return GlyphRef.Vocabulary("action.verify")
             Case DiskAction.AutoOn, DiskAction.AutoOff : Return AutoMount
+            Case DiskAction.Autostart : Return Autostart
             Case DiskAction.Forget : Return GlyphRef.Vocabulary("action.remove")
             Case DiskAction.ShowInFolder : Return GlyphRef.Vocabulary("content.folder")
             Case DiskAction.CopyPath, DiskAction.Clone : Return GlyphRef.Vocabulary("action.copy")

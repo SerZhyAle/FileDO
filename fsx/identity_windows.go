@@ -204,51 +204,101 @@ func SameFile(a, b string) (bool, error) {
 	return ia.SameObject(ib), nil
 }
 
-// Resolve is the canonical spelling of p even when p does not exist yet:
-// the final path of its nearest existing ancestor with the missing tail
-// appended. It is what a containment test compares, because a copy target is
-// usually a folder the copy has still to create.
-func Resolve(p string) (string, error) {
+// resolveIdentity is the identity of p even when p does not exist yet: that of
+// its nearest existing ancestor, whose Final has the missing tail appended.
+// found is false when no ancestor could be opened at all (Final is then the
+// absolute path as typed, and the volume fields are empty). The object fields
+// - FileIndex, IsDir - describe the ancestor, not the tail.
+func resolveIdentity(p string) (id Identity, found bool, err error) {
 	abs, err := filepath.Abs(p)
 	if err != nil {
-		return "", err
+		return Identity{}, false, err
 	}
 	abs = filepath.Clean(abs)
 	var tail []string
 	cur := abs
 	for {
-		id, err := IdentityOf(cur)
+		got, err := IdentityOf(cur)
 		if err == nil {
-			res := id.Final
 			for i := len(tail) - 1; i >= 0; i-- {
-				res = filepath.Join(res, tail[i])
+				got.Final = filepath.Join(got.Final, tail[i])
 			}
-			return res, nil
+			got.Abs = abs
+			return got, true, nil
 		}
 		if !errors.Is(err, os.ErrNotExist) && !errors.Is(err, windows.ERROR_PATH_NOT_FOUND) {
-			return "", err
+			return Identity{}, false, err
 		}
 		parent := filepath.Dir(cur)
 		if parent == cur {
-			return abs, nil
+			return Identity{Abs: abs, Final: abs}, false, nil
 		}
 		tail = append(tail, filepath.Base(cur))
 		cur = parent
 	}
 }
 
-// Within reports whether child is parent itself or lies below it, after
-// both are resolved to their canonical spelling. Neither needs to exist.
+// Resolve is the canonical spelling of p even when p does not exist yet:
+// the final path of its nearest existing ancestor with the missing tail
+// appended. A copy target is usually a folder the copy has still to create.
+// It is a spelling: two paths that name one place through different volume
+// names (`C:\Data` and `\\localhost\C$\Data`) resolve to different strings, so
+// a containment decision goes through Within, Overlap or LiesWithin instead.
+func Resolve(p string) (string, error) {
+	id, _, err := resolveIdentity(p)
+	if err != nil {
+		return "", err
+	}
+	return id.Final, nil
+}
+
+// RelToVolume is the object's final path below its volume root, with a leading
+// separator: `\Windows\System32` for both `C:\Windows\System32` and
+// `\\localhost\C$\Windows\System32`. The volume root itself is a lone `\`.
+func (id Identity) RelToVolume() string {
+	vol := strings.TrimRight(id.Volume, `\`)
+	rel := id.Final
+	if vol != "" && HasPrefixFold(rel, vol) {
+		rel = rel[len(vol):]
+	}
+	return `\` + strings.TrimLeft(rel, `\`)
+}
+
+// LiesWithin reports whether id is parent itself or lies below it on the same
+// volume, however either was spelled: the volume serial number says which
+// volume, RelToVolume says where on it. A path whose volume could not be
+// determined (no serial) is never matched here; the spelling test covers it.
+func (id Identity) LiesWithin(parent Identity) bool {
+	if id.VolSerial == 0 || id.VolSerial != parent.VolSerial {
+		return false
+	}
+	return CanonicalWithin(id.RelToVolume(), parent.RelToVolume())
+}
+
+// withinResolved is the containment decision on two resolved paths: identity
+// first (the volume and the path below its root), then the canonical spelling,
+// which can only add a "yes" for a path no volume could be found for.
+func withinResolved(child Identity, childFound bool, parent Identity, parentFound bool) bool {
+	if childFound && parentFound && child.LiesWithin(parent) {
+		return true
+	}
+	return CanonicalWithin(child.Final, parent.Final)
+}
+
+// Within reports whether child is parent itself or lies below it, on the same
+// volume however either was spelled (a drive letter, an administrative or
+// local share, a mapped drive, a mount point, a junction). Neither needs to
+// exist: the nearest existing ancestor of each is what is compared.
 func Within(child, parent string) (bool, error) {
-	c, err := Resolve(child)
+	c, cFound, err := resolveIdentity(child)
 	if err != nil {
 		return false, err
 	}
-	p, err := Resolve(parent)
+	p, pFound, err := resolveIdentity(parent)
 	if err != nil {
 		return false, err
 	}
-	return CanonicalWithin(c, p), nil
+	return withinResolved(c, cFound, p, pFound), nil
 }
 
 // CanonicalWithin compares two canonical paths case-insensitively, the way
@@ -272,15 +322,15 @@ func OverlapError(verb, source, target string) error {
 // within the other. It is the refusal test for every two-path verb that
 // writes to or deletes from its second path.
 func Overlap(a, b string) (bool, error) {
-	ra, err := Resolve(a)
+	ia, aFound, err := resolveIdentity(a)
 	if err != nil {
 		return false, err
 	}
-	rb, err := Resolve(b)
+	ib, bFound, err := resolveIdentity(b)
 	if err != nil {
 		return false, err
 	}
-	if CanonicalWithin(ra, rb) || CanonicalWithin(rb, ra) {
+	if withinResolved(ia, aFound, ib, bFound) || withinResolved(ib, bFound, ia, aFound) {
 		return true, nil
 	}
 	// Two spellings the final path does not unify (a hard link to a file,

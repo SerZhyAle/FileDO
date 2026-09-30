@@ -66,7 +66,7 @@ Auch im [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) erhäl
 `FileDO-<Version>-setup.exe` aus den [Releases](https://github.com/SerZhyAle/FileDO/releases/latest) herunterladen und ausführen. Erst damit wird FileDO ein gewöhnliches Windows-Programm und nicht bloß ein Ordner voller Programmdateien:
 
 - legt die Dateien nach `C:\Program Files\FileDO` und nimmt `filedo` in den System-`PATH` auf;
-- erstellt einen **Startmenü-Eintrag** und ein **Desktop-Symbol** für das FileDO-Fenster (`filedo_win.exe`);
+- erstellt einen **Startmenü-Eintrag** und ein **Desktop-Symbol** für das FileDO-Fenster (`filedo_win.exe`) und einen zweiten Startmenü-Eintrag, **FileDO Disk Manager**, der die Datenträgerverwaltung gleich öffnet (`filedo_win.exe --disks`);
 - registriert die **Explorer-Integration**: eine Gruppe `File DO..` im Kontextmenü jeder Datei - Secure (Original behalten, löschen oder überschreiben, oder ein zufälliger Containername), Unsecure (optional den Container löschen oder die wiederhergestellte Datei sofort starten), Wipe this file, Check this file, Info - dazu den Dokumenttyp `.fd-sec` mit eigenem Symbol: der Doppelklick ist genau der Eintrag Unsecure and start: eine Konsole fragt dort das Kennwort ab, stellt das Original unter seinem echten Namen in `%LOCALAPPDATA%\FileDO\reveal` wieder her - einem Ordner, den nur dieses Konto und das System lesen können -, übergibt es dem Programm, dem seine echte Erweiterung gehört, und entfernt diese Kopie wieder, sobald das Konsolenfenster geschlossen wird. Unter Windows 11 steht die Gruppe unter *Weitere Optionen anzeigen*;
 - registriert den **Dateityp `.fdd` der Datenträger-Container** (Feature *Disk container files (.fdd)*): ein eigenes Symbol, einen Doppelklick, der das FileDO-Fenster öffnet und den virtuellen Datenträger einbindet, und *Mount read-only* und *Unmount* im Kontextmenü - siehe den Abschnitt *Virtuelle Datenträger* weiter unten.
 
@@ -221,6 +221,9 @@ Fünf Dinge klar gesagt, denn eine Sicherheitsfunktion, die sich überschätzt, 
 - **`wipe` senkt die Chancen auf Wiederherstellung und verspricht nichts.** Auf SSDs und auf
   Copy-on-Write- oder journalisierenden Dateisystemen garantiert das Überschreiben an Ort und Stelle
   nicht, dass die alten Blöcke weg sind.
+- **`wipe` überschreibt nie eine Datei, die noch einen weiteren Hardlink hat.** Das Überschreiben an Ort
+  und Stelle erreicht jeden Namen der Datei; deshalb bleibt das Original erhalten, und der Lauf sagt es.
+  Entfernen Sie zuerst die überzähligen Links oder nehmen Sie `del`.
 - **Eine geöffnete Kopie liegt in `%LOCALAPPDATA%\FileDO\reveal`**, schreibgeschützt und nur für dieses
   Konto und das System lesbar. Sie verschwindet, wenn Sie es sagen, oder wenn das öffnende Programm sie
   freigibt.
@@ -321,7 +324,7 @@ Was die Plattform braucht, offen gesagt:
   `vd forget` funktionieren auch dort; zum Einbinden nehmen Sie das Setup oder die portable Version von
   GitHub.
 - **Eine Einbindung überdauert das Fenster.** Wird das FileDO-Fenster geschlossen, bleiben Laufwerk und
-  Server bestehen, und ein neues Fenster listet sie wieder auf; trennen Sie auf den Seiten der Gruppe
+  Server bestehen, und ein neues Fenster listet sie wieder auf; trennen Sie in der Datenträgerverwaltung, auf den Seiten der Gruppe
   *Datenträger* oder mit `filedo X: unmount`.
 
 Exit-Codes eines einzelnen Container-Befehls: 0 erledigt, 2 Aufruf falsch, 3 falsches Passwort,
@@ -337,6 +340,10 @@ Das Kontextmenü ergänzt *Mount read-only* und *Unmount* (unter Windows 11 unte
 anzeigen*). Ohne Installationsprogramm schreibt `filedo vd register` dasselbe (`-all-users` für den ganzen
 Rechner), und `filedo vd unregister` nimmt es zurück. Im Fenster hat die Gruppe **Datenträger** eine Seite
 je Operation und benennt beide Schutzarten genau wie die Konsole.
+
+Die **Datenträgerverwaltung** (englisch *Disk manager*; nicht zu verwechseln mit der gleichnamigen Windows-Komponente) ist ein zweites Fenster derselben `filedo_win.exe` - kein neues Programm - mit einer Zeile je virtuellem Datenträger: die Datenträger Ihrer Liste, die gerade eingebundenen und die VHD-, VHDX- oder ISO-Abbilder, die FileDO eingebunden hat. Jede Zeile nennt ihren Zustand in Worten neben einem Symbol (*Eingebunden*, *Eingebunden, schreibgeschützt*, *Eingebunden, 180 MiB nicht gespeichert* bei einem `ram`-Datenträger, *Server weg - Volume offline*, *Abbild eingebunden*, *Datei fehlt*, *Unter diesem Pfad liegt ein anderer Container*, *Nicht lesbar*, *Nicht sauber geschlossen*, *Nicht eingebunden*), und die Liste hält sich ohne manuelles Aktualisieren aktuell. Darum herum liegen eine Werkzeugleiste (*Neuer Datenträger..*, *Hinzufügen..*, *Einbinden*, *Trennen*, *Öffnen*, *Speichern*, *Weitere Aktionen*, *Aktualisieren*, *Hilfe*, *Hauptfenster*), eine Filterzeile und ein Detailbereich mit den passenden Schaltflächen; eine nicht verfügbare Schaltfläche sagt in ihrem Tooltip und im Detailbereich, warum, und die Microsoft-Store-Version, die nie einbinden kann, blendet die Einbinde-Elemente aus, statt sie auszugrauen. Ein Doppelklick oder Enter bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie; ziehen Sie `.fdd`-Dateien auf die Liste, um sie hinzuzufügen, oder eine `.vhd`, `.vhdx` oder `.iso`, um ein Abbild nach einer Bestätigung einzubinden. *Neuer Datenträger*, *Exportieren*, *Verkleinern*, *Vergrößern*, *Versiegelte Kopie*, *Klonen*, *Passwort ändern*, *Formatieren* und *Vernichten* öffnen ihre Aufgabenseite im Hauptfenster mit dem gewählten Container; *Formatieren* und *Vernichten* behalten dort die einzutippende Bestätigung.
+
+Geöffnet wird sie über den Startmenü-Eintrag **FileDO Disk Manager** (das Installationsprogramm legt ihn an; er startet `filedo_win.exe --disks`), über die Schaltfläche **«Datenträgerverwaltung»** oben rechts im FileDO-Fenster oder die erste Zeile seiner Gruppe *Datenträger* (auch **Ctrl+Shift+D**) oder mit `filedo_win.exe --disks`; ihre Schaltfläche **«Hauptfenster»** holt das FileDO-Fenster nach vorn. **F1** öffnet die Hilfe - was eine Zeile sagt, die Tastentabelle, Links. Beim ersten Öffnen erklärt ein Willkommensfenster, was ein virtueller Datenträger ist, und sagt: *Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.* *Verschlüsselt: Er öffnet sich nur mit seinem Passwort.* Außerdem steht dort, dass Windows bei jedem Einbinden und Trennen die Zustimmung eines Administrators verlangt; es bietet *Meinen ersten Datenträger anlegen..*, *Eine vorhandene .fdd-Datei hinzufügen..*, *Die Anleitung auf der Website lesen* und *Jetzt nicht* an. Tastentabelle und Bilder stehen in der [Anleitung zu virtuellen Datenträgern](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Das Schließen der Datenträgerverwaltung trennt nie einen Datenträger.
 
 ---
 
@@ -435,7 +442,7 @@ je Operation und benennt beide Schutzarten genau wie die Konsole.
 filedo_win.exe          # Windows GUI Interface
 ```
 
-Die Seiten unter **«Schützen»** behandeln geheime `.fd-sec`-Dateien - eine Datei geheim machen, das Original zurückholen oder sie ohne Entpacken öffnen. Das Passwort ist maskiert und gelangt nie in eine Kommandozeile. Wird dem Fenster ein `.fd-sec`-Pfad direkt übergeben, öffnet es sich auf der Seite dieses Containers (`filedo_win.exe C:\a\x.fd-sec`); ein Doppelklick im Explorer nutzt das Fenster gar nicht - er führt **Unsecure and start** in der Konsole aus, wie oben beschrieben. «Verlauf», «Einstellungen» und «Über» haben eigene Seiten; das ältere Befehlsbaukasten-Fenster ist außer Dienst gestellt, und eine von Hand geschriebene Befehlszeile gehört auf die Seite **«Befehl»**.
+Die Seiten unter **«Schützen»** behandeln geheime `.fd-sec`-Dateien - eine Datei geheim machen, das Original zurückholen oder sie ohne Entpacken öffnen. Das Passwort ist maskiert und gelangt nie in eine Kommandozeile. Wird dem Fenster ein `.fd-sec`-Pfad direkt übergeben, öffnet es sich auf der Seite dieses Containers (`filedo_win.exe C:\a\x.fd-sec`); ein Doppelklick im Explorer nutzt das Fenster gar nicht - er führt **Unsecure and start** in der Konsole aus, wie oben beschrieben. «Verlauf», «Einstellungen» und «Über» haben eigene Seiten; das ältere Befehlsbaukasten-Fenster ist außer Dienst gestellt, und eine von Hand geschriebene Befehlszeile gehört auf die Seite **«Befehl»**. Die **Datenträgerverwaltung** - ein zweites Fenster für die virtuellen Datenträger, geöffnet mit **Ctrl+Shift+D**, der Schaltfläche oben rechts oder `filedo_win.exe --disks` - steht im Abschnitt *Virtuelle Datenträger* weiter oben.
 
 **Funktionen:**
 - Mit VB.NET Windows Forms für native Windows-Erfahrung gebaut
@@ -647,7 +654,7 @@ FileDO/
 **Noch nicht veröffentlicht** (die nächste Version)
 - **Virtuelle Datenträger (`.fdd`)**: ein ganzes Volume in einer Datei, eingebunden als Laufwerksbuchstabe - `filedo vd new`, `mount`, `unmount`, dazu `info`, `verify` und `export` (Rohabbild oder VHD) ohne Einbinden sowie `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; ohne Passwort verschleiert, mit Passwort verschlüsselt, und nie das eine als das andere bezeichnet
 - **Explorer**: das neue Setup-Feature *Disk container files (.fdd)* (`DiskContainerIntegration`) gibt `.fdd` ein Symbol, einen Doppelklick zum Einbinden und *Mount read-only* / *Unmount*; ohne Installationsprogramm tut `filedo vd register` dasselbe
-- **GUI**: eine neue Gruppe **Datenträger** - eine Seite je Operation, und eine Einbindung überdauert das Fenster
+- **GUI**: eine neue Gruppe **Datenträger** - eine Seite je Operation - und die **Datenträgerverwaltung**, ein zweites Fenster mit einer Zeile je virtuellem Datenträger, seinem Zustand in Worten und Einbinden, Trennen, Öffnen und Speichern direkt aus der Zeile; eine Einbindung überdauert das Fenster, und das Installationsprogramm legt den Startmenü-Eintrag *FileDO Disk Manager* an, der sie gleich öffnet
 - **Grenzen**: nur Windows; Einbinden fragt nach Administratorzustimmung; die Microsoft-Store-Version liest, prüft und exportiert Container, kann sie aber nicht einbinden
 
 **v2609241700** (Aktuell)

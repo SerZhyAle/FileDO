@@ -14,10 +14,11 @@ Public Class ShellForm
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly entries As New List(Of RailEntry)
 
-    ' The rail's groups, and the rows each one owns. Eighteen rows and eight headers do not fit on
+    ' The rail's groups, and the rows each one owns. Some thirty rows and six headers do not fit on
     ' a laptop screen at once, so a group folds: the header stays, its rows go, and the state is
-    ' remembered per user. groupOf answers the other direction - which header to open when a job is
-    ' selected from somewhere other than a click on its own row.
+    ' remembered per user. Only one group is open at a time (GroupHeader_Click). groupOf answers the
+    ' other direction - which header to open when a job is selected from somewhere other than a
+    ' click on its own row.
     Private ReadOnly groupHeaders As New List(Of RailEntry)
     Private ReadOnly groupMembers As New Dictionary(Of String, List(Of RailEntry))(StringComparer.Ordinal)
     Private ReadOnly groupOf As New Dictionary(Of String, String)(StringComparer.Ordinal)
@@ -28,6 +29,8 @@ Public Class ShellForm
     Private pageHost As Panel
     Private header As Panel
     Private titleLabel As Label
+    Private headerRow As TableLayoutPanel
+    Private diskManagerBtn As GlyphButton
     Private subtitleLabel As Label
     Private statusLabel As Label
     Private emptyTitle As Label
@@ -274,10 +277,49 @@ Public Class ShellForm
         stack.Controls.Add(titleLabel, 0, 0)
         stack.Controls.Add(subtitleLabel, 0, 1)
         stack.Controls.Add(statusLabel, 0, 2)
-        header.Controls.Add(stack)
-        Ui.Wrap(subtitleLabel, header, 48)
-        Ui.Wrap(statusLabel, header, 48)
+
+        ' The way to the Disk manager, always in view (the rail's row for it sits inside a group that
+        ' can be folded away): the .fdd container's own meaning and the window's name, at the right of
+        ' the title. The Disk manager has the matching "Main window" button back (SP-0063).
+        diskManagerBtn = New GlyphButton With {
+            .Glyph = DiskGlyphs.DiskContainer,
+            .Tier = 24,
+            .Text = L(RailRow.DiskManagerKey),
+            .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
+            .Margin = New Padding(12, 0, 0, 0)
+        }
+        diskManagerBtn.AccessibleName = L(RailRow.DiskManagerKey)
+        diskManagerBtn.AccessibleDescription = L("purpose_job_vd_manager")
+        tips.SetToolTip(diskManagerBtn, L(RailRow.DiskManagerKey) & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.D) & ")" &
+                                        Environment.NewLine & L("purpose_job_vd_manager"))
+        AddHandler diskManagerBtn.Click, Sub() AppHost.OpenDiskManager()
+
+        headerRow = New TableLayoutPanel With {
+            .Dock = DockStyle.Fill,
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .ColumnCount = 2,
+            .RowCount = 1,
+            .Margin = New Padding(0)
+        }
+        headerRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        headerRow.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
+        headerRow.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        headerRow.Controls.Add(stack, 0, 0)
+        headerRow.Controls.Add(diskManagerBtn, 1, 0)
+        header.Controls.Add(headerRow)
+        Ui.Wrap(subtitleLabel, stack, 4)
+        Ui.Wrap(statusLabel, stack, 4)
     End Sub
+
+    ' Ctrl+Shift+D opens the Disk manager from anywhere in the window.
+    Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
+        If keyData = (Keys.Control Or Keys.Shift Or Keys.D) Then
+            AppHost.OpenDiskManager()
+            Return True
+        End If
+        Return MyBase.ProcessCmdKey(msg, keyData)
+    End Function
 
     Private Sub BuildPageHost()
         pageHost = New Panel With {.Dock = DockStyle.Fill, .Padding = New Padding(24, 0, 24, 24)}
@@ -341,28 +383,41 @@ Public Class ShellForm
     ' The rail rows are SP-0006 section 5.2, listed once in RailRow.All (Rail.vb) so the self-test
     ' measures exactly the rows this builds.
     Private Sub BuildRail()
+        ' A block is a header with the rows it holds, or a lone job; neighbouring blocks take
+        ' alternate bands (RailEntry.Band), which is what keeps folded headers from running together.
+        Dim block = -1
         For Each row In RailRow.All
             If row.IsGroup Then
-                AddGroup(row.Key)
+                block += 1
+                AddGroup(row, block Mod 2)
+            ElseIf row.IsAlone Then
+                block += 1
+                currentGroupKey = Nothing
+                AddEntry(row.Key, row.Glyph, row.Hue, block Mod 2)
             Else
-                AddEntry(row.Key, row.Glyph)
+                AddEntry(row.Key, row.Glyph, "", block Mod 2)
             End If
         Next
     End Sub
 
     ' A group header. It is a row the user can operate - click, Space or Enter folds the group -
-    ' so it is in the tab order and carries its own accessible name and state.
-    Private Sub AddGroup(key As String)
+    ' so it is in the tab order and carries its own accessible name and state. The rows of the rail
+    ' touch (no margins): the band is the separation, and a gap would show the other band's colour.
+    Private Sub AddGroup(row As RailRow, band As Integer)
+        Dim key = row.Key
         Dim e As New RailEntry With {
             .Key = key,
             .Name = "rail:" & key,
             .Text = L(key).ToUpperInvariant(),
             .IsGroupHeader = True,
+            .Glyph = row.Glyph,
+            .Hue = row.Hue,
+            .Band = band,
             .TabStop = True,
             .RowUnit = Ui.Px(Me, RailTargetHeight),
-            .Width = Ui.Px(Me, 236),
+            .Width = Ui.Px(Me, 250),
             .Height = Ui.Px(Me, RailTargetHeight),
-            .Margin = Ui.PxPad(Me, 10, 8, 10, 1)
+            .Margin = New Padding(0)
         }
         e.AccessibleRole = AccessibleRole.ButtonDropDown
         AddHandler e.Click, AddressOf GroupHeader_Click
@@ -373,18 +428,20 @@ Public Class ShellForm
         UpdateGroupAccessibility(e)
     End Sub
 
-    Private Sub AddEntry(key As String, glyph As GlyphRef)
+    Private Sub AddEntry(key As String, glyph As GlyphRef, hue As String, band As Integer)
         Dim e As New RailEntry With {
             .Key = key,
             .Name = "rail:" & key,
             .Text = L(key),
             .Glyph = glyph,
+            .Hue = hue,
+            .Band = band,
             .TabStop = True,
             .RowUnit = Ui.Px(Me, RailTargetHeight),
             .DefaultActionText = L("shell_acc_open"),
-            .Width = Ui.Px(Me, 236),
+            .Width = Ui.Px(Me, 250),
             .Height = Ui.Px(Me, RailTargetHeight),
-            .Margin = Ui.PxPad(Me, 10, 0, 10, 0)
+            .Margin = New Padding(0)
         }
         e.AccessibleName = L(key)
         e.AccessibleRole = AccessibleRole.PushButton
@@ -406,11 +463,42 @@ Public Class ShellForm
 
     ' ---- groups ----------------------------------------------------------
 
+    ' The groups are an accordion (owner, 2026-09-30): opening one shuts the rest, so the rail is
+    ' the headers and at most one group's rows. Shutting the open one leaves them all shut.
     Private Sub GroupHeader_Click(sender As Object, e As EventArgs)
         Dim head = TryCast(sender, RailEntry)
         If head Is Nothing Then Return
-        SetGroupCollapsed(head, Not head.Collapsed)
+        ToggleGroup(head)
         SaveCollapsedGroups()
+    End Sub
+
+    Private Sub ToggleGroup(head As RailEntry)
+        If head.Collapsed Then
+            OpenGroupOnly(head)
+            rail.ScrollControlIntoView(head)
+        Else
+            SetGroupCollapsed(head, True)
+        End If
+    End Sub
+
+    ' The self-test's view of the rail, and a click on a header that does not write the user's
+    ' remembered groups to HKCU.
+    Friend Function RailEntriesForTest() As List(Of RailEntry)
+        Return rail.Controls.OfType(Of RailEntry)().ToList()
+    End Function
+
+    Friend Sub ToggleGroupForTest(key As String)
+        Dim head = HeaderFor(key)
+        If head IsNot Nothing Then ToggleGroup(head)
+    End Sub
+
+    Private Sub OpenGroupOnly(head As RailEntry)
+        rail.SuspendLayout()
+        For Each other In groupHeaders
+            If Not other Is head AndAlso Not other.Collapsed Then SetGroupCollapsed(other, True)
+        Next
+        SetGroupCollapsed(head, False)
+        rail.ResumeLayout(True)
     End Sub
 
     Private Sub SetGroupCollapsed(head As RailEntry, collapsed As Boolean)
@@ -468,15 +556,24 @@ Public Class ShellForm
         If Not groupOf.TryGetValue(jobKey, groupKey) Then Return
         Dim head = HeaderFor(groupKey)
         If head Is Nothing OrElse Not head.Collapsed Then Return
-        SetGroupCollapsed(head, False)
+        OpenGroupOnly(head)
         SaveCollapsedGroups()
     End Sub
 
+    ' What was open last time, cut down to the accordion: the first group the saved list does not
+    ' shut stays open and every other one is shut. Nothing saved (a first run, or a list from before
+    ' the accordion that shut nothing) therefore opens the first group.
     Private Sub RestoreCollapsedGroups()
         Dim saved = ShellSettings.CollapsedGroups()
-        If saved.Count = 0 Then Return
+        Dim keep As RailEntry = Nothing
         For Each head In groupHeaders
-            If saved.Contains(head.Key) Then SetGroupCollapsed(head, True)
+            If Not saved.Contains(head.Key) Then
+                keep = head
+                Exit For
+            End If
+        Next
+        For Each head In groupHeaders
+            SetGroupCollapsed(head, Not head Is keep)
         Next
     End Sub
 
@@ -491,7 +588,7 @@ Public Class ShellForm
     ' Every row as wide as the rail and as tall as its label needs: one unit, or more where the label
     ' wraps (APP-BEHAVIOUR rule 2).
     Private Sub LayoutRail()
-        Dim w = rail.ClientSize.Width - Ui.Px(Me, 26)
+        Dim w = rail.ClientSize.Width
         If w < Ui.Px(Me, 120) Then Return
         rail.SuspendLayout()
         For Each c As Control In rail.Controls
@@ -508,6 +605,17 @@ Public Class ShellForm
 
     ' Capture.vb's seams: open a page as a click on its row would, optionally on a target, and
     ' draw what the client area shows - the window's own frame is Windows', not the product's.
+    ' The self-test's view of the button that opens the Disk manager, and of its tooltip.
+    Friend ReadOnly Property DiskManagerButtonForTest As GlyphButton
+        Get
+            Return diskManagerBtn
+        End Get
+    End Property
+
+    Friend Function TipForTest(c As Control) As String
+        Return tips.GetToolTip(c)
+    End Function
+
     Friend Sub ShowPageForCapture(key As String, target As String)
         SelectJobByKey(key)
         If Not String.IsNullOrEmpty(target) AndAlso JobCatalogue.GetJob(key) IsNot Nothing Then jobView.SetTarget(target)
@@ -617,10 +725,16 @@ Public Class ShellForm
     ' the manager was started alone - on the job page with the container chosen, which keeps its plan
     ' card, its consequences and its typed confirmation.
     Friend Sub OpenDiskJob(key As String, target As String, preset As String)
+        BringBack()
+        OpenDiskJobOn(key, target, preset)
+    End Sub
+
+    ' The window in front of the user: shown if it was hidden, restored if it was minimized. The
+    ' Disk manager's "Main window" button and its key come here; a delegated operation does as well.
+    Friend Sub BringBack()
         If Not Visible Then Show()
         If WindowState = FormWindowState.Minimized Then WindowState = lastShownState
         Activate()
-        OpenDiskJobOn(key, target, preset)
     End Sub
 
     ' The Disks list's next steps (SP-0004 P6): Unmount or Turn off auto-mount open their own page
@@ -724,6 +838,9 @@ Public Class ShellForm
 
         rightSide.BackColor = p.Background
         header.BackColor = p.Background
+        headerRow.BackColor = p.Background
+        diskManagerBtn.Font = Theme.FontBody()
+        diskManagerBtn.Invalidate()
         pageHost.BackColor = p.Surface
 
         titleLabel.Font = Theme.FontTitle()

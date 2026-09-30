@@ -636,7 +636,15 @@ if ($Test) {
     $siteCode = $LASTEXITCODE
     Record-GateStep 'external-docs' $siteCode $(if ($siteCode -eq 2) { ($siteOut.Trim() -split "`r?`n")[-1] } else { $siteOut })
 
-    # A failed step outranks a step that could not verify. All nine steps run
+    # 10) No build input is git-ignored (SP-0049 AUD-18-F1). Every step above passes on the
+    #     files on this disk; `git add -A` and the clean-tree check skip an ignored one without a
+    #     word, so the tagged run - which builds from a checkout - would be the first to miss it.
+    Write-Host "no build input is git-ignored ..." -NoNewline
+    $inputsOut = & "$root\packaging\check-build-inputs.ps1" *>&1 | Out-String
+    $inputsCode = $LASTEXITCODE
+    Record-GateStep 'build-inputs' $inputsCode $(if ($inputsCode -eq 2) { ($inputsOut.Trim() -split "`r?`n")[-1] } else { $inputsOut })
+
+    # A failed step outranks a step that could not verify. All ten steps run
     # before this decision, so one run names every defect it found.
     $gateExit = if ($gateFailures.Count) { 1 } elseif ($gateUnverified.Count) { 2 } else { 0 }
     if ($gateExit -ne 0) {

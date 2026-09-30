@@ -1,0 +1,87 @@
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+	"unicode/utf16"
+
+	"golang.org/x/sys/windows"
+)
+
+// vdPowerShellTimeout bounds one script run: a format or a mount of a large
+// image takes seconds to a few minutes, and a script that never returns (an
+// image on a dead share) must not hold a stop for ever. A variable so a test
+// can shorten it.
+var vdPowerShellTimeout = 10 * time.Minute
+
+// psQuote is s as a PowerShell single-quoted string literal. PowerShell treats
+// U+2018..U+201B as quote characters too, so each of them is doubled like the
+// ASCII apostrophe: a path holding one is data, never the end of the literal
+// (AUD-34-F4, AUD-31-F3).
+func psQuote(s string) string {
+	var b strings.Builder
+	b.WriteByte('\'')
+	for _, r := range s {
+		switch r {
+		case '\'', '‘', '’', '‚', '‛':
+			b.WriteRune(r)
+		}
+		b.WriteRune(r)
+	}
+	b.WriteByte('\'')
+	return b.String()
+}
+
+// vdPowerShell runs script in Windows PowerShell and returns its output.
+//
+// The script goes in as -EncodedCommand, one unit: a `throw` (or any error under
+// $ErrorActionPreference = 'Stop') ends the whole script and the process exits
+// non-zero. Piping it to `-Command -` ran every line as a command of its own, so
+// a guard that threw ended only its own line and the destructive line after it
+// still ran, and a failing step was hidden by a last line that could not fail
+// (AUD-34-F1, AUD-34-F2). The text is UTF-16, so a non-ASCII path arrives as it
+// is whatever the console code page, and the output is read back as UTF-8. The
+// run ends with the run's stop or the timeout, whichever comes first.
+func vdPowerShell(script string) (string, error) {
+	ctx := context.Background()
+	if globalInterruptHandler != nil {
+		ctx = globalInterruptHandler.Context()
+	}
+	return vdPowerShellCtx(ctx, script, vdPowerShellTimeout)
+}
+
+func vdPowerShellCtx(ctx context.Context, script string, timeout time.Duration) (string, error) {
+	wrapped := "$ErrorActionPreference = 'Stop'\n$ProgressPreference = 'SilentlyContinue'\n" +
+		"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n" +
+		"try {\n" + script + "\n} catch {\n" +
+		"[Console]::Error.WriteLine($_.Exception.Message)\nexit 1\n}\n"
+	u := utf16.Encode([]rune(wrapped))
+	raw := make([]byte, 0, len(u)*2)
+	for _, c := range u {
+		raw = append(raw, byte(c), byte(c>>8))
+	}
+	encoded := base64.StdEncoding.EncodeToString(raw)
+
+	sys, _ := windows.GetSystemDirectory()
+	ps := filepath.Join(sys, `WindowsPowerShell\v1.0\powershell.exe`)
+	runCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	cmd := exec.CommandContext(runCtx, ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-OutputFormat", "Text", "-EncodedCommand", encoded)
+	out, err := cmd.CombinedOutput()
+	text := strings.ReplaceAll(string(out), "\r", "")
+	if err != nil {
+		switch {
+		case errors.Is(ctx.Err(), context.Canceled):
+			return text, fmt.Errorf("stopped: %w", errRunStopped)
+		case errors.Is(runCtx.Err(), context.DeadlineExceeded):
+			return text, fmt.Errorf("Windows PowerShell did not finish within %v", timeout)
+		}
+	}
+	return text, err
+}

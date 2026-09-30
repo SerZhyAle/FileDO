@@ -81,9 +81,9 @@ func TestSandboxName_AcceptsOrdinaryNames(t *testing.T) {
 		"archive.tar.gz",
 		"file with  inner  spaces.txt",
 		".gitignore",
-		"CONTRACT.pdf",       // starts with CON but is not CON
-		"nullify.txt",        // starts with nul but is not nul
-		"com10.log",          // COM10 is not a reserved device
+		"CONTRACT.pdf",        // starts with CON but is not CON
+		"nullify.txt",         // starts with nul but is not nul
+		"com10.log",           // COM10 is not a reserved device
 		"a-file-named-lpt.md", // lpt without a digit is not reserved
 	} {
 		if _, err := fdsecSandboxName(name); err != nil {

@@ -43,6 +43,21 @@ Public Class GlyphButton
         End Set
     End Property
 
+    ' The product's own mark, drawn where no glyph is set: for the one button that stands for the
+    ' product itself - "the main window" - which is not a meaning of the vocabulary (ICON-SET rule 7:
+    ' the product's mark is artwork, never used to stand for a meaning; here it stands for FileDO).
+    Private pictureValue As Image = Nothing
+
+    Public Property Picture As Image
+        Get
+            Return pictureValue
+        End Get
+        Set(value As Image)
+            pictureValue = value
+            Relayout()
+        End Set
+    End Property
+
     ' The size tier in design pixels (ICON-RENDER rule 5: 16, 20, 24, 32, 40, 48).
     Public Property Tier As Integer
         Get
@@ -87,7 +102,7 @@ Public Class GlyphButton
                                                  TextFormatFlags.EndEllipsis
 
     Private Function GlyphPx() As Integer
-        Return If(glyphValue Is Nothing, 0, Ui.Px(Me, tierValue))
+        Return If(glyphValue Is Nothing AndAlso pictureValue Is Nothing, 0, Ui.Px(Me, tierValue))
     End Function
 
     Private Function CaptionSize() As Size
@@ -105,8 +120,8 @@ Public Class GlyphButton
             Return New Size(side, side)
         End If
         Dim content = gp + cap.Width
-        If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 8)
-        Dim w = content + 2 * Ui.Px(Me, 10) + 2 * border
+        If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 6)
+        Dim w = content + 2 * Ui.Px(Me, 8) + 2 * border
         Dim h = Math.Max(gp, cap.Height) + 2 * Ui.Px(Me, 5) + 2 * border
         Return New Size(w, h)
     End Function
@@ -143,11 +158,16 @@ Public Class GlyphButton
         Dim gp = GlyphPx()
         Dim cap = CaptionSize()
         Dim content = gp + cap.Width
-        If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 8)
+        If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 6)
         Dim x = (Width - content) \ 2
         If gp > 0 Then
-            Glyphs.Draw(g, glyphValue, New Rectangle(x, (Height - gp) \ 2, gp, gp), fore)
-            x += gp + If(cap.Width > 0, Ui.Px(Me, 8), 0)
+            Dim square As New Rectangle(x, (Height - gp) \ 2, gp, gp)
+            If glyphValue IsNot Nothing Then
+                Glyphs.Draw(g, glyphValue, square, fore)
+            ElseIf pictureValue IsNot Nothing Then
+                g.DrawImage(pictureValue, square)
+            End If
+            x += gp + If(cap.Width > 0, Ui.Px(Me, 6), 0)
         End If
         If cap.Width > 0 Then
             TextRenderer.DrawText(g, Text, Font, New Rectangle(x, 0, Math.Max(0, Width - x - 2), Height), fore, TextFlags)

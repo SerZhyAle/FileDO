@@ -192,6 +192,22 @@ func fdsecDisposeTree(path, abs string, packed *fdsec.Tree, o *fdsecOpts, hl *Hi
 	}
 
 	if o.wipe {
+		// An overwrite reaches every name of a file: a hard link outside the
+		// folder (or a second one inside it) would be left holding random
+		// bytes. Every file is asked before the first one is touched, so the
+		// folder is either wiped whole or kept whole (AUD-03-F1).
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			refusal, lerr := wipeLinkRefusal(filepath.Join(abs, filepath.FromSlash(e.Path)))
+			if lerr != nil {
+				return kept(fmt.Sprintf("the hard links of %s could not be counted: %v", e.Path, lerr))
+			}
+			if refusal != nil {
+				return kept(fmt.Sprintf("%s has %d hard links and an overwrite would destroy the other names too; remove the extra links, or use del", e.Path, refusal.Links))
+			}
+		}
 		fmt.Printf("\nThe container was read back and every file verified against its digest.\n")
 		fmt.Printf("WIPE will overwrite and remove every file of the original folder, then the folder itself:\n  %s (%d files, %d folders)\n", path, files, len(entries)-files)
 		fmt.Printf("Honest caveat: on SSDs, copy-on-write and journaled volumes, overwrite-in-place\nlowers the odds of recovery but does not guarantee erasure.\n")

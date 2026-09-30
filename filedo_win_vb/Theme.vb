@@ -50,6 +50,8 @@ Module Theme
         Public Property AccentText As Color      ' text drawn on top of Accent
         Public Property ControlHover As Color    ' a row or button under the pointer
         Public Property SurfaceSelected As Color ' the chosen row of the rail
+        Public Property SurfaceBand As Color     ' the rail's second band: every other block of it (the checker)
+        Public Property BandHover As Color       ' a row under the pointer on that second band
         Public Property Success As Color
         Public Property Warning As Color
         Public Property Danger As Color
@@ -122,6 +124,8 @@ Module Theme
     Private Function Derive(p As Palette) As Palette
         p.ControlHover = Blend(p.SurfaceAlt, p.Text, 0.07F)
         p.SurfaceSelected = Blend(p.SurfaceAlt, p.Accent, If(p.IsDark, 0.22F, 0.14F))
+        p.SurfaceBand = Blend(p.SurfaceAlt, p.Text, 0.075F)
+        p.BandHover = Blend(p.SurfaceBand, p.Text, 0.07F)
         p.TextDisabled = Blend(p.MutedText, p.SurfaceAlt, 0.2F)
         p.Link = p.Accent
         Return p
@@ -269,6 +273,10 @@ Module Theme
         Return New Font(UiFamily(), 9.0F, FontStyle.Regular, GraphicsUnit.Point)
     End Function
 
+    Public Function FontCaptionStrong() As Font
+        Return New Font(UiFamily(), 9.0F, FontStyle.Bold, GraphicsUnit.Point)
+    End Function
+
     Public Function FontBody() As Font
         Return New Font(UiFamily(), 10.0F, FontStyle.Regular, GraphicsUnit.Point)
     End Function
@@ -314,6 +322,40 @@ Module Theme
 
     Public Function HasGlyphFont() As Boolean
         Return GlyphFamily() <> ""
+    End Function
+
+    ' The hues of the rail's group icons: the colour look of ICON-RENDER section 10 items B-D ("a
+    ' leading icon whose job is to say what kind of thing a row is"). The palette.json the catalog
+    ' publishes names the shared hues (category, source, state) - all of them taken by another kind of
+    ' thing - and says that a `program.*` tone belongs to each product, so these nine are FileDO's own.
+    ' They are drawn from the same family as the catalog's tones (Material 700 by day, 300 by night)
+    ' and are held to item D's 3:1 by the self-test against every surface a rail row can be on, in
+    ' both palettes - so a change to a surface fails there instead of fading an icon.
+    '   day tone, night tone
+    Private ReadOnly GroupHues As New Dictionary(Of String, Color()) From {
+        {"program.check", New Color() {Color.FromArgb(&H15, &H65, &HC0), Color.FromArgb(&H64, &HB5, &HF6)}},
+        {"program.tidy", New Color() {Color.FromArgb(&H0, &H79, &H6B), Color.FromArgb(&H4D, &HB6, &HAC)}},
+        {"program.copy", New Color() {Color.FromArgb(&H0, &H69, &H7A), Color.FromArgb(&H4D, &HD0, &HE1)}},
+        {"program.erase", New Color() {Color.FromArgb(&HBF, &H36, &HC), Color.FromArgb(&HFF, &H8A, &H65)}},
+        {"program.protect", New Color() {Color.FromArgb(&H8A, &H5C, &H10), Color.FromArgb(&HE3, &HB3, &H41)}},
+        {"program.disks", New Color() {Color.FromArgb(&H7B, &H1F, &HA2), Color.FromArgb(&HCE, &H93, &HD8)}},
+        {"program.history", New Color() {Color.FromArgb(&H39, &H49, &HAB), Color.FromArgb(&H9F, &HA8, &HDA)}},
+        {"program.command", New Color() {Color.FromArgb(&HAD, &H14, &H57), Color.FromArgb(&HF4, &H8F, &HB1)}},
+        {"program.app", New Color() {Color.FromArgb(&H54, &H6E, &H7A), Color.FromArgb(&H90, &HA4, &HAE)}}
+    }
+
+    Friend ReadOnly Property GroupHueKeys As IEnumerable(Of String)
+        Get
+            Return GroupHues.Keys
+        End Get
+    End Property
+
+    ' The tone of a hue for a palette; the palette's own accent when the key is unknown, so a row
+    ' with a mistyped hue is still visible and the self-test (which names the key) fails it.
+    Friend Function GroupTone(hue As String, p As Palette) As Color
+        Dim tones As Color() = Nothing
+        If hue Is Nothing OrElse Not GroupHues.TryGetValue(hue, tones) Then Return p.Accent
+        Return If(p.IsDark, tones(1), tones(0))
     End Function
 
     ' The chevron of a collapsible rail group. ICON-SET: a shut group offers nav.expand (chevron

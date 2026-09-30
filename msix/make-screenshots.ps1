@@ -57,10 +57,7 @@ param(
     [switch]$Live,
     # Display to capture on, by device name (\\.\DISPLAY2). Default: the primary display. A
     # display at another scaling is how the rail is proven at 100 % / 150 % (SP-0016 T3/T4).
-    [string]$Monitor,
-    # Rail groups to show folded, by key (rail_group_tidy; comma separated). Default: none - the
-    # Store set shows every group open. One folded group beside open ones is SP-0016 T3's proof.
-    [string]$CollapsedGroups
+    [string]$Monitor
 )
 
 $ErrorActionPreference = "Stop"
@@ -95,6 +92,11 @@ if (Get-Process filedo_win -ErrorAction SilentlyContinue) {
 # or a launch argument
 $StoreLocale = @{ en = 'en-us'; ru = 'ru'; uk = 'uk'; de = 'de'; fr = 'fr' }
 $PageRow     = @{ capacity = 'rail_job_capacity'; speed = 'rail_job_speed'; duplicates = 'rail_job_duplicates'; wipe = 'rail_job_wipe'; command = 'rail_job_command' }
+# The rail is an accordion (one group open at a time), and a row in a folded group is not on
+# screen for UI Automation to find. Each shot therefore starts with every group folded but the one
+# that holds the page's row; a page that is a lone rail job (command) has no group to open.
+$RailGroups = @('rail_group_check', 'rail_group_tidy', 'rail_group_erase', 'rail_group_protect', 'rail_group_disks', 'rail_group_program')
+$PageGroup  = @{ capacity = 'rail_group_check'; speed = 'rail_group_check'; duplicates = 'rail_group_tidy'; secure = 'rail_group_protect'; wipe = 'rail_group_erase'; command = '' }
 foreach ($l in $Languages) { if (-not $StoreLocale.ContainsKey($l)) { throw "make-screenshots: unknown language '$l' (expected $($StoreLocale.Keys -join ' '))." } }
 foreach ($p in $Pages)     { if (-not ($PageRow.ContainsKey($p) -or $p -eq 'secure')) { throw "make-screenshots: unknown page '$p' (expected capacity speed duplicates secure wipe command)." } }
 
@@ -267,8 +269,7 @@ try {
             # settings first: the window reads them once, in its constructor
             Set-GuiSetting 'GuiLang' $lang
             Set-GuiSetting 'ShellTheme' $Theme
-            if ($CollapsedGroups) { Set-GuiSetting 'ShellRailCollapsed' ((@($CollapsedGroups -split '[,; ]+' | Where-Object { $_ })) -join ';') }
-            else { Clear-GuiSetting 'ShellRailCollapsed' }
+            Set-GuiSetting 'ShellRailCollapsed' ((@($RailGroups | Where-Object { $_ -ne $PageGroup[$pg] })) -join ';')
             Set-GuiSetting 'ShellPlacementV' 3 'DWord'
             Clear-GuiSetting 'ShellDpi'                  # no saved DPI: the rectangle is taken as it stands
             Set-GuiSetting 'ShellX' ($launchArea.Left + 40) 'DWord'

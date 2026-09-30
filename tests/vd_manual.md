@@ -150,6 +150,52 @@ Elevated where the step says so; otherwise a normal console (the consent prompt 
    finds nothing, and the `history.json` entry of that run shows `pe:FILEDO_SHELL_CRED` in its command.
    Attach the entry.
 
+## 5b. The Disk manager (SP-0063)
+
+The second window of `filedo_win.exe`. Run it with the containers of the top of this file registered
+(`filedo vd add C:\vdtest\plain.fdd as plaintest`, likewise `vaulttest`, `sparetest`).
+
+1. [ ] **Every way in.** The Start menu entry *FileDO Disk Manager* opens the manager and **no** main window;
+   the *Disk manager* button at the top right of the FileDO window and the first row of the Disks group in its
+   rail open it; `filedo_win.exe --disks` again while it runs brings it forward and opens no second copy.
+2. [ ] **The two windows open each other.** In a manager started from the Start menu, *Main window* (and
+   Ctrl+Shift+O) opens the FileDO window; in the FileDO window, *Disk manager* (and Ctrl+Shift+D) brings the
+   manager forward. Close them in turn: the program ends only when the last one has closed.
+3. [ ] **First run.** With `HKCU\Software\FileDO\DiskManagerWelcomed` absent, the first opening shows *Welcome
+   to the Disk manager* once. *Not now*, Escape and the close box all leave a working window, and the next
+   start does not show it again; Help > *First steps..* opens it whenever asked. *Create my first disk..* opens
+   the Create a disk page in the FileDO window, *Add a .fdd file I already have..* opens the file dialog, and
+   the guide link opens the browser only when clicked - Resource Monitor > Network shows nothing before that
+   click. With an empty list the same three ways to start are on the list area itself.
+4. [ ] **State stays true (within 5 s each).** From a console mount `plain.fdd`: its row says *Mounted* at the
+   letter. Eject the drive in Explorer: *Not mounted*. Mount again and end that container's `filedo.exe` block
+   server in Task Manager: *Server gone - volume offline*. Sign out and in with an auto-mount task: the row is
+   mounted at the logon. A screenshot of each.
+5. [ ] **One gesture.** Double-click and Enter on a disk at rest mount it (consent prompt); on a mounted one
+   they open the drive in Explorer and never unmount. Toolbar *Unmount*; a `ram` disk with data says the
+   unsaved amount first, and *Save now* writes it. Select three mounted disks and *Unmount*: the window says
+   Windows will ask three times, and it does.
+6. [ ] **Keyboard and names.** F1, then every key of the table it shows does what the table says (Ctrl+N, O, M,
+   Shift+M, U, E, S, I, Shift+V, Enter, Del, C, A, Menu, F5, F, Esc, F1). Tab visits the toolbar, the filter,
+   the list, the detail pane and the strip in that order, and no toolbar button carries a frame when the window
+   opens. With Narrator every button is read by its name - the glyph-only ones (Refresh, Help, the filter's
+   clear cross, the detail pane's close cross) by their canonical names.
+7. [ ] **Look.** Light and Dark, at 100 % and 150 % display scaling and once on a second monitor of another
+   scale, in English, Russian and German: the selected row's text is readable (never dark on dark), the hover
+   tint, the header, the state glyphs, the captions of disabled buttons in Dark, the cross at the right edge of
+   the detail pane, and **no white horizontal scroll bar** at the opening width. Eight screenshots.
+8. [ ] **A mount outlives the manager.** With two disks mounted close the manager: it says once *Your disks stay
+   mounted*, both stay, and a fresh manager lists them. *Don't say this again* is remembered.
+9. [ ] **Drag and drop.** A `.fdd` dropped on the list is added (a taken name asks for another); a `.vhdx`
+   asks one confirmation before it is mounted; a `.txt` is refused with a sentence.
+10. [ ] **Help.** Each entry of the Help menu (guide, all guides, website, documentation on GitHub, report a
+    problem) opens the right page, and none opens before the click.
+11. [ ] **Nothing destructive by accident.** *Format..* and *Destroy..* open their job page in the FileDO window
+    with the container chosen and still ask for the typed `FORMAT` / `DESTROY`; Delete only removes the name
+    from the list; double-click, Enter and Backspace never reach either.
+12. [ ] **No credential anywhere.** Mount `vault.fdd` from the manager with its password, unmount, then repeat
+    the search of step 5.5: nothing in the run report, `history.json` or the event stream.
+
 ## 6. Destroy and the auto-mount task
 
 1. [ ] `filedo vd add C:\vdtest\plain.fdd as plaintest`, then `filedo vd auto plaintest logon` (consent
@@ -179,6 +225,11 @@ other FileDO:
 3. [ ] `info`, `verify`, `export <dest> vhd`, `grow`, `compact`, `clone <new.fdd> nopass`, `pass`,
    `destroy force`, `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` all work (exit 0).
 4. [ ] The listing (Partner Center preview) promises no mounting in any language.
+5. [ ] **The Disk manager in this build.** It opens and lists the disks; *Mount*, *Mount read-only*, *Mount
+   as..*, *Mount image..*, *Unmount*, *Save now*, *Turn on/off auto-mount* and *Format..* are **absent** (hidden,
+   not greyed) from the toolbar, the row menu, the More menu and the detail pane, while *New disk..*, *Add..*,
+   *Info*, *Verify* and *Export..* remain. The first-steps window (Help > *First steps..*) says this build
+   cannot mount and that the setup program from the website can.
 
 ## 8. Clean up
 

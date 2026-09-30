@@ -35,6 +35,10 @@ Public Class DiskManagerForm
     ' A job page to open in the shell, on a target, with a preset (spec 7.3).
     Public Event JobRequested(key As String, target As String, preset As String)
 
+    ' The FileDO main window, brought forward - the button "Main window" and its key. The other way
+    ' round, the shell has its own button that opens this window (ShellForm.BuildHeader).
+    Public Event ShellRequested()
+
     Private Const MinWidth As Integer = 720
     Private Const MinHeight As Integer = 420
     Private Const PollMs As Integer = 5000
@@ -62,14 +66,14 @@ Public Class DiskManagerForm
     Private Shared ReadOnly ColumnKeys As String() = {
         "vd_col_name", "vd_col_drive", "vd_col_state", "vd_col_profile", "vd_mgr_col_protection",
         "vd_col_size", "vd_mgr_col_auto", "vd_col_file", "vd_mgr_col_since"}
-    Private Shared ReadOnly ColumnDesign As Integer() = {150, 56, 240, 70, 100, 76, 72, 0, 0}
+    Private Shared ReadOnly ColumnDesign As Integer() = {140, 52, 210, 64, 96, 64, 72, 0, 0}
     Private Shared ReadOnly ColumnShown As Integer() = {150, 56, 240, 70, 100, 76, 72, 280, 140}
 
     ' The toolbar's own row actions and the detail pane's buttons, in the order they are offered.
     Private Shared ReadOnly DetailActions As DiskAction() = {
         DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.Unmount, DiskAction.UnmountImage, DiskAction.OpenDrive,
         DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.AutoOn, DiskAction.AutoOff,
-        DiskAction.AddToList, DiskAction.ChangePassword}
+        DiskAction.Autostart, DiskAction.AddToList, DiskAction.ChangePassword}
     Private Shared ReadOnly ToolbarRowActions As DiskAction() = {
         DiskAction.Mount, DiskAction.Unmount, DiskAction.OpenDrive, DiskAction.SaveNow}
 
@@ -77,9 +81,7 @@ Public Class DiskManagerForm
     Private ReadOnly tips As New ToolTip()
 
     Private root As TableLayoutPanel
-    Private toolbar As TableLayoutPanel
-    Private toolbarLeft As FlowLayoutPanel
-    Private toolbarRight As FlowLayoutPanel
+    Private toolbar As FlowLayoutPanel
     Private filterUnit As FlowLayoutPanel
     Private newBtn As GlyphButton
     Private addBtn As GlyphButton
@@ -90,6 +92,7 @@ Public Class DiskManagerForm
     Private moreBtn As GlyphButton
     Private refreshBtn As GlyphButton
     Private helpBtn As GlyphButton
+    Private mainBtn As GlyphButton
     Private filterLabel As Label
     Private filterBox As TextBox
     Private filterClear As GlyphButton
@@ -174,6 +177,9 @@ Public Class DiskManagerForm
         ApplyTheme()
         RestorePlacement()
         SetDetailOpen(ShellSettings.DiskManagerDetailOpen())
+        ' Nothing on the toolbar has the keyboard when the window opens: a focused button draws its
+        ' frame at once and looks like a chosen default. The filter has it until the list has rows.
+        ActiveControl = filterBox
 
         pollTimer = New Windows.Forms.Timer With {.Interval = PollMs}
         AddHandler pollTimer.Tick, Sub()
@@ -217,11 +223,12 @@ Public Class DiskManagerForm
         root = New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .ColumnCount = 1,
-            .RowCount = 5,
+            .RowCount = 6,
             .Margin = New Padding(0),
             .Padding = New Padding(0)
         }
         root.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        root.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         root.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         root.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         root.RowStyles.Add(New RowStyle(SizeType.AutoSize))
@@ -235,17 +242,19 @@ Public Class DiskManagerForm
         BuildMenus()
 
         root.Controls.Add(toolbar, 0, 0)
-        root.Controls.Add(listHost, 0, 1)
-        root.Controls.Add(detailPanel, 0, 2)
-        root.Controls.Add(detailBar, 0, 3)
-        root.Controls.Add(strip, 0, 4)
+        root.Controls.Add(filterUnit, 0, 1)
+        root.Controls.Add(listHost, 0, 2)
+        root.Controls.Add(detailPanel, 0, 3)
+        root.Controls.Add(detailBar, 0, 4)
+        root.Controls.Add(strip, 0, 5)
         Controls.Add(root)
         ' The tab order the spec names (6.2): toolbar, filter, list, detail, strip.
         toolbar.TabIndex = 0
-        listHost.TabIndex = 1
-        detailPanel.TabIndex = 2
-        detailBar.TabIndex = 3
-        strip.TabIndex = 4
+        filterUnit.TabIndex = 1
+        listHost.TabIndex = 2
+        detailPanel.TabIndex = 3
+        detailBar.TabIndex = 4
+        strip.TabIndex = 5
         ResumeLayout(True)
     End Sub
 
@@ -266,33 +275,16 @@ Public Class DiskManagerForm
     End Function
 
     Private Sub BuildToolbar()
-        ' The action buttons wrap inside their own column; the filter is one unit at the right that never
-        ' comes apart - its label, its box and its clear button stay together whatever the width.
-        toolbar = New TableLayoutPanel With {
-            .Dock = DockStyle.Fill,
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .ColumnCount = 2,
-            .RowCount = 1,
-            .Padding = Ui.PxPad(Me, 12, 10, 12, 4),
-            .Margin = New Padding(0)
-        }
-        toolbar.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
-        toolbar.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
-        toolbar.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-
-        toolbarLeft = New FlowLayoutPanel With {
+        ' One flow of buttons that wraps when the window is narrow or the captions are long. (A wrapping
+        ' flow inside an auto-sized table row is measured for no width at all and comes out as tall as a
+        ' column of every button - so the toolbar is the flow itself.) The filter is not in it: it is
+        ' one unit of its own, a row under the toolbar.
+        toolbar = New FlowLayoutPanel With {
             .Dock = DockStyle.Fill,
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .WrapContents = True,
-            .Margin = New Padding(0)
-        }
-        toolbarRight = New FlowLayoutPanel With {
-            .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .WrapContents = False,
+            .Padding = Ui.PxPad(Me, 12, 10, 12, 4),
             .Margin = New Padding(0)
         }
 
@@ -317,15 +309,21 @@ Public Class DiskManagerForm
         AddHandler refreshBtn.Click, Sub() RequestRead()
         helpBtn = NewGlyphButton("vd_mgr_name_help", DiskGlyphs.Help, 24, True)
         AddHandler helpBtn.Click, Sub() helpMenu.Show(helpBtn, 0, helpBtn.Height)
+        ' The way to the main window: the product's own mark and its name, at the end of the toolbar.
+        mainBtn = NewGlyphButton("vd_mgr_btn_main", Nothing, 24)
+        mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
+        AddHandler mainBtn.Click, Sub() RaiseEvent ShellRequested()
 
-        ' The filter: its label, its box and the cross that clears it, one unit.
+        ' The filter: its label, its box and the cross that clears it, one unit - a row of its own under
+        ' the toolbar, so the action buttons keep the whole width and the unit never comes apart.
         filterUnit = New FlowLayoutPanel With {
+            .Anchor = AnchorStyles.Left,
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .WrapContents = False,
-            .Margin = New Padding(0)
+            .Margin = Ui.PxPad(Me, 12, 0, 12, 6)
         }
-        filterLabel = New Label With {.Text = L("vd_mgr_filter"), .AutoSize = True, .Margin = Ui.PxPad(Me, 10, 6, 6, 0)}
+        filterLabel = New Label With {.Text = L("vd_mgr_filter"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 6, 0)}
         filterBox = New TextBox With {.Width = Ui.Px(Me, 150), .Margin = Ui.PxPad(Me, 0, 4, 0, 0)}
         filterBox.AccessibleName = L("vd_mgr_filter_name")
         filterLabel.AccessibleName = L("vd_mgr_filter_name")
@@ -344,22 +342,16 @@ Public Class DiskManagerForm
             filterUnit.Controls.Add(c)
         Next
 
-        For Each c As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn}
-            toolbarLeft.Controls.Add(c)
+        For Each c As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn, refreshBtn, helpBtn, mainBtn}
+            toolbar.Controls.Add(c)
         Next
-        For Each c As Control In New Control() {refreshBtn, helpBtn, filterUnit}
-            toolbarRight.Controls.Add(c)
+        ' The groups, told apart by a wider gap: the list, the disk, and the window's own.
+        For Each c As Control In New Control() {addBtn, saveBtn, moreBtn, helpBtn}
+            c.Margin = Ui.PxPad(Me, 0, 0, 20, 6)
         Next
-        toolbar.Controls.Add(toolbarLeft, 0, 0)
-        toolbar.Controls.Add(toolbarRight, 1, 0)
-        toolbarLeft.TabIndex = 0
-        toolbarRight.TabIndex = 1
-        For i = 0 To toolbarLeft.Controls.Count - 1
-            toolbarLeft.Controls(i).TabIndex = i
+        For i = 0 To toolbar.Controls.Count - 1
+            toolbar.Controls(i).TabIndex = i
         Next
-        refreshBtn.TabIndex = 0
-        helpBtn.TabIndex = 1
-        filterUnit.TabIndex = 2
         filterLabel.TabIndex = 0
         filterBox.TabIndex = 1
         filterClear.TabIndex = 2
@@ -367,21 +359,21 @@ Public Class DiskManagerForm
 
         ' A disabled button shows no tooltip of its own, and a disabled action must still say why
         ' (principle 2): the toolbar shows it for the button under the pointer.
-        AddHandler toolbarLeft.MouseMove, AddressOf Toolbar_MouseMove
+        AddHandler toolbar.MouseMove, AddressOf Toolbar_MouseMove
     End Sub
 
     Private hoveredDisabled As Control = Nothing
 
     Private Sub Toolbar_MouseMove(sender As Object, e As MouseEventArgs)
-        Dim c = toolbarLeft.GetChildAtPoint(e.Location)
+        Dim c = toolbar.GetChildAtPoint(e.Location)
         If c Is hoveredDisabled Then Return
         hoveredDisabled = Nothing
-        tips.Hide(toolbarLeft)
+        tips.Hide(toolbar)
         If c Is Nothing OrElse c.Enabled Then Return
         Dim reason = TryCast(c.Tag, String)
         If String.IsNullOrEmpty(reason) Then Return
         hoveredDisabled = c
-        tips.Show(reason, toolbarLeft, c.Left, c.Bottom + Ui.Px(Me, 2), 6000)
+        tips.Show(reason, toolbar, c.Left, c.Bottom + Ui.Px(Me, 2), 6000)
     End Sub
 
     Private Sub BuildList()
@@ -411,6 +403,8 @@ Public Class DiskManagerForm
         AddHandler list.MouseMove, AddressOf List_MouseMove
         AddHandler list.MouseLeave, Sub() SetHoverRow(-1)
         AddHandler list.SelectedIndexChanged, Sub() SelectionChanged()
+        AddHandler list.SizeChanged, Sub() FitStateColumn()
+        AddHandler list.ColumnWidthChanged, Sub() FitStateColumn()
         AddHandler list.GotFocus, Sub() list.Invalidate()
         AddHandler list.LostFocus, Sub() list.Invalidate()
         AddHandler list.MouseDoubleClick, AddressOf List_MouseDoubleClick
@@ -531,8 +525,8 @@ Public Class DiskManagerForm
     End Sub
 
     Private Sub ToggleDetail()
-        SetDetailOpen(Not detailPanel.Visible)
-        ShellSettings.SetDiskManagerDetailOpen(detailPanel.Visible)
+        SetDetailOpen(Not detailOpenState)
+        ShellSettings.SetDiskManagerDetailOpen(detailOpenState)
     End Sub
 
     Private Sub BuildStrip()
@@ -816,10 +810,31 @@ Public Class DiskManagerForm
         emptyActions.Visible = (snapshot IsNot Nothing AndAlso snapshot.Disks.Count = 0)
         list.Visible = (emptyText = "")
         emptyShown = emptyText
+        ' The first time the list has rows the keyboard goes to it - not to a button, whose focus frame
+        ' would look like a chosen default the moment the window opens. Only while nothing else was
+        ' chosen: a user who has gone to the filter keeps it.
+        If Not listFocusGiven AndAlso list.Visible AndAlso IsHandleCreated Then
+            ' After the layout that shows the list: a list that has just become visible has no window
+            ' to take the focus yet.
+            BeginInvoke(New MethodInvoker(AddressOf GiveListTheKeyboard))
+        End If
 
         UpdateToolbar()
         UpdateDetail()
         UpdateStrip()
+        ' The Autostart dialog reads the window's state through delegates; a refresh here is a
+        ' refresh there, so a switch that has just run shows the console's answer, not its hope.
+        If autostartDlg IsNot Nothing AndAlso Not autostartDlg.IsDisposed Then autostartDlg.RefreshState()
+    End Sub
+
+    Private Sub GiveListTheKeyboard()
+        If listFocusGiven OrElse IsDisposed OrElse Not list.Visible Then Return
+        ' Only while nothing else was chosen: a user who has gone to the filter keeps it.
+        If (ActiveControl Is Nothing OrElse ActiveControl Is filterBox) AndAlso filterBox.Text = "" Then
+            If list.Focus() Then listFocusGiven = True
+        Else
+            listFocusGiven = True
+        End If
     End Sub
 
     Private Function SelectedRecords() As List(Of DiskRecord)
@@ -860,6 +875,7 @@ Public Class DiskManagerForm
 
     ' Set while the list is rebuilt: its selection events are one change, handled once after it.
     Private rebuilding As Boolean = False
+    Private listFocusGiven As Boolean = False
 
     ' What the empty-list label says, "" while the list is shown. Kept apart from the controls'
     ' Visible, which a window not on screen reports as false for every child.
@@ -882,18 +898,22 @@ Public Class DiskManagerForm
         SetTip(refreshBtn, L("vd_mgr_btn_refresh") & DiskShortcuts.Suffix(DiskAction.Refresh), L("vd_tip_refresh"))
         SetTip(moreBtn, L("vd_mgr_btn_more"), L("vd_mgr_btn_more_tip"))
         SetTip(helpBtn, L("vd_mgr_name_help") & " (" & DiskShortcuts.KeyText(Keys.F1) & ")", L("vd_tip_help"))
+        SetTip(mainBtn, L("vd_mgr_btn_main") & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.O) & ")", L("vd_tip_main"))
         SetTip(filterBox, L("vd_mgr_filter_name") & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.F) & ")", L("vd_tip_filter"))
         SetTip(filterClear, L("vd_mgr_name_clear") & " (" & DiskShortcuts.KeyText(Keys.Escape) & ")", L("vd_tip_clear_filter"))
         SetTip(detailClose, L("vd_mgr_detail_hide"), L("vd_tip_detail_close"))
         SetTip(detailShow, L("vd_mgr_detail_show"), L("vd_tip_detail_show"))
+        SetTip(emptyNew, L("vd_mgr_act_new") & DiskShortcuts.Suffix(DiskAction.NewDisk), L("vd_tip_new"))
+        SetTip(emptyAdd, L("vd_mgr_btn_add") & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.O) & ")", L("vd_mgr_btn_add_tip"))
+        SetTip(emptyLearn, L("vd_mgr_learn_more"), Links.DiskGuide)
         SetTip(stopBtn, L("vd_mgr_btn_stop"), "")
         SetTip(clearQueueBtn, L("vd_mgr_btn_clear_queue"), "")
         ' A control this build can never run is hidden, not disabled (APP-BEHAVIOUR rule 11): the Store
         ' build cannot mount, so it shows no Mount, Unmount or Save.
         Dim ctx = Context()
-        mountBtn.Visible = Not DiskStates.HiddenInBuild(DiskAction.Mount, ctx)
-        unmountBtn.Visible = Not DiskStates.HiddenInBuild(DiskAction.Unmount, ctx)
-        saveBtn.Visible = Not DiskStates.HiddenInBuild(DiskAction.SaveNow, ctx)
+        SetBuildVisibility(mountBtn, DiskStates.HiddenInBuild(DiskAction.Mount, ctx))
+        SetBuildVisibility(unmountBtn, DiskStates.HiddenInBuild(DiskAction.Unmount, ctx))
+        SetBuildVisibility(saveBtn, DiskStates.HiddenInBuild(DiskAction.SaveNow, ctx))
     End Sub
 
     ' A tooltip of two lines: what the control is called (with its key) and what it does.
@@ -916,7 +936,12 @@ Public Class DiskManagerForm
 
     ' ---- the detail pane (spec 5.3) --------------------------------------
 
+    ' Whether the detail pane is open, kept as a value: a control of a window that is not on screen
+    ' reports Visible false whatever it was set to, and the toggle must not depend on that.
+    Private detailOpenState As Boolean = True
+
     Private Sub SetDetailOpen(open As Boolean)
+        detailOpenState = open
         detailPanel.Visible = open
         detailBar.Visible = Not open
     End Sub
@@ -1003,6 +1028,10 @@ Public Class DiskManagerForm
                 Return rows.Count = 1 AndAlso rows(0).Registered AndAlso Not rows(0).AutoMount
             Case DiskAction.AutoOff
                 Return rows.Count = 1 AndAlso rows(0).Registered AndAlso rows(0).AutoMount
+            Case DiskAction.Autostart
+                ' The consolidated view of everything automatic (SP-0080 5): it opens from a
+                ' registered row, and the packaged build never shows it (HiddenInBuild).
+                Return rows.Count = 1 AndAlso rows(0).Registered AndAlso Not rows(0).IsImage
             Case DiskAction.AddToList
                 Return rows.Count = 1 AndAlso Not rows(0).Registered AndAlso Not rows(0).IsImage
             Case DiskAction.Forget
@@ -1073,6 +1102,11 @@ Public Class DiskManagerForm
                 transport = L("vd_mgr_transport_ready")
             End If
             Dim summary = Localization.Format(L("vd_mgr_status_fmt"), snapshot.MountedCount, transport, AgoText())
+            ' The shutdown guard gets one word while it is on - the state in words, never colour
+            ' alone (SP-0080 5); the Autostart dialog is where its switch and its report live.
+            If snapshot.Guard IsNot Nothing AndAlso snapshot.Guard.Installed Then
+                summary &= "  " & L(If(snapshot.Guard.Running, "vd_mgr_strip_guard_running", "vd_mgr_strip_guard_stale"))
+            End If
             If staleKey <> "" Then
                 summary = Localization.Format(L("vd_mgr_stale_fmt"), lastGoodAt.ToString("t"), L(staleKey)) & Environment.NewLine & summary
             End If
@@ -1134,7 +1168,7 @@ Public Class DiskManagerForm
     ' Coalesced: at most one snapshot child at a time; a request while one runs reads once more
     ' after it, however many requests came in meanwhile.
     Friend Async Sub RequestRead()
-        If IsDisposed Then Return
+        If IsDisposed OrElse SuppressReads Then Return
         If reading Then
             readAgain = True
             Return
@@ -1261,6 +1295,8 @@ Public Class DiskManagerForm
         Select Case a
             Case DiskAction.Refresh
                 RequestRead()
+            Case DiskAction.Autostart
+                OpenAutostart()
             Case DiskAction.OpenDrive
                 For Each r In sel
                     Ui.OpenFolder(Me, r.Letter & "\")
@@ -1397,6 +1433,54 @@ Public Class DiskManagerForm
         Dim r As New DiskRecord With {.Kind = "image", .Path = path}
         Enqueue(New DiskOp With {.Action = DiskAction.MountImage, .Record = r, .Args = DiskStates.QuickCommand(DiskAction.MountImage, r, Nothing)})
     End Sub
+
+    ' ---- Autostart (SP-0080 5) ------------------------------------------------
+
+    ' The open Autostart dialog, so a refresh of the window's own state is the dialog's too.
+    Private autostartDlg As DiskAutostartDialog
+
+    ' The consolidated view of everything automatic (SP-0080 5): the per-container logon mounts and
+    ' the shutdown guard. The dialog reads this window's snapshot through delegates and acts through
+    ' this window's own flows - DoQuick for a logon switch exactly as the row runs it, RunGuardSwitch
+    ' for the guard - so there is no second way to write anything.
+    Private Sub OpenAutostart()
+        If Context().Packaged Then Return ' HiddenInBuild keeps the entry out of every menu already.
+        If autostartDlg IsNot Nothing Then
+            autostartDlg.RefreshState()
+            autostartDlg.Activate()
+            Return
+        End If
+        Dim dlg As New DiskAutostartDialog(dict, Me,
+                                           AddressOf RegisteredRecordsForAutostart,
+                                           AddressOf GuardForAutostart,
+                                           AddressOf DoQuick,
+                                           AddressOf RunGuardSwitch)
+        AddHandler dlg.Disposed, Sub() autostartDlg = Nothing
+        autostartDlg = dlg
+        dlg.ShowDialog(Me)
+    End Sub
+
+    Private Function RegisteredRecordsForAutostart() As List(Of DiskRecord)
+        If snapshot Is Nothing Then Return New List(Of DiskRecord)
+        Return snapshot.Disks.Where(Function(d) d.Registered AndAlso Not d.IsImage).ToList()
+    End Function
+
+    Private Function GuardForAutostart() As DiskGuardState
+        Return If(snapshot Is Nothing, Nothing, snapshot.Guard)
+    End Function
+
+    ' The guard's switch: one command line, built where every line is built, run through the same
+    ' queue as a row's actions - with its run report, its history line and its verdict.
+    Private Sub RunGuardSwitch(turnOn As Boolean)
+        Enqueue(New DiskOp With {.Action = DiskAction.Autostart, .Record = GuardRecord(),
+                                 .Args = DiskCommands.Build("guard", "", New DiskOptions With {.GuardOn = turnOn})})
+    End Sub
+
+    ' A stand-in row for the guard's own operations: nothing in the list is busy when the guard
+    ' switches, and the strip says what runs by name.
+    Private Function GuardRecord() As DiskRecord
+        Return New DiskRecord With {.Name = L("vd_auto_name_guard")}
+    End Function
 
     ' Containers dropped or chosen: one already in the list is selected, every other one is added
     ' under its file's name - asked for only when that name is taken or not usable.
@@ -1621,7 +1705,7 @@ Public Class DiskManagerForm
         Dim groups = New DiskAction()() {
             New DiskAction() {DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Unmount, DiskAction.UnmountImage,
                               DiskAction.OpenDrive, DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.AutoOn,
-                              DiskAction.AutoOff, DiskAction.AddToList, DiskAction.Forget, DiskAction.ShowInFolder, DiskAction.CopyPath},
+                              DiskAction.AutoOff, DiskAction.Autostart, DiskAction.AddToList, DiskAction.Forget, DiskAction.ShowInFolder, DiskAction.CopyPath},
             New DiskAction() {DiskAction.Export, DiskAction.Compact, DiskAction.Grow, DiskAction.Seal, DiskAction.Clone, DiskAction.ChangePassword},
             New DiskAction() {DiskAction.Format, DiskAction.Destroy}}
         For Each g In groups
@@ -1645,7 +1729,7 @@ Public Class DiskManagerForm
             menu.Items.Add(pathCol)
             menu.Items.Add(sinceCol)
             ' The detail pane's way back when it has been hidden, and a way to hide it from here too.
-            Dim detailItem As New ToolStripMenuItem(L(If(detailPanel.Visible, "vd_mgr_detail_hide", "vd_mgr_detail_show")))
+            Dim detailItem As New ToolStripMenuItem(L(If(detailOpenState, "vd_mgr_detail_hide", "vd_mgr_detail_show")))
             AddHandler detailItem.Click, Sub() ToggleDetail()
             menu.Items.Add(detailItem)
         End If
@@ -1735,6 +1819,9 @@ Public Class DiskManagerForm
             Case DiskCommand.Help
                 ShowHelp()
                 Return True
+            Case DiskCommand.MainWindow
+                RaiseEvent ShellRequested()
+                Return True
             Case DiskCommand.Filter
                 filterBox.Focus()
                 filterBox.SelectAll()
@@ -1776,6 +1863,8 @@ Public Class DiskManagerForm
     ' The self-test and the capture tool open the window without a first run (they must not write the
     ' user's settings, and a dialog nobody answers would hang them).
     Friend Shared SuppressWelcome As Boolean = False
+    ' ...and without reading the disks' state itself, for the picture of a state that is handed to it.
+    Friend Shared SuppressReads As Boolean = False
 
     Protected Overrides Sub OnShown(e As EventArgs)
         MyBase.OnShown(e)
@@ -1786,11 +1875,16 @@ Public Class DiskManagerForm
         ' First run (APP-BEHAVIOUR rule 11): the first-steps window opens once, by itself, and again
         ' whenever Help asks. It is recorded as shown before it is shown, so a window that is closed
         ' by a crash is not the one that comes back on every start.
-        If Not SuppressWelcome AndAlso Not ShellSettings.DiskManagerWelcomed() Then
+        If NeedsWelcome(ShellSettings.DiskManagerWelcomed(), SuppressWelcome) Then
             ShellSettings.SetDiskManagerWelcomed(True)
             BeginInvoke(New MethodInvoker(AddressOf ShowWelcome))
         End If
     End Sub
+
+    ' Whether the first-steps window opens by itself: once, and never for a tool that only looks.
+    Friend Shared Function NeedsWelcome(alreadyShown As Boolean, suppressed As Boolean) As Boolean
+        Return Not suppressed AndAlso Not alreadyShown
+    End Function
 
     Protected Overrides Sub OnVisibleChanged(e As EventArgs)
         MyBase.OnVisibleChanged(e)
@@ -1819,6 +1913,7 @@ Public Class DiskManagerForm
             CenterToScreen()
         End If
         RestoreColumns()
+        FitStateColumn()
     End Sub
 
     ' Moving to a display with another scaling: Windows moves the frame, the rest follows.
@@ -1841,7 +1936,8 @@ Public Class DiskManagerForm
         detailPanel.Padding = Ui.PxPad(Me, 12, 8, 12, 8)
         detailBar.Padding = Ui.PxPad(Me, 12, 4, 12, 4)
         strip.Padding = Ui.PxPad(Me, 12, 6, 12, 6)
-        filterLabel.Margin = Ui.PxPad(Me, 10, 6, 6, 0)
+        filterLabel.Margin = Ui.PxPad(Me, 0, 6, 6, 0)
+        filterUnit.Margin = Ui.PxPad(Me, 12, 0, 12, 6)
         filterBox.Width = Ui.Px(Me, 150)
         filterBox.Margin = Ui.PxPad(Me, 0, 4, 0, 0)
         filterClear.Margin = Ui.PxPad(Me, 2, 2, 0, 2)
@@ -1849,12 +1945,16 @@ Public Class DiskManagerForm
         emptyLabel.Margin = Ui.PxPad(Me, 16, 16, 16, 8)
         opBar.Size = Ui.PxSize(Me, 120, 14)
         For Each b As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn,
-                                                refreshBtn, helpBtn, emptyNew, emptyAdd, stopBtn, clearQueueBtn}
+                                                refreshBtn, helpBtn, mainBtn, emptyNew, emptyAdd, stopBtn, clearQueueBtn}
             b.Margin = Ui.PxPad(Me, 0, 0, 6, 6)
+        Next
+        For Each b As Control In New Control() {addBtn, saveBtn, moreBtn, helpBtn}
+            b.Margin = Ui.PxPad(Me, 0, 0, 20, 6)
         Next
         For Each b In detailButtons.Controls.Cast(Of Control)()
             b.Margin = Ui.PxPad(Me, 0, 0, 6, 6)
         Next
+        mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
         RebuildGlyphs()
         GlyphBitmaps.Clear()
     End Sub
@@ -1972,11 +2072,58 @@ Public Class DiskManagerForm
                     ' Measured as List_DrawColumnHeader draws it, with room for the sort arrow.
                     Dim heading = TextRenderer.MeasureText(g, list.Columns(i).Text & " " & ChrW(&H25B4), If(headerFont, list.Font)).Width + Ui.Px(Me, 16)
                     w = Math.Max(w, heading)
+                    ' ...and to the longest word the column can hold in this language, so "obfuscated"
+                    ' is not cut to "obfusca..." (rule 2: growing text grows the layout).
+                    For Each sample In SampleTexts(i)
+                        w = Math.Max(w, TextRenderer.MeasureText(g, sample, list.Font).Width + Ui.Px(Me, 20) + If(i = Col.Name, Ui.Px(Me, 22), 0))
+                    Next
                 End If
                 list.Columns(i).Width = w
             Next
         End Using
     End Sub
+
+    ' The State column takes what the others leave, so the list fills its width and shows no
+    ' horizontal scroll bar (a white bar on the dark theme) until the window is narrower than the
+    ' columns need. Its own width is therefore never the user's to keep: the others' are.
+    Private fitting As Boolean = False
+
+    Private Sub FitStateColumn()
+        If fitting OrElse list Is Nothing OrElse list.Columns.Count <= Col.State OrElse Not list.IsHandleCreated Then Return
+        fitting = True
+        Try
+            Dim others = 0
+            For i = 0 To list.Columns.Count - 1
+                If i <> Col.State Then others += list.Columns(i).Width
+            Next
+            Dim room = list.ClientSize.Width - others
+            list.Columns(Col.State).Width = Math.Max(Ui.Px(Me, 110), room - Ui.Px(Me, 4))
+        Finally
+            fitting = False
+        End Try
+    End Sub
+
+    ' The words a column can hold that are known before any disk is read: the protection words, the
+    ' profiles, every state word. A name, a path and a size are as long as the disk makes them.
+    Private Function SampleTexts(column As Integer) As String()
+        Select Case CType(column, Col)
+            Case Col.Protection
+                Return New String() {L("vd_mgr_prot_obfuscated"), L("vd_mgr_prot_encrypted")}
+            Case Col.Profile
+                Return New String() {"plain", "sealed", "vault", "vhdx"}
+            Case Col.State
+                Dim words As New List(Of String)
+                For Each key In New String() {"vd_mgr_state_server_gone", "vd_mgr_state_mounted_ro", "vd_mgr_state_image", "vd_mgr_state_different",
+                                              "vd_mgr_state_unclean", "vd_mgr_state_busy_unmount", "vd_mgr_state_queued"}
+                    words.Add(L(key))
+                Next
+                words.Add(Localization.Format(L("vd_mgr_state_unsaved_fmt"), "180 MiB"))
+                Return words.ToArray()
+            Case Col.Drive
+                Return New String() {"W:"}
+        End Select
+        Return New String() {}
+    End Function
 
     <Runtime.InteropServices.DllImport("uxtheme.dll", CharSet:=Runtime.InteropServices.CharSet.Unicode)>
     Private Shared Function SetWindowTheme(hwnd As IntPtr, appName As String, idList As String) As Integer
@@ -2015,8 +2162,6 @@ Public Class DiskManagerForm
             ForeColor = p.Text
             root.BackColor = p.Background
             toolbar.BackColor = p.Background
-            toolbarLeft.BackColor = p.Background
-            toolbarRight.BackColor = p.Background
             filterUnit.BackColor = p.Background
             listHost.BackColor = p.Background
             detailPanel.BackColor = p.Surface
@@ -2059,7 +2204,7 @@ Public Class DiskManagerForm
 
             ' Glyph buttons paint themselves from Theme.Current; they only need their font.
             For Each b In AllGlyphButtons()
-                b.Font = Theme.FontBody()
+                b.Font = bodyFont
             Next
             ApplyStripTheme()
             GlyphBitmaps.Clear()
@@ -2151,41 +2296,95 @@ Public Class DiskManagerForm
     ' read on, and a list that draws its selection itself is the only way to say what the selection's
     ' text colour is (APP-STYLE section 3: no colour resolved by anything but the palette).
     Private Sub List_DrawSubItem(sender As Object, e As DrawListViewSubItemEventArgs)
-        Dim p = Theme.Current
         Dim it = e.Item
-        Dim back As Color = If(it.Selected, p.SurfaceSelected, If(it.Index = hoverRow, p.ControlHover, p.Surface))
+        PaintCell(e.Graphics, CellBounds(it, e.ColumnIndex, e.Bounds), e.ColumnIndex, it.SubItems.Count, e.SubItem.Text,
+                  it.ImageIndex, it.Selected, it.Index = hoverRow, it.Focused AndAlso list.Focused)
+    End Sub
 
-        ' The first column's bounds are the whole row's in the list's API: it ends where the second begins.
-        Dim cell = e.Bounds
-        If e.ColumnIndex = 0 AndAlso it.SubItems.Count > 1 Then
-            cell = New Rectangle(cell.Left, cell.Top, Math.Max(0, it.SubItems(1).Bounds.Left - cell.Left), cell.Height)
+    ' The first column's bounds are the whole row's in the list's API: it ends where the second begins.
+    Private Shared Function CellBounds(it As ListViewItem, column As Integer, reported As Rectangle) As Rectangle
+        If column = 0 AndAlso it.SubItems.Count > 1 Then
+            Return New Rectangle(reported.Left, reported.Top, Math.Max(0, it.SubItems(1).Bounds.Left - reported.Left), reported.Height)
         End If
-        Using b As New SolidBrush(back)
-            e.Graphics.FillRectangle(b, cell)
-        End Using
+        Return reported
+    End Function
 
+    ' One cell of a row, from the palette: the back, the state's picture in the first column, the text in
+    ' the ordinary text colour, and the row's outline in the accent while the list has the keyboard. The
+    ' list's handler and the picture Capture.vb makes of the window both come through here.
+    Private Sub PaintCell(g As Graphics, cell As Rectangle, column As Integer, columns As Integer, text As String,
+                          imageIndex As Integer, selected As Boolean, hovered As Boolean, keyboardHere As Boolean)
+        Dim p = Theme.Current
+        Using b As New SolidBrush(RowBackColour(p, selected, hovered))
+            g.FillRectangle(b, cell)
+        End Using
         Dim x = cell.Left + Ui.Px(Me, 6)
-        If e.ColumnIndex = 0 Then
+        If column = 0 Then
             Dim bmp As Bitmap = Nothing
-            If stateBitmaps.TryGetValue(it.ImageIndex, bmp) Then
-                e.Graphics.DrawImage(bmp, x, cell.Top + (cell.Height - bmp.Height) \ 2, bmp.Width, bmp.Height)
+            If stateBitmaps.TryGetValue(imageIndex, bmp) Then
+                g.DrawImage(bmp, x, cell.Top + (cell.Height - bmp.Height) \ 2, bmp.Width, bmp.Height)
             End If
             x += Ui.Px(Me, 16) + Ui.Px(Me, 6)
         End If
         Dim textArea As New Rectangle(x, cell.Top, Math.Max(0, cell.Right - x - Ui.Px(Me, 4)), cell.Height)
-        TextRenderer.DrawText(e.Graphics, e.SubItem.Text, list.Font, textArea, p.Text,
-                              TextFormatFlags.VerticalCenter Or TextFormatFlags.Left Or TextFormatFlags.EndEllipsis Or TextFormatFlags.NoPrefix)
-
-        ' The keyboard's place: the row's outline in the accent, while the list has the focus.
-        If it.Focused AndAlso list.Focused Then
+        TextRenderer.DrawText(g, text, list.Font, textArea, p.Text,
+                              TextFormatFlags.VerticalCenter Or TextFormatFlags.Left Or TextFormatFlags.EndEllipsis Or TextFormatFlags.NoPrefix Or TextFormatFlags.PreserveGraphicsClipping)
+        If keyboardHere Then
             Using pen As New Pen(p.Accent)
-                e.Graphics.DrawLine(pen, cell.Left, cell.Top, cell.Right, cell.Top)
-                e.Graphics.DrawLine(pen, cell.Left, cell.Bottom - 1, cell.Right, cell.Bottom - 1)
-                If e.ColumnIndex = 0 Then e.Graphics.DrawLine(pen, cell.Left, cell.Top, cell.Left, cell.Bottom - 1)
-                If e.ColumnIndex = it.SubItems.Count - 1 Then e.Graphics.DrawLine(pen, cell.Right - 1, cell.Top, cell.Right - 1, cell.Bottom - 1)
+                g.DrawLine(pen, cell.Left, cell.Top, cell.Right, cell.Top)
+                g.DrawLine(pen, cell.Left, cell.Bottom - 1, cell.Right, cell.Bottom - 1)
+                If column = 0 Then g.DrawLine(pen, cell.Left, cell.Top, cell.Left, cell.Bottom - 1)
+                If column = columns - 1 Then g.DrawLine(pen, cell.Right - 1, cell.Top, cell.Right - 1, cell.Bottom - 1)
             End Using
         End If
     End Sub
+
+    ' The list as a picture, drawn by the same painters, for Capture.vb: a native list view is not
+    ' something DrawToBitmap can print. origin is where the list's client area sits in the bitmap.
+    Friend Sub PaintListForCapture(g As Graphics, origin As Point)
+        Dim p = Theme.Current
+        Dim top = 0
+        If list.Items.Count > 0 Then top = list.Items(0).Bounds.Top
+        If top <= 0 Then top = Ui.Px(Me, 24)
+        Dim area As New Rectangle(origin, list.ClientSize)
+        Dim oldClip = g.Clip
+        g.SetClip(area)
+        Using b As New SolidBrush(p.Surface)
+            g.FillRectangle(b, area)
+        End Using
+        Dim x = 0
+        For i = 0 To list.Columns.Count - 1
+            Dim w = list.Columns(i).Width
+            If w > 0 Then PaintHeaderCell(g, New Rectangle(origin.X + x, origin.Y, w, top), list.Columns(i).Text, i)
+            x += w
+        Next
+        For Each it As ListViewItem In list.Items
+            For j = 0 To it.SubItems.Count - 1
+                Dim r = it.SubItems(j).Bounds
+                If j = 0 AndAlso it.SubItems.Count > 1 Then r = New Rectangle(0, it.Bounds.Top, it.SubItems(1).Bounds.Left, it.Bounds.Height)
+                If r.Width <= 0 Then Continue For
+                r.Offset(origin)
+                PaintCell(g, r, j, it.SubItems.Count, it.SubItems(j).Text, it.ImageIndex, it.Selected, False, False)
+            Next
+        Next
+        g.Clip = oldClip
+        Using pen As New Pen(p.Border)
+            g.DrawRectangle(pen, New Rectangle(origin.X - 1, origin.Y - 1, list.ClientSize.Width + 1, list.ClientSize.Height + 1))
+        End Using
+    End Sub
+
+    ' Where the list's client area sits in the window's layout - the origin PaintListForCapture wants.
+    Friend Function ListOriginForCapture() As Point
+        Return root.PointToClient(list.PointToScreen(Point.Empty))
+    End Function
+
+    ' The back of a row: the selection's own role, the hover tint, or the surface - and the text on any
+    ' of them is the palette's Text, which the self-test holds to 4.5:1 on each in both themes.
+    Friend Shared Function RowBackColour(p As Theme.Palette, selected As Boolean, hovered As Boolean) As Color
+        If selected Then Return p.SurfaceSelected
+        If hovered Then Return p.ControlHover
+        Return p.Surface
+    End Function
 
     ' What the hover tooltip of a row says: the disk, where its file is, and its state in words.
     Private Function RowTip(r As DiskRecord) As String
@@ -2197,19 +2396,23 @@ Public Class DiskManagerForm
     ' The header of the list in the palette (a system header stays light on the dark theme), with
     ' the sort shown as an arrow beside the column's name.
     Private Sub List_DrawColumnHeader(sender As Object, e As DrawListViewColumnHeaderEventArgs)
+        PaintHeaderCell(e.Graphics, e.Bounds, e.Header.Text, e.ColumnIndex)
+    End Sub
+
+    Private Sub PaintHeaderCell(g As Graphics, bounds As Rectangle, headerText As String, column As Integer)
         Dim p = Theme.Current
         Using back As New SolidBrush(p.SurfaceAlt)
-            e.Graphics.FillRectangle(back, e.Bounds)
+            g.FillRectangle(back, bounds)
         End Using
         Using line As New Pen(p.Border)
-            e.Graphics.DrawLine(line, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1)
-            e.Graphics.DrawLine(line, e.Bounds.Right - 1, e.Bounds.Top + 4, e.Bounds.Right - 1, e.Bounds.Bottom - 4)
+            g.DrawLine(line, bounds.Left, bounds.Bottom - 1, bounds.Right, bounds.Bottom - 1)
+            g.DrawLine(line, bounds.Right - 1, bounds.Top + 4, bounds.Right - 1, bounds.Bottom - 4)
         End Using
-        Dim text = e.Header.Text
-        If e.ColumnIndex = sortColumn Then text &= If(sortDescending, " " & ChrW(&H25BE), " " & ChrW(&H25B4))
-        Dim r = New Rectangle(e.Bounds.Left + Ui.Px(Me, 6), e.Bounds.Top, Math.Max(0, e.Bounds.Width - Ui.Px(Me, 8)), e.Bounds.Height)
-        TextRenderer.DrawText(e.Graphics, text, If(headerFont, list.Font), r, p.Text,
-                              TextFormatFlags.VerticalCenter Or TextFormatFlags.Left Or TextFormatFlags.EndEllipsis Or TextFormatFlags.NoPrefix)
+        Dim text = headerText
+        If column = sortColumn Then text &= If(sortDescending, " " & ChrW(&H25BE), " " & ChrW(&H25B4))
+        Dim r = New Rectangle(bounds.Left + Ui.Px(Me, 6), bounds.Top, Math.Max(0, bounds.Width - Ui.Px(Me, 8)), bounds.Height)
+        TextRenderer.DrawText(g, text, If(headerFont, list.Font), r, p.Text,
+                              TextFormatFlags.VerticalCenter Or TextFormatFlags.Left Or TextFormatFlags.EndEllipsis Or TextFormatFlags.NoPrefix Or TextFormatFlags.PreserveGraphicsClipping)
     End Sub
 
     ' The fonts the window paints with, made when the theme is applied - never once per paint, which
@@ -2298,6 +2501,105 @@ Public Class DiskManagerForm
         End Select
         reason = If(b Is Nothing, "", If(TryCast(b.Tag, String), ""))
         Return b IsNot Nothing AndAlso b.Enabled
+    End Function
+
+    ' Whether a toolbar button is on the window at all - hidden in a build that cannot run it.
+    ' Draws the window's client area for Capture.vb (the guide screenshots), off screen.
+    Friend Sub DrawClientForCapture(bmp As Bitmap)
+        root.DrawToBitmap(bmp, New Rectangle(0, 0, bmp.Width, bmp.Height))
+    End Sub
+
+    Friend Function ToolbarVisibleForTest(which As String) As Boolean
+        Select Case which
+            Case "mount" : Return Not hiddenByBuild.Contains(mountBtn)
+            Case "unmount" : Return Not hiddenByBuild.Contains(unmountBtn)
+            Case "open" : Return Not hiddenByBuild.Contains(openBtn)
+            Case "save" : Return Not hiddenByBuild.Contains(saveBtn)
+        End Select
+        Return False
+    End Function
+
+    ' The buttons this build hides. A control of a window that is not on screen reports Visible false
+    ' whatever was set, so the decision is kept as a value (and is what the test reads).
+    Private ReadOnly hiddenByBuild As New HashSet(Of Control)
+
+    Private Sub SetBuildVisibility(b As Control, hidden As Boolean)
+        b.Visible = Not hidden
+        If hidden Then hiddenByBuild.Add(b) Else hiddenByBuild.Remove(b)
+    End Sub
+
+    Friend ReadOnly Property GlyphButtonsForTest As List(Of GlyphButton)
+        Get
+            Return AllGlyphButtons()
+        End Get
+    End Property
+
+    Friend Function TipForTest(c As Control) As String
+        Return tips.GetToolTip(c)
+    End Function
+
+    Friend ReadOnly Property DetailOpenForTest As Boolean
+        Get
+            Return detailOpenState
+        End Get
+    End Property
+
+    Friend Sub ToggleDetailForTest()
+        SetDetailOpen(Not detailOpenState)
+    End Sub
+
+    Friend ReadOnly Property DetailCloseForTest As GlyphButton
+        Get
+            Return detailClose
+        End Get
+    End Property
+
+    Friend ReadOnly Property DetailShowForTest As GlyphButton
+        Get
+            Return detailShow
+        End Get
+    End Property
+
+    ' The filter as one unit: whether its label, its box and its clear button share a parent, and the
+    ' clear button's state.
+    Friend ReadOnly Property FilterIsOneUnitForTest As Boolean
+        Get
+            Return filterLabel.Parent Is filterUnit AndAlso filterBox.Parent Is filterUnit AndAlso filterClear.Parent Is filterUnit
+        End Get
+    End Property
+
+    Friend Sub SetFilterForTest(text As String)
+        filterBox.Text = text
+    End Sub
+
+    Friend ReadOnly Property FilterClearForTest As GlyphButton
+        Get
+            Return filterClear
+        End Get
+    End Property
+
+    Friend ReadOnly Property FilterTextForTest As String
+        Get
+            Return filterBox.Text
+        End Get
+    End Property
+
+    ' The regions in the order Tab visits them (spec 6.2): toolbar, filter, list, detail, its bar, strip.
+    Friend ReadOnly Property TabOrderForTest As Integer()
+        Get
+            Return New Integer() {toolbar.TabIndex, filterUnit.TabIndex, listHost.TabIndex, detailPanel.TabIndex, detailBar.TabIndex, strip.TabIndex}
+        End Get
+    End Property
+
+    Friend Function MenuItemsForTest(which As String) As List(Of ToolStripItem)
+        Dim m As ContextMenuStrip
+        Select Case which
+            Case "row" : BuildActionMenu(rowMenu, SelectedRecords(), False) : m = rowMenu
+            Case "more" : BuildActionMenu(moreMenu, SelectedRecords(), True) : m = moreMenu
+            Case "help" : BuildHelpMenu() : m = helpMenu
+            Case Else : BuildSpaceMenu() : m = spaceMenu
+        End Select
+        Return m.Items.Cast(Of ToolStripItem)().ToList()
     End Function
 
     Friend Function MenuForTest(rows As Boolean) As List(Of String)

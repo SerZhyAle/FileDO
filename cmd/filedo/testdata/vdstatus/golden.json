@@ -178,6 +178,27 @@
       "path": "<DIR>\\disc.iso"
     }
   ],
+  "guard": {
+    "containers": [
+      {
+        "action": "save",
+        "bytes_saved": 188743680,
+        "name": "scratch",
+        "outcome": "saved",
+        "path": "C:\\vd\\scratch.fdd"
+      },
+      {
+        "action": "unmount",
+        "name": "work",
+        "outcome": "unmounted",
+        "path": "C:\\vd\\work.fdd"
+      }
+    ],
+    "ended": "session",
+    "installed": true,
+    "last_run": "<TIME>",
+    "running": true
+  },
   "packaged": false,
   "schema": "filedo.vd-status",
   "transport": {

@@ -30,14 +30,28 @@ type InterruptHandler struct {
 	forceExit   atomic.Bool
 
 	mu         sync.Mutex // guards cleanups, nextID and firstCtrlC
-	cleanups   map[uint64]func()
+	cleanups   map[uint64]cleanupEntry
 	nextID     uint64
 	firstCtrlC time.Time
+}
+
+// cleanupEntry is one registered cleanup. A critical one repairs something the
+// run has damaged on purpose and must not be cut short (AddCriticalCleanup).
+type cleanupEntry struct {
+	fn       func()
+	critical bool
 }
 
 // forceExitCleanupBudget bounds how long a forced exit waits for cleanups. A
 // cleanup stuck in a blocked system call must not turn "exit now" into "never".
 const forceExitCleanupBudget = 2 * time.Second
+
+// forceExitCriticalBudget bounds how long a forced exit waits for a critical
+// cleanup - the probe's restore of the sectors it overwrote. Cutting that one
+// leaves the volume holding the probe's markers, so it gets a long, announced
+// wait; it is still a bound, because a device that never answers must not keep
+// the process alive for ever.
+const forceExitCriticalBudget = 60 * time.Second
 
 func NewInterruptHandler() *InterruptHandler {
 	handler := newInterruptHandlerNoSignals()
@@ -67,7 +81,7 @@ func newInterruptHandlerNoSignals() *InterruptHandler {
 	return &InterruptHandler{
 		ctx:      ctx,
 		cancel:   cancel,
-		cleanups: make(map[uint64]func()),
+		cleanups: make(map[uint64]cleanupEntry),
 	}
 }
 
@@ -106,16 +120,17 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 			ih.forceExit.Store(true)
 			fmt.Printf("\n🔥 Force exit requested! Terminating all processes immediately...\n")
 			// Execute cleanup functions to allow partial file cleanup, but never
-			// wait on them longer than the budget.
-			done := make(chan struct{})
-			go func() {
-				ih.runCleanups()
-				close(done)
-			}()
-			select {
-			case <-done:
-			case <-time.After(forceExitCleanupBudget):
+			// wait on them longer than the budget - except for a critical
+			// cleanup (a probe's sector restore), which gets a long, announced
+			// wait of its own (AUD-02-F2).
+			normalOK, criticalOK := ih.runForcedCleanups(forceExitCleanupBudget, forceExitCriticalBudget, func(n int) {
+				fmt.Fprintf(os.Stderr, "Restoring what the run changed on the drive - do not unplug it. Waiting up to %v; Ctrl+C is ignored until then.\n", forceExitCriticalBudget)
+			})
+			if !normalOK {
 				fmt.Fprintf(os.Stderr, "Cleanup did not finish within %v; exiting anyway.\n", forceExitCleanupBudget)
+			}
+			if !criticalOK {
+				fmt.Fprintf(os.Stderr, "The restore did not finish within %v; the drive may still hold the run's markers - run chkdsk /f on it before using it.\n", forceExitCriticalBudget)
 			}
 			// A forced exit bypasses main's deferred finishRun.  Close the
 			// stream here instead, with the rule-11 "could not be verified"
@@ -143,21 +158,67 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 // runCleanups calls every registered cleanup, newest first, on a snapshot
 // taken under the lock and executed outside it.
 func (ih *InterruptHandler) runCleanups() {
+	ih.runCleanupsWhere(func(bool) bool { return true })
+}
+
+// runCleanupsWhere is runCleanups over the cleanups whose critical flag the
+// filter accepts.
+func (ih *InterruptHandler) runCleanupsWhere(accept func(critical bool) bool) {
 	ih.mu.Lock()
 	ids := make([]uint64, 0, len(ih.cleanups))
-	for id := range ih.cleanups {
-		ids = append(ids, id)
+	for id, e := range ih.cleanups {
+		if accept(e.critical) {
+			ids = append(ids, id)
+		}
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] > ids[j] })
 	fns := make([]func(), 0, len(ids))
 	for _, id := range ids {
-		fns = append(fns, ih.cleanups[id])
+		fns = append(fns, ih.cleanups[id].fn)
 	}
 	ih.mu.Unlock()
 
 	for _, fn := range fns {
 		runCleanupSafely(fn)
 	}
+}
+
+// runForcedCleanups is the cleanup half of a forced exit. Ordinary cleanups get
+// normalBudget and are abandoned after it; critical ones run in parallel and
+// are waited for up to criticalBudget from the start. announce is told how many
+// critical cleanups are still running once the ordinary budget is spent (nil
+// when the caller does not care). It reports whether each group finished.
+func (ih *InterruptHandler) runForcedCleanups(normalBudget, criticalBudget time.Duration, announce func(critical int)) (normalOK, criticalOK bool) {
+	deadline := time.Now().Add(criticalBudget)
+	normal := make(chan struct{})
+	critical := make(chan struct{})
+	go func() {
+		ih.runCleanupsWhere(func(c bool) bool { return !c })
+		close(normal)
+	}()
+	go func() {
+		ih.runCleanupsWhere(func(c bool) bool { return c })
+		close(critical)
+	}()
+	select {
+	case <-normal:
+		normalOK = true
+	case <-time.After(normalBudget):
+	}
+	select {
+	case <-critical:
+		return normalOK, true
+	default:
+	}
+	if n := ih.criticalCount(); n > 0 && announce != nil {
+		announce(n)
+	}
+	select {
+	case <-critical:
+		criticalOK = true
+	case <-time.After(time.Until(deadline)):
+	}
+	return normalOK, criticalOK
 }
 
 // runCleanupSafely keeps one failing cleanup from taking the others (and the
@@ -188,10 +249,24 @@ func sigBreakSignal() os.Signal {
 // function that unregisters it. A per-item registration must call the returned
 // function when its item completes, or the list grows with every item.
 func (ih *InterruptHandler) AddCleanup(fn func()) (remove func()) {
+	return ih.addCleanup(fn, false)
+}
+
+// AddCriticalCleanup is AddCleanup for a cleanup that repairs damage the run did
+// on purpose - the probe's restore of the sectors it overwrote. A forced exit
+// waits for it far longer than for an ordinary cleanup (forceExitCriticalBudget)
+// instead of cutting it after the short budget, which would leave the volume
+// holding the run's markers (AUD-02-F2). Keep the set tiny: every critical
+// cleanup is a reason for "exit now" to take a minute.
+func (ih *InterruptHandler) AddCriticalCleanup(fn func()) (remove func()) {
+	return ih.addCleanup(fn, true)
+}
+
+func (ih *InterruptHandler) addCleanup(fn func(), critical bool) (remove func()) {
 	ih.mu.Lock()
 	ih.nextID++
 	id := ih.nextID
-	ih.cleanups[id] = fn
+	ih.cleanups[id] = cleanupEntry{fn: fn, critical: critical}
 	ih.mu.Unlock()
 
 	var once sync.Once
@@ -210,6 +285,19 @@ func (ih *InterruptHandler) cleanupCount() int {
 	ih.mu.Lock()
 	defer ih.mu.Unlock()
 	return len(ih.cleanups)
+}
+
+// criticalCount reports how many registered cleanups are critical.
+func (ih *InterruptHandler) criticalCount() int {
+	ih.mu.Lock()
+	defer ih.mu.Unlock()
+	n := 0
+	for _, e := range ih.cleanups {
+		if e.critical {
+			n++
+		}
+	}
+	return n
 }
 
 // Interrupt is the graceful stop: the stop file, SIGTERM and Ctrl+Break all end

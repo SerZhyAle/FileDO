@@ -74,6 +74,29 @@ func diskSerial(n int) (string, error) {
 	return strings.TrimSpace(string(out[off : int(off)+end])), nil
 }
 
+// storageBusTypeiSCSI is BusTypeiScsi of STORAGE_BUS_TYPE (winioctl.h).
+const storageBusTypeiSCSI = 9
+
+// diskBusType reads the bus Windows reports for PhysicalDrive n: the BusType
+// of its STORAGE_DEVICE_DESCRIPTOR, at offset 28.
+func diskBusType(n int) (uint32, error) {
+	h, err := openDisk(n, 0)
+	if err != nil {
+		return 0, err
+	}
+	defer windows.CloseHandle(h)
+	q := make([]byte, 12) // STORAGE_PROPERTY_QUERY: StorageDeviceProperty, PropertyStandardQuery
+	out := make([]byte, 4096)
+	got, err := ioctl(h, ioctlStorageQueryProperty, q, out)
+	if err != nil {
+		return 0, err
+	}
+	if got < 32 {
+		return 0, fmt.Errorf("the storage descriptor is %d bytes", got)
+	}
+	return binary.LittleEndian.Uint32(out[28:]), nil
+}
+
 // findDiskBySerial waits up to timeout for the disk whose serial is serial.
 // The S0 measurement saw the disk arrive in 59-94 ms, and after refused
 // logouts in about 60 s, so the wait is long and the poll is short.
@@ -335,7 +358,7 @@ func setNotIndexed(guidPath string) error {
 // needs administrator rights and runs in the elevated step. present reports an
 // exclusion that was there before, which the unmount must then leave alone.
 func defenderExclude(path string, add bool) (present bool, err error) {
-	q := "'" + strings.ReplaceAll(path, "'", "''") + "'"
+	q := psQuote(path)
 	script := `$ErrorActionPreference = 'Stop'
 $pref = Get-MpPreference
 $have = @($pref.ExclusionPath) -contains ` + q + `
@@ -347,12 +370,8 @@ $have = @($pref.ExclusionPath) -contains ` + q + `
 		script += `if ($have) { Remove-MpPreference -ExclusionPath ` + q + `; 'removed' } else { 'absent' }
 `
 	}
-	sys, _ := windows.GetSystemDirectory()
-	ps := filepath.Join(sys, `WindowsPowerShell\v1.0\powershell.exe`)
-	cmd := exec.Command(ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-")
-	cmd.Stdin = strings.NewReader(script)
-	out, err := cmd.CombinedOutput()
-	text := strings.TrimSpace(strings.ReplaceAll(string(out), "\r", ""))
+	out, err := vdPowerShell(script)
+	text := strings.TrimSpace(out)
 	if err != nil {
 		return false, fmt.Errorf("Microsoft Defender did not take the change (%v): %s", err, text)
 	}
@@ -379,6 +398,60 @@ func vdFileSystem(fs string) string {
 // formats a blank disk NTFS; `format` (clear set) empties a disk that holds a
 // volume first, which is what destroys its contents, and may ask for exFAT.
 func formatBlankDisk(n int, serial, label, fs string, clearFirst bool, logf func(string, ...interface{})) error {
+	if clearFirst {
+		// Clear-Disk destroys whatever disk carries the number. The number is
+		// proved to be the container's disk here, in Go, immediately before the
+		// script that clears it runs - the script's own check is a second line,
+		// not the only one (AUD-34-F1). A renumbering between the attach and
+		// this step ends here with nothing cleared.
+		if err := vdProveContainerDisk(n, labelUnsafe.ReplaceAllString(serial, "")); err != nil {
+			return err
+		}
+	}
+	script, err := formatScript(n, serial, label, fs, clearFirst)
+	if err != nil {
+		return err
+	}
+	out, err := vdPowerShell(script)
+	for _, line := range strings.Split(out, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			logf("format: %s", line)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("the new volume could not be formatted (%v); the output is in the mount log", err)
+	}
+	return nil
+}
+
+// vdProveContainerDisk fails unless PhysicalDrive n reports the container's
+// serial number and the iSCSI bus: the two facts that make it the disk the
+// mount just attached.
+func vdProveContainerDisk(n int, serial string) error {
+	if serial == "" {
+		return fmt.Errorf("the container's disk serial is empty; nothing was cleared")
+	}
+	got, err := diskSerial(n)
+	if err != nil {
+		return fmt.Errorf("disk %d could not be identified (%v); nothing was cleared", n, err)
+	}
+	if !strings.Contains(got, serial) {
+		return fmt.Errorf("disk %d is not the container's disk (its serial is not %s); nothing was cleared", n, serial)
+	}
+	bus, err := diskBusType(n)
+	if err != nil {
+		return fmt.Errorf("disk %d could not be identified (%v); nothing was cleared", n, err)
+	}
+	if bus != storageBusTypeiSCSI {
+		return fmt.Errorf("disk %d is not on the iSCSI bus; nothing was cleared", n)
+	}
+	return nil
+}
+
+// formatScript is the Storage-cmdlet script that partitions and formats disk n.
+// It runs as one unit (vdPowerShell), so a failing step ends it: the first error
+// is the last thing that runs, never hidden by a line after it.
+func formatScript(n int, serial, label, fs string, clearFirst bool) (string, error) {
 	label = strings.TrimSpace(labelUnsafe.ReplaceAllString(label, ""))
 	if len(label) > 32 {
 		label = label[:32]
@@ -389,13 +462,9 @@ func formatBlankDisk(n int, serial, label, fs string, clearFirst bool, logf func
 	fs = vdFileSystem(fs)
 	clearStep := ""
 	if clearFirst {
-		// Clear-Disk destroys whatever disk carries the number, so the number
-		// is checked against the container's serial and the iSCSI bus in the
-		// same script that clears it: a renumbering between the attach and
-		// this step fails here instead of emptying another disk.
 		serial = labelUnsafe.ReplaceAllString(serial, "")
 		if serial == "" {
-			return fmt.Errorf("the container's disk serial is empty; nothing was cleared")
+			return "", fmt.Errorf("the container's disk serial is empty; nothing was cleared")
 		}
 		clearStep = fmt.Sprintf(`$d = Get-Disk -Number %d
 if (-not $d.SerialNumber -or -not $d.SerialNumber.Contains('%s') -or $d.BusType -ne 'iSCSI') { throw "disk %d is not the container's disk; nothing was cleared" }
@@ -403,7 +472,7 @@ Clear-Disk -Number %d -RemoveData -RemoveOEM -Confirm:$false
 "cleared in $($sw.ElapsedMilliseconds) ms"
 `, n, serial, n, n)
 	}
-	script := fmt.Sprintf(`$ErrorActionPreference = 'Stop'
+	return fmt.Sprintf(`$ErrorActionPreference = 'Stop'
 $sw = [Diagnostics.Stopwatch]::StartNew()
 Update-HostStorageCache
 %sInitialize-Disk -Number %d -PartitionStyle GPT
@@ -412,21 +481,7 @@ $p = New-Partition -DiskNumber %d -UseMaximumSize
 "partition $($p.PartitionNumber) in $($sw.ElapsedMilliseconds) ms"
 $v = $p | Format-Volume -FileSystem %s -NewFileSystemLabel '%s' -Confirm:$false
 "formatted $($v.FileSystem) '$($v.FileSystemLabel)' in $($sw.ElapsedMilliseconds) ms"
-`, clearStep, n, n, fs, label)
-	sys, _ := windows.GetSystemDirectory()
-	ps := filepath.Join(sys, `WindowsPowerShell\v1.0\powershell.exe`)
-	cmd := exec.Command(ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-")
-	cmd.Stdin = strings.NewReader(script)
-	out, err := cmd.CombinedOutput()
-	for _, line := range strings.Split(strings.ReplaceAll(string(out), "\r", ""), "\n") {
-		if line = strings.TrimSpace(line); line != "" {
-			logf("format: %s", line)
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("the new volume could not be formatted (%v); the output is in the mount log", err)
-	}
-	return nil
+`, clearStep, n, n, fs, label), nil
 }
 
 // pnpVetoHolder names the process Windows says stopped the removal of a

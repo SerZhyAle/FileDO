@@ -17,7 +17,8 @@ Public Enum DiskRowState
     NotMounted    ' S10 everything else
 End Enum
 
-' Every action of spec 6.1 plus the two that are not about a row.
+' Every action of spec 6.1 plus the ones that are not about a row. Autostart (SP-0080 5) opens
+' the Autostart dialog from a registered row: it runs nothing on the disk itself.
 Public Enum DiskAction
     Mount
     MountReadOnly
@@ -30,6 +31,7 @@ Public Enum DiskAction
     Verify
     AutoOn
     AutoOff
+    Autostart
     AddToList
     Forget
     ShowInFolder
@@ -265,6 +267,7 @@ Public Module DiskStates
             Case DiskAction.Verify : Return "vd_mgr_act_verify"
             Case DiskAction.AutoOn : Return "vd_mgr_act_auto_on"
             Case DiskAction.AutoOff : Return "vd_mgr_act_auto_off"
+            Case DiskAction.Autostart : Return "vd_mgr_act_autostart"
             Case DiskAction.AddToList : Return "vd_mgr_act_add"
             Case DiskAction.Forget : Return "vd_mgr_act_forget"
             Case DiskAction.ShowInFolder : Return "vd_mgr_act_show_folder"
@@ -298,10 +301,12 @@ Public Module DiskStates
         End Select
         If r Is Nothing Then Return "vd_mgr_why_no_selection"
 
-        ' Copying the path and showing the file do nothing to the disk.
+        ' Copying the path, and opening the Autostart dialog, do nothing to the disk. The Autostart
+        ' dialog is still a surface of the mount path: the packaged build hides it whole (rule 11),
+        ' because mount and unmount are refused there, so a guard would have nothing to do.
         Select Case a
-            Case DiskAction.CopyPath
-                Return ""
+            Case DiskAction.CopyPath, DiskAction.Autostart
+                Return If(a = DiskAction.Autostart AndAlso ctx.Packaged, "vd_packaged", "")
             Case DiskAction.ShowInFolder
                 Return If(r.FileState = "missing" AndAlso Not r.IsImage, "vd_mgr_why_missing", "")
         End Select
@@ -419,7 +424,7 @@ Public Module DiskStates
         Select Case a
             Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.MountImage,
                  DiskAction.Unmount, DiskAction.UnmountImage, DiskAction.SaveNow,
-                 DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.Format
+                 DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.Autostart, DiskAction.Format
                 Return True
         End Select
         Return False

@@ -52,11 +52,17 @@ Friend Class AppHost
         Return shell
     End Function
 
+    ' The shell window, in front: the manager's "Main window" button and a plain second start come here.
+    Friend Sub ShowShell()
+        EnsureShell().BringBack()
+    End Sub
+
     Friend Sub ShowManager()
         If manager Is Nothing OrElse manager.IsDisposed Then
             Dim m As New DiskManagerForm()
             manager = m
             AddHandler m.JobRequested, AddressOf OnManagerJob
+            AddHandler m.ShellRequested, Sub() ShowShell()
             AddHandler m.FormClosed, Sub()
                                          If manager Is m Then manager = Nothing
                                          ExitIfIdle()
@@ -132,10 +138,25 @@ Friend Class AppHost
 
     Friend Shared ReadOnly ShowDisksMessage As Integer = RegisterWindowMessage("FileDO.Shell.ShowDiskManager")
 
+    ' The other direction: a plain start - the Start menu's FileDO entry - while the running copy has
+    ' only its Disk Manager open asks it for the shell window, which the old hand-over (focus whatever
+    ' window is there) could not give: it would have raised the manager and left the user without the
+    ' main window they clicked.
+    Friend Shared ReadOnly ShowShellMessage As Integer = RegisterWindowMessage("FileDO.Shell.ShowShell")
+
     ' Asks the copy already running to bring its Disk Manager forward. True when one of its windows
     ' answered; False leaves the start to the ordinary hand-over.
     Friend Shared Function HandOverDisks() As Boolean
-        If ShowDisksMessage = 0 Then Return False
+        Return HandOver(ShowDisksMessage)
+    End Function
+
+    ' Asks the copy already running to bring its shell window forward, opening it if it has none.
+    Friend Shared Function HandOverShell() As Boolean
+        Return HandOver(ShowShellMessage)
+    End Function
+
+    Private Shared Function HandOver(message As Integer) As Boolean
+        If message = 0 Then Return False
         Try
             Using self = Process.GetCurrentProcess()
                 Dim others = Process.GetProcessesByName(self.ProcessName)
@@ -144,7 +165,7 @@ Friend Class AppHost
                         If p.Id = self.Id Then Continue For
                         ' The running copy may take the foreground: this start is the user's gesture.
                         AllowSetForegroundWindow(p.Id)
-                        If AskWindowsOf(p.Id) Then Return True
+                        If AskWindowsOf(p.Id, message) Then Return True
                     Next
                 Finally
                     For Each p In others
@@ -158,14 +179,14 @@ Friend Class AppHost
         Return False
     End Function
 
-    Private Shared Function AskWindowsOf(pid As Integer) As Boolean
+    Private Shared Function AskWindowsOf(pid As Integer, message As Integer) As Boolean
         Dim answered = False
         EnumWindows(Function(hwnd, l)
                         Dim owner = 0
                         GetWindowThreadProcessId(hwnd, owner)
                         If owner <> pid Then Return True
                         Dim result As IntPtr = IntPtr.Zero
-                        If SendMessageTimeout(hwnd, ShowDisksMessage, IntPtr.Zero, IntPtr.Zero, SMTO_ABORTIFHUNG, 2000, result) <> IntPtr.Zero AndAlso
+                        If SendMessageTimeout(hwnd, message, IntPtr.Zero, IntPtr.Zero, SMTO_ABORTIFHUNG, 2000, result) <> IntPtr.Zero AndAlso
                            result = New IntPtr(1) Then
                             answered = True
                             Return False
@@ -190,13 +211,16 @@ Friend Class HostListener
     End Sub
 
     Protected Overrides Sub WndProc(ByRef m As Message)
-        If m.Msg = AppHost.ShowDisksMessage AndAlso AppHost.ShowDisksMessage <> 0 Then
+        Dim wantsManager = (m.Msg = AppHost.ShowDisksMessage AndAlso AppHost.ShowDisksMessage <> 0)
+        Dim wantsShell = (m.Msg = AppHost.ShowShellMessage AndAlso AppHost.ShowShellMessage <> 0)
+        If wantsManager OrElse wantsShell Then
             m.Result = New IntPtr(1)
+            Dim open As Action = If(wantsManager, CType(AddressOf host.ShowManager, Action), CType(AddressOf host.ShowShell, Action))
             Dim ctx = SynchronizationContext.Current
             If ctx IsNot Nothing Then
-                ctx.Post(Sub(state) host.ShowManager(), Nothing)
+                ctx.Post(Sub(state) open(), Nothing)
             Else
-                host.ShowManager()
+                open()
             End If
             Return
         End If

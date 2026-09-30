@@ -47,6 +47,7 @@ Public Module SelfTest
         ' before the log is written.
         Guard("ArgQuoting", Sub() Check("ArgQuoting", ArgQuotingTests.RunTests()))
         Guard("argquoting", AddressOf CheckArgQuotingCases)
+        Guard("shortcut", AddressOf CheckShortcut)
         Guard("catalogue", AddressOf CheckCatalogue)
         Guard("page", AddressOf CheckJobPages)
         Guard("expert", AddressOf CheckExpertPage)
@@ -58,6 +59,7 @@ Public Module SelfTest
         ' state tones, and the contrast of every glyph against the surface it is drawn on.
         Guard("icons", AddressOf CheckGlyphProvenance)
         Guard("rail-glyph", AddressOf CheckRailGlyphs)
+        Guard("rail-accordion", AddressOf CheckRailAccordion)
         Guard("menu-icon", AddressOf CheckMenuIcons)
         Guard("state-tone", AddressOf CheckStateTones)
         Guard("contrast", AddressOf CheckGlyphContrast)
@@ -116,8 +118,12 @@ Public Module SelfTest
         Guard("disk-state", AddressOf CheckDiskStates)
         Guard("disk-matrix", AddressOf CheckDiskMatrix)
         Guard("disk-quick", AddressOf CheckDiskQuick)
+        ' SP-0080: the Autostart dialog - the guard's words, the state matrix, the last-run
+        ' rendering, the packaged build's hidden entry.
+        Guard("disk-auto", AddressOf CheckDiskAutostart)
         Guard("disk-mgr", AddressOf CheckDiskManagerWindow)
         Guard("disk-host", AddressOf CheckDiskHost)
+        Guard("disk-ui", AddressOf CheckDiskUi)
         Guard("locale-keys", AddressOf CheckLocaleKeySets)
     End Sub
 
@@ -126,6 +132,47 @@ Public Module SelfTest
             body()
         Catch ex As Exception
             Check(name, False, "threw " & ex.GetType().Name & ": " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub CheckShortcut()
+        Dim args As List(Of String) = Nothing
+        Check("shortcut:empty", ShortcutWriter.ParseLine("filedo.exe", args) = "shortcut_empty")
+        Check("shortcut:quote", ShortcutWriter.ParseLine("filedo.exe ""unfinished", args) = "shortcut_parse")
+        Check("shortcut:password", ShortcutWriter.ParseLine("filedo.exe secure p:private-value", args) = "shortcut_password")
+        Check("shortcut:shell-credential", ShortcutWriter.ParseLine("filedo.exe secure pe:FILEDO_SHELL_CRED", args) = "shortcut_shell_cred")
+        Check("shortcut:external-variable", ShortcutWriter.ParseLine("filedo.exe secure pe:SOMEVAR", args) = "")
+        Check("shortcut:pause", Not ShortcutWriter.HasPause(args))
+        Check("shortcut:name", ShortcutWriter.DefaultName(New String() {"C:\a folder", "info"}).StartsWith("FileDO - info "))
+        Check("shortcut:existing-pause", ShortcutWriter.HasPause(New String() {"info", "--pause"}))
+        Check("shortcut:add-pause", ShortcutWriter.SavedArgs(New String() {"info"}, True).SequenceEqual(New String() {"info", "--pause"}))
+        Check("shortcut:single-pause", ShortcutWriter.SavedArgs(New String() {"info", "--pause"}, True).Count = 2)
+        Check("shortcut:leave-closed", ShortcutWriter.SavedArgs(New String() {"info"}, False).SequenceEqual(New String() {"info"}))
+        Check("shortcut:sanitize", ShortcutWriter.CleanName("a<>:b. ") = "a---b")
+        Dim folder = Path.Combine(Path.GetTempPath(), "filedo-shortcut-test-" & Guid.NewGuid().ToString("N"))
+        Directory.CreateDirectory(folder)
+        Try
+            File.WriteAllText(Path.Combine(folder, "FileDO - check.lnk"), "keep")
+            Check("shortcut:collision", Path.GetFileName(ShortcutWriter.AvailablePath(folder, "FileDO - check")) = "FileDO - check (2).lnk")
+            Dim exe = Path.Combine(folder, "filedo.exe")
+            Dim icon = Path.Combine(folder, "FileDO.ico")
+            File.WriteAllBytes(exe, New Byte() {0})
+            File.WriteAllBytes(icon, New Byte() {0})
+            Dim line = "filedo.exe ""C:\a folder\file.txt"" info --pause"
+            Check("shortcut:parse", ShortcutWriter.ParseLine(line, args) = "" AndAlso args.Count = 3)
+            Dim encoded = ArgQuoting.JoinArgs(args)
+            Dim working = Runner.GetAppDataDir()
+            Dim link = ShortcutWriter.Create(folder, "FileDO - check", exe, encoded, working, icon)
+            Dim read = ShortcutWriter.ReadBack(link)
+            Check("shortcut:round-trip", String.Equals(read(0), exe, StringComparison.OrdinalIgnoreCase) AndAlso
+                  read(1) = encoded AndAlso String.Equals(read(2), working, StringComparison.OrdinalIgnoreCase) AndAlso
+                  String.Equals(read(3), icon, StringComparison.OrdinalIgnoreCase))
+            Dim bytes = File.ReadAllBytes(link)
+            Check("shortcut:no-credential", Not Encoding.Default.GetString(bytes).Contains("private-value") AndAlso
+                  Not Encoding.Unicode.GetString(bytes).Contains("private-value"))
+            Check("shortcut:preserve", File.ReadAllText(Path.Combine(folder, "FileDO - check.lnk")) = "keep")
+        Finally
+            Directory.Delete(folder, True)
         End Try
     End Sub
 
@@ -397,6 +444,14 @@ Public Module SelfTest
         For Each verdict In New String() {"Passed", "Done", "Failed", "Stopped", "Not proven"}
             refs.Add(Theme.VerdictGlyph(verdict))
         Next
+        ' The Disk Manager's toolbar, menus and detail buttons (DiskGlyphs: one table for the rail and the
+        ' window), and the window's own controls.
+        For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+            Dim g = DiskGlyphs.For(a)
+            If g IsNot Nothing Then refs.Add(g)
+        Next
+        refs.AddRange(New GlyphRef() {DiskGlyphs.Help, DiskGlyphs.More, DiskGlyphs.CloseIt, DiskGlyphs.ClearInput,
+                                      DiskGlyphs.OpenExternal, DiskGlyphs.ShowDetails, DiskGlyphs.StopRun, DiskGlyphs.ClearQueue})
         For Each r In refs
             If r.IsVocabulary Then ids.Add(r.Id)
         Next
@@ -465,11 +520,26 @@ Public Module SelfTest
     Private Sub CheckRailGlyphs()
         Dim meaningOf As New Dictionary(Of String, String)(StringComparer.Ordinal)
         Dim waiting As New List(Of String)()
+        Dim hues As New HashSet(Of String)(Theme.GroupHueKeys, StringComparer.Ordinal)
+        Dim rowsOfGroup As New Dictionary(Of String, Integer)(StringComparer.Ordinal)
+        Dim currentGroup As String = Nothing
         For Each row In RailRow.All
             Dim glyph = row.Glyph
+            ' A header and a lone job show the colour look, so each names a hue Theme knows; a row
+            ' inside a group is mono and names none.
+            If row.IsGroup OrElse row.IsAlone Then
+                Check("rail-hue:" & row.Key, hues.Contains(row.Hue), row.Hue)
+            Else
+                Check("rail-hue:" & row.Key, row.Hue = "", "a row inside a group draws in the text colour")
+            End If
+            ' A group of one job is no group: the job stands by itself (RailRow.Alone).
             If row.IsGroup Then
-                Check("rail-glyph:" & row.Key, glyph Is Nothing, "a group header draws its chevron, not a glyph")
-                Continue For
+                currentGroup = row.Key
+                rowsOfGroup(currentGroup) = 0
+            ElseIf row.IsAlone Then
+                currentGroup = Nothing
+            ElseIf currentGroup IsNot Nothing Then
+                rowsOfGroup(currentGroup) += 1
             End If
             If glyph Is Nothing Then
                 Check("rail-glyph:" & row.Key, False, "no glyph")
@@ -491,9 +561,55 @@ Public Module SelfTest
                 meaningOf(picture) = glyph.Meaning
             End If
         Next
+        For Each kv In rowsOfGroup
+            Check("rail-group:" & kv.Key & ":size", kv.Value >= 2,
+                  kv.Value.ToString() & " job rows - a group of one job is no group, it stands by itself")
+        Next
         Check("rail-glyph:waiting", waiting.Count <= WaitingRailRowsBaseline,
               waiting.Count.ToString() & " rows draw a stand-in (baseline " & WaitingRailRowsBaseline.ToString() &
               ", PROPOSAL-2026-09-23-filedo-meanings.md): " & String.Join(", ", waiting.ToArray()))
+    End Sub
+
+    ' The rail as built (owner, 2026-09-30): one group open at a time, opening one shuts the others,
+    ' and neighbouring blocks - a header with its rows, or a lone job - alternate their bands. The
+    ' rail is built by a real ShellForm; the click goes through ToggleGroupForTest, which does not
+    ' write the user's remembered groups.
+    Private Sub CheckRailAccordion()
+        Using shell As New ShellForm()
+            Dim all = shell.RailEntriesForTest()
+            Dim headers = all.Where(Function(r) r.IsGroupHeader).ToList()
+            Check("rail-accordion:headers", headers.Count >= 2, headers.Count.ToString() & " headers")
+
+            Dim openNow = Function() headers.Where(Function(h) Not h.Collapsed).Select(Function(h) h.Key).ToList()
+            Check("rail-accordion:start", openNow().Count <= 1, String.Join(",", openNow().ToArray()))
+
+            ' The saved preference may start with the first group open. Close it so each
+            ' iteration below tests opening a closed group, whatever that preference was.
+            If openNow().Count = 1 Then shell.ToggleGroupForTest(openNow()(0))
+
+            For Each head In headers
+                shell.ToggleGroupForTest(head.Key)
+                Dim open = openNow()
+                Check("rail-accordion:open:" & head.Key, open.Count = 1 AndAlso open(0) = head.Key, String.Join(",", open.ToArray()))
+            Next
+
+            Dim last = headers(headers.Count - 1)
+            shell.ToggleGroupForTest(last.Key)
+            Check("rail-accordion:shut", openNow().Count = 0, String.Join(",", openNow().ToArray()))
+
+            ' The checker: a header or a lone job starts a block on the band the previous block did not
+            ' have, and a row inside a group keeps its header's band.
+            Dim rowsByKey = RailRow.All.ToDictionary(Function(r) r.Key)
+            Dim prevBand = -1, band = -1
+            For Each entry In all
+                Dim def = rowsByKey(entry.Key)
+                If def.IsGroup OrElse def.IsAlone Then
+                    band = If(prevBand = 0, 1, 0)
+                    prevBand = band
+                End If
+                Check("rail-band:" & entry.Key, entry.Band = band, "band " & entry.Band.ToString() & ", block band " & band.ToString())
+            Next
+        End Using
     End Sub
 
     ' T8, ICON-SET rule 7 and ICON-RENDER 0.12 rule 9 on the Explorer surfaces: every icon the
@@ -616,6 +732,20 @@ Public Module SelfTest
             ContrastPair("contrast:" & t & ":rail-glyph:selected", p.Text, p.SurfaceSelected, 3.0)
             ContrastPair("contrast:" & t & ":chevron:plain", p.MutedText, p.SurfaceAlt, 3.0)
             ContrastPair("contrast:" & t & ":chevron:hover", p.MutedText, p.ControlHover, 3.0)
+            ' The rail's second band and what is drawn on it: the text at 4.5:1, the glyphs and the
+            ' chevron at 3:1, and every group hue on every surface a row can be on.
+            ContrastPair("contrast:" & t & ":rail-band:text", p.Text, p.SurfaceBand, 4.5)
+            ContrastPair("contrast:" & t & ":rail-band:text-hover", p.Text, p.BandHover, 4.5)
+            ContrastPair("contrast:" & t & ":rail-band:chevron", p.MutedText, p.SurfaceBand, 3.0)
+            ContrastPair("contrast:" & t & ":rail-band:chevron-hover", p.MutedText, p.BandHover, 3.0)
+            For Each hue In Theme.GroupHueKeys
+                Dim tone = Theme.GroupTone(hue, p)
+                ContrastPair("contrast:" & t & ":" & hue & ":plain", tone, p.SurfaceAlt, 3.0)
+                ContrastPair("contrast:" & t & ":" & hue & ":band", tone, p.SurfaceBand, 3.0)
+                ContrastPair("contrast:" & t & ":" & hue & ":hover", tone, p.ControlHover, 3.0)
+                ContrastPair("contrast:" & t & ":" & hue & ":band-hover", tone, p.BandHover, 3.0)
+                ContrastPair("contrast:" & t & ":" & hue & ":selected", tone, p.SurfaceSelected, 3.0)
+            Next
             For Each verdict In New String() {"Passed", "Done", "Failed", "Stopped", "Not proven"}
                 ContrastPair("contrast:" & t & ":verdict:" & verdict, Theme.VerdictColor(verdict, p), p.Surface, 4.5)
                 ContrastPair("contrast:" & t & ":badge:" & verdict, Theme.VerdictFore(verdict, p), Theme.VerdictBack(verdict, p), 4.5)
@@ -933,32 +1063,36 @@ Public Module SelfTest
                     For Each stateName In New String() {"plain", "hover", "selected", "collapsed-holding"}
                         If stateName = "collapsed-holding" AndAlso Not row.IsGroup Then Continue For
                         If stateName = "selected" AndAlso row.IsGroup Then Continue For
-                        Using e As New RailEntry With {
-                            .Key = row.Key,
-                            .Glyph = row.Glyph,
-                            .IsGroupHeader = row.IsGroup,
-                            .Text = text,
-                            .RowUnit = 44,
-                            .Size = New Size(236, 44)
-                        }
-                            If stateName = "selected" Then e.Selected = True
-                            If stateName = "collapsed-holding" Then
-                                e.Collapsed = True
-                                e.HasSelectedChild = True
-                            End If
-                            e.Height = e.PreferredRowHeight(e.Width)
-                            Dim label = "rail-paint:" & themeName & ":" & row.Key & ":" & stateName
-                            Try
-                                Using bmp As New Bitmap(e.Width, e.Height)
-                                    Using g = Graphics.FromImage(bmp)
-                                        e.PaintForTest(g, stateName = "hover")
+                        For band = 0 To 1
+                            Using e As New RailEntry With {
+                                .Key = row.Key,
+                                .Glyph = row.Glyph,
+                                .Hue = row.Hue,
+                                .Band = band,
+                                .IsGroupHeader = row.IsGroup,
+                                .Text = text,
+                                .RowUnit = 44,
+                                .Size = New Size(250, 44)
+                            }
+                                If stateName = "selected" Then e.Selected = True
+                                If stateName = "collapsed-holding" Then
+                                    e.Collapsed = True
+                                    e.HasSelectedChild = True
+                                End If
+                                e.Height = e.PreferredRowHeight(e.Width)
+                                Dim label = "rail-paint:" & themeName & ":" & row.Key & ":" & stateName & ":band" & band.ToString()
+                                Try
+                                    Using bmp As New Bitmap(e.Width, e.Height)
+                                        Using g = Graphics.FromImage(bmp)
+                                            e.PaintForTest(g, stateName = "hover")
+                                        End Using
+                                        Check(label, CountPureRed(bmp) = 0, "pure red in the bitmap")
                                     End Using
-                                    Check(label, CountPureRed(bmp) = 0, "pure red in the bitmap")
-                                End Using
-                            Catch ex As Exception
-                                Check(label, False, ex.GetType().Name & ": " & ex.Message)
-                            End Try
-                        End Using
+                                Catch ex As Exception
+                                    Check(label, False, ex.GetType().Name & ": " & ex.Message)
+                                End Try
+                            End Using
+                        Next
                     Next
                 Next
             Finally
@@ -1002,7 +1136,7 @@ Public Module SelfTest
             End Using
         Catch
         End Try
-        Dim rowWidth = CInt((268 - 26) * scale) - SystemInformation.VerticalScrollBarWidth
+        Dim rowWidth = CInt(268 * scale) - SystemInformation.VerticalScrollBarWidth
         Dim unit = CInt(ShellForm.RailTargetHeight * scale)
 
         For Each lang In Localization.Languages
@@ -1014,6 +1148,7 @@ Public Module SelfTest
                     .Key = row.Key,
                     .IsGroupHeader = row.IsGroup,
                     .Glyph = row.Glyph,
+                    .Hue = row.Hue,
                     .RowUnit = unit,
                     .Text = text
                 }
@@ -2341,8 +2476,36 @@ Public Module SelfTest
         For Each k In New String() {"vd_mgr_state_server_gone", "vd_mgr_state_unsaved_fmt", "vd_mgr_state_mounted_ro", "vd_mgr_state_mounted",
                                    "vd_mgr_state_image", "vd_mgr_state_missing", "vd_mgr_state_different", "vd_mgr_state_unreadable",
                                    "vd_mgr_state_unclean", "vd_mgr_state_not_mounted", "vd_mgr_prot_obfuscated", "vd_mgr_prot_encrypted",
-                                   "vd_mgr_stale_failed", "vd_mgr_stale_timeout", "vd_mgr_stale_format", "vd_mgr_stale_old_cli"}
+                                   "vd_mgr_stale_failed", "vd_mgr_stale_timeout", "vd_mgr_stale_format", "vd_mgr_stale_old_cli",
+                                   "vd_mgr_name_help", "vd_mgr_name_close", "vd_mgr_name_clear", "vd_tip_new", "vd_tip_mount", "vd_tip_unmount",
+                                   "vd_tip_open", "vd_tip_save", "vd_tip_refresh", "vd_tip_help", "vd_tip_filter", "vd_tip_clear_filter",
+                                   "vd_tip_detail_close", "vd_tip_detail_show", "vd_mgr_learn_more", "vd_help_menu_help", "vd_help_menu_first",
+                                   "vd_help_menu_guide", "vd_help_menu_guides", "vd_help_menu_site", "vd_help_menu_docs", "vd_help_menu_issues",
+                                   "vd_help_title", "vd_help_heading", "vd_help_intro", "vd_help_states_title", "vd_help_keys_title",
+                                   "vd_help_notes_title", "vd_help_note_uac", "vd_help_note_autostart", "vd_help_links_title", "vd_welcome_title", "vd_welcome_what",
+                                   "vd_welcome_packaged", "vd_welcome_hint", "vd_welcome_create", "vd_welcome_add", "vd_welcome_guide",
+                                   "vd_welcome_later", "vd_facts_obfuscated", "vd_facts_encrypted", "vd_mgr_close_mounted",
+                                   "vd_mgr_detail_open_while_mounted", "shell_btn_close", "vd_mgr_btn_main", "vd_tip_main"}
+        keys.Add(k)
+        Next
+        For Each k In New String() {
+            "vd_mgr_act_autostart", "vd_mgr_strip_guard_running", "vd_mgr_strip_guard_stale", "vd_auto_name_guard",
+            "vd_auto_title", "vd_auto_intro", "vd_auto_logon_title", "vd_auto_logon_count_fmt", "vd_auto_logon_none",
+            "vd_auto_logon_intro", "vd_auto_row_on", "vd_auto_row_off", "vd_auto_guard_title",
+            "vd_auto_guard_on_running", "vd_auto_guard_on_stale", "vd_auto_guard_off",
+            "vd_auto_guard_run_never", "vd_auto_guard_run_when_fmt", "vd_auto_guard_run_empty",
+            "vd_auto_guard_run_ok_fmt", "vd_auto_guard_run_left_fmt", "vd_auto_guard_outcome_skipped",
+            "vd_auto_guard_outcome_unfinished", "vd_auto_switch_on_title", "vd_auto_switch_on_text",
+            "vd_auto_switch_off_title", "vd_auto_switch_off_text", "vd_auto_note_consent", "vd_auto_note_signout",
+            "vd_auto_note_encrypted", "vd_auto_note_uninstall", "vd_mgr_btn_turn_on", "vd_mgr_btn_turn_off"}
             keys.Add(k)
+        Next
+        For Each s As DiskRowState In DiskHelpDialog.Legend
+            keys.Add(DiskHelpDialog.LegendKey(s))
+            keys.Add(DiskHelpDialog.StateWordKey(s))
+        Next
+        For Each s In DiskShortcuts.All
+            keys.Add(s.LabelKey)
         Next
         keys.Remove("")
         Return keys
@@ -2361,7 +2524,7 @@ Public Module SelfTest
         End Using
     End Function
 
-    Private Function GoldenSnapshot() As DiskSnapshot
+    Friend Function GoldenSnapshot() As DiskSnapshot
         Dim problem As String = ""
         Return DiskSnapshot.Parse(GoldenSnapshotLine(), problem)
     End Function
@@ -2844,6 +3007,453 @@ Public Module SelfTest
         End Try
     End Sub
 
+    ' ---- SP-0063: icons, keys, help and first steps --------------------------------
+
+    ' The meanings the Disk manager shows, the keyboard map, the two help windows, the first run, the
+    ' build that cannot mount, and the painted controls - the things a person meets before their first
+    ' disk. The contracts they answer to: ICON-SET rules 1 and 5 (one meaning, one glyph, from the
+    ' vocabulary), ICON-RENDER rule 8 (a glyph-only control carries the canonical name), APP-BEHAVIOUR
+    ' rules 1, 2, 9 and 11 (one leave path, text that grows, names, first run and hidden controls) and
+    ' APP-STYLE (every colour a palette role, in both themes).
+    Private Sub CheckDiskUi()
+        Dim ui = Localization.GetDict(ShellSettings.Language())
+        CheckDiskGlyphMap()
+        CheckDiskShortcuts(ui)
+        CheckDiskRowColours()
+        CheckDiskButtonInk()
+        CheckDiskHelpWindows()
+        CheckDiskUiWindow(ui)
+    End Sub
+
+    ' ICON-SET rules 1 and 5: every action has a picture, from the vocabulary or - where the vocabulary
+    ' has no record yet - the proposed id with its stand-in; one picture is one meaning; and the rail's
+    ' Disks rows and the window's buttons read the same table, so a meaning cannot look different in two
+    ' places.
+    Private Sub CheckDiskGlyphMap()
+        Dim pictures As New Dictionary(Of String, String)(StringComparer.Ordinal)
+        For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+            Dim g = DiskGlyphs.For(a)
+            Dim ok = g IsNot Nothing AndAlso If(g.IsVocabulary, Glyphs.IsDrawable(g.Id), g.Pending.Contains(".") AndAlso g.FontName <> "")
+            Check("disk-ui:glyph:" & a.ToString(), ok, If(g Is Nothing, "no glyph", g.ToString()))
+            If g Is Nothing Then Continue For
+            Dim picture = If(g.IsVocabulary, g.Id, "U+" & (AscW(g.Interim) And &HFFFF).ToString("X4"))
+            Dim other As String = Nothing
+            If pictures.TryGetValue(picture, other) Then
+                Check("disk-ui:glyph-one-meaning:" & a.ToString(), other = g.Meaning, picture & " already shows " & other)
+            Else
+                pictures(picture) = g.Meaning
+            End If
+        Next
+        Dim shared_ As New Dictionary(Of String, GlyphRef) From {
+            {"rail_job_vd_new", DiskGlyphs.CreateDisk}, {"rail_job_vd_mount", DiskGlyphs.MountDisk},
+            {"rail_job_vd_unmount", DiskGlyphs.UnmountDisk}, {"rail_job_vd_compact", DiskGlyphs.CompactDisk},
+            {"rail_job_vd_grow", DiskGlyphs.GrowDisk}, {"rail_job_vd_format", DiskGlyphs.FormatDisk},
+            {"rail_job_vd_seal", DiskGlyphs.SealDisk}, {"rail_job_vd_pass", DiskGlyphs.ChangePassword},
+            {"rail_job_vd_auto", DiskGlyphs.AutoMount}, {"rail_job_vd_add", DiskGlyphs.RememberName}}
+        For Each kv In shared_
+            Dim row = RailRow.All.FirstOrDefault(Function(r) r.Key = kv.Key)
+            Check("disk-ui:rail-shares:" & kv.Key, row IsNot Nothing AndAlso row.Glyph Is kv.Value, "")
+        Next
+        ' The window's own controls draw vocabulary meanings, each named as the catalog names it.
+        For Each g In New GlyphRef() {DiskGlyphs.Help, DiskGlyphs.More, DiskGlyphs.CloseIt, DiskGlyphs.ClearInput,
+                                      DiskGlyphs.OpenExternal, DiskGlyphs.ShowDetails, DiskGlyphs.StopRun, DiskGlyphs.ClearQueue}
+            Check("disk-ui:glyph-window:" & g.Id, g.IsVocabulary AndAlso Glyphs.IsDrawable(g.Id), g.ToString())
+        Next
+        Check("disk-ui:glyph-cross-is-shared-declared", DiskGlyphs.CloseIt.Id = "nav.close" AndAlso DiskGlyphs.ClearInput.Id = "action.clear-input",
+              "the catalog declares these two one drawing (sharedWith)")
+    End Sub
+
+    ' The keyboard map is data (DiskShortcuts.All): every chord found, unique, labelled in every table,
+    ' never bound to Destroy or Format, and the spec's own list (6.2) present.
+    Private Sub CheckDiskShortcuts(ui As Dictionary(Of String, String))
+        Dim seen As New HashSet(Of Keys)()
+        For Each s In DiskShortcuts.All
+            Dim name = DiskShortcuts.KeyText(s.Chord)
+            Check("disk-ui:key:unique:" & name, seen.Add(s.Chord), name)
+            Check("disk-ui:key:found:" & name, DiskShortcuts.Find(s.Chord, True) Is s, name)
+            Check("disk-ui:key:list-only:" & name, Not s.ListOnly OrElse DiskShortcuts.Find(s.Chord, False) Is Nothing, name)
+            Check("disk-ui:key:label:" & name, ui.ContainsKey(s.LabelKey), s.LabelKey)
+            For Each lang In Localization.Languages
+                Check("disk-ui:key:label:" & name & ":" & lang, Localization.OwnKeysForTest(lang).Contains(s.LabelKey), s.LabelKey)
+            Next
+        Next
+        Check("disk-ui:key:never-destroy",
+              DiskShortcuts.All.All(Function(s) Not (s.Command = DiskCommand.Perform AndAlso s.Action.HasValue AndAlso
+                                                     (s.Action.Value = DiskAction.Destroy OrElse s.Action.Value = DiskAction.Format))), "")
+        Check("disk-ui:key:text", DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.M) = "Ctrl+Shift+M" AndAlso
+                                  DiskShortcuts.KeyText(Keys.Delete) = "Del" AndAlso DiskShortcuts.KeyText(Keys.F1) = "F1" AndAlso
+                                  DiskShortcuts.KeyText(Keys.Escape) = "Esc" AndAlso DiskShortcuts.KeyText(Keys.Return) = "Enter", "")
+        For Each want In New String() {"Ctrl+M", "Ctrl+U", "Ctrl+E", "Ctrl+S", "Ctrl+N", "Del", "F5", "Ctrl+F", "Esc", "Enter", "F1", "Ctrl+O"}
+            Check("disk-ui:key:spec:" & want, DiskShortcuts.All.Any(Function(s) DiskShortcuts.KeyText(s.Chord) = want), want)
+        Next
+        Dim labels = DiskShortcuts.All.Select(Function(s) s.LabelKey).Distinct().Count()
+        Check("disk-ui:key:help-rows", DiskShortcuts.HelpRows().Count = labels, DiskShortcuts.HelpRows().Count.ToString() & " of " & labels.ToString())
+        Check("disk-ui:key:suffix", DiskShortcuts.Suffix(DiskAction.Mount) = " (Ctrl+M)" AndAlso DiskShortcuts.Suffix(DiskAction.UnmountImage) = " (Ctrl+U)" AndAlso
+                                    DiskShortcuts.Suffix(DiskAction.Compact) = "", "")
+        Check("disk-ui:welcome-once", DiskManagerForm.NeedsWelcome(False, False) AndAlso Not DiskManagerForm.NeedsWelcome(True, False) AndAlso
+                                      Not DiskManagerForm.NeedsWelcome(False, True), "")
+    End Sub
+
+    ' APP-STYLE: a row's text is the palette's Text on the selection role, the hover tint and the
+    ' surface - 4.5:1 in both themes - and the state glyphs hold 3:1 on all three (ICON-RENDER rule 3).
+    ' The teal selection with dark text the owner rejected on 2026-09-30 fails the first of these.
+    Private Sub CheckDiskRowColours()
+        For Each dark In New Boolean() {False, True}
+            Dim p = Theme.PaletteFor(dark)
+            Dim mode = If(dark, "dark", "light")
+            For Each state In New Boolean()() {New Boolean() {False, False}, New Boolean() {False, True}, New Boolean() {True, False}}
+                Dim back = DiskManagerForm.RowBackColour(p, state(0), state(1))
+                Dim what = If(state(0), "selected", If(state(1), "hover", "plain"))
+                Dim text = Theme.ContrastRatio(p.Text, back)
+                Check("disk-ui:row-text:" & mode & ":" & what, text >= 4.5, text.ToString("0.00") & ":1")
+                For Each hue In New Object()() {New Object() {"ok", p.StateOk}, New Object() {"warning", p.StateWarning}, New Object() {"error", p.StateError}}
+                    Dim c = Theme.ContrastRatio(DirectCast(hue(1), Color), back)
+                    Check("disk-ui:row-glyph:" & mode & ":" & what & ":" & CStr(hue(0)), c >= 3.0, c.ToString("0.00") & ":1")
+                Next
+            Next
+            Check("disk-ui:row-selection-role", DiskManagerForm.RowBackColour(p, True, True).ToArgb() = p.SurfaceSelected.ToArgb() AndAlso
+                                                DiskManagerForm.RowBackColour(p, False, True).ToArgb() = p.ControlHover.ToArgb() AndAlso
+                                                DiskManagerForm.RowBackColour(p, False, False).ToArgb() = p.Surface.ToArgb(), mode)
+        Next
+    End Sub
+
+    ' A glyph button paints itself: its text and glyph are the palette's Text when it applies and the
+    ' disabled text when it does not - readable on the dark theme, where WinForms' own disabled caption
+    ' was near-black - and a danger button is the danger colour.
+    Private Sub CheckDiskButtonInk()
+        For Each dark In New Boolean() {False, True}
+            Theme.UsePaletteForTest(dark)
+            Try
+                Dim p = Theme.Current
+                Dim mode = If(dark, "dark", "light")
+                For Each enabled In New Boolean() {True, False}
+                    Using b As New GlyphButton With {.Glyph = DiskGlyphs.For(DiskAction.Verify), .Text = "Verify", .Enabled = enabled}
+                        Dim ink = ButtonInk(b, p, {p.Text, p.TextDisabled})
+                        Dim key = "disk-ui:button-ink:" & mode & ":" & If(enabled, "enabled", "disabled")
+                        If enabled Then
+                            Check(key, ink(0) > 40 AndAlso ink(1) * 10 < ink(0), "text-colour px " & ink(0).ToString() & ", disabled-colour px " & ink(1).ToString())
+                        Else
+                            Check(key, ink(1) > 40 AndAlso ink(0) * 10 < ink(1), "text-colour px " & ink(0).ToString() & ", disabled-colour px " & ink(1).ToString())
+                        End If
+                    End Using
+                Next
+                Using b As New GlyphButton With {.Glyph = DiskGlyphs.For(DiskAction.Destroy), .Text = "Destroy", .Danger = True}
+                    Dim ink = ButtonInk(b, p, {p.Danger, p.Text})
+                    Check("disk-ui:button-ink:" & mode & ":danger", ink(0) > 40 AndAlso ink(1) * 10 < ink(0), ink(0).ToString() & " / " & ink(1).ToString())
+                End Using
+                Using b As New GlyphButton With {.Glyph = DiskGlyphs.Help, .IconOnly = True, .Text = ""}
+                    b.AccessibleName = "Help"
+                    Dim bounds = b.GetPreferredSize(Size.Empty)
+                    Check("disk-ui:button-icon-only-square:" & mode, bounds.Width = bounds.Height AndAlso bounds.Width >= Ui.Px(b, 24), bounds.ToString())
+                End Using
+            Finally
+                Theme.UsePaletteForTest(Nothing)
+            End Try
+        Next
+    End Sub
+
+    ' Counts, on a painted button, the pixels within a small tolerance of each of the given colours.
+    Private Function ButtonInk(b As GlyphButton, p As Theme.Palette, colours As Color()) As Integer()
+        b.Font = Theme.FontBody()
+        Dim bounds = b.GetPreferredSize(Size.Empty)
+        b.Size = bounds
+        Dim handle = b.Handle
+        Dim counts(colours.Length - 1) As Integer
+        Using bmp As New Bitmap(bounds.Width, bounds.Height)
+            b.DrawToBitmap(bmp, New Rectangle(Point.Empty, bounds))
+            For y = 0 To bounds.Height - 1
+                For x = 0 To bounds.Width - 1
+                    Dim c = bmp.GetPixel(x, y)
+                    For i = 0 To colours.Length - 1
+                        If Math.Abs(CInt(c.R) - colours(i).R) <= 6 AndAlso Math.Abs(CInt(c.G) - colours(i).G) <= 6 AndAlso
+                           Math.Abs(CInt(c.B) - colours(i).B) <= 6 Then counts(i) += 1
+                    Next
+                Next
+            Next
+        End Using
+        Return counts
+    End Function
+
+    ' The two help windows in every language: they build, nothing is a raw key, the leave button is
+    ' the accept and the cancel one, they fit the screen, every control has a name, and the first
+    ' steps offer the three ways to start and one to do nothing (APP-BEHAVIOUR rules 1, 2, 9, 11).
+    Private Sub CheckDiskHelpWindows()
+        For Each kv In DiskHelpLinks.All
+            Check("disk-ui:link:" & kv.Key, kv.Value.StartsWith("https://", StringComparison.Ordinal) AndAlso Localization.GetDict("en").ContainsKey(kv.Key), kv.Value)
+        Next
+        Check("disk-ui:link:guide-page", Links.DiskGuide.StartsWith(Links.Site, StringComparison.Ordinal) AndAlso Links.DiskGuide.EndsWith("/virtual-disks.html", StringComparison.Ordinal) AndAlso
+                                         Links.Guides.StartsWith(Links.Site, StringComparison.Ordinal), Links.DiskGuide)
+        For Each lang In Localization.Languages
+            Dim d = Localization.GetDict(lang)
+            For Each packaged In New Boolean() {False, True}
+                Dim tag = lang & If(packaged, ":store", "")
+                Using dlg As New DiskHelpDialog(d, Nothing, packaged)
+                    Dim texts = DialogTexts(dlg)
+                    Dim raw = texts.Where(Function(t) t.StartsWith("vd_", StringComparison.Ordinal) OrElse t.StartsWith("shell_", StringComparison.Ordinal)).Take(5).ToList()
+                    Check("disk-ui:help:no-raw-keys:" & tag, raw.Count = 0, String.Join(",", raw.ToArray()))
+                    Check("disk-ui:help:legend:" & tag, dlg.RowCount = DiskHelpDialog.Legend.Length, dlg.RowCount.ToString())
+                    Check("disk-ui:help:keys-listed:" & tag, texts.Contains("Ctrl+M") AndAlso texts.Contains("F1") AndAlso texts.Contains("Ctrl+Shift+M"), "")
+                    Check("disk-ui:help:leave-is-one-path:" & tag, dlg.CancelButton IsNot Nothing AndAlso dlg.AcceptButton Is dlg.CancelButton, "")
+                    Check("disk-ui:help:fits-screen:" & tag, dlg.ClientSize.Height <= Screen.PrimaryScreen.WorkingArea.Height AndAlso dlg.ClientSize.Width > 300,
+                          dlg.ClientSize.ToString())
+                    Check("disk-ui:help:store-line:" & tag, texts.Contains(Localization.Multiline(d("vd_welcome_packaged"))) = packaged, "")
+                    Dim problems As New List(Of String)
+                    WalkAccessible(dlg, problems)
+                    Check("a11y:DiskHelpDialog:" & tag, problems.Count = 0, String.Join("; ", problems.Take(6).ToArray()))
+                End Using
+                Using dlg As New DiskWelcomeDialog(d, Nothing, packaged)
+                    Dim texts = DialogTexts(dlg)
+                    Dim raw = texts.Where(Function(t) t.StartsWith("vd_", StringComparison.Ordinal) OrElse t.StartsWith("shell_", StringComparison.Ordinal)).Take(5).ToList()
+                    Check("disk-ui:welcome:no-raw-keys:" & tag, raw.Count = 0, String.Join(",", raw.ToArray()))
+                    Check("disk-ui:welcome:three-ways-and-not-now:" & tag, dlg.AnswerCount = 3 AndAlso dlg.CancelButton IsNot Nothing AndAlso dlg.AcceptButton Is dlg.CancelButton AndAlso
+                                                                           texts.Contains(Localization.Multiline(d("vd_welcome_later"))) AndAlso dlg.Answer = DiskWelcomeAnswer.NotNow, "")
+                    Check("disk-ui:welcome:protection-words:" & tag, texts.Any(Function(t) t.Contains(Localization.Multiline(d("vd_facts_obfuscated")))) AndAlso
+                                                                     texts.Any(Function(t) t.Contains(Localization.Multiline(d("vd_facts_encrypted")))), "")
+                    Check("disk-ui:welcome:store-line:" & tag, texts.Contains(Localization.Multiline(d("vd_welcome_packaged"))) = packaged, "")
+                    Check("disk-ui:welcome:fits-screen:" & tag, dlg.ClientSize.Height <= Screen.PrimaryScreen.WorkingArea.Height, dlg.ClientSize.ToString())
+                    Dim problems As New List(Of String)
+                    WalkAccessible(dlg, problems)
+                    Check("a11y:DiskWelcomeDialog:" & tag, problems.Count = 0, String.Join("; ", problems.Take(6).ToArray()))
+                End Using
+            Next
+        Next
+    End Sub
+
+    ' Every text a help window shows: its labels, links and buttons.
+    Private Function DialogTexts(dlg As DiskPageDialog) As List(Of String)
+        Dim out As New List(Of String)
+        For Each c In dlg.AllChildren(dlg)
+            If (TypeOf c Is Label OrElse TypeOf c Is Button) AndAlso Not String.IsNullOrEmpty(c.Text) Then out.Add(c.Text)
+        Next
+        Return out
+    End Function
+
+    ' SP-0080: the Autostart surface. The guard's words as a state matrix, the last-run rendering
+    ' with its empty case, the snapshot reader over the golden document, the packaged build's hidden
+    ' entry, the guard's one command line - and the dialog itself in five locales, its encrypted row
+    ' disabled with the reason beside it.
+    Private Sub CheckDiskAutostart()
+        ' The guard's state in words. Nothing - a snapshot without the guard field - reads as off.
+        Check("disk-auto:word-nothing", DiskAutostart.GuardWordKey(Nothing) = "vd_auto_guard_off", "")
+        Check("disk-auto:word-off", DiskAutostart.GuardWordKey(New DiskGuardState()) = "vd_auto_guard_off", "")
+        Check("disk-auto:word-running", DiskAutostart.GuardWordKey(New DiskGuardState With {.Installed = True, .Running = True}) = "vd_auto_guard_on_running", "")
+        Check("disk-auto:word-stale", DiskAutostart.GuardWordKey(New DiskGuardState With {.Installed = True}) = "vd_auto_guard_on_stale", "")
+
+        ' The golden snapshot the CLI's test holds its output to carries a guard that is on and
+        ' running with a last run of two rows; the reader sees it, Nothing where it is absent.
+        Dim golden = GoldenSnapshot()
+        Dim noGuard As DiskSnapshot = Nothing
+        Dim problem As String = ""
+        Check("disk-auto:snapshot-guard", golden.Guard IsNot Nothing AndAlso golden.Guard.Installed AndAlso golden.Guard.Running, "")
+        Check("disk-auto:snapshot-guard-rows", golden.Guard IsNot Nothing AndAlso golden.Guard.Containers.Count = 2, "")
+        noGuard = DiskSnapshot.Parse("{""schema"":""filedo.vd-status"",""version"":1,""at"":""2026-09-30T05:00:00Z"",""disks"":[]}", problem)
+        Check("disk-auto:snapshot-without-guard", problem = "" AndAlso noGuard IsNot Nothing AndAlso noGuard.Guard Is Nothing, problem)
+
+        ' The one command line of the guard's switch, built where every line is built.
+        Dim cmdOn = ArgQuoting.JoinArgs(DiskCommands.Build("guard", "", New DiskOptions With {.GuardOn = True}).ToArray())
+        Dim cmdOff = ArgQuoting.JoinArgs(DiskCommands.Build("guard", "", New DiskOptions With {.GuardOn = False}).ToArray())
+        Check("disk-auto:cmd-on", cmdOn = "vd guard on", cmdOn)
+        Check("disk-auto:cmd-off", cmdOff = "vd guard off", cmdOff)
+
+        ' The packaged build hides the whole surface - the entry out of every menu, and the why that
+        ' says the packaged build cannot.
+        For Each packaged In New Boolean() {False, True}
+            Dim tag = If(packaged, "store", "setup")
+            Check("disk-auto:hidden:" & tag,
+                  DiskStates.HiddenInBuild(DiskAction.Autostart, New DiskContext With {.Packaged = packaged}) = packaged, "")
+            Dim why = DiskStates.WhyNot(DiskAction.Autostart, MgrRecord(), DiskRowState.NotMounted, New DiskContext With {.Packaged = packaged})
+            Check("disk-auto:why:" & tag, why = If(packaged, "vd_packaged", ""), why)
+        Next
+
+        ' The last-run rendering in five locales: never ran, ran with nothing mounted, ran clean,
+        ' ran out of time - the reason arrives as the console wrote it.
+        Dim neverRan As New DiskGuardState With {.Installed = True, .Running = True}
+        Dim emptyRun As New DiskGuardState With {.Installed = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
+        Dim cleanRun As New DiskGuardState With {.Installed = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
+        cleanRun.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
+        cleanRun.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "save", .Outcome = "saved"})
+        Dim leftoverRun As New DiskGuardState With {.Installed = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
+        leftoverRun.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
+        leftoverRun.Containers.Add(New DiskGuardRunRow With {.Name = "big", .Action = "unmount", .Outcome = "unfinished", .Reason = "did not finish within 10 s"})
+        For Each lang In Localization.Languages
+            Dim d = Localization.GetDict(lang)
+            Dim tag = "disk-auto:run:" & lang
+            Dim never = DiskAutostart.GuardRunLines(neverRan, d)
+            Check(tag & ":never", never.Count = 1 AndAlso never(0) = d("vd_auto_guard_run_never"), never(0))
+            Dim empty = DiskAutostart.GuardRunLines(emptyRun, d)
+            Check(tag & ":empty", empty.Count = 1 AndAlso empty(0).Contains(d("vd_auto_guard_run_empty")), empty(0))
+            Dim clean = DiskAutostart.GuardRunLines(cleanRun, d)
+            Check(tag & ":clean", clean.Count = 1 AndAlso clean(0).Contains("2"), clean(0))
+            Dim left = DiskAutostart.GuardRunLines(leftoverRun, d)
+            Check(tag & ":leftover", left.Count = 2 AndAlso left(1).StartsWith("big:", StringComparison.Ordinal) AndAlso
+                                        left(1).Contains(d("vd_auto_guard_outcome_unfinished")) AndAlso
+                                        left(1).Contains("did not finish within 10 s"), left(1))
+        Next
+
+        ' The dialog itself, in every locale: three rows of the manager's list, the encrypted one
+        ' disabled with its reason beside it, the guard's word, the last run told, and one leave path.
+        For Each lang In Localization.Languages
+            Dim d = Localization.GetDict(lang)
+            Dim rows As New List(Of DiskRecord) From {
+                MgrRecord(),
+                MgrVariant(Sub(r)
+                               r.Name = "vault" : r.Protection = DiskProtection.Encrypted : r.AutoMount = False
+                           End Sub),
+                MgrVariant(Sub(r)
+                               r.Name = "mounted" : r.AutoMount = True
+                           End Sub)}
+            Dim guardState As New DiskGuardState With {.Installed = True, .Running = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
+            guardState.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
+            Dim switchedOn As New List(Of Boolean)
+            Dim performed As New List(Of String)
+            Using dlg As New DiskAutostartDialog(d, Nothing,
+                                                 Function() rows, Function() guardState,
+                                                 Sub(a, sel) performed.Add(DiskStates.VerbOf(a)),
+                                                 Sub(onOff) switchedOn.Add(onOff))
+                Dim texts = dlg.TextsForTest
+                Dim raw = texts.Where(Function(t) t.StartsWith("vd_", StringComparison.Ordinal) OrElse t.StartsWith("shell_", StringComparison.Ordinal)).Take(5).ToList()
+                Check("disk-auto:dialog:no-raw-keys:" & lang, raw.Count = 0, String.Join(",", raw.ToArray()))
+                Check("disk-auto:dialog:rows:" & lang, dlg.LogonRowCountForTest = 3, dlg.LogonRowCountForTest.ToString())
+                Dim switches = dlg.LogonSwitchesForTest()
+                Check("disk-auto:dialog:matrix:" & lang, switches.Count = 3 AndAlso switches(0).Second AndAlso
+                                                             Not switches(1).Second AndAlso switches(2).Second,
+                      String.Join(";", switches.Select(Function(s) s.First & "=" & s.Second.ToString()).ToArray()))
+                Check("disk-auto:dialog:encrypted-why:" & lang, texts.Contains(d("vd_mgr_why_encrypted_auto")), "")
+                Check("disk-auto:dialog:guard-word:" & lang, texts.Contains(d("vd_auto_guard_on_running")), "")
+                Check("disk-auto:dialog:run-told:" & lang, texts.Any(Function(t) t.StartsWith("work:", StringComparison.Ordinal)), "")
+                Check("disk-auto:dialog:leave:" & lang, dlg.CancelButton IsNot Nothing AndAlso dlg.AcceptButton Is dlg.CancelButton, "")
+                Check("disk-auto:dialog:fits-screen:" & lang, dlg.ClientSize.Height <= Screen.PrimaryScreen.WorkingArea.Height AndAlso
+                                                              dlg.ClientSize.Width > 300, dlg.ClientSize.ToString())
+                Dim problems As New List(Of String)
+                WalkAccessible(dlg, problems)
+                Check("a11y:DiskAutostartDialog:" & lang, problems.Count = 0, String.Join("; ", problems.Take(6).ToArray()))
+                Check("disk-auto:dialog:delegates-idle:" & lang, performed.Count = 0 AndAlso switchedOn.Count = 0, "")
+            End Using
+        Next
+    End Sub
+
+    ' The window: its buttons carry a glyph and a name and a tooltip, the icon-only ones the meaning's
+    ' canonical name; the detail pane closes with a cross and comes back from a bar; the filter is one
+    ' unit; the menus carry pictures; the build that cannot mount hides what it cannot run.
+    Private Sub CheckDiskUiWindow(ui As Dictionary(Of String, String))
+        Dim m As DiskManagerForm = Nothing
+        Try
+            m = New DiskManagerForm()
+            Dim snap = GoldenSnapshot()
+            m.ApplySnapshotForTest(snap, "")
+            Dim key = Function(name As String) snap.Disks.First(Function(d) d.Name = name).Key
+            m.SelectForTest(key("archive"))
+            Dim reason As String = ""
+
+            Dim buttons = m.GlyphButtonsForTest
+            Check("disk-ui:buttons-present", buttons.Count >= 14, buttons.Count.ToString())
+            For i = 0 To buttons.Count - 1
+                Dim b = buttons(i)
+                Dim id = i.ToString() & ":" & If(b.AccessibleName, "")
+                Check("disk-ui:button-name:" & id, Not String.IsNullOrEmpty(b.AccessibleName), "")
+                Check("disk-ui:button-glyph:" & id, b.Glyph IsNot Nothing OrElse b.Picture IsNot Nothing, "")
+                Check("disk-ui:button-tip:" & id, m.TipForTest(b) <> "", "")
+                If b.IconOnly Then
+                    Dim nameKey = DiskGlyphs.NameKey(b.Glyph)
+                    Check("disk-ui:button-icon-only-name:" & id, b.Text = "" AndAlso nameKey <> "" AndAlso b.AccessibleName = ui(nameKey), b.AccessibleName & " vs " & nameKey)
+                Else
+                    Check("disk-ui:button-caption-is-name:" & id, b.AccessibleName = b.Text, b.AccessibleName & " vs " & b.Text)
+                End If
+            Next
+
+            ' The detail pane: closed by a cross at its own edge, brought back from a bar or the More menu;
+            ' no toolbar button is called "Hide details" (owner, 2026-09-30).
+            Check("disk-ui:detail-cross", m.DetailCloseForTest.IconOnly AndAlso m.DetailCloseForTest.Glyph.Id = "nav.close" AndAlso
+                                          m.DetailCloseForTest.AccessibleName = ui("vd_mgr_name_close"), "")
+            Check("disk-ui:no-hide-button", Not buttons.Any(Function(b) b.Text = ui("vd_mgr_detail_hide")) AndAlso
+                                            Not buttons.Any(Function(b) b.Text = ui("vd_mgr_detail_show") AndAlso b IsNot m.DetailShowForTest), "")
+            Check("disk-ui:detail-starts-open", m.DetailOpenForTest, "")
+            Dim more = m.MenuItemsForTest("more")
+            Check("disk-ui:detail-hide-in-more", more.Any(Function(i) i.Text = ui("vd_mgr_detail_hide")), String.Join(" | ", more.Select(Function(i) i.Text).ToArray()))
+            m.ToggleDetailForTest()
+            Check("disk-ui:detail-hidden", Not m.DetailOpenForTest, "")
+            Check("disk-ui:detail-bar-brings-it-back", m.DetailShowForTest.Text = ui("vd_mgr_detail_show") AndAlso
+                                                       m.MenuItemsForTest("more").Any(Function(i) i.Text = ui("vd_mgr_detail_show")), "")
+            m.ToggleDetailForTest()
+            Check("disk-ui:detail-back", m.DetailOpenForTest, "")
+
+            ' The filter: label, box and clear button are one unit; the clear button follows the text; Esc clears.
+            Check("disk-ui:filter-one-unit", m.FilterIsOneUnitForTest, "")
+            Check("disk-ui:filter-clear-icon", m.FilterClearForTest.IconOnly AndAlso m.FilterClearForTest.Glyph.Id = "action.clear-input" AndAlso
+                                               m.FilterClearForTest.AccessibleName = ui("vd_mgr_name_clear"), "")
+            Check("disk-ui:filter-clear-off-when-empty", Not m.FilterClearForTest.Enabled, "")
+            m.SetFilterForTest("wor")
+            Check("disk-ui:filter-clear-on-with-text", m.FilterClearForTest.Enabled AndAlso m.RowTextsForTest.Count < 10, m.RowTextsForTest.Count.ToString())
+            Check("disk-ui:filter-esc-clears", m.RunShortcut(DiskShortcuts.Find(Keys.Escape, False)) AndAlso m.FilterTextForTest = "" AndAlso Not m.FilterClearForTest.Enabled, m.FilterTextForTest)
+            Check("disk-ui:filter-esc-on-empty-passes", Not m.RunShortcut(DiskShortcuts.Find(Keys.Escape, False)), "")
+
+            ' Each window opens the other (the owner's request, 2026-09-30): a "Main window" button here with
+            ' the product's mark and its own key, and a "Disk manager" button in the shell's header.
+            Dim mainButton = buttons.FirstOrDefault(Function(b) b.Text = ui("vd_mgr_btn_main"))
+            Check("disk-ui:main-window-button", mainButton IsNot Nothing AndAlso mainButton.Picture IsNot Nothing AndAlso mainButton.Glyph Is Nothing AndAlso
+                                                m.TipForTest(mainButton).Contains(DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.O)), "")
+            Dim raised = 0
+            AddHandler m.ShellRequested, Sub() raised += 1
+            m.RunShortcut(DiskShortcuts.Find(Keys.Control Or Keys.Shift Or Keys.O, False))
+            Check("disk-ui:main-window-key-raises", raised = 1, raised.ToString())
+            Check("disk-ui:one-picture-button", m.GlyphButtonsForTest.Where(Function(b) b.Picture IsNot Nothing).Count() = 1, "the product mark is on exactly one button")
+            Using shell As New ShellForm()
+                Dim opener = shell.DiskManagerButtonForTest
+                Check("disk-ui:shell-opens-manager-button", opener IsNot Nothing AndAlso opener.Glyph Is DiskGlyphs.DiskContainer AndAlso
+                                                            opener.Text = ui(RailRow.DiskManagerKey) AndAlso opener.AccessibleName = opener.Text AndAlso
+                                                            shell.TipForTest(opener).Contains(DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.D)), "")
+            End Using
+
+            ' Tab order: toolbar, list, detail, its bar, strip.
+            Dim tab = m.TabOrderForTest
+            Check("disk-ui:tab-order", tab.Zip(tab.Skip(1), Function(x, y) x < y).All(Function(ok) ok), String.Join(",", tab.Select(Function(t) t.ToString()).ToArray()))
+
+            ' Menus carry the meaning's picture, and the Help menu the links.
+            m.SelectForTest(key("work"))
+            For Each item In m.MenuItemsForTest("row")
+                Dim mi = TryCast(item, ToolStripMenuItem)
+                If mi Is Nothing Then Continue For
+                Check("disk-ui:menu-image:" & mi.Text, mi.Image IsNot Nothing, "")
+            Next
+            Dim help = m.MenuItemsForTest("help")
+            Check("disk-ui:help-menu", help.Count >= 8 AndAlso TryCast(help(0), ToolStripMenuItem).Text = ui("vd_help_menu_help") AndAlso
+                                       TryCast(help(0), ToolStripMenuItem).ShortcutKeyDisplayString = "F1", help.Count.ToString())
+            Dim linkItems = help.OfType(Of ToolStripMenuItem)().Where(Function(i) If(i.ToolTipText, "").StartsWith("https://", StringComparison.Ordinal)).ToList()
+            Check("disk-ui:help-menu-links", linkItems.Count = DiskHelpLinks.All.Length AndAlso linkItems.All(Function(i) i.Image IsNot Nothing), linkItems.Count.ToString())
+            Check("disk-ui:help-menu-first-steps", help.OfType(Of ToolStripMenuItem)().Any(Function(i) i.Text = ui("vd_help_menu_first")), "")
+            Check("disk-ui:key-help-and-menu", DiskShortcuts.Find(Keys.F1, False).Command = DiskCommand.Help, "")
+
+            ' The build that cannot mount: hidden, not disabled (APP-BEHAVIOUR rule 11) - and the read path stays.
+            For Each a As DiskAction In [Enum].GetValues(GetType(DiskAction))
+                Check("disk-ui:hidden-only-when-refused:" & a.ToString(),
+                      Not DiskStates.HiddenInBuild(a, New DiskContext With {.Packaged = False}) AndAlso
+                      (Not DiskStates.HiddenInBuild(a, New DiskContext With {.Packaged = True}) OrElse
+                       MgrVariants().All(Function(r) [Enum].GetValues(GetType(DiskRowState)).Cast(Of DiskRowState)().All(
+                           Function(s) DiskStates.WhyNot(a, r, s, New DiskContext With {.Packaged = True}) <> ""))), "")
+            Next
+            Packaging.OverrideForTest = True
+            m.SelectForTest(key("archive"))
+            Check("disk-ui:store-hides-mount", Not m.ToolbarVisibleForTest("mount") AndAlso Not m.ToolbarVisibleForTest("unmount") AndAlso
+                                               Not m.ToolbarVisibleForTest("save") AndAlso m.ToolbarVisibleForTest("open"), "")
+            Dim storeMenu = m.MenuItemsForTest("row").OfType(Of ToolStripMenuItem)().Select(Function(i) i.Text).ToList()
+            Check("disk-ui:store-menu-has-no-mount", Not storeMenu.Contains(ui("vd_mgr_act_mount")) AndAlso Not storeMenu.Contains(ui("vd_mgr_act_mount_ro")) AndAlso
+                                                     Not storeMenu.Contains(ui("vd_mgr_act_format")) AndAlso Not storeMenu.Contains(ui("vd_mgr_act_auto_on")) AndAlso
+                                                     storeMenu.Contains(ui("vd_mgr_act_info")) AndAlso storeMenu.Contains(ui("vd_mgr_act_verify")) AndAlso
+                                                     storeMenu.Contains(ui("vd_mgr_act_export")), String.Join(" | ", storeMenu.ToArray()))
+            Check("disk-ui:store-detail-has-no-mount", Not m.DetailButtonsForTest.Contains(ui("vd_mgr_act_mount")) AndAlso m.DetailButtonsForTest.Contains(ui("vd_mgr_act_info")),
+                  String.Join(",", m.DetailButtonsForTest.ToArray()))
+            Packaging.OverrideForTest = Nothing
+            m.SelectForTest(key("archive"))
+            Check("disk-ui:build-mounts-again", m.ToolbarVisibleForTest("mount") AndAlso m.ToolbarStateForTest("mount", reason), reason)
+        Catch ex As Exception
+            Check("disk-ui", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            Packaging.OverrideForTest = Nothing
+            Theme.UsePaletteForTest(Nothing)
+            If m IsNot Nothing Then m.Dispose()
+        End Try
+    End Sub
+
     ' The pieces around the window: the start switch, the files the watcher reacts to, the lines of
     ' `info` kept for the detail pane, and the names a container is added under.
     Private Sub CheckDiskHost()
@@ -2853,6 +3463,10 @@ Public Module SelfTest
                                   Not Program.WantsDiskManager(New String() {"--disks"}), "")
         Check("disk-host:no-file-target", Program.StartupTargetFrom(New String() {"filedo_win.exe", "--disks"}) Is Nothing, "")
         Check("disk-host:message", AppHost.ShowDisksMessage <> 0, AppHost.ShowDisksMessage.ToString())
+        ' A plain second start asks the running copy for its shell (the Start menu's FileDO entry while only
+        ' the Disk manager is open): its own registered message, never the manager's.
+        Check("disk-host:shell-message", AppHost.ShowShellMessage <> 0 AndAlso AppHost.ShowShellMessage <> AppHost.ShowDisksMessage,
+              AppHost.ShowShellMessage.ToString())
         Check("disk-host:watched", DiskManagerForm.IsWatchedName("vdisk-state.json") AndAlso DiskManagerForm.IsWatchedName("VD-REGISTRY.JSON") AndAlso
                                    DiskManagerForm.IsWatchedName("vd-0123abcd.status.json") AndAlso Not DiskManagerForm.IsWatchedName("vd-0123abcd.handoff.json") AndAlso
                                    Not DiskManagerForm.IsWatchedName("history.json"), "")

@@ -133,13 +133,11 @@ var (
 	placeholder = regexp.MustCompile(`\{(\d+)(?:,[^}:]*)?(?::[^}]*)?\}`)
 )
 
-// APP-BEHAVIOUR rung B1: dictionary parity. Every key of the English table
-// is in each of the other four, no table has a key English lacks, and every
-// key carries the same placeholders in every language - a German template
-// with {0} where English has {0} and {1} renders a sentence with a hole in
-// it. The named-key test above guards the fdsec strings' meaning; this one
-// guards the tables' shape, all keys at once.
-func TestShell_EveryLocaleHasEveryKeyAndPlaceholder(t *testing.T) {
+// localizationTables parses the five tables of Localization.vb (En, Ru, Uk, De,
+// Fr) into key -> value maps keyed by the table's function name. A key twice
+// in one table fails the calling test: the second one silently wins.
+func localizationTables(t *testing.T) map[string]map[string]string {
+	t.Helper()
 	root := repoRoot(t)
 	body := strings.ReplaceAll(readSurface(t, root, filepath.Join("filedo_win_vb", "Localization.vb")), "\r\n", "\n")
 
@@ -169,6 +167,49 @@ func TestShell_EveryLocaleHasEveryKeyAndPlaceholder(t *testing.T) {
 		}
 		tables[fn] = table
 	}
+	return tables
+}
+
+// SP-0058 AUD-27-F1: the Wipe a folder job deletes the contents (RemoveAll);
+// it does not overwrite them, and an undelete tool brings them back until the
+// space is reused. The job's page and, in ru/uk/de, its name must not say
+// otherwise - the CLI's `secure` verbs are the ones that overwrite. Every
+// promise word of the five languages is refused in both strings, and the
+// purpose text must say the contents are not overwritten.
+func TestShell_TheWipeJobDoesNotPromiseOverwriting(t *testing.T) {
+	promise := regexp.MustCompile(`(?i)secure|sicher|überschreib|безопасн|безпечн|затер|затир|стира|стер|définitivement|irrecoverabl|unrecoverabl`)
+	notOverwritten := map[string]*regexp.Regexp{
+		"EnLines": regexp.MustCompile(`(?i)not overwritten`),
+		"RuLines": regexp.MustCompile(`(?i)не перезаписывается`),
+		"UkLines": regexp.MustCompile(`(?i)не перезаписується`),
+		"DeLines": regexp.MustCompile(`(?i)nicht überschrieben`),
+		"FrLines": regexp.MustCompile(`(?i)pas écrasé`),
+	}
+	for fn, table := range localizationTables(t) {
+		for _, key := range []string{"purpose_job_wipe", "rail_job_wipe"} {
+			v, ok := table[key]
+			if !ok {
+				t.Errorf("%s has no %s", fn, key)
+				continue
+			}
+			if m := promise.FindString(v); m != "" {
+				t.Errorf("%s %s = %q promises %q, but folder wipe only deletes", fn, key, v, m)
+			}
+		}
+		if v := table["purpose_job_wipe"]; !notOverwritten[fn].MatchString(v) {
+			t.Errorf("%s purpose_job_wipe = %q does not say the contents are not overwritten", fn, v)
+		}
+	}
+}
+
+// APP-BEHAVIOUR rung B1: dictionary parity. Every key of the English table
+// is in each of the other four, no table has a key English lacks, and every
+// key carries the same placeholders in every language - a German template
+// with {0} where English has {0} and {1} renders a sentence with a hole in
+// it. The named-key test above guards the fdsec strings' meaning; this one
+// guards the tables' shape, all keys at once.
+func TestShell_EveryLocaleHasEveryKeyAndPlaceholder(t *testing.T) {
+	tables := localizationTables(t)
 
 	placeholders := func(v string) string {
 		set := map[string]bool{}

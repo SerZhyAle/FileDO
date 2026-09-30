@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-SET` |
-| **Version** | 0.15 draft (no wire carrier - the vocabulary is read by people, never by a shipped product). Adopted as a draft on 2026-09-25; the adoption is re-checked when the contract reaches 1.0 |
+| **Version** | 0.16 draft (no wire carrier - the vocabulary is read by people, never by a shipped product). Adopted as a draft on 2026-09-25; the adoption is re-checked when the contract reaches 1.0 |
 | **Role** | consumer - the shell, the site, the READMEs and the Explorer integration show glyphs |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. A new meaning or a new language is proposed in the catalog, not decided here |

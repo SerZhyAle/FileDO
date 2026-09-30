@@ -16,6 +16,7 @@ Friend Enum DiskCommand
     Perform         ' a DiskAction
     Add             ' choose .fdd files to add to the list
     Help
+    MainWindow      ' bring the FileDO main window forward
     Filter          ' the focus goes to the filter box
     ClearFilter
     SelectAll
@@ -48,6 +49,7 @@ Friend Module DiskShortcuts
     ' of what the toolbar offers.
     Friend ReadOnly All As DiskShortcut() = {
         New DiskShortcut(Keys.Control Or Keys.N, DiskCommand.Perform, DiskAction.NewDisk, "vd_mgr_act_new", False),
+        New DiskShortcut(Keys.Control Or Keys.Shift Or Keys.O, DiskCommand.MainWindow, Nothing, "vd_mgr_btn_main", False),
         New DiskShortcut(Keys.Control Or Keys.O, DiskCommand.Add, Nothing, "vd_mgr_btn_add", False),
         New DiskShortcut(Keys.Control Or Keys.M, DiskCommand.Perform, DiskAction.Mount, "vd_mgr_act_mount", False),
         New DiskShortcut(Keys.Control Or Keys.Shift Or Keys.M, DiskCommand.Perform, DiskAction.MountReadOnly, "vd_mgr_act_mount_ro", False),
@@ -346,6 +348,10 @@ Friend MustInherit Class DiskPageDialog
         Next
     End Function
 
+    Friend Sub DrawClientForCapture(bmp As Bitmap)
+        rootLayout.DrawToBitmap(bmp, New Rectangle(0, 0, bmp.Width, bmp.Height))
+    End Sub
+
     ' Every text and every control of the window, for the self-test and for a repaint after a theme
     ' switch while it is open.
     Friend Sub Retheme()
@@ -405,6 +411,7 @@ Friend Class DiskHelpDialog
         AddSection(T("vd_help_notes_title"))
         AddParagraph(T("vd_mgr_close_mounted"))
         AddParagraph(T("vd_help_note_uac"))
+        AddParagraph(T("vd_help_note_autostart"))
         AddParagraph(T("vd_facts_obfuscated"))
         AddParagraph(T("vd_facts_encrypted"))
         AddParagraph(T("vd_mgr_detail_open_while_mounted"))
@@ -419,6 +426,8 @@ Friend Class DiskHelpDialog
         footer.Controls.Add(close)
         Finish()
         RethemeGlyphs()
+        ' The keyboard starts on the leave button, not on the first link a long page would scroll to.
+        ActiveControl = close
     End Sub
 
     ' One state: its glyph in its tone (or a blank where a state has none), its word, and what it means.

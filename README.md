@@ -169,7 +169,7 @@ Also available in the [Microsoft Store](https://apps.microsoft.com/detail/9PH1LP
 Download `FileDO-<version>-setup.exe` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest) and run it. This is the option that makes FileDO an ordinary Windows program rather than a folder of executables:
 
 - installs the binaries into `C:\Program Files\FileDO` and puts `filedo` on the system `PATH`;
-- creates a **Start menu entry** and a **desktop icon** for the FileDO window (`filedo_win.exe`);
+- creates a **Start menu entry** and a **desktop icon** for the FileDO window (`filedo_win.exe`), and a second Start menu entry, **FileDO Disk Manager**, that opens the Disk manager straight (`filedo_win.exe --disks`);
 - registers the **Explorer integration**: a `File DO..` group in the right-click menu of every file - Secure (keeping, deleting or wiping the original, or under a random name), Unsecure (optionally deleting the container or starting the restored file), Wipe this file, Check this file, Info - plus the `.fd-sec` document type with its own icon, whose double-click is exactly the Unsecure-and-start entry: a console asks for the password there, restores the original under its true name into `%LOCALAPPDATA%\FileDO\reveal` - readable by this account and the system only - hands it to whatever program owns its real extension, and takes that copy away again when the console window closes. On Windows 11 the group lives under *Show more options*;
 - registers the **`.fdd` disk container type** (feature *Disk container files (.fdd)*): its icon, a double-click that opens the FileDO window and mounts the virtual disk, and *Mount read-only* and *Unmount* in the right-click menu - see [Virtual Disks](#virtual-disks-fdd).
 
@@ -349,6 +349,8 @@ Five things said plainly, because a security feature that oversells itself is wo
   password says what it is worth while it is being typed.
 - **`wipe` lowers the odds of recovery and promises nothing.** On SSDs and on copy-on-write or journaled
   file systems, overwriting a file in place does not guarantee the old blocks are gone.
+- **`wipe` never overwrites a file that has another hard link.** The overwrite reaches every name of the
+  file, so the original is kept and the run says so; remove the extra links first, or use `del`.
 - **A revealed copy lives in `%LOCALAPPDATA%\FileDO\reveal`**, read-only, readable by this account and the
   system only. It goes when you say so, or when the program that opened it lets go of it.
 - **`unsecure start` - the double-click - puts its copy in that same protected folder**, not beside
@@ -440,7 +442,7 @@ What the platform needs, said plainly:
   `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` work there too; to mount, use the setup or the
   portable build from GitHub.
 - **A mount outlives the window.** Closing the FileDO window leaves the drive and its server in place, and a
-  new window lists them again; unmount on the Disks pages or with `filedo X: unmount`.
+  new window lists them again; unmount in the Disk manager, on the Disks pages, or with `filedo X: unmount`.
 
 Exit codes of one container command: 0 done, 2 usage, 3 wrong credential, 4 damaged, 5 I/O, 6 unsupported,
 7 transport unavailable, 8 busy (mounted, open or locked). A batch keeps 0/1/2.
@@ -453,6 +455,10 @@ its drive. The right-click menu adds *Mount read-only* and *Unmount* (on Windows
 options*). Without the installer, `filedo vd register` (add `-all-users` for the whole machine) writes the
 same and `filedo vd unregister` takes it back. In the window, the **Disks** group has a page for each
 operation, and it words both protections exactly as the console does.
+
+The **Disk manager** is a second window of the same `filedo_win.exe` - not a new program - with one row per virtual disk: the disks in your list, the ones mounted now, and the VHD, VHDX or ISO images FileDO mounted. Each row shows its state in words beside a glyph (*Mounted*, *Mounted, read-only*, *Mounted, 180 MiB not saved* for a `ram` disk, *Server gone - volume offline*, *Image mounted*, *File missing*, *A different container is at this path*, *Unreadable*, *Not closed cleanly*, *Not mounted*), and the list keeps itself true without a manual refresh. Around it sit a toolbar (*New disk..*, *Add..*, *Mount*, *Unmount*, *Open*, *Save*, *More actions*, *Refresh*, *Help*, *Main window*), a filter row and a detail pane with the buttons that apply; a button that cannot be used says why in its tooltip and in the pane, and the Microsoft Store build, which can never mount, hides the mount controls instead of greying them. A double-click or Enter mounts a disk at rest and opens the drive of a mounted one - it never unmounts; drag `.fdd` files onto the list to add them, or a `.vhd`, `.vhdx` or `.iso` to mount an image after one confirmation. *New disk*, *Export*, *Compact*, *Grow*, *Seal copy*, *Clone*, *Change password*, *Format* and *Destroy* open their job page in the main window with the container chosen; *Format* and *Destroy* keep their typed confirmation there.
+
+Open it from the **FileDO Disk Manager** Start menu entry the installer adds (it runs `filedo_win.exe --disks`), from the **Disk manager** button at the top right of the FileDO window or the first row of its Disks group (**Ctrl+Shift+D** too), or with `filedo_win.exe --disks`; its **Main window** button brings the FileDO window forward. **F1** opens its help - what a row says, the keyboard table, links. The first time the manager opens, a welcome explains what a virtual disk is and says: *Obfuscated, not encrypted: anyone with this file and FileDO can read it. It opens without a password.* *Encrypted: it opens only with its password.* It adds that Windows asks for administrator consent at every mount and unmount, and it offers *Create my first disk..*, *Add a .fdd file I already have..*, *Read the guide on the website* and *Not now*. The keyboard table and pictures are in the [virtual disks guide](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Closing the manager never unmounts a disk.
 
 ---
 
@@ -597,7 +603,7 @@ filedo_win              # if installed via winget / Store (on PATH)
 filedo_win.exe          # next to filedo.exe in the portable zip
 ```
 
-The **Protect** pages handle `.fd-sec` secret files - make a file secret, get the original back, or open it without unpacking. The password is masked and never enters a command line. Handing the window a `.fd-sec` path directly opens it on that container's page (`filedo_win.exe C:\a\x.fd-sec`); a double-click in Explorer does not go through the window at all - it runs **Unsecure and start** on the console, as described above. History, Settings and About have pages of their own; the older command-builder window is retired, and a hand-written command line goes on the **Command** page.
+The **Protect** pages handle `.fd-sec` secret files - make a file secret, get the original back, or open it without unpacking. The password is masked and never enters a command line. Handing the window a `.fd-sec` path directly opens it on that container's page (`filedo_win.exe C:\a\x.fd-sec`); a double-click in Explorer does not go through the window at all - it runs **Unsecure and start** on the console, as described above. History, Settings and About have pages of their own; the older command-builder window is retired, and a hand-written command line goes on the **Command** page. The **Disk manager** - a second window for the virtual disks, opened with **Ctrl+Shift+D**, the button at the top right or `filedo_win.exe --disks` - is described under [Virtual Disks](#virtual-disks-fdd).
 
 **Ships everywhere:** the GUI is included in the winget package, the portable zip, the MSI, and is the clickable tile of the Microsoft Store (MSIX) package.
 
@@ -780,7 +786,7 @@ FileDO/
 **Unreleased** (the next version)
 - **Virtual disks (`.fdd`)**: a whole volume in one file, mounted as a drive letter - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` and `export` (raw image or VHD) without mounting, and `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; obfuscated without a password, encrypted with one, and never called the other
 - **Explorer**: the setup EXE's new *Disk container files (.fdd)* feature (`DiskContainerIntegration`) gives `.fdd` its icon, a double-click that mounts, and *Mount read-only* / *Unmount*; `filedo vd register` does the same without an installer
-- **GUI**: a new **Disks** group - one page per operation, and a mount that outlives the window
+- **GUI**: a new **Disks** group - one page per operation - and the **Disk manager**, a second window with one row per virtual disk, its state in words, and mount, unmount, open and save from the row; a mount outlives the window, and the installer adds a *FileDO Disk Manager* Start menu entry that opens it straight
 - **Limits**: Windows only; mounting asks for administrator consent; the Microsoft Store build reads, verifies and exports containers but cannot mount them
 
 **v2609241700** (Current)

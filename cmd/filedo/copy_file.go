@@ -90,6 +90,64 @@ type fileCopyOptions struct {
 	Release func()
 }
 
+// copyDiscardWait is how long a failed or stopped copy waits for its handles to
+// close and its partial to go before it reports; what is left is finished in
+// the background. On a healthy device both take microseconds.
+const copyDiscardWait = 500 * time.Millisecond
+
+// copyHandles owns the handles of one copy: the source and the partial.
+//
+// Closing an os.File with a synchronous ReadFile or WriteFile pending waits
+// for that call to return (Go's poll.FD.Close waits on the descriptor's last
+// reference), so on a device that never answers Close never returns either.
+// Nothing that has to end - the stall watchdog, a stop, a forced exit - may
+// therefore wait on a close (AUD-01-F1): release starts it on a goroutine
+// nobody waits on and returns at once, and the partial is removed by that
+// goroutine after the handles are really closed, because a Remove while the
+// partial is open fails with a sharing violation and leaves it behind.
+type copyHandles struct {
+	closers []io.Closer
+	partial string
+	once    sync.Once
+	closed  chan struct{}
+}
+
+func newCopyHandles(partial string, closers ...io.Closer) *copyHandles {
+	return &copyHandles{closers: closers, partial: partial, closed: make(chan struct{})}
+}
+
+// release starts closing every handle and returns at once. It is safe to call
+// from any number of goroutines and any number of times.
+func (h *copyHandles) release() {
+	h.once.Do(func() {
+		go func() {
+			for _, c := range h.closers {
+				c.Close()
+			}
+			close(h.closed)
+		}()
+	})
+}
+
+// discard releases the handles and removes the partial once they are closed. It
+// waits at most wait for that; a close that has not returned by then is left to
+// its goroutine, which removes the partial whenever the device answers.
+func (h *copyHandles) discard(wait time.Duration) {
+	h.release()
+	removed := make(chan struct{})
+	go func() {
+		<-h.closed
+		if h.partial != "" {
+			os.Remove(h.partial)
+		}
+		close(removed)
+	}()
+	select {
+	case <-removed:
+	case <-time.After(wait):
+	}
+}
+
 // copyOneFile copies src to dst through a partial file. The caller has
 // already decided that dst may be written (skipDecision) and that its folder
 // exists.
@@ -126,17 +184,11 @@ func copyOneFile(ctx context.Context, src string, info os.FileInfo, dst string, 
 	}
 	partialName := dst + partialSuffix
 
-	var closeOnce sync.Once
-	unblock := func() {
-		closeOnce.Do(func() {
-			in.Close()
-			out.File.Close()
-		})
-	}
+	handles := newCopyHandles(partialName, in, out.File)
+	unblock := handles.release
 	if opt.Handler != nil {
 		remove := opt.Handler.AddCleanup(func() {
-			unblock()
-			os.Remove(partialName)
+			handles.discard(copyDiscardWait)
 		})
 		defer remove()
 	}
@@ -147,8 +199,10 @@ func copyOneFile(ctx context.Context, src string, info os.FileInfo, dst string, 
 	}
 	loopStarted = true
 	if _, err := copyStreamWatched(ctx, out, in, buf, opt.NoProgress, opt.OnBytes, unblock, release); err != nil {
-		unblock()
-		out.Abort()
+		// Not out.Abort(): it closes the partial on this goroutine, which waits
+		// for a write that is still in flight. discard removes the partial after
+		// the handles really close, and waits for that only briefly.
+		handles.discard(copyDiscardWait)
 		return err
 	}
 	in.Close()
@@ -205,9 +259,12 @@ func copyStreamWatched(ctx context.Context, w io.Writer, r io.Reader, buf []byte
 		}
 		return false
 	}
+	// The close is never waited on: with a synchronous read pending it does not
+	// return until the read does, and a device that never answers would hold the
+	// watchdog and the stop for ever (AUD-01-F1).
 	doUnblock := func() {
 		if unblock != nil {
-			unblock()
+			go unblock()
 		}
 	}
 

@@ -7,6 +7,8 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"filedo/vdisk"
@@ -35,12 +37,21 @@ import (
 //	     "mount": null | {"letter": "X:", "read_only": false, "mounted_at": "<time>", "server_alive": true,
 //	                      "ram": null | {"dirty_bytes": 0, "saving": false, "last_good_save": "<time>"|null}}},
 //	    {"kind": "image", "path": "..", "letter": "X:", "mounted_at": "<time>"}
-//	  ]
+//	  ],
+//	  "guard": {"installed": false, "running": false, "last_run": null, "ended": "",
+//	            "containers": [{"name": "", "path": "..", "action": "save|unmount",
+//	                            "outcome": "saved|unmounted|skipped|unfinished",
+//	                            "reason": "..", "bytes_saved": 0}]}
 //	}
 //
 // Rows: every registered container, then every mounted container the registry
 // does not name, then every foreign image FileDO mounted. A mount and its
 // registration are joined by container id, never by path.
+//
+// `guard` is the shutdown guard (SP-0080): additive inside this schema
+// version, whose reader ignores unknown fields, so an old GUI and a new CLI -
+// and the reverse - both keep working. `last_run` is when the guard last ran,
+// null before its first session end; `containers` is that run's rows.
 //
 // What it never carries: a credential, a port, a process id, an IQN, a
 // session id or a serial. Those stay in vdisk-state.json and in the text of
@@ -65,6 +76,18 @@ func (s vdStamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.Local().Truncate(time.Second).Format(time.RFC3339))
 }
 
+// UnmarshalJSON reads a stamp back - the heartbeat, the report and the
+// snapshot's guard field are written and read on this machine. null is the
+// zero time, as MarshalJSON writes it.
+func (s *vdStamp) UnmarshalJSON(b []byte) error {
+	var t time.Time
+	if err := json.Unmarshal(b, &t); err != nil {
+		return err
+	}
+	*s = vdStamp(t)
+	return nil
+}
+
 type vdSnapshot struct {
 	Schema    string          `json:"schema"`
 	Version   int             `json:"version"`
@@ -72,6 +95,27 @@ type vdSnapshot struct {
 	Packaged  bool            `json:"packaged"`
 	Transport vdSnapTransport `json:"transport"`
 	Disks     []interface{}   `json:"disks"`
+	Guard     vdSnapGuard     `json:"guard"`
+}
+
+// vdSnapGuard is the shutdown guard's state at the snapshot's moment
+// (SP-0080 4-5): whether the task is installed, whether a watcher holds the
+// heartbeat, and what the last session's end did.
+type vdSnapGuard struct {
+	Installed  bool             `json:"installed"`
+	Running    bool             `json:"running"`
+	LastRun    vdStamp          `json:"last_run"`
+	Ended      string           `json:"ended,omitempty"`
+	Containers []vdSnapGuardRow `json:"containers,omitempty"`
+}
+
+type vdSnapGuardRow struct {
+	Name       string `json:"name"`
+	Path       string `json:"path"`
+	Action     string `json:"action"`
+	Outcome    string `json:"outcome"`
+	Reason     string `json:"reason,omitempty"`
+	BytesSaved int64  `json:"bytes_saved,omitempty"`
 }
 
 type vdSnapTransport struct {
@@ -125,6 +169,7 @@ var (
 	vdSnapshotTasks     = vdAutoTasks
 	vdSnapshotTransport = vdTransportState
 	vdSnapshotAlive     = vdServerAlive
+	vdSnapshotGuard     = vdGuardState
 	vdSnapshotNow       = time.Now
 )
 
@@ -180,6 +225,7 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 	} else {
 		s.Transport = vdSnapshotTransport()
 	}
+	s.Guard = vdSnapshotGuard()
 	reg, err := vdLoadRegistry()
 	if err != nil {
 		return s, err
@@ -194,10 +240,11 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 		tasks = vdSnapshotTasks()
 	}
 	claimed := map[string]bool{}
+	var rows []*vdSnapContainer
+	var wantIDs []string
 	for _, e := range reg.Containers {
-		row := vdSnapContainer{Kind: "container", Name: e.Name, Path: e.Path, ContainerID: e.ContainerID,
+		row := &vdSnapContainer{Kind: "container", Name: e.Name, Path: e.Path, ContainerID: e.ContainerID,
 			Registered: true, Profile: e.Profile, LogicalSize: e.LogicalSize, Auto: tasks[strings.ToLower(e.Name)]}
-		vdSnapFile(&row, e.ContainerID)
 		for _, m := range state.Mounts {
 			if strings.EqualFold(m.ContainerID, e.ContainerID) {
 				row.Mount = vdSnapMountOf(m)
@@ -205,7 +252,7 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 				break
 			}
 		}
-		s.Disks = append(s.Disks, row)
+		rows, wantIDs = append(rows, row), append(wantIDs, e.ContainerID)
 	}
 	mounts := append([]vdMountRow(nil), state.Mounts...)
 	sort.SliceStable(mounts, func(a, b int) bool { return mounts[a].Letter < mounts[b].Letter })
@@ -213,10 +260,13 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 		if claimed[strings.ToLower(m.ContainerID)] {
 			continue
 		}
-		row := vdSnapContainer{Kind: "container", Path: m.Path, ContainerID: m.ContainerID, Profile: m.Profile}
-		vdSnapFile(&row, m.ContainerID)
+		row := &vdSnapContainer{Kind: "container", Path: m.Path, ContainerID: m.ContainerID, Profile: m.Profile}
 		row.Mount = vdSnapMountOf(m)
-		s.Disks = append(s.Disks, row)
+		rows, wantIDs = append(rows, row), append(wantIDs, m.ContainerID)
+	}
+	vdSnapFiles(rows, wantIDs)
+	for _, row := range rows {
+		s.Disks = append(s.Disks, *row)
 	}
 	images := append([]vdImageRow(nil), state.Images...)
 	sort.SliceStable(images, func(a, b int) bool { return images[a].Letter < images[b].Letter })
@@ -226,13 +276,66 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 	return s, nil
 }
 
+// vdSnapFileTimeout bounds how long one container file may take to answer. A
+// file on an unreachable network path takes about 20 s to fail, and the window
+// stops waiting for the whole snapshot after 8: without a bound of its own one
+// dead entry hid every disk (AUD-34-F6, AUD-30-F1). A variable so a test can
+// shorten it.
+var vdSnapFileTimeout = 3 * time.Second
+
+// vdSnapFileFn is the per-file inspection; a seam for the test.
+var vdSnapFileFn = vdSnapFile
+
+// vdSnapFiles inspects every row's file in parallel, each with its own bound.
+// A file that has not answered in time reads as unreadable, with the reason:
+// it is known to exist in the registry, so "missing" would be a claim nobody
+// checked.
+func vdSnapFiles(rows []*vdSnapContainer, wantIDs []string) {
+	var wg sync.WaitGroup
+	for i := range rows {
+		wg.Add(1)
+		go func(row *vdSnapContainer, wantID string) {
+			defer wg.Done()
+			done := make(chan vdSnapContainer, 1)
+			go func() {
+				tmp := *row // the inspection works on a copy: a late answer never touches the row
+				vdSnapFileFn(&tmp, wantID)
+				done <- tmp
+			}()
+			select {
+			case tmp := <-done:
+				*row = tmp
+			case <-time.After(vdSnapFileTimeout):
+				row.File = "unreadable"
+				row.FileError = fmt.Sprintf("did not answer within %s (a network path or a device that is not responding)", vdSnapFileTimeout)
+			}
+		}(rows[i], wantIDs[i])
+	}
+	wg.Wait()
+}
+
+// vdNetworkGone reports an error that says the path's host or share could not
+// be reached. Go files these under "does not exist", which is not what they
+// mean: the file may be there, and the network is not.
+func vdNetworkGone(err error) bool {
+	var errno syscall.Errno
+	if !errors.As(err, &errno) {
+		return false
+	}
+	switch errno {
+	case 53, 64, 67, 1222, 1231: // BAD_NETPATH, NETNAME_DELETED, BAD_NET_NAME, NO_NETWORK, NETWORK_UNREACHABLE
+		return true
+	}
+	return false
+}
+
 // vdSnapFile fills what the container file says: whether it is there, whether
 // it is still the container the row expects (by id), and what its header
 // holds. A header that does not read leaves the registry's profile and size
 // and claims no protection.
 func vdSnapFile(row *vdSnapContainer, wantID string) {
 	if _, err := os.Stat(row.Path); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) && !vdNetworkGone(err) {
 			row.File = "missing"
 			return
 		}
