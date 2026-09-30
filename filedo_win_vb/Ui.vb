@@ -19,10 +19,24 @@ Module Ui
     Public Function Px(owner As Control, designPixels As Integer) As Integer
         If owner Is Nothing Then Return designPixels
         Try
-            Return owner.LogicalToDeviceUnits(designPixels)
+            Return CInt(Math.Round(designPixels * DpiFor(owner) / 96.0))
         Catch
             Return designPixels
         End Try
+    End Function
+
+    ' The dpi a size stated for this control has to be in. A control that is not on a window yet -
+    ' a page or a dialog under construction - has no monitor, and its own DeviceDpi is the
+    ' system's, which is the wrong answer on every other display: it is stated for the window in
+    ' front (Theme.CurrentDpi), the one it is about to be shown on (SP-0016 T4, the mixed-DPI defect).
+    Public Function DpiFor(owner As Control) As Integer
+        Try
+            Dim f = owner.FindForm()
+            If f IsNot Nothing AndAlso f.IsHandleCreated Then Return f.DeviceDpi
+            If owner.IsHandleCreated Then Return owner.DeviceDpi
+        Catch
+        End Try
+        Return Theme.CurrentDpi
     End Function
 
     Public Function PxSize(owner As Control, w As Integer, h As Integer) As Size
@@ -32,6 +46,35 @@ Module Ui
     Public Function PxPad(owner As Control, l As Integer, t As Integer, r As Integer, b As Integer) As Padding
         Return New Padding(Px(owner, l), Px(owner, t), Px(owner, r), Px(owner, b))
     End Function
+
+    ' Holds the layout of a control and everything under it while a batch of property changes is
+    ' made, and lets it go with one pass at the root. Setting a Font on a control re-measures the
+    ' control and re-lays-out every AutoSize container above it; a view that restyles a hundred
+    ' controls without this did that a hundred times over (Ui.Wrap's SizeChanged handler adds a
+    ' second layout to each), which was about four of the five seconds the window took to open and
+    ' most of the time the self-test spends building pages. The calls nest: only the outermost
+    ' resume lays anything out.
+    Public Sub SuspendTree(root As Control)
+        If root Is Nothing Then Return
+        root.SuspendLayout()
+        For Each c As Control In root.Controls
+            SuspendTree(c)
+        Next
+    End Sub
+
+    Public Sub ResumeTree(root As Control)
+        If root Is Nothing Then Return
+        ResumeChildren(root)
+        root.ResumeLayout(False)
+        root.PerformLayout()
+    End Sub
+
+    Private Sub ResumeChildren(parent As Control)
+        For Each c As Control In parent.Controls
+            ResumeChildren(c)
+            c.ResumeLayout(False)
+        Next
+    End Sub
 
     ' Makes a label wrap inside whatever width its container ends up with, and keep its full text.
     '

@@ -127,7 +127,7 @@ func redirectedOperation(op string) (writes, cleans bool) {
 // redirect; clean on the system drive looks in the redirect folder, because
 // that is where every earlier write went - no prompt, since clean removes only
 // FileDO's own files. Everything else acts where it was pointed.
-func effectiveTarget(op, path string) string {
+func effectiveTarget(op, path string) (string, error) {
 	writes, cleans := redirectedOperation(op)
 	switch {
 	case writes:
@@ -135,7 +135,7 @@ func effectiveTarget(op, path string) string {
 	case cleans && isSystemVolumeRoot(path) && os.Getenv("FILEDO_DISABLE_REDIRECT") != "1":
 		dir := systemDriveRedirectDir()
 		printRedirectCleanNote(dir)
-		return dir
+		return dir, nil
 	}
-	return path
+	return path, nil
 }

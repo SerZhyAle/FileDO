@@ -39,7 +39,7 @@ Public Class ShellForm
     Private root As TableLayoutPanel
     Private rightSide As TableLayoutPanel
 
-    Private jobView As JobView
+    Private jobViewValue As JobView
     Private historyView As HistoryView
     Private commandView As CommandView
     Private aboutView As AboutView
@@ -121,7 +121,7 @@ Public Class ShellForm
     ' open path goes straight to the mount and runs it). The page runs it only if it offers Run.
     Protected Overrides Sub OnShown(e As EventArgs)
         MyBase.OnShown(e)
-        If diskStart IsNot Nothing AndAlso diskStart.AutoRun AndAlso jobView.CurrentJobId = diskStart.JobKey Then
+        If diskStart IsNot Nothing AndAlso diskStart.AutoRun AndAlso jobViewValue IsNot Nothing AndAlso jobViewValue.CurrentJobId = diskStart.JobKey Then
             diskStart.AutoRun = False
             jobView.RunFromShell()
         End If
@@ -139,6 +139,38 @@ Public Class ShellForm
             Return jobView
         End Get
     End Property
+
+    ' The job page is built the first time a job is chosen, not with the window: the window opens on
+    ' the Command page, and building the job page (a hundred controls, the disk options among them)
+    ' was about half a second of the wait for nothing the user had asked for. Anything that only
+    ' wants to know about a run in progress asks jobViewValue and leaves it unbuilt.
+    Private ReadOnly Property jobView As JobView
+        Get
+            If jobViewValue Is Nothing Then CreateJobView()
+            Return jobViewValue
+        End Get
+    End Property
+
+    Private Function JobViewRunning() As Boolean
+        Return jobViewValue IsNot Nothing AndAlso jobViewValue.IsRunning
+    End Function
+
+    Private Sub CreateJobView()
+        Dim view As New JobView() With {.Visible = False}
+        jobViewValue = view
+        AddHandler view.OpenInCommandRequested,
+            Sub(cmd, credential)
+                SelectJobByKey("rail_job_command")
+                commandView.SetCommand(cmd, credential)
+            End Sub
+        AddHandler view.CleanRequested, AddressOf OpenCleanOn
+        AddHandler view.DiskJobRequested, AddressOf OpenDiskJobOn
+        AddHandler view.DiskManagerRequested, Sub() AppHost.OpenDiskManager()
+        AddHandler view.RunFinished, AddressOf AnyRunFinished
+        pageHost.Controls.Add(view)
+        view.ApplyTheme()
+        Ui.KeepCaptionsReadable(view)
+    End Sub
 
     Private Function L(key As String) As String
         Dim v As String = Nothing
@@ -324,17 +356,6 @@ Public Class ShellForm
     Private Sub BuildPageHost()
         pageHost = New Panel With {.Dock = DockStyle.Fill, .Padding = New Padding(24, 0, 24, 24)}
 
-        jobView = New JobView() With {.Visible = False}
-        AddHandler jobView.OpenInCommandRequested,
-            Sub(cmd, credential)
-                SelectJobByKey("rail_job_command")
-                commandView.SetCommand(cmd, credential)
-            End Sub
-        AddHandler jobView.CleanRequested, AddressOf OpenCleanOn
-        AddHandler jobView.DiskJobRequested, AddressOf OpenDiskJobOn
-        AddHandler jobView.DiskManagerRequested, Sub() AppHost.OpenDiskManager()
-        AddHandler jobView.RunFinished, AddressOf AnyRunFinished
-
         historyView = New HistoryView() With {.Visible = False}
         commandView = New CommandView() With {.Visible = False}
         AddHandler commandView.RunFinished, AddressOf AnyRunFinished
@@ -372,7 +393,6 @@ Public Class ShellForm
         emptyCentre.Controls.Add(emptyTitle, 0, 1)
         emptyCentre.Controls.Add(emptyHint, 0, 2)
 
-        pageHost.Controls.Add(jobView)
         pageHost.Controls.Add(historyView)
         pageHost.Controls.Add(commandView)
         pageHost.Controls.Add(aboutView)
@@ -651,7 +671,7 @@ Public Class ShellForm
         ' About and Command are other views and stay reachable; the job page keeps its run while
         ' they are on screen.
         Dim chosenJob = JobCatalogue.GetJob(chosen.Key)
-        If chosenJob IsNot Nothing AndAlso jobView.IsRunning AndAlso chosen.Key <> jobView.CurrentJobId Then
+        If chosenJob IsNot Nothing AndAlso JobViewRunning() AndAlso chosen.Key <> jobView.CurrentJobId Then
             Dim runningRow = EntryFor(jobView.CurrentJobId)
             If runningRow IsNot Nothing Then
                 RailEntry_Click(runningRow, EventArgs.Empty)
@@ -677,7 +697,7 @@ Public Class ShellForm
         titleLabel.Text = If(numbered, Localization.Format(L("shell_step1_fmt"), chosen.Text), chosen.Text)
         subtitleLabel.Text = L(PurposeKeyFor(chosen.Key))
 
-        jobView.Visible = False
+        If jobViewValue IsNot Nothing Then jobViewValue.Visible = False
         historyView.Visible = False
         commandView.Visible = False
         aboutView.Visible = False
@@ -767,12 +787,12 @@ Public Class ShellForm
     ' ---- a run and the window's life -------------------------------------
 
     Private Function AnyRunActive() As Boolean
-        Return jobView.IsRunning OrElse commandView.IsRunning
+        Return JobViewRunning() OrElse commandView.IsRunning
     End Function
 
     ' The name of what is running, for the close question.
     Private Function RunningName() As String
-        If jobView.IsRunning Then
+        If JobViewRunning() Then
             Dim row = EntryFor(jobView.CurrentJobId)
             If row IsNot Nothing Then Return row.Text
         End If
@@ -804,7 +824,7 @@ Public Class ShellForm
                                           1, 1, 0)
             If pickEnd = 0 Then
                 ShellLog.Info("close: the user ended a run that had not stopped")
-                jobView.ForceEnd()
+                If jobViewValue IsNot Nothing Then jobViewValue.ForceEnd()
                 commandView.ForceEnd()
             End If
             Return False
@@ -821,7 +841,7 @@ Public Class ShellForm
         statusLabel.Text = L("shell_closing_after_stop")
         statusLabel.Visible = True
         ShellLog.Info("close: stop requested, the window closes when the run ends")
-        jobView.RequestStopFromShell()
+        If jobViewValue IsNot Nothing Then jobViewValue.RequestStopFromShell()
         commandView.RequestStopFromShell()
         Return False
     End Function
@@ -829,6 +849,15 @@ Public Class ShellForm
     ' ---- theme -----------------------------------------------------------
 
     Private Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         BackColor = p.Background
         ForeColor = p.Text
@@ -859,7 +888,7 @@ Public Class ShellForm
             c.Invalidate()
         Next
 
-        jobView.ApplyTheme()
+        If jobViewValue IsNot Nothing Then jobViewValue.ApplyTheme()
         historyView.ApplyTheme()
         commandView.ApplyTheme()
         aboutView.ApplyTheme()
@@ -875,9 +904,18 @@ Public Class ShellForm
     ' Moving the window to a display with another scaling changes what a design pixel is worth, so
     ' the minimum size is re-stated rather than left at the old monitor's value.
     Protected Overrides Sub OnDpiChanged(e As DpiChangedEventArgs)
+        ShellLog.Debug("shell dpi " & e.DeviceDpiOld.ToString() & " -> " & e.DeviceDpiNew.ToString())
+        ' Fonts made from here on are for the new display; the fonts that exist are re-sized by
+        ' WinForms once this event returns (Theme.vb, "fonts and the display's scaling").
+        Theme.CurrentDpi = e.DeviceDpiNew
         MyBase.OnDpiChanged(e)
         MinimumSize = Ui.PxSize(Me, 940, 640)
         LayoutRail()
+    End Sub
+
+    Protected Overrides Sub OnActivated(e As EventArgs)
+        MyBase.OnActivated(e)
+        Theme.CurrentDpi = DeviceDpi
     End Sub
 
     Protected Overrides Sub WndProc(ByRef m As Message)
@@ -905,6 +943,15 @@ Public Class ShellForm
     ' is WindowPlacement.Place, a pure function the self-test exercises without a display.
     ' A placement that cannot be restored is logged and the window opens at its default size and
     ' place (SHELL-09): settings never stop the window from opening.
+    ' The rectangle a window has to end up at when that is on a display whose scaling is not the
+    ' one the layout was built for (the system's), and whether it ends up maximized. A window
+    ' created straight onto such a display gets no WM_DPICHANGED - its children stay at the scaling
+    ' of the display it was built for, at the wrong size for this one (SP-0016 T4, the mixed-DPI
+    ' defect). So it is created on the primary display and moved in OnLoad, the way a user drags it,
+    ' which does make WinForms re-scale it.
+    Private pendingBounds As Rectangle = Rectangle.Empty
+    Private pendingMaximized As Boolean = False
+
     Private Sub RestorePlacement()
         Try
             Dim p = ShellSettings.LoadPlacement()
@@ -917,11 +964,46 @@ Public Class ShellForm
                                           SystemInformation.CaptionHeight)
             If Not r.IsEmpty Then
                 StartPosition = FormStartPosition.Manual
-                Bounds = r
+                Dim targetDpi = WindowPlacement.DpiOf(Screen.FromRectangle(r))
+                If targetDpi = Theme.SystemDpi() Then
+                    Bounds = r
+                Else
+                    pendingBounds = r
+                    pendingMaximized = p.Maximized
+                    Dim wa = Screen.PrimaryScreen.WorkingArea
+                    Dim k = Theme.SystemDpi() / CDbl(targetDpi)
+                    Bounds = New Rectangle(wa.Left + 40, wa.Top + 40,
+                                           Math.Min(wa.Width, CInt(Math.Round(r.Width * k))),
+                                           Math.Min(wa.Height, CInt(Math.Round(r.Height * k))))
+                    Return
+                End If
             End If
             If p.Maximized Then WindowState = FormWindowState.Maximized
         Catch ex As Exception
             ShellLog.Write("restore the window placement", ex)
+        End Try
+    End Sub
+
+    ' The handle exists, on the primary display: move to the saved display, and once WinForms has
+    ' re-scaled for it put the saved rectangle back.
+    Protected Overrides Sub OnLoad(e As EventArgs)
+        MyBase.OnLoad(e)
+        If Not pendingBounds.IsEmpty Then
+            Location = pendingBounds.Location
+            BeginInvoke(New MethodInvoker(AddressOf FinishPendingPlacement))
+        End If
+    End Sub
+
+    Private Sub FinishPendingPlacement()
+        If pendingBounds.IsEmpty Then Return
+        Dim b = pendingBounds
+        pendingBounds = Rectangle.Empty
+        Try
+            Bounds = b
+            If pendingMaximized Then WindowState = FormWindowState.Maximized
+            ShellLog.Debug("shell placement finished on dpi " & DeviceDpi.ToString() & " at " & b.ToString())
+        Catch ex As Exception
+            ShellLog.Write("finish the window placement", ex)
         End Try
     End Sub
 
@@ -951,7 +1033,7 @@ Public Class ShellForm
                     Return
                 End If
             Else
-                jobView.RequestStopFromShell()
+                If jobViewValue IsNot Nothing Then jobViewValue.RequestStopFromShell()
                 commandView.RequestStopFromShell()
             End If
         End If

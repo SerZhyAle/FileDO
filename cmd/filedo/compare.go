@@ -21,6 +21,7 @@ type fileMeta struct {
 	rel  string
 	size int64
 	mod  time.Time
+	info os.FileInfo
 }
 
 type diffEntry struct {
@@ -277,7 +278,7 @@ func scanFiles(root string) *folderScan {
 		if _, dup := s.files[key]; dup {
 			s.collisions[key] = true
 		}
-		s.files[key] = fileMeta{rel: rel, size: info.Size(), mod: info.ModTime()}
+		s.files[key] = fileMeta{rel: rel, size: info.Size(), mod: info.ModTime(), info: info}
 		s.count++
 		s.total += info.Size()
 		return nil
@@ -330,7 +331,23 @@ type delTask struct {
 	other string // the pair's file on the other side
 	size  int64
 	// hash: delete only if the two files' contents hash the same (--by-hash).
-	hash bool
+	hash                bool
+	selfMeta, otherMeta fileMeta
+}
+
+// A pair selected from the scan must still name the same two unchanged files
+// at the deletion boundary. A replacement with the same size and time is not
+// the file whose deletion the user approved.
+func unchangedCompareFile(path string, scanned fileMeta) error {
+	now, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !now.Mode().IsRegular() || now.Size() != scanned.size || !now.ModTime().Equal(scanned.mod) ||
+		!os.SameFile(now, scanned.info) {
+		return fmt.Errorf("file changed since the scan")
+	}
+	return nil
 }
 
 type delStats struct {
@@ -348,12 +365,17 @@ var compareConfirm = func(prompt string) (answered, yes bool) { return cleanConf
 var compareDeleteModes = map[string]bool{"source": true, "target": true, "old": true, "new": true, "small": true, "big": true}
 
 // sameContent hashes two files and compares the digests.
+var compareHashFile = hashFileSHA256
+
 func sameContent(a, b string) (bool, error) {
-	ha, err := hashFileSHA256(a)
+	ha, err := compareHashFile(a)
 	if err != nil {
 		return false, err
 	}
-	hb, err := hashFileSHA256(b)
+	if runStopRequested() {
+		return false, fmt.Errorf("compare stopped")
+	}
+	hb, err := compareHashFile(b)
 	if err != nil {
 		return false, err
 	}
@@ -396,8 +418,8 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 		}
 		srcAbs := filepath.Join(srcRoot, s.rel)
 		dstAbs := filepath.Join(dstRoot, d.rel)
-		srcTask := delTask{side: "source", rel: s.rel, abs: srcAbs, other: dstAbs, size: s.size}
-		dstTask := delTask{side: "target", rel: d.rel, abs: dstAbs, other: srcAbs, size: d.size}
+		srcTask := delTask{side: "source", rel: s.rel, abs: srcAbs, other: dstAbs, size: s.size, selfMeta: s, otherMeta: d}
+		dstTask := delTask{side: "target", rel: d.rel, abs: dstAbs, other: srcAbs, size: d.size, selfMeta: d, otherMeta: s}
 		switch mode {
 		case "source", "target":
 			t := srcTask
@@ -531,6 +553,9 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 		go func() {
 			defer wg.Done()
 			for t := range tasksCh {
+				if runStopRequested() {
+					return
+				}
 				// The two names of a pair must be two files.
 				same, err := sameFilePaths(t.abs, t.other)
 				if err != nil {
@@ -542,7 +567,13 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 					continue
 				}
 				if t.hash {
+					if runStopRequested() {
+						return
+					}
 					eq, err := sameContent(t.abs, t.other)
+					if runStopRequested() {
+						return
+					}
 					if err != nil {
 						fail(t, "cannot hash the pair: %v", err)
 						continue
@@ -551,6 +582,20 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 						fail(t, "content differs - not deleted")
 						continue
 					}
+				}
+				if runStopRequested() {
+					return
+				}
+				if err := unchangedCompareFile(t.abs, t.selfMeta); err != nil {
+					fail(t, "delete candidate changed: %v", err)
+					continue
+				}
+				if err := unchangedCompareFile(t.other, t.otherMeta); err != nil {
+					fail(t, "other file changed: %v", err)
+					continue
+				}
+				if runStopRequested() {
+					return
 				}
 				if err := os.Remove(t.abs); err != nil {
 					fail(t, "%v", err)

@@ -123,6 +123,26 @@ func vdTestEnv(t *testing.T) string {
 	return t.TempDir()
 }
 
+func TestVD_DestroyWipeForceRefusesUnreadableMountState(t *testing.T) {
+	dir := vdTestEnv(t)
+	path := filepath.Join(dir, "keep.fdd")
+	vdTestContainer(t, path, 1<<20, vdisk.ProfilePlain, "")
+	before := vdTestHash(t, path)
+	statePath, err := vdStatePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(statePath, []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := vdTestRun(t, true, "destroy", path, "wipe", "force"); vdExitClass(err) != vdisk.ExitBusy {
+		t.Fatalf("unreadable state allowed forced wipe: %v", err)
+	}
+	if got := vdTestHash(t, path); got != before {
+		t.Fatal("a refused wipe changed the container")
+	}
+}
+
 // T6.7: every alias of spec 5.2 resolves to its verb, and no word of the verb
 // table collides with the generic chain's operation words or the sibling's
 // option words - both read from the code, not from a copy.
@@ -706,7 +726,7 @@ func TestVD_Packaged(t *testing.T) {
 	vdPackaged = func() bool { return true }
 	defer func() { vdPackaged = was }()
 	for _, args := range [][]string{
-		{"mount", p}, {"unmount", p}, {"unmount", "X:"}, {"save", p}, {"format", p, "force"}, {"auto", "work", "logon"}, {"mount", filepath.Join(dir, "d.vhdx")},
+		{"mount", p}, {"unmount", p}, {"unmount", "X:"}, {"save", p}, {"format", p, "force"}, {"auto", "work", "logon"}, {"guard", "status"}, {"mount", filepath.Join(dir, "d.vhdx")},
 	} {
 		_, err := vdTestRun(t, false, args...)
 		if vdExitClass(err) != vdisk.ExitUnsupported || !strings.Contains(err.Error(), "Microsoft Store build") || strings.Count(err.Error(), ". ") > 0 {

@@ -52,6 +52,7 @@ Public Module SelfTest
         Guard("page", AddressOf CheckJobPages)
         Guard("expert", AddressOf CheckExpertPage)
         Guard("rail", AddressOf CheckRailTargets)
+        Guard("dpi", AddressOf CheckDpiFonts)
         Guard("verdict", AddressOf CheckVerdictTable)
         Guard("glyph", AddressOf CheckVerdictGlyphs)
 
@@ -127,12 +128,23 @@ Public Module SelfTest
         Guard("locale-keys", AddressOf CheckLocaleKeySets)
     End Sub
 
+    ' FILEDO_SELFTEST_ONLY=page,expert runs just the groups whose names start with one of the words
+    ' (a developer's loop; the full run takes minutes). Such a run is never a pass: the verdict says
+    ' PARTIAL and the exit code is 2, "could not verify", so a gate cannot mistake it for one.
+    Private ReadOnly onlyGroups As String() =
+        If(Environment.GetEnvironmentVariable("FILEDO_SELFTEST_ONLY"), "").
+            Split(New Char() {","c, ";"c, " "c}, StringSplitOptions.RemoveEmptyEntries)
+
     Private Sub Guard(name As String, body As Action)
+        If onlyGroups.Length > 0 AndAlso Not onlyGroups.Any(Function(o) name.StartsWith(o, StringComparison.OrdinalIgnoreCase)) Then Return
+        ' A TIME line per group says where the run's minutes go; it is no check and is not counted.
+        Dim clock = Diagnostics.Stopwatch.StartNew()
         Try
             body()
         Catch ex As Exception
             Check(name, False, "threw " & ex.GetType().Name & ": " & ex.Message)
         End Try
+        report.AppendLine("TIME " & name & " - " & clock.ElapsedMilliseconds.ToString() & " ms")
     End Sub
 
     Private Sub CheckShortcut()
@@ -183,7 +195,9 @@ Public Module SelfTest
     Private Function WriteLog() As Integer
         Dim logFile = LogFilePath()
         Dim verdict As String = If(failures = 0,
-                                   "selftest: PASS (" & CountChecks().ToString() & ")",
+                                   If(onlyGroups.Length > 0,
+                                      "selftest: PARTIAL (" & CountChecks().ToString() & ", only " & String.Join(",", onlyGroups) & ")",
+                                      "selftest: PASS (" & CountChecks().ToString() & ")"),
                                    "selftest: FAIL (" & failures.ToString() & "): " & FailureNames())
         report.AppendLine(verdict)
         Try
@@ -193,7 +207,8 @@ Public Module SelfTest
             Return 2
         End Try
 
-        Return If(failures = 0, 0, 1)
+        If failures <> 0 Then Return 1
+        Return If(onlyGroups.Length > 0, 2, 0)
     End Function
 
     ' The last resort of Program.Main: something outside every Guard threw. The rows written so far
@@ -240,11 +255,20 @@ Public Module SelfTest
     ' Each page is built, given a target, and asked what it would run. The command has to start
     ' with filedo.exe, name the job's verb, and carry the target - the three things that are
     ' wrong when a page has been given a control the command builder does not know about.
+    ' One JobView serves every job, as the window's does: SetJob resets it (ResetView), and building a
+    ' fresh page per job was two thirds of this group's time.
     Private Sub CheckJobPages()
+        Dim view As New JobView()
+        Try
+            CheckJobPagesWith(view)
+        Finally
+            view.Dispose()
+        End Try
+    End Sub
+
+    Private Sub CheckJobPagesWith(view As JobView)
         For Each job In JobCatalogue.GetAllJobs()
-            Dim view As JobView = Nothing
             Try
-                view = New JobView()
                 view.SetJob(job)
                 view.SetTarget(SampleTargetFor(job))
 
@@ -271,8 +295,6 @@ Public Module SelfTest
                 End If
             Catch ex As Exception
                 Check("page:" & job.Id, False, ex.GetType().Name & ": " & ex.Message)
-            Finally
-                If view IsNot Nothing Then view.Dispose()
             End Try
         Next
     End Sub
@@ -311,6 +333,36 @@ Public Module SelfTest
             Check("expert", False, ex.GetType().Name & ": " & ex.Message)
         Finally
             If view IsNot Nothing Then view.Dispose()
+        End Try
+    End Sub
+
+    ' SP-0016 T4, the mixed-DPI defect: a font is made for the window it is shown in, so the same
+    ' nominal size is larger on a display whose scaling is larger than the system's and smaller on
+    ' one that is smaller, and a control with no window yet is sized for the window in front.
+    Private Sub CheckDpiFonts()
+        Dim sys = Theme.SystemDpi()
+        Check("dpi:same-as-system-is-nominal", Math.Abs(Theme.ScaledPoints(10.0F, sys) - 10.0F) < 0.001F, sys.ToString())
+        Check("dpi:double-is-double", Math.Abs(Theme.ScaledPoints(10.0F, sys * 2) - 20.0F) < 0.001F)
+        Check("dpi:half-is-half", Math.Abs(Theme.ScaledPoints(10.0F, sys \ 2) - 5.0F) < 0.06F)
+        Check("dpi:garbage-falls-back-to-system", Math.Abs(Theme.ScaledPoints(10.0F, 0) - 10.0F) < 0.001F)
+
+        Dim was = Theme.CurrentDpi
+        Try
+            Using small = Theme.FontBody(96), large = Theme.FontBody(192)
+                Check("dpi:font-follows-dpi", Math.Abs(large.SizeInPoints / small.SizeInPoints - 2.0F) < 0.01F,
+                      small.SizeInPoints.ToString() & " / " & large.SizeInPoints.ToString())
+            End Using
+            Theme.CurrentDpi = 192
+            Using c As New Label()
+                Check("dpi:px-of-unparented-control-uses-current", Ui.Px(c, 10) = 20, Ui.Px(c, 10).ToString())
+            End Using
+            Theme.CurrentDpi = 96
+            Using c As New Label()
+                Check("dpi:px-at-96", Ui.Px(c, 10) = 10, Ui.Px(c, 10).ToString())
+            End Using
+            Check("dpi:px-of-nothing", Ui.Px(Nothing, 10) = 10)
+        Finally
+            Theme.CurrentDpi = was
         End Try
     End Sub
 
@@ -991,6 +1043,8 @@ Public Module SelfTest
         Dim shell As ShellForm = Nothing
         Try
             shell = New ShellForm()
+            ' The job page is built when a job is first chosen: build it, or its buttons are not walked.
+            Check("disabled-caption:job-page-built", shell.JobViewForTest IsNot Nothing, "")
             Dim missed As New List(Of String)
             For Each c In AllControls(shell)
                 Dim b = TryCast(c, ButtonBase)
@@ -1231,6 +1285,8 @@ Public Module SelfTest
         Dim shell As ShellForm = Nothing
         Try
             shell = New ShellForm()
+            ' The window builds its job page the first time a job is chosen; the walk needs it now.
+            Check("a11y:job-page-built", shell.JobViewForTest IsNot Nothing, "")
             Dim problems As New List(Of String)
             WalkAccessible(shell, problems)
             Check("a11y:window", problems.Count = 0, String.Join("; ", problems.Take(8).ToArray()))
@@ -1385,6 +1441,26 @@ Public Module SelfTest
             Check("command:wipe-without-y-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\sample wipe", ""), "")
             Check("command:wipe-root-refused", Not cv.RunEnabledForTest("filedo.exe D:\ wipe -y", "WIPE"), "")
             Check("command:no-wipe-no-word", cv.RunEnabledForTest("filedo.exe E: info", ""), "")
+            Check("command:duplicate-delete-asks-word", Not cv.RunEnabledForTest("filedo.exe E: cd del", ""), "")
+            Check("command:duplicate-delete-confirmed", cv.RunEnabledForTest("filedo.exe E: cd del", "DELETE"), "")
+            Check("command:compare-delete-asks-word", Not cv.RunEnabledForTest("filedo.exe compare C:\a D:\b del source --yes", ""), "")
+            Check("command:recover-asks-word", Not cv.RunEnabledForTest("filedo.exe E: recover yes", ""), "")
+            Check("command:recover-confirmed", cv.RunEnabledForTest("filedo.exe E: recover yes", "RECOVER"), "")
+            Check("command:repair-alias-asks-word", Not cv.RunEnabledForTest("filedo.exe E: repair yes", ""), "")
+            Check("command:probe-read-only", cv.RunEnabledForTest("filedo.exe E: probe", ""), "")
+            Check("command:probe-fix-asks-word", Not cv.RunEnabledForTest("filedo.exe E: probe fix yes", ""), "")
+            Check("command:probe-fix-confirmed", cv.RunEnabledForTest("filedo.exe E: probe fix yes", "FIX"), "")
+            Check("command:probe-repair-alias-confirmed", cv.RunEnabledForTest("filedo.exe E: probe repair yes", "FIX"), "")
+            Check("command:probe-format-asks-word", Not cv.RunEnabledForTest("filedo.exe E: probe format yes", ""), "")
+            Check("command:probe-format-confirmed", cv.RunEnabledForTest("filedo.exe E: probe format yes", "FORMAT"), "")
+            Check("command:disk-format-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\disk.fdd format fs ntfs force", ""), "")
+            Check("command:disk-format-confirmed", cv.RunEnabledForTest("filedo.exe C:\disk.fdd format fs ntfs force", "FORMAT"), "")
+            Check("command:disk-destroy-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\disk.fdd destroy force", ""), "")
+            Check("command:disk-destroy-confirmed", cv.RunEnabledForTest("filedo.exe C:\disk.fdd destroy force", "DESTROY"), "")
+            Check("command:disk-discard-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\disk.fdd unmount force nosave", ""), "")
+            Check("command:disk-discard-confirmed", cv.RunEnabledForTest("filedo.exe C:\disk.fdd unmount force nosave", "DISCARD"), "")
+            cv.SetCommand("filedo.exe C:\disk.fdd destroy force")
+            Check("command:disk-handoff-clears-old-word", Not cv.RunEnabledNowForTest, "")
 
             ' GUI-11: the CLI's other word for wipe asks for the typed word too, and so does a batch
             ' whose list wipes.
@@ -1397,8 +1473,18 @@ Public Module SelfTest
                 File.WriteAllText(wipingList, "# a batch" & vbLf & "C:\sample-x info" & vbLf & "C:\sample-x W -y" & vbLf)
                 Dim plainList = Path.Combine(listDir, "plain.lst")
                 File.WriteAllText(plainList, "C:\sample-x info" & vbLf)
+                Dim deletingList = Path.Combine(listDir, "deletes.lst")
+                File.WriteAllText(deletingList, "C:\sample-x cd del" & vbLf)
+                Dim nestedList = Path.Combine(listDir, "nested.lst")
+                File.WriteAllText(nestedList, "from " & ArgQuoting.EscapeArg(wipingList) & vbLf)
                 Check("command:from-wipe-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(wipingList), ""), "")
+                Check("command:nested-from-wipe-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(nestedList), ""), "")
                 Check("command:from-plain-no-word", cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(plainList), ""), "")
+                Check("command:from-duplicate-delete-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(deletingList), ""), "")
+                File.WriteAllText(plainList, "from " & ArgQuoting.EscapeArg(wipingList) & vbLf)
+                Check("command:from-changed-at-launch", Not cv.LaunchAllowedForTest(), "")
+                File.WriteAllText(nestedList, "from " & ArgQuoting.EscapeArg(nestedList) & vbLf)
+                Check("command:from-cycle-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(nestedList), ""), "")
                 Check("command:from-missing-asks-word",
                       Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(Path.Combine(listDir, "none.lst")), ""), "")
             Finally
@@ -2497,7 +2583,7 @@ Public Module SelfTest
             "vd_auto_guard_run_ok_fmt", "vd_auto_guard_run_left_fmt", "vd_auto_guard_outcome_skipped",
             "vd_auto_guard_outcome_unfinished", "vd_auto_switch_on_title", "vd_auto_switch_on_text",
             "vd_auto_switch_off_title", "vd_auto_switch_off_text", "vd_auto_note_consent", "vd_auto_note_signout",
-            "vd_auto_note_encrypted", "vd_auto_note_uninstall", "vd_mgr_btn_turn_on", "vd_mgr_btn_turn_off"}
+            "vd_auto_note_encrypted", "vd_auto_note_uninstall", "vd_auto_notes_title", "vd_mgr_btn_turn_on", "vd_mgr_btn_turn_off"}
             keys.Add(k)
         Next
         For Each s As DiskRowState In DiskHelpDialog.Legend
@@ -2968,6 +3054,13 @@ Public Module SelfTest
                                        Not m.ToolbarStateForTest("open", reason) AndAlso reason.Contains(ui("vd_mgr_why_busy")), reason)
             m.SetBusyForTest(key("work"), "")
 
+            ' A second Close after Stop and close must still wait for the child to finish.
+            Check("disk-mgr:close-pending-stays-open", DiskManagerForm.DecisionOnClose(True, True, False) = DiskManagerForm.CloseDecision.WaitForRun AndAlso
+                  DiskManagerForm.DecisionOnClose(True, False, False) = DiskManagerForm.CloseDecision.Ask AndAlso
+                  DiskManagerForm.DecisionOnClose(False, True, False) = DiskManagerForm.CloseDecision.Allow AndAlso
+                  DiskManagerForm.DecisionOnClose(True, True, True) = DiskManagerForm.CloseDecision.Allow, "")
+            Check("disk-mgr:second-close-cancelled", m.PendingCloseCanceledForTest(), "")
+
             ' A read that fails keeps the last good state on screen and says so (principle 6).
             m.ApplySnapshotForTest(Nothing, "vd_mgr_stale_timeout")
             Check("disk-mgr:stale-keeps-rows", m.RowTextsForTest.Count = 10 AndAlso m.ListShownForTest, m.RowTextsForTest.Count.ToString())
@@ -3304,6 +3397,7 @@ Public Module SelfTest
                            End Sub)}
             Dim guardState As New DiskGuardState With {.Installed = True, .Running = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
             guardState.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
+            guardState.Containers.Add(New DiskGuardRunRow With {.Name = "big", .Action = "unmount", .Outcome = "unfinished", .Reason = "did not finish within 10 s"})
             Dim switchedOn As New List(Of Boolean)
             Dim performed As New List(Of String)
             Using dlg As New DiskAutostartDialog(d, Nothing,
@@ -3315,12 +3409,14 @@ Public Module SelfTest
                 Check("disk-auto:dialog:no-raw-keys:" & lang, raw.Count = 0, String.Join(",", raw.ToArray()))
                 Check("disk-auto:dialog:rows:" & lang, dlg.LogonRowCountForTest = 3, dlg.LogonRowCountForTest.ToString())
                 Dim switches = dlg.LogonSwitchesForTest()
-                Check("disk-auto:dialog:matrix:" & lang, switches.Count = 3 AndAlso switches(0).Second AndAlso
-                                                             Not switches(1).Second AndAlso switches(2).Second,
-                      String.Join(";", switches.Select(Function(s) s.First & "=" & s.Second.ToString()).ToArray()))
+                Check("disk-auto:dialog:matrix:" & lang, switches.Count = 3 AndAlso switches(0).Value AndAlso
+                                                             Not switches(1).Value AndAlso switches(2).Value,
+                      String.Join(";", switches.Select(Function(s) s.Key & "=" & s.Value.ToString()).ToArray()))
                 Check("disk-auto:dialog:encrypted-why:" & lang, texts.Contains(d("vd_mgr_why_encrypted_auto")), "")
                 Check("disk-auto:dialog:guard-word:" & lang, texts.Contains(d("vd_auto_guard_on_running")), "")
-                Check("disk-auto:dialog:run-told:" & lang, texts.Any(Function(t) t.StartsWith("work:", StringComparison.Ordinal)), "")
+                Check("disk-auto:dialog:run-told:" & lang,
+                      texts.Any(Function(t) t.StartsWith("big:", StringComparison.Ordinal)) AndAlso
+                      Not texts.Any(Function(t) t.StartsWith("work:", StringComparison.Ordinal)), "")
                 Check("disk-auto:dialog:leave:" & lang, dlg.CancelButton IsNot Nothing AndAlso dlg.AcceptButton Is dlg.CancelButton, "")
                 Check("disk-auto:dialog:fits-screen:" & lang, dlg.ClientSize.Height <= Screen.PrimaryScreen.WorkingArea.Height AndAlso
                                                               dlg.ClientSize.Width > 300, dlg.ClientSize.ToString())

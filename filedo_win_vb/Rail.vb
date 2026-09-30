@@ -172,31 +172,43 @@ Public Class RailEntry
     Private hasSelectedChildValue As Boolean = False
     Private hot As Boolean = False
 
-    ' The fonts a row paints with. They are made once for the process, not once per paint: a paint
+    ' The fonts a row paints with. They are made once per dpi, not once per paint: a paint
     ' runs on every hover, and a font made per paint and never disposed is a GDI object leaked each
-    ' time (SP-0014 T1).
-    Private Shared fontBody As Font
-    Private Shared fontStrong As Font
-    Private Shared fontCaption As Font
+    ' time (SP-0014 T1). The dpi is the row's own: a row on a display at another scaling needs
+    ' the fonts of that scaling (SP-0016 T4, the mixed-DPI defect).
+    Private Class RowFonts
+        Public Body As Font
+        Public Strong As Font
+        Public Caption As Font
+    End Class
 
-    Private Shared Sub EnsureFonts()
-        If fontBody IsNot Nothing Then Return
-        fontBody = Theme.FontBody()
-        fontStrong = Theme.FontBodyStrong()
-        fontCaption = Theme.FontCaptionStrong()
-    End Sub
+    Private Shared ReadOnly fontsByDpi As New Dictionary(Of Integer, RowFonts)
+
+    Private Shared Function FontsFor(dpi As Integer) As RowFonts
+        If dpi < 48 Then dpi = Theme.CurrentDpi
+        Dim f As RowFonts = Nothing
+        If Not fontsByDpi.TryGetValue(dpi, f) Then
+            f = New RowFonts With {
+                .Body = Theme.FontBody(dpi),
+                .Strong = Theme.FontBodyStrong(dpi),
+                .Caption = Theme.FontCaptionStrong(dpi)
+            }
+            fontsByDpi(dpi) = f
+        End If
+        Return f
+    End Function
 
     ' The font a label is drawn in. A row is measured in its bold face whether or not it is
     ' selected, so choosing a row never makes it grow a line. A header is always the bold caption:
     ' it names a kind of job and has to stay a heading among the rows it holds.
-    Friend Shared Function LabelFont(isHeader As Boolean, selected As Boolean) As Font
-        EnsureFonts()
-        If isHeader Then Return fontCaption
-        Return If(selected, fontStrong, fontBody)
+    Friend Shared Function LabelFont(isHeader As Boolean, selected As Boolean, dpi As Integer) As Font
+        Dim f = FontsFor(dpi)
+        If isHeader Then Return f.Caption
+        Return If(selected, f.Strong, f.Body)
     End Function
 
-    Friend Shared Function MeasureFont(isHeader As Boolean) As Font
-        Return LabelFont(isHeader, True)
+    Friend Shared Function MeasureFont(isHeader As Boolean, dpi As Integer) As Font
+        Return LabelFont(isHeader, True, dpi)
     End Function
 
     Private Const LabelFlags As TextFormatFlags =
@@ -296,7 +308,7 @@ Public Class RailEntry
     ' The height this row needs at this width: one rail unit, or more when the label wraps.
     Friend Function PreferredRowHeight(width As Integer) As Integer
         Dim lw = LabelBounds(width, RowUnit).Width
-        Dim textH = TextRenderer.MeasureText(If(Text, ""), MeasureFont(IsGroupHeader),
+        Dim textH = TextRenderer.MeasureText(If(Text, ""), MeasureFont(IsGroupHeader, Ui.DpiFor(Me)),
                                              New Size(lw, Integer.MaxValue), LabelFlags).Height
         Return Math.Max(RowUnit, textH + 2 * VerticalPad())
     End Function
@@ -311,7 +323,7 @@ Public Class RailEntry
     Friend Function LabelFits(width As Integer, ByRef detail As String) As Boolean
         Dim h = PreferredRowHeight(width)
         Dim box = LabelBounds(width, h)
-        Dim f = MeasureFont(IsGroupHeader)
+        Dim f = MeasureFont(IsGroupHeader, Ui.DpiFor(Me))
         Dim text = If(Me.Text, "")
         Dim wrapped = TextRenderer.MeasureText(text, f, New Size(box.Width, Integer.MaxValue), LabelFlags)
         If h > RowUnit * MaxRowUnits Then
@@ -452,7 +464,7 @@ Public Class RailEntry
             Glyphs.Draw(g, Glyph, GlyphSquare(Height), Theme.GroupTone(Hue, p))
             Glyphs.Draw(g, Theme.ChevronGlyph(Collapsed), ChevronSquare(Width, Height), p.MutedText)
 
-            DrawLabel(g, p.Text, LabelFont(True, False))
+            DrawLabel(g, p.Text, LabelFont(True, False, Ui.DpiFor(Me)))
             DrawFocus(g, p)
             Return
         End If
@@ -478,7 +490,7 @@ Public Class RailEntry
             Glyphs.Draw(g, Glyph, GlyphSquare(Height), If(Hue <> "", Theme.GroupTone(Hue, p), p.Text))
         End If
 
-        DrawLabel(g, p.Text, LabelFont(False, Selected))
+        DrawLabel(g, p.Text, LabelFont(False, Selected, Ui.DpiFor(Me)))
         DrawFocus(g, p)
     End Sub
 

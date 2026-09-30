@@ -319,7 +319,7 @@ Was die Plattform braucht, offen gesagt:
   Lauf mit Code 7, und nichts wird eingebunden.
 - **Die Microsoft-Store-Version kann keine Container einbinden.** Eine paketierte App kann den
   iSCSI-Initiator weder konfigurieren noch Administratorrechte anfordern, deshalb enden dort `mount`,
-  `unmount`, `save`, `format`, `vd auto` und `vd register` mit Code 6. `info`, `verify`, `export`,
+  `unmount`, `save`, `format`, `vd auto`, `vd guard` und `vd register` mit Code 6. `info`, `verify`, `export`,
   `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` und
   `vd forget` funktionieren auch dort; zum Einbinden nehmen Sie das Setup oder die portable Version von
   GitHub.

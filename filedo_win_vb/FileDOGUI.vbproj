@@ -94,6 +94,7 @@
     <Compile Include="DiskJobs.vb" />
     <Compile Include="DiskSnapshot.vb" />
     <Compile Include="DiskStates.vb" />
+    <Compile Include="DiskAutostartDialog.vb" />
     <Compile Include="DiskDialogs.vb">
       <SubType>Form</SubType>
     </Compile>

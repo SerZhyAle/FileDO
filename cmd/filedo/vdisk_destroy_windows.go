@@ -200,11 +200,15 @@ func vdDestroy(args []string, batch bool) error {
 			return err
 		}
 	}
-	if s, err := vdLoadState(); err == nil {
-		for _, m := range s.Mounts {
-			if strings.EqualFold(m.Path, abs) {
-				return errBusy(fmt.Sprintf("%s is mounted at %s; destroy needs it unmounted first (filedo %s unmount), and no option skips that", path, m.Letter, m.Letter))
-			}
+	// Even a damaged file can still be in use. If the state cannot be read,
+	// the absence of a mount cannot be established; force only skips prompts.
+	s, err := vdLoadState()
+	if err != nil {
+		return errBusy(fmt.Sprintf("the mount state cannot be read, so %s cannot be proved unused: %v", path, err))
+	}
+	for _, m := range s.Mounts {
+		if strings.EqualFold(m.Path, abs) || (ierr == nil && strings.EqualFold(m.ContainerID, info.ContainerID)) {
+			return errBusy(fmt.Sprintf("%s is mounted at %s; destroy needs it unmounted first (filedo %s unmount), and no option skips that", path, m.Letter, m.Letter))
 		}
 	}
 	// The registry: a name for this file is forgotten with it, but a name

@@ -339,7 +339,7 @@ filedo private.fdd clone open-copy.fdd nopass
   закінчується кодом 7, і нічого не підключено.
 - **Збірка з Microsoft Store не може підключати диски.** Запакований застосунок не може ні налаштувати
   ініціатор iSCSI, ні попросити права адміністратора, тому там `mount`, `unmount`, `save`, `format`,
-  `vd auto` і `vd register` закінчуються кодом 6. `info`, `verify`, `export`, `compact`, `grow`, `seal`,
+  `vd auto`, `vd guard` і `vd register` закінчуються кодом 6. `info`, `verify`, `export`, `compact`, `grow`, `seal`,
   `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` і `vd forget` працюють і там; для
   підключення встановіть інсталятор або переносну збірку з GitHub.
 - **Підключення переживає вікно.** Якщо закрити вікно FileDO, диск і його сервер лишаються, а нове вікно

@@ -76,6 +76,40 @@ func TestVdPowerShell_ANonASCIIPathArrivesIntact(t *testing.T) {
 	}
 }
 
+func TestPsDataExpr_AHostilePathStaysData(t *testing.T) {
+	psAvailable(t)
+	marker := filepath.Join(t.TempDir(), "ran.txt")
+	path := "C:\\It's’; New-Item -ItemType File -Path " + psQuote(marker) + "; '.fdd"
+	out, err := vdPowerShell("$containerPath = " + psDataExpr(path) + "\n[Console]::Write($containerPath)")
+	if err != nil || strings.TrimSpace(out) != path {
+		t.Fatalf("path changed in PowerShell: %q, %v", out, err)
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("a path ran as PowerShell code: %v", err)
+	}
+}
+
+func TestVdImageScript_AHostileImagePathStaysData(t *testing.T) {
+	psAvailable(t)
+	marker := filepath.Join(t.TempDir(), "image-path-ran.txt")
+	path := "C:\\It’s’; New-Item -ItemType File -Path " + psQuote(marker) + "; '.iso"
+	fakes := `function Mount-DiskImage { param($ImagePath, $Access, [switch]$PassThru) if ($ImagePath -ne $expected) { throw 'wrong mount path' }; [pscustomobject]@{} }
+function Get-DiskImage { param($ImagePath) if ($ImagePath -ne $expected) { throw 'wrong lookup path' }; [pscustomobject]@{ Attached = $true } }
+function Get-Volume { }
+function Dismount-DiskImage { param($ImagePath) if ($ImagePath -ne $expected) { throw 'wrong dismount path' } }
+`
+	for _, dismount := range []bool{false, true} {
+		script := "$expected = " + psDataExpr(path) + "\n" + fakes + vdImageScript(path, dismount, true) + "\n[Console]::Write($imagePath)"
+		out, err := vdPowerShell(script)
+		if err != nil || strings.TrimSpace(out) != path {
+			t.Errorf("dismount=%t: image path changed or became code: %q, %v", dismount, out, err)
+		}
+		if _, err := os.Stat(marker); !os.IsNotExist(err) {
+			t.Fatalf("dismount=%t: image path ran as code: %v", dismount, err)
+		}
+	}
+}
+
 func TestVdPowerShellCtx_AStopAndADeadlineEndTheRun(t *testing.T) {
 	psAvailable(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -131,7 +165,7 @@ func TestFormatScript_TheGuardStopsTheClear(t *testing.T) {
 	if err == nil {
 		t.Fatalf("the format of a disk that is not the container's exited 0\n%s", out)
 	}
-	for _, word := range []string{"CLEARED", "INITIALIZED", "formatted"} {
+	for _, word := range []string{"CLEARED", "INITIALIZED", "formatted NTFS"} {
 		if strings.Contains(out, word) {
 			t.Fatalf("%q ran after the guard tripped:\n%s", word, out)
 		}
@@ -165,12 +199,38 @@ func TestFormatScript_AFailingStepIsAnError(t *testing.T) {
 	}
 }
 
-func TestFormatScript_NoSerialNoClear(t *testing.T) {
+func TestFormatScript_ANullFormatResultIsAnError(t *testing.T) {
+	psAvailable(t)
+	script, err := formatScript(7, "SERIAL123", "Data", "ntfs", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakes := fakeStorage("SERIAL123", "iSCSI", "")
+	fakes += "function Format-Volume { param([Parameter(ValueFromPipeline)]$In, $FileSystem, $NewFileSystemLabel, $Confirm) process { } }\n"
+	out, err := vdPowerShell(fakes + script)
+	if err == nil || strings.Contains(out, "formatted NTFS") {
+		t.Fatalf("an empty Format-Volume result reported success: err=%v out=%q", err, out)
+	}
+}
+
+func TestFormatScript_NoSerialNoFormat(t *testing.T) {
 	if _, err := formatScript(7, "", "Data", "ntfs", true); err == nil {
 		t.Fatal("a clear without a serial was scripted")
 	}
-	if _, err := formatScript(7, "", "Data", "ntfs", false); err != nil {
-		t.Fatalf("a first format (no clear) needs no serial: %v", err)
+	if _, err := formatScript(7, "", "Data", "ntfs", false); err == nil {
+		t.Fatal("a first format without a serial was scripted")
+	}
+}
+
+func TestFormatScript_TheGuardStopsFirstFormat(t *testing.T) {
+	psAvailable(t)
+	script, err := formatScript(7, "SERIAL123", "Data", "ntfs", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := vdPowerShell(fakeStorage("FOREIGN", "iSCSI", "") + script)
+	if err == nil || strings.Contains(out, "INITIALIZED") || strings.Contains(out, "formatted NTFS") {
+		t.Fatalf("a foreign disk was initialized: err=%v out=%q", err, out)
 	}
 }
 
@@ -186,6 +246,17 @@ func TestVdProveContainerDisk_RefusesAForeignDisk(t *testing.T) {
 	}
 	if err := vdProveContainerDisk(0, ""); err == nil {
 		t.Error("an empty serial was accepted")
+	}
+}
+
+func TestFindDiskBySerial_EmptySerialSelectsNoDisk(t *testing.T) {
+	start := time.Now()
+	disk, err := findDiskBySerial("", time.Minute)
+	if err == nil || disk != -1 {
+		t.Fatalf("empty serial selected disk %d: %v", disk, err)
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("empty serial waited for disk discovery")
 	}
 }
 

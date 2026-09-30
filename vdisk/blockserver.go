@@ -49,7 +49,6 @@ const (
 	ourFirstBurst     = 65536
 	cmdWindow         = 32 // MaxCmdSN - ExpCmdSN + 1
 	maxPendingWrites  = 32 // writes waiting for Data-Out on one connection
-	loginTimeout      = 30 * time.Second
 
 	// The port is reachable by every local process of every user, so what it
 	// costs before anyone has authenticated is bounded (AUD-35-F2): at most
@@ -61,6 +60,10 @@ const (
 	loginBufSize         = 4096
 	dataBufSize          = 1 << 20 // the buffers of the logged-in normal session
 )
+
+// A fixed deadline covers the entire unauthenticated login, including peers
+// that send a byte now and then. Tests shorten it to exercise that limit.
+var loginTimeout = 30 * time.Second
 
 // discoveryIdle is how long a Discovery session may sit without a PDU. It has
 // no authentication, so it must not be a place to park a connection for good.
@@ -341,7 +344,7 @@ func (c *conn) logf(format string, args ...interface{}) {
 
 func (c *conn) serve() {
 	c.logf("connect")
-	_ = c.nc.SetReadDeadline(time.Now().Add(loginTimeout))
+	_ = c.nc.SetDeadline(time.Now().Add(loginTimeout))
 	err := c.loop()
 	c.w.Flush()
 	c.nc.Close()
@@ -518,9 +521,10 @@ func (c *conn) login(bhs *[bhsLen]byte, data []byte) error {
 		c.s.loggedIn(c)
 		if c.discovery {
 			// No authentication: idle is bounded, and the buffers stay small.
+			_ = c.nc.SetWriteDeadline(time.Time{})
 			_ = c.nc.SetReadDeadline(time.Now().Add(discoveryIdle))
 		} else {
-			_ = c.nc.SetReadDeadline(time.Time{})
+			_ = c.nc.SetDeadline(time.Time{})
 			if err := c.growBuffers(); err != nil {
 				return err
 			}

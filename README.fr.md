@@ -319,7 +319,7 @@ Ce qu'il faut à la plateforme, dit franchement:
   peut pas être utilisé, l'exécution se termine avec le code 7 et rien n'est monté.
 - **La version du Microsoft Store ne peut pas monter de disque.** Une application empaquetée ne peut ni
   configurer l'initiateur iSCSI ni demander des droits d'administrateur, donc `mount`, `unmount`, `save`,
-  `format`, `vd auto` et `vd register` s'y terminent avec le code 6. `info`, `verify`, `export`,
+  `format`, `vd auto`, `vd guard` et `vd register` s'y terminent avec le code 6. `info`, `verify`, `export`,
   `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` et
   `vd forget` y fonctionnent aussi; pour monter, prenez le setup ou la version portable sur GitHub.
 - **Un montage survit à la fenêtre.** Fermer la fenêtre FileDO laisse le lecteur et son serveur en place,

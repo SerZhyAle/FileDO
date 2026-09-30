@@ -132,12 +132,13 @@ func (c *Container) Save() error {
 	if len(r.dirty) == 0 && !c.pending {
 		defer c.mu.Unlock()
 		if err := c.b.Sync(); err != nil {
-			return c.fail(err)
+			return c.ramSaveError(c.fail(err))
 		}
 		return nil
 	}
 	started, err := c.beginSave()
 	if err != nil {
+		err = c.ramSaveError(err)
 		c.mu.Unlock()
 		return err
 	}
@@ -175,16 +176,35 @@ func (c *Container) Save() error {
 	if werr != nil {
 		// Nothing of the snapshot is lost from memory: a cluster not written
 		// again since goes back into the dirty map. The file is left as the
-		// header says - a save in progress - and the container writes nothing
-		// more.
+		// header says - a save in progress - until a later save succeeds.
 		for cl, buf := range snap {
 			if r.dirty[cl] == nil {
 				r.dirty[cl] = buf
 			}
 		}
-		return c.fail(werr)
+		return c.ramSaveError(ioErr(werr))
 	}
-	return c.endSave(started)
+	err = c.endSave(started)
+	if err != nil {
+		for cl, buf := range snap {
+			if r.dirty[cl] == nil {
+				r.dirty[cl] = buf
+			}
+		}
+		return c.ramSaveError(err)
+	}
+	return nil
+}
+
+// A failed save leaves every unsaved cluster in RAM. Only the I/O failure
+// recorded by this save may be cleared: a later Save can replay the complete
+// snapshot after the backing store recovers. Other container failures remain
+// sticky. The interrupted-save marker stays set until that replay finishes.
+func (c *Container) ramSaveError(err error) error {
+	if c.failed == err {
+		c.failed = nil
+	}
+	return err
 }
 
 // save is the whole save under c.mu, for the end of a session: nothing else
@@ -195,25 +215,28 @@ func (c *Container) save() error {
 	}
 	if len(c.ram.dirty) == 0 && !c.pending {
 		if err := c.b.Sync(); err != nil {
-			return c.fail(err)
+			return c.ramSaveError(c.fail(err))
 		}
 		return nil
 	}
 	started, err := c.beginSave()
 	if err != nil {
-		return err
+		return c.ramSaveError(err)
 	}
 	for _, cl := range sortedClusters(c.ram.dirty) {
 		buf := append([]byte(nil), c.ram.dirty[cl]...)
 		if err := c.writeCluster(buf, c.entries[cl], int64(cl)); err != nil {
-			return err
+			return c.ramSaveError(err)
 		}
 	}
 	if err := c.b.Sync(); err != nil {
-		return c.fail(err)
+		return c.ramSaveError(c.fail(err))
+	}
+	if err := c.endSave(started); err != nil {
+		return c.ramSaveError(err)
 	}
 	c.ram.dirty = map[uint64][]byte{}
-	return c.endSave(started)
+	return nil
 }
 
 // beginSave is step 1 of section 10.4: a header write with save_in_progress

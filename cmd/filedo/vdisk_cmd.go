@@ -178,7 +178,7 @@ var vdPackaged = fdsecHasPackageIdentity
 
 // errVdPackaged is the packaged build's refusal of a verb that needs the mount
 // path: class 6, one sentence.
-var errVdPackaged = fmt.Errorf("%w: the Microsoft Store build of FileDO cannot mount - a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights - so mount, unmount, save, format and auto need the setup or the portable build from GitHub, while new, info, verify, export, compact, grow, seal, clone, pass, destroy, list, status, add and forget work here", vdisk.ErrUnsupported)
+var errVdPackaged = fmt.Errorf("%w: the Microsoft Store build of FileDO cannot mount - a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights - so mount, unmount, save, format, auto and guard need the setup or the portable build from GitHub, while new, info, verify, export, compact, grow, seal, clone, pass, destroy, list, status, add and forget work here", vdisk.ErrUnsupported)
 
 func runVd(args []string, hl *HistoryLogger, batch bool) error {
 	word := strings.ToLower(args[0])

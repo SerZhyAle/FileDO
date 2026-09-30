@@ -303,6 +303,15 @@ Public Class JobView
     End Sub
 
     Private Sub ResetView()
+        Ui.SuspendTree(Me)
+        Try
+            ResetViewCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ResetViewCore()
         If countingTokenSource IsNot Nothing Then
             countingTokenSource.Cancel()
             countingTokenSource = Nothing
@@ -865,14 +874,19 @@ Public Class JobView
         rootPanel.Controls.Add(rawOutputDrawer, 0, 5)
 
         Controls.Add(rootPanel)
-        ResumeLayout(True)
+        Ui.ResumeTree(Me)
     End Sub
 
+    ' NewCard and NewTable hand out a container whose layout is held: the page is built bottom-up, and a
+    ' container that lays itself out at every control added to it measures the whole card again each
+    ' time. BuildLayout lets all of them go at once (Ui.ResumeTree).
     Private Function NewCard() As ShellCard
-        Return New ShellCard With {
+        Dim card As New ShellCard With {
             .Padding = Ui.PxPad(Me, 18, 16, 18, 16),
             .Margin = Ui.PxPad(Me, 0, 0, 0, 14)
         }
+        card.SuspendLayout()
+        Return card
     End Function
 
     Private Function NewTable(columns As Integer, rows As Integer) As TableLayoutPanel
@@ -884,6 +898,7 @@ Public Class JobView
             .RowCount = rows,
             .Margin = New Padding(0)
         }
+        t.SuspendLayout()
         Return t
     End Function
 
@@ -3035,6 +3050,15 @@ Public Class JobView
     ' ---- theming ---------------------------------------------------------
 
     Public Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         BackColor = p.Background
         ForeColor = p.Text

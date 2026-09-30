@@ -210,6 +210,57 @@ The second window of `filedo_win.exe`. Run it with the containers of the top of 
    (`filedo vd list` no longer shows it).
 5. [ ] `filedo spare.fdd destroy wipe` asks for the typed `WIPE`, overwrites, removes.
 
+## 6b. The shutdown guard (SP-0080)
+
+Needs a `ram` container (`filedo vd new r.fdd 512M ram` from section 4) and a restart or two. The
+measured time Windows actually grants at session end is this section's most valuable evidence: note
+it at every step that says so.
+
+1. [ ] **Off, honestly.** `filedo vd guard status` with the guard not on says it is not installed,
+   in three lines, and names `filedo vd guard on`; `filedo vd guard off` is refused as usage. Save
+   both outputs.
+2. [ ] **On.** `filedo vd guard on` prints the consequences before the consent prompt: the task's
+   name `\FileDO\FileDO Shutdown guard`, the command line it will run, that unmount needs the
+   administrator rights the task grants, that sign-out counts and Fast Startup is covered, and that
+   an uninstall of FileDO does not remove it. Consent. Task Scheduler shows the task; its XML
+   (Export) has a `LogonTrigger` with a delay, `RunLevel HighestAvailable`, `ExecutionTimeLimit
+   PT0S` and the action `--no-history vd guard run`. `filedo vd guard status` says installed and
+   *not running* (this session began before the task existed).
+3. [ ] **The watcher at logon.** Sign out and sign back in. About ten seconds after the desktop
+   appears, `filedo vd guard status` says installed and running, and **no console window flashes or
+   stays** on screen (screenshot the desktop). Starting `filedo vd guard run` by hand now exits at
+   once: the heartbeat is taken.
+4. [ ] **A real shutdown with a dirty ram disk.** Mount `r.fdd`, write a file to it, note its size,
+   and shut the machine down. Before the screen goes dark, the "FileDO is saving your RAM disk.."
+   block screen may appear - note whether it did and for how long. After the next logon:
+   `filedo r.fdd info` says *Closed clean: yes*; the written file is on the volume; `filedo vd guard
+   status` shows the last run with every container closed cleanly; and the Autostart dialog of the
+   Disk manager tells the same in words. Note the per-row time the report carries for `r.fdd`.
+5. [ ] **The "Shut down anyway" path.** Mount `r.fdd`, write to it, and click Shut down; on the
+   block screen click *Shut down anyway* within the first seconds. After the logon the container is
+   either closed cleanly (the save won the race) or reported not closed cleanly with the data of its
+   last save - and `vd guard status` says exactly which rows finished and which did not. Either
+   answer is correct; a crash, a hang or a silent gap is a finding.
+6. [ ] **Sign-out versus sleep.** With the guard on and `r.fdd` mounted, sign out and back in: the
+   container is unmounted and clean, and the report names it. Then lock the screen and unlock, and
+   sleep and wake: `filedo vd status` still shows `R:` mounted, and no new guard run appears in the
+   report.
+7. [ ] **Off while running.** `filedo vd guard off` (consent prompt) removes the task and says the
+   running watcher was asked to stop; within ten seconds a second `vd guard off` is refused as usage
+   and `vd guard status` says not installed (the heartbeat, stale, no longer claims running).
+   `filedo r.fdd` stays mounted; a shutdown now leaves it not closed cleanly - that is the guard
+   being off. Turn it on again only if a later step needs it.
+8. [ ] **The Disk manager surface.** With the guard on, the strip at the bottom carries one word
+   (*shutdown guard on*); More actions > *Autostart..* opens the dialog: one row per registered
+   container with its logon switch (the `vault` row is disabled, the encrypted sentence beside it),
+   the guard's state in words, its switch, and the last run in sentences. Turning the guard off and
+   on from the dialog works. In the Store build the whole *Autostart..* entry is absent (hidden,
+   not greyed).
+9. [ ] **The measured grant.** From steps 4 and 5, compare the report's longest save and longest
+   unmount against the caps: a save over 60 s or an unmount over 10 s that still finished is fine;
+   a row reported *unfinished* names the cap it hit. Record the numbers - they are what moves the
+   constants.
+
 ## 7. The Microsoft Store build
 
 On a machine with the Store build installed (or the `-SelfSign` package from `msix\build-msix.ps1`) and no
@@ -221,17 +272,74 @@ other FileDO:
 2. [ ] `filedo C:\vdtest\vault.fdd mount` from a terminal ends with exit 6 and the sentence that the
    Microsoft Store build of FileDO cannot mount - a packaged app can neither configure the Windows iSCSI
    initiator nor ask for administrator rights. Save it. The same for `unmount`, `save`, `format`,
-   `vd auto` and `vd register`.
+   `vd auto`, `vd guard` and `vd register`.
 3. [ ] `info`, `verify`, `export <dest> vhd`, `grow`, `compact`, `clone <new.fdd> nopass`, `pass`,
    `destroy force`, `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` all work (exit 0).
 4. [ ] The listing (Partner Center preview) promises no mounting in any language.
 5. [ ] **The Disk manager in this build.** It opens and lists the disks; *Mount*, *Mount read-only*, *Mount
-   as..*, *Mount image..*, *Unmount*, *Save now*, *Turn on/off auto-mount* and *Format..* are **absent** (hidden,
-   not greyed) from the toolbar, the row menu, the More menu and the detail pane, while *New disk..*, *Add..*,
-   *Info*, *Verify* and *Export..* remain. The first-steps window (Help > *First steps..*) says this build
-   cannot mount and that the setup program from the website can.
+   as..*, *Mount image..*, *Unmount*, *Save now*, *Turn on/off auto-mount*, *Autostart..* and *Format..* are
+   **absent** (hidden, not greyed) from the toolbar, the row menu, the More menu and the detail pane, while
+   *New disk..*, *Add..*, *Info*, *Verify* and *Export..* remain. The first-steps window (Help > *First
+   steps..*) says this build cannot mount and that the setup program from the website can.
 
 ## 8. Clean up
 
 `filedo vd list` and `filedo vd status` show nothing of this run; `Remove-Item C:\vdtest -Recurse`;
 Settings > Apps > FileDO > Uninstall, then the two `reg query` commands of section 1 find nothing.
+
+## G3 execution record - 2026-09-30
+
+**Verdict: NOT VERIFIED for build `2609302110`.** The full checklist above has not run. This
+record covers only the steps that could be observed in the current Windows 11 Pro 25H2 session.
+The session was not elevated, the installed FileDO was version `26.9.42641`, and the display
+reported 175 % scaling. No claim is made for the new install, real mounts, Windows 10, or 150 %.
+
+- `./build.ps1 -Test` exited 0 with `build-gate 2609302110: PASS (ran 11, skipped 0)`.
+  The `cmd/filedo` tests and `go vet ./cmd/filedo/` baseline comparison passed. The built
+  MSI and setup EXE are in `dist/`.
+- The built CLI created an obfuscated 512 MiB scratch container and registered it in an
+  isolated `FILEDO_STATE_DIR`; `vd status json` exited 0 and listed it as `file: ok`,
+  `protection: obfuscated`, `mount: null`. No volume was mounted.
+- Section 5b.1, partial: the built `filedo_win.exe --disks` opened the Disk Manager with
+  one row and no main window. A second `--disks` exited 0 without creating another process.
+  A plain launch then opened the main window in that same process. The Start menu entry
+  and in-window buttons were not exercised.
+- Section 5b.7, partial: the live Disk Manager was captured in
+  [Dark](evidence/g3-2609302110-manager-dark.png) and
+  [Light](evidence/g3-2609302110-manager-light.png), in Russian at the current 175 %
+  scale. The row, disabled button captions, detail-pane close button and opening width
+  were legible in both captures; no horizontal scrollbar or red-cross placeholder was
+  visible. English, German, 100 %, 150 % and a second-monitor scale remain unchecked.
+- Desktop shortcut, partial: the existing `C:\Users\Public\Desktop\FileDO.lnk` points
+  to `C:\Program Files\FileDO\filedo_win.exe` and launching it opened a responsive
+  `FileDO` window. That installed binary is version `26.9.42641`. The new build's MSI
+  `Shortcut` table contains `FileDODesktopShortcut` in `DesktopFolder`, targeted at
+  `[INSTALLFOLDER]filedo_win.exe` under feature `DesktopShortcut`. Creation and launch
+  after installing build `2609302110` remain unchecked.
+
+The remaining sections, including installer feature selection and removal, real HKCU/HKLM
+registration, Explorer verbs, UAC decisions, real iSCSI volumes, service changes, logon
+and shutdown cases, every Disk Manager action, Store behavior and Windows 10, need the
+screen-level run described above. G3 stays closed until those observations are attached.
+
+## Release decision - 2026-09-30, build `2609302341`
+
+**HOLD: do not release SP-0004 in this build.** This is a decision from observed test coverage,
+not an elapsed-time gate. The owner removed P7's 30-day quota on 2026-09-30. No tag or channel upload
+was made by this run.
+
+| Evidence | Result | Limit |
+| --- | --- | --- |
+| `./build.ps1 -Test` on `2609302341` | Exit 0; `build-gate 2609302341: PASS (ran 11, skipped 0)`; CLI, GUI, module tests, documentation, notices, MSI and setup EXE built or checked. | A build gate does not install or mount the package. |
+| `go test ./cmd/filedo/ -run 'TestVD_Packaged\|TestVD_Surfaces' -count=1` | Exit 0; `ok filedo/cmd/filedo 7.971s`. The Store refusal includes `vd guard` in the verb test; the guide, READMEs, CLI and GUI now name its Store limit. | This is a simulated packaged run and a text check, not a Store installation. |
+| `./packaging/check-external-docs.ps1 -Record` | Exit 0; 630 locale span groups, 13 README sections and 16 images checked, `external-docs: PASS`. | Translation and link consistency, not an on-screen review. |
+| `./packaging/check-internal-docs.ps1` | Exit 0; 73 documents and 281 links, `internal-docs: PASS`. The first `build.ps1 -Test` of the session failed this check because `tests/installer_dpi_manual.md` lacked a registry row; the row was added and the full gate rerun. | The manual itself is still open. |
+| Built `exe_to_download/filedo.exe` with `FILEDO_STATE_DIR` in an isolated `%TEMP%` folder | `vd new probe.fdd 512M`, `probe.fdd info`, `probe.fdd verify`, and `probe.fdd export probe.raw raw` each exited 0. The raw image was 536870912 bytes. `verify` said the data region was read, not verified: format 1.0 has no digest table. | An empty, unmounted container; no real volume, password, reboot or Store path. |
+| S3/S4/S5 kits of 2026-09-27 | S3 standard mount and failure cases passed; S4 elevated profiles and task cases passed 9/9; S5 credential cases passed 11/11 under standard and elevated tokens. Their `summary.txt` files under the corresponding `PLAN/SP-0004 virtual-disks/*-kit/results/LATEST*` folders hold the outputs. | Earlier binaries and one Windows 11 machine; they do not certify `2609302341`. |
+
+The G3 execution record above covers only a partial screen check on `2609302110`. Sections 1-8 of this
+checklist are not complete on `2609302341`: installer feature selection and update over a prior install,
+real Explorer registration, mounted-volume and failure paths, Disk Manager actions and scaling, the
+packaged Store refusal, Windows 10, and the whole-feature security review remain unverified. G3 is
+therefore not passed and G4 has no positive release answer. The next release decision uses the outputs
+of those named checks on its proposed build; it does not wait for a number of days.

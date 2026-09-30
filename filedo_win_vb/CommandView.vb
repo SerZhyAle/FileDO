@@ -135,9 +135,14 @@ Public Class CommandView
         DoubleBuffered = True
         Dock = DockStyle.Fill
         BuildLayout()
-        PopulateControls()
-        HookRunner()
-        ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            PopulateControls()
+            HookRunner()
+            ApplyTheme()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
     End Sub
 
     Private Function L(key As String) As String
@@ -514,6 +519,13 @@ Public Class CommandView
     ' choice.
     Private Sub UpdateRunButtonState()
         If runBtn Is Nothing OrElse runner.IsActive Then Return
+        ' A typed word approves one command line. Changing its target or action
+        ' requires a new confirmation even when the next action uses the same word.
+        Dim line = cmdLineBox.Text.Trim()
+        If line <> confirmationLine Then
+            confirmationLine = line
+            wipeBox.Text = ""
+        End If
         Dim args = LineArgs()
 
         ' GUI-02: the password block follows the line, not the operation list. A line handed over
@@ -546,7 +558,8 @@ Public Class CommandView
         ' of secure, or a batch list with one in it - asks for the typed word whether or not it also
         ' carries -y: a ticked checkbox is not a confirmation (APP-BEHAVIOUR rule 5, SP-0006 section
         ' 8 item 1, GUI-11).
-        Dim wipes = LineWipes(args)
+        Dim word = ConfirmationWord(args)
+        Dim wipes = word <> ""
         wipeRow.Visible = wipes
         wipeNotice.Visible = False
         If Not wipes Then
@@ -556,8 +569,14 @@ Public Class CommandView
             Return
         End If
 
-        ' The wipe verb on a location the CLI only wipes after asking twice on a console.
-        Dim danger = WipeDanger(args)
+        Dim confirmKey = If(word = DiskOptionsPanel.FormatWord, "vd_confirm_format",
+                            If(word = DiskOptionsPanel.DestroyWord, "vd_confirm_destroy",
+                               If(word = "DISCARD", "vd_confirm_nosave",
+                                  If(word = "DELETE", "shell_dup_delete_confirm",
+                                     If(word = "RECOVER", "shell_cmd_recover_confirm",
+                                        If(word = "FIX", "shell_cmd_probe_fix_confirm", "shell_cmd_wipe_confirm"))))))
+        wipeLabel.Text = L(confirmKey)
+        Dim danger = If(word = "WIPE", WipeDanger(args), "")
         If danger <> "" Then
             wipeNotice.Text = Localization.Format(L("shell_wipe_needs_console"), L(danger))
             wipeNotice.Visible = True
@@ -566,13 +585,13 @@ Public Class CommandView
             Return
         End If
 
-        If Not args.Any(Function(a) a = "-y" OrElse a = "--force" OrElse a = "--yes") Then
+        If word = "WIPE" AndAlso Not args.Any(Function(a) a = "-y" OrElse a = "--force" OrElse a = "--yes") Then
             wipeNotice.Text = L("shell_cmd_wipe_needs_y")
             wipeNotice.Visible = True
         End If
 
-        runBtn.Enabled = (wipeBox.Text.Trim() = "WIPE")
-        tips.SetToolTip(runBtn, If(runBtn.Enabled, "", L("shell_cmd_wipe_confirm")))
+        runBtn.Enabled = (wipeBox.Text.Trim() = word)
+        tips.SetToolTip(runBtn, If(runBtn.Enabled, "", wipeLabel.Text))
     End Sub
 
     ' The line as the argument list it will run as, without the leading "filedo.exe".
@@ -601,36 +620,64 @@ Public Class CommandView
         Return ""
     End Function
 
-    ' The CLI's words for a batch list (list_of_flags_for_from in main.go).
-    Private Shared ReadOnly BatchVerbs As String() = {"from", "batch", "script"}
+    Private confirmationLine As String = ""
 
-    ' True when running the line can wipe (GUI-11): a wipe alias anywhere in it, or a batch whose
-    ' list holds one - or a batch whose list cannot be read to say it does not.
     Private Shared Function LineWipes(args As List(Of String)) As Boolean
-        For i = 0 To args.Count - 1
-            If WipeSafety.IsWipeAlias(args(i)) Then Return True
-            If Array.IndexOf(BatchVerbs, args(i).ToLowerInvariant()) >= 0 Then
-                If i + 1 >= args.Count OrElse BatchListWipes(args(i + 1)) Then Return True
-            End If
-        Next
-        Return False
+        Return ConfirmationWord(args) = "WIPE"
     End Function
 
-    Private Shared Function BatchListWipes(listPath As String) As Boolean
+    Private Shared Function ConfirmationWord(args As List(Of String)) As String
+        Return ConfirmationWord(args, New HashSet(Of String)(StringComparer.OrdinalIgnoreCase), 0)
+    End Function
+
+    Private Shared Function ConfirmationWord(args As List(Of String), seen As HashSet(Of String), depth As Integer) As String
+        For i = 0 To args.Count - 1
+            Select Case args(i).ToLowerInvariant()
+                Case "from", "batch", "script"
+                    If i + 1 >= args.Count Then Return "WIPE"
+                    Dim nestedWord = BatchListConfirmationWord(args(i + 1), seen, depth + 1)
+                    If nestedWord <> "" Then Return nestedWord
+                Case "format"
+                    If i > 0 AndAlso DiskCommands.IsFddPath(args(i - 1)) Then Return DiskOptionsPanel.FormatWord
+                    If args.Take(i).Any(Function(a) String.Equals(a, "probe", StringComparison.OrdinalIgnoreCase)) Then Return DiskOptionsPanel.FormatWord
+                Case "destroy"
+                    If i > 0 AndAlso DiskCommands.IsFddPath(args(i - 1)) Then Return DiskOptionsPanel.DestroyWord
+                Case "unmount"
+                    If i > 0 AndAlso DiskCommands.IsFddPath(args(i - 1)) AndAlso
+                       args.Skip(i + 1).Any(Function(a) String.Equals(a, "nosave", StringComparison.OrdinalIgnoreCase)) Then Return "DISCARD"
+                Case "recover", "repair"
+                    If i > 0 Then Return "RECOVER"
+                Case "probe"
+                    If i > 0 AndAlso args.Skip(i + 1).Any(Function(a) String.Equals(a, "fix", StringComparison.OrdinalIgnoreCase) OrElse
+                                                              String.Equals(a, "repair", StringComparison.OrdinalIgnoreCase)) Then Return "FIX"
+                Case "cd", "check-duplicates", "duplicate", "compare", "cmp"
+                    If args.Skip(i + 1).Any(Function(a) String.Equals(a, "del", StringComparison.OrdinalIgnoreCase) OrElse
+                                                      String.Equals(a, "delete", StringComparison.OrdinalIgnoreCase)) Then Return "DELETE"
+            End Select
+        Next
+        Return If(args.Any(Function(a) WipeSafety.IsWipeAlias(a)), "WIPE", "")
+    End Function
+
+    ' Unreadable, oversized or cyclic lists require the strongest confirmation.
+    Private Shared Function BatchListConfirmationWord(listPath As String, seen As HashSet(Of String), depth As Integer) As String
         Try
+            If depth >= 16 Then Return "WIPE"
             Dim full = TargetPath.AsChildSeesIt(listPath)
+            If Not seen.Add(full) Then Return "WIPE"
             Dim info As New FileInfo(full)
-            If Not info.Exists OrElse info.Length > 4 * 1024 * 1024 Then Return True
+            If Not info.Exists OrElse info.Length > 4 * 1024 * 1024 Then Return "WIPE"
             For Each raw In File.ReadAllLines(full)
                 Dim line = raw.Trim()
                 If line = "" OrElse line.StartsWith("#") Then Continue For
-                For Each field In line.Split(New Char() {" "c, ControlChars.Tab}, StringSplitOptions.RemoveEmptyEntries)
-                    If WipeSafety.IsWipeAlias(field) Then Return True
-                Next
+                Dim fields = ArgQuoting.SplitArgs(line).ToList()
+                If fields.Count > 0 AndAlso fields(0).EndsWith("filedo.exe", StringComparison.OrdinalIgnoreCase) Then fields.RemoveAt(0)
+                Dim word = ConfirmationWord(fields, seen, depth)
+                If word <> "" Then Return word
             Next
-            Return False
+            seen.Remove(full)
+            Return ""
         Catch
-            Return True
+            Return "WIPE"
         End Try
     End Function
 
@@ -669,6 +716,10 @@ Public Class CommandView
         wipeBox.Text = typed
         UpdateRunButtonState()
         Return runBtn.Enabled
+    End Function
+
+    Friend Function LaunchAllowedForTest() As Boolean
+        Return ReadyToRun()
     End Function
 
     Friend Sub FeedProgressForTest(p As EventStream.ProgressInfo)
@@ -1115,6 +1166,7 @@ Public Class CommandView
     ' and the password that line takes from the window's variable (GUI-02). Whatever was in the box
     ' before is replaced, never reused: a password left over from an earlier line is the wrong one.
     Public Sub SetCommand(cmd As String, Optional credential As String = "")
+        wipeBox.Text = ""
         credShowCheck.Checked = False
         credBox.Text = If(credential, "")
         credConfirmBox.Text = If(credential, "")
@@ -1314,6 +1366,10 @@ Public Class CommandView
     Private Async Sub RunBtn_Click(sender As Object, e As EventArgs)
         If runner.IsActive Then Return
 
+        ' A list may have changed since the button was enabled. Re-read every nested list at the
+        ' launch boundary, before changing the page or starting the child (GUI-11).
+        If Not ReadyToRun() Then Return
+
         outputPane.Clear()
         verdictLabel.Text = L("shell_state_running")
         verdictState = "running"
@@ -1358,6 +1414,11 @@ Public Class CommandView
         UpdateRunButtonState()
         RaiseEvent RunFinished()
     End Sub
+
+    Private Function ReadyToRun() As Boolean
+        UpdateRunButtonState()
+        Return runBtn.Enabled
+    End Function
 
     Private Sub ShowVerdict(res As Runner.RunResult)
         Dim word = L("shell_verdict_" & res.Verdict.ToLowerInvariant().Replace(" ", "_"))
@@ -1408,6 +1469,15 @@ Public Class CommandView
     End Sub
 
     Public Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         BackColor = p.Background
         ForeColor = p.Text

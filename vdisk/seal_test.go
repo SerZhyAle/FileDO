@@ -111,6 +111,48 @@ func TestVD_SealRefusesUnclean(t *testing.T) {
 	}
 }
 
+// A second process can claim the final name after the initial existence
+// check. Neither verb may replace that file at publication time.
+func TestVD_CopyPublicationDoesNotReplaceAnArrivingFile(t *testing.T) {
+	for _, seal := range []bool{false, true} {
+		dir := t.TempDir()
+		src, dst := filepath.Join(dir, "src.fdd"), filepath.Join(dir, "dst.fdd")
+		c, err := Create(context.Background(), CreateOptions{Path: src, LogicalSize: 1 << 20, ClusterShift: 16})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := c.WriteAt(pattern(7, 4096), 0); err != nil {
+			t.Fatal(err)
+		}
+		if err := c.Close(); err != nil {
+			t.Fatal(err)
+		}
+		marker := []byte("another owner's file")
+		p := progressFunc(func(done, total int64) {
+			if done == 1 {
+				if err := os.WriteFile(dst, marker, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+		o := SealOptions{Src: src, Dst: dst, Progress: p}
+		if seal {
+			err = SealWith(context.Background(), o)
+		} else {
+			err = CopyWith(context.Background(), o)
+		}
+		if !errors.Is(err, ErrUsage) {
+			t.Fatalf("seal=%v: arriving file returned %v", seal, err)
+		}
+		if got, err := os.ReadFile(dst); err != nil || !bytes.Equal(got, marker) {
+			t.Fatalf("seal=%v: arriving file changed: %q, %v", seal, got, err)
+		}
+		if _, err := os.Stat(dst + ".partial"); !os.IsNotExist(err) {
+			t.Fatalf("seal=%v: partial survived: %v", seal, err)
+		}
+	}
+}
+
 type progressFunc func(done, total int64)
 
 func (f progressFunc) Progress(done, total int64) { f(done, total) }

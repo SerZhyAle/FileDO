@@ -270,6 +270,15 @@ Public Class CheckOptionsPanel
     End Sub
 
     Public Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         BackColor = p.Surface
         ForeColor = p.Text

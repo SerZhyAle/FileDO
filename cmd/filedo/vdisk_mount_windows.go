@@ -279,9 +279,8 @@ type vdRequest struct {
 	Letter   string `json:"letter,omitempty"`
 	ReadOnly bool   `json:"read_only"`
 	Force    bool   `json:"force"`
-	// NeverHeld is the caller's fact about the container: no data cluster was
-	// ever allocated, so a disk with no partition table is a container that has
-	// never been formatted. Only then may the mount format it (AUD-32-F3).
+	// NeverHeld is the caller's fact that the container has never been mounted.
+	// Only then may a missing partition table trigger formatting (AUD-32-F3).
 	NeverHeld bool   `json:"never_held,omitempty"`
 	Session   string `json:"session,omitempty"`
 	// NoScan names the backing file to exclude from Microsoft Defender for
@@ -1543,14 +1542,13 @@ func vdReadServeCredential() (fdsec.Credential, error) {
 	return fdsec.Credential(b), nil
 }
 
-// vdNeverHeldData reports whether a container has never held data: no data
-// cluster was ever allocated in it, or it was never mounted (the fast profile
-// allocates every cluster when it is created, so its count alone says nothing),
-// and its header is its own (a header read back from the backup may be older
-// than the data). Only such a container may be formatted by a mount that finds
-// no partition table (AUD-32-F3).
+// vdNeverHeldData reports whether a container has never been mounted. An empty
+// allocation map cannot prove this: a volume may have been formatted and used
+// before its current map became empty. The fast profile also allocates every
+// cluster at creation. A backup header may be older than the data. Only a
+// never-mounted container with its primary header may be formatted implicitly.
 func vdNeverHeldData(info vdisk.Info) bool {
-	return !info.FromBackup && (info.AllocatedClusters == 0 || info.MountCount == 0)
+	return !info.FromBackup && info.MountCount == 0
 }
 
 // vdMayFormatOnMount is the decision a mount takes when the disk it attached

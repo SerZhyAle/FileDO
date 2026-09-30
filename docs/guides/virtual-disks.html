@@ -595,7 +595,7 @@
               Упакованное приложение не может ни настроить инициатор iSCSI, ни
               попросить права администратора, поэтому там <code>mount</code>,
               <code>unmount</code>, <code>save</code>, <code>format</code>,
-              <code>vd auto</code> и <code>vd register</code> заканчиваются
+              <code>vd auto</code>, <code>vd guard</code> и <code>vd register</code> заканчиваются
               кодом 6 (не поддерживается). <code>info</code>,
               <code>verify</code>, <code>export</code>, <code>compact</code>,
               <code>grow</code>, <code>seal</code>, <code>clone</code>,
@@ -608,7 +608,7 @@
               ><b>The Microsoft Store build cannot mount.</b> A packaged app can
               neither configure the iSCSI initiator nor ask for administrator
               rights, so there <code>mount</code>, <code>unmount</code>,
-              <code>save</code>, <code>format</code>, <code>vd auto</code> and
+              <code>save</code>, <code>format</code>, <code>vd auto</code>, <code>vd guard</code> and
               <code>vd register</code> end with exit code 6 (unsupported).
               <code>info</code>, <code>verify</code>, <code>export</code>,
               <code>compact</code>, <code>grow</code>, <code>seal</code>,
@@ -622,7 +622,7 @@
               Запакований застосунок не може ні налаштувати ініціатор iSCSI, ні
               попросити права адміністратора, тому там <code>mount</code>,
               <code>unmount</code>, <code>save</code>, <code>format</code>,
-              <code>vd auto</code> і <code>vd register</code> закінчуються
+              <code>vd auto</code>, <code>vd guard</code> і <code>vd register</code> закінчуються
               кодом 6 (не підтримується). <code>info</code>,
               <code>verify</code>, <code>export</code>, <code>compact</code>,
               <code>grow</code>, <code>seal</code>, <code>clone</code>,
@@ -1031,6 +1031,144 @@
                 вибраним контейнером. Сам диспетчер ці командні рядки не
                 збирає, а «Форматувати» і «Знищити» зберігають підтвердження,
                 яке треба набрати на сторінці завдання.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="autostart">
+        <h2>
+          <span data-l="ru">Автозапуск: при входе и при выключении</span
+          ><span data-l="en">Autostart: at logon and at shutdown</span
+          ><span data-l="ua">Автозапуск: під час входу та вимкнення</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >У автозапуска две половины, и обе собираются в одном окне -
+            «Автозапуск..» в Диспетчере дисков (меню диска или его панель
+            подробностей). Половина первая - при входе: у каждого
+            зарегистрированного контейнера переключатель, который создаёт или
+            удаляет задание планировщика, монтирующее его при вашем входе
+            (<code>vd auto</code>). Половина вторая - при выключении: сторож
+            выключения (<code>vd guard</code>), одно задание на учётную запись,
+            которое в конце сеанса сохраняет изменившиеся диски
+            <code>ram</code> и отключает все подключённые контейнеры, чтобы
+            каждый был закрыт чисто и следующий вход не сообщал «Закрыт
+            некорректно».</span
+          ><span data-l="en"
+            >Autostart has two halves, and both meet in one dialog: Autostart..
+            in the Disk manager (a disk's menu or its detail pane). The first
+            half is at logon: every registered container has a switch that
+            creates or removes a scheduled task mounting it at your logon
+            (<code>vd auto</code>). The second is at shutdown: the shutdown
+            guard (<code>vd guard</code>), one task per account, which at the
+            session's end saves dirty <code>ram</code> disks and unmounts every
+            mounted container, so each is closed cleanly and the next logon
+            does not say "Not closed cleanly".</span
+          ><span data-l="ua"
+            >Автозапуск має дві половини, і обидві збираються в одному вікні -
+            «Автозапуск..» у Диспетчері дисків (меню диска або його панель
+            подробиць). Перша половина - під час входу: у кожного
+            зареєстрованого контейнера перемикач, що створює чи вилучає завдання
+            планувальника, яке підключає його під час вашого входу
+            (<code>vd auto</code>). Друга - під час вимкнення: сторож вимкнення
+            (<code>vd guard</code>), одне завдання на обліковий запис, яке
+            наприкінці сеансу зберігає змінені диски <code>ram</code> і
+            відключає всі підключені контейнери, щоб кожен був закритий чисто і
+            наступний вхід не повідомляв «Закритий некоректно».</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Честные границы</span
+              ><span data-l="en">The honest edges</span
+              ><span data-l="ua">Чесні межі</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Зашифрованный контейнер никогда не подключается при входе
+                автоматически: для этого его пароль пришлось бы хранить там, где
+                его прочтёт машина, а FileDO не хранит ничего. Конец сеанса для
+                сторожа - это выключение, перезагрузка и выход из системы;
+                сон, гибернация и блокировка - нет (быстрый запуск выключает
+                сеанс как выключение). Пока сторож сохраняет диск
+                <code>ram</code>, Windows показывает «FileDO сохраняет ваш RAM
+                диск..» - и «Все равно выключить» всегда остаётся вашим выходом.
+                То, что не успело завершиться, не прячется: отчёт о последнем
+                запуске видно в окне автозапуска, а в консоли -
+                <code>filedo vd guard status</code>.</span
+              ><span data-l="en"
+                >An encrypted container is never mounted at logon
+                automatically: that would need its credential stored where the
+                machine can read it, and FileDO stores none. The session's end,
+                for the guard, is a shutdown, a restart and a sign-out; sleep,
+                hibernate and locking are not (Fast Startup shuts the session
+                down like a shutdown). While the guard saves a
+                <code>ram</code> disk, Windows shows "FileDO is saving your RAM
+                disk.." - and "Shut down anyway" always remains your way out.
+                Whatever did not finish is not hidden: the last run's report is
+                on screen in the Autostart dialog, and in the console with
+                <code>filedo vd guard status</code>.</span
+              ><span data-l="ua"
+                >Зашифрований контейнер ніколи не підключається під час входу
+                автоматично: для цього його пароль довелося б зберігати там, де
+                його прочитає машина, а FileDO не зберігає нічого. Кінець сеансу
+                для сторожа - це вимкнення, перезавантаження й вихід із
+                системи; сон, гібернація та блокування - ні (швидкий запуск
+                вимикає сеанс, як вимкнення). Поки сторож зберігає диск
+                <code>ram</code>, Windows показує «FileDO зберігає ваш RAM
+                диск..» - і «Все одно вимкнути» завжди залишається вашим
+                виходом. Те, що не встигло завершитися, не ховається: звіт про
+                останній запуск видно у вікні автозапуску, а в консолі -
+                <code>filedo vd guard status</code>.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Команды</span
+              ><span data-l="en">The commands</span
+              ><span data-l="ua">Команди</span>
+            </h3>
+            <div class="copy-row">
+              <code class="cmd" id="cmd-guard-on"
+                ><span data-l="ru">filedo vd guard on</span
+                ><span data-l="en">filedo vd guard on</span
+                ><span data-l="ua">filedo vd guard on</span></code
+              >
+              <button
+                class="copy"
+                type="button"
+                data-copy="cmd-guard-on"
+              >
+                <span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+            <p>
+              <span data-l="ru"
+                >создаёт задание (один раз спросив согласие администратора);
+                <code>vd guard off</code> убирает его, не трогая диски;
+                <code>vd guard run</code> - сам наблюдатель, которого задание
+                запускает при входе; <code>vd guard status</code> - состояние и
+                последний запуск тремя строками. Оба задания переживают
+                удаление FileDO - выключатели здесь и в окне автозапуска
+                являются тем, что их убирает.</span
+              ><span data-l="en"
+                >creates the task (asking for administrator consent once);
+                <code>vd guard off</code> removes it and touches no disk;
+                <code>vd guard run</code> is the watcher itself, which the task
+                starts at logon; <code>vd guard status</code> is the state and
+                the last run in three lines. Both tasks survive an uninstall of
+                FileDO - the switches here and in the Autostart dialog are what
+                removes them.</span
+              ><span data-l="ua"
+                >створює завдання (один раз попросивши згоду адміністратора);
+                <code>vd guard off</code> прибирає його, не чіпаючи диски;
+                <code>vd guard run</code> - сам спостерігач, якого завдання
+                запускає під час входу; <code>vd guard status</code> - стан і
+                останній запуск трьома рядками. Обидва завдання переживають
+                видалення FileDO - перемикачі тут і у вікні автозапуску
+                є тим, що їх прибирає.</span
               >
             </p>
           </article>

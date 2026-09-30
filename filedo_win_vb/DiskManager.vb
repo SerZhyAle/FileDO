@@ -1914,10 +1914,21 @@ Public Class DiskManagerForm
         End If
         RestoreColumns()
         FitStateColumn()
+        If Not pendingBounds.IsEmpty Then
+            Location = pendingBounds.Location
+            BeginInvoke(New MethodInvoker(AddressOf FinishPendingPlacement))
+        End If
     End Sub
 
-    ' Moving to a display with another scaling: Windows moves the frame, the rest follows.
+    Protected Overrides Sub OnActivated(e As EventArgs)
+        MyBase.OnActivated(e)
+        Theme.CurrentDpi = DeviceDpi
+    End Sub
+
+    ' Moving to a display with another scaling: Windows moves the frame, the rest follows. The fonts
+    ' made from now on are for that display (Theme.vb, "fonts and the display's scaling").
     Protected Overrides Sub OnDpiChanged(e As DpiChangedEventArgs)
+        Theme.CurrentDpi = e.DeviceDpiNew
         MyBase.OnDpiChanged(e)
         ApplyDpiSizes()
         If e.DeviceDpiOld > 0 Then
@@ -1973,10 +1984,26 @@ Public Class DiskManagerForm
     ' Spec 7.4. A run started from here lives in the process's job, so "let it finish" hides the
     ' window and closes it when the run has ended (D7: only for a run that neither elevates nor
     ' destroys). Closing never unmounts, saves or stops a disk (principle 5).
+    Friend Enum CloseDecision
+        Allow
+        Ask
+        WaitForRun
+    End Enum
+
+    Friend Shared Function DecisionOnClose(busyNow As Boolean, closePending As Boolean, forced As Boolean) As CloseDecision
+        If forced OrElse Not busyNow Then Return CloseDecision.Allow
+        If closePending Then Return CloseDecision.WaitForRun
+        Return CloseDecision.Ask
+    End Function
+
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
         Dim forced = (e.CloseReason = CloseReason.WindowsShutDown OrElse e.CloseReason = CloseReason.TaskManagerClosing)
-        If IsBusy AndAlso Not closeWhenIdle AndAlso Not forced Then
+        Dim decision = DecisionOnClose(IsBusy, closeWhenIdle, forced)
+        If decision <> CloseDecision.Allow Then
             e.Cancel = True
+            ' A second close while Stop and close is pending must not let the process job end the
+            ' child before its run, report and cleanup have finished.
+            If decision = CloseDecision.WaitForRun Then Return
             Dim names = String.Join(", ", running.Concat(queue).Select(Function(o) L(DiskStates.LabelKey(o.Action, o.Record)) & " - " & OpName(o)).Distinct().ToArray())
             Dim background = running.Concat(queue).All(Function(o) Not DiskStates.Elevates(o.Action) AndAlso
                                                                    DiskStates.KindOf(o.Action) <> DiskActionKind.Destructive)
@@ -2037,6 +2064,12 @@ Public Class DiskManagerForm
         End Try
     End Sub
 
+    ' The rectangle the window has to end up at, when that is on a display whose scaling is not the
+    ' one the layout was built for: the window is created on the primary display and moved in
+    ' OnLoad, which is what makes WinForms re-scale it (ShellForm.RestorePlacement says why).
+    Private pendingBounds As Rectangle = Rectangle.Empty
+    Private pendingMaximized As Boolean = False
+
     ' APP-BEHAVIOUR rule 10, as the shell does it (WindowPlacement.Place).
     Private Sub RestorePlacement()
         Try
@@ -2049,12 +2082,36 @@ Public Class DiskManagerForm
             Dim r = WindowPlacement.Place(New Rectangle(p.X, p.Y, p.Width, p.Height), p.Dpi, screens, SystemInformation.CaptionHeight)
             If Not r.IsEmpty Then
                 StartPosition = FormStartPosition.Manual
-                Bounds = r
                 placementRestored = True
+                Dim targetDpi = WindowPlacement.DpiOf(Screen.FromRectangle(r))
+                If targetDpi = Theme.SystemDpi() Then
+                    Bounds = r
+                Else
+                    pendingBounds = r
+                    pendingMaximized = p.Maximized
+                    Dim wa = Screen.PrimaryScreen.WorkingArea
+                    Dim k = Theme.SystemDpi() / CDbl(targetDpi)
+                    Bounds = New Rectangle(wa.Left + 40, wa.Top + 40,
+                                           Math.Min(wa.Width, CInt(Math.Round(r.Width * k))),
+                                           Math.Min(wa.Height, CInt(Math.Round(r.Height * k))))
+                    Return
+                End If
             End If
             If p.Maximized Then WindowState = FormWindowState.Maximized
         Catch ex As Exception
             ShellLog.Write("restore the disk manager's placement", ex)
+        End Try
+    End Sub
+
+    Private Sub FinishPendingPlacement()
+        If pendingBounds.IsEmpty Then Return
+        Dim b = pendingBounds
+        pendingBounds = Rectangle.Empty
+        Try
+            Bounds = b
+            If pendingMaximized Then WindowState = FormWindowState.Maximized
+        Catch ex As Exception
+            ShellLog.Write("finish the disk manager's placement", ex)
         End Try
     End Sub
 
@@ -2153,6 +2210,15 @@ Public Class DiskManagerForm
     ' ---- theme -----------------------------------------------------------
 
     Friend Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         headerFont = Theme.FontBodyStrong()
         bodyFont = Theme.FontBody()
@@ -2434,6 +2500,21 @@ Public Class DiskManagerForm
     End Sub
 
     ' ---- seams for SelfTest.vb -------------------------------------------
+
+    Friend Function PendingCloseCanceledForTest() As Boolean
+        Dim fake As New DiskOp With {.Action = DiskAction.Info, .Record = New DiskRecord With {.Name = "pending"}}
+        Dim previous = closeWhenIdle
+        running.Add(fake)
+        closeWhenIdle = True
+        Try
+            Dim e As New FormClosingEventArgs(CloseReason.UserClosing, False)
+            OnFormClosing(e)
+            Return e.Cancel AndAlso Not IsDisposed AndAlso running.Contains(fake)
+        Finally
+            running.Remove(fake)
+            closeWhenIdle = previous
+        End Try
+    End Function
 
     Friend Sub ApplySnapshotForTest(s As DiskSnapshot, problem As String)
         ApplyRead(s, problem)

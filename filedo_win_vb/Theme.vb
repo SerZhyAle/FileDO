@@ -269,32 +269,94 @@ Module Theme
         End Try
     End Function
 
+    ' ---- fonts and the display's scaling ---------------------------------
+    '
+    ' A Font in points becomes a device font at the SYSTEM dpi (the primary display's, taken once
+    ' when the process starts), whatever display the window is on; WinForms re-sizes the fonts that
+    ' already exist when a window moves to a display at another scaling, but a font made afterwards
+    ' - a page built on first use, a paint - comes out at the system size and is too big or too
+    ' small on every other display (SP-0016 T4, the mixed-DPI defect). So every font below is made
+    ' at the scale of the window it is for: nominal points * windowDpi / systemDpi. The no-argument
+    ' forms use CurrentDpi, which a window sets when it is created on a display and whenever it
+    ' moves to another; the forms that take a dpi are for code that paints and knows its control.
+
+    Private systemDpiValue As Integer = 0
+
+    ' The dpi GDI+ turns a font in points into pixels at: the screen device context's.
+    Public Function SystemDpi() As Integer
+        If systemDpiValue > 0 Then Return systemDpiValue
+        Try
+            Using g = Graphics.FromHwnd(IntPtr.Zero)
+                systemDpiValue = CInt(Math.Round(g.DpiY))
+            End Using
+        Catch
+            systemDpiValue = 96
+        End Try
+        If systemDpiValue < 48 Then systemDpiValue = 96
+        Return systemDpiValue
+    End Function
+
+    Private currentDpiValue As Integer = 0
+
+    ' The dpi the window in front is on; new fonts are made for it.
+    Public Property CurrentDpi As Integer
+        Get
+            If currentDpiValue <= 0 Then Return SystemDpi()
+            Return currentDpiValue
+        End Get
+        Set(value As Integer)
+            currentDpiValue = If(value >= 48, value, 0)
+        End Set
+    End Property
+
+    ' Points at the given dpi, as the point size to hand to a Font.
+    Public Function ScaledPoints(nominalPoints As Single, dpi As Integer) As Single
+        If dpi < 48 Then dpi = SystemDpi()
+        Return nominalPoints * dpi / SystemDpi()
+    End Function
+
     Public Function FontCaption() As Font
-        Return New Font(UiFamily(), 9.0F, FontStyle.Regular, GraphicsUnit.Point)
+        Return FontCaption(CurrentDpi)
+    End Function
+
+    Public Function FontCaption(dpi As Integer) As Font
+        Return New Font(UiFamily(), ScaledPoints(9.0F, dpi), FontStyle.Regular, GraphicsUnit.Point)
     End Function
 
     Public Function FontCaptionStrong() As Font
-        Return New Font(UiFamily(), 9.0F, FontStyle.Bold, GraphicsUnit.Point)
+        Return FontCaptionStrong(CurrentDpi)
+    End Function
+
+    Public Function FontCaptionStrong(dpi As Integer) As Font
+        Return New Font(UiFamily(), ScaledPoints(9.0F, dpi), FontStyle.Bold, GraphicsUnit.Point)
     End Function
 
     Public Function FontBody() As Font
-        Return New Font(UiFamily(), 10.0F, FontStyle.Regular, GraphicsUnit.Point)
+        Return FontBody(CurrentDpi)
+    End Function
+
+    Public Function FontBody(dpi As Integer) As Font
+        Return New Font(UiFamily(), ScaledPoints(10.0F, dpi), FontStyle.Regular, GraphicsUnit.Point)
     End Function
 
     Public Function FontBodyStrong() As Font
-        Return New Font(UiFamily(), 10.0F, FontStyle.Bold, GraphicsUnit.Point)
+        Return FontBodyStrong(CurrentDpi)
+    End Function
+
+    Public Function FontBodyStrong(dpi As Integer) As Font
+        Return New Font(UiFamily(), ScaledPoints(10.0F, dpi), FontStyle.Bold, GraphicsUnit.Point)
     End Function
 
     Public Function FontSubtitle() As Font
-        Return New Font(UiFamily(), 13.0F, FontStyle.Regular, GraphicsUnit.Point)
+        Return New Font(UiFamily(), ScaledPoints(13.0F, CurrentDpi), FontStyle.Regular, GraphicsUnit.Point)
     End Function
 
     Public Function FontTitle() As Font
-        Return New Font(UiFamily(), 17.0F, FontStyle.Regular, GraphicsUnit.Point)
+        Return New Font(UiFamily(), ScaledPoints(17.0F, CurrentDpi), FontStyle.Regular, GraphicsUnit.Point)
     End Function
 
     Public Function FontMono() As Font
-        Return New Font("Consolas", 9.5F, FontStyle.Regular, GraphicsUnit.Point)
+        Return New Font("Consolas", ScaledPoints(9.5F, CurrentDpi), FontStyle.Regular, GraphicsUnit.Point)
     End Function
 
     ' ---- glyphs ----------------------------------------------------------

@@ -301,12 +301,10 @@ Public Module DiskStates
         End Select
         If r Is Nothing Then Return "vd_mgr_why_no_selection"
 
-        ' Copying the path, and opening the Autostart dialog, do nothing to the disk. The Autostart
-        ' dialog is still a surface of the mount path: the packaged build hides it whole (rule 11),
-        ' because mount and unmount are refused there, so a guard would have nothing to do.
+        ' Copying the path and showing the file do nothing to the disk.
         Select Case a
-            Case DiskAction.CopyPath, DiskAction.Autostart
-                Return If(a = DiskAction.Autostart AndAlso ctx.Packaged, "vd_packaged", "")
+            Case DiskAction.CopyPath
+                Return ""
             Case DiskAction.ShowInFolder
                 Return If(r.FileState = "missing" AndAlso Not r.IsImage, "vd_mgr_why_missing", "")
         End Select
@@ -386,6 +384,12 @@ Public Module DiskStates
             Case DiskAction.Forget
                 If Not r.Registered Then Return "vd_mgr_why_not_registered"
                 Return ""
+
+            Case DiskAction.Autostart
+                ' The consolidated view of everything automatic (SP-0080 5). It reads no disk, but it
+                ' is still a surface of the mount path: the packaged build hides it whole (rule 11),
+                ' because mount and unmount are refused there, so a guard would have nothing to do.
+                Return If(ctx.Packaged, "vd_packaged", "")
 
             Case DiskAction.Export, DiskAction.Seal, DiskAction.Clone
                 Return FileWhy(state)

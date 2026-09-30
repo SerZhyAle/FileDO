@@ -57,7 +57,11 @@ param(
     [switch]$Live,
     # Display to capture on, by device name (\\.\DISPLAY2). Default: the primary display. A
     # display at another scaling is how the rail is proven at 100 % / 150 % (SP-0016 T3/T4).
-    [string]$Monitor
+    [string]$Monitor,
+    # With -Monitor: open the window straight onto that display (as a user whose window was last
+    # closed there meets it on the next launch) instead of on the primary display and then
+    # dragging it across. SP-0016 T4 needs both paths.
+    [switch]$LaunchOnMonitor
 )
 
 $ErrorActionPreference = "Stop"
@@ -117,6 +121,9 @@ public static class FdWin {
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromPoint(POINT p, uint flags);
+    [DllImport("shcore.dll")] public static extern int GetDpiForMonitor(IntPtr mon, int type, out uint dx, out uint dy);
+    public static int DpiAtPoint(int x, int y) { POINT p; p.X = x; p.Y = y; uint dx, dy; IntPtr m = MonitorFromPoint(p, 2); return GetDpiForMonitor(m, 0, out dx, out dy) == 0 ? (int)dx : 96; }
     // BGRA pixels; counted in compiled code because a PowerShell loop over ~5M pixels takes seconds.
     public static int CountPureRed(byte[] b) { int n = 0; for (int i = 0; i + 3 < b.Length; i += 4) if (b[i + 2] == 255 && b[i + 1] == 0 && b[i] == 0) n++; return n; }
 }
@@ -263,6 +270,11 @@ try {
     # The window always opens on the primary display and is then moved, the way a user drags it:
     # a window opened straight onto a display at another scaling gets no WM_DPICHANGED.
     $launchArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+    $launchDpi = 0
+    if ($Monitor -and $LaunchOnMonitor) {
+        $launchArea = $screen
+        $launchDpi = [FdWin]::DpiAtPoint($screen.Left + 50, $screen.Top + 50)
+    }
 
     foreach ($lang in $Languages) {
         foreach ($pg in $Pages) {
@@ -271,7 +283,8 @@ try {
             Set-GuiSetting 'ShellTheme' $Theme
             Set-GuiSetting 'ShellRailCollapsed' ((@($RailGroups | Where-Object { $_ -ne $PageGroup[$pg] })) -join ';')
             Set-GuiSetting 'ShellPlacementV' 3 'DWord'
-            Clear-GuiSetting 'ShellDpi'                  # no saved DPI: the rectangle is taken as it stands
+            if ($launchDpi) { Set-GuiSetting ShellDpi $launchDpi DWord }   # saved on that display: the rectangle is in its pixels
+            else { Clear-GuiSetting ShellDpi }                               # no saved DPI: the rectangle is taken as it stands
             Set-GuiSetting 'ShellX' ($launchArea.Left + 40) 'DWord'
             Set-GuiSetting 'ShellY' ($launchArea.Top + 40) 'DWord'
             Set-GuiSetting 'ShellW' 1400 'DWord'
@@ -286,7 +299,7 @@ try {
                 if (-not $win) { throw "the shell window did not appear for $lang/$pg" }
                 $h = [IntPtr]$win.Current.NativeWindowHandle
                 Start-Sleep -Milliseconds 800
-                if ($Monitor) {
+                if ($Monitor -and -not $LaunchOnMonitor) {
                     [void][FdWin]::SetWindowPos($h, [IntPtr]::Zero, $screen.Left + 40, $screen.Top + 40, 0, 0, 0x0001 -bor 0x0004)  # NOSIZE, NOZORDER
                     Start-Sleep -Milliseconds 1500   # the window re-scales to the new display's DPI
                 }

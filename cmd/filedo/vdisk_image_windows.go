@@ -97,8 +97,7 @@ func vdImageOfLetter(letter string) string {
 		if !strings.EqualFold(im.Letter, l) {
 			continue
 		}
-		q := "'" + strings.ReplaceAll(im.Path, "'", "''") + "'"
-		out, err := vdPowerShell("$i = Get-DiskImage -ImagePath " + q + " -ErrorAction SilentlyContinue\nif ($i.Attached) { @($i | Get-Volume -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.DriveLetter):\" }) -join ' ' }\n")
+		out, err := vdPowerShell("$imagePath = " + psDataExpr(im.Path) + "\n$i = Get-DiskImage -ImagePath $imagePath -ErrorAction SilentlyContinue\nif ($i.Attached) { @($i | Get-Volume -ErrorAction SilentlyContinue | ForEach-Object { \"$($_.DriveLetter):\" }) -join ' ' }\n")
 		if err == nil && strings.Contains(strings.ToUpper(out), l) {
 			return im.Path
 		}
@@ -165,21 +164,7 @@ func vdImageStep(req vdRequest) (vdResult, error) {
 // vdImageRun mounts (or dismounts) one image and returns the drive letters of
 // its volumes.
 func vdImageRun(path string, dismount, ro bool) (string, error) {
-	q := psQuote(path)
-	var script string
-	if dismount {
-		script = "$ErrorActionPreference = 'Stop'\nDismount-DiskImage -ImagePath " + q + " | Out-Null\n"
-	} else {
-		access := "ReadWrite"
-		if ro {
-			access = "ReadOnly"
-		}
-		script = "$ErrorActionPreference = 'Stop'\n$img = Mount-DiskImage -ImagePath " + q + " -Access " + access + " -PassThru\n" +
-			"Start-Sleep -Milliseconds 500\n" +
-			"$l = @($img | Get-Volume -ErrorAction SilentlyContinue | Where-Object DriveLetter | ForEach-Object { \"$($_.DriveLetter):\" })\n" +
-			"if (-not $l) { $l = @(Get-DiskImage -ImagePath " + q + " | Get-Disk -ErrorAction SilentlyContinue | Get-Partition -ErrorAction SilentlyContinue | Where-Object DriveLetter | ForEach-Object { \"$($_.DriveLetter):\" }) }\n" +
-			"$l -join ' '\n"
-	}
+	script := vdImageScript(path, dismount, ro)
 	out, err := vdPowerShell(script)
 	if err != nil {
 		if strings.Contains(out, "0x80070005") || strings.Contains(strings.ToLower(out), "access is denied") {
@@ -199,6 +184,29 @@ func vdImageRun(path string, dismount, ro bool) (string, error) {
 		return "", fmt.Errorf("Windows could not mount the image: %s", first)
 	}
 	return letters, nil
+}
+
+// The image path is data in every cmdlet call, including the second lookup
+// after mount. Keep this script in one place so the test exercises its exact
+// argument construction (AUD-34-F4).
+func vdImageScript(path string, dismount, ro bool) string {
+	pathAssignment := "$imagePath = " + psDataExpr(path) + "\n"
+	var script string
+	if dismount {
+		script = pathAssignment + "Dismount-DiskImage -ImagePath $imagePath | Out-Null\n"
+	} else {
+		access := "ReadWrite"
+		if ro {
+			access = "ReadOnly"
+		}
+		script = pathAssignment + "$img = Mount-DiskImage -ImagePath $imagePath -Access " + access + " -PassThru\n" +
+			"if (-not $img -or -not (Get-DiskImage -ImagePath $imagePath).Attached) { throw 'Windows did not attach the image' }\n" +
+			"Start-Sleep -Milliseconds 500\n" +
+			"$l = @($img | Get-Volume -ErrorAction SilentlyContinue | Where-Object DriveLetter | ForEach-Object { \"$($_.DriveLetter):\" })\n" +
+			"if (-not $l) { $l = @(Get-DiskImage -ImagePath $imagePath | Get-Disk -ErrorAction SilentlyContinue | Get-Partition -ErrorAction SilentlyContinue | Where-Object DriveLetter | ForEach-Object { \"$($_.DriveLetter):\" }) }\n" +
+			"$l -join ' '\n"
+	}
+	return script
 }
 
 // vdDriveLetters matches what a successful image mount prints: `E:`, `E: F:`

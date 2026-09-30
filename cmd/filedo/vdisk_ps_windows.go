@@ -38,6 +38,17 @@ func psQuote(s string) string {
 	return b.String()
 }
 
+// psDataExpr transfers a value through an ASCII-only encoded literal. Paths
+// passed to an elevated script never become PowerShell source text.
+func psDataExpr(s string) string {
+	u := utf16.Encode([]rune(s))
+	raw := make([]byte, 0, len(u)*2)
+	for _, c := range u {
+		raw = append(raw, byte(c), byte(c>>8))
+	}
+	return "[Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('" + base64.StdEncoding.EncodeToString(raw) + "'))"
+}
+
 // vdPowerShell runs script in Windows PowerShell and returns its output.
 //
 // The script goes in as -EncodedCommand, one unit: a `throw` (or any error under

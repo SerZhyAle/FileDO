@@ -227,3 +227,65 @@ func TestCompareDeleteAsksFirst(t *testing.T) {
 	}
 	assertTreeIntact(t, dst)
 }
+
+func TestCompareDeleteRechecksBothFilesAfterConfirmation(t *testing.T) {
+	for _, changedSide := range []string{"source", "target"} {
+		t.Run(changedSide, func(t *testing.T) {
+			root := t.TempDir()
+			src, dst := filepath.Join(root, "src"), filepath.Join(root, "dst")
+			name := "pair.txt"
+			stamp := time.Date(2023, 5, 1, 8, 0, 0, 0, time.UTC)
+			for _, dir := range []string{src, dst} {
+				p := filepath.Join(dir, name)
+				writeFile(t, p, []byte("original"))
+				if err := os.Chtimes(p, stamp, stamp); err != nil {
+					t.Fatal(err)
+				}
+			}
+			oldConfirm := compareConfirm
+			compareConfirm = func(string) (bool, bool) {
+				p := filepath.Join(src, name)
+				if changedSide == "target" {
+					p = filepath.Join(dst, name)
+				}
+				if err := os.Remove(p); err != nil {
+					t.Fatal(err)
+				}
+				writeFile(t, p, []byte("replaced")) // same size and time, different file
+				if err := os.Chtimes(p, stamp, stamp); err != nil {
+					t.Fatal(err)
+				}
+				return true, true
+			}
+			defer func() { compareConfirm = oldConfirm }()
+			problems := performDelete(src, dst, "source", "", compareOptions{}, scanFiles(src), scanFiles(dst))
+			if len(problems) == 0 || !exists(filepath.Join(src, name)) || !exists(filepath.Join(dst, name)) {
+				t.Fatalf("changed %s file must keep both sides; problems: %v", changedSide, problems)
+			}
+		})
+	}
+}
+
+func TestCompareDeleteStopBeforeNextHashAndRemove(t *testing.T) {
+	root := t.TempDir()
+	src, dst := filepath.Join(root, "src"), filepath.Join(root, "dst")
+	for _, dir := range []string{src, dst} {
+		writeFile(t, filepath.Join(dir, "pair.txt"), []byte("same"))
+	}
+	savedHandler, savedHash := globalInterruptHandler, compareHashFile
+	globalInterruptHandler = newInterruptHandlerNoSignals()
+	defer func() {
+		globalInterruptHandler = savedHandler
+		compareHashFile = savedHash
+	}()
+	hashes := 0
+	compareHashFile = func(path string) ([]byte, error) {
+		hashes++
+		globalInterruptHandler.Interrupt()
+		return savedHash(path)
+	}
+	performDelete(src, dst, "source", "", compareOptions{byHash: true, assumeYes: true}, scanFiles(src), scanFiles(dst))
+	if hashes != 1 || !exists(filepath.Join(src, "pair.txt")) {
+		t.Fatalf("stop must prevent the second hash and deletion; hashes=%d", hashes)
+	}
+}

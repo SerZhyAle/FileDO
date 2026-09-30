@@ -157,6 +157,15 @@ Public Class SettingsView
     End Sub
 
     Public Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         BackColor = p.Background
         ForeColor = p.Text

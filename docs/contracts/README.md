@@ -55,9 +55,9 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`CHECK-PLACEMENT.md`](CHECK-PLACEMENT.md) | check runner placement and execution mapping | producer |
 | [`BUILD-EVIDENCE.md`](BUILD-EVIDENCE.md) | build artifact stamping and test evidence | producer |
 | [`DIAGNOSTIC-REPORT.md`](DIAGNOSTIC-REPORT.md) | sanitized diagnostic archive export | producer (`LogReport.vb`) |
-| [`MEDIA-CLASSIFICATION.md`](MEDIA-CLASSIFICATION.md) | normalized media/container kinds and file rules | consumer |
-| [`UPDATE-MANIFEST.md`](UPDATE-MANIFEST.md) | standalone release discovery and integrity checks | consumer |
-| [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | Explorer verb integration and process invocation | consumer |
+| [`MEDIA-CLASSIFICATION.md`](MEDIA-CLASSIFICATION.md) | normalized media/container kinds and file rules | applicability disputed; owner proposal pending |
+| [`UPDATE-MANIFEST.md`](UPDATE-MANIFEST.md) | standalone release discovery and integrity checks | applicability disputed; owner proposal pending |
+| [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | applicability disputed; owner proposal pending |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
 | [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; dated draft exception |
 

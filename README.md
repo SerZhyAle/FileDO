@@ -437,7 +437,7 @@ What the platform needs, said plainly:
   never runs elevated. A batch never raises that prompt - run it from an elevated console. When the
   Microsoft iSCSI Initiator service cannot be used, the run ends with exit 7 and nothing is mounted.
 - **The Microsoft Store build cannot mount.** A packaged app can neither configure the iSCSI initiator nor
-  ask for administrator rights, so there `mount`, `unmount`, `save`, `format`, `vd auto` and `vd register`
+  ask for administrator rights, so there `mount`, `unmount`, `save`, `format`, `vd auto`, `vd guard` and `vd register`
   end with exit 6. `info`, `verify`, `export`, `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`,
   `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` work there too; to mount, use the setup or the
   portable build from GitHub.

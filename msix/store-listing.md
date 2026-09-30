@@ -97,7 +97,7 @@ only declare a context-menu handler through a signed shell command handler, whic
 FileDO. The verbs work from the terminal in the Store build exactly as everywhere else. It also
 declares `.fdd` for the window only, with no verb, and it **cannot mount** a `.fdd` virtual disk: a
 packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights, so
-`mount`, `unmount`, `save`, `format`, `vd auto` and `vd register` return class 6 there. The read path -
+`mount`, `unmount`, `save`, `format`, `vd auto`, `vd guard` and `vd register` return class 6 there. The read path -
 info, verify, export, and the file-level changes - works. The listing says exactly that and
 promises no mounting.
 

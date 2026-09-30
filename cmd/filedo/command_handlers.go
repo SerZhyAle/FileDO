@@ -148,13 +148,13 @@ func printRedirectCleanNote(dir string) {
 // isSystemVolumeRoot, which recognises every spelling of the root of the
 // volume holding Windows (CLI-18). With no answer to read - the GUI closes
 // the child's stdin - the prompt takes its default, which is the redirect.
-func redirectSystemDrive(path string) string {
+func redirectSystemDrive(path string) (string, error) {
 	if isSystemVolumeRoot(path) {
 		// Check if redirection is disabled by environment variable
 		if os.Getenv("FILEDO_DISABLE_REDIRECT") == "1" {
 			fmt.Printf("⚠️  System drive redirection disabled by FILEDO_DISABLE_REDIRECT=1\n")
 			fmt.Printf("   WARNING: Writing directly to the system drive - use with caution!\n")
-			return path
+			return path, nil
 		}
 
 		// Create subdirectory for FileDO operations
@@ -181,23 +181,18 @@ func redirectSystemDrive(path string) string {
 		// Default to Yes if empty input or 'y'
 		if response == "" || response == "y" || response == "yes" {
 			// Create the directory if it doesn't exist
-			if _, err := os.Stat(fileDoTempDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(fileDoTempDir, 0755); err != nil {
-					fmt.Fprintf(os.Stderr, "Error: Could not create %s: %v\n", fileDoTempDir, err)
-					fmt.Fprintf(os.Stderr, "Falling back to original path (use at your own risk).\n")
-					return path
-				}
-				fmt.Printf("✓ Created safe directory: %s\n", fileDoTempDir)
+			if err := os.MkdirAll(fileDoTempDir, 0755); err != nil {
+				return "", fmt.Errorf("cannot create system-drive redirect %q: %w", fileDoTempDir, err)
 			}
 			fmt.Printf("✓ Using safe location: %s\n", fileDoTempDir)
-			return fileDoTempDir
+			return fileDoTempDir, nil
 		} else {
 			fmt.Printf("⚠️  User chose to proceed with the system drive directly.\n")
 			fmt.Printf("   WARNING: This may affect system stability or performance.\n")
-			return path
+			return path, nil
 		}
 	}
-	return path
+	return path, nil
 }
 
 // CommandType represents the command type
@@ -488,7 +483,13 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	// The system drive: writes (speed, fill, test) are redirected to the
 	// temp folder, and clean looks where they went (effectiveTarget).
 	if cmd.NArg() >= 2 {
-		path = effectiveTarget(cmd.Arg(1), path)
+		var redirectErr error
+		path, redirectErr = effectiveTarget(cmd.Arg(1), path)
+		if redirectErr != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", redirectErr)
+			runFailure(redirectErr)
+			return
+		}
 	}
 
 	handler := getCommandHandler(cmdType)

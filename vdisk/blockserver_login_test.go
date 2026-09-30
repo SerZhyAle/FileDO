@@ -152,6 +152,26 @@ func TestVD_SCSI_UnauthenticatedConnectionsAreBounded(t *testing.T) {
 	}
 }
 
+func TestVD_SCSI_UnauthenticatedLoginHasAnAbsoluteDeadline(t *testing.T) {
+	old := loginTimeout
+	loginTimeout = 250 * time.Millisecond
+	defer func() { loginTimeout = old }()
+	h := serve(t, &memDev{b: make([]byte, 1<<20)}, 1<<20, false)
+	nc, err := net.Dial("tcp", h.addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer nc.Close()
+	nc.SetReadDeadline(time.Now().Add(2 * time.Second))
+	start := time.Now()
+	if _, err := nc.Read(make([]byte, 1)); err == nil || isTimeout(err) {
+		t.Fatalf("an unauthenticated idle peer was not closed: %v", err)
+	}
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Fatalf("login lasted %v despite a %v deadline", elapsed, loginTimeout)
+	}
+}
+
 func isTimeout(err error) bool {
 	var ne net.Error
 	return errors.As(err, &ne) && ne.Timeout()

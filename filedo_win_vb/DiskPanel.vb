@@ -744,6 +744,15 @@ Public Class DiskOptionsPanel
     End Sub
 
     Public Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         Dim body = Theme.FontBody()
         Dim caption = Theme.FontCaption()
@@ -1098,6 +1107,15 @@ Public Class DiskResultPanel
     End Sub
 
     Public Sub ApplyTheme()
+        Ui.SuspendTree(Me)
+        Try
+            ApplyThemeCore()
+        Finally
+            Ui.ResumeTree(Me)
+        End Try
+    End Sub
+
+    Private Sub ApplyThemeCore()
         Dim p = Theme.Current
         BackColor = p.Surface
         messageLabel.Font = Theme.FontBody()

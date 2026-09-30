@@ -19,11 +19,15 @@ var DefaultSavePolicy = SavePolicy{Every: 60 * time.Second, DirtyLimit: 256 << 2
 // savePolicyTick is how often the policy looks; a variable so tests run fast.
 var savePolicyTick = 250 * time.Millisecond
 
+// A failed save may succeed when the backing store becomes writable again.
+// Keep the dirty data in RAM and retry at this pace without a tight error loop.
+var savePolicyRetry = 5 * time.Second
+
 // RunSavePolicy saves c by the policy until ctx ends; it returns at once for
 // any profile but ram. Writes are never throttled: under sustained pressure a
 // new save starts as soon as the last one ends, and when the waiting amount
 // stays above twice the limit, logf says so once a minute. A failed save is
-// logged and ends the loop - the container writes nothing more after one.
+// logged and retried after a delay while the dirty data stays in RAM.
 // The final save is the session end's (Close), not this loop's.
 func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(string, ...interface{})) {
 	if _, ok := c.RAMState(); !ok {
@@ -40,6 +44,7 @@ func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(st
 	}
 	last := time.Now()
 	var warned time.Time
+	var retryAt time.Time
 	t := time.NewTicker(savePolicyTick)
 	defer t.Stop()
 	for {
@@ -51,6 +56,10 @@ func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(st
 		s, _ := c.RAMState()
 		if s.DirtyBytes == 0 {
 			last = time.Now()
+			retryAt = time.Time{}
+			continue
+		}
+		if time.Now().Before(retryAt) {
 			continue
 		}
 		if s.DirtyBytes >= 2*p.DirtyLimit && time.Since(warned) >= time.Minute {
@@ -62,9 +71,11 @@ func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(st
 		}
 		began := time.Now()
 		if err := c.Save(); err != nil {
-			logf("ram: save failed, nothing more is written to the file: %v", err)
-			return
+			logf("ram: save failed; retrying in %s: %v", savePolicyRetry, err)
+			retryAt = time.Now().Add(savePolicyRetry)
+			continue
 		}
+		retryAt = time.Time{}
 		last = began
 		logf("ram: saved %d MB in %d ms", s.DirtyBytes>>20, time.Since(began).Milliseconds())
 	}

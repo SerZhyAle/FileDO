@@ -345,6 +345,7 @@ func TestVD_MountFormatsOnlyAContainerThatNeverHeldData(t *testing.T) {
 		"fresh fast profile formats":           {true, false, fastFresh, false},
 		"mounted fast profile and blank":       {true, false, fastUsed, true},
 		"used and blank is refused":            {true, false, used, true},
+		"empty map after a mount is refused":   {true, false, vdisk.Info{AllocatedClusters: 0, MountCount: 1}, true},
 		"backup header and blank is refused":   {true, false, fromBackup, true},
 		"used with a table mounts":             {false, false, used, false},
 		"explicit format of a used container":  {true, true, used, false},

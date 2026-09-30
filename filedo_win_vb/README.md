@@ -190,12 +190,19 @@ Things worth knowing before reading the code:
   that shows a shortcut and the help window's table all read it, and `--selftest` walks it.
 - **The first run** shows the welcome window once (`DiskWelcomeDialog`); Help, First steps.. opens it again. Neither
   the help nor the welcome makes a network call: a link is followed only when it is clicked.
+- **Autostart, in one dialog** (`DiskAutostartDialog.vb`, SP-0080): the per-container logon mounts and the shutdown
+  guard together, opened by *Autostart..* from a registered disk's menu or detail pane. The dialog learns state
+  only through delegates over the snapshot the manager has already read, and acts only through the manager's own
+  flows - a logon switch is exactly the row's `vd auto` action, and the guard's switch is one
+  `DiskCommands.Build("guard", ..)` line through the same queue. The packaged build never opens it: mount and
+  unmount are refused there, so the entry is hidden, not greyed.
 
 Where the code lives: `DiskManager.vb` (the window), `DiskHelp.vb` (the keyboard table, the help and the welcome
 windows), `GlyphButton.vb` (the glyph buttons), `DiskGlyphs.vb` (one glyph per meaning), `DiskStates.vb` (the state
 of a row and which action applies, as pure functions), `DiskSnapshot.vb` (the `vd status json` reader),
-`DiskDialogs.vb` (the password, Mount as.. and the name a container is added under) and `AppHost.vb` (the windows
-of the process). `filedo_win.exe --capture-screens <folder>` renders the site's three pictures of it
+`DiskAutostartDialog.vb` (the logon mounts and the shutdown guard in one place, with the guard's words as pure
+functions), `DiskDialogs.vb` (the password, Mount as.. and the name a container is added under) and `AppHost.vb`
+(the windows of the process). `filedo_win.exe --capture-screens <folder>` renders the site's three pictures of it
 (`gui-disk-manager-*`, `gui-disk-help-*`, `gui-disk-welcome-*`).
 
 ## Usage

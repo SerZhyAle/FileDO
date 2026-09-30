@@ -3,10 +3,118 @@ package vdisk
 import (
 	"bytes"
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
 )
+
+type transientSaveBacking struct {
+	*memBacking
+	writes int
+	failAt int
+}
+
+func (b *transientSaveBacking) WriteAt(p []byte, off int64) (int, error) {
+	b.writes++
+	if b.writes == b.failAt {
+		return 0, errors.New("temporary backing write failure")
+	}
+	return b.memBacking.WriteAt(p, off)
+}
+
+// A data or final-header error keeps the snapshot in RAM. A later save must
+// replay it, including a newer write to the same cluster, and clear the
+// interrupted-save marker only after the replay completes.
+func TestVD_RAMSaveRetriesAfterTemporaryWriteFailure(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		failAt int
+	}{
+		{"start primary header", 1},
+		{"start backup header", 2},
+		{"data", 3},
+		{"final primary header", 4},
+		{"final backup header", 5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c, mb := newMemContainer(t, CreateOptions{LogicalSize: 1 << 20, ClusterShift: 16, Profile: ProfileRAM})
+			old := pattern(11, 4096)
+			if _, err := c.WriteAt(old, 0); err != nil {
+				t.Fatal(err)
+			}
+			b := &transientSaveBacking{memBacking: mb, failAt: tc.failAt}
+			c.b = b
+			if err := c.Save(); !errors.Is(err, ErrIO) {
+				t.Fatalf("first save: %v, want I/O error", err)
+			}
+			if s, _ := c.RAMState(); s.DirtyBytes != 1<<16 || s.Saving {
+				t.Fatalf("snapshot lost after failure: %+v", s)
+			}
+			newer := pattern(12, 4096)
+			if _, err := c.WriteAt(newer, 0); err != nil {
+				t.Fatalf("write after recoverable failure: %v", err)
+			}
+			if err := c.Save(); err != nil {
+				t.Fatalf("retry: %v", err)
+			}
+			if info := c.Info(); info.SaveInProgress {
+				t.Fatal("completed retry still carries the interrupted-save marker")
+			}
+			if err := c.Close(); err != nil {
+				t.Fatal(err)
+			}
+			r := mustOpenMem(t, mb, OpenRead)
+			got := make([]byte, len(newer))
+			if _, err := r.ReadAt(got, 0); err != nil || !bytes.Equal(got, newer) {
+				t.Fatalf("retry did not save the newest bytes: err=%v", err)
+			}
+		})
+	}
+}
+
+func TestVD_SavePolicyRetriesAfterTemporaryWriteFailure(t *testing.T) {
+	oldTick, oldRetry := savePolicyTick, savePolicyRetry
+	savePolicyTick, savePolicyRetry = 5*time.Millisecond, 25*time.Millisecond
+	t.Cleanup(func() { savePolicyTick, savePolicyRetry = oldTick, oldRetry })
+
+	c, mb := newMemContainer(t, CreateOptions{LogicalSize: 1 << 20, ClusterShift: 16, Profile: ProfileRAM})
+	b := &transientSaveBacking{memBacking: mb, failAt: 3}
+	c.b = b
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var mu sync.Mutex
+	var logs []string
+	done := make(chan struct{})
+	go func() {
+		RunSavePolicy(ctx, c, SavePolicy{Every: time.Hour, DirtyLimit: 1 << 16}, func(format string, _ ...interface{}) {
+			mu.Lock()
+			logs = append(logs, format)
+			mu.Unlock()
+		})
+		close(done)
+	}()
+	if _, err := c.WriteAt(pattern(13, 4096), 0); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if s, _ := c.RAMState(); s.DirtyBytes == 0 && !s.LastGoodSave.IsZero() {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	cancel()
+	<-done
+	if s, _ := c.RAMState(); s.DirtyBytes != 0 || s.LastGoodSave.IsZero() {
+		t.Fatalf("the policy did not retry the save: %+v", s)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(logs) < 2 || logs[0] != "ram: save failed; retrying in %s: %v" || logs[1] != "ram: saved %d MB in %d ms" {
+		t.Fatalf("the failed save and retry were not logged: %v", logs)
+	}
+}
 
 // gateBacking holds the first data-region write until release is closed, so a
 // test can act while a save is between its steps.

@@ -1,10 +1,13 @@
 package vdisk
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"os"
 
 	"filedo/fdsec"
+	"filedo/fsx"
 )
 
 // Seal writes a sealed copy of the container at src to dst (SP-0004 P4
@@ -144,12 +147,53 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 	if err := closeCopy(); err != nil {
 		return err
 	}
-	if _, err := os.Stat(dst); err == nil {
-		os.Remove(tmp)
-		return usagef("%s appeared while the seal ran; the sealed copy was removed", dst)
+	// Reopen the completed file and read every referenced cluster before it
+	// becomes the named result. A successful writer close alone does not prove
+	// that the finished map and its referenced data can be read back.
+	check, err := Open(ctx, tmp, cred, OpenRead)
+	if err != nil {
+		return err
 	}
-	if err := os.Rename(tmp, dst); err != nil {
-		os.Remove(tmp)
+	report, verifyErr := check.Verify(ctx, nil)
+	if verifyErr == nil && len(report.Problems) == 0 && report.ClustersRead == report.AllocatedClusters {
+		// Format 1.0 has no data digests. Compare the logical volume with the
+		// source while both read locks are held, including sparse zero regions.
+		from, to := make([]byte, 1<<20), make([]byte, 1<<20)
+		for off := int64(0); off < info.LogicalSize; off += int64(len(from)) {
+			if stopped(ctx) {
+				verifyErr = ErrStopped
+				break
+			}
+			n := int(min(int64(len(from)), info.LogicalSize-off))
+			if _, verifyErr = s.ReadAt(from[:n], off); verifyErr != nil {
+				break
+			}
+			if _, verifyErr = check.ReadAt(to[:n], off); verifyErr != nil {
+				break
+			}
+			if !bytes.Equal(from[:n], to[:n]) {
+				verifyErr = damagedf("the completed copy differs from its source at volume offset %d", off)
+				break
+			}
+		}
+	}
+	closeErr := check.Close()
+	if verifyErr != nil {
+		return verifyErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if len(report.Problems) != 0 || report.ClustersRead != report.AllocatedClusters {
+		return damagedf("the completed copy could not be verified")
+	}
+	if stopped(ctx) {
+		return ErrStopped
+	}
+	if err := fsx.RenameNoReplace(tmp, dst); err != nil {
+		if errors.Is(err, fsx.ErrDestinationExists) {
+			return usagef("%s appeared while the copy ran; the new copy was removed", dst)
+		}
 		return ioErr(err)
 	}
 	return nil

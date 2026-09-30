@@ -101,10 +101,13 @@ func diskBusType(n int) (uint32, error) {
 // The S0 measurement saw the disk arrive in 59-94 ms, and after refused
 // logouts in about 60 s, so the wait is long and the poll is short.
 func findDiskBySerial(serial string, timeout time.Duration) (int, error) {
+	if serial == "" {
+		return -1, fmt.Errorf("the container's disk serial is empty; no disk was selected")
+	}
 	deadline := time.Now().Add(timeout)
 	for {
 		for n := 0; n < 128; n++ {
-			if s, err := diskSerial(n); err == nil && strings.Contains(s, serial) {
+			if s, err := diskSerial(n); err == nil && s == serial {
 				return n, nil
 			}
 		}
@@ -358,16 +361,16 @@ func setNotIndexed(guidPath string) error {
 // needs administrator rights and runs in the elevated step. present reports an
 // exclusion that was there before, which the unmount must then leave alone.
 func defenderExclude(path string, add bool) (present bool, err error) {
-	q := psQuote(path)
 	script := `$ErrorActionPreference = 'Stop'
+$containerPath = ` + psDataExpr(path) + `
 $pref = Get-MpPreference
-$have = @($pref.ExclusionPath) -contains ` + q + `
+$have = @($pref.ExclusionPath) -contains $containerPath
 `
 	if add {
-		script += `if ($have) { 'present' } else { Add-MpPreference -ExclusionPath ` + q + `; 'added' }
+		script += `if ($have) { 'present' } else { Add-MpPreference -ExclusionPath $containerPath; 'added' }
 `
 	} else {
-		script += `if ($have) { Remove-MpPreference -ExclusionPath ` + q + `; 'removed' } else { 'absent' }
+		script += `if ($have) { Remove-MpPreference -ExclusionPath $containerPath; 'removed' } else { 'absent' }
 `
 	}
 	out, err := vdPowerShell(script)
@@ -398,15 +401,11 @@ func vdFileSystem(fs string) string {
 // formats a blank disk NTFS; `format` (clear set) empties a disk that holds a
 // volume first, which is what destroys its contents, and may ask for exFAT.
 func formatBlankDisk(n int, serial, label, fs string, clearFirst bool, logf func(string, ...interface{})) error {
-	if clearFirst {
-		// Clear-Disk destroys whatever disk carries the number. The number is
-		// proved to be the container's disk here, in Go, immediately before the
-		// script that clears it runs - the script's own check is a second line,
-		// not the only one (AUD-34-F1). A renumbering between the attach and
-		// this step ends here with nothing cleared.
-		if err := vdProveContainerDisk(n, labelUnsafe.ReplaceAllString(serial, "")); err != nil {
-			return err
-		}
+	// A disk number may change after attach. Prove its serial and bus before
+	// either the explicit clear or the first format; the script checks again
+	// immediately before Clear-Disk (AUD-34-F1).
+	if err := vdProveContainerDisk(n, serial); err != nil {
+		return err
 	}
 	script, err := formatScript(n, serial, label, fs, clearFirst)
 	if err != nil {
@@ -435,7 +434,7 @@ func vdProveContainerDisk(n int, serial string) error {
 	if err != nil {
 		return fmt.Errorf("disk %d could not be identified (%v); nothing was cleared", n, err)
 	}
-	if !strings.Contains(got, serial) {
+	if got != serial {
 		return fmt.Errorf("disk %d is not the container's disk (its serial is not %s); nothing was cleared", n, serial)
 	}
 	bus, err := diskBusType(n)
@@ -452,6 +451,10 @@ func vdProveContainerDisk(n int, serial string) error {
 // It runs as one unit (vdPowerShell), so a failing step ends it: the first error
 // is the last thing that runs, never hidden by a line after it.
 func formatScript(n int, serial, label, fs string, clearFirst bool) (string, error) {
+	serial = labelUnsafe.ReplaceAllString(serial, "")
+	if serial == "" {
+		return "", fmt.Errorf("the container's disk serial is empty; nothing was formatted")
+	}
 	label = strings.TrimSpace(labelUnsafe.ReplaceAllString(label, ""))
 	if len(label) > 32 {
 		label = label[:32]
@@ -462,26 +465,23 @@ func formatScript(n int, serial, label, fs string, clearFirst bool) (string, err
 	fs = vdFileSystem(fs)
 	clearStep := ""
 	if clearFirst {
-		serial = labelUnsafe.ReplaceAllString(serial, "")
-		if serial == "" {
-			return "", fmt.Errorf("the container's disk serial is empty; nothing was cleared")
-		}
-		clearStep = fmt.Sprintf(`$d = Get-Disk -Number %d
-if (-not $d.SerialNumber -or -not $d.SerialNumber.Contains('%s') -or $d.BusType -ne 'iSCSI') { throw "disk %d is not the container's disk; nothing was cleared" }
-Clear-Disk -Number %d -RemoveData -RemoveOEM -Confirm:$false
+		clearStep = fmt.Sprintf(`Clear-Disk -Number %d -RemoveData -RemoveOEM -Confirm:$false
 "cleared in $($sw.ElapsedMilliseconds) ms"
-`, n, serial, n, n)
+`, n)
 	}
 	return fmt.Sprintf(`$ErrorActionPreference = 'Stop'
 $sw = [Diagnostics.Stopwatch]::StartNew()
 Update-HostStorageCache
+$d = Get-Disk -Number %d
+if (-not $d -or [string]$d.SerialNumber -ne '%s' -or $d.BusType -ne 'iSCSI') { throw "disk %d is not the container's disk; nothing was formatted" }
 %sInitialize-Disk -Number %d -PartitionStyle GPT
 "initialized in $($sw.ElapsedMilliseconds) ms"
 $p = New-Partition -DiskNumber %d -UseMaximumSize
 "partition $($p.PartitionNumber) in $($sw.ElapsedMilliseconds) ms"
 $v = $p | Format-Volume -FileSystem %s -NewFileSystemLabel '%s' -Confirm:$false
+if (-not $v -or $v.FileSystem -ne '%s') { throw "Format-Volume did not return the requested file system" }
 "formatted $($v.FileSystem) '$($v.FileSystemLabel)' in $($sw.ElapsedMilliseconds) ms"
-`, clearStep, n, n, fs, label), nil
+`, n, serial, n, clearStep, n, n, fs, label, fs), nil
 }
 
 // pnpVetoHolder names the process Windows says stopped the removal of a
