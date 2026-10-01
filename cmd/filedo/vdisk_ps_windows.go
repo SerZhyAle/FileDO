@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode/utf16"
 
+	"filedo/vdisk"
+
 	"golang.org/x/sys/windows"
 )
 
@@ -67,6 +69,17 @@ func vdPowerShell(script string) (string, error) {
 	return vdPowerShellCtx(ctx, script, vdPowerShellTimeout)
 }
 
+// errVdScriptStopped is a script ended by the run's stop: vdisk.ErrStopped for
+// the vd exit class and errRunStopped for the run (AUD-34-F2).
+var errVdScriptStopped error = vdScriptStopped{}
+
+type vdScriptStopped struct{}
+
+func (vdScriptStopped) Error() string { return "stopped by request" }
+func (vdScriptStopped) Is(target error) bool {
+	return target == vdisk.ErrStopped || target == errRunStopped
+}
+
 func vdPowerShellCtx(ctx context.Context, script string, timeout time.Duration) (string, error) {
 	wrapped := "$ErrorActionPreference = 'Stop'\n$ProgressPreference = 'SilentlyContinue'\n" +
 		"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n" +
@@ -89,7 +102,8 @@ func vdPowerShellCtx(ctx context.Context, script string, timeout time.Duration) 
 	if err != nil {
 		switch {
 		case errors.Is(ctx.Err(), context.Canceled):
-			return text, fmt.Errorf("stopped: %w", errRunStopped)
+			// The stop class, not an I/O failure (AUD-34-F2); errRunStopped for the run.
+			return text, errVdScriptStopped
 		case errors.Is(runCtx.Err(), context.DeadlineExceeded):
 			return text, fmt.Errorf("Windows PowerShell did not finish within %v", timeout)
 		}

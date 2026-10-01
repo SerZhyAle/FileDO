@@ -250,6 +250,11 @@ func vdDestroy(args []string, batch bool) error {
 			if _, serr := os.Stat(abs); serr == nil && strings.Contains(err.Error(), "cancelled") {
 				return vdUsagef("nothing was removed: WIPE was not typed")
 			}
+			// AUD-34-F7: the overwrite opens the file with no sharing, so a
+			// container another process holds is refused before one byte is written.
+			if errors.Is(err, windows.ERROR_SHARING_VIOLATION) || errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
+				return errBusy(fmt.Sprintf("%s is open in another program, and nothing was overwritten or removed", path))
+			}
 			return fmt.Errorf("%w: %v", vdisk.ErrIO, err)
 		}
 	} else {

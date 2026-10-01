@@ -158,6 +158,12 @@
       <Link>testdata\redaction\vectors.tsv</Link>
       <LogicalName>FileDOGUI.redaction.vectors.tsv</LogicalName>
     </EmbeddedResource>
+    <!-- The CLI's vd verb table, so the self-test holds the Command page's destructive vd words
+         (DiskCommands.VdDestroyWords and siblings) to the words the CLI accepts (SP-0064 T2-F2). -->
+    <EmbeddedResource Include="..\cmd\filedo\vdisk_verbs.go">
+      <Link>testdata\vdisk_verbs.go</Link>
+      <LogicalName>FileDOGUI.vdisk_verbs.go</LogicalName>
+    </EmbeddedResource>
     <!-- The golden `vd status json` document the CLI's test holds its output to (SP-0063 section 10),
          so the self-test reads exactly the shape the CLI writes. -->
     <EmbeddedResource Include="..\cmd\filedo\testdata\vdstatus\golden.json">

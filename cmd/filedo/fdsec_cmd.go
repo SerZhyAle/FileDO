@@ -305,7 +305,7 @@ func handleFdsecCommand(args []string, hl *HistoryLogger) error {
 		// neither token: either one may be the password (AUD-09-F3,
 		// FDSEC-BEHAVIOUR 1.4 section 8.2). A drive-relative path on P: is
 		// written in full instead.
-		if fdsecCredentialToken(path) {
+		if fdsecCredentialToken(path) || fdsecContainerSlotUnrecognised(path, len(args) > 2) {
 			return usagef("fdsec %s: the container path comes first: filedo fdsec %s <container> [p:<password>]; a path on drive P: is written in full (P:\\folder\\file.fd-sec)", sub, sub)
 		}
 		hl.SetCommand("fdsec", path, sub)
@@ -1484,7 +1484,7 @@ func wipeFileInPlace(path string) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(path, os.O_WRONLY, 0)
+	f, err := openForWipe(path)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ package main
 // safety check, not the prompt.
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -288,4 +289,81 @@ func TestCompareDeleteStopBeforeNextHashAndRemove(t *testing.T) {
 	if hashes != 1 || !exists(filepath.Join(src, "pair.txt")) {
 		t.Fatalf("stop must prevent the second hash and deletion; hashes=%d", hashes)
 	}
+}
+
+// AUD-54-F2: a stop with more tasks queued than the channel holds must not
+// leave the producer blocked on a full channel with no worker reading it.
+func TestCompareDeleteStopWithAFullQueueReturns(t *testing.T) {
+	root := t.TempDir()
+	src, dst := filepath.Join(root, "src"), filepath.Join(root, "dst")
+	for i := 0; i < 400; i++ {
+		for _, dir := range []string{src, dst} {
+			writeFile(t, filepath.Join(dir, fmt.Sprintf("f%03d.txt", i)), []byte("same"))
+		}
+	}
+	savedHandler, savedHash := globalInterruptHandler, compareHashFile
+	globalInterruptHandler = newInterruptHandlerNoSignals()
+	defer func() {
+		globalInterruptHandler = savedHandler
+		compareHashFile = savedHash
+	}()
+	compareHashFile = func(path string) ([]byte, error) {
+		globalInterruptHandler.Interrupt()
+		return savedHash(path)
+	}
+	srcScan, dstScan := scanFiles(src), scanFiles(dst)
+	done := make(chan struct{})
+	go func() {
+		performDelete(src, dst, "source", "", compareOptions{byHash: true, assumeYes: true}, srcScan, dstScan)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(20 * time.Second):
+		t.Fatal("performDelete did not return after a stop with a full task queue")
+	}
+	left, err := os.ReadDir(src)
+	if err != nil || len(left) != 400 {
+		t.Fatalf("a stopped run deleted files: %d of 400 left (%v)", len(left), err)
+	}
+}
+
+// AUD-54-F3 / AUD-16-F3: the hash of a large file ends at the next buffer once
+// a stop is requested, instead of reading the file to its end.
+func TestCompareHashObservesStopBetweenBuffers(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "big.bin")
+	writeFile(t, p, make([]byte, 8<<20))
+	savedHandler := globalInterruptHandler
+	globalInterruptHandler = newInterruptHandlerNoSignals()
+	defer func() { globalInterruptHandler = savedHandler }()
+	globalInterruptHandler.Interrupt()
+	if _, err := compareHashFile(p); err == nil {
+		t.Fatal("a stopped hash returned a digest")
+	}
+}
+
+// AUD-54-F1: on a volume that gives no file id to a directory listing (ReFS,
+// FAT32, exFAT) an unchanged pair is still deleted. Set
+// FILEDO_TEST_NON_NTFS_DIR to a folder on such a volume to run it.
+func TestCompareDeleteOnAVolumeWithoutListingIds(t *testing.T) {
+	base := os.Getenv("FILEDO_TEST_NON_NTFS_DIR")
+	if base == "" {
+		t.Skip("FILEDO_TEST_NON_NTFS_DIR not set")
+	}
+	root, err := os.MkdirTemp(base, "cmpdel")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(root)
+	src, dst := filepath.Join(root, "src"), filepath.Join(root, "dst")
+	compareTree(t, src)
+	compareTree(t, dst)
+	problems := performDelete(src, dst, "source", "", compareOptions{assumeYes: true}, scanFiles(src), scanFiles(dst))
+	if len(problems) != 0 {
+		t.Fatalf("unchanged pairs were refused: %v", problems)
+	}
+	if exists(filepath.Join(src, "a.txt")) {
+		t.Fatal("the source twin of an unchanged pair was kept")
+	}
+	assertTreeIntact(t, dst)
 }

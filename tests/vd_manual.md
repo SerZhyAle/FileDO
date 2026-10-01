@@ -128,6 +128,23 @@ Elevated where the step says so; otherwise a normal console (the consent prompt 
    exit-7 sentence. Save both. Restore: `Set-Service MSiSCSI -StartupType Manual`.
 9. [ ] **Consent refused**: `filedo plain.fdd mount`, answer **No** at the prompt: exit 7, *administrator
    consent was not given; nothing was changed*.
+10. [ ] **A failed final save is not "closed cleanly"** (T3-F1, SP-0064): put `r.fdd` (ram) on a USB stick,
+   mount it, copy a file onto X:, pull the stick, then `filedo X: unmount force`. The unmount ends with
+   exit 5 and names what was not saved (*the block server's final save or commit of .. failed*); it never
+   prints *is closed cleanly*. While the stick is out, `filedo vd status` shows *SAVING IS FAILING*
+   (AUD-35-F5). With the guard on, a sign-out in the same state records the row as `skipped` with that reason.
+11. [ ] **The container disk's identity** (AUD-32-F8, AUD-31-F2, SP-0064): a first mount of a new container
+   and `filedo spare.fdd format fs exfat force` still format (the vendor check reads `FileDO` from
+   Windows' storage descriptor, and the file system is read back with GetVolumeInformation before
+   *formatted* is claimed); `filedo X: unmount` still detaches. Any refusal naming *vendor* or *reads as*
+   here is a defect of the new checks, not of the disk - save the `vdisk.log` lines.
+12. [ ] **The real initiator with the new Discovery and pre-login limits** (AUD-35-F2, T3-F3, SP-0064):
+   a Discovery session now takes only a Logout after the SendTargets answer (anything else, or nothing
+   within 2 s, closes it), and a new connection displaces the oldest one that has not logged in. Mount
+   and unmount `plain.fdd` three times in a row, then once more with the Disk manager open. Each mount
+   ends with `Mounted at X:.`; in `vdisk.log` the Discovery connection ends `closed after logout` (not
+   `after the SendTargets answer` or `no logout within`), and no `connection limits` line appears.
+   Copy a 1 GB file onto X: and back: the speed is that of the previous build. Save the log lines.
 
 ## 5. The window
 
@@ -209,6 +226,16 @@ The second window of `filedo_win.exe`. Run it with the containers of the top of 
    `y`. The file is gone, and the output says the name `plaintest` was forgotten in the same run
    (`filedo vd list` no longer shows it).
 5. [ ] `filedo spare.fdd destroy wipe` asks for the typed `WIPE`, overwrites, removes.
+6. [ ] **The elevated step trusts only what the consent covers (release-queue row 5).** Steps 1 and 4 and a
+   plain mount/unmount through the consent prompt still work (the request digest, the task SID check and the
+   state-folder check accept the real run). Repeat a mount, an unmount and `vd auto plaintest logon` as a
+   **standard user** who types an administrator's credentials at the prompt (over-the-shoulder elevation):
+   all three work, the task in Task Scheduler runs as the standard user, and `vdisk.log` lands in the
+   standard user's state folder. Then, while the consent prompt of `filedo plain.fdd mount` is
+   open, edit any value in `%LOCALAPPDATA%\FileDO\state\vd-*.request.json` and answer Yes: the mount ends
+   with *the request file changed after FileDO wrote it .. nothing was done*, and no disk is attached. Clone
+   a used `plain.fdd` (`filedo plain.fdd clone C:\vdtest\copy.fdd nopass`): `filedo C:\vdtest\copy.fdd info`
+   says *mounted N times* with N of at least 1.
 
 ## 6b. The shutdown guard (SP-0080)
 

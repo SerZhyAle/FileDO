@@ -2031,6 +2031,7 @@ Public Class JobView
     End Function
 
     Private Sub TargetChanged()
+        If diskPanel IsNot Nothing AndAlso IsDisk() Then diskPanel.ForgetConfirmation()
         ScheduleDiskFacts()
         UpdatePlanCard()
         UpdateBlastRadius()
@@ -3002,7 +3003,7 @@ Public Class JobView
     ' transport or a packaged build says what is missing rather than failing in general terms), the
     ' list as a table, and the drive a mount attached.
     Private Sub ShowDiskResult(res As Runner.RunResult, showMounted As Boolean)
-        Dim key = DiskCommands.ExitKey(res.ExitCode)
+        Dim key = DiskCommands.ExitKeyFor(job.DefaultVerb, res.ExitCode, res.Output)
         If key <> "" Then
             Dim sentence = L(key)
             verdictReasonLabel.Text = If(verdictReasonLabel.Visible AndAlso verdictReasonLabel.Text <> "",

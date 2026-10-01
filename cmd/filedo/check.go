@@ -274,6 +274,25 @@ func HandleCheckArgs(root string, args []string) error {
 		return err
 	}
 
+	// The flags reach CheckFolder through the process environment. Each value
+	// set here is put back when this check ends, so the flags of one line of a
+	// `from` list do not carry over to the lines after it (AUD-49-F1); a value
+	// the user set in the environment still applies to every line.
+	var restore []func()
+	defer func() {
+		for i := len(restore) - 1; i >= 0; i-- {
+			restore[i]()
+		}
+	}()
+	setenv := func(k, v string) {
+		if old, had := os.LookupEnv(k); had {
+			restore = append(restore, func() { os.Setenv(k, old) })
+		} else {
+			restore = append(restore, func() { os.Unsetenv(k) })
+		}
+		os.Setenv(k, v)
+	}
+
 	// Only set env for flags that were explicitly provided
 	visited := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { visited[f.Name] = true })
@@ -281,100 +300,100 @@ func HandleCheckArgs(root string, args []string) error {
 	for name := range visited {
 		switch name {
 		case "threshold":
-			os.Setenv("FILEDO_CHECK_THRESHOLD_SECONDS", fmt.Sprintf("%g", *thr))
+			setenv("FILEDO_CHECK_THRESHOLD_SECONDS", fmt.Sprintf("%g", *thr))
 		case "warmup":
-			os.Setenv("FILEDO_CHECK_WARMUP_SECONDS", fmt.Sprintf("%g", *warm))
+			setenv("FILEDO_CHECK_WARMUP_SECONDS", fmt.Sprintf("%g", *warm))
 		case "warmup-idle":
-			os.Setenv("FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS", fmt.Sprintf("%g", *warmIdle))
+			setenv("FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS", fmt.Sprintf("%g", *warmIdle))
 		case "workers":
-			os.Setenv("FILEDO_CHECK_WORKERS", fmt.Sprintf("%d", *workers))
+			setenv("FILEDO_CHECK_WORKERS", fmt.Sprintf("%d", *workers))
 		case "buf-kb":
 			if *bufKB < checkMinBufKB || *bufKB > checkMaxBufKB {
 				return fmt.Errorf("check: --buf-kb must be %d..%d, got %d", checkMinBufKB, checkMaxBufKB, *bufKB)
 			}
-			os.Setenv("FILEDO_CHECK_BUF_KB", fmt.Sprintf("%d", *bufKB))
+			setenv("FILEDO_CHECK_BUF_KB", fmt.Sprintf("%d", *bufKB))
 		case "mode":
-			os.Setenv("FILEDO_CHECK_MODE", *mode)
+			setenv("FILEDO_CHECK_MODE", *mode)
 		case "balanced-min-mb":
-			os.Setenv("FILEDO_CHECK_BALANCED_MIN_MB", fmt.Sprintf("%d", *balancedMinMB))
+			setenv("FILEDO_CHECK_BALANCED_MIN_MB", fmt.Sprintf("%d", *balancedMinMB))
 		case "min-mb":
-			os.Setenv("FILEDO_CHECK_MIN_MB", fmt.Sprintf("%g", *minMB))
+			setenv("FILEDO_CHECK_MIN_MB", fmt.Sprintf("%g", *minMB))
 		case "max-mb":
-			os.Setenv("FILEDO_CHECK_MAX_MB", fmt.Sprintf("%g", *maxMB))
+			setenv("FILEDO_CHECK_MAX_MB", fmt.Sprintf("%g", *maxMB))
 		case "include-ext":
-			os.Setenv("FILEDO_CHECK_INCLUDE_EXT", *includeExt)
+			setenv("FILEDO_CHECK_INCLUDE_EXT", *includeExt)
 		case "exclude-ext":
-			os.Setenv("FILEDO_CHECK_EXCLUDE_EXT", *excludeExt)
+			setenv("FILEDO_CHECK_EXCLUDE_EXT", *excludeExt)
 		case "max-files":
-			os.Setenv("FILEDO_CHECK_MAX_FILES", fmt.Sprintf("%d", *maxFiles))
+			setenv("FILEDO_CHECK_MAX_FILES", fmt.Sprintf("%d", *maxFiles))
 		case "max-seconds":
-			os.Setenv("FILEDO_CHECK_MAX_DURATION_SEC", fmt.Sprintf("%g", *maxSeconds))
+			setenv("FILEDO_CHECK_MAX_DURATION_SEC", fmt.Sprintf("%g", *maxSeconds))
 		case "dry-run":
 			if *dryRun {
-				os.Setenv("FILEDO_CHECK_DRYRUN", "1")
+				setenv("FILEDO_CHECK_DRYRUN", "1")
 			} else {
-				os.Setenv("FILEDO_CHECK_DRYRUN", "0")
+				setenv("FILEDO_CHECK_DRYRUN", "0")
 			}
 		case "verbose":
 			if *verbose {
-				os.Setenv("FILEDO_CHECK_VERBOSE", "1")
+				setenv("FILEDO_CHECK_VERBOSE", "1")
 			} else {
-				os.Setenv("FILEDO_CHECK_VERBOSE", "0")
+				setenv("FILEDO_CHECK_VERBOSE", "0")
 			}
 		case "quiet":
 			if *quiet {
-				os.Setenv("FILEDO_CHECK_QUIET", "1")
+				setenv("FILEDO_CHECK_QUIET", "1")
 			} else {
-				os.Setenv("FILEDO_CHECK_QUIET", "0")
+				setenv("FILEDO_CHECK_QUIET", "0")
 			}
 		case "resume":
 			if *resume {
-				os.Setenv("FILEDO_CHECK_RESUME", "1")
+				setenv("FILEDO_CHECK_RESUME", "1")
 			} else {
-				os.Setenv("FILEDO_CHECK_RESUME", "0")
+				setenv("FILEDO_CHECK_RESUME", "0")
 			}
 		case "report":
-			os.Setenv("FILEDO_CHECK_REPORT", *report)
+			setenv("FILEDO_CHECK_REPORT", *report)
 		case "report-file":
-			os.Setenv("FILEDO_CHECK_REPORT_FILE", *reportFile)
+			setenv("FILEDO_CHECK_REPORT_FILE", *reportFile)
 		case "hdd-sleep-ms":
-			os.Setenv("FILEDO_CHECK_HDD_SLEEP_MS", fmt.Sprintf("%d", *hddSleepMs))
+			setenv("FILEDO_CHECK_HDD_SLEEP_MS", fmt.Sprintf("%d", *hddSleepMs))
 		case "single-reader":
 			v := strings.ToLower(strings.TrimSpace(*singleReader))
 			switch v {
 			case "1", "on", "true", "yes":
-				os.Setenv("FILEDO_CHECK_SINGLE_READER", "1")
+				setenv("FILEDO_CHECK_SINGLE_READER", "1")
 			case "0", "off", "false", "no":
-				os.Setenv("FILEDO_CHECK_SINGLE_READER", "0")
+				setenv("FILEDO_CHECK_SINGLE_READER", "0")
 			case "-1", "auto", "":
-				os.Setenv("FILEDO_CHECK_SINGLE_READER", "-1")
+				setenv("FILEDO_CHECK_SINGLE_READER", "-1")
 			default:
 				// try to pass as-is
-				os.Setenv("FILEDO_CHECK_SINGLE_READER", v)
+				setenv("FILEDO_CHECK_SINGLE_READER", v)
 			}
 		case "ewma-alpha":
-			os.Setenv("FILEDO_CHECK_EWMA_ALPHA", fmt.Sprintf("%g", *ewmaAlpha))
+			setenv("FILEDO_CHECK_EWMA_ALPHA", fmt.Sprintf("%g", *ewmaAlpha))
 		case "ewma-high-frac":
-			os.Setenv("FILEDO_CHECK_EWMA_HIGH_FRAC", fmt.Sprintf("%g", *ewmaHigh))
+			setenv("FILEDO_CHECK_EWMA_HIGH_FRAC", fmt.Sprintf("%g", *ewmaHigh))
 		case "ewma-low-frac":
-			os.Setenv("FILEDO_CHECK_EWMA_LOW_FRAC", fmt.Sprintf("%g", *ewmaLow))
+			setenv("FILEDO_CHECK_EWMA_LOW_FRAC", fmt.Sprintf("%g", *ewmaLow))
 		case "max-sleep-ms":
-			os.Setenv("FILEDO_CHECK_MAX_SLEEP_MS", fmt.Sprintf("%d", *maxSleep))
+			setenv("FILEDO_CHECK_MAX_SLEEP_MS", fmt.Sprintf("%d", *maxSleep))
 		case "sleep-step-ms":
-			os.Setenv("FILEDO_CHECK_SLEEP_STEP_MS", fmt.Sprintf("%d", *sleepStep))
+			setenv("FILEDO_CHECK_SLEEP_STEP_MS", fmt.Sprintf("%d", *sleepStep))
 		case "good-list":
-			os.Setenv("FILEDO_CHECK_GOODLIST", *goodList)
+			setenv("FILEDO_CHECK_GOODLIST", *goodList)
 		}
 	}
 
 	// Resolve precedence for pre-count pair of flags
 	if visited["no-precount"] {
-		os.Setenv("FILEDO_CHECK_PRECOUNT", "0")
+		setenv("FILEDO_CHECK_PRECOUNT", "0")
 	} else if visited["precount"] {
 		if *precount {
-			os.Setenv("FILEDO_CHECK_PRECOUNT", "1")
+			setenv("FILEDO_CHECK_PRECOUNT", "1")
 		} else {
-			os.Setenv("FILEDO_CHECK_PRECOUNT", "0")
+			setenv("FILEDO_CHECK_PRECOUNT", "0")
 		}
 	}
 

@@ -1274,6 +1274,7 @@ func ShowLastHistory(count int) {
 
 func main() {
 	start_time = time.Now()
+	rememberCredentialValues(os.Args[1:])
 
 	// Optimize GC settings for better performance and less memory overhead
 	debug.SetGCPercent(50) // More frequent GC to reduce memory usage

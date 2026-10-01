@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 
 	"filedo/fdsec"
@@ -16,7 +17,7 @@ import (
 // both can be mounted side by side. src is opened read-only and is never
 // changed; dst must not exist.
 //
-// The copy is written under dst + ".partial" and renamed to dst only after
+// The copy is written under dst + fsx.PartialSuffix and renamed to dst only after
 // its final header is on disk, so an interrupted or failed seal leaves no
 // file at dst, and removes the partial one (FDD-BEHAVIOUR 6.7).
 //
@@ -60,10 +61,18 @@ func SealWith(ctx context.Context, o SealOptions) error { return copyContainer(c
 // copied with Obfuscate, and a sealed source, become plain.
 func CopyWith(ctx context.Context, o CopyOptions) error { return copyContainer(ctx, o, false) }
 
+// copyBeforePublish runs after every check of a copy, right before the rename
+// that publishes it: the test seam of AUD-36-F3 (a file arriving at dst then).
+var copyBeforePublish = func(tmp, dst string) {}
+
 func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 	src, dst, p := o.Src, o.Dst, o.Progress
+	// A Stat that fails for another reason than not-exist is not proof of
+	// absence (AUD-36-F3): "could not check", class 5.
 	if _, err := os.Stat(dst); err == nil {
 		return usagef("%s already exists; a container is never written over an existing file", dst)
+	} else if !os.IsNotExist(err) {
+		return ioErr(fmt.Errorf("could not check whether %s exists: %w", dst, err))
 	}
 	s, err := Open(ctx, src, o.Credential, OpenRead)
 	if err != nil {
@@ -99,7 +108,8 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 	if !info.Obfuscated && !o.Obfuscate {
 		cred = o.Credential
 	}
-	tmp := dst + ".partial"
+	// The repo's partial name, which every copy verb recognises (AUD-36-F3).
+	tmp := dst + fsx.PartialSuffix
 	d, err := Create(ctx, CreateOptions{
 		Path:         tmp,
 		LogicalSize:  info.LogicalSize,
@@ -116,12 +126,16 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 	defer func() {
 		if err != nil {
 			d.Discard()
-			os.Remove(tmp)
+			// A partial left behind is reported by name (AUD-36-F3).
+			if rerr := os.Remove(tmp); rerr != nil && !os.IsNotExist(rerr) {
+				err = fmt.Errorf("%w; the unfinished copy %s could not be removed (%v) - delete it by hand", err, tmp, rerr)
+			}
 		}
 	}()
 	cs := info.ClusterSize
 	buf := make([]byte, cs)
 	total := info.ClusterCount
+	copied := false
 	for cl := int64(0); cl < total; cl++ {
 		if stopped(ctx) {
 			return ErrStopped
@@ -137,8 +151,18 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 			if _, err := d.WriteAt(buf[:n], cl*cs); err != nil {
 				return err
 			}
+			copied = true
 		}
 		report(p, cl+1, total)
+	}
+	// The copy holds the source's volume, so it carries the source's mount
+	// count, and at least 1 once any cluster was copied: mount reads count 0
+	// as "never held data" and may format a disk with no partition table
+	// (T3-F4).
+	if carry := carriedMountCount(info.MountCount, copied); carry != 0 {
+		if err := d.setMountCount(carry); err != nil {
+			return err
+		}
 	}
 	closeCopy := d.Close
 	if seal {
@@ -190,6 +214,7 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 	if stopped(ctx) {
 		return ErrStopped
 	}
+	copyBeforePublish(tmp, dst)
 	if err := fsx.RenameNoReplace(tmp, dst); err != nil {
 		if errors.Is(err, fsx.ErrDestinationExists) {
 			return usagef("%s appeared while the copy ran; the new copy was removed", dst)
@@ -197,6 +222,28 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 		return ioErr(err)
 	}
 	return nil
+}
+
+// carriedMountCount is the mount count a copy records: the source's, and at
+// least 1 when the copy received any data.
+func carriedMountCount(source uint64, copied bool) uint64 {
+	if copied && source == 0 {
+		return 1
+	}
+	return source
+}
+
+// setMountCount writes the header pair with mount_count n, every other field
+// as it stands; a copy calls it before its close.
+func (c *Container) setMountCount(n uint64) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return usagef("the container is closed")
+	}
+	h := c.hdr
+	h.MountCount = n
+	return c.writeHeaderPair(h)
 }
 
 func (c *Container) clusterAllocated(cl int64) bool {

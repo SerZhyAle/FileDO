@@ -132,6 +132,11 @@ type Container struct {
 	saltB   []byte
 	fileLen int64 // L as this writer maintains it; the backup header sits at fileLen - 4096
 
+	// failedHeader says failed came from a header write or its flush: which
+	// copy the file now holds is uncertain, so a ram save never clears it
+	// (AUD-35-F5; a failed data write is retried instead).
+	failedHeader bool
+
 	entries   []uint64 // the working map: committed entries plus pending allocations
 	used      *bitset  // physical indices the working map references
 	meta      map[uint64]bool
@@ -700,12 +705,23 @@ func (c *Container) writeHeaderBlock(pt []byte, off int64, salt []byte, backup b
 		return err
 	}
 	if _, err := c.b.WriteAt(sealHeaderBlock(salt, nonce, pad, pt, backup), off); err != nil {
-		return c.fail(err)
+		return c.failHeader(err)
 	}
 	if err := c.b.Sync(); err != nil {
-		return c.fail(err)
+		return c.failHeader(err)
 	}
 	return nil
+}
+
+// failHeader is fail for a header write or its flush. It stays sticky even on
+// a ram save's path: after it, which header copy the file holds is not known,
+// and nothing more is written to it (AUD-35-F5).
+func (c *Container) failHeader(err error) error {
+	e := c.fail(err)
+	if c.failed == e {
+		c.failedHeader = true
+	}
+	return e
 }
 
 // fail records a write or flush failure. From then on the container writes

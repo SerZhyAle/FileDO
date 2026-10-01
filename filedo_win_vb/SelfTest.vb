@@ -418,6 +418,13 @@ Public Module SelfTest
         CheckVerdictCase("foreign-code-3", 3, "Failed", False, 0)
         CheckVerdictCase("foreign-code-minus-1", -1, "Passed", False, 0)
         CheckVerdictCase("refused-version", 0, "Passed", False, EventStream.KnownSchemaVersion + 1)
+
+        ' AUD-66-F1: the (Failed, 1, stop file present) triple, pinned by its
+        ' literal answer rather than by the oracle above, so the oracle and
+        ' Judge cannot drift together back to Stopped.
+        Dim stopReason As String = ""
+        Dim stopGot = Runner.Judge(1, New EventStream.ResultInfo With {.Verdict = "Failed"}, True, 0, stopReason)
+        Check("verdict:defect-before-stop", stopGot = "Failed", stopGot & " (want Failed, reason " & stopReason & ")")
     End Sub
 
     ' The expected verdict is the contract text in executable form, used for
@@ -425,7 +432,9 @@ Public Module SelfTest
     Private Function ExpectedVerdict(word As String, code As Integer, stopped As Boolean, refusedVersion As Integer) As String
         If refusedVersion > EventStream.KnownSchemaVersion Then Return "Not proven"
         If String.IsNullOrEmpty(word) Then Return If(stopped, "Stopped", "Not proven")
-        If stopped Then Return "Stopped"
+        ' Rule 15 (0.11): the stop file overrides every result but Failed - a
+        ' defect recorded before the stop outranks it.
+        If stopped AndAlso word <> "Failed" Then Return "Stopped"
         Dim expected As Integer
         Select Case word
             Case "Passed", "Done" : expected = 0
@@ -1434,6 +1443,7 @@ Public Module SelfTest
             Check("wipe-safety:temp", WipeSafety.DangerKey(IO.Path.GetTempPath()) = "shell_wipe_danger_temp",
                   WipeSafety.DangerKey(IO.Path.GetTempPath()))
             Check("wipe-safety:folder", WipeSafety.DangerKey("C:\sample\folder") = "", WipeSafety.DangerKey("C:\sample\folder"))
+            CheckWipeSafetyParity()
 
             cv = New CommandView()
             Check("command:wipe-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\sample wipe -y", ""), "")
@@ -1459,8 +1469,61 @@ Public Module SelfTest
             Check("command:disk-destroy-confirmed", cv.RunEnabledForTest("filedo.exe C:\disk.fdd destroy force", "DESTROY"), "")
             Check("command:disk-discard-asks-word", Not cv.RunEnabledForTest("filedo.exe C:\disk.fdd unmount force nosave", ""), "")
             Check("command:disk-discard-confirmed", cv.RunEnabledForTest("filedo.exe C:\disk.fdd unmount force nosave", "DISCARD"), "")
-            cv.SetCommand("filedo.exe C:\disk.fdd destroy force")
-            Check("command:disk-handoff-clears-old-word", Not cv.RunEnabledNowForTest, "")
+            ' SP-0097 F5: a hand-over of the very line whose word is already typed still asks again -
+            ' only SetCommand's own reset can clear it, as the line itself does not change.
+            Dim destroyLine = "filedo.exe C:\disk.fdd destroy force"
+            Dim destroyReady = cv.RunEnabledForTest(destroyLine, "DESTROY")
+            cv.SetCommand(destroyLine)
+            Check("command:disk-handoff-clears-old-word", destroyReady AndAlso Not cv.RunEnabledNowForTest, destroyReady.ToString())
+            ' AUD-15-F2: the same word typed for one line does not carry to the next one.
+            Dim wipeReady = cv.RunEnabledForTest("filedo.exe C:\sample-a wipe -y", "WIPE")
+            cv.SetLineForTest("filedo.exe C:\sample-b wipe -y")
+            Check("command:wipe-word-not-carried", wipeReady AndAlso Not cv.RunEnabledNowForTest, wipeReady.ToString())
+
+            ' AUD-15-F3: a probe that carries yes writes raw sectors; a duplicate move moves files.
+            Check("command:probe-yes-asks-word", Not cv.RunEnabledForTest("filedo.exe E: probe yes", ""), "")
+            Check("command:probe-yes-confirmed", cv.RunEnabledForTest("filedo.exe E: probe yes", "PROBE"), "")
+            Check("command:dup-move-asks-word", Not cv.RunEnabledForTest("filedo.exe D:\x cd move D:\dups -y", ""), "")
+            Check("command:dup-move-confirmed", cv.RunEnabledForTest("filedo.exe D:\x cd move D:\dups -y", "MOVE"), "")
+
+            ' AUD-13-F2: the lines the job pages hand over after asking their own question are asked
+            ' again here - unmount nosave by drive letter, clean --yes, probe yes.
+            Check("command:unmount-letter-nosave-asks-discard", Not cv.RunEnabledForTest("filedo.exe X: unmount force nosave", ""), "")
+            Check("command:unmount-letter-nosave-confirmed", cv.RunEnabledForTest("filedo.exe X: unmount force nosave", "DISCARD"), "")
+            Check("command:clean-yes-asks-word", Not cv.RunEnabledForTest("filedo.exe E: clean --yes", ""), "")
+            Check("command:clean-yes-confirmed", cv.RunEnabledForTest("filedo.exe E: clean --yes", "CLEAN"), "")
+            Check("command:clean-without-yes-no-word", cv.RunEnabledForTest("filedo.exe E: clean", ""), "")
+            Dim hv As JobView = Nothing
+            Try
+                hv = New JobView()
+                For Each pair In New String()() {
+                    New String() {"rail_job_clean", "E:", "clean"},
+                    New String() {"rail_job_probe", "E:", "probe"},
+                    New String() {"rail_job_vd_unmount", "X:", "unmount"}}
+                    hv.SetJob(JobCatalogue.GetJob(pair(0)))
+                    hv.SetTarget(pair(1))
+                    If pair(2) = "unmount" Then hv.SetDiskForTest(New DiskOptions With {.NoSave = True}, "", "", DiskOptionsPanel.DiscardWord)
+                    Dim handed = hv.CurrentCommand()
+                    cv.SetCommand(handed)
+                    Check("command:handover-" & pair(2) & "-asks-word", handed.Contains(pair(2)) AndAlso Not cv.RunEnabledNowForTest, handed)
+                Next
+            Finally
+                If hv IsNot Nothing Then hv.Dispose()
+            End Try
+
+            ' T2-F2: every spelling the CLI accepts for a vd verb that loses data - the vd namespace
+            ' form, a registered name, and the destroy alias erase.
+            For Each c In New String()() {
+                New String() {"vd-destroy", "filedo.exe vd destroy C:\disk.fdd force", "DESTROY"},
+                New String() {"vd-destroy-name", "filedo.exe vd erase work -y", "DESTROY"},
+                New String() {"vdisk-format", "filedo.exe vdisk format C:\disk.fdd force", "FORMAT"},
+                New String() {"fdd-erase", "filedo.exe C:\disk.fdd erase force", "DESTROY"},
+                New String() {"vd-unmount-nosave", "filedo.exe vd detach work nosave", "DISCARD"}}
+                Check("command:" & c(0) & "-asks-word",
+                      Not cv.RunEnabledForTest(c(1), "") AndAlso cv.RunEnabledForTest(c(1), c(2)), c(1))
+            Next
+            Check("command:vd-info-no-word", cv.RunEnabledForTest("filedo.exe vd info work", ""), "")
+            CheckVdWordsMatchCli()
 
             ' GUI-11: the CLI's other word for wipe asks for the typed word too, and so does a batch
             ' whose list wipes.
@@ -1481,8 +1544,30 @@ Public Module SelfTest
                 Check("command:nested-from-wipe-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(nestedList), ""), "")
                 Check("command:from-plain-no-word", cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(plainList), ""), "")
                 Check("command:from-duplicate-delete-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(deletingList), ""), "")
+                ' SP-0097 F5: Run is offered for the plain list, then the list turns into a wipe before
+                ' the click - only the launch re-check can refuse it.
+                Dim plainReady = cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(plainList), "")
                 File.WriteAllText(plainList, "from " & ArgQuoting.EscapeArg(wipingList) & vbLf)
-                Check("command:from-changed-at-launch", Not cv.LaunchAllowedForTest(), "")
+                Check("command:from-changed-at-launch", plainReady AndAlso Not cv.LaunchAllowedForTest(), plainReady.ToString())
+                ' AUD-58-F1: the strongest word over the whole tree, not the first one found.
+                Dim delThenWipe = Path.Combine(listDir, "del-then-wipe.lst")
+                File.WriteAllText(delThenWipe, "C:\sample-x cd del -y" & vbLf & "C:\sample-x w -y" & vbLf)
+                Dim delThenWipeLine = "filedo.exe from " & ArgQuoting.EscapeArg(delThenWipe)
+                Check("command:from-delete-then-wipe-asks-wipe",
+                      Not cv.RunEnabledForTest(delThenWipeLine, "DELETE") AndAlso cv.RunEnabledForTest(delThenWipeLine, "WIPE"), "")
+                Check("command:from-delete-then-wipe-line-wipes", CommandView.LineWipesForTest(delThenWipeLine), "")
+                Dim recoverList = Path.Combine(listDir, "recover.lst")
+                File.WriteAllText(recoverList, "E: recover yes" & vbLf)
+                Dim nestedRecoverWipe = Path.Combine(listDir, "nested-recover-wipe.lst")
+                File.WriteAllText(nestedRecoverWipe, "from " & ArgQuoting.EscapeArg(recoverList) & vbLf & "from " & ArgQuoting.EscapeArg(wipingList) & vbLf)
+                Dim nestedLine = "filedo.exe from " & ArgQuoting.EscapeArg(nestedRecoverWipe)
+                Check("command:nested-recover-then-wipe-asks-wipe",
+                      Not cv.RunEnabledForTest(nestedLine, "RECOVER") AndAlso cv.RunEnabledForTest(nestedLine, "WIPE"), "")
+                Dim moveThenDel = Path.Combine(listDir, "move-then-del.lst")
+                File.WriteAllText(moveThenDel, "D:\x cd move D:\dups -y" & vbLf & "E: cd del -y" & vbLf)
+                Dim moveThenDelLine = "filedo.exe from " & ArgQuoting.EscapeArg(moveThenDel)
+                Check("command:from-move-then-delete-asks-delete",
+                      Not cv.RunEnabledForTest(moveThenDelLine, "MOVE") AndAlso cv.RunEnabledForTest(moveThenDelLine, "DELETE"), "")
                 File.WriteAllText(nestedList, "from " & ArgQuoting.EscapeArg(nestedList) & vbLf)
                 Check("command:from-cycle-asks-word", Not cv.RunEnabledForTest("filedo.exe from " & ArgQuoting.EscapeArg(nestedList), ""), "")
                 Check("command:from-missing-asks-word",
@@ -1502,6 +1587,101 @@ Public Module SelfTest
         Finally
             If jv IsNot Nothing Then jv.Dispose()
             If cv IsNot Nothing Then cv.Dispose()
+        End Try
+    End Sub
+
+    ' T2-F2: the Command page's destructive vd words are the CLI's (cmd\filedo\vdisk_verbs.go, the
+    ' copy embedded in this exe). A word added on one side only fails here.
+    Private Sub CheckVdWordsMatchCli()
+        Dim src As String = Nothing
+        Using s = GetType(SelfTest).Assembly.GetManifestResourceStream("FileDOGUI.vdisk_verbs.go")
+            If s IsNot Nothing Then
+                Using r As New StreamReader(s, Encoding.UTF8)
+                    src = r.ReadToEnd()
+                End Using
+            End If
+        End Using
+        If src Is Nothing Then
+            Check("command:vd-words-match-cli", False, "missing FileDOGUI.vdisk_verbs.go")
+            Return
+        End If
+        Dim problems As New List(Of String)
+        For Each pair In New Object()() {
+            New Object() {"list_of_flags_for_vd", DiskCommands.VdNamespaceWords},
+            New Object() {"vdFormatWords", DiskCommands.VdFormatWords},
+            New Object() {"vdDestroyWords", DiskCommands.VdDestroyWords},
+            New Object() {"vdUnmountWords", DiskCommands.VdUnmountWords}}
+            Dim name = DirectCast(pair(0), String)
+            Dim mine = DirectCast(pair(1), String())
+            Dim m = System.Text.RegularExpressions.Regex.Match(src, "\b" & name & "\s*=\s*\[\]string\{([^}]*)\}")
+            If Not m.Success Then
+                problems.Add(name & " not found")
+                Continue For
+            End If
+            Dim theirs = System.Text.RegularExpressions.Regex.Matches(m.Groups(1).Value, """([^""]*)""").
+                         Cast(Of System.Text.RegularExpressions.Match)().Select(Function(x) x.Groups(1).Value).OrderBy(Function(x) x).ToArray()
+            Dim ours = mine.Select(Function(x) x.ToLowerInvariant()).OrderBy(Function(x) x).ToArray()
+            If Not theirs.SequenceEqual(ours) Then problems.Add(name & ": CLI {" & String.Join(",", theirs) & "} GUI {" & String.Join(",", ours) & "}")
+        Next
+        Check("command:vd-words-match-cli", problems.Count = 0, String.Join("; ", problems))
+    End Sub
+
+    ' AUD-28-F1: the page calls dangerous every target the CLI's classifyWipeTarget does
+    ' (cmd\filedo\wipe_handler.go) - anything below Windows, Program Files or FileDO's data folder,
+    ' the profiles folder, a root under a device-namespace spelling, and a protected folder reached
+    ' through a junction - so the page refuses up front what the CLI would cancel on a console.
+    Private Sub CheckWipeSafetyParity()
+        Try
+            Dim sysRoot = Environment.GetEnvironmentVariable("SystemRoot")
+            Dim lad = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+            Dim pf = Environment.GetEnvironmentVariable("ProgramFiles")
+            Dim sysDrive = Environment.GetEnvironmentVariable("SystemDrive")
+            For Each row In New String()() {
+                New String() {"inside-windows", Path.Combine(sysRoot, "System32"), ""},
+                New String() {"inside-filedo-data", Path.Combine(lad, "FileDO", "state"), ""},
+                New String() {"inside-program-files", Path.Combine(pf, "Common Files"), ""},
+                New String() {"users-folder", sysDrive & "\Users", ""},
+                New String() {"dot-root", "\\?\C:\.", "shell_wipe_danger_root"},
+                New String() {"device-drive-root", "\\.\C:\", "shell_wipe_danger_root"},
+                New String() {"volume-guid-root", "\\?\Volume{00000000-0000-0000-0000-000000000000}\", "shell_wipe_danger_volume"},
+                New String() {"globalroot-root", "\\?\GLOBALROOT\Device\HarddiskVolume3", "shell_wipe_danger_volume"},
+                New String() {"device-unc-share-root", "\\?\UNC\server\share\", "shell_wipe_danger_share"},
+                New String() {"trailing-dot-root", "D:\.", "shell_wipe_danger_root"}}
+                Dim k = WipeSafety.DangerKey(row(1))
+                Check("wipe-safety:" & row(0), If(row(2) = "", k <> "", k = row(2)), row(1) & " -> " & k)
+            Next
+            ' A sibling that only shares a prefix with a guarded folder is not inside it.
+            Dim sibling = Path.Combine(lad, "FileDOX-selftest")
+            Check("wipe-safety:prefix-sibling-not-inside", WipeSafety.DangerKey(sibling) = "", WipeSafety.DangerKey(sibling))
+
+            Dim jdir = Path.Combine(Path.GetTempPath(), "filedo_selftest_junction_" & Guid.NewGuid().ToString("N"))
+            Dim link = Path.Combine(jdir, "win")
+            Try
+                Directory.CreateDirectory(jdir)
+                Dim psi As New Diagnostics.ProcessStartInfo("cmd.exe", "/c mklink /J """ & link & """ """ & sysRoot & """") With {
+                    .UseShellExecute = False, .CreateNoWindow = True}
+                Using p = Diagnostics.Process.Start(psi)
+                    p.WaitForExit(15000)
+                End Using
+                If Directory.Exists(link) Then
+                    Dim k = WipeSafety.DangerKey(Path.Combine(link, "System32"))
+                    Check("wipe-safety:junction-into-windows", k <> "", k)
+                Else
+                    Check("wipe-safety:junction-into-windows", False, "could not create the junction")
+                End If
+            Finally
+                ' Non-recursive on purpose: RemoveDirectory drops the junction and never follows it.
+                Try
+                    If Directory.Exists(link) Then Directory.Delete(link, False)
+                Catch
+                End Try
+                Try
+                    If Directory.Exists(jdir) Then Directory.Delete(jdir, False)
+                Catch
+                End Try
+            End Try
+        Catch ex As Exception
+            Check("wipe-safety:parity", False, ex.GetType().Name & ": " & ex.Message)
         End Try
     End Sub
 
@@ -1873,6 +2053,45 @@ Public Module SelfTest
             Dim text2 = File.ReadAllText(report2)
             Check("report:fdsec-redaction:typed-password", Not text2.Contains("secret") AndAlso text2.Contains("p:***") AndAlso
                                                            text2.Contains("Secured C:\x.txt"), text2.Replace(vbCrLf, " | "))
+
+            ' SP-0064 T1-F2: the console quotes the word an error failed on, and the report keeps the
+            ' console - a p: password there is p:*** too; a path on drive P: stays a path.
+            File.WriteAllText(spool, "Error: Unknown command ""p:hunter2""" & vbLf &
+                                     "GetFileAttributesEx p:hunter2: x" & vbLf &
+                                     "read p:\dir\file (p:hunter2)" & vbLf)
+            Dim report3 = Path.Combine(dir, "report_3.log")
+            Runner.WriteReport(report3, "3", New String() {"C:\a.txt", "p:hunter2", "secure"}, "Failed", 2, TimeSpan.FromSeconds(1), spool, Nothing)
+            Dim text3 = File.ReadAllText(report3)
+            Check("report:error-text-redacted", Not text3.Contains("hunter2") AndAlso text3.Contains("Unknown command ""p:***""") AndAlso
+                                                text3.Contains("GetFileAttributesEx p:*** x") AndAlso text3.Contains("read p:\dir\file (p:***"),
+                  text3.Replace(vbCrLf, " | "))
+
+            ' SP-0064 R-F1: a password that holds spaces is one argument, and the word rule alone
+            ' keeps everything after its first space. The run's own p: values - on its command
+            ' line and on each line of a batch list it runs - are removed whole first, also as Go's
+            ' %q spells them inside an error's quotes.
+            Dim spaced = "Error: Unknown command ""p:horse battery staple"""
+            File.WriteAllText(spool, spaced & vbLf & "wrong password: horse battery staple" & vbLf &
+                                     "Error: Unknown command ""p:say \""hi\"" now""" & vbLf)
+            Dim report4 = Path.Combine(dir, "report_4.log")
+            Runner.WriteReport(report4, "4", New String() {"C:\a.txt", "p:horse battery staple", "p:say ""hi"" now", "secure"},
+                               "Failed", 2, TimeSpan.FromSeconds(1), spool, Nothing)
+            Dim text4 = File.ReadAllText(report4)
+            Check("report:credential-with-spaces-removed-whole",
+                  Runner.RedactCredentialText(spaced).Contains("battery staple") AndAlso
+                  Not text4.Contains("horse") AndAlso Not text4.Contains("battery") AndAlso Not text4.Contains("staple") AndAlso
+                  Not text4.Contains("say ") AndAlso text4.Contains("Unknown command ""p:***""") AndAlso
+                  text4.Contains("wrong password: ***"), text4.Replace(vbCrLf, " | "))
+
+            Dim list = Path.Combine(dir, "list.lst")
+            File.WriteAllText(list, "# a batch" & vbLf & "filedo C:\b.txt secure ""p:correct horse battery""" & vbLf)
+            File.WriteAllText(spool, "Error: Unknown command ""p:correct horse battery""" & vbLf)
+            Dim report5 = Path.Combine(dir, "report_5.log")
+            Runner.WriteReport(report5, "5", New String() {"from", list}, "Failed", 2, TimeSpan.FromSeconds(1), spool, Nothing)
+            Dim text5 = File.ReadAllText(report5)
+            Check("report:batch-credential-with-spaces-removed-whole",
+                  Not text5.Contains("horse") AndAlso Not text5.Contains("battery") AndAlso text5.Contains("Unknown command ""p:***"""),
+                  text5.Replace(vbCrLf, " | "))
         Finally
             Try
                 Directory.Delete(dir, True)
@@ -2077,7 +2296,7 @@ Public Module SelfTest
     ' SHELL-14: About and Send logs show the release stamp, or say the build is a local one.
     Private Sub CheckAboutStamp()
         Dim stamp = LogReport.BuildStamp()
-        Check("about:stamp", Text.RegularExpressions.Regex.IsMatch(stamp, "^\d{10}$") OrElse stamp.StartsWith("dev"), stamp)
+        Check("about:stamp", System.Text.RegularExpressions.Regex.IsMatch(stamp, "^\d{10}$") OrElse stamp.StartsWith("dev"), stamp)
     End Sub
 
     ' SHELL-05: an archive older than a week is gone at the next Send logs; a new one stays.
@@ -2315,6 +2534,12 @@ Public Module SelfTest
             Check("disk-run:format-needs-word", Not ok AndAlso reason = en("vd_confirm_format"), reason)
             ok = DiskRunState(jv, "format", New DiskOptions(), "", "", DiskOptionsPanel.FormatWord, Nothing, reason)
             Check("disk-run:format-offered", ok, reason)
+            ' T2-F3: the typed word approved one container; naming another one (even on the way
+            ' back to the first) asks for it again.
+            jv.SetTarget(Path.Combine(Path.GetDirectoryName(DiskSample), "selftest-other.fdd"))
+            jv.SetTarget(DiskSample)
+            ok = jv.RunStateForTest(reason)
+            Check("disk-run:word-cleared-on-target-change", Not ok AndAlso reason = en("vd_confirm_format"), reason)
             ok = DiskRunState(jv, "format", New DiskOptions(), "", "", DiskOptionsPanel.FormatWord, DiskFacts(DiskProtection.Obfuscated, False, "X:"), reason)
             Check("disk-run:format-refused-while-mounted", Not ok AndAlso reason = Localization.Format(en("vd_block_mounted_fmt"), "X:"), reason)
             ok = DiskRunState(jv, "destroy", New DiskOptions(), "", "", DiskOptionsPanel.DestroyWord, DiskFacts(DiskProtection.Obfuscated, False, "X:"), reason)
@@ -2396,6 +2621,21 @@ Public Module SelfTest
                 jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = code, .Verdict = "Failed", .Output = "", .Duration = TimeSpan.Zero}, False)
                 Check("disk-result:exit-" & code.ToString(), jv.VerdictReasonForTest.Contains(en("vd_exit_" & code.ToString())), jv.VerdictReasonForTest)
             Next
+            ' AUD-36-F1: grow and compact refused as "not closed cleanly" (class 2) say what to do; any
+            ' other class 2, and the same words from another verb, keep the generic sentence.
+            Dim refused = "Error: vd: not changed: C:\d\work.fdd " & DiskCommands.OfflineWriterRefusal & " (run grow from a console)" & vbLf
+            For Each verbKey In New String() {"rail_job_vd_grow", "rail_job_vd_compact"}
+                jv.SetJob(JobCatalogue.GetJob(verbKey))
+                jv.SetTarget(DiskSample)
+                jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 2, .Verdict = "Failed", .Output = refused, .Duration = TimeSpan.Zero}, False)
+                Check("disk-result:exit-2-writer:" & verbKey, jv.VerdictReasonForTest.Contains(en("vd_exit_2_writer")), jv.VerdictReasonForTest)
+                jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 2, .Verdict = "Failed", .Output = "Error: vd: unknown word 3 for grow", .Duration = TimeSpan.Zero}, False)
+                Check("disk-result:exit-2-generic:" & verbKey, jv.VerdictReasonForTest.Contains(en("vd_exit_2")) AndAlso Not jv.VerdictReasonForTest.Contains(en("vd_exit_2_writer")), jv.VerdictReasonForTest)
+            Next
+            jv.SetJob(JobCatalogue.GetJob("rail_job_vd_mount"))
+            jv.SetTarget(DiskSample)
+            jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 2, .Verdict = "Failed", .Output = refused, .Duration = TimeSpan.Zero}, False)
+            Check("disk-result:exit-2-writer-only-grow-compact", Not jv.VerdictReasonForTest.Contains(en("vd_exit_2_writer")), jv.VerdictReasonForTest)
             jv.ShowRunResultForTest(New Runner.RunResult With {.ExitCode = 0, .Verdict = "Done", .Duration = TimeSpan.Zero,
                                     .Output = "Container C:\d\work.fdd: plain, 20 GiB, encrypted." & vbLf & "Mounted read-only at X:. Unmount with: filedo X: unmount" & vbLf}, False)
             Check("disk-result:mount-opens-drive", jv.DiskResultForTest.OpenDriveTextForTest = Localization.Format(en("vd_btn_open_drive_fmt"), "X:"),
@@ -2559,7 +2799,7 @@ Public Module SelfTest
         Next
         keys.Add(DiskStates.WhyNotAll(DiskAction.Mount, New List(Of DiskRecord) From {sample, sample}, New List(Of DiskRowState) From {DiskRowState.NotMounted, DiskRowState.Mounted}, New DiskContext()))
         keys.Add(DiskStates.WhyNotAll(DiskAction.MountAs, New List(Of DiskRecord) From {sample, sample}, New List(Of DiskRowState) From {DiskRowState.NotMounted, DiskRowState.NotMounted}, New DiskContext()))
-        For Each k In New String() {"vd_mgr_state_server_gone", "vd_mgr_state_unsaved_fmt", "vd_mgr_state_mounted_ro", "vd_mgr_state_mounted",
+        For Each k In New String() {"vd_mgr_state_server_gone", "vd_mgr_state_unsaved_fmt", "vd_mgr_state_save_failing_fmt", "vd_mgr_detail_save_failing_fmt", "vd_mgr_state_mounted_ro", "vd_mgr_state_mounted",
                                    "vd_mgr_state_image", "vd_mgr_state_missing", "vd_mgr_state_different", "vd_mgr_state_unreadable",
                                    "vd_mgr_state_unclean", "vd_mgr_state_not_mounted", "vd_mgr_prot_obfuscated", "vd_mgr_prot_encrypted",
                                    "vd_mgr_stale_failed", "vd_mgr_stale_timeout", "vd_mgr_stale_format", "vd_mgr_stale_old_cli",
@@ -2583,7 +2823,8 @@ Public Module SelfTest
             "vd_auto_guard_run_ok_fmt", "vd_auto_guard_run_left_fmt", "vd_auto_guard_outcome_skipped",
             "vd_auto_guard_outcome_unfinished", "vd_auto_switch_on_title", "vd_auto_switch_on_text",
             "vd_auto_switch_off_title", "vd_auto_switch_off_text", "vd_auto_note_consent", "vd_auto_note_signout",
-            "vd_auto_note_encrypted", "vd_auto_note_uninstall", "vd_auto_notes_title", "vd_mgr_btn_turn_on", "vd_mgr_btn_turn_off"}
+            "vd_auto_note_encrypted", "vd_auto_note_uninstall", "vd_auto_notes_title", "vd_mgr_btn_turn_on", "vd_mgr_btn_turn_off",
+            "vd_exit_2_writer", "vd_facts_unclean_writer_fmt"}
             keys.Add(k)
         Next
         For Each s As DiskRowState In DiskHelpDialog.Legend
@@ -2732,6 +2973,23 @@ Public Module SelfTest
         ' Principle 3: a protection word other than the two is not taken for either.
         s = DiskSnapshot.Parse(future.Replace("""file"":""ok"",", """file"":""ok"",""protection"":""protected"","), problem)
         Check("disk-snap:only-two-words", s IsNot Nothing AndAlso s.Disks(0).Protection = DiskProtection.Unknown, "")
+        ' AUD-35-F5: a ram mount whose saving fails carries save_error, an optional field of version 1;
+        ' the row is a warning in words of its own, and a snapshot without the field reads as healthy.
+        Dim failing = "{""schema"":""filedo.vd-status"",""version"":1,""transport"":{""ready"":true},""disks"":[{""kind"":""container"",""name"":""r"",""path"":""C:\\r.fdd""," &
+                      """registered"":true,""file"":""ok"",""profile"":""ram"",""mount"":{""letter"":""R:"",""server_alive"":true,""ram"":{""dirty_bytes"":1048576," &
+                      """saving"":false,""last_good_save"":null,""save_error"":""vdisk: I/O error: the device is not ready""}}}]}"
+        s = DiskSnapshot.Parse(failing, problem)
+        Dim fr = If(s IsNot Nothing AndAlso s.Disks.Count = 1, s.Disks(0), Nothing)
+        Dim snapUi = Localization.GetDict(ShellSettings.Language())
+        Check("disk-snap:save-error", fr IsNot Nothing AndAlso fr.HasRam AndAlso fr.RamSaveError = "vdisk: I/O error: the device is not ready" AndAlso
+                                      DiskStates.StateOf(fr, "") = DiskRowState.Unsaved AndAlso
+                                      DiskStates.StateText(fr, DiskRowState.Unsaved, "", snapUi) = Localization.Format(snapUi("vd_mgr_state_save_failing_fmt"), "1 MiB"),
+              If(fr Is Nothing, problem, fr.RamSaveError))
+        s = DiskSnapshot.Parse(failing.Replace(",""save_error"":""vdisk: I/O error: the device is not ready""", ""), problem)
+        fr = If(s IsNot Nothing AndAlso s.Disks.Count = 1, s.Disks(0), Nothing)
+        Check("disk-snap:save-error-absent", fr IsNot Nothing AndAlso fr.HasRam AndAlso fr.RamSaveError = "" AndAlso
+                                             DiskStates.StateText(fr, DiskRowState.Unsaved, "", snapUi) = Localization.Format(snapUi("vd_mgr_state_unsaved_fmt"), "1 MiB"),
+              If(fr Is Nothing, problem, fr.RamSaveError))
 
         ' Refused whole, each with the sentence of why.
         For Each c In New String()() {

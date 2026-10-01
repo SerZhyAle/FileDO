@@ -2,6 +2,7 @@ package fdsec
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -30,7 +31,7 @@ func PackFile(dstPath, srcPath string, meta Metadata, cred Credential, p Params,
 	return packToFile(dstPath, newStreamOpts(opts).replace, func(f io.Writer) (Info, error) {
 		return Pack(f, src, meta, cred, p, opts...)
 	}, func(rb io.ReadSeeker) error {
-		return verifyContainer(rb, cred)
+		return verifyContainer(rb, cred, newStreamOpts(opts).stop)
 	})
 }
 
@@ -54,13 +55,17 @@ func PackFileSuite2(dstPath, srcPath string, meta Metadata, cred Credential, opt
 		if err != nil {
 			return err
 		}
+		stop := newStreamOpts(opts).stop
 		c := &Container{s2: st, src: rb}
-		_, got, err := c.unpackSuite2(io.Discard, streamOpts{})
+		_, got, err := c.unpackSuite2(io.Discard, streamOpts{stop: stop})
 		if err != nil {
 			return err
 		}
 		if got != packed {
 			return fmt.Errorf("%w: recovered bytes do not hash to what was packed", ErrDamaged)
+		}
+		if stop != nil && stop() {
+			return ErrStopped
 		}
 		return nil
 	})
@@ -127,6 +132,12 @@ func packToFile(dstPath string, replace bool, write func(io.Writer) (Info, error
 	}
 	err = verify(rb)
 	rb.Close()
+	if errors.Is(err, ErrStopped) {
+		// A stop in the read-back is not a failed verification: nothing
+		// was written, and the caller says so (AUD-11-F2).
+		os.Remove(tmp)
+		return zero, ErrStopped
+	}
 	if err != nil {
 		os.Remove(tmp)
 		return zero, fmt.Errorf("fdsec: read-back verification failed: %w", err)
@@ -140,17 +151,28 @@ func packToFile(dstPath string, replace bool, write func(io.Writer) (Info, error
 }
 
 // verifyContainer reads a container of either suite end to end, writing
-// nothing.
-func verifyContainer(rs io.ReadSeeker, cred Credential) error {
+// nothing. stop, when set, is the caller's stop request, asked at every
+// chunk; the read-back of a pack answers it like the write does (AUD-11-F2).
+// Only the stop is passed on: the read-back reports no progress of its own.
+func verifyContainer(rs io.ReadSeeker, cred Credential, stop func() bool) error {
+	var opts []StreamOption
+	if stop != nil {
+		opts = append(opts, WithStop(stop))
+	}
 	c, err := Open(rs, cred)
 	if err != nil {
 		return err
 	}
 	if c.IsTree() {
-		_, _, err = c.VerifyTree()
-		return err
+		_, _, err = c.VerifyTree(opts...)
+	} else {
+		_, err = c.Unpack(io.Discard, opts...)
 	}
-	_, err = c.Unpack(io.Discard)
+	if err == nil && stop != nil && stop() {
+		// A stop after the last chunk still keeps the container out of
+		// place: the caller was told the run stopped.
+		err = ErrStopped
+	}
 	return err
 }
 

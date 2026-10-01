@@ -28,8 +28,13 @@
 #  The Go executables are built exactly as .github/workflows/release.yml builds
 #  them (SP-0030 REL-04, CI-03): windows/amd64, CGO off, the pinned toolchain,
 #  goversioninfo -64 (PE version + app.manifest), -trimpath. The gate therefore
-#  tests the binary that ships, not a 386 build of the same source, and the go
-#  test runs of the gate are amd64 as well.
+#  tests a build of the same source, toolchain and flags as the one that ships -
+#  not a 386 build - and its go test runs are amd64 as well. It does NOT test the
+#  shipped bytes: release.yml rebuilds every executable on the runner, re-runs this
+#  gate's go tests on the tagged source before it builds anything, and smoke-checks
+#  its own build (-?, PE version, govulncheck); the GUI selftest and the PE-shape
+#  checks below run only here (AUD-68-F1). The Store MSIX is likewise rebuilt by
+#  msix\build-msix.ps1, from sources equal to the tag.
 #
 #  A plain `.\build.ps1` produces EVERYTHING that is distributable - the five
 #  executables AND both installer artifacts. No switch is needed for the normal

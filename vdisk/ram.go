@@ -29,6 +29,9 @@ type ramState struct {
 	saveMu sync.Mutex
 	dirty  map[uint64][]byte // logical cluster -> its plaintext, written since the running save's snapshot
 	saving map[uint64][]byte // the snapshot a running save is writing; nil between saves
+	// lastErr is the last Save's error text, "" after a good one; guarded by
+	// c.mu (AUD-35-F5).
+	lastErr string
 }
 
 func newRAMState() *ramState { return &ramState{dirty: map[uint64][]byte{}} }
@@ -83,6 +86,9 @@ type RAMState struct {
 	DirtyBytes   int64     // written since the last save began, not yet in the file
 	Saving       bool      // a save is writing clusters now
 	LastGoodSave time.Time // the time the last completed save began; zero when never
+	// SaveError is the error of the last save when it failed, "" once a save
+	// succeeds: saving is failing and the dirty data waits in memory (AUD-35-F5).
+	SaveError string
 }
 
 // RAMState reports the dirty amount; ok is false for any other profile.
@@ -99,6 +105,7 @@ func (c *Container) RAMState() (s RAMState, ok bool) {
 		s.DirtyBytes += int64(len(c.ram.saving)) * cs
 	}
 	s.LastGoodSave = nsTime(c.hdr.LastGoodSave)
+	s.SaveError = c.ram.lastErr
 	return s, true
 }
 
@@ -108,13 +115,23 @@ func (c *Container) RAMState() (s RAMState, ok bool) {
 // clusters are written: the dirty map is swapped for an empty one under the
 // lock, the snapshot is written outside it, and writes arriving meanwhile go
 // to the new map and to the next save. For any other profile Save is Flush.
-func (c *Container) Save() error {
+func (c *Container) Save() (err error) {
 	if c.ram == nil {
 		return c.Flush()
 	}
 	r := c.ram
 	r.saveMu.Lock()
 	defer r.saveMu.Unlock()
+	// The outcome RAMState reports (AUD-35-F5). It runs after every c.mu
+	// release of the paths below, and before saveMu is released.
+	defer func() {
+		c.mu.Lock()
+		r.lastErr = ""
+		if err != nil {
+			r.lastErr = err.Error()
+		}
+		c.mu.Unlock()
+	}()
 
 	c.mu.Lock()
 	if err := c.usable(false); err != nil {
@@ -196,12 +213,16 @@ func (c *Container) Save() error {
 	return nil
 }
 
-// A failed save leaves every unsaved cluster in RAM. Only the I/O failure
-// recorded by this save may be cleared: a later Save can replay the complete
-// snapshot after the backing store recovers. Other container failures remain
-// sticky. The interrupted-save marker stays set until that replay finishes.
+// A failed save leaves every unsaved cluster in RAM. Only a data-region (or
+// inactive map copy) write or flush recorded by this save may be cleared: a
+// later Save can replay the complete snapshot after the backing store
+// recovers, and the header still says a save is in progress (FDD-FORMAT
+// 10.4), a defined state. A failed header write stays sticky (AUD-35-F5,
+// owner decision 2026-10-01): which header copy the file holds is then
+// uncertain, so nothing more is written to it. Other container failures
+// remain sticky too.
 func (c *Container) ramSaveError(err error) error {
-	if c.failed == err {
+	if c.failed == err && !c.failedHeader {
 		c.failed = nil
 	}
 	return err

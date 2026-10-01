@@ -35,7 +35,8 @@ import (
 // user. A normal session therefore needs CHAP with a secret drawn for this
 // mount and handed only to the elevated step that logs the initiator in, and a
 // target accepts one normal session at a time. Discovery needs no
-// authentication and reveals the target name and port, nothing else.
+// authentication and reveals the target name and port, nothing else; after
+// the SendTargets answer it takes only a Logout.
 
 // loopbackAddr is the only address the block server binds: loopback, with a
 // port the operating system chooses. It is a constant, and nothing in this
@@ -53,8 +54,12 @@ const (
 	// The port is reachable by every local process of every user, so what it
 	// costs before anyone has authenticated is bounded (AUD-35-F2): at most
 	// maxConnections in all and maxUnauthConnections that have not finished
-	// logging in, on 4 KiB buffers until they have. Extra connections are
-	// closed at once.
+	// logging in, on 4 KiB buffers until they have. When the pre-login slots
+	// are full, a new connection takes the slot of the oldest connection that
+	// has not logged in (that one is closed), so a local process that keeps
+	// the slots filled cannot lock the real initiator out (T3-F3); a logged-in
+	// session is never closed for a newcomer. Beyond maxConnections a new
+	// connection is closed at once.
 	maxConnections       = 8
 	maxUnauthConnections = 4
 	loginBufSize         = 4096
@@ -69,6 +74,25 @@ var loginTimeout = 30 * time.Second
 // no authentication, so it must not be a place to park a connection for good.
 // A variable so a test can shorten it.
 var discoveryIdle = 30 * time.Second
+
+// discoveryLifetime bounds a Discovery session from its login on, whatever it
+// sends: the Windows initiator asks SendTargets and logs out within
+// milliseconds, so a session that keeps pinging only parks a slot (T3-F3,
+// AUD-35-F2). maxDiscoverySessions caps them apart, so Discovery can never
+// fill maxConnections and lock the real initiator's login out. Variables so a
+// test can shorten them.
+var (
+	discoveryLifetime    = 30 * time.Second
+	maxDiscoverySessions = 2
+)
+
+// discoveryGrace is how long a Discovery session may stay after the target
+// has sent the SendTargets answer. Discovery has nothing else to offer, so the
+// session then accepts only a Logout (answered, then closed); any other PDU,
+// or none within the grace, closes it. The Windows initiator logs out within
+// milliseconds of the answer (SP-0004 M0 transcripts). A variable so a test
+// can shorten it.
+var discoveryGrace = 2 * time.Second
 
 // ChapSecretLen is the length of a mount's CHAP secret. The Windows initiator
 // takes 12 to 16 bytes.
@@ -127,7 +151,14 @@ type Server struct {
 
 	preLogin    int       // connections that have not finished logging in
 	refused     int       // connections refused for a limit since the last log line
-	refusedLast time.Time // when the refused count was last logged
+	evicted     int       // pre-login connections closed for a newcomer since the last log line
+	refusedLast time.Time // when the limit counts were last logged
+	discoveries int       // connections that began as Discovery (T3-F3)
+	// evicting: connections closed for a newcomer whose goroutine has not
+	// left yet. They stay in conns until drop, and are bounded apart, so the
+	// memory held is at most 2*maxConnections connections.
+	evicting int
+	seq      uint64 // accept order, to find the oldest pre-login connection
 }
 
 // NewServer validates cfg and binds loopbackAddr.
@@ -189,13 +220,19 @@ func (s *Server) Serve() error {
 			nc.Close()
 			return nil
 		}
-		if len(s.conns) >= maxConnections || s.preLogin >= maxUnauthConnections {
-			s.refused++
-			logLine := ""
-			if now := time.Now(); now.Sub(s.refusedLast) >= time.Minute {
-				logLine = fmt.Sprintf("refused %d connection(s): at most %d, %d before login", s.refused, maxConnections, maxUnauthConnections)
-				s.refused, s.refusedLast = 0, now
-			}
+		var victim *conn
+		if s.preLogin >= maxUnauthConnections && s.evicting < maxConnections {
+			victim = s.oldestPreLogin()
+		}
+		if victim != nil {
+			// The newcomer takes the oldest pre-login slot (T3-F3).
+			victim.counted = false
+			victim.evicted = true
+			s.preLogin--
+			s.evicting++
+		}
+		if s.preLogin >= maxUnauthConnections || len(s.conns)-s.evicting >= maxConnections {
+			logLine := s.limitLine(false)
 			s.mu.Unlock()
 			nc.Close()
 			if logLine != "" {
@@ -203,11 +240,21 @@ func (s *Server) Serve() error {
 			}
 			continue
 		}
+		logLine := ""
+		if victim != nil {
+			logLine = s.limitLine(true)
+			victim.nc.Close() // its goroutine leaves through drop
+		}
+		s.seq++
+		c.seq = s.seq
 		s.conns[c] = true
 		s.preLogin++
 		c.counted = true
 		s.wg.Add(1)
 		s.mu.Unlock()
+		if logLine != "" {
+			s.logf("%s", logLine)
+		}
 		go func() {
 			defer s.wg.Done()
 			c.serve()
@@ -235,6 +282,41 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) logf(format string, args ...interface{}) { s.cfg.Logf(format, args...) }
+
+// oldestPreLogin is the earliest accepted connection that has not logged in,
+// or nil. The normal session is never chosen, even in the moment between
+// claimSession and the end of its login. Called with s.mu held.
+func (s *Server) oldestPreLogin() *conn {
+	var old *conn
+	for c := range s.conns {
+		if !c.counted || c == s.session {
+			continue
+		}
+		if old == nil || c.seq < old.seq {
+			old = c
+		}
+	}
+	return old
+}
+
+// limitLine counts one refused (or, with evicted, one displaced pre-login)
+// connection and returns the line to log, at most once a minute. Called with
+// s.mu held.
+func (s *Server) limitLine(evicted bool) string {
+	if evicted {
+		s.evicted++
+	} else {
+		s.refused++
+	}
+	now := time.Now()
+	if now.Sub(s.refusedLast) < time.Minute {
+		return ""
+	}
+	line := fmt.Sprintf("connection limits (at most %d, %d before login): refused %d, closed %d oldest before login for a newcomer",
+		maxConnections, maxUnauthConnections, s.refused, s.evicted)
+	s.refused, s.evicted, s.refusedLast = 0, 0, now
+	return line
+}
 
 // claimSession makes c the normal session, or reports that one exists.
 func (s *Server) claimSession(c *conn) bool {
@@ -267,11 +349,35 @@ func (s *Server) loggedIn(c *conn) {
 	s.mu.Unlock()
 }
 
+// claimDiscovery counts c as a Discovery connection, or reports that the
+// Discovery cap is reached (T3-F3).
+func (s *Server) claimDiscovery(c *conn) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c.discCounted {
+		return true
+	}
+	if s.discoveries >= maxDiscoverySessions {
+		return false
+	}
+	s.discoveries++
+	c.discCounted = true
+	return true
+}
+
 func (s *Server) drop(c *conn) {
 	s.mu.Lock()
 	if c.counted {
 		c.counted = false
 		s.preLogin--
+	}
+	if c.discCounted {
+		c.discCounted = false
+		s.discoveries--
+	}
+	if c.evicted {
+		c.evicted = false
+		s.evicting--
 	}
 	delete(s.conns, c)
 	if s.session == c {
@@ -312,6 +418,18 @@ type conn struct {
 	// can never be turned into a normal session.
 	typeSet bool
 	counted bool // still in the server's pre-login count; guarded by Server.mu
+	// evicted: closed for a newcomer, in Server.evicting until drop; seq: the
+	// accept order. Both guarded by Server.mu.
+	evicted bool
+	seq     uint64
+	// discCounted: in the server's Discovery count (guarded by Server.mu);
+	// discoveryEnd: when a logged-in Discovery session is closed (T3-F3).
+	discCounted  bool
+	discoveryEnd time.Time
+	// answered: the SendTargets answer was sent; from then on only a Logout is
+	// taken, until graceEnd (T3-F3).
+	answered bool
+	graceEnd time.Time
 	// chapOK: the CHAP response verified. A normal session reaches full feature
 	// phase only with it; authed from a Discovery stage never satisfies it.
 	chapOK    bool
@@ -368,9 +486,13 @@ func (c *conn) loop() error {
 			}
 		}
 		if c.discovery && c.ffp {
-			_ = c.nc.SetReadDeadline(time.Now().Add(discoveryIdle)) // idle is bounded for every PDU
+			_ = c.nc.SetReadDeadline(c.discoveryDeadline()) // idle is bounded for every PDU, the whole session too
 		}
 		if _, err := io.ReadFull(c.r, bhs[:]); err != nil {
+			var ne net.Error
+			if c.answered && errors.As(err, &ne) && ne.Timeout() {
+				return fmt.Errorf("no logout within %v of the SendTargets answer", discoveryGrace)
+			}
 			return err
 		}
 		dlen := dataSegLen(bhs[:])
@@ -380,6 +502,9 @@ func (c *conn) loop() error {
 		op := bhs[0] & 0x3f
 		if !c.ffp && op != opLoginReq {
 			return fmt.Errorf("opcode 0x%02x before the login completed", op)
+		}
+		if c.answered && op != opLogoutReq {
+			return fmt.Errorf("opcode 0x%02x after the SendTargets answer; only a logout is taken", op)
 		}
 		if ahs := int(bhs[4]) * 4; ahs > 0 {
 			if _, err := io.CopyN(io.Discard, c.r, int64(ahs)); err != nil {
@@ -520,9 +645,11 @@ func (c *conn) login(bhs *[bhsLen]byte, data []byte) error {
 	if c.ffp {
 		c.s.loggedIn(c)
 		if c.discovery {
-			// No authentication: idle is bounded, and the buffers stay small.
+			// No authentication: idle and the whole session are bounded
+			// (T3-F3), and the buffers stay small.
+			c.discoveryEnd = time.Now().Add(discoveryLifetime)
 			_ = c.nc.SetWriteDeadline(time.Time{})
-			_ = c.nc.SetReadDeadline(time.Now().Add(discoveryIdle))
+			_ = c.nc.SetReadDeadline(c.discoveryDeadline())
 		} else {
 			_ = c.nc.SetDeadline(time.Time{})
 			if err := c.growBuffers(); err != nil {
@@ -533,6 +660,20 @@ func (c *conn) login(bhs *[bhsLen]byte, data []byte) error {
 			c.discovery, c.initMRDSL, c.maxBurst, c.firstBurst, c.immediate)
 	}
 	return nil
+}
+
+// discoveryDeadline is the next read deadline of a logged-in Discovery
+// session: the idle bound, never past the session's end nor, once the
+// SendTargets answer is out, past the grace for the logout.
+func (c *conn) discoveryDeadline() time.Time {
+	d := time.Now().Add(discoveryIdle)
+	if !c.discoveryEnd.IsZero() && d.After(c.discoveryEnd) {
+		d = c.discoveryEnd
+	}
+	if c.answered && d.After(c.graceEnd) {
+		d = c.graceEnd
+	}
+	return d
 }
 
 // growBuffers gives the logged-in normal session the large buffers its data
@@ -567,6 +708,9 @@ func (c *conn) loginStage(csg byte, keys []kv) ([]kv, byte, byte) {
 			return nil, 0x02, 0x00 // the session type is fixed by the first login stage
 		}
 		c.discovery = st == "Discovery"
+		if c.discovery && !c.s.claimDiscovery(c) {
+			return nil, 0x03, 0x02 // out of resources: Discovery is capped apart (T3-F3)
+		}
 	}
 	if tn, ok := get("TargetName"); ok {
 		if tn != c.s.cfg.IQN {
@@ -745,9 +889,11 @@ func (c *conn) negotiate(k kv) (kv, bool) {
 func (c *conn) text(bhs *[bhsLen]byte, data []byte) error {
 	c.advanceCmdSN(bhs)
 	var out []kv
+	answer := false
 	for _, k := range parseKeys(data) {
 		if k.K == "SendTargets" && c.discovery {
 			out = append(out, kv{"TargetName", c.s.cfg.IQN}, kv{"TargetAddress", c.nc.LocalAddr().String() + ",1"})
+			answer = true
 		}
 	}
 	resp := make([]byte, bhsLen)
@@ -757,7 +903,15 @@ func (c *conn) text(bhs *[bhsLen]byte, data []byte) error {
 	copy(resp[16:20], bhs[16:20])
 	put32(resp[20:], 0xffffffff)
 	c.fillSN(resp, true)
-	return c.send(resp, encodeKeys(out))
+	if err := c.send(resp, encodeKeys(out)); err != nil {
+		return err
+	}
+	if answer {
+		// Discovery has given all it has: a Logout, or the close (T3-F3).
+		c.answered = true
+		c.graceEnd = time.Now().Add(discoveryGrace)
+	}
+	return nil
 }
 
 func (c *conn) nopOut(bhs *[bhsLen]byte, data []byte) error {

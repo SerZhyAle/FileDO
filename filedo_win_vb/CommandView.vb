@@ -569,13 +569,22 @@ Public Class CommandView
             Return
         End If
 
-        Dim confirmKey = If(word = DiskOptionsPanel.FormatWord, "vd_confirm_format",
-                            If(word = DiskOptionsPanel.DestroyWord, "vd_confirm_destroy",
-                               If(word = "DISCARD", "vd_confirm_nosave",
-                                  If(word = "DELETE", "shell_dup_delete_confirm",
-                                     If(word = "RECOVER", "shell_cmd_recover_confirm",
-                                        If(word = "FIX", "shell_cmd_probe_fix_confirm", "shell_cmd_wipe_confirm"))))))
+        Dim confirmKey As String
+        Select Case word
+            Case DiskOptionsPanel.FormatWord : confirmKey = "vd_confirm_format"
+            Case DiskOptionsPanel.DestroyWord : confirmKey = "vd_confirm_destroy"
+            Case "DISCARD" : confirmKey = "vd_confirm_nosave"
+            Case "DELETE" : confirmKey = "shell_dup_delete_confirm"
+            Case "MOVE" : confirmKey = "shell_dup_move_confirm"
+            Case "RECOVER" : confirmKey = "shell_cmd_recover_confirm"
+            Case "FIX" : confirmKey = "shell_cmd_probe_fix_confirm"
+            Case "PROBE" : confirmKey = "shell_cmd_probe_write_confirm"
+            Case "CLEAN" : confirmKey = "shell_cmd_clean_confirm"
+            Case Else : confirmKey = "shell_cmd_wipe_confirm"
+        End Select
         wipeLabel.Text = L(confirmKey)
+        ' The box is named by the word it asks for, not always WIPE (SP-0097 F6).
+        wipeBox.AccessibleName = wipeLabel.Text
         Dim danger = If(word = "WIPE", WipeDanger(args), "")
         If danger <> "" Then
             wipeNotice.Text = Localization.Format(L("shell_wipe_needs_console"), L(danger))
@@ -612,6 +621,13 @@ Public Class CommandView
     ' order. The target is read where filedo.exe will read it - a relative one inside its working
     ' folder, %LOCALAPPDATA%\FileDO - so `.. wipe` is the danger it really is (SHELL-04).
     Private Shared Function WipeDanger(args As List(Of String)) As String
+        ' secure's wipe and a vd destroy's wipe are options of those verbs, not the wipe verb:
+        ' the word before them is a verb or an option, not the folder the CLI would classify.
+        For i = 0 To args.Count - 1
+            If Runner.FdsecFamilyTokens.Contains(args(i).ToLowerInvariant()) Then Return ""
+            If i > 0 AndAlso DiskCommands.IsOneOfWords(args(i), DiskCommands.VdDestroyWords) AndAlso
+               (DiskCommands.IsFddPath(args(i - 1)) OrElse DiskCommands.IsOneOfWords(args(i - 1), DiskCommands.VdNamespaceWords)) Then Return ""
+        Next
         For i = 1 To args.Count - 1
             If WipeSafety.IsWipeAlias(args(i)) Then
                 Return WipeSafety.DangerKey(TargetPath.AsChildSeesIt(args(i - 1)))
@@ -622,43 +638,87 @@ Public Class CommandView
 
     Private confirmationLine As String = ""
 
+    ' WIPE is the strongest word, so "the line asks WIPE" is "some line of it, at any depth, wipes"
+    ' (or a list could not be read) - never "the first word found is WIPE" (AUD-58-F1).
     Private Shared Function LineWipes(args As List(Of String)) As Boolean
         Return ConfirmationWord(args) = "WIPE"
     End Function
+
+    ' The typed words, weakest first. A line, or a batch tree, asks for the strongest word any of
+    ' its lines needs, so typing the word of an earlier, milder line never approves a later wipe.
+    Private Shared ReadOnly WordRank As String() = {
+        "", "CLEAN", "MOVE", "DELETE", "DISCARD", "PROBE", "FIX", "RECOVER",
+        DiskOptionsPanel.FormatWord, DiskOptionsPanel.DestroyWord, "WIPE"}
+
+    Private Shared Function Stronger(a As String, b As String) As String
+        Return If(Array.IndexOf(WordRank, b) > Array.IndexOf(WordRank, a), b, a)
+    End Function
+
+    ' The CLI's consent tokens: probe's and recover's (command_handlers.go), clean's.
+    Private Shared ReadOnly ProbeYesWords As String() = {"yes", "y", "allright", "force"}
+    Private Shared ReadOnly CleanYesWords As String() = {"--yes", "-y", "yes", "y", "--force", "/y"}
 
     Private Shared Function ConfirmationWord(args As List(Of String)) As String
         Return ConfirmationWord(args, New HashSet(Of String)(StringComparer.OrdinalIgnoreCase), 0)
     End Function
 
     Private Shared Function ConfirmationWord(args As List(Of String), seen As HashSet(Of String), depth As Integer) As String
+        Dim word = ""
+        Dim after = Function(i As Integer, words As String()) args.Skip(i + 1).Any(Function(a) DiskCommands.IsOneOfWords(a, words))
+        ' A vd destroy's own "wipe" option overwrites the container it deletes; it is that verb's
+        ' word (DESTROY), not a folder wipe.
+        Dim vdDestroyAt = -1
         For i = 0 To args.Count - 1
-            Select Case args(i).ToLowerInvariant()
+            Dim t = args(i)
+            ' Where the CLI reads a vd verb: after a .fdd path (target-first) or after vd / vdisk.
+            Dim vdSlot = i > 0 AndAlso (DiskCommands.IsFddPath(args(i - 1)) OrElse
+                                        DiskCommands.IsOneOfWords(args(i - 1), DiskCommands.VdNamespaceWords))
+            Select Case t.ToLowerInvariant()
                 Case "from", "batch", "script"
                     If i + 1 >= args.Count Then Return "WIPE"
-                    Dim nestedWord = BatchListConfirmationWord(args(i + 1), seen, depth + 1)
-                    If nestedWord <> "" Then Return nestedWord
-                Case "format"
-                    If i > 0 AndAlso DiskCommands.IsFddPath(args(i - 1)) Then Return DiskOptionsPanel.FormatWord
-                    If args.Take(i).Any(Function(a) String.Equals(a, "probe", StringComparison.OrdinalIgnoreCase)) Then Return DiskOptionsPanel.FormatWord
-                Case "destroy"
-                    If i > 0 AndAlso DiskCommands.IsFddPath(args(i - 1)) Then Return DiskOptionsPanel.DestroyWord
-                Case "unmount"
-                    If i > 0 AndAlso DiskCommands.IsFddPath(args(i - 1)) AndAlso
-                       args.Skip(i + 1).Any(Function(a) String.Equals(a, "nosave", StringComparison.OrdinalIgnoreCase)) Then Return "DISCARD"
+                    word = Stronger(word, BatchListConfirmationWord(args(i + 1), seen, depth + 1))
                 Case "recover", "repair"
-                    If i > 0 Then Return "RECOVER"
+                    ' After probe, repair is probe's own option (FIX below), not the recover verb.
+                    If i > 0 AndAlso Not args.Take(i).Any(Function(a) String.Equals(a, "probe", StringComparison.OrdinalIgnoreCase)) Then
+                        word = Stronger(word, "RECOVER")
+                    End If
                 Case "probe"
-                    If i > 0 AndAlso args.Skip(i + 1).Any(Function(a) String.Equals(a, "fix", StringComparison.OrdinalIgnoreCase) OrElse
-                                                              String.Equals(a, "repair", StringComparison.OrdinalIgnoreCase)) Then Return "FIX"
+                    ' Without a consent token the CLI asks YES and the drive on a console this
+                    ' window does not have, and the probe is cancelled; with one it writes raw sectors.
+                    If i > 0 Then
+                        If after(i, {"fix", "repair"}) Then word = Stronger(word, "FIX")
+                        If after(i, ProbeYesWords) Then word = Stronger(word, "PROBE")
+                    End If
                 Case "cd", "check-duplicates", "duplicate", "compare", "cmp"
-                    If args.Skip(i + 1).Any(Function(a) String.Equals(a, "del", StringComparison.OrdinalIgnoreCase) OrElse
-                                                      String.Equals(a, "delete", StringComparison.OrdinalIgnoreCase)) Then Return "DELETE"
+                    If after(i, {"del", "delete"}) Then word = Stronger(word, "DELETE")
+                    If after(i, {"move"}) Then word = Stronger(word, "MOVE")
+                Case "clean", "cln"
+                    If i > 0 AndAlso after(i, CleanYesWords) Then word = Stronger(word, "CLEAN")
+                Case "c"
+                    If i = 1 AndAlso after(i, CleanYesWords) Then word = Stronger(word, "CLEAN")
             End Select
+            If DiskCommands.IsOneOfWords(t, DiskCommands.VdFormatWords) AndAlso
+               (vdSlot OrElse args.Take(i).Any(Function(a) String.Equals(a, "probe", StringComparison.OrdinalIgnoreCase))) Then
+                word = Stronger(word, DiskOptionsPanel.FormatWord)
+            End If
+            If DiskCommands.IsOneOfWords(t, DiskCommands.VdDestroyWords) AndAlso vdSlot Then
+                word = Stronger(word, DiskOptionsPanel.DestroyWord)
+                If vdDestroyAt < 0 Then vdDestroyAt = i
+            End If
+            ' unmount .. nosave drops a ram disk's unsaved changes whatever names it: a .fdd, a
+            ' drive letter, a registered name after vd.
+            If DiskCommands.IsOneOfWords(t, DiskCommands.VdUnmountWords) AndAlso i > 0 AndAlso after(i, {"nosave"}) Then
+                word = Stronger(word, "DISCARD")
+            End If
+            If WipeSafety.IsWipeAlias(t) AndAlso Not (vdDestroyAt >= 0 AndAlso i > vdDestroyAt) Then
+                word = Stronger(word, "WIPE")
+            End If
         Next
-        Return If(args.Any(Function(a) WipeSafety.IsWipeAlias(a)), "WIPE", "")
+        Return word
     End Function
 
-    ' Unreadable, oversized or cyclic lists require the strongest confirmation.
+    ' Unreadable, oversized or cyclic lists require the strongest confirmation. Every line is read:
+    ' the list asks for the strongest word among them.
     Private Shared Function BatchListConfirmationWord(listPath As String, seen As HashSet(Of String), depth As Integer) As String
         Try
             If depth >= 16 Then Return "WIPE"
@@ -666,16 +726,17 @@ Public Class CommandView
             If Not seen.Add(full) Then Return "WIPE"
             Dim info As New FileInfo(full)
             If Not info.Exists OrElse info.Length > 4 * 1024 * 1024 Then Return "WIPE"
+            Dim strongest = ""
             For Each raw In File.ReadAllLines(full)
                 Dim line = raw.Trim()
                 If line = "" OrElse line.StartsWith("#") Then Continue For
                 Dim fields = ArgQuoting.SplitArgs(line).ToList()
                 If fields.Count > 0 AndAlso fields(0).EndsWith("filedo.exe", StringComparison.OrdinalIgnoreCase) Then fields.RemoveAt(0)
-                Dim word = ConfirmationWord(fields, seen, depth)
-                If word <> "" Then Return word
+                strongest = Stronger(strongest, ConfirmationWord(fields, seen, depth))
+                If strongest = "WIPE" Then Exit For
             Next
             seen.Remove(full)
-            Return ""
+            Return strongest
         Catch
             Return "WIPE"
         End Try
@@ -716,6 +777,18 @@ Public Class CommandView
         wipeBox.Text = typed
         UpdateRunButtonState()
         Return runBtn.Enabled
+    End Function
+
+    ' Changes the line and leaves the typed word as it is - the user editing the line by hand.
+    Friend Sub SetLineForTest(line As String)
+        cmdLineBox.Text = line
+        UpdateRunButtonState()
+    End Sub
+
+    Friend Shared Function LineWipesForTest(line As String) As Boolean
+        Dim cmd = line.Trim()
+        If cmd.StartsWith("filedo.exe ", StringComparison.OrdinalIgnoreCase) Then cmd = cmd.Substring("filedo.exe ".Length).Trim()
+        Return LineWipes(New List(Of String)(ArgQuoting.SplitArgs(cmd)))
     End Function
 
     Friend Function LaunchAllowedForTest() As Boolean

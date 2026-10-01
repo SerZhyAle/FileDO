@@ -21,7 +21,6 @@ type fileMeta struct {
 	rel  string
 	size int64
 	mod  time.Time
-	info os.FileInfo
 }
 
 type diffEntry struct {
@@ -278,7 +277,7 @@ func scanFiles(root string) *folderScan {
 		if _, dup := s.files[key]; dup {
 			s.collisions[key] = true
 		}
-		s.files[key] = fileMeta{rel: rel, size: info.Size(), mod: info.ModTime(), info: info}
+		s.files[key] = fileMeta{rel: rel, size: info.Size(), mod: info.ModTime()}
 		s.count++
 		s.total += info.Size()
 		return nil
@@ -333,19 +332,40 @@ type delTask struct {
 	// hash: delete only if the two files' contents hash the same (--by-hash).
 	hash                bool
 	selfMeta, otherMeta fileMeta
+	// selfID and otherID are the two files' volume serial and file ID, read
+	// before the question, so the deletion acts only on the objects the user
+	// was shown. A directory listing gives no file ID on ReFS, FAT32 or exFAT,
+	// so the scan's own FileInfo cannot carry it (AUD-54-F1).
+	selfID, otherID fileID
+}
+
+type fileID struct {
+	vol uint32
+	idx uint64
+}
+
+func compareFileID(p string) (fileID, error) {
+	vol, idx, err := fileIdentity(p)
+	return fileID{vol, idx}, err
 }
 
 // A pair selected from the scan must still name the same two unchanged files
 // at the deletion boundary. A replacement with the same size and time is not
 // the file whose deletion the user approved.
-func unchangedCompareFile(path string, scanned fileMeta) error {
+func unchangedCompareFile(path string, scanned fileMeta, id fileID) error {
 	now, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
-	if !now.Mode().IsRegular() || now.Size() != scanned.size || !now.ModTime().Equal(scanned.mod) ||
-		!os.SameFile(now, scanned.info) {
+	if !now.Mode().IsRegular() || now.Size() != scanned.size || !now.ModTime().Equal(scanned.mod) {
 		return fmt.Errorf("file changed since the scan")
+	}
+	cur, err := compareFileID(path)
+	if err != nil {
+		return err
+	}
+	if cur != id {
+		return fmt.Errorf("file replaced since the scan")
 	}
 	return nil
 }
@@ -373,7 +393,7 @@ func sameContent(a, b string) (bool, error) {
 		return false, err
 	}
 	if runStopRequested() {
-		return false, fmt.Errorf("compare stopped")
+		return false, errCompareStopped
 	}
 	hb, err := compareHashFile(b)
 	if err != nil {
@@ -382,6 +402,9 @@ func sameContent(a, b string) (bool, error) {
 	return bytes.Equal(ha, hb), nil
 }
 
+// hashFileSHA256 reads the file in 1 MiB blocks and ends at the next block
+// once a stop is requested, so a stop never waits for a large file to be read
+// to its end (AUD-16-F3).
 func hashFileSHA256(p string) ([]byte, error) {
 	f, err := os.Open(p)
 	if err != nil {
@@ -389,11 +412,24 @@ func hashFileSHA256(p string) ([]byte, error) {
 	}
 	defer f.Close()
 	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return nil, err
+	buf := make([]byte, 1<<20)
+	for {
+		if runStopRequested() {
+			return nil, errCompareStopped
+		}
+		n, err := f.Read(buf)
+		h.Write(buf[:n])
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	return h.Sum(nil), nil
 }
+
+var errCompareStopped = fmt.Errorf("compare stopped")
 
 // performDelete removes one side of the pairs a compare found, by mode. It
 // returns what it could not do.
@@ -483,6 +519,40 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 		}
 	}
 
+	// Read both files' identity now, before the question: what is deleted
+	// later must be the object listed here, not a replacement with the same
+	// size and time. A pair whose identity cannot be read is kept.
+	identified := tasks[:0]
+	var unidentified []string
+	for _, t := range tasks {
+		if runStopRequested() {
+			return append(problems, "stopped before the delete: nothing deleted")
+		}
+		self, err := compareFileID(t.abs)
+		if err == nil {
+			t.selfID = self
+			t.otherID, err = compareFileID(t.other)
+		}
+		if err != nil {
+			unidentified = append(unidentified, fmt.Sprintf("%s: cannot identify the pair: %v", t.rel, err))
+			continue
+		}
+		identified = append(identified, t)
+	}
+	tasks = identified
+	if len(unidentified) > 0 {
+		sort.Strings(unidentified)
+		fmt.Printf("Kept %d pair(s) whose files could not be identified:\n", len(unidentified))
+		for i, u := range unidentified {
+			if i >= 10 {
+				fmt.Printf("  .. and %d more\n", len(unidentified)-10)
+				break
+			}
+			fmt.Printf("  %s\n", u)
+		}
+		problems = append(problems, fmt.Sprintf("%d pair(s) could not be identified and were not deleted", len(unidentified)))
+	}
+
 	if len(mismatches) > 0 {
 		sort.Strings(mismatches)
 		fmt.Printf("Kept %d pair(s) whose two files differ (use --by-hash to compare content, --allow-mismatch to delete anyway):\n", len(mismatches))
@@ -553,8 +623,10 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 		go func() {
 			defer wg.Done()
 			for t := range tasksCh {
+				// After a stop the rest of the queue is drained unread so the
+				// sender below is never left on a full channel (AUD-54-F2).
 				if runStopRequested() {
-					return
+					continue
 				}
 				// The two names of a pair must be two files.
 				same, err := sameFilePaths(t.abs, t.other)
@@ -568,11 +640,11 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 				}
 				if t.hash {
 					if runStopRequested() {
-						return
+						continue
 					}
 					eq, err := sameContent(t.abs, t.other)
 					if runStopRequested() {
-						return
+						continue
 					}
 					if err != nil {
 						fail(t, "cannot hash the pair: %v", err)
@@ -584,18 +656,18 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 					}
 				}
 				if runStopRequested() {
-					return
+					continue
 				}
-				if err := unchangedCompareFile(t.abs, t.selfMeta); err != nil {
+				if err := unchangedCompareFile(t.abs, t.selfMeta, t.selfID); err != nil {
 					fail(t, "delete candidate changed: %v", err)
 					continue
 				}
-				if err := unchangedCompareFile(t.other, t.otherMeta); err != nil {
+				if err := unchangedCompareFile(t.other, t.otherMeta, t.otherID); err != nil {
 					fail(t, "other file changed: %v", err)
 					continue
 				}
 				if runStopRequested() {
-					return
+					continue
 				}
 				if err := os.Remove(t.abs); err != nil {
 					fail(t, "%v", err)
@@ -641,7 +713,7 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 	}
 
 	// Write delete log
-	if err := writeDeleteLog(srcRoot, dstRoot, mode, sideOnly, deleted, append(errs, mismatches...), stats, time.Since(start)); err != nil {
+	if err := writeDeleteLog(srcRoot, dstRoot, mode, sideOnly, deleted, append(append(errs, mismatches...), unidentified...), stats, time.Since(start)); err != nil {
 		fmt.Printf("Warning: cannot write delete log: %v\n", err)
 	}
 	return problems

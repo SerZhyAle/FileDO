@@ -67,7 +67,11 @@ unchanged for a `cmd.exe` prompt.
   exactly as `release.yml` builds them: `windows/amd64`, CGO off,
   `goversioninfo -64` (PE version plus `app.manifest`), `-trimpath`, and the Go
   that `go.mod`'s `toolchain` line pins (`go1.26.1`). The gate's `go test`
-  runs are amd64 too, so what `-Test` proves is the binary that ships, and
+  runs are amd64 too, so what `-Test` proves is a build of the same source,
+  toolchain and flags as the one that ships - not the shipped bytes: the
+  workflow rebuilds every executable on its runner, re-runs the gate's go
+  tests on the tagged source first and smoke-checks its own build, and the
+  GUI selftest and the PE-shape checks run only here (AUD-68-F1).
   `exe_to_download\` holds amd64 executables. Prerequisites that are missing
   or different end the run with exit 2 before anything is built: a local Go
   other than the pinned one (install it, or set `GOTOOLCHAIN=go1.26.1`),
@@ -201,8 +205,15 @@ What it does, in order:
    exit codes of the winget commit, push and submit are all read.
 8. **Store** - builds the unsigned MSIX into `msix\out\`, **pinned to this
    release's stamp** (`filedo.exe` prints it; `filedo_win.exe` carries it as
-   its PE version and `BuildStamp`). The identity comes from
-   `msix\identity.json` - `SZA.FileDO`, reserved in Partner Center and a
+   its PE version and `BuildStamp`), and **only from sources equal to the
+   tag** (T3-F2): it refuses, and records the Store channel as failed, unless
+   `git diff --quiet v<stamp> HEAD -- . ':!winget'` succeeds and nothing is
+   changed or untracked outside `winget\`. In the normal flow HEAD is the tag
+   plus the winget commit; under `-Resume` `main` may have moved on, and a
+   package built from that would carry, under the tag's version, code no gate
+   judged. `-Resume` fetches the tag from origin for this check, and
+   `build-msix.ps1 -Stamp <stamp>` run by hand applies the same rule.
+   The identity comes from `msix\identity.json` - `SZA.FileDO`, reserved in Partner Center and a
    frozen anchor - or from `-StoreIdentityName`. There is no placeholder
    default: without a reserved identity the step refuses. The package carries
    **no Explorer command**: the packaged `File DO..` group of SP-0020
@@ -258,6 +269,21 @@ the tag:
   `yyMMddHHmm` date whose commit is on `origin/main`; anything else stops in
   "Resolve version", before an artifact exists. A dispatched run checks out
   `refs/tags/<input>`, never a branch of the same name.
+- **The tag is bound to a gate verdict** (AUD-68-F1). "Bind the tag to the
+  release gate" runs the tagged tree's own `exe_to_download\filedo.exe -?`
+  and fails unless it prints the tag's stamp, and requires
+  `exe_to_download\filedo_win.exe`'s FileVersion to equal the stamp's PE
+  version. Only `release.ps1` puts those there: its gate builds them with the
+  stamp and step 3 commits them as `Build v<stamp>`. A `v*` tag pushed by
+  hand on another commit stops here.
+- **The gate's go tests run before anything is built** (AUD-68-F1, owner
+  decision 2026-10-01). "Go test gate (as build.ps1)" runs, with the pinned
+  Go and `windows/amd64`, the same `go test` calls as `build.ps1 -Test`: the
+  `cmd\filedo-test` module compile check, `./fdsec/ -short`, `./vdisk/`, and
+  `./cmd/filedo/ -vet=off` with its version resource and
+  `FILEDO_FDSEC_REQUIRE_REPO_ROOT=1`. A failing test stops the job. Not
+  repeated there: the vet baseline, the placement check, the GUI selftest and
+  the PE-shape checks - those run only in the local gate.
 - **Latest only moves forward.** The release is marked Latest - what the
   site's download button serves - only when its stamp is greater than the
   current Latest's.
@@ -391,7 +417,18 @@ overwrite it anyway.
   re-dispatch the workflow from the Actions tab for the same tag, and
   continue with `.\release.ps1 -Resume -Version <stamp>`: it checks that
   `v<stamp>` is on origin, skips steps 1-4, waits for the release to carry
-  all six assets, and goes on with winget and the Store.
+  all six assets, and goes on with winget and the Store. A failure in "Bind
+  the tag to the release gate" or "Go test gate" is in the tagged sources
+  themselves, so a re-dispatch fails the same way: fix it and cut a new
+  stamp.
+- **Store step failed** - fix the cause, then `.\msix\build-msix.ps1 -Stamp
+  <stamp>` (or `.\release.ps1 -Resume -Version <stamp> -SkipWinget`). Both
+  build only from sources equal to `v<stamp>`: HEAD's tree must equal the
+  tag's outside `winget\` and nothing may be changed or untracked outside
+  `winget\`. When `main` has moved on since the tag, build from a worktree of
+  the tag instead: `git worktree add ..\FileDO-v<stamp> v<stamp>`, run
+  `.\msix\build-msix.ps1 -Stamp <stamp>` there, then
+  `git worktree remove ..\FileDO-v<stamp>`.
 - **A partial release exists** (the run failed mid-upload, so the release
   carries some of the six assets) - the re-dispatch is refused until that
   release is gone. Delete the **release, not the tag**, by hand
@@ -416,6 +453,6 @@ overwrite it anyway.
   $env:WINGET_CREATE_GITHUB_TOKEN = gh auth token
   wingetcreate submit winget
   Remove-Item Env:WINGET_CREATE_GITHUB_TOKEN
-  .\msix\build-msix.ps1 -Stamp $v        # step 8; the upload stays manual
+  .\msix\build-msix.ps1 -Stamp $v        # step 8, from sources equal to $tag; the upload stays manual
   ```
 - **Verify after merge** - `winget show SerZhyAle.FileDO`.

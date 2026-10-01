@@ -76,7 +76,8 @@ Public Module DiskStates
         If r.IsImage Then Return DiskRowState.Image
         If r.IsMounted Then
             If Not r.ServerAlive Then Return DiskRowState.ServerGone
-            If r.HasRam AndAlso r.RamDirty > 0 Then Return DiskRowState.Unsaved
+            ' A failing save (AUD-35-F5) is a warning even when nothing is waiting at this moment.
+            If r.HasRam AndAlso (r.RamDirty > 0 OrElse r.RamSaveError <> "") Then Return DiskRowState.Unsaved
             Return DiskRowState.Mounted
         End If
         Select Case r.FileState
@@ -94,7 +95,8 @@ Public Module DiskStates
         Select Case state
             Case DiskRowState.Busy : Return T(dict, BusyKey(busyVerb))
             Case DiskRowState.ServerGone : Return T(dict, "vd_mgr_state_server_gone")
-            Case DiskRowState.Unsaved : Return Localization.Format(T(dict, "vd_mgr_state_unsaved_fmt"), SizeText(r.RamDirty))
+            Case DiskRowState.Unsaved
+                Return Localization.Format(T(dict, If(r.RamSaveError <> "", "vd_mgr_state_save_failing_fmt", "vd_mgr_state_unsaved_fmt")), SizeText(r.RamDirty))
             Case DiskRowState.Mounted : Return T(dict, If(r.ReadOnly, "vd_mgr_state_mounted_ro", "vd_mgr_state_mounted"))
             Case DiskRowState.Image : Return T(dict, "vd_mgr_state_image")
             Case DiskRowState.Missing : Return T(dict, "vd_mgr_state_missing")

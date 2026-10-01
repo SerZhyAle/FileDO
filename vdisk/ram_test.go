@@ -23,19 +23,16 @@ func (b *transientSaveBacking) WriteAt(p []byte, off int64) (int, error) {
 	return b.memBacking.WriteAt(p, off)
 }
 
-// A data or final-header error keeps the snapshot in RAM. A later save must
-// replay it, including a newer write to the same cluster, and clear the
-// interrupted-save marker only after the replay completes.
+// A data-region error keeps the snapshot in RAM. A later save must replay it,
+// including a newer write to the same cluster, and clear the interrupted-save
+// marker only after the replay completes. A header write error is sticky:
+// see TestVD_RAMSaveHeaderWriteFailureIsSticky (AUD-35-F5).
 func TestVD_RAMSaveRetriesAfterTemporaryWriteFailure(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		failAt int
 	}{
-		{"start primary header", 1},
-		{"start backup header", 2},
 		{"data", 3},
-		{"final primary header", 4},
-		{"final backup header", 5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c, mb := newMemContainer(t, CreateOptions{LogicalSize: 1 << 20, ClusterShift: 16, Profile: ProfileRAM})
@@ -73,12 +70,66 @@ func TestVD_RAMSaveRetriesAfterTemporaryWriteFailure(t *testing.T) {
 	}
 }
 
+// AUD-35-F5, owner decision 2026-10-01: a ram save whose header write fails is
+// a fail-stop. Which header copy the file holds is uncertain then, so the
+// container writes nothing more - a later Save, a WriteAt and Close all return
+// the error, even with the backing healthy again - while a failed data write
+// in the same position is retried (the test above).
+func TestVD_RAMSaveHeaderWriteFailureIsSticky(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		failAt int
+	}{
+		{"start primary header", 1},
+		{"start backup header", 2},
+		{"final primary header", 4},
+		{"final backup header", 5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c, mb := newMemContainer(t, CreateOptions{LogicalSize: 1 << 20, ClusterShift: 16, Profile: ProfileRAM})
+			if _, err := c.WriteAt(pattern(11, 4096), 0); err != nil {
+				t.Fatal(err)
+			}
+			b := &transientSaveBacking{memBacking: mb, failAt: tc.failAt}
+			c.b = b
+			if err := c.Save(); !errors.Is(err, ErrIO) {
+				t.Fatalf("first save: %v, want I/O error", err)
+			}
+			if s, _ := c.RAMState(); s.DirtyBytes != 1<<16 || s.SaveError == "" {
+				t.Fatalf("after a failed header write: %+v, want the snapshot kept and the error reported", s)
+			}
+			// The backing is healthy from here on (failAt has passed).
+			if err := c.Save(); !errors.Is(err, ErrIO) {
+				t.Fatalf("save after a failed header write: %v, want the sticky I/O error", err)
+			}
+			if _, err := c.WriteAt(pattern(12, 4096), 0); !errors.Is(err, ErrIO) {
+				t.Fatalf("write after a failed header write: %v, want the sticky I/O error", err)
+			}
+			if s, _ := c.RAMState(); s.SaveError == "" {
+				t.Fatalf("the sticky failure is not reported: %+v", s)
+			}
+			if err := c.Close(); err == nil {
+				t.Fatal("Close after a failed header write reported success")
+			}
+			if r := mustOpenMem(t, mb, OpenRead); r.Info().Clean {
+				t.Fatal("a container whose header write failed reopened as closed cleanly")
+			}
+		})
+	}
+}
+
 func TestVD_SavePolicyRetriesAfterTemporaryWriteFailure(t *testing.T) {
 	oldTick, oldRetry := savePolicyTick, savePolicyRetry
 	savePolicyTick, savePolicyRetry = 5*time.Millisecond, 25*time.Millisecond
 	t.Cleanup(func() { savePolicyTick, savePolicyRetry = oldTick, oldRetry })
 
 	c, mb := newMemContainer(t, CreateOptions{LogicalSize: 1 << 20, ClusterShift: 16, Profile: ProfileRAM})
+	// The session's first write clears the clean marker (two header writes)
+	// before the failing backing goes in, so write 3 is the save's data write
+	// and not a header write, which would be a fail-stop (AUD-35-F5).
+	if _, err := c.WriteAt(pattern(13, 4096), 0); err != nil {
+		t.Fatal(err)
+	}
 	b := &transientSaveBacking{memBacking: mb, failAt: 3}
 	c.b = b
 	ctx, cancel := context.WithCancel(context.Background())
@@ -94,9 +145,6 @@ func TestVD_SavePolicyRetriesAfterTemporaryWriteFailure(t *testing.T) {
 		})
 		close(done)
 	}()
-	if _, err := c.WriteAt(pattern(13, 4096), 0); err != nil {
-		t.Fatal(err)
-	}
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		if s, _ := c.RAMState(); s.DirtyBytes == 0 && !s.LastGoodSave.IsZero() {

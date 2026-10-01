@@ -28,6 +28,33 @@ func vdRefuseMounted(path string, info vdisk.Info, verb string) error {
 	return nil
 }
 
+// vdOfflineWriterGate is what grow and compact say before they write to a
+// container that was not closed cleanly or whose ram save was cut (AUD-36-F1
+// clause 2, FDD-BEHAVIOUR 5 rule 1): they name it first and ask, the way mount
+// does; a batch never answers, so it refuses. The verb does not repair the
+// volume, and the container keeps its marker (AUD-36-F2).
+//
+// vdOfflineWriterRefusal is the words of that refusal the window looks for
+// (filedo_win_vb\DiskJobs.vb, DiskCommands.OfflineWriterRefusal): a batch run
+// is class 2 for many reasons, and this one gets a sentence of its own.
+const vdOfflineWriterRefusal = "was not closed cleanly and needs an answer"
+
+func vdOfflineWriterGate(path string, info vdisk.Info, verb string, batch bool) error {
+	switch {
+	case info.SaveInProgress:
+		fmt.Printf("WARNING: a save of this ram container was interrupted. It began %s; the last complete save was %s.\n", vdTime(info.SaveStarted), vdTime(info.LastGoodSave))
+		fmt.Printf("The volume may hold a mixture of the two states, and %s does not repair it. Copy the file first if its contents matter.\n", verb)
+	case !info.Clean:
+		fmt.Printf("Note: %s was not closed cleanly the last time; last good save %s. %s does not repair the volume, and the container stays marked not closed cleanly.\n", path, vdTime(info.LastGoodSave), verb)
+	default:
+		return nil
+	}
+	if !vdConfirm(fmt.Sprintf("Run %s anyway?", verb), batch) {
+		return vdUsagef("not changed: %s %s (run %s from a console, or mount it once so Windows checks the volume, unmount it, then try again)", path, vdOfflineWriterRefusal, verb)
+	}
+	return nil
+}
+
 // vdCredOnly reads the words of a verb whose only option is the credential.
 func vdCredOnly(verb string, words []string) (credArg, error) {
 	var cred credArg
@@ -141,6 +168,9 @@ func vdVerifyOne(path string, info vdisk.Info, cred fdsec.Credential, a credArg,
 	fmt.Printf("Protection:    %s\n", vdProtectionNote(info))
 	fmt.Printf("Header pair:   %s\n", headers)
 	fmt.Printf("Closed clean:  %s\n", clean)
+	if info.SaveInProgress {
+		fmt.Printf("Save:          %s\n", vdSaveInterruptedNote(info)) // AUD-36-F1 clause 3
+	}
 	fmt.Printf("Clusters:      %d allocated, %d read\n", r.AllocatedClusters, r.ClustersRead)
 	for _, n := range r.Notes {
 		fmt.Printf("Note:          %s\n", n)
@@ -279,7 +309,7 @@ func vdParseExport(args []string) (vdExportOpts, error) {
 
 // vdCompact returns unused space of the file to the file system:
 // filedo <file.fdd> compact [password].
-func vdCompact(args []string) error {
+func vdCompact(args []string, batch bool) error {
 	if len(args) < 1 {
 		return vdUsagef("compact needs a container: filedo <file.fdd> compact [password]")
 	}
@@ -294,6 +324,9 @@ func vdCompact(args []string) error {
 		return err
 	}
 	if err := vdRefuseMounted(path, info, "compact"); err != nil {
+		return err
+	}
+	if err := vdOfflineWriterGate(path, info, "compact", batch); err != nil {
 		return err
 	}
 	key, err := vdCredentialFor(info, cred)
@@ -337,7 +370,7 @@ func vdCompact(args []string) error {
 // vdGrow makes the volume larger: filedo <file.fdd> grow <size> [password].
 // The size is parseSize's, as for speed and fill, without speed's 10 GiB
 // bound (spec 5.4).
-func vdGrow(args []string) error {
+func vdGrow(args []string, batch bool) error {
 	if len(args) < 2 {
 		return vdUsagef("grow needs the new size: filedo <file.fdd> grow <size>, like 20G")
 	}
@@ -360,6 +393,9 @@ func vdGrow(args []string) error {
 	}
 	if newSize <= info.LogicalSize {
 		return vdUsagef("grow makes a volume larger: %s is not above its %s now", vdSize(newSize), vdSize(info.LogicalSize))
+	}
+	if err := vdOfflineWriterGate(path, info, "grow", batch); err != nil {
+		return err
 	}
 	key, err := vdCredentialFor(info, cred)
 	if err != nil {

@@ -286,6 +286,24 @@ Public Module DiskCommands
         Return Not String.IsNullOrEmpty(path) AndAlso path.Trim().EndsWith(".fdd", StringComparison.OrdinalIgnoreCase)
     End Function
 
+    ' The CLI's words for the vd verbs that lose data, and for the vd namespace
+    ' (cmd\filedo\vdisk_verbs.go: list_of_flags_for_vd, vdFormatWords, vdDestroyWords,
+    ' vdUnmountWords). The Command page asks its typed word for every one of them (T2-F2); the
+    ' self-test row command:vd-words-match-cli reads the copy of vdisk_verbs.go embedded in this
+    ' exe, so a new alias on the CLI side fails the gate until it is here too.
+    Public ReadOnly VdNamespaceWords As String() = {"vd", "vdisk"}
+    Public ReadOnly VdFormatWords As String() = {"format"}
+    Public ReadOnly VdDestroyWords As String() = {"destroy", "erase"}
+    Public ReadOnly VdUnmountWords As String() = {"unmount", "umount", "detach"}
+
+    Public Function IsOneOfWords(token As String, words As String()) As Boolean
+        If String.IsNullOrEmpty(token) Then Return False
+        For Each w In words
+            If String.Equals(token, w, StringComparison.OrdinalIgnoreCase) Then Return True
+        Next
+        Return False
+    End Function
+
     ' A file dialog's filter. The "|" it needs cannot live in a translation (GetDict splits on it),
     ' so the translated names are joined here.
     Public Function FileFilter(name As String, pattern As String, allName As String) As String
@@ -298,6 +316,20 @@ Public Module DiskCommands
             Case 2, 3, 4, 5, 6, 7, 8 : Return "vd_exit_" & code.ToString()
         End Select
         Return ""
+    End Function
+
+    ' The words of the console's refusal of grow and compact on a container that was not closed
+    ' cleanly or whose ram save was cut (cmd\filedo\vdisk_ops.go, vdOfflineWriterRefusal; a Go
+    ' test reads this file for it). The run is class 2 like any refused command, and this one
+    ' gets a sentence that says what to do (AUD-36-F1).
+    Public Const OfflineWriterRefusal As String = "was not closed cleanly and needs an answer"
+
+    ' The sentence key for a Disks run's exit class: the class's own, or - for grow and compact
+    ' refused as above - the one that names the cause.
+    Public Function ExitKeyFor(verb As String, code As Integer, output As String) As String
+        If code = 2 AndAlso (verb = "grow" OrElse verb = "compact") AndAlso
+           If(output, "").IndexOf(OfflineWriterRefusal, StringComparison.Ordinal) >= 0 Then Return "vd_exit_2_writer"
+        Return ExitKey(code)
     End Function
 
     ' The drive letter a mount printed ("Mounted at X:." / "Mounted read-only at X:.").

@@ -397,6 +397,6 @@ func PackTreeFile(dstPath string, t *Tree, cred Credential, p Params, opts ...St
 	return packToFile(dstPath, newStreamOpts(opts).replace, func(f io.Writer) (Info, error) {
 		return PackTree(f, t, cred, p, opts...)
 	}, func(rb io.ReadSeeker) error {
-		return verifyContainer(rb, cred)
+		return verifyContainer(rb, cred, newStreamOpts(opts).stop)
 	})
 }

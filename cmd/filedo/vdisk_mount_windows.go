@@ -183,7 +183,7 @@ func vdServeMain(args []string) error {
 	var lastStatus time.Time
 	writeStatus := func() {
 		s, _ := c.RAMState()
-		b, _ := json.Marshal(vdRAMStatus{At: time.Now(), DirtyBytes: s.DirtyBytes, Saving: s.Saving, LastGoodSave: s.LastGoodSave})
+		b, _ := json.Marshal(vdRAMStatus{At: time.Now(), DirtyBytes: s.DirtyBytes, Saving: s.Saving, LastGoodSave: s.LastGoodSave, SaveError: s.SaveError})
 		statedir.WriteFileAtomic(statusPath, b, 0o600)
 		lastStatus = time.Now()
 	}
@@ -304,7 +304,8 @@ type vdRequest struct {
 	FS         string `json:"fs,omitempty"`
 	// StateDir is the caller's state root. A process started through the
 	// consent prompt gets a fresh environment, so an overridden root would
-	// otherwise not reach it and its log lines would land elsewhere.
+	// otherwise not reach it and its log lines would land elsewhere. The
+	// elevated half uses it only when vdCheckStateDir accepts it (T3-F6).
 	StateDir string `json:"state_dir,omitempty"`
 }
 
@@ -324,33 +325,30 @@ type vdResult struct {
 }
 
 func vdElevatedMain(verb string, args []string) error {
-	if len(args) < 2 {
-		return vdUsagef("%s <request> <result>", verb)
+	if len(args) < 3 {
+		return vdUsagef("%s <request> <result> <request sha-256>", verb)
 	}
 	reqPath, resPath := args[0], args[1]
-	b, err := os.ReadFile(reqPath)
-	os.Remove(reqPath) // it may carry the CHAP secret
-	if err != nil {
-		return err
-	}
-	var req vdRequest
-	if err := json.Unmarshal(b, &req); err != nil {
-		return err
-	}
-	if req.StateDir != "" {
-		os.Setenv(statedir.EnvOverride, req.StateDir)
-	}
+	// The request is trusted only as the bytes the consent covers: their
+	// SHA-256 is on this command line (vdisk_elevated_trust_windows.go).
 	var res vdResult
-	switch verb {
-	case "_attach":
+	req, err := vdReadBoundRequest(reqPath, args[2])
+	if err == nil && req.StateDir != "" {
+		if err = vdCheckStateDir(req.StateDir); err == nil {
+			os.Setenv(statedir.EnvOverride, req.StateDir)
+		}
+	}
+	switch {
+	case err != nil:
+	case verb == "_attach":
 		res, err = vdAttach(req, resPath+".cancel")
-	case "_task":
+	case verb == "_task":
 		res, err = vdTaskStep(req)
-	case "_image":
+	case verb == "_image":
 		res, err = vdImageStep(req)
-	case "_flush":
+	case verb == "_flush":
 		res, err = vdFlushStep(req)
-	case "_format":
+	case verb == "_format":
 		res, err = vdFormatStep(req, resPath+".cancel")
 	default:
 		res, err = vdDetach(req)
@@ -479,6 +477,10 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 			}
 		}
 	}()
+	if !vdSerialSpelling.MatchString(req.Serial) {
+		// AUD-32-F8: usage, before the initiator or any disk is touched.
+		return res, vdUsagef("attach needs the container disk's serial (FDD and 20 hex digits); nothing was touched")
+	}
 	if err = step("checking the initiator service"); err != nil {
 		return res, err
 	}
@@ -539,6 +541,7 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 	if err := vdMayFormatOnMount(blank, req.FormatOnly, req.NeverHeld, disk); err != nil {
 		return res, err
 	}
+	formattedAs := ""
 	if blank || req.FormatOnly {
 		if req.ReadOnly {
 			return res, vdUsagef("the container has never been formatted; mount it once without ro")
@@ -550,7 +553,7 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 		if err = formatBlankDisk(disk, req.Serial, req.Label, fs, !blank, vdLogf); err != nil {
 			return res, err
 		}
-		res.Formatted = true
+		formattedAs = fs
 	}
 	if err = step("waiting for the volume"); err != nil {
 		return res, err
@@ -558,6 +561,13 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 	vol, err := waitVolumeOnDisk(disk, 60*time.Second)
 	if err != nil {
 		return res, err
+	}
+	if formattedAs != "" {
+		// Formatted only once the volume reads back as that file system (AUD-31-F2).
+		if err = vdConfirmFileSystem(vol, formattedAs); err != nil {
+			return res, err
+		}
+		res.Formatted = true
 	}
 	if res.Formatted {
 		if ierr := setNotIndexed(vol); ierr != nil {
@@ -611,6 +621,11 @@ func vdLogoutRetry(sid iscsiSessionID, attempts int) error {
 }
 
 func vdDetach(req vdRequest) (res vdResult, err error) {
+	// A serial that is not a container disk's names no disk to dismount: usage,
+	// before the initiator or any disk is touched (AUD-32-F8).
+	if !vdSerialSpelling.MatchString(req.Serial) {
+		return res, vdUsagef("detach needs the container disk's serial (FDD and 20 hex digits); nothing was touched")
+	}
 	if err = iscsiLoad(); err != nil {
 		return res, errTransport(err.Error())
 	}
@@ -619,6 +634,11 @@ func vdDetach(req vdRequest) (res vdResult, err error) {
 	}
 	disk, derr := findDiskBySerial(req.Serial, 3*time.Second)
 	if derr == nil {
+		// The serial alone is a claim: a disk is locked and dismounted only
+		// when it is on the iSCSI bus and FileDO's own (AUD-32-F8).
+		if cerr := vdCheckContainerDisk(disk, req.Serial); cerr != nil {
+			return res, fmt.Errorf("%v; nothing was dismounted", cerr)
+		}
 		vols, _ := volumesOnDisk(disk)
 		for _, v := range vols {
 			locked, lerr := lockAndDismount(v, req.Force)
@@ -734,8 +754,11 @@ func vdRunElevated(verb string, req vdRequest, batch bool, onStart func(cancel s
 	if err := os.WriteFile(reqPath, b, 0o600); err != nil {
 		return vdResult{}, err
 	}
+	// The digest goes on the command line the consent covers; the elevated
+	// half acts only on request bytes that hash to it (AUD-31-F4).
+	digest := vdRequestDigest(b)
 	if windows.GetCurrentProcessToken().IsElevated() {
-		if err := vdElevatedMain(verb, []string{reqPath, resPath}); err != nil {
+		if err := vdElevatedMain(verb, []string{reqPath, resPath, digest}); err != nil {
 			return vdResult{}, err
 		}
 	} else {
@@ -746,7 +769,7 @@ func vdRunElevated(verb string, req vdRequest, batch bool, onStart func(cancel s
 		if err != nil {
 			return vdResult{}, err
 		}
-		params := strings.Join([]string{"vd", verb, syscall.EscapeArg(reqPath), syscall.EscapeArg(resPath)}, " ")
+		params := strings.Join([]string{"vd", verb, syscall.EscapeArg(reqPath), syscall.EscapeArg(resPath), digest}, " ")
 		info := &shellExecuteInfo{
 			fMask:        seeMaskNoCloseProcess | seeMaskNoAsync | seeMaskFlagNoUI,
 			lpVerb:       windows.StringToUTF16Ptr("runas"),
@@ -1365,13 +1388,11 @@ func vdUnmountOne(row vdMountRow, force, nosave, batch bool) (alive bool, how st
 	case res.Unclean:
 		how = "unclean"
 	}
+	var stopErr error
 	if alive {
-		_, stopPath, _ := vdFiles(row.ContainerID)
-		if err = os.WriteFile(stopPath, []byte(how), 0o600); err != nil {
-			return alive, "", res, err
-		}
-		if !vdWaitExit(row.ServerPID, 120*time.Second) {
-			return alive, how, res, fmt.Errorf("the disk is detached, but the block server (process %d) did not exit within 120 s; the container may not be marked clean", row.ServerPID)
+		stopErr = vdStopServer(row, how)
+		if vdStopKeepsMountRow(stopErr) {
+			return alive, how, res, stopErr
 		}
 	}
 	if err = vdUpdateState(func(s *vdState) error {
@@ -1386,8 +1407,71 @@ func vdUnmountOne(row vdMountRow, force, nosave, batch bool) (alive bool, how st
 	}); err != nil {
 		return alive, how, res, err
 	}
+	if stopErr != nil {
+		vdLogf("unmount %s from %s: %s, server close failed: %v", row.Path, row.Letter, how, stopErr)
+		return alive, how, res, stopErr
+	}
 	vdLogf("unmount %s from %s: %s", row.Path, row.Letter, how)
 	return alive, how, res, nil
+}
+
+// vdServerRunningError is a stop the block server may not have taken: it did
+// not exit in time, so it may still hold the container.
+type vdServerRunningError struct{ error }
+
+func (e vdServerRunningError) Unwrap() error { return e.error }
+
+// vdStopKeepsMountRow says whether an unmount keeps the container's mount row
+// after the stop to its server. Only a server that may still run keeps it:
+// one that exited - with a failed final save or not - or was gone already
+// holds nothing, and a row left for it showed the disk as mounted and refused
+// the next mount as busy (SP-0064 R-F2). The error is returned either way.
+func vdStopKeepsMountRow(stopErr error) bool {
+	var running vdServerRunningError
+	return errors.As(stopErr, &running)
+}
+
+// vdStopServer hands a mounted container's block server its stop, waits for
+// it to exit and learns how its close went (T3-F1): the server exits with the
+// class of its final save or commit error, so a non-zero exit code is a close
+// that did not keep everything, and the unmount says so as a class-5 error
+// instead of "closed cleanly". The process handle is opened (and checked
+// against the row's start time) before the stop is written, so the exit code
+// cannot be lost to an early exit or a recycled pid.
+func vdStopServer(row vdMountRow, how string) error {
+	gone := fmt.Errorf("the disk is detached, but the block server (process %d) of %s was gone before its stop, so how it closed is not known and anything it had not saved is not saved; the next mount reports it (details in vdisk.log)", row.ServerPID, row.Path)
+	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.SYNCHRONIZE, false, uint32(row.ServerPID))
+	if err != nil {
+		return gone
+	}
+	defer windows.CloseHandle(h)
+	var c, e, k, u windows.Filetime
+	if windows.GetProcessTimes(h, &c, &e, &k, &u) != nil || c.Nanoseconds() != row.ServerStarted {
+		return gone
+	}
+	// What a ram server still held, read before it removes its status file.
+	lost := "writes not committed before the close"
+	if row.Profile == vdisk.ProfileRAM.String() {
+		lost = "everything written since the last good save"
+		if r, ok := vdReadRAMStatus(row.ContainerID); ok {
+			lost = fmt.Sprintf("everything written since the save of %s (%s at the last status)", vdTime(r.LastGoodSave), vdSize(r.DirtyBytes))
+		}
+	}
+	_, stopPath, _ := vdFiles(row.ContainerID)
+	if err := os.WriteFile(stopPath, []byte(how), 0o600); err != nil {
+		return err
+	}
+	if ev, _ := windows.WaitForSingleObject(h, uint32((120 * time.Second).Milliseconds())); ev != windows.WAIT_OBJECT_0 {
+		return vdServerRunningError{fmt.Errorf("the disk is detached, but the block server (process %d) did not exit within 120 s; the container may not be marked clean", row.ServerPID)}
+	}
+	var code uint32
+	if err := windows.GetExitCodeProcess(h, &code); err != nil {
+		return fmt.Errorf("the disk is detached, but how the block server of %s closed could not be read (%v); check vdisk.log before trusting the container", row.Path, err)
+	}
+	if code != 0 {
+		return fmt.Errorf("the disk is detached, but the block server's final save or commit of %s failed (exit code %d): %s is not saved in the file, and the container is not marked closed cleanly; the error is in vdisk.log", row.Path, int32(code), lost)
+	}
+	return nil
 }
 
 // vdMountedRow finds the mount a target names: a drive letter, or a container
@@ -1547,8 +1631,12 @@ func vdReadServeCredential() (fdsec.Credential, error) {
 // before its current map became empty. The fast profile also allocates every
 // cluster at creation. A backup header may be older than the data. Only a
 // never-mounted container with its primary header may be formatted implicitly.
+// A profile that allocates on demand (plain, vault, sealed) with any allocated
+// cluster holds data whatever its mount count says - a copy made before
+// copies carried the count (T3-F4) - so it is refused too.
 func vdNeverHeldData(info vdisk.Info) bool {
-	return !info.FromBackup && info.MountCount == 0
+	full := info.Profile == vdisk.ProfileFast || info.Profile == vdisk.ProfileRAM
+	return !info.FromBackup && info.MountCount == 0 && (full || info.AllocatedClusters == 0)
 }
 
 // vdMayFormatOnMount is the decision a mount takes when the disk it attached

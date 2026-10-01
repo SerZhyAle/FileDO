@@ -40,6 +40,9 @@ Public Class DiskRecord
     Public Property RamDirty As Long = 0
     Public Property RamSaving As Boolean = False
     Public Property RamLastGoodSave As DateTimeOffset? = Nothing
+    ' The last save's error while saving to the file is failing (AUD-35-F5), "" while saves succeed
+    ' and from a CLI that predates the field.
+    Public Property RamSaveError As String = ""
 
     Public ReadOnly Property IsImage As Boolean
         Get
@@ -274,6 +277,7 @@ Public Class DiskSnapshot
                 r.RamDirty = CLng(Num(ram, "dirty_bytes"))
                 r.RamSaving = Bool(ram, "saving")
                 r.RamLastGoodSave = Stamp(ram, "last_good_save")
+                r.RamSaveError = Str(ram, "save_error").Trim()
             End If
         End If
         Return r

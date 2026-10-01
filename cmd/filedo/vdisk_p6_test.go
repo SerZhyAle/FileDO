@@ -143,6 +143,32 @@ func TestVD_DestroyWipeForceRefusesUnreadableMountState(t *testing.T) {
 	}
 }
 
+// AUD-34-F7: a container held open by a process this state root does not list
+// (another account's mount, an unreadable state file) is not overwritten by
+// destroy wipe force. The holder shares read and write as a block server does;
+// the wipe opens with no sharing, so it is refused as busy, class 8, before one
+// byte is written.
+func TestVD_DestroyWipeForceRefusesAContainerAnotherProcessHolds(t *testing.T) {
+	dir := vdTestEnv(t)
+	path := filepath.Join(dir, "held.fdd")
+	vdTestContainer(t, path, 1<<20, vdisk.ProfilePlain, "")
+	before := vdTestHash(t, path)
+	held, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+	if _, err := vdTestRun(t, true, "destroy", path, "wipe", "force"); vdExitClass(err) != vdisk.ExitBusy {
+		t.Fatalf("a held container was not refused as busy: %v", err)
+	}
+	if got := vdTestHash(t, path); got != before {
+		t.Fatal("a refused wipe changed the container held open by another process")
+	}
+	if _, err := vdisk.Inspect(path); err != nil {
+		t.Fatalf("the held container no longer reads: %v", err)
+	}
+}
+
 // T6.7: every alias of spec 5.2 resolves to its verb, and no word of the verb
 // table collides with the generic chain's operation words or the sibling's
 // option words - both read from the code, not from a copy.

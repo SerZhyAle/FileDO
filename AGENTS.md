@@ -505,7 +505,8 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   build input (a glyph, an icon, a source, project or installer file) is on disk yet git-ignored, because
   `git add -A` and the clean-tree check skip such a file silently and the tagged run builds from a checkout
   that lacks it (SP-0049 AUD-18-F1). The
-  Go builds and tests all run as windows/amd64 - the binary that ships - and the `cmd/filedo` suite's own
+  Go builds and tests all run as windows/amd64 - the shipped target; CI rebuilds the published binaries from the
+  tag and re-runs the same `go test` gate before packaging - and the `cmd/filedo` suite's own
   exe is linked with the same version resource and manifest. Its last line is `build-gate <stamp>: PASS`,
   `FAIL`, or `NOT VERIFIED`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate
   could not verify** (a missing prerequisite - Go other than the pin, goversioninfo, MSBuild without
@@ -705,7 +706,7 @@ What this repository implements, with its pointer file:
 | `FDSEC-BEHAVIOUR` - everything a port of `secure` / `unsecure` must reproduce: the read-back proof before any disposition of the original, the three outcome classes, credential hygiene, the conformance checklist | 1.4 | `secure-container/` | [`docs/contracts/FDSEC-BEHAVIOUR.md`](docs/contracts/FDSEC-BEHAVIOUR.md) |
 | `FDD-FORMAT` - the on-disk format of a `.fdd` virtual-disk container, byte for byte; implemented by `vdisk/` (SP-0004), unreleased | 0.1 draft | `disk-container/` | [`docs/contracts/FDD-FORMAT.md`](docs/contracts/FDD-FORMAT.md) |
 | `FDD-BEHAVIOUR` - what a program that reads and writes `.fdd` containers must do: the read path with no mount, exit classes 2-8, the clean marker, obfuscated never called encrypted; implemented by `vdisk/` and `filedo vd` / `filedo <x.fdd>` (SP-0004), unreleased | 0.1 draft | `disk-container/` | [`docs/contracts/FDD-BEHAVIOUR.md`](docs/contracts/FDD-BEHAVIOUR.md) |
-| `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.10 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
+| `CLI-EVENT-STREAM` - the `--events` JSON Lines channel, the `--stop-file`, and the rule that a verdict comes from the `result` event and never from an exit code alone | 0.11 draft | `cli-event-stream/` | [`docs/contracts/CLI-EVENT-STREAM.md`](docs/contracts/CLI-EVENT-STREAM.md) |
 | `INSTALL-TRUST` - what a user reads in the thirty seconds after Windows warned them about an unsigned build | 1.0 | `install-trust/` | [`docs/contracts/INSTALL-TRUST.md`](docs/contracts/INSTALL-TRUST.md) |
 | `CHECK-VERDICT` - the exit code and final machine-readable line emitted by an automated check | 0.10 draft | `automated-checks/` | [`docs/contracts/CHECK-VERDICT.md`](docs/contracts/CHECK-VERDICT.md) |
 | `CHECK-BASELINE` - the shrink-only file carrying accepted check debt | 0.9 draft | `automated-checks/` | [`docs/contracts/CHECK-BASELINE.md`](docs/contracts/CHECK-BASELINE.md) |

@@ -32,7 +32,9 @@ jobs:
     # pipeline (see PR notes). Windows bills at 2x Linux on PRIVATE repos; on this
     # public repo standard runners are free, so this is hygiene, not a cost cut.
     runs-on: windows-latest
-    timeout-minutes: 30  # healthy run is <10 min; default ceiling is 360 (6h) per stuck job
+    # A healthy run is ~10 min plus the go test gate (AUD-68-F1); the default ceiling is 360 (6h)
+    # per stuck job.
+    timeout-minutes: 45
     permissions:
       contents: read
     env:
@@ -125,6 +127,31 @@ jobs:
           "installerVersion=$installerVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Host "Tag: $tag  Version: $version  (PE $vMaj.$vMin.$vPat.$vBld, installer $installerVersion)"
 
+      # AUD-68-F1 (1): the tag is bound to a gate verdict. release.ps1 tags only after
+      # `build.ps1 -Test -Version <stamp>` passed, and the commit it tags carries the gate's
+      # own exe_to_download\ - built with that stamp. So the tagged tree's filedo.exe must
+      # print the tag's stamp and its filedo_win.exe must carry the stamp's PE version. A tag
+      # pushed by hand on a commit no release gate stamped (a manual recovery, `git push
+      # --tags`) carries another stamp there and stops here, before anything is built.
+      - name: Bind the tag to the release gate
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          PE_VERSION: ${{ steps.ver.outputs.peVersion }}
+        run: |
+          $cli = Join-Path $env:GITHUB_WORKSPACE 'exe_to_download\filedo.exe'
+          $gui = Join-Path $env:GITHUB_WORKSPACE 'exe_to_download\filedo_win.exe'
+          foreach ($p in $cli, $gui) { if (-not (Test-Path $p)) { throw "$p is missing from the tagged tree - no release gate committed this stamp." } }
+          $text = & $cli '-?' 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $text -notmatch [regex]::Escape($env:VERSION)) {
+            throw "the tagged exe_to_download\filedo.exe does not print $env:VERSION - release.ps1's gate did not build and commit this stamp at this commit. Nothing is built or published."
+          }
+          $guiVer = (Get-Item $gui).VersionInfo.FileVersion
+          if ($guiVer -ne $env:PE_VERSION) {
+            throw "the tagged exe_to_download\filedo_win.exe is $guiVer, not $env:PE_VERSION - release.ps1's gate did not build and commit this stamp at this commit. Nothing is built or published."
+          }
+          Write-Host "tag bound to the release gate: exe_to_download carries $env:VERSION (GUI $guiVer)"
+
       - name: Check the toolchain pin
         shell: pwsh
         run: |
@@ -140,6 +167,54 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "goversioninfo install failed" }
           # Add Go bin to PATH for subsequent steps
           "$(go env GOPATH)\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      # AUD-68-F1 (owner decision 2026-10-01): the go tests of build.ps1's gate run here, on
+      # the tagged source, with this toolchain and windows/amd64, BEFORE anything is built,
+      # packaged or published; a failing test stops the job. Same packages and flags as
+      # build.ps1 step 2-3: the cmd\filedo-test module compile check, fdsec -short, vdisk, and
+      # cmd\filedo -vet=off with its version resource and FILEDO_FDSEC_REQUIRE_REPO_ROOT=1.
+      # Not mirrored: build.ps1's vet baseline, placement check and GUI selftest.
+      - name: Go test gate (as build.ps1)
+        shell: pwsh
+        env:
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+          FILEDO_FDSEC_REQUIRE_REPO_ROOT: '1'
+          VMAJ: ${{ steps.ver.outputs.vMaj }}
+          VMIN: ${{ steps.ver.outputs.vMin }}
+          VPAT: ${{ steps.ver.outputs.vPat }}
+          VBLD: ${{ steps.ver.outputs.vBld }}
+          PE_VERSION: ${{ steps.ver.outputs.peVersion }}
+        run: |
+          Push-Location cmd\filedo-test
+          try {
+            go test ./...
+            if ($LASTEXITCODE -ne 0) { throw "go test ./... in cmd\filedo-test failed - nothing is built or published" }
+          } finally { Pop-Location }
+          go test ./fdsec/ -count=1 -short
+          if ($LASTEXITCODE -ne 0) { throw "go test ./fdsec/ failed - nothing is built or published" }
+          go test ./vdisk/ -count=1
+          if ($LASTEXITCODE -ne 0) { throw "go test ./vdisk/ failed - nothing is built or published" }
+          # The suite builds its own filedo.exe from this package; the version resource gives it
+          # the app.manifest the shipped exe carries (build.ps1 New-VersionResource).
+          Push-Location cmd\filedo
+          try {
+            goversioninfo -64 `
+              -ver-major $env:VMAJ -ver-minor $env:VMIN -ver-patch $env:VPAT -ver-build $env:VBLD `
+              -product-ver-major $env:VMAJ -product-ver-minor $env:VMIN `
+              -product-ver-patch $env:VPAT -product-ver-build $env:VBLD `
+              -file-version $env:PE_VERSION -product-version $env:PE_VERSION `
+              -o resource.syso versioninfo.json
+            if ($LASTEXITCODE -ne 0) { throw "goversioninfo failed in cmd\filedo" }
+          } finally { Pop-Location }
+          try {
+            go test ./cmd/filedo/ -count=1 -vet=off
+            if ($LASTEXITCODE -ne 0) { throw "go test ./cmd/filedo/ failed - nothing is built or published" }
+          } finally {
+            Remove-Item cmd\filedo\resource.syso -Force -ErrorAction SilentlyContinue
+          }
+          Write-Host "go test gate: PASS (cmd\filedo-test compile, fdsec -short, vdisk, cmd\filedo)"
 
       - name: Build binaries
         shell: pwsh

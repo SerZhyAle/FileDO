@@ -95,3 +95,10 @@ vd	status	json	=>	vd	status	json
 --events	e.jsonl	--no-history	vd	status	JSON	=>	--events	e.jsonl	--no-history	vd	status	JSON
 vd	status	json	hunter2	=>	vd	status	json	***
 vd	list	json	=>	vd	list	***
+# T1-F1 (SP-0064): a credential-shaped p: token is redacted on every line, whatever the verb and its position.
+a.txt	secrue	p:x	=>	a.txt	secrue	p:***
+a.txt	p:x	secure	=>	a.txt	p:***	secure
+fdsec	verify	p:x	c.fd-sec	=>	fdsec	verify	p:***	***
+x	info	p:x	=>	x	info	p:***
+# AUD-52-F1 (SP-0064): a verb-first container slot that names nothing and is followed by another token may be the password.
+fdsec	verify	hunter2	c.fd-sec	=>	fdsec	verify	***	***

@@ -320,7 +320,11 @@ func TestVD_TaskStepAcceptsDataNotInstructions(t *testing.T) {
 			t.Errorf("the step accepted deleting the task %q", name)
 		}
 	}
-	if _, err := vdTaskStep(vdRequest{TaskName: vdTaskName("ghost"), TaskSID: sid}); err == nil || !strings.Contains(err.Error(), "not a registered container") {
+	own, err := vdCurrentUserSID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := vdTaskStep(vdRequest{TaskName: vdTaskName("ghost"), TaskSID: own}); err == nil || !strings.Contains(err.Error(), "not a registered container") {
 		t.Errorf("a task for a container nobody registered: %v", err)
 	}
 	if _, err := vdBuildTaskXML("work", "not-a-sid"); err == nil {
@@ -333,8 +337,14 @@ func TestVD_TaskStepAcceptsDataNotInstructions(t *testing.T) {
 func TestVD_MountFormatsOnlyAContainerThatNeverHeldData(t *testing.T) {
 	fresh := vdisk.Info{AllocatedClusters: 0}
 	used := vdisk.Info{AllocatedClusters: 12, MountCount: 2}
-	fastFresh := vdisk.Info{AllocatedClusters: 4096} // the fast profile allocates every cluster when it is created
-	fastUsed := vdisk.Info{AllocatedClusters: 4096, MountCount: 1}
+	fastFresh := vdisk.Info{Profile: vdisk.ProfileFast, AllocatedClusters: 4096} // the fast profile allocates every cluster when it is created
+	fastUsed := vdisk.Info{Profile: vdisk.ProfileFast, AllocatedClusters: 4096, MountCount: 1}
+	ramFresh := vdisk.Info{Profile: vdisk.ProfileRAM, AllocatedClusters: 4096}
+	// T3-F4: a copy made before copies carried the mount count - a used
+	// volume's clusters with mount_count 0 - on a profile that allocates on
+	// demand. The requirement's "allocated clusters, no table: refused".
+	oldClone := vdisk.Info{Profile: vdisk.ProfilePlain, AllocatedClusters: 12}
+	oldVaultClone := vdisk.Info{Profile: vdisk.ProfileVault, AllocatedClusters: 1}
 	fromBackup := vdisk.Info{AllocatedClusters: 0, FromBackup: true}
 	for name, c := range map[string]struct {
 		blank, formatOnly bool
@@ -343,6 +353,9 @@ func TestVD_MountFormatsOnlyAContainerThatNeverHeldData(t *testing.T) {
 	}{
 		"fresh and blank formats":              {true, false, fresh, false},
 		"fresh fast profile formats":           {true, false, fastFresh, false},
+		"fresh ram profile formats":            {true, false, ramFresh, false},
+		"allocated plain, count 0 is refused":  {true, false, oldClone, true},
+		"allocated vault, count 0 is refused":  {true, false, oldVaultClone, true},
 		"mounted fast profile and blank":       {true, false, fastUsed, true},
 		"used and blank is refused":            {true, false, used, true},
 		"empty map after a mount is refused":   {true, false, vdisk.Info{AllocatedClusters: 0, MountCount: 1}, true},

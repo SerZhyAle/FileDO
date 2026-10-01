@@ -21,7 +21,8 @@
 #    5. wait       - poll until the GitHub Release + all six assets exist
 #    6. winget     - sync winget/*.yaml (version, URL, SHA256, date), CHECK them, commit, push
 #    7. submit     - wingetcreate submit -> PR to microsoft/winget-pkgs
-#    8. store      - build the MSIX for Microsoft Store (upload stays manual)
+#    8. store      - build the MSIX for Microsoft Store (upload stays manual), only from
+#                    sources equal to the tag (HEAD = tag outside winget\, tree clean)
 #    9. checklist  - print what is done, what failed and why, and the manual step left
 #
 #  Usage (from the repo root):
@@ -164,6 +165,23 @@ function Get-DirtyOutside([string[]]$allowed) {
     })
 }
 
+# T3-F2: $null when the sources here equal the tag's - HEAD's tree equals the tag's outside
+# winget\ (the one folder a release commits after the tag) and nothing is changed or untracked
+# outside winget\ - otherwise the reason. Never exits: the Store step records it and carries on
+# (REL-03). msix\build-msix.ps1 holds the same rule for a hand run with -Stamp.
+function Get-TagSourceDrift([string]$tagName) {
+    $null = git rev-parse -q --verify "refs/tags/$tagName^{commit}" 2>$null
+    if ($LASTEXITCODE -ne 0) { return "$tagName is not a local tag (git fetch origin refs/tags/${tagName}:refs/tags/${tagName})" }
+    git diff --quiet $tagName HEAD -- . ':!winget'
+    $diffCode = $LASTEXITCODE
+    if ($diffCode -eq 1) { return "HEAD's sources differ from $tagName outside winget\ (git diff --stat $tagName HEAD -- . ':!winget') - the Store package must be built from the tagged sources" }
+    if ($diffCode -ne 0) { return "could not compare HEAD with $tagName (git diff exit $diffCode)" }
+    $status = @(git status --porcelain --untracked-files=all -- . ':!winget')
+    if ($LASTEXITCODE -ne 0) { return "git status failed (exit $LASTEXITCODE)" }
+    if ($status.Count) { return "the working tree has $($status.Count) change(s) outside winget\ - the Store package must be built from the tagged sources" }
+    return $null
+}
+
 # ---------------------------------------------------------------------------
 # 1. Preflight
 # ---------------------------------------------------------------------------
@@ -220,6 +238,9 @@ try {
         # release never started and there is nothing to resume.
         $remoteTag = Invoke-Checked 'git ls-remote' { git ls-remote --tags origin "refs/tags/$tag" } 2
         if (-not $remoteTag) { Fail "$tag is not on origin, so there is no release to resume. Run without -Resume." }
+        # T3-F2: step 8 compares HEAD's sources with the tag, so the tag must be here, and be
+        # origin's. Without --force a local tag that points elsewhere makes this fail.
+        Invoke-Checked "git fetch $tag" { git fetch --quiet origin "refs/tags/${tag}:refs/tags/${tag}" } 2 | Out-Null
         Write-Host "  resume  : $tag is on origin - steps 2-4 are skipped." -ForegroundColor Yellow
     } else {
         Invoke-Checked 'git fetch --tags' { git fetch --tags --quiet } 2 | Out-Null
@@ -548,13 +569,23 @@ try {
         if ($StoreIdentityName)        { $msixArgs['IdentityName'] = $StoreIdentityName }
         if ($StorePublisher)           { $msixArgs['Publisher'] = $StorePublisher }
         if ($StorePublisherDisplayName){ $msixArgs['PublisherDisplayName'] = $StorePublisherDisplayName }
-        try {
-            & "$root\msix\build-msix.ps1" @msixArgs
-            if ($LASTEXITCODE -ne 0) { throw "build-msix.ps1 exited $LASTEXITCODE" }
-        } catch {
-            $storeFailure = "$($_.Exception.Message)".Trim()
-            Write-Host "  MSIX build did NOT produce a Store package:" -ForegroundColor Yellow
-            Write-Host "    $storeFailure" -ForegroundColor Yellow
+        # T3-F2 / AUD-68-F1 (owner decision 2026-10-01): the Store package stamped $Version is
+        # compiled only from sources equal to $tag. In the normal flow HEAD is the tag plus the
+        # winget commit; under -Resume main may have moved on since, and a package built from
+        # that would carry code no gate judged and differ from GitHub's $Version. build-msix.ps1
+        # repeats this check for a hand run with -Stamp.
+        $storeFailure = Get-TagSourceDrift $tag
+        if ($storeFailure) {
+            Write-Host "  MSIX NOT built: $storeFailure" -ForegroundColor Yellow
+        } else {
+            try {
+                & "$root\msix\build-msix.ps1" @msixArgs
+                if ($LASTEXITCODE -ne 0) { throw "build-msix.ps1 exited $LASTEXITCODE" }
+            } catch {
+                $storeFailure = "$($_.Exception.Message)".Trim()
+                Write-Host "  MSIX build did NOT produce a Store package:" -ForegroundColor Yellow
+                Write-Host "    $storeFailure" -ForegroundColor Yellow
+            }
         }
     } else {
         Step "8/9 Store MSIX"; Write-Host "  skipped (-SkipStore)."
@@ -576,7 +607,9 @@ try {
         Write-Host "  or by hand - RELEASE.md, 'If something fails mid-release'." -ForegroundColor Yellow
     }
     if ($storeFailure) {
-        Write-Host "  RECOVER Store: fix the cause, then .\msix\build-msix.ps1 -Stamp $Version" -ForegroundColor Yellow
+        Write-Host "  RECOVER Store: fix the cause, then .\msix\build-msix.ps1 -Stamp $Version from sources equal to $tag" -ForegroundColor Yellow
+        Write-Host "    (it refuses unless: git diff --quiet $tag HEAD -- . ':!winget' and no change outside winget\;" -ForegroundColor Yellow
+        Write-Host "     if main has moved on: git worktree add ..\FileDO-$tag $tag, and run it there)" -ForegroundColor Yellow
     }
     if (-not $SkipStore -and -not $storeFailure) {
         Write-Host "  MANUAL (no CLI exists), in this order - msix\README.md sections 4-6:" -ForegroundColor Yellow

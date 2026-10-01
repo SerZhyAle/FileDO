@@ -27,7 +27,8 @@ var savePolicyRetry = 5 * time.Second
 // any profile but ram. Writes are never throttled: under sustained pressure a
 // new save starts as soon as the last one ends, and when the waiting amount
 // stays above twice the limit, logf says so once a minute. A failed save is
-// logged and retried after a delay while the dirty data stays in RAM.
+// retried after a delay while the dirty data stays in RAM, and logged once a
+// minute (AUD-35-F5).
 // The final save is the session end's (Close), not this loop's.
 func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(string, ...interface{})) {
 	if _, ok := c.RAMState(); !ok {
@@ -44,7 +45,7 @@ func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(st
 	}
 	last := time.Now()
 	var warned time.Time
-	var retryAt time.Time
+	var retryAt, failWarned time.Time
 	t := time.NewTicker(savePolicyTick)
 	defer t.Stop()
 	for {
@@ -71,11 +72,15 @@ func RunSavePolicy(ctx context.Context, c *Container, p SavePolicy, logf func(st
 		}
 		began := time.Now()
 		if err := c.Save(); err != nil {
-			logf("ram: save failed; retrying in %s: %v", savePolicyRetry, err)
+			// Retried every savePolicyRetry, logged once a minute (AUD-35-F5).
+			if time.Since(failWarned) >= time.Minute {
+				failWarned = time.Now()
+				logf("ram: save failed; retrying in %s: %v", savePolicyRetry, err)
+			}
 			retryAt = time.Now().Add(savePolicyRetry)
 			continue
 		}
-		retryAt = time.Time{}
+		retryAt, failWarned = time.Time{}, time.Time{}
 		last = began
 		logf("ram: saved %d MB in %d ms", s.DirtyBytes>>20, time.Since(began).Milliseconds())
 	}

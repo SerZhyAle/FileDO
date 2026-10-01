@@ -144,6 +144,7 @@ func containerExitCode() int {
 // commands inside one process, and one process is one stream whose `run` comes
 // first and whose `result` comes last (rule 9).
 func beginRun(kind runKind, command, target string, args []string) {
+	rememberCredentialValues(args)
 	currentRun.mu.Lock()
 	defer currentRun.mu.Unlock()
 
@@ -188,7 +189,7 @@ func runFailure(err error) {
 		return
 	}
 	if errors.Is(err, errDefect) {
-		runDefect("defect", err.Error(), nil)
+		runDefect("defect", redactCredentialText(err.Error()), nil)
 		return
 	}
 	ensureRunForFinding()
@@ -225,9 +226,9 @@ func ensureRunForFinding() {
 func eventSafeErrorMessage(err error) string {
 	var screened *fdsecEventSafeError
 	if errors.As(err, &screened) {
-		return screened.eventMessage
+		return redactCredentialText(screened.eventMessage)
 	}
-	return err.Error()
+	return redactCredentialText(err.Error())
 }
 
 // runNumber adds one measurement to `result.numbers`, whose keys belong to the
@@ -265,21 +266,24 @@ func (ro *runOutcome) verdict() Verdict {
 		}
 		return verdictForFdsecExit(fdsecExitCode)
 	}
-	// A stop is not a failure and it is not a result either: the run ended
-	// before it could judge, so it says so (rule 15).
-	if globalInterruptHandler != nil && globalInterruptHandler.IsInterrupted() {
-		return VerdictStopped
-	}
-	// A proven defect outranks "could not verify": a batch that found a fake
-	// on one line and could not reach a share on the next still found the
-	// fake, and losing that answer is the failure mode rule 11 exists to
-	// prevent (CLI-06).
+	// A proven defect outranks every other ending. It outranks "could not
+	// verify": a batch that found a fake on one line and could not reach a
+	// share on the next still found the fake, and losing that answer is the
+	// failure mode rule 11 exists to prevent (CLI-06). And it outranks a stop:
+	// a check that found damaged files and was then stopped still found them
+	// (CLI-EVENT-STREAM 0.11 rule 15, AUD-66-F1).
 	// In a batch of several lines a container line's "no" (wrong credential,
 	// tampering, damage) is a Failed answer like a defect; its other classes
 	// already counted as not proven through runFailure.
-	switch {
-	case ro.defects > 0, ro.containerNo:
+	if ro.hasAnswerNo() {
 		return VerdictFailed
+	}
+	// A stop with nothing proven is not a failure and it is not a result
+	// either: the run ended before it could judge, so it says so (rule 15).
+	if globalInterruptHandler != nil && globalInterruptHandler.IsInterrupted() {
+		return VerdictStopped
+	}
+	switch {
 	case ro.notProven:
 		return VerdictNotProven
 	case ro.kind == runJudges:
@@ -287,6 +291,14 @@ func (ro *runOutcome) verdict() Verdict {
 	default:
 		return VerdictDone
 	}
+}
+
+// hasAnswerNo reports whether the run has already proved a "no" about its
+// target - a recorded defect, or a container line's "no" in a batch. That
+// answer survives any later ending, a stop and a forced exit included. The
+// caller holds ro.mu.
+func (ro *runOutcome) hasAnswerNo() bool {
+	return ro.defects > 0 || ro.containerNo
 }
 
 // verdictForFdsecExit reads a container verb's exit class as a verdict. Wrong
@@ -368,7 +380,10 @@ func finishRun() {
 
 // finishForcedRun is the second-Ctrl+C path.  os.Exit skips normal defers, so
 // it cannot rely on finishRun to speak the channel vocabulary.  The outcome is
-// not proven: the operation was abandoned before its own finishing code ran.
+// not proven: the operation was abandoned before its own finishing code ran -
+// unless the run had already proved a defect, which a forced exit does not
+// erase any more than a graceful stop does: Failed, exit 1 (CLI-EVENT-STREAM
+// 0.11 rule 15, AUD-66-F1).
 func finishForcedRun() int {
 	ensureRunForFinding()
 
@@ -378,14 +393,18 @@ func finishForcedRun() int {
 		return 2
 	}
 	currentRun.finished = true
+	v, code := VerdictNotProven, 2
+	if currentRun.hasAnswerNo() {
+		v, code = VerdictFailed, 1
+	}
 	numbers := currentRun.numbers
 	filesLeft := currentRun.filesLeft
 	reports := currentRun.reports
 	currentRun.mu.Unlock()
 
-	EmitResultEvent(string(VerdictNotProven), numbers, filesLeft, reports)
-	setExitCode(2)
-	return 2
+	EmitResultEvent(string(v), numbers, filesLeft, reports)
+	setExitCode(code)
+	return code
 }
 
 // runStopRequested reports whether the stop channel or a Ctrl+C has asked this

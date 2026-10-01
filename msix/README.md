@@ -70,6 +70,10 @@ or `identity.json`) the script refuses, and it also refuses any Publisher that i
 .\msix\build-msix.ps1 -Stamp 2609211530                # pin to a release tag's stamp (release.ps1 does this)
 ```
 
+A Store build with `-Stamp X` refuses unless the sources equal tag `vX`
+(`git diff --quiet vX HEAD -- . ':!winget'` and no change or untracked file outside `winget\`). If main has
+moved on, build from a `git worktree add` of the tag.
+
 Output `out\FileDO_<ver>.msix` (unsigned) and a `.sha256`. What it does and asserts:
 
 - **Version.** The stamp `yyMMddHHmm` (the tag without the `v`) is parsed as a real date and remapped

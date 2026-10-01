@@ -49,3 +49,25 @@ func wipeLinkRefusal(path string) (*hardLinkedError, error) {
 	}
 	return nil, nil
 }
+
+// openForWipe opens the file an overwrite in place is about to write with no
+// sharing at all, so the wipe never runs over a file another program holds
+// open. A mounted disk container is held by its block server, which shares it
+// for reading and writing: a wipe that shared it too overwrote the live disk
+// and failed only at the remove (SP-0064 T2-F1). A file in use is refused
+// with nothing written.
+func openForWipe(path string) (*os.File, error) {
+	p, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return nil, err
+	}
+	h, err := windows.CreateFile(p, windows.GENERIC_READ|windows.GENERIC_WRITE, 0, nil,
+		windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
+	if err == windows.ERROR_SHARING_VIOLATION || err == windows.ERROR_LOCK_VIOLATION {
+		return nil, fmt.Errorf("%s is open in another program (a mounted disk container is), nothing was overwritten - close it or unmount it first: %w", path, err)
+	}
+	if err != nil {
+		return nil, &os.PathError{Op: "open", Path: path, Err: err}
+	}
+	return os.NewFile(uintptr(h), path), nil
+}

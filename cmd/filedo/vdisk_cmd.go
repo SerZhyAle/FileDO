@@ -253,9 +253,9 @@ func runVd(args []string, hl *HistoryLogger, batch bool) error {
 	case "save":
 		return vdSave(rest, batch)
 	case "compact":
-		return vdCompact(rest)
+		return vdCompact(rest, batch)
 	case "grow":
-		return vdGrow(rest)
+		return vdGrow(rest, batch)
 	case "format":
 		return vdFormat(rest, batch)
 	case "seal":
@@ -593,6 +593,17 @@ func vdInfoOne(path string) error {
 	if err != nil {
 		return err
 	}
+	vdInfoPrint(path, i)
+	return nil
+}
+
+// vdSaveInterruptedNote is the line info and verify print for a ram container
+// whose save was cut (FDD-BEHAVIOUR 5 table, row 0/1; AUD-36-F1 clause 3).
+func vdSaveInterruptedNote(i vdisk.Info) string {
+	return fmt.Sprintf("a save was interrupted - it began %s; the last complete save was %s. The volume may hold a mixture of the two states.", vdTime(i.SaveStarted), vdTime(i.LastGoodSave))
+}
+
+func vdInfoPrint(path string, i vdisk.Info) {
 	args := []string{path}
 	clean := "yes"
 	if !i.Clean {
@@ -605,13 +616,15 @@ func vdInfoOne(path string) error {
 	fmt.Printf("Volume size:   %s\n", vdSize(i.LogicalSize))
 	fmt.Printf("File size:     %d bytes, %d of %d clusters allocated\n", i.FileSize, i.AllocatedClusters, i.ClusterCount)
 	fmt.Printf("Closed clean:  %s\n", clean)
+	if i.SaveInProgress {
+		fmt.Printf("Save:          %s\n", vdSaveInterruptedNote(i)) // AUD-36-F1 clause 3
+	}
 	fmt.Printf("Last good save: %s\n", vdTime(i.LastGoodSave))
 	fmt.Printf("Created:       %s, mounted %d times\n", vdTime(i.Created), i.MountCount)
 	fmt.Printf("Container id:  %s\n", i.ContainerID)
 	if m, ok := vdFindMount(i.ContainerID); ok {
 		fmt.Printf("Mounted now:   %s\n", m.Letter)
 	}
-	return nil
 }
 
 // ---------------------------------------------------------------- state and log
@@ -647,6 +660,19 @@ type vdImageRow struct {
 	Letter    string    `json:"letter"`
 	Path      string    `json:"path"`
 	MountedAt time.Time `json:"mounted_at"`
+}
+
+// vdLetteredImages are the image rows that name a drive letter (X:). A build
+// before AUD-34-F2 could record a failed mount's error text as the letter;
+// vd status and the snapshot show no such row.
+func vdLetteredImages(rows []vdImageRow) []vdImageRow {
+	var out []vdImageRow
+	for _, im := range rows {
+		if len(im.Letter) == 2 && im.Letter[1] == ':' && ('A' <= im.Letter[0]&^0x20 && im.Letter[0]&^0x20 <= 'Z') {
+			out = append(out, im)
+		}
+	}
+	return out
 }
 
 const vdStateFile = "vdisk-state.json"
@@ -761,6 +787,9 @@ type vdRAMStatus struct {
 	DirtyBytes   int64     `json:"dirty_bytes"`
 	Saving       bool      `json:"saving"`
 	LastGoodSave time.Time `json:"last_good_save"`
+	// SaveError: the last save failed (AUD-35-F5); a failed data write is
+	// retried, a failed header write is a fail-stop. Absent while saves succeed.
+	SaveError string `json:"save_error,omitempty"`
 }
 
 type vdSaved struct {
@@ -805,6 +834,7 @@ func vdStatus() error {
 	if err != nil {
 		return err
 	}
+	s.Images = vdLetteredImages(s.Images)
 	for _, im := range s.Images {
 		fmt.Printf("%s  %s  (image, mounted %s)\n", im.Letter, im.Path, vdTime(im.MountedAt))
 	}
@@ -833,6 +863,12 @@ func vdStatus() error {
 				saving = ", a save is running"
 			}
 			fmt.Printf("    ram: %s not saved yet%s; last complete save %s\n", vdSize(r.DirtyBytes), saving, vdTime(r.LastGoodSave))
+			if r.SaveError != "" {
+				// AUD-35-F5: the loss is visible before the unmount, not after.
+				// A failed data write is retried every few seconds; a failed header
+				// write is not (it is a fail-stop), so the line promises no retry.
+				fmt.Printf("    ram: SAVING IS FAILING: %s. What is not saved yet is lost if the disk is unmounted or the computer stops before a save succeeds.\n", r.SaveError)
+			}
 		}
 	}
 	return nil

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -136,4 +137,81 @@ func TestFdsecCredentialBeforeContainerRefused(t *testing.T) {
 		t.Errorf("a p:\\ path was refused as a credential: exit %d\n%s", code, out)
 	}
 	assertNoSecretOnDisk(t, dir, secret)
+}
+
+// TestCredentialInAnErrorIsRedacted is SP-0064 T1-F2: a credential-shaped
+// `p:` token that lands in a path or operation slot is quoted back by the
+// error it causes. The arguments were redacted, the error text was not, so
+// the password reached the finding event and history.json's error field. (The
+// console keeps what the user typed; the GUI screens its report itself.)
+func TestCredentialInAnErrorIsRedacted(t *testing.T) {
+	dir, _ := workdir(t)
+	const secret = "hunter2-in-an-error"
+	p := "p:" + secret
+	for i, args := range [][]string{
+		{p},
+		{p, "secure"},
+		{"plain.txt", p, "secure"},
+		{"copy", p, filepath.Join(dir, "dst3")},
+		{"check", p},
+		{"compare", dir, p},
+	} {
+		events := filepath.Join(dir, fmt.Sprintf("ev-%d.jsonl", i))
+		if out, code := run(t, dir, append(args, "--events", events)...); code == 0 {
+			t.Errorf("filedo %q exited 0\n%s", args, out)
+		}
+	}
+	assertNoSecretOnDisk(t, dir, secret)
+}
+
+// TestFdsecBarePasswordBeforeContainerRefused is SP-0064 AUD-52-F1: the bare
+// form of the same slip, `fdsec verify <password> <container>`. The word in
+// the container slot names nothing on disk, is not written like a path, and
+// a token follows it, so it is unrecognised: refused like a `p:` token there,
+// quoted nowhere, and `***` in every record (FDSEC-BEHAVIOUR section 8.2).
+func TestFdsecBarePasswordBeforeContainerRefused(t *testing.T) {
+	dir, _ := workdir(t)
+	const secret = "hunter2bare"
+	if out, code := run(t, dir, "plain.txt", "secure", "p:"+secret); code != 0 {
+		t.Fatalf("setup secure exited %d\n%s", code, out)
+	}
+	for _, sub := range []string{"verify", "info"} {
+		events := filepath.Join(dir, "ev-bare-"+sub+".jsonl")
+		args := []string{"fdsec", sub, secret, "plain.fd-sec", "--events", events}
+		out, code := run(t, dir, args...)
+		if code != fdsecExitUsage {
+			t.Fatalf("filedo %q exited %d, want %d\n%s", args, code, fdsecExitUsage, out)
+		}
+		if strings.Contains(out, secret) {
+			t.Errorf("the refusal of %q quotes the password\n%s", args, out)
+		}
+	}
+	assertNoSecretOnDisk(t, dir, secret)
+
+	// The right order still works, and a missing container written like a
+	// path is still a missing file, not this refusal.
+	if out, code := run(t, dir, "fdsec", "verify", "plain.fd-sec", "p:"+secret); code != 0 {
+		t.Fatalf("fdsec verify <container> <password> exited %d\n%s", code, out)
+	}
+	if out, code := run(t, dir, "fdsec", "verify", "nosuch.fd-sec", "p:"+secret); code == fdsecExitUsage {
+		t.Errorf("a missing container path was refused as a password\n%s", out)
+	}
+}
+
+// TestCredentialWithSpacesInAnErrorIsRedacted is SP-0064 R-F1: a `p:` password
+// that holds a space is one argument, and the error that quotes it must lose
+// all of it, not only the part up to the first space.
+func TestCredentialWithSpacesInAnErrorIsRedacted(t *testing.T) {
+	dir, _ := workdir(t)
+	const tail = "horse-battery-staple"
+	for i, args := range [][]string{
+		{"p:correct " + tail, "secure"},
+		{"plain.txt", "p:correct " + tail, "secure"},
+	} {
+		events := filepath.Join(dir, fmt.Sprintf("ev-sp-%d.jsonl", i))
+		if out, code := run(t, dir, append(args, "--events", events)...); code == 0 {
+			t.Errorf("filedo %q exited 0\n%s", args, out)
+		}
+	}
+	assertNoSecretOnDisk(t, dir, tail)
 }

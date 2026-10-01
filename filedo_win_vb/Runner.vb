@@ -496,7 +496,11 @@ Public Class Runner
         End If
 
         Dim verdict = result.Verdict
-        If stopped AndAlso verdict <> "Stopped" Then
+        ' The stop file this window created is authoritative over the result -
+        ' except over Failed: a defect the run recorded before the stop
+        ' outranks the stop, and the exit code still cross-checks it below
+        ' (CLI-EVENT-STREAM 0.11 rule 15, AUD-66-F1).
+        If stopped AndAlso verdict <> "Stopped" AndAlso verdict <> "Failed" Then
             Return "Stopped"
         End If
 
@@ -582,6 +586,8 @@ Public Class Runner
     Friend Shared Sub WriteReport(reportFile As String, runId As String, args As IList(Of String), verdict As String,
                                   exitCode As Integer, duration As TimeSpan, spoolPath As String, inMemoryOutput As String)
         Dim sensitive = IsSensitiveRun(args)
+        ' The p: values this run was given, removed whole from every output line (SP-0064 R-F1).
+        Dim secrets = If(sensitive, Nothing, CredentialValues(args))
         Using w As New StreamWriter(reportFile, False, New UTF8Encoding(False))
             w.WriteLine("FileDO Run Report")
             w.WriteLine("Run ID: " & runId)
@@ -599,12 +605,12 @@ Public Class Runner
                 Using r As New StreamReader(spoolPath, New UTF8Encoding(False))
                     Dim line = r.ReadLine()
                     While line IsNot Nothing
-                        w.WriteLine(RedactReportOutput(line))
+                        w.WriteLine(RedactReportOutput(line, secrets))
                         line = r.ReadLine()
                     End While
                 End Using
             ElseIf inMemoryOutput IsNot Nothing Then
-                w.Write(RedactReportOutput(inMemoryOutput))
+                w.Write(RedactReportOutput(inMemoryOutput, secrets))
             End If
         End Using
     End Sub
@@ -629,11 +635,43 @@ Public Class Runner
         Return Array.IndexOf(words, token) >= 0
     End Function
 
+    ' fdsecCredentialToken: the p: prefix exactly as the parser reads it (case-sensitive, so P:x is
+    ' never one) followed by a value that does not begin with \ or / - p:\dir\a.fd-sec is a path on
+    ' drive P:, p:hunter2 is a password wherever it stands.
+    Friend Shared Function IsCredentialToken(t As String) As Boolean
+        If t Is Nothing OrElse Not t.StartsWith("p:", StringComparison.Ordinal) Then Return False
+        Dim v = t.Substring(2)
+        Return v = "" OrElse (v(0) <> "\"c AndAlso v(0) <> "/"c)
+    End Function
+
+    ' fdsecContainerSlotUnrecognised (SP-0064 AUD-52-F1): the container slot of `fdsec info|verify
+    ' <container> <password>` holds a word that is no container - nothing by that name exists where
+    ' filedo.exe looks (its working folder, TargetPath.AsChildSeesIt), it is not written like a path
+    ' (no separator, no .fd-sec name), and another token follows. That is the slip
+    ' `fdsec verify <password> <container>`, so the word is redacted like the password it may be.
+    Private Shared Function ContainerSlotUnrecognised(slot As String, followed As Boolean) As Boolean
+        If Not followed OrElse String.IsNullOrEmpty(slot) OrElse slot.IndexOfAny({"\"c, "/"c}) >= 0 OrElse
+           slot.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase) Then Return False
+        Try
+            Dim seen = TargetPath.AsChildSeesIt(slot)
+            Return Not (File.Exists(seen) OrElse Directory.Exists(seen))
+        Catch
+            Return True
+        End Try
+    End Function
+
     Friend Shared Function RedactCredentialArgs(args As IList(Of String)) As List(Of String)
         Dim out As New List(Of String)()
         If args Is Nothing Then Return out
         For Each a In args
             out.Add(If(a, ""))
+        Next
+
+        ' First pass, as the CLI's (T1-F1, AUD-29-F2): a credential-shaped p: token is redacted on
+        ' every line, whatever the verb and wherever it stands - a transposed verb
+        ' (a.txt secrue p:pw) or a swapped order (fdsec verify p:pw c.fd-sec) must not keep it.
+        For i = 0 To out.Count - 1
+            If IsCredentialToken(out(i)) Then out(i) = "p:***"
         Next
 
         ' The scan starts at 0: a batch line can begin with its family token.
@@ -662,7 +700,10 @@ Public Class Runner
         If (fam = "fdsec" OrElse fam = "fds") AndAlso start < out.Count AndAlso IsOneOf(out(start).ToLowerInvariant(), FdsecSubVerbs) Then
             Dim sub_ = out(start).ToLowerInvariant()
             start += 1
-            If (sub_ = "info" OrElse sub_ = "verify") AndAlso start < out.Count Then start += 1
+            If (sub_ = "info" OrElse sub_ = "verify") AndAlso start < out.Count Then
+                If Not IsCredentialToken(out(start)) AndAlso ContainerSlotUnrecognised(out(start), start + 1 < out.Count) Then out(start) = "***"
+                start += 1
+            End If
         End If
 
         Dim keepNext = False ' set after "to": a path follows
@@ -891,9 +932,156 @@ Public Class Runner
         "(\\FileDO\\reveal\\(?:rv|us)-[^\\\r\n]*\\)[^\r\n]+",
         RegexOptions.IgnoreCase Or RegexOptions.CultureInvariant)
 
-    Friend Shared Function RedactReportOutput(log As String) As String
+    ' secrets are the run's own p: values (CredentialValues), removed whole before the word rule
+    ' runs, as the CLI's redactCredentialText does (SP-0064 R-F1).
+    Friend Shared Function RedactReportOutput(log As String, Optional secrets As IList(Of String) = Nothing) As String
         If String.IsNullOrEmpty(log) Then Return log
-        Return RevealCopyPattern.Replace(log, "$1<protected reveal copy>")
+        log = RedactRememberedCredentials(log, secrets)
+        Return RedactCredentialText(RevealCopyPattern.Replace(log, "$1<protected reveal copy>"))
+    End Function
+
+    ' The CLI's rememberCredentialValues (cmd\filedo\fdsec_redact.go), step for step: the values of
+    ' the p: tokens a run was given - on its command line and on every line of a batch list it runs
+    ' (`from`, `batch`, `script`) - so the report can remove each one whole. A password that holds
+    ' a space is one argument, and the word rule alone kept everything after its first space
+    ' (SP-0064 R-F1). A value shorter than three UTF-8 bytes is left to the word rule, as the CLI
+    ' leaves it: replacing it everywhere would garble every line.
+    Friend Shared Function CredentialValues(args As IList(Of String)) As List(Of String)
+        Dim values As New List(Of String)()
+        If args Is Nothing Then Return values
+        AddCredentialValues(values, args)
+        For i = 0 To args.Count - 2
+            Select Case If(args(i), "").ToLowerInvariant()
+                Case "from", "batch", "script"
+                    AddBatchCredentialValues(values, args(i + 1))
+            End Select
+        Next
+        Return values
+    End Function
+
+    Private Shared Sub AddCredentialValues(values As List(Of String), args As IList(Of String))
+        For Each a In args
+            If Not IsCredentialToken(a) OrElse Encoding.UTF8.GetByteCount(a) < 5 Then Continue For
+            Dim v = a.Substring(2)
+            If Not values.Contains(v) Then values.Add(v)
+        Next
+    End Sub
+
+    ' A batch list's lines as filedo.exe reads them (batch.go): trimmed, empty and # lines skipped,
+    ' each split by the same quoting rules a typed line is. A nested list is not followed: such a
+    ' run keeps no output at all (IsSensitiveRun). A list that cannot be read adds nothing.
+    Private Shared Sub AddBatchCredentialValues(values As List(Of String), listPath As String)
+        Try
+            Dim full = TargetPath.AsChildSeesIt(listPath)
+            Dim info As New FileInfo(full)
+            If Not info.Exists OrElse info.Length > 4 * 1024 * 1024 Then Return
+            For Each raw In File.ReadAllLines(full)
+                Dim line = raw.Trim()
+                If line = "" OrElse line.StartsWith("#", StringComparison.Ordinal) Then Continue For
+                AddCredentialValues(values, ArgQuoting.SplitArgs(line))
+            Next
+        Catch ex As Exception
+            ShellLog.Write("read a batch list's credentials for the report", ex)
+        End Try
+    End Sub
+
+    ' The CLI's redactRememberedCredentials: each value, and the value as Go's %q spells it inside
+    ' its quotes (an error that quotes a word quotes it that way), becomes ***.
+    Friend Shared Function RedactRememberedCredentials(s As String, values As IList(Of String)) As String
+        If String.IsNullOrEmpty(s) OrElse values Is Nothing Then Return s
+        For Each v In values
+            If String.IsNullOrEmpty(v) Then Continue For
+            s = s.Replace(v, "***")
+            Dim q = GoQuotedInner(v)
+            If q <> v Then s = s.Replace(q, "***")
+        Next
+        Return s
+    End Function
+
+    ' strconv.Quote(v) without its outer quotes: \ and " escaped, the C escapes for \a \b \f \n \r
+    ' \t \v, other ASCII controls as \xNN, and what Go does not print as \uNNNN or \UNNNNNNNN. Go's
+    ' printable set is approximated by the Unicode category: letters, marks, numbers, punctuation,
+    ' symbols and the ASCII space.
+    Private Shared Function GoQuotedInner(v As String) As String
+        Dim b As New StringBuilder(v.Length + 8)
+        Dim i = 0
+        While i < v.Length
+            Dim cp As Integer
+            Dim width = 1
+            If Char.IsHighSurrogate(v(i)) AndAlso i + 1 < v.Length AndAlso Char.IsLowSurrogate(v(i + 1)) Then
+                cp = Char.ConvertToUtf32(v(i), v(i + 1))
+                width = 2
+            Else
+                cp = Convert.ToInt32(v(i))
+            End If
+            Select Case cp
+                Case &H5C : b.Append("\\")
+                Case &H22 : b.Append("\""")
+                Case 7 : b.Append("\a")
+                Case 8 : b.Append("\b")
+                Case 12 : b.Append("\f")
+                Case 10 : b.Append("\n")
+                Case 13 : b.Append("\r")
+                Case 9 : b.Append("\t")
+                Case 11 : b.Append("\v")
+                Case Else
+                    If cp < &H20 OrElse cp = &H7F Then
+                        b.Append("\x").Append(cp.ToString("x2"))
+                    ElseIf cp < &H80 OrElse GoPrintable(System.Globalization.CharUnicodeInfo.GetUnicodeCategory(v, i)) Then
+                        b.Append(v, i, width)
+                    ElseIf cp >= &HD800 AndAlso cp <= &HDFFF Then
+                        ' A lone surrogate reaches Go's os.Args as U+FFFD, which it prints as is.
+                        b.Append(ChrW(&HFFFD))
+                    ElseIf cp < &H10000 Then
+                        b.Append("\u").Append(cp.ToString("x4"))
+                    Else
+                        b.Append("\U").Append(cp.ToString("x8"))
+                    End If
+            End Select
+            i += width
+        End While
+        Return b.ToString()
+    End Function
+
+    Private Shared Function GoPrintable(c As System.Globalization.UnicodeCategory) As Boolean
+        Select Case c
+            Case System.Globalization.UnicodeCategory.Control, System.Globalization.UnicodeCategory.Format,
+                 System.Globalization.UnicodeCategory.PrivateUse, System.Globalization.UnicodeCategory.Surrogate,
+                 System.Globalization.UnicodeCategory.OtherNotAssigned, System.Globalization.UnicodeCategory.SpaceSeparator,
+                 System.Globalization.UnicodeCategory.LineSeparator, System.Globalization.UnicodeCategory.ParagraphSeparator
+                Return False
+        End Select
+        Return True
+    End Function
+
+    ' The CLI's redactCredentialText (cmd\filedo\fdsec_redact.go), step for step: every word that is
+    ' a credential-shaped p: token becomes p:***. The console echoes the word an error failed on -
+    ' Unknown command "p:..", GetFileAttributesEx p:..: .. - and the report keeps the console for
+    ' 30 days (SP-0064 T1-F2). A word starts at the beginning, after whitespace, a quote, an opening
+    ' bracket or =, and runs to the next whitespace or quote; p:\.. and p:/.. are paths.
+    Private Const CredentialWordStarts As String = " " & vbTab & vbCr & vbLf & """'`([{="
+    Private Const CredentialWordEnds As String = " " & vbTab & vbCr & vbLf & """'`"
+
+    Friend Shared Function RedactCredentialText(s As String) As String
+        If String.IsNullOrEmpty(s) OrElse s.IndexOf("p:", StringComparison.Ordinal) < 0 Then Return s
+        Dim b As New StringBuilder(s.Length)
+        Dim i = 0
+        While i < s.Length
+            If String.CompareOrdinal(s, i, "p:", 0, 2) = 0 AndAlso (i = 0 OrElse CredentialWordStarts.IndexOf(s(i - 1)) >= 0) Then
+                Dim [end] = i + 2
+                While [end] < s.Length AndAlso CredentialWordEnds.IndexOf(s([end])) < 0
+                    [end] += 1
+                End While
+                If IsCredentialToken(s.Substring(i, [end] - i)) Then
+                    b.Append("p:***")
+                    i = [end]
+                    Continue While
+                End If
+            End If
+            b.Append(s(i))
+            i += 1
+        End While
+        Return b.ToString()
     End Function
 
     ' ---- seams for SelfTest.vb -------------------------------------------

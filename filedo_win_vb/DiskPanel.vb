@@ -483,7 +483,9 @@ Public Class DiskOptionsPanel
         If knownFacts.IsMounted Then
             lines.Add(Localization.Format(L("vd_facts_mounted_fmt"), knownFacts.MountedLetter))
         ElseIf knownFacts.Clean.HasValue AndAlso Not knownFacts.Clean.Value Then
-            lines.Add(Localization.Format(L("vd_facts_unclean_fmt"), If(knownFacts.LastGoodSave = "", "-", knownFacts.LastGoodSave)))
+            ' Grow and compact refuse such a container (AUD-36-F1), so the note says that, not "mount it".
+            Dim key = If(verb = "grow" OrElse verb = "compact", "vd_facts_unclean_writer_fmt", "vd_facts_unclean_fmt")
+            lines.Add(Localization.Format(L(key), If(knownFacts.LastGoodSave = "", "-", knownFacts.LastGoodSave)))
         End If
         Return String.Join(Environment.NewLine, lines.ToArray())
     End Function
@@ -637,6 +639,12 @@ Public Class DiskOptionsPanel
     End Function
 
     ' ---- keeping the page in step ----------------------------------------
+
+    ' A typed FORMAT, DESTROY or DISCARD approves the container it was typed for; naming another
+    ' one in step 2 asks for it again (SP-0064 T2-F3).
+    Public Sub ForgetConfirmation()
+        If confirmBox IsNot Nothing Then confirmBox.Text = ""
+    End Sub
 
     Private Sub OnChanged()
         If suspendEvents Then Return

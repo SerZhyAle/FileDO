@@ -77,25 +77,39 @@ func diskSerial(n int) (string, error) {
 // storageBusTypeiSCSI is BusTypeiScsi of STORAGE_BUS_TYPE (winioctl.h).
 const storageBusTypeiSCSI = 9
 
-// diskBusType reads the bus Windows reports for PhysicalDrive n: the BusType
-// of its STORAGE_DEVICE_DESCRIPTOR, at offset 28.
-func diskBusType(n int) (uint32, error) {
+// diskBusAndVendor reads the bus and the SCSI vendor id Windows reports for
+// PhysicalDrive n: the BusType of its STORAGE_DEVICE_DESCRIPTOR, at offset 28,
+// and the string at VendorIdOffset (offset 12; 0 when there is none).
+func diskBusAndVendor(n int) (uint32, string, error) {
 	h, err := openDisk(n, 0)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	defer windows.CloseHandle(h)
 	q := make([]byte, 12) // STORAGE_PROPERTY_QUERY: StorageDeviceProperty, PropertyStandardQuery
 	out := make([]byte, 4096)
 	got, err := ioctl(h, ioctlStorageQueryProperty, q, out)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	if got < 32 {
-		return 0, fmt.Errorf("the storage descriptor is %d bytes", got)
+		return 0, "", fmt.Errorf("the storage descriptor is %d bytes", got)
 	}
-	return binary.LittleEndian.Uint32(out[28:]), nil
+	vendor := ""
+	if off := binary.LittleEndian.Uint32(out[12:]); off != 0 && off < got {
+		v := out[off:got]
+		if end := bytes.IndexByte(v, 0); end >= 0 {
+			v = v[:end]
+		}
+		vendor = strings.TrimSpace(string(v))
+	}
+	return binary.LittleEndian.Uint32(out[28:]), vendor, nil
 }
+
+// vdSerialSpelling is the only serial a container's disk has: FDD and 20
+// upper-case hex digits (vdisk.DiskSerial). Anything else names no container
+// disk (AUD-32-F8).
+var vdSerialSpelling = regexp.MustCompile(`^FDD[0-9A-F]{20}$`)
 
 // findDiskBySerial waits up to timeout for the disk whose serial is serial.
 // The S0 measurement saw the disk arrive in 59-94 ms, and after refused
@@ -103,6 +117,9 @@ func diskBusType(n int) (uint32, error) {
 func findDiskBySerial(serial string, timeout time.Duration) (int, error) {
 	if serial == "" {
 		return -1, fmt.Errorf("the container's disk serial is empty; no disk was selected")
+	}
+	if !vdSerialSpelling.MatchString(serial) {
+		return -1, fmt.Errorf("%q is not a container disk's serial (FDD and 20 hex digits); no disk was selected", serial)
 	}
 	deadline := time.Now().Add(timeout)
 	for {
@@ -223,6 +240,24 @@ func waitVolumeOnDisk(n int, timeout time.Duration) (string, error) {
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
+}
+
+// vdConfirmFileSystem reads the file system of a volume (its GUID path) with
+// GetVolumeInformation and fails unless it is fs: a format is claimed only
+// when the volume reads back as what was asked for (AUD-31-F2).
+func vdConfirmFileSystem(vol, fs string) error {
+	p, err := windows.UTF16PtrFromString(vol)
+	if err != nil {
+		return err
+	}
+	name := make([]uint16, windows.MAX_PATH+1)
+	if err := windows.GetVolumeInformation(p, nil, 0, nil, nil, nil, &name[0], uint32(len(name))); err != nil {
+		return fmt.Errorf("the new volume's file system could not be read (%v); it is not taken as formatted", err)
+	}
+	if got := windows.UTF16ToString(name); !strings.EqualFold(got, fs) {
+		return fmt.Errorf("the new volume reads as %q, not the %s it was formatted as; it is not taken as formatted", got, fs)
+	}
+	return nil
 }
 
 // volumeLetter returns the drive letter ("X:") a volume is mounted at, or "".
@@ -427,22 +462,38 @@ func formatBlankDisk(n int, serial, label, fs string, clearFirst bool, logf func
 // serial number and the iSCSI bus: the two facts that make it the disk the
 // mount just attached.
 func vdProveContainerDisk(n int, serial string) error {
+	if err := vdCheckContainerDisk(n, serial); err != nil {
+		return fmt.Errorf("%v; nothing was cleared", err)
+	}
+	return nil
+}
+
+// vdCheckContainerDisk is the proof behind every step that changes a disk:
+// PhysicalDrive n reports the container's serial (FDD and 20 hex digits), the
+// iSCSI bus and FileDO's SCSI vendor id (AUD-34-F1, AUD-32-F8).
+func vdCheckContainerDisk(n int, serial string) error {
 	if serial == "" {
-		return fmt.Errorf("the container's disk serial is empty; nothing was cleared")
+		return fmt.Errorf("the container's disk serial is empty")
+	}
+	if !vdSerialSpelling.MatchString(serial) {
+		return fmt.Errorf("%q is not a container disk's serial", serial)
 	}
 	got, err := diskSerial(n)
 	if err != nil {
-		return fmt.Errorf("disk %d could not be identified (%v); nothing was cleared", n, err)
+		return fmt.Errorf("disk %d could not be identified (%v)", n, err)
 	}
 	if got != serial {
-		return fmt.Errorf("disk %d is not the container's disk (its serial is not %s); nothing was cleared", n, serial)
+		return fmt.Errorf("disk %d is not the container's disk (its serial is not %s)", n, serial)
 	}
-	bus, err := diskBusType(n)
+	bus, vendor, err := diskBusAndVendor(n)
 	if err != nil {
-		return fmt.Errorf("disk %d could not be identified (%v); nothing was cleared", n, err)
+		return fmt.Errorf("disk %d could not be identified (%v)", n, err)
 	}
 	if bus != storageBusTypeiSCSI {
-		return fmt.Errorf("disk %d is not on the iSCSI bus; nothing was cleared", n)
+		return fmt.Errorf("disk %d is not on the iSCSI bus", n)
+	}
+	if !strings.EqualFold(vendor, "FileDO") {
+		return fmt.Errorf("disk %d is not a FileDO disk (its vendor is %q)", n, vendor)
 	}
 	return nil
 }

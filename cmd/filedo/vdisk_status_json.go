@@ -35,7 +35,8 @@ import (
 //	     "profile": "plain|fast|ram|sealed|vault", "protection": "obfuscated|encrypted|",
 //	     "logical_size": 0, "clean": true|null, "last_good_save": "<time>"|null, "auto": false,
 //	     "mount": null | {"letter": "X:", "read_only": false, "mounted_at": "<time>", "server_alive": true,
-//	                      "ram": null | {"dirty_bytes": 0, "saving": false, "last_good_save": "<time>"|null}}},
+//	                      "ram": null | {"dirty_bytes": 0, "saving": false, "last_good_save": "<time>"|null,
+//	                                     "save_error": "<only while saving to the file fails>"}}},
 //	    {"kind": "image", "path": "..", "letter": "X:", "mounted_at": "<time>"}
 //	  ],
 //	  "guard": {"installed": false, "running": false, "last_run": null, "ended": "",
@@ -52,6 +53,11 @@ import (
 // version, whose reader ignores unknown fields, so an old GUI and a new CLI -
 // and the reverse - both keep working. `last_run` is when the guard last ran,
 // null before its first session end; `containers` is that run's rows.
+//
+// `mount.ram.save_error` (AUD-35-F5, 2026-10-01) is additive the same way: the
+// last save's error while saving a ram buffer to its file fails, absent while
+// saves succeed. The version stays 1 - it is the major the reader refuses
+// above (DiskSnapshot.KnownVersion), and an optional field is not a major.
 //
 // What it never carries: a credential, a port, a process id, an IQN, a
 // session id or a serial. Those stay in vdisk-state.json and in the text of
@@ -153,6 +159,7 @@ type vdSnapRAM struct {
 	DirtyBytes int64   `json:"dirty_bytes"`
 	Saving     bool    `json:"saving"`
 	LastGood   vdStamp `json:"last_good_save"`
+	SaveError  string  `json:"save_error,omitempty"` // AUD-35-F5: saving to the file is failing
 }
 
 type vdSnapImage struct {
@@ -264,11 +271,13 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 		row.Mount = vdSnapMountOf(m)
 		rows, wantIDs = append(rows, row), append(wantIDs, m.ContainerID)
 	}
-	vdSnapFiles(rows, wantIDs)
+	if err := vdSnapFiles(rows, wantIDs); err != nil {
+		return s, err
+	}
 	for _, row := range rows {
 		s.Disks = append(s.Disks, *row)
 	}
-	images := append([]vdImageRow(nil), state.Images...)
+	images := vdLetteredImages(state.Images) // AUD-34-F2: only rows with a letter
 	sort.SliceStable(images, func(a, b int) bool { return images[a].Letter < images[b].Letter })
 	for _, im := range images {
 		s.Disks = append(s.Disks, vdSnapImage{Kind: "image", Path: im.Path, Letter: im.Letter, MountedAt: vdStamp(im.MountedAt)})
@@ -286,32 +295,80 @@ var vdSnapFileTimeout = 3 * time.Second
 // vdSnapFileFn is the per-file inspection; a seam for the test.
 var vdSnapFileFn = vdSnapFile
 
-// vdSnapFiles inspects every row's file in parallel, each with its own bound.
-// A file that has not answered in time reads as unreadable, with the reason:
-// it is known to exist in the registry, so "missing" would be a claim nobody
-// checked.
-func vdSnapFiles(rows []*vdSnapContainer, wantIDs []string) {
+// vdSnapFileWorkers bounds how many files are inspected at once (AUD-34-F6): a
+// registry of many dead network entries must not open that many hung requests
+// together. A variable so a test can lower it.
+var vdSnapFileWorkers = 8
+
+// vdSnapStopped and vdSnapStopPoll are the seams for the run's stop: the build
+// looks at the stop this often while it waits.
+var (
+	vdSnapStopped  = runStopRequested
+	vdSnapStopPoll = 50 * time.Millisecond
+)
+
+// vdSnapFiles inspects every row's file in parallel - at most vdSnapFileWorkers
+// at a time - each with its own bound. A file that has not answered in time
+// reads as unreadable, with the reason: it is known to exist in the registry,
+// so "missing" would be a claim nobody checked. A stop ends the wait at once
+// and the build returns errRunStopped: a half-inspected list would pass for
+// the real one.
+func vdSnapFiles(rows []*vdSnapContainer, wantIDs []string) error {
+	stop := make(chan struct{})
+	quit := make(chan struct{})
+	defer close(quit)
+	go func() {
+		t := time.NewTicker(vdSnapStopPoll)
+		defer t.Stop()
+		for {
+			if vdSnapStopped() {
+				close(stop)
+				return
+			}
+			select {
+			case <-t.C:
+			case <-quit:
+				return
+			}
+		}
+	}()
+	slots := make(chan struct{}, vdSnapFileWorkers)
 	var wg sync.WaitGroup
 	for i := range rows {
 		wg.Add(1)
 		go func(row *vdSnapContainer, wantID string) {
 			defer wg.Done()
+			select {
+			case slots <- struct{}{}:
+				defer func() { <-slots }()
+			case <-stop:
+				return
+			}
 			done := make(chan vdSnapContainer, 1)
 			go func() {
 				tmp := *row // the inspection works on a copy: a late answer never touches the row
 				vdSnapFileFn(&tmp, wantID)
 				done <- tmp
 			}()
+			timer := time.NewTimer(vdSnapFileTimeout)
+			defer timer.Stop()
 			select {
 			case tmp := <-done:
 				*row = tmp
-			case <-time.After(vdSnapFileTimeout):
+			case <-timer.C:
 				row.File = "unreadable"
 				row.FileError = fmt.Sprintf("did not answer within %s (a network path or a device that is not responding)", vdSnapFileTimeout)
+			case <-stop:
 			}
 		}(rows[i], wantIDs[i])
 	}
 	wg.Wait()
+	select {
+	case <-stop:
+		return errRunStopped
+	default:
+		return nil
+	}
 }
 
 // vdNetworkGone reports an error that says the path's host or share could not
@@ -368,7 +425,7 @@ func vdSnapMountOf(m vdMountRow) *vdSnapMount {
 	out := &vdSnapMount{Letter: m.Letter, ReadOnly: m.ReadOnly, MountedAt: vdStamp(m.MountedAt), ServerAlive: vdSnapshotAlive(m)}
 	if m.Profile == vdisk.ProfileRAM.String() && out.ServerAlive {
 		if r, ok := vdReadRAMStatus(m.ContainerID); ok {
-			out.RAM = &vdSnapRAM{DirtyBytes: r.DirtyBytes, Saving: r.Saving, LastGood: vdStamp(r.LastGoodSave)}
+			out.RAM = &vdSnapRAM{DirtyBytes: r.DirtyBytes, Saving: r.Saving, LastGood: vdStamp(r.LastGoodSave), SaveError: r.SaveError}
 		}
 	}
 	return out

@@ -131,6 +131,29 @@ if ($testMode) {
 # The stamp is the truth (yyMMddHHmm, the tag without the v). It is parsed as a REAL date, then
 # remapped mechanically: YY.(M*100+D).HHmm.0. The Store reserves the revision (0), each part is
 # <= 65535, and the MSIX schema forbids leading zeros, so HHmm goes through an int cast.
+# T3-F2 / AUD-68-F1 (owner decision 2026-10-01): a Store package that carries a release stamp is
+# built only from sources equal to that release's tag - HEAD's tree equals v<Stamp> outside winget\
+# (the one folder release.ps1 commits after the tag) and nothing is changed or untracked outside
+# winget\. Otherwise it would ship, under the tag's version, code no gate judged and that differs
+# from GitHub's build of it. release.ps1 checks the same before it calls this script. A test
+# package (-SelfSign/-Register) never ships and is not held to it. To rebuild an older release
+# after main moved on: git worktree add ..\FileDO-v<Stamp> v<Stamp>, and run this script there.
+if ($PSBoundParameters.ContainsKey('Stamp') -and -not $testMode) {
+    $relTag = "v$Stamp"
+    $null = git -C $root rev-parse -q --verify "refs/tags/$relTag^{commit}" 2>$null
+    if ($LASTEXITCODE -ne 0) { Fail "-Stamp $Stamp names a release, but $relTag is not a local tag (git fetch origin refs/tags/${relTag}:refs/tags/${relTag}). A Store package with a release stamp is built only from that tag's sources." }
+    git -C $root diff --quiet $relTag HEAD -- . ':!winget'
+    $diffCode = $LASTEXITCODE
+    if ($diffCode -eq 1) { Fail "HEAD's sources differ from $relTag outside winget\ (git diff --stat $relTag HEAD -- . ':!winget'). Build the Store package for $Stamp from the tagged sources: git worktree add ..\FileDO-$relTag $relTag, and run this script there." }
+    if ($diffCode -ne 0) { Fail "could not compare HEAD with $relTag (git diff exit $diffCode)." }
+    $tagDirty = @(git -C $root status --porcelain --untracked-files=all -- . ':!winget')
+    if ($LASTEXITCODE -ne 0) { Fail "git status failed (exit $LASTEXITCODE)." }
+    if ($tagDirty.Count) {
+        $tagDirty | Select-Object -First 20 | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+        Fail "the working tree has $($tagDirty.Count) change(s) outside winget\ - a Store package for $Stamp is built only from the sources of $relTag. Commit or remove them, or use a worktree of $relTag."
+    }
+    Write-Host "  sources     : equal to $relTag (outside winget\)"
+}
 if (-not $Stamp) { $Stamp = Get-Date -Format "yyMMddHHmm" }
 try { $when = [datetime]::ParseExact($Stamp, 'yyMMddHHmm', [Globalization.CultureInfo]::InvariantCulture) }
 catch { Fail "stamp '$Stamp' is not a real yyMMddHHmm date." }

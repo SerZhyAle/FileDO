@@ -1,8 +1,11 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 )
 
 // Credential redaction for history, the batch-line console echo and any other
@@ -120,6 +123,9 @@ func redactCredentialArgs(args []string) []string {
 		start++
 		// info and verify name the container next; it is a path.
 		if (sub == "info" || sub == "verify") && start < len(out) {
+			if !fdsecCredentialToken(out[start]) && fdsecContainerSlotUnrecognised(out[start], start+1 < len(out)) {
+				out[start] = "***"
+			}
 			start++
 		}
 	}
@@ -337,4 +343,97 @@ func vdSizeShaped(t string) bool {
 		return true
 	}
 	return false
+}
+
+// redactCredentialText screens a recorded message - an error's text for the
+// finding event and history.json - by the same rule as the arguments: every
+// word that is a credential-shaped `p:` token becomes `p:***`. An error
+// quotes the word it failed on, and a password typed into a path or
+// operation slot is that word (`Unknown command "p:.."`, `GetFileAttributesEx
+// p:..: ..`); the arguments were redacted and the error was not (SP-0064
+// T1-F2). A word starts after a space, a quote or an opening bracket and runs
+// to the next space or quote; a `p:\..` or `p:/..` path is not a credential.
+func redactCredentialText(s string) string {
+	s = redactRememberedCredentials(s)
+	if !strings.Contains(s, "p:") {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); {
+		if strings.HasPrefix(s[i:], "p:") && (i == 0 || strings.ContainsRune(" \t\r\n\"'`([{=", rune(s[i-1]))) {
+			end := i + 2
+			for end < len(s) && !strings.ContainsRune(" \t\r\n\"'`", rune(s[end])) {
+				end++
+			}
+			if fdsecCredentialToken(s[i:end]) {
+				b.WriteString("p:***")
+				i = end
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+		i++
+	}
+	return b.String()
+}
+
+// fdsecContainerSlotUnrecognised reports whether the container slot of the
+// verb-first form (`fdsec info|verify <container> [password]`) holds a word
+// that is not a container: nothing by that name exists, it is not written like
+// a path (no separator, no .fd-sec name), and another token follows it. That is
+// the bare form of the slip `fdsec verify <password> <container>`: the word may
+// be the password, so it is refused like a `p:` token there and recorded as
+// `***` - anything unrecognised is redacted (FDSEC-BEHAVIOUR section 8.2,
+// SP-0064 AUD-52-F1). A slot with nothing after it is a path the user meant,
+// however it is spelled, and a missing file there stays an I/O error.
+func fdsecContainerSlotUnrecognised(slot string, followed bool) bool {
+	if !followed || slot == "" || strings.ContainsAny(slot, `\/`) || strings.HasSuffix(strings.ToLower(slot), ".fd-sec") {
+		return false
+	}
+	_, err := os.Stat(slot)
+	return err != nil
+}
+
+// credentialValues are the values of the `p:` tokens this process was given,
+// on its command line and on every batch line it began. redactCredentialText
+// removes each one whole before its word rule runs: a password that holds a
+// space is one argument, and the word rule alone kept everything after the
+// first space (SP-0064 R-F1). A value shorter than three bytes is left to the
+// word rule - replacing it everywhere would garble every message.
+var credentialValues struct {
+	sync.Mutex
+	v []string
+}
+
+func rememberCredentialValues(args []string) {
+	credentialValues.Lock()
+	defer credentialValues.Unlock()
+	for _, a := range args {
+		if !fdsecCredentialToken(a) || len(a) < 5 {
+			continue
+		}
+		v := a[2:]
+		known := false
+		for _, k := range credentialValues.v {
+			if k == v {
+				known = true
+				break
+			}
+		}
+		if !known {
+			credentialValues.v = append(credentialValues.v, v)
+		}
+	}
+}
+
+func redactRememberedCredentials(s string) string {
+	credentialValues.Lock()
+	defer credentialValues.Unlock()
+	for _, v := range credentialValues.v {
+		s = strings.ReplaceAll(s, v, "***")
+		if q := strconv.Quote(v); q[1:len(q)-1] != v {
+			s = strings.ReplaceAll(s, q[1:len(q)-1], "***")
+		}
+	}
+	return s
 }

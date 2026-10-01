@@ -134,7 +134,8 @@ func (ih *InterruptHandler) handleSignal(sig os.Signal) {
 			}
 			// A forced exit bypasses main's deferred finishRun.  Close the
 			// stream here instead, with the rule-11 "could not be verified"
-			// vocabulary rather than the old misleading defect code 1.
+			// vocabulary - or Failed, 1, when the run had already recorded a
+			// defect, which a forced exit does not erase (rule 15).
 			os.Exit(finishForcedRun())
 
 		default:

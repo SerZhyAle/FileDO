@@ -108,3 +108,24 @@ func TestWipeFileInPlaceGuardsTheHandleItOverwrites(t *testing.T) {
 		t.Error("the wiped file is still there")
 	}
 }
+
+// T2-F1 (SP-0064): an overwrite in place never runs over a file another
+// program holds open - a mounted disk container is held by its block server,
+// which shares the file for reading and writing. The wipe used to open it
+// with the same sharing, overwrite the live disk and fail only at the remove.
+func TestFileWipeRefusesAFileAnotherProgramHoldsOpen(t *testing.T) {
+	dir, payload := workdir(t)
+	held, err := os.OpenFile(filepath.Join(dir, "plain.txt"), os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+
+	out, code := run(t, dir, "file", "plain.txt", "wipe", "--force")
+	if code == 0 {
+		t.Fatalf("file wipe --force of a file held open exited 0\n%s", out)
+	}
+	if got := mustRead(t, filepath.Join(dir, "plain.txt")); !bytes.Equal(got, payload) {
+		t.Fatalf("a file held open by another program was overwritten\n%s", out)
+	}
+}

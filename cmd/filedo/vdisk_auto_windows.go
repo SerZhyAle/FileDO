@@ -208,30 +208,37 @@ func vdTaskStep(req vdRequest) (vdResult, error) {
 		}
 		cmd = exec.Command(vdSchtasks(), "/Delete", "/TN", task, "/F")
 	} else {
+		// The owner is the request's SID, bound to the consent by the request
+		// digest; it must resolve to a user account (AUD-31-F4 (b)). It is not
+		// the elevated token's user, which under over-the-shoulder elevation is
+		// the administrator who typed the credentials.
+		sid, err := vdTaskOwnerSID(req.TaskSID)
+		if err != nil {
+			return res, err
+		}
 		var taskXML string
-		var err error
 		if guard {
-			taskXML, err = vdBuildGuardTaskXML(req.TaskSID)
+			taskXML, err = vdBuildGuardTaskXML(sid)
 		} else {
-			taskXML, err = vdBuildTaskXML(name, req.TaskSID)
+			taskXML, err = vdBuildTaskXML(name, sid)
 		}
 		if err != nil {
 			return res, err
 		}
-		f, err := os.CreateTemp("", "filedo-task-*.xml")
-		if err != nil {
-			return res, err
-		}
-		defer os.Remove(f.Name())
 		// schtasks reads task XML as UTF-16 with a byte-order mark.
 		u := utf16.Encode([]rune(taskXML))
 		buf := []byte{0xFF, 0xFE}
 		for _, c := range u {
 			buf = append(buf, byte(c), byte(c>>8))
 		}
-		f.Write(buf)
-		f.Close()
-		cmd = exec.Command(vdSchtasks(), "/Create", "/TN", req.TaskName, "/XML", f.Name())
+		// Held open without write or delete sharing until schtasks has read
+		// it, so a process of the user cannot swap it in %TEMP% (AUD-31-F4 (a)).
+		xmlPath, release, err := vdWriteLockedTemp(os.TempDir(), "filedo-task-*.xml", buf)
+		if err != nil {
+			return res, err
+		}
+		defer release()
+		cmd = exec.Command(vdSchtasks(), "/Create", "/TN", req.TaskName, "/XML", xmlPath)
 	}
 	out, err := cmd.CombinedOutput()
 	text := strings.TrimSpace(string(out))

@@ -1067,6 +1067,8 @@ Public Class DiskManagerForm
             If r.HasRam AndAlso r.ServerAlive Then
                 out.Add(Localization.Format(L("vd_mgr_detail_ram_fmt"), DiskStates.SizeText(r.RamDirty), WhenText(r.RamLastGoodSave)))
                 If r.RamSaving Then out.Add(L("vd_mgr_detail_ram_saving"))
+                ' AUD-35-F5: the loss is visible before the unmount, not after.
+                If r.RamSaveError <> "" Then out.Add(Localization.Format(L("vd_mgr_detail_save_failing_fmt"), r.RamSaveError))
             End If
         ElseIf r.FileState = "ok" Then
             If r.Clean.HasValue Then out.Add(L(If(r.Clean.Value, "vd_mgr_detail_clean_yes", "vd_mgr_detail_clean_no")))

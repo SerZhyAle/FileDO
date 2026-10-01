@@ -219,3 +219,21 @@ func TestCheckCountsAreHonest(t *testing.T) {
 		t.Errorf("good-list skips are not reported as such\n%s", out)
 	}
 }
+
+// TestCheckFlagsStayOnTheirBatchLine is AUD-49-F1: the flags of one `check`
+// line in a `from` list end with that line. They were written to the
+// process environment and applied to every later line, so the second line
+// here read a few files and still passed.
+func TestCheckFlagsStayOnTheirBatchLine(t *testing.T) {
+	a, b := checkTree(t, 40), checkTree(t, 40)
+	wd := t.TempDir()
+	writeLst(t, wd, "two.lst", "check \""+a+"\" --no-precount --max-files 1\ncheck \""+b+"\" --no-precount\n")
+	out, code := run(t, wd, "from", "two.lst")
+	if code != 0 {
+		t.Fatalf("from two.lst exited %d\n%s", code, out)
+	}
+	i := strings.LastIndex(out, "checked=")
+	if i < 0 || !strings.HasPrefix(out[i:], "checked=40") {
+		t.Fatalf("the second line did not read all 40 files: --max-files of the first line leaked\n%s", out)
+	}
+}

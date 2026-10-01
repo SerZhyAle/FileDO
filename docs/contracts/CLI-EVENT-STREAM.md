@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CLI-EVENT-STREAM` |
-| **Version** | 0.10, draft (wire carrier: `schemaVersion` 1 on every line) |
+| **Version** | 0.11, draft (wire carrier: `schemaVersion` 1 on every line) |
 | **Home** | shared contracts catalog, folder `cli-event-stream/` |
 | **Role** | producer (`cmd/filedo`) and consumer (`filedo_win_vb`) - both implementations live here |
 | **Owner** | FileDO. Amendments are written in the catalog first |
@@ -23,7 +23,10 @@
 - **Nothing secret reaches the channel**: `run.data.args` passes `redactCredentialArgs` first, and a
   sealed name never appears in any event.
 - **A stop is a file**, not a signal: the shell creates the `--stop-file`, the CLI polls for its presence
-  and takes the interrupt path it already has.
+  and takes the interrupt path it already has. A stop with no recorded defect ends *Stopped*, exit 0; a
+  defect recorded before the stop outranks it - *Failed*, exit 1, on the graceful and the forced path
+  (`outcome.go` `verdict`, `finishForcedRun`), and the shell's `Judge` keeps a *Failed* result even with
+  its stop file present (rule 15).
 - Both sides cite `CLI-EVENT-STREAM rule N` in their comments.
 - Open deviations are recorded as dated exceptions in the catalog's registry; ticket SP-0012.
 
