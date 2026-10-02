@@ -62,6 +62,12 @@ test_*_safe/
 # FileDO specific temporary directories
 FileDO_Operations/
 
+# Private verification artifacts belong in /temp/ (see AGENTS.md).
+# Also ignore retired or accidental output locations.
+/tests/evidence/
+/temp/
+/tmp/
+
 # System files
 Thumbs.db
 .DS_Store

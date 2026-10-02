@@ -1,8 +1,0 @@
-
-Id               : 11400
-MainWindowHandle : 2821764
-MainWindowTitle  : FileDO - Диспетчер дисков
-Path             : P:\WINDOWS\FileDo\exe_to_download\filedo_win.exe
-StartTime        : 10/01/2026 11:16:50
-
-ALIVE_DURING_MOUNT=True HWND=2821764

@@ -1,8 +1,0 @@
-
-2026-10-01 11:15:12 sza@ukr.net 2610011104
-format destroys everything on the volume inside P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd (2 GiB, obfuscated, not encrypted: anyone holding the file and the published format can read it) and leaves an empty exFAT volume. The container file stays, with its id and its credential.
-Formatting connects the disk through the Windows iSCSI initiator, which needs administrator rights; Windows will ask for consent now.
-Formatted the volume of P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd: an empty exFAT volume labelled EXF. The container file, its id and its credential are unchanged.
-
- Finish:2026-10-01 11:15:19, Duration: 7s
-EXIT_CODE=0

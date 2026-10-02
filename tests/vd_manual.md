@@ -371,7 +371,8 @@ NOT VERIFIED and release is blocked pending the missing manual evidence in the l
 ## SP-0063 live execution record - 2026-10-01
 
 Build `2610011104`: **FAIL for the visual gate; manual kit incomplete**. Evidence and item-by-item
-coverage: `tests/evidence/sp0063-20261001/RESULT.md`. GUI selftest exited 0 (`PASS (3066)`). Live launch,
+coverage are retained privately in the project's ignored `temp/evidence/`, run `sp0063-20261001` (`RESULT.md`).
+See AGENTS.md's "Private verification artifacts" section. GUI selftest exited 0 (`PASS (3066)`). Live launch,
 single-manager handover and the lifetime of the two windows passed the window probe (exit 0).
 Light/Dark screenshots in EN/RU/DE at 100 % and 150 %, plus a mixed-monitor move, were captured.
 At 100 % the oversized list header captions clip; a narrowed Dark window at 150 % has a white
@@ -386,8 +387,8 @@ the manual gate or substitute the selftest for those checks.
 release stays HOLD.** This run supplies what the first run of 2026-10-01 could not: the pulled
 medium (4.10), a first mount and an exFAT format on the gated build (4.11), and the real-initiator
 cycles with the log sentences (4.12). Sections 1 to 3, 5, 5b, 6, 6b, 7 and 8 were not run in this
-session. Raw output, the filtered state `vdisk.log` and its unfiltered SHA-256 are in
-[evidence/sp0004-s6-20261001-r2/](evidence/sp0004-s6-20261001-r2/); the first run's record is
+session. Raw output, the filtered state `vdisk.log` and its unfiltered SHA-256 are retained
+privately in the project's ignored `temp/evidence/`, run `sp0004-s6-20261001-r2`; the first run's record is
 [vd_s6_g3_20261001.md](vd_s6_g3_20261001.md).
 
 - **Build.** `./build.ps1 -Test` exited 0 with `build-gate 2610011135: PASS (ran 11, skipped 0)`;

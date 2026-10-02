@@ -567,6 +567,26 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `%TEMP%\FileDO_Operations`. The duplicate-finder hash cache must key on path + size + **modtime** (size
   alone once let an edited file be deleted as a false duplicate - now a permanent invariant).
 
+## Private verification artifacts
+
+Screenshots of this machine, desktop or Explorer captures, raw test logs, dumps, recordings and
+one-off capture scripts are local working material. Store them in this project's git-ignored
+`temp/evidence/<run-id>/` directory (a dated, unique run id), relative to the repository root.
+Never create or accumulate them in `tests/evidence/`,
+`tests/`, the repository root, or another tracked directory. `tests/` is for reusable tests,
+fixtures and checklists. Pass the project's temporary output directory explicitly to capture tools;
+for example, `msix/make-screenshots.ps1 -Live -OutDir temp/evidence/<run-id>` for manual proof.
+
+Raw evidence stays private: never stage it, force-add an ignored artifact, attach it to a PR/issue,
+or upload it as a release asset. A tracked verification summary may record the build, commands,
+exit codes, findings and a run id, after removing personal data; do not link to local evidence
+from tracked documents or register it in `docs/DOCUMENT_REGISTRY.jsonl`. Before publishing any
+image, inspect it for personal paths, filenames, account/device names, other windows and credentials.
+Only deliberate product assets for the site or Store, captured with synthetic data and checked
+for privacy, belong in their established asset directories. Do not use those directories for
+manual verification output. `.gitignore` excludes `temp/`, plus `tests/evidence/` and `tmp/` as fallbacks;
+ignore rules do not remove files already tracked by Git or erase prior commits.
+
 ## The GUI shell (`filedo_win_vb/`)
 The VB.NET project holds one window, `ShellForm` - the shell built under SP-0006 - and `Program.Main` is
 its entry point. The command builder that shipped before it (`MainForm`, `AboutForm`) was **retired**;
@@ -753,4 +773,5 @@ Four rules, because a shared contract breaks differently from ordinary code:
 
 ## PR specifics
 Beyond the canon's commit and PR conventions: include the manual verification commands you ran with their
-output, and attach screenshots for GUI, installer, or docs changes.
+output. For GUI, installer, or docs changes, attach only privacy-reviewed screenshots made with
+synthetic data; raw local verification captures stay in the project's ignored evidence directory above.

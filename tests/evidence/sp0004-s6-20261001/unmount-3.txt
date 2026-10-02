@@ -1,7 +1,0 @@
-
-2026-10-01 11:13:37 sza@ukr.net 2610011104
-Disconnecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.
-Unmounted D:. P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd is closed cleanly.
-
- Finish:2026-10-01 11:13:37, Duration: 0s
-EXIT_CODE=0

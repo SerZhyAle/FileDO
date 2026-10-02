@@ -1,2 +1,0 @@
-G3: NOT VERIFIED (build 2610011104; physical USB removal and remaining manual surfaces missing)
-EXIT_CODE=2

@@ -1,6 +1,0 @@
-
-2026-10-01 11:18:00 sza@ukr.net 2610011104
-Nothing is mounted. No block server is running.
-
- Finish:2026-10-01 11:18:00, Duration: 0s
-EXIT_CODE=0

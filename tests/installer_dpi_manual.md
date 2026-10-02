@@ -1,7 +1,9 @@
 # Manual proofs: rail at 100 % / 150 % (SP-0016 T4) and the MSI / setup EXE (SP-0030 PKG-01, PKG-02)
 
 Release-queue items 31-33. None of these can be proven by the build gate. Record each result (PASS / FAIL, date,
-build stamp, evidence path) under `tests/evidence/`, then tick the item in `PLAN/release-queue.md`.
+build stamp, run id) in a sanitized summary, then tick the item in `PLAN/release-queue.md`.
+Keep raw screenshots, logs and one-off scripts in the project's ignored `temp/evidence/` directory defined by
+AGENTS.md's "Private verification artifacts" section; never save them under `tests/` or publish them.
 
 Package under test: `dist\FileDO-<stamp>-windows-x64.msi` and `dist\FileDO-<stamp>-setup.exe` (unsigned; expect a
 SmartScreen / "unknown publisher" prompt). Stamp `2609302145` carries MSI ProductVersion `26.9.43065`

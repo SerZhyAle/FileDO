@@ -1,1 +1,0 @@
-﻿PULL_OK: disk 7 offline=True, vhdx detached
