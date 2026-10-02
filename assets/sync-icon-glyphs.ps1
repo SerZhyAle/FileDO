@@ -56,7 +56,7 @@ $glyphIds = @(
     'action.export', 'action.fill-space',
     'action.find-duplicates', 'action.recover-drive', 'action.refresh', 'action.remove', 'action.save', 'action.secure',
     'action.sort', 'action.unsecure', 'action.verify', 'action.wipe',
-    'app.command-line', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
+    'app.command-line', 'app.disk-manager', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
     'content.history', 'content.secret-file',
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
     'nav.close', 'nav.collapse', 'nav.expand', 'nav.more', 'nav.open-external',

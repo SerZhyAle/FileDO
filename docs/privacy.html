@@ -995,76 +995,14 @@
           </p>
           <ul>
             <li>
-              <span data-l="ru"
-                ><b>Что собирается.</b> Только файлы, которые записал сам
-                FileDO: <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>,
-                <code>history.json</code>, отчёты <code>check_report_*</code>,
-                <code>check_damaged.list</code>,
-                <code>compare_report_*.log</code>,
-                <code>delete_report_*.log</code>,
-                <code>skip_files.list</code>, <code>damaged_files.log</code> - только
-                из папки программы и из <code>%LOCALAPPDATA%\FileDO\state\</code>
-                (журнал окна - из <code>%LOCALAPPDATA%\FileDO</code>); из папки
-                профиля и из <code>%TEMP%</code> ничего не берётся. Архивы старше
-                семи дней удаляются при следующей отправке. Плюс сгенерированный
-                <code>filedo-report.txt</code>: версии, версия Windows, язык
-                интерфейса и список того, что вошло в архив.</span
-              >
-              <span data-l="en"
-                ><b>What is collected.</b> Only files FileDO itself wrote:
-                <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>, <code>history.json</code>, the
-                <code>check_report_*</code> reports,
-                <code>check_damaged.list</code>,
-                <code>compare_report_*.log</code>,
-                <code>delete_report_*.log</code>,
-                <code>skip_files.list</code>, <code>damaged_files.log</code> -
-                only from the program folder and from
-                <code>%LOCALAPPDATA%\FileDO\state\</code> (the window's log from
-                <code>%LOCALAPPDATA%\FileDO</code>); nothing is picked up from your
-                profile folder or from <code>%TEMP%</code>. Archives older than seven
-                days are removed the next time you send. Plus a generated
-                <code>filedo-report.txt</code>: the version stamps, the Windows
-                version, the interface language, and a list of what went into the
-                archive.</span
-              >
-              <span data-l="ua"
-                ><b>Що збирається.</b> Лише файли, які записав сам FileDO:
-                <code>filedo_win.log</code>, <code>filedo_win_debug.log</code>, <code>history.json</code>,
-                звіти <code>check_report_*</code>,
-                <code>check_damaged.list</code>,
-                <code>compare_report_*.log</code>,
-                <code>delete_report_*.log</code>,
-                <code>skip_files.list</code>, <code>damaged_files.log</code> - лише
-                з теки програми та з <code>%LOCALAPPDATA%\FileDO\state\</code>
-                (журнал вікна - з <code>%LOCALAPPDATA%\FileDO</code>); з теки
-                профілю та з <code>%TEMP%</code> нічого не береться. Архіви, старші
-                за сім днів, видаляються під час наступного надсилання. Плюс згенерований
-                <code>filedo-report.txt</code>: версії, версія Windows, мова
-                інтерфейсу та перелік того, що увійшло до архіву.</span
-              >
+              <span data-l="ru"><b>Что собирается.</b> Очищенные текстовые журналы и отчёты FileDO из папки программы и <code>%LOCALAPPDATA%\FileDO</code>, включая папку <code>state</code>. История операций, JSON-отчёты и списки файлов не включаются. <code>environment.txt</code> содержит сведения о сборке, Windows, языке и числе журналов; <code>filedo-report.txt</code> перечисляет нейтральные имена файлов в архиве. Архивы старше семи дней удаляются при следующей отправке.</span>
+              <span data-l="en"><b>What is collected.</b> Sanitized FileDO text logs and reports from the program folder and <code>%LOCALAPPDATA%\FileDO</code>, including its <code>state</code> folder. Operation history, JSON reports and file lists are excluded. <code>environment.txt</code> holds build, Windows, language and log-count facts; <code>filedo-report.txt</code> lists neutral archive entry names. Archives older than seven days are removed at the next export.</span>
+              <span data-l="ua"><b>Що збирається.</b> Очищені текстові журнали та звіти FileDO з теки програми та <code>%LOCALAPPDATA%\FileDO</code>, включно з текою <code>state</code>. Історія операцій, JSON-звіти та списки файлів не включаються. <code>environment.txt</code> містить відомості про збірку, Windows, мову та кількість журналів; <code>filedo-report.txt</code> перелічує нейтральні імена файлів в архіві. Архіви, старші за сім днів, видаляються під час наступного експорту.</span>
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Что там может быть личного.</b> Пути к файлам, к которым вы
-                применяли команды, а значит - имена ваших папок и вашей учётной
-                записи Windows. Имя компьютера и имя пользователя отдельными
-                полями не добавляются, но путь вида
-                <code>C:\Users\ваше-имя\..</code> в логе остаться может.</span
-              >
-              <span data-l="en"
-                ><b>What personal detail can be in there.</b> The paths you
-                pointed commands at - which means the names of your own folders
-                and of your Windows account. The machine name and the user name
-                are not added as fields of their own, but a path like
-                <code>C:\Users\your-name\..</code> can remain inside a log.</span
-              >
-              <span data-l="ua"
-                ><b>Що там може бути особистого.</b> Шляхи до файлів, до яких ви
-                застосовували команди, а отже - назви ваших тек і вашого
-                облікового запису Windows. Ім'я комп'ютера та ім'я користувача
-                окремими полями не додаються, але шлях виду
-                <code>C:\Users\ваше-ім'я\..</code> у лозі залишитися може.</span
-              >
+              <span data-l="ru"><b>Очистка перед упаковкой.</b> Строки с учётными данными, URL и абсолютными путями заменяются на <code>[REDACTED]</code>; блоки приватных ключей удаляются целиком. Исходные журналы на диске не изменяются. Произвольный текст может содержать личные сведения, поэтому проверьте архив перед отправкой.</span>
+              <span data-l="en"><b>Sanitization before packing.</b> Lines containing credentials, URLs and absolute paths become <code>[REDACTED]</code>; private-key blocks are removed in full. Original logs on disk stay unchanged. Free text can contain personal details, so review the archive before sending it.</span>
+              <span data-l="ua"><b>Очищення перед пакуванням.</b> Рядки з обліковими даними, URL та абсолютними шляхами замінюються на <code>[REDACTED]</code>; блоки приватних ключів видаляються цілком. Початкові журнали на диску не змінюються. Довільний текст може містити особисті відомості, тому перевірте архів перед надсиланням.</span>
             </li>
             <li>
               <span data-l="ru"

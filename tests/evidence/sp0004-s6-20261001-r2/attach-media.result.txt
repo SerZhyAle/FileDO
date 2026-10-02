@@ -1,0 +1,1 @@
+﻿ATTACH_OK: letter=D: fs=NTFS label=FDMEDIA

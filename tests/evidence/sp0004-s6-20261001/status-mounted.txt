@@ -1,0 +1,6 @@
+
+2026-10-01 11:13:33 sza@ukr.net 2610011104
+D:  P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd  (mounted 2026-10-01 11:11:20), served on 127.0.0.1:58919 by process 39712
+
+ Finish:2026-10-01 11:13:33, Duration: 0s
+EXIT_CODE=0

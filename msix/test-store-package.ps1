@@ -62,6 +62,7 @@ param(
 $ErrorActionPreference = "Stop"
 $msixDir = $PSScriptRoot
 $root    = Split-Path $msixDir -Parent
+. (Join-Path $msixDir 'wack-verdict.ps1')
 $outDir  = Join-Path $msixDir "out"
 if (-not $ReportPath) { $ReportPath = Join-Path $outDir "wack-report.xml" }
 
@@ -166,30 +167,21 @@ if ($SkipWack) {
 
                         if (Test-Path $ReportPath) {
                             $rep     = [xml](Get-Content $ReportPath -Raw)
-                            $overall = $rep.DocumentElement.GetAttribute('OVERALL_RESULT')
+                            $verdict = Get-WackVerdict $rep
+                            $overall = $verdict.Overall
                             # Each test's verdict is a RESULT *child element* holding CDATA, not an
                             # attribute - and it is the only place the verdict is: appcert returns 0
                             # for a session that ran and found failures, and rolls an optional test's
                             # FAIL up into an OVERALL_RESULT of WARNING.
-                            $tests = @($rep.SelectNodes('//TEST') | ForEach-Object {
-                                $res = $_.SelectSingleNode('RESULT')
-                                [pscustomobject]@{
-                                    Name     = $_.GetAttribute('NAME')
-                                    Optional = ($_.GetAttribute('OPTIONAL') -eq 'TRUE')
-                                    Result   = if ($res) { $res.InnerText.Trim() } else { '(none)' }
-                                    Messages = @($_.SelectNodes('MESSAGES/MESSAGE') | ForEach-Object { $_.GetAttribute('TEXT') })
-                                }
-                            })
+                            $tests = $verdict.Tests
                             Check "the report lists the tests that ran" ($tests.Count -gt 0) "no TEST element in $ReportPath"
 
-                            # Anything that is not PASS is a reason the Store can reject the
-                            # submission, whether appcert marks the test optional or not. The check
-                            # reports all of them and lets the verdict be the owner's to argue with,
-                            # rather than deciding here which rejection is acceptable.
+                            # Required failures block. Optional Desktop Bridge checks are informational
+                            # under Microsoft's documented policy; preserve their wording and raw overall.
                             $notPass = @($tests | Where-Object { $_.Result -cne 'PASS' })
-                            Check "every WACK test passed (report says OVERALL_RESULT=$overall)" ($notPass.Count -eq 0 -and $overall -eq 'PASS') "$($notPass.Count) of $($tests.Count) tests did not pass"
+                            Check "required WACK tests passed (report says OVERALL_RESULT=$overall)" $verdict.Passed "$($verdict.RequiredFailures.Count) required tests did not pass, $($verdict.Advisories.Count) optional advisories"
                             foreach ($t in $notPass) {
-                                $opt = if ($t.Optional) { "optional" } else { "required" }
+                                $opt = if ($t.Optional) { "optional advisory" } else { "required" }
                                 Write-Host "        $($t.Result)  [$opt]  $($t.Name)" -ForegroundColor Yellow
                                 $t.Messages | ForEach-Object { Write-Host "            $_" -ForegroundColor DarkYellow }
                             }

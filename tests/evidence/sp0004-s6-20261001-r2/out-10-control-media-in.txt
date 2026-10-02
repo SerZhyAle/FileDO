@@ -1,0 +1,189 @@
+
+=== 4.10 preamble: media letter is D:
+
+=== mount ram container on media
+> filedo D:\r.fdd mount
+
+2026-10-01 11:42:40 sza@ukr.net 2610011135
+Container D:\r.fdd: ram, 512 MiB, obfuscated, not encrypted: anyone holding the file and the published format can read it.
+ram: writes are kept in memory and saved to the file every 60 s or at 256 MB; a crash loses what was written since the last save.
+Connecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.
+The new volume was formatted NTFS, with indexing turned off (the drive's Properties can turn it back on).
+Mounted at E:. Unmount with: filedo E: unmount
+
+ Finish:2026-10-01 11:42:46, Duration: 6s
+exit=0 elapsed=6s
+=== mounted letter: E
+
+=== copy 100 MB onto E:
+copy exit=0 elapsed=0s
+on volume: dirty.bin 104857600
+
+=== PULL the medium (Dismount-VHD -Force media.vhdx)
+
+=== save with media out
+> filedo E: save
+
+2026-10-01 11:42:47 sza@ukr.net 2610011135
+Flushing the Windows cache of the volume first needs administrator rights; Windows will ask for consent now.
+Saved E:: its file now holds everything written to it before this command.
+
+ Finish:2026-10-01 11:42:48, Duration: 0s
+exit=0 elapsed=1s
+
+=== vd status with media out
+> filedo vd status
+
+2026-10-01 11:42:49 sza@ukr.net 2610011135
+E:  D:\r.fdd  (mounted 2026-10-01 11:42:46), served on 127.0.0.1:49716 by process 16584
+    ram: 0 MiB not saved yet; last complete save 2026-10-01 11:42:48
+
+ Finish:2026-10-01 11:42:49, Duration: 0s
+exit=0 elapsed=0s
+
+=== unmount force with media out
+> filedo E: unmount force
+
+2026-10-01 11:42:49 sza@ukr.net 2610011135
+Disconnecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.
+Unmounted E:. D:\r.fdd is closed cleanly.
+
+ Finish:2026-10-01 11:42:50, Duration: 0s
+exit=0 elapsed=0s
+
+=== vd status after the forced unmount
+> filedo vd status
+
+2026-10-01 11:42:50 sza@ukr.net 2610011135
+Nothing is mounted. No block server is running.
+
+ Finish:2026-10-01 11:42:50, Duration: 0s
+exit=0 elapsed=0s
+ATTACH_FAIL: Failed to mount the virtual disk.
+
+The system failed to mount 'C:\vdtest\media.vhdx'.
+
+Failed to mount the virtual disk.
+
+The system failed to mount 'C:\vdtest\media.vhdx': The process cannot access the file because it is being used by another process. (0x80070020).
+
+=== info after the failed unmount (media back)
+> filedo D:\r.fdd info
+
+2026-10-01 11:42:51 sza@ukr.net 2610011135
+Container:     D:\r.fdd
+Format:        FDD 1.0
+Profile:       ram
+Protection:    obfuscated (obfuscated, not encrypted: anyone holding the file and the published format can read it)
+Volume size:   512 MiB
+File size:     537923584 bytes, 512 of 512 clusters allocated
+Closed clean:  yes
+Last good save: 2026-10-01 11:42:50
+Created:       2026-10-01 11:41:54, mounted 1 times
+Container id:  4291a8a9-69d7-4afb-a1c3-e1b17afe4c11
+
+ Finish:2026-10-01 11:42:51, Duration: 0s
+exit=0 elapsed=0s
+
+=== remount after the failure
+> filedo D:\r.fdd mount
+
+2026-10-01 11:42:51 sza@ukr.net 2610011135
+Container D:\r.fdd: ram, 512 MiB, obfuscated, not encrypted: anyone holding the file and the published format can read it.
+ram: writes are kept in memory and saved to the file every 60 s or at 256 MB; a crash loses what was written since the last save.
+Connecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.
+Mounted at E:. Unmount with: filedo E: unmount
+
+ Finish:2026-10-01 11:42:52, Duration: 0s
+exit=0 elapsed=1s
+
+=== what survived on E after remount:
+on volume: dirty.bin 104857600
+
+=== unmount (clean this time)
+> filedo E: unmount
+
+2026-10-01 11:42:52 sza@ukr.net 2610011135
+Disconnecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.
+Unmounted E:. D:\r.fdd is closed cleanly.
+
+ Finish:2026-10-01 11:42:52, Duration: 0s
+exit=0 elapsed=0s
+
+=== destroy the ram container
+> filedo D:\r.fdd destroy force
+
+2026-10-01 11:42:52 sza@ukr.net 2610011135
+destroy removes the container file D:\r.fdd, 513.00 MiB (537923584 bytes): the volume inside and everything on it are gone for good.
+Destroyed D:\r.fdd.
+
+ Finish:2026-10-01 11:42:52, Duration: 0s
+exit=0 elapsed=0s
+
+=== vdisk.log (this check)
+2026-10-01T11:42:40.273+02:00 pid=16584 bind 127.0.0.1:49716 container 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11 profile ram read-only=false elevated=false path D:\r.fdd
+2026-10-01T11:42:40.369+02:00 pid=40788 mount D:\r.fdd: server pid 16584 on 127.0.0.1:49716
+2026-10-01T11:42:40.538+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: checking the initiator service
+2026-10-01T11:42:40.541+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: adding portal 127.0.0.1:49716
+2026-10-01T11:42:40.542+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49717 connect
+2026-10-01T11:42:40.543+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49717 login csg=0 nsg=1 T=true keys: InitiatorName=iqn.1991-05.com.microsoft:mark SessionType=Discovery AuthMethod=None
+2026-10-01T11:42:40.543+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49717 login csg=1 nsg=3 T=true keys: HeaderDigest=None,CRC32C DataDigest=None,CRC32C MaxRecvDataSegmentLength=65536 DefaultTime2Wait=0 DefaultTime2Retain=60
+2026-10-01T11:42:40.543+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49717 logged in: discovery=true MRDSL=65536 MaxBurst=262144 FirstBurst=65536 ImmediateData=true
+2026-10-01T11:42:40.543+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49717 logout, reason 0
+2026-10-01T11:42:40.543+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49717 closed after logout
+2026-10-01T11:42:40.545+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: logging in
+2026-10-01T11:42:40.546+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 connect
+2026-10-01T11:42:40.546+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 login csg=0 nsg=0 T=false keys: InitiatorName=iqn.1991-05.com.microsoft:mark SessionType=Normal TargetName=iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11 AuthMethod=CHAP
+2026-10-01T11:42:40.546+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 login csg=0 nsg=0 T=false keys: CHAP_A=5
+2026-10-01T11:42:40.546+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 login csg=0 nsg=1 T=true keys: CHAP_N=<cut> CHAP_R=<cut>
+2026-10-01T11:42:40.547+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 login csg=1 nsg=3 T=true keys: HeaderDigest=None,CRC32C DataDigest=None,CRC32C ErrorRecoveryLevel=2 InitialR2T=No ImmediateData=Yes MaxRecvDataSegmentLength=65536 MaxBurstLength=262144 FirstBurstLength=65536 MaxConnections=32 DataPDUInOrder=Yes DataSequenceInOrder=Yes DefaultTime2Wait=0 DefaultTime2Retain=60 MaxOutstandingR2T=16
+2026-10-01T11:42:40.547+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: session FFFFC80AAC8FE010-4000013700000012; waiting for the disk FDD1450EE99BE5AA4694E79
+2026-10-01T11:42:40.547+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 logged in: discovery=false MRDSL=65536 MaxBurst=262144 FirstBurst=65536 ImmediateData=true
+2026-10-01T11:42:40.798+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: disk 8; bringing it online
+2026-10-01T11:42:40.803+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: formatting the volume NTFS (blank disk: true)
+2026-10-01T11:42:46.269+02:00 pid=38864 format: initialized in 1094 ms
+2026-10-01T11:42:46.270+02:00 pid=38864 format: partition 2 in 2089 ms
+2026-10-01T11:42:46.270+02:00 pid=38864 format: formatted NTFS 'FileDO' in 4754 ms
+2026-10-01T11:42:46.271+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: waiting for the volume
+2026-10-01T11:42:46.272+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: mounted at E:
+2026-10-01T11:42:46.273+02:00 pid=38864 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: mounted \\?\Volume{e7f81a94-ea20-4b10-9723-693e21ce1b37}\ at E:
+2026-10-01T11:42:46.293+02:00 pid=40788 mount D:\r.fdd at E:
+2026-10-01T11:42:48.181+02:00 pid=23864 flush E: before a save
+2026-10-01T11:42:48.516+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: ram: saved 114 MB on request in 210 ms
+2026-10-01T11:42:48.590+02:00 pid=9272 save D:\r.fdd at E: on request
+2026-10-01T11:42:49.957+02:00 pid=33044 detach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: disk 8 dismounted; taking it offline
+2026-10-01T11:42:49.965+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 logout, reason 0
+2026-10-01T11:42:49.966+02:00 pid=16584 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49718 closed after logout
+2026-10-01T11:42:49.971+02:00 pid=33044 detach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: done, unclean=false
+2026-10-01T11:42:50.047+02:00 pid=16584 server exit 127.0.0.1:49716 container 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: stop requested, closed clean, close error <nil>
+2026-10-01T11:42:50.057+02:00 pid=52976 unmount D:\r.fdd from E:: clean
+2026-10-01T11:42:51.434+02:00 pid=58196 bind 127.0.0.1:49720 container 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11 profile ram read-only=false elevated=false path D:\r.fdd
+2026-10-01T11:42:51.528+02:00 pid=28976 mount D:\r.fdd: server pid 58196 on 127.0.0.1:49720
+2026-10-01T11:42:51.705+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: checking the initiator service
+2026-10-01T11:42:51.707+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: adding portal 127.0.0.1:49720
+2026-10-01T11:42:51.709+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49721 connect
+2026-10-01T11:42:51.710+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49721 login csg=0 nsg=1 T=true keys: InitiatorName=iqn.1991-05.com.microsoft:mark SessionType=Discovery AuthMethod=None
+2026-10-01T11:42:51.710+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49721 login csg=1 nsg=3 T=true keys: HeaderDigest=None,CRC32C DataDigest=None,CRC32C MaxRecvDataSegmentLength=65536 DefaultTime2Wait=0 DefaultTime2Retain=60
+2026-10-01T11:42:51.710+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49721 logged in: discovery=true MRDSL=65536 MaxBurst=262144 FirstBurst=65536 ImmediateData=true
+2026-10-01T11:42:51.710+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49721 logout, reason 0
+2026-10-01T11:42:51.711+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49721 closed after logout
+2026-10-01T11:42:51.735+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: logging in
+2026-10-01T11:42:51.737+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 connect
+2026-10-01T11:42:51.737+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 login csg=0 nsg=0 T=false keys: InitiatorName=iqn.1991-05.com.microsoft:mark SessionType=Normal TargetName=iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11 AuthMethod=CHAP
+2026-10-01T11:42:51.737+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 login csg=0 nsg=0 T=false keys: CHAP_A=5
+2026-10-01T11:42:51.737+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 login csg=0 nsg=1 T=true keys: CHAP_N=<cut> CHAP_R=<cut>
+2026-10-01T11:42:51.738+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 login csg=1 nsg=3 T=true keys: HeaderDigest=None,CRC32C DataDigest=None,CRC32C ErrorRecoveryLevel=2 InitialR2T=No ImmediateData=Yes MaxRecvDataSegmentLength=65536 MaxBurstLength=262144 FirstBurstLength=65536 MaxConnections=32 DataPDUInOrder=Yes DataSequenceInOrder=Yes DefaultTime2Wait=0 DefaultTime2Retain=60 MaxOutstandingR2T=16
+2026-10-01T11:42:51.738+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: session FFFFC80AAC8FE010-4000013700000014; waiting for the disk FDD1450EE99BE5AA4694E79
+2026-10-01T11:42:51.738+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 logged in: discovery=false MRDSL=65536 MaxBurst=262144 FirstBurst=65536 ImmediateData=true
+2026-10-01T11:42:51.989+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: disk 8; bringing it online
+2026-10-01T11:42:51.995+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: waiting for the volume
+2026-10-01T11:42:51.995+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: mounted at E:
+2026-10-01T11:42:51.995+02:00 pid=20360 attach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: mounted \\?\Volume{e7f81a94-ea20-4b10-9723-693e21ce1b37}\ at E:
+2026-10-01T11:42:52.007+02:00 pid=28976 mount D:\r.fdd at E:
+2026-10-01T11:42:52.356+02:00 pid=37716 detach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: disk 8 dismounted; taking it offline
+2026-10-01T11:42:52.363+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 logout, reason 0
+2026-10-01T11:42:52.365+02:00 pid=58196 server 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: 127.0.0.1:49722 closed after logout
+2026-10-01T11:42:52.365+02:00 pid=37716 detach iqn.2026-09.ua.od.sza:filedo.vd.4291a8a969d74afba1c3e1b17afe4c11: done, unclean=false
+2026-10-01T11:42:52.451+02:00 pid=58196 server exit 127.0.0.1:49720 container 4291a8a9-69d7-4afb-a1c3-e1b17afe4c11: stop requested, closed clean, close error <nil>
+2026-10-01T11:42:52.456+02:00 pid=27084 unmount D:\r.fdd from E:: clean
+2026-10-01T11:42:52.528+02:00 pid=23672 destroy D:\r.fdd (wipe=false)

@@ -172,7 +172,7 @@ var vdRedactVerbs = map[string]bool{
 	"verify": true, "vfy": true, "compact": true, "shrink": true, "grow": true, "resize": true,
 	"format": true, "destroy": true, "erase": true, "clone": true, "add": true, "forget": true,
 	"list": true, "ls": true, "auto": true, "guard": true, "status": true, "stop": true,
-	"register": true, "unregister": true,
+	"register": true, "unregister": true, "share": true, "autostart": true,
 }
 
 // vdRedactKeeps are the option words of the vd verbs. None of them is ever
@@ -185,6 +185,7 @@ var vdRedactKeeps = map[string]bool{
 	"nosave": true, "off": true, "on": true, "logon": true, "short": true, "-all-users": true,
 	"nopass": true, "new": true, "raw": true, "vhd": true, "wipe": true,
 	"fs": true, "ntfs": true, "exfat": true, "run": true,
+	"noletter": true, "worker": true, "stdin": true, "consent": true,
 }
 
 // vdRedactValueWords take a value that is not a secret: a drive letter, a
@@ -219,7 +220,7 @@ func vdDriveSpelling(t string) bool {
 // vdMountWordSet mirrors vdMountOptionWord for the bare-token rule.
 func vdMountWordSet(t string) bool {
 	switch strings.ToLower(t) {
-	case "ro", "readonly", "noscan", "as":
+	case "ro", "readonly", "noscan", "as", "noletter", "worker", "stdin":
 		return true
 	}
 	return vdDriveSpelling(t)

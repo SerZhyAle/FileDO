@@ -40,12 +40,16 @@ Public Module DiskAutostart
             out.Add(Localization.Format(T(dict, "vd_auto_guard_run_when_fmt"), at) & " " & T(dict, "vd_auto_guard_run_empty"))
             Return out
         End If
-        Dim good = rows.Where(Function(r) r.Outcome = "saved" OrElse r.Outcome = "unmounted").Count()
-        If good = rows.Count Then
-            out.Add(Localization.Format(T(dict, "vd_auto_guard_run_ok_fmt"), at, good))
+        ' Containers are counted by their unmount rows - every mounted container has exactly one, and
+        ' a ram disk has a save row besides - so a saved ram disk left mounted is one container not
+        ' closed, never "one of two" closed. The guard's own summary counts the same way.
+        Dim containers = rows.Where(Function(r) r.Action = "unmount").Count()
+        Dim closed = rows.Where(Function(r) r.Action = "unmount" AndAlso r.Outcome = "unmounted").Count()
+        If rows.All(Function(r) r.Outcome = "saved" OrElse r.Outcome = "unmounted") Then
+            out.Add(Localization.Format(T(dict, "vd_auto_guard_run_ok_fmt"), at, containers))
             Return out
         End If
-        out.Add(Localization.Format(T(dict, "vd_auto_guard_run_left_fmt"), at, good, rows.Count))
+        out.Add(Localization.Format(T(dict, "vd_auto_guard_run_left_fmt"), at, closed, containers))
         For Each r In rows
             If r.Outcome = "saved" OrElse r.Outcome = "unmounted" Then Continue For
             Dim word = T(dict, If(r.Outcome = "unfinished", "vd_auto_guard_outcome_unfinished", "vd_auto_guard_outcome_skipped"))
@@ -99,9 +103,9 @@ Friend Class DiskAutostartDialog
         AddParagraph(T("vd_auto_intro"))
 
         AddSection(T("vd_auto_logon_title"))
-        logonWord = NewLabel("", contentWidth, strong:=True)
+        logonWord = NewLabel("", LineWidth, strong:=True)
         AddRow(logonWord)
-        logonIntro = NewLabel("", contentWidth, muted:=True)
+        logonIntro = NewLabel("", LineWidth, muted:=True)
         AddRow(logonIntro)
         logonHost = New TableLayoutPanel With {
             .AutoSize = True,
@@ -174,25 +178,49 @@ Friend Class DiskAutostartDialog
         Next
         logonHost.RowStyles.Clear()
         Dim ctx As New DiskContext With {.Packaged = False}
+        Dim textWidth = NameColumnWidth()
         For Each r In rows
             logonHost.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-            logonHost.Controls.Add(LogonRow(r, ctx), 0, logonHost.RowStyles.Count - 1)
+            logonHost.Controls.Add(LogonRow(r, ctx, textWidth), 0, logonHost.RowStyles.Count - 1)
         Next
         logonHost.ResumeLayout(True)
     End Sub
 
+    ' A line as wide as the page: NewLabel keeps a right margin, so a label of the full content width
+    ' would overflow the page by that margin and bring up a horizontal scroll bar.
+    Private ReadOnly Property LineWidth As Integer
+        Get
+            Return contentWidth - P(8)
+        End Get
+    End Property
+
+    ' The name column of the logon rows: what the page leaves beside the wider of the two switch
+    ' captions, the same for every row so the switches line up. A long caption (Russian, German)
+    ' narrows the column instead of pushing the switch off the page.
+    Private Function NameColumnWidth() As Integer
+        Dim widest = 0
+        For Each a In New DiskAction() {DiskAction.AutoOn, DiskAction.AutoOff}
+            Using probe = NewButton(T(DiskStates.LabelKey(a, Nothing)), DiskGlyphs.AutoMount)
+                probe.Font = Font
+                widest = Math.Max(widest, probe.GetPreferredSize(Size.Empty).Width)
+            End Using
+        Next
+        Return Math.Max(P(120), Math.Min(P(260), LineWidth - widest - P(4)))
+    End Function
+
     ' One logon row: the container's name and its task in words, and the same switch the manager's
-    ' row carries - disabled with the reason beside it when the console would refuse it (an
+    ' row carries - disabled with the reason under it when the console would refuse it (an
     ' encrypted container is never mounted at logon automatically, and no credential is stored).
-    Private Function LogonRow(r As DiskRecord, ctx As DiskContext) As Control
+    ' The reason takes a line of its own across the row: beside the switch it would not fit the
+    ' page and would be cut off behind a horizontal scroll bar.
+    Private Function LogonRow(r As DiskRecord, ctx As DiskContext, textWidth As Integer) As Control
         Dim name = If(r.Name <> "", r.Name, r.BaseName)
         Dim row As New TableLayoutPanel With {
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .ColumnCount = 3,
+            .ColumnCount = 2,
             .Margin = PPad(0, 0, 0, 6)
         }
-        row.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         row.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         row.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         row.RowStyles.Add(New RowStyle(SizeType.AutoSize))
@@ -202,10 +230,11 @@ Friend Class DiskAutostartDialog
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .FlowDirection = FlowDirection.TopDown,
             .WrapContents = False,
-            .Margin = New Padding(0)
+            .Margin = New Padding(0),
+            .MinimumSize = New Size(textWidth + P(8), 0)
         }
-        text.Controls.Add(NewLabel(name, P(240), strong:=True))
-        text.Controls.Add(NewLabel(T(DiskAutostart.RowWordKey(r)), P(240), muted:=True))
+        text.Controls.Add(NewLabel(name, textWidth, strong:=True))
+        text.Controls.Add(NewLabel(T(DiskAutostart.RowWordKey(r)), textWidth, muted:=True))
         row.Controls.Add(text, 0, 0)
 
         Dim switchingOn = Not r.AutoMount
@@ -213,7 +242,7 @@ Friend Class DiskAutostartDialog
         Dim why = DiskStates.WhyNot(action, r, DiskStates.StateOf(r, Nothing), ctx)
         Dim b = NewButton(T(DiskStates.LabelKey(action, Nothing)), DiskGlyphs.AutoMount)
         b.Enabled = (why = "")
-        b.Margin = PPad(0, 0, P(8), 0)
+        b.Margin = New Padding(0)
         b.AccessibleName = b.Text & " - " & name
         AddHandler b.Click, Sub()
                                 If performFn IsNot Nothing Then performFn(action, New List(Of DiskRecord) From {r})
@@ -221,9 +250,10 @@ Friend Class DiskAutostartDialog
         row.Controls.Add(b, 1, 0)
 
         If why <> "" Then
-            row.Controls.Add(NewLabel(T(why), P(220), muted:=True), 2, 0)
-        Else
-            row.Controls.Add(NewLabel("", P(10)), 2, 0)
+            row.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+            Dim reason = NewLabel(T(why), LineWidth, muted:=True)
+            row.Controls.Add(reason, 0, 1)
+            row.SetColumnSpan(reason, 2)
         End If
         Return row
     End Function
@@ -239,7 +269,7 @@ Friend Class DiskAutostartDialog
         Dim isOn = g IsNot Nothing AndAlso g.Installed
 
         guardHost.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-        guardHost.Controls.Add(NewLabel(T(DiskAutostart.GuardWordKey(g)), contentWidth, strong:=True), 0, guardHost.RowStyles.Count - 1)
+        guardHost.Controls.Add(NewLabel(T(DiskAutostart.GuardWordKey(g)), LineWidth, strong:=True), 0, guardHost.RowStyles.Count - 1)
 
         Dim switch = NewButton(T(If(isOn, "vd_mgr_btn_turn_off", "vd_mgr_btn_turn_on")), Nothing)
         switch.Margin = PPad(0, 4, 8, 6)
@@ -263,7 +293,7 @@ Friend Class DiskAutostartDialog
         Dim runLabel As New List(Of Label)
         Dim first = True
         For Each line In runText.Split(New String() {Environment.NewLine}, StringSplitOptions.None)
-            Dim l = NewLabel(line, contentWidth, muted:=Not first)
+            Dim l = NewLabel(line, LineWidth, muted:=Not first)
             If first Then first = False
             guardHost.RowStyles.Add(New RowStyle(SizeType.AutoSize))
             guardHost.Controls.Add(l, 0, guardHost.RowStyles.Count - 1)
@@ -292,6 +322,12 @@ Friend Class DiskAutostartDialog
             Return out
         End Get
     End Property
+
+    ' How far the page is wider than the content width it was laid out for; above zero the page
+    ' scrolls sideways and cuts text off at the right.
+    Friend Function OverflowForTest() As Integer
+        Return page.GetPreferredSize(New Size(contentWidth, 0)).Width - contentWidth
+    End Function
 
     Friend ReadOnly Property LogonRowCountForTest As Integer
         Get

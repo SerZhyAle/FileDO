@@ -520,18 +520,24 @@ func vdGuardExecute(saves, unmounts []vdGuardTarget, steps vdGuardSteps, at time
 }
 
 // vdGuardSummary is the report's one sentence: a run that did everything says
-// so in one breath; a run that ran out of time says what was left.
+// so in one breath; a run that ran out of time says what was left. Containers
+// are counted by their unmount rows - every mounted container has exactly one,
+// and a ram disk has a save row besides - so a saved ram disk whose unmount
+// did not finish is one container not closed, never "one of two" closed.
 func vdGuardSummary(rows []vdGuardRow) string {
 	if len(rows) == 0 {
 		return "Nothing was mounted; there was nothing to do."
 	}
-	good, skipped, unfinished, saved := 0, 0, 0, 0
+	containers, closed, skipped, unfinished, saved := 0, 0, 0, 0, 0
 	for _, r := range rows {
+		if r.Action == "unmount" {
+			containers++
+		}
 		switch r.Outcome {
 		case "saved":
-			good, saved = good+1, saved+1
+			saved++
 		case "unmounted":
-			good++
+			closed++
 		case "unfinished":
 			unfinished++
 		default:
@@ -544,7 +550,7 @@ func vdGuardSummary(rows []vdGuardRow) string {
 		}
 		return "Every mounted container was closed cleanly."
 	}
-	parts := []string{fmt.Sprintf("%d of %d containers were closed cleanly", good, len(rows))}
+	parts := []string{fmt.Sprintf("%d of %d containers were closed cleanly", closed, containers)}
 	if skipped > 0 {
 		parts = append(parts, fmt.Sprintf("%d skipped", skipped))
 	}
@@ -725,13 +731,13 @@ func vdGuardReadReport() (vdGuardReport, bool) {
 // schema v1, whose reader ignores unknown fields - an old GUI and a new CLI,
 // and the reverse, both keep working.
 func vdGuardState() vdSnapGuard {
-	g := vdSnapGuard{Installed: vdGuardInstalled(), Running: vdGuardRunning()}
+	g := vdSnapGuard{Installed: vdGuardHasTask(), Running: vdGuardRunning()}
 	if r, ok := vdGuardReadReport(); ok {
 		g.LastRun = r.At
 		g.Ended = r.Ended
 		for _, row := range r.Containers {
 			g.Containers = append(g.Containers, vdSnapGuardRow{
-				Name: row.Name, Action: row.Action, Outcome: row.Outcome,
+				Name: row.Name, Path: row.Path, Action: row.Action, Outcome: row.Outcome,
 				Reason: row.Reason, BytesSaved: row.BytesSaved,
 			})
 		}

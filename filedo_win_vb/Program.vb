@@ -98,7 +98,7 @@ Module Program
             ' started as the Disk Manager alone (the Start menu's FileDO entry after its Disk Manager
             ' entry). A copy that does not listen (an older one) is focused as before.
             If Not disksOnly AndAlso AppHost.HandOverShell() Then Return
-            If HandOverToRunningCopy() Then Return
+            If HandOverToRunningCopy(disksOnly) Then Return
         End If
 
         ' A start on a `.fdd` (SP-0004 6.4, T6.18) is answered before any window exists: a container
@@ -117,13 +117,18 @@ Module Program
         ' kept here, once per start, off the window's thread.
         StartSweep()
 
+        ' Retire closed session logs even when this start produces no error or debug line.
+        ShellLog.Info("session started")
+
         ShellLog.Debug("start: " & StartLogLine(Environment.GetCommandLineArgs().Skip(1).ToArray()))
 
         ' The process's windows - the shell, the Disk Manager - live in one AppHost, which ends the
         ' process when the last of them has closed (SP-0063 D1).
         Dim host As AppHost = Nothing
         Try
-            If disksOnly Then
+            If target Is Nothing AndAlso StartupLaunch.HiddenStart(argv) Then
+                host = New AppHost(Nothing, False, True)
+            ElseIf disksOnly Then
                 host = New AppHost(Nothing, True)
             Else
                 host = New AppHost(New ShellForm(target, diskDecision), False)
@@ -216,9 +221,15 @@ Module Program
 
     ' A start that lost the claim waits for the first copy's window - it may still be opening - and
     ' brings it forward. When none appears in time, this start opens its own rather than nothing.
-    Private Function HandOverToRunningCopy() As Boolean
+    Private Function HandOverToRunningCopy(Optional wantsManager As Boolean = False) As Boolean
         Dim deadline = DateTime.Now.AddMilliseconds(HandOverWaitMs)
         Do
+            ' The first copy may still be constructing its listener, especially on a hidden start.
+            If wantsManager Then
+                If AppHost.HandOverDisks() Then Return True
+            Else
+                If AppHost.HandOverShell() Then Return True
+            End If
             Dim hwnd = RunningCopyWindow()
             If hwnd <> IntPtr.Zero Then
                 If IsIconic(hwnd) Then ShowWindow(hwnd, SW_RESTORE)

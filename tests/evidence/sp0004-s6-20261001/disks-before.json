@@ -1,0 +1,65 @@
+[
+  {
+    "Number": 3,
+    "FriendlyName": "KINGSTON SNV2S4000G",
+    "SerialNumber": "0000_0000_0000_0000_0026_B778_5BDD_C1D5.",
+    "BusType": "NVMe",
+    "Size": 4000787030016,
+    "IsBoot": false,
+    "IsSystem": false
+  },
+  {
+    "Number": 2,
+    "FriendlyName": "Samsung SSD 9100 PRO 4TB",
+    "SerialNumber": "0025_38A3_5141_8CC0.",
+    "BusType": "NVMe",
+    "Size": 4000787030016,
+    "IsBoot": true,
+    "IsSystem": true
+  },
+  {
+    "Number": 4,
+    "FriendlyName": "Samsung SSD 970 EVO Plus 2TB",
+    "SerialNumber": "0025_385A_11B1_34EC.",
+    "BusType": "NVMe",
+    "Size": 2000398934016,
+    "IsBoot": false,
+    "IsSystem": false
+  },
+  {
+    "Number": 5,
+    "FriendlyName": "Samsung SSD 980 PRO with Heatsink 2TB",
+    "SerialNumber": "0025_38BC_2140_7EAD.",
+    "BusType": "NVMe",
+    "Size": 2000398934016,
+    "IsBoot": false,
+    "IsSystem": false
+  },
+  {
+    "Number": 6,
+    "FriendlyName": "Samsung SSD 990 PRO 2TB",
+    "SerialNumber": "0025_3845_41A3_2F8E.",
+    "BusType": "NVMe",
+    "Size": 2000398934016,
+    "IsBoot": false,
+    "IsSystem": false
+  },
+  {
+    "Number": 1,
+    "FriendlyName": "Samsung SSD 860 EVO 500GB",
+    "SerialNumber": "S3Z2NB0M807371K",
+    "BusType": "SATA",
+    "Size": 500107862016,
+    "IsBoot": false,
+    "IsSystem": false
+  },
+  {
+    "Number": 0,
+    "FriendlyName": "SanDisk SDSSDH3 2T00",
+    "SerialNumber": "213765803725",
+    "BusType": "SATA",
+    "Size": 2000398934016,
+    "IsBoot": false,
+    "IsSystem": false
+  }
+]

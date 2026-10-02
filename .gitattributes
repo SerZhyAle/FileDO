@@ -6,5 +6,9 @@ assets/glyphs/** -text
 
 # The fdsec conformance vectors are held to their PROVENANCE.txt the same way (TestVectors_Suite1/2/3).
 fdsec/testdata/vectors/** -text
+# Disk-container vectors also carry byte-level provenance hashes.
+vdisk/testdata/vectors/** -text
+# The event sample is compared byte for byte with the producer-generated stream.
+cmd/filedo/testdata/events/*.jsonl -text
 # The Explorer icons (MenuIcons.vb) are compared pixel by pixel by the shell's self-test.
 assets/menu-icons/*.ico binary

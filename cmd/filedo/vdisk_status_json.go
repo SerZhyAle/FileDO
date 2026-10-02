@@ -148,6 +148,8 @@ type vdSnapContainer struct {
 }
 
 type vdSnapMount struct {
+	MountPath   string     `json:"mount_path,omitempty"`
+	VolumeGUID  string     `json:"volume_guid,omitempty"`
 	Letter      string     `json:"letter"`
 	ReadOnly    bool       `json:"read_only"`
 	MountedAt   vdStamp    `json:"mounted_at"`
@@ -422,7 +424,7 @@ func vdSnapFile(row *vdSnapContainer, wantID string) {
 }
 
 func vdSnapMountOf(m vdMountRow) *vdSnapMount {
-	out := &vdSnapMount{Letter: m.Letter, ReadOnly: m.ReadOnly, MountedAt: vdStamp(m.MountedAt), ServerAlive: vdSnapshotAlive(m)}
+	out := &vdSnapMount{MountPath: m.MountPath, VolumeGUID: m.VolumeGUID, Letter: m.Letter, ReadOnly: m.ReadOnly, MountedAt: vdStamp(m.MountedAt), ServerAlive: vdSnapshotAlive(m)}
 	if m.Profile == vdisk.ProfileRAM.String() && out.ServerAlive {
 		if r, ok := vdReadRAMStatus(m.ContainerID); ok {
 			out.RAM = &vdSnapRAM{DirtyBytes: r.DirtyBytes, Saving: r.Saving, LastGood: vdStamp(r.LastGoodSave), SaveError: r.SaveError}

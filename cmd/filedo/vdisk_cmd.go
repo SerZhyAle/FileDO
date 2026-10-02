@@ -266,6 +266,10 @@ func runVd(args []string, hl *HistoryLogger, batch bool) error {
 		return vdPass(rest)
 	case "destroy":
 		return vdDestroy(rest, batch)
+	case "share":
+		return vdShare(rest, batch)
+	case "autostart":
+		return vdAutostart(rest, batch)
 	case "add":
 		return vdAdd(rest)
 	case "forget":
@@ -594,6 +598,7 @@ func vdInfoOne(path string) error {
 		return err
 	}
 	vdInfoPrint(path, i)
+	EmitFindingEvent("info", "Container inspected", map[string]interface{}{"vdInfo": map[string]interface{}{"containerId": i.ContainerID, "obfuscated": i.Obfuscated, "profile": i.Profile.String(), "versionMajor": i.VersionMajor, "versionMinor": i.VersionMinor}})
 	return nil
 }
 
@@ -634,6 +639,8 @@ type vdMountRow struct {
 	ContainerID   string    `json:"container_id"`
 	Path          string    `json:"path"`
 	Letter        string    `json:"letter"`
+	MountPath     string    `json:"mount_path,omitempty"`
+	VolumeGUID    string    `json:"volume_guid,omitempty"`
 	ReadOnly      bool      `json:"read_only"`
 	MountedAt     time.Time `json:"mounted_at"`
 	ServerPID     int       `json:"server_pid"`

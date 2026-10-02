@@ -66,7 +66,7 @@ unchanged for a `cmd.exe` prompt.
 - **The build is the release build.** The four Go executables are built
   exactly as `release.yml` builds them: `windows/amd64`, CGO off,
   `goversioninfo -64` (PE version plus `app.manifest`), `-trimpath`, and the Go
-  that `go.mod`'s `toolchain` line pins (`go1.26.1`). The gate's `go test`
+  that `go.mod`'s `toolchain` line pins (`go1.26.8`). The gate's `go test`
   runs are amd64 too, so what `-Test` proves is a build of the same source,
   toolchain and flags as the one that ships - not the shipped bytes: the
   workflow rebuilds every executable on its runner, re-runs the gate's go
@@ -74,7 +74,7 @@ unchanged for a `cmd.exe` prompt.
   GUI selftest and the PE-shape checks run only here (AUD-68-F1).
   `exe_to_download\` holds amd64 executables. Prerequisites that are missing
   or different end the run with exit 2 before anything is built: a local Go
-  other than the pinned one (install it, or set `GOTOOLCHAIN=go1.26.1`),
+  other than the pinned one (install it, or set `GOTOOLCHAIN=go1.26.8`),
   goversioninfo other than `v1.4.1`
   (`go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1`),
   or a Windows that cannot run amd64 programs. A missing MSBuild is exit 2 as
@@ -253,7 +253,8 @@ privacy-policy URL the listing carries answers 200 (Store policy 10.5). It
 proves nothing about the reserved identity or Microsoft's re-signing - the
 local-test package has neither - and it never uploads anything. A test that is
 not `PASS` is printed with the Store's own wording, including the optional ones:
-those are what a submission has to be argued through, not noise.
+required failures block the check, while optional findings are reported as advisories under Microsoft's
+Desktop Bridge test policy. The raw overall verdict remains visible, including `WARNING`.
 
 The release workflow does its own last check before it publishes: every
 `.sha256` sidecar is re-read and its asset re-hashed
@@ -297,7 +298,7 @@ the tag:
   failed before publishing (no release, or a release with none of the six)
   still goes through.
 - **Least privilege.** Every action is pinned to a commit SHA, checkout does
-  not persist the token, WiX is pinned to `5.0.2`, and the Go is `1.26.1`
+  not persist the token, WiX is pinned to `5.0.2`, and the Go is `1.26.8`
   (`GOTOOLCHAIN=local`, checked against `go.mod`). The Windows build job can
   only read the repository; a separate job that runs no project code takes
   the six verified files and is the only one allowed to write the release.
@@ -309,7 +310,7 @@ the tag:
 - `gh` authenticated (`gh auth login`) - used for push, release polling,
   asset download, and the winget submit token.
 - `wingetcreate` - `winget install Microsoft.WingetCreate`.
-- Go `1.26.1` (the `go.mod` toolchain pin) and goversioninfo `v1.4.1` - the
+- Go `1.26.8` (the `go.mod` toolchain pin) and goversioninfo `v1.4.1` - the
   gate refuses any other, because it must build what the workflow builds.
 - govulncheck - `go install golang.org/x/vuln/cmd/govulncheck@v1.8.0`.
 - For the MSIX: Windows SDK (`makeappx`) + VS Build Tools (MSBuild) - see

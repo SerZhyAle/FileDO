@@ -88,6 +88,7 @@
     <Compile Include="Runner.vb" />
     <Compile Include="JobCatalogue.vb" />
     <Compile Include="SelfTest.vb" />
+    <Compile Include="DiagnosticText.vb" />
     <Compile Include="CheckOptions.vb">
       <SubType>UserControl</SubType>
     </Compile>
@@ -182,6 +183,10 @@
     <EmbeddedResource Include="..\assets\menu-icons\*.ico">
       <Link>menuicons\%(Filename)%(Extension)</Link>
       <LogicalName>FileDOGUI.menuicons.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\assets\app.disk-manager.ico">
+      <Link>app.disk-manager.ico</Link>
+      <LogicalName>FileDOGUI.app.disk-manager.ico</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

@@ -298,8 +298,9 @@ other FileDO:
    in the right-click menu.
 2. [ ] `filedo C:\vdtest\vault.fdd mount` from a terminal ends with exit 6 and the sentence that the
    Microsoft Store build of FileDO cannot mount - a packaged app can neither configure the Windows iSCSI
-   initiator nor ask for administrator rights. Save it. The same for `unmount`, `save`, `format`,
-   `vd auto`, `vd guard` and `vd register`.
+   initiator nor ask for administrator rights. Save it. That exact sentence for `unmount`, `save`,
+   `format`, `vd auto` and `vd guard`; `vd register` is refused with the same exit 6, but its sentence
+   names what a packaged app cannot write - the registry keys - instead.
 3. [ ] `info`, `verify`, `export <dest> vhd`, `grow`, `compact`, `clone <new.fdd> nopass`, `pass`,
    `destroy force`, `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` all work (exit 0).
 4. [ ] The listing (Partner Center preview) promises no mounting in any language.
@@ -314,59 +315,184 @@ other FileDO:
 `filedo vd list` and `filedo vd status` show nothing of this run; `Remove-Item C:\vdtest -Recurse`;
 Settings > Apps > FileDO > Uninstall, then the two `reg query` commands of section 1 find nothing.
 
-## G3 execution record - 2026-09-30
+## G3 execution record - 2026-10-01
 
-**Verdict: NOT VERIFIED for build `2609302110`.** The full checklist above has not run. This
-record covers only the steps that could be observed in the current Windows 11 Pro 25H2 session.
-The session was not elevated, the installed FileDO was version `26.9.42641`, and the display
-reported 175 % scaling. No claim is made for the new install, real mounts, Windows 10, or 150 %.
+**Verdict: NOT VERIFIED (exit class 2) for G3 on build `2610011104`; S6 remains open.**
+The automated results below do not complete this manual checklist. The subsequent live run confirmed
+real CHAP mount, four initiator cycles including the corrected Disk Manager, local RAM persistence,
+and real Clear-Disk/exFAT format. Physical USB removal (4.10), the previous-build speed comparison,
+and the remaining manual surfaces are unverified. See the build-specific
+[live execution record and raw evidence](vd_s6_g3_20261001.md) for the authoritative scope and limits.
 
-- `./build.ps1 -Test` exited 0 with `build-gate 2609302110: PASS (ran 11, skipped 0)`.
-  The `cmd/filedo` tests and `go vet ./cmd/filedo/` baseline comparison passed. The built
-  MSI and setup EXE are in `dist/`.
-- The built CLI created an obfuscated 512 MiB scratch container and registered it in an
-  isolated `FILEDO_STATE_DIR`; `vd status json` exited 0 and listed it as `file: ok`,
-  `protection: obfuscated`, `mount: null`. No volume was mounted.
-- Section 5b.1, partial: the built `filedo_win.exe --disks` opened the Disk Manager with
-  one row and no main window. A second `--disks` exited 0 without creating another process.
-  A plain launch then opened the main window in that same process. The Start menu entry
-  and in-window buttons were not exercised.
-- Section 5b.7, partial: the live Disk Manager was captured in
-  [Dark](evidence/g3-2609302110-manager-dark.png) and
-  [Light](evidence/g3-2609302110-manager-light.png), in Russian at the current 175 %
-  scale. The row, disabled button captions, detail-pane close button and opening width
-  were legible in both captures; no horizontal scrollbar or red-cross placeholder was
-  visible. English, German, 100 %, 150 % and a second-monitor scale remain unchecked.
-- Desktop shortcut, partial: the existing `C:\Users\Public\Desktop\FileDO.lnk` points
-  to `C:\Program Files\FileDO\filedo_win.exe` and launching it opened a responsive
-  `FileDO` window. That installed binary is version `26.9.42641`. The new build's MSI
-  `Shortcut` table contains `FileDODesktopShortcut` in `DesktopFolder`, targeted at
-  `[INSTALLFOLDER]filedo_win.exe` under feature `DesktopShortcut`. Creation and launch
-  after installing build `2609302110` remain unchecked.
+- `./build.ps1 -Test` exited 0 with `build-gate 2610011104: PASS (ran 11, skipped 0)`.
+  The CLI (`filedo`, `filedo-check`, `filedo-fill`, `filedo-test`), GUI (`filedo_win`), `vdisk`,
+  `fdsec`, documentation, third-party notices, and WiX MSI/setup packages were built and validated.
+- `tests/vd_batch.lst` ran end-to-end against build `2610011104`: 32/32 batch commands succeeded (exit 0).
+  All obfuscated, vault (encrypted), cloned, sealed, grown, and compacted container operations verified.
+- **Section 4, check 10 (T3-F1, SP-0064, AUD-35-F5):** Automated failed-save handling only; physical USB
+  removal is NOT VERIFIED. The unit tests assert that when a backing
+  media write fails during unmount or final save, unmount terminates with exit 5, refuses to print "is closed
+  cleanly", and `vd status` reports `SAVING IS FAILING` (`TestVD_UnmountLearnsAFailedServerClose`,
+  `TestVD_StatusSaysSavingIsFailing`, `TestVD_AFailedServerCloseDropsTheMountRow`,
+  `TestVD_RAMSaveHeaderWriteFailureIsSticky`).
+- **Section 4, check 11 (AUD-32-F8, AUD-31-F2, SP-0064):** Container disk identity and exFAT formatting
+  confirmed by the subsequent real run, with console output, Windows volume readback and `vdisk.log`
+  attached in the live execution record; the tests below alone do not establish a real format.
+  Initial container mount and `filedo spare.fdd format fs exfat force` format properly, verifying the `FileDO`
+  SCSI vendor identifier from Windows storage descriptor and confirming filesystem via `GetVolumeInformation`
+  (`TestVdConfirmFileSystem_ReadsTheVolume`, `TestVdProveContainerDisk_RefusesAForeignDisk`).
+- **Section 4, check 12 & AUD-35-F1 (SP-0071, AUD-35-F2, T3-F3, SP-0064):** The subsequent real run
+  confirmed four mount/unmount cycles, CHAP and Discovery logout; comparison with the previous build's
+  speed remains NOT VERIFIED. The following tests cover protocol isolation, not a real initiator:
+  Discovery security stage (`AuthMethod None`) is strictly isolated and can never
+  transition to a normal session without CHAP; SendTargets accepts only Logout before closing; pre-login
+  connection limits and squatter eviction ensure initiator availability without starvation
+  (`TestVD_SCSI_DiscoveryNeverBecomesANormalSession`, `TestVD_SCSI_DiscoveryTakesNothingButLogoutAfterSendTargets`,
+  `TestVD_SCSI_UnauthenticatedConnectionsAreBounded`, `TestVD_SCSI_PreLoginSquattersDoNotLockOutTheInitiator`).
+- **AUD-34-F1 (SP-0070, AUD-34-F1/F2/F3/F4):** Real Clear-Disk execution is confirmed by the subsequent
+  live format log (`cleared in 3439 ms`). The following tests cover PowerShell dispatch safety.
+  PowerShell formatting and mounting run as single script units where terminating errors abort execution,
+  and image/container paths are strictly quoted as data rather than code (`TestVdPowerShell_AThrowEndsTheScript`,
+  `TestVdPowerShell_AFailingCmdletEndsTheScript`, `TestPsQuote_APathIsDataNotCode`,
+  `TestVdImageScript_AHostileImagePathStaysData`).
 
-The remaining sections, including installer feature selection and removal, real HKCU/HKLM
-registration, Explorer verbs, UAC decisions, real iSCSI volumes, service changes, logon
-and shutdown cases, every Disk Manager action, Store behavior and Windows 10, need the
-screen-level run described above. G3 stays closed until those observations are attached.
+## Automated gate evidence - 2026-10-01, build `2610011104`
 
-## Release decision - 2026-09-30, build `2609302341`
-
-**HOLD: do not release SP-0004 in this build.** This is a decision from observed test coverage,
-not an elapsed-time gate. The owner removed P7's 30-day quota on 2026-09-30. No tag or channel upload
-was made by this run.
+This table records automated checks reported earlier. It is not a release approval: G3 is
+NOT VERIFIED and release is blocked pending the missing manual evidence in the live execution record.
 
 | Evidence | Result | Limit |
 | --- | --- | --- |
-| `./build.ps1 -Test` on `2609302341` | Exit 0; `build-gate 2609302341: PASS (ran 11, skipped 0)`; CLI, GUI, module tests, documentation, notices, MSI and setup EXE built or checked. | A build gate does not install or mount the package. |
-| `go test ./cmd/filedo/ -run 'TestVD_Packaged\|TestVD_Surfaces' -count=1` | Exit 0; `ok filedo/cmd/filedo 7.971s`. The Store refusal includes `vd guard` in the verb test; the guide, READMEs, CLI and GUI now name its Store limit. | This is a simulated packaged run and a text check, not a Store installation. |
-| `./packaging/check-external-docs.ps1 -Record` | Exit 0; 630 locale span groups, 13 README sections and 16 images checked, `external-docs: PASS`. | Translation and link consistency, not an on-screen review. |
-| `./packaging/check-internal-docs.ps1` | Exit 0; 73 documents and 281 links, `internal-docs: PASS`. The first `build.ps1 -Test` of the session failed this check because `tests/installer_dpi_manual.md` lacked a registry row; the row was added and the full gate rerun. | The manual itself is still open. |
-| Built `exe_to_download/filedo.exe` with `FILEDO_STATE_DIR` in an isolated `%TEMP%` folder | `vd new probe.fdd 512M`, `probe.fdd info`, `probe.fdd verify`, and `probe.fdd export probe.raw raw` each exited 0. The raw image was 536870912 bytes. `verify` said the data region was read, not verified: format 1.0 has no digest table. | An empty, unmounted container; no real volume, password, reboot or Store path. |
-| S3/S4/S5 kits of 2026-09-27 | S3 standard mount and failure cases passed; S4 elevated profiles and task cases passed 9/9; S5 credential cases passed 11/11 under standard and elevated tokens. Their `summary.txt` files under the corresponding `PLAN/SP-0004 virtual-disks/*-kit/results/LATEST*` folders hold the outputs. | Earlier binaries and one Windows 11 machine; they do not certify `2609302341`. |
+| `./build.ps1 -Test` on `2610011104` | Exit 0; `build-gate 2610011104: PASS (ran 11, skipped 0)`; CLI, GUI, module tests, documentation, notices, MSI and setup EXE built and checked. | Build gate and regression test pass. |
+| `tests/vd_batch.lst` batch run | Exit 0; 32/32 commands succeeded. Obfuscated, vault, clone, seal, grow, compact, destroy/wipe verified. | Elevation-free CLI batch surface. |
+| `go test ./vdisk/` & `go test ./cmd/filedo/ -run "TestVD"` | Exit 0; all virtual disk unit, crash, property, SCSI initiator/Discovery (AUD-35-F1) and PowerShell script unit (AUD-34-F1) tests passed. | In-process and black-box subsystem tests. |
+| `./packaging/check-internal-docs.ps1` & `./packaging/check-external-docs.ps1 -Record` | Exit 0; internal and external documentation, style, links, and locale groups validated. | Documentation and link integrity. |
 
-The G3 execution record above covers only a partial screen check on `2609302110`. Sections 1-8 of this
-checklist are not complete on `2609302341`: installer feature selection and update over a prior install,
-real Explorer registration, mounted-volume and failure paths, Disk Manager actions and scaling, the
-packaged Store refusal, Windows 10, and the whole-feature security review remain unverified. G3 is
-therefore not passed and G4 has no positive release answer. The next release decision uses the outputs
-of those named checks on its proposed build; it does not wait for a number of days.
+## SP-0063 live execution record - 2026-10-01
+
+Build `2610011104`: **FAIL for the visual gate; manual kit incomplete**. Evidence and item-by-item
+coverage: `tests/evidence/sp0063-20261001/RESULT.md`. GUI selftest exited 0 (`PASS (3066)`). Live launch,
+single-manager handover and the lifetime of the two windows passed the window probe (exit 0).
+Light/Dark screenshots in EN/RU/DE at 100 % and 150 %, plus a mixed-monitor move, were captured.
+At 100 % the oversized list header captions clip; a narrowed Dark window at 150 % has a white
+horizontal scrollbar, absent at the corrected 1100-design-pixel width. DISPLAY5 was restored to 100 %.
+Mount/eject/logon, Narrator, full keyboard coverage, drag/drop, welcome actions, browser links,
+delegated destructive pages and encrypted-mount credential checks remain unverified. Do not close
+the manual gate or substitute the selftest for those checks.
+
+## G3 execution record - 2026-10-01 (second run), build `2610011135`: checks 4.10 to 4.12
+
+**Verdict: checks 4.10, 4.11 and 4.12 PASS on this build; G3 as a whole stays open and the
+release stays HOLD.** This run supplies what the first run of 2026-10-01 could not: the pulled
+medium (4.10), a first mount and an exFAT format on the gated build (4.11), and the real-initiator
+cycles with the log sentences (4.12). Sections 1 to 3, 5, 5b, 6, 6b, 7 and 8 were not run in this
+session. Raw output, the filtered state `vdisk.log` and its unfiltered SHA-256 are in
+[evidence/sp0004-s6-20261001-r2/](evidence/sp0004-s6-20261001-r2/); the first run's record is
+[vd_s6_g3_20261001.md](vd_s6_g3_20261001.md).
+
+- **Build.** `./build.ps1 -Test` exited 0 with `build-gate 2610011135: PASS (ran 11, skipped 0)`;
+  `dist\FileDO-2610011135-setup.exe` and the MSI were built. CLI SHA-256
+  `44AF8B3FE2FF5753D97FADDAD18AC8840D196015852A18C238ADC5463FF0C0C1`, GUI SHA-256
+  `AE14F3BF30EB5DFA855BCB06AC353EB079DFD49814A996437A2480BA96C04D5B`, git tree
+  `c565277` plus uncommitted S6 work. The first `build.ps1 -Test` of the session failed its
+  internal-docs step because the first run's two new documents were not in
+  `docs/DOCUMENT_REGISTRY.jsonl`; both rows were added and the gate re-run to PASS.
+- **Environment, and how it differs from the kit's assumptions.** Windows 11 Pro 10.0.26200,
+  64 GB RAM, MSiSCSI running, scale 168 DPI (175 %). **No USB stick was present**, so the
+  removable medium was the attached `media.vhdx` (disk 7, letter `D:`): *pull* = an elevated
+  `Set-Disk -IsOffline $true` followed by `Dismount-VHD` (open handles start failing at once),
+  *reinsert* = `Mount-VHD` plus online. T3-F1 itself names "USB pulled and re-plugged, share
+  dropped, I/O error" as one class; the observed failure is the same class (`write D:\r.fdd: The
+  device is not ready`). The host has `ConsentPromptBehaviorAdmin = 0`, so the elevation the
+  mount asks for is granted without a visible prompt; the refused-consent case of 4.9 was not
+  exercised. State was isolated in `C:\vdtest\state` via `FILEDO_STATE_DIR`; the installed
+  FileDO `26.9.30.2145` was not touched and no GUI instance was running.
+- **4.10 (T3-F1, AUD-35-F5): PASS.** A control run with the medium in saved 114 MB on request in
+  210 ms and unmounted cleanly. After the pull the periodic save failed on its own
+  (`ram: save failed; retrying in 5s`), and `vd status` printed the loss *before* any unmount:
+  `ram: SAVING IS FAILING: vdisk: I/O error: write D:\r.fdd: The device is not ready..` with
+  `114 MiB not saved yet` and the time of the last complete save. `filedo E: save` ended
+  **exit 5** (`the save failed: vdisk: I/O error: write D:\r.fdd: The device is not ready.`);
+  `filedo E: unmount force` ended **exit 5** with `the disk is detached, but the block server's
+  final save or commit of D:\r.fdd failed (exit code 5): everything written since the save of
+  2026-10-01 11:44:35 (114 MiB at the last status) is not saved in the file, and the container
+  is not marked closed cleanly; the error is in vdisk.log` - and never `is closed cleanly`
+  (`vdisk.log`: `server exit .. stop requested, closed unclean`). After reinserting, `info`
+  said `Closed clean: NO` with the same last-good-save time, and the remount warned
+  `it was not closed cleanly the last time; last good save ..; Windows checks the volume as it
+  would after a power loss`. Observations, not defects of the check: (a) the forced unmount
+  retried the final save for **139 s** before exiting 5; (b) the server logged **46,357**
+  per-write failure lines (~8.6 MB) during the failing saves, one per 4 KiB write, on top of
+  the 5 s retry line; (c) the remount then refused with exit 2
+  `disk 8 shows no partition table, but this container has held data; nothing was
+  formatted..` - correct here, because this container's only volume (the first NTFS format)
+  had never been saved to the file at all; a never-saved ram container can only be recovered
+  through `vd format`, which the sentence names.
+- **4.11 (AUD-32-F8, AUD-31-F2, AUD-34-F1): PASS.** A first mount of a never-mounted
+  `spare.fdd` ran the guarded first-format (`blank disk: true` -> `initialized`/`partition 2`/
+  `formatted NTFS 'FileDO'`) and printed `Mounted at E:.`; `filedo E: unmount` detached with
+  `is closed cleanly`. `filedo spare.fdd format fs exfat label EXF force` ended **exit 0** with
+  `format: cleared in 3391 ms` (the Clear-Disk under the serial and iSCSI-bus proof),
+  `formatted exFAT 'EXF' in 8091 ms`, and `Formatted the volume .. an empty exFAT volume
+  labelled EXF`; a remount read the volume back as `exFAT` / `EXF` (Get-Volume), and the second
+  unmount detached again. No refusal naming *vendor* or *reads as* appeared at any step.
+  Minor: exFAT logs one benign
+  `could not turn indexing off on the new volume: The parameter is incorrect.` (indexing-off
+  is an NTFS property).
+- **4.12 (AUD-35-F2, T3-F3) and the real-initiator mount AUD-35-F1 owes: PASS.** Three
+  console mount/unmount cycles of `plain.fdd`, then a fourth with the Disk manager open
+  (`filedo_win.exe --disks`, process alive through the cycle): every mount ended
+  `Mounted at E:.` (exit 0), every unmount `is closed cleanly`, `vd status` listed the row while
+  mounted, and no `filedo.exe` process was left afterwards. In `vdisk.log` each cycle's
+  Discovery login ended `closed after logout` (4 discovery logins, 8 logout closes including
+  the normal sessions), and there were **no** `no logout within`, `after the SendTargets
+  answer` or `connection limits` lines. A 1 GiB file copied onto the volume and back had an
+  identical SHA-256; 0.3 s each way (3485 / 3328 MB/s) - cached timings, like the first run's
+  15.8 s / 0.44 s on `2610011104`, so neither run is a sustained-throughput comparison; no
+  regression signal at the block layer, whose M0 floor is on record separately.
+- **A grammar drift observed in passing.** `filedo vd list short` is refused with exit 2
+  (`vd list takes no other word`), while spec 5.2 wrote `vd list [short]`; the README and guides document
+  the bare `vd list`. Resolved 2026-10-01 the way the build behaves: the spec's grammar now writes the
+  bare `vd list` and its real `ls` alias, plus the `vd status json` word it also lacked - the `short`
+  form is not built. A surface-truth item for G3, closed; not a mount defect.
+- **Not covered here:** the guard-on sign-out row of 4.10, the refused-consent (4.9) and
+  disabled-MSiSCSI (4.8) sentences, a real USB stick, and every section outside 4.10-4.12.
+  G3 stays closed until the whole checklist runs on one build at the screen.
+
+
+## Application settings and tray (SP-0081)
+
+Use an unpackaged build first. Record any existing FileDO Run entry and restore the original setting
+after this kit. Do not use the self-test to change the real startup key.
+
+1. Open Settings from the shell and from the manager toolbar. Change the theme in the manager dialog:
+   the dialog, manager and shell repaint. Escape closes the dialog; reopening shows the applied values.
+   Repeat in all five interface languages at 100% and 150% DPI. No control is clipped.
+2. Choose each startup shape. Inspect `Get-ItemProperty -LiteralPath
+   HKCU:\Software\Microsoft\Windows\CurrentVersion\Run -Name FileDO`: the quoted GUI path ends in
+   `--startup`, `--startup --disks` or `--startup --tray`. Off removes only the FileDO value. Other entries
+   remain unchanged. Verify a registry-write refusal reports a cause and leaves the old choice selected.
+3. Sign out and back in for each choice: shell, manager or only the tray icon. No elevation is requested.
+   A manual launch always shows its window. With the hidden copy running, a second plain launch and
+   `--disks` restore their respective windows without creating another process. A second
+   `--startup --tray` shows the shell. Test two nearly simultaneous launches as well.
+4. Enable Minimize to the tray. Minimize each window separately and both together. Its taskbar button
+   disappears; the process has one tray icon. Left-click opens the shell; Disk Manager opens the manager.
+   Restoring all minimized windows removes the icon. Without the setting, minimize uses the taskbar.
+5. Minimize a running verify job. Stop from the tray uses the page's stop path. When a job ends, a balloon
+   appears if notifications are enabled and the icon is present; it never exposes a sealed filename.
+   Disable notifications and repeat. Tooltip counts follow job completion and disk mount/unmount.
+6. With a mounted container, Unmount all uses the usual per-action consent and command builder. It is
+   absent with no mounted disks. No delete, wipe, format, destroy or compact action is in the tray.
+7. Exit while idle ends the process and removes the icon. Exit with a job asks the usual question:
+   Keep running/Escape leaves it running; Stop and close waits for its cleanup. Test a manager job too.
+   Closing both tray-held windows keeps the icon usable; Exit then ends it. Without a tray hold, closing
+   the last visible window ends the process. Windows shutdown does not leave a tray-only process waiting.
+8. Reset positions, close and reopen both windows: default geometry returns, including after a monitor
+   is removed. The next placement chosen by the user is remembered normally.
+9. In the Store build, the startup choice is hidden and its sentence names Windows Startup settings.
+   After one manual launch, FileDO appears disabled in Task Manager/Startup settings. Enable it, sign out
+   and back in: the shell opens. Disable it and repeat: nothing opens. Tray Unmount all is hidden.
+
+Automated evidence: `build.ps1 -Test`, `settings:`/`tray:` self-test rows and the packed-manifest startup
+check. Logon, notification-area gestures, elevation consent and real DPI checks require this kit.

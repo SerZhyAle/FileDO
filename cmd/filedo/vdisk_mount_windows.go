@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 
 	"filedo/fdsec"
+	"filedo/fsx"
 	"filedo/statedir"
 	"filedo/vdisk"
 )
@@ -271,14 +273,16 @@ loop:
 // vdRequest is what the mounting or unmounting command hands the elevated
 // step; vdResult is its answer.
 type vdRequest struct {
-	Port     int    `json:"port"`
-	IQN      string `json:"iqn"`
-	Secret   string `json:"secret,omitempty"`
-	Serial   string `json:"serial"`
-	Label    string `json:"label"`
-	Letter   string `json:"letter,omitempty"`
-	ReadOnly bool   `json:"read_only"`
-	Force    bool   `json:"force"`
+	Port      int    `json:"port"`
+	IQN       string `json:"iqn"`
+	Secret    string `json:"secret,omitempty"`
+	Serial    string `json:"serial"`
+	Label     string `json:"label"`
+	Letter    string `json:"letter,omitempty"`
+	NoLetter  bool   `json:"no_letter,omitempty"`
+	MountPath string `json:"mount_path,omitempty"`
+	ReadOnly  bool   `json:"read_only"`
+	Force     bool   `json:"force"`
 	// NeverHeld is the caller's fact that the container has never been mounted.
 	// Only then may a missing partition table trigger formatting (AUD-32-F3).
 	NeverHeld bool   `json:"never_held,omitempty"`
@@ -310,14 +314,16 @@ type vdRequest struct {
 }
 
 type vdResult struct {
-	OK        bool   `json:"ok"`
-	Error     string `json:"error,omitempty"`
-	Class     int    `json:"class,omitempty"`
-	Letter    string `json:"letter,omitempty"`
-	Session   string `json:"session,omitempty"`
-	Formatted bool   `json:"formatted,omitempty"`
-	Unclean   bool   `json:"unclean,omitempty"`
-	Holder    string `json:"holder,omitempty"`
+	OK         bool   `json:"ok"`
+	Error      string `json:"error,omitempty"`
+	Class      int    `json:"class,omitempty"`
+	Letter     string `json:"letter,omitempty"`
+	MountPath  string `json:"mount_path,omitempty"`
+	VolumeGUID string `json:"volume_guid,omitempty"`
+	Session    string `json:"session,omitempty"`
+	Formatted  bool   `json:"formatted,omitempty"`
+	Unclean    bool   `json:"unclean,omitempty"`
+	Holder     string `json:"holder,omitempty"`
 	// Excluded: this mount added the Defender exclusion and its unmount
 	// removes it. Warning: a step that did not work but does not fail the mount.
 	Excluded bool   `json:"excluded,omitempty"`
@@ -579,8 +585,26 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 		vdLogf("attach %s: formatted %s for format", req.IQN, vol)
 		return res, nil
 	}
-	if res.Letter, err = assignLetter(vol, req.Letter); err != nil {
-		return res, err
+	res.VolumeGUID = vol
+	if req.NoLetter {
+		if have := volumeLetter(vol); have != "" {
+			if err = vdisk.DeleteVolumeMountPoint(have + `\`); err != nil {
+				return res, err
+			}
+		}
+		mount, merr := vdisk.GetNoLetterMountManager().CreateNoLetterMount(req.Serial, vol)
+		if merr != nil {
+			return res, merr
+		}
+		res.MountPath = mount.MountPath
+		if mount.FallbackReason != "" {
+			vdLogf("attach %s: folder mount point unavailable, using the volume path: %s", req.IQN, mount.FallbackReason)
+		}
+	} else {
+		if res.Letter, err = assignLetter(vol, req.Letter); err != nil {
+			return res, err
+		}
+		res.MountPath = res.Letter + `\`
 	}
 	// A stop that arrived during the last step still wins: the mounting
 	// command may already be gone, and a volume nobody recorded is the one
@@ -694,6 +718,23 @@ func vdDetach(req vdRequest) (res vdResult, err error) {
 		if _, xerr := defenderExclude(req.NoScan, false); xerr != nil {
 			res.Warning = xerr.Error()
 			vdLogf("detach %s: %v", req.IQN, xerr)
+		}
+	}
+	if req.MountPath != "" && !strings.HasPrefix(req.MountPath, `\\?\`) {
+		base, berr := vdisk.GetNoLetterMountManager().BasePath()
+		// Resolve the containing directory: resolving the mount itself follows
+		// the volume that has just been detached, rather than the private parent.
+		inside, ierr := fsx.Within(filepath.Dir(req.MountPath), base)
+		name := filepath.Base(filepath.Clean(req.MountPath))
+		_, nameErr := hex.DecodeString(name)
+		if berr != nil || ierr != nil || !inside || len(name) != 32 || nameErr != nil {
+			return res, errTransport("private mount directory could not be verified for cleanup")
+		}
+		if derr := vdisk.DeleteVolumeMountPoint(req.MountPath); derr != nil && !errors.Is(derr, windows.ERROR_NOT_A_REPARSE_POINT) && !errors.Is(derr, windows.ERROR_FILE_NOT_FOUND) && !errors.Is(derr, windows.ERROR_PATH_NOT_FOUND) {
+			return res, derr
+		}
+		if derr := os.Remove(req.MountPath); derr != nil && !errors.Is(derr, os.ErrNotExist) {
+			return res, derr
 		}
 	}
 	vdLogf("detach %s: done, unclean=%v", req.IQN, res.Unclean)
@@ -1017,6 +1058,8 @@ type vdMountOpts struct {
 	Letter   string
 	ReadOnly bool
 	NoScan   bool
+	NoLetter bool
+	Worker   bool
 	Cred     credArg // p:, pf:, pe:, k:, or the bare sole trailing token
 }
 
@@ -1047,6 +1090,15 @@ func vdParseMountOpts(args []string) (o vdMountOpts, err error) {
 			o.ReadOnly = true
 		case "noscan":
 			o.NoScan = true
+		case "noletter":
+			o.NoLetter = true
+		case "worker":
+			o.Worker = true
+		case "stdin":
+			if o.Cred.given() {
+				return vdMountOpts{}, vdUsagef("one credential per mount")
+			}
+			o.Cred = credArg{src: "stdin"}
 		case "as":
 			if i+1 >= len(args) {
 				return vdMountOpts{}, vdUsagef("as needs a drive letter: as X:")
@@ -1063,6 +1115,9 @@ func vdParseMountOpts(args []string) (o vdMountOpts, err error) {
 			return vdMountOpts{}, vdUsagef("unknown mount word %d (want ro, noscan, as <X:>; with any option a password is given as p:<password>)", i+1)
 		}
 	}
+	if o.NoLetter && o.Letter != "" {
+		return vdMountOpts{}, vdUsagef("noletter and as cannot be combined")
+	}
 	return o, nil
 }
 
@@ -1071,7 +1126,7 @@ func vdParseMountOpts(args []string) (o vdMountOpts, err error) {
 // "X:" alone is far likelier a mistyped option than a password.
 func vdMountOptionWord(w string) bool {
 	switch strings.ToLower(w) {
-	case "ro", "readonly", "noscan", "as":
+	case "ro", "readonly", "noscan", "noletter", "worker", "stdin", "as":
 		return true
 	}
 	return driveRootSpelling.MatchString(w)
@@ -1100,7 +1155,7 @@ func vdMount(args []string, batch bool) error {
 	default:
 		return fmt.Errorf("%w: mounting a %s container is not carried by this build", vdisk.ErrUnsupported, info.Profile)
 	}
-	if batch && !windows.GetCurrentProcessToken().IsElevated() {
+	if (batch || o.Worker) && !windows.GetCurrentProcessToken().IsElevated() {
 		return errTransport("mounting needs administrator rights, and a batch never raises a consent prompt; run the batch from an elevated console")
 	}
 	if m, ok := vdFindMount(info.ContainerID); ok {
@@ -1188,7 +1243,7 @@ func vdMount(args []string, batch bool) error {
 		fmt.Println("Connecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.")
 	}
 	req := vdRequest{Port: h.Port, IQN: h.IQN, Secret: h.Secret, Serial: h.Serial,
-		Label: h.Label, Letter: letter, ReadOnly: ro, NeverHeld: vdNeverHeldData(info)}
+		Label: h.Label, Letter: letter, ReadOnly: ro, NeverHeld: vdNeverHeldData(info), NoLetter: o.NoLetter}
 	if o.NoScan {
 		req.NoScan = path
 	}
@@ -1201,7 +1256,7 @@ func vdMount(args []string, batch bool) error {
 	attached = true
 	row := vdMountRow{ContainerID: info.ContainerID, Path: path, Letter: res.Letter, ReadOnly: ro,
 		MountedAt: time.Now(), ServerPID: pid, ServerStarted: started, Port: h.Port, IQN: h.IQN,
-		Serial: h.Serial, Session: res.Session, ScanExcluded: res.Excluded, Profile: info.Profile.String()}
+		Serial: h.Serial, Session: res.Session, ScanExcluded: res.Excluded, Profile: info.Profile.String(), MountPath: res.MountPath, VolumeGUID: res.VolumeGUID}
 	if err := vdUpdateState(func(s *vdState) error {
 		s.Mounts = append(s.Mounts, row)
 		return nil
@@ -1221,8 +1276,9 @@ func vdMount(args []string, batch bool) error {
 	if ro {
 		roText = " read-only"
 	}
-	fmt.Printf("Mounted%s at %s. Unmount with: filedo %s unmount\n", roText, res.Letter, res.Letter)
-	vdLogf("mount %s at %s", path, res.Letter)
+	fmt.Printf("Mounted%s at %s. Unmount with: filedo %s unmount\n", roText, res.MountPath, path)
+	EmitFindingEvent("info", "Disk mounted", map[string]interface{}{"vdMount": map[string]interface{}{"containerId": info.ContainerID, "mountPath": res.MountPath, "volumeGuid": res.VolumeGUID, "letter": res.Letter, "readOnly": ro}})
+	vdLogf("mount %s at %s", path, res.MountPath)
 	vdTouchRegistry(info.ContainerID)
 	return nil
 }
@@ -1372,6 +1428,9 @@ func vdUnmountOne(row vdMountRow, force, nosave, batch bool) (alive bool, how st
 	alive = vdServerAlive(row)
 	req := vdRequest{Port: row.Port, IQN: row.IQN, Serial: row.Serial,
 		Session: row.Session, Force: force || !alive, ReadOnly: row.ReadOnly}
+	if row.Letter == "" {
+		req.MountPath = row.MountPath
+	}
 	if row.ScanExcluded {
 		req.NoScan = row.Path
 	}

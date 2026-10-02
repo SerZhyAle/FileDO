@@ -840,24 +840,24 @@
           <span data-l="ru"
             ><img
               src="../assets/guides/gui-disk-manager-ru.png"
-              width="1052"
-              height="733"
+              width="1901"
+              height="1056"
               loading="lazy"
               alt="Окно Диспетчера дисков: панель кнопок «Новый диск..», «Добавить..», «Подключить», «Отключить», «Открыть», «Сохранить», «Ещё», «Обновить», «Справка» и «Главное окно»; строка фильтра; список со столбцами «Имя», «Диск», «Состояние», «Профиль», «Защита», «Размер» и «Авто», где у каждой строки состояние словами и значок; под списком панель подробностей выбранного диска secrets, подключённого только для чтения"
           /></span
           ><span data-l="en"
             ><img
               src="../assets/guides/gui-disk-manager-en.png"
-              width="1052"
-              height="733"
+              width="1901"
+              height="1056"
               loading="lazy"
               alt="The Disk manager window: a toolbar with New disk.., Add.., Mount, Unmount, Open, Save, More actions, Refresh, Help and Main window; a filter row; a list with the columns Name, Drive, State, Profile, Protection, Size and Auto, where each row shows its state in words beside a glyph; and under the list the detail pane of the selected disk, secrets, mounted read-only"
           /></span
           ><span data-l="ua"
             ><img
               src="../assets/guides/gui-disk-manager-ua.png"
-              width="1052"
-              height="733"
+              width="1901"
+              height="1056"
               loading="lazy"
               alt="Вікно Диспетчера дисків: панель кнопок «Новий диск..», «Додати..», «Підключити», «Відключити», «Відкрити», «Зберегти», «Ще», «Оновити», «Довідка» та «Головне вікно»; рядок фільтра; список зі стовпцями «Ім'я», «Диск», «Стан», «Профіль», «Захист», «Розмір» та «Авто», де в кожного рядка стан словами і значок; під списком панель подробиць вибраного диска secrets, підключеного лише для читання"
           /></span>
@@ -1045,8 +1045,8 @@
         <p class="intro">
           <span data-l="ru"
             >У автозапуска две половины, и обе собираются в одном окне -
-            «Автозапуск..» в Диспетчере дисков (меню диска или его панель
-            подробностей). Половина первая - при входе: у каждого
+            «Автозапуск..» в Диспетчере дисков (меню «Ещё», меню диска или его
+            панель подробностей). Половина первая - при входе: у каждого
             зарегистрированного контейнера переключатель, который создаёт или
             удаляет задание планировщика, монтирующее его при вашем входе
             (<code>vd auto</code>). Половина вторая - при выключении: сторож
@@ -1057,7 +1057,8 @@
             некорректно».</span
           ><span data-l="en"
             >Autostart has two halves, and both meet in one dialog: Autostart..
-            in the Disk manager (a disk's menu or its detail pane). The first
+            in the Disk manager (More actions, a disk's menu or its detail
+            pane). The first
             half is at logon: every registered container has a switch that
             creates or removes a scheduled task mounting it at your logon
             (<code>vd auto</code>). The second is at shutdown: the shutdown
@@ -1067,8 +1068,8 @@
             does not say "Not closed cleanly".</span
           ><span data-l="ua"
             >Автозапуск має дві половини, і обидві збираються в одному вікні -
-            «Автозапуск..» у Диспетчері дисків (меню диска або його панель
-            подробиць). Перша половина - під час входу: у кожного
+            «Автозапуск..» у Диспетчері дисків (меню «Ще», меню диска або його
+            панель подробиць). Перша половина - під час входу: у кожного
             зареєстрованого контейнера перемикач, що створює чи вилучає завдання
             планувальника, яке підключає його під час вашого входу
             (<code>vd auto</code>). Друга - під час вимкнення: сторож вимкнення
@@ -1078,6 +1079,44 @@
             наступний вхід не повідомляв «Закритий некоректно».</span
           >
         </p>
+        <figure class="shot">
+          <span data-l="ru"
+            ><img
+              src="../assets/guides/gui-disk-autostart-ru.png"
+              width="684"
+              height="1836"
+              loading="lazy"
+              alt="Окно «Автозапуск»: в разделе «При входе в систему» четыре зарегистрированных контейнера, у каждого состояние словами и переключатель - scratch и work не подключаются при входе, archive подключается, а у зашифрованного secrets переключатель недоступен и под ним сказано почему; в разделе «При выключении» сторож «Включён и работает», кнопка «Выключить» и последний запуск, чисто закрывший два контейнера; ниже раздел «Стоит знать»"
+          /></span
+          ><span data-l="en"
+            ><img
+              src="../assets/guides/gui-disk-autostart-en.png"
+              width="654"
+              height="1635"
+              loading="lazy"
+              alt="The Autostart dialog: under At logon, four registered containers, each with its state in words and a switch - scratch and work do not mount at logon, archive does, and the encrypted secrets has its switch disabled with the reason under it; under At shutdown, the guard On and running, a Turn off button, and the last run, which closed two containers cleanly; then Good to know"
+          /></span
+          ><span data-l="ua"
+            ><img
+              src="../assets/guides/gui-disk-autostart-ua.png"
+              width="684"
+              height="1836"
+              loading="lazy"
+              alt="Вікно «Автозапуск»: у розділі «Під час входу в систему» чотири зареєстровані контейнери, у кожного стан словами й перемикач - scratch і work не підключаються під час входу, archive підключається, а в зашифрованого secrets перемикач недоступний і під ним сказано чому; у розділі «Під час вимкнення» сторож «Увімкнений і працює», кнопка «Вимкнути» та останній запуск, що чисто закрив два контейнери; нижче розділ «Варто знати»"
+          /></span>
+          <figcaption>
+            <span data-l="ru"
+              >Окно автозапуска: подключения при входе по строке на контейнер и
+              сторож выключения с его последним запуском.</span
+            ><span data-l="en"
+              >The Autostart dialog: the logon mounts, one row per container,
+              and the shutdown guard with its last run.</span
+            ><span data-l="ua"
+              >Вікно автозапуску: підключення під час входу по рядку на
+              контейнер і сторож вимкнення з його останнім запуском.</span
+            >
+          </figcaption>
+        </figure>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
@@ -1093,8 +1132,8 @@
                 сторожа - это выключение, перезагрузка и выход из системы;
                 сон, гибернация и блокировка - нет (быстрый запуск выключает
                 сеанс как выключение). Пока сторож сохраняет диск
-                <code>ram</code>, Windows показывает «FileDO сохраняет ваш RAM
-                диск..» - и «Все равно выключить» всегда остаётся вашим выходом.
+                <code>ram</code>, Windows показывает «FileDO is saving your RAM
+                disk..» (фраза по-английски) - и «Все равно выключить» всегда остаётся вашим выходом.
                 То, что не успело завершиться, не прячется: отчёт о последнем
                 запуске видно в окне автозапуска, а в консоли -
                 <code>filedo vd guard status</code>.</span
@@ -1117,8 +1156,8 @@
                 для сторожа - це вимкнення, перезавантаження й вихід із
                 системи; сон, гібернація та блокування - ні (швидкий запуск
                 вимикає сеанс, як вимкнення). Поки сторож зберігає диск
-                <code>ram</code>, Windows показує «FileDO зберігає ваш RAM
-                диск..» - і «Все одно вимкнути» завжди залишається вашим
+                <code>ram</code>, Windows показує «FileDO is saving your RAM
+                disk..» (фраза англійською) - і «Все одно вимкнути» завжди залишається вашим
                 виходом. Те, що не встигло завершитися, не ховається: звіт про
                 останній запуск видно у вікні автозапуску, а в консолі -
                 <code>filedo vd guard status</code>.</span

@@ -755,6 +755,7 @@ Public Class ShellForm
         If Not Visible Then Show()
         If WindowState = FormWindowState.Minimized Then WindowState = lastShownState
         Activate()
+        If AppHost.Current IsNot Nothing Then AppHost.Current.Restored(Me)
     End Sub
 
     ' The Disks list's next steps (SP-0004 P6): Unmount or Turn off auto-mount open their own page
@@ -786,9 +787,24 @@ Public Class ShellForm
 
     ' ---- a run and the window's life -------------------------------------
 
-    Private Function AnyRunActive() As Boolean
+    Friend Function AnyRunActive() As Boolean
         Return JobViewRunning() OrElse commandView.IsRunning
     End Function
+
+    Friend Sub StopFromTray()
+        If jobViewValue IsNot Nothing Then jobViewValue.RequestStopFromShell()
+        commandView.RequestStopFromShell()
+    End Sub
+    Friend ReadOnly Property ClosePending As Boolean
+        Get
+            Return closeWhenIdle
+        End Get
+    End Property
+    Friend Sub OpenSettings()
+        BringBack()
+        SelectJobByKey("rail_job_settings")
+        settingsView.Panel.StartupCombo.Focus()
+    End Sub
 
     ' The name of what is running, for the close question.
     Private Function RunningName() As String
@@ -848,7 +864,7 @@ Public Class ShellForm
 
     ' ---- theme -----------------------------------------------------------
 
-    Private Sub ApplyTheme()
+    Friend Sub ApplyTheme()
         Ui.SuspendTree(Me)
         Try
             ApplyThemeCore()
@@ -1014,6 +1030,9 @@ Public Class ShellForm
     Protected Overrides Sub OnResize(e As EventArgs)
         MyBase.OnResize(e)
         If WindowState <> FormWindowState.Minimized Then lastShownState = WindowState
+        If WindowState = FormWindowState.Minimized AndAlso Visible AndAlso ShellSettings.MinimizeToTray() AndAlso AppHost.Current IsNot Nothing Then
+            AppHost.Current.MinimizeWindow(Me)
+        End If
     End Sub
 
     Friend Shared Function SavesMaximized(state As FormWindowState, lastShown As FormWindowState) As Boolean
@@ -1022,6 +1041,7 @@ Public Class ShellForm
     End Function
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
+        If (e.CloseReason = CloseReason.WindowsShutDown OrElse e.CloseReason = CloseReason.TaskManagerClosing) AndAlso AppHost.Current IsNot Nothing Then AppHost.Current.EndingSession()
         ' A close with a run still active is a question, not a close (T5) - whether it came from the
         ' close box, Alt+F4 or another program's WM_CLOSE (which WinForms reports as reason None).
         ' Windows shutting down, or Task Manager, cannot wait for an answer: the run is asked to

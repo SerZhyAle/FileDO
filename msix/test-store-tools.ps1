@@ -125,6 +125,26 @@ $withDll     = $baseEntries + 'FileDOShell.dll'
 try {
     $defXml = New-FileDOManifest @genArgs
     $expXml = New-FileDOManifest @genArgs -ExplorerCommand
+    foreach ($shape in @($defXml, $expXml)) {
+        $startupProblems = @(Test-ApplicationStartup -Manifest $shape)
+        Check 'startup task is disabled, unique and GUI-only' ($startupProblems.Count -eq 0) ($startupProblems -join '; ')
+    }
+    foreach ($change in @('missing', 'enabled', 'task-id', 'executable', 'multiple')) {
+        $badStartup = $defXml.Clone()
+        $startupExt = $badStartup.SelectSingleNode('//*[@Category="windows.startupTask"]')
+        $startupTask = $startupExt.FirstChild
+        # PreserveWhitespace means the first child can be whitespace.
+        $startupTask = $startupExt.SelectSingleNode('*')
+        switch ($change) {
+            'missing' { [void]$startupExt.ParentNode.RemoveChild($startupExt) }
+            'enabled' { $startupTask.SetAttribute('Enabled', 'true') }
+            'task-id' { $startupTask.SetAttribute('TaskId', 'OtherTask') }
+            'executable' { $startupExt.SetAttribute('Executable', 'filedo.exe') }
+            'multiple' { [void]$startupExt.ParentNode.AppendChild($startupExt.Clone()) }
+        }
+        $startupProblems = @(Test-ApplicationStartup -Manifest $badStartup)
+        Check "startup task refuses $change" ($startupProblems.Count -gt 0) ($startupProblems -join '; ')
+    }
     $defCats = @($defXml.SelectNodes("//*[@Category]") | ForEach-Object { $_.GetAttribute('Category') })
     $expCats = @($expXml.SelectNodes("//*[@Category]") | ForEach-Object { $_.GetAttribute('Category') })
     Check "default manifest has no windows.fileExplorerContextMenus / windows.comServer extension" (-not ($defCats | Where-Object { $_ -in 'windows.fileExplorerContextMenus', 'windows.comServer' })) "categories: $($defCats -join ',')"
@@ -298,6 +318,19 @@ finally {
     if (Test-Path $tmp) { [System.IO.Directory]::Delete($tmp, $true) }
 }
 
+. (Join-Path $PSScriptRoot 'wack-verdict.ps1')
+Write-Host 'WACK verdict policy' -ForegroundColor Cyan
+$requiredPass = '<TEST NAME="Required"><RESULT>PASS</RESULT></TEST>'
+$optionalFailure = '<TEST NAME="Advisory" OPTIONAL="TRUE"><RESULT>FAIL</RESULT></TEST>'
+$optionalWarning = '<TEST NAME="Advisory" OPTIONAL="TRUE"><RESULT>WARNING</RESULT></TEST>'
+$requiredWarning = '<TEST NAME="Required"><RESULT>WARNING</RESULT></TEST>'
+Check 'required PASS with optional FAIL preserves a passing gate' (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$requiredPass$optionalFailure</REPORT>"))).Passed
+Check 'required PASS with optional WARNING preserves a passing gate' (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$requiredPass$optionalWarning</REPORT>"))).Passed
+Check 'a required WARNING still blocks' (-not (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$requiredWarning</REPORT>"))).Passed)
+Check 'an overall FAIL still blocks despite passing required rows' (-not (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='FAIL'>$requiredPass</REPORT>"))).Passed)
+Check 'an empty report cannot pass' (-not (Get-WackVerdict ([xml]"<REPORT OVERALL_RESULT='PASS'/>")).Passed)
+Check 'optional-only reports cannot pass' (-not (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$optionalFailure</REPORT>"))).Passed)
+Check 'a missing optional result cannot pass' (-not (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$requiredPass<TEST OPTIONAL='TRUE'/></REPORT>"))).Passed)
 Write-Host ""
 if ($script:fail -eq 0) { Write-Host "store-tools: PASS ($script:pass checks)" -ForegroundColor Green; exit 0 }
 Write-Host "store-tools: FAIL ($script:fail checks)" -ForegroundColor Red

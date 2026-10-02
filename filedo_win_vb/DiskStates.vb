@@ -240,9 +240,11 @@ Public Module DiskStates
         Return a <> DiskAction.Info AndAlso a <> DiskAction.Verify
     End Function
 
-    ' The actions that are not about a row: a new disk, an image from a file, a fresh read.
+    ' The actions that are not about a row: a new disk, an image from a file, a fresh read, and the
+    ' Autostart dialog - the shutdown guard in it belongs to the account, not to a disk (SP-0080 5).
     Public Function IsGlobal(a As DiskAction) As Boolean
-        Return a = DiskAction.NewDisk OrElse a = DiskAction.MountImage OrElse a = DiskAction.Refresh
+        Return a = DiskAction.NewDisk OrElse a = DiskAction.MountImage OrElse a = DiskAction.Refresh OrElse
+               a = DiskAction.Autostart
     End Function
 
     ' The actions that apply to a selection of more than one row (spec 6.2: Ctrl/Shift-click).
@@ -299,6 +301,12 @@ Public Module DiskStates
             Case DiskAction.NewDisk, DiskAction.Refresh
                 Return ""
             Case DiskAction.MountImage
+                Return If(ctx.Packaged, "vd_packaged", "")
+            Case DiskAction.Autostart
+                ' The consolidated view of everything automatic (SP-0080 5). It reads no disk and
+                ' needs no selection, but it is still a surface of the mount path: the packaged
+                ' build hides it whole (rule 11), because mount and unmount are refused there, so
+                ' a guard would have nothing to do.
                 Return If(ctx.Packaged, "vd_packaged", "")
         End Select
         If r Is Nothing Then Return "vd_mgr_why_no_selection"
@@ -386,12 +394,6 @@ Public Module DiskStates
             Case DiskAction.Forget
                 If Not r.Registered Then Return "vd_mgr_why_not_registered"
                 Return ""
-
-            Case DiskAction.Autostart
-                ' The consolidated view of everything automatic (SP-0080 5). It reads no disk, but it
-                ' is still a surface of the mount path: the packaged build hides it whole (rule 11),
-                ' because mount and unmount are refused there, so a guard would have nothing to do.
-                Return If(ctx.Packaged, "vd_packaged", "")
 
             Case DiskAction.Export, DiskAction.Seal, DiskAction.Clone
                 Return FileWhy(state)

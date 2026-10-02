@@ -17,7 +17,15 @@ Module ShellSettings
     ' Bumped when a stored placement has to be retired rather than restored - see LoadPlacement.
     Private Const PlacementVersion As Integer = 3
 
+    Friend ValuesForTest As Dictionary(Of String, Object)
+    Friend Event ValuesChanged()
+
     Private Function ReadValue(name As String) As Object
+        If ValuesForTest IsNot Nothing Then
+            Dim value As Object = Nothing
+            ValuesForTest.TryGetValue(name, value)
+            Return value
+        End If
         Try
             Using k = Registry.CurrentUser.OpenSubKey(KeyPath)
                 If k Is Nothing Then Return Nothing
@@ -29,12 +37,47 @@ Module ShellSettings
     End Function
 
     Private Sub WriteValue(name As String, value As Object)
+        If ValuesForTest IsNot Nothing Then
+            ValuesForTest(name) = value
+            RaiseEvent ValuesChanged()
+            Return
+        End If
         Try
             Using k = Registry.CurrentUser.CreateSubKey(KeyPath)
                 If k IsNot Nothing Then k.SetValue(name, value)
             End Using
+            RaiseEvent ValuesChanged()
         Catch
         End Try
+    End Sub
+
+    Public Function Autostart() As String
+        Return StartupLaunch.Normalize(TryCast(ReadValue("ShellAutostart"), String))
+    End Function
+    Public Sub SetAutostart(choice As String)
+        WriteValue("ShellAutostart", StartupLaunch.Normalize(choice))
+    End Sub
+    Public Function MinimizeToTray() As Boolean
+        Dim v = ReadValue("ShellMinimizeToTray")
+        Return TypeOf v Is Integer AndAlso CInt(v) <> 0
+    End Function
+    Public Sub SetMinimizeToTray(value As Boolean)
+        WriteValue("ShellMinimizeToTray", If(value, 1, 0))
+    End Sub
+    Public Function FinishNotification() As Boolean
+        Dim v = ReadValue("ShellFinishNotification")
+        Return Not TypeOf v Is Integer OrElse CInt(v) <> 0
+    End Function
+    Public Sub SetFinishNotification(value As Boolean)
+        WriteValue("ShellFinishNotification", If(value, 1, 0))
+    End Sub
+    ' Placement stamps only: no user data is removed. The next opening uses its default geometry.
+    Private ReadOnly resetPrefixes As New HashSet(Of String)()
+    Public Sub ResetPlacements()
+        resetPrefixes.Add(ShellPrefix)
+        resetPrefixes.Add(DiskManagerPrefix)
+        WriteValue(ShellPrefix & "PlacementV", 0)
+        WriteValue(DiskManagerPrefix & "PlacementV", 0)
     End Sub
 
     ' ---- theme -----------------------------------------------------------
@@ -131,6 +174,7 @@ Module ShellSettings
     Friend Const DiskManagerPrefix As String = "DiskManager"
 
     Public Function LoadPlacementOf(prefix As String) As Placement
+        resetPrefixes.Remove(prefix)
         Dim p As New Placement With {.HasValue = False}
         Dim stamp As Integer
         If Not ReadInt(prefix & "PlacementV", stamp) OrElse stamp <> PlacementVersion Then Return p
@@ -167,6 +211,7 @@ Module ShellSettings
 
     Public Sub SavePlacementOf(prefix As String, x As Integer, y As Integer, width As Integer, height As Integer,
                                maximized As Boolean, dpi As Integer)
+        If resetPrefixes.Contains(prefix) Then Return
         WriteValue(prefix & "PlacementV", PlacementVersion)
         WriteValue(prefix & "X", x)
         WriteValue(prefix & "Y", y)

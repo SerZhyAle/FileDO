@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -52,6 +53,16 @@ func credentialToken(t string) (credArg, bool) {
 // question, which is where each family says what an empty answer means.
 func resolveCredential(a credArg, confirm bool, prompt string) (fdsec.Credential, error) {
 	switch a.src {
+	case "stdin":
+		b, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20+1))
+		if err != nil {
+			return nil, err
+		}
+		defer clear(b)
+		if len(b) > 1<<20 {
+			return nil, usagef("stdin credential is too long")
+		}
+		return fdsec.Credential(append([]byte(nil), b...)), nil
 	case "p", "bare":
 		return fdsec.NewCredential(a.val), nil
 	case "pf":

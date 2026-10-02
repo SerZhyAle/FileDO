@@ -1,0 +1,18 @@
+
+2026-10-01 11:52:58 sza@ukr.net 2610011135
+destroy removes the container file C:\vdtest\plain.fdd, 14.00 MiB (14684160 bytes): the volume inside and everything on it are gone for good.
+Destroyed C:\vdtest\plain.fdd.
+
+ Finish:2026-10-01 11:52:58, Duration: 0s
+exit=0
+
+2026-10-01 11:52:58 sza@ukr.net 2610011135
+destroy removes the container file C:\vdtest\spare.fdd, 13.00 MiB (13635584 bytes): the volume inside and everything on it are gone for good.
+Destroyed C:\vdtest\spare.fdd.
+
+ Finish:2026-10-01 11:52:58, Duration: 0s
+exit=0
+Nothing is mounted. No block server is running.
+
+ Finish:2026-10-01 11:52:58, Duration: 0s
+exit=0

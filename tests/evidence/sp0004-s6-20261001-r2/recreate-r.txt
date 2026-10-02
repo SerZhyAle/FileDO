@@ -1,0 +1,6 @@
+
+2026-10-01 11:44:35 sza@ukr.net 2610011135
+Created D:\r.fdd: ram, 512 MiB volume; obfuscated, not encrypted: anyone holding the file and the published format can read it.
+Mount it with: filedo D:\r.fdd mount  (the first mount formats the volume NTFS)
+
+ Finish:2026-10-01 11:44:35, Duration: 0s

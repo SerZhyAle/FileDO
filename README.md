@@ -407,8 +407,10 @@ after the last save), and `vault` is always encrypted. `seal` writes a copy that
 the volume (`fs ntfs` or `fs exfat`) and `destroy` removes the container file (`wipe` overwrites it first):
 both ask first, and both refuse a mounted container - no flag skips that check. `vd add work.fdd as work`
 gives it a short name, `vd list` and `vd status` show what is known and what is mounted, and
-`vd auto work logon` mounts an obfuscated container when you sign in. A `.vhd`, `.vhdx` or `.iso` mounts
-through Windows' own image support: `filedo disk.vhdx mount`.
+`vd auto work logon` mounts an obfuscated container when you sign in. `vd guard on` adds the shutdown guard:
+when your session ends - a shutdown, a restart or a sign-out, never sleep - it saves `ram` disks first and then
+unmounts every mounted container, so each one is closed cleanly; `vd guard status` shows its last run. A `.vhd`,
+`.vhdx` or `.iso` mounts through Windows' own image support: `filedo disk.vhdx mount`.
 
 Two words, two different promises, and FileDO never swaps them:
 

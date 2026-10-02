@@ -43,13 +43,14 @@
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
   xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
   xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
   xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap3 desktop desktop4 desktop5 com rescap">
+  IgnorableNamespaces="uap uap5 uap3 desktop desktop4 desktop5 com rescap">
 
   <Identity
     Name="{{IDENTITY_NAME}}"
@@ -85,7 +86,7 @@
 
   <Applications>
     <!-- The graphical shell: speed / capacity / wipe / duplicates / secret files. -->
-    <Application Id="FileDOGui" Executable="filedo_win.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="FileDOGui" Executable="filedo_win.exe" EntryPoint="Windows.FullTrustApplication" desktop4:SupportsMultipleInstances="false">
       <uap:VisualElements
         DisplayName="FileDO"
         Description="FileDO - storage tests, secure wipe, duplicates and secret files"
@@ -95,6 +96,10 @@
         <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
       </uap:VisualElements>
       <Extensions>
+        <!-- Per-user, disabled until the user enables it in Windows Startup settings. -->
+        <uap5:Extension Category="windows.startupTask" Executable="filedo_win.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask TaskId="FileDOShellStartup" Enabled="false" DisplayName="FileDO" />
+        </uap5:Extension>
         <!-- SP-0005 9.2: the .fd-sec association. Its logo is the ICON-SET meaning
              content.secret-file, not the product mark (SP-0016 T8). -->
         <uap:Extension Category="windows.fileTypeAssociation">

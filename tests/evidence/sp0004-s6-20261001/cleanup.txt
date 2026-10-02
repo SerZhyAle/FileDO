@@ -1,0 +1,14 @@
+
+2026-10-01 11:20:06 sza@ukr.net 2610011104
+destroy removes the container file P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd, 1.01 GiB (1087377408 bytes): the volume inside and everything on it are gone for good.
+Destroyed P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd.
+
+ Finish:2026-10-01 11:20:06, Duration: 0s
+EXIT_CODE=0
+
+2026-10-01 11:20:06 sza@ukr.net 2610011104
+destroy removes the container file P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\ram.fdd, 513.00 MiB (537923584 bytes): the volume inside and everything on it are gone for good.
+Destroyed P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\ram.fdd.
+
+ Finish:2026-10-01 11:20:06, Duration: 0s
+EXIT_CODE=0

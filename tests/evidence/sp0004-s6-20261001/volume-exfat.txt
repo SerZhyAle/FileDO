@@ -1,0 +1,26 @@
+
+OperationalStatus     : OK
+HealthStatus          : Healthy
+DriveType             : Fixed
+FileSystemType        : exFAT
+DedupMode             : NotAvailable
+ReFSDedupMode         : NotAvailable
+ObjectId              : {1}\\MARK\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{d340282f-226b-11f1-9b25-806e6f6e6963}:VO:\\?\Volume{8b5d35f0-c0f3-4112-9c14-a1741965bb2f}\"
+PassThroughClass      : 
+PassThroughIds        : 
+PassThroughNamespace  : 
+PassThroughServer     : 
+UniqueId              : \\?\Volume{8b5d35f0-c0f3-4112-9c14-a1741965bb2f}\
+AllocationUnitSize    : 32768
+DriveLetter           : D
+FileSystem            : exFAT
+FileSystemLabel       : EXF
+Path                  : \\?\Volume{8b5d35f0-c0f3-4112-9c14-a1741965bb2f}\
+Size                  : 2130313216
+SizeRemaining         : 2130149376
+PSComputerName        : 
+CimClass              : ROOT/Microsoft/Windows/Storage:MSFT_Volume
+CimInstanceProperties : {ObjectId, PassThroughClass, PassThroughIds, PassThroughNamespace…}
+CimSystemProperties   : Microsoft.Management.Infrastructure.CimSystemProperties
+
+EMPTY_EXFAT_EXF=True

@@ -4,7 +4,7 @@ Imports System.Threading
 ' The windows of one filedo_win.exe process (SP-0063 D1, amending SP-0006 5.1 D15): one shell
 ' window, plus the Disk Manager. Both live in this one process - single instance is kept - and
 ' share its runner, its journal, its theme and its job object; the process ends when the last of
-' them has closed.
+' them has closed, unless a tray hold keeps it reachable until Exit.
 '
 ' The Disk Manager is a window of its own rather than a page of the shell because its whole point
 ' is state at a glance: a page would hide the moment another job was chosen.
@@ -21,10 +21,93 @@ Friend Class AppHost
 
     Private shell As ShellForm
     Private manager As DiskManagerForm
+    Private managerShown As Boolean
     Private listener As HostListener
+    Private tray As TrayIcon
+    Private trayHeldValue As Boolean
+    Private ReadOnly hiddenWindows As New HashSet(Of Form)()
+    Private exiting As Boolean
 
-    Friend Sub New(startShell As ShellForm, openManager As Boolean)
+    Friend ReadOnly Property TrayHeld As Boolean
+        Get
+            Return trayHeldValue
+        End Get
+    End Property
+    Friend ReadOnly Property RunningJobs As Integer
+        Get
+            Return If(shell IsNot Nothing AndAlso shell.AnyRunActive(), 1, 0) + If(manager Is Nothing, 0, manager.JobCount)
+        End Get
+    End Property
+    Friend ReadOnly Property MountedDisks As Integer
+        Get
+            Return If(manager Is Nothing, 0, manager.MountedCount)
+        End Get
+    End Property
+    Friend Sub MinimizeWindow(window As Form)
+        hiddenWindows.Add(window)
+        trayHeldValue = True
+        tray.UpdateState()
+        window.Hide()
+        If manager Is Nothing Then ShowManager(False)
+        manager.RequestRead()
+    End Sub
+    Friend Sub Restored(window As Form)
+        hiddenWindows.Remove(window)
+        hiddenWindows.RemoveWhere(Function(f) f.IsDisposed)
+        trayHeldValue = hiddenWindows.Count > 0
+        If tray IsNot Nothing Then tray.UpdateState()
+    End Sub
+    Friend Sub ShowSettings()
+        EnsureShell().OpenSettings()
+    End Sub
+    Friend Sub UnmountAll()
+        If manager Is Nothing Then Return
+        ShowManager()
+        manager.UnmountAllFromTray()
+    End Sub
+    Friend Sub EndingSession()
+        trayHeldValue = False
+        exiting = True
+    End Sub
+    Friend Sub StopJobs()
+        If shell IsNot Nothing Then shell.StopFromTray()
+        If manager IsNot Nothing Then manager.StopStoppable()
+    End Sub
+    Friend Sub RefreshTraySnapshot()
+        If manager Is Nothing Then ShowManager(False)
+        manager.RequestRead()
+    End Sub
+    Friend Sub NotifyFinished()
+        If tray IsNot Nothing Then tray.Finished()
+    End Sub
+    Friend Sub RequestExit()
+        exiting = True
+        If shell IsNot Nothing Then
+            If shell.AnyRunActive() Then shell.BringBack()
+            shell.Close()
+            If shell IsNot Nothing AndAlso Not shell.ClosePending Then
+                exiting = False
+                Return
+            End If
+        End If
+        If manager IsNot Nothing Then
+            If manager.IsBusy Then manager.BringBack()
+            manager.Close()
+            If manager IsNot Nothing AndAlso Not manager.ClosePending Then exiting = False
+        End If
+        ExitIfIdle()
+    End Sub
+    Friend Shared Sub SettingsThemeChanged()
+        If Current Is Nothing Then Return
+        If Current.shell IsNot Nothing Then Current.shell.ApplyTheme()
+        ThemeChanged()
+    End Sub
+
+    Friend Sub New(startShell As ShellForm, openManager As Boolean, Optional hiddenStart As Boolean = False)
         Current = Me
+        trayHeldValue = hiddenStart
+        tray = New TrayIcon(Me)
+        tray.UpdateState()
         Try
             listener = New HostListener(Me)
         Catch ex As Exception
@@ -35,13 +118,14 @@ Friend Class AppHost
             AttachShell(startShell)
             startShell.Show()
         End If
-        If openManager Then ShowManager()
+        If openManager OrElse hiddenStart Then ShowManager(Not hiddenStart)
     End Sub
 
     Private Sub AttachShell(s As ShellForm)
         shell = s
         AddHandler s.FormClosed, Sub()
                                      If shell Is s Then shell = Nothing
+                                     hiddenWindows.Remove(s)
                                      ExitIfIdle()
                                  End Sub
     End Sub
@@ -57,18 +141,30 @@ Friend Class AppHost
         EnsureShell().BringBack()
     End Sub
 
-    Friend Sub ShowManager()
+    Friend Sub ShowManager(Optional showWindow As Boolean = True)
+        If showWindow Then managerShown = True
         If manager Is Nothing OrElse manager.IsDisposed Then
+            managerShown = showWindow
             Dim m As New DiskManagerForm()
             manager = m
             AddHandler m.JobRequested, AddressOf OnManagerJob
             AddHandler m.ShellRequested, Sub() ShowShell()
             AddHandler m.FormClosed, Sub()
-                                         If manager Is m Then manager = Nothing
+                                         If manager Is m Then
+                                             manager = Nothing
+                                             managerShown = False
+                                         End If
+                                         hiddenWindows.Remove(m)
                                          ExitIfIdle()
                                      End Sub
-            m.Show()
-        Else
+            If showWindow Then
+                m.Show()
+                Restored(m)
+            Else
+                Dim handle = m.Handle
+                m.RequestRead()
+            End If
+        ElseIf showWindow Then
             manager.BringBack()
         End If
     End Sub
@@ -81,8 +177,12 @@ Friend Class AppHost
 
     Private Sub ExitIfIdle()
         Dim shellGone = shell Is Nothing OrElse shell.IsDisposed
-        Dim managerGone = manager Is Nothing OrElse manager.IsDisposed
-        If shellGone AndAlso managerGone Then
+        Dim managerGone = manager Is Nothing OrElse manager.IsDisposed OrElse (Not managerShown AndAlso Not manager.IsBusy)
+        If shellGone AndAlso managerGone AndAlso (Not trayHeldValue OrElse exiting) Then
+            If manager IsNot Nothing AndAlso Not manager.IsDisposed Then manager.Dispose()
+            If tray IsNot Nothing Then tray.Dispose()
+            tray = Nothing
+            Current = Nothing
             If listener IsNot Nothing Then listener.DestroyHandle()
             listener = Nothing
             ExitThread()
@@ -99,6 +199,7 @@ Friend Class AppHost
     ' refreshes").
     Friend Shared Sub ShellRunFinished()
         If Current Is Nothing Then Return
+        Current.NotifyFinished()
         Dim m = Current.manager
         If m IsNot Nothing AndAlso Not m.IsDisposed Then m.RequestRead()
     End Sub
@@ -215,7 +316,7 @@ Friend Class HostListener
         Dim wantsShell = (m.Msg = AppHost.ShowShellMessage AndAlso AppHost.ShowShellMessage <> 0)
         If wantsManager OrElse wantsShell Then
             m.Result = New IntPtr(1)
-            Dim open As Action = If(wantsManager, CType(AddressOf host.ShowManager, Action), CType(AddressOf host.ShowShell, Action))
+            Dim open As Action = If(wantsManager, CType(Sub() host.ShowManager(), Action), CType(AddressOf host.ShowShell, Action))
             Dim ctx = SynchronizationContext.Current
             If ctx IsNot Nothing Then
                 ctx.Post(Sub(state) open(), Nothing)

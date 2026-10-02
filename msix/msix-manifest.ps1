@@ -22,12 +22,36 @@
 #>
 
 $script:FileDOManifestNs = [ordered]@{
+    uap5     = 'http://schemas.microsoft.com/appx/manifest/uap/windows10/5'
     m        = 'http://schemas.microsoft.com/appx/manifest/foundation/windows10'
     uap      = 'http://schemas.microsoft.com/appx/manifest/uap/windows10'
     rescap   = 'http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities'
     desktop4 = 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/4'
     desktop5 = 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/5'
     com      = 'http://schemas.microsoft.com/appx/manifest/com/windows10'
+}
+
+# SP-0081: the OS owns this per-user switch; no packaged Run-key writer exists.
+function Test-ApplicationStartup {
+    param([System.Xml.XmlDocument]$Manifest)
+    $ns = New-FileDOManifestNs $Manifest
+    $problems = [System.Collections.Generic.List[string]]::new()
+    $extensions = @($Manifest.SelectNodes('//*[@Category="windows.startupTask"]'))
+    $startup = @($Manifest.SelectNodes('/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions/uap5:Extension[@Category="windows.startupTask"]', $ns))
+    if ($startup.Count -ne 1 -or $extensions.Count -ne 1) {
+        $problems.Add('FileDOGui must declare exactly one startupTask, with none on the CLI')
+    } else {
+        $task = $startup[0].SelectSingleNode('uap5:StartupTask', $ns)
+        if (-not $task -or $task.GetAttribute('TaskId') -cne 'FileDOShellStartup' -or $task.GetAttribute('Enabled') -cne 'false' -or
+            $startup[0].GetAttribute('Executable') -cne 'filedo_win.exe' -or $startup[0].GetAttribute('EntryPoint') -cne 'Windows.FullTrustApplication') {
+            $problems.Add('startupTask must start filedo_win.exe, TaskId FileDOShellStartup, initially disabled')
+        }
+    }
+    $gui = $Manifest.SelectSingleNode('/m:Package/m:Applications/m:Application[@Id="FileDOGui"]', $ns)
+    if (-not $gui -or $gui.GetAttribute('SupportsMultipleInstances', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/4') -cne 'false') {
+        $problems.Add('FileDOGui must not support multiple startup instances')
+    }
+    return $problems.ToArray()
 }
 
 # The two extension categories that make up the packaged Explorer command, and the DLL they load.

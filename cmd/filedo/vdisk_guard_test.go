@@ -193,7 +193,8 @@ func TestVD_GuardExecute(t *testing.T) {
 	if rep.Containers[5].Outcome != "skipped" || rep.Containers[5].Name != "g:" {
 		t.Errorf("the refused unmount is %+v", rep.Containers[5])
 	}
-	if !strings.Contains(rep.Summary, "5 of 6") || !strings.Contains(rep.Summary, "1 skipped") {
+	// Four containers (six rows: two saves besides), one of them not closed.
+	if !strings.Contains(rep.Summary, "3 of 4") || !strings.Contains(rep.Summary, "1 skipped") {
 		t.Errorf("the summary does not name the leftovers: %q", rep.Summary)
 	}
 
@@ -384,6 +385,43 @@ func TestVD_GuardSnapshot(t *testing.T) {
 	}
 }
 
+// The report reaches the snapshot row for row: the manager names a row by
+// its container's name and falls back to its path, so both travel.
+func TestVD_GuardStateCarriesTheLastRun(t *testing.T) {
+	t.Setenv("FILEDO_STATE_DIR", t.TempDir())
+	was := vdGuardHasTask
+	defer func() { vdGuardHasTask = was }()
+	vdGuardHasTask = func() bool { return true }
+	rep := vdGuardReport{Schema: vdGuardReportSchema, Version: 1,
+		At: vdStamp(time.Date(2026, 9, 30, 5, 12, 33, 0, time.UTC)), Ended: "session",
+		Containers: []vdGuardRow{
+			{Name: "scratch", Path: `C:\vd\scratch.fdd`, Action: "save", Outcome: "saved", BytesSaved: 180 << 20},
+			{Name: "big", Path: `C:\vd\big.fdd`, Action: "unmount", Outcome: "unfinished", Reason: "did not finish within 10 s"},
+		},
+	}
+	b, err := json.Marshal(rep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := statedir.WriteFileAtomic(vdGuardStatePath(vdGuardReportFile), b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	g := vdGuardState()
+	if !g.Installed || g.Running || g.Ended != "session" || time.Time(g.LastRun).IsZero() {
+		t.Fatalf("the guard state is %+v", g)
+	}
+	if len(g.Containers) != 2 {
+		t.Fatalf("the snapshot carries %d rows, want 2", len(g.Containers))
+	}
+	for i, want := range rep.Containers {
+		got := g.Containers[i]
+		if got.Name != want.Name || got.Path != want.Path || got.Action != want.Action ||
+			got.Outcome != want.Outcome || got.Reason != want.Reason || got.BytesSaved != want.BytesSaved {
+			t.Errorf("row %d is %+v, want the report's %+v", i, got, want)
+		}
+	}
+}
+
 // The summary's one sentence, per shape (SP-0080 3.3).
 func TestVD_GuardSummary(t *testing.T) {
 	row := func(action, outcome string) vdGuardRow {
@@ -402,8 +440,14 @@ func TestVD_GuardSummary(t *testing.T) {
 		}
 	}
 	got := vdGuardSummary([]vdGuardRow{row("unmount", "unmounted"), row("save", "skipped"), row("unmount", "unfinished")})
-	if !strings.Contains(got, "1 of 3") || !strings.Contains(got, "1 skipped") || !strings.Contains(got, "1 unfinished") {
+	if !strings.Contains(got, "1 of 2") || !strings.Contains(got, "1 skipped") || !strings.Contains(got, "1 unfinished") {
 		t.Errorf("the leftovers sentence is %q", got)
+	}
+	// A ram disk is two rows and one container: saved, then an unmount that
+	// ran out of time, is none of one closed - not one of two.
+	got = vdGuardSummary([]vdGuardRow{row("save", "saved"), row("unmount", "unfinished")})
+	if !strings.Contains(got, "0 of 1") || !strings.Contains(got, "1 unfinished") {
+		t.Errorf("a saved ram disk left mounted reads %q", got)
 	}
 }
 

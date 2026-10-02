@@ -81,6 +81,7 @@ Public Class DiskManagerForm
     Private ReadOnly tips As New ToolTip()
 
     Private root As TableLayoutPanel
+    Private settingsBtn As GlyphButton
     Private toolbar As FlowLayoutPanel
     Private filterUnit As FlowLayoutPanel
     Private newBtn As GlyphButton
@@ -307,11 +308,17 @@ Public Class DiskManagerForm
                                   End Sub
         refreshBtn = NewGlyphButton("vd_mgr_btn_refresh", DiskGlyphs.For(DiskAction.Refresh), 24, True)
         AddHandler refreshBtn.Click, Sub() RequestRead()
+        settingsBtn = NewGlyphButton("rail_job_settings", GlyphRef.Vocabulary("app.settings"), 24, True)
+        AddHandler settingsBtn.Click, Sub()
+                                         Using dlg As New DiskSettingsDialog()
+                                             dlg.ShowDialog(Me)
+                                         End Using
+                                     End Sub
         helpBtn = NewGlyphButton("vd_mgr_name_help", DiskGlyphs.Help, 24, True)
         AddHandler helpBtn.Click, Sub() helpMenu.Show(helpBtn, 0, helpBtn.Height)
         ' The way to the main window: the product's own mark and its name, at the end of the toolbar.
         mainBtn = NewGlyphButton("vd_mgr_btn_main", Nothing, 24)
-        mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
+        mainBtn.Picture = DiskManagerIcon.Mark(Ui.Px(Me, 24))
         AddHandler mainBtn.Click, Sub() RaiseEvent ShellRequested()
 
         ' The filter: its label, its box and the cross that clears it, one unit - a row of its own under
@@ -342,7 +349,7 @@ Public Class DiskManagerForm
             filterUnit.Controls.Add(c)
         Next
 
-        For Each c As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn, refreshBtn, helpBtn, mainBtn}
+        For Each c As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn, refreshBtn, settingsBtn, helpBtn, mainBtn}
             toolbar.Controls.Add(c)
         Next
         ' The groups, told apart by a wider gap: the list, the disk, and the window's own.
@@ -897,6 +904,7 @@ Public Class DiskManagerForm
         SetTip(addBtn, L("vd_mgr_btn_add") & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.O) & ")", L("vd_mgr_btn_add_tip"))
         SetTip(refreshBtn, L("vd_mgr_btn_refresh") & DiskShortcuts.Suffix(DiskAction.Refresh), L("vd_tip_refresh"))
         SetTip(moreBtn, L("vd_mgr_btn_more"), L("vd_mgr_btn_more_tip"))
+        SetTip(settingsBtn, L("rail_job_settings"), L("settings_startup"))
         SetTip(helpBtn, L("vd_mgr_name_help") & " (" & DiskShortcuts.KeyText(Keys.F1) & ")", L("vd_tip_help"))
         SetTip(mainBtn, L("vd_mgr_btn_main") & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.O) & ")", L("vd_tip_main"))
         SetTip(filterBox, L("vd_mgr_filter_name") & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.F) & ")", L("vd_tip_filter"))
@@ -1563,6 +1571,7 @@ Public Class DiskManagerForm
         End Try
 
         running.Remove(op)
+        If AppHost.Current IsNot Nothing Then AppHost.Current.NotifyFinished()
         busy.Remove(op.Record.Key)
         ShowOutcome(op, res)
         op.Run.Dispose()
@@ -1620,7 +1629,7 @@ Public Class DiskManagerForm
         Return String.Join(Environment.NewLine, keep.ToArray())
     End Function
 
-    Private Sub StopStoppable()
+    Friend Sub StopStoppable()
         For Each op In running
             If op.Action = DiskAction.Verify AndAlso op.Run IsNot Nothing Then
                 op.Stopped = True
@@ -1645,6 +1654,30 @@ Public Class DiskManagerForm
         If Not Visible Then Show()
         If WindowState = FormWindowState.Minimized Then WindowState = lastShownState
         Activate()
+        If AppHost.Current IsNot Nothing Then AppHost.Current.Restored(Me)
+    End Sub
+
+    Friend ReadOnly Property MountedCount As Integer
+        Get
+            Return If(snapshot Is Nothing, 0, snapshot.MountedCount)
+        End Get
+    End Property
+    Friend ReadOnly Property JobCount As Integer
+        Get
+            Return running.Count
+        End Get
+    End Property
+    Friend ReadOnly Property ClosePending As Boolean
+        Get
+            Return closeWhenIdle
+        End Get
+    End Property
+    Friend Sub UnmountAllFromTray()
+        If Context().Packaged OrElse snapshot Is Nothing Then Return
+        Dim mounted = snapshot.Disks.Where(Function(r) r.IsMounted).ToList()
+        For Each group In mounted.GroupBy(Function(r) UnmountActionFor(New List(Of DiskRecord) From {r}))
+            DoQuick(group.Key, group.ToList())
+        Next
     End Sub
 
     Friend ReadOnly Property IsBusy As Boolean
@@ -1713,6 +1746,8 @@ Public Class DiskManagerForm
         For Each g In groups
             Dim added = False
             For Each a In g
+                ' The More menu carries Autostart among its globals, whatever is selected.
+                If withGlobals AndAlso a = DiskAction.Autostart Then Continue For
                 If Not Offered(a, sel) Then Continue For
                 If DiskStates.HiddenInBuild(a, Context()) Then Continue For
                 If sel.Count > 1 AndAlso Not DiskStates.AppliesToMany(a) Then Continue For
@@ -1724,6 +1759,9 @@ Public Class DiskManagerForm
         If withGlobals Then
             If menu.Items.Count > 0 Then menu.Items.Add(New ToolStripSeparator())
             If Not DiskStates.HiddenInBuild(DiskAction.MountImage, Context()) Then menu.Items.Add(MenuItem(DiskAction.MountImage, sel))
+            ' The shutdown guard belongs to the account, not to a row: reachable with nothing selected
+            ' and with no disk registered at all (SP-0080 5).
+            If Not DiskStates.HiddenInBuild(DiskAction.Autostart, Context()) Then menu.Items.Add(MenuItem(DiskAction.Autostart, sel))
             Dim pathCol As New ToolStripMenuItem(L("vd_mgr_show_path_column")) With {.Checked = list.Columns(Col.Path).Width > 0}
             AddHandler pathCol.Click, Sub() ToggleColumn(Col.Path)
             Dim sinceCol As New ToolStripMenuItem(L("vd_mgr_show_since_column")) With {.Checked = list.Columns(Col.Since).Width > 0}
@@ -1859,7 +1897,7 @@ Public Class DiskManagerForm
     Protected Overrides Sub OnHandleCreated(e As EventArgs)
         MyBase.OnHandleCreated(e)
         Chrome.Apply(Me)
-        AppIcon.Apply(Me)
+        DiskManagerIcon.Apply(Me)
     End Sub
 
     ' The self-test and the capture tool open the window without a first run (they must not write the
@@ -1899,6 +1937,9 @@ Public Class DiskManagerForm
         ' Back from the taskbar: what changed while nobody looked is read at once.
         If WindowState <> FormWindowState.Minimized AndAlso wasMinimized Then RequestRead()
         wasMinimized = (WindowState = FormWindowState.Minimized)
+        If wasMinimized AndAlso Visible AndAlso ShellSettings.MinimizeToTray() AndAlso AppHost.Current IsNot Nothing Then
+            AppHost.Current.MinimizeWindow(Me)
+        End If
     End Sub
 
     Private lastShownState As FormWindowState = FormWindowState.Normal
@@ -1958,7 +1999,7 @@ Public Class DiskManagerForm
         emptyLabel.Margin = Ui.PxPad(Me, 16, 16, 16, 8)
         opBar.Size = Ui.PxSize(Me, 120, 14)
         For Each b As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn,
-                                                refreshBtn, helpBtn, mainBtn, emptyNew, emptyAdd, stopBtn, clearQueueBtn}
+                                                refreshBtn, settingsBtn, helpBtn, mainBtn, emptyNew, emptyAdd, stopBtn, clearQueueBtn}
             b.Margin = Ui.PxPad(Me, 0, 0, 6, 6)
         Next
         For Each b As Control In New Control() {addBtn, saveBtn, moreBtn, helpBtn}
@@ -1967,7 +2008,7 @@ Public Class DiskManagerForm
         For Each b In detailButtons.Controls.Cast(Of Control)()
             b.Margin = Ui.PxPad(Me, 0, 0, 6, 6)
         Next
-        mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
+        mainBtn.Picture = DiskManagerIcon.Mark(Ui.Px(Me, 24))
         RebuildGlyphs()
         GlyphBitmaps.Clear()
     End Sub
@@ -2000,6 +2041,7 @@ Public Class DiskManagerForm
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
         Dim forced = (e.CloseReason = CloseReason.WindowsShutDown OrElse e.CloseReason = CloseReason.TaskManagerClosing)
+        If forced AndAlso AppHost.Current IsNot Nothing Then AppHost.Current.EndingSession()
         Dim decision = DecisionOnClose(IsBusy, closeWhenIdle, forced)
         If decision <> CloseDecision.Allow Then
             e.Cancel = True

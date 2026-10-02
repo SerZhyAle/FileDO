@@ -33,7 +33,7 @@ release, one tag, a companion binary, *not* a separate edition. Distributed on t
 - **Source root.** Four `cmd/<binary>/` mains (`filedo`, `filedo-check`, `filedo-fill`, `filedo-test`) +
   shared top-level packages `fileduplicates/`, `helpers/`, `fsx/`, `statedir/`. **Multi-module**: 4
   separate `go.mod`/`go.sum`, mixed `go` language lines (1.25.0 / 1.21) but **one toolchain**: the root
-  `go.mod`'s `toolchain go1.26.1` is what every channel builds with - `release.yml` installs it,
+  `go.mod`'s `toolchain go1.26.8` is what every channel builds with - `release.yml` installs it,
   `build.ps1` and `msix/build-msix.ps1` refuse any other local Go. Module path `filedo` (a frozen anchor).
 - **Version shape.** Separator-less `yyMMddHHmm` (e.g. `2606120121`) - a sortable 10-digit integer. Git
   tag `v<stamp>`, validated by `release.ps1` as a real date newer than every `v\d{10}` tag before it
@@ -439,7 +439,7 @@ every module and held together by `TestSharedFilesMatchTheOtherCompanions`.
   through `env:`, must be `v` + a real `yyMMddHHmm` date whose commit is on `origin/main`, and there is no
   `0.0.0.0` fallback; the release becomes Latest only when its stamp is newer than the current Latest's.
   Every action is pinned by commit SHA (version in a comment), checkout does not persist the token, WiX is
-  `5.0.2`, Go is `1.26.1` with `GOTOOLCHAIN=local` and checked against `go.mod`, `govulncheck
+  `5.0.2`, Go is `1.26.8` with `GOTOOLCHAIN=local` and checked against `go.mod`, `govulncheck
   -mode=binary` reads every Go exe, and the Windows build job has `contents: read` - only a separate
   publish job, which runs no project code, may write the release. Bumping Go means `go.mod`'s toolchain
   line and the workflow's `go-version` together; the gate fails when they differ.
@@ -522,7 +522,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   same way from inside each module.
 - **Three packages carry real tests** and all are part of the gate:
   - `fdsec/` - the container format, its boundary corpus, every tampering class and the committed vectors.
-    It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip (about 90 s); `release.ps1`
+    It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip; `release.ps1`
     runs it without `-short` before tagging.
   - `vdisk/` - the disk container (SP-0004): a naive reference it is compared with byte for byte after
     every step of seeded operation sequences, abrupt-failure sweeps over every write and flush of the
@@ -602,7 +602,7 @@ the start was about - and each double-clicked container therefore gets its own w
 **The shell consumes `APP-BEHAVIOUR` and `APP-STYLE`** (see "External contracts"). What that means in
 code, each held by a gate:
 - **No exception text on screen.** A caught exception goes to `ShellLog` (`%LOCALAPPDATA%\FileDO\
-  filedo_win.log`, which Send logs packs), and the user gets `ShellDialog.Problem` - a cause named from the
+  filedo_win.session-*.log`, which Send logs sanitizes and packs), and the user gets `ShellDialog.Problem` - a cause named from the
   exception's *type* (`Problems.CauseKey`) and actions. `Program.Main` handles every exception nothing else
   caught the same way.
 - **No system message box and no owner-less dialog.** Every question is a `ShellDialog` (owned, themed,
@@ -727,6 +727,7 @@ What this repository consumes:
 | `REPO-LAYOUT` - the root and `docs/` names a shared tool may address without asking | 0.9 draft | `rule-adoption/` | [`docs/contracts/REPO-LAYOUT.md`](docs/contracts/REPO-LAYOUT.md) |
 | `RULE-DELIVERY` - how the canon arrives through the `sza` plugin, and how staleness is judged | 0.9 draft | `rule-adoption/` | [`docs/contracts/RULE-DELIVERY.md`](docs/contracts/RULE-DELIVERY.md) |
 | `DOC-INTERNAL-QUALITY` / `DOC-EXTERNAL-QUALITY` - what the internal docs and the published site plus READMEs owe their readers: registry, links, style, freshness, termbase, SEO | 0.9 draft / 0.9 draft | `documentation-quality/` | [`docs/contracts/DOC-INTERNAL-QUALITY.md`](docs/contracts/DOC-INTERNAL-QUALITY.md), [`DOC-EXTERNAL-QUALITY.md`](docs/contracts/DOC-EXTERNAL-QUALITY.md) |
+| `INPUT-PARITY` - keyboard and pointer action parity; GUI screen verification incomplete | 0.3 draft, partial | `input-controls/` | [`docs/contracts/INPUT-PARITY.md`](docs/contracts/INPUT-PARITY.md) |
 | `PACKAGE-VERSIONING` - the package stamp and ordering grammar; FileDO's frozen stamp differs from the draft | 0.1 draft, exception proposed | `package-versioning/` | [`docs/contracts/PACKAGE-VERSIONING.md`](docs/contracts/PACKAGE-VERSIONING.md) |
 
 Four rules, because a shared contract breaks differently from ordinary code:

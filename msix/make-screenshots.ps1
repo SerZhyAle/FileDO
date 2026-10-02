@@ -248,6 +248,20 @@ function Invoke-RailRow($win, [string]$lang, [string]$key) {
     [FdMsaa]::DoDefault($h)
 }
 
+function Hide-VolumeLabel($win) {
+    # The target box opens on a drive row, "C:\ (<label>, NTFS, ..)", and the label is whatever the
+    # machine that takes the shot calls its volumes - the maintainer's own, once (AUD-61-F5). Rewrite
+    # the box's text to the bare drive root through its Value pattern; the list and the volume itself
+    # are not touched, and the page reads "C:\" as the same drive (TargetText).
+    $cond = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::ComboBox)
+    foreach ($c in $win.FindAll('Descendants', $cond)) {
+        $vp = $null
+        if (-not $c.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$vp)) { continue }
+        $m = [regex]::Match([string]$vp.Current.Value, '^([A-Za-z]:\\) \(')
+        if ($m.Success) { $vp.SetValue($m.Groups[1].Value) }
+    }
+}
+
 # A neutral path for the "Secure a file" page: temp paths carry the user name.
 $demoDir  = Join-Path $env:PUBLIC "Documents\FileDO-demo"
 $demoFile = Join-Path $demoDir "quarterly-report.docx"
@@ -325,6 +339,8 @@ try {
                 } else {
                     Start-Sleep -Milliseconds 800
                 }
+                Hide-VolumeLabel (Find-ShellWindow $proc.Id)
+                Start-Sleep -Milliseconds 400
 
                 [void][FdWin]::GetClientRect($h, [ref]$cr)
                 $w = $cr.Right - $cr.Left; $hh = $cr.Bottom - $cr.Top

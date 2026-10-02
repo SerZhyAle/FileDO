@@ -6,8 +6,8 @@
 ' showed it.
 '
 ' Writing here must never become a failure of its own: every path swallows its own errors, because a
-' log that throws turns one problem into two. The file is capped and rolled over once, so a window
-' left open for a month cannot fill a disk with it.
+' log that throws turns one problem into two. Each process keeps a bounded session log;
+' startup prunes closed sessions while active processes keep their files open against deletion.
 '
 ' `-debug` on the command line adds diagnostic lines (Debug) to the same file; without it only
 ' errors and the few lifecycle lines are written.
@@ -16,7 +16,9 @@ Imports System.IO
 Module ShellLog
 
     Private Const FileName As String = "filedo_win.log"
-    Private Const MaxBytes As Long = 1024L * 1024L
+    Private Const MaxBytes As Long = 16L * 1024L * 1024L
+    Private sessionPath As String = Nothing
+    Private sessionLease As FileStream = Nothing
 
     Private ReadOnly gate As New Object()
     Private debugChecked As Boolean = False
@@ -27,8 +29,64 @@ Module ShellLog
 
     Public Function LogPath() As String
         If PathForTest IsNot Nothing Then Return PathForTest
-        Return Path.Combine(Runner.GetAppDataDir(), FileName)
+        SyncLock gate
+            If sessionPath Is Nothing Then
+                Dim dir = Runner.GetAppDataDir()
+                Directory.CreateDirectory(dir)
+                sessionPath = Path.Combine(dir, "filedo_win.session-" & DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fffffff") & "-" & Guid.NewGuid().ToString("N") & ".log")
+                ' Held for this process's lifetime. Other starts cannot remove a live session.
+                Using created As New FileStream(sessionPath, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite)
+                End Using
+                sessionLease = New FileStream(sessionPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                PruneSessions(dir)
+            End If
+            Return sessionPath
+        End SyncLock
     End Function
+
+    Friend Sub PruneSessions(dir As String)
+        Dim logs = Directory.GetFiles(dir, "filedo_win.session-*.log").OrderByDescending(Function(f) Path.GetFileName(f)).ToArray()
+        For Each f In logs.Skip(10)
+            Try
+                ' The active reader lease refuses this open. Pruning is never by process-name guessing.
+                Using lease As New FileStream(f, FileMode.Open, FileAccess.Read, FileShare.None)
+                End Using
+                File.Delete(f)
+            Catch ex As IOException
+            Catch ex As UnauthorizedAccessException
+            End Try
+        Next
+    End Sub
+
+    Friend Sub CompactLog(target As String, ceiling As Long, headBytes As Integer, tailBytes As Integer)
+        Using stream As New FileStream(target, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite)
+            Dim length = stream.Length
+            If length <= ceiling Then Return
+            Dim head(headBytes - 1) As Byte
+            Dim tail(tailBytes - 1) As Byte
+            ReadFully(stream, head)
+            stream.Position = length - tailBytes
+            ReadFully(stream, tail)
+            Dim marker = System.Text.Encoding.UTF8.GetBytes(Environment.NewLine &
+                "[Diag] LOG COMPACTED | dropped_middle_bytes=" & (length - headBytes - tailBytes).ToString() &
+                " | kept_head_bytes=" & headBytes.ToString() & " | kept_tail_bytes=" & tailBytes.ToString() & Environment.NewLine)
+            stream.Position = 0
+            stream.Write(head, 0, head.Length)
+            stream.Write(marker, 0, marker.Length)
+            stream.Write(tail, 0, tail.Length)
+            stream.SetLength(stream.Position)
+            stream.Flush()
+        End Using
+    End Sub
+
+    Private Sub ReadFully(stream As Stream, bytes As Byte())
+        Dim used = 0
+        While used < bytes.Length
+            Dim n = stream.Read(bytes, used, bytes.Length - used)
+            If n = 0 Then Throw New EndOfStreamException()
+            used += n
+        End While
+    End Sub
 
     Public Function DebugEnabled() As Boolean
         If Not debugChecked Then
@@ -96,17 +154,9 @@ Module ShellLog
                     End Try
                 End If
                 Dim target = LogPath()
-                Try
-                    Dim fi As New FileInfo(target)
-                    If fi.Exists AndAlso fi.Length > MaxBytes Then
-                        Dim older = target & ".1"
-                        If File.Exists(older) Then File.Delete(older)
-                        File.Move(target, older)
-                    End If
-                Catch
-                End Try
                 File.AppendAllText(target, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & " " & level & " " &
                                    text & Environment.NewLine)
+                CompactLog(target, MaxBytes, 1024 * 1024, 7 * 1024 * 1024)
             Catch
             Finally
                 If held Then

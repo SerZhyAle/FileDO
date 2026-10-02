@@ -155,6 +155,21 @@
           ><span data-l="en">When to choose the GUI</span
           ><span data-l="ua">Коли вибрати GUI</span>
         </h2>
+        <p>
+          <span data-l="ru">Настройки доступны в главном окне и по кнопке «Настройки» в Диспетчере дисков. Тема применяется сразу, язык - при повторном открытии окна. Выберите запуск при входе в Windows: выключено, FileDO, Диспетчер дисков или только трей. Запуск не требует прав администратора; запись остаётся после удаления программы. В версии Store автозапуск включается в параметрах Windows, «Приложения - Автозагрузка», или Диспетчере задач. Обычный запуск всегда показывает окно. Переключатель «Сворачивать в трей» действует на оба окна; щелчок по значку открывает FileDO. Меню открывает Диспетчер дисков и настройки, останавливает задание, отключает все подключённые диски и завершает программу. При выходе во время задания программа спрашивает, что делать. Уведомление о завершении можно выключить; сброс положения окон действует при следующем открытии.</span>
+          <span data-l="en">Settings are available in the main window and from the Disk Manager's Settings button. Theme changes apply immediately; language changes apply on reopening. Choose startup at Windows logon: Off, FileDO, Disk Manager or only the tray icon. Startup needs no admin rights; its entry remains after uninstalling. In the Store build, use Windows Settings, Apps - Startup, or Task Manager. A manual launch always shows a window. Minimize to the tray applies to both windows; clicking the icon opens FileDO. Its menu opens the manager and settings, stops a job, unmounts all mounted disks and exits. Exit during a job asks what to do. Finish notifications can be turned off; resetting window positions applies on the next opening.</span>
+          <span data-l="ua">Налаштування доступні в головному вікні та за кнопкою «Налаштування» в Диспетчері дисків. Тема застосовується одразу, мова - під час повторного відкриття вікна. Виберіть запуск під час входу у Windows: вимкнено, FileDO, Диспетчер дисків або лише трей. Запуск не потребує прав адміністратора; запис залишається після видалення програми. У версії Store автозапуск вмикається в параметрах Windows, «Програми - Автозавантаження», або Диспетчері завдань. Звичайний запуск завжди показує вікно. Перемикач «Згортати в трей» діє на обидва вікна; натискання піктограми відкриває FileDO. Меню відкриває Диспетчер дисків і налаштування, зупиняє завдання, відключає всі підключені диски та завершує програму. Під час виходу із завданням програма запитує, що робити. Сповіщення про завершення можна вимкнути; скидання положення вікон діє під час наступного відкриття.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="ru"><img src="../assets/guides/gui-settings-ru.png" width="2041" height="1266" loading="lazy" alt="Страница настроек главного окна FileDO" /></span>
+          <span data-l="en"><img src="../assets/guides/gui-settings-en.png" width="2041" height="1266" loading="lazy" alt="The Settings page in the FileDO main window" /></span>
+          <span data-l="ua"><img src="../assets/guides/gui-settings-ua.png" width="2041" height="1266" loading="lazy" alt="Сторінка налаштувань головного вікна FileDO" /></span>
+        </figure>
+        <figure class="shot">
+          <span data-l="ru"><img src="../assets/guides/gui-disk-settings-ru.png" width="1061" height="1004" loading="lazy" alt="Общие настройки FileDO в окне Диспетчера дисков" /></span>
+          <span data-l="en"><img src="../assets/guides/gui-disk-settings-en.png" width="1061" height="1004" loading="lazy" alt="Shared FileDO settings in the Disk Manager dialog" /></span>
+          <span data-l="ua"><img src="../assets/guides/gui-disk-settings-ua.png" width="1061" height="1004" loading="lazy" alt="Спільні налаштування FileDO у вікні Диспетчера дисків" /></span>
+        </figure>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
@@ -680,17 +695,17 @@
             <p>
               <span data-l="ru"
                 >Окно всегда записывает свои ошибки в
-                <code>%LOCALAPPDATA%\FileDO\filedo_win.log</code> - этот файл
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - этот файл
                 и уходит автору по кнопке «Отправить логи». Переключатель
                 <code>-debug</code> добавляет туда подробные строки.</span
               ><span data-l="en"
                 >The window always writes its errors to
-                <code>%LOCALAPPDATA%\FileDO\filedo_win.log</code> - the file
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - the file
                 Send logs passes to the author. The <code>-debug</code> switch
                 adds detailed lines to it.</span
               ><span data-l="ua"
                 >Вікно завжди записує свої помилки в
-                <code>%LOCALAPPDATA%\FileDO\filedo_win.log</code> - саме цей
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - саме цей
                 файл іде авторові за кнопкою «Надіслати логи». Перемикач
                 <code>-debug</code> додає туди докладні рядки.</span
               >

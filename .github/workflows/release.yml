@@ -72,7 +72,7 @@ jobs:
           # One toolchain for every channel (CI-03): equal to go.mod's `toolchain` line.
           # setup-go's go-version-file reads only the `go` line (the language floor), so the
           # version is spelled here, and build.ps1's gate fails when the two differ.
-          go-version: '1.26.1'
+          go-version: '1.26.8'
           # setup-go enables module/build caching by default but only keys off the
           # root go.sum. This repo has 4 modules, so list each go.sum to keep the
           # cache key correct (a stale key = silent cache misses on every release).

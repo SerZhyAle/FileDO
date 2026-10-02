@@ -1,0 +1,8 @@
+
+2026-10-01 11:11:08 sza@ukr.net 2610011104
+Created P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd: plain, 2 GiB volume; obfuscated, not encrypted: anyone holding the file and the published format can read it.
+Mount it with: filedo P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd mount  (the first mount formats the volume NTFS)
+Note: imported P:\WINDOWS\FileDo\history.json into P:\WINDOWS\FileDo\dist\vd-s6-20261001\state\history.json (the old file is left in place).
+
+ Finish:2026-10-01 11:11:08, Duration: 0s
+EXIT_CODE=0

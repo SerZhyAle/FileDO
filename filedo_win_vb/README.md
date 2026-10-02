@@ -191,7 +191,8 @@ Things worth knowing before reading the code:
 - **The first run** shows the welcome window once (`DiskWelcomeDialog`); Help, First steps.. opens it again. Neither
   the help nor the welcome makes a network call: a link is followed only when it is clicked.
 - **Autostart, in one dialog** (`DiskAutostartDialog.vb`, SP-0080): the per-container logon mounts and the shutdown
-  guard together, opened by *Autostart..* from a registered disk's menu or detail pane. The dialog learns state
+  guard together, opened by *Autostart..* under More actions - with or without a selection, since the guard
+  belongs to the account and not to a disk - or from a registered disk's menu or detail pane. The dialog learns state
   only through delegates over the snapshot the manager has already read, and acts only through the manager's own
   flows - a logon switch is exactly the row's `vd auto` action, and the guard's switch is one
   `DiskCommands.Build("guard", ..)` line through the same queue. The packaged build never opens it: mount and
@@ -204,6 +205,27 @@ of a row and which action applies, as pure functions), `DiskSnapshot.vb` (the `v
 functions), `DiskDialogs.vb` (the password, Mount as.. and the name a container is added under) and `AppHost.vb`
 (the windows of the process). `filedo_win.exe --capture-screens <folder>` renders the site's three pictures of it
 (`gui-disk-manager-*`, `gui-disk-help-*`, `gui-disk-welcome-*`).
+
+## Application settings and the tray
+
+The shell's Settings page and the Disk Manager's Settings toolbar button edit the same values through
+`SettingsPanel.vb`. Theme changes apply to both windows immediately; language changes apply on reopening.
+The manager opens an owned settings dialog with a Close button. Values apply immediately.
+
+Run at Windows startup offers Off, Open FileDO, Open Disk Manager and Tray icon only. It writes only this
+user's `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` entry named `FileDO`, without elevation.
+Turning it off removes that entry. Uninstalling leaves it behind; turn it off before uninstalling.
+The Store build instead declares a disabled `FileDOShellStartup` task: enable or disable it in Windows
+Settings > Apps > Startup or Task Manager. The in-app choice is hidden there; enabling the OS task opens
+the shell. Starting by hand always opens a window.
+
+Minimize to the tray applies to either window's minimize button. Close still closes and asks while a job
+runs. The shared icon appears for a hidden startup or a window minimized to the tray; its tooltip reports
+running jobs and mounted disks. Left-click opens FileDO. The menu opens either window or settings, offers
+Unmount all when disks are mounted (outside the Store build), and Stop while a job runs, through the same
+paths as the windows. Exit uses their existing running-job questions and waits for cleanup. A tray-held
+process stays available after its windows close until Exit is chosen. Finish balloons can be disabled.
+Reset window positions restores default geometry on each window's next opening.
 
 ## Usage
 

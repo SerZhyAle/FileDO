@@ -16,6 +16,10 @@ Module AppIcon
     Private ReadOnly appIconValue As Icon = Load()
 
     ''' <summary>Gives the form the application icon. A no-op if the icon could not be loaded.</summary>
+    Friend Function SystemIcon() As Icon
+        Return appIconValue
+    End Function
+
     Public Sub Apply(form As Form)
         If form IsNot Nothing AndAlso appIconValue IsNot Nothing Then form.Icon = appIconValue
     End Sub

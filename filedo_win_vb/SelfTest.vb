@@ -25,12 +25,14 @@ Public Module SelfTest
         ' own, never to the user's filedo_win.log.
         Dim testLog = Path.Combine(Path.GetTempPath(), "filedo_selftest_shell_" & Guid.NewGuid().ToString("N") & ".log")
         ShellLog.PathForTest = testLog
+        ShellSettings.ValuesForTest = New Dictionary(Of String, Object)()
         ' A Disks page reads its container through filedo.exe; the self-test never starts filedo.exe.
         DiskProbe.Enabled = False
         Try
             RunAll()
         Finally
             DiskProbe.Enabled = True
+            ShellSettings.ValuesForTest = Nothing
             Packaging.OverrideForTest = Nothing
             ShellLog.PathForTest = Nothing
             Try
@@ -41,6 +43,61 @@ Public Module SelfTest
         Return WriteLog()
     End Function
 
+    Private Sub CheckSettingsTray()
+        Dim exe = "C:\Program Files\FileDO\filedo_win.exe"
+        For Each pair In New String()() {New String() {"shell", " --startup"}, New String() {"manager", " --startup --disks"}, New String() {"tray", " --startup --tray"}}
+            Check("settings:startup:" & pair(0), StartupLaunch.Command(exe, pair(0)) = """" & exe & """" & pair(1), "")
+        Next
+        Check("settings:startup:off", StartupLaunch.Command(exe, "off") Is Nothing AndAlso StartupLaunch.Command(exe, "invalid") Is Nothing, "")
+        Check("tray:manual-visible", Not StartupLaunch.HiddenStart({"filedo_win.exe", "--tray"}), "")
+        Check("tray:startup-hidden", StartupLaunch.HiddenStart({"filedo_win.exe", "--STARTUP", "--TRAY"}), "")
+        For Each packaged In New Boolean() {False, True}
+            For Each mounted In New Integer() {0, 2}
+                For Each jobs In New Integer() {0, 1}
+                    Dim keys = TrayIcon.MenuKeys(packaged, mounted, jobs)
+                    Check("tray:unmount:" & packaged & ":" & mounted & ":" & jobs, keys.Contains("tray_unmount") = (Not packaged AndAlso mounted > 0), "")
+                    Check("tray:stop:" & packaged & ":" & mounted & ":" & jobs, keys.Contains("tray_stop") = (jobs > 0), "")
+                    Check("tray:exit-last:" & packaged & ":" & mounted & ":" & jobs, keys.Last() = "tray_exit" AndAlso keys(0) = "tray_open" AndAlso keys(1) = "tray_manager", "")
+                    Check("tray:no-destructive:" & packaged & ":" & mounted & ":" & jobs, Not keys.Any(Function(k) k.Contains("wipe") OrElse k.Contains("destroy") OrElse k.Contains("format")), "")
+                Next
+            Next
+        Next
+        Check("tray:menu-order", String.Join(",", TrayIcon.MenuKeys(False, 1, 1)) = "tray_open,tray_manager,-,tray_unmount,tray_stop,-,settings_startup,tray_exit", "")
+        Check("tray:exit-with-job-asks", DiskManagerForm.DecisionOnClose(True, False, False) = DiskManagerForm.CloseDecision.Ask, "")
+        ShellSettings.SavePlacementOf(ShellSettings.ShellPrefix, 10, 10, 900, 600, False, 96)
+        ShellSettings.ResetPlacements()
+        ShellSettings.SavePlacementOf(ShellSettings.ShellPrefix, 10, 10, 900, 600, False, 96)
+        Check("settings:reset-survives-close", Not ShellSettings.LoadPlacement().HasValue, "")
+        ShellSettings.SavePlacementOf(ShellSettings.ShellPrefix, 10, 10, 900, 600, False, 96)
+        Check("settings:placement-after-reset", ShellSettings.LoadPlacement().HasValue, "")
+        Check("tray:presence", Not TrayIcon.ShouldShow(False, 0) AndAlso TrayIcon.ShouldShow(True, 0) AndAlso TrayIcon.ShouldShow(False, 1), "")
+        For Each lang In Localization.Languages
+            Check("settings:locale:" & lang, SettingsPanel.NewKeys.All(Function(k) Localization.OwnKeysForTest(lang).Contains(k)), "")
+        Next
+        For Each packaged In New Boolean() {False, True}
+            Packaging.OverrideForTest = packaged
+            Using page As New SettingsView(), dialog As New DiskSettingsDialog()
+                Check("settings:shared-panel:" & packaged, page.Panel.GetType() Is dialog.Panel.GetType(), "")
+                Check("settings:packaged-control:" & packaged, Not packaged = page.Panel.StartupCombo.Visible, "")
+                ShellSettings.SetMinimizeToTray(True)
+                ShellSettings.SetFinishNotification(False)
+                ShellSettings.SetAutostart("manager")
+                Check("settings:shared-values:" & packaged, page.Panel.StartupCombo.SelectedIndex = 2 AndAlso dialog.Panel.StartupCombo.SelectedIndex = 2, "")
+                Check("settings:notification", Not ShellSettings.FinishNotification(), "")
+                Check("settings:rule12", dialog.CancelButton IsNot Nothing AndAlso DirectCast(dialog.CancelButton, Button).Text = Localization.T("settings_close"), "")
+                For Each dark In New Boolean() {False, True}
+                    Theme.UsePaletteForTest(dark)
+                    dialog.RepaintTheme()
+                    Check("theme:settings-dialog:" & packaged & ":" & dark, dialog.BackColor.ToArgb() = Theme.Current.Background.ToArgb(), "")
+                Next
+            End Using
+        Next
+        Packaging.OverrideForTest = Nothing
+        Theme.UsePaletteForTest(Nothing)
+        ShellSettings.LoadPlacementOf(ShellSettings.DiskManagerPrefix)
+        ShellSettings.ValuesForTest.Clear()
+    End Sub
+
     Private Sub RunAll()
         ' SHELL-15: every group of rows runs inside Guard, so a check that throws is a FAIL row with
         ' the exception's type - and the rows after it still run - instead of a process that dies
@@ -48,6 +105,7 @@ Public Module SelfTest
         Guard("ArgQuoting", Sub() Check("ArgQuoting", ArgQuotingTests.RunTests()))
         Guard("argquoting", AddressOf CheckArgQuotingCases)
         Guard("shortcut", AddressOf CheckShortcut)
+        Guard("settings-tray", AddressOf CheckSettingsTray)
         Guard("catalogue", AddressOf CheckCatalogue)
         Guard("page", AddressOf CheckJobPages)
         Guard("expert", AddressOf CheckExpertPage)
@@ -101,6 +159,7 @@ Public Module SelfTest
         Guard("duration", AddressOf CheckDurationFormat)
         Guard("about", AddressOf CheckAboutStamp)
         Guard("logs", AddressOf CheckLogArchives)
+        Guard("diagnostic", AddressOf CheckDiagnosticExport)
 
         ' SP-0004 P6: the Disks jobs - the command of every page, the credential kept out of every
         ' line, the elevation split, the double-click routes, a mount outliving the window, and the
@@ -2322,6 +2381,72 @@ Public Module SelfTest
         End Try
     End Sub
 
+    Private Sub CheckDiagnosticExport()
+        Dim dir = Path.Combine(Path.GetTempPath(), "filedo_selftest_diagnostic_" & Guid.NewGuid().ToString("N"))
+        Try
+            Directory.CreateDirectory(dir)
+            Dim source = Path.Combine(dir, "report_C-account-canary.log")
+            ' Synthetic PEM delimiters, not signing material. Build them for the export fixture.
+            Dim pemBorder = New String("-"c, 5)
+            Dim lines As New List(Of String) From {"startup-canary", "phase-canary completed", "password=credential-canary", "p:quoted-credential-canary with spaces", "C:\Users\profile-canary\invoice.txt", "C:/Users/Profile Space Canary/notes.txt", "\\host-canary\share\private", "/data/user/0/package-canary/state", pemBorder & "BEGIN PRIVATE KEY" & pemBorder, "key-body-canary", pemBorder & "END PRIVATE KEY" & pemBorder, "tail-canary"}
+            For Each key In New String() {"token", "X-Amz-Signature", "X-Amz-Credential", "X-Amz-Security-Token", "wmsAuthSign", "hdnts", "hdnea", "Policy", "Key-Pair-Id", "api_key", "client_secret", "refresh_token"}
+                lines.Add("https://host/path?a=1&amp;" & key & "=query-canary")
+            Next
+            lines.Add("http://userinfo-canary:pass/with?punctuation#@host/live/id")
+            lines.Add("https://host/live/account-canary/password-canary/123.ts")
+            lines.Add("p:""multiline-start-canary")
+            lines.Add("multiline-body-canary")
+            lines.Add("multiline-end-canary""")
+            lines.Add("access_token=access-canary")
+            lines.Add("pass=short-pass-canary")
+            File.WriteAllLines(source, lines, Encoding.UTF8)
+            Dim archive = LogReport.ArchiveForTest(source, dir)
+            Dim packed As New StringBuilder()
+            Using fs As New FileStream(archive, FileMode.Open, FileAccess.Read)
+                Using zip As New System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read)
+                    Check("diagnostic:environment", zip.GetEntry("environment.txt") IsNot Nothing)
+                    For Each entry In zip.Entries
+                        packed.AppendLine(entry.FullName)
+                        Using reader As New StreamReader(entry.Open(), Encoding.UTF8)
+                            packed.AppendLine(reader.ReadToEnd())
+                        End Using
+                    Next
+                End Using
+            End Using
+            Dim output = packed.ToString()
+            For Each value In New String() {"credential-canary", "profile-canary", "Profile Space Canary", "host-canary", "package-canary", "key-body-canary", "query-canary", "userinfo-canary", "account-canary", "password-canary", "multiline-body-canary", "multiline-end-canary", "access-canary", "short-pass-canary", source, "report_C-account"}
+                Check("diagnostic:no-leak:" & value.Replace(source, "source-path"), Not output.Contains(value))
+            Next
+            Check("diagnostic:useful-context", output.Contains("startup-canary") AndAlso output.Contains("tail-canary") AndAlso output.Contains("phase-canary"))
+            Check("diagnostic:count-only", output.Contains("volume_metrics_capability=unavailable") AndAlso Not output.Contains("history.json"))
+            Check("diagnostic:oversize-line", DiagnosticText.Sanitize(New String("x"c, 65537)).Contains("LINE OMITTED"))
+            ' A log held by its writer must still be exportable.
+            Using writer As New FileStream(source, FileMode.Open, FileAccess.Write, FileShare.ReadWrite Or FileShare.Delete)
+                Check("diagnostic:live-log", File.Exists(LogReport.ArchiveForTest(source, dir)))
+            End Using
+            Dim compacted = Path.Combine(dir, "compact.log")
+            File.WriteAllText(compacted, "head-canary" & New String("x"c, 5000) & "tail-canary", Encoding.ASCII)
+            ShellLog.CompactLog(compacted, 4096, 32, 32)
+            Dim compactText = File.ReadAllText(compacted)
+            Check("diagnostic:head-tail", compactText.StartsWith("head-canary") AndAlso compactText.EndsWith("tail-canary") AndAlso compactText.Contains("LOG COMPACTED") AndAlso compactText.Length < 4096)
+            Dim truncated = "[Diag] LOG COMPACTED | dropped_middle_bytes=999" & vbLf & "opaque-key-tail-canary" & vbLf & "2026-10-01 12:00:00.000 INFO continued-canary"
+            Dim sanitized = DiagnosticText.Sanitize(truncated)
+            Check("diagnostic:compacted-fragment", Not sanitized.Contains("opaque-key-tail-canary") AndAlso sanitized.Contains("continued-canary"))
+            For n = 1 To 12
+                File.WriteAllText(Path.Combine(dir, "filedo_win.session-" & n.ToString("D2") & ".log"), "session")
+            Next
+            Dim active = Path.Combine(dir, "filedo_win.session-01.log")
+            Using lease As New FileStream(active, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                ShellLog.PruneSessions(dir)
+                Check("diagnostic:active-session-kept", File.Exists(active))
+            End Using
+            ShellLog.PruneSessions(dir)
+            Check("diagnostic:ten-sessions", Directory.GetFiles(dir, "filedo_win.session-*.log").Length = 10 AndAlso Not File.Exists(active))
+        Finally
+            If Directory.Exists(dir) Then Directory.Delete(dir, True)
+        End Try
+    End Sub
+
     Private Sub AppendText(path As String, text As String)
         Using fs As New FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
             Dim bytes = Encoding.UTF8.GetBytes(text)
@@ -3614,7 +3739,15 @@ Public Module SelfTest
                   DiskStates.HiddenInBuild(DiskAction.Autostart, New DiskContext With {.Packaged = packaged}) = packaged, "")
             Dim why = DiskStates.WhyNot(DiskAction.Autostart, MgrRecord(), DiskRowState.NotMounted, New DiskContext With {.Packaged = packaged})
             Check("disk-auto:why:" & tag, why = If(packaged, "vd_packaged", ""), why)
+            ' The guard belongs to the account: the entry opens with nothing selected, and a busy row
+            ' does not take it away.
+            Dim whyNone = DiskStates.WhyNotAll(DiskAction.Autostart, New List(Of DiskRecord), New List(Of DiskRowState),
+                                               New DiskContext With {.Packaged = packaged})
+            Check("disk-auto:no-selection:" & tag, whyNone = If(packaged, "vd_packaged", ""), whyNone)
+            Dim whyBusy = DiskStates.WhyNot(DiskAction.Autostart, MgrRecord(), DiskRowState.Busy, New DiskContext With {.Packaged = packaged})
+            Check("disk-auto:busy-row:" & tag, whyBusy = If(packaged, "vd_packaged", ""), whyBusy)
         Next
+        Check("disk-auto:global", DiskStates.IsGlobal(DiskAction.Autostart), "")
 
         ' The last-run rendering in five locales: never ran, ran with nothing mounted, ran clean,
         ' ran out of time - the reason arrives as the console wrote it.
@@ -3623,6 +3756,12 @@ Public Module SelfTest
         Dim cleanRun As New DiskGuardState With {.Installed = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
         cleanRun.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
         cleanRun.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "save", .Outcome = "saved"})
+        cleanRun.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "unmount", .Outcome = "unmounted"})
+        ' A ram disk is two rows and one container: saved, then an unmount that ran out of time, is
+        ' none of one closed - never "one of two".
+        Dim ramLeftRun As New DiskGuardState With {.Installed = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
+        ramLeftRun.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "save", .Outcome = "saved"})
+        ramLeftRun.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "unmount", .Outcome = "unfinished", .Reason = "did not finish within 10 s"})
         Dim leftoverRun As New DiskGuardState With {.Installed = True, .LastRun = DateTimeOffset.Now, .Ended = "session"}
         leftoverRun.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
         leftoverRun.Containers.Add(New DiskGuardRunRow With {.Name = "big", .Action = "unmount", .Outcome = "unfinished", .Reason = "did not finish within 10 s"})
@@ -3634,7 +3773,12 @@ Public Module SelfTest
             Dim empty = DiskAutostart.GuardRunLines(emptyRun, d)
             Check(tag & ":empty", empty.Count = 1 AndAlso empty(0).Contains(d("vd_auto_guard_run_empty")), empty(0))
             Dim clean = DiskAutostart.GuardRunLines(cleanRun, d)
-            Check(tag & ":clean", clean.Count = 1 AndAlso clean(0).Contains("2"), clean(0))
+            Check(tag & ":clean", clean.Count = 1 AndAlso
+                                     clean(0) = Localization.Format(d("vd_auto_guard_run_ok_fmt"), cleanRun.LastRun.Value.LocalDateTime.ToString("g"), 2), clean(0))
+            Dim ramLeft = DiskAutostart.GuardRunLines(ramLeftRun, d)
+            Check(tag & ":ram-left", ramLeft.Count = 2 AndAlso
+                                        ramLeft(0) = Localization.Format(d("vd_auto_guard_run_left_fmt"), ramLeftRun.LastRun.Value.LocalDateTime.ToString("g"), 0, 1),
+                  String.Join(" | ", ramLeft))
             Dim left = DiskAutostart.GuardRunLines(leftoverRun, d)
             Check(tag & ":leftover", left.Count = 2 AndAlso left(1).StartsWith("big:", StringComparison.Ordinal) AndAlso
                                         left(1).Contains(d("vd_auto_guard_outcome_unfinished")) AndAlso
@@ -3678,6 +3822,9 @@ Public Module SelfTest
                 Check("disk-auto:dialog:leave:" & lang, dlg.CancelButton IsNot Nothing AndAlso dlg.AcceptButton Is dlg.CancelButton, "")
                 Check("disk-auto:dialog:fits-screen:" & lang, dlg.ClientSize.Height <= Screen.PrimaryScreen.WorkingArea.Height AndAlso
                                                               dlg.ClientSize.Width > 300, dlg.ClientSize.ToString())
+                ' The longest captions (Russian, German) must not push a switch or a line off the page.
+                Dim overflow = dlg.OverflowForTest()
+                Check("disk-auto:dialog:fits-width:" & lang, overflow <= 0, overflow.ToString() & " px too wide")
                 Dim problems As New List(Of String)
                 WalkAccessible(dlg, problems)
                 Check("a11y:DiskAutostartDialog:" & lang, problems.Count = 0, String.Join("; ", problems.Take(6).ToArray()))

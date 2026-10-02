@@ -286,6 +286,9 @@ Identität, `compact` gibt den ungenutzten Platz der Datei zurück. `format` lö
 und beide lehnen einen eingebundenen Container ab - kein Schalter hebt diese Prüfung auf.
 `vd add work.fdd as work` gibt ihm einen kurzen Namen, `vd list` und `vd status` zeigen, was bekannt und
 was eingebunden ist, und `vd auto work logon` bindet einen verschleierten Container bei der Anmeldung ein.
+`vd guard on` schaltet die Abschaltwache ein: Endet Ihre Sitzung - Herunterfahren, Neustart oder Abmelden, nie
+der Energiesparmodus -, speichert sie zuerst `ram`-Datenträger und hebt dann jede Einbindung auf, sodass jeder
+Container sauber geschlossen wird; `vd guard status` zeigt ihren letzten Lauf.
 Eine `.vhd`, `.vhdx` oder `.iso` wird über die Bordmittel von Windows eingebunden: `filedo disk.vhdx mount`.
 
 Zwei Wörter, zwei verschiedene Versprechen, und FileDO vertauscht sie nie:

@@ -285,8 +285,11 @@ sa propre identité, `compact` rend au lecteur la place inutilisée du fichier. 
 (`fs ntfs` ou `fs exfat`) et `destroy` supprime le fichier du conteneur (`wipe` l'écrase d'abord): les deux
 demandent d'abord, et les deux refusent un conteneur monté - aucune option ne lève ce contrôle.
 `vd add work.fdd as work` lui donne un nom court, `vd list` et `vd status` montrent ce qui est connu et ce
-qui est monté, et `vd auto work logon` monte un conteneur camouflé à l'ouverture de votre session. Un
-`.vhd`, `.vhdx` ou `.iso` se monte par les moyens de Windows lui-même: `filedo disk.vhdx mount`.
+qui est monté, et `vd auto work logon` monte un conteneur camouflé à l'ouverture de votre session.
+`vd guard on` active le gardien d'arrêt: quand votre session se termine - un arrêt, un redémarrage ou une
+déconnexion, jamais la mise en veille -, il enregistre d'abord les disques `ram`, puis démonte chaque conteneur
+monté, pour que chacun soit fermé proprement; `vd guard status` montre sa dernière exécution. Un `.vhd`,
+`.vhdx` ou `.iso` se monte par les moyens de Windows lui-même: `filedo disk.vhdx mount`.
 
 Deux mots, deux promesses différentes, et FileDO ne les confond jamais:
 

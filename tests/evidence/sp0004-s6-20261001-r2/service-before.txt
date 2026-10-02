@@ -1,0 +1,20 @@
+
+
+Name      : MSiSCSI
+Status    : Running
+StartType : Manual
+
+
+
+
+
+DeviceID DriveType          Size
+-------- ---------          ----
+C:               3 3669121560576
+D:               3    2130636800
+G:               3 3669121560576
+I:               3 2000394645504
+P:               3  329705848832
+
+
+

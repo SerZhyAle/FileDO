@@ -19,28 +19,24 @@ Module LogReport
 
     ' An archive a mail provider rejects is worse than no archive.
     Private Const MaxFiles As Integer = 40
-    Private Const MaxFileBytes As Long = 8L * 1024L * 1024L
+    Private Const MaxFileBytes As Long = 16L * 1024L * 1024L
     Private Const MaxTotalBytes As Long = 20L * 1024L * 1024L
 
     ' Only names FileDO itself produces. No wildcards that could sweep in someone else's files.
     Private ReadOnly logPatterns As String() = {
         "filedo_win.log",
         "filedo_win.log.1",
+        "filedo_win.session-*.log",
         "filedo_win_debug.log",
-        "history.json",
         "check_report_*.log",
-        "check_report_*.json",
-        "check_report_*.csv",
-        "check_damaged.list",
         "compare_report_*.log",
         "delete_report_*.log",
-        "skip_files.list",
         "damaged_files.log"
     }
 
     ' In the data folder itself, the shell's own log and its one older generation - nothing else:
     ' the reports there are excluded on purpose, and the CLI's files live in its state folder.
-    Private ReadOnly shellLogPatterns As String() = {"filedo_win.log", "filedo_win.log.1"}
+    Private ReadOnly shellLogPatterns As String() = {"filedo_win.log", "filedo_win.log.1", "filedo_win.session-*.log"}
 
     ' Send logs leaves no pile behind: an archive this old is gone at the next Send logs (SHELL-05).
     Private Const ArchiveRetentionDays As Integer = 7
@@ -51,6 +47,7 @@ Module LogReport
         Public Length As Long
         Public Modified As DateTime
         Public Skip As String = ""      ' non-empty means it was left out, with this reason
+        Public EntryName As String
     End Class
 
     Private Class SearchRoot
@@ -129,6 +126,7 @@ Module LogReport
                     If already Then Continue For
                     Try
                         Dim fi As New FileInfo(hit)
+                        If (fi.Attributes And FileAttributes.ReparsePoint) <> 0 Then Continue For
                         found.Add(New Candidate With {
                             .Tag = root.Tag,
                             .FullPath = fi.FullName,
@@ -149,12 +147,10 @@ Module LogReport
         For Each c As Candidate In found
             If kept >= MaxFiles Then
                 c.Skip = "left out: file count cap of " & MaxFiles.ToString() & " reached"
-            ElseIf c.Length > MaxFileBytes Then
-                c.Skip = "left out: larger than " & (MaxFileBytes \ (1024L * 1024L)).ToString() & " MB"
-            ElseIf c.Length > budget Then
+            ElseIf Math.Min(c.Length, MaxFileBytes) > budget Then
                 c.Skip = "left out: total payload cap of " & (MaxTotalBytes \ (1024L * 1024L)).ToString() & " MB reached"
             Else
-                budget -= c.Length
+                budget -= Math.Min(c.Length, MaxFileBytes)
                 kept += 1
             End If
         Next
@@ -174,8 +170,11 @@ Module LogReport
         Dim items As List(Of Candidate) = Collect()
         If items.Count = 0 Then Return ""
 
+        Return WriteArchive(items, guiLang, Path.Combine(Path.GetTempPath(), "FileDO_Logs"), fileCount)
+    End Function
+
+    Private Function WriteArchive(items As List(Of Candidate), guiLang As String, dir As String, ByRef fileCount As Integer) As String
         Dim stamp As String = DateTime.Now.ToString("yyyyMMdd-HHmmss")
-        Dim dir As String = Path.Combine(Path.GetTempPath(), "FileDO_Logs")
         Directory.CreateDirectory(dir)
         SweepOldArchives(dir)
         ' Never overwrite an archive the user may be about to attach, even on a second press
@@ -187,16 +186,20 @@ Module LogReport
             n += 1
         End While
 
-        Using fs As New FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None)
+        Using fs As New FileStream(zipPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)
             Using zip As New ZipArchive(fs, ZipArchiveMode.Create)
+                Dim remaining As Long = MaxTotalBytes
+                Dim sequence As Integer = 0
                 For Each c As Candidate In items
                     If c.Skip <> "" Then Continue For
                     Try
-                        AddFile(zip, c)
+                        sequence += 1
+                        c.EntryName = "logs/log-" & sequence.ToString("D2") & ".txt"
+                        remaining -= AddFile(zip, c, remaining)
                         fileCount += 1
                     Catch ex As Exception
                         ' The archive's own manifest, read by the author - never the screen.
-                        c.Skip = "left out: could not be read (" & ex.Message & ")"
+                        c.Skip = "left out: could not be read (" & ex.GetType().Name & ")"
                     End Try
                 Next
 
@@ -204,6 +207,10 @@ Module LogReport
                 Dim entry As ZipArchiveEntry = zip.CreateEntry("filedo-report.txt", CompressionLevel.Optimal)
                 Using sw As New StreamWriter(entry.Open(), New UTF8Encoding(False))
                     sw.Write(BuildReport(guiLang, items))
+                End Using
+                Dim envEntry = zip.CreateEntry("environment.txt", CompressionLevel.Optimal)
+                Using sw As New StreamWriter(envEntry.Open(), New UTF8Encoding(False))
+                    sw.Write(EnvironmentSummary(guiLang, fileCount))
                 End Using
             End Using
         End Using
@@ -231,11 +238,9 @@ Module LogReport
         Return removed
     End Function
 
-    Private Sub AddFile(zip As ZipArchive, c As Candidate)
-        ' Same name can exist in two roots (history.json in both the app folder and the state folder),
-        ' so the source directory tag becomes the entry folder.
-        Dim entryName As String = c.Tag & "/" & Path.GetFileName(c.FullPath)
-        Dim entry As ZipArchiveEntry = zip.CreateEntry(entryName, CompressionLevel.Optimal)
+    Private Function AddFile(zip As ZipArchive, c As Candidate, remaining As Long) As Long
+        ' Report file names can themselves contain user paths. Entry names are generated.
+        Dim entry As ZipArchiveEntry = zip.CreateEntry(c.EntryName, CompressionLevel.Optimal)
 
         ' The zip format cannot store a year before 1980, and a log may still be open for
         ' writing, so read it as permissively as possible.
@@ -243,11 +248,38 @@ Module LogReport
 
         Using src As New FileStream(c.FullPath, FileMode.Open, FileAccess.Read,
                                     FileShare.ReadWrite Or FileShare.Delete)
-            Using dst As Stream = entry.Open()
-                src.CopyTo(dst)
+            ' Read a bounded snapshot before sanitizing: a concurrent writer cannot exhaust RAM.
+            Dim length = src.Length
+            If length > MaxFileBytes Then
+                ' A truncated tail could start inside a private-key block. Do not export fragments.
+                Dim marker = "[Diag] LOG OMITTED | source exceeds safe snapshot cap" & Environment.NewLine
+                Using dst As New StreamWriter(entry.Open(), New UTF8Encoding(False))
+                    dst.Write(marker)
+                End Using
+                Return Encoding.UTF8.GetByteCount(marker)
+            End If
+            Dim bytes(CInt(Math.Min(length, MaxFileBytes)) - 1) As Byte
+            Dim used As Integer = 0
+            While used < bytes.Length
+                Dim wanted = bytes.Length - used
+                Dim n = src.Read(bytes, used, wanted)
+                If n = 0 Then Exit While
+                used += n
+            End While
+            Dim text = DiagnosticText.Sanitize(Encoding.UTF8.GetString(bytes, 0, used))
+            Dim encoded = Encoding.UTF8.GetBytes(text)
+            If encoded.LongLength > Math.Min(MaxFileBytes, remaining) Then
+                ' Redaction can expand a very short line. Omit rather than split an opaque value.
+                text = "[Diag] LOG OMITTED | sanitized payload exceeds archive budget" & Environment.NewLine
+                encoded = Encoding.UTF8.GetBytes(text)
+            End If
+            If encoded.LongLength > remaining Then Throw New IOException("Archive budget exhausted")
+            Using dst As New StreamWriter(entry.Open(), New UTF8Encoding(False))
+                dst.Write(text)
             End Using
+            Return encoded.LongLength
         End Using
-    End Sub
+    End Function
 
     Private Function BuildReport(guiLang As String, items As List(Of Candidate)) As String
         Dim b As New StringBuilder()
@@ -258,7 +290,6 @@ Module LogReport
         b.AppendLine("Collected (UTC):   " & DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"))
         b.AppendLine()
         b.AppendLine("GUI:        filedo_win.exe " & BuildStamp())
-        b.AppendLine("GUI path:   " & SafeExecutablePath())
         b.AppendLine("CLI:        " & CliDescription())
         b.AppendLine("OS:         " & Environment.OSVersion.ToString())
         b.AppendLine("64-bit OS:  " & Environment.Is64BitOperatingSystem.ToString())
@@ -273,8 +304,7 @@ Module LogReport
         For Each c As Candidate In items
             If c.Skip <> "" Then Continue For
             any = True
-            b.AppendLine(c.Tag & "/" & Path.GetFileName(c.FullPath))
-            b.AppendLine("    from " & c.FullPath)
+            b.AppendLine(c.EntryName)
             b.AppendLine("    " & c.Length.ToString() & " bytes, modified " &
                          c.Modified.ToString("yyyy-MM-dd HH:mm:ss"))
         Next
@@ -289,14 +319,48 @@ Module LogReport
                 b.AppendLine("-------------")
                 skipped = True
             End If
-            b.AppendLine(c.FullPath)
+            b.AppendLine("log omitted")
             b.AppendLine("    " & c.Length.ToString() & " bytes - " & c.Skip)
         Next
 
         b.AppendLine()
         b.AppendLine("This archive was built by the user pressing 'Send logs' in the FileDO GUI.")
-        b.AppendLine("It contains only files FileDO wrote, plus this report.")
-        Return b.ToString()
+        b.AppendLine("It contains sanitized text logs and build facts; history and file lists are excluded.")
+        Return DiagnosticText.Sanitize(b.ToString())
+    End Function
+
+    Friend Function EnvironmentSummary(guiLang As String, logCount As Integer) As String
+        Dim b As New StringBuilder()
+        b.AppendLine("schemaVersion=1")
+        b.AppendLine("app_id=FileDO")
+        b.AppendLine("app_version=" & BuildStamp())
+        b.AppendLine("app_build=" & BuildStamp())
+        b.AppendLine("app_edition=" & If(Packaging.IsPackaged(), "store", "desktop"))
+        Using graphics = System.Drawing.Graphics.FromHwnd(IntPtr.Zero)
+            b.AppendLine("dpi_scale=" & (graphics.DpiX / 96.0).ToString("0.###", Globalization.CultureInfo.InvariantCulture))
+        End Using
+        b.AppendLine("media_backend=none")
+        b.AppendLine("backend_stats=unavailable")
+        b.AppendLine("os=" & Environment.OSVersion.ToString())
+        b.AppendLine("os_arch=" & If(Environment.Is64BitOperatingSystem, "X64", "X86"))
+        b.AppendLine("locale=" & Globalization.CultureInfo.CurrentUICulture.Name)
+        b.AppendLine("ui_language=" & guiLang)
+        b.AppendLine("generated_utc=" & DateTime.UtcNow.ToString("o", Globalization.CultureInfo.InvariantCulture))
+        b.AppendLine("logs_total=" & logCount.ToString())
+        ' Media-library metrics do not exist in this product. Never package history records.
+        For Each key In New String() {"channels_total", "channels_catalog", "channels_manual", "channels_imported", "channels_pinned", "channels_hidden", "collections", "history_entries"}
+            b.AppendLine(key & "=0")
+        Next
+        b.AppendLine("volume_metrics_capability=unavailable")
+        b.AppendLine("catalog_refreshed_utc=")
+        Return DiagnosticText.Sanitize(b.ToString())
+    End Function
+
+    Friend Function ArchiveForTest(source As String, destination As String) As String
+        Dim fi As New FileInfo(source)
+        Dim items As New List(Of Candidate) From {New Candidate With {.FullPath = fi.FullName, .Length = fi.Length, .Modified = fi.LastWriteTime, .Tag = "test"}}
+        Dim count As Integer = 0
+        Return WriteArchive(items, "en", destination, count)
     End Function
 
     ' ---- identity ---------------------------------------------------------
@@ -388,7 +452,7 @@ Module LogReport
                    fi.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
         Catch ex As Exception
             ' The archive's report, read by the author - never the screen.
-            Return "filedo.exe found, could not be read (" & ex.Message & ")"
+            Return "filedo.exe found, could not be read (" & ex.GetType().Name & ")"
         End Try
     End Function
 

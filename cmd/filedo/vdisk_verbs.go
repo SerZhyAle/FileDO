@@ -30,6 +30,8 @@ var (
 	vdCloneWords   = []string{"clone"}
 	vdPassWords    = []string{"pass"}
 	vdDestroyWords = []string{"destroy", "erase"}
+	vdShareWords   = []string{"share"}
+	vdAutostartWords = []string{"autostart"}
 )
 
 // vdVerb is one verb of the table. container: it acts on an existing
@@ -59,6 +61,8 @@ var vdVerbs = []vdVerb{
 	{name: "clone", words: vdCloneWords, container: true},
 	{name: "pass", words: vdPassWords, container: true},
 	{name: "destroy", words: vdDestroyWords, container: true},
+	{name: "share", words: vdShareWords, container: true},
+	{name: "autostart", words: vdAutostartWords, container: true},
 	{name: "add", words: []string{"add"}},
 	{name: "forget", words: []string{"forget"}},
 	{name: "list", words: []string{"list", "ls"}, judges: true},

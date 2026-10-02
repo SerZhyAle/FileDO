@@ -23,12 +23,14 @@ Module Capture
     ' has something to say.
     Private ReadOnly Pages As String()() = {
         New String() {"rail_job_info", "target-info", "C:\"},
-        New String() {"rail_job_command", "command", ""}
+        New String() {"rail_job_command", "command", ""},
+        New String() {"rail_job_settings", "settings", ""}
     }
 
-    ' The Disk manager's three pictures (SP-0063): the window with its disks, the help, the first
-    ' steps. Built from the golden `vd status json` document, so a capture needs no disk and no state.
-    Private ReadOnly DiskPages As String() = {"disk-manager", "disk-help", "disk-welcome"}
+    ' The Disk manager's pictures (SP-0063, SP-0080): the window with its disks, the help, the first
+    ' steps, the Autostart dialog. Built from a sample `vd status json` document, so a capture needs no
+    ' disk, no task and no state.
+    Private ReadOnly DiskPages As String() = {"disk-manager", "disk-help", "disk-welcome", "disk-autostart", "disk-settings"}
 
     ' Design pixels, so a capture is the same picture at any display scale.
     Private Const DesignWidth As Integer = 1180
@@ -111,8 +113,41 @@ Module Capture
                 Finally
                     m.Dispose()
                 End Try
+            Case "disk-settings"
+                Using dlg As New DiskSettingsDialog()
+                    dlg.ShowInTaskbar = False
+                    dlg.Show()
+                    For i = 1 To 5
+                        Application.DoEvents()
+                    Next
+                    Using bmp As New Bitmap(dlg.ClientSize.Width, dlg.ClientSize.Height)
+                        dlg.DrawClientForCapture(bmp)
+                        bmp.Save(file, Imaging.ImageFormat.Png)
+                    End Using
+                End Using
             Case "disk-help"
                 Using dlg As New DiskHelpDialog(dict, Nothing, False)
+                    SaveDialog(dlg, file)
+                End Using
+            Case "disk-autostart"
+                ' The sample machine's registered disks, and a guard that is on, running, and whose last
+                ' run closed everything. The delegates that would act are inert: nothing runs here.
+                Dim problem As String = ""
+                Dim snap = DiskSnapshot.Parse(SampleSnapshotLine(), problem)
+                ' Four rows say every shape a row takes - off, on, and refused with its reason (the vault).
+                Dim shown As String() = {"scratch", "work", "secrets", "archive"}
+                Dim records = snap.Disks.Where(Function(d) d.Registered AndAlso Not d.IsImage AndAlso shown.Contains(d.Name)).ToList()
+                Dim guard As New DiskGuardState With {.Installed = True, .Running = True, .Ended = "session",
+                                                      .LastRun = New DateTimeOffset(2026, 9, 29, 22, 41, 0, TimeSpan.FromHours(2))}
+                guard.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "save", .Outcome = "saved", .BytesSaved = 188743680L})
+                guard.Containers.Add(New DiskGuardRunRow With {.Name = "scratch", .Action = "unmount", .Outcome = "unmounted"})
+                guard.Containers.Add(New DiskGuardRunRow With {.Name = "work", .Action = "unmount", .Outcome = "unmounted"})
+                Using dlg As New DiskAutostartDialog(dict, Nothing,
+                                                     Function() records, Function() guard,
+                                                     Sub(a, rows)
+                                                     End Sub,
+                                                     Sub(turnOn)
+                                                     End Sub)
                     SaveDialog(dlg, file)
                 End Using
             Case Else

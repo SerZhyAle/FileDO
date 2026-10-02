@@ -1,0 +1,5 @@
+
+Name      : MSiSCSI
+Status    : Stopped
+StartType : Manual
+

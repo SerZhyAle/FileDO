@@ -146,8 +146,11 @@ self-signed certificate that `-SelfSign` exported, because appcert installs what
 
 Read the verdict from the report, not from the exit code: appcert returns 0 for a session that ran and
 found failures, and rolls an *optional* test's FAIL up into `OVERALL_RESULT=WARNING`. The script prints
-every test that is not `PASS` with the Store's own wording, optional ones included - those are what a
-submission has to be argued through. The report itself stays at `msix\out\wack-report.xml`.
+every test that is not `PASS` with the Store's own wording. Required failures or warnings block the
+check; optional findings remain visible advisories, as defined by Microsoft's
+[Desktop Bridge test policy](https://learn.microsoft.com/windows/uwp/debug-test-perf/windows-desktop-bridge-app-tests).
+The raw overall verdict is preserved, so a passing required-test gate can still carry an overall
+`WARNING`. A missing or malformed result cannot pass. The report itself stays at `msix\out\wack-report.xml`.
 
 What it cannot tell you: anything about the reserved Store identity or Microsoft's re-signing. The
 local-test package has neither, and both are decided at upload.
@@ -222,7 +225,9 @@ it (a graceful close writes the window placement), sizes the client area in desi
 window's DPI, and never saves a shot in which a control painted as a WinForms red-cross placeholder. **Dark
 is the default** and is the Store set; `-Theme light` makes the other half of the APP-STYLE light/dark pair.
 (The light theme used to paint the selected rail row as exactly that placeholder - an `OverflowException` in
-the palette's colour mix, fixed in `Theme.vb`.) `-Live` grabs the real screen instead of `PrintWindow`, to
+the palette's colour mix, fixed in `Theme.vb`.) Before each shot the target box's drive row ("C:\ (label, NTFS, ..)") is rewritten to the bare
+root, so the volume label of the machine that takes the shot never reaches the listing (AUD-61-F5).
+`-Live` grabs the real screen instead of `PrintWindow`, to
 tell a real defect from an artefact. Store rule: PNG, 1366x768 up to 3840x2160.
 
 ## 6. Submission click path (manual)

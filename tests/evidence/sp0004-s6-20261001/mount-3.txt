@@ -1,0 +1,8 @@
+
+2026-10-01 11:13:36 sza@ukr.net 2610011104
+Container P:\WINDOWS\FileDo\dist\vd-s6-20261001\scratch\plain.fdd: plain, 2 GiB, obfuscated, not encrypted: anyone holding the file and the published format can read it.
+Connecting the disk needs administrator rights for the Windows iSCSI initiator; Windows will ask for consent now.
+Mounted at D:. Unmount with: filedo D: unmount
+
+ Finish:2026-10-01 11:13:37, Duration: 0s
+EXIT_CODE=0

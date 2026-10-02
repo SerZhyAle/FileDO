@@ -437,6 +437,8 @@ try {
 
 $pns = New-Object System.Xml.XmlNamespaceManager($packed.NameTable)
 $pns.AddNamespace('m',      'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
+$pns.AddNamespace('uap5', 'http://schemas.microsoft.com/appx/manifest/uap/windows10/5')
+$pns.AddNamespace('desktop4', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/4')
 $pns.AddNamespace('uap',    'http://schemas.microsoft.com/appx/manifest/uap/windows10')
 $pns.AddNamespace('rescap', 'http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities')
 $id = $packed.SelectSingleNode('/m:Package/m:Identity', $pns)
@@ -462,6 +464,7 @@ foreach ($a in $apps) {
         if ($entries -notcontains $ve.GetAttribute($attr)) { [void]$problems.Add("Application $($a.GetAttribute('Id')) references a missing $attr") }
     }
 }
+foreach ($p in (Test-ApplicationStartup -Manifest $packed)) { [void]$problems.Add($p) }
 $fdsecTypes = @($packed.SelectNodes('/m:Package/m:Applications/m:Application[@Id="FileDOGui"]/m:Extensions/uap:Extension[@Category="windows.fileTypeAssociation"]/uap:FileTypeAssociation[@Name="filedo.securecontainer"]/uap:SupportedFileTypes/uap:FileType', $pns) | ForEach-Object { $_.InnerText })
 if (($fdsecTypes -join ',') -cne '.fd-sec') {
     [void]$problems.Add("FileDOGui .fd-sec association is '$($fdsecTypes -join ',')', expected .fd-sec")
@@ -491,12 +494,7 @@ if ($problems.Count) {
 }
 Write-Host " OK" -ForegroundColor Green
 
-$sha = (Get-FileHash $outMsix -Algorithm SHA256).Hash
-[System.IO.File]::WriteAllText("$outMsix.sha256", "$sha  $(Split-Path $outMsix -Leaf)`n", [System.Text.Encoding]::ASCII)
-Write-Host ("  packed: {0}  ({1:N1} MB)" -f (Split-Path $outMsix -Leaf), ((Get-Item $outMsix).Length / 1MB))
-Write-Host "  sha256: $sha"
-
-# --- what to do with it ------------------------------------------------------
+# Signing changes the package bytes. Finish it before writing the integrity sidecar.
 if ($SelfSign) {
     $signtool = Find-SdkTool "signtool.exe"
     $friendly = "FileDO MSIX local test (never upload)"
@@ -510,6 +508,15 @@ if ($SelfSign) {
     if ($LASTEXITCODE -ne 0) { Fail "signtool failed ($LASTEXITCODE)" }
     $cer = Join-Path $outDir "filedo-localtest.cer"
     Export-Certificate -Cert $cert -FilePath $cer | Out-Null
+}
+
+$sha = (Get-FileHash $outMsix -Algorithm SHA256).Hash
+[System.IO.File]::WriteAllText("$outMsix.sha256", "$sha  $(Split-Path $outMsix -Leaf)`n", [System.Text.Encoding]::ASCII)
+Write-Host ("  packed: {0}  ({1:N1} MB)" -f (Split-Path $outMsix -Leaf), ((Get-Item $outMsix).Length / 1MB))
+Write-Host "  sha256: $sha"
+
+# --- what to do with it ------------------------------------------------------
+if ($SelfSign) {
     Write-Host ""
     Write-Host "Signed for LOCAL TEST only. To trust + install:" -ForegroundColor Yellow
     Write-Host "  # 1) in an ADMIN PowerShell:"

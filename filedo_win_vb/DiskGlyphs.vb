@@ -76,6 +76,7 @@ Public Module DiskGlyphs
     Public Function NameKey(g As GlyphRef) As String
         If g Is Nothing Then Return ""
         Select Case g.Meaning
+            Case "app.settings" : Return "rail_job_settings"
             Case "app.help" : Return "vd_mgr_name_help"
             Case "nav.more" : Return "vd_mgr_btn_more"
             Case "nav.close" : Return "vd_mgr_name_close"
