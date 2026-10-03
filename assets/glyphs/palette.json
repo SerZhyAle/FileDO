@@ -124,13 +124,13 @@
       "source": "success_color"
     },
     "state.warning": {
-      "day": "#F57C00",
+      "day": "#EF6C00",
       "night": "#FFB74D",
-      "plate": "#F57C00",
-      "onPlate": "#1F1F1F",
-      "dayContrast": 2.7,
+      "plate": "#EF6C00",
+      "onPlate": "#FFFFFF",
+      "dayContrast": 3.08,
       "nightContrast": 10.82,
-      "onPlateContrast": 6.1,
+      "onPlateContrast": 3.08,
       "source": "warning_color"
     },
     "state.error": {

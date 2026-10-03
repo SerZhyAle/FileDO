@@ -314,6 +314,19 @@ func createOn(ctx context.Context, b backing, o CreateOptions) (*Container, erro
 	h.MapStride = m
 	metaEnd := h.MapOffset + h.MapStride + m
 	h.DataOffset, _ = alignUp(metaEnd, max(uint64(dataAlign), h.clusterSize()))
+	// A fixed carrier reserves map_stride for the largest volume it can ever
+	// hold, so a later grow inside the partition moves no map (FDD-FORMAT
+	// section 3.1 rule 5).
+	capacity := fixedCap(b)
+	if capacity != 0 {
+		stride, ok := partitionStride(capacity, o.ClusterShift)
+		if !ok || stride < m {
+			return nil, unsupportedf("a %d-byte volume does not fit a %d-byte partition", h.LogicalSize, capacity)
+		}
+		h.MapStride = stride
+		metaEnd = h.MapOffset + h.MapStride + m
+		h.DataOffset = partitionDataOffset(stride, o.ClusterShift)
+	}
 
 	c := &Container{b: b, mode: OpenWrite, saltP: saltP, saltB: saltB, used: newBitset(), openedClean: true} // a new container has no history to keep
 	if c.cipher, err = newSectorCipher(dataKey, h.SectorShift); err != nil {
@@ -334,6 +347,15 @@ func createOn(ctx context.Context, b backing, o CreateOptions) (*Container, erro
 		c.fileLen = int64(h.DataOffset + h.ClusterCount*h.clusterSize() + headerSize)
 	} else {
 		c.fileLen = int64(metaEnd + headerSize)
+	}
+	// On a fixed carrier L is the partition's length from the first write on:
+	// the backup sits at its end and nothing ever extends, so the whole
+	// volume must fit now (FDD-FORMAT section 3.1 rules 1-2).
+	if capacity != 0 {
+		if need := int64(h.DataOffset + h.ClusterCount*h.clusterSize() + headerSize); need > capacity {
+			return nil, unsupportedf("a %d-byte volume needs %d bytes; the partition holds %d", h.LogicalSize, need, capacity)
+		}
+		c.fileLen = capacity
 	}
 
 	if _, err := b.WriteAt(slots, int64(h.SlotsOffset)); err != nil {
@@ -491,6 +513,20 @@ func openOn(ctx context.Context, b backing, cred fdsec.Credential, mode OpenMode
 func (c *Container) repair() error {
 	res := &c.res
 	h := c.hdr
+	// On a fixed carrier physical_size is the partition's length for the
+	// container's whole life. Any other value means the partition changed
+	// size under the container, or a file of another length was copied in:
+	// readable, but no writer may move the backup (FDD-FORMAT 3.1 rule 1).
+	if fixedCap(c.b) != 0 && h.PhysicalSize != uint64(c.fileLen) {
+		return unsupportedf("the container was written for %d bytes and its partition is %d; it opens read-only", h.PhysicalSize, c.fileLen)
+	}
+	// A partition never extends, so a writer opens only a container whose
+	// every logical cluster already has a physical place inside it: a file
+	// container copied onto a partition of its own length may still be sparse
+	// (FDD-FORMAT section 3.1 rule 2).
+	if fixedCap(c.b) != 0 && h.clusterLimit(uint64(c.fileLen)) < h.ClusterCount+uint64(len(c.meta)) {
+		return unsupportedf("the container's volume does not fit its partition when full; it opens read-only")
+	}
 	// A shrink interrupted between its steps 3 and 4 (section 10.2): the new
 	// backup is in place at physical_size - 4096 and only the truncate is
 	// missing. Nothing the header references lies past physical_size.
@@ -741,6 +777,13 @@ func (c *Container) fail(err error) error {
 func (c *Container) extendTo(newLen int64) error {
 	if newLen <= c.fileLen {
 		return nil
+	}
+	// A partition never extends: refused before any byte is written
+	// (FDD-FORMAT section 3.1 rule 2).
+	if fixedCap(c.b) != 0 {
+		// Sticky: the cluster map already names the clusters this write
+		// wanted, and Close must not commit it.
+		return c.fail(unsupportedf("the container needs %d bytes; its partition holds %d", newLen, c.fileLen))
 	}
 	if err := c.writeHeaderBlock(c.hdr.encode(), newLen-headerSize, c.saltB, true); err != nil {
 		return err

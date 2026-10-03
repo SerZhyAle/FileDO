@@ -21,6 +21,11 @@ func (c *Container) Grow(ctx context.Context, newSize int64) error {
 	if err := c.usable(true); err != nil {
 		return err
 	}
+	// SP-0148 D6: no grow of a partition container in this version, although
+	// its map_stride is reserved for one (FDD-FORMAT 3.1 rule 5).
+	if fixedCap(c.b) != 0 {
+		return unsupportedf("a partition disk has a fixed size; compact and grow apply to file disks")
+	}
 	h := c.hdr
 	if newSize <= int64(h.LogicalSize) {
 		return usagef("grow makes a volume larger: %d is not above %d", newSize, h.LogicalSize)

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `RULE-DELIVERY` |
-| **Version** | 0.9, draft (wire carrier: the `sza` plugin version, derived from `CANON_VERSION`) |
+| **Version** | 0.11, draft (wire carrier: the `sza` plugin version, derived from `CANON_VERSION`) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 5 |
 | **Role** | consumer - this repository receives the canon through the `sza` plugin |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |
@@ -18,3 +18,4 @@
 - **Never declare a version ahead of the published canon** - that is corruption, not staleness (rule 6).
 - **Never hand-edit the version pair.** The canon's deploy path writes it; this repository only records
   what it holds (rule 7).
+- **0.11: the 180-day age counts from `canon.reconciledOn`** when the stamp carries it, from `canon.adoptedOn` otherwise. The clock restarts at every reconciliation and only there.

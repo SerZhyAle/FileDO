@@ -101,8 +101,8 @@ foreach ($f in $fixtures.Keys) { Set-Content -Path (Join-Path $workDir $f) -Valu
 Write-Host "Test environment ready in $workDir$(if ($drive) { " (virtual disk $drive)" } else { ' (folder target: device lines are dropped)' })."
 if ($PrepareOnly) { exit 0 }
 
-if (-not (Test-Path $List)) { Write-Host "run-test-list: NOT VERIFIED (no list at $List)" -ForegroundColor Yellow; exit 2 }
-if (-not (Test-Path $Exe)) { Write-Host "run-test-list: NOT VERIFIED (no filedo at $Exe - run .\build.ps1 first)" -ForegroundColor Yellow; exit 2 }
+if (-not (Test-Path $List)) { Write-Host "run-test-list: COULD NOT VERIFY (no list at $List)" -ForegroundColor Yellow; exit 2 }
+if (-not (Test-Path $Exe)) { Write-Host "run-test-list: COULD NOT VERIFY (no filedo at $Exe - run .\build.ps1 first)" -ForegroundColor Yellow; exit 2 }
 
 $rendered = [System.Collections.Generic.List[string]]::new()
 $dropped = 0

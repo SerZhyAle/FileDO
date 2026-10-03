@@ -83,11 +83,29 @@ func TestExitCodeVocabulary(t *testing.T) {
 	plain := t.TempDir()
 	missing := filepath.Join(t.TempDir(), "no-such-folder")
 
+	// SP-0126: a container verb's del with nobody to answer is the usage
+	// class - kept original, verified container, and not a Done.
+	unanswered := t.TempDir()
+	if err := os.WriteFile(filepath.Join(unanswered, "plain.txt"), []byte("an original nobody will be asked about"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// SP-0130: compare's rows. cmpA and cmpB hold the same three files;
+	// cmpDiff holds one file more.
+	cmpA := filepath.Join(t.TempDir(), "cmp-a")
+	cmpB := filepath.Join(t.TempDir(), "cmp-b")
+	cmpDiff := filepath.Join(t.TempDir(), "cmp-c")
+	compareTree(t, cmpA)
+	compareTree(t, cmpB)
+	compareTree(t, cmpDiff)
+	writeFile(t, filepath.Join(cmpDiff, "only-here.txt"), []byte("one side only"))
+
 	cases := []struct {
 		name     string
 		args     []string
 		wantCode int
 		wantVerd string
+		prepare  func(*testing.T, string)
 	}{
 		{
 			name:     "a judging verb that found nothing wrong",
@@ -126,6 +144,44 @@ func TestExitCodeVocabulary(t *testing.T) {
 			wantVerd: "Done",
 		},
 		{
+			// SP-0130 R3: the default compare is still an act - a
+			// difference is information, and the verdict is Done.
+			name:     "a comparison that reports a difference and is not a judge",
+			args:     []string{"cmp", cmpDiff, cmpA},
+			wantCode: 0,
+			wantVerd: "Done",
+		},
+		{
+			// SP-0130 R1: --strict is the judging mode.
+			name:     "a comparison that judges the trees equal",
+			args:     []string{"cmp", cmpA, cmpB, "--strict"},
+			wantCode: 0,
+			wantVerd: "Passed",
+		},
+		{
+			name:     "a comparison that judges the trees differ",
+			args:     []string{"cmp", cmpDiff, cmpA, "--strict"},
+			wantCode: 1,
+			wantVerd: "Failed",
+		},
+		{
+			name:     "a check bounded by a hard file limit",
+			args:     []string{"check", cmpA, "--max-files", "2", "--single-reader", "off", "--workers", "20"},
+			wantCode: 0,
+			wantVerd: "Passed",
+		},
+		{
+			name:     "a resumed check with every file already verified",
+			args:     []string{"check", cmpA, "--resume"},
+			wantCode: 0,
+			wantVerd: "Passed",
+			prepare: func(t *testing.T, wd string) {
+				if out, code := run(t, wd, "check", cmpA); code != 0 {
+					t.Fatalf("seed check exited %d\n%s", code, out)
+				}
+			},
+		},
+		{
 			// DUP-11: it printed an error and exited 0 with no result.
 			name:     "a duplicate list that is not there",
 			args:     []string{"cd", "from", "list", filepath.Join(t.TempDir(), "missing.lst")},
@@ -140,11 +196,22 @@ func TestExitCodeVocabulary(t *testing.T) {
 			wantCode: 0,
 			wantVerd: "Done",
 		},
+		{
+			// SP-0126: a del nobody could answer is the usage class - never
+			// a Done.
+			name:     "a delete nobody could answer",
+			args:     []string{filepath.Join(unanswered, "plain.txt"), "secure", "p:pw", "del"},
+			wantCode: 2,
+			wantVerd: "Not proven",
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			wd := t.TempDir()
+			if c.prepare != nil {
+				c.prepare(t, wd)
+			}
 			events := filepath.Join(wd, "events.jsonl")
 			args := append([]string{"--events", events}, c.args...)
 			out, code := run(t, wd, args...)

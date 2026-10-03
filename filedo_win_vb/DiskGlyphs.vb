@@ -3,9 +3,8 @@
 ' The rail's Disks rows, the manager's toolbar, its menus and its detail buttons all show a meaning
 ' by asking this module, so one meaning is one picture wherever it appears and the two surfaces
 ' cannot drift apart. A meaning the vocabulary has a record for draws the catalog's file (vendored
-' under assets/glyphs by assets/sync-icon-glyphs.ps1). Ten meanings have no record yet - create,
-' mount, unmount, compact, grow, format, seal, change password, auto-mount, remember a name; they draw
-' a Segoe stand-in under the id FileDO proposed for each (the catalog's
+' under assets/glyphs by assets/sync-icon-glyphs.ps1). Three meanings have no record yet - create,
+' compact, auto-mount; they draw a Segoe stand-in under the id FileDO proposed for each (the catalog's
 ' PROPOSAL-2026-09-30-filedo-disk-meanings.md), which is what SelfTest's rail baseline counts, and the
 ' number goes down as each record lands - never up.
 '
@@ -15,15 +14,15 @@
 Public Module DiskGlyphs
 
     Public ReadOnly CreateDisk As GlyphRef = GlyphRef.Waiting("action.create-disk", &HE710, "Add")
-    Public ReadOnly MountDisk As GlyphRef = GlyphRef.Waiting("action.mount-disk", &HEDA2, "HardDrive")
-    Public ReadOnly UnmountDisk As GlyphRef = GlyphRef.Waiting("action.unmount-disk", &HE738, "Remove")
+    Public ReadOnly MountDisk As GlyphRef = GlyphRef.Vocabulary("action.mount-disk")
+    Public ReadOnly UnmountDisk As GlyphRef = GlyphRef.Vocabulary("action.unmount-disk")
     Public ReadOnly CompactDisk As GlyphRef = GlyphRef.Waiting("action.compact", &HE73F, "BackToWindow")
-    Public ReadOnly GrowDisk As GlyphRef = GlyphRef.Waiting("action.grow", &HE740, "FullScreen")
-    Public ReadOnly FormatDisk As GlyphRef = GlyphRef.Waiting("action.format", &HE75C, "EraseTool")
-    Public ReadOnly SealDisk As GlyphRef = GlyphRef.Waiting("action.seal", &HE72E, "Lock")
-    Public ReadOnly ChangePassword As GlyphRef = GlyphRef.Waiting("action.change-password", &HE8D7, "Permissions")
+    Public ReadOnly GrowDisk As GlyphRef = GlyphRef.Vocabulary("action.grow")
+    Public ReadOnly FormatDisk As GlyphRef = GlyphRef.Vocabulary("action.format")
+    Public ReadOnly SealDisk As GlyphRef = GlyphRef.Vocabulary("action.seal")
+    Public ReadOnly ChangePassword As GlyphRef = GlyphRef.Vocabulary("action.change-password")
     Public ReadOnly AutoMount As GlyphRef = GlyphRef.Waiting("action.auto-mount", &HE823, "Recent")
-    Public ReadOnly RememberName As GlyphRef = GlyphRef.Waiting("action.remember-name", &HE8EC, "Tag")
+    Public ReadOnly RememberName As GlyphRef = GlyphRef.Vocabulary("action.remember-name")
     ' The Autostart surface (SP-0080 5): the logon mounts and the shutdown guard in one place. The
     ' picture is the power button - the session's end is the guard's half of it.
     Public ReadOnly Autostart As GlyphRef = GlyphRef.Waiting("action.autostart", &HE7E8, "PowerButton")
@@ -45,6 +44,11 @@ Public Module DiskGlyphs
     ' The meaning an action shows. Every DiskAction has one - the self-test walks the enum.
     Public Function [For](a As DiskAction) As GlyphRef
         Select Case a
+            Case DiskAction.ShareDisk : Return GlyphRef.Vocabulary("action.share")
+            Case DiskAction.OpenShared : Return MountDisk
+            Case DiskAction.CloseShared : Return UnmountDisk
+            Case DiskAction.UnshareDisk : Return GlyphRef.Vocabulary("action.remove")
+            Case DiskAction.ShareAutoOn, DiskAction.ShareAutoOff : Return Autostart
             Case DiskAction.NewDisk : Return CreateDisk
             Case DiskAction.AddToList : Return RememberName
             Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.MountImage : Return MountDisk
@@ -58,7 +62,11 @@ Public Module DiskGlyphs
             Case DiskAction.Forget : Return GlyphRef.Vocabulary("action.remove")
             Case DiskAction.ShowInFolder : Return GlyphRef.Vocabulary("content.folder")
             Case DiskAction.CopyPath, DiskAction.Clone : Return GlyphRef.Vocabulary("action.copy")
-            Case DiskAction.Export : Return GlyphRef.Vocabulary("action.export")
+            ' SP-0148: Image to file is an export of a partition disk into a new .fdd, and Adopt gives
+            ' a found partition its name in the list - the meanings Export and Add to list already
+            ' draw. No partition-carrier glyph: the catalog has no approved meaning for one yet.
+            Case DiskAction.Export, DiskAction.ImageToFile : Return GlyphRef.Vocabulary("action.export")
+            Case DiskAction.Adopt : Return RememberName
             Case DiskAction.Compact : Return CompactDisk
             Case DiskAction.Grow : Return GrowDisk
             Case DiskAction.Seal : Return SealDisk

@@ -73,7 +73,7 @@ function Check([string]$name, [bool]$ok, [string]$detail = "") {
 }
 function CannotVerify([string]$reason) {
     $script:unverified += $reason
-    Write-Host "  NOT VERIFIED  $reason" -ForegroundColor Yellow
+    Write-Host "  COULD NOT VERIFY  $reason" -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -201,6 +201,6 @@ if ($SkipWack) {
 
 Write-Host ""
 if ($script:fail -gt 0) { Write-Host "store-package: FAIL ($script:fail checks)" -ForegroundColor Red; exit 1 }
-if ($script:unverified.Count -gt 0) { Write-Host "store-package: NOT VERIFIED ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
+if ($script:unverified.Count -gt 0) { Write-Host "store-package: COULD NOT VERIFY ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
 Write-Host "store-package: PASS ($script:pass checks)" -ForegroundColor Green
 exit 0

@@ -142,6 +142,11 @@ type FMSWorkerClient struct {
 	// dialTimeout bounds one connect attempt: a busy pipe makes DialPipeContext
 	// wait for as long as its context lives.
 	dialTimeout time.Duration
+	// attempts is how many times one request dials a pipe that is not there (0: the default of 3).
+	attempts int
+	// verify checks the pipe's server before the first byte of a request is written; nil only for
+	// the clients the tests build around a pipe of their own.
+	verify ServerVerifier
 }
 
 const (
@@ -149,9 +154,25 @@ const (
 	defaultDialTimeout = 5 * time.Second
 )
 
+// NewFMSWorkerClient is the production client: the worker's own pipe, and every connection is tied to
+// the FMS worker before anything is written to it (DISK-SHARE 18).
 func NewFMSWorkerClient() *FMSWorkerClient {
-	return NewClient(defaultPipe, winio.DialPipeContext)
+	c := NewClient(defaultPipe, winio.DialPipeContext)
+	c.verify = verifyPipeServer
+	return c
 }
+
+// NewProbeClient is NewFMSWorkerClient for a surface that polls (the status snapshot, the mount
+// guard): one dial attempt per request, so an absent worker answers at once instead of after the
+// retry pauses.
+func NewProbeClient() *FMSWorkerClient {
+	c := NewFMSWorkerClient()
+	c.attempts = 1
+	return c
+}
+
+// SetServerVerifier replaces the pipe-server check; a test seam, never called by the product.
+func (c *FMSWorkerClient) SetServerVerifier(v ServerVerifier) { c.verify = v }
 func NewClient(pipe string, dial Dial) *FMSWorkerClient {
 	return &FMSWorkerClient{pipePath: pipe, dial: dial, retryDelay: 500 * time.Millisecond, dialTimeout: defaultDialTimeout}
 }
@@ -189,7 +210,11 @@ func exchangeError(ctx context.Context, err error, what string) error {
 func (c *FMSWorkerClient) exchange(ctx context.Context, req any, version int) (*wireResponse, error) {
 	var conn net.Conn
 	var err error
-	for attempt := 0; attempt < 3; attempt++ {
+	attempts := c.attempts
+	if attempts <= 0 {
+		attempts = 3
+	}
+	for attempt := 0; attempt < attempts; attempt++ {
 		conn, err = c.dialOnce(ctx)
 		if err == nil {
 			break
@@ -201,7 +226,7 @@ func (c *FMSWorkerClient) exchange(ctx context.Context, req any, version int) (*
 		if errors.Is(err, os.ErrPermission) {
 			return nil, fmt.Errorf("%w: pipe access denied", ErrCommunication)
 		}
-		if attempt < 2 {
+		if attempt < attempts-1 {
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
@@ -213,6 +238,11 @@ func (c *FMSWorkerClient) exchange(ctx context.Context, req any, version int) (*
 		return nil, fmt.Errorf("%w: %w", ErrWorkerUnavailable, err)
 	}
 	defer conn.Close()
+	if c.verify != nil {
+		if err = c.verify(conn, carriesCredential(req)); err != nil {
+			return nil, err
+		}
+	}
 	limit := 30 * time.Second
 	if version == 2 {
 		limit = 3 * time.Minute
@@ -239,16 +269,54 @@ func (c *FMSWorkerClient) exchange(ctx context.Context, req any, version int) (*
 	if resp.SchemaVersion != version {
 		return nil, fmt.Errorf("%w: schema mismatch; update FileDO and FMS for Windows", ErrCommunication)
 	}
+	if len(resp.Disks) > maxRecords || (resp.Status != nil && len(resp.Status.Roots) > maxRecords) {
+		return nil, fmt.Errorf("%w: the worker answered with more than %d records", ErrCommunication, maxRecords)
+	}
 	if !resp.OK {
 		if resp.Error == "" {
 			return nil, &WorkerError{Message: ErrCommunication.Error() + ": worker refused request", OutcomeClass: resp.OutcomeClass, cause: ErrCommunication}
 		}
-		return nil, &WorkerError{Message: redactCredential(resp.Error, req), OutcomeClass: resp.OutcomeClass}
+		return nil, &WorkerError{Message: boundMessage(redactCredential(resp.Error, req)), OutcomeClass: resp.OutcomeClass}
 	}
 	return &resp, nil
 }
 
-const maxResponseBytes = 4 << 20
+// A real answer is a few KB (a hundred disks fit in 40 KB). The limits bound what a buggy or hostile
+// peer can make FileDO allocate and print: bytes read, records decoded, characters of a message
+// (AUD-86-F4).
+const (
+	maxResponseBytes = 256 << 10
+	maxRecords       = 1024
+	maxMessageBytes  = 1024
+)
+
+// boundMessage cuts a worker's message to maxMessageBytes and replaces control characters, so it can be
+// printed and recorded as it is.
+func boundMessage(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if b.Len() >= maxMessageBytes {
+			b.WriteString("..")
+			break
+		}
+		if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) {
+			r = ' '
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// carriesCredential reports whether a request has a disk password in it.
+func carriesCredential(req any) bool {
+	switch r := req.(type) {
+	case DiskOpenRequest:
+		return r.Password != ""
+	case DiskAutostartRequest:
+		return r.Password != ""
+	}
+	return false
+}
 
 // redactCredential removes the request's password, raw and JSON-escaped, from a
 // worker message.
@@ -326,6 +394,9 @@ func parseWorkerMode(s *WorkerStatus) WorkerMode {
 func (c *FMSWorkerClient) request(req any) (*wireResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
+	return c.requestCtx(ctx, req)
+}
+func (c *FMSWorkerClient) requestCtx(ctx context.Context, req any) (*wireResponse, error) {
 	c.mu.Lock()
 	capable := c.capable
 	c.mu.Unlock()
@@ -389,6 +460,19 @@ func (c *FMSWorkerClient) GetOpenHandles(path string) (int, error) {
 	}
 	return s.OpenHandles, nil
 }
+
+// Probe asks the worker for its mode and its full disk list inside ctx: the one question the status
+// snapshot and the mount guard put. ErrNotCapable when the worker cannot share disks.
+func (c *FMSWorkerClient) Probe(ctx context.Context) (WorkerMode, []SharedDiskInfo, error) {
+	if e := c.Connect(ctx); e != nil {
+		return c.WorkerMode(), nil, e
+	}
+	r, e := c.requestCtx(ctx, DiskQueryRequest{BaseRequest: base("disk-list", "list"), Owner: "filedo"})
+	if e != nil {
+		return c.WorkerMode(), nil, e
+	}
+	return c.WorkerMode(), r.Disks, nil
+}
 func (c *FMSWorkerClient) ListSharedDisks() ([]SharedDiskInfo, error) {
 	r, e := c.request(DiskQueryRequest{BaseRequest: base("disk-list", "list"), Owner: "filedo"})
 	if e != nil {
@@ -428,7 +512,7 @@ func installPathIn(roots ...string) (string, error) {
 		if root == "" {
 			continue
 		}
-		for _, name := range []string{"Fast Media Sorter Server", "Fast Media Sorter", "FastMediaSorter"} {
+		for _, name := range []string{"Fast Media Sorter Server", "Fast Media Sorter", "FastMediaSorter", "FastMediaSorter_Server", "FastMediaSorter_LITE"} {
 			p := filepath.Join(root, name, "filedo", "filedo.exe")
 			if s, e := os.Stat(p); e == nil && s.Mode().IsRegular() {
 				return p, nil

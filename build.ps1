@@ -120,7 +120,7 @@ $root = $PSScriptRoot
 # indentation of its own; it exists so that every `exit` - there are many - leaves
 # through the finally at the end, which puts the caller's location and Go environment back.
 Push-Location $root
-$savedGoEnv = @{ GOOS = $env:GOOS; GOARCH = $env:GOARCH; CGO_ENABLED = $env:CGO_ENABLED }
+$savedGoEnv = @{ GOOS = $env:GOOS; GOARCH = $env:GOARCH; CGO_ENABLED = $env:CGO_ENABLED; GOTOOLCHAIN = $env:GOTOOLCHAIN }
 try {
 
 # A commit implies the test gate: we never commit an untested build.
@@ -207,7 +207,7 @@ function Write-GateVerdict([int]$code, [string[]]$failures, [string[]]$unverifie
     } elseif ($code -eq 1) {
         Write-Host "build-gate ${version}: FAIL ($($failures.Count) step(s): $($failures -join ', '))" -ForegroundColor Red
     } else {
-        Write-Host "build-gate ${version}: NOT VERIFIED ($($unverified -join '; '))" -ForegroundColor Yellow
+        Write-Host "build-gate ${version}: COULD NOT VERIFY ($($unverified -join '; '))" -ForegroundColor Yellow
     }
 }
 
@@ -270,7 +270,7 @@ if ($gviVersion -ne $goversioninfoPin) {
 
 # From here on every go command in this process - builds, go test, go vet - targets what
 # ships. The finally at the end of the script restores the caller's values.
-$env:GOOS = 'windows'; $env:GOARCH = 'amd64'; $env:CGO_ENABLED = '0'
+$env:GOOS = 'windows'; $env:GOARCH = 'amd64'; $env:CGO_ENABLED = '0'; $env:GOTOOLCHAIN = $pinnedToolchain
 
 # goversioninfo -64 into resource.syso, which `go build` links from the package directory:
 # the PE version fields and app.manifest, exactly the release.yml invocation. The file is
@@ -388,7 +388,7 @@ if ($Test) {
         } elseif ($code -eq 2) {
             $script:gateRan++
             $script:gateUnverified.Add($name)
-            Write-Host " NOT VERIFIED: $detail" -ForegroundColor Yellow
+            Write-Host " COULD NOT VERIFY: $detail" -ForegroundColor Yellow
         } else {
             $script:gateRan++
             $script:gateFailures.Add($name)
@@ -470,6 +470,15 @@ if ($Test) {
             $compileDetail = $placementOut
         }
     }
+    if ($compileCode -eq 0) {
+        # A Go package with tests that no gate runs is a regression that ships green (AUD-92-F1).
+        $gatedOut = & "$root\packaging\check-gated-packages.ps1" 2>&1 | Out-String
+        $gatedCode = $LASTEXITCODE
+        if ($gatedCode -ne 0) {
+            $compileCode = $gatedCode
+            $compileDetail = $gatedOut
+        }
+    }
     Record-GateStep 'compile-test-module' $compileCode $compileDetail
 
     # 3) The real tests. Three packages carry `func Test*` today and all must be
@@ -490,10 +499,20 @@ if ($Test) {
     }
 
     # vdisk (SP-0004): the disk container, its abrupt-failure cases and the
-    # FDD-FORMAT vectors. Vet-clean like fdsec, so it runs plainly.
-    Write-Host "go test ./vdisk/ ..." -NoNewline
+    # FDD-FORMAT vectors. Vet-clean like fdsec, so it runs plainly. fmsworker
+    # (SP-0121), the FMS worker client linked into filedo.exe, runs in the same
+    # step: its tests were in no gate until AUD-92-F1, and a regression there
+    # (a password sent to a foreign pipe server, a drain that forces by itself)
+    # would have shipped green.
+    Write-Host "go test ./vdisk/ and ./fmsworker/ ..." -NoNewline
     $vdiskOut = go test ./vdisk/ -count=1 2>&1 | Out-String
+    $vdiskCode = $LASTEXITCODE
+    $fmsworkerOut = go test ./fmsworker/ -count=1 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) {
+        $vdiskCode = 1
+        $vdiskOut += "`n" + $fmsworkerOut
+    }
+    if ($vdiskCode -ne 0) {
         Record-GateStep 'vdisk' 1 $vdiskOut
     } else {
         Record-GateStep 'vdisk' 0
@@ -576,7 +595,13 @@ if ($Test) {
         # SP-0029 SHELL-15: the log from an earlier run must not stand in for this one. A
         # selftest that dies before writing leaves no log, which is "could not verify" - never
         # the previous run's lines printed as this run's details.
-        $log = "$out\filedo_win_selftest.log"
+        # Keep raw self-test evidence private, including the log the GUI writes beside its exe.
+        $guiEvidence = Join-Path $root ("temp\evidence\build-gate-$version-" + [guid]::NewGuid().ToString('N') + '\gui')
+        New-Item -ItemType Directory -Path $guiEvidence -Force | Out-Null
+        Copy-Item -LiteralPath $guiExe -Destination (Join-Path $guiEvidence 'filedo_win.exe') -Force
+        Copy-Item -LiteralPath "$out\filedo_win.exe.config" -Destination $guiEvidence -Force
+        Copy-Item -LiteralPath "$out\filedo.exe" -Destination $guiEvidence -Force
+        $log = Join-Path $guiEvidence 'filedo_win_selftest.log'
         $staleLog = $null
         if (Test-Path $log) {
             try { Remove-Item $log -Force -ErrorAction Stop } catch { $staleLog = $_.Exception.Message }
@@ -584,7 +609,7 @@ if ($Test) {
         if ($staleLog) {
             Record-GateStep 'gui-selftest' 2 "could not verify: the previous selftest log could not be removed ($staleLog)"
         } else {
-            $selfTest = Start-Process $guiExe -ArgumentList "--selftest" -PassThru -Wait
+            $selfTest = Start-Process (Join-Path $guiEvidence 'filedo_win.exe') -ArgumentList "--selftest" -PassThru -Wait -WindowStyle Hidden
             if (-not (Test-Path $log)) {
                 Record-GateStep 'gui-selftest' 2 "could not verify: no selftest log (exit $($selfTest.ExitCode))"
             } elseif ($selfTest.ExitCode -ne 0) {
@@ -757,7 +782,7 @@ function Build-FileDOInstaller {
                   "filedo_cd.bat", "filedo_clean.bat", "filedo_fill.bat", "filedo_speed.bat", "filedo_test.bat",
                   "icons\action.secure.ico", "icons\action.unsecure.ico", "icons\action.wipe.ico",
                   "icons\action.verify.ico", "icons\app.info.ico", "icons\content.secret-file.ico",
-                  "icons\content.disk-container.ico")
+                  "icons\content.disk-container.ico", "icons\app.disk-manager.ico")
     $missing = $required | Where-Object { -not (Test-Path "$stage\$_") }
     if ($missing) {
         Write-Host "No installer this run: the stage is missing $($missing -join ', ')." -ForegroundColor Yellow
@@ -923,7 +948,7 @@ exit 0
     # A terminating error nobody expected proves nothing - exit 2 with the reason, never a
     # stale $LASTEXITCODE that reads as a pass to the caller (release.ps1 runs this in-process).
     Write-Host "Cannot verify: unexpected error at line $($_.InvocationInfo.ScriptLineNumber): $($_.Exception.Message)" -ForegroundColor Yellow
-    if ($Test) { Write-Host "build-gate ${version}: NOT VERIFIED (unexpected error: $($_.Exception.Message))" -ForegroundColor Yellow }
+    if ($Test) { Write-Host "build-gate ${version}: COULD NOT VERIFY (unexpected error: $($_.Exception.Message))" -ForegroundColor Yellow }
     exit 2
 } finally {
     # Every exit above leaves through here: the caller gets back its own directory and

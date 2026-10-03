@@ -735,16 +735,18 @@ Public Class Runner
     Friend Shared ReadOnly VdRedactVerbs As String() = {
         "new", "create", "mount", "mnt", "attach", "unmount", "umount", "detach", "save", "seal",
         "info", "i", "pass", "export", "extract", "ext", "verify", "vfy", "compact", "shrink", "grow", "resize",
-        "format", "destroy", "erase", "clone", "add", "forget", "list", "ls", "auto", "status", "stop",
-        "register", "unregister"}
+        "format", "destroy", "erase", "clone", "add", "forget", "list", "ls", "auto", "guard", "status", "stop",
+        "register", "unregister", "share", "autostart", "open", "close", "disks", "image", "adopt"}
     ' new is pass's word before the new credential, which is itself prefixed.
     Friend Shared ReadOnly VdRedactKeeps As String() = {
         "plain", "fast", "ram", "vault", "sealed", "ro", "readonly", "noscan", "force", "-y", "y",
-        "nosave", "off", "logon", "short", "-all-users", "nopass", "new", "raw", "vhd", "wipe",
-        "fs", "ntfs", "exfat"}
-    Friend Shared ReadOnly VdRedactValueWords As String() = {"as", "label", "to"}
+        "nosave", "off", "on", "logon", "short", "-all-users", "nopass", "new", "raw", "vhd", "wipe",
+        "fs", "ntfs", "exfat", "run", "noletter", "worker", "keep", "stdin", "consent", "part", "max"}
+    Friend Shared ReadOnly VdRedactValueWords As String() = {"as", "label", "to", "wait", "size", "at"}
+    ' The option words of mount's bare trailing token: a word here is never a password (vdMountWordSet).
+    Friend Shared ReadOnly VdMountWords As String() = {"ro", "readonly", "noscan", "as", "noletter", "worker", "keep", "stdin"}
     ' The verbs that take no container or name: their line has no subject slot to keep.
-    Friend Shared ReadOnly VdSubjectless As String() = {"list", "ls", "status", "stop", "register", "unregister"}
+    Friend Shared ReadOnly VdSubjectless As String() = {"list", "ls", "status", "stop", "register", "unregister", "disks"}
 
     Private Shared Function VdContainerLike(t As String) As Boolean
         ' Go's filepath.Ext by hand: the last dot after the last separator. Path.GetExtension
@@ -768,7 +770,7 @@ Public Class Runner
 
     Private Shared Function VdMountWord(t As String) As Boolean
         Dim lt = t.ToLowerInvariant()
-        Return lt = "ro" OrElse lt = "readonly" OrElse lt = "noscan" OrElse lt = "as" OrElse VdDriveSpelling(t)
+        Return IsOneOf(lt, VdMountWords) OrElse VdDriveSpelling(t)
     End Function
 
     Private Shared Function IsCredentialPrefix(t As String) As Boolean

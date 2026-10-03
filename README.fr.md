@@ -314,7 +314,7 @@ Ce qu'il faut à la plateforme, dit franchement:
 
 - **Windows uniquement.** La lettre de lecteur vient de l'initiateur iSCSI intégré à Windows, qui parle à un
   serveur de blocs dans `filedo.exe`; ce serveur n'écoute que sur 127.0.0.1 - rien ne quitte cet
-  ordinateur, et le conteneur ne passe jamais par aucun réseau.
+  ordinateur, et le conteneur ne passe jamais par aucun réseau - sauf si vous le partagez vous-même (voir plus bas).
 - **Monter demande des droits d'administrateur.** `mount`, `unmount`, `save`, `format` et `vd auto` demandent à
   Windows l'accord d'un administrateur pour l'étape de l'initiateur; le mot de passe n'y va jamais, et le
   serveur de blocs lui-même ne tourne jamais avec des droits élevés. Un lot n'affiche jamais cette
@@ -328,6 +328,19 @@ Ce qu'il faut à la plateforme, dit franchement:
 - **Un montage survit à la fenêtre.** Fermer la fenêtre FileDO laisse le lecteur et son serveur en place,
   et une nouvelle fenêtre les liste de nouveau; démontez dans le Gestionnaire de disques, sur les pages du groupe *Disques* ou avec
   `filedo X: unmount`.
+
+Dans le **Gestionnaire de disques**, sélectionnez un disque sur fichier enregistré et **Partager via Fast Media Sorter & Sharing..** dans les détails ou le menu Plus (`Ctrl+Shift+S`). Démarrez d’abord Share Manager. Si le worker est inaccessible, le dialogue propose une nouvelle vérification et la [page d’installation](https://serzhyale.github.io/FastMediaSorter_Lite/) ; cela ne prouve pas une installation absente. Activez si nécessaire le composant FileDO facultatif. L’installateur de bureau n’est pas signé. Lecture seule par défaut ; les disques sealed restent en lecture seule. Choisissez le nom du dossier et éventuellement son ouverture aux appareils associés. Un disque monté par FileDO est déconnecté proprement après confirmation ; la RAM est enregistrée par la déconnexion normale. Acceptez explicitement de désactiver le montage automatique FileDO ; un mode `keep` manuel s’arrête à la déconnexion. Le démarrage FMS s’active séparément. **Fermer le disque partagé** conserve l’enregistrement ; **Arrêter le partage** le supprime avec sa clé de démarrage enregistrée. En cas d’échec, les étapes terminées restent appliquées : actualisez, réessayez l’action restante ou arrêtez le partage avant de rétablir explicitement le montage local et la politique automatique antérieure. Associez les appareils via Share Manager. Les fichiers sont publiés via SFTP, sans partage SMB Windows. Le mode session exige une connexion ; un service fonctionne sans connexion. Disques sur partition et contrôles externes Store non vérifiés sont indisponibles ici ; utilisez la version de bureau. La page pas a pas - preconditions, chaque dialogue et le retablissement - est [Partager les disques FileDO avec Fast Media Sorter](https://serzhyale.github.io/FileDO/guides/fms-sharing.html).
+
+**Partage d'un disque via Fast Media Sorter for Windows (facultatif).** Si Fast Media Sorter for Windows est
+installé, `vd share work.fdd on` propose un disque aux téléphones et tablettes que vous lui avez associés,
+comme un dossier de plus ; `vd open`, `vd close` et `vd autostart` l'ouvrent pour eux, le ferment et le
+rouvrent après un redémarrage. FileDO n'ouvre aucune connexion réseau pour cela - il parle à ce programme par
+un canal local, et c'est ce programme qui sert les fichiers. Un disque chiffré se déverrouille ici, sur ce PC,
+jamais depuis le téléphone ; tant qu'il est ouvert, chaque appareil associé peut lire ses fichiers, et `vd
+autostart` garde son mot de passe sur ce PC, protégé pour ce programme, jusqu'à ce que vous désactiviez le
+démarrage automatique, arrêtiez le partage ou changiez le mot de passe. Un disque partagé est détenu par ce
+programme : `mount` le refuse tant qu'il le détient ; `vd status` indique qui le détient. Seule l'édition
+Serveur de Fast Media Sorter for Windows garde les disques partagés disponibles quand personne n'est connecté.
 
 Codes de sortie d'une commande de conteneur: 0 terminé, 2 commande incorrecte, 3 mauvais mot de passe,
 4 endommagé, 5 erreur d'E/S, 6 non pris en charge, 7 transport indisponible, 8 occupé (monté, ouvert ou
@@ -343,9 +356,65 @@ programme d'installation, `filedo vd register` écrit la même chose (`-all-user
 `filedo vd unregister` la retire. Dans la fenêtre, le groupe **Disques** a une page par opération et nomme
 les deux protections exactement comme la console.
 
-Le **Gestionnaire de disques** (en anglais *Disk manager*) est une seconde fenêtre du même `filedo_win.exe` - pas un nouveau programme - avec une ligne par disque virtuel: les disques de votre liste, ceux qui sont montés maintenant et les images VHD, VHDX ou ISO que FileDO a montées. Chaque ligne dit son état en toutes lettres à côté d'une icône (*Monté*, *Monté, lecture seule*, *Monté, 180 MiB non enregistrés* pour un disque `ram`, *Serveur disparu - volume hors ligne*, *Image montée*, *Fichier absent*, *Un autre conteneur se trouve à ce chemin*, *Illisible*, *Mal fermé*, *Non monté*), et la liste se tient à jour sans actualisation manuelle. Autour d'elle: une barre d'outils (*Nouveau disque..*, *Ajouter..*, *Monter*, *Démonter*, *Ouvrir*, *Enregistrer*, *Autres actions*, *Actualiser*, *Aide*, *Fenêtre principale*), une ligne de filtre et un volet de détails avec les boutons qui s'appliquent; un bouton inutilisable dit pourquoi dans son info-bulle et dans le volet, et la version du Microsoft Store, qui ne peut jamais monter, masque les commandes de montage au lieu de les griser. Un double-clic ou Entrée monte un disque au repos et ouvre le lecteur d'un disque monté - il ne démonte jamais; faites glisser des fichiers `.fdd` sur la liste pour les ajouter, ou un `.vhd`, `.vhdx` ou `.iso` pour monter une image après une confirmation. *Nouveau disque*, *Exporter*, *Compacter*, *Agrandir*, *Copie scellée*, *Cloner*, *Changer le mot de passe*, *Formater* et *Détruire* ouvrent leur page de tâche dans la fenêtre principale avec le conteneur choisi; *Formater* et *Détruire* y gardent la confirmation à saisir.
+Le **Gestionnaire de disques** (en anglais *Disk manager*) est une seconde fenêtre du même `filedo_win.exe` - pas un nouveau programme - avec une ligne par disque virtuel: les disques de votre liste, ceux qui sont montés maintenant et les images VHD, VHDX ou ISO que FileDO a montées. Chaque ligne dit son état en toutes lettres à côté d'une icône (*Monté*, *Monté, lecture seule*, *Monté, 180 MiB non enregistrés* pour un disque `ram`, *Serveur disparu - volume hors ligne*, *Image montée*, *Fichier absent*, *Un autre conteneur se trouve à ce chemin*, *Illisible*, *Mal fermé*, *Non monté*), et la liste se tient à jour sans actualisation manuelle. Autour d'elle: une barre d'outils (*Nouveau disque..*, *Ajouter..*, *Monter*, *Démonter*, *Ouvrir*, *Enregistrer*, *Autres actions*, *Actualiser*, *Aide*, *Fenêtre principale*), une ligne de filtre et un volet de détails avec les boutons qui s'appliquent; un bouton inutilisable dit pourquoi dans son info-bulle et dans le volet, et la version du Microsoft Store, qui ne peut jamais monter, masque les commandes de montage au lieu de les griser. Un double-clic ou Entrée monte un disque au repos et ouvre le lecteur d'un disque monté - il ne démonte jamais; faites glisser des fichiers `.fdd` sur la liste pour les ajouter, ou un `.vhd`, `.vhdx` ou `.iso` pour monter une image après une confirmation. *Nouveau disque..* demande d'abord où le disque garde ses données: *Fichier sur un lecteur..* ouvre la page *Créer un disque* dans la fenêtre principale, *Partition dans l'espace libre..* la boîte de dialogue de partition du gestionnaire lui-même - une carte de l'espace libre de chaque disque GPT, la taille, le profil, l'étiquette et le nom (la version du Microsoft Store ne propose que le fichier). Pour un disque dans un fichier, *Exporter*, *Compacter*, *Agrandir*, *Copie scellée*, *Cloner*, *Changer le mot de passe*, *Formater* et *Détruire* ouvrent leur page de tâche dans la fenêtre principale avec le conteneur choisi; *Formater* et *Détruire* y gardent la confirmation à saisir. La ligne d'un [disque sur partition](#disques-sur-partition) dit *Partition non connectée* ou *Partition modifiée* quand il n'est plus là où il a été enregistré, propose *Image vers un fichier..* pour le copier dans un nouveau fichier `.fdd`, et il se supprime dans le gestionnaire lui-même: *Détruire* demande de saisir son nom et peut d'abord écraser la partition. *Adopter une partition..* (sous *Autres actions*, ou par un clic droit sur un espace vide) liste les partitions FileDO des disques de cet ordinateur qui ne sont pas dans la liste et ajoute celle qui est choisie sous un nom; la version du Store masque *Image vers un fichier* et *Adopter une partition*.
 
-On l'ouvre par l'entrée **FileDO Disk Manager** du menu Démarrer (le programme d'installation l'ajoute; elle lance `filedo_win.exe --disks`), par le bouton **«Gestionnaire de disques»** en haut à droite de la fenêtre FileDO ou la première ligne de son groupe *Disques* (aussi **Ctrl+Shift+D**), ou avec `filedo_win.exe --disks`; son bouton **«Fenêtre principale»** ramène la fenêtre FileDO au premier plan. **F1** ouvre l'aide - ce que dit une ligne, le tableau des touches, des liens. À la première ouverture, une fenêtre de bienvenue explique ce qu'est un disque virtuel et dit: *Camouflé, pas chiffré: quiconque a ce fichier et FileDO peut le lire. Il s'ouvre sans mot de passe.* *Chiffré: il ne s'ouvre qu'avec son mot de passe.* Elle précise aussi que Windows demande l'accord d'un administrateur à chaque montage et démontage; elle propose *Créer mon premier disque..*, *Ajouter un fichier .fdd que j'ai déjà..*, *Lire le guide sur le site* et *Pas maintenant*. Le tableau des touches et les images sont dans le [guide des disques virtuels](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Fermer le gestionnaire ne démonte jamais un disque.
+On l'ouvre par l'entrée **FileDO Disk Manager** du menu Démarrer (le programme d'installation l'ajoute; elle lance `filedo_win.exe --disks`), par le bouton **«Gestionnaire de disques»** en haut à droite de la fenêtre FileDO ou la première ligne de son groupe *Disques* (aussi **Ctrl+Shift+D**), ou avec `filedo_win.exe --disks`; son bouton **«Fenêtre principale»** ramène la fenêtre FileDO au premier plan. **F1** ouvre l'aide - ce que dit une ligne, le tableau des touches, des liens. À la première ouverture, une fenêtre de bienvenue explique ce qu'est un disque virtuel et dit: *Camouflé, pas chiffré: quiconque a ce fichier et FileDO peut le lire. Il s'ouvre sans mot de passe.* *Chiffré: il ne s'ouvre qu'avec son mot de passe.* Elle précise aussi que Windows demande l'accord d'un administrateur à chaque montage et démontage - et, pour un disque sur partition, aussi à chaque lecture; elle propose *Créer mon premier disque..*, *Ajouter un fichier .fdd que j'ai déjà..*, *Lire le guide sur le site* et *Pas maintenant*. Le tableau des touches et les images sont dans le [guide des disques virtuels](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Fermer le gestionnaire ne démonte jamais un disque.
+
+### Disques sur partition
+
+Un disque virtuel peut aussi vivre dans une partition plutôt que dans un fichier. FileDO crée une nouvelle
+partition GPT dans l'espace non alloué d'un disque et la remplit, entière, d'un seul conteneur; rien n'est
+modifié hors de cet espace libre - FileDO ne convertit jamais une partition existante, ne la redimensionne
+jamais et n'y écrit jamais. Disques GPT uniquement: les disques MBR, les disques dynamiques, les espaces de
+stockage (Storage Spaces), les disques iSCSI, amovibles et USB sont refusés, et `vd disks` en donne la raison
+pour chacun. Vous gagnez un disque qu'aucun système de fichiers hôte ne porte, auquel Windows ne donne pas de
+lettre et qu'il ne propose pas de formater, avec son espace réservé; vous ne gagnez pas de vitesse.
+
+```bash
+# Tous les disques, leurs partitions et leur espace libre - chaque zone utilisable ou non, et pourquoi (sans droits d'administrateur)
+filedo vd disks
+
+# Un disque sur partition occupant toute une zone libre (la ligne create qu'affiche vd disks), nommé data
+filedo vd new part disk:{GPT-GUID} size max at <offset> as data
+filedo vd mount data
+
+# Le copier dans un fichier .fdd ordinaire, lisible sans droits d'administrateur
+filedo vd image data to D:\data.fdd
+
+# Enregistrer une partition FileDO que ce PC ne connaît pas (un disque venu d'un autre PC)
+filedo vd adopt fdpart:{GUID} as data
+
+# Supprimer la partition: tapez le nom du disque pour confirmer; l'espace redevient non alloué
+filedo vd destroy data
+```
+
+`<disk>` est `disk:{GUID}` ou le numéro qu'a affiché `vd disks`; `size` est `max` ou une taille comme `40G`
+(arrondie vers le bas au MiB, 64 MiB au minimum). Le profil par défaut est `fast`; `plain`, `vault` et `ram`
+fonctionnent aussi. Le premier montage formate le volume en NTFS. Un disque sur partition se désigne par son
+nom ou par son localisateur `fdpart:{GUID}`, jamais par un chemin; `mount`, `unmount`, `save`, `info`,
+`verify`, `export`, `pass`, `seal`, `clone`, `vd auto` et le gardien d'arrêt fonctionnent comme pour un
+fichier, `compact` et `grow` non (sa taille est fixe), et le partage par Fast Media Sorter est refusé pour
+l'instant. `vd forget` retire le nom et laisse la partition sur son disque; `vd destroy .. wipe` écrase la
+partition avant de la supprimer. Un disque refusé se termine avec le code 6, un consentement refusé avec le
+code 7, et une disposition modifiée depuis la liste avec le code 5 - sans que rien ne soit modifié.
+
+- **Le consentement administrateur pour chaque lecture, pas seulement pour monter.** Une partition ne s'ouvre
+  pas sans droits d'administrateur, donc `info`, `verify`, `export`, `pass`, `seal`, `clone` et `vd image`
+  demandent eux aussi le consentement à Windows. `vd image` lève ce besoin: le fichier qu'il écrit est un
+  `.fdd` ordinaire que chaque chemin de lecture ouvre sans droits d'administrateur.
+- **Pas plus rapide qu'un disque fichier.** Mesuré de bout en bout sur un disque NVMe, un disque sur partition
+  était plus lent qu'un fichier `.fdd` sur NTFS. Choisissez-le pour l'espace fixe et séparé, pas pour la
+  vitesse.
+- **`fast` écrase l'espace libre, `plain` et `vault` non.** Ce que l'espace libre contenait avant reste dans
+  les clusters inutilisés d'un disque sur partition `plain` ou `vault` jusqu'à ce que le volume écrive
+  par-dessus; `fast` écrase toute la partition à sa création.
+- **La Gestion des disques de Windows (`diskmgmt.msc`) affiche toujours la partition et peut la supprimer.**
+  La supprimer là supprime le disque qu'elle contient, sans question sur son contenu. Le moyen sûr est le
+  `vd destroy` de FileDO: il refuse un disque monté, demande de taper le nom du disque et ne supprime qu'une
+  partition dont il a prouvé qu'elle appartient à FileDO.
+- **Les disques sur partition ne sont pas disponibles dans la version du Microsoft Store.** Là, `vd disks` le
+  dit et chaque commande de partition se termine avec le code 6; utilisez le programme d'installation ou la
+  version portable de GitHub.
 
 ---
 
@@ -493,6 +562,8 @@ filedo network \\pc\share info
 ```
 
 ### Comparaison de dossiers & Nettoyage
+
+`compare <source> <target> --strict` vérifie que les arborescences correspondent : mêmes chemins relatifs, tailles et heures de modification donnent `Passed` (code 0) ; une différence donne `Failed` (code 1) ; une comparaison incomplète donne `Not proven` (code 2). Ajoutez `--by-hash` pour comparer les paires de même taille par contenu plutôt que par date. Un simple `compare` signale toujours les différences avec `Done` (code 0) ; `--strict` ne peut pas être combiné avec une suppression. Les deux modes publient `onlyInSource`, `onlyInTarget`, `differentFiles`, `sameFiles`, `totalSource` et `totalTarget` dans le résultat de `--events`. Pour `check`, `--max-files N` lit au maximum N fichiers (0 signifie sans limite) ; `--resume` se termine avec `Passed` (code 0) lorsque chaque fichier admissible possède une entrée inchangée dans la liste des fichiers bien lus : `checkedFiles = 0`, et `skippedGoodFiles` compte les fichiers vérifiés auparavant.
 
 ```bash
 # Comparer deux dossiers et enregistrer un rapport

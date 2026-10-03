@@ -44,7 +44,7 @@ $ErrorActionPreference = 'Stop'
 # An unexpected terminating error must not surface as exit 1, which reads as drift.
 trap {
     Write-Host "  $($_.Exception.Message)"
-    Write-Host 'sync-icon-glyphs: NOT VERIFIED (the script failed)'
+    Write-Host 'sync-icon-glyphs: COULD NOT VERIFY (the script failed)'
     exit 2
 }
 
@@ -52,11 +52,11 @@ trap {
 # The catalog remains the source of truth; mapping a new meaning means adding it here as well, and
 # the shell's self-test fails on an id it draws that is not vendored.
 $glyphIds = @(
-    'action.cancel', 'action.clear-all', 'action.clear-input', 'action.compare', 'action.copy', 'action.delete',
-    'action.export', 'action.fill-space',
-    'action.find-duplicates', 'action.recover-drive', 'action.refresh', 'action.remove', 'action.save', 'action.secure',
-    'action.sort', 'action.unsecure', 'action.verify', 'action.wipe',
-    'app.command-line', 'app.disk-manager', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
+    'action.cancel', 'action.change-password', 'action.clear-all', 'action.clear-input', 'action.compare', 'action.copy',
+    'action.delete', 'action.export', 'action.fill-space', 'action.find-duplicates', 'action.format', 'action.grow',
+    'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name', 'action.remove', 'action.save',
+    'action.seal', 'action.secure', 'action.share', 'action.sort', 'action.unmount-disk', 'action.unsecure', 'action.verify', 'action.wipe',
+    'app.command-line', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
     'content.history', 'content.secret-file',
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
     'nav.close', 'nav.collapse', 'nav.expand', 'nav.more', 'nav.open-external',
@@ -80,7 +80,7 @@ function Get-Sha256([string]$Path) {
 if (-not $CatalogRoot) { $CatalogRoot = $env:SZA_CONTRACTS_ROOT }
 if (-not $CatalogRoot) { $CatalogRoot = [Environment]::GetEnvironmentVariable('SZA_CONTRACTS_ROOT', 'User') }
 if (-not $CatalogRoot) {
-    Stop-Verdict 2 'NOT VERIFIED' @('no catalog root: pass -CatalogRoot or set SZA_CONTRACTS_ROOT (AGENTS.md names the location)')
+    Stop-Verdict 2 'COULD NOT VERIFY' @('no catalog root: pass -CatalogRoot or set SZA_CONTRACTS_ROOT (AGENTS.md names the location)')
 }
 
 $iconography = Join-Path $CatalogRoot 'iconography'
@@ -89,7 +89,7 @@ $sourceVocabulary = Join-Path $iconography 'vocabulary.jsonl'
 $sourceReadme = Join-Path $iconography 'README.md'
 foreach ($required in @($sourceGlyphs, $sourceVocabulary, $sourceReadme)) {
     if (-not (Test-Path -LiteralPath $required)) {
-        Stop-Verdict 2 'NOT VERIFIED' @("the iconography catalog is unreachable: '$required' was not found")
+        Stop-Verdict 2 'COULD NOT VERIFY' @("the iconography catalog is unreachable: '$required' was not found")
     }
 }
 $missingInCatalog = @(
@@ -97,7 +97,7 @@ $missingInCatalog = @(
     $dataFiles | Where-Object { -not (Test-Path -LiteralPath (Join-Path $iconography $_)) }
 )
 if ($missingInCatalog.Count -gt 0) {
-    Stop-Verdict 2 'NOT VERIFIED' @($missingInCatalog | ForEach-Object { "declared file '$_' is missing from the catalog" })
+    Stop-Verdict 2 'COULD NOT VERIFY' @($missingInCatalog | ForEach-Object { "declared file '$_' is missing from the catalog" })
 }
 
 # "ICON-SET 0.13; ICON-RENDER 0.11; ICON-EXTERNAL 0.9", read from the contract blocks.
@@ -109,7 +109,7 @@ foreach ($line in Get-Content -LiteralPath $sourceReadme) {
 }
 $versionsText = $contractVersions -join '; '
 $iconSetVersion = ($contractVersions | Where-Object { $_ -like 'ICON-SET *' } | Select-Object -First 1) -replace '^ICON-SET ', ''
-if (-not $iconSetVersion) { Stop-Verdict 2 'NOT VERIFIED' @('the catalog README carries no ICON-SET version block') }
+if (-not $iconSetVersion) { Stop-Verdict 2 'COULD NOT VERIFY' @('the catalog README carries no ICON-SET version block') }
 $catalogMajor = ($iconSetVersion -split '\.')[0]
 $vocabularyHash = Get-Sha256 $sourceVocabulary
 

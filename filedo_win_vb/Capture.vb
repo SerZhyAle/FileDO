@@ -30,7 +30,7 @@ Module Capture
     ' The Disk manager's pictures (SP-0063, SP-0080): the window with its disks, the help, the first
     ' steps, the Autostart dialog. Built from a sample `vd status json` document, so a capture needs no
     ' disk, no task and no state.
-    Private ReadOnly DiskPages As String() = {"disk-manager", "disk-help", "disk-welcome", "disk-autostart", "disk-settings"}
+    Private ReadOnly DiskPages As String() = {"disk-manager", "disk-help", "disk-welcome", "disk-autostart", "disk-settings", "disk-share"}
 
     ' Design pixels, so a capture is the same picture at any display scale.
     Private Const DesignWidth As Integer = 1180
@@ -87,6 +87,23 @@ Module Capture
         DiskManagerForm.SuppressWelcome = True
         DiskManagerForm.SuppressReads = True
         Select Case kind
+            Case "disk-share"
+                Dim r As New DiskRecord With {.Name = "work", .Path = "C:\FileDO\work.fdd", .ContainerId = "sample-work",
+                    .Registered = True, .Profile = "plain", .Protection = DiskProtection.Obfuscated, .Letter = "X:",
+                    .ServerAlive = True, .AutoMount = True}
+                Using dlg As New DiskShareDialog(dict, r, Nothing)
+                    dlg.StartPosition = FormStartPosition.Manual
+                    dlg.Location = New Point(-32000, -32000)
+                    dlg.ShowInTaskbar = False
+                    dlg.Show()
+                    For i = 1 To 5
+                        Application.DoEvents()
+                    Next
+                    Using bmp As New Bitmap(dlg.Width, dlg.Height)
+                        dlg.DrawToBitmap(bmp, New Rectangle(0, 0, bmp.Width, bmp.Height))
+                        bmp.Save(file, Imaging.ImageFormat.Png)
+                    End Using
+                End Using
             Case "disk-manager"
                 Dim m As New DiskManagerForm()
                 Try

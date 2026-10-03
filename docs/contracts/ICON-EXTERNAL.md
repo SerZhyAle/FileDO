@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-EXTERNAL` |
-| **Version** | 0.10 draft (no wire carrier) |
+| **Version** | 0.11 draft (no wire carrier) |
 | **Role** | consumer - the site and the READMEs name third-party services |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |
@@ -22,3 +22,5 @@ under `assets/glyphs/` with its SHA-256 in `PROVENANCE.txt`, and its Material Ic
 in `THIRD-PARTY-NOTICES.txt`, which ships in every package; the Explorer icons in `assets/menu-icons/`
 are drawn from those same files. No Segoe stand-in is left; one a future control needs would name its
 codepoint and the font's own name for it (`GlyphRef.Waiting`).
+
+**0.11 (rule 6 of section 4): a language is named by its endonym, never by a flag.** Read 2026-10-02 (SP-0122): the shell's language selector lists `Localization.LanguageNames` - English, Русский, Українська, Deutsch, Français; the site switches with the codes RU / EN / UA that `PAGE-STYLE` section 4.2 prescribes; the five READMEs name languages in words. No flag, emoji or flag icon stands for a language on any surface.

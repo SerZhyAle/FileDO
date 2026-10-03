@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-BEHAVIOUR` |
-| **Version** | 1.4 (wire carrier: the exit-code classes of section 7.1) |
+| **Version** | 1.5 (wire carrier: the exit-code classes of section 7.1) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FD-SEC-CONTRACT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |
@@ -25,3 +25,4 @@
   only after a fresh run with its output cited.
 - **Suite 2 is chosen, never defaulted** (SP-0019 D2): `secure suite2` writes it, and every surface that offers it says
   that only FileDO reads it and that it keeps no original timestamps (section 11.4).
+- **1.5 (additive):** the contract lists an optional sixth credential source, "Remembered on this device". FileDO does not offer it; no byte, exit class or reader changes, so nothing here moves.

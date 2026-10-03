@@ -18,6 +18,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -456,6 +458,8 @@ type checkResult struct {
 	first   time.Duration
 	status  string
 	detail  string
+	vol     uint32
+	fid     uint64
 }
 
 // checkFile reads one file the way the mode asks and judges it. A slow read
@@ -463,14 +467,16 @@ type checkResult struct {
 // denial is "could not verify" and is never recorded as damage (SP-0023 T3).
 func checkFile(ctx context.Context, job checkJob, cfg *checkConfig, buf []byte, warmup func(*os.File), warmupUsed *int32, readBytes *int64) checkResult {
 	p, size := job.path, job.size
+	var vol uint32
+	var fid uint64
 	judgeErr := func(first time.Duration, err error) checkResult {
 		if ctx.Err() != nil || isStopError(err) {
-			return checkResult{outcome: checkStopped, first: first}
+			return checkResult{outcome: checkStopped, first: first, vol: vol, fid: fid}
 		}
 		if isDeviceIOError(err) {
-			return checkResult{outcome: checkDamaged, first: first, status: "read-error", detail: fmt.Sprintf("read error: %v", err)}
+			return checkResult{outcome: checkDamaged, first: first, status: "read-error", detail: fmt.Sprintf("read error: %v", err), vol: vol, fid: fid}
 		}
-		return checkResult{outcome: checkUnverified, first: first, status: "not-verified", detail: err.Error()}
+		return checkResult{outcome: checkUnverified, first: first, status: "not-verified", detail: err.Error(), vol: vol, fid: fid}
 	}
 
 	f, err := os.Open(p)
@@ -480,6 +486,11 @@ func checkFile(ctx context.Context, job checkJob, cfg *checkConfig, buf []byte, 
 			r.status = "open-error"
 		}
 		return r
+	}
+	var fileInfo windows.ByHandleFileInformation
+	if err := windows.GetFileInformationByHandle(windows.Handle(f.Fd()), &fileInfo); err == nil {
+		vol = fileInfo.VolumeSerialNumber
+		fid = uint64(fileInfo.FileIndexHigh)<<32 | uint64(fileInfo.FileIndexLow)
 	}
 	done := make(chan struct{})
 	go func() {
@@ -726,6 +737,7 @@ func CheckFolder(root string) error {
 	var onlineOnlyFiles int64 // cloud placeholders and offline files: never opened
 	var walkErrors int64
 	var totalReadBytes int64
+	var claimedFiles int64       // read slots taken: --max-files is claimed before a file is opened (SP-0130 R5)
 	var lastDamaged atomic.Value // string
 	var warmupUsed int32 = 0
 	var notes checkNotes
@@ -923,7 +935,13 @@ func CheckFolder(root string) error {
 			atomic.AddInt64(&damagedFiles, 1)
 			atomic.AddInt64(&checkedFiles, 1)
 			lastDamaged.Store(job.path)
-			if err := damagedList.Add(job.path, job.size, job.mod); err != nil {
+			var err error
+			if r.vol != 0 || r.fid != 0 {
+				err = damagedList.AddStamp(job.path, job.size, job.mod, r.vol, r.fid)
+			} else {
+				err = damagedList.Add(job.path, job.size, job.mod)
+			}
+			if err != nil {
 				notes.add(cfg.quiet, "Warning: cannot record %s in the damaged list: %v", job.path, err)
 			}
 			if rep != nil {
@@ -940,7 +958,11 @@ func CheckFolder(root string) error {
 			if rep != nil {
 				rep.Write(job.path, job.size, r.first, "ok")
 			}
-			goodList.Add(job.path, job.size, job.mod)
+			if r.vol != 0 || r.fid != 0 {
+				goodList.AddStamp(job.path, job.size, job.mod, r.vol, r.fid)
+			} else {
+				goodList.Add(job.path, job.size, job.mod)
+			}
 		}
 		done := atomic.LoadInt64(&checkedFiles) + atomic.LoadInt64(&unverifiedFiles)
 		if cfg.maxFiles > 0 && done >= cfg.maxFiles {
@@ -1009,6 +1031,13 @@ func CheckFolder(root string) error {
 				if stopped() {
 					return
 				}
+				// The limit is claimed before the file is opened, so at
+				// most --max-files files are ever read - the other workers
+				// cannot be holding files past the limit (SP-0130 R5).
+				if cfg.maxFiles > 0 && atomic.AddInt64(&claimedFiles, 1) > cfg.maxFiles {
+					stopWorkers()
+					return
+				}
 				r := checkFile(ctx, job, cfg, buf, warmup, &warmupUsed, &totalReadBytes)
 
 				// EWMA update for adaptive throttling
@@ -1060,6 +1089,14 @@ func CheckFolder(root string) error {
 				vw := make(map[string]*volumeWarmup)
 				for job := range jobs {
 					if stopped() {
+						return
+					}
+					// The limit is claimed before the file is opened, so at
+					// most --max-files files are ever read - the other
+					// workers cannot be holding files past the limit
+					// (SP-0130 R5).
+					if cfg.maxFiles > 0 && atomic.AddInt64(&claimedFiles, 1) > cfg.maxFiles {
+						stopWorkers()
 						return
 					}
 					var warmup func(*os.File)
@@ -1147,17 +1184,23 @@ func CheckFolder(root string) error {
 		problems = append(problems, fmt.Sprintf("%d folder(s) or entries could not be listed", walkErrs))
 	}
 	isStopped := ih.IsInterrupted()
-	if !isStopped && checked == 0 && newDamaged+oldDamaged == 0 && len(problems) == 0 {
-		if good > 0 {
-			problems = append(problems, fmt.Sprintf("nothing was read: all %d file(s) are already on the good list (--resume) - run without --resume to read them again", good))
-		} else {
-			problems = append(problems, "nothing was read: there is no non-empty file to check here")
-		}
+	// SP-0130 D2: a --resume that finds every file on the good list read
+	// nothing this run, but the list is check's own proof - an entry is
+	// trusted only while the file's size, time and id are unchanged, so a
+	// changed file would have been read - and this is the carry-on loop's
+	// last, successful iteration: Passed, exit 0. A sweep with no file to
+	// read here at all still proves nothing.
+	resumeDone := !isStopped && checked == 0 && newDamaged+oldDamaged == 0 && len(problems) == 0 && good > 0
+	if !isStopped && checked == 0 && newDamaged+oldDamaged == 0 && len(problems) == 0 && good == 0 {
+		problems = append(problems, "nothing was read: there is no non-empty file to check here")
 	}
 
 	if !cfg.quiet {
 		fmt.Printf("\nCHECK completed: found=%d, checked=%d, damaged(new)=%d, damaged(known, not re-read)=%d, not-read=%d, not-read(online-only)=%d, skipped(good, --resume)=%d\n",
 			found, checked, newDamaged, oldDamaged, unverified, onlineOnly, good)
+		if resumeDone {
+			fmt.Printf("Nothing was read: all %d file(s) are already on the good list (--resume) - run without --resume to read them again.\n", good)
+		}
 		if n := notes.hidden; n > 0 {
 			fmt.Printf("(%d more unreadable entries not listed)\n", n)
 		}

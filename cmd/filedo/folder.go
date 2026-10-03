@@ -32,7 +32,15 @@ type infoTreeTotals struct {
 // it could not read, and ends with errRunStopped as soon as the run is asked
 // to stop, so a partial count is never printed as the tree's size (AUD-10-F1).
 func walkInfoTree(root string, withSizes bool) (infoTreeTotals, error) {
+	return walkInfoTreeProgress(root, withSizes, nil)
+}
+
+// walkInfoTreeProgress runs the full `info` walk and calls onProgress at most
+// once every two seconds when provided.
+func walkInfoTreeProgress(root string, withSizes bool, onProgress func(t infoTreeTotals, elapsed time.Duration)) (infoTreeTotals, error) {
 	infoWalkStarted(root)
+	start := time.Now()
+	lastProgress := start
 	var t infoTreeTotals
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if infoWalkStopped() {
@@ -46,16 +54,23 @@ func walkInfoTree(root string, withSizes bool) (infoTreeTotals, error) {
 			if p != root {
 				t.folders++
 			}
-			return nil
-		}
-		t.files++
-		if withSizes {
-			info, err := d.Info()
-			if err != nil {
-				t.accessErrors = true
-				return nil
+		} else {
+			t.files++
+			if withSizes {
+				info, err := d.Info()
+				if err != nil {
+					t.accessErrors = true
+					return nil
+				}
+				t.size += uint64(info.Size())
 			}
-			t.size += uint64(info.Size())
+		}
+		if onProgress != nil && (t.files+t.folders)&0x1ff == 0 {
+			now := time.Now()
+			if now.Sub(lastProgress) >= 2*time.Second && now.Sub(start) >= 2*time.Second {
+				lastProgress = now
+				onProgress(t, now.Sub(start))
+			}
 		}
 		return nil
 	})

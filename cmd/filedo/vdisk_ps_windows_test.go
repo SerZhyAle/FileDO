@@ -234,6 +234,59 @@ func TestFormatScript_TheGuardStopsFirstFormat(t *testing.T) {
 	}
 }
 
+func TestFormatScript_ReusesPartitionWhenSpanningDisk(t *testing.T) {
+	psAvailable(t)
+	script, err := formatScript(7, "SERIAL123", "Data", "ntfs", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakes := `function Update-HostStorageCache { }
+function Get-Disk { param($Number) [pscustomobject]@{ SerialNumber = 'SERIAL123'; BusType = 'iSCSI'; PartitionStyle = 'GPT'; LargestFreeExtent = 0 } }
+function Get-Partition { param($DiskNumber) @([pscustomobject]@{ PartitionNumber = 1; Type = 'Reserved' }, [pscustomobject]@{ PartitionNumber = 2; Type = 'Basic' }) }
+function Clear-Disk { param($Number, [switch]$RemoveData, [switch]$RemoveOEM, $Confirm) Write-Output 'CLEARED' }
+function Initialize-Disk { param($Number, $PartitionStyle) Write-Output 'INITIALIZED' }
+function New-Partition { param($DiskNumber, [switch]$UseMaximumSize) [pscustomobject]@{ PartitionNumber = 1 } }
+function Format-Volume { param([Parameter(ValueFromPipeline)]$In, $FileSystem, $NewFileSystemLabel, $Confirm) process { [pscustomobject]@{ FileSystem = $FileSystem; FileSystemLabel = $NewFileSystemLabel } } }
+`
+	out, err := vdPowerShell(fakes + script)
+	if err != nil {
+		t.Fatalf("reuse format failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "reusing partition 2") || !strings.Contains(out, "formatted NTFS 'Data'") {
+		t.Fatalf("expected reused partition format output, got:\n%s", out)
+	}
+	if strings.Contains(out, "CLEARED") || strings.Contains(out, "INITIALIZED") {
+		t.Fatalf("Clear-Disk or Initialize-Disk ran when partition spanned disk:\n%s", out)
+	}
+}
+
+func TestFormatScript_ClearsWhenGrownOrNonGpt(t *testing.T) {
+	psAvailable(t)
+	script, err := formatScript(7, "SERIAL123", "Data", "ntfs", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Grown disk with free extent: should clear and repartition
+	fakesGrown := `function Update-HostStorageCache { }
+function Get-Disk { param($Number) [pscustomobject]@{ SerialNumber = 'SERIAL123'; BusType = 'iSCSI'; PartitionStyle = 'GPT'; LargestFreeExtent = 104857600 } }
+function Get-Partition { param($DiskNumber) @([pscustomobject]@{ PartitionNumber = 2; Type = 'Basic' }) }
+function Clear-Disk { param($Number, [switch]$RemoveData, [switch]$RemoveOEM, $Confirm) Write-Output 'CLEARED' }
+function Initialize-Disk { param($Number, $PartitionStyle) Write-Output 'INITIALIZED' }
+function New-Partition { param($DiskNumber, [switch]$UseMaximumSize) [pscustomobject]@{ PartitionNumber = 1 } }
+function Format-Volume { param([Parameter(ValueFromPipeline)]$In, $FileSystem, $NewFileSystemLabel, $Confirm) process { [pscustomobject]@{ FileSystem = $FileSystem; FileSystemLabel = $NewFileSystemLabel } } }
+`
+	out, err := vdPowerShell(fakesGrown + script)
+	if err != nil {
+		t.Fatalf("grown clear format failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "CLEARED") || !strings.Contains(out, "INITIALIZED") || !strings.Contains(out, "formatted NTFS 'Data'") {
+		t.Fatalf("expected clear and initialize for grown disk, got:\n%s", out)
+	}
+	if strings.Contains(out, "reusing partition") {
+		t.Fatalf("reused partition when disk had unallocated extent:\n%s", out)
+	}
+}
+
 // The Go-side proof runs before any script: a disk that is not the container's
 // is refused without touching it.
 func TestVdProveContainerDisk_RefusesAForeignDisk(t *testing.T) {

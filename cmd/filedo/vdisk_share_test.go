@@ -4,6 +4,7 @@ package main
 
 import (
 	"errors"
+	"filedo/fdsec"
 	"filedo/fmsworker"
 	"filedo/fsx"
 	"filedo/statedir"
@@ -23,7 +24,7 @@ type shareWorkerStub struct {
 	disks []fmsworker.SharedDiskInfo
 
 	failShare, failUnshare, failAutostart, failStatus, failList, failRoots error
-	keepKey, ignoreAutostart                                                bool
+	keepKey, ignoreAutostart                                               bool
 
 	shared, removed, auto bool
 	password              []byte
@@ -32,6 +33,13 @@ type shareWorkerStub struct {
 	shareCalls            int
 	unshareCalls          int
 	autostartCalls        int
+
+	failOpen     error
+	failClose    []error // one per CloseDiskBound call, in order; a nil entry lets that call succeed
+	openCalls    int
+	openPassword string
+	closeCalls   []closeCall
+	mode         fmsworker.WorkerMode
 }
 
 func (s *shareWorkerStub) find(path string) int {
@@ -106,7 +114,12 @@ func (s *shareWorkerStub) ListRoots() ([]string, error) {
 	}
 	return s.roots, nil
 }
-func (s *shareWorkerStub) WorkerMode() fmsworker.WorkerMode { return fmsworker.WorkerModeService }
+func (s *shareWorkerStub) WorkerMode() fmsworker.WorkerMode {
+	if s.mode != fmsworker.WorkerModeUnknown {
+		return s.mode
+	}
+	return fmsworker.WorkerModeService
+}
 
 func shareFixture(t *testing.T) (string, *shareWorkerStub) {
 	t.Helper()
@@ -117,9 +130,21 @@ func shareFixture(t *testing.T) (string, *shareWorkerStub) {
 		t.Fatal(e)
 	}
 	s := &shareWorkerStub{}
-	oldFactory, oldInspect := vdWorkerFactory, vdShareInspect
-	t.Cleanup(func() { vdWorkerFactory = oldFactory; vdShareInspect = oldInspect })
+	oldFactory, oldInspect, oldProve, oldProbe := vdWorkerFactory, vdShareInspect, vdProveCredential, vdShareProbe
+	t.Cleanup(func() {
+		vdWorkerFactory, vdShareInspect, vdProveCredential, vdShareProbe = oldFactory, oldInspect, oldProve, oldProbe
+	})
 	vdWorkerFactory = func() (vdWorker, error) { return s, nil }
+	// The fixtures' container files are stand-ins: a credential cannot be proved against them, so the
+	// proof accepts unless a test installs its own. The real proof has its own test on a real container.
+	vdProveCredential = func(string, fdsec.Credential) error { return nil }
+	// The worker answers the live probe the way it answers the verbs: from the stub's own disk list.
+	vdShareProbe = func(time.Duration) vdShareLiveResult {
+		if s.failList != nil {
+			return vdShareLiveResult{Err: s.failList}
+		}
+		return vdShareLiveResult{Disks: append([]fmsworker.SharedDiskInfo(nil), s.disks...), Mode: s.WorkerMode()}
+	}
 	vdShareInspect = func(string) (vdisk.Info, error) {
 		return vdisk.Info{ContainerID: "id", FriendlyName: "Media/2026", Obfuscated: true, Profile: vdisk.ProfilePlain}, nil
 	}
@@ -590,4 +615,41 @@ func TestRootNamesFollowFMSRules(t *testing.T) {
 	if generateRootNameFromContainer(vdisk.Info{FriendlyName: "Media/2026"}, "x.fdd") != "Media-2026" {
 		t.Fatal("friendly name not sanitized")
 	}
+}
+
+// OpenDisk and CloseDiskBound complete the stub: they move the record between closed and open and keep the
+// calls, so a test sees what the CLI asked.
+func (s *shareWorkerStub) OpenDisk(path, password string) error {
+	s.openCalls++
+	s.openPassword = password
+	if s.failOpen != nil {
+		return s.failOpen
+	}
+	i := s.find(path)
+	if i < 0 {
+		return fmsworker.ErrDiskNotShared
+	}
+	s.disks[i].State, s.disks[i].Holder = fmsworker.DiskStateOpen, "service"
+	return nil
+}
+func (s *shareWorkerStub) CloseDiskBound(path string, force bool, bound int) error {
+	s.closeCalls = append(s.closeCalls, closeCall{force, bound})
+	if len(s.failClose) > 0 {
+		e := s.failClose[0]
+		s.failClose = s.failClose[1:]
+		if e != nil {
+			return e
+		}
+	}
+	i := s.find(path)
+	if i < 0 {
+		return fmsworker.ErrDiskNotShared
+	}
+	s.disks[i].State, s.disks[i].Holder, s.disks[i].OpenHandles = fmsworker.DiskStateClosed, "none", 0
+	return nil
+}
+
+type closeCall struct {
+	force bool
+	bound int
 }

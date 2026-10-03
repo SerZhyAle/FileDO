@@ -490,6 +490,16 @@ type vdGuardSteps struct {
 	Unmount func(t vdGuardTarget, cap time.Duration) vdGuardRow
 }
 
+// vdGuardUnfinished is the outcome of a step that ran out of its cap: the work was abandoned, not
+// cancelled, and may still be running (vdGuardCapped). The execute step and the summary key on it.
+const vdGuardUnfinished = "unfinished"
+
+// vdGuardKey names one mounted disk across the save and the unmount plans: its container id, and its
+// letter, which is unique among the rows that have one.
+func vdGuardKey(t vdGuardTarget) string {
+	return strings.ToLower(t.Row.ContainerID) + "|" + t.Row.Letter
+}
+
 // vdGuardExecute runs the plan in its order and builds the report. The block
 // reason exists only while a ram save is actually running (D3), and "Shut down
 // anyway" always wins over it.
@@ -505,10 +515,23 @@ func vdGuardExecute(saves, unmounts []vdGuardTarget, steps vdGuardSteps, at time
 		steps.Block(true)
 		blocked = true
 	}
+	// A save that ran out of its cap is abandoned, not cancelled: it is still running in the disk's
+	// block server. The disk is therefore not unmounted under it (AUD-44-F1) - the two would overlap
+	// and the session may end before either finishes - and the report says it was left mounted.
+	stillSaving := map[string]bool{}
 	for _, t := range saves {
-		rep.Containers = append(rep.Containers, steps.Save(t, vdGuardSaveCap))
+		row := steps.Save(t, vdGuardSaveCap)
+		rep.Containers = append(rep.Containers, row)
+		if row.Outcome == vdGuardUnfinished {
+			stillSaving[vdGuardKey(t)] = true
+		}
 	}
 	for _, t := range unmounts {
+		if stillSaving[vdGuardKey(t)] {
+			rep.Containers = append(rep.Containers, vdGuardRow{Name: t.Name, Path: t.Row.Path, Action: "unmount", Outcome: "skipped",
+				Reason: fmt.Sprintf("its save did not finish within %d s, so the disk was not unmounted under it; the save may be cut when the session ends, and the next mount of this container will ask about an interrupted save", int(vdGuardSaveCap.Seconds()))})
+			continue
+		}
 		rep.Containers = append(rep.Containers, steps.Unmount(t, vdGuardUnmountCap))
 	}
 	if blocked {
@@ -528,17 +551,29 @@ func vdGuardSummary(rows []vdGuardRow) string {
 	if len(rows) == 0 {
 		return "Nothing was mounted; there was nothing to do."
 	}
-	containers, closed, skipped, unfinished, saved := 0, 0, 0, 0, 0
+	// A disk whose save ran out of time is withheld from its unmount (AUD-44-F1): its unmount row reads
+	// skipped, but the disk is one container and its unfinished save already counts it.
+	savingStill := map[string]bool{}
+	for _, r := range rows {
+		if r.Action == "save" && r.Outcome == vdGuardUnfinished {
+			savingStill[r.Name+"|"+r.Path] = true
+		}
+	}
+	containers, closed, skipped, unfinished, saved, withheld := 0, 0, 0, 0, 0, 0
 	for _, r := range rows {
 		if r.Action == "unmount" {
 			containers++
+			if r.Outcome == "skipped" && savingStill[r.Name+"|"+r.Path] {
+				withheld++
+				continue
+			}
 		}
 		switch r.Outcome {
 		case "saved":
 			saved++
 		case "unmounted":
 			closed++
-		case "unfinished":
+		case vdGuardUnfinished:
 			unfinished++
 		default:
 			skipped++
@@ -555,7 +590,11 @@ func vdGuardSummary(rows []vdGuardRow) string {
 		parts = append(parts, fmt.Sprintf("%d skipped", skipped))
 	}
 	if unfinished > 0 {
-		parts = append(parts, fmt.Sprintf("%d unfinished", unfinished))
+		word := fmt.Sprintf("%d unfinished", unfinished)
+		if withheld > 0 {
+			word += fmt.Sprintf(" (%d left mounted, its save was still running)", withheld)
+		}
+		parts = append(parts, word)
 	}
 	return strings.Join(parts, ", ") + " - the rows above say which and why."
 }
@@ -593,7 +632,7 @@ func vdGuardSaveOne(t vdGuardTarget) (outcome, reason string, bytesSaved int64) 
 	if t.Row.ReadOnly {
 		return "skipped", "mounted read-only; nothing to save", 0
 	}
-	if _, err := vdRunElevated("_flush", vdRequest{Letter: t.Row.Letter}, true, nil); err != nil {
+	if _, err := vdRunElevated("_flush", vdRequest{Letter: t.Row.Letter, VolumeGUID: t.Row.VolumeGUID}, true, nil); err != nil {
 		return "skipped", "the Windows cache could not be flushed: " + err.Error(), 0
 	}
 	savePath, err := vdSidePath(t.Row.ContainerID, ".save")
@@ -656,7 +695,7 @@ func vdGuardCapped(row vdGuardRow, cap time.Duration, work func() (outcome, reas
 	case a := <-done:
 		row.Outcome, row.Reason, row.BytesSaved = a.outcome, a.reason, a.bytes
 	case <-time.After(cap):
-		row.Outcome = "unfinished"
+		row.Outcome = vdGuardUnfinished
 		row.Reason = fmt.Sprintf("did not finish within %d s; the session's end does not wait", int(cap.Seconds()))
 	}
 	row.Seconds = vdGuardNow().Sub(start).Seconds()

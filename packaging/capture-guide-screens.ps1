@@ -33,7 +33,7 @@ $out = Join-Path $root 'docs\assets\guides'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 if (-not $Gui) { $Gui = Join-Path $root 'filedo_win_vb\bin\Release\filedo_win.exe' }
-if (-not (Test-Path -LiteralPath $Gui)) { Write-Host "capture: NOT VERIFIED (no GUI build at $Gui - run build.ps1 first)" -ForegroundColor Yellow; exit 2 }
+if (-not (Test-Path -LiteralPath $Gui)) { Write-Host "capture: COULD NOT VERIFY (no GUI build at $Gui - run build.ps1 first)" -ForegroundColor Yellow; exit 2 }
 
 $failed = $false
 $p = Start-Process -FilePath $Gui -ArgumentList '--capture-screens', "`"$out`"" -Wait -PassThru
@@ -42,7 +42,7 @@ else { Write-Host "  gui   pages written to $out" }
 
 if (-not $SkipMsi) {
     if (-not $Msi) { $Msi = Get-ChildItem (Join-Path $root 'dist') -Filter '*-windows-x64.msi' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName }
-    if (-not $Msi) { Write-Host "capture: NOT VERIFIED (no MSI in dist\ - build.ps1 without -SkipInstaller, or pass -Msi)" -ForegroundColor Yellow; exit 2 }
+    if (-not $Msi) { Write-Host "capture: COULD NOT VERIFY (no MSI in dist\ - build.ps1 without -SkipInstaller, or pass -Msi)" -ForegroundColor Yellow; exit 2 }
 
     Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing
     if (-not ('CaptureNative' -as [type])) {

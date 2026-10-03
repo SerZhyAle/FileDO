@@ -153,6 +153,13 @@ item below):
   is mounted and a log of mounts, in the same %LOCALAPPDATA%\FileDO\state\ folder. No container
   password is written there. Outside the Store build, the block server of a mounted disk listens
   on 127.0.0.1 only: nothing leaves the device, and the container never goes to any network.
+- vdisk-shared.json - the .fdd virtual disks you shared with Fast Media Sorter for Windows (the
+  container path, the folder name it is shared under, the read-only and autostart marks), in the same
+  state folder. No password is written there. FileDO opens no network connection for sharing: it asks
+  that separate program over a local pipe, and that program - not FileDO - serves the files of an open
+  disk to the devices you paired with it. An encrypted disk is unlocked on this device only; if you turn
+  on autostart for one, its password is kept on the device, protected for that program, until you turn
+  autostart off, stop sharing or change the password.
 
 Sending logs to the author is entirely yours to start: the About window of the GUI has a
 button that packs those local log files into a zip in your TEMP folder, shows it to you in

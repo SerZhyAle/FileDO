@@ -62,6 +62,13 @@ func revealRoot(wd string) string { return filepath.Join(wd, ".reveal-root") }
 // on the developer's desktop is a test suite nobody runs twice.
 func run(t *testing.T, wd string, args ...string) (string, int) {
 	t.Helper()
+	return runWithStdin(t, wd, "", args...)
+}
+
+// runWithStdin is run with the given text as the child's stdin: what a person
+// typing at a console gives the prompts (SP-0126).
+func runWithStdin(t *testing.T, wd, stdin string, args ...string) (string, int) {
+	t.Helper()
 	cmd := exec.Command(filedoExe, args...)
 	cmd.Dir = wd
 	cmd.Env = append(os.Environ(),
@@ -69,7 +76,7 @@ func run(t *testing.T, wd string, args ...string) (string, int) {
 		"FILEDO_FDSEC_REVEAL_ROOT="+revealRoot(wd),
 		statedir.EnvOverride+"="+wd,
 	)
-	cmd.Stdin = strings.NewReader("")
+	cmd.Stdin = strings.NewReader(stdin)
 	out, err := cmd.CombinedOutput()
 	code := 0
 	if err != nil {
@@ -421,22 +428,32 @@ func TestFdsecWipePrintsTheHonestCaveatAndRemoves(t *testing.T) {
 	}
 }
 
-func TestFdsecWipeWithoutForceKeepsTheOriginalOffATerminal(t *testing.T) {
+// SP-0126: with nobody to answer the wipe question - stdin closed, as for any
+// script or harness - the original is kept, the container stands, and the run
+// is not a success: the usage class, naming -y. A typed word short of WIPE
+// would be a refusal and stays Done; that shape is the unanswered-test's.
+func TestFdsecWipeWithNobodyToAskIsNotASuccess(t *testing.T) {
 	dir, payload := workdir(t)
 	const secret = "pw-wipe-unconfirmed"
 
 	out, code := run(t, dir, "plain.txt", "secure", "wipe", "p:"+secret)
-	if code != 0 {
-		t.Fatalf("secure wipe exited %d, want 0\n%s", code, out)
+	if code != 2 {
+		t.Fatalf("secure wipe with a closed stdin exited %d, want 2 (usage)\n%s", code, out)
 	}
 	if !exists(filepath.Join(dir, "plain.txt")) {
-		t.Fatal("the original was wiped although WIPE was never typed")
+		t.Fatal("the original was wiped although nobody could confirm it")
 	}
 	if got := mustRead(t, filepath.Join(dir, "plain.txt")); !bytes.Equal(got, payload) {
-		t.Error("the original was modified although WIPE was never typed")
+		t.Error("the original was modified although nobody could confirm the wipe")
+	}
+	if !exists(filepath.Join(dir, "plain.fd-sec")) {
+		t.Error("the verified container did not survive the unanswered wipe")
 	}
 	if !strings.Contains(out, "Original kept") {
 		t.Errorf("the run does not say the original was kept\n%s", out)
+	}
+	if !strings.Contains(out, "-y") {
+		t.Errorf("the refusal does not name the flag that settles it\n%s", out)
 	}
 }
 

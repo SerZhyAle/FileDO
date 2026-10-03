@@ -269,6 +269,120 @@ func TestShell_EveryDialogHasAnOwner(t *testing.T) {
 	}
 }
 
+// vbCallArgs returns the top-level arguments of every `prefix(` call in a VB
+// file's code (comments dropped), with the parentheses balanced across lines
+// and string literals skipped.
+func vbCallArgs(body, prefix string) [][]string {
+	code := strings.Join(codeLines(body), "\n")
+	var calls [][]string
+	for from := 0; ; {
+		i := strings.Index(code[from:], prefix+"(")
+		if i < 0 {
+			return calls
+		}
+		start := from + i + len(prefix) + 1
+		depth, inStr, last := 1, false, start
+		var args []string
+		j := start
+		for ; j < len(code) && depth > 0; j++ {
+			switch c := code[j]; {
+			case c == '"':
+				inStr = !inStr
+			case inStr:
+			case c == '(' || c == '{':
+				depth++
+			case c == ')' || c == '}':
+				depth--
+				if depth == 0 {
+					args = append(args, strings.TrimSpace(code[last:j]))
+				}
+			case c == ',' && depth == 1:
+				args = append(args, strings.TrimSpace(code[last:j]))
+				last = j + 1
+			}
+		}
+		calls = append(calls, args)
+		from = j
+	}
+}
+
+// APP-BEHAVIOUR rule 5 (0.12) and APP-STYLE section 4, the static sweep: in a
+// confirmation of a destructive action the safe answer is the default - the
+// button Enter presses and holds the focus - and the acting button is only
+// painted danger. A ShellDialog.Ask call that names a danger button must name
+// the default too, and it must be the cancel answer, not the danger one. The
+// spec form (Ask(owner, DestructiveDialogs.X(..))) is safe by construction -
+// DialogSpec.Destructive sets default = cancel - and --selftest proves it.
+func TestShell_DestructiveDialogDefaultsToTheSafeAnswer(t *testing.T) {
+	names := []string{"owner", "title", "text", "choices", "cancelat", "defaultat", "dangerat"}
+	for name, body := range shellSources(t) {
+		for _, args := range vbCallArgs(body, "ShellDialog.Ask") {
+			if len(args) < 3 {
+				continue // the spec form
+			}
+			got := map[string]string{}
+			for pos, a := range args {
+				if m := regexp.MustCompile(`^(\w+)\s*:=\s*(.*)$`).FindStringSubmatch(a); m != nil {
+					got[strings.ToLower(m[1])] = strings.TrimSpace(m[2])
+				} else if pos < len(names) {
+					got[names[pos]] = a
+				}
+			}
+			danger, hasDanger := got["dangerat"]
+			if !hasDanger {
+				continue
+			}
+			def, cancel := got["defaultat"], got["cancelat"]
+			if def == "" || def == danger || def != cancel {
+				t.Errorf("%s: a ShellDialog.Ask with dangerAt:=%s has defaultAt %q, cancelAt %q - the safe answer must be the default (APP-BEHAVIOUR rule 5)",
+					name, danger, def, cancel)
+			}
+		}
+	}
+
+	// The destructive questions are built by DestructiveDialogs, whose
+	// builder fixes the default. Their text keys appearing anywhere else means
+	// a hand-written Ask, which this sweep cannot hold to the rule.
+	own := regexp.MustCompile(`shell_clean_confirm|shell_close_(still_)?running|vd_mgr_confirm_(forget|unmount|unclean)|vd_mgr_close_running`)
+	for name, body := range shellSources(t) {
+		if name == "ShellDialog.vb" || name == "Localization.vb" {
+			continue
+		}
+		for n, ln := range codeLines(body) {
+			if own.MatchString(ln) {
+				t.Errorf("%s:%d asks a destructive confirmation by hand - use DestructiveDialogs, whose safe answer is the default", name, n+1)
+			}
+		}
+	}
+
+	// And every definition there is asked somewhere, so none is dead.
+	srcs := shellSources(t)
+	dialog := srcs["ShellDialog.vb"]
+	at := strings.Index(dialog, "Public Module DestructiveDialogs")
+	if at < 0 {
+		t.Fatal("ShellDialog.vb no longer holds DestructiveDialogs")
+	}
+	module := dialog[at:]
+	if end := strings.Index(module, "End Module"); end > 0 {
+		module = module[:end]
+	}
+	builders := regexp.MustCompile(`(?m)^\s*Public Function (\w+)\(`).FindAllStringSubmatch(module, -1)
+	if len(builders) == 0 {
+		t.Fatal("DestructiveDialogs lists no definition")
+	}
+	for _, b := range builders {
+		used := false
+		for name, body := range srcs {
+			if name != "ShellDialog.vb" && strings.Contains(body, "DestructiveDialogs."+b[1]+"(") {
+				used = true
+			}
+		}
+		if !used {
+			t.Errorf("DestructiveDialogs.%s is asked nowhere", b[1])
+		}
+	}
+}
+
 // APP-STYLE section 3 and the shell's own rule (AGENTS.md): Theme.vb is the
 // only file that names a colour, and mixing two tokens counts as naming one,
 // so Theme.Blend is private to it.
@@ -407,5 +521,34 @@ func TestShell_ReportRedactionMatchesTheCLI(t *testing.T) {
 	proj := readSurface(t, root, filepath.Join("filedo_win_vb", "FileDOGUI.vbproj"))
 	if !strings.Contains(proj, `..\cmd\filedo\testdata\redaction\vectors.tsv`) {
 		t.Error("FileDOGUI.vbproj does not embed cmd/filedo/testdata/redaction/vectors.tsv, so the window's redaction is held to nothing")
+	}
+}
+
+// AUD-83-F1: the run report's redaction port keeps the word sets of the CLI's redactor level, not only the
+// sample lines of vectors.tsv - the port that keeps less over-redacts, and the day it keeps more it leaks.
+func TestShell_VdRedactionWordSetsMatchTheCLI(t *testing.T) {
+	vb := shellSources(t)["Runner.vb"]
+	keys := func(m map[string]bool) []string {
+		out := make([]string, 0, len(m))
+		for k := range m {
+			out = append(out, k)
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		vb   string
+		want []string
+		go_  string
+	}{
+		{"VdRedactVerbs", keys(vdRedactVerbs), "vdRedactVerbs"},
+		{"VdRedactKeeps", keys(vdRedactKeeps), "vdRedactKeeps"},
+		{"VdRedactValueWords", keys(vdRedactValueWords), "vdRedactValueWords"},
+		{"VdSubjectless", keys(vdSubjectless), "vdSubjectless"},
+		{"VdMountWords", vdMountWordList, "vdMountWordList"},
+	} {
+		got := vbStringArray(t, vb, tc.vb)
+		if !sameWords(got, tc.want) {
+			t.Errorf("Runner.vb %s = %q, cmd/filedo %s = %q - the window's Command line would be redacted differently", tc.vb, got, tc.go_, tc.want)
+		}
 	}
 }

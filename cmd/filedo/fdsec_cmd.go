@@ -818,8 +818,18 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 			if !o.assumeYes {
 				fmt.Printf("Type WIPE to continue: ")
 				line, rerr := readConsoleLine()
-				if rerr != nil || strings.TrimSpace(line) != "WIPE" {
+				if rerr != nil {
+					// Nobody could answer - not a refusal: the original stays,
+					// the container stands, and the run is not a success
+					// (SP-0126 R1). A typed word short of WIPE is a refusal,
+					// and that stays Done.
+					kept("nobody could answer the question")
+					hl.SetResult("original", "not-asked")
+					return usagef("the wipe needs a confirmation: nobody could answer the prompt, nothing wiped - pass -y to wipe without a prompt")
+				}
+				if strings.TrimSpace(line) != "WIPE" {
 					kept("wipe not confirmed")
+					hl.SetResult("original", "kept")
 					return nil
 				}
 			}
@@ -841,9 +851,18 @@ func fdsecSecureOne(path string, o *fdsecOpts, cred fdsec.Credential, hl *Histor
 				fmt.Printf("\nThe container was verified against the original's digest.\n")
 				fmt.Printf("Delete the original %s? This is a normal delete - the bytes stay recoverable until reused (y/N): ", path)
 				line, rerr := readConsoleLine()
-				ans := strings.ToLower(strings.TrimSpace(line))
-				if rerr != nil || (ans != "y" && ans != "yes") {
+				if rerr != nil {
+					// Nobody could answer - not a refusal: the original stays,
+					// the container stands, and the run is not a success
+					// (SP-0126 R1). A typed "n" is a refusal, and that stays
+					// Done.
+					kept("nobody could answer the question")
+					hl.SetResult("original", "not-asked")
+					return usagef("the delete needs a confirmation: nobody could answer the prompt, nothing deleted - pass -y to delete without a prompt")
+				}
+				if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
 					kept("delete not confirmed")
+					hl.SetResult("original", "kept")
 					return nil
 				}
 			}
@@ -1285,9 +1304,16 @@ func fdsecDeleteContainer(path string, src *os.File, o *fdsecOpts, hl *HistoryLo
 		fmt.Printf("\n%s\n", verified)
 		fmt.Printf("Delete the container %s? (y/N): ", path)
 		line, rerr := readConsoleLine()
-		ans := strings.ToLower(strings.TrimSpace(line))
-		if rerr != nil || (ans != "y" && ans != "yes") {
+		if rerr != nil {
+			// Nobody could answer - not a refusal: the container stays, the
+			// restored file stands, and the run is not a success (SP-0126 R1).
+			fmt.Printf("Container kept (nobody could answer the question): %s\n", path)
+			hl.SetResult("container", "not-asked")
+			return usagef("the delete needs a confirmation: nobody could answer the prompt, nothing deleted - pass -y to delete without a prompt")
+		}
+		if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
 			fmt.Printf("Container kept: %s\n", path)
+			hl.SetResult("container", "kept")
 			return nil
 		}
 	}
@@ -1575,7 +1601,11 @@ func fdsecExpandMask(mask string) ([]string, error) {
 	return out, nil
 }
 
-func readConsoleLine() (string, error) {
+// readConsoleLine reads one answer from stdin. It is a variable so a test can
+// answer or make the read fail, the way cleanConfirm and compareConfirm are:
+// the disposition prompts below are the one place a closed stdin must be told
+// apart from a typed refusal (SP-0126).
+var readConsoleLine = func() (string, error) {
 	var line string
 	if _, err := fmt.Scanln(&line); err != nil && err.Error() != "unexpected newline" {
 		return "", err

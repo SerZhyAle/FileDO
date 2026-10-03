@@ -15,7 +15,8 @@
 #    1. preflight  - tools present, gh authed, on main, tree clean (nothing outside
 #                    exe_to_download\), the stamp a real date newer than every v* tag,
 #                    the MSI version newer than the last published one, winget anchors intact
-#    2. gate       - build.ps1 -Test, the full fdsec run, govulncheck (fail fast BEFORE tagging)
+#    2. gate       - build.ps1 -Test, the full fdsec run, govulncheck, and the operations run
+#                    (every verb on small data, timed and checked) - fail fast BEFORE tagging
 #    3. commit     - commit exe_to_download\ - and nothing else - if the build changed it
 #    4. push       - push main, then create + push tag v<version>  <-- triggers CI
 #    5. wait       - poll until the GitHub Release + all six assets exist
@@ -31,6 +32,9 @@
 #    .\release.ps1 -DryRun         # do everything EXCEPT push tag / submit / Store
 #    .\release.ps1 -SkipStore      # skip the MSIX build (CLI + winget only)
 #    .\release.ps1 -SkipWinget     # skip winget sync + submit
+#    .\release.ps1 -SkipOpsMount   # operations run without its mounted-disk tier (no UAC prompt)
+#    .\release.ps1 -OpsRebaseline  # accept this operations run as the new baseline (an intended
+#                                  # change of behaviour or speed that its comparison would fail)
 #    .\release.ps1 -WingetInstallTest   # also install the synced manifest here, then uninstall
 #    .\release.ps1 -Resume -Version 2606271600 [-SkipStore]
 #                                  # the tag is already on origin: skip steps 1-4 and carry
@@ -59,6 +63,11 @@ param(
     [switch]$Resume,
     [switch]$SkipStore,
     [switch]$SkipWinget,
+    # Leave the mounted-virtual-disk tier out of the operations run (it needs administrator rights).
+    [switch]$SkipOpsMount,
+    # The operations run compares itself with the last passing runs (function and speed); this
+    # accepts what it shows as the new baseline instead of failing on an intended change.
+    [switch]$OpsRebaseline,
     [string]$StoreIdentityName,
     [string]$StorePublisher,
     [string]$StorePublisherDisplayName,
@@ -81,7 +90,7 @@ $script:inPreflight = $true
 $storeFailure = $null
 $wingetFailure = $null
 if ($Resume -and -not $Version) {
-    Write-Host "release-preflight: NOT VERIFIED (-Resume needs -Version <stamp> - the tag it resumes)" -ForegroundColor Yellow
+    Write-Host "release-preflight: COULD NOT VERIFY (-Resume needs -Version <stamp> - the tag it resumes)" -ForegroundColor Yellow
     exit 2
 }
 if (-not $Version) { $Version = Get-Date -Format "yyMMddHHmm" }
@@ -95,7 +104,7 @@ $assetNames = @(
 function Fail([string]$msg, [int]$code = 1) {
     $subject = if ($script:inPreflight) { "release-preflight $Version" } else { "release $Version" }
     if ($code -eq 2) {
-        Write-Host "${subject}: NOT VERIFIED ($msg)" -ForegroundColor Yellow
+        Write-Host "${subject}: COULD NOT VERIFY ($msg)" -ForegroundColor Yellow
     } else {
         Write-Host "${subject}: FAIL ($msg)" -ForegroundColor Red
     }
@@ -359,11 +368,25 @@ try {
             Write-Host $vulnOut
             Fail "govulncheck: $exe links reachable vulnerable code - the workflow would refuse to publish it. Bump the module (or the toolchain pin) first. Nothing tagged."
         } elseif ($vulnCode -ne 0) {
-            Write-Host " NOT VERIFIED" -ForegroundColor Yellow
+            Write-Host " COULD NOT VERIFY" -ForegroundColor Yellow
             Fail "govulncheck could not scan $exe (exit $vulnCode): $($vulnOut.Trim())" 2
         }
         Write-Host " OK"
     }
+
+    # Every kind of operation, run on small data with the shipped filedo.exe: each one timed and its
+    # result checked against the bytes (tests\prove-operations.ps1), and the whole run compared with
+    # the last passing runs: a step that vanished, a changed result or a confirmed loss of speed fails
+    # it. The mounted-disk tier needs administrator rights and asks once (UAC); -SkipOpsMount drops
+    # that tier and the run says so. A step that outlives its budget, or any wrong result, stops the
+    # release before the tag; -OpsRebaseline accepts an intended change of behaviour or speed.
+    $opsArgs = @('-Version', $Version)
+    if ($SkipOpsMount) { $opsArgs += '-SkipMount' }
+    if ($OpsRebaseline) { $opsArgs += '-Rebaseline' }
+    Write-Host "operations run (tests\prove-operations.ps1$(if ($SkipOpsMount) { ' -SkipMount' })$(if ($OpsRebaseline) { ' -Rebaseline' })) ..."
+    & pwsh -NoProfile -File "$root\tests\prove-operations.ps1" @opsArgs
+    $opsCode = $LASTEXITCODE
+    if ($opsCode -ne 0) { Fail "the operations run did not pass (a wrong result, or its comparison with the last passing runs; an intended change is accepted with -OpsRebaseline). Nothing tagged." $opsCode }
 
     # The gate built from the tree the preflight saw. Anything it changed outside
     # exe_to_download\ would make the tagged commit differ from what was tested.

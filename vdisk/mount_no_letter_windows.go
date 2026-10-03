@@ -378,14 +378,14 @@ func (m *NoLetterMountManager) CreateNoLetterMount(id, guid string) (*NoLetterMo
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if id == "" || m.mounts[id] != nil {
-		return nil, ErrNoLetterNotSupported
+		return nil, fmt.Errorf("%w: a no-letter mount of container %q is already registered in this process (or the id is empty)", ErrNoLetterNotSupported, id)
 	}
 	vol, e := normalizeVolumeGUID(guid)
 	if e != nil {
 		return nil, e
 	}
 	if m.guids[strings.ToLower(vol)] != "" {
-		return nil, ErrNoLetterNotSupported
+		return nil, fmt.Errorf("%w: volume %s is already registered as a no-letter mount in this process", ErrNoLetterNotSupported, vol)
 	}
 	if e = m.ops.verifyVolume(vol); e != nil {
 		return nil, fmt.Errorf("%w: %v", ErrVolumeNotFound, e)
@@ -525,3 +525,13 @@ func GetVolumePath(id, guid string) string {
 	return v
 }
 func GetStableVolumePath(id, guid string) string { v, _ := normalizeVolumeGUID(guid); return v }
+
+// VolumeDevicePath is the device path (\\.\Volume{GUID}) of a volume named by its GUID path, for a handle
+// that flushes or locks it. The GUID is pattern-checked: a request never supplies a path.
+func VolumeDevicePath(guid string) (string, error) {
+	v, e := normalizeVolumeGUID(guid)
+	if e != nil {
+		return "", e
+	}
+	return `\\.\` + strings.TrimSuffix(strings.TrimPrefix(v, `\\?\`), `\`), nil
+}

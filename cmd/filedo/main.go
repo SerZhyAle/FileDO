@@ -431,7 +431,9 @@ MAIN OPERATIONS:
   vd       → Virtual disks: .fdd containers mounted as drive letters
              (new, mount, unmount, info, verify, export, save, compact, grow,
              format, seal, clone, pass, destroy, list, status, add, forget,
-             auto, stop) - obfuscated, or encrypted with a password
+             auto, share, open, close, autostart, stop, disks, image, adopt)
+             - obfuscated, or encrypted with a password; a disk is a file,
+             or a partition made in free disk space (vd new part)
   compare  → Compare directory trees
   check    → Check files for corruption
 
@@ -444,7 +446,7 @@ TARGETS:
 EXAMPLES:
   filedo.exe ui                   → Open the graphical UI shell
   filedo.exe dm                   → Open the Disk Manager
-  filedo.exe D: info              → Show drive info
+  filedo.exe D: info              → Full drive scan (counts every file/folder; bare D: or short is instant)
   filedo.exe E: speed 100         → Test speed with 100MB
   filedo.exe F: test del          → Test capacity, auto-cleanup
   filedo.exe C:\temp cd           → Find duplicates
@@ -498,8 +500,8 @@ BASIC USAGE:
 DEVICE OPERATIONS (Hard drives, USB drives, SD cards)
 
 Information & Analysis:
-  filedo.exe C:                    → Show detailed device information
-  filedo.exe device D: info        → Show detailed device information  
+  filedo.exe C:                    → Show device information (instant)
+  filedo.exe device D: info        → Full drive scan (counts every file and folder; time grows with drive size; bare D: or short is instant)
   filedo.exe device E: short       → Show brief device summary
 
 Performance Testing:
@@ -722,6 +724,8 @@ Create and mount:
   filedo.exe work.fdd mount ro as X:     → Read-only, at X: (also: mnt, attach)
   filedo.exe work.fdd mount noscan       → Exclude the file from Defender
                                            while mounted
+  filedo.exe work.fdd mount keep         → Mount, then stay and remount if the
+                                           block server dies (the logon task)
   filedo.exe X: unmount                  → Flush, mark clean, detach (also
                                            umount, detach); force detaches a
                                            volume in use and marks it unclean;
@@ -732,8 +736,9 @@ Create and mount:
   consent (the Windows iSCSI initiator, the disk), asked once per command; a
   batch never raises that prompt - run it elevated.
 
-Read without mounting (no elevation, no network, nothing written to the
-container; export writes only its destination):
+Read without mounting (no network, nothing written to the container; export
+writes only its destination; no elevation for a file disk - a partition disk
+asks for administrator consent once per command, see Partition disks below):
   filedo.exe work.fdd info               → Profile, size, obfuscated or
                                            encrypted, closed clean, last save
   filedo.exe *.fdd info                  → Several containers, each reported
@@ -787,6 +792,63 @@ Bookkeeping:
   filedo.exe disk.vhdx mount | unmount   → A .vhd, .vhdx or .iso, through
                                            Windows' own image support
 
+Partition disks (desktop builds only - not in the Microsoft Store version):
+  The same container, kept in a new partition FileDO makes in unallocated
+  space on a GPT disk instead of a file. FileDO never converts, resizes or
+  writes into an existing partition; MBR, dynamic, Storage Spaces, iSCSI,
+  removable and USB disks are refused. It has a name and a locator
+  fdpart:{GUID}, never a path. It is NOT faster than a file disk, its size is
+  fixed (no compact, grow or share), and every mount and every read (info,
+  verify, export, clone..) asks for administrator consent once; vd image
+  makes a .fdd file that reads without elevation.
+  filedo.exe vd disks [json]             → Disks, partitions and free space,
+                                           each usable or not and why (no
+                                           elevation)
+  filedo.exe vd new part 2 size 40G as work → A partition disk in the free
+                                           space of disk 2 (the number vd
+                                           disks prints, or disk:{GUID});
+                                           size max takes the whole space,
+                                           at <offset> picks one free space,
+                                           fast (default), plain, vault or
+                                           ram, label <text>; asks y/N
+  filedo.exe vd image work to D:\w.fdd   → Copy the partition disk into a new
+                                           container file
+  filedo.exe vd adopt fdpart:{GUID} as work → Register a FileDO partition
+                                           vd disks found on a disk
+  filedo.exe vd destroy work [wipe]      → Delete the partition: type its name
+                                           to confirm (force skips that); the
+                                           space returns to unallocated.
+                                           vd forget keeps the partition
+
+Share a disk with Fast Media Sorter for Windows (that program must be installed;
+FileDO opens no network connection itself - the disk is served by Fast Media
+Sorter to the devices you paired with it, and only while a disk is open):
+  filedo.exe work.fdd share on [ro] [as Name] → Offer the disk to your paired
+                                           devices as the folder Name; a
+                                           read-only mount stays read-only;
+                                           share off takes it back
+  filedo.exe work.fdd open [password]    → Open the shared disk for them. An
+                                           encrypted disk is unlocked here,
+                                           on this PC - never from the phone
+  filedo.exe work.fdd close [wait 30] [force] → Close it: waits for transfers
+                                           (1..90 s), asks before dropping
+                                           them; force never asks
+  filedo.exe work.fdd autostart on [consent] → Open it again after a restart
+                                           (or sign-in). An encrypted disk's
+                                           password is then kept on this PC,
+                                           protected for that program, until
+                                           autostart off, share off or a new
+                                           password; asked once, never logged
+  filedo.exe work.fdd mount noletter     → Mount with no drive letter: not in
+                                           Explorer (an administrator still
+                                           sees it); worker and stdin are the
+                                           FMS worker's own words
+A shared disk is held by Fast Media Sorter, not by FileDO: mount refuses while
+it holds the disk, and vd status says who holds it. Always-on sharing needs the
+Server edition of Fast Media Sorter for Windows; otherwise a shared disk is
+available only while you are signed in. A disk that is open stays decrypted
+for every paired device until someone closes it or the PC stops.
+
 The password: the same forms as the .fd-sec containers above - omitted is a
 prompt, or p:<password>, pf:<file>, pe:<VAR>, k:<keyfile>. A bare password is
 taken only by mount, as its one word after the container; p: is required
@@ -798,7 +860,8 @@ Options: force (or -y) skips a question, never a check; a batch needs force
 for format and destroy, because a batch never answers a question yes.
 
 Exit codes: 0 ok, 2 usage, 3 wrong credential, 4 damaged, 5 I/O,
-            6 unsupported (the Microsoft Store build cannot mount),
+            6 unsupported (the Microsoft Store build cannot mount and has
+              no partition disks; a refused disk; a partition's fixed size),
             7 transport unavailable (initiator, consent, drive letter),
             8 busy (mounted, open, or the state is locked). A batch: 0/1/2.
 
@@ -892,6 +955,7 @@ Fast Content Wiping:
 
 Folder Compare:
 	filedo.exe compare D:\Source E:\Target   → Compare directory trees and report differences
+	filedo.exe compare D:\Source E:\Target --strict → Judge the trees: exit 0 same files, 1 differ, 2 could not verify
 	filedo.exe cmp D:\Source E:\Target del source → Delete files in Source that also exist in Target
 	filedo.exe cmp D:\Source E:\Target del target → Delete files in Target that also exist in Source
 		filedo.exe cmp D:\Source E:\Target del old           → Delete older file of each pair (equal time: skip)
@@ -905,18 +969,22 @@ Folder Compare:
 	Notes: matching by relative path; del source|target deletes a pair only when size and time match
 	       (--by-hash: equal content; --allow-mismatch: any pair); mtime used for old/new;
 	       the two folders must not be one folder or nest; permanent delete
-	       a delete rule lists the count and the mode and asks "(y/N)" before deleting;
-	       --yes (or -y) skips the question, never a check; no answer (closed stdin): nothing deleted, exit 2
+	       --strict judges the comparison itself (with --by-hash, equal-size pairs by content)
+	       and cannot be combined with a delete phase; the counts are in the result event
+       a delete rule lists the count and the mode and asks "(y/N)" before deleting;
+       --yes (or -y) skips the question, never a check; no answer (closed stdin): nothing deleted, exit 2
 
 Folder Health Check:
 	filedo.exe check D:\Data                 → Read-check all files; mark damaged on read delay > 2.0s
 	filedo.exe check D:\Data\one.mkv         → Read-check that one file and say whether it reads cleanly
 	filedo.exe check D:\Data --resume        → Carry on: skip files an earlier run already read cleanly
 	Notes: one-time warm-up up to 10.0s before first read; parallel workers; Ctrl+C supported
-	       damaged and good lists live in %%LOCALAPPDATA%%\FileDO\state (never beside your files);
-	       a file already on the damaged list is reported again without being read; a changed file is read again
-	       locked or unreadable files and folders are "could not verify" (exit 2), never "damaged"
-	       a single file is never skipped by the good list and never filtered out by size or extension
+       damaged and good lists live in %%LOCALAPPDATA%%\FileDO\state (never beside your files);
+       a file already on the damaged list is reported again without being read; a changed file is read again
+       locked or unreadable files and folders are "could not verify" (exit 2), never "damaged"
+       a single file is never skipped by the good list and never filtered out by size or extension
+       --max-files is a hard limit: at most that many files are read
+       a --resume with every file already on the good list ends Passed, exit 0
 
 ═══════════════════════════════════════════════════════════════════════════════
 BATCH OPERATIONS & HISTORY

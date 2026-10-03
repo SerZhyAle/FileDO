@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 if (-not (Test-Path $Registry)) {
-    Write-Host "check-placement: NOT VERIFIED (registry is missing: $Registry)" -ForegroundColor Yellow
+    Write-Host "check-placement: COULD NOT VERIFY (registry is missing: $Registry)" -ForegroundColor Yellow
     exit 2
 }
 
@@ -26,7 +26,7 @@ $records = @()
 try {
     $records = @(Get-Content $Registry | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json })
 } catch {
-    Write-Host "check-placement: NOT VERIFIED (registry is unreadable: $($_.Exception.Message))" -ForegroundColor Yellow
+    Write-Host "check-placement: COULD NOT VERIFY (registry is unreadable: $($_.Exception.Message))" -ForegroundColor Yellow
     exit 2
 }
 

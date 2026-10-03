@@ -56,7 +56,7 @@ Module Theme
         Public Property Warning As Color
         Public Property Danger As Color
         Public Property StateOk As Color         ' palette.json state.ok
-        Public Property StateWarning As Color    ' palette.json state.warning (dark only, see below)
+        Public Property StateWarning As Color    ' palette.json state.warning
         Public Property StateError As Color      ' palette.json state.error
     End Class
 
@@ -75,12 +75,16 @@ Module Theme
     ' They paint the verdict glyph, the verdict line of the Command page and the verdict badge. The
     ' proof is the self-test's contrast: rows, and its state-tone: rows hold each role to the
     ' vendored palette - so a changed tone in the catalog fails here rather than drifting.
-    ' One tone did not hold: state.warning's day tone #F57C00 is 2.70:1 against white, under the 3:1
-    ' of rule 3 and of item D itself. The light StateWarning therefore stays the shell's own Warning
-    ' - a dated exception, reported to the owner - and the self-test fails the day the catalog's tone
-    ' reaches 3:1, which is the day it should be taken. The text roles Success, Warning and Danger
-    ' stay APP-STYLE's own, because they are held to 4.5:1 as text on every surface of the shell,
-    ' where state.error's day tone is 4.4:1 on the window and 4.1:1 on the rail.
+    ' state.warning's day tone was #F57C00 (2.70:1 on white, under the 3:1 of rule 3), and the light
+    ' StateWarning kept the shell's own Warning as a dated exception. ICON-RENDER 0.14 moved the day
+    ' tone to #EF6C00 (3.08:1 on white), the exception is retired and the light StateWarning is now
+    ' the catalog's tone, like the other five; the state-tone: rows hold all six. #EF6C00 is drawn
+    ' only where it reaches its threshold - as a glyph at 3:1 on the white card; as the verdict word
+    ' or badge (4.5:1) and as a glyph on a hover or selection tint (2.2:1) the palette's own Warning
+    ' ink stands in (VerdictColor, VerdictBack, WarningGlyphOn). The text roles
+    ' Success, Warning and Danger stay APP-STYLE's own, because they are held to 4.5:1 as text on
+    ' every surface of the shell, where state.error's day tone is 4.4:1 on the window and 4.1:1 on
+    ' the rail.
 
     Private ReadOnly LightPalette As Palette = Derive(New Palette With {
         .IsDark = False,
@@ -96,7 +100,7 @@ Module Theme
         .Warning = Color.FromArgb(126, 86, 15),
         .Danger = Color.FromArgb(179, 38, 30),
         .StateOk = Color.FromArgb(46, 125, 50),        ' #2E7D32 state.ok day
-        .StateWarning = Color.FromArgb(126, 86, 15),   ' the shell's Warning: #F57C00 fails 3:1
+        .StateWarning = Color.FromArgb(239, 108, 0),   ' #EF6C00 state.warning day
         .StateError = Color.FromArgb(211, 47, 47)      ' #D32F2F state.error day
     })
 
@@ -105,12 +109,12 @@ Module Theme
         .Background = Color.FromArgb(10, 15, 10),
         .Surface = Color.FromArgb(19, 28, 20),
         .SurfaceAlt = Color.FromArgb(15, 22, 16),
-        .Border = Color.FromArgb(44, 56, 45),
+        .Border = Color.FromArgb(38, 46, 39),     ' kit --border rgba(255,255,255,.08) over Surface
         .Text = Color.FromArgb(241, 245, 238),
         .MutedText = Color.FromArgb(148, 160, 140),
         .Accent = Color.FromArgb(63, 185, 80),
         .AccentText = Color.FromArgb(4, 19, 12),
-        .Success = Color.FromArgb(86, 211, 100),
+        .Success = Color.FromArgb(63, 185, 80),   ' kit --ok #3FB950
         .Warning = Color.FromArgb(227, 179, 65),
         .Danger = Color.FromArgb(229, 83, 75),
         .StateOk = Color.FromArgb(129, 199, 132),      ' #81C784 state.ok night
@@ -438,6 +442,25 @@ Module Theme
     ' rule 9 names #808080, which holds 3:1 on both (3.9:1 on white, 3.6:1 on #2B2B2B).
     Public ReadOnly MenuIconTone As Color = Color.FromArgb(&H80, &H80, &H80)
 
+    ' The Disk Manager's own icon (MenuIcons.vb, "app.disk-manager"): the content.disk-container
+    ' glyph on a rounded-square plate. ICON-RENDER section 3 rule 6: the plate takes the accent
+    ' (the light palette's, because the plate brings its own background and is drawn once for
+    ' every theme), and the glyph takes the on-plate colour - white wherever white reaches 3:1
+    ' against the plate, #1F1F1F otherwise (section 10 item D). Properties, not fields: they read
+    ' the palette, which is declared below the other roles of this module.
+    Public ReadOnly Property AppIconPlate As Color
+        Get
+            Return LightPalette.Accent
+        End Get
+    End Property
+
+    Public ReadOnly Property AppIconInk As Color
+        Get
+            Dim white = Color.FromArgb(255, 255, 255)
+            Return If(ContrastRatio(white, AppIconPlate) >= 3.0, white, Color.FromArgb(&H1F, &H1F, &H1F))
+        End Get
+    End Property
+
     ' ---- verdict glyphs --------------------------------------------------
     ' One mapping for both pages that show a verdict (the job page and the Command page), so the
     ' two cannot drift. Passed and Done draw status.ok (check mark in a filled circle), Failed
@@ -460,15 +483,32 @@ Module Theme
         End Select
     End Function
 
-    ' A state glyph takes the state's colour (ICON-RENDER rules 2 and 10C), and so does the
-    ' Command page's verdict line beside it - the contrast: rows hold each at 4.5:1 on the card.
-    Public Function VerdictColor(verdict As String, p As Palette) As Color
+    ' A state glyph takes the state's colour (ICON-RENDER rules 2 and 10C): the shared tone, held to
+    ' 3:1 on the card by the contrast: rows. The verdict's WORD is text and needs 4.5:1, which the
+    ' shared warning tone cannot reach on the light card (#EF6C00 is 3.08:1 on white), so a state tone
+    ' that falls short as text gives way to the palette's own warning ink - a dated exception in the
+    ' catalog's registry. Glyph and word are two functions so the glyph keeps the shared hue.
+    Public Function VerdictGlyphColor(verdict As String, p As Palette) As Color
         Select Case If(verdict, "").ToLowerInvariant()
             Case "passed", "done" : Return p.StateOk
             Case "failed" : Return p.StateError
             Case "stopped" : Return p.StateWarning
             Case Else : Return p.MutedText
         End Select
+    End Function
+
+    ' The Command page's verdict line, beside the glyph: the state tone where it is legible as text
+    ' on the card (4.5:1), the palette's own ink where it is not.
+    Public Function VerdictColor(verdict As String, p As Palette) As Color
+        Dim tone = VerdictGlyphColor(verdict, p)
+        If ContrastRatio(tone, p.Surface) >= 4.5 Then Return tone
+        Return If(If(verdict, "").ToLowerInvariant() = "stopped", p.Warning, tone)
+    End Function
+
+    ' A warning glyph on a given background: the shared tone where it reaches 3:1 there, the palette's
+    ' own warning ink where it does not (a hover or selection tint of the light theme).
+    Public Function WarningGlyphOn(p As Palette, back As Color) As Color
+        Return If(ContrastRatio(p.StateWarning, back) >= 3.0, p.StateWarning, p.Warning)
     End Function
 
     ' The verdict badge: its fill and its text, as one function of (verdict, palette). The result
@@ -479,7 +519,7 @@ Module Theme
         Select Case If(verdict, "").ToLowerInvariant()
             Case "passed" : Return p.StateOk
             Case "failed" : Return p.StateError
-            Case "stopped" : Return p.StateWarning
+            Case "stopped" : Return If(ContrastRatio(p.AccentText, p.StateWarning) >= 4.5, p.StateWarning, p.Warning)
             Case "done" : Return p.Accent
             Case Else : Return p.SurfaceAlt
         End Select

@@ -34,7 +34,7 @@ $shots   = Join-Path $msix "screenshots"
 $hostExe = if ($PSVersionTable.PSEdition -eq 'Core') { Join-Path $PSHOME "pwsh.exe" } else { Join-Path $PSHOME "powershell.exe" }
 
 if (-not (Test-Path $builder) -or -not (Test-Path $fixture) -or -not (Test-Path $listing)) {
-    Write-Host "store-tools: NOT VERIFIED (required listing source, fixture, or builder is missing)" -ForegroundColor Yellow
+    Write-Host "store-tools: COULD NOT VERIFY (required listing source, fixture, or builder is missing)" -ForegroundColor Yellow
     exit 2
 }
 

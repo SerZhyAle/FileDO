@@ -31,6 +31,10 @@ import (
 // EnvOverride names the variable that moves the state root.
 const EnvOverride = "FILEDO_STATE_DIR"
 
+// EnvLegacy opts an overridden state root into importing legacy files.
+// It is a test seam and not read when EnvOverride is unset.
+const EnvLegacy = "FILEDO_STATE_LEGACY"
+
 var (
 	dirOnce sync.Once
 	dirPath string
@@ -65,7 +69,9 @@ func Dir() (string, error) {
 // Path returns where the state file name lives. The first time the file is
 // asked for and does not exist yet, the first legacy copy found among legacy
 // is imported: copied, never moved - the old file is the user's and stays
-// where it was. Import failures are not fatal; the state simply starts empty.
+// where it was. An overridden state root (EnvOverride) imports nothing unless
+// EnvLegacy ("FILEDO_STATE_LEGACY=1") is set. Import failures are not fatal;
+// the state simply starts empty.
 func Path(name string, legacy ...string) (string, error) {
 	d, err := Dir()
 	if err != nil {
@@ -73,6 +79,9 @@ func Path(name string, legacy ...string) (string, error) {
 	}
 	p := filepath.Join(d, name)
 	if _, err := os.Stat(p); err == nil || !errors.Is(err, os.ErrNotExist) {
+		return p, nil
+	}
+	if os.Getenv(EnvOverride) != "" && os.Getenv(EnvLegacy) != "1" {
 		return p, nil
 	}
 	for _, old := range legacy {

@@ -291,22 +291,25 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 		return finishVerb(HandleCheckArgs(rest[0], rest[1:]), hl)
 	}
 
-	// The two-path verbs.
+	// The two-path verbs. judge marks a verb's opt-in judging mode: when it
+	// returns true for the extra words the run opens as runJudges and the
+	// verdict can be Passed or Failed - compare's is --strict (SP-0130 D1).
 	twoPath := map[string]struct {
-		op  string
-		run func(src, dst string, extra []string) error
+		op    string
+		judge func(extra []string) bool
+		run   func(src, dst string, extra []string) error
 	}{
-		"compare": {"compare", func(s, d string, x []string) error { return handleCompareCommand(s, d, x...) }},
-		"copy": {"auto-copy", func(s, d string, x []string) error {
+		"compare": {"compare", compareStrictRequested, func(s, d string, x []string) error { return handleCompareCommand(s, d, x...) }},
+		"copy": {"auto-copy", nil, func(s, d string, x []string) error {
 			copyPrecount = wantsCopyPrecount(x)
 			return handleAutoCopyCommand(s, d)
 		}},
-		"fastcopy":  {"fastcopy", func(s, d string, _ []string) error { return handleFastCopyCommand(s, d) }},
-		"synccopy":  {"synccopy", func(s, d string, _ []string) error { return handleSyncCopyCommand(s, d) }},
-		"balanced":  {"balanced", func(s, d string, _ []string) error { return handleBalancedCopyCommand(s, d) }},
-		"maxcopy":   {"maxcopy", func(s, d string, _ []string) error { return handleMaxCopyCommand(s, d) }},
-		"smartcopy": {"smartcopy", func(s, d string, _ []string) error { return handleSmartCopyCommand(s, d) }},
-		"safecopy":  {"safecopy", func(s, d string, _ []string) error { return SafeCopy(s, d) }},
+		"fastcopy":  {"fastcopy", nil, func(s, d string, _ []string) error { return handleFastCopyCommand(s, d) }},
+		"synccopy":  {"synccopy", nil, func(s, d string, _ []string) error { return handleSyncCopyCommand(s, d) }},
+		"balanced":  {"balanced", nil, func(s, d string, _ []string) error { return handleBalancedCopyCommand(s, d) }},
+		"maxcopy":   {"maxcopy", nil, func(s, d string, _ []string) error { return handleMaxCopyCommand(s, d) }},
+		"smartcopy": {"smartcopy", nil, func(s, d string, _ []string) error { return handleSmartCopyCommand(s, d) }},
+		"safecopy":  {"safecopy", nil, func(s, d string, _ []string) error { return SafeCopy(s, d) }},
 	}
 	if tp, ok := twoPath[verb]; ok {
 		if len(rest) < 2 {
@@ -314,7 +317,11 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 			return errLineFailed
 		}
 		hl.SetCommand(lower, rest[0], tp.op)
-		beginRun(runActs, tp.op, rest[0], args)
+		kind := runActs
+		if tp.judge != nil && tp.judge(rest[2:]) {
+			kind = runJudges
+		}
+		beginRun(kind, tp.op, rest[0], args)
 		return finishVerb(tp.run(rest[0], rest[1], rest[2:]), hl)
 	}
 

@@ -1703,13 +1703,13 @@
             <p>
               <span data-l="ru"
                 >Копирование с прогрессом и тайм-аутами, а также отчёт о
-                различиях между папками.</span
+                различиях между папками. <code>compare --strict</code> даёт код 1 при различиях и код 2, если сравнение неполное.</span
               ><span data-l="en"
                 >Copying with progress and timeouts, plus reports of differences
-                between folders.</span
+                between folders. <code>compare --strict</code> returns exit 1 for differences and exit 2 for an incomplete comparison.</span
               ><span data-l="ua"
                 >Копіювання з прогресом і тайм-аутами, а також звіт про
-                відмінності між папками.</span
+                відмінності між папками. <code>compare --strict</code> дає код 1 за відмінностей і код 2, якщо порівняння неповне.</span
               >
             </p>
           </article>
@@ -1718,13 +1718,13 @@
             <p>
               <span data-l="ru"
                 >Проверка чтения файлов с отчётами и настройками для медленных
-                HDD/USB.</span
+                HDD/USB. <code>--max-files N</code> читает не более N файлов (0 снимает ограничение); <code>--resume</code> завершается успешно, когда все файлы уже проверены и не изменились.</span
               ><span data-l="en"
                 >Read checks with reports and controls for slow HDD/USB
-                media.</span
+                media. <code>--max-files N</code> reads at most N files (0 means unlimited); <code>--resume</code> succeeds when every file was already checked and remains unchanged.</span
               ><span data-l="ua"
                 >Перевірка читання файлів зі звітами й налаштуваннями для
-                повільних HDD/USB.</span
+                повільних HDD/USB. <code>--max-files N</code> читає щонайбільше N файлів (0 знімає обмеження); <code>--resume</code> завершується успішно, коли всі файли вже перевірені й не змінилися.</span
               >
             </p>
           </article>
@@ -1764,21 +1764,32 @@
               <span data-l="ru"
                 >Целый том в одном файле <code>.fdd</code>: подключается буквой
                 диска, а прочитать, проверить и выгрузить его можно и без
-                подключения. Окно Диспетчера дисков собирает все диски в одном месте.
+                подключения. Он может жить и в разделе GPT, который FileDO
+                создаёт в свободном месте диска: только диски GPT, размер
+                постоянный, не быстрее файла, и каждое подключение и чтение
+                просит согласия администратора - образ в файл его уже не
+                просит. Окно Диспетчера дисков собирает все диски в одном месте.
                 Без пароля он замаскирован, а не зашифрован. Только
                 Windows; подключение требует прав администратора, а сборка из
                 Microsoft Store не может подключать диски.</span
               ><span data-l="en"
                 >A whole volume in one <code>.fdd</code> file: it mounts as a
                 drive letter, and it can be read, checked and exported without
-                mounting. The Disk manager window lists every disk in one place.
+                mounting. It can also live in a GPT partition FileDO creates in
+                free disk space: GPT disks only, a fixed size, no faster than a
+                file, and every mount and read asks for administrator consent -
+                an image to a file no longer does. The Disk manager window lists every disk in one place.
                 Without a password it is obfuscated, not encrypted.
                 Windows only; mounting needs administrator rights, and the
                 Microsoft Store build cannot mount.</span
               ><span data-l="ua"
                 >Цілий том в одному файлі <code>.fdd</code>: підключається
                 літерою диска, а прочитати, перевірити й вивантажити його можна
-                і без підключення. Вікно Диспетчера дисків збирає всі диски в одному
+                і без підключення. Він може жити й у розділі GPT, який FileDO
+                створює у вільному місці диска: лише диски GPT, розмір
+                сталий, не швидше за файл, і кожне підключення й читання
+                просить згоди адміністратора - образ у файл її вже не
+                просить. Вікно Диспетчера дисків збирає всі диски в одному
                 місці. Без пароля він замаскований, а не
                 зашифрований. Лише Windows; підключення потребує прав
                 адміністратора, а збірка з Microsoft Store не може підключати
@@ -2312,6 +2323,10 @@
               <a class="btn btn-ghost btn-sm" href="guides/virtual-disks.html"
                 ><span data-l="ru">Открыть</span><span data-l="en">Open</span
                 ><span data-l="ua">Відкрити</span></a
+              ><a class="btn btn-ghost btn-sm" href="guides/fms-sharing.html"
+                ><span data-l="ru">Общий доступ</span
+                ><span data-l="en">Sharing</span
+                ><span data-l="ua">Спільний доступ</span></a
               >
             </p>
           </article>

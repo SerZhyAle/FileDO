@@ -66,7 +66,7 @@ func CopyWith(ctx context.Context, o CopyOptions) error { return copyContainer(c
 var copyBeforePublish = func(tmp, dst string) {}
 
 func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
-	src, dst, p := o.Src, o.Dst, o.Progress
+	src, dst := o.Src, o.Dst
 	// A Stat that fails for another reason than not-exist is not proof of
 	// absence (AUD-36-F3): "could not check", class 5.
 	if _, err := os.Stat(dst); err == nil {
@@ -79,6 +79,35 @@ func copyContainer(ctx context.Context, o SealOptions, seal bool) (err error) {
 		return err
 	}
 	defer s.Close()
+	return copyFrom(ctx, s, o, seal)
+}
+
+// SealFrom is SealWith from a source the caller opened read-only - a
+// partition container, whose carrier has no path (SP-0148 9.1). o.Src only
+// names the source in messages. The destination is always a new file.
+func SealFrom(ctx context.Context, s *Container, o SealOptions) error {
+	return copyFromChecked(ctx, s, o, true)
+}
+
+// CopyFrom is CopyWith from a source the caller opened read-only.
+func CopyFrom(ctx context.Context, s *Container, o CopyOptions) error {
+	return copyFromChecked(ctx, s, o, false)
+}
+
+func copyFromChecked(ctx context.Context, s *Container, o SealOptions, seal bool) error {
+	if _, err := os.Stat(o.Dst); err == nil {
+		return usagef("%s already exists; a container is never written over an existing file", o.Dst)
+	} else if !os.IsNotExist(err) {
+		return ioErr(fmt.Errorf("could not check whether %s exists: %w", o.Dst, err))
+	}
+	if s.mode != OpenRead {
+		return usagef("a copy reads its source through a read-only open")
+	}
+	return copyFrom(ctx, s, o, seal)
+}
+
+func copyFrom(ctx context.Context, s *Container, o SealOptions, seal bool) (err error) {
+	src, dst, p := o.Src, o.Dst, o.Progress
 	info := s.Info()
 	act := "copying"
 	if seal {

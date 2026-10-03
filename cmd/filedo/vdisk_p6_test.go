@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -773,6 +774,83 @@ func TestVD_Packaged(t *testing.T) {
 	vdPackaged = func() bool { return false }
 	if _, err := vdTestRun(t, false, "verify", filepath.Join(dir, "c.fdd")); err != nil {
 		t.Error(err)
+	}
+}
+
+// The Store build lists, creates and opens no partition disk (SP-0148 D8):
+// vd disks prints the Store sentence and succeeds, its json says unavailable,
+// and every partition verb - and every verb on a partition disk's name or
+// locator - is class 6 with that sentence, before any disk is read.
+func TestVD_PackagedRefusesPartitionDisks(t *testing.T) {
+	dir := vdTestEnv(t)
+	const guid = "0B9A6F1E-3C4D-4E5F-8A9B-0C1D2E3F4A5B"
+	loc := vdLocator(guid)
+	adoptLoc := vdLocator("7C2E5A10-1B2C-4D3E-9F80-112233445566")
+	if err := vdUpdateRegistry(func(r *vdRegistry) error {
+		r.Containers = append(r.Containers, vdRegEntry{Name: "pwork", Path: loc, Carrier: "partition", Profile: "fast",
+			Part: &vdPartRecord{Locator: loc, DiskGUID: "1A2B3C4D-0000-4000-8000-00000000AA01", PartitionGUID: guid, Offset: 1 << 20, Length: 64 << 20}})
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	was := vdPackaged
+	vdPackaged = func() bool { return true }
+	defer func() { vdPackaged = was }()
+
+	out, err := vdTestRun(t, false, "disks")
+	if err != nil || strings.TrimSpace(out) != vdPartStoreSentence {
+		t.Errorf("vd disks in a package: %v, printed %q", err, out)
+	}
+	out, err = vdTestRun(t, false, "disks", "json")
+	var wire struct {
+		Schema    string            `json:"schema"`
+		Version   int               `json:"version"`
+		Available bool              `json:"available"`
+		Reason    string            `json:"reason"`
+		Disks     []json.RawMessage `json:"disks"`
+	}
+	if err != nil || json.Unmarshal([]byte(out), &wire) != nil || wire.Schema != vdDisksSchema || wire.Version != vdDisksVersion ||
+		wire.Available || wire.Reason != "store-build" || wire.Disks == nil || len(wire.Disks) != 0 {
+		t.Errorf("vd disks json in a package: %v, printed %q", err, out)
+	}
+
+	img := filepath.Join(dir, "img.fdd")
+	for _, args := range [][]string{
+		{"new", "part", "2", "size", "max", "force"},
+		{"new", "part", "disk:{1A2B3C4D-0000-4000-8000-00000000AA01}", "size", "64M", "as", "x", "force"},
+		{"image", "pwork", "to", img}, {"image", loc, "to", img, "force"},
+		{"adopt", adoptLoc}, {"adopt", adoptLoc, "as", "found"},
+		// The registered name and the locator, on the verbs routed to the partition forms.
+		{"info", "pwork"}, {"verify", "pwork"}, {"export", "pwork", filepath.Join(dir, "p.img"), "raw"},
+		{"clone", "pwork", filepath.Join(dir, "c.fdd")}, {"seal", "pwork", filepath.Join(dir, "s.fdd")},
+		{"pass", "pwork"}, {"destroy", "pwork", "force"}, {"destroy", loc, "wipe", "force"},
+		{"compact", "pwork"}, {"grow", loc, "1G"}, {"share", "pwork", "on"},
+		{"info", loc}, {"verify", loc},
+		// An unregistered locator is refused the same way, not as "register it first".
+		{"info", adoptLoc}, {"destroy", adoptLoc, "force"},
+	} {
+		_, err := vdTestRun(t, true, args...)
+		if vdExitClass(err) != vdisk.ExitUnsupported || !errors.Is(err, errVdPartPackaged) || !strings.Contains(err.Error(), vdPartStoreSentence) {
+			t.Errorf("%v in a package: class %d %v", args, vdExitClass(err), err)
+		}
+	}
+	// mount and format need the transport, which the package does not carry at
+	// all: the earlier, general Store refusal answers, class 6 all the same.
+	for _, args := range [][]string{{"mount", "pwork"}, {"mount", loc, "ro"}, {"format", "pwork", "force"}} {
+		_, err := vdTestRun(t, true, args...)
+		if vdExitClass(err) != vdisk.ExitUnsupported || !strings.Contains(err.Error(), "Microsoft Store") {
+			t.Errorf("%v in a package: class %d %v", args, vdExitClass(err), err)
+		}
+	}
+	for _, p := range []string{img, filepath.Join(dir, "p.img"), filepath.Join(dir, "c.fdd"), filepath.Join(dir, "s.fdd")} {
+		if _, err := os.Stat(p); err == nil {
+			t.Errorf("a refused verb wrote %s", p)
+		}
+	}
+	// forget is bookkeeping, not a partition open: the Store build may still
+	// drop a name a desktop build registered.
+	if _, err := vdTestRun(t, true, "forget", "pwork"); err != nil {
+		t.Errorf("forget of a partition disk in a package: %v", err)
 	}
 }
 

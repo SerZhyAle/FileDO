@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-ACTIVATION` |
-| **Version** | 0.10, draft; applicability disputed |
+| **Version** | 0.11, draft; scope disputed, awaiting the owner |
 | **Role** | applicability disputed - GUI focus-only second starts use a window message |
 | **Home** | shared contracts catalog, folder `app-activation/`, document `README.md` |
 | **Owner** | CyrFlip |

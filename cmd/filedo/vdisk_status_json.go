@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"filedo/fmsworker"
 	"filedo/vdisk"
 )
 
@@ -30,7 +32,8 @@ import (
 //	  "packaged": false,
 //	  "transport": {"ready": true, "initiator_service": "running|stopped|disabled|missing|unknown|", "reason": "|packaged|initiator_missing|initiator_disabled|service_manager"},
 //	  "disks": [
-//	    {"kind": "container", "name": "<registry name or empty>", "path": "..", "container_id": "..",
+//	    {"kind": "container", "name": "<registry name or empty>", "path": "..|<empty for a partition>", "container_id": "..",
+//	     "carrier": "file|partition", "locator": "fdpart:{GUID}  (a partition only; absent for a file)",
 //	     "registered": true, "file": "ok|missing|different|unreadable", "file_error": "<only when unreadable>",
 //	     "profile": "plain|fast|ram|sealed|vault", "protection": "obfuscated|encrypted|",
 //	     "logical_size": 0, "clean": true|null, "last_good_save": "<time>"|null, "auto": false,
@@ -53,6 +56,27 @@ import (
 // version, whose reader ignores unknown fields, so an old GUI and a new CLI -
 // and the reverse - both keep working. `last_run` is when the guard last ran,
 // null before its first session end; `containers` is that run's rows.
+//
+// The shared-disk fields (SP-0121, additive in the same way) are `shared`, `root_name`, `holder`,
+// `shared_state`, `autostart`, `has_stored_key` and `open_handles`, all omitted for a disk that is not
+// shared; a mount also carries `mount_path` and `volume_guid` (where a no-letter volume is). `holder` is a stable token - `none`, `file-do`, `fms-service`,
+// `fms-session` or `unknown` - which the reader maps to its own words and reads an unrecognised token as
+// `unknown`; `shared_state` is `closed`, `opening`, `open`, `closing`, `failed`, `locked` or `unknown`.
+// Holder, state and handle count are the worker's live answer; when it did not answer they are `unknown`
+// (AUD-82-F2), never `none`. `sharing` appears only as `{"known": false, "reason": ".."}` when the shared
+// disks could not be listed at all.
+//
+// Partition disks (SP-0148 9.3, additive the same way): every container row
+// carries `carrier`, `file` or `partition`. A partition disk has no path:
+// `path` is "" and `locator` is its `fdpart:{GUID}`, so the reader addresses
+// it by `name` or `locator`; a file row omits `locator`. For a partition,
+// `file` says whether the partition is connected and unchanged (`ok`), not
+// connected (`missing`), changed or on two disks (`different`), or
+// `unreadable`; `clean` and `last_good_save` are null (its header needs
+// administrator consent to read), and `protection` comes from the registry.
+// The disks themselves are `filedo vd disks json`, schema `filedo.vd-disks`
+// version 1 (vdisk_disks_windows.go; described in ENGINEERING.md "The GUI
+// shell" and filedo_win_vb/README.md).
 //
 // `mount.ram.save_error` (AUD-35-F5, 2026-10-01) is additive the same way: the
 // last save's error while saving a ram buffer to its file fails, absent while
@@ -102,6 +126,17 @@ type vdSnapshot struct {
 	Transport vdSnapTransport `json:"transport"`
 	Disks     []interface{}   `json:"disks"`
 	Guard     vdSnapGuard     `json:"guard"`
+	// Sharing is present only when the shared disks could not be listed at all (AUD-82-F3): an absent
+	// block means the list is complete, a disk with holder "unknown" means the worker did not answer.
+	Sharing *vdSnapSharing `json:"sharing,omitempty"`
+	FMS     vdSnapFMS      `json:"fms"`
+}
+
+// FMS is read-only worker discovery in the private co-shipped GUI snapshot. A
+// missing pipe cannot distinguish a stopped, portable or absent installation.
+type vdSnapFMS struct {
+	Availability string `json:"availability"`
+	Mode         string `json:"mode"`
 }
 
 // vdSnapGuard is the shutdown guard's state at the snapshot's moment
@@ -131,20 +166,32 @@ type vdSnapTransport struct {
 }
 
 type vdSnapContainer struct {
-	Kind        string       `json:"kind"`
-	Name        string       `json:"name"`
-	Path        string       `json:"path"`
-	ContainerID string       `json:"container_id"`
-	Registered  bool         `json:"registered"`
-	File        string       `json:"file"`
-	FileError   string       `json:"file_error,omitempty"`
-	Profile     string       `json:"profile"`
-	Protection  string       `json:"protection"`
-	LogicalSize int64        `json:"logical_size"`
-	Clean       *bool        `json:"clean"`
-	LastGood    vdStamp      `json:"last_good_save"`
-	Auto        bool         `json:"auto"`
-	Mount       *vdSnapMount `json:"mount"`
+	Kind          string       `json:"kind"`
+	Name          string       `json:"name"`
+	Path          string       `json:"path"`
+	ContainerID   string       `json:"container_id"`
+	Registered    bool         `json:"registered"`
+	File          string       `json:"file"`
+	FileError     string       `json:"file_error,omitempty"`
+	Profile       string       `json:"profile"`
+	Protection    string       `json:"protection"`
+	LogicalSize   int64        `json:"logical_size"`
+	Clean         *bool        `json:"clean"`
+	LastGood      vdStamp      `json:"last_good_save"`
+	Auto          bool         `json:"auto"`
+	Mount         *vdSnapMount `json:"mount"`
+	Shared        bool         `json:"shared,omitempty"`
+	RootName      string       `json:"root_name,omitempty"`
+	Holder        string       `json:"holder,omitempty"`
+	SharedState   string       `json:"shared_state,omitempty"`
+	Autostart     bool         `json:"autostart,omitempty"`
+	HasStoredKey  bool         `json:"has_stored_key,omitempty"`
+	OpenHandles   int          `json:"open_handles,omitempty"`
+	ShareReadOnly bool         `json:"share_read_only,omitempty"`
+	// Carrier is "file" or "partition" (SP-0148 9.3, additive). A partition
+	// disk has no path: Path is empty and Locator is its fdpart:{GUID}.
+	Carrier string `json:"carrier,omitempty"`
+	Locator string `json:"locator,omitempty"`
 }
 
 type vdSnapMount struct {
@@ -251,9 +298,72 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 	claimed := map[string]bool{}
 	var rows []*vdSnapContainer
 	var wantIDs []string
+	// One question about the shared disks per snapshot (AUD-82-F3): the worker's live list, or the local
+	// file's disks with an unknown holder when the worker does not answer (AUD-82-F2).
+	view := vdSharedViewNow()
+	s.FMS = vdSnapFMS{Availability: view.Availability, Mode: "unknown"}
+	if !vdShareOn {
+		s.FMS.Availability = "unsupported"
+	}
+	switch view.Mode {
+	case fmsworker.WorkerModeService:
+		s.FMS.Mode = "service"
+	case fmsworker.WorkerModeUser:
+		s.FMS.Mode = "session"
+	}
+	if !view.Known {
+		s.Sharing = &vdSnapSharing{Known: false, Reason: "neither FMS for Windows nor the local record of shared disks could be read"}
+	}
+	sharedDisks := make(map[string]vdisk.SharedDiskState)
+	for _, sd := range view.Disks {
+		if sd.ContainerID != "" {
+			sharedDisks[strings.ToLower(sd.ContainerID)] = sd
+		}
+		if sd.ContainerPath != "" {
+			sharedDisks[strings.ToLower(filepath.Clean(sd.ContainerPath))] = sd
+		}
+	}
+	claimedShared := map[string]bool{}
+	fillShared := func(row *vdSnapContainer, sd vdisk.SharedDiskState) {
+		row.Shared = true
+		row.RootName = sd.RootName
+		row.ShareReadOnly = sd.ReadOnly
+		row.Autostart = sd.Autostart
+		row.HasStoredKey = sd.HasStoredKey
+		if view.Live {
+			holder := sd.Holder
+			if holder == vdisk.HolderNone && row.Mount != nil {
+				holder = vdisk.HolderFileDO // FileDO has it mounted: the worker does not hold it
+			}
+			row.Holder = holder.Token()
+			row.SharedState = sd.State.String()
+			row.OpenHandles = sd.OpenHandles
+		} else {
+			// The local file does not know who holds the disk; saying "none" would offer a Mount that
+			// the worker's lock then refuses.
+			row.Holder = vdisk.HolderUnknown.Token()
+			row.SharedState = vdisk.StateUnknown.String()
+		}
+		if sd.ContainerID != "" {
+			claimedShared[strings.ToLower(sd.ContainerID)] = true
+		}
+	}
+	applyShared := func(row *vdSnapContainer) {
+		sd, ok := sharedDisks[strings.ToLower(row.ContainerID)]
+		if !ok && row.Path != "" {
+			sd, ok = sharedDisks[strings.ToLower(filepath.Clean(row.Path))]
+		}
+		if ok && sd.Shared {
+			fillShared(row, sd)
+		}
+	}
+
 	for _, e := range reg.Containers {
 		row := &vdSnapContainer{Kind: "container", Name: e.Name, Path: e.Path, ContainerID: e.ContainerID,
-			Registered: true, Profile: e.Profile, LogicalSize: e.LogicalSize, Auto: tasks[strings.ToLower(e.Name)]}
+			Registered: true, Profile: e.Profile, LogicalSize: e.LogicalSize, Auto: tasks[strings.ToLower(e.Name)], Carrier: "file"}
+		if e.isPart() {
+			row.Carrier, row.Locator, row.Path, row.Protection = "partition", e.Path, "", e.Protection
+		}
 		for _, m := range state.Mounts {
 			if strings.EqualFold(m.ContainerID, e.ContainerID) {
 				row.Mount = vdSnapMountOf(m)
@@ -261,6 +371,7 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 				break
 			}
 		}
+		applyShared(row)
 		rows, wantIDs = append(rows, row), append(wantIDs, e.ContainerID)
 	}
 	mounts := append([]vdMountRow(nil), state.Mounts...)
@@ -269,9 +380,21 @@ func vdBuildSnapshot() (vdSnapshot, error) {
 		if claimed[strings.ToLower(m.ContainerID)] {
 			continue
 		}
-		row := &vdSnapContainer{Kind: "container", Path: m.Path, ContainerID: m.ContainerID, Profile: m.Profile}
+		row := &vdSnapContainer{Kind: "container", Path: m.Path, ContainerID: m.ContainerID, Profile: m.Profile, Carrier: "file"}
+		if m.Carrier == "partition" {
+			row.Carrier, row.Locator, row.Path = "partition", m.Path, ""
+		}
 		row.Mount = vdSnapMountOf(m)
+		applyShared(row)
 		rows, wantIDs = append(rows, row), append(wantIDs, m.ContainerID)
+	}
+	for _, sd := range view.Disks {
+		if sd.ContainerID != "" && claimedShared[strings.ToLower(sd.ContainerID)] {
+			continue
+		}
+		row := &vdSnapContainer{Kind: "container", Path: sd.ContainerPath, ContainerID: sd.ContainerID}
+		fillShared(row, sd)
+		rows, wantIDs = append(rows, row), append(wantIDs, sd.ContainerID)
 	}
 	if err := vdSnapFiles(rows, wantIDs); err != nil {
 		return s, err
@@ -393,6 +516,10 @@ func vdNetworkGone(err error) bool {
 // holds. A header that does not read leaves the registry's profile and size
 // and claims no protection.
 func vdSnapFile(row *vdSnapContainer, wantID string) {
+	if row.Carrier == "partition" {
+		vdSnapPartFn(row, wantID)
+		return
+	}
 	if _, err := os.Stat(row.Path); err != nil {
 		if errors.Is(err, os.ErrNotExist) && !vdNetworkGone(err) {
 			row.File = "missing"
@@ -431,4 +558,11 @@ func vdSnapMountOf(m vdMountRow) *vdSnapMount {
 		}
 	}
 	return out
+}
+
+// vdSnapSharing says the snapshot's shared-disk rows are incomplete: neither FMS for Windows nor the local
+// record of shared disks could be read, so a disk shared through FMS may be missing from the list.
+type vdSnapSharing struct {
+	Known  bool   `json:"known"`
+	Reason string `json:"reason,omitempty"`
 }

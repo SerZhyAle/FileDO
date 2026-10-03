@@ -11,9 +11,47 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"golang.org/x/sys/windows"
 )
+
+// FileID holds the filesystem-level volume serial number and 64-bit file index,
+// plus basic metadata (size, modTime, isDir, isRegular) obtained in a single handle query.
+type FileID struct {
+	VolSerial uint32
+	FileIndex uint64
+	Size      int64
+	ModTime   time.Time
+	IsDir     bool
+	IsRegular bool
+}
+
+// FileIDOf opens p with FILE_READ_ATTRIBUTES and reads ByHandleFileInformation in one call,
+// without querying the volume path or canonical final path name.
+func FileIDOf(p string) (FileID, error) {
+	var fid FileID
+	if strings.TrimSpace(p) == "" {
+		return fid, errors.New("empty path")
+	}
+	h, err := openForIdentity(p)
+	if err != nil {
+		return fid, err
+	}
+	defer windows.CloseHandle(h)
+
+	var info windows.ByHandleFileInformation
+	if err := windows.GetFileInformationByHandle(h, &info); err != nil {
+		return fid, &os.PathError{Op: "GetFileInformationByHandle", Path: p, Err: err}
+	}
+	fid.VolSerial = info.VolumeSerialNumber
+	fid.FileIndex = uint64(info.FileIndexHigh)<<32 | uint64(info.FileIndexLow)
+	fid.Size = int64(info.FileSizeHigh)<<32 | int64(info.FileSizeLow)
+	fid.ModTime = time.Unix(0, info.LastWriteTime.Nanoseconds())
+	fid.IsDir = info.FileAttributes&windows.FILE_ATTRIBUTE_DIRECTORY != 0
+	fid.IsRegular = info.FileAttributes&(windows.FILE_ATTRIBUTE_DIRECTORY|windows.FILE_ATTRIBUTE_REPARSE_POINT) == 0
+	return fid, nil
+}
 
 // Identity is what a path names, as the filesystem sees it, rather than as it
 // was spelled.

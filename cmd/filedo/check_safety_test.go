@@ -59,6 +59,38 @@ func TestCheckMaxFilesTerminates(t *testing.T) {
 	}
 }
 
+// TestCheckMaxFilesIsAHardLimit is SP-0130 R5: a read is claimed before the
+// file is opened, so a folder of 50 files with --max-files 7 reads at most
+// seven - the old limit was tested after each result and overshot by up to
+// the worker count.
+func TestCheckMaxFilesIsAHardLimit(t *testing.T) {
+	root := checkTree(t, 50)
+	for _, mode := range []string{"on", "off"} {
+		t.Run(mode, func(t *testing.T) {
+			wd := t.TempDir()
+			events := filepath.Join(wd, "events.jsonl")
+			out, code := run(t, wd, "--events", events, "check", root, "--max-files", "7", "--single-reader", mode, "--workers", "20")
+			if code != 0 {
+				t.Fatalf("a partial sweep exited %d, want 0\n%s", code, out)
+			}
+			nums, ok := lastResult(t, events)["numbers"].(map[string]interface{})
+			if !ok {
+				t.Fatalf("the result event carries no numbers\n%s", out)
+			}
+			read := nums["checkedFiles"].(float64) + nums["unverifiedFiles"].(float64)
+			if read > 7 {
+				t.Errorf("checkedFiles + unverifiedFiles = %g, want at most 7", read)
+			}
+			if read != 7 {
+				t.Errorf("read %g files, want 7", read)
+			}
+			if got := lastResult(t, events)["verdict"]; got != "Passed" {
+				t.Errorf("partial sweep verdict = %v, want Passed", got)
+			}
+		})
+	}
+}
+
 func TestCheckKnownDamagedIsDefect(t *testing.T) {
 	root := checkTree(t, 3)
 	wd := t.TempDir()
@@ -184,9 +216,24 @@ func TestCheckResumeSkipsOnlyGoodFiles(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "checked=3") {
 		t.Fatalf("a sweep without --resume did not read every file again (exit %d)\n%s", code, out)
 	}
-	out, code = run(t, wd, "check", root, "--resume")
-	if code != 2 || !strings.Contains(out, "skipped(good, --resume)=3") {
-		t.Errorf("a --resume sweep with nothing left to read exited %d, want 2 (CHK-03)\n%s", code, out)
+	events := filepath.Join(wd, "resume-events.jsonl")
+	out, code = run(t, wd, "--events", events, "check", root, "--resume")
+	// SP-0130 D2: the good list is check's own proof (size, time and file
+	// id - a changed file would have been read), so the carry-on loop's
+	// last, successful iteration is Passed, exit 0, not "Not proven".
+	if code != 0 || !strings.Contains(out, "skipped(good, --resume)=3") {
+		t.Errorf("a --resume sweep with nothing left to read exited %d, want 0\n%s", code, out)
+	}
+	if !strings.Contains(out, "already on the good list") {
+		t.Errorf("the resume-done sentence is not kept as information\n%s", out)
+	}
+	result := lastResult(t, events)
+	if result["verdict"] != "Passed" {
+		t.Errorf("resume verdict = %v, want Passed", result["verdict"])
+	}
+	nums := result["numbers"].(map[string]interface{})
+	if nums["checkedFiles"] != float64(0) || nums["skippedGoodFiles"] != float64(3) {
+		t.Errorf("resume numbers = %v, want checkedFiles=0 and skippedGoodFiles=3", nums)
 	}
 	var one string
 	filepath.Walk(root, func(p string, info os.FileInfo, err error) error {

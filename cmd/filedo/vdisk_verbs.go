@@ -16,22 +16,27 @@ import "strings"
 var list_of_flags_for_vd = []string{"vd", "vdisk"}
 
 var (
-	vdNewWords     = []string{"new", "create"}
-	vdMountWords   = []string{"mount", "mnt", "attach"}
-	vdUnmountWords = []string{"unmount", "umount", "detach"}
-	vdInfoWords    = []string{"info", "i"}
-	vdVerifyWords  = []string{"verify", "vfy"}
-	vdExportWords  = []string{"export", "extract", "ext"}
-	vdSaveWords    = []string{"save"}
-	vdCompactWords = []string{"compact", "shrink"}
-	vdGrowWords    = []string{"grow", "resize"}
-	vdFormatWords  = []string{"format"}
-	vdSealWords    = []string{"seal"}
-	vdCloneWords   = []string{"clone"}
-	vdPassWords    = []string{"pass"}
-	vdDestroyWords = []string{"destroy", "erase"}
-	vdShareWords   = []string{"share"}
+	vdNewWords       = []string{"new", "create"}
+	vdMountWords     = []string{"mount", "mnt", "attach"}
+	vdUnmountWords   = []string{"unmount", "umount", "detach"}
+	vdInfoWords      = []string{"info", "i"}
+	vdVerifyWords    = []string{"verify", "vfy"}
+	vdExportWords    = []string{"export", "extract", "ext"}
+	vdSaveWords      = []string{"save"}
+	vdCompactWords   = []string{"compact", "shrink"}
+	vdGrowWords      = []string{"grow", "resize"}
+	vdFormatWords    = []string{"format"}
+	vdSealWords      = []string{"seal"}
+	vdCloneWords     = []string{"clone"}
+	vdPassWords      = []string{"pass"}
+	vdDestroyWords   = []string{"destroy", "erase"}
+	vdShareWords     = []string{"share"}
 	vdAutostartWords = []string{"autostart"}
+	vdOpenWords      = []string{"open"}
+	vdCloseWords     = []string{"close"}
+	vdDisksWords     = []string{"disks"}
+	vdImageWords     = []string{"image"}
+	vdAdoptWords     = []string{"adopt"}
 )
 
 // vdVerb is one verb of the table. container: it acts on an existing
@@ -63,6 +68,14 @@ var vdVerbs = []vdVerb{
 	{name: "destroy", words: vdDestroyWords, container: true},
 	{name: "share", words: vdShareWords, container: true},
 	{name: "autostart", words: vdAutostartWords, container: true},
+	{name: "open", words: vdOpenWords, container: true},
+	{name: "close", words: vdCloseWords, container: true},
+	// Partition disks (SP-0148 5.1): the disk list, image to file, and adopting
+	// a FileDO partition found on a disk. `new part` and the partition form of
+	// destroy are words of new and destroy.
+	{name: "disks", words: vdDisksWords, judges: true},
+	{name: "image", words: vdImageWords, container: true},
+	{name: "adopt", words: vdAdoptWords},
 	{name: "add", words: []string{"add"}},
 	{name: "forget", words: []string{"forget"}},
 	{name: "list", words: []string{"list", "ls"}, judges: true},

@@ -44,6 +44,56 @@ Public Class DiskRecord
     ' and from a CLI that predates the field.
     Public Property RamSaveError As String = ""
 
+    ' SP-0121: shared disk properties
+    Public Property [Shared] As Boolean = False
+    Public Property RootName As String = ""
+    ' The holder's wire token (vdisk.DiskHolder.Token in the CLI): none, file-do, fms-service, fms-session
+    ' or unknown. Never the CLI's display wording, so a reworded console line cannot break the guard
+    ' (AUD-82-F4); DiskStates.HolderKey maps it to its localized word.
+    Public Property Holder As String = "none"
+    Public Property SharedState As String = ""
+    Public Property Autostart As Boolean = False
+    Public Property HasStoredKey As Boolean = False
+    Public Property OpenHandles As Integer = 0
+    Public Property ShareReadOnly As Boolean = False
+
+    ' SP-0148: where the container's bytes live - "file" (a .fdd) or "partition" (a GPT partition in
+    ' what was free space). A partition disk has no path: it is addressed by its registered name, or
+    ' by its locator fdpart:{GUID}. A CLI that predates the field sends neither, which reads as a file.
+    Public Property Carrier As String = "file"
+    Public Property Locator As String = ""
+    ' Where a partition disk is, from `vd disks json` (the window joins it by the locator's GUID):
+    ' the disk's model and the extent in words. "" until the disks have been read.
+    Public Property PartitionPlace As String = ""
+    Public Property PartitionDetail As String = ""
+
+    Public ReadOnly Property IsPartition As Boolean
+        Get
+            Return Carrier = "partition"
+        End Get
+    End Property
+
+    ' What a command names the container by: the path of a file disk; the registered name of a
+    ' partition disk (its path is empty), or its locator while it has no name.
+    Public ReadOnly Property Target As String
+        Get
+            If IsPartition Then Return If(Name <> "", Name, Locator)
+            Return Path
+        End Get
+    End Property
+
+    Public ReadOnly Property IsShared As Boolean
+        Get
+            Return [Shared]
+        End Get
+    End Property
+
+    Public ReadOnly Property IsHeldByFMS As Boolean
+        Get
+            Return Holder = "fms-service" OrElse Holder = "fms-session"
+        End Get
+    End Property
+
     Public ReadOnly Property IsImage As Boolean
         Get
             Return Kind = "image"
@@ -68,6 +118,7 @@ Public Class DiskRecord
         Get
             If IsImage Then Return "image:" & Path.ToLowerInvariant()
             If ContainerId <> "" Then Return "id:" & ContainerId.ToLowerInvariant()
+            If IsPartition Then Return "loc:" & Locator.ToLowerInvariant()
             Return "path:" & Path.ToLowerInvariant()
         End Get
     End Property
@@ -77,6 +128,7 @@ Public Class DiskRecord
     Public ReadOnly Property BaseName As String
         Get
             If Name <> "" Then Return Name
+            If IsPartition Then Return Locator
             ' By hand rather than Path.GetFileNameWithoutExtension, which throws on a character .NET
             ' Framework calls invalid - and a name on screen is no reason for a window to fail.
             Dim p = If(Path, "")
@@ -139,6 +191,8 @@ Public Class DiskSnapshot
     Public Property InitiatorService As String = ""
     ' "", packaged, initiator_missing, initiator_disabled or service_manager.
     Public Property TransportReason As String = ""
+    Public Property FMSAvailability As String = "unknown"
+    Public Property FMSMode As String = "unknown"
     ' The shutdown guard (SP-0080): Nothing when the snapshot carries no guard field, which an
     ' older CLI's document does not - the unknown-field rule, read from this side.
     Public Property Guard As DiskGuardState = Nothing
@@ -196,6 +250,11 @@ Public Class DiskSnapshot
             s.TransportReason = Str(tr, "reason")
         End If
         s.Guard = GuardOf(doc)
+        Dim fms = Obj(doc, "fms")
+        If fms IsNot Nothing Then
+            s.FMSAvailability = Str(fms, "availability")
+            s.FMSMode = Str(fms, "mode")
+        End If
         Dim list = TryCast(Value(doc, "disks"), IEnumerable)
         If list Is Nothing Then
             ' A snapshot with no list is not "nothing is mounted" - it is a snapshot that says nothing.
@@ -249,7 +308,17 @@ Public Class DiskSnapshot
             .Profile = Str(d, "profile"),
             .LogicalSize = CLng(Num(d, "logical_size")),
             .LastGoodSave = Stamp(d, "last_good_save"),
-            .AutoMount = Bool(d, "auto")
+            .AutoMount = Bool(d, "auto"),
+            .[Shared] = Bool(d, "shared"),
+            .ShareReadOnly = Bool(d, "share_read_only"),
+            .RootName = Str(d, "root_name"),
+            .Holder = HolderOf(Str(d, "holder"), Bool(d, "shared")),
+            .SharedState = Str(d, "shared_state"),
+            .Autostart = Bool(d, "autostart"),
+            .HasStoredKey = Bool(d, "has_stored_key"),
+            .OpenHandles = CInt(Num(d, "open_handles")),
+            .Carrier = If(Str(d, "carrier") = "partition", "partition", "file"),
+            .Locator = Str(d, "locator")
         }
         ' The two words and nothing in between (SP-0063 principle 3): anything else is not known.
         Select Case Str(d, "protection")
@@ -293,6 +362,18 @@ Public Class DiskSnapshot
 
     Private Shared Function Obj(d As Dictionary(Of String, Object), key As String) As Dictionary(Of String, Object)
         Return TryCast(Value(d, key), Dictionary(Of String, Object))
+    End Function
+
+    ' A holder token as the window keeps it: one of the five the CLI sends; a missing one is "none" on a
+    ' disk that is not shared and "unknown" on one that is (the CLI always names the holder of a shared
+    ' disk); a token this build does not know is "unknown" - never "none", which would offer a Mount that
+    ' the holder's lock refuses.
+    Friend Shared Function HolderOf(raw As String, isShared As Boolean) As String
+        Select Case raw
+            Case "none", "file-do", "fms-service", "fms-session", "unknown" : Return raw
+            Case "" : Return If(isShared, "unknown", "none")
+        End Select
+        Return "unknown"
     End Function
 
     Private Shared Function Str(d As Dictionary(Of String, Object), key As String) As String

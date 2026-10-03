@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PAGE-CONTENT` |
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Role** | consumer - product website `docs/index.html` and `docs/guides/` |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `PAGE-CONTENT.md` |
 | **Owner** | sza.od.ua hub. Amendments are proposed in the catalog |

@@ -14,6 +14,16 @@
 ' `filedo fdsec register` take it from (the three writers name the files icons\<id>.ico beside the
 ' exe). The copies are embedded in this exe as well, and --selftest draws every icon afresh and
 ' compares it with its copy, pixel by pixel, so a changed drawing that nobody re-wrote fails the gate.
+'
+' A second kind of icon lives here: the PLATED one, the product's own picture of a window rather
+' than an Explorer entry's meaning. "app.disk-manager" is the content.disk-container glyph on a
+' rounded-square plate in the accent, the glyph in the on-plate colour (ICON-RENDER 0.14 section 3
+' rule 6 and section 10 items D and E; owner decision 2026-10-02). It is ONE icon wherever the Disk
+' Manager appears - its window and taskbar button, its launcher in the shell (DiskManagerIcon), and
+' the MSI's Start menu shortcut - and it is written, embedded and self-tested exactly like the mono
+' ones. The generic mono content.disk-container icon stays the .fdd file type's and the Explorer
+' menu's, and the F|D mark (assets\icon.ico) stays the exe's and the installer's.
+Imports System.Drawing.Drawing2D
 Imports System.Drawing.Imaging
 Imports System.IO
 
@@ -27,6 +37,31 @@ Public Module MenuIcons
         "action.secure", "action.unsecure", "action.wipe", "action.verify", "app.info", "content.secret-file",
         "content.disk-container"
     }
+
+    ' The plated icons (see the header): id -> the vocabulary glyph drawn on the plate. Ids above stays
+    ' the mono meanings only - the rest of the shell reads it as "vocabulary ids".
+    Public ReadOnly PlatedIds As String() = {"app.disk-manager"}
+
+    Private ReadOnly PlatedGlyphs As New Dictionary(Of String, String)(StringComparer.Ordinal) From {
+        {"app.disk-manager", "content.disk-container"}
+    }
+
+    ' Every icon --write-menu-icons writes and the exe embeds: the mono ones, then the plated ones.
+    Public ReadOnly Property AllIds As String()
+        Get
+            Return Ids.Concat(PlatedIds).ToArray()
+        End Get
+    End Property
+
+    Public Function IsPlated(id As String) As Boolean
+        Return PlatedGlyphs.ContainsKey(id)
+    End Function
+
+    ' The vocabulary meaning a plated icon carries.
+    Public Function PlatedGlyphId(id As String) As String
+        Dim glyph As String = Nothing
+        Return If(PlatedGlyphs.TryGetValue(id, glyph), glyph, Nothing)
+    End Function
 
     ' ICON-RENDER 0.12 rule 9: one tone for a menu whose theme the product cannot see. Named in
     ' Theme.vb, the one file that names a colour.
@@ -45,11 +80,67 @@ Public Module MenuIcons
     ' Draws one icon at one size: the glyph filling the square, straight (not premultiplied) alpha,
     ' which is what an .ico carries. A new bitmap starts fully transparent.
     Public Function Render(id As String, size As Integer) As Bitmap
+        If IsPlated(id) Then Return RenderPlated(id, size)
         Dim bmp As New Bitmap(size, size, PixelFormat.Format32bppArgb)
         Using g = Graphics.FromImage(bmp)
             Glyphs.Draw(g, GlyphRef.Vocabulary(id), New Rectangle(0, 0, size, size), Tone)
         End Using
         Return bmp
+    End Function
+
+    ' ---- the plated icon ---------------------------------------------------
+
+    ' The plate's corner radius as a share of its side.
+    Public Const PlateCorner As Double = 0.22
+
+    ' The visible plate inside the size x size canvas: a rounded square on whole pixels, so its straight
+    ' edges are crisp at every size. The margin that keeps it off the canvas edge is none at 16 and
+    ' 20 px (where every pixel is worth more than a margin that Windows' own icon rules add anyway) and
+    ' about 3 % above.
+    Public Function PlateRect(size As Integer) As Rectangle
+        Dim margin = If(size <= 20, 0, Math.Max(1, CInt(Math.Round(size * 0.03))))
+        Return New Rectangle(margin, margin, size - 2 * margin, size - 2 * margin)
+    End Function
+
+    ' The glyph's 24 grid on the plate: 0.6 of the plate side, within 0.05 (section 10 item E), at the
+    ' upper end (0.65) at 16 and 20 px where a smaller glyph stops being legible. Whole pixels, with
+    ' the margin to the plate equal on both sides, so the glyph is centred and stays sharp.
+    Public Function PlateGlyphSquare(size As Integer) As Rectangle
+        Dim plate = PlateRect(size)
+        Dim side = plate.Width
+        Dim aim = If(size <= 20, 0.65, 0.6)
+        Dim g = CInt(Math.Round(side * aim))
+        If (side - g) Mod 2 <> 0 Then g = If((g + 1) / side <= 0.65, g + 1, g - 1)
+        Dim off = (side - g) \ 2
+        Return New Rectangle(plate.X + off, plate.Y + off, g, g)
+    End Function
+
+    Private Function RenderPlated(id As String, size As Integer) As Bitmap
+        Dim bmp As New Bitmap(size, size, PixelFormat.Format32bppArgb)
+        Dim plate = PlateRect(size)
+        Dim radius = CSng(plate.Width * PlateCorner)
+        Using g = Graphics.FromImage(bmp)
+            g.SmoothingMode = SmoothingMode.AntiAlias
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality
+            Using path = RoundedSquare(plate, radius)
+                Using b As New SolidBrush(Theme.AppIconPlate)
+                    g.FillPath(b, path)
+                End Using
+            End Using
+            Glyphs.Draw(g, GlyphRef.Vocabulary(PlatedGlyphId(id)), PlateGlyphSquare(size), Theme.AppIconInk)
+        End Using
+        Return bmp
+    End Function
+
+    Private Function RoundedSquare(r As Rectangle, radius As Single) As GraphicsPath
+        Dim d = radius * 2.0F
+        Dim path As New GraphicsPath()
+        path.AddArc(r.X, r.Y, d, d, 180, 90)
+        path.AddArc(r.Right - d, r.Y, d, d, 270, 90)
+        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90)
+        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90)
+        path.CloseFigure()
+        Return path
     End Function
 
     ' The .ico of one meaning: 32-bit DIB entries up to 64 px, a PNG entry at 256 (the only size
@@ -87,11 +178,11 @@ Public Module MenuIcons
         End Using
     End Function
 
-    ' Writes <id>.ico for every id into a folder; returns the files written.
+    ' Writes <id>.ico for every id (mono and plated) into a folder; returns the files written.
     Public Function WriteAll(folder As String) As IList(Of String)
         Directory.CreateDirectory(folder)
         Dim written As New List(Of String)()
-        For Each id In Ids
+        For Each id In AllIds
             Dim path = IO.Path.Combine(folder, id & ".ico")
             File.WriteAllBytes(path, BuildIco(id))
             written.Add(path)

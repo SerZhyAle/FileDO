@@ -56,6 +56,7 @@ Friend Module DiskShortcuts
         New DiskShortcut(Keys.Control Or Keys.U, DiskCommand.Perform, DiskAction.Unmount, "vd_mgr_act_unmount", False),
         New DiskShortcut(Keys.Control Or Keys.E, DiskCommand.Perform, DiskAction.OpenDrive, "vd_mgr_act_open", False),
         New DiskShortcut(Keys.Control Or Keys.S, DiskCommand.Perform, DiskAction.SaveNow, "vd_mgr_act_save", False),
+        New DiskShortcut(Keys.Control Or Keys.Shift Or Keys.S, DiskCommand.Perform, DiskAction.ShareDisk, "vd_share_register", False),
         New DiskShortcut(Keys.Control Or Keys.I, DiskCommand.Perform, DiskAction.Info, "vd_mgr_act_info", False),
         New DiskShortcut(Keys.Control Or Keys.Shift Or Keys.V, DiskCommand.Perform, DiskAction.Verify, "vd_mgr_act_verify", False),
         New DiskShortcut(Keys.Return, DiskCommand.DefaultAction, Nothing, "vd_mgr_key_default", True),
@@ -137,6 +138,7 @@ Friend Module DiskHelpLinks
         Get
             Return New KeyValuePair(Of String, String)() {
                 New KeyValuePair(Of String, String)("vd_help_menu_guide", Links.DiskGuide),
+                New KeyValuePair(Of String, String)("vd_help_menu_share_guide", Links.ShareGuide),
                 New KeyValuePair(Of String, String)("vd_help_menu_guides", Links.Guides),
                 New KeyValuePair(Of String, String)("vd_help_menu_site", Links.Site),
                 New KeyValuePair(Of String, String)("vd_help_menu_docs", Links.Readme),
@@ -409,6 +411,7 @@ Friend Class DiskHelpDialog
         AddRow(KeyTable())
 
         AddSection(T("vd_help_notes_title"))
+        AddParagraph(T("vd_share_help"))
         AddParagraph(T("vd_mgr_close_mounted"))
         AddParagraph(T("vd_help_note_uac"))
         AddParagraph(T("vd_help_note_autostart"))
@@ -417,6 +420,7 @@ Friend Class DiskHelpDialog
         AddParagraph(T("vd_mgr_detail_open_while_mounted"))
 
         AddSection(T("vd_help_links_title"))
+        AddRow(NewLink(T("vd_share_install"), Links.FMSInstall))
         For Each kv In DiskHelpLinks.All
             AddRow(NewLink(T(kv.Key), kv.Value))
         Next

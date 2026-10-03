@@ -162,32 +162,6 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 		return DeviceInfo{}, fmt.Errorf("GetVolumeInformation failed for '%s': %w", rootPath, err)
 	}
 
-	var fileCount, folderCount int64
-	var accessErrors bool
-
-	if fullScan {
-		totals, walkErr := walkInfoTree(rootPath, false)
-		if errors.Is(walkErr, errRunStopped) {
-			return DeviceInfo{}, walkErr
-		}
-		fileCount, folderCount, accessErrors = totals.files, totals.folders, totals.accessErrors
-		if walkErr != nil && !accessErrors {
-			return DeviceInfo{}, fmt.Errorf("failed to walk directory '%s': %w", rootPath, walkErr)
-		}
-	} else {
-		entries, err := os.ReadDir(rootPath)
-		if err != nil {
-			return DeviceInfo{}, fmt.Errorf("failed to read root directory '%s': %w", rootPath, err)
-		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				folderCount++
-			} else {
-				fileCount++
-			}
-		}
-	}
-
 	var diskModel, diskSerialNumber, diskInterface string
 	if fullScan {
 		// rootPath is like "C:\"
@@ -209,6 +183,58 @@ func getDeviceInfo(path string, fullScan bool) (DeviceInfo, error) {
 		testFile.Close()
 		os.Remove(testFilePath) // Clean up test file
 		canWrite = true
+	}
+
+	var fileCount, folderCount int64
+	var accessErrors bool
+
+	if fullScan {
+		// Print quick facts before the walk starts (R2)
+		quickInfo := DeviceInfo{
+			Path: path, VolumeName: windows.UTF16ToString(volName[:]), SerialNumber: serialNumber, FileSystem: windows.UTF16ToString(fsName[:]),
+			TotalBytes: totalBytes, FreeBytes: totalFreeBytes, AvailableBytes: freeBytesAvailable,
+			FullScan: fullScan,
+			DiskModel: diskModel, DiskSerialNumber: diskSerialNumber, DiskInterface: diskInterface,
+			CanRead: canRead, CanWrite: canWrite,
+		}
+		fmt.Print(quickInfo.StringQuickFacts())
+
+		totals, walkErr := walkInfoTreeProgress(rootPath, false, func(t infoTreeTotals, elapsed time.Duration) {
+			fmt.Printf("\r  counted %s files, %.0f s", formatCount(t.files), elapsed.Seconds())
+			EmitProgressEvent(t.files, 0, 0, 0, 0, fmt.Sprintf("counted %s files", formatCount(t.files)))
+		})
+		if errors.Is(walkErr, errRunStopped) {
+			fmt.Printf("\r  Full Contains (partial): %d files, %d folders       \n", totals.files, totals.folders)
+			if totals.accessErrors {
+				fmt.Print("\nWarning: Some information could not be gathered due to access restrictions.\n")
+				fmt.Print("         Run as administrator for a complete scan.\n")
+			}
+			quickInfo.FileCount = totals.files
+			quickInfo.FolderCount = totals.folders
+			quickInfo.AccessErrors = totals.accessErrors
+			return quickInfo, walkErr
+		}
+		fileCount, folderCount, accessErrors = totals.files, totals.folders, totals.accessErrors
+		if walkErr != nil && !accessErrors {
+			return DeviceInfo{}, fmt.Errorf("failed to walk directory '%s': %w", rootPath, walkErr)
+		}
+		fmt.Printf("\r  Full Contains: %d files, %d folders       \n", fileCount, folderCount)
+		if accessErrors {
+			fmt.Print("\nWarning: Some information could not be gathered due to access restrictions.\n")
+			fmt.Print("         Run as administrator for a complete scan.\n")
+		}
+	} else {
+		entries, err := os.ReadDir(rootPath)
+		if err != nil {
+			return DeviceInfo{}, fmt.Errorf("failed to read root directory '%s': %w", rootPath, err)
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				folderCount++
+			} else {
+				fileCount++
+			}
+		}
 	}
 
 	return DeviceInfo{

@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Sharing FileDO disks with Fast Media Sorter" />
+    <meta property="og:description" content="Step by step: share a FileDO virtual disk to paired phones through Fast Media Sorter & Sharing, and what to do when sharing is unavailable." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Sharing FileDO disks with Fast Media Sorter",
+        "headline": "Sharing FileDO disks with Fast Media Sorter",
+        "description": "Step by step: share a FileDO virtual disk to paired phones through Fast Media Sorter & Sharing, and what to do when sharing is unavailable.",
+        "url": "https://serzhyale.github.io/FileDO/guides/fms-sharing.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Sharing FileDO disks with Fast Media Sorter</title>
+    <meta
+      name="description"
+      content="Step by step: share a FileDO virtual disk to paired phones through Fast Media Sorter & Sharing, and what to do when sharing is unavailable."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · Общий доступ</span
+          ><span data-l="en">Guide · Sharing</span
+          ><span data-l="ua">Посібник · Спільний доступ</span>
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Диск FileDO на телефоне: общий доступ через Fast Media Sorter
+            &amp; Sharing</span
+          ><span data-l="en"
+            >A FileDO disk on the phone: sharing through Fast Media Sorter
+            &amp; Sharing</span
+          ><span data-l="ua"
+            >Диск FileDO на телефоні: спільний доступ через Fast Media Sorter
+            &amp; Sharing</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >FileDO умеет отдавать виртуальный диск <code>.fdd</code>
+            сопряжённым телефонам и планшетам - не сам, а через Fast Media
+            Sorter &amp; Sharing for Windows: вы регистрируете диск в
+            Диспетчере дисков, а та программа открывает его файлы по SFTP
+            устройствам, связанным с ней. Сам FileDO не открывает для этого
+            сетевых соединений - он говорит с той программой по локальному
+            каналу на этом компьютере. Ниже - что нужно до начала, как
+            поделиться диском, что видят телефоны и что делать, когда диалог
+            сообщает, что общий доступ недоступен. О самих виртуальных дисках -
+            в <a href="virtual-disks.html">руководстве по виртуальным
+            дискам</a>.</span
+          ><span data-l="en"
+            >FileDO can serve a <code>.fdd</code> virtual disk to your paired
+            phones and tablets - not by itself, but through Fast Media Sorter
+            &amp; Sharing for Windows: you register the disk in the Disk
+            Manager, and that program serves its files over SFTP to the devices
+            paired with it. FileDO itself opens no network connection for this -
+            it talks to that program over a local pipe on this computer. Below:
+            what you need first, how to share a disk, what the phones see, and
+            what to do when the dialog says sharing is unavailable. The disks
+            themselves are the subject of the
+            <a href="virtual-disks.html">virtual disks guide</a>.</span
+          ><span data-l="ua"
+            >FileDO уміє віддавати віртуальний диск <code>.fdd</code>
+            сполученим телефонам і планшетам - не сам, а через Fast Media
+            Sorter &amp; Sharing for Windows: ви реєструєте диск у Диспетчері
+            дисків, а та програма відкриває його файли через SFTP пристроям,
+            зв'язаним з нею. Сам FileDO для цього не відкриває мережевих
+            з'єднань - він говорить із тією програмою через локальний канал на
+            цьому комп'ютері. Нижче - що потрібно до початку, як поділитися
+            диском, що бачать телефони і що робити, коли діалог каже, що
+            спільний доступ недоступний. Про самі віртуальні диски - у
+            <a href="virtual-disks.html">посібнику з віртуальних дисків</a>.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="need">
+        <h2>
+          <span data-l="ru">1. Что нужно до начала</span
+          ><span data-l="en">1. What you need first</span
+          ><span data-l="ua">1. Що потрібно до початку</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Три вещи: FileDO настольной сборки, Fast Media Sorter &amp;
+            Sharing for Windows с включённым дополнительным компонентом дисков
+            FileDO и хотя бы одно устройство, сопряжённое с ней.</span
+          ><span data-l="en"
+            >Three things: the desktop build of FileDO, Fast Media Sorter
+            &amp; Sharing for Windows with its optional FileDO disk component
+            enabled, and at least one device paired with it.</span
+          ><span data-l="ua"
+            >Три речі: FileDO настільної збірки, Fast Media Sorter &amp;
+            Sharing for Windows з увімкненим додатковим компонентом дисків
+            FileDO і хоча б один пристрій, сполучений із нею.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">FileDO, настольная сборка</span
+              ><span data-l="en">FileDO, the desktop build</span
+              ><span data-l="ua">FileDO, настільна збірка</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Диск должен быть зарегистрирован в Диспетчере дисков как
+                файловый контейнер <code>.fdd</code>. Сборка из Microsoft Store
+                не подключает диски, и этот путь в ней закрыт - используйте
+                настольную сборку. Как её поставить и что пишет установщик -
+                в <a href="install-and-explorer.html">руководстве по
+                установке</a>.</span
+              ><span data-l="en"
+                >The disk must be registered in the Disk Manager as a
+                file-backed <code>.fdd</code> container. The Microsoft Store
+                build cannot mount disks, and this workflow is closed there -
+                use the desktop build. How to install it and what the installer
+                writes is in the
+                <a href="install-and-explorer.html">installation guide</a>.</span
+              ><span data-l="ua"
+                >Диск має бути зареєстрований у Диспетчері дисків як файловий
+                контейнер <code>.fdd</code>. Збірка з Microsoft Store не
+                підключає диски, і цей шлях у ній зачинений - використовуйте
+                настільну збірку. Як її поставити і що пише інсталятор - у
+                <a href="install-and-explorer.html">посібнику зі
+                встановлення</a>.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Fast Media Sorter &amp; Sharing for Windows</span
+              ><span data-l="en">Fast Media Sorter &amp; Sharing for Windows</span
+              ><span data-l="ua">Fast Media Sorter &amp; Sharing for Windows</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Программа, которая отдаёт файлы по сети. При её установке
+                включите дополнительный компонент дисков FileDO - без него
+                общий доступ к дискам недоступен. Её настольный установщик не
+                подписан, поэтому Windows может показать то же предупреждение,
+                что и о FileDO - <a href="install-trust.html">оно разобрано
+                здесь</a>. Страница установки -
+                <a
+                  href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+                  target="_blank"
+                  rel="noopener"
+                  >serzhyale.github.io/FastMediaSorter_Lite</a
+                >.</span
+              ><span data-l="en"
+                >The program that serves the files over the network. During its
+                setup, enable the optional FileDO disk component - without it,
+                disk sharing is unavailable. Its desktop installer is unsigned,
+                so Windows may show the same warning it shows about FileDO -
+                <a href="install-trust.html">that warning is covered here</a>.
+                The installation page is
+                <a
+                  href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+                  target="_blank"
+                  rel="noopener"
+                  >serzhyale.github.io/FastMediaSorter_Lite</a
+                >.</span
+              ><span data-l="ua"
+                >Програма, яка віддає файли мережею. Під час її встановлення
+                увімкніть додатковий компонент дисків FileDO - без нього
+                спільний доступ до дисків недоступний. Її настільний інсталятор
+                не підписано, тому Windows може показати те саме
+                попередження, що й про FileDO - <a href="install-trust.html">воно
+                розібране тут</a>. Сторінка встановлення -
+                <a
+                  href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+                  target="_blank"
+                  rel="noopener"
+                  >serzhyale.github.io/FastMediaSorter_Lite</a
+                >.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Сопряжённые устройства</span
+              ><span data-l="en">Paired devices</span
+              ><span data-l="ua">Сполучені пристрої</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Телефоны и планшеты связываются с той программой в её Share
+                Manager - так же, как для обычных общих папок. Устройство,
+                которое вы не сопрягали, диск не увидит. Для телефона общий
+                диск выглядит как ещё одна папка, а не как отдельная
+                техника.</span
+              ><span data-l="en"
+                >Phones and tablets are paired with that program in its Share
+                Manager - the same way as for ordinary shared folders. A device
+                you have not paired will not see the disk. To the phone, a
+                shared disk looks like one more folder, not a separate piece of
+                technology.</span
+              ><span data-l="ua"
+                >Телефони і планшети сполучаються з тією програмою в її Share
+                Manager - так само, як для звичайних спільних папок. Пристрій,
+                який ви не сполучили, диска не побачить. Для телефона спільний
+                диск виглядає як ще одна папка, а не як окрема техніка.</span
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="manager">
+        <h2>
+          <span data-l="ru">2. Поделиться диском из Диспетчера дисков</span
+          ><span data-l="en">2. Sharing a disk from the Disk Manager</span
+          ><span data-l="ua">2. Поділитися диском із Диспетчера дисків</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>Запустите Share Manager.</b> Общий доступ держит Fast Media
+              Sorter &amp; Sharing, поэтому её Share Manager должен работать,
+              прежде чем FileDO предложит диск. Если worker не отвечает, FileDO
+              предложит повторную проверку - недоступность worker не означает,
+              что программы нет.</span
+            ><span data-l="en"
+              ><b>Start Share Manager.</b> Fast Media Sorter &amp; Sharing is
+              the holder of a shared disk, so its Share Manager must be running
+              before FileDO can offer one. If its worker does not answer,
+              FileDO offers a recheck - an unavailable worker does not prove the
+              program is absent.</span
+            ><span data-l="ua"
+              ><b>Запустіть Share Manager.</b> Спільний доступ тримає Fast
+              Media Sorter &amp; Sharing, тому її Share Manager має працювати,
+              перш ніж FileDO запропонує диск. Якщо worker не відповідає,
+              FileDO запропонує повторну перевірку - недоступність worker не
+              означає, що програми немає.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Выберите диск и действие.</b> В Диспетчере дисков выберите
+              зарегистрированный файловый диск и <strong>«Поделиться через
+              Fast Media Sorter &amp; Sharing..»</strong> в панели сведений
+              или меню «Ещё» (<code>Ctrl+Shift+S</code>).</span
+            ><span data-l="en"
+              ><b>Pick the disk and the action.</b> In the Disk Manager, select
+              a registered file-backed disk and choose
+              <strong>Share with Fast Media Sorter &amp; Sharing..</strong> in
+              its detail pane or More menu (<code>Ctrl+Shift+S</code>).</span
+            ><span data-l="ua"
+              ><b>Виберіть диск і дію.</b> У Диспетчері дисків виберіть
+              зареєстрований файловий диск і <strong>«Поділитися через Fast
+              Media Sorter &amp; Sharing..»</strong> у панелі відомостей або
+              меню «Ще» (<code>Ctrl+Shift+S</code>).</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Проверьте настройки регистрации.</b> Имя общей папки видно
+              сопряжённым устройствам; доступ по умолчанию только на чтение, и
+              sealed-диск всегда доступен только на чтение. По желанию откройте
+              диск сразу. Если диск подключён локально, FileDO после
+              подтверждения отключит его безопасно; если включено
+              автоподключение FileDO, согласие выключить его - обязательная
+              часть передачи.</span
+            ><span data-l="en"
+              ><b>Check the registration choices.</b> The folder name is what
+              paired devices see; access is read-only by default, and a sealed
+              disk stays read-only. Optionally open the disk right away. If the
+              disk is mounted locally, FileDO disconnects it cleanly after your
+              confirmation; if FileDO automatic mounting is on, agreeing to
+              disable it is a required part of the transfer.</span
+            ><span data-l="ua"
+              ><b>Перевірте параметри реєстрації.</b> Назву спільної папки
+              бачать сполучені пристрої; доступ типово лише для читання, і
+              sealed-диск завжди доступний лише для читання. За бажанням
+              відкрийте диск одразу. Якщо диск підключено локально, FileDO після
+              підтвердження відключить його безпечно; якщо ввімкнено
+              автоматичне підключення FileDO, згода вимкнути його - обов'язкова
+              частина передачі.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Прочитайте подтверждение.</b> В нём собрано всё, что
+              произойдёт: локальное подключение выключается, файлы открытого
+              диска по сети отдаёт та программа. Зашифрованный диск спросит
+              пароль - один раз, здесь, на этом компьютере.</span
+            ><span data-l="en"
+              ><b>Read the confirmation.</b> It gathers everything that is
+              about to happen: local mounting switches off, and that program
+              serves the open disk's files over the network. An encrypted disk
+              asks for its password - once, here, on this computer.</span
+            ><span data-l="ua"
+              ><b>Прочитайте підтвердження.</b> У ньому зібрано все, що
+              станеться: локальне підключення вимикається, і та програма віддає
+              файли відкритого диска мережею. Зашифрований диск спитає пароль -
+              один раз, тут, на цьому комп'ютері.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Потом закройте или прекратите.</b> «Закрыть общий диск»
+              сохраняет регистрацию - диск можно открыть снова в один шаг.
+              «Прекратить шаринг» удаляет регистрацию и сохранённый ключ
+              автозапуска FMS.</span
+            ><span data-l="en"
+              ><b>Later, close or stop.</b> <strong>Close shared disk</strong>
+              keeps the registration - the disk can be opened again in one
+              step. <strong>Stop sharing</strong> removes the registration and
+              the saved FMS autostart key.</span
+            ><span data-l="ua"
+              ><b>Потім закрийте або припиніть.</b> «Закрити спільний диск»
+              зберігає реєстрацію - диск можна відкрити знову за один крок.
+              «Припинити спільний доступ» видаляє реєстрацію та збережений
+              ключ автозапуску FMS.</span
+            >
+          </li>
+        </ol>
+        <figure class="shot">
+          <span data-l="ru"><img src="../assets/guides/gui-disk-share-ru.png" width="890" height="784" loading="lazy" alt="Диалог регистрации диска: имя общей папки, доступ только на чтение, отдельное открытие, предупреждение об отключении и согласие на выключение автоподключения." /></span>
+          <span data-l="en"><img src="../assets/guides/gui-disk-share-en.png" width="895" height="752" loading="lazy" alt="Disk registration dialog with root name, read-only access, separate opening, clean-disconnect notice and consent to disable local automatic mounting." /></span>
+          <span data-l="ua"><img src="../assets/guides/gui-disk-share-ua.png" width="874" height="816" loading="lazy" alt="Діалог реєстрації диска: назва спільної папки, доступ лише на читання, окреме відкриття, попередження про відключення та згода на вимкнення автоматичного підключення." /></span>
+          <figcaption>
+            <span data-l="ru"
+              >Регистрация диска в Диспетчере дисков. Пароль зашифрованного
+              диска вводится на этом компьютере и никогда не уходит на
+              телефон.</span
+            ><span data-l="en"
+              >Registering a disk in the Disk Manager. An encrypted disk's
+              password is typed on this computer and never travels to the
+              phone.</span
+            ><span data-l="ua"
+              >Реєстрація диска в Диспетчері дисків. Пароль зашифрованого диска
+              вводиться на цьому комп'ютері і ніколи не йде на
+              телефон.</span
+            >
+          </figcaption>
+        </figure>
+        <p class="intro">
+          <span data-l="ru"
+            >Автозапуск - отдельное согласие для каждого диска: программа
+            откроет общий зашифрованный диск после перезапуска сама, без ввода
+              пароля, и для этого один раз спросит его и объяснит, что
+              меняется. Из командной строки те же шаги делает
+            <code>vd share</code> - раздел 3.</span
+          ><span data-l="en"
+            >Autostart is a separate opt-in per disk: after a restart, the
+            program opens the shared encrypted disk on its own, without anyone
+            typing the password, and for that it asks for the password once and
+            explains what changes. From the command line, the same steps are
+            done by <code>vd share</code> - section 3.</span
+          ><span data-l="ua"
+            >Автозапуск - окрема згода для кожного диска: після перезапуску
+            програма відкриє спільний зашифрований диск сама, без введення
+            пароля, і для цього один раз спитає його і пояснить, що
+            змінюється. З командного рядка ті самі кроки робить
+            <code>vd share</code> - розділ 3.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="cli">
+        <h2>
+          <span data-l="ru">3. То же самое из командной строки</span
+          ><span data-l="en">3. The same from the command line</span
+          ><span data-l="ua">3. Те саме з командного рядка</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            ><code>vd share work.fdd on</code> регистрирует диск,
+            <code>vd share work.fdd off</code> прекращает доступ,
+            <code>vd open</code> и <code>vd close</code> открывают и закрывают
+            его для устройств, <code>vd autostart</code> включает и выключает
+            автозапуск, а <code>vd status</code> говорит, кто держит диск.
+            Пароль зашифрованного диска передаётся через стандартный ввод или
+            переменную окружения - никогда аргументом командной строки.
+            Подключённый кем-то другим диск <code>mount</code> отклонит: у
+            контейнера один владелец одновременно.</span
+          ><span data-l="en"
+            ><code>vd share work.fdd on</code> registers the disk,
+            <code>vd share work.fdd off</code> stops sharing, <code>vd open</code>
+            and <code>vd close</code> open and close it for the devices,
+            <code>vd autostart</code> turns autostart on and off, and
+            <code>vd status</code> says who holds the disk. An encrypted disk's
+            password travels over standard input or an environment variable -
+            never as a command-line argument. A disk someone else holds is
+            refused by <code>mount</code>: a container has one holder at a
+            time.</span
+          ><span data-l="ua"
+            ><code>vd share work.fdd on</code> реєструє диск,
+            <code>vd share work.fdd off</code> припиняє доступ,
+            <code>vd open</code> і <code>vd close</code> відкривають і
+            закривають його для пристроїв, <code>vd autostart</code> вмикає і
+            вимикає автозапуск, а <code>vd status</code> каже, хто тримає
+            диск. Пароль зашифрованого диска передається через стандартний
+            ввід або змінну оточення - ніколи аргументом командного рядка.
+            Диск, який тримає хтось інший, <code>mount</code> відхилить: у
+            контейнера один власник одночасно.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="phones">
+        <h2>
+          <span data-l="ru">4. Что видят сопряжённые устройства</span
+          ><span data-l="en">4. What paired devices see</span
+          ><span data-l="ua">4. Що бачать сполучені пристрої</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Общий диск выглядит для телефона как ещё одна общая папка той
+            программы: файлы передаются по SFTP, и Windows SMB-шара при этом не
+            создаётся. Пока диск открыт, каждое сопряжённое устройство может
+            читать его файлы - даже если контейнер зашифрован, ведь он
+            разблокируется здесь, на компьютере, и никогда с телефона. По
+            умолчанию доступ только на чтение; запись - отдельный выбор при
+            регистрации. Закрытие диска или выключение компьютера прекращает
+            доступ. Сеансовый режим требует, чтобы вы вошли в систему;
+            серверная редакция держит общие диски доступными и без входа.</span
+          ><span data-l="en"
+            >To the phone, a shared disk looks like one more shared folder of
+            that program: the files travel over SFTP, and no Windows SMB share
+            is created. While the disk is open, every paired device can read
+            its files - even when the container is encrypted, because it is
+            unlocked here, on the computer, never from the phone. Access is
+            read-only by default; writing is a separate choice made at
+            registration. Closing the disk, or shutting the computer down,
+            ends the access. The session mode requires you to be signed in;
+            the Server edition keeps shared disks available with nobody signed
+            in.</span
+          ><span data-l="ua"
+            >Для телефона спільний диск виглядає як ще одна спільна папка тієї
+            програми: файли передаються через SFTP, і спільний ресурс SMB
+            Windows при цьому не створюється. Поки диск відкритий, кожен
+            сполучений пристрій може читати його файли - навіть коли контейнер
+            зашифрований, адже він розблоковується тут, на комп'ютері, і
+            ніколи з телефона. Типово доступ лише для читання; запис - окремий
+            вибір під час реєстрації. Закриття диска або вимкнення комп'ютера
+            припиняє доступ. Сеансовий режим потребує, щоб ви ввійшли в
+            систему; серверна редакція тримає спільні диски доступними і без
+            входу.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="unavailable">
+        <h2>
+          <span data-l="ru">5. Когда общий доступ недоступен</span
+          ><span data-l="en">5. When sharing is unavailable</span
+          ><span data-l="ua">5. Коли спільний доступ недоступний</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Каждое из этих сообщений оставляет диск нетронутым: ничего не
+            подключено и не изменено. Сообщение называет причину, а не
+            приговор - ниже действие для каждой.</span
+          ><span data-l="en"
+            >Each of these messages leaves the disk untouched: nothing is
+            mounted and nothing is changed. The message names a cause, not a
+            verdict - the action for each is below.</span
+          ><span data-l="ua"
+            >Кожне з цих повідомлень залишає диск неторканим: нічого не
+            підключено і не змінено. Повідомлення називає причину, а не
+            вирок - нижче дія для кожної.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru"
+                >«FMS работает, но шаринг дисков недоступен»</span
+              ><span data-l="en"
+                >&ldquo;FMS is running but disk sharing is unavailable&rdquo;</span
+              ><span data-l="ua"
+                >«FMS працює, але спільний доступ до дисків недоступний»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Обновите Fast Media Sorter &amp; Sharing и проверьте
+                дополнительный компонент дисков FileDO в её установщике - без
+                него программа не умеет держать диски. Затем повторите
+                проверку в Диспетчере дисков.</span
+              ><span data-l="en"
+                >Update Fast Media Sorter &amp; Sharing and check its
+                installer's optional FileDO disk component - without it, the
+                program cannot hold disks. Then recheck in the Disk
+                Manager.</span
+              ><span data-l="ua"
+                >Оновіть Fast Media Sorter &amp; Sharing і перевірте додатковий
+                компонент дисків FileDO в її інсталяторі - без нього програма
+                не вміє тримати диски. Потім повторіть перевірку в Диспетчері
+                дисків.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">«Worker FMS недоступен»</span
+              ><span data-l="en">&ldquo;The FMS worker is unavailable&rdquo;</span
+              ><span data-l="ua">«Worker FMS недоступний»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >FileDO не отличает отсутствующую программу от остановленной.
+                Откройте Fast Media Sorter &amp; Sharing и её Share Manager
+                вручную, затем повторите проверку. Если программы нет - откройте
+                <a
+                  href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+                  target="_blank"
+                  rel="noopener"
+                  >страницу установки</a
+                >.</span
+              ><span data-l="en"
+                >FileDO cannot tell an absent program from a stopped one. Open
+                Fast Media Sorter &amp; Sharing and its Share Manager manually,
+                then recheck. If the program is not installed, open the
+                <a
+                  href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+                  target="_blank"
+                  rel="noopener"
+                  >installation page</a
+                >.</span
+              ><span data-l="ua"
+                >FileDO не відрізняє відсутню програму від зупиненої. Відкрийте
+                Fast Media Sorter &amp; Sharing і її Share Manager вручну,
+                потім повторіть перевірку. Якщо програми немає - відкрийте
+                <a
+                  href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+                  target="_blank"
+                  rel="noopener"
+                  >сторінку встановлення</a
+                >.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">«Подлинность worker не подтверждена»</span
+              ><span data-l="en"
+                >&ldquo;The worker identity could not be verified&rdquo;</span
+              ><span data-l="ua">«Автентичність worker не підтверджена»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Пароль при этом не отправлялся. Перезапустите установленный
+                хост FMS и повторите попытку.</span
+              ><span data-l="en"
+                >No password was sent. Restart the installed FMS host and
+                retry.</span
+              ><span data-l="ua"
+                >Пароль при цьому не надсилався. Перезапустіть установлений
+                хост FMS і повторіть спробу.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">«Ответ FMS неполон или несовместим»</span
+              ><span data-l="en"
+                >&ldquo;The FMS reply is incomplete or incompatible&rdquo;</span
+              ><span data-l="ua">«Відповідь FMS неповна або несумісна»</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Версии двух программ разошлись. Обновите обе - FileDO и Fast
+                Media Sorter &amp; Sharing - и повторите попытку.</span
+              ><span data-l="en"
+                >The two programs' versions have drifted apart. Update both -
+                FileDO and Fast Media Sorter &amp; Sharing - and retry.</span
+              ><span data-l="ua"
+                >Версії двох програм розійшлися. Оновіть обидві - FileDO і
+                Fast Media Sorter &amp; Sharing - і повторіть спробу.</span
+              >
+            </p>
+          </article>
+        </div>
+        <p class="intro">
+          <span data-l="ru"
+            >Если шаг из нескольких упал на середине, выполненное сохраняется:
+            обновите список дисков, повторите оставшееся действие или
+            прекратите общий доступ - и только после этого явно возвращайте
+            локальное подключение и прежнюю автоматическую политику. Не
+            восстанавливайте локальное подключение, пока неизвестно, кто
+            держит диск.</span
+          ><span data-l="en"
+            >If a step in a sequence fails halfway, what completed remains:
+            refresh the disk list, retry the remaining action, or stop sharing
+            - and only then explicitly restore local mounting and its prior
+            automatic policy. Do not restore local mounting while the holder of
+            the disk is unknown.</span
+          ><span data-l="ua"
+            >Якщо крок із кількох упав посередині, виконане зберігається:
+            оновіть список дисків, повторіть решту дій або припиніть спільний
+            доступ - і лише після цього явно повертайте локальне підключення
+            та попередню автоматичну політику. Не відновлюйте локальне
+            підключення, поки невідомо, хто тримає диск.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="privacy">
+        <h2>
+          <span data-l="ru">6. Что хранится и что защищено</span
+          ><span data-l="en">6. What is stored and what is protected</span
+          ><span data-l="ua">6. Що зберігається і що захищено</span>
+        </h2>
+        <ul>
+          <li>
+            <span data-l="ru"
+              ><b>Пароль никогда не уходит с компьютера.</b> Зашифрованный
+              диск разблокируется здесь и только здесь; сопряжённое устройство
+              получает файлы, а не пароль. Пароль не пишется ни в какой список
+              и не появляется в командной строке.</span
+            ><span data-l="en"
+              ><b>The password never leaves the computer.</b> An encrypted disk
+              is unlocked here and only here; a paired device receives files,
+              not the password. The password is written to no list and never
+              appears on a command line.</span
+            ><span data-l="ua"
+              ><b>Пароль ніколи не йде з комп'ютера.</b> Зашифрований диск
+              розблоковується тут і лише тут; сполучений пристрій отримує
+              файли, а не пароль. Пароль не пишеться ні в який список і не
+              з'являється в командному рядку.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Ключ автозапуска - отдельное согласие.</b> Он хранится на
+              этом компьютере, защищённым для той программы, и удаляется, когда
+              вы выключаете автозапуск, прекращаете доступ или меняете пароль
+              диска.</span
+            ><span data-l="en"
+              ><b>The autostart key is a separate consent.</b> It is kept on
+              this computer, protected for that program, and removed when you
+              turn autostart off, stop sharing, or change the disk's
+              password.</span
+            ><span data-l="ua"
+              ><b>Ключ автозапуску - окрема згода.</b> Він зберігається на цьому
+              комп'ютері, захищеним для тієї програми, і видаляється, коли ви
+              вимикаєте автозапуск, припиняєте доступ або змінюєте пароль
+              диска.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Список общих дисков без секретов.</b> FileDO записывает в
+              свою папку состояния путь контейнера, имя папки и отметки
+              «только чтение» и «автозапуск». Пароль сюда никогда не
+              пишется.</span
+            ><span data-l="en"
+              ><b>The list of shared disks carries no secrets.</b> FileDO writes
+              the container's path, the folder name, and the read-only and
+              autostart marks to its state folder. A password is never written
+              there.</span
+            ><span data-l="ua"
+              ><b>Список спільних дисків без секретів.</b> FileDO записує до
+              своєї теки стану шлях контейнера, назву папки й позначки «лише
+              читання» й «автозапуск». Пароль сюди ніколи не пишеться.</span
+            >
+          </li>
+        </ul>
+        <p class="intro">
+          <span data-l="ru"
+            >Полностью это разобрано в <a href="../privacy.html">политике
+            приватности</a>. Дальше по дискам - в
+            <a href="virtual-disks.html">руководстве по виртуальным дискам</a>,
+            дальше по самой программе - на
+            <a
+              href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+              target="_blank"
+              rel="noopener"
+              >её странице</a
+            >.</span
+          ><span data-l="en"
+            >The full picture is in the
+            <a href="../privacy.html">privacy policy</a>. Further on disks - in
+            the <a href="virtual-disks.html">virtual disks guide</a>; further on
+            the other program - on
+            <a
+              href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+              target="_blank"
+              rel="noopener"
+              >its page</a
+            >.</span
+          ><span data-l="ua"
+            >Повністю це розібрано в <a href="../privacy.html">політиці
+            приватності</a>. Далі про диски - у
+            <a href="virtual-disks.html">посібнику з віртуальних дисків</a>,
+            далі про саму програму - на
+            <a
+              href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+              target="_blank"
+              rel="noopener"
+              >її сторінці</a
+            >.</span
+          >
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><span
+            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
+          >
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Общий доступ к дискам FileDO через Fast Media Sorter",
+          description:
+            "Как открыть диск FileDO для сопряжённых телефонов через Fast Media Sorter & Sharing: регистрация, пароли, восстановление и что хранится.",
+        },
+        en: {
+          title: "Sharing FileDO disks with Fast Media Sorter",
+          description:
+            "Step by step: share a FileDO virtual disk to paired phones through Fast Media Sorter & Sharing, and what to do when sharing is unavailable.",
+        },
+        ua: {
+          title: "Спільний доступ до дисків FileDO через Fast Media Sorter",
+          description:
+            "Як відкрити диск FileDO для сполучених телефонів через Fast Media Sorter & Sharing: реєстрація, паролі, відновлення і що зберігається.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

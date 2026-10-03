@@ -102,3 +102,14 @@ fdsec	verify	p:x	c.fd-sec	=>	fdsec	verify	p:***	***
 x	info	p:x	=>	x	info	p:***
 # AUD-52-F1 (SP-0064): a verb-first container slot that names nothing and is followed by another token may be the password.
 fdsec	verify	hunter2	c.fd-sec	=>	fdsec	verify	***	***
+# The FMS share surface (SP-0121, AUD-83-F1): the new verbs and mount words, kept; a credential after them, screened.
+C:\v.fdd	mount	keep	=>	C:\v.fdd	mount	keep
+C:\v.fdd	mount	noletter	worker	stdin	=>	C:\v.fdd	mount	noletter	worker	stdin
+C:\v.fdd	mount	noletter	worker	stdin	ro	=>	C:\v.fdd	mount	noletter	worker	stdin	ro
+vd	share	C:\v.fdd	on	as	Root	ro	=>	vd	share	C:\v.fdd	on	as	Root	ro
+vd	autostart	C:\v.fdd	on	consent	p:x	=>	vd	autostart	C:\v.fdd	on	consent	p:***
+vd	guard	on	=>	vd	guard	on
+vd	open	C:\v.fdd	stdin	=>	vd	open	C:\v.fdd	stdin
+vd	open	C:\v.fdd	p:secret	=>	vd	open	C:\v.fdd	p:***
+vd	close	C:\v.fdd	wait	30	force	=>	vd	close	C:\v.fdd	wait	30	force
+C:\v.fdd	close	force	=>	C:\v.fdd	close	force

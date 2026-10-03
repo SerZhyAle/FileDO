@@ -115,14 +115,18 @@ Public Class GlyphButton
         Dim gp = GlyphPx()
         Dim cap = CaptionSize()
         Dim border = 1
+        ' ICON-RENDER rule 3.5: a Windows hit target is at least 28 logical px under a mouse or a pen.
+        ' The padding rounds down at some scalings (a 16 px tier came out at 27.2 logical px at 125 %),
+        ' so the floor is stated here rather than left to the rounding.
+        Dim floorPx = Ui.Px(Me, 28)
         If iconOnlyValue Then
-            Dim side = gp + 2 * Ui.Px(Me, 5) + 2 * border
+            Dim side = Math.Max(gp + 2 * Ui.Px(Me, 5) + 2 * border, floorPx)
             Return New Size(side, side)
         End If
         Dim content = gp + cap.Width
         If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 6)
         Dim w = content + 2 * Ui.Px(Me, 8) + 2 * border
-        Dim h = Math.Max(gp, cap.Height) + 2 * Ui.Px(Me, 5) + 2 * border
+        Dim h = Math.Max(Math.Max(gp, cap.Height) + 2 * Ui.Px(Me, 5) + 2 * border, floorPx)
         Return New Size(w, h)
     End Function
 

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // infoTree builds a scratch folder with enough entries that a walk which
@@ -70,5 +72,88 @@ func TestInfoShortWalksOnce(t *testing.T) {
 	runGenericCommand(flag.NewFlagSet("folder", flag.ContinueOnError), CommandFolder, []string{dir, "short"}, NewHistoryLogger(nil))
 	if walks != 1 {
 		t.Fatalf("folder short walked the tree %d times, want 1", walks)
+	}
+}
+
+// TestWalkInfoTreeCompletedAndStopped is SP-0128 T4: a completed walk returns the
+// exact counts, and a stop requested during the walk returns within two seconds
+// with errRunStopped and partial totals.
+func TestWalkInfoTreeCompletedAndStopped(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "deep_tree")
+	const numDirs = 40
+	const filesPerDir = 50
+	for i := 0; i < numDirs; i++ {
+		sub := filepath.Join(dir, fmt.Sprintf("d%02d", i))
+		if err := os.MkdirAll(sub, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for j := 0; j < filesPerDir; j++ {
+			if err := os.WriteFile(filepath.Join(sub, fmt.Sprintf("f%d.txt", j)), []byte("data"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	// 1. Completed walk returns exact count
+	totals, err := walkInfoTree(dir, false)
+	if err != nil {
+		t.Fatalf("completed walk failed: %v", err)
+	}
+	if totals.files != numDirs*filesPerDir || totals.folders != numDirs {
+		t.Fatalf("completed walk totals = %d files, %d folders; want %d files, %d folders",
+			totals.files, totals.folders, numDirs*filesPerDir, numDirs)
+	}
+
+	// 2. Stopped walk returns partial count and errRunStopped within two seconds
+	stopHandler := NewInterruptHandler()
+	prevHandler := globalInterruptHandler
+	globalInterruptHandler = stopHandler
+	defer func() { globalInterruptHandler = prevHandler }()
+
+	saved := infoWalkStarted
+	infoWalkStarted = func(root string) {
+		go func() {
+			time.Sleep(2 * time.Millisecond)
+			stopHandler.Interrupt()
+		}()
+	}
+	defer func() { infoWalkStarted = saved }()
+
+	start := time.Now()
+	stoppedTotals, walkErr := walkInfoTree(dir, false)
+	took := time.Since(start)
+
+	if took > 2*time.Second {
+		t.Errorf("stopped walk took %v, want <= 2s", took)
+	}
+	if !errors.Is(walkErr, errRunStopped) {
+		t.Errorf("stopped walk err = %v, want errRunStopped", walkErr)
+	}
+	t.Logf("stopped walk returned partial totals: %d files, %d folders", stoppedTotals.files, stoppedTotals.folders)
+}
+
+// TestDeviceInfoObservesStopFile is SP-0128: `device <X:> info` prints quick
+// facts first, stops gracefully within two seconds on --stop-file, prints
+// partial totals labelled "Full Contains (partial):", and ends Stopped exit 0.
+func TestDeviceInfoObservesStopFile(t *testing.T) {
+	wd := t.TempDir()
+	stop := filepath.Join(wd, "run.stop")
+	if err := os.WriteFile(stop, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	events := filepath.Join(wd, "devinfo.ev.jsonl")
+	out, code := run(t, wd, "--events", events, "--stop-file", stop, "device", "C:", "info")
+	if code != 0 {
+		t.Fatalf("stopped device info exited %d, want 0\n%s", code, out)
+	}
+	if !strings.Contains(out, "Information for device: C:") {
+		t.Errorf("quick facts not printed before stop\n%s", out)
+	}
+	if !strings.Contains(out, "Full Contains (partial):") {
+		t.Errorf("output missing 'Full Contains (partial):'\n%s", out)
+	}
+	if v := lastResult(t, events)["verdict"]; v != "Stopped" {
+		t.Errorf("verdict %v, want Stopped\n%s", v, out)
 	}
 }

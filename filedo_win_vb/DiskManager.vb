@@ -29,7 +29,7 @@ Imports System.Threading.Tasks
 '   A credential is asked per operation and lives only in the child's environment, as
 '   FILEDO_SHELL_CRED, for the life of that run (spec 7.1) - never in a log, the snapshot, the strip,
 '   a tooltip or history.json.
-Public Class DiskManagerForm
+Partial Public Class DiskManagerForm
     Inherits Form
 
     ' A job page to open in the shell, on a target, with a preset (spec 7.3).
@@ -39,8 +39,13 @@ Public Class DiskManagerForm
     ' round, the shell has its own button that opens this window (ShellForm.BuildHeader).
     Public Event ShellRequested()
 
-    Private Const MinWidth As Integer = 720
-    Private Const MinHeight As Integer = 420
+    ' The smallest the window may be made, in design pixels - and never more than the working area
+    ' of its screen (WindowPlacement.MinimumFor). Below what the pieces need, the window scrolls.
+    Friend Const MinWidth As Integer = 700
+    Friend Const MinHeight As Integer = 480
+    ' The list is the window's point: whatever else is open, it is given this much height (design
+    ' pixels, about four rows and the heading) and the window scrolls for the rest.
+    Private Const ListMinHeight As Integer = 150
     Private Const PollMs As Integer = 5000
     Private Const SettleMs As Integer = 400
 
@@ -61,19 +66,24 @@ Public Class DiskManagerForm
         Auto
         Path
         Since
+        ' SP-0148: File or Partition - where the container's bytes live. Last, so a saved layout of
+        ' the columns before it keeps its widths.
+        Carrier
     End Enum
 
     Private Shared ReadOnly ColumnKeys As String() = {
         "vd_col_name", "vd_col_drive", "vd_col_state", "vd_col_profile", "vd_mgr_col_protection",
-        "vd_col_size", "vd_mgr_col_auto", "vd_col_file", "vd_mgr_col_since"}
-    Private Shared ReadOnly ColumnDesign As Integer() = {140, 52, 210, 64, 96, 64, 72, 0, 0}
-    Private Shared ReadOnly ColumnShown As Integer() = {150, 56, 240, 70, 100, 76, 72, 280, 140}
+        "vd_col_size", "vd_mgr_col_auto", "vd_col_file", "vd_mgr_col_since", "vd_mgr_col_carrier"}
+    Private Shared ReadOnly ColumnDesign As Integer() = {140, 52, 210, 64, 96, 64, 72, 0, 0, 72}
+    Private Shared ReadOnly ColumnShown As Integer() = {150, 56, 240, 70, 100, 76, 72, 280, 140, 80}
 
     ' The toolbar's own row actions and the detail pane's buttons, in the order they are offered.
     Private Shared ReadOnly DetailActions As DiskAction() = {
         DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.Unmount, DiskAction.UnmountImage, DiskAction.OpenDrive,
         DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.AutoOn, DiskAction.AutoOff,
-        DiskAction.Autostart, DiskAction.AddToList, DiskAction.ChangePassword}
+        DiskAction.Autostart, DiskAction.AddToList, DiskAction.ChangePassword, DiskAction.ImageToFile,
+        DiskAction.ShareDisk, DiskAction.OpenShared, DiskAction.CloseShared, DiskAction.UnshareDisk,
+        DiskAction.ShareAutoOn, DiskAction.ShareAutoOff}
     Private Shared ReadOnly ToolbarRowActions As DiskAction() = {
         DiskAction.Mount, DiskAction.Unmount, DiskAction.OpenDrive, DiskAction.SaveNow}
 
@@ -153,6 +163,11 @@ Public Class DiskManagerForm
         Public Env As Dictionary(Of String, String)
         Public Run As Runner
         Public Stopped As Boolean
+        ' SP-0148: a run that changes a disk's layout or a partition's name reads the disk list again.
+        Public ChangesDisks As Boolean
+        Public SharingSteps As List(Of DiskSharingStep)
+        Public CompletedSharing As New List(Of String)
+        Public SharingFailure As String = ""
     End Class
 
     Private ReadOnly queue As New List(Of DiskOp)
@@ -214,9 +229,10 @@ Public Class DiskManagerForm
         SuspendLayout()
         Text = L("vd_mgr_title")
         AutoScaleMode = AutoScaleMode.Font
-        MinimumSize = Ui.PxSize(Me, MinWidth, MinHeight)
-        Size = Ui.PxSize(Me, 980, 600)
+        MinimumSize = WindowPlacement.MinimumFor(Me, MinWidth, MinHeight)
+        Size = WindowPlacement.FitMinimum(Ui.PxSize(Me, 980, 600), Screen.PrimaryScreen.WorkingArea.Size)
         StartPosition = FormStartPosition.CenterScreen
+        AutoScroll = True
         KeyPreview = True
         DoubleBuffered = True
         ShowInTaskbar = True
@@ -256,7 +272,14 @@ Public Class DiskManagerForm
         detailPanel.TabIndex = 3
         detailBar.TabIndex = 4
         strip.TabIndex = 5
+        ' Everything above and below the list is as tall as its content needs, so in a short window the
+        ' list was what gave way - to nothing, under two rows of buttons and the detail text. The
+        ' list keeps a floor and the window scrolls instead (compact screens).
+        For Each c As Control In New Control() {toolbar, filterUnit, detailPanel, detailBar, strip}
+            AddHandler c.SizeChanged, Sub() KeepListRoom()
+        Next
         ResumeLayout(True)
+        KeepListRoom()
     End Sub
 
     ' A button with a glyph and its caption, painted in the palette (GlyphButton). The tooltip and the
@@ -318,7 +341,7 @@ Public Class DiskManagerForm
         AddHandler helpBtn.Click, Sub() helpMenu.Show(helpBtn, 0, helpBtn.Height)
         ' The way to the main window: the product's own mark and its name, at the end of the toolbar.
         mainBtn = NewGlyphButton("vd_mgr_btn_main", Nothing, 24)
-        mainBtn.Picture = DiskManagerIcon.Mark(Ui.Px(Me, 24))
+        mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
         AddHandler mainBtn.Click, Sub() RaiseEvent ShellRequested()
 
         ' The filter: its label, its box and the cross that clears it, one unit - a row of its own under
@@ -604,6 +627,7 @@ Public Class DiskManagerForm
         addItem.Image = MenuImage(DiskGlyphs.For(DiskAction.AddToList), True, False)
         spaceMenu.Items.Add(addItem)
         If Not DiskStates.HiddenInBuild(DiskAction.MountImage, Context()) Then spaceMenu.Items.Add(MenuItem(DiskAction.MountImage, Nothing))
+        If Not DiskStates.HiddenInBuild(DiskAction.Adopt, Context()) Then spaceMenu.Items.Add(MenuItem(DiskAction.Adopt, Nothing))
         spaceMenu.Items.Add(New ToolStripSeparator())
         spaceMenu.Items.Add(MenuItem(DiskAction.Refresh, Nothing))
         ThemeMenu(spaceMenu)
@@ -677,7 +701,7 @@ Public Class DiskManagerForm
     End Function
 
     Private Function Matches(r As DiskRecord, needle As String) As Boolean
-        For Each hay In New String() {DisplayName(r), r.Path, r.Letter, RowStateText(r), r.Profile}
+        For Each hay In New String() {DisplayName(r), r.Path, r.Letter, RowStateText(r), r.Profile, r.PartitionPlace, CarrierText(r)}
             If hay IsNot Nothing AndAlso hay.IndexOf(needle, StringComparison.CurrentCultureIgnoreCase) >= 0 Then Return True
         Next
         Return False
@@ -695,6 +719,7 @@ Public Class DiskManagerForm
             Case Col.Auto : c = a.AutoMount.CompareTo(b.AutoMount)
             Case Col.Path : c = String.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase)
             Case Col.Since : c = Nullable.Compare(a.MountedAt, b.MountedAt)
+            Case Col.Carrier : c = String.Compare(a.Carrier, b.Carrier, StringComparison.Ordinal)
             Case Else : c = String.Compare(DisplayName(a), DisplayName(b), StringComparison.CurrentCultureIgnoreCase)
         End Select
         If c = 0 Then c = DiskStates.DefaultOrder(a, b)
@@ -742,8 +767,15 @@ Public Class DiskManagerForm
             DiskStates.ProtectionText(r, dict),
             If(r.IsImage OrElse r.LogicalSize <= 0, "-", DiskStates.SizeText(r.LogicalSize)),
             If(r.AutoMount, L("vd_mgr_auto_yes"), ""),
-            r.Path,
-            since}
+            If(r.IsPartition, r.PartitionPlace, r.Path),
+            since,
+            CarrierText(r)}
+    End Function
+
+    ' The Carrier column (SP-0148 10): the same disk glyph for both, told apart by this word.
+    Private Function CarrierText(r As DiskRecord) As String
+        If r.IsImage Then Return ""
+        Return L(If(r.IsPartition, "vd_part_carrier_partition", "vd_part_carrier_file"))
     End Function
 
     ' The whole view from what the window knows: the list (updated in place when the rows are the
@@ -864,7 +896,8 @@ Public Class DiskManagerForm
         Return New DiskContext With {
             .Packaged = snapshot.Packaged OrElse Packaging.IsPackaged(),
             .TransportReady = snapshot.TransportReady,
-            .TransportReason = snapshot.TransportReason
+            .TransportReason = snapshot.TransportReason,
+            .FMSAvailability = If(staleKey = "", snapshot.FMSAvailability, "unknown")
         }
     End Function
 
@@ -952,7 +985,56 @@ Public Class DiskManagerForm
         detailOpenState = open
         detailPanel.Visible = open
         detailBar.Visible = Not open
+        KeepListRoom()
     End Sub
+
+    ' The window's scrolling floor: what every part that is not the list needs, plus the list's own
+    ' least height. Equal to the client height or less, there is no scroll bar and nothing changes.
+    ' The parts change height inside the root's own layout pass (a wrapped toolbar, a longer detail
+    ' text), and the scroll floor they set resizes that same root: done there and then, the table is
+    ' left laid out for the old height. So the floor is set once the pass is over.
+    Private listRoomPending As Boolean = False
+
+    Private Sub KeepListRoom()
+        If toolbar Is Nothing OrElse strip Is Nothing OrElse detailPanel Is Nothing OrElse listHost Is Nothing Then Return
+        If Not IsHandleCreated Then
+            ApplyListRoom()
+            Return
+        End If
+        If listRoomPending Then Return
+        listRoomPending = True
+        BeginInvoke(New MethodInvoker(Sub()
+                                          listRoomPending = False
+                                          If Not IsDisposed Then ApplyListRoom()
+                                      End Sub))
+    End Sub
+
+    Private Sub ApplyListRoom()
+        Dim need = Ui.Px(Me, ListMinHeight) + listHost.Padding.Vertical
+        For Each c As Control In New Control() {toolbar, filterUnit, strip, If(detailOpenState, CType(detailPanel, Control), detailBar)}
+            need += c.Height + c.Margin.Vertical
+        Next
+        If AutoScrollMinSize.Height = need Then Return
+        AutoScrollMinSize = New Size(0, need)
+        root.PerformLayout()
+    End Sub
+
+    ' The self-test's view: the height the list has been given.
+    Friend ReadOnly Property ListHeightForTest As Integer
+        Get
+            Return list.Height
+        End Get
+    End Property
+
+    ' Where the window's height goes, for a failing row's detail.
+    Friend ReadOnly Property HeightReportForTest As String
+        Get
+            Return "client " & ClientSize.Height.ToString() & ", floor " & AutoScrollMinSize.Height.ToString() & ", toolbar " & toolbar.Height.ToString() &
+                   ", filter " & filterUnit.Height.ToString() & ", detail " & If(detailOpenState, detailPanel.Height, detailBar.Height).ToString() &
+                   ", strip " & strip.Height.ToString() & ", list " & list.Height.ToString() & ", root " & root.Height.ToString() &
+                   ", rows " & String.Join("/", root.GetRowHeights().Select(Function(n) n.ToString()).ToArray())
+        End Get
+    End Property
 
     ' The detail pane's buttons as they stand, so a refresh that changes nothing rebuilds nothing -
     ' a button rebuilt every five seconds would take the focus away from the keyboard user on it.
@@ -971,7 +1053,8 @@ Public Class DiskManagerForm
             lines.Add(L("vd_mgr_detail_many"))
         Else
             Dim r = sel(0)
-            title = DisplayName(r) & "  -  " & r.Path
+            Dim where = If(r.IsPartition, If(r.PartitionPlace <> "", r.PartitionPlace, L("vd_part_carrier_partition")), r.Path)
+            title = DisplayName(r) & "  -  " & where
             lines.AddRange(DetailSentences(r))
         End If
         If detailTitle.Text <> title Then detailTitle.Text = title
@@ -1030,7 +1113,16 @@ Public Class DiskManagerForm
         Dim allImages = rows.All(Function(r) r.IsImage)
         Dim anyImage = rows.Any(Function(r) r.IsImage)
         Select Case a
-            Case DiskAction.UnmountImage, DiskAction.OpenDrive, DiskAction.ShowInFolder, DiskAction.CopyPath
+            Case DiskAction.ShareDisk : Return rows.Count = 1 AndAlso Not rows(0).IsShared AndAlso Not rows(0).IsImage
+            Case DiskAction.OpenShared, DiskAction.CloseShared, DiskAction.UnshareDisk : Return rows.Count = 1 AndAlso rows(0).IsShared
+            Case DiskAction.ShareAutoOn : Return rows.Count = 1 AndAlso rows(0).IsShared AndAlso Not rows(0).Autostart
+            Case DiskAction.ShareAutoOff : Return rows.Count = 1 AndAlso rows(0).IsShared AndAlso rows(0).Autostart
+            Case DiskAction.ShowInFolder
+                ' A partition disk has no file to show (SP-0148).
+                Return Not rows.Any(Function(r) r.IsPartition)
+            Case DiskAction.ImageToFile
+                Return rows.Count = 1 AndAlso rows(0).IsPartition
+            Case DiskAction.UnmountImage, DiskAction.OpenDrive, DiskAction.CopyPath
                 Return a <> DiskAction.UnmountImage OrElse allImages
             Case DiskAction.AutoOn
                 Return rows.Count = 1 AndAlso rows(0).Registered AndAlso Not rows(0).AutoMount
@@ -1058,9 +1150,17 @@ Public Class DiskManagerForm
             Return out
         End If
         If Not r.Registered Then out.Add(L("vd_mgr_detail_unregistered"))
+        ' SP-0148: a partition disk says where it is, by what it is addressed, and the facts of 4.7
+        ' that touch its use.
+        If r.IsPartition Then
+            If r.PartitionDetail <> "" Then out.Add(r.PartitionDetail)
+            If r.Locator <> "" Then out.Add(Localization.Format(L("vd_part_detail_locator_fmt"), r.Locator))
+            out.Add(LText("vd_part_detail_consent"))
+            out.Add(LText("vd_part_detail_refusals"))
+        End If
         Select Case r.FileState
-            Case "missing" : out.Add(L("vd_mgr_detail_missing"))
-            Case "different" : out.Add(L("vd_mgr_detail_different"))
+            Case "missing" : out.Add(L(If(r.IsPartition, "vd_part_detail_missing", "vd_mgr_detail_missing")))
+            Case "different" : out.Add(L(If(r.IsPartition, "vd_part_detail_different", "vd_mgr_detail_different")))
             Case "unreadable" : out.Add(Localization.Format(L("vd_mgr_detail_unreadable_fmt"), r.FileError))
         End Select
         Select Case r.Protection
@@ -1083,6 +1183,9 @@ Public Class DiskManagerForm
             out.Add(Localization.Format(L("vd_mgr_detail_last_save_fmt"), WhenText(r.LastGoodSave)))
         End If
         If r.Registered Then out.Add(L(If(r.AutoMount, "vd_mgr_detail_auto_on", "vd_mgr_detail_auto_off")))
+        out.AddRange(DiskStates.SharedSentences(r, dict))
+        If r.IsShared AndAlso snapshot IsNot Nothing AndAlso snapshot.FMSAvailability = "ready" AndAlso
+            (snapshot.FMSMode = "session" OrElse snapshot.FMSMode = "service") Then out.Add(L("vd_share_host_" & snapshot.FMSMode))
         Dim info As String = Nothing
         If infoByKey.TryGetValue(r.Key, info) AndAlso info <> "" Then
             out.Add(L("vd_mgr_detail_info_title"))
@@ -1201,6 +1304,12 @@ Public Class DiskManagerForm
     Private Sub ApplyRead(s As DiskSnapshot, problem As String)
         If s IsNot Nothing Then
             snapshot = s
+            ' SP-0148: each partition row's disk and extent, from the last disk list; the first row of
+            ' a partition disk asks for one.
+            If s.Disks.Any(Function(d) d.IsPartition) Then
+                PartitionCommands.Join(disksDoc, s.Disks, dict)
+                If disksDoc Is Nothing AndAlso Not disksTried Then RequestDisksRead()
+            End If
             lastGoodAt = DateTime.Now
             staleKey = ""
             If watcher Is Nothing AndAlso Visible Then StartWatcher()
@@ -1285,6 +1394,25 @@ Public Class DiskManagerForm
     Friend Sub Perform(a As DiskAction)
         Dim sel = SelectedRecords()
         If DiskStates.WhyNotAll(a, sel, StatesOf(sel), Context()) <> "" Then Return
+        If DiskStates.IsSharing(a) Then
+            PrepareSharing(a, sel(0))
+            Return
+        End If
+        ' SP-0148: a new disk is first a choice of where it lives; a partition disk is deleted by its
+        ' typed name here (its job page works on files); a found partition is adopted here.
+        Select Case a
+            Case DiskAction.NewDisk
+                ChooseNewDisk()
+                Return
+            Case DiskAction.Adopt
+                OpenAdopt()
+                Return
+            Case DiskAction.Destroy
+                If sel.Count = 1 AndAlso sel(0).IsPartition Then
+                    DestroyPartition(sel(0))
+                    Return
+                End If
+        End Select
         Select Case DiskStates.KindOf(a)
             Case DiskActionKind.Local
                 DoLocal(a, sel)
@@ -1312,7 +1440,8 @@ Public Class DiskManagerForm
                     Ui.OpenFolder(Me, r.Letter & "\")
                 Next
             Case DiskAction.CopyPath
-                Ui.CopyText(Me, String.Join(Environment.NewLine, sel.Select(Function(r) r.Path).ToArray()))
+                ' A partition disk has no path: its locator is what addresses it.
+                Ui.CopyText(Me, String.Join(Environment.NewLine, sel.Select(Function(r) If(r.IsPartition, r.Locator, r.Path)).ToArray()))
             Case DiskAction.ShowInFolder
                 Dim r = sel(0)
                 Try
@@ -1341,7 +1470,7 @@ Public Class DiskManagerForm
         Dim o As New DiskOptions()
         Select Case a
             Case DiskAction.MountAs
-                Using dlg As New DiskMountAsDialog(dict, DisplayName(sel(0)), Me)
+                Using dlg As New DiskMountAsDialog(dict, DisplayName(sel(0)), Me, sel(0).IsPartition)
                     If dlg.ShowDialog(Me) <> DialogResult.OK Then Return
                     o.Letter = dlg.Letter
                     o.ReadOnly = dlg.MountReadOnly
@@ -1355,28 +1484,29 @@ Public Class DiskManagerForm
                        "vd_mgr_btn_turn_off") <> 0 Then Return
             Case DiskAction.Forget
                 Dim names = String.Join(", ", sel.Select(Function(r) r.Name).ToArray())
-                If Ask("vd_mgr_confirm_forget_title", Localization.Format(LText("vd_mgr_confirm_forget_fmt"), names),
-                       "vd_mgr_btn_remove") <> 0 Then Return
+                If ShellDialog.Ask(Me, DestructiveDialogs.ForgetDisks(dict, names)) <> 0 Then Return
             Case DiskAction.AddToList
                 Dim name = AskName(sel(0).Path, sel(0).BaseName, force:=True)
                 If name = "" Then Return
                 o.Name = name
+            Case DiskAction.ImageToFile
+                Dim dest = AskImageFile(sel(0))
+                If dest = "" Then Return
+                o.Dest = dest
         End Select
 
         For Each r In sel
             Dim state = RowState(r)
-            Dim ro As New DiskOptions With {.Letter = o.Letter, .ReadOnly = o.ReadOnly, .NoScan = o.NoScan, .Name = o.Name}
+            Dim ro As New DiskOptions With {.Letter = o.Letter, .ReadOnly = o.ReadOnly, .NoScan = o.NoScan, .Name = o.Name, .Dest = o.Dest}
             ' A ram disk with unsaved data says so before it is unmounted (spec 6.1); the unmount
             ' saves it first, which is why it can take a while.
             If a = DiskAction.Unmount AndAlso state = DiskRowState.Unsaved Then
-                If Ask("vd_mgr_confirm_unmount_title", Localization.Format(LText("vd_mgr_confirm_unmount_ram_fmt"), DisplayName(r),
-                                                                          DiskStates.SizeText(r.RamDirty)), "vd_mgr_btn_unmount") <> 0 Then Continue For
+                If ShellDialog.Ask(Me, DestructiveDialogs.UnmountDirtyRam(dict, DisplayName(r), DiskStates.SizeText(r.RamDirty))) <> 0 Then Continue For
             End If
             ' A disk not closed cleanly is mounted knowingly: Windows checks it as after a power loss.
             If (a = DiskAction.Mount OrElse a = DiskAction.MountReadOnly OrElse a = DiskAction.MountAs) AndAlso
                state = DiskRowState.Unclean AndAlso Not ro.ReadOnly AndAlso a <> DiskAction.MountReadOnly Then
-                If Ask("vd_mgr_confirm_unclean_title", Localization.Format(LText("vd_mgr_confirm_unclean_fmt"), DisplayName(r)),
-                       "vd_mgr_btn_mount") <> 0 Then Continue For
+                If ShellDialog.Ask(Me, DestructiveDialogs.MountUnclean(dict, DisplayName(r))) <> 0 Then Continue For
             End If
             Dim env As Dictionary(Of String, String) = Nothing
             If DiskStates.AsksPassword(a, r) Then
@@ -1392,6 +1522,8 @@ Public Class DiskManagerForm
         Next
     End Sub
 
+    ' A plain question whose go answer is the default. A confirmation of a destructive action is not
+    ' asked here: it is a DestructiveDialogs spec, whose safe answer is the default.
     Private Function Ask(titleKey As String, text As String, goKey As String) As Integer
         Return ShellDialog.Ask(Me, L(titleKey), text, New String() {L(goKey), L("shell_btn_cancel")}, 1, 0)
     End Function
@@ -1444,6 +1576,169 @@ Public Class DiskManagerForm
         Enqueue(New DiskOp With {.Action = DiskAction.MountImage, .Record = r, .Args = DiskStates.QuickCommand(DiskAction.MountImage, r, Nothing)})
     End Sub
 
+    ' ---- partition disks (SP-0148 section 10) -------------------------------------
+
+    ' The last disk list `vd disks json` gave: it names each partition row's disk and extent, and it
+    ' is what the new-partition and adopt dialogs offer. Read when a partition row first appears,
+    ' when a dialog opens, and after an operation that changes a disk's layout.
+    Private disksDoc As VdDisksDoc = Nothing
+    Private disksReading As Boolean = False
+    Private disksTried As Boolean = False
+
+    Private Sub OpenNewFileJob()
+        RaiseEvent JobRequested(DiskStates.JobKeyOf(DiskAction.NewDisk), "", "")
+    End Sub
+
+    ' The first choice of a new disk: a file on a drive (the New page, as before) or a partition in
+    ' free disk space. The Store build has no partition disks and says so instead of offering them.
+    Friend Function NewDiskChoice(ByRef title As String, ByRef text As String) As String()
+        title = L("vd_part_new_choice_title")
+        If Context().Packaged Then
+            text = LText("vd_part_new_choice_store_text")
+            Return New String() {L("vd_part_btn_file"), L("shell_btn_cancel")}
+        End If
+        text = LText("vd_part_new_choice_text")
+        Return New String() {L("vd_part_btn_file"), L("vd_part_btn_partition"), L("shell_btn_cancel")}
+    End Function
+
+    Private Sub ChooseNewDisk()
+        Dim title = "", text = ""
+        Dim choices = NewDiskChoice(title, text)
+        Dim pick = ShellDialog.Ask(Me, title, text, choices, choices.Length - 1, 0)
+        If pick = 0 Then
+            OpenNewFileJob()
+        ElseIf pick = 1 AndAlso choices.Length = 3 Then
+            OpenNewPartition()
+        End If
+    End Sub
+
+    Private Shared Function ReadDisksOnce() As VdDisksDoc
+        Dim problem As String = ""
+        Return PartitionCommands.Read(problem)
+    End Function
+
+    ' One read of the disk list, kept and joined to the rows when it succeeds.
+    Private Async Function ReadDisksAsync() As Task(Of VdDisksDoc)
+        Dim doc = Await Task.Run(AddressOf ReadDisksOnce)
+        If doc IsNot Nothing AndAlso Not IsDisposed Then SetDisks(doc)
+        Return doc
+    End Function
+
+    Private Sub SetDisks(doc As VdDisksDoc)
+        disksDoc = doc
+        If snapshot IsNot Nothing Then PartitionCommands.Join(disksDoc, snapshot.Disks, dict)
+        RefreshView()
+    End Sub
+
+    ' A read in the background, at most one at a time, for the rows' places.
+    Private Async Sub RequestDisksRead()
+        If disksReading OrElse IsDisposed OrElse SuppressReads OrElse Not DiskProbe.Enabled OrElse Context().Packaged Then Return
+        disksReading = True
+        disksTried = True
+        Try
+            Await ReadDisksAsync()
+        Catch ex As Exception
+            ShellLog.Write("list the disks", ex)
+        Finally
+            disksReading = False
+        End Try
+    End Sub
+
+    ' The names the list holds already: a new name is never one of them.
+    Private Function TakenNames() As HashSet(Of String)
+        Dim taken As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+        If snapshot IsNot Nothing Then
+            For Each r In snapshot.Disks
+                If r.Registered AndAlso r.Name <> "" Then taken.Add(r.Name)
+            Next
+        End If
+        Return taken
+    End Function
+
+    Private Async Sub OpenNewPartition()
+        If Context().Packaged Then Return
+        UseWaitCursor = True
+        Dim doc As VdDisksDoc
+        Try
+            doc = Await ReadDisksAsync()
+        Finally
+            UseWaitCursor = False
+        End Try
+        If IsDisposed Then Return
+        If doc Is Nothing Then
+            ShellDialog.Notice(Me, L("vd_part_title"), L("vd_part_read_failed"))
+            Return
+        End If
+        If Not doc.Available Then
+            ShellDialog.Notice(Me, L("vd_part_title"), L("vd_part_store"))
+            Return
+        End If
+        Using dlg As New DiskNewPartitionDialog(dict, doc, TakenNames(), Me)
+            If dlg.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim args = dlg.CommandLine()
+            If args Is Nothing Then Return
+            Dim env As Dictionary(Of String, String) = Nothing
+            If dlg.HasCredential Then env = New Dictionary(Of String, String) From {{DiskCommands.CredentialEnvName, dlg.TakePassword()}}
+            Dim r As New DiskRecord With {.Name = dlg.ChosenName, .Carrier = "partition", .Locator = "new:" & dlg.ChosenName}
+            Enqueue(New DiskOp With {.Action = DiskAction.NewDisk, .Record = r, .Args = args, .Env = env, .ChangesDisks = True})
+        End Using
+    End Sub
+
+    Private Async Sub OpenAdopt()
+        If Context().Packaged Then Return
+        UseWaitCursor = True
+        Dim doc As VdDisksDoc
+        Try
+            doc = Await ReadDisksAsync()
+        Finally
+            UseWaitCursor = False
+        End Try
+        If IsDisposed Then Return
+        If doc Is Nothing Then
+            ShellDialog.Notice(Me, L("vd_part_adopt_title"), L("vd_part_read_failed"))
+            Return
+        End If
+        Dim found = doc.Unregistered()
+        If found.Count = 0 Then
+            ShellDialog.Notice(Me, L("vd_part_adopt_title"), L("vd_part_adopt_none"))
+            Return
+        End If
+        Using dlg As New DiskAdoptDialog(dict, found, TakenNames(), Me)
+            If dlg.ShowDialog(Me) <> DialogResult.OK Then Return
+            Dim r As New DiskRecord With {.Name = dlg.ChosenName, .Carrier = "partition", .Locator = "fdpart:{" & dlg.ChosenGuid & "}"}
+            Enqueue(New DiskOp With {.Action = DiskAction.Adopt, .Record = r, .Args = PartitionCommands.Adopt(dlg.ChosenGuid, dlg.ChosenName),
+                                     .ChangesDisks = True})
+        End Using
+    End Sub
+
+    ' Delete (spec 4.5): the disk's name typed in the window's own dialog, Cancel the default; the
+    ' console re-proves the partition's type and container id before it deletes anything.
+    Private Sub DestroyPartition(r As DiskRecord)
+        Using dlg As New DiskDestroyPartitionDialog(dict, r.Target, r.PartitionPlace, Me)
+            If dlg.ShowDialog(Me) <> DialogResult.OK Then Return
+            Enqueue(New DiskOp With {.Action = DiskAction.Destroy, .Record = r, .Args = PartitionCommands.Destroy(r.Target, dlg.Wipe),
+                                     .ChangesDisks = True})
+        End Using
+    End Sub
+
+    ' Image to file (spec 4.4): a new .fdd - never an existing one, which the console refuses too.
+    Private Function AskImageFile(r As DiskRecord) As String
+        Using dlg As New SaveFileDialog()
+            dlg.Title = L("vd_mgr_act_image")
+            dlg.Filter = DiskCommands.FileFilter(L("vd_filter_fdd"), "*.fdd", L("vd_filter_all"))
+            dlg.DefaultExt = "fdd"
+            dlg.AddExtension = True
+            dlg.OverwritePrompt = False
+            dlg.FileName = r.BaseName & ".fdd"
+            If dlg.ShowDialog(Me) <> DialogResult.OK Then Return ""
+            If IO.File.Exists(dlg.FileName) OrElse IO.Directory.Exists(dlg.FileName) Then
+                ShellDialog.Notice(Me, L("vd_mgr_act_image"), L("vd_part_image_exists"))
+                Return ""
+            End If
+            Return dlg.FileName
+        End Using
+    End Function
+
     ' ---- Autostart (SP-0080 5) ------------------------------------------------
 
     ' The open Autostart dialog, so a refresh of the window's own state is the dialog's too.
@@ -1467,7 +1762,14 @@ Public Class DiskManagerForm
                                            AddressOf RunGuardSwitch)
         AddHandler dlg.Disposed, Sub() autostartDlg = Nothing
         autostartDlg = dlg
-        dlg.ShowDialog(Me)
+        ' A form shown with ShowDialog is hidden, not disposed, when it closes: without this the held
+        ' dialog answers the next open with "already open" and shows nothing (AUD-88-F2).
+        Try
+            dlg.ShowDialog(Me)
+        Finally
+            autostartDlg = Nothing
+            dlg.Dispose()
+        End Try
     End Sub
 
     Private Function RegisteredRecordsForAutostart() As List(Of DiskRecord)
@@ -1561,7 +1863,11 @@ Public Class DiskManagerForm
 
         Dim res As Runner.RunResult = Nothing
         Try
-            res = Await op.Run.ExecuteAsync(op.Args, envVars:=op.Env)
+            If op.SharingSteps Is Nothing Then
+                res = Await op.Run.ExecuteAsync(op.Args, envVars:=op.Env)
+            Else
+                res = Await ExecuteSharing(op)
+            End If
         Catch ex As Exception
             ShellLog.Write("run a disk operation", ex)
         Finally
@@ -1574,10 +1880,17 @@ Public Class DiskManagerForm
         If AppHost.Current IsNot Nothing Then AppHost.Current.NotifyFinished()
         busy.Remove(op.Record.Key)
         ShowOutcome(op, res)
+        If op.SharingSteps IsNot Nothing Then
+            lastOutcome &= " " & Localization.Format(L("vd_share_progress_fmt"),
+                If(op.CompletedSharing.Count = 0, L("vd_share_none"), String.Join(", ", op.CompletedSharing.ToArray())),
+                If(op.SharingFailure = "", L("vd_share_finished"), L(op.SharingFailure)))
+            RefreshView()
+        End If
         op.Run.Dispose()
         If IsDisposed Then Return
         Pump()
         RequestRead()
+        If op.ChangesDisks Then RequestDisksRead()
         If closeWhenIdle AndAlso running.Count = 0 AndAlso queue.Count = 0 Then
             BeginInvoke(New MethodInvoker(AddressOf Close))
         End If
@@ -1657,9 +1970,11 @@ Public Class DiskManagerForm
         If AppHost.Current IsNot Nothing Then AppHost.Current.Restored(Me)
     End Sub
 
+    ' The tray's count of mounted disks - the containers Unmount all acts on, not the images the user
+    ' mounted in Explorer (AUD-85-F3). The window's own status line counts every drive, as before.
     Friend ReadOnly Property MountedCount As Integer
         Get
-            Return If(snapshot Is Nothing, 0, snapshot.MountedCount)
+            Return If(snapshot Is Nothing, 0, snapshot.Disks.Where(Function(r) r.IsMounted AndAlso Not r.IsImage).Count())
         End Get
     End Property
     Friend ReadOnly Property JobCount As Integer
@@ -1674,11 +1989,31 @@ Public Class DiskManagerForm
     End Property
     Friend Sub UnmountAllFromTray()
         If Context().Packaged OrElse snapshot Is Nothing Then Return
-        Dim mounted = snapshot.Disks.Where(Function(r) r.IsMounted).ToList()
+        Dim mounted = UnmountAllTargets(snapshot, busy, Context())
         For Each group In mounted.GroupBy(Function(r) UnmountActionFor(New List(Of DiskRecord) From {r}))
             DoQuick(group.Key, group.ToList())
         Next
     End Sub
+
+    ' The rows the tray's Unmount all acts on (SP-0081 5): the mounted containers this window owns that
+    ' the Unmount of a row accepts right now - the one predicate every other gesture passes, so a row
+    ' with an operation running or queued takes no second one, and the Store build takes none. An image
+    ' the user mounted in Explorer stays a per-row action of this window, never the tray's.
+    Friend Shared Function UnmountAllTargets(snap As DiskSnapshot, busyVerbs As IDictionary(Of String, String), ctx As DiskContext) As List(Of DiskRecord)
+        Dim out As New List(Of DiskRecord)
+        If snap Is Nothing Then Return out
+        For Each r In snap.Disks
+            If r.IsImage OrElse Not r.IsMounted Then Continue For
+            Dim verb As String = Nothing
+            If busyVerbs IsNot Nothing Then busyVerbs.TryGetValue(r.Key, verb)
+            If DiskStates.WhyNot(DiskAction.Unmount, r, DiskStates.StateOf(r, verb), ctx) = "" Then out.Add(r)
+        Next
+        Return out
+    End Function
+
+    Friend Function UnmountAllTargetsForTest() As List(Of DiskRecord)
+        Return UnmountAllTargets(snapshot, busy, Context())
+    End Function
 
     Friend ReadOnly Property IsBusy As Boolean
         Get
@@ -1741,7 +2076,8 @@ Public Class DiskManagerForm
             New DiskAction() {DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Unmount, DiskAction.UnmountImage,
                               DiskAction.OpenDrive, DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.AutoOn,
                               DiskAction.AutoOff, DiskAction.Autostart, DiskAction.AddToList, DiskAction.Forget, DiskAction.ShowInFolder, DiskAction.CopyPath},
-            New DiskAction() {DiskAction.Export, DiskAction.Compact, DiskAction.Grow, DiskAction.Seal, DiskAction.Clone, DiskAction.ChangePassword},
+            New DiskAction() {DiskAction.ImageToFile, DiskAction.Export, DiskAction.Compact, DiskAction.Grow, DiskAction.Seal, DiskAction.Clone, DiskAction.ChangePassword},
+            New DiskAction() {DiskAction.ShareDisk, DiskAction.OpenShared, DiskAction.CloseShared, DiskAction.UnshareDisk, DiskAction.ShareAutoOn, DiskAction.ShareAutoOff},
             New DiskAction() {DiskAction.Format, DiskAction.Destroy}}
         For Each g In groups
             Dim added = False
@@ -1759,6 +2095,7 @@ Public Class DiskManagerForm
         If withGlobals Then
             If menu.Items.Count > 0 Then menu.Items.Add(New ToolStripSeparator())
             If Not DiskStates.HiddenInBuild(DiskAction.MountImage, Context()) Then menu.Items.Add(MenuItem(DiskAction.MountImage, sel))
+            If Not DiskStates.HiddenInBuild(DiskAction.Adopt, Context()) Then menu.Items.Add(MenuItem(DiskAction.Adopt, sel))
             ' The shutdown guard belongs to the account, not to a row: reachable with nothing selected
             ' and with no disk registered at all (SP-0080 5).
             If Not DiskStates.HiddenInBuild(DiskAction.Autostart, Context()) Then menu.Items.Add(MenuItem(DiskAction.Autostart, sel))
@@ -1778,7 +2115,7 @@ Public Class DiskManagerForm
 
     Private Function MenuItem(a As DiskAction, sel As List(Of DiskRecord)) As ToolStripMenuItem
         Dim action = a
-        Dim item As New ToolStripMenuItem(L(DiskStates.LabelKey(a, Nothing)))
+        Dim item As New ToolStripMenuItem(L(DiskStates.LabelKey(a, Nothing)).Replace("&", "&&"))
         Dim keys = DiskShortcuts.TextFor(a)
         If keys <> "" Then item.ShortcutKeyDisplayString = keys
         Dim why = If(sel Is Nothing, WhyText(a, New List(Of DiskRecord)), WhyText(a, sel))
@@ -1961,7 +2298,14 @@ Public Class DiskManagerForm
             Location = pendingBounds.Location
             BeginInvoke(New MethodInvoker(AddressOf FinishPendingPlacement))
         End If
+        layoutApplied = True
     End Sub
+
+    ' Set once OnLoad has put the user's saved columns and placement on the window. The host builds a
+    ' manager it never shows (a hidden start, the first minimize-to-tray) so that the tray has a
+    ' snapshot to count; such a window holds the defaults, and closing it at Exit or at sign-out must
+    ' not write them over the user's (AUD-85-F1).
+    Private layoutApplied As Boolean = False
 
     Protected Overrides Sub OnActivated(e As EventArgs)
         MyBase.OnActivated(e)
@@ -1979,12 +2323,16 @@ Public Class DiskManagerForm
                 h.Width = CInt(h.Width * e.DeviceDpiNew / CDbl(e.DeviceDpiOld))
             Next
         End If
+        ' WinForms re-sizes the fonts attached to controls itself; the paint fonts (the list header,
+        ' the menus, the buttons' captions) are fields and come out at the old display's size unless
+        ' they are made again here.
+        ApplyTheme()
     End Sub
 
     Private placementRestored As Boolean = False
 
     Private Sub ApplyDpiSizes()
-        MinimumSize = Ui.PxSize(Me, MinWidth, MinHeight)
+        MinimumSize = WindowPlacement.MinimumFor(Me, MinWidth, MinHeight)
         toolbar.Padding = Ui.PxPad(Me, 12, 10, 12, 4)
         listHost.Padding = Ui.PxPad(Me, 12, 0, 12, 8)
         detailPanel.Padding = Ui.PxPad(Me, 12, 8, 12, 8)
@@ -2008,7 +2356,7 @@ Public Class DiskManagerForm
         For Each b In detailButtons.Controls.Cast(Of Control)()
             b.Margin = Ui.PxPad(Me, 0, 0, 6, 6)
         Next
-        mainBtn.Picture = DiskManagerIcon.Mark(Ui.Px(Me, 24))
+        mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
         RebuildGlyphs()
         GlyphBitmaps.Clear()
     End Sub
@@ -2017,7 +2365,7 @@ Public Class DiskManagerForm
     ' the shell sizes its first opening. A saved placement overrides it.
     Private Function OpeningSize() As Size
         Dim work = Screen.FromHandle(Handle).WorkingArea
-        Dim least = Ui.PxSize(Me, MinWidth, MinHeight)
+        Dim least = WindowPlacement.MinimumFor(Me, MinWidth, MinHeight)
         Dim most = Ui.PxSize(Me, 1180, 760)
         Dim w = Math.Min(Math.Max(CInt(work.Width * 0.6), least.Width), most.Width)
         Dim h = Math.Min(Math.Max(CInt(work.Height * 0.65), least.Height), most.Height)
@@ -2051,10 +2399,7 @@ Public Class DiskManagerForm
             Dim names = String.Join(", ", running.Concat(queue).Select(Function(o) L(DiskStates.LabelKey(o.Action, o.Record)) & " - " & OpName(o)).Distinct().ToArray())
             Dim background = running.Concat(queue).All(Function(o) Not DiskStates.Elevates(o.Action) AndAlso
                                                                    DiskStates.KindOf(o.Action) <> DiskActionKind.Destructive)
-            Dim choices As New List(Of String) From {L("vd_mgr_btn_wait"), L("vd_mgr_btn_stop_close")}
-            If background Then choices.Add(L("vd_mgr_btn_finish_bg"))
-            Dim pick = ShellDialog.Ask(Me, L("vd_mgr_close_running_title"), Localization.Format(LText("vd_mgr_close_running_fmt"), names),
-                                       choices.ToArray(), 0, 0)
+            Dim pick = ShellDialog.Ask(Me, DestructiveDialogs.CloseDiskManagerBusy(dict, names, background))
             Select Case pick
                 Case 1
                     ClearQueue()
@@ -2079,7 +2424,7 @@ Public Class DiskManagerForm
             If pick = 1 Then ShellSettings.SetDiskManagerCloseNotice(False)
         End If
 
-        SaveLayout()
+        If layoutApplied Then SaveLayout()
         pollTimer.Stop()
         clockTimer.Stop()
         settleTimer.Stop()
@@ -2164,6 +2509,9 @@ Public Class DiskManagerForm
     ' rule 2: a heading is not cut); a width the user chose is theirs.
     Private Sub RestoreColumns()
         Dim widths = ShellSettings.DiskManagerColumns()
+        ' A layout saved before the Carrier column (SP-0148) keeps its widths; the new column takes its
+        ' design width.
+        If widths.Count = list.Columns.Count - 1 Then widths.Add(ColumnDesign(list.Columns.Count - 1))
         Dim saved = (widths.Count = list.Columns.Count)
         If Not saved Then widths = ColumnDesign.ToList()
         Using g = list.CreateGraphics()
@@ -2222,6 +2570,8 @@ Public Class DiskManagerForm
                 Return words.ToArray()
             Case Col.Drive
                 Return New String() {"W:"}
+            Case Col.Carrier
+                Return New String() {L("vd_part_carrier_file"), L("vd_part_carrier_partition")}
         End Select
         Return New String() {}
     End Function
@@ -2264,8 +2614,7 @@ Public Class DiskManagerForm
 
     Private Sub ApplyThemeCore()
         Dim p = Theme.Current
-        headerFont = Theme.FontBodyStrong()
-        bodyFont = Theme.FontBody()
+        MakePaintFonts()
         SuspendLayout()
         Try
             BackColor = p.Background
@@ -2360,6 +2709,9 @@ Public Class DiskManagerForm
     ' error. The image list holds blank pictures of the row's height only - it is what gives an
     ' owner-drawn list its row height, and its indexes are the rows' ImageIndex.
     Private ReadOnly stateBitmaps As New Dictionary(Of Integer, Bitmap)
+    ' The key of the picture for a row background: the image index plus this step per background
+    ' (0 plain, 1 hovered, 2 selected).
+    Private Const StateVariantStep As Integer = 100
 
     Private Sub RebuildGlyphs()
         Dim p = Theme.Current
@@ -2372,12 +2724,18 @@ Public Class DiskManagerForm
         glyphImages.ImageSize = New Size(size, Ui.Px(Me, 24))
         glyphImages.Images.Add(New Bitmap(glyphImages.ImageSize.Width, glyphImages.ImageSize.Height, Imaging.PixelFormat.Format32bppArgb))
         For Each state In New DiskRowState() {DiskRowState.Mounted, DiskRowState.Unsaved, DiskRowState.ServerGone}
-            Dim bmp As New Bitmap(size, size, Imaging.PixelFormat.Format32bppArgb)
-            Using g = Graphics.FromImage(bmp)
-                Glyphs.Draw(g, DiskStates.GlyphOf(state), New Rectangle(0, 0, size, size), DiskStates.ToneOf(state, p))
-            End Using
             glyphImages.Images.Add(New Bitmap(glyphImages.ImageSize.Width, glyphImages.ImageSize.Height, Imaging.PixelFormat.Format32bppArgb))
-            stateBitmaps(glyphImages.Images.Count - 1) = bmp
+            Dim index = glyphImages.Images.Count - 1
+            ' One picture per row background (plain, hover, selected): the tone is chosen against the
+            ' background it sits on, so each reaches 3:1 there (DiskStates.ToneOn).
+            For look = 0 To 2
+                Dim bmp As New Bitmap(size, size, Imaging.PixelFormat.Format32bppArgb)
+                Using g = Graphics.FromImage(bmp)
+                    Glyphs.Draw(g, DiskStates.GlyphOf(state), New Rectangle(0, 0, size, size),
+                                DiskStates.ToneOn(state, p, RowBackColour(p, look = 2, look = 1)))
+                End Using
+                stateBitmaps(index + StateVariantStep * look) = bmp
+            Next
         Next
         If list IsNot Nothing Then
             For i = 0 To Math.Min(list.Items.Count, shown_.Count) - 1
@@ -2431,7 +2789,8 @@ Public Class DiskManagerForm
         Dim x = cell.Left + Ui.Px(Me, 6)
         If column = 0 Then
             Dim bmp As Bitmap = Nothing
-            If stateBitmaps.TryGetValue(imageIndex, bmp) Then
+            Dim look = If(selected, 2, If(hovered, 1, 0))
+            If stateBitmaps.TryGetValue(imageIndex + StateVariantStep * look, bmp) Then
                 g.DrawImage(bmp, x, cell.Top + (cell.Height - bmp.Height) \ 2, bmp.Width, bmp.Height)
             End If
             x += Ui.Px(Me, 16) + Ui.Px(Me, 6)
@@ -2499,7 +2858,8 @@ Public Class DiskManagerForm
     ' What the hover tooltip of a row says: the disk, where its file is, and its state in words.
     Private Function RowTip(r As DiskRecord) As String
         Dim name = DisplayName(r)
-        Dim head = If(r.Path = "", name, name & " - " & r.Path)
+        Dim where = If(r.IsPartition, r.PartitionPlace, r.Path)
+        Dim head = If(where = "", name, name & " - " & where)
         Return head & Environment.NewLine & RowStateText(r)
     End Function
 
@@ -2527,6 +2887,25 @@ Public Class DiskManagerForm
 
     ' The fonts the window paints with, made when the theme is applied - never once per paint, which
     ' leaks a GDI object each time (SP-0014 T1).
+    ' The fonts the window paints with, made when the theme is applied - never once per paint, which
+    ' leaks a GDI object each time (SP-0014 T1). They are made for THIS window's monitor, not the
+    ' process's last-active one: a font held in a field rides no control, so WinForms' own rescale
+    ' on a display change misses it - at the system's 150 % the header painted in 150 % type on a
+    ' 100 % screen and was cut away (the release queue's "header captions clip at 100 %").
+    Private Sub MakePaintFonts()
+        Dim dpi = WindowDpi()
+        headerFont = Theme.FontBodyStrong(dpi)
+        bodyFont = Theme.FontBody(dpi)
+    End Sub
+
+    ' This window's monitor's dpi, once the window has one; before that, the process's last-active
+    ' one. Every font the window makes goes through this: the theme can be applied while the window
+    ' is behind another one on a display of another scaling (AppHost.ThemeChanged), and a font made
+    ' for the window in front cuts its text here.
+    Private Function WindowDpi() As Integer
+        Return If(DeviceDpi > 0, DeviceDpi, Theme.CurrentDpi)
+    End Function
+
     Private headerFont As Font
     Private bodyFont As Font
 
@@ -2563,6 +2942,19 @@ Public Class DiskManagerForm
     Friend Sub ApplySnapshotForTest(s As DiskSnapshot, problem As String)
         ApplyRead(s, problem)
     End Sub
+
+    ' SP-0148: a disk list as `vd disks json` would give it, without a filedo.exe.
+    Friend Sub ApplyDisksForTest(doc As VdDisksDoc)
+        SetDisks(doc)
+    End Sub
+
+    ' The Autostart dialog while one is held (Nothing when none is): a row opens it through Perform and
+    ' closes it from a timer, because the dialog is modal.
+    Friend ReadOnly Property AutostartDialogForTest As DiskAutostartDialog
+        Get
+            Return autostartDlg
+        End Get
+    End Property
 
     Friend Sub SelectForTest(ParamArray keys As String())
         For Each it As ListViewItem In list.Items

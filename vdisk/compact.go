@@ -31,6 +31,10 @@ func (c *Container) Compact(ctx context.Context, p ProgressSink) error {
 	if err := c.usable(true); err != nil {
 		return err
 	}
+	// A partition has no end of file to give back (FDD-FORMAT 3.1 rule 2).
+	if fixedCap(c.b) != 0 {
+		return unsupportedf("a partition disk has a fixed size; compact and grow apply to file disks")
+	}
 	if c.ram != nil && len(c.ram.dirty) > 0 {
 		if err := c.save(); err != nil {
 			return err

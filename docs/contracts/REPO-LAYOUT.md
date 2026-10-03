@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `REPO-LAYOUT` |
-| **Version** | 0.9, draft (no wire carrier: the names are the interface) |
+| **Version** | 0.10, draft (no wire carrier: the names are the interface) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 4 |
 | **Role** | consumer - the names below are what shared tools address in this repository |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |
@@ -20,3 +20,4 @@
 - **`PLAN/done/` is an archive and stays frozen** (rule 6).
 - Known open point: `PLAN/SP-XXXX name.md` is this repository's own spec-id scheme, not a type prefix
   (rule 3); a proposal to the owner asks for the carve-out the canon prose already makes.
+- **0.10:** a delegating agent-rules sibling is recognised where several of the three names sit at the root, each carrying the canon pointer or delegating wholesale to one that does (rule 1); `PLAN/SP-XXXX name.md` is a spec-id scheme declared in `AGENTS.md`, outside the type-prefix requirement (rule 3) - the open point above is closed.

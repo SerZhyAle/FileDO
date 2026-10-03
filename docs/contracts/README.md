@@ -25,6 +25,8 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`FDSEC-BEHAVIOUR.md`](FDSEC-BEHAVIOUR.md) | what `secure` / `unsecure` must do to be safe | producer and consumer (Owner) |
 | [`FDD-FORMAT.md`](FDD-FORMAT.md) | the `.fdd` disk container, byte for byte (draft; `vdisk/`, unreleased) | producer and consumer (Owner) |
 | [`FDD-BEHAVIOUR.md`](FDD-BEHAVIOUR.md) | what a program that reads and writes `.fdd` containers must do: read path, classes 2-8, clean marker (draft; `vdisk/` and `filedo vd`, unreleased) | producer and consumer (Owner) |
+| [`DISK-SHARE.md`](DISK-SHARE.md) | FileDO virtual disk sharing via Fast Media Sorter | producer and consumer (Shared) |
+| [`WORKER-IPC.md`](WORKER-IPC.md) | bounded named-pipe control of the FMS worker, including schema-2 disk requests | consumer (`fmsworker/`) |
 | [`CLI-EVENT-STREAM.md`](CLI-EVENT-STREAM.md) | how the CLI reports a run to the shell that started it | producer (CLI) and consumer (shell) (Owner) |
 | [`INSTALL-TRUST.md`](INSTALL-TRUST.md) | what a user reads after Windows warns about an unsigned build | producer |
 | [`APP-BEHAVIOUR.md`](APP-BEHAVIOUR.md) | shared desktop application UX moments | consumer (GUI shell) |
@@ -55,12 +57,11 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`CHECK-PLACEMENT.md`](CHECK-PLACEMENT.md) | check runner placement and execution mapping | producer |
 | [`BUILD-EVIDENCE.md`](BUILD-EVIDENCE.md) | build artifact stamping and test evidence | producer |
 | [`DIAGNOSTIC-REPORT.md`](DIAGNOSTIC-REPORT.md) | sanitized diagnostic archive export | producer (`LogReport.vb`) |
-| [`MEDIA-CLASSIFICATION.md`](MEDIA-CLASSIFICATION.md) | normalized media/container kinds and file rules | applicability disputed; owner proposal pending |
-| [`UPDATE-MANIFEST.md`](UPDATE-MANIFEST.md) | standalone release discovery and integrity checks | applicability disputed; owner proposal pending |
-| [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | applicability disputed; owner proposal pending |
+| [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | scope disputed; the focus-only question awaits the owner |
 | [`INPUT-PARITY.md`](INPUT-PARITY.md) | keyboard and pointer action parity | consumer; partial adoption |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
-| [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; dated draft exception |
+| [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; Windows desktop profile, `compact` rendering (0.2); dated draft exception is the owner's to close |
+| [`WINDOWS-STORE.md`](WINDOWS-STORE.md) | the package and listing a product hands to Microsoft Store | consumer (Store channel) |
 
 ### Read against this repository and found not to bind it
 
@@ -85,6 +86,8 @@ bind leaves this table for one of the tables above and gets a pointer.
 | `OCR-OVERLAY` 1.2 (ocr-overlay/) | 2026-10-01 | No OCR overlay or recognition rendering. |
 | `PAGE-CONTENT-VISION` 1.1 (product-web-pages/) | 2026-10-01 | A non-binding historical vision record; PAGE-CONTENT is the binding contract. |
 | `SHARE-SESSION` 1.0 (remote-folder-access/) | 2026-10-01 | No FMS SFTP session provider or client; generic Windows shares use the filesystem. |
-| `WORKER-IPC` 0.9 (sidecar-control/) | 2026-10-01 | No fms-share-worker named-pipe client; disk status is the private co-shipped schema of SP-0063 D2. |
 | `STREAM-BANK` 2.1 (stream-catalog/) | 2026-10-01 | No stream bank ZIP/CSV importer or publisher. |
 | `USER-PLAYLIST` 0.11 (user-playlist/) | 2026-10-01 | No user playlist/stream collection importer or exporter. |
+| `MEDIA-CLASSIFICATION` 0.10 (`media-classification/`) | 2026-10-02 | FileDO is not a consumer: the catalog accepted FileDO's scope proposal into 0.10. It accepts arbitrary files as storage targets, reports Go's MIME guess in `file info`, and has no media kind enum, browser, routing or sidecar association. The pointer is retired. |
+| `UPDATE-MANIFEST` 0.10 (`app-update-feed/`) | 2026-10-02 | FileDO is a planned consumer only, not bound: no update-check client exists. The site resolves downloads through GitHub Releases and winget uses its own YAML, neither of which is this feed. The pointer is retired; a client that parses the manifest brings it back. |
+| `APP-SETTINGS` 0.1 (`desktop-app-ux/`) | 2026-10-02 | The new draft binds CyrFlip and other desktop products by explicit opt-in. FileDO has not opted into a persistent settings surface; its language/theme selectors remain covered by APP-BEHAVIOUR and APP-STYLE. No adoption or conformance is claimed. |

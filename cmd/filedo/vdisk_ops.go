@@ -150,6 +150,12 @@ func vdVerifyOne(path string, info vdisk.Info, cred fdsec.Credential, a credArg,
 		return vdCredentialErr(err, a)
 	}
 	defer c.Close()
+	return vdVerifyOpened(path, info, c, single)
+}
+
+// vdVerifyOpened is verify on a container already open for reading - a file,
+// or a partition disk through its brokered handle (SP-0148 8.4).
+func vdVerifyOpened(path string, info vdisk.Info, c *vdisk.Container, single bool) error {
 	line := vdPercent("Reading")
 	r, verr := c.Verify(vdContext(), line)
 	line.end()
@@ -226,8 +232,13 @@ func vdExport(args []string) error {
 		return vdCredentialErr(err, cred)
 	}
 	defer c.Close()
+	return vdExportOpened(src, dest, form, info, c)
+}
+
+// vdExportOpened is export from a container already open for reading.
+func vdExportOpened(src, dest string, form int, info vdisk.Info, c *vdisk.Container) error {
 	line := vdPercent("Exporting")
-	err = c.ExportRaw(vdContext(), dest, vdisk.RawForm(form), line)
+	err := c.ExportRaw(vdContext(), dest, vdisk.RawForm(form), line)
 	line.end()
 	if err != nil {
 		if errors.Is(err, vdisk.ErrStopped) {

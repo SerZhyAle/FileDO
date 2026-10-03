@@ -8,6 +8,9 @@ package main
 // exe, drawn by `filedo_win.exe --write-menu-icons` into assets\menu-icons.
 
 import (
+	"bytes"
+	"encoding/binary"
+	"image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -105,5 +108,76 @@ func TestFdsecRegister_EntriesShowTheirMeaningNotTheMark(t *testing.T) {
 	}
 	if _, ok := regString(t, userClasses+`\`+fdsecProgID+`\DefaultIcon`, ""); !ok {
 		t.Error("the document type has no icon at all without the icons folder")
+	}
+}
+
+// The Disk Manager's own icon (owner decision 2026-10-02, ICON-RENDER section 3 rule 6): the
+// content.disk-container glyph on a rounded accent plate, written by `filedo_win.exe
+// --write-menu-icons` beside the mono ones and used by the window, its buttons and the MSI's
+// Start menu shortcut. It must not be a copy of the generic mono icon the .fdd type keeps, and
+// every size must be a plate: an opaque centre and a transparent corner.
+func TestMenuIcons_TheDiskManagerIconIsAPlateNotTheGenericGlyph(t *testing.T) {
+	root := repoRoot(t)
+	const plated, generic = "app.disk-manager", "content.disk-container"
+	body, err := os.ReadFile(filepath.Join(root, "assets", "menu-icons", plated+".ico"))
+	if err != nil {
+		t.Fatalf("assets\\menu-icons\\%s.ico: %v - run filedo_win.exe --write-menu-icons assets\\menu-icons", plated, err)
+	}
+	mono, err := os.ReadFile(filepath.Join(root, "assets", "menu-icons", generic+".ico"))
+	if err != nil {
+		t.Fatalf("assets\\menu-icons\\%s.ico: %v", generic, err)
+	}
+	if bytes.Equal(body, mono) {
+		t.Fatalf("%s.ico is a byte copy of %s.ico: the product's picture would be the generic file-type glyph", plated, generic)
+	}
+	if len(body) < 6 || body[0] != 0 || body[1] != 0 || body[2] != 1 || body[3] != 0 {
+		t.Fatalf("%s.ico is not an icon file", plated)
+	}
+	count := int(binary.LittleEndian.Uint16(body[4:6]))
+	seen := map[int]bool{}
+	for i := 0; i < count; i++ {
+		e := body[6+16*i : 6+16*(i+1)]
+		size := int(e[0])
+		if size == 0 {
+			size = 256
+		}
+		length := int(binary.LittleEndian.Uint32(e[8:12]))
+		offset := int(binary.LittleEndian.Uint32(e[12:16]))
+		if offset < 0 || length <= 0 || offset+length > len(body) {
+			t.Errorf("%s.ico: the %d px entry points outside the file", plated, size)
+			continue
+		}
+		seen[size] = true
+		alpha := func(x, y int) (uint8, bool) { return 0, false }
+		data := body[offset : offset+length]
+		if len(data) > 8 && data[0] == 0x89 && data[1] == 'P' {
+			img, err := png.Decode(bytes.NewReader(data))
+			if err != nil {
+				t.Errorf("%s.ico: the %d px PNG does not decode: %v", plated, size, err)
+				continue
+			}
+			alpha = func(x, y int) (uint8, bool) {
+				_, _, _, a := img.At(img.Bounds().Min.X+x, img.Bounds().Min.Y+y).RGBA()
+				return uint8(a >> 8), true
+			}
+		} else {
+			// BITMAPINFOHEADER (40 bytes), then the colour rows bottom-up in BGRA.
+			if len(data) < 40+size*size*4 || int(binary.LittleEndian.Uint32(data[0:4])) != 40 || binary.LittleEndian.Uint16(data[14:16]) != 32 {
+				t.Errorf("%s.ico: the %d px entry is not a 32-bit DIB", plated, size)
+				continue
+			}
+			alpha = func(x, y int) (uint8, bool) { return data[40+((size-1-y)*size+x)*4+3], true }
+		}
+		if a, _ := alpha(size/2, size/2); a != 255 {
+			t.Errorf("%s.ico at %d px: the centre has alpha %d, want an opaque plate", plated, size, a)
+		}
+		if a, _ := alpha(0, 0); a != 0 {
+			t.Errorf("%s.ico at %d px: the corner has alpha %d, want a transparent rounded corner", plated, size, a)
+		}
+	}
+	for _, size := range []int{16, 24, 32, 48, 256} {
+		if !seen[size] {
+			t.Errorf("%s.ico has no %d px image", plated, size)
+		}
 	}
 }

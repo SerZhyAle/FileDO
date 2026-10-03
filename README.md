@@ -51,6 +51,8 @@ filedo C: info
 
 ### Compare & Cleanup
 
+`compare <source> <target> --strict` judges the trees: matching relative paths, sizes and modification times give `Passed` (exit 0); a difference gives `Failed` (exit 1); an incomplete comparison gives `Not proven` (exit 2). Add `--by-hash` to compare equal-size pairs by content instead of time. Plain `compare` still reports differences with `Done` (exit 0); `--strict` cannot be combined with deletion. Both modes publish `onlyInSource`, `onlyInTarget`, `differentFiles`, `sameFiles`, `totalSource` and `totalTarget` in the `--events` result. For `check`, `--max-files N` reads at most N files (0 means unlimited); `--resume` ends `Passed` (exit 0) when every eligible file has an unchanged entry in the good list, with `checkedFiles = 0` and `skippedGoodFiles` showing the earlier proof.
+
 ```bash
 # Compare two folders and show summary + save report
 filedo compare D:\Data E:\Backup
@@ -433,7 +435,7 @@ What the platform needs, said plainly:
 
 - **Windows only.** The drive letter comes from the iSCSI initiator built into Windows, talking to a block
   server inside `filedo.exe` that listens on 127.0.0.1 only - nothing leaves this computer, and the
-  container never goes to any network.
+  container never goes to any network - unless you choose to share it (below).
 - **Mounting needs administrator rights.** `mount`, `unmount`, `save`, `format` and `vd auto` ask Windows for
   administrator consent for the initiator step; the password never goes there, and the block server itself
   never runs elevated. A batch never raises that prompt - run it from an elevated console. When the
@@ -445,6 +447,18 @@ What the platform needs, said plainly:
   portable build from GitHub.
 - **A mount outlives the window.** Closing the FileDO window leaves the drive and its server in place, and a
   new window lists them again; unmount in the Disk manager, on the Disks pages, or with `filedo X: unmount`.
+
+In the **Disk Manager**, select a registered file-backed disk and choose **Share with Fast Media Sorter & Sharing..** in its detail pane or More menu (`Ctrl+Shift+S`). Start that program's Share Manager first. If its worker cannot be reached, the dialog offers retry and the [installation page](https://serzhyale.github.io/FastMediaSorter_Lite/); an unavailable worker does not prove the program is absent. Enable the optional FileDO disk component if needed. Its desktop installer is unsigned. Registration defaults to read-only; sealed disks stay read-only. Enter the folder name and optionally open it for paired devices. A disk already mounted by FileDO is disconnected cleanly after confirmation, saving RAM first through the normal unmount. If FileDO automatic mounting is enabled, explicitly agree to disable it; a manual `keep` watcher ends with the unmount. FMS autostart remains a separate opt-in. **Close shared disk** keeps registration; **Stop sharing** removes it and its saved FMS autostart key. If a step fails, completed steps remain: refresh, retry the remaining action, or stop sharing before explicitly restoring local mounting and its prior automatic policy. Pair clients through Share Manager. This publishes files over SFTP, not a Windows SMB share. Session sharing requires sign-in; a service host stays available without sign-in. Partition disks and external-worker controls from the unverified Store build are unavailable here; use the desktop build for this workflow. The step-by-step page - prerequisites, every dialog and recovery - is [Sharing FileDO disks with Fast Media Sorter](https://serzhyale.github.io/FileDO/guides/fms-sharing.html).
+
+**Sharing a disk with Fast Media Sorter for Windows (optional).** If Fast Media Sorter for Windows is
+installed, `vd share work.fdd on` offers a disk to the phones and tablets you paired with it, as one more
+folder; `vd open`, `vd close` and `vd autostart` open it for them, close it, and open it again after a
+restart. FileDO opens no network connection for this - it talks to that program over a local pipe, and that
+program serves the files. An encrypted disk is unlocked here, on this PC, never from the phone; while it is
+open, every paired device can read its files, and `vd autostart` keeps its password on this PC, protected for
+that program, until you turn autostart off, stop sharing or change the password. A shared disk is held by that
+program, so `mount` refuses it while it does; `vd status` says who holds it. Only the Server edition of Fast
+Media Sorter for Windows keeps shared disks available with nobody signed in.
 
 Exit codes of one container command: 0 done, 2 usage, 3 wrong credential, 4 damaged, 5 I/O, 6 unsupported,
 7 transport unavailable, 8 busy (mounted, open or locked). A batch keeps 0/1/2.
@@ -458,9 +472,62 @@ options*). Without the installer, `filedo vd register` (add `-all-users` for the
 same and `filedo vd unregister` takes it back. In the window, the **Disks** group has a page for each
 operation, and it words both protections exactly as the console does.
 
-The **Disk manager** is a second window of the same `filedo_win.exe` - not a new program - with one row per virtual disk: the disks in your list, the ones mounted now, and the VHD, VHDX or ISO images FileDO mounted. Each row shows its state in words beside a glyph (*Mounted*, *Mounted, read-only*, *Mounted, 180 MiB not saved* for a `ram` disk, *Server gone - volume offline*, *Image mounted*, *File missing*, *A different container is at this path*, *Unreadable*, *Not closed cleanly*, *Not mounted*), and the list keeps itself true without a manual refresh. Around it sit a toolbar (*New disk..*, *Add..*, *Mount*, *Unmount*, *Open*, *Save*, *More actions*, *Refresh*, *Help*, *Main window*), a filter row and a detail pane with the buttons that apply; a button that cannot be used says why in its tooltip and in the pane, and the Microsoft Store build, which can never mount, hides the mount controls instead of greying them. A double-click or Enter mounts a disk at rest and opens the drive of a mounted one - it never unmounts; drag `.fdd` files onto the list to add them, or a `.vhd`, `.vhdx` or `.iso` to mount an image after one confirmation. *New disk*, *Export*, *Compact*, *Grow*, *Seal copy*, *Clone*, *Change password*, *Format* and *Destroy* open their job page in the main window with the container chosen; *Format* and *Destroy* keep their typed confirmation there.
+The **Disk manager** is a second window of the same `filedo_win.exe` - not a new program - with one row per virtual disk: the disks in your list, the ones mounted now, and the VHD, VHDX or ISO images FileDO mounted. Each row shows its state in words beside a glyph (*Mounted*, *Mounted, read-only*, *Mounted, 180 MiB not saved* for a `ram` disk, *Server gone - volume offline*, *Image mounted*, *File missing*, *A different container is at this path*, *Unreadable*, *Not closed cleanly*, *Not mounted*), and the list keeps itself true without a manual refresh. Around it sit a toolbar (*New disk..*, *Add..*, *Mount*, *Unmount*, *Open*, *Save*, *More actions*, *Refresh*, *Help*, *Main window*), a filter row and a detail pane with the buttons that apply; a button that cannot be used says why in its tooltip and in the pane, and the Microsoft Store build, which can never mount, hides the mount controls instead of greying them. A double-click or Enter mounts a disk at rest and opens the drive of a mounted one - it never unmounts; drag `.fdd` files onto the list to add them, or a `.vhd`, `.vhdx` or `.iso` to mount an image after one confirmation. *New disk..* first asks where the disk keeps its data: *File on a drive..* opens the *Create a disk* page in the main window, *Partition on free disk space..* opens the manager's own partition dialog - a map of each GPT disk's free space, the size, profile, label and name (the Microsoft Store build offers the file only). For a file disk, *Export*, *Compact*, *Grow*, *Seal copy*, *Clone*, *Change password*, *Format* and *Destroy* open their job page in the main window with the container chosen; *Format* and *Destroy* keep their typed confirmation there. A [partition disk](#partition-disks)'s row says *Partition not connected* or *Partition changed* when it is not where it was registered, offers *Image to file..* to copy it into a new `.fdd` file, and is deleted in the manager itself: *Destroy* asks for its name typed and can overwrite the partition first. *Adopt partition..* (under *More actions*, or a right-click on empty space) lists the FileDO partitions on this computer's disks that are not in the list and adds the chosen one under a name; the Store build hides *Image to file* and *Adopt*.
 
-Open it from the **FileDO Disk Manager** Start menu entry the installer adds (it runs `filedo_win.exe --disks`), from the **Disk manager** button at the top right of the FileDO window or the first row of its Disks group (**Ctrl+Shift+D** too), or with `filedo_win.exe --disks`; its **Main window** button brings the FileDO window forward. **F1** opens its help - what a row says, the keyboard table, links. The first time the manager opens, a welcome explains what a virtual disk is and says: *Obfuscated, not encrypted: anyone with this file and FileDO can read it. It opens without a password.* *Encrypted: it opens only with its password.* It adds that Windows asks for administrator consent at every mount and unmount, and it offers *Create my first disk..*, *Add a .fdd file I already have..*, *Read the guide on the website* and *Not now*. The keyboard table and pictures are in the [virtual disks guide](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Closing the manager never unmounts a disk.
+Open it from the **FileDO Disk Manager** Start menu entry the installer adds (it runs `filedo_win.exe --disks`), from the **Disk manager** button at the top right of the FileDO window or the first row of its Disks group (**Ctrl+Shift+D** too), or with `filedo_win.exe --disks`; its **Main window** button brings the FileDO window forward. **F1** opens its help - what a row says, the keyboard table, links. The first time the manager opens, a welcome explains what a virtual disk is and says: *Obfuscated, not encrypted: anyone with this file and FileDO can read it. It opens without a password.* *Encrypted: it opens only with its password.* It adds that Windows asks for administrator consent at every mount and unmount - and, for a partition disk, at every read too - and it offers *Create my first disk..*, *Add a .fdd file I already have..*, *Read the guide on the website* and *Not now*. The keyboard table and pictures are in the [virtual disks guide](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Closing the manager never unmounts a disk.
+
+### Partition disks
+
+A virtual disk can also live in a partition instead of a file. FileDO creates a new GPT partition in the
+unallocated space of a disk and fills it, whole, with one container; nothing outside that free space is
+changed - FileDO never converts, resizes or writes into an existing partition. GPT disks only: MBR, dynamic,
+Storage Spaces, iSCSI, removable and USB disks are refused, and `vd disks` names the reason for each. What
+you gain is a disk that no host file system holds, which Windows does not give a letter or offer to format,
+with its space reserved; what you do not gain is speed.
+
+```bash
+# Every disk, its partitions and its free space - each extent usable or not, and why (no administrator rights)
+filedo vd disks
+
+# A partition disk across one whole free extent (the create line vd disks prints), named data
+filedo vd new part disk:{GPT-GUID} size max at <offset> as data
+filedo vd mount data
+
+# Copy it into an ordinary .fdd file, which reads without administrator rights
+filedo vd image data to D:\data.fdd
+
+# Register a FileDO partition this PC does not know (a disk moved here from another PC)
+filedo vd adopt fdpart:{GUID} as data
+
+# Delete the partition: type the disk's name to confirm; the space returns to unallocated
+filedo vd destroy data
+```
+
+`<disk>` is `disk:{GUID}` or the number `vd disks` printed; `size` is `max` or a size such as `40G` (rounded
+down to 1 MiB, at least 64 MiB). The default profile is `fast`; `plain`, `vault` and `ram` work too. The
+first mount formats the volume NTFS. A partition disk is addressed by its name or its locator
+`fdpart:{GUID}`, never by a path; `mount`, `unmount`, `save`, `info`, `verify`, `export`, `pass`, `seal`,
+`clone`, `vd auto` and the shutdown guard work as they do on a file, `compact` and `grow` do not (its size is
+fixed), and sharing it through Fast Media Sorter is refused for now. `vd forget` drops the name and leaves the
+partition on its disk; `vd destroy .. wipe` overwrites the partition before deleting it. A refused disk ends
+with exit 6, a declined consent with exit 7, and a layout that changed since it was listed with exit 5 -
+with nothing changed.
+
+- **Administrator consent for every read, not only to mount.** A partition cannot be opened without
+  administrator rights, so `info`, `verify`, `export`, `pass`, `seal`, `clone` and `vd image` ask Windows for
+  consent too. `vd image` removes that need: the file it writes is an ordinary `.fdd` that every read path
+  opens without administrator rights.
+- **Not faster than a file disk.** Measured end to end on an NVMe drive, a partition disk was slower than a
+  `.fdd` file on NTFS. Choose it for the fixed, separate space, not for speed.
+- **`fast` overwrites the free space; `plain` and `vault` do not.** Whatever the free space held before stays
+  in the unused clusters of a `plain` or `vault` partition disk until the volume writes over it; `fast`
+  overwrites the whole partition when it is created.
+- **Windows' Disk Management (`diskmgmt.msc`) still shows the partition and can delete it.** Deleting it
+  there deletes the disk inside, with no question about its contents. FileDO's own `vd destroy` is the safe
+  way: it refuses a mounted disk, asks you to type the disk's name, and deletes only a partition it has
+  proven to be FileDO's.
+- **Partition disks are not available in the Microsoft Store version.** There `vd disks` says so and every
+  partition command ends with exit 6; use the setup or the portable build from GitHub.
 
 ---
 

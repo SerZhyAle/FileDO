@@ -86,6 +86,7 @@ End Class
 ' Everything step 3 of a Disks page answered, as plain values: the page's controls fill it, the
 ' self-test fills it by hand, and DiskCommands turns it into the console line.
 Public Class DiskOptions
+    Public Property ShareOn As Boolean = True
     Public Property Size As String = ""
     Public Property Profile As String = "plain"
     Public Property Label As String = ""
@@ -165,6 +166,23 @@ Public Module DiskCommands
         If o Is Nothing Then o = New DiskOptions()
 
         Select Case verb
+            Case "share", "open", "close", "autostart"
+                a.AddRange(New String() {"vd", verb})
+                If hasTarget Then a.Add(target)
+                If verb = "share" Then
+                    a.Add(If(o.ShareOn, "on", "off"))
+                    If o.ShareOn Then
+                        If o.ReadOnly Then a.Add("ro")
+                        If o.Name.Trim() <> "" Then a.AddRange(New String() {"as", o.Name.Trim()})
+                    End If
+                ElseIf verb = "autostart" Then
+                    a.Add(If(o.ShareOn, "on", "off"))
+                    If o.ShareOn Then a.Add("consent")
+                End If
+                If o.HasCredential AndAlso (verb = "open" OrElse (verb = "autostart" AndAlso o.ShareOn)) Then
+                    a.Add("pe:" & CredentialEnvName)
+                End If
+                Return a
             Case "list"
                 ' The machine-readable snapshot (SP-0063 8.1), whichever table is asked for: the
                 ' registered containers and what is mounted are two views of the one document, so

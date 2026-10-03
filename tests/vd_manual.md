@@ -497,3 +497,113 @@ after this kit. Do not use the self-test to change the real startup key.
 
 Automated evidence: `build.ps1 -Test`, `settings:`/`tray:` self-test rows and the packed-manifest startup
 check. Logon, notification-area gestures, elevation consent and real DPI checks require this kit.
+
+## Partition disks (SP-0148)
+
+The hardware run of the partition carrier, which the elevated VHDX tier of `tests\prove-operations.ps1`
+cannot reach: a real NVMe disk, a reboot, and Windows' own Disk Management. Ground rules, on top of the ones
+at the top of this file:
+
+- **Only the owner's designated free extent of the NVMe system disk.** Never another disk, never another
+  extent of that disk, never a disk FileDO picked by itself. Write the disk's GPT GUID and the extent's start
+  offset down from step 1 and type them into step 2 by hand; if either differs from the owner's designation,
+  stop.
+- Save `Get-Partition -DiskNumber <n> | Format-Table PartitionNumber,Offset,Size,GptType,DriveLetter` before
+  step 2 and after steps 2, 4 and 7. Every partition other than the new one must keep its number, offset,
+  size and type in every listing; a difference is a finding, and the run stops there.
+- Evidence (outputs, screenshots) goes to `temp/evidence/<run-id>/`, never to a tracked folder.
+
+1. [ ] **The extent is usable.** `filedo vd disks` in a normal console (no consent prompt). Expected: the
+   NVMe system disk is listed as GPT with its GUID and *(system disk)*; the owner's extent appears as a
+   `free` line with its size, its neighbours (*between .. and ..*) and *usable*, followed by its
+   `create: filedo vd new part disk:{GUID} size max at <offset>` line. Other disks and extents carry a reason
+   when they are not usable. `filedo vd disks json` gives the same disk GUID, offset and length. Save both.
+2. [ ] **Create.** `filedo vd new part disk:{GUID} size max at <offset> fast as hwpart`. Expected: the
+   confirmation shows the model, bus `nvme`, the disk size, the GPT GUID, the extent's start and end and its
+   neighbours, the new partition's size, profile `fast`, and the sentence *Nothing on this disk outside the
+   free space is changed.* Answer `y`: exactly one consent prompt, then the locator `fdpart:{..}` and *Mount
+   it with: filedo vd mount hwpart*, exit 0. `Get-Partition` shows one new partition inside the extent, type
+   `{6AFB315B-8976-4841-84EC-D30AFA89A33D}`, no drive letter; `filedo vd status` lists `hwpart` with carrier
+   `partition`.
+3. [ ] **Mount, write, read, unmount.** `filedo vd mount hwpart` (one consent prompt): a drive letter
+   appears, the first mount formats it NTFS. Copy a test file of at least 1 GiB onto it and note
+   `Get-FileHash`; read it back (copy it off, hash again): the two hashes match. While it is mounted,
+   `filedo vd image hwpart to C:\vdtest\busy.fdd` ends with exit 8 and writes no file. Then
+   `filedo vd unmount hwpart`: exit 0, the letter goes, and `filedo vd info hwpart` (one consent prompt)
+   says it was closed cleanly.
+4. [ ] **Reboot.** Restart the machine and sign in. Expected: the partition has no drive letter
+   (`Get-Partition`), and no volume (`Get-Partition -DiskNumber <n> -PartitionNumber <m> | Get-Volume`
+   returns nothing, `mountvol` lists no new volume); Explorer shows no new drive and Windows offered no
+   *format this disk* prompt. `filedo vd disks` shows the partition as FileDO's with the name `hwpart`, and
+   `filedo vd status` shows it registered and not mounted. Mount it once more: the test file is there with
+   the same hash; unmount.
+5. [ ] **Disk Management.** Open `diskmgmt.msc` and find the partition. Record, with a screenshot, what it
+   shows for it (size, label, status) and every entry of its right-click menu - **click none of them**.
+   Expected: no drive letter and no volume shown for it; whatever the menu offers (a *Delete* entry is
+   expected - it is why `vd destroy` is the safe way) is recorded as it reads. Close Disk Management without
+   any change.
+6. [ ] **Image to a file.** `filedo vd image hwpart to C:\vdtest\hwpart.fdd` (one consent prompt): exit 0,
+   and the file's size equals the partition's. Then, in a **normal** console: `filedo C:\vdtest\hwpart.fdd
+   info` and `filedo C:\vdtest\hwpart.fdd verify` end with exit 0 and raise **no** consent prompt, and the
+   container id is the one `filedo vd info hwpart` showed. The same `vd image` command again is refused - it
+   never writes over an existing file. `filedo vd status` still shows the partition unchanged.
+6b. [ ] **Forget, then adopt.** Note the locator from `filedo vd list`. `filedo vd forget hwpart`: exit 0, no
+   consent prompt, and it says the partition stays on its disk; `Get-Partition` is unchanged and
+   `filedo vd list` no longer names `hwpart`. `filedo vd disks` now shows the partition as FileDO's with no
+   name, and `filedo vd disks json` has `"fileDO":true` and no `registered` field for it. Any verb on the
+   bare locator (`filedo vd info fdpart:{..}`) is refused with exit 2 and the line *register it first with:
+   filedo vd adopt fdpart:{..}*. `filedo vd adopt fdpart:{..} as hwpart`: one consent prompt, exit 0; adopting
+   it a second time is refused (exit 2, *registered already as hwpart*). `filedo vd mount hwpart` (one
+   prompt): the test file of step 3 is there with the same hash; `filedo vd unmount hwpart`.
+7. [ ] **Destroy.** `filedo vd destroy hwpart`. Expected: it shows the disk, the extent, the size, the name
+   and the container id, and asks for the disk's name. A wrong name is refused (exit 2) and nothing changes.
+   Run it again and type `hwpart`: one consent prompt, exit 0. `Get-Partition` matches the listing saved
+   before step 2 exactly; `filedo vd disks` shows the extent *usable* again at the same offset and length;
+   `filedo vd list` no longer names `hwpart`. Remove the image with `filedo C:\vdtest\hwpart.fdd destroy`.
+
+### Partition disks in the Disk manager
+
+The same owner-designated extent and the same ground rules (a `Get-Partition` listing before step 8 and
+after steps 8 and 11). The desktop build (setup or portable), started with `filedo_win.exe --disks`.
+
+8. [ ] **Create through the choice.** *New disk..*: a choice opens - *File on a drive..*, *Partition on free
+   disk space..*, Cancel - and its text says a partition disk needs administrator consent for every mount and
+   every read and is not faster than a file disk. *File on a drive..* opens the *Create a disk* page in the
+   main window (go back without creating). *New disk..* again, *Partition on free disk space..*: the partition
+   dialog shows each disk as a map, refused disks with their reason, the VHD warning for a virtual disk; pick
+   the owner's extent, size *max*, profile *fast*, name `guipart`. The facts block lists consent, speed, Disk
+   Management and GPT only. *Create* shows a confirmation with the disk and the extent; confirm: one consent
+   prompt, the new row `guipart` appears with carrier *Partition*, and `Get-Partition` shows the one new
+   partition only.
+9. [ ] **Mount and the read prompts.** Double-click `guipart`: one consent prompt, a letter appears; unmount.
+   *Info* and *Verify* each raise one consent prompt; the detail pane says mounting and every read ask for
+   consent and that *Image to file* makes a copy that does not. *Compact* and *Grow* are disabled with
+   *A partition disk has a fixed size ..* in their tooltip.
+10. [ ] **Image to file.** *Image to file..* (More actions or the row menu): choose `C:\vdtest\guipart.fdd`;
+   one consent prompt, the job ends with exit 0; *Add..* the new file and *Info* on it raises **no** prompt.
+   *Image to file..* to the same name again says the file exists and writes nothing.
+11. [ ] **Forget and adopt.** Row menu *Remove from list* (forget) on `guipart`: the row goes, `Get-Partition` is
+   unchanged. *Adopt partition..* (More actions, or right-click on empty space): the dialog lists the
+   partition as *Disk n (model): size at offset*; adopt it as `guipart` - one consent prompt, the row is back
+   and mounts with the data intact. With no unregistered FileDO partition left, *Adopt partition..* says none
+   was found.
+12. [ ] **Delete with the typed name.** *Destroy..* on `guipart` opens the manager's own dialog (not a job page):
+   it names the partition and asks for the disk's name; *Delete partition* stays disabled until `guipart` is
+   typed exactly, and the *Overwrite the whole partition first* box is off by default. A mounted `guipart` is
+   refused first. Type the name, delete: one consent prompt, the row goes, `Get-Partition` matches the listing
+   saved before step 8 exactly, and `filedo vd disks` shows the extent *usable* again. Remove
+   `C:\vdtest\guipart.fdd` from the list and destroy it.
+
+### Partition disks in the Microsoft Store build
+
+On the machine of section 7 (the Store build, or the `-SelfSign` package, and no other FileDO):
+
+13. [ ] `filedo vd disks` prints exactly *Partition disks are not available in the Microsoft Store version.*
+    and ends with exit 0, with no consent prompt and no disk listed; `filedo vd disks json` prints
+    `{"schema":"filedo.vd-disks","version":1,"available":false,"reason":"store-build","disks":[]}`.
+14. [ ] `filedo vd new part 1 size max force`, `filedo vd image x to C:\vdtest\x.fdd`, `filedo vd adopt
+    fdpart:{00000000-0000-0000-0000-000000000001}` and `filedo vd info fdpart:{00000000-0000-0000-0000-000000000001}`
+    each end with exit 6 and that sentence; nothing is written and no prompt appears.
+15. [ ] In the Disk manager, *New disk..* says a new disk is a `.fdd` file and that partition disks are not
+    available in the Microsoft Store version, and offers *File on a drive..* and Cancel only - no partition
+    choice. *Image to file..* and *Adopt partition..* are absent (hidden, not greyed) from every menu.

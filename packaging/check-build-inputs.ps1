@@ -35,20 +35,20 @@ $global:LASTEXITCODE = 0
 if (-not $Root) { $Root = Split-Path $PSScriptRoot -Parent }
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "build-inputs: NOT VERIFIED ('git' is not on PATH)" -ForegroundColor Yellow
+    Write-Host "build-inputs: COULD NOT VERIFY ('git' is not on PATH)" -ForegroundColor Yellow
     exit 2
 }
 
 $ignored = @(& git -C $Root -c core.quotepath=off ls-files --others --ignored --exclude-standard 2>&1)
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "build-inputs: NOT VERIFIED (git ls-files failed in ${Root}: $(($ignored | Out-String).Trim()))" -ForegroundColor Yellow
+    Write-Host "build-inputs: COULD NOT VERIFY (git ls-files failed in ${Root}: $(($ignored | Out-String).Trim()))" -ForegroundColor Yellow
     exit 2
 }
 
 $folderInput = '^(assets/(glyphs|menu-icons)/|assets/[^/]+$|packaging/wix/[^/]+$|shellext/[^/]+$|msix/[^/]+$|msix/(listing|screenshots|testdata)/)'
 $sourceInput = '\.(go|vb|vbproj|wxs|wxl|cpp|h|rc|def|manifest|resx|ps1|yml)$'
 $outputFolder = '(^|/)(bin|obj|dist|out|stage)/'
-$notInput = '^(PLAN|\.claude)/'
+$notInput = '^(PLAN|\.claude|temp|tmp)/'
 
 $defects = [System.Collections.Generic.List[string]]::new()
 foreach ($path in $ignored) {

@@ -47,6 +47,16 @@ Public Enum DiskAction
     Format
     Destroy
     Refresh
+    ' SP-0148: a partition disk's copy into a new .fdd (`vd image`), and the registration of a FileDO
+    ' partition this machine has no name for (`vd adopt`) - the second is not about a row.
+    ImageToFile
+    Adopt
+    ShareDisk
+    OpenShared
+    CloseShared
+    UnshareDisk
+    ShareAutoOn
+    ShareAutoOff
 End Enum
 
 ' How an action runs (spec 7): a filedo.exe run from the manager, something with no filedo.exe at
@@ -63,6 +73,7 @@ Public Class DiskContext
     Public Property Packaged As Boolean = False
     Public Property TransportReady As Boolean = True
     Public Property TransportReason As String = ""
+    Public Property FMSAvailability As String = "unknown"
 End Class
 
 Public Module DiskStates
@@ -99,12 +110,41 @@ Public Module DiskStates
                 Return Localization.Format(T(dict, If(r.RamSaveError <> "", "vd_mgr_state_save_failing_fmt", "vd_mgr_state_unsaved_fmt")), SizeText(r.RamDirty))
             Case DiskRowState.Mounted : Return T(dict, If(r.ReadOnly, "vd_mgr_state_mounted_ro", "vd_mgr_state_mounted"))
             Case DiskRowState.Image : Return T(dict, "vd_mgr_state_image")
-            Case DiskRowState.Missing : Return T(dict, "vd_mgr_state_missing")
-            Case DiskRowState.Different : Return T(dict, "vd_mgr_state_different")
+            Case DiskRowState.Missing : Return T(dict, If(r.IsPartition, "vd_part_state_missing", "vd_mgr_state_missing"))
+            Case DiskRowState.Different : Return T(dict, If(r.IsPartition, "vd_part_state_different", "vd_mgr_state_different"))
             Case DiskRowState.Unreadable : Return T(dict, "vd_mgr_state_unreadable")
             Case DiskRowState.Unclean : Return T(dict, "vd_mgr_state_unclean")
         End Select
         Return T(dict, "vd_mgr_state_not_mounted")
+    End Function
+
+    ' SP-0121: the key of the word for a holder token (vdisk.DiskHolder.Token). A token this build does
+    ' not know reads as unknown.
+    Public Function HolderKey(token As String) As String
+        Select Case token
+            Case "none" : Return "vd_mgr_holder_none"
+            Case "file-do" : Return "vd_mgr_holder_filedo"
+            Case "fms-service" : Return "vd_mgr_holder_fms_service"
+            Case "fms-session" : Return "vd_mgr_holder_fms_session"
+        End Select
+        Return "vd_mgr_holder_unknown"
+    End Function
+
+    ' The shared-disk sentences of the detail pane: where it is shared and who holds it, the open files,
+    ' and - when the holder opens it by itself - whether it does so with a stored key (AUD-90-F2, F3).
+    Public Function SharedSentences(r As DiskRecord, dict As Dictionary(Of String, String)) As List(Of String)
+        Dim out As New List(Of String)
+        If Not r.IsShared Then Return out
+        Dim holder = T(dict, HolderKey(r.Holder))
+        Dim info = If(r.RootName = "",
+                      Localization.Format(T(dict, "vd_mgr_detail_shared_noroot_fmt"), holder),
+                      Localization.Format(T(dict, "vd_mgr_detail_shared_fmt"), r.RootName, holder))
+        If r.OpenHandles > 0 Then info &= " " & Localization.Format(T(dict, "vd_mgr_detail_open_handles_fmt"), r.OpenHandles)
+        out.Add(info)
+        out.Add(T(dict, If(r.ShareReadOnly, "vd_share_access_ro", "vd_share_access_rw")))
+        out.Add(T(dict, "vd_share_state_" & If(New String() {"open", "closed", "opening", "closing", "locked", "failed"}.Contains(r.SharedState), r.SharedState, "unknown")))
+        If r.Autostart Then out.Add(T(dict, If(r.HasStoredKey, "vd_mgr_detail_autostart_key_on", "vd_mgr_detail_autostart_on")))
+        Return out
     End Function
 
     ' The word of an operation in progress, by its verb; "queued" is an operation waiting its turn.
@@ -142,6 +182,17 @@ Public Module DiskStates
             Case DiskRowState.ServerGone, DiskRowState.Unreadable : Return p.StateError
         End Select
         Return p.MutedText
+    End Function
+
+    ' The tone a state's glyph is drawn in on one particular background: ToneOf, except that the
+    ' warning tone gives way to the palette's own warning ink where it falls under 3:1 there - on the
+    ' light theme's hover and selection tints (ICON-RENDER rule 3).
+    Friend Function ToneOn(state As DiskRowState, p As Theme.Palette, back As Color) As Color
+        Select Case state
+            Case DiskRowState.Unsaved, DiskRowState.Missing, DiskRowState.Different, DiskRowState.Unclean
+                Return Theme.WarningGlyphOn(p, back)
+        End Select
+        Return ToneOf(state, p)
     End Function
 
     ' The Protection column: one of two words and nothing in between (principle 3), or "-".
@@ -186,7 +237,7 @@ Public Module DiskStates
 
     Public Function KindOf(a As DiskAction) As DiskActionKind
         Select Case a
-            Case DiskAction.OpenDrive, DiskAction.ShowInFolder, DiskAction.CopyPath, DiskAction.Refresh
+            Case DiskAction.OpenDrive, DiskAction.ShowInFolder, DiskAction.CopyPath, DiskAction.Refresh, DiskAction.Autostart
                 Return DiskActionKind.Local
             Case DiskAction.NewDisk, DiskAction.Export, DiskAction.Compact, DiskAction.Grow, DiskAction.Seal,
                  DiskAction.Clone, DiskAction.ChangePassword
@@ -200,6 +251,10 @@ Public Module DiskStates
     ' The verb of the console an action runs, and "" for one that runs none.
     Public Function VerbOf(a As DiskAction) As String
         Select Case a
+            Case DiskAction.ShareDisk, DiskAction.UnshareDisk : Return "share"
+            Case DiskAction.OpenShared : Return "open"
+            Case DiskAction.CloseShared : Return "close"
+            Case DiskAction.ShareAutoOn, DiskAction.ShareAutoOff : Return "autostart"
             Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.MountImage : Return "mount"
             Case DiskAction.Unmount, DiskAction.UnmountImage : Return "unmount"
             Case DiskAction.SaveNow : Return "save"
@@ -217,6 +272,8 @@ Public Module DiskStates
             Case DiskAction.ChangePassword : Return "pass"
             Case DiskAction.Format : Return "format"
             Case DiskAction.Destroy : Return "destroy"
+            Case DiskAction.ImageToFile : Return "image"
+            Case DiskAction.Adopt : Return "adopt"
         End Select
         Return ""
     End Function
@@ -244,7 +301,7 @@ Public Module DiskStates
     ' Autostart dialog - the shutdown guard in it belongs to the account, not to a disk (SP-0080 5).
     Public Function IsGlobal(a As DiskAction) As Boolean
         Return a = DiskAction.NewDisk OrElse a = DiskAction.MountImage OrElse a = DiskAction.Refresh OrElse
-               a = DiskAction.Autostart
+               a = DiskAction.Autostart OrElse a = DiskAction.Adopt
     End Function
 
     ' The actions that apply to a selection of more than one row (spec 6.2: Ctrl/Shift-click).
@@ -260,6 +317,12 @@ Public Module DiskStates
     ' The label key of an action in the toolbar, the menu and the detail pane.
     Public Function LabelKey(a As DiskAction, r As DiskRecord) As String
         Select Case a
+            Case DiskAction.ShareDisk : Return "vd_share_register"
+            Case DiskAction.OpenShared : Return "vd_share_open"
+            Case DiskAction.CloseShared : Return "vd_share_close"
+            Case DiskAction.UnshareDisk : Return "vd_share_remove"
+            Case DiskAction.ShareAutoOn : Return "vd_share_auto_on"
+            Case DiskAction.ShareAutoOff : Return "vd_share_auto_off"
             Case DiskAction.Mount : Return "vd_mgr_act_mount"
             Case DiskAction.MountReadOnly : Return "vd_mgr_act_mount_ro"
             Case DiskAction.MountAs : Return "vd_mgr_act_mount_as"
@@ -286,6 +349,8 @@ Public Module DiskStates
             Case DiskAction.ChangePassword : Return "vd_mgr_act_pass"
             Case DiskAction.Format : Return "vd_mgr_act_format"
             Case DiskAction.Destroy : Return "vd_mgr_act_destroy"
+            Case DiskAction.ImageToFile : Return "vd_mgr_act_image"
+            Case DiskAction.Adopt : Return "vd_mgr_act_adopt"
         End Select
         Return "vd_mgr_act_refresh"
     End Function
@@ -294,12 +359,45 @@ Public Module DiskStates
     ' (principle 2: a disabled action says why). The rules are the console's own, checked here so
     ' the window never offers what the console would refuse (spec 7.4 of SP-0004).
     Public Function WhyNot(a As DiskAction, r As DiskRecord, state As DiskRowState, ctx As DiskContext) As String
+        Dim why = WhyNotCore(a, r, state, ctx)
+        ' A partition disk's "file" is its partition (SP-0148): the same refusal, in its own words.
+        If r IsNot Nothing AndAlso r.IsPartition Then
+            Select Case why
+                Case "vd_mgr_why_missing" : Return "vd_part_why_missing"
+                Case "vd_mgr_why_different" : Return "vd_part_why_different"
+            End Select
+        End If
+        Return why
+    End Function
+
+    ' SP-0148 section 5.4 and 10: what a partition disk refuses by its nature - a fixed size, no file
+    ' to show, no FMS share - and the job pages that work on a container file. Nothing when the
+    ' ordinary rules decide.
+    Private Function PartitionWhy(a As DiskAction, r As DiskRecord, state As DiskRowState) As String
+        Select Case a
+            Case DiskAction.Compact, DiskAction.Grow
+                Return "vd_part_why_fixed_size"
+            Case DiskAction.Export, DiskAction.Seal, DiskAction.Clone, DiskAction.ChangePassword, DiskAction.Format
+                Return "vd_part_why_job_page"
+            Case DiskAction.AddToList
+                If Not r.Registered Then Return "vd_part_why_adopt"
+            Case DiskAction.ImageToFile
+                If r.IsMounted Then Return "vd_mgr_why_mounted"
+                Return FileWhy(state)
+        End Select
+        Return Nothing
+    End Function
+
+    Private Function WhyNotCore(a As DiskAction, r As DiskRecord, state As DiskRowState, ctx As DiskContext) As String
         If ctx Is Nothing Then ctx = New DiskContext()
 
         ' The actions that are not about a row.
         Select Case a
             Case DiskAction.NewDisk, DiskAction.Refresh
                 Return ""
+            Case DiskAction.Adopt
+                ' The Store build has no partition disks at all (SP-0148 4.7).
+                Return If(ctx.Packaged, "vd_part_store", "")
             Case DiskAction.MountImage
                 Return If(ctx.Packaged, "vd_packaged", "")
             Case DiskAction.Autostart
@@ -316,11 +414,39 @@ Public Module DiskStates
             Case DiskAction.CopyPath
                 Return ""
             Case DiskAction.ShowInFolder
+                If r.IsPartition Then Return "vd_part_why_no_file"
                 Return If(r.FileState = "missing" AndAlso Not r.IsImage, "vd_mgr_why_missing", "")
         End Select
 
         ' A disk with an operation running accepts no second one (spec 7.1).
         If state = DiskRowState.Busy Then Return "vd_mgr_why_busy"
+
+        If IsSharing(a) Then
+            If r.IsImage Then Return "vd_mgr_why_image"
+            If r.IsPartition Then Return "vd_share_partition"
+            If ctx.Packaged Then Return "vd_share_store"
+            If a = DiskAction.ShareDisk Then
+                If Not r.Registered Then Return "vd_mgr_why_not_registered"
+                If r.IsShared Then Return "vd_share_already"
+                If r.Protection = DiskProtection.Unknown Then Return "vd_mgr_why_unreadable"
+                Return FileWhy(state)
+            End If
+            If ctx.FMSAvailability <> "ready" Then Return "vd_share_unavailable"
+            If Not r.IsShared Then Return "vd_share_not_registered"
+            If r.Holder = "unknown" OrElse r.SharedState = "unknown" OrElse r.SharedState = "" Then Return "vd_share_unknown"
+            If r.IsMounted Then Return "vd_mgr_why_mounted"
+            If r.SharedState = "opening" OrElse r.SharedState = "closing" Then Return "vd_mgr_why_busy"
+            If a = DiskAction.OpenShared Then
+                If r.SharedState = "open" Then Return "vd_share_already_open"
+                Return FileWhy(state)
+            End If
+            If a = DiskAction.ShareAutoOn Then
+                If r.Autostart Then Return "vd_mgr_why_auto_on_already"
+                Return FileWhy(state)
+            End If
+            If a = DiskAction.ShareAutoOff AndAlso Not r.Autostart Then Return "vd_mgr_why_auto_off_already"
+            Return ""
+        End If
 
         ' What a foreign image is: only a drive to open and to detach.
         If r.IsImage Then
@@ -333,11 +459,17 @@ Public Module DiskStates
             Return "vd_mgr_why_image"
         End If
 
+        If r.IsPartition Then
+            Dim pw = PartitionWhy(a, r, state)
+            If pw IsNot Nothing Then Return pw
+        End If
+
         Dim mounted = r.IsMounted
         Select Case a
             Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs
                 If ctx.Packaged Then Return "vd_packaged"
                 If mounted Then Return "vd_mgr_why_already_mounted"
+                If r.IsHeldByFMS Then Return "vd_mgr_why_held_by_fms"
                 Dim fw = FileWhy(state)
                 If fw <> "" Then Return fw
                 Return TransportWhy(ctx)
@@ -418,6 +550,10 @@ Public Module DiskStates
                 If mounted Then Return "vd_mgr_why_mounted"
                 If state = DiskRowState.Missing Then Return "vd_mgr_why_missing"
                 Return ""
+
+            Case DiskAction.ImageToFile
+                ' A partition row has been answered above; a file disk is a file already.
+                Return "vd_part_why_not_partition"
         End Select
         Return ""
     End Function
@@ -429,10 +565,12 @@ Public Module DiskStates
     ' unavailable now (a service that is off) stays a disabled control that says why (principle 2).
     Public Function HiddenInBuild(a As DiskAction, ctx As DiskContext) As Boolean
         If ctx Is Nothing OrElse Not ctx.Packaged Then Return False
+        If IsSharing(a) Then Return True
         Select Case a
             Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.MountImage,
                  DiskAction.Unmount, DiskAction.UnmountImage, DiskAction.SaveNow,
-                 DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.Autostart, DiskAction.Format
+                 DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.Autostart, DiskAction.Format,
+                 DiskAction.ImageToFile, DiskAction.Adopt
                 Return True
         End Select
         Return False
@@ -501,12 +639,26 @@ Public Module DiskStates
     Public Function QuickCommand(a As DiskAction, r As DiskRecord, o As DiskOptions) As List(Of String)
         If o Is Nothing Then o = New DiskOptions()
         o.Protection = r.Protection
+        ' A partition disk is named by its registered name (its path is empty), and it refuses noscan
+        ' (SP-0148 5.4): the window never sends the word for one.
+        If r.IsPartition Then o.NoScan = False
         Select Case a
+            Case DiskAction.ShareDisk
+                o.ShareOn = True
+                If r.Profile = "sealed" Then o.ReadOnly = True
+                Return DiskCommands.Build("share", r.Target, o)
+            Case DiskAction.UnshareDisk
+                Return DiskCommands.Build("share", r.Target, New DiskOptions With {.ShareOn = False})
+            Case DiskAction.OpenShared, DiskAction.CloseShared
+                Return DiskCommands.Build(VerbOf(a), r.Target, o)
+            Case DiskAction.ShareAutoOn, DiskAction.ShareAutoOff
+                o.ShareOn = a = DiskAction.ShareAutoOn
+                Return DiskCommands.Build("autostart", r.Target, o)
             Case DiskAction.Mount, DiskAction.MountAs
-                Return DiskCommands.Build("mount", r.Path, o)
+                Return DiskCommands.Build("mount", r.Target, o)
             Case DiskAction.MountReadOnly
                 o.ReadOnly = True
-                Return DiskCommands.Build("mount", r.Path, o)
+                Return DiskCommands.Build("mount", r.Target, o)
             Case DiskAction.MountImage
                 o.Protection = DiskProtection.Unknown
                 o.HasCredential = False
@@ -516,13 +668,15 @@ Public Module DiskStates
             Case DiskAction.SaveNow
                 Return DiskCommands.Build("save", r.Letter, New DiskOptions())
             Case DiskAction.Info
-                Return DiskCommands.Build("info", r.Path, New DiskOptions())
+                Return DiskCommands.Build("info", r.Target, New DiskOptions())
             Case DiskAction.Verify
-                Return DiskCommands.Build("verify", r.Path, o)
+                Return DiskCommands.Build("verify", r.Target, o)
             Case DiskAction.AutoOn
-                Return DiskCommands.Build("auto", r.Path, New DiskOptions With {.AutoOn = True})
+                Return DiskCommands.Build("auto", r.Target, New DiskOptions With {.AutoOn = True})
             Case DiskAction.AutoOff
-                Return DiskCommands.Build("auto", r.Path, New DiskOptions With {.AutoOn = False})
+                Return DiskCommands.Build("auto", r.Target, New DiskOptions With {.AutoOn = False})
+            Case DiskAction.ImageToFile
+                Return PartitionCommands.Image(r.Target, o.Dest)
             Case DiskAction.AddToList
                 Return DiskCommands.Build("add", r.Path, New DiskOptions With {.Remember = True, .Name = o.Name})
             Case DiskAction.Forget
@@ -536,10 +690,15 @@ Public Module DiskStates
     Public Function AsksPassword(a As DiskAction, r As DiskRecord) As Boolean
         If r Is Nothing OrElse r.IsImage OrElse r.Protection <> DiskProtection.Encrypted Then Return False
         Select Case a
-            Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Verify
+            Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Verify, DiskAction.OpenShared, DiskAction.ShareAutoOn
                 Return True
         End Select
         Return False
+    End Function
+
+    Public Function IsSharing(a As DiskAction) As Boolean
+        Return a = DiskAction.ShareDisk OrElse a = DiskAction.OpenShared OrElse a = DiskAction.CloseShared OrElse
+               a = DiskAction.UnshareDisk OrElse a = DiskAction.ShareAutoOn OrElse a = DiskAction.ShareAutoOff
     End Function
 
     ' The name `vd add .. as <name>` accepts (vdNameSpelling in cmd\filedo\vdisk_registry.go): letters,

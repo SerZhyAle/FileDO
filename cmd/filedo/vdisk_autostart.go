@@ -42,7 +42,8 @@ func vdAutostartRun(args []string, batch bool) error {
 	if e != nil {
 		return e
 	}
-	if _, e = client.GetDiskStatus(path); e != nil {
+	before, e := client.GetDiskStatus(path)
+	if e != nil {
 		if vdNotShared(e) {
 			return fmt.Errorf("share the container first: %w", e)
 		}
@@ -50,6 +51,7 @@ func vdAutostartRun(args []string, batch bool) error {
 	}
 	var password []byte
 	encrypted := false
+	proven := false
 	if action == "on" {
 		info, e := vdShareInspect(path)
 		if e != nil {
@@ -57,7 +59,7 @@ func vdAutostartRun(args []string, batch bool) error {
 		}
 		if !info.Obfuscated {
 			fmt.Println("Autostart stores the credential in the holder's protected store on this PC.")
-			fmt.Println("After startup the disk opens for every paired device without anyone typing its password. Encryption still protects a copy of the closed container.")
+			fmt.Printf("The disk opens for every paired device %s without anyone typing its password. Encryption still protects a copy of the closed container.\n", vdAutostartWhen(client.WorkerMode()))
 			if !consent && !vdAutostartConsent("Store the credential for this disk's autostart?", batch) {
 				return fmt.Errorf("%w: password storage needs explicit consent; use consent in an unattended command", vdisk.ErrUsage)
 			}
@@ -68,6 +70,15 @@ func vdAutostartRun(args []string, batch bool) error {
 				return e
 			}
 			defer clear(password)
+			// A typo stored here would leave the disk closed at every startup, and the phone would see
+			// only a folder that looks unavailable (A18): prove the credential on a closed container
+			// before it is stored. An open container is held by the holder, which FileDO cannot read.
+			if vdDiskIdle(before.State) {
+				if e = vdProveCredential(path, password); e != nil {
+					return vdCredentialErr(e, cred)
+				}
+				proven = true
+			}
 		} else if cred.given() {
 			return vdUsagef("a plain container needs no autostart credential")
 		}
@@ -83,15 +94,29 @@ func vdAutostartRun(args []string, batch bool) error {
 	if e = vdVerifyAutostart(st, action == "on", encrypted); e != nil {
 		return e
 	}
+	vdLogf("autostart: %s %s stored-key=%t", action, path, st.HasStoredKey)
 	if e = vdRefreshShareSnapshot(client); e != nil {
 		vdSnapshotWarn("autostart changed", e)
 	}
 	if action == "on" {
 		fmt.Printf("Autostart enabled for %s.\n", path)
+		if encrypted && !proven {
+			fmt.Println("The disk is open, so FileDO could not check the password against the container; if it is wrong the disk stays closed at the next startup.")
+		}
+		vdSayHolderMode(client.WorkerMode())
 	} else {
 		fmt.Printf("Autostart disabled for %s; the holder destroyed its stored key.\n", path)
 	}
 	return nil
+}
+
+// vdDiskIdle says the holder is not using the container: nothing has it open, so FileDO can read it.
+func vdDiskIdle(s fmsworker.DiskState) bool {
+	switch s {
+	case fmsworker.DiskStateClosed, fmsworker.DiskStateLocked, fmsworker.DiskStateFailed:
+		return true
+	}
+	return false
 }
 
 // vdVerifyAutostart checks the holder's own record against what was asked. An

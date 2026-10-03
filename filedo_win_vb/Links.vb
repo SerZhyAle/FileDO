@@ -9,6 +9,7 @@
 Imports System.Diagnostics
 
 Module Links
+    Public Const FMSInstall As String = "https://serzhyale.github.io/FastMediaSorter_Lite/"
 
     Public Const AuthorName As String = "Serhii Zhyhunenko (sza)"
     Public Const AuthorEmail As String = LogReport.AuthorEmail
@@ -21,6 +22,9 @@ Module Links
     ' user to (SP-0063). The site chooses its own language from the browser's.
     Public Const Guides As String = "https://serzhyale.github.io/FileDO/guides/"
     Public Const DiskGuide As String = "https://serzhyale.github.io/FileDO/guides/virtual-disks.html"
+    ' The page about the Fast Media Sorter & Sharing integration - what the Disk manager's help
+    ' sends a user to for setup, every dialog and recovery (the DISK-SHARE surfaces).
+    Public Const ShareGuide As String = "https://serzhyale.github.io/FileDO/guides/fms-sharing.html"
     Public Const Readme As String = "https://github.com/SerZhyAle/FileDO#readme"
     Public Const Portfolio As String = "https://sza.od.ua"
 

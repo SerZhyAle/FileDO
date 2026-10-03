@@ -43,6 +43,8 @@ func changeCredentialOn(b backing, old, next fdsec.Credential, nextKeyfile bool)
 	}
 	h := res.hdr
 	switch {
+	case fixedCap(b) != 0 && h.PhysicalSize != uint64(L):
+		return unsupportedf("the container was written for %d bytes and its partition is %d; its credential is not changed", h.PhysicalSize, L)
 	case h.obfuscated():
 		return usagef("this container is obfuscated, not encrypted: it opens without a credential, so it has none to change")
 	case h.Profile == ProfileSealed:
@@ -107,8 +109,22 @@ func changeCredentialOn(b backing, old, next fdsec.Credential, nextKeyfile bool)
 	return nil
 }
 
-// writeSlot writes one 512-byte slot and flushes it.
+// writeSlot writes one 512-byte slot and flushes it. On a partition the slot
+// region is written whole - the changed slot inside its unchanged neighbours -
+// because a device with 4096-byte sectors refuses a 512-byte write
+// (FDD-FORMAT section 3.1 rule 4). The order of slots and flushes is the same.
 func writeSlot(b backing, h *header, i int, slot []byte) error {
+	if fixedCap(b) != 0 {
+		region := make([]byte, slotRegionSize)
+		if err := readFull(b, region, int64(h.SlotsOffset)); err != nil {
+			return err
+		}
+		copy(region[i*slotSize:], slot)
+		if _, err := b.WriteAt(region, int64(h.SlotsOffset)); err != nil {
+			return ioErr(err)
+		}
+		return ioErr(b.Sync())
+	}
 	if _, err := b.WriteAt(slot, int64(h.SlotsOffset)+int64(i)*slotSize); err != nil {
 		return ioErr(err)
 	}

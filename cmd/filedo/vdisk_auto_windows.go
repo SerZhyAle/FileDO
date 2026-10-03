@@ -22,9 +22,14 @@ import (
 // the owner creates on purpose, one per registered container, in the \FileDO\
 // folder of the system's own Task Scheduler, removable in one command.
 //
-// The task runs `filedo --no-history vd mount <name>` at the owner's logon,
-// with the highest privileges the account has - which is what lets the
+// The task runs `filedo --no-history vd mount <name> keep` at the owner's
+// logon, with the highest privileges the account has - which is what lets the
 // initiator step run without a consent prompt nobody would be there to see.
+// The keep word makes the run resident: after the mount it watches the block
+// server for the rest of the session and remounts the disk if it dies
+// (vdisk_keep_windows.go), so its time limit is off. A task made before keep
+// existed runs the plain mount; turning the automatic mount off and on again
+// replaces it.
 // It is written as task XML rather than with schtasks' own switches because
 // /SC ONLOGON alone triggers at the logon of ANY user; the XML names the
 // owner's account in the trigger and in the principal. Creating and removing
@@ -39,13 +44,23 @@ const vdTaskFolder = `\FileDO\`
 
 func vdTaskName(name string) string { return vdTaskFolder + "FileDO Mount " + name }
 
-// vdAutoTasks lists the containers that have a task, by lower-cased name.
-// Best effort: a listing that fails shows no tasks.
-func vdAutoTasks() map[string]bool {
+// vdAutoTasksQuery lists the containers that have a task, by lower-cased name,
+// and reports a listing that itself failed: an empty map with an error means
+// "could not tell", never "none". A variable so the tests can fail the listing.
+var vdAutoTasksQuery = func() (map[string]bool, error) {
+	return vdQueryAutoTasks(func(args ...string) ([]byte, error) {
+		return exec.Command(vdSchtasks(), args...).Output()
+	})
+}
+
+// Query only our folder: enumerating every scheduled task costs each Disk
+// Manager poll hundreds of milliseconds. The runner lets tests exercise the
+// real arguments and CSV without changing the machine's scheduled tasks.
+func vdQueryAutoTasks(query func(...string) ([]byte, error)) (map[string]bool, error) {
 	out := map[string]bool{}
-	b, err := exec.Command(vdSchtasks(), "/Query", "/FO", "CSV", "/NH").Output()
+	b, err := query("/Query", "/TN", vdTaskFolder, "/FO", "CSV", "/NH")
 	if err != nil {
-		return out
+		return out, err
 	}
 	rows, _ := csv.NewReader(bytes.NewReader(b)).ReadAll()
 	prefix := strings.ToLower(vdTaskName(""))
@@ -54,6 +69,14 @@ func vdAutoTasks() map[string]bool {
 			out[strings.TrimPrefix(strings.ToLower(r[0]), prefix)] = true
 		}
 	}
+	return out, nil
+}
+
+// vdAutoTasks is the listing for what only shows or guards: best effort, a
+// listing that fails shows no tasks. auto off does not use it, because there
+// "no tasks" would read as "nothing to remove".
+func vdAutoTasks() map[string]bool {
+	out, _ := vdAutoTasksQuery()
 	return out
 }
 
@@ -101,14 +124,23 @@ func vdAuto(args []string, batch bool) error {
 	if vdHasTask(e.Name) {
 		return vdUsagef("%s mounts automatically already; remove it first with: filedo vd auto off %s", e.Name, e.Name)
 	}
-	if _, err := os.Stat(e.Path); err != nil {
+	if e.isPart() {
+		// A partition disk's header needs elevation to read; its protection
+		// is the one recorded when it was made or adopted (SP-0148 9.2), and
+		// the keep watcher re-reads the header itself, elevated.
+		if e.Protection != "obfuscated" {
+			return vdUsagef("%s is encrypted, and an automatic mount would need its credential stored where the machine can read it without you; this version stores none, so it does not mount encrypted containers automatically", e.Name)
+		}
+	} else if _, err := os.Stat(e.Path); err != nil {
 		return vdUsagef("the file of %s is missing: %s", e.Name, e.Path)
 	}
 	// An encrypted container needs a credential the machine can reach
 	// without a person, and this version keeps none (FDD-BEHAVIOUR 7 rule
 	// 9). Refused here, loudly; a task created anyway would fail at every
 	// logon with the usage class, since its mount has no terminal to ask on.
-	if info, err := vdisk.Inspect(e.Path); err != nil {
+	if e.isPart() {
+		// Checked above, from the registration.
+	} else if info, err := vdisk.Inspect(e.Path); err != nil {
 		return err
 	} else if !info.Obfuscated {
 		return vdUsagef("%s is encrypted, and an automatic mount would need its credential stored where the machine can read it without you; this version stores none, so it does not mount encrypted containers automatically", e.Name)
@@ -122,8 +154,9 @@ func vdAuto(args []string, batch bool) error {
 		return err
 	}
 
-	fmt.Printf("This creates the scheduled task %s: at your logon it runs\n  %s --no-history vd mount %s\n", vdTaskName(e.Name), exe, e.Name)
-	fmt.Println("with administrator rights and without asking, so the volume is there when you log on.")
+	fmt.Printf("This creates the scheduled task %s: at your logon it runs\n  %s --no-history vd mount %s keep\n", vdTaskName(e.Name), exe, e.Name)
+	fmt.Println("with administrator rights and without asking, so the volume is there when you log on, and it stays")
+	fmt.Println("running in the background to mount the volume again if its block server ever stops.")
 	fmt.Println("The container is obfuscated, not encrypted: anyone who has the file reads it, and once mounted the volume is open to every program that runs as you.")
 	fmt.Printf("It stays until you remove it with: filedo vd auto off %s  (an uninstall of FileDO does not remove it).\n", e.Name)
 	res, err := vdRunElevated("_task", vdRequest{TaskName: vdTaskName(e.Name), TaskSID: sid}, batch, nil)
@@ -131,17 +164,43 @@ func vdAuto(args []string, batch bool) error {
 		return err
 	}
 	_ = res
-	vdLogf("auto: created task %s for %s (%s), command %s --no-history vd mount %s", vdTaskName(e.Name), e.Name, e.Path, exe, e.Name)
+	vdLogf("auto: created task %s for %s (%s), command %s --no-history vd mount %s keep", vdTaskName(e.Name), e.Name, e.Path, exe, e.Name)
 	fmt.Printf("Created. %s will mount at your next logon.\n", e.Name)
 	return nil
 }
 
 func vdAutoOff(name string, batch bool) error {
-	if !vdHasTask(name) {
+	tasks, qerr := vdAutoTasksQuery()
+	if qerr != nil {
+		// Nobody knows whether the task exists, so nothing is removed and nothing is
+		// reported as removed; a watcher is not asked to end either.
+		return fmt.Errorf("could not list the scheduled tasks, so the automatic mount of %s was left as it is: %w", name, qerr)
+	}
+	return vdAutoOffRun(name, tasks[strings.ToLower(name)], func() error {
+		_, err := vdRunElevated("_task", vdRequest{TaskName: vdTaskName(name), TaskDelete: true}, batch, nil)
+		return err
+	})
+}
+
+// vdAutoOffRun is auto off behind its two seams: whether the logon task exists,
+// and the (elevated) removal of it. The running watcher is asked to end whether
+// or not the task is still there - a task deleted by hand in Task Scheduler
+// leaves a watcher that only this request can end. The usage refusal is for a
+// name that has neither a task nor a registration.
+func vdAutoOffRun(name string, hasTask bool, remove func() error) error {
+	if !hasTask && vdRegisteredName(name) == "" {
 		return vdUsagef("%s has no automatic mount (see: filedo vd list)", name)
 	}
-	if _, err := vdRunElevated("_task", vdRequest{TaskName: vdTaskName(name), TaskDelete: true}, batch, nil); err != nil {
-		return err
+	if hasTask {
+		if err := remove(); err != nil {
+			return err
+		}
+	}
+	vdKeepRequestStop(name) // a watcher already running ends too; the mounted disk stays as it is
+	if !hasTask {
+		vdLogf("auto: %s had no task %s; a running watcher was asked to end", name, vdTaskName(name))
+		fmt.Printf("%s had no automatic mount any more (its task was removed already); a watcher still running for it was asked to end. The container and its registration are unchanged.\n", name)
+		return nil
 	}
 	vdLogf("auto: removed task %s", vdTaskName(name))
 	fmt.Printf("Removed the automatic mount of %s. The container and its registration are unchanged.\n", name)
@@ -372,13 +431,13 @@ func vdTaskXML(name, path, exe, sid string) string {
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
     <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
     <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-    <ExecutionTimeLimit>PT10M</ExecutionTimeLimit>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
     <Enabled>true</Enabled>
   </Settings>
   <Actions Context="Author">
     <Exec>
       <Command>` + esc(exe) + `</Command>
-      <Arguments>--no-history vd mount ` + esc(name) + `</Arguments>
+      <Arguments>--no-history vd mount ` + esc(name) + ` keep</Arguments>
       <WorkingDirectory>` + esc(dir) + `</WorkingDirectory>
     </Exec>
   </Actions>

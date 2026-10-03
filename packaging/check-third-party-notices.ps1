@@ -42,7 +42,7 @@ $root = Split-Path $PSScriptRoot -Parent
 if (-not $Notices) { $Notices = Join-Path $root 'THIRD-PARTY-NOTICES.txt' }
 
 if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
-    Write-Host "third-party-notices: NOT VERIFIED ('go' is not on PATH)" -ForegroundColor Yellow
+    Write-Host "third-party-notices: COULD NOT VERIFY ('go' is not on PATH)" -ForegroundColor Yellow
     exit 2
 }
 if (-not (Test-Path $Notices)) {
@@ -136,8 +136,8 @@ if ($failures.Count) {
     exit 1
 }
 if ($unverified.Count) {
-    $unverified | ForEach-Object { Write-Host "  NOT VERIFIED  $_" -ForegroundColor Yellow }
-    Write-Host "third-party-notices: NOT VERIFIED ($($unverified.Count) modules could not be listed)" -ForegroundColor Yellow
+    $unverified | ForEach-Object { Write-Host "  COULD NOT VERIFY  $_" -ForegroundColor Yellow }
+    Write-Host "third-party-notices: COULD NOT VERIFY ($($unverified.Count) modules could not be listed)" -ForegroundColor Yellow
     exit 2
 }
 Write-Host "third-party-notices: PASS ($($linked.Count) linked modules, all noticed)" -ForegroundColor Green

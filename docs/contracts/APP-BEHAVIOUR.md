@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-BEHAVIOUR` |
-| **Version** | 0.10, draft (no wire - the twelve moments a user of any SZA desktop app meets) |
+| **Version** | 0.12, draft (no wire - the twelve moments a user of any SZA desktop app meets) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-BEHAVIOUR.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |
@@ -46,4 +46,9 @@ owner-less dialog (rule 1, the static sweep), no ellipsis in the rail (rule 2). 
 3), the Wipe page's confirmations (rule 5), the formatter's failure cases (rule 7), every control of every
 page walked for a name and every rail row for a default action (rule 9, rung 2), placement cases (rule 10).
 
-**Status: implemented, rule 8 narrowed.** FileDO's adoption row and the dated loopback-listener exception are in the catalog registry.
+**Status: implemented, rule 8 narrowed.** FileDO's adoption row is in the catalog registry.
+
+**0.11 and 0.12 (no rule renumbered), read and applied 2026-10-02 (SP-0122).**
+- **Rule 5, the safe answer is the default.** Every destructive confirmation is a `DestructiveDialogs` definition (`ShellDialog.vb`) in which the safe answer holds the default focus and Escape, and the acting button takes the `danger` role (`APP-STYLE` section 4). Held by the `dialog:destructive-default-safe:*` self-test rows (41) and `TestShell_DestructiveDialogDefaultsToTheSafeAnswer`. The typed-`WIPE` pages, which block Start until the word is typed, are not dialogs and keep their rule.
+- **Rule 4, a user-invoked loopback listener is inside the rule.** The mount path's block server (`vdisk/blockserver.go`) binds `127.0.0.1` only, starts with the first mount the user asked for, ends with the last unmount and logs every bind and exit; the dated exception that waited on this is closed in the registry.
+- **Rule 4, own per-user shell registrations are not a new consent event.** `fdsec register` and the autostart switch run only on an explicit user action and never re-enable a kind the user turned off; the MSI keeps a deselected feature deselected across an upgrade (`MigrateFeatures`).

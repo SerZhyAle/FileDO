@@ -1,4 +1,4 @@
-Public Class SettingsPanel
+﻿Public Class SettingsPanel
     Inherits UserControl
 
     Public Event ThemeChanged()
@@ -20,7 +20,11 @@ Public Class SettingsPanel
     Private ReadOnly resetButton As New Button With {.AutoSize = True}
     Private ReadOnly startupHeader As New Label With {.AutoSize = True}
     Private ReadOnly startupHint As New Label With {.AutoSize = True}
-    Friend Shared ReadOnly NewKeys As String() = {"settings_startup", "settings_startup_off", "settings_startup_shell", "settings_startup_manager", "settings_startup_tray", "settings_startup_hint", "settings_startup_packaged", "settings_startup_failed", "settings_minimize_tray", "settings_notify", "settings_reset", "settings_reset_hint", "settings_close", "tray_open", "tray_manager", "tray_unmount", "tray_stop", "tray_exit", "tray_status", "tray_finished"}
+    Friend ReadOnly AutoPlayButton As New Button With {.AutoSize = True}
+    Private ReadOnly autoPlayHint As New Label With {.AutoSize = True}
+    Private ReadOnly autoPlayStatus As New Label With {.AutoSize = True}
+    Private ReadOnly autoPlayOpen As New Button With {.AutoSize = True}
+    Friend Shared ReadOnly NewKeys As String() = {"settings_startup", "settings_startup_off", "settings_startup_shell", "settings_startup_manager", "settings_startup_tray", "settings_startup_hint", "settings_startup_packaged", "settings_startup_failed", "settings_minimize_tray", "settings_notify", "settings_reset", "settings_reset_hint", "settings_close", "tray_open", "tray_manager", "tray_unmount", "tray_stop", "tray_exit", "tray_status", "tray_finished", "settings_autoplay_disable", "settings_autoplay_hint", "settings_autoplay_done", "settings_autoplay_open", "settings_autoplay_failed"}
 
     Public Sub New()
         dict = Localization.GetDict(ShellSettings.Language())
@@ -167,8 +171,19 @@ Public Class SettingsPanel
         resetButton.Text = L("settings_reset")
         AddHandler resetButton.Click, Sub() ShellSettings.ResetPlacements()
         Dim resetHint As New Label With {.Text = L("settings_reset_hint"), .AutoSize = True}
+        AutoPlayButton.Text = L("settings_autoplay_disable")
+        AutoPlayButton.Visible = Not packaged
+        autoPlayHint.Text = L("settings_autoplay_hint")
+        autoPlayOpen.Text = L("settings_autoplay_open")
+        AddHandler AutoPlayButton.Click, Sub()
+                                            autoPlayStatus.Text = ""
+                                            If WindowsAutoPlay.Disable(FindForm()) Then
+                                                autoPlayStatus.Text = L("settings_autoplay_done")
+                                            End If
+                                        End Sub
+        AddHandler autoPlayOpen.Click, Sub() Links.Open(FindForm(), WindowsAutoPlay.SettingsUri)
         Dim row = 8
-        For Each c As Control In New Control() {startupHeader, StartupCombo, startupHint, minimizeCheck, notifyCheck, resetButton, resetHint}
+        For Each c As Control In New Control() {startupHeader, StartupCombo, startupHint, minimizeCheck, notifyCheck, AutoPlayButton, autoPlayHint, autoPlayStatus, autoPlayOpen, resetButton, resetHint}
             c.Margin = Ui.PxPad(Me, 0, 8, 0, 4)
             t.RowCount = row + 1
             t.Controls.Add(c, 0, row)
@@ -176,6 +191,8 @@ Public Class SettingsPanel
         Next
         Ui.Wrap(startupHint, card, Ui.Px(Me, 36))
         Ui.Wrap(resetHint, card, Ui.Px(Me, 36))
+        Ui.Wrap(autoPlayHint, card, Ui.Px(Me, 36))
+        Ui.Wrap(autoPlayStatus, card, Ui.Px(Me, 36))
         card.Controls.Add(t)
         root.Controls.Add(card, 0, 0)
         Controls.Add(root)
@@ -248,12 +265,12 @@ Public Class SettingsPanel
         historyCheck.Font = Theme.FontBody()
         historyCheck.ForeColor = p.Text
 
-        For Each lbl As Label In New Label() {langHint, historyHint, startupHint}
+        For Each lbl As Label In New Label() {langHint, historyHint, startupHint, autoPlayHint, autoPlayStatus}
             lbl.Font = Theme.FontCaption()
             lbl.ForeColor = p.MutedText
         Next
 
-        For Each c As Control In New Control() {minimizeCheck, notifyCheck, resetButton}
+        For Each c As Control In New Control() {minimizeCheck, notifyCheck, resetButton, AutoPlayButton, autoPlayOpen}
             c.Font = Theme.FontBody()
             c.ForeColor = p.Text
             c.BackColor = p.Surface
@@ -263,6 +280,8 @@ Public Class SettingsPanel
         suppress = False
 
         Ui.StyleButton(resetButton, p.SurfaceAlt, p.Text, p.Border)
+        Ui.StyleButton(AutoPlayButton, p.SurfaceAlt, p.Text, p.Border)
+        Ui.StyleButton(autoPlayOpen, p.SurfaceAlt, p.Text, p.Border)
         Invalidate(True)
     End Sub
 

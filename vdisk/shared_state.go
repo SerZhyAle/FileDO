@@ -36,6 +36,7 @@ const (
 	HolderFileDO                       // Disk is held by FileDO (user session)
 	HolderFMSService                   // Disk is held by FMS service (Server edition)
 	HolderFMSSession                   // Disk is held by FMS worker in user session (User edition)
+	HolderUnknown                      // The holder could not be asked: never read as "none" (AUD-82-F2)
 )
 
 // String returns a human-readable name for the holder.
@@ -49,6 +50,23 @@ func (h DiskHolder) String() string {
 		return "FMS Service"
 	case HolderFMSSession:
 		return "FMS Session"
+	default:
+		return "unknown"
+	}
+}
+
+// Token is the holder's name on the wire of `vd status json` (SP-0063 D2): stable, lower-case, never
+// reworded. The window maps it to its own localized words; String is for the console only.
+func (h DiskHolder) Token() string {
+	switch h {
+	case HolderNone:
+		return "none"
+	case HolderFileDO:
+		return "file-do"
+	case HolderFMSService:
+		return "fms-service"
+	case HolderFMSSession:
+		return "fms-session"
 	default:
 		return "unknown"
 	}
@@ -126,6 +144,7 @@ const (
 	StateClosing                   // Disk is in the process of being closed (draining)
 	StateFailed                    // Disk failed to open or mount
 	StateLocked                    // Disk is encrypted and needs a password
+	StateUnknown                   // The worker could not be asked or sent a state this build does not know
 )
 
 // String returns a human-readable name for the state.
@@ -336,6 +355,19 @@ func (m *SharedDiskManager) GetSharedDiskStateByPath(path string) (*SharedDiskSt
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return copyShared(m.disks[m.pathMap[pathKey(path)]])
+}
+
+// ListSharedDisks returns a copy of all shared disk records.
+func (m *SharedDiskManager) ListSharedDisks() []SharedDiskState {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]SharedDiskState, 0, len(m.disks))
+	for _, d := range m.disks {
+		if d != nil {
+			out = append(out, *d)
+		}
+	}
+	return out
 }
 func (m *SharedDiskManager) mutate(id string, fn func(*SharedDiskState) error) error {
 	m.mu.Lock()
@@ -626,15 +658,23 @@ func (m *SharedDiskManager) ReconcileAll(list []SharedDiskState) error {
 	paths := make(map[string]string, len(list))
 	names := make(map[string]bool, len(list))
 	var skipped []error
+	dropped := 0
+	skip := func(e error) { // the first maxSkipReasons are kept; the rest are counted (AUD-86-F4)
+		if len(skipped) < maxSkipReasons {
+			skipped = append(skipped, e)
+		} else {
+			dropped++
+		}
+	}
 	for i := range list {
 		d := list[i]
 		if e := validateRecord(&d); e != nil {
-			skipped = append(skipped, fmt.Errorf("worker record %d (%q): %w", i, d.ContainerID, e))
+			skip(fmt.Errorf("worker record %d (%q): %w", i, boundID(d.ContainerID), e))
 			continue
 		}
 		key, name := pathKey(d.ContainerPath), strings.ToLower(d.RootName)
 		if disks[d.ContainerID] != nil || paths[key] != "" || names[name] {
-			skipped = append(skipped, fmt.Errorf("worker record %d (%q): duplicate id, path or root name", i, d.ContainerID))
+			skip(fmt.Errorf("worker record %d (%q): duplicate id, path or root name", i, boundID(d.ContainerID)))
 			continue
 		}
 		disks[d.ContainerID] = &d
@@ -651,10 +691,24 @@ func (m *SharedDiskManager) ReconcileAll(list []SharedDiskState) error {
 		for id, d := range oldDisks {
 			if disks[id] == nil && d.HasStoredKey {
 				if e := m.keys.Destroy(id); e != nil {
-					skipped = append(skipped, fmt.Errorf("destroy key of dropped disk %q: %w", id, e))
+					skip(fmt.Errorf("destroy key of dropped disk %q: %w", boundID(id), e))
 				}
 			}
 		}
 	}
+	if dropped > 0 {
+		skipped = append(skipped, fmt.Errorf("and %d more skipped worker records or key failures", dropped))
+	}
 	return errors.Join(skipped...)
+}
+
+// maxSkipReasons is how many skipped records ReconcileAll names; the rest are counted.
+const maxSkipReasons = 8
+
+// boundID shortens a worker-sent identifier for a message.
+func boundID(id string) string {
+	if len(id) > 64 {
+		return id[:64] + ".."
+	}
+	return id
 }

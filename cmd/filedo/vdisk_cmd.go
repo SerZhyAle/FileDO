@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"filedo/fdsec"
+	"filedo/fmsworker"
 	"filedo/statedir"
 	"filedo/vdisk"
 )
@@ -25,7 +26,7 @@ import (
 // `filedo vd <verb> <name|path> ..`:
 //
 //	filedo vd new <path> <size> [plain|fast|ram|vault] [label <text>] [password]
-//	filedo <file.fdd> mount [ro] [noscan] [as <X:>] [password]
+//	filedo <file.fdd> mount [ro] [noscan] [as <X:>] [keep] [password]
 //	filedo <file.fdd|X:> unmount [force] [nosave]
 //	filedo <file.fdd ..|mask> info
 //	filedo <file.fdd ..|mask> verify [password]      - read-only; damage is class 4
@@ -237,7 +238,15 @@ func runVd(args []string, hl *HistoryLogger, batch bool) error {
 	if v.transport && vdPackaged() {
 		return errVdPackaged
 	}
+	// Partition disks (SP-0148): new part, image, adopt, and every verb on a
+	// partition disk's name or locator, refused in the Store build (D8) and
+	// routed to their own forms before the file forms see a path.
+	if done, err := vdPartRoute(v.name, rest, batch); done {
+		return err
+	}
 	switch v.name {
+	case "disks":
+		return vdDisks(rest)
 	case "new":
 		return vdNew(rest)
 	case "mount":
@@ -267,9 +276,25 @@ func runVd(args []string, hl *HistoryLogger, batch bool) error {
 	case "destroy":
 		return vdDestroy(rest, batch)
 	case "share":
+		if !vdShareOn {
+			return vdShareOffError("vd share")
+		}
 		return vdShare(rest, batch)
 	case "autostart":
+		if !vdShareOn {
+			return vdShareOffError("vd autostart")
+		}
 		return vdAutostart(rest, batch)
+	case "open":
+		if !vdShareOn {
+			return vdShareOffError("vd open")
+		}
+		return vdOpen(rest, batch)
+	case "close":
+		if !vdShareOn {
+			return vdShareOffError("vd close")
+		}
+		return vdClose(rest, batch)
 	case "add":
 		return vdAdd(rest)
 	case "forget":
@@ -652,6 +677,11 @@ type vdMountRow struct {
 	Profile       string    `json:"profile,omitempty"`
 	// ScanExcluded: the mount added a Defender exclusion that the unmount removes.
 	ScanExcluded bool `json:"scan_excluded,omitempty"`
+	// MountBase is where the private folder of a no-letter mount was made (see vdRequest.MountBase).
+	MountBase string `json:"mount_base,omitempty"`
+	// Carrier is "partition" for a partition disk (SP-0148), whose Path is its
+	// locator; empty for a file.
+	Carrier string `json:"carrier,omitempty"`
 }
 
 type vdState struct {
@@ -845,7 +875,9 @@ func vdStatus() error {
 	for _, im := range s.Images {
 		fmt.Printf("%s  %s  (image, mounted %s)\n", im.Letter, im.Path, vdTime(im.MountedAt))
 	}
-	if len(s.Mounts) == 0 {
+	view := vdSharedViewNow()
+	sharedList := view.Disks
+	if len(s.Mounts) == 0 && len(sharedList) == 0 && view.Known {
 		if len(s.Images) == 0 {
 			fmt.Println("Nothing is mounted. No block server is running.")
 		} else {
@@ -857,13 +889,13 @@ func vdStatus() error {
 	for _, m := range s.Mounts {
 		state := fmt.Sprintf("served on 127.0.0.1:%d by process %d", m.Port, m.ServerPID)
 		if !vdServerAlive(m) {
-			state = "BLOCK SERVER GONE - the volume is offline; run: filedo " + m.Letter + " unmount"
+			state = "BLOCK SERVER GONE - the volume is offline; run: filedo " + vdRowTarget(m) + " unmount"
 		}
 		ro := ""
 		if m.ReadOnly {
 			ro = ", read-only"
 		}
-		fmt.Printf("%s  %s  (mounted %s%s), %s\n", m.Letter, m.Path, vdTime(m.MountedAt), ro, state)
+		fmt.Printf("%s  %s  (mounted %s%s), %s\n", vdRowPlace(m), m.Path, vdTime(m.MountedAt), ro, state)
 		if r, ok := vdReadRAMStatus(m.ContainerID); ok && vdServerAlive(m) {
 			saving := ""
 			if r.Saving {
@@ -878,6 +910,50 @@ func vdStatus() error {
 			}
 		}
 	}
+	if !view.Known {
+		fmt.Println("[Shared] not known: neither FMS for Windows nor the local record of shared disks could be read.")
+	}
+	if len(sharedList) > 0 {
+		sort.Slice(sharedList, func(a, b int) bool {
+			return strings.ToLower(sharedList[a].RootName) < strings.ToLower(sharedList[b].RootName)
+		})
+		for _, sd := range sharedList {
+			holderStr := sd.Holder.String()
+			stateStr := sd.State.String()
+			if !view.Live {
+				// The local record keeps no holder: "none" would read as free (AUD-82-F2).
+				holderStr, stateStr = vdisk.HolderUnknown.String(), vdisk.StateUnknown.String()
+			} else if sd.Holder == vdisk.HolderNone {
+				if _, ok := vdFindMount(sd.ContainerID); ok {
+					holderStr = vdisk.HolderFileDO.String()
+				}
+			}
+			ro := ""
+			if sd.ReadOnly {
+				ro = ", read-only"
+			}
+			auto := ""
+			if sd.Autostart {
+				auto = ", autostart"
+			}
+			handles := ""
+			if sd.OpenHandles > 0 {
+				handles = fmt.Sprintf(", %d open handle(s)", sd.OpenHandles)
+			}
+			fmt.Printf("[Shared] root '%s'  %s  (holder: %s, state: %s%s%s%s)\n", sd.RootName, sd.ContainerPath, holderStr, stateStr, ro, auto, handles)
+		}
+		if !view.Live && view.Reason != "" {
+			fmt.Printf("    holder and state are unknown: %s.\n", view.Reason)
+		}
+		if view.Live {
+			switch view.Mode {
+			case fmsworker.WorkerModeService:
+				fmt.Println("    shared disks are held by the FMS for Windows service: they stay available with nobody signed in.")
+			case fmsworker.WorkerModeUser:
+				fmt.Println("    shared disks are held by FMS for Windows in this sign-in: they are available only while you are signed in (the Server edition keeps them available always).")
+			}
+		}
+	}
 	return nil
 }
 
@@ -888,7 +964,7 @@ func vdStop() error {
 	}
 	var live []string
 	for _, m := range s.Mounts {
-		live = append(live, m.Letter)
+		live = append(live, vdRowPlace(m))
 	}
 	if len(live) > 0 {
 		return errBusy("containers are mounted at " + strings.Join(live, ", ") + "; unmount them first (each block server exits with its own unmount)")

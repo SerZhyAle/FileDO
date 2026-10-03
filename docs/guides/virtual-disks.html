@@ -542,19 +542,21 @@
               инициатор iSCSI, который говорит с блочным сервером внутри
               <code>filedo.exe</code>. Сервер слушает только адрес 127.0.0.1:
               ничего не уходит с этого компьютера, и контейнер никогда не
-              попадает ни в какую сеть.</span
+              попадает ни в какую сеть - если только вы сами не откроете к нему
+              общий доступ (<a href="#share">ниже</a>).</span
             ><span data-l="en"
               ><b>Windows only.</b> The drive letter comes from the iSCSI
               initiator built into Windows, talking to a block server inside
               <code>filedo.exe</code>. The server listens on 127.0.0.1 only:
               nothing leaves this computer, and the container never goes to any
-              network.</span
+              network - unless you choose to share it (<a href="#share">see below</a>).</span
             ><span data-l="ua"
               ><b>Лише Windows.</b> Літеру диска дає вбудований у Windows
               ініціатор iSCSI, який говорить із блоковим сервером усередині
               <code>filedo.exe</code>. Сервер слухає лише адресу 127.0.0.1:
               ніщо не залишає цей комп'ютер, і контейнер ніколи не потрапляє в
-              жодну мережу.</span
+              жодну мережу - хіба що ви самі відкриєте до нього спільний доступ
+              (<a href="#share">нижче</a>).</span
             >
           </li>
           <li>
@@ -655,6 +657,90 @@
           </li>
         </ol>
       </section>
+      <section class="section" id="share">
+        <h2>
+          <span data-l="ru">Общий доступ к диску через Fast Media Sorter</span
+          ><span data-l="en">Sharing a disk with Fast Media Sorter</span
+          ><span data-l="ua">Спільний доступ до диска через Fast Media Sorter</span>
+        </h2>
+        <p>
+          <span data-l="ru"
+            >Если установлена Fast Media Sorter for Windows,
+            <code>vd share work.fdd on</code> предлагает диск телефонам и
+            планшетам, которые вы с ней связали, как ещё одну папку;
+            <code>vd open</code>, <code>vd close</code> и
+            <code>vd autostart</code> открывают его для них, закрывают и
+            открывают снова после перезапуска. FileDO не открывает для этого
+            сетевых соединений - он говорит с той программой по локальному
+            каналу, а файлы отдаёт она. Зашифрованный диск разблокируется здесь,
+            на этом компьютере, и никогда с телефона; пока он открыт, его файлы
+            может читать каждое связанное устройство, а
+            <code>vd autostart</code> хранит его пароль на этом компьютере,
+            защищённым для той программы, пока вы не выключите автозапуск, не
+            прекратите доступ или не смените пароль. Общий диск держит та
+            программа, поэтому <code>mount</code> отказывает, пока она его
+            держит; <code>vd status</code> говорит, кто держит. Только серверная
+            редакция Fast Media Sorter for Windows держит общие диски
+            доступными, когда никто не вошёл в систему.</span
+          ><span data-l="en"
+            >If Fast Media Sorter for Windows is installed,
+            <code>vd share work.fdd on</code> offers a disk to the phones and
+            tablets you paired with it, as one more folder;
+            <code>vd open</code>, <code>vd close</code> and
+            <code>vd autostart</code> open it for them, close it, and open it
+            again after a restart. FileDO opens no network connection for this -
+            it talks to that program over a local pipe, and that program serves
+            the files. An encrypted disk is unlocked here, on this PC, never
+            from the phone; while it is open, every paired device can read its
+            files, and <code>vd autostart</code> keeps its password on this PC,
+            protected for that program, until you turn autostart off, stop
+            sharing or change the password. A shared disk is held by that
+            program, so <code>mount</code> refuses it while it does;
+            <code>vd status</code> says who holds it. Only the Server edition of
+            Fast Media Sorter for Windows keeps shared disks available with
+            nobody signed in.</span
+          ><span data-l="ua"
+            >Якщо встановлено Fast Media Sorter for Windows,
+            <code>vd share work.fdd on</code> пропонує диск телефонам і
+            планшетам, які ви з нею зв'язали, як ще одну теку;
+            <code>vd open</code>, <code>vd close</code> і
+            <code>vd autostart</code> відкривають його для них, закривають і
+            відкривають знову після перезапуску. FileDO не відкриває для цього
+            мережевих з'єднань - він говорить із тією програмою через локальний
+            канал, а файли віддає вона. Зашифрований диск розблоковується тут,
+            на цьому комп'ютері, і ніколи з телефона; поки він відкритий, його
+            файли може читати кожен зв'язаний пристрій, а
+            <code>vd autostart</code> зберігає його пароль на цьому комп'ютері,
+            захищеним для тієї програми, доки ви не вимкнете автозапуск, не
+            припините доступ або не змінете пароль. Спільний диск тримає та
+            програма, тому <code>mount</code> відмовляє, поки вона його тримає;
+            <code>vd status</code> каже, хто тримає. Лише серверна редакція Fast
+            Media Sorter for Windows тримає спільні диски доступними, коли ніхто
+            не ввійшов у систему.</span
+          >
+        </p>
+        <p class="intro">
+          <span data-l="ru"
+            >Пошаговая инструкция - установка той программы, регистрация диска,
+            что видят сопряжённые устройства и восстановление после ошибки - на
+            отдельной странице
+            <a href="fms-sharing.html">общего доступа через Fast Media Sorter
+            &amp; Sharing</a>.</span
+          ><span data-l="en"
+            >The step-by-step instructions - installing that program,
+            registering a disk, what paired devices see and recovery after a
+            failed step - are on a separate page,
+            <a href="fms-sharing.html">sharing through Fast Media Sorter
+            &amp; Sharing</a>.</span
+          ><span data-l="ua"
+            >Покрокова інструкція - встановлення тієї програми, реєстрація
+            диска, що бачать сполучені пристрої та відновлення після помилки -
+            на окремій сторінці
+            <a href="fms-sharing.html">спільного доступу через Fast Media
+            Sorter &amp; Sharing</a>.</span
+          >
+        </p>
+      </section>
       <section class="section" id="change">
         <h2>
           <span data-l="ru">Изменить контейнер</span
@@ -721,6 +807,350 @@
             зайнятий. Пакетний файл зберігає свої 0/1/2.</span
           >
         </p>
+      </section>
+      <section class="section" id="partition">
+        <h2>
+          <span data-l="ru">Диски-разделы</span
+          ><span data-l="en">Partition disks</span
+          ><span data-l="ua">Диски-розділи</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Виртуальный диск может жить не только в файле, но и в разделе.
+            FileDO создаёт новый раздел GPT в нераспределённом пространстве
+            диска и целиком заполняет его одним контейнером; за пределами этого
+            свободного места ничего не меняется - FileDO никогда не преобразует
+            существующий раздел, не меняет его размер и не пишет в него. Только
+            диски GPT: диски MBR, динамические диски, дисковые пространства
+            (Storage Spaces), диски iSCSI, съёмные и USB-диски отклоняются, и
+            <code>vd disks</code> называет причину для каждого. Вы получаете
+            диск, который не держит никакая файловая система-хозяин, которому
+            Windows не даёт букву и не предлагает отформатировать, с заранее
+            закреплённым местом; чего вы не получаете - так это
+            скорости.</span
+          ><span data-l="en"
+            >A virtual disk can also live in a partition instead of a file.
+            FileDO creates a new GPT partition in the unallocated space of a
+            disk and fills it, whole, with one container; nothing outside that
+            free space is changed - FileDO never converts, resizes or writes
+            into an existing partition. GPT disks only: MBR, dynamic, Storage
+            Spaces, iSCSI, removable and USB disks are refused, and
+            <code>vd disks</code> names the reason for each. What you gain is a
+            disk that no host file system holds, which Windows does not give a
+            letter or offer to format, with its space reserved; what you do not
+            gain is speed.</span
+          ><span data-l="ua"
+            >Віртуальний диск може жити не лише у файлі, а й у розділі. FileDO
+            створює новий розділ GPT у нерозподіленому просторі диска й цілком
+            заповнює його одним контейнером; поза цим вільним місцем нічого не
+            змінюється - FileDO ніколи не перетворює наявний розділ, не змінює
+            його розмір і не пише в нього. Лише диски GPT: диски MBR, динамічні
+            диски, дискові простори (Storage Spaces), диски iSCSI, знімні та
+            USB-диски відхиляються, і <code>vd disks</code> називає причину для
+            кожного. Ви отримуєте диск, який не тримає жодна файлова
+            система-господар, якому Windows не дає літеру й не пропонує
+            відформатувати, із заздалегідь закріпленим місцем; чого ви не
+            отримуєте - то це швидкості.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Найти свободное место</span
+              ><span data-l="en">Find the free space</span
+              ><span data-l="ua">Знайти вільне місце</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Все диски, их разделы и свободные участки; каждый участок
+                пригоден или нет, с причиной, а у пригодного - готовая строка
+                <code>create</code>. Прав администратора не нужно.</span
+              ><span data-l="en"
+                >Every disk, its partitions and its free extents; each extent
+                usable or not, with the reason, and a usable one with its
+                <code>create</code> line ready. No administrator rights.</span
+              ><span data-l="ua"
+                >Усі диски, їхні розділи й вільні ділянки; кожна ділянка
+                придатна чи ні, з причиною, а придатна - з готовим рядком
+                <code>create</code>. Прав адміністратора не треба.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo vd disks<button
+                class="copy"
+                data-copy="filedo vd disks"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Создать</span><span data-l="en">Create</span
+              ><span data-l="ua">Створити</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><code>&lt;disk&gt;</code> - это <code>disk:{GUID}</code> или
+                номер из <code>vd disks</code>; <code>size</code> -
+                <code>max</code> или размер вроде <code>40G</code> (вниз до 1
+                MiB, не меньше 64 MiB). Подтверждение показывает диск, участок и
+                его соседей. Профиль по умолчанию - <code>fast</code>. Одно
+                согласие администратора; первое подключение форматирует том в
+                NTFS.</span
+              ><span data-l="en"
+                ><code>&lt;disk&gt;</code> is <code>disk:{GUID}</code> or the
+                number from <code>vd disks</code>; <code>size</code> is
+                <code>max</code> or a size such as <code>40G</code> (down to 1
+                MiB, at least 64 MiB). The confirmation shows the disk, the
+                extent and its neighbours. The default profile is
+                <code>fast</code>. One administrator consent; the first mount
+                formats the volume NTFS.</span
+              ><span data-l="ua"
+                ><code>&lt;disk&gt;</code> - це <code>disk:{GUID}</code> або
+                номер із <code>vd disks</code>; <code>size</code> -
+                <code>max</code> або розмір на кшталт <code>40G</code> (униз до
+                1 MiB, не менше 64 MiB). Підтвердження показує диск, ділянку та
+                її сусідів. Профіль за замовчуванням - <code>fast</code>. Одна
+                згода адміністратора; перше підключення форматує том у
+                NTFS.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo vd new part disk:{GPT-GUID} size max at &lt;offset&gt; as data<button
+                class="copy"
+                data-copy="filedo vd new part disk:{GPT-GUID} size max at &lt;offset&gt; as data"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Образ в файл</span
+              ><span data-l="en">Image to a file</span
+              ><span data-l="ua">Образ у файл</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Копирует раздел в новый обычный файл <code>.fdd</code>, который
+                читается без прав администратора, подключается, клонируется и
+                запечатывается, как любой другой. Подключённый диск
+                отклоняется; раздел не меняется.</span
+              ><span data-l="en"
+                >Copies the partition into a new, ordinary <code>.fdd</code> file
+                that reads without administrator rights and mounts, clones and
+                seals like any other. A mounted disk is refused; the partition is
+                unchanged.</span
+              ><span data-l="ua"
+                >Копіює розділ у новий звичайний файл <code>.fdd</code>, який
+                читається без прав адміністратора, підключається, клонується й
+                запечатується, як будь-який інший. Підключений диск
+                відхиляється; розділ не змінюється.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo vd image data to D:\data.fdd<button
+                class="copy"
+                data-copy="filedo vd image data to D:\data.fdd"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Удалить</span><span data-l="en">Delete</span
+              ><span data-l="ua">Видалити</span>
+            </h3>
+            <p>
+              <span data-l="ru"
+                >Подключённый диск отклоняется. Для подтверждения наберите имя
+                диска; <code>wipe</code> сначала затирает раздел. Удаляется
+                только раздел, про который доказано, что он принадлежит FileDO,
+                и место снова становится нераспределённым.</span
+              ><span data-l="en"
+                >A mounted disk is refused. Type the disk's name to confirm;
+                <code>wipe</code> overwrites the partition first. Only a
+                partition proven to be FileDO's is deleted, and the space returns
+                to unallocated.</span
+              ><span data-l="ua"
+                >Підключений диск відхиляється. Для підтвердження наберіть ім'я
+                диска; <code>wipe</code> спершу затирає розділ. Видаляється лише
+                розділ, про який доведено, що він належить FileDO, і місце знову
+                стає нерозподіленим.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo vd destroy data<button
+                class="copy"
+                data-copy="filedo vd destroy data"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+        </div>
+        <p class="intro">
+          <span data-l="ru"
+            >К диску-разделу обращаются по имени или по локатору
+            <code>fdpart:{GUID}</code>, пути у него нет:
+            <code>filedo vd mount data</code>. <code>mount</code>,
+            <code>unmount</code>, <code>save</code>, <code>info</code>,
+            <code>verify</code>, <code>export</code>, <code>pass</code>,
+            <code>seal</code>, <code>clone</code>, <code>vd auto</code> и сторож
+            выключения работают так же, как с файлом; <code>compact</code> и
+            <code>grow</code> - нет (размер раздела постоянен), а общий доступ
+            через Fast Media Sorter пока отклоняется.
+            <code>vd adopt fdpart:{GUID} as data</code> регистрирует раздел
+            FileDO, которого этот компьютер не знает (диск перенесли с другого
+            компьютера); <code>vd forget</code> убирает имя и оставляет раздел на
+            диске. Отклонённый диск заканчивается кодом 6, отказ в согласии -
+            кодом 7, а разметка, изменившаяся с тех пор, как её показал список, -
+            кодом 5, и при этом ничего не изменено.</span
+          ><span data-l="en"
+            >A partition disk is addressed by its name or its locator
+            <code>fdpart:{GUID}</code>, never by a path:
+            <code>filedo vd mount data</code>. <code>mount</code>,
+            <code>unmount</code>, <code>save</code>, <code>info</code>,
+            <code>verify</code>, <code>export</code>, <code>pass</code>,
+            <code>seal</code>, <code>clone</code>, <code>vd auto</code> and the
+            shutdown guard work as they do on a file; <code>compact</code> and
+            <code>grow</code> do not (its size is fixed), and sharing it through
+            Fast Media Sorter is refused for now.
+            <code>vd adopt fdpart:{GUID} as data</code> registers a FileDO
+            partition this PC does not know (a disk moved here from another PC);
+            <code>vd forget</code> drops the name and leaves the partition on its
+            disk. A refused disk ends with exit code 6, a declined consent with
+            exit code 7, and a layout that changed since it was listed with exit
+            code 5 - with nothing changed.</span
+          ><span data-l="ua"
+            >До диска-розділу звертаються за іменем або за локатором
+            <code>fdpart:{GUID}</code>, шляху в нього немає:
+            <code>filedo vd mount data</code>. <code>mount</code>,
+            <code>unmount</code>, <code>save</code>, <code>info</code>,
+            <code>verify</code>, <code>export</code>, <code>pass</code>,
+            <code>seal</code>, <code>clone</code>, <code>vd auto</code> і сторож
+            вимкнення працюють так само, як із файлом; <code>compact</code> і
+            <code>grow</code> - ні (розмір розділу сталий), а спільний доступ
+            через Fast Media Sorter поки відхиляється.
+            <code>vd adopt fdpart:{GUID} as data</code> реєструє розділ FileDO,
+            якого цей комп'ютер не знає (диск перенесли з іншого комп'ютера);
+            <code>vd forget</code> прибирає ім'я й лишає розділ на диску.
+            Відхилений диск закінчується кодом 6, відмова в згоді - кодом 7, а
+            розмітка, що змінилася відтоді, як її показав список, - кодом 5, і
+            при цьому нічого не змінено.</span
+          >
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              ><b>Согласие администратора нужно для каждого чтения, а не только
+              для подключения.</b> Раздел нельзя открыть без прав
+              администратора, поэтому <code>info</code>, <code>verify</code>,
+              <code>export</code>, <code>pass</code>, <code>seal</code>,
+              <code>clone</code> и <code>vd image</code> тоже просят у Windows
+              согласие. <code>vd image</code> снимает эту необходимость: файл,
+              который он пишет, - обычный <code>.fdd</code>, и любой путь чтения
+              открывает его без прав администратора.</span
+            ><span data-l="en"
+              ><b>Administrator consent for every read, not only to mount.</b> A
+              partition cannot be opened without administrator rights, so
+              <code>info</code>, <code>verify</code>, <code>export</code>,
+              <code>pass</code>, <code>seal</code>, <code>clone</code> and
+              <code>vd image</code> ask Windows for consent too.
+              <code>vd image</code> removes that need: the file it writes is an
+              ordinary <code>.fdd</code> that every read path opens without
+              administrator rights.</span
+            ><span data-l="ua"
+              ><b>Згода адміністратора потрібна для кожного читання, а не лише
+              для підключення.</b> Розділ не можна відкрити без прав
+              адміністратора, тому <code>info</code>, <code>verify</code>,
+              <code>export</code>, <code>pass</code>, <code>seal</code>,
+              <code>clone</code> і <code>vd image</code> теж просять у Windows
+              згоду. <code>vd image</code> знімає цю потребу: файл, який він
+              пише, - звичайний <code>.fdd</code>, і будь-який шлях читання
+              відкриває його без прав адміністратора.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Не быстрее файлового диска.</b> В замере от начала до конца на
+              накопителе NVMe диск-раздел оказался медленнее файла
+              <code>.fdd</code> на NTFS. Выбирайте его ради отдельного
+              закреплённого места, а не ради скорости.</span
+            ><span data-l="en"
+              ><b>Not faster than a file disk.</b> Measured end to end on an NVMe
+              drive, a partition disk was slower than a <code>.fdd</code> file on
+              NTFS. Choose it for the fixed, separate space, not for
+              speed.</span
+            ><span data-l="ua"
+              ><b>Не швидший за файловий диск.</b> У вимірі від початку до кінця
+              на накопичувачі NVMe диск-розділ виявився повільнішим за файл
+              <code>.fdd</code> на NTFS. Обирайте його заради окремого
+              закріпленого місця, а не заради швидкості.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b><code>fast</code> перезаписывает свободное место,
+              <code>plain</code> и <code>vault</code> - нет.</b> Всё, что раньше
+              лежало в свободном месте, остаётся в неиспользуемых кластерах
+              диска-раздела <code>plain</code> или <code>vault</code>, пока том
+              не запишет поверх; <code>fast</code> перезаписывает весь раздел
+              при создании.</span
+            ><span data-l="en"
+              ><b><code>fast</code> overwrites the free space;
+              <code>plain</code> and <code>vault</code> do not.</b> Whatever the
+              free space held before stays in the unused clusters of a
+              <code>plain</code> or <code>vault</code> partition disk until the
+              volume writes over it; <code>fast</code> overwrites the whole
+              partition when it is created.</span
+            ><span data-l="ua"
+              ><b><code>fast</code> перезаписує вільне місце,
+              <code>plain</code> і <code>vault</code> - ні.</b> Усе, що раніше
+              лежало у вільному місці, лишається в невикористаних кластерах
+              диска-розділу <code>plain</code> або <code>vault</code>, доки том
+              не запише поверх; <code>fast</code> перезаписує весь розділ під
+              час створення.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>«Управление дисками» Windows (<code>diskmgmt.msc</code>)
+              по-прежнему показывает раздел и может его удалить.</b> Удаление
+              там удаляет и диск внутри, ни о чём не спрашивая про его
+              содержимое. Безопасный путь - собственный <code>vd destroy</code>
+              FileDO: он отказывается работать с подключённым диском, просит
+              набрать имя диска и удаляет только раздел, про который доказал,
+              что это раздел FileDO.</span
+            ><span data-l="en"
+              ><b>Windows' Disk Management (<code>diskmgmt.msc</code>) still
+              shows the partition and can delete it.</b> Deleting it there
+              deletes the disk inside, with no question about its contents.
+              FileDO's own <code>vd destroy</code> is the safe way: it refuses a
+              mounted disk, asks you to type the disk's name, and deletes only a
+              partition it has proven to be FileDO's.</span
+            ><span data-l="ua"
+              ><b>«Керування дисками» Windows (<code>diskmgmt.msc</code>) і далі
+              показує розділ і може його видалити.</b> Видалення там видаляє й
+              диск усередині, ні про що не питаючи щодо його вмісту. Безпечний
+              шлях - власний <code>vd destroy</code> FileDO: він відмовляє для
+              підключеного диска, просить набрати ім'я диска й видаляє лише
+              розділ, про який довів, що це розділ FileDO.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              ><b>Диски-разделы недоступны в версии из Microsoft Store.</b> Там
+              <code>vd disks</code> говорит об этом, а каждая команда для
+              разделов заканчивается кодом 6; используйте установщик или
+              переносимую сборку с GitHub.</span
+            ><span data-l="en"
+              ><b>Partition disks are not available in the Microsoft Store
+              version.</b> There <code>vd disks</code> says so and every
+              partition command ends with exit code 6; use the setup or the
+              portable build from GitHub.</span
+            ><span data-l="ua"
+              ><b>Диски-розділи недоступні у версії з Microsoft Store.</b> Там
+              <code>vd disks</code> каже про це, а кожна команда для розділів
+              закінчується кодом 6; використовуйте інсталятор або переносну
+              збірку з GitHub.</span
+            >
+          </li>
+        </ol>
       </section>
       <section class="section" id="explorer">
         <h2>
@@ -1696,7 +2126,22 @@
           </p>
         </div>
       </section>
-    </main>
+    <section id="sharing"><h2><span data-l="ru">Общий доступ через Fast Media Sorter &amp; Sharing</span><span data-l="en">Sharing through Fast Media Sorter &amp; Sharing</span><span data-l="ua">Спільний доступ через Fast Media Sorter &amp; Sharing</span></h2>
+        <p><span data-l="ru">В <strong>Диспетчере дисков</strong> выберите зарегистрированный файловый диск и <strong>«Поделиться через Fast Media Sorter &amp; Sharing..»</strong> в панели сведений или меню «Ещё» (<code>Ctrl+Shift+S</code>). Сначала запустите Share Manager этой программы. Если worker недоступен, диалог предлагает повторную проверку и <a href="https://serzhyale.github.io/FastMediaSorter_Lite/">страницу установки</a>; недоступность worker не означает отсутствия программы. При необходимости включите дополнительный компонент дисков FileDO. Настольный установщик не подписан. По умолчанию доступ только на чтение; sealed-диск всегда доступен только на чтение. Укажите имя папки и при желании откройте её сопряжённым устройствам. Уже подключённый в FileDO диск отключается безопасно после подтверждения; RAM сохраняется штатным отключением. Если включено автоподключение FileDO, явно согласитесь выключить его; ручной режим <code>keep</code> завершается при отключении. Автозапуск FMS включается отдельно. <strong>«Закрыть общий диск»</strong> сохраняет регистрацию; <strong>«Прекратить шаринг»</strong> удаляет её и сохранённый ключ автозапуска FMS. При ошибке выполненные шаги сохраняются: обновите список, повторите оставшееся действие или прекратите шаринг перед явным восстановлением локального подключения и прежней автоматической политики. Сопрягайте устройства через Share Manager. Файлы передаются по SFTP, SMB-шара Windows не создаётся. Сеансовый режим требует входа в систему; служба доступна без входа. Диски в разделах и управление внешним worker из непроверенной Store-сборки здесь недоступны; используйте настольную сборку.</span><span data-l="en">In the <strong>Disk Manager</strong>, select a registered file-backed disk and choose <strong>Share with Fast Media Sorter &amp; Sharing..</strong> in its detail pane or More menu (<code>Ctrl+Shift+S</code>). Start that program&#x27;s Share Manager first. If its worker cannot be reached, the dialog offers retry and the <a href="https://serzhyale.github.io/FastMediaSorter_Lite/">installation page</a>; an unavailable worker does not prove the program is absent. Enable the optional FileDO disk component if needed. Its desktop installer is unsigned. Registration defaults to read-only; sealed disks stay read-only. Enter the folder name and optionally open it for paired devices. A disk already mounted by FileDO is disconnected cleanly after confirmation, saving RAM first through the normal unmount. If FileDO automatic mounting is enabled, explicitly agree to disable it; a manual <code>keep</code> watcher ends with the unmount. FMS autostart remains a separate opt-in. <strong>Close shared disk</strong> keeps registration; <strong>Stop sharing</strong> removes it and its saved FMS autostart key. If a step fails, completed steps remain: refresh, retry the remaining action, or stop sharing before explicitly restoring local mounting and its prior automatic policy. Pair clients through Share Manager. This publishes files over SFTP, not a Windows SMB share. Session sharing requires sign-in; a service host stays available without sign-in. Partition disks and external-worker controls from the unverified Store build are unavailable here; use the desktop build for this workflow.</span><span data-l="ua">У <strong>Диспетчері дисків</strong> виберіть зареєстрований файловий диск і <strong>«Поділитися через Fast Media Sorter &amp; Sharing..»</strong> у панелі відомостей або меню «Ще» (<code>Ctrl+Shift+S</code>). Спочатку запустіть Share Manager цієї програми. Якщо worker недоступний, діалог пропонує повторну перевірку та <a href="https://serzhyale.github.io/FastMediaSorter_Lite/">сторінку встановлення</a>; недоступність worker не означає відсутності програми. За потреби увімкніть додатковий компонент дисків FileDO. Настільний інсталятор не підписано. Типово доступ лише для читання; sealed-диск завжди доступний лише для читання. Укажіть назву папки та за бажанням відкрийте її сполученим пристроям. Уже підключений у FileDO диск відключається безпечно після підтвердження; RAM зберігається штатним відключенням. Якщо ввімкнено автоматичне підключення FileDO, явно погодьтеся вимкнути його; ручний режим <code>keep</code> завершується при відключенні. Автозапуск FMS вмикається окремо. <strong>«Закрити спільний диск»</strong> зберігає реєстрацію; <strong>«Припинити спільний доступ»</strong> видаляє її та ключ автозапуску FMS. При помилці виконані кроки зберігаються: оновіть список, повторіть решту дій або припиніть доступ перед явним відновленням локального підключення та попередньої автоматичної політики. Сполучайте пристрої через Share Manager. Файли передаються через SFTP, ресурс SMB Windows не створюється. Сеансовий режим потребує входу; служба доступна без входу. Диски у розділах та керування зовнішнім worker з неперевіреної збірки Store тут недоступні; використовуйте настільну збірку.</span></p>
+        <p><span data-l="ru">Почему диск не открылся? Регистрация и открытие выполняются отдельно. Если диск зарегистрирован, но закрыт, выберите «Открыть для шаринга». Если FMS не отвечает или версия несовместима, запустите или обновите обе программы и повторите проверку. Не восстанавливайте локальное подключение, пока владелец диска неизвестен.</span><span data-l="en">Why did the disk not open? Registration and opening are separate. If registered but closed, choose Open for sharing. If FMS does not answer or its version is incompatible, start or update both applications and retry. Do not restore local mounting while the holder is unknown.</span><span data-l="ua">Чому диск не відкрився? Реєстрація та відкриття виконуються окремо. Якщо диск зареєстровано, але закрито, виберіть «Відкрити для спільного доступу». Якщо FMS не відповідає або версія несумісна, запустіть або оновіть обидві програми й повторіть перевірку. Не відновлюйте локальне підключення, поки власник диска невідомий.</span></p>
+        <p><span data-l="ru">Полная инструкция по общему доступу - установка, шаги, телефоны и восстановление после ошибки - на отдельной странице <a href="fms-sharing.html">общего доступа через Fast Media Sorter &amp; Sharing</a>.</span><span data-l="en">The full sharing instructions - setup, the steps, the phones and recovery after a failure - are on a separate page, <a href="fms-sharing.html">sharing through Fast Media Sorter &amp; Sharing</a>.</span><span data-l="ua">Повна інструкція зі спільного доступу - встановлення, кроки, телефони та відновлення після помилки - на окремій сторінці <a href="fms-sharing.html">спільного доступу через Fast Media Sorter &amp; Sharing</a>.</span></p>
+        <figure class="shot">
+          <span data-l="ru"><img src="../assets/guides/gui-disk-share-ru.png" width="890" height="784" loading="lazy" alt="Диалог регистрации диска: имя общей папки, доступ только на чтение, отдельное открытие, предупреждение об отключении и согласие на выключение автоподключения." /></span>
+          <span data-l="en"><img src="../assets/guides/gui-disk-share-en.png" width="895" height="752" loading="lazy" alt="Disk registration dialog with root name, read-only access, separate opening, clean-disconnect notice and consent to disable local automatic mounting." /></span>
+          <span data-l="ua"><img src="../assets/guides/gui-disk-share-ua.png" width="874" height="816" loading="lazy" alt="Діалог реєстрації диска: назва спільної папки, доступ лише на читання, окреме відкриття, попередження про відключення та згода на вимкнення автоматичного підключення." /></span>
+          <figcaption>
+            <span data-l="ru">Настройки регистрации. «Продолжить» открывает подтверждение; без согласия на выключение активного автоподключения передача недоступна.</span>
+            <span data-l="en">Registration choices. Continue opens a confirmation; transfer remains unavailable until the active local automatic mount policy is explicitly disabled.</span>
+            <span data-l="ua">Параметри реєстрації. «Продовжити» відкриває підтвердження; без згоди на вимкнення активного автоматичного підключення передача недоступна.</span>
+          </figcaption>
+        </figure>
+      </section>
+</main>
     <footer class="site-footer">
       <div class="container">
         <div class="footer-bottom">

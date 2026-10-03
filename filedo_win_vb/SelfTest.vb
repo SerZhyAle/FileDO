@@ -12,7 +12,7 @@ Imports System.Text
 ' It writes a line per check to filedo_win_selftest.log next to the exe, ends the log with a
 ' `selftest: PASS (n)` or `selftest: FAIL (n): names` line, and exits 0 or 1 - or 2 when the log
 ' cannot be written, because a verdict nobody can read proves nothing.
-Public Module SelfTest
+Partial Public Module SelfTest
 
     Private ReadOnly report As New StringBuilder()
     Private failures As Integer = 0
@@ -78,6 +78,10 @@ Public Module SelfTest
             Packaging.OverrideForTest = packaged
             Using page As New SettingsView(), dialog As New DiskSettingsDialog()
                 Check("settings:shared-panel:" & packaged, page.Panel.GetType() Is dialog.Panel.GetType(), "")
+                Check("settings:autoplay-button:" & packaged,
+                      page.Panel.AutoPlayButton.Text = Localization.T("settings_autoplay_disable") AndAlso
+                      dialog.Panel.AutoPlayButton.Text = Localization.T("settings_autoplay_disable"), "")
+                Check("settings:autoplay-packaged:" & packaged, page.Panel.AutoPlayButton.Visible = Not packaged, "")
                 Check("settings:packaged-control:" & packaged, Not packaged = page.Panel.StartupCombo.Visible, "")
                 ShellSettings.SetMinimizeToTray(True)
                 ShellSettings.SetFinishNotification(False)
@@ -96,6 +100,58 @@ Public Module SelfTest
         Theme.UsePaletteForTest(Nothing)
         ShellSettings.LoadPlacementOf(ShellSettings.DiskManagerPrefix)
         ShellSettings.ValuesForTest.Clear()
+        CheckTrayUnmountAll()
+    End Sub
+
+    ' AUD-88-F3 and AUD-85-F3: the tray's Unmount all, and the count beside it, cover the containers the
+    ' Disk Manager owns and that Unmount accepts now (SP-0081 5) - never an ISO or VHD the user mounted
+    ' in Explorer, and never a row with an operation running or queued, which every other gesture
+    ' leaves alone.
+    Private Sub CheckTrayUnmountAll()
+        Dim m As DiskManagerForm = Nothing
+        Try
+            Dim snap = GoldenSnapshot()
+            Dim ctx As New DiskContext()
+            Dim none As New Dictionary(Of String, String)(StringComparer.Ordinal)
+            Dim containers = snap.Disks.Where(Function(d) d.IsMounted AndAlso Not d.IsImage).ToList()
+            Dim images = snap.Disks.Where(Function(d) d.IsMounted AndAlso d.IsImage).ToList()
+            Check("tray:unmount-all:fixture", containers.Count = 5 AndAlso images.Count = 1, containers.Count.ToString() & " containers, " & images.Count.ToString() & " images")
+
+            Dim targets = DiskManagerForm.UnmountAllTargets(snap, none, ctx)
+            Check("tray:unmount-all-skips-images", targets.Count = containers.Count AndAlso Not targets.Any(Function(r) r.IsImage),
+                  String.Join(",", targets.Select(Function(r) r.Letter).ToArray()))
+
+            ' Only an image is mounted: nothing to unmount and no count.
+            Dim imageOnly As New DiskSnapshot()
+            imageOnly.Disks.Add(New DiskRecord With {.Kind = "image", .Path = "C:\sample\disc.iso", .Letter = "I:", .ServerAlive = True})
+            Check("tray:unmount-all-image-only", DiskManagerForm.UnmountAllTargets(imageOnly, none, ctx).Count = 0, "")
+
+            ' A row with an unmount running or queued takes no second one.
+            Dim busyNow As New Dictionary(Of String, String)(StringComparer.Ordinal)
+            busyNow(containers(0).Key) = "unmount"
+            targets = DiskManagerForm.UnmountAllTargets(snap, busyNow, ctx)
+            Check("tray:unmount-all-skips-busy", targets.Count = containers.Count - 1 AndAlso Not targets.Any(Function(r) r.Key = containers(0).Key),
+                  targets.Count.ToString())
+
+            ' The Store build cannot unmount at all.
+            Check("tray:unmount-all-packaged", DiskManagerForm.UnmountAllTargets(snap, none, New DiskContext With {.Packaged = True}).Count = 0, "")
+
+            ' The window's own answers, which the tray's tooltip and its menu entry read.
+            m = New DiskManagerForm()
+            m.ApplySnapshotForTest(snap, "")
+            Check("tray:count-containers-only", m.MountedCount = containers.Count, m.MountedCount.ToString())
+            Check("tray:window-targets", m.UnmountAllTargetsForTest().Count = containers.Count, m.UnmountAllTargetsForTest().Count.ToString())
+            m.SetBusyForTest(containers(0).Key, "unmount")
+            Check("tray:window-skips-busy", m.UnmountAllTargetsForTest().Count = containers.Count - 1, m.UnmountAllTargetsForTest().Count.ToString())
+            m.SetBusyForTest(containers(0).Key, "")
+            m.ApplySnapshotForTest(imageOnly, "")
+            Check("tray:count-image-only", m.MountedCount = 0 AndAlso m.UnmountAllTargetsForTest().Count = 0 AndAlso
+                                           Not TrayIcon.MenuKeys(False, m.MountedCount, 0).Contains("tray_unmount"), m.MountedCount.ToString())
+        Catch ex As Exception
+            Check("tray:unmount-all", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If m IsNot Nothing Then m.Dispose()
+        End Try
     End Sub
 
     Private Sub RunAll()
@@ -138,14 +194,17 @@ Public Module SelfTest
         Guard("format", AddressOf CheckLocalizedFormat)
         Guard("a11y", AddressOf CheckAccessibleNames)
         Guard("placement", AddressOf CheckPlacement)
+        Guard("fit", AddressOf CheckWindowFit)
         Guard("wipe", AddressOf CheckWipeRules)
         Guard("dialog", AddressOf CheckDialogEscape)
+        Guard("dialog-destructive", AddressOf CheckDestructiveDialogDefaults)
 
         ' SP-0029: the shell's robustness remediation, ticket by ticket.
         Guard("target", AddressOf CheckTargetRules)
         Guard("dup", AddressOf CheckDuplicatesPage)
         Guard("cmp", AddressOf CheckComparePage)
         Guard("command-cred", AddressOf CheckCommandCredential)
+        Guard("command-copy", AddressOf CheckCommandCopy)
         Guard("redirect", AddressOf CheckRedirectNotice)
         Guard("runner", AddressOf CheckRunnerChild)
         Guard("runner-start", AddressOf CheckStartFailure)
@@ -160,6 +219,7 @@ Public Module SelfTest
         Guard("about", AddressOf CheckAboutStamp)
         Guard("logs", AddressOf CheckLogArchives)
         Guard("diagnostic", AddressOf CheckDiagnosticExport)
+        Guard("diagnostic-lists", AddressOf CheckNoFileListInArchive)
 
         ' SP-0004 P6: the Disks jobs - the command of every page, the credential kept out of every
         ' line, the elevation split, the double-click routes, a mount outliving the window, and the
@@ -181,6 +241,13 @@ Public Module SelfTest
         ' SP-0080: the Autostart dialog - the guard's words, the state matrix, the last-run
         ' rendering, the packaged build's hidden entry.
         Guard("disk-auto", AddressOf CheckDiskAutostart)
+        Guard("disk-auto-open", AddressOf CheckDiskAutostartOpens)
+        ' SP-0121: the shared-disk words, the holder's tokens and the refusal that follows from them.
+        Guard("disk-share", AddressOf CheckDiskShare)
+        Guard("disk-share-manager", AddressOf CheckDiskShareManager)
+        ' SP-0148: partition disks - the disk list's reader, the partition lines, the refusals, the
+        ' disk map at every scale, the new-partition and delete dialogs, the Store build's absence.
+        Guard("disk-part", AddressOf CheckDiskPartitions)
         Guard("disk-mgr", AddressOf CheckDiskManagerWindow)
         Guard("disk-host", AddressOf CheckDiskHost)
         Guard("disk-ui", AddressOf CheckDiskUi)
@@ -262,7 +329,7 @@ Public Module SelfTest
         Try
             File.WriteAllText(logFile, report.ToString())
         Catch ex As Exception
-            Console.Error.WriteLine("selftest: NOT VERIFIED (cannot write " & logFile & ": " & ex.Message & ")")
+            Console.Error.WriteLine("selftest: COULD NOT VERIFY (cannot write " & logFile & ": " & ex.Message & ")")
             Return 2
         End Try
 
@@ -539,7 +606,7 @@ Public Module SelfTest
             Check("glyph:" & verdict & ":not-confirm-or-close", code <> &HE73E AndAlso code <> &HE711, glyph.ToString())
             Check("glyph:" & verdict & ":drawn", glyph.IsVocabulary AndAlso Glyphs.IsDrawable(glyph.Id), glyph.ToString())
             Dim want = DirectCast(c(2), Color)
-            Dim got = Theme.VerdictColor(verdict, p)
+            Dim got = Theme.VerdictGlyphColor(verdict, p)
             Check("glyph:" & verdict & ":colour", got.ToArgb() = want.ToArgb(), got.ToString())
         Next
     End Sub
@@ -631,7 +698,10 @@ Public Module SelfTest
     ' format, seal, change password, auto-mount, remember - show meanings the
     ' vocabulary has no record for (Rail.vb says which). They draw stand-ins under proposed ids until
     ' the records land; the number goes back down as each one is vendored, never up.
-    Private Const WaitingRailRowsBaseline As Integer = 10
+    '
+    ' Amended 2026-10-02 (SP-0016 / SP-0122, ICON-SET 0.17): seven of those records landed and were
+    ' vendored; three remain waiting (create, compact, auto-mount).
+    Private Const WaitingRailRowsBaseline As Integer = 3
 
     ' T1, ICON-SET rules 1, 4 and 5 on the rail: every job row shows a glyph; a vocabulary one is
     ' drawable; a waiting one names the id proposed for it and a Segoe stand-in in the private-use
@@ -738,9 +808,11 @@ Public Module SelfTest
     ' with the copy. The tolerance is for anti-aliasing that may differ by a step between Windows
     ' builds; a changed drawing moves whole pixels and fails. The fix is to re-run
     ' `filedo_win.exe --write-menu-icons assets\menu-icons` and rebuild.
+    ' The plated icon of the Disk Manager (owner decision 2026-10-02) is held to the same freshness
+    ' and to its own rules (CheckPlatedIcon): a plate in the accent, the glyph in the on-plate colour.
     Private Sub CheckMenuIcons()
         Const tolerance As Integer = 24
-        For Each id In MenuIcons.Ids
+        For Each id In MenuIcons.AllIds
             Dim ico = MenuIcons.EmbeddedIco(id)
             If ico Is Nothing Then
                 Check("menu-icon:" & id, False, "not embedded - assets\menu-icons\" & id & ".ico is missing")
@@ -752,6 +824,10 @@ Public Module SelfTest
                     Dim stored As Bitmap = Nothing
                     If Not images.TryGetValue(size, stored) Then
                         Check("menu-icon:" & id & ":" & size.ToString(), False, "no " & size.ToString() & " px image")
+                        Continue For
+                    End If
+                    If MenuIcons.IsPlated(id) Then
+                        CheckPlatedIcon(id, size, stored, tolerance)
                         Continue For
                     End If
                     Dim worst = 0, inked = 0, offTone = 0
@@ -778,12 +854,55 @@ Public Module SelfTest
                 Next
             End Try
         Next
+        ' The product's picture is not the generic file-type glyph: the plated icon and the mono icon of
+        ' the same glyph are different files, and the plate's glyph holds 3:1 on its plate.
+        For Each id In MenuIcons.PlatedIds
+            Dim plated = MenuIcons.EmbeddedIco(id)
+            Dim generic = MenuIcons.EmbeddedIco(MenuIcons.PlatedGlyphId(id))
+            Check("menu-icon:" & id & ":not-generic", plated IsNot Nothing AndAlso generic IsNot Nothing AndAlso Not plated.SequenceEqual(generic),
+                  "plated vs " & MenuIcons.PlatedGlyphId(id) & ".ico: " & If(plated IsNot Nothing AndAlso generic IsNot Nothing AndAlso plated.SequenceEqual(generic), "byte-identical", "different files"))
+            Dim ratio = Theme.ContrastRatio(Theme.AppIconInk, Theme.AppIconPlate)
+            Check("menu-icon:" & id & ":contrast", ratio >= 3.0, "glyph on plate is " & ratio.ToString("0.00", Globalization.CultureInfo.InvariantCulture) & ":1, want 3:1")
+        Next
+    End Sub
+
+    ' One size of a plated icon: the stored image is the fresh drawing (within the anti-aliasing
+    ' tolerance, every channel), the centre is the opaque plate and the corner is transparent, the
+    ' plate holds its colour and the glyph its on-plate colour, and the glyph's 24 grid spans 0.6 of
+    ' the plate within 0.05 (ICON-RENDER section 10 item E).
+    Private Sub CheckPlatedIcon(id As String, size As Integer, stored As Bitmap, tolerance As Integer)
+        Dim worst = 0, platePx = 0, inkPx = 0
+        Dim plateCol = Theme.AppIconPlate, inkCol = Theme.AppIconInk
+        Using fresh = MenuIcons.Render(id, size)
+            For y = 0 To size - 1
+                For x = 0 To size - 1
+                    Dim a = fresh.GetPixel(x, y), b = stored.GetPixel(x, y)
+                    worst = Math.Max(worst, Math.Max(Math.Abs(CInt(a.A) - b.A), If(a.A = 0 AndAlso b.A = 0, 0,
+                                     Math.Max(Math.Abs(CInt(a.R) - b.R), Math.Max(Math.Abs(CInt(a.G) - b.G), Math.Abs(CInt(a.B) - b.B))))))
+                    If b.A = 255 Then
+                        If Math.Abs(CInt(b.R) - plateCol.R) <= 3 AndAlso Math.Abs(CInt(b.G) - plateCol.G) <= 3 AndAlso Math.Abs(CInt(b.B) - plateCol.B) <= 3 Then platePx += 1
+                        If Math.Abs(CInt(b.R) - inkCol.R) <= 3 AndAlso Math.Abs(CInt(b.G) - inkCol.G) <= 3 AndAlso Math.Abs(CInt(b.B) - inkCol.B) <= 3 Then inkPx += 1
+                    End If
+                Next
+            Next
+        End Using
+        Dim plate = MenuIcons.PlateRect(size)
+        Dim ratio = MenuIcons.PlateGlyphSquare(size).Width / CDbl(plate.Width)
+        Dim centre = stored.GetPixel(size \ 2, size \ 2), corner = stored.GetPixel(0, 0)
+        Dim problems As New List(Of String)()
+        If worst > tolerance Then problems.Add("differs from a fresh drawing by " & worst.ToString())
+        If centre.A <> 255 Then problems.Add("the centre is not opaque")
+        If corner.A <> 0 Then problems.Add("the corner is not transparent")
+        If platePx * 4 < size * size Then problems.Add("only " & platePx.ToString() & " px in the plate colour")
+        If inkPx * 50 < size * size Then problems.Add("only " & inkPx.ToString() & " px in the glyph colour")
+        If ratio < 0.55 OrElse ratio > 0.65 Then problems.Add("the glyph spans " & ratio.ToString("0.000", Globalization.CultureInfo.InvariantCulture) & " of the plate, want 0.6 +- 0.05")
+        Check("menu-icon:" & id & ":" & size.ToString(), problems.Count = 0, String.Join("; ", problems.ToArray()))
     End Sub
 
     ' T11, ICON-RENDER section 10 item D taken as exact tones (SP-0016 D2): each state role of both
-    ' palettes is the vendored palette.json's day or night tone - except the light warning, whose
-    ' day tone fails 3:1 (the exception in Theme.vb). That row fails the day the catalog's tone
-    ' reaches 3:1 on the light card, so the exception cannot outlive its reason.
+    ' palettes is the vendored palette.json's day or night tone. The light warning joined them when
+    ' ICON-RENDER 0.14 moved its day tone to #EF6C00 and the shell's own exception (the old tone
+    ' failed 3:1) was retired.
     Private Sub CheckStateTones()
         Dim json = Glyphs.VerifiedData("palette.json")
         If json Is Nothing Then
@@ -806,6 +925,7 @@ Public Module SelfTest
             New Object() {"state.ok", "night", dark.StateOk},
             New Object() {"state.error", "day", light.StateError},
             New Object() {"state.error", "night", dark.StateError},
+            New Object() {"state.warning", "day", light.StateWarning},
             New Object() {"state.warning", "night", dark.StateWarning}
         }
         For Each r In rows
@@ -816,13 +936,6 @@ Public Module SelfTest
             Check("state-tone:" & key & ":" & tone, Not want.IsEmpty AndAlso want.ToArgb() = got.ToArgb(),
                   HexOf(got) & " (palette.json " & HexOf(want) & ")")
         Next
-
-        Dim warnDay = PaletteTone(hues, "state.warning", "day")
-        Dim ratio = Theme.ContrastRatio(warnDay, light.Surface)
-        Check("state-tone:state.warning:day-exception",
-              Not warnDay.IsEmpty AndAlso ratio < 3.0 AndAlso light.StateWarning.ToArgb() = light.Warning.ToArgb(),
-              "palette.json " & HexOf(warnDay) & " is " & ratio.ToString("0.00", Globalization.CultureInfo.InvariantCulture) &
-              ":1 on the light card; the light StateWarning stays the shell's " & HexOf(light.StateWarning))
     End Sub
 
     Private Function PaletteTone(hues As Dictionary(Of String, Object), key As String, tone As String) As Color
@@ -868,6 +981,7 @@ Public Module SelfTest
             Next
             For Each verdict In New String() {"Passed", "Done", "Failed", "Stopped", "Not proven"}
                 ContrastPair("contrast:" & t & ":verdict:" & verdict, Theme.VerdictColor(verdict, p), p.Surface, 4.5)
+                ContrastPair("contrast:" & t & ":verdict-glyph:" & verdict, Theme.VerdictGlyphColor(verdict, p), p.Surface, 3.0)
                 ContrastPair("contrast:" & t & ":badge:" & verdict, Theme.VerdictFore(verdict, p), Theme.VerdictBack(verdict, p), 4.5)
             Next
         Next
@@ -1258,7 +1372,7 @@ Public Module SelfTest
             End Using
         Catch
         End Try
-        Dim rowWidth = CInt(268 * scale) - SystemInformation.VerticalScrollBarWidth
+        Dim rowWidth = CInt(ShellForm.RailWidth * scale) - SystemInformation.VerticalScrollBarWidth
         Dim unit = CInt(ShellForm.RailTargetHeight * scale)
 
         For Each lang In Localization.Languages
@@ -1458,6 +1572,138 @@ Public Module SelfTest
         Check("placement:min-after-max", ShellForm.SavesMaximized(FormWindowState.Minimized, FormWindowState.Maximized) AndAlso
                                          Not ShellForm.SavesMaximized(FormWindowState.Minimized, FormWindowState.Normal) AndAlso
                                          ShellForm.SavesMaximized(FormWindowState.Maximized, FormWindowState.Maximized), "")
+    End Sub
+
+    ' Compact use of the screen (UI_UX): no top-level window may need more room than the screen it
+    ' opens on has. The matrix is the screens people have - 1366x768, 1536x864, 1920x1080 - at the
+    ' scalings Windows offers, with the taskbar taken off the height (48 design pixels, Windows 11's
+    ' tall one, so the answer holds for the 40 of Windows 10 too).
+    Private Sub CheckWindowFit()
+        Const taskbar As Integer = 48
+        Const caption As Integer = 30
+        Dim designs As New List(Of Object()) From {
+            New Object() {"shell", ShellForm.MinDesignWidth, ShellForm.MinDesignHeight},
+            New Object() {"disks", DiskManagerForm.MinWidth, DiskManagerForm.MinHeight}
+        }
+        Dim screens = New Integer()() {New Integer() {1366, 768}, New Integer() {1536, 864}, New Integer() {1920, 1080}}
+
+        For Each sc In screens
+            For Each pct In New Integer() {100, 125, 150, 175, 200}
+                Dim scale = pct / 100.0
+                Dim work As New Rectangle(0, 0, sc(0), sc(1) - CInt(Math.Round(taskbar * scale)))
+                Dim tag = sc(0).ToString() & "x" & sc(1).ToString() & "@" & pct.ToString()
+
+                ' The minimum, stated in this screen's pixels, is never more than its working area - and is
+                ' the whole design minimum wherever that fits, so a roomy screen loses nothing.
+                For Each d In designs
+                    Dim wanted As New Size(CInt(Math.Round(CInt(d(1)) * scale)), CInt(Math.Round(CInt(d(2)) * scale)))
+                    Dim got = WindowPlacement.FitMinimum(wanted, work.Size)
+                    Dim fits = wanted.Width <= work.Width AndAlso wanted.Height <= work.Height
+                    Check("placement:min:" & CStr(d(0)) & ":" & tag,
+                          got.Width <= work.Width AndAlso got.Height <= work.Height AndAlso (Not fits OrElse got = wanted) AndAlso
+                          got.Width > 0 AndAlso got.Height > 0, got.ToString() & " in " & work.Size.ToString())
+                Next
+
+                ' A rectangle saved on a larger screen - the old 940x640 minimum, a maximised window's
+                ' restore size, a 4K window's 1760x1120 - comes back wholly inside this one, whichever
+                ' corner it was saved at.
+                For Each saved In New Rectangle() {
+                    New Rectangle(300, 200, CInt(Math.Round(1760 * scale)), CInt(Math.Round(1120 * scale))),
+                    New Rectangle(sc(0) - 400, sc(1) - 300, CInt(Math.Round(1760 * scale)), CInt(Math.Round(1120 * scale))),
+                    New Rectangle(-1200, -900, 4000, 3000)}
+                    Dim r = WindowPlacement.Place(saved, CInt(Math.Round(96 * scale)), New List(Of WindowPlacement.ScreenArea) From {
+                                                      New WindowPlacement.ScreenArea(work, CInt(Math.Round(96 * scale)))}, caption)
+                    Check("placement:fit:" & tag & ":" & saved.X.ToString() & "," & saved.Y.ToString() & " " & saved.Width.ToString() & "x" & saved.Height.ToString(),
+                          Not r.IsEmpty AndAlso work.Contains(r), r.ToString() & " in " & work.ToString())
+                Next
+            Next
+        Next
+
+        ' The same oversize rectangle, saved on a big second monitor that is no longer there.
+        Dim laptop As New WindowPlacement.ScreenArea(New Rectangle(0, 0, 1366, 720), 96)
+        Dim lone = New List(Of WindowPlacement.ScreenArea) From {laptop}
+        Dim away = WindowPlacement.Place(New Rectangle(3000, 400, 2000, 1300), 96, lone, caption)
+        Check("placement:fit:monitor-gone", Not away.IsEmpty AndAlso laptop.Area.Contains(away), away.ToString())
+
+        ' A window that is not too big keeps its size and, wholly on a screen, its place.
+        Dim kept = WindowPlacement.Place(New Rectangle(100, 60, 900, 600), 96, lone, caption)
+        Check("placement:fit:small-kept", kept = New Rectangle(100, 60, 900, 600), kept.ToString())
+
+        ' What the real windows ask for on this machine: no more than its primary screen's working area.
+        Dim shell As ShellForm = Nothing
+        Dim mgr As DiskManagerForm = Nothing
+        Dim wa = Screen.PrimaryScreen.WorkingArea
+        Dim wasReads = DiskManagerForm.SuppressReads
+        Dim wasWelcome = DiskManagerForm.SuppressWelcome
+        Dim wasLang = ShellSettings.LanguageOverride
+        Try
+            DiskManagerForm.SuppressReads = True
+            DiskManagerForm.SuppressWelcome = True
+            shell = New ShellForm()
+            Check("placement:min-real:shell", shell.MinimumSize.Width <= wa.Width AndAlso shell.MinimumSize.Height <= wa.Height AndAlso
+                                              shell.Width <= wa.Width AndAlso shell.Height <= wa.Height,
+                  shell.MinimumSize.ToString() & " / " & shell.Size.ToString() & " in " & wa.Size.ToString())
+            mgr = New DiskManagerForm()
+            Check("placement:min-real:disks", mgr.MinimumSize.Width <= wa.Width AndAlso mgr.MinimumSize.Height <= wa.Height AndAlso
+                                              mgr.Width <= wa.Width AndAlso mgr.Height <= wa.Height,
+                  mgr.MinimumSize.ToString() & " / " & mgr.Size.ToString() & " in " & wa.Size.ToString())
+            mgr.Dispose()
+            mgr = Nothing
+            shell.Dispose()
+            shell = Nothing
+
+            ' At the smallest size the windows can be made, what is on them still reads: the shell's
+            ' title and subtitle wrap inside their column (the longest titles are German and Russian),
+            ' the expert page keeps a run card, the Disk manager keeps a list.
+            For Each lang In New String() {"de", "ru"}
+                ShellSettings.LanguageOverride = lang
+                Localization.ResetShellDict()
+                shell = New ShellForm()
+                shell.StartPosition = FormStartPosition.Manual
+                shell.ShowInTaskbar = False
+                shell.Show()
+                shell.Bounds = New Rectangle(-32000, -32000, shell.MinimumSize.Width, shell.MinimumSize.Height)
+                shell.ShowPageForCapture("rail_job_vd_new", "")
+                Settle()
+                Check("placement:min-layout:shell-title:" & lang, shell.HeaderTextFitsForTest(), shell.ClientSize.ToString())
+                shell.ShowPageForCapture("rail_job_command", "")
+                Settle()
+                Dim runFloor = Ui.Px(shell, 300)
+                Check("placement:min-layout:command-run-card:" & lang, shell.CommandViewForTest.RunCardHeightForTest >= runFloor - Ui.Px(shell, 4),
+                      shell.CommandViewForTest.RunCardHeightForTest.ToString() & " of " & runFloor.ToString())
+                shell.Dispose()
+                shell = Nothing
+
+                mgr = New DiskManagerForm()
+                mgr.StartPosition = FormStartPosition.Manual
+                mgr.ShowInTaskbar = False
+                mgr.Show()
+                mgr.Bounds = New Rectangle(-32000, -32000, mgr.MinimumSize.Width, mgr.MinimumSize.Height)
+                Dim snap = GoldenSnapshot()
+                mgr.ApplySnapshotForTest(snap, "")
+                mgr.SelectForTest(snap.Disks.First(Function(x) x.Name = "secrets").Key)
+                Settle()
+                Dim least = Ui.Px(mgr, 150)
+                Check("placement:min-layout:disks-list:" & lang, mgr.ListHeightForTest >= least - Ui.Px(mgr, 6),
+                      mgr.ListHeightForTest.ToString() & " of " & least.ToString() & " (" & mgr.HeightReportForTest & ")")
+                mgr.Dispose()
+                mgr = Nothing
+            Next
+        Finally
+            ShellSettings.LanguageOverride = wasLang
+            Localization.ResetShellDict()
+            DiskManagerForm.SuppressReads = wasReads
+            DiskManagerForm.SuppressWelcome = wasWelcome
+            If shell IsNot Nothing Then shell.Dispose()
+            If mgr IsNot Nothing Then mgr.Dispose()
+        End Try
+    End Sub
+
+    Private Sub Settle()
+        For i = 1 To 5
+            Application.DoEvents()
+            Threading.Thread.Sleep(40)
+        Next
     End Sub
 
     ' T10 and T11, rule 5: the Wipe page confirms what is really there, and only what it can run.
@@ -1754,6 +2000,34 @@ Public Module SelfTest
         End Try
     End Sub
 
+    ' APP-BEHAVIOUR rule 5 (0.12), APP-STYLE section 4: in a confirmation of a destructive action the
+    ' safe answer is the default - the button Enter presses and the one that holds the focus - and
+    ' Escape gives it too; the acting answer is a different button, painted danger and never the
+    ' default. Every definition in DestructiveDialogs, built (not shown) in every language.
+    Private Sub CheckDestructiveDialogDefaults()
+        Try
+            Dim ids As New HashSet(Of String)()
+            For Each lang In Localization.Languages
+                For Each entry In DestructiveDialogs.AllForTest(Localization.GetDict(lang))
+                    Dim spec = entry.Value
+                    ids.Add(entry.Key)
+                    Dim inRange = spec.DangerAt >= 0 AndAlso spec.DangerAt < spec.Choices.Length AndAlso
+                                  spec.DefaultAt >= 0 AndAlso spec.DefaultAt < spec.Choices.Length
+                    Dim shown = If(inRange, ShellDialog.DefaultOf(spec), "")
+                    Dim escape = If(inRange, ShellDialog.CancelOf(spec.Choices, spec.CancelAt), "")
+                    Dim safe = inRange AndAlso shown <> "" AndAlso shown = spec.Choices(spec.DefaultAt) AndAlso
+                               escape = shown AndAlso spec.DefaultAt <> spec.DangerAt AndAlso
+                               shown <> spec.Choices(spec.DangerAt)
+                    Check("dialog:destructive-default-safe:" & entry.Key & ":" & lang, safe,
+                          "default=" & shown & ", escape=" & escape & ", danger=" & spec.DangerAt.ToString())
+                Next
+            Next
+            Check("dialog:destructive-default-safe:covered", ids.Count = 9, ids.Count.ToString() & " definitions")
+        Catch ex As Exception
+            Check("dialog-destructive", False, ex.GetType().Name & ": " & ex.Message)
+        End Try
+    End Sub
+
     ' ---- SP-0029: the shell's robustness remediation --------------------------
 
     ' GUI-20, GUI-21: the argument rules, one row per case.
@@ -1977,6 +2251,41 @@ Public Module SelfTest
 
             cv.SetCommand("filedo.exe E: info")
             Check("command:no-cred-block-for-info", Not cv.CredentialBlockShownForTest AndAlso cv.RunEnabledNowForTest, "")
+        Finally
+            If cv IsNot Nothing Then cv.Dispose()
+        End Try
+    End Sub
+
+    ' AUD-91-F1 (GUI-20 reopened): the Command page's Copy command is written for cmd.exe, where its
+    ' own wipe refusal tells the user to run it - as the job page's copy already is. The box keeps the
+    ' line as the runner reads it; only the clipboard gets the cmd-safe form.
+    Private Sub CheckCommandCopy()
+        Dim cv As CommandView = Nothing
+        Dim q = """"
+        Try
+            cv = New CommandView()
+            cv.SelectOperation(0)
+            Dim cases As New List(Of String()) From {
+                New String() {"ampersand", "D:\Work&Play", q & "D:\Work&Play" & q},
+                New String() {"caret", "D:\Work^Play", q & "D:\Work^Play" & q},
+                New String() {"percent", "D:\100%", q & "D:\100" & q & "^%" & q & q},
+                New String() {"pipe", "D:\x|y", q & "D:\x|y" & q},
+                New String() {"space", "D:\My Work", q & "D:\My Work" & q},
+                New String() {"plain", "D:\Work", "D:\Work"}}
+            For Each c In cases
+                Dim line = "filedo.exe " & ArgQuoting.JoinArgs(New String() {c(1), "wipe"})
+                cv.SetLineForTest(line)
+                Check("cmd-copy:command-page:" & c(0), cv.CopyPayload() = "filedo.exe " & c(2) & " wipe", cv.CopyPayload())
+                Check("cmd-copy:command-page:box-unchanged:" & c(0), cv.CurrentCommandLine() = line, cv.CurrentCommandLine())
+            Next
+
+            ' A line that holds no argument is copied as it stands, never as a bare "filedo.exe ".
+            cv.SetLineForTest("")
+            Check("cmd-copy:command-page:empty", cv.CopyPayload() = "", cv.CopyPayload())
+
+            ' The program name alone is no argument either: it is copied once, not "filedo.exe filedo.exe".
+            cv.SetLineForTest("filedo.exe")
+            Check("cmd-copy:command-page:bare-program", cv.CopyPayload() = "filedo.exe", cv.CopyPayload())
         Finally
             If cv IsNot Nothing Then cv.Dispose()
         End Try
@@ -2444,6 +2753,56 @@ Public Module SelfTest
             Check("diagnostic:ten-sessions", Directory.GetFiles(dir, "filedo_win.session-*.log").Length = 10 AndAlso Not File.Exists(active))
         Finally
             If Directory.Exists(dir) Then Directory.Delete(dir, True)
+        End Try
+    End Sub
+
+    ' AUD-90-F1: Send logs tells the user that operation history and file lists are excluded. The
+    ' compare, delete and check reports and damaged_files.log are file lists - lines of relative paths
+    ' that the sanitizer cannot tell from prose - so they are neither counted nor packed, wherever they
+    ' sit; the logs beside them still are.
+    Private Sub CheckNoFileListInArchive()
+        Dim root = Path.Combine(Path.GetTempPath(), "filedo_selftest_filelists_" & Guid.NewGuid().ToString("N"))
+        Dim appDir = Path.Combine(root, "app")
+        Dim dataDir = Path.Combine(root, "data")
+        Dim zipDir = Path.Combine(root, "zip")
+        Try
+            For Each d In New String() {appDir, Path.Combine(dataDir, "state"), zipDir}
+                Directory.CreateDirectory(d)
+            Next
+            LogReport.RootsForTest = New String() {appDir, dataDir}
+            Dim listLine = "Tax\2025\return final.pdf | src=3 MB | dst=2 MB"
+            For Each folder In New String() {appDir, Path.Combine(dataDir, "state"), dataDir}
+                For Each name In New String() {"compare_report_x.log", "delete_report_x.log", "check_report_x.log", "damaged_files.log"}
+                    File.WriteAllText(Path.Combine(folder, name), "header" & vbLf & listLine & vbLf)
+                Next
+            Next
+            Dim listed = LogReport.CountAvailable()
+            Check("diagnostic:no-file-list:count", listed = 0, listed.ToString() & " collected")
+
+            File.WriteAllText(Path.Combine(appDir, "filedo_win_debug.log"), "debug-canary" & vbLf)
+            Dim count = 0
+            Dim archive = LogReport.ArchiveCollectedForTest(zipDir, count)
+            Dim packed As New StringBuilder()
+            Using fs As New FileStream(archive, FileMode.Open, FileAccess.Read)
+                Using zip As New System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read)
+                    For Each entry In zip.Entries
+                        Using reader As New StreamReader(entry.Open(), Encoding.UTF8)
+                            packed.AppendLine(reader.ReadToEnd())
+                        End Using
+                    Next
+                End Using
+            End Using
+            Dim output = packed.ToString()
+            Check("diagnostic:no-file-list", Not output.Contains("return final"), "a file list reached the archive")
+            Check("diagnostic:no-file-list:logs-kept", count = 1 AndAlso output.Contains("debug-canary") AndAlso LogReport.CountAvailable() = 1, count.ToString() & " files")
+        Catch ex As Exception
+            Check("diagnostic:no-file-list", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            LogReport.RootsForTest = Nothing
+            Try
+                Directory.Delete(root, True)
+            Catch
+            End Try
         End Try
     End Sub
 
@@ -2982,6 +3341,332 @@ Public Module SelfTest
     End Function
 
     ' A container at rest, the base the rows below vary.
+    ' SP-0121 (AUD-82-F2, F4, AUD-90-F2, F3): the holder arrives as a stable token, never as the CLI's
+    ' display wording; every token has a localized word in all five tables; a disk the FMS service holds
+    ' is refused for Mount, and an unknown holder is neither held nor read as free; the detail sentences
+    ' are localized and say "key" only when a key is stored.
+    Private Sub CheckDiskShare()
+        Dim tokens = New String() {"none", "file-do", "fms-service", "fms-session", "unknown"}
+        Dim words = New String() {"vd_mgr_detail_shared_fmt", "vd_mgr_detail_shared_noroot_fmt", "vd_mgr_detail_autostart_on", "vd_mgr_detail_autostart_key_on"}
+        For Each lang In Localization.Languages
+            Dim own = Localization.OwnKeysForTest(lang)
+            Dim gaps As New List(Of String)
+            For Each tok In tokens.Concat(New String() {"something-new", "", "FMS Service"})
+                Dim key = DiskStates.HolderKey(tok)
+                If Not own.Contains(key) Then gaps.Add(key)
+            Next
+            For Each key In words
+                If Not own.Contains(key) Then gaps.Add(key)
+            Next
+            Check("locale-keys:holder:" & lang, gaps.Count = 0, String.Join(",", gaps.Distinct().ToArray()))
+        Next
+        Check("disk-share:unknown-token", DiskStates.HolderKey("something-new") = "vd_mgr_holder_unknown" AndAlso
+                                          DiskStates.HolderKey("") = "vd_mgr_holder_unknown" AndAlso
+                                          DiskStates.HolderKey("FMS Service") = "vd_mgr_holder_unknown", "")
+
+        ' The reader: five tokens, a legacy display word, a missing holder on a shared and on an unshared disk.
+        Dim doc = "{""schema"":""filedo.vd-status"",""version"":1,""transport"":{""ready"":true},""disks"":[" &
+                  String.Join(",", tokens.Select(Function(t, i) "{""kind"":""container"",""name"":""h" & i & """,""path"":""C:\\h" & i & ".fdd"",""registered"":true,""file"":""ok"",""shared"":true,""root_name"":""R" & i & """,""holder"":""" & t & """}").ToArray()) &
+                  ",{""kind"":""container"",""name"":""legacy"",""path"":""C:\\l.fdd"",""registered"":true,""file"":""ok"",""shared"":true,""root_name"":""L"",""holder"":""FMS Service""}" &
+                  ",{""kind"":""container"",""name"":""blank"",""path"":""C:\\b.fdd"",""registered"":true,""file"":""ok"",""shared"":true,""root_name"":""B""}" &
+                  ",{""kind"":""container"",""name"":""plain"",""path"":""C:\\p.fdd"",""registered"":true,""file"":""ok""}]}"
+        Dim problem As String = ""
+        Dim snap = DiskSnapshot.Parse(doc, problem)
+        Check("disk-share:parse", snap IsNot Nothing AndAlso snap.Disks.Count = 8, If(snap Is Nothing, problem, snap.Disks.Count.ToString()))
+        If snap Is Nothing Then Return
+        Dim byName = Function(n As String) snap.Disks.First(Function(d) d.Name = n)
+        Dim ctx As New DiskContext With {.Packaged = False, .TransportReady = True}
+        Dim why = Function(n As String) DiskStates.WhyNot(DiskAction.Mount, byName(n), DiskRowState.NotMounted, ctx)
+        Check("disk-share:held-by-service", byName("h2").Holder = "fms-service" AndAlso byName("h2").IsHeldByFMS AndAlso why("h2") = "vd_mgr_why_held_by_fms", why("h2"))
+        Check("disk-share:held-by-session", byName("h3").IsHeldByFMS AndAlso why("h3") = "vd_mgr_why_held_by_fms", why("h3"))
+        Check("disk-share:none-is-free", byName("h0").Holder = "none" AndAlso Not byName("h0").IsHeldByFMS AndAlso why("h0") = "", why("h0"))
+        Check("disk-share:filedo-is-not-fms", byName("h1").Holder = "file-do" AndAlso Not byName("h1").IsHeldByFMS, byName("h1").Holder)
+        Check("disk-share:unknown-is-not-free", byName("h4").Holder = "unknown" AndAlso byName("legacy").Holder = "unknown" AndAlso byName("blank").Holder = "unknown", byName("blank").Holder)
+        Check("disk-share:unshared-blank-is-none", byName("plain").Holder = "none" AndAlso Not byName("plain").IsShared, byName("plain").Holder)
+
+        ' The detail sentences: localized in every table, and "key" only with a stored key.
+        For Each lang In Localization.Languages
+            Dim d = Localization.GetDict(lang)
+            Dim rec = byName("h2")
+            rec.OpenHandles = 2
+            Dim lines = DiskStates.SharedSentences(rec, d)
+            Dim sentence = If(lines.Count > 0, lines(0), "")
+            Check("disk-share:detail:" & lang, lines.Count = 3 AndAlso sentence <> "" AndAlso Not sentence.Contains("vd_mgr_") AndAlso Not sentence.Contains("fms-service") AndAlso
+                                               sentence.Contains(d("vd_mgr_holder_fms_service")), sentence)
+        Next
+        Dim en = Localization.GetDict("en")
+        Dim noKey = byName("h2") : noKey.Autostart = True : noKey.HasStoredKey = False
+        Dim withKey = byName("h3") : withKey.Autostart = True : withKey.HasStoredKey = True
+        Dim noKeyText = String.Join(" ", DiskStates.SharedSentences(noKey, en).ToArray())
+        Dim withKeyText = String.Join(" ", DiskStates.SharedSentences(withKey, en).ToArray())
+        Check("disk-detail:autostart-key", Not noKeyText.ToLowerInvariant().Contains("key") AndAlso withKeyText.ToLowerInvariant().Contains("key"), noKeyText & " | " & withKeyText)
+        Dim noRoot = byName("h4") : noRoot.RootName = ""
+        Check("disk-share:detail-without-root", Not String.Join(" ", DiskStates.SharedSentences(noRoot, en).ToArray()).Contains("root: )"), "")
+    End Sub
+
+    ' ---- SP-0148: partition disks ---------------------------------------------------
+
+    ' What `filedo vd disks json` prints, banner and Finish line included: an MBR disk that is refused
+    ' whole, and a GPT system disk with a too-small gap, a usable 40 GiB gap between C: and a FileDO
+    ' partition this machine has not registered, and its recovery partition.
+    Private Const PartSampleGuid As String = "9AC5A33F-1111-4222-8333-444455556666"
+    Private Const PartSampleFdGuid As String = "0F0F0F0F-AAAA-4BBB-8CCC-DDDDEEEEFFFF"
+
+    Private Function PartSampleOutput() As String
+        Dim json = "{'schema':'filedo.vd-disks','version':1,'available':true,'reason':'','future_field':7,'disks':[" &
+            "{'number':1,'guid':'','model':'Old USB HDD','bus':'sata','size':500107862016,'style':'mbr','logical_sector':512," &
+            "'physical_sector':512,'online':true,'read_only':false,'removable':false,'serial_present':true,'usable':false,'reason':'mbr'," &
+            "'partitions':[{'number':1,'guid':'','offset':1048576,'length':400000000000,'type':'07','kind':'mbr','fileDO':false,'letters':['E:']}]," &
+            "'free':[{'offset':400001048576,'length':100000000000,'usable':false,'reason':'mbr'}]}," &
+            "{'number':2,'guid':'{" & PartSampleGuid & "}','model':'Samsung SSD 9100 PRO 4TB','bus':'nvme','size':4000787030016,'style':'gpt'," &
+            "'logical_sector':512,'physical_sector':4096,'online':true,'read_only':false,'removable':false,'serial_present':true,'system':true," &
+            "'usable':true,'reason':'','partitions':[" &
+            "{'number':1,'guid':'A1','offset':1048576,'length':104857600,'type':'C12A','kind':'efi','fileDO':false}," &
+            "{'number':2,'guid':'A2','offset':105906176,'length':16777216,'type':'E3C9','kind':'msr','fileDO':false}," &
+            "{'number':3,'guid':'A3','offset':122683392,'length':214748364800,'type':'EBD0','kind':'basic-data','fileDO':false,'letters':['C:']}," &
+            "{'number':4,'guid':'{" & PartSampleFdGuid & "}','offset':300000000000,'length':1073741824,'type':'FD','kind':'fileDO','fileDO':true,'registered':''}," &
+            "{'number':5,'guid':'A5','offset':3999000000000,'length':1000000000,'type':'DE94','kind':'recovery','fileDO':false}]," &
+            "'free':[{'offset':214871048192,'length':10485760,'usable':false,'reason':'too-small'}," &
+            "{'offset':214881533952,'length':42949672960,'usable':true,'reason':'','before':'basic data','after':'fileDO'}]}]}"
+        Return "FileDO v3.2610 - vd disks" & vbCrLf & json.Replace("'", """") & vbCrLf & "Finish: 0.1 s" & vbCrLf
+    End Function
+
+    Private Sub CheckDiskPartitions()
+        Dim ui = Localization.GetDict(ShellSettings.Language())
+        Dim problem As String = ""
+
+        ' The reader: the line among the banner and the Finish line, an unknown field ignored.
+        Dim doc = VdDisksDoc.Parse(PartSampleOutput(), problem)
+        Dim parsed = doc IsNot Nothing AndAlso doc.Available AndAlso doc.Disks.Count = 2
+        Check("disk-part:parser-reads-sample", parsed, If(doc Is Nothing, problem, doc.Disks.Count.ToString()))
+        If Not parsed Then Return
+        Dim mbr = doc.Disks(0)
+        Dim gpt = doc.Disks(1)
+        Check("disk-part:parser-mbr-refused", Not mbr.Usable AndAlso mbr.Reason = "mbr" AndAlso Not mbr.HasUsableFree AndAlso
+                                               mbr.Free.Count = 1 AndAlso Not mbr.Free(0).Usable AndAlso mbr.Partitions(0).Letters.Contains("E:"), mbr.Reason)
+        Check("disk-part:parser-gpt-gap", gpt.Usable AndAlso gpt.Guid = PartSampleGuid AndAlso gpt.Partitions.Count = 5 AndAlso gpt.Free.Count = 2 AndAlso
+                                           gpt.Free(1).Usable AndAlso gpt.Free(1).Length = 42949672960L AndAlso gpt.Free(0).Reason = "too-small" AndAlso
+                                           gpt.Size = 4000787030016L AndAlso gpt.Bus = "nvme", gpt.Guid)
+        Dim un = doc.Unregistered()
+        Check("disk-part:parser-unregistered-filedo", un.Count = 1 AndAlso un(0).Value.Guid = PartSampleFdGuid AndAlso un(0).Key Is gpt, un.Count.ToString())
+        Dim fd As VdDiskInfo = Nothing, fp As VdPartInfo = Nothing
+        Check("disk-part:parser-find-by-locator", doc.FindPartition("{" & PartSampleFdGuid.ToLowerInvariant() & "}", fd, fp) AndAlso fd Is gpt AndAlso fp.Number = 4, "")
+        Dim store = VdDisksDoc.Parse("{""schema"":""filedo.vd-disks"",""version"":1,""available"":false,""reason"":""store-build"",""disks"":[]}", problem)
+        Check("disk-part:parser-store-build", store IsNot Nothing AndAlso Not store.Available AndAlso store.Reason = "store-build" AndAlso store.Disks.Count = 0, problem)
+        Check("disk-part:parser-refuses-version", VdDisksDoc.Parse("{""schema"":""filedo.vd-disks"",""version"":2,""disks"":[]}", problem) Is Nothing AndAlso
+                                                   VdDisksDoc.Parse("Finish: 0 s", problem) Is Nothing AndAlso
+                                                   VdDisksDoc.Parse("{""schema"":""filedo.vd-status"",""version"":1,""disks"":[]}", problem) Is Nothing, problem)
+        Check("disk-part:reason-unknown-token", PartitionCommands.ReasonKey("new-token") = "vd_part_reason_other" AndAlso
+                                                 PartitionCommands.ReasonKey("not-initialized") = "vd_part_reason_not_initialized", "")
+
+        ' Every string of the partition surfaces, in all five languages - a key in English alone
+        ' would silently fall back.
+        Dim keys = PartitionCommands.AllKeys()
+        For Each lang In Localization.Languages
+            Dim own = Localization.OwnKeysForTest(lang)
+            Dim missing = keys.Where(Function(k) Not own.Contains(k)).ToList()
+            Check("disk-part:keys:" & lang, missing.Count = 0, keys.Count.ToString() & " keys; missing " & String.Join(",", missing.Take(8).ToArray()))
+        Next
+
+        ' The lines (cli-surface.md): by GUID and offset, the size in MiB or max, the credential by name.
+        Dim cases = New Object()() {
+            New Object() {"new-max", PartitionCommands.NewPart(PartSampleGuid, 0, 214881533952L, "fast", "pdisk", "", False),
+                          "vd new part disk:{" & PartSampleGuid & "} size max at 214881533952 fast as pdisk p: force"},
+            New Object() {"new-size-label-cred", PartitionCommands.NewPart("{" & PartSampleGuid.ToLowerInvariant() & "}", 20480, 214881533952L, "vault", "safe", "My Data", True),
+                          "vd new part disk:{" & PartSampleGuid & "} size 20480M at 214881533952 vault as safe label ""My Data"" pe:FILEDO_SHELL_CRED force"},
+            New Object() {"image", PartitionCommands.Image("pdisk", "D:\copies\p disk.fdd"), "vd image pdisk to ""D:\copies\p disk.fdd"""},
+            New Object() {"destroy", PartitionCommands.Destroy("pdisk", False), "vd destroy pdisk force"},
+            New Object() {"destroy-wipe", PartitionCommands.Destroy("pdisk", True), "vd destroy pdisk wipe force"},
+            New Object() {"adopt", PartitionCommands.Adopt(PartSampleFdGuid, "found"), "vd adopt fdpart:{" & PartSampleFdGuid & "} as found"},
+            New Object() {"disks", New List(Of String)(PartitionCommands.DisksArguments), "--no-history vd disks json"}}
+        For Each c In cases
+            Dim args = DirectCast(c(1), List(Of String))
+            Dim line = ArgQuoting.JoinArgs(args)
+            Check("disk-part:line:" & CStr(c(0)), line = CStr(c(2)), line & " (want " & CStr(c(2)) & ")")
+            ' The run report's line goes through Runner's redaction (whose word lists the CLI work
+            ' owns): it keeps the verb, and the credential travels by variable name only, if at all.
+            Dim redacted = ArgQuoting.JoinArgs(Runner.RedactCredentialArgs(args))
+            Dim head = String.Join(" ", args.Take(If(args(0) = "--no-history", 3, 2)).ToArray())
+            Check("disk-part:line:" & CStr(c(0)) & ":redaction-keeps-verb", redacted.StartsWith(head, StringComparison.Ordinal), redacted)
+        Next
+
+        ' A partition row of `vd status json`: no path, addressed by its name, its own refusals.
+        Dim snapLine = ("{'schema':'filedo.vd-status','version':1,'at':'2026-10-03T10:00:00Z','packaged':false," &
+                        "'transport':{'ready':true,'initiator_service':'running','reason':''},'disks':[" &
+                        "{'kind':'container','name':'pdisk','path':'','container_id':'abcdef01-2222-4333-8444-555555555555','registered':true," &
+                        "'file':'ok','profile':'fast','protection':'obfuscated','logical_size':42949672960,'clean':true,'last_good_save':''," &
+                        "'auto':false,'mount':null,'carrier':'partition','locator':'fdpart:{" & PartSampleFdGuid & "}'}," &
+                        "{'kind':'container','name':'gone','path':'','container_id':'abcdef01-3333-4333-8444-555555555555','registered':true," &
+                        "'file':'missing','profile':'fast','protection':'obfuscated','logical_size':1073741824,'clean':null,'last_good_save':''," &
+                        "'auto':false,'mount':null,'carrier':'partition','locator':'fdpart:{11111111-2222-4333-8444-555555555555}'}," &
+                        "{'kind':'container','name':'work','path':'C:\\d\\work.fdd','container_id':'abcdef01-4444-4333-8444-555555555555','registered':true," &
+                        "'file':'ok','profile':'plain','protection':'obfuscated','logical_size':1073741824,'clean':true,'last_good_save':''," &
+                        "'auto':false,'mount':null}]}").Replace("'", """")
+        Dim snap = DiskSnapshot.Parse(snapLine, problem)
+        If snap Is Nothing OrElse snap.Disks.Count <> 3 Then
+            Check("disk-part:snapshot-carrier", False, problem)
+            Return
+        End If
+        Dim pr = snap.Disks(0)
+        Dim gone = snap.Disks(1)
+        Dim fileRow = snap.Disks(2)
+        Check("disk-part:snapshot-carrier", pr.IsPartition AndAlso pr.Path = "" AndAlso pr.Target = "pdisk" AndAlso
+                                             pr.Locator = "fdpart:{" & PartSampleFdGuid & "}" AndAlso Not fileRow.IsPartition AndAlso fileRow.Target = fileRow.Path,
+              pr.Carrier & " " & pr.Target)
+        Dim mountLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.MountAs, pr, New DiskOptions With {.NoScan = True, .Letter = "P:"}))
+        Check("disk-part:mount-by-name-never-noscan", mountLine = "pdisk mount as P:", mountLine)
+        Dim infoLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.Info, pr, Nothing))
+        Check("disk-part:info-by-name", infoLine = "pdisk info", infoLine)
+        Dim imgLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.ImageToFile, pr, New DiskOptions With {.Dest = "D:\p.fdd"}))
+        Check("disk-part:image-by-name", imgLine = "vd image pdisk to D:\p.fdd", imgLine)
+        Dim ctx As New DiskContext()
+        Dim rest = DiskRowState.NotMounted
+        Dim refusals = New Dictionary(Of DiskAction, String) From {
+            {DiskAction.Compact, "vd_part_why_fixed_size"}, {DiskAction.Grow, "vd_part_why_fixed_size"},
+            {DiskAction.Export, "vd_part_why_job_page"}, {DiskAction.Seal, "vd_part_why_job_page"}, {DiskAction.Clone, "vd_part_why_job_page"},
+            {DiskAction.ChangePassword, "vd_part_why_job_page"}, {DiskAction.Format, "vd_part_why_job_page"},
+            {DiskAction.ShowInFolder, "vd_part_why_no_file"}}
+        For Each kv In refusals
+            Dim why = DiskStates.WhyNot(kv.Key, pr, rest, ctx)
+            Check("disk-part:refuses:" & kv.Key.ToString(), why = kv.Value AndAlso ui.ContainsKey(why), why)
+        Next
+        Check("disk-part:offers-at-rest", DiskStates.WhyNot(DiskAction.Mount, pr, rest, ctx) = "" AndAlso DiskStates.WhyNot(DiskAction.ImageToFile, pr, rest, ctx) = "" AndAlso
+                                           DiskStates.WhyNot(DiskAction.Destroy, pr, rest, ctx) = "" AndAlso DiskStates.WhyNot(DiskAction.Info, pr, rest, ctx) = "", "")
+        Check("disk-part:image-only-partition", DiskStates.WhyNot(DiskAction.ImageToFile, fileRow, rest, ctx) = "vd_part_why_not_partition", "")
+        Dim goneState = DiskStates.StateOf(gone, "")
+        Check("disk-part:missing-in-its-words", goneState = DiskRowState.Missing AndAlso
+                                                 DiskStates.StateText(gone, goneState, "", ui) = ui("vd_part_state_missing") AndAlso
+                                                 DiskStates.WhyNot(DiskAction.Mount, gone, goneState, ctx) = "vd_part_why_missing", "")
+        Check("disk-part:adopt-store-refused", DiskStates.WhyNot(DiskAction.Adopt, Nothing, rest, New DiskContext With {.Packaged = True}) = "vd_part_store" AndAlso
+                                               DiskStates.HiddenInBuild(DiskAction.Adopt, New DiskContext With {.Packaged = True}) AndAlso
+                                               DiskStates.WhyNot(DiskAction.Adopt, Nothing, rest, ctx) = "", "")
+
+        ' The disk map lays out from its client size alone: at every scale from 100 % to 225 % its
+        ' segments are in disk order, touch, never overlap, end at the right edge and are each at least
+        ' the floor wide - for the system disk with a 16 MiB partition beside a 200 GiB one.
+        Dim was = Theme.CurrentDpi
+        Try
+            For Each pct In New Integer() {100, 125, 150, 175, 200, 225}
+                Theme.CurrentDpi = 96 * pct \ 100
+                Dim problems As New List(Of String)
+                Using bar As New DiskMapBar(gpt, ui)
+                    bar.Size = Global.FileDOGUI.Ui.PxSize(bar, 460, 34)
+                    Dim segs = bar.SegmentsForTest
+                    Dim floor = Math.Min(Global.FileDOGUI.Ui.Px(bar, DiskMapBar.MinSegmentDesign), bar.ClientSize.Width \ Math.Max(1, segs.Count))
+                    If segs.Count <> gpt.Partitions.Count + gpt.Free.Count Then problems.Add("count " & segs.Count.ToString())
+                    For i = 0 To segs.Count - 1
+                        Dim b = segs(i).Bounds
+                        If b.Width < floor Then problems.Add("segment " & i.ToString() & " is " & b.Width.ToString() & " px")
+                        If b.Top <> 0 OrElse b.Height <> bar.ClientSize.Height Then problems.Add("segment " & i.ToString() & " height")
+                        If i = 0 AndAlso b.Left <> 0 Then problems.Add("first starts at " & b.Left.ToString())
+                        If i > 0 AndAlso b.Left <> segs(i - 1).Bounds.Right Then problems.Add("gap or overlap at " & i.ToString())
+                    Next
+                    If segs.Count > 0 AndAlso segs(segs.Count - 1).Bounds.Right <> bar.ClientSize.Width Then problems.Add("last ends at " & segs(segs.Count - 1).Bounds.Right.ToString())
+                    Dim usableSeg = segs.FirstOrDefault(Function(s) s.IsFree AndAlso s.Usable)
+                    If usableSeg Is Nothing OrElse Not bar.SelectFree(usableSeg.Index) OrElse bar.SelectedExtent IsNot gpt.Free(1) Then problems.Add("usable gap not selectable")
+                    Dim tinySeg = segs.FirstOrDefault(Function(s) s.IsFree AndAlso Not s.Usable)
+                    If tinySeg Is Nothing OrElse bar.SelectFree(tinySeg.Index) Then problems.Add("unusable gap selectable")
+                    If tinySeg IsNot Nothing AndAlso Not bar.TipOf(tinySeg).Contains(ui("vd_part_reason_too_small")) Then problems.Add("unusable gap tip: " & bar.TipOf(tinySeg))
+                End Using
+                ' The dialog at the same scale: its maps are as wide as the scale says, and one map's
+                ' segments never spill past it.
+                Using dlg As New DiskNewPartitionDialog(ui, doc, New HashSet(Of String)(StringComparer.OrdinalIgnoreCase), Nothing)
+                    For Each m In dlg.MapsForTest
+                        If m.Width <> Global.FileDOGUI.Ui.Px(m, 460) Then problems.Add("dialog map width " & m.Width.ToString())
+                        If m.SegmentsForTest.Any(Function(s) s.Bounds.Right > m.ClientSize.Width OrElse s.Bounds.Width < 0) Then problems.Add("dialog map spills")
+                    Next
+                End Using
+                Check("disk-part:map-layout:" & pct.ToString() & "%", problems.Count = 0, String.Join("; ", problems.Take(6).ToArray()))
+            Next
+        Finally
+            Theme.CurrentDpi = was
+        End Try
+
+        ' The new-partition dialog: the usable gap chosen at once, fast and all of it by default, its
+        ' line; vault refuses an empty password; plain says what stays in the free space; Create asks
+        ' with Cancel the default.
+        Using dlg As New DiskNewPartitionDialog(ui, doc, New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {"partition-disk"}, Nothing)
+            Dim line = If(dlg.CommandLine() Is Nothing, "(none)", ArgQuoting.JoinArgs(dlg.CommandLine()))
+            Check("disk-part:dialog-defaults", dlg.CreateEnabledForTest AndAlso dlg.ChosenExtent Is gpt.Free(1) AndAlso dlg.ChosenName = "partition-disk-2" AndAlso
+                                                line = "vd new part disk:{" & PartSampleGuid & "} size max at 214881533952 fast as partition-disk-2 p: force", line)
+            dlg.SetForTest("", True, "vault", "safe", "")
+            Check("disk-part:dialog-vault-needs-password", Not dlg.CreateEnabledForTest AndAlso dlg.BlockReason() = ui("vd_cred_vault_needs"), dlg.BlockReason())
+            dlg.SetForTest("20", False, "plain", "safe", "")
+            line = ArgQuoting.JoinArgs(dlg.CommandLine())
+            Check("disk-part:dialog-plain-residue", dlg.CreateEnabledForTest AndAlso dlg.ProfileNoteForTest = Localization.Multiline(ui("vd_part_residue")) AndAlso
+                                                     line.Contains(" size 20480M at 214881533952 plain as safe p: force"), line)
+            dlg.SetForTest("10", False, "fast", "safe", "", inMiB:=True)
+            Dim tooSmall = dlg.BlockReason()
+            dlg.SetForTest("50", False, "fast", "safe", "")
+            Check("disk-part:dialog-size-bounds", tooSmall = ui("vd_part_too_small") AndAlso dlg.BlockReason().StartsWith(Localization.Format(ui("vd_part_too_big_fmt"), "").TrimEnd("."c)), dlg.BlockReason())
+            dlg.SetForTest("", True, "fast", "safe", "")
+            Dim spec = dlg.ConfirmSpec()
+            Check("disk-part:dialog-confirm-cancel-default", ShellDialog.DefaultOf(spec) = ui("shell_btn_cancel") AndAlso spec.Text.Contains(PartSampleGuid) AndAlso
+                                                              spec.Text.Contains("Samsung SSD 9100 PRO 4TB"), ShellDialog.DefaultOf(spec))
+            Dim dp As New List(Of String)
+            WalkAccessible(dlg, dp)
+            Check("a11y:DiskNewPartitionDialog", dp.Count = 0 AndAlso dlg.CancelButton IsNot Nothing, String.Join("; ", dp.Take(8).ToArray()))
+        End Using
+        Using dlg As New DiskNewPartitionDialog(ui, New VdDisksDoc With {.Available = True}, Nothing, Nothing)
+            Check("disk-part:dialog-no-disks", Not dlg.CreateEnabledForTest AndAlso dlg.BlockReason() = ui("vd_part_need_extent"), "")
+        End Using
+
+        ' Delete: the typed name, Cancel the default that Enter and Escape give, Delete only on an exact match.
+        Using dlg As New DiskDestroyPartitionDialog(ui, "pdisk", "Samsung SSD, 40 GiB at 200.12 GiB", Nothing)
+            Dim cancel = ui("shell_btn_cancel")
+            Dim before = dlg.DefaultButtonForTest = cancel AndAlso dlg.EscapeButtonForTest = cancel AndAlso Not dlg.DeleteEnabledForTest
+            dlg.TypeForTest("PDISK")
+            Dim wrongCase = Not dlg.DeleteEnabledForTest
+            dlg.TypeForTest("pdisk")
+            Dim typed = dlg.DeleteEnabledForTest AndAlso dlg.DefaultButtonForTest = cancel
+            Check("disk-part:delete-default-cancel", before AndAlso wrongCase AndAlso typed, dlg.DefaultButtonForTest)
+            Dim dp As New List(Of String)
+            WalkAccessible(dlg, dp)
+            Check("a11y:DiskDestroyPartitionDialog", dp.Count = 0, String.Join("; ", dp.Take(8).ToArray()))
+        End Using
+        Using dlg As New DiskAdoptDialog(ui, un, Nothing, Nothing)
+            Dim dp As New List(Of String)
+            WalkAccessible(dlg, dp)
+            Check("disk-part:adopt-dialog", dlg.ChosenGuid = PartSampleFdGuid AndAlso dlg.ChosenName = "partition-disk" AndAlso dp.Count = 0,
+                  dlg.ChosenGuid & " " & String.Join("; ", dp.Take(4).ToArray()))
+        End Using
+
+        ' The window: the Kind column, the place where a file row has its path, the detail's facts,
+        ' Image to file in the row's menu, and the Store build's choice without partitions.
+        Dim m2 As DiskManagerForm = Nothing
+        Try
+            m2 = New DiskManagerForm()
+            m2.ApplySnapshotForTest(snap, "")
+            m2.ApplyDisksForTest(doc)
+            Dim rowP = m2.RowTextsForTest.FirstOrDefault(Function(r) r(0) = "pdisk")
+            Dim rowF = m2.RowTextsForTest.FirstOrDefault(Function(r) r(0) = "work")
+            Check("disk-part:mgr-kind-column", rowP IsNot Nothing AndAlso rowF IsNot Nothing AndAlso rowP(9) = ui("vd_part_carrier_partition") AndAlso
+                                               rowF(9) = ui("vd_part_carrier_file") AndAlso rowP(7).Contains("Samsung SSD 9100 PRO 4TB") AndAlso rowP(7).Contains("1 GiB"),
+                  If(rowP Is Nothing, "no row", String.Join(" | ", rowP)))
+            m2.SelectForTest(pr.Key)
+            Check("disk-part:mgr-detail", m2.DetailForTest.Contains("Samsung SSD 9100 PRO 4TB") AndAlso m2.DetailForTest.Contains(Localization.Multiline(ui("vd_part_detail_consent"))),
+                  m2.DetailForTest)
+            Dim menu = m2.MenuForTest(True)
+            Check("disk-part:mgr-menu", menu.Contains(ui("vd_mgr_act_image")) AndAlso menu.Any(Function(i) i.StartsWith(ui("vd_mgr_act_grow") & " [") AndAlso i.Contains(ui("vd_part_why_fixed_size"))) AndAlso
+                                        Not menu.Any(Function(i) i.StartsWith(ui("vd_mgr_act_show_folder"))), String.Join(" | ", menu.ToArray()))
+            Dim title = "", text = ""
+            Dim choices = m2.NewDiskChoice(title, text)
+            Dim setupOk = choices.Length = 3 AndAlso choices(1) = ui("vd_part_btn_partition")
+            Packaging.OverrideForTest = True
+            choices = m2.NewDiskChoice(title, text)
+            Check("disk-part:store-has-no-partition-choice", setupOk AndAlso choices.Length = 2 AndAlso Not choices.Contains(ui("vd_part_btn_partition")) AndAlso
+                                                            text.Contains(ui("vd_part_store")), String.Join(" | ", choices))
+            Dim more = m2.MenuItemsForTest("more").Select(Function(i) i.Text).ToList()
+            Check("disk-part:store-hides-adopt", Not more.Contains(ui("vd_mgr_act_adopt")), String.Join(" | ", more.ToArray()))
+            Packaging.OverrideForTest = Nothing
+            more = m2.MenuItemsForTest("more").Select(Function(i) i.Text).ToList()
+            Check("disk-part:adopt-in-more", more.Contains(ui("vd_mgr_act_adopt")), String.Join(" | ", more.ToArray()))
+        Finally
+            Packaging.OverrideForTest = Nothing
+            If m2 IsNot Nothing Then m2.Dispose()
+        End Try
+    End Sub
+
     Private Function MgrRecord() As DiskRecord
         Return New DiskRecord With {.Name = "work", .Path = DiskSample, .ContainerId = "11111111-2222-4333-8444-555555555555",
                                     .Registered = True, .FileState = "ok", .Profile = "plain", .Protection = DiskProtection.Obfuscated,
@@ -3582,11 +4267,17 @@ Public Module SelfTest
                 Dim what = If(state(0), "selected", If(state(1), "hover", "plain"))
                 Dim text = Theme.ContrastRatio(p.Text, back)
                 Check("disk-ui:row-text:" & mode & ":" & what, text >= 4.5, text.ToString("0.00") & ":1")
-                For Each hue In New Object()() {New Object() {"ok", p.StateOk}, New Object() {"warning", p.StateWarning}, New Object() {"error", p.StateError}}
-                    Dim c = Theme.ContrastRatio(DirectCast(hue(1), Color), back)
+                ' The tone each state's glyph is really drawn in on this background (DiskStates.ToneOn):
+                ' the shared tone, or the palette's warning ink where the shared warning tone is under 3:1.
+                For Each hue In New Object()() {New Object() {"ok", DiskRowState.Mounted}, New Object() {"warning", DiskRowState.Unsaved}, New Object() {"error", DiskRowState.ServerGone}}
+                    Dim tone = DiskStates.ToneOn(DirectCast(hue(1), DiskRowState), p, back)
+                    Dim c = Theme.ContrastRatio(tone, back)
                     Check("disk-ui:row-glyph:" & mode & ":" & what & ":" & CStr(hue(0)), c >= 3.0, c.ToString("0.00") & ":1")
                 Next
             Next
+            ' On the plain card the warning glyph keeps the shared tone; only a tint takes the ink.
+            Check("disk-ui:row-glyph-shared-tone:" & mode,
+                  DiskStates.ToneOn(DiskRowState.Unsaved, p, p.Surface).ToArgb() = p.StateWarning.ToArgb(), mode)
             Check("disk-ui:row-selection-role", DiskManagerForm.RowBackColour(p, True, True).ToArgb() = p.SurfaceSelected.ToArgb() AndAlso
                                                 DiskManagerForm.RowBackColour(p, False, True).ToArgb() = p.ControlHover.ToArgb() AndAlso
                                                 DiskManagerForm.RowBackColour(p, False, False).ToArgb() = p.Surface.ToArgb(), mode)
@@ -3659,6 +4350,7 @@ Public Module SelfTest
         Next
         Check("disk-ui:link:guide-page", Links.DiskGuide.StartsWith(Links.Site, StringComparison.Ordinal) AndAlso Links.DiskGuide.EndsWith("/virtual-disks.html", StringComparison.Ordinal) AndAlso
                                          Links.Guides.StartsWith(Links.Site, StringComparison.Ordinal), Links.DiskGuide)
+        Check("disk-ui:link:share-guide", Links.ShareGuide.StartsWith(Links.Site, StringComparison.Ordinal) AndAlso Links.ShareGuide.EndsWith("/fms-sharing.html", StringComparison.Ordinal), Links.ShareGuide)
         For Each lang In Localization.Languages
             Dim d = Localization.GetDict(lang)
             For Each packaged In New Boolean() {False, True}
@@ -3833,6 +4525,59 @@ Public Module SelfTest
         Next
     End Sub
 
+    ' AUD-82-F1 and AUD-88-F2: the Autostart entry opens the dialog through the gesture a click makes
+    ' (Perform), and opens it again after it was closed. The rows above read the pure words and passed
+    ' while the entry did nothing at all (KindOf sent it to the quick actions, which have no command
+    ' line for it) and, once it opened, while the closed modal dialog stayed held and a second open
+    ' showed nothing.
+    Private Sub CheckDiskAutostartOpens()
+        Check("disk-auto:open:kind", DiskStates.KindOf(DiskAction.Autostart) = DiskActionKind.Local, DiskStates.KindOf(DiskAction.Autostart).ToString())
+        Dim m As DiskManagerForm = Nothing
+        Try
+            Packaging.OverrideForTest = False
+            m = New DiskManagerForm()
+            Dim snap = GoldenSnapshot()
+            m.ApplySnapshotForTest(snap, "")
+
+            ' Nothing selected: the entry is global, it needs no row.
+            Dim dlg As DiskAutostartDialog = Nothing
+            Check("disk-auto:open:no-selection", OpenAutostartThroughPerform(m, dlg), "")
+            Check("disk-auto:open:released", dlg IsNot Nothing AndAlso dlg.IsDisposed AndAlso m.AutostartDialogForTest Is Nothing,
+                  If(dlg Is Nothing, "no dialog", "disposed " & dlg.IsDisposed.ToString()))
+            ' The same entry a second time, and with a registered row selected.
+            Check("disk-auto:open:again", OpenAutostartThroughPerform(m, dlg), "")
+            m.SelectForTest(snap.Disks.First(Function(d) d.Name = "archive").Key)
+            Check("disk-auto:open:with-row", OpenAutostartThroughPerform(m, dlg), "")
+            Check("disk-auto:open:released-again", dlg IsNot Nothing AndAlso dlg.IsDisposed AndAlso m.AutostartDialogForTest Is Nothing, "")
+        Catch ex As Exception
+            Check("disk-auto:open", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            Packaging.OverrideForTest = Nothing
+            If m IsNot Nothing Then m.Dispose()
+        End Try
+    End Sub
+
+    ' Runs the Autostart gesture on a window that is not on screen and closes the modal dialog from a
+    ' timer once it is up. True when a dialog was held while the timer ticked; shown is that dialog.
+    Private Function OpenAutostartThroughPerform(m As DiskManagerForm, ByRef shown As DiskAutostartDialog) As Boolean
+        Dim seen As DiskAutostartDialog = Nothing
+        Using t As New Windows.Forms.Timer With {.Interval = 150}
+            AddHandler t.Tick, Sub()
+                                   t.Stop()
+                                   Try
+                                       seen = m.AutostartDialogForTest
+                                       Dim up = If(seen, Application.OpenForms.OfType(Of DiskAutostartDialog)().FirstOrDefault())
+                                       If up IsNot Nothing Then up.Close()
+                                   Catch
+                                   End Try
+                               End Sub
+            t.Start()
+            m.Perform(DiskAction.Autostart)
+        End Using
+        shown = seen
+        Return seen IsNot Nothing
+    End Function
+
     ' The window: its buttons carry a glyph and a name and a tooltip, the icon-only ones the meaning's
     ' canonical name; the detail pane closes with a cross and comes back from a bar; the filter is one
     ' unit; the menus carry pictures; the build that cannot mount hides what it cannot run.
@@ -3888,11 +4633,25 @@ Public Module SelfTest
             Check("disk-ui:filter-esc-clears", m.RunShortcut(DiskShortcuts.Find(Keys.Escape, False)) AndAlso m.FilterTextForTest = "" AndAlso Not m.FilterClearForTest.Enabled, m.FilterTextForTest)
             Check("disk-ui:filter-esc-on-empty-passes", Not m.RunShortcut(DiskShortcuts.Find(Keys.Escape, False)), "")
 
-            ' Each window opens the other (the owner's request, 2026-09-30): a "Main window" button here with
-            ' the product's mark and its own key, and a "Disk manager" button in the shell's header.
+            ' Each window opens the other with its destination's program icon:
+            ' FileDO operations here, and Disk manager inside the shell's Disks group.
             Dim mainButton = buttons.FirstOrDefault(Function(b) b.Text = ui("vd_mgr_btn_main"))
             Check("disk-ui:main-window-button", mainButton IsNot Nothing AndAlso mainButton.Picture IsNot Nothing AndAlso mainButton.Glyph Is Nothing AndAlso
                                                 m.TipForTest(mainButton).Contains(DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.O)), "")
+            If mainButton IsNot Nothing AndAlso mainButton.Picture IsNot Nothing Then
+                Using expected = AppIcon.Mark(Global.FileDOGUI.Ui.Px(m, 24))
+                    Dim actual = DirectCast(mainButton.Picture, Bitmap)
+                    Dim matches = expected IsNot Nothing AndAlso expected.Size = actual.Size
+                    If matches Then
+                        For y = 0 To actual.Height - 1
+                            For x = 0 To actual.Width - 1
+                                If actual.GetPixel(x, y) <> expected.GetPixel(x, y) Then matches = False
+                            Next
+                        Next
+                    End If
+                    Check("disk-ui:operations-program-icon", matches, "the operations button uses the FileDO program icon")
+                End Using
+            End If
             Dim raised = 0
             AddHandler m.ShellRequested, Sub() raised += 1
             m.RunShortcut(DiskShortcuts.Find(Keys.Control Or Keys.Shift Or Keys.O, False))
@@ -3900,7 +4659,9 @@ Public Module SelfTest
             Check("disk-ui:one-picture-button", m.GlyphButtonsForTest.Where(Function(b) b.Picture IsNot Nothing).Count() = 1, "the product mark is on exactly one button")
             Using shell As New ShellForm()
                 Dim opener = shell.DiskManagerButtonForTest
-                Check("disk-ui:shell-opens-manager-button", opener IsNot Nothing AndAlso opener.Glyph Is DiskGlyphs.DiskContainer AndAlso
+                Dim managerIndex = Array.FindIndex(RailRow.All, Function(r) r.Key = RailRow.DiskManagerKey)
+                Check("disk-ui:manager-in-disks-group", managerIndex > 0 AndAlso RailRow.All(managerIndex - 1).Key = "rail_group_disks", "")
+                Check("disk-ui:shell-opens-manager-button", opener IsNot Nothing AndAlso opener.ProductIcon Is DiskManagerIcon.DiskManagerIcon() AndAlso
                                                             opener.Text = ui(RailRow.DiskManagerKey) AndAlso opener.AccessibleName = opener.Text AndAlso
                                                             shell.TipForTest(opener).Contains(DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.D)), "")
             End Using
@@ -3985,6 +4746,76 @@ Public Module SelfTest
                                      Not DiskStates.IsUsableName("work 1") AndAlso Not DiskStates.IsUsableName(""), "")
         Check("disk-host:image-paths", DiskManagerForm.IsImagePath("C:\a.VHDX") AndAlso DiskManagerForm.IsImagePath("a.iso") AndAlso
                                        Not DiskManagerForm.IsImagePath("a.fdd"), "")
+        CheckHiddenManagerKeepsLayout()
+    End Sub
+
+    ' AUD-85-F1: the host builds a Disk Manager it never shows (a hidden start, the first
+    ' minimize-to-tray) so that the tray has a snapshot to count. Its OnLoad never applied the user's
+    ' saved columns and placement, so what such a window holds is the defaults - and closing it, at
+    ' Exit or at sign-out, wrote them over the user's. A window that was never shown closes without
+    ' writing; one that was shown still saves.
+    Private Sub CheckHiddenManagerKeepsLayout()
+        Dim values = ShellSettings.ValuesForTest
+        If values Is Nothing Then Return
+        Dim saved As New Dictionary(Of String, Object)(values)
+        Dim wasReads = DiskManagerForm.SuppressReads
+        Dim wasWelcome = DiskManagerForm.SuppressWelcome
+        Dim m As DiskManagerForm = Nothing
+        Dim layout = Function() String.Join(";", values.Where(Function(kv) kv.Key.StartsWith("DiskManager", StringComparison.Ordinal)).
+                                                OrderBy(Function(kv) kv.Key, StringComparer.Ordinal).
+                                                Select(Function(kv) kv.Key & "=" & Convert.ToString(kv.Value)).ToArray())
+        Try
+            DiskManagerForm.SuppressReads = True
+            DiskManagerForm.SuppressWelcome = True
+
+            values.Clear()
+            ShellSettings.SetDiskManagerColumns(New Integer() {111, 222, 333, 444, 555, 666, 777, 88, 99})
+            ShellSettings.SetDiskManagerSort(2, True)
+            ShellSettings.SavePlacementOf(ShellSettings.DiskManagerPrefix, 10, 10, 900, 600, False, 96)
+            Dim before = layout()
+            m = New DiskManagerForm()
+            Dim handle = m.Handle
+            m.Close()
+            m.Dispose()
+            m = Nothing
+            Check("disk-host:hidden-close-keeps-layout", layout() = before, before & " -> " & layout())
+
+            ' "Reset window positions" is consumed by the hidden window's constructor; its close must
+            ' not turn the defaults it holds into a saved placement.
+            values.Clear()
+            ShellSettings.SavePlacementOf(ShellSettings.DiskManagerPrefix, 10, 10, 900, 600, False, 96)
+            ShellSettings.ResetPlacements()
+            before = layout()
+            m = New DiskManagerForm()
+            handle = m.Handle
+            m.Close()
+            m.Dispose()
+            m = Nothing
+            Check("disk-host:hidden-close-keeps-reset", layout() = before AndAlso Convert.ToInt32(values("DiskManagerPlacementV")) = 0, before & " -> " & layout())
+
+            ' A window that was shown is the user's: it still saves its layout when it closes.
+            values.Clear()
+            m = New DiskManagerForm()
+            m.StartPosition = FormStartPosition.Manual
+            m.ShowInTaskbar = False
+            m.Show()
+            m.Bounds = New Rectangle(-32000, -32000, m.MinimumSize.Width, m.MinimumSize.Height)
+            Settle()
+            m.Close()
+            m.Dispose()
+            m = Nothing
+            Check("disk-host:shown-close-saves-layout", values.ContainsKey("DiskManagerColumns") AndAlso values.ContainsKey("DiskManagerPlacementV"), layout())
+        Catch ex As Exception
+            Check("disk-host:hidden-close", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            DiskManagerForm.SuppressReads = wasReads
+            DiskManagerForm.SuppressWelcome = wasWelcome
+            If m IsNot Nothing Then m.Dispose()
+            values.Clear()
+            For Each kv In saved
+                values(kv.Key) = kv.Value
+            Next
+        End Try
     End Sub
 
 End Module

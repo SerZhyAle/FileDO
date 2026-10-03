@@ -514,25 +514,39 @@ func formatScript(n int, serial, label, fs string, clearFirst bool) (string, err
 		label = "FileDO"
 	}
 	fs = vdFileSystem(fs)
-	clearStep := ""
+	partitionStep := ""
 	if clearFirst {
-		clearStep = fmt.Sprintf(`Clear-Disk -Number %d -RemoveData -RemoveOEM -Confirm:$false
-"cleared in $($sw.ElapsedMilliseconds) ms"
-`, n)
+		partitionStep = fmt.Sprintf(`$p = $null
+if ($d.PartitionStyle -eq 'GPT' -and [int64]$d.LargestFreeExtent -le 2097152) {
+    $p = try { Get-Partition -DiskNumber %d -ErrorAction Stop | Where-Object { $_.Type -ne 'Reserved' -and $_.Type -ne 'System' } | Select-Object -Last 1 } catch { $null }
+}
+if ($p) {
+    "reusing partition $($p.PartitionNumber) in $($sw.ElapsedMilliseconds) ms"
+} else {
+    Clear-Disk -Number %d -RemoveData -RemoveOEM -Confirm:$false
+    "cleared in $($sw.ElapsedMilliseconds) ms"
+    Initialize-Disk -Number %d -PartitionStyle GPT
+    "initialized in $($sw.ElapsedMilliseconds) ms"
+    $p = New-Partition -DiskNumber %d -UseMaximumSize
+    "partition $($p.PartitionNumber) in $($sw.ElapsedMilliseconds) ms"
+}
+`, n, n, n, n)
+	} else {
+		partitionStep = fmt.Sprintf(`Initialize-Disk -Number %d -PartitionStyle GPT
+"initialized in $($sw.ElapsedMilliseconds) ms"
+$p = New-Partition -DiskNumber %d -UseMaximumSize
+"partition $($p.PartitionNumber) in $($sw.ElapsedMilliseconds) ms"
+`, n, n)
 	}
 	return fmt.Sprintf(`$ErrorActionPreference = 'Stop'
 $sw = [Diagnostics.Stopwatch]::StartNew()
 Update-HostStorageCache
 $d = Get-Disk -Number %d
 if (-not $d -or [string]$d.SerialNumber -ne '%s' -or $d.BusType -ne 'iSCSI') { throw "disk %d is not the container's disk; nothing was formatted" }
-%sInitialize-Disk -Number %d -PartitionStyle GPT
-"initialized in $($sw.ElapsedMilliseconds) ms"
-$p = New-Partition -DiskNumber %d -UseMaximumSize
-"partition $($p.PartitionNumber) in $($sw.ElapsedMilliseconds) ms"
-$v = $p | Format-Volume -FileSystem %s -NewFileSystemLabel '%s' -Confirm:$false
+%s$v = $p | Format-Volume -FileSystem %s -NewFileSystemLabel '%s' -Confirm:$false
 if (-not $v -or $v.FileSystem -ne '%s') { throw "Format-Volume did not return the requested file system" }
 "formatted $($v.FileSystem) '$($v.FileSystemLabel)' in $($sw.ElapsedMilliseconds) ms"
-`, n, serial, n, clearStep, n, n, fs, label, fs), nil
+`, n, serial, n, partitionStep, fs, label, fs), nil
 }
 
 // pnpVetoHolder names the process Windows says stopped the removal of a
@@ -553,3 +567,7 @@ func pnpVetoHolder() string {
 	}
 	return ""
 }
+
+// vdIQNSpelling is the only target name FileDO makes (vdIQN): one target per container, named from its id.
+// A detach logs out sessions of this target and no other (AUD-84-F6).
+var vdIQNSpelling = regexp.MustCompile(`^iqn\.2026-09\.ua\.od\.sza:filedo\.vd\.[0-9a-f]{32}$`)

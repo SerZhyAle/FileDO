@@ -337,13 +337,15 @@ foreach ($size in 16, 24, 32, 48, 256) {
 # content.disk-container), not the product mark (SP-0016 T8, ICON-SET rule 7; SP-0004 T6.27): their
 # PNGs are cut from the same .ico files the MSI and the classic registration use, so the three
 # channels show one picture. The Explorer command (FileDOShell.dll) reads the menu icons from icons\
-# beside it, as the classic registration does.
+# beside it, as the classic registration does. The folder holds 8 icons: the 7 mono meanings and
+# app.disk-manager (the Disk Manager's plated picture), which the package carries but no manifest entry
+# names - the MSIX has no Disk Manager tile - so it is staged and presence-checked like the rest.
 $menuIconsSrc = Join-Path $root "assets\menu-icons"
 $menuIconsOut = Join-Path $stage "icons"
 New-Item -ItemType Directory -Force -Path $menuIconsOut | Out-Null
 Copy-Item (Join-Path $menuIconsSrc "*.ico") $menuIconsOut -Force
 $menuIconEntries = @(Get-ChildItem $menuIconsOut -Filter *.ico | ForEach-Object { "icons\$($_.Name)" })
-if ($menuIconEntries.Count -ne 7) { Fail "assets\menu-icons holds $($menuIconEntries.Count) icons, expected 7 - run filedo_win.exe --write-menu-icons assets\menu-icons" }
+if ($menuIconEntries.Count -ne 8) { Fail "assets\menu-icons holds $($menuIconEntries.Count) icons, expected 8 - run filedo_win.exe --write-menu-icons assets\menu-icons" }
 function New-TypeLogo([string]$icoPath, [string]$dst, [int]$size) {
     $ico = New-Object System.Drawing.Icon($icoPath, $size, $size)
     try {

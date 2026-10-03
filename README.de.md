@@ -314,7 +314,7 @@ Was die Plattform braucht, offen gesagt:
 
 - **Nur Windows.** Den Laufwerksbuchstaben liefert der in Windows eingebaute iSCSI-Initiator, der mit
   einem Blockserver in `filedo.exe` spricht; der Server lauscht nur auf 127.0.0.1 - nichts verlässt diesen
-  Computer, und der Container gelangt nie in ein Netzwerk.
+  Computer, und der Container gelangt nie in ein Netzwerk - es sei denn, Sie geben ihn selbst frei (siehe unten).
 - **Einbinden braucht Administratorrechte.** `mount`, `unmount`, `save`, `format` und `vd auto` bitten Windows um
   die Zustimmung eines Administrators für den Schritt mit dem Initiator; das Passwort gelangt nie dorthin,
   und der Blockserver selbst läuft nie mit erhöhten Rechten. Ein Batch zeigt diese Abfrage nie - starten Sie
@@ -330,6 +330,20 @@ Was die Plattform braucht, offen gesagt:
   Server bestehen, und ein neues Fenster listet sie wieder auf; trennen Sie in der Datenträgerverwaltung, auf den Seiten der Gruppe
   *Datenträger* oder mit `filedo X: unmount`.
 
+Wählen Sie im **Disk Manager** einen registrierten dateibasierten Datenträger und **Über Fast Media Sorter & Sharing teilen..** im Detailbereich oder Mehr-Menü (`Ctrl+Shift+S`). Starten Sie zuerst Share Manager. Ist der Worker nicht erreichbar, bietet der Dialog Wiederholung und die [Installationsseite](https://serzhyale.github.io/FastMediaSorter_Lite/); das beweist keine fehlende Installation. Aktivieren Sie bei Bedarf die optionale FileDO-Komponente. Der Desktop-Installer ist unsigniert. Registrierung ist standardmäßig nur lesend; sealed-Datenträger bleiben nur lesend. Wählen Sie den Ordnernamen und optional das Öffnen für gekoppelte Geräte. Ein bereits von FileDO eingebundener Datenträger wird nach Bestätigung sauber getrennt; RAM wird dabei durch das normale Trennen gespeichert. Stimmen Sie dem Abschalten automatischer FileDO-Montage ausdrücklich zu; ein manueller `keep`-Wächter endet beim Trennen. FMS-Autostart ist separat zu aktivieren. **Freigegebenen Datenträger schließen** behält die Registrierung; **Freigabe beenden** entfernt sie und ihren gespeicherten Autostart-Schlüssel. Bei Fehlern bleiben erledigte Schritte bestehen: aktualisieren, verbleibende Aktion wiederholen oder die Freigabe beenden, bevor Sie lokales Einbinden und die vorherige automatische Richtlinie ausdrücklich wiederherstellen. Koppeln Sie Geräte über Share Manager. Dies gibt Dateien über SFTP frei, nicht über Windows-SMB. Der Sitzungsmodus erfordert Anmeldung; ein Dienst arbeitet ohne Anmeldung. Partitionsdatenträger und ungeprüfte externe Steuerung im Store-Build sind hier nicht verfügbar; verwenden Sie den Desktop-Build. Die Schritt-für-Schritt-Seite - Voraussetzungen, jeder Dialog und die Wiederherstellung - ist [FileDO-Datenträger mit Fast Media Sorter freigeben](https://serzhyale.github.io/FileDO/guides/fms-sharing.html).
+
+**Freigabe eines Datenträgers über Fast Media Sorter for Windows (optional).** Ist Fast Media Sorter for
+Windows installiert, bietet `vd share work.fdd on` einen Datenträger den Handys und Tablets an, die Sie damit
+gekoppelt haben, als einen weiteren Ordner; `vd open`, `vd close` und `vd autostart` öffnen ihn für sie,
+schließen ihn und öffnen ihn nach einem Neustart erneut. FileDO öffnet dafür keine Netzwerkverbindung - es
+spricht über eine lokale Pipe mit diesem Programm, und dieses Programm liefert die Dateien aus. Ein
+verschlüsselter Datenträger wird hier an diesem PC entsperrt, nie vom Handy aus; solange er offen ist, kann
+jedes gekoppelte Gerät seine Dateien lesen, und `vd autostart` bewahrt sein Passwort auf diesem PC auf, für
+dieses Programm geschützt, bis Sie den Autostart ausschalten, die Freigabe beenden oder das Passwort ändern.
+Ein freigegebener Datenträger wird von diesem Programm gehalten, daher verweigert `mount` ihn, solange es ihn
+hält; `vd status` nennt den Halter. Nur die Server-Edition von Fast Media Sorter for Windows hält freigegebene
+Datenträger verfügbar, wenn niemand angemeldet ist.
+
 Exit-Codes eines einzelnen Container-Befehls: 0 erledigt, 2 Aufruf falsch, 3 falsches Passwort,
 4 beschädigt, 5 E/A-Fehler, 6 nicht unterstützt, 7 Transport nicht verfügbar, 8 belegt (eingebunden,
 geöffnet oder gesperrt). Ein Batch behält 0/1/2.
@@ -344,9 +358,66 @@ anzeigen*). Ohne Installationsprogramm schreibt `filedo vd register` dasselbe (`
 Rechner), und `filedo vd unregister` nimmt es zurück. Im Fenster hat die Gruppe **Datenträger** eine Seite
 je Operation und benennt beide Schutzarten genau wie die Konsole.
 
-Die **Datenträgerverwaltung** (englisch *Disk manager*; nicht zu verwechseln mit der gleichnamigen Windows-Komponente) ist ein zweites Fenster derselben `filedo_win.exe` - kein neues Programm - mit einer Zeile je virtuellem Datenträger: die Datenträger Ihrer Liste, die gerade eingebundenen und die VHD-, VHDX- oder ISO-Abbilder, die FileDO eingebunden hat. Jede Zeile nennt ihren Zustand in Worten neben einem Symbol (*Eingebunden*, *Eingebunden, schreibgeschützt*, *Eingebunden, 180 MiB nicht gespeichert* bei einem `ram`-Datenträger, *Server weg - Volume offline*, *Abbild eingebunden*, *Datei fehlt*, *Unter diesem Pfad liegt ein anderer Container*, *Nicht lesbar*, *Nicht sauber geschlossen*, *Nicht eingebunden*), und die Liste hält sich ohne manuelles Aktualisieren aktuell. Darum herum liegen eine Werkzeugleiste (*Neuer Datenträger..*, *Hinzufügen..*, *Einbinden*, *Trennen*, *Öffnen*, *Speichern*, *Weitere Aktionen*, *Aktualisieren*, *Hilfe*, *Hauptfenster*), eine Filterzeile und ein Detailbereich mit den passenden Schaltflächen; eine nicht verfügbare Schaltfläche sagt in ihrem Tooltip und im Detailbereich, warum, und die Microsoft-Store-Version, die nie einbinden kann, blendet die Einbinde-Elemente aus, statt sie auszugrauen. Ein Doppelklick oder Enter bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie; ziehen Sie `.fdd`-Dateien auf die Liste, um sie hinzuzufügen, oder eine `.vhd`, `.vhdx` oder `.iso`, um ein Abbild nach einer Bestätigung einzubinden. *Neuer Datenträger*, *Exportieren*, *Verkleinern*, *Vergrößern*, *Versiegelte Kopie*, *Klonen*, *Passwort ändern*, *Formatieren* und *Vernichten* öffnen ihre Aufgabenseite im Hauptfenster mit dem gewählten Container; *Formatieren* und *Vernichten* behalten dort die einzutippende Bestätigung.
+Die **Datenträgerverwaltung** (englisch *Disk manager*; nicht zu verwechseln mit der gleichnamigen Windows-Komponente) ist ein zweites Fenster derselben `filedo_win.exe` - kein neues Programm - mit einer Zeile je virtuellem Datenträger: die Datenträger Ihrer Liste, die gerade eingebundenen und die VHD-, VHDX- oder ISO-Abbilder, die FileDO eingebunden hat. Jede Zeile nennt ihren Zustand in Worten neben einem Symbol (*Eingebunden*, *Eingebunden, schreibgeschützt*, *Eingebunden, 180 MiB nicht gespeichert* bei einem `ram`-Datenträger, *Server weg - Volume offline*, *Abbild eingebunden*, *Datei fehlt*, *Unter diesem Pfad liegt ein anderer Container*, *Nicht lesbar*, *Nicht sauber geschlossen*, *Nicht eingebunden*), und die Liste hält sich ohne manuelles Aktualisieren aktuell. Darum herum liegen eine Werkzeugleiste (*Neuer Datenträger..*, *Hinzufügen..*, *Einbinden*, *Trennen*, *Öffnen*, *Speichern*, *Weitere Aktionen*, *Aktualisieren*, *Hilfe*, *Hauptfenster*), eine Filterzeile und ein Detailbereich mit den passenden Schaltflächen; eine nicht verfügbare Schaltfläche sagt in ihrem Tooltip und im Detailbereich, warum, und die Microsoft-Store-Version, die nie einbinden kann, blendet die Einbinde-Elemente aus, statt sie auszugrauen. Ein Doppelklick oder Enter bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie; ziehen Sie `.fdd`-Dateien auf die Liste, um sie hinzuzufügen, oder eine `.vhd`, `.vhdx` oder `.iso`, um ein Abbild nach einer Bestätigung einzubinden. *Neuer Datenträger..* fragt zuerst, wo der Datenträger seine Daten ablegt: *Datei auf einem Laufwerk..* öffnet die Seite *Datenträger anlegen* im Hauptfenster, *Partition im freien Speicherplatz..* den eigenen Partitionsdialog der Datenträgerverwaltung - eine Karte des freien Speicherplatzes jedes GPT-Datenträgers, Größe, Profil, Bezeichnung und Name (die Microsoft-Store-Version bietet nur die Datei an). Bei einem Datei-Datenträger öffnen *Exportieren*, *Verkleinern*, *Vergrößern*, *Versiegelte Kopie*, *Klonen*, *Passwort ändern*, *Formatieren* und *Vernichten* ihre Aufgabenseite im Hauptfenster mit dem gewählten Container; *Formatieren* und *Vernichten* behalten dort die einzutippende Bestätigung. Die Zeile eines [Partitionsdatenträgers](#partitionsdatenträger) sagt *Partition nicht verbunden* oder *Partition geändert*, wenn er nicht dort ist, wo er registriert wurde, bietet *Abbild in Datei..* an, um ihn in eine neue `.fdd`-Datei zu kopieren, und gelöscht wird er in der Datenträgerverwaltung selbst: *Vernichten* verlangt seinen eingetippten Namen und kann die Partition vorher überschreiben. *Partition übernehmen..* (unter *Weitere Aktionen* oder per Rechtsklick auf eine leere Stelle) listet die FileDO-Partitionen auf den Datenträgern dieses Computers, die nicht in der Liste stehen, und fügt die gewählte unter einem Namen hinzu; die Store-Version blendet *Abbild in Datei* und *Partition übernehmen* aus.
 
-Geöffnet wird sie über den Startmenü-Eintrag **FileDO Disk Manager** (das Installationsprogramm legt ihn an; er startet `filedo_win.exe --disks`), über die Schaltfläche **«Datenträgerverwaltung»** oben rechts im FileDO-Fenster oder die erste Zeile seiner Gruppe *Datenträger* (auch **Ctrl+Shift+D**) oder mit `filedo_win.exe --disks`; ihre Schaltfläche **«Hauptfenster»** holt das FileDO-Fenster nach vorn. **F1** öffnet die Hilfe - was eine Zeile sagt, die Tastentabelle, Links. Beim ersten Öffnen erklärt ein Willkommensfenster, was ein virtueller Datenträger ist, und sagt: *Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.* *Verschlüsselt: Er öffnet sich nur mit seinem Passwort.* Außerdem steht dort, dass Windows bei jedem Einbinden und Trennen die Zustimmung eines Administrators verlangt; es bietet *Meinen ersten Datenträger anlegen..*, *Eine vorhandene .fdd-Datei hinzufügen..*, *Die Anleitung auf der Website lesen* und *Jetzt nicht* an. Tastentabelle und Bilder stehen in der [Anleitung zu virtuellen Datenträgern](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Das Schließen der Datenträgerverwaltung trennt nie einen Datenträger.
+Geöffnet wird sie über den Startmenü-Eintrag **FileDO Disk Manager** (das Installationsprogramm legt ihn an; er startet `filedo_win.exe --disks`), über die Schaltfläche **«Datenträgerverwaltung»** oben rechts im FileDO-Fenster oder die erste Zeile seiner Gruppe *Datenträger* (auch **Ctrl+Shift+D**) oder mit `filedo_win.exe --disks`; ihre Schaltfläche **«Hauptfenster»** holt das FileDO-Fenster nach vorn. **F1** öffnet die Hilfe - was eine Zeile sagt, die Tastentabelle, Links. Beim ersten Öffnen erklärt ein Willkommensfenster, was ein virtueller Datenträger ist, und sagt: *Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.* *Verschlüsselt: Er öffnet sich nur mit seinem Passwort.* Außerdem steht dort, dass Windows bei jedem Einbinden und Trennen die Zustimmung eines Administrators verlangt - bei einem Partitionsdatenträger auch bei jedem Lesen; es bietet *Meinen ersten Datenträger anlegen..*, *Eine vorhandene .fdd-Datei hinzufügen..*, *Die Anleitung auf der Website lesen* und *Jetzt nicht* an. Tastentabelle und Bilder stehen in der [Anleitung zu virtuellen Datenträgern](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Das Schließen der Datenträgerverwaltung trennt nie einen Datenträger.
+
+### Partitionsdatenträger
+
+Ein virtueller Datenträger kann statt in einer Datei auch in einer Partition liegen. FileDO legt im nicht
+zugeordneten Speicherplatz eines Datenträgers eine neue GPT-Partition an und füllt sie ganz mit einem
+Container; außerhalb dieses freien Bereichs wird nichts verändert - FileDO wandelt eine vorhandene Partition
+nie um, ändert nie ihre Größe und schreibt nie in sie. Nur GPT-Datenträger: MBR-Datenträger, dynamische
+Datenträger, Speicherplätze (Storage Spaces), iSCSI-, Wechsel- und USB-Datenträger werden abgelehnt, und
+`vd disks` nennt für jeden den Grund. Sie gewinnen einen Datenträger, den kein Host-Dateisystem trägt, dem
+Windows keinen Laufwerksbuchstaben gibt und den es nicht zum Formatieren anbietet, mit fest reserviertem
+Platz; was Sie nicht gewinnen, ist Geschwindigkeit.
+
+```bash
+# Alle Datenträger, ihre Partitionen und ihr freier Platz - jeder Bereich nutzbar oder nicht, und warum (ohne Administratorrechte)
+filedo vd disks
+
+# Ein Partitionsdatenträger über einen ganzen freien Bereich (die create-Zeile, die vd disks ausgibt), Name data
+filedo vd new part disk:{GPT-GUID} size max at <offset> as data
+filedo vd mount data
+
+# In eine gewöhnliche .fdd-Datei kopieren, die ohne Administratorrechte lesbar ist
+filedo vd image data to D:\data.fdd
+
+# Eine FileDO-Partition registrieren, die dieser PC nicht kennt (ein Datenträger von einem anderen PC)
+filedo vd adopt fdpart:{GUID} as data
+
+# Die Partition löschen: zur Bestätigung den Namen des Datenträgers eintippen; der Platz wird wieder nicht zugeordnet
+filedo vd destroy data
+```
+
+`<disk>` ist `disk:{GUID}` oder die Nummer, die `vd disks` ausgegeben hat; `size` ist `max` oder eine Größe
+wie `40G` (abgerundet auf 1 MiB, mindestens 64 MiB). Das Standardprofil ist `fast`; `plain`, `vault` und
+`ram` gehen auch. Das erste Einbinden formatiert das Volume mit NTFS. Ein Partitionsdatenträger wird über
+seinen Namen oder seinen Locator `fdpart:{GUID}` angesprochen, nie über einen Pfad; `mount`, `unmount`,
+`save`, `info`, `verify`, `export`, `pass`, `seal`, `clone`, `vd auto` und die Abschaltwache arbeiten wie bei
+einer Datei, `compact` und `grow` nicht (seine Größe ist fest), und die Freigabe über Fast Media Sorter wird
+vorerst abgelehnt. `vd forget` entfernt den Namen und lässt die Partition auf ihrem Datenträger;
+`vd destroy .. wipe` überschreibt die Partition vor dem Löschen. Ein abgelehnter Datenträger endet mit
+Code 6, eine verweigerte Zustimmung mit Code 7 und ein seit der Auflistung geändertes Layout mit Code 5 -
+und nichts wurde verändert.
+
+- **Administratorzustimmung für jedes Lesen, nicht nur zum Einbinden.** Eine Partition lässt sich ohne
+  Administratorrechte nicht öffnen, daher bitten auch `info`, `verify`, `export`, `pass`, `seal`, `clone` und
+  `vd image` Windows um Zustimmung. `vd image` hebt das auf: Die Datei, die es schreibt, ist eine gewöhnliche
+  `.fdd`, die jeder Lesepfad ohne Administratorrechte öffnet.
+- **Nicht schneller als ein Datei-Datenträger.** Von Anfang bis Ende auf einem NVMe-Laufwerk gemessen, war ein
+  Partitionsdatenträger langsamer als eine `.fdd`-Datei auf NTFS. Wählen Sie ihn für den festen, getrennten
+  Platz, nicht für Geschwindigkeit.
+- **`fast` überschreibt den freien Platz, `plain` und `vault` nicht.** Was der freie Platz vorher enthielt,
+  bleibt in den ungenutzten Clustern eines `plain`- oder `vault`-Partitionsdatenträgers, bis das Volume es
+  überschreibt; `fast` überschreibt beim Anlegen die ganze Partition.
+- **Die Datenträgerverwaltung von Windows (`diskmgmt.msc`) zeigt die Partition weiterhin an und kann sie
+  löschen.** Dort zu löschen löscht den Datenträger darin, ohne nach seinem Inhalt zu fragen. Der sichere Weg
+  ist FileDOs eigenes `vd destroy`: Es lehnt einen eingebundenen Datenträger ab, verlangt den eingetippten
+  Namen des Datenträgers und löscht nur eine Partition, die es als FileDOs nachgewiesen hat.
+- **Partitionsdatenträger sind in der Microsoft-Store-Version nicht verfügbar.** Dort sagt `vd disks` das,
+  und jeder Partitionsbefehl endet mit Code 6; nutzen Sie das Setup oder den portablen Build von GitHub.
 
 ---
 
@@ -458,6 +529,8 @@ Die Seiten unter **«Schützen»** behandeln geheime `.fd-sec`-Dateien - eine Da
 ## Erweiterte Funktionen
 
 ### Ordnervergleich & Bereinigung
+
+`compare <source> <target> --strict` prüft die Übereinstimmung der Verzeichnisbäume: gleiche relative Pfade, Größen und Änderungszeiten ergeben `Passed` (Code 0); ein Unterschied ergibt `Failed` (Code 1); ein unvollständiger Vergleich ergibt `Not proven` (Code 2). Mit `--by-hash` werden gleich große Dateipaare nach Inhalt statt nach Zeit verglichen. Einfaches `compare` meldet Unterschiede weiterhin mit `Done` (Code 0); `--strict` lässt sich nicht mit Löschen verbinden. Beide Modi liefern `onlyInSource`, `onlyInTarget`, `differentFiles`, `sameFiles`, `totalSource` und `totalTarget` im Ergebnis von `--events`. Bei `check` liest `--max-files N` höchstens N Dateien (0 bedeutet unbegrenzt); `--resume` endet mit `Passed` (Code 0), wenn jede passende Datei einen unveränderten Eintrag in der Liste gut gelesener Dateien hat: `checkedFiles = 0`, und `skippedGoodFiles` zählt die früher geprüften Dateien.
 
 ```bash
 # Zwei Ordner vergleichen und Bericht speichern

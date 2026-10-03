@@ -606,3 +606,24 @@ func TestPathKeyCanonicalisation(t *testing.T) {
 		t.Fatal("lookup by another spelling failed")
 	}
 }
+
+// A worker that sends a thousand bad records must not make FileDO print a thousand reasons
+// (AUD-86-F4): the first eight are named, the rest are a count.
+func TestReconcileAllCapsSkipReasons(t *testing.T) {
+	m := NewSharedDiskManager("", nil)
+	list := make([]SharedDiskState, 500)
+	e := m.ReconcileAll(list)
+	if e == nil {
+		t.Fatal("500 empty records reconciled without a complaint")
+	}
+	msg := e.Error()
+	if got := strings.Count(msg, "worker record "); got != maxSkipReasons {
+		t.Fatalf("%d reasons named, want %d: %.200s", got, maxSkipReasons, msg)
+	}
+	if !strings.Contains(msg, "and 492 more") {
+		t.Fatalf("the rest is not counted: %.300s", msg)
+	}
+	if len(msg) > 2000 {
+		t.Fatalf("the error text is %d bytes", len(msg))
+	}
+}

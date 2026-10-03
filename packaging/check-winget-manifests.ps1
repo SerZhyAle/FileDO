@@ -62,7 +62,7 @@ param(
 $ErrorActionPreference = "Stop"
 if (-not $Path) { $Path = Join-Path (Split-Path $PSScriptRoot -Parent) "winget" }
 if (-not (Test-Path $Path)) {
-    Write-Host "winget-manifests: NOT VERIFIED (manifest directory does not exist: $Path)" -ForegroundColor Yellow
+    Write-Host "winget-manifests: COULD NOT VERIFY (manifest directory does not exist: $Path)" -ForegroundColor Yellow
     exit 2
 }
 $Path = (Resolve-Path $Path).Path
@@ -87,7 +87,7 @@ function Check([string]$name, [bool]$ok, [string]$detail = "") {
 }
 function CannotVerify([string]$reason) {
     $script:unverified += $reason
-    Write-Host "  NOT VERIFIED  $reason" -ForegroundColor Yellow
+    Write-Host "  COULD NOT VERIFY  $reason" -ForegroundColor Yellow
 }
 function Get-Field([string]$text, [string]$key) {
     # The installer keys sit inside the Installers sequence, so the line may be indented and
@@ -247,6 +247,6 @@ if ($Install) {
 
 Write-Host ""
 if ($script:fail -gt 0) { Write-Host "winget-manifests: FAIL ($script:fail checks)" -ForegroundColor Red; exit 1 }
-if ($script:unverified.Count -gt 0) { Write-Host "winget-manifests: NOT VERIFIED ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
+if ($script:unverified.Count -gt 0) { Write-Host "winget-manifests: COULD NOT VERIFY ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
 Write-Host "winget-manifests: PASS ($script:pass checks)" -ForegroundColor Green
 exit 0

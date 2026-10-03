@@ -214,7 +214,14 @@ func fdsecDisposeTree(path, abs string, packed *fdsec.Tree, o *fdsecOpts, hl *Hi
 		if !o.assumeYes {
 			fmt.Printf("Type WIPE to continue: ")
 			line, rerr := readConsoleLine()
-			if rerr != nil || strings.TrimSpace(line) != "WIPE" {
+			if rerr != nil {
+				// Nobody could answer - not a refusal: the folder stays, the
+				// container stands, and the run is not a success (SP-0126 R1).
+				fmt.Printf("Original folder kept (nobody could answer the question): %s\n", path)
+				hl.SetResult("original", "not-asked")
+				return usagef("the wipe needs a confirmation: nobody could answer the prompt, nothing wiped - pass -y to wipe without a prompt")
+			}
+			if strings.TrimSpace(line) != "WIPE" {
 				return kept("wipe not confirmed")
 			}
 		}
@@ -222,8 +229,14 @@ func fdsecDisposeTree(path, abs string, packed *fdsec.Tree, o *fdsecOpts, hl *Hi
 		fmt.Printf("\nThe container was read back and every file verified against its digest.\n")
 		fmt.Printf("Delete the original folder %s (%d files, %d folders)? This is a normal delete - the bytes stay recoverable until reused (y/N): ", path, files, len(entries)-files)
 		line, rerr := readConsoleLine()
-		ans := strings.ToLower(strings.TrimSpace(line))
-		if rerr != nil || (ans != "y" && ans != "yes") {
+		if rerr != nil {
+			// Nobody could answer - not a refusal: the folder stays, the
+			// container stands, and the run is not a success (SP-0126 R1).
+			fmt.Printf("Original folder kept (nobody could answer the question): %s\n", path)
+			hl.SetResult("original", "not-asked")
+			return usagef("the delete needs a confirmation: nobody could answer the prompt, nothing deleted - pass -y to delete without a prompt")
+		}
+		if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
 			return kept("delete not confirmed")
 		}
 	}

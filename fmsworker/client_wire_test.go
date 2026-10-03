@@ -414,3 +414,60 @@ func TestInstallPathSearchesEveryProgramFilesRoot(t *testing.T) {
 		t.Fatalf("native install not preferred: %q", got)
 	}
 }
+
+// A real list is a few KB; a peer that sends a million empty records must not make the client
+// allocate for them (AUD-86-F4).
+func TestOversizeRecordCountIsRefused(t *testing.T) {
+	var body strings.Builder
+	body.WriteString(`{"schemaVersion":2,"ok":true,"disks":[`)
+	for i := 0; i <= maxRecords; i++ {
+		if i > 0 {
+			body.WriteByte(',')
+		}
+		body.WriteString(`{}`)
+	}
+	body.WriteString(`]}`)
+	if body.Len() > maxResponseBytes {
+		t.Fatalf("fixture is %d bytes, over the byte limit: it would test the wrong cap", body.Len())
+	}
+	c := exchangeClient(t, func(req map[string]any) any {
+		if req["type"] == "GetStatus" {
+			return capableStatus
+		}
+		return json.RawMessage(body.String())
+	})
+	_, e := c.ListSharedDisks()
+	if !errors.Is(e, ErrCommunication) || !strings.Contains(e.Error(), "more than") {
+		t.Fatalf("err = %v", e)
+	}
+	// Exactly at the cap is accepted.
+	body.Reset()
+	body.WriteString(`{"schemaVersion":2,"ok":true,"disks":[`)
+	for i := 0; i < maxRecords; i++ {
+		if i > 0 {
+			body.WriteByte(',')
+		}
+		body.WriteString(`{}`)
+	}
+	body.WriteString(`]}`)
+	if d, e := c.ListSharedDisks(); e != nil || len(d) != maxRecords {
+		t.Fatalf("at the cap: %d records, err %v", len(d), e)
+	}
+}
+
+func TestWorkerErrorTextIsBounded(t *testing.T) {
+	c, _ := recordingClient(t, func(map[string]any) any {
+		return map[string]any{"schemaVersion": 2, "ok": false, "error": "bad\x1b[31mred\r\nline " + strings.Repeat("y", 5000)}
+	})
+	e := c.UnshareDisk(`C:\d.fdd`)
+	var we *WorkerError
+	if !errors.As(e, &we) {
+		t.Fatalf("err = %#v", e)
+	}
+	if len(we.Message) > maxMessageBytes+4 {
+		t.Fatalf("message is %d bytes", len(we.Message))
+	}
+	if strings.ContainsAny(we.Message, "\x1b\r\n") || !strings.HasPrefix(we.Message, "bad [31mred  line ") {
+		t.Fatalf("control characters survived: %q", we.Message[:40])
+	}
+}

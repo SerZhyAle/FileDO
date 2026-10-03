@@ -61,10 +61,13 @@
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="MainIcon" SourceFile="$(var.IconFile)" />
-    <!-- The Disk Manager shortcut's own drawing: the ICON-SET content.disk-container
-         glyph, read from the same staged icons\ folder the .fdd type's DefaultIcon
-         file comes from, so no new define is asked of build.ps1 or release.yml. -->
-    <Icon Id="DiskManagerIcon" SourceFile="$(var.StageDir)\icons\content.disk-container.ico" />
+    <!-- The Disk Manager shortcut's own picture: the ICON-SET content.disk-container glyph
+         on an accent plate (assets\menu-icons\app.disk-manager.ico, drawn by MenuIcons.vb),
+         the one icon the window, its taskbar button and its Main window button show too.
+         Read from the same staged icons\ folder the .fdd type's DefaultIcon file comes from,
+         so no new define is asked of build.ps1 or release.yml. The generic mono
+         content.disk-container.ico stays the .fdd file type's and the Explorer menu's. -->
+    <Icon Id="DiskManagerIcon" SourceFile="$(var.StageDir)\icons\app.disk-manager.ico" />
     <Property Id="ARPPRODUCTICON" Value="MainIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/SerZhyAle/FileDO/issues" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/SerZhyAle/FileDO" />

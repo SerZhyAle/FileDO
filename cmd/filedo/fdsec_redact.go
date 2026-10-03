@@ -173,6 +173,7 @@ var vdRedactVerbs = map[string]bool{
 	"format": true, "destroy": true, "erase": true, "clone": true, "add": true, "forget": true,
 	"list": true, "ls": true, "auto": true, "guard": true, "status": true, "stop": true,
 	"register": true, "unregister": true, "share": true, "autostart": true,
+	"open": true, "close": true, "disks": true, "image": true, "adopt": true,
 }
 
 // vdRedactKeeps are the option words of the vd verbs. None of them is ever
@@ -185,18 +186,19 @@ var vdRedactKeeps = map[string]bool{
 	"nosave": true, "off": true, "on": true, "logon": true, "short": true, "-all-users": true,
 	"nopass": true, "new": true, "raw": true, "vhd": true, "wipe": true,
 	"fs": true, "ntfs": true, "exfat": true, "run": true,
-	"noletter": true, "worker": true, "stdin": true, "consent": true,
+	"noletter": true, "worker": true, "keep": true, "stdin": true, "consent": true,
+	"part": true, "max": true,
 }
 
 // vdRedactValueWords take a value that is not a secret: a drive letter, a
 // label, a registry name, a destination.
-var vdRedactValueWords = map[string]bool{"as": true, "label": true, "to": true}
+var vdRedactValueWords = map[string]bool{"as": true, "label": true, "to": true, "wait": true, "size": true, "at": true}
 
 // vdSubjectless are the vd verbs that take no container or name: their
 // line has no subject slot to keep.
 var vdSubjectless = map[string]bool{
 	"list": true, "ls": true, "status": true, "stop": true,
-	"register": true, "unregister": true,
+	"register": true, "unregister": true, "disks": true,
 }
 
 func vdContainerLike(t string) bool {
@@ -217,10 +219,13 @@ func vdDriveSpelling(t string) bool {
 	return c >= 'a' && c <= 'z' && (len(t) == 2 || t[2] == '\\' || t[2] == '/')
 }
 
+// vdMountWordList is the option words of mount's bare trailing token: a word here is never a password.
+// The window's Runner.VdMountWords is held equal to it by TestShell_VdRedactionWordSetsMatchTheCLI.
+var vdMountWordList = []string{"ro", "readonly", "noscan", "as", "noletter", "worker", "keep", "stdin"}
+
 // vdMountWordSet mirrors vdMountOptionWord for the bare-token rule.
 func vdMountWordSet(t string) bool {
-	switch strings.ToLower(t) {
-	case "ro", "readonly", "noscan", "as", "noletter", "worker", "stdin":
+	if contains(vdMountWordList, strings.ToLower(t)) {
 		return true
 	}
 	return vdDriveSpelling(t)

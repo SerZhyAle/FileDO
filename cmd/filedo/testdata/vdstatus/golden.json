@@ -3,6 +3,7 @@
   "disks": [
     {
       "auto": true,
+      "carrier": "file",
       "clean": true,
       "container_id": "<ID 1>",
       "file": "ok",
@@ -18,6 +19,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": null,
       "container_id": "<ID 2>",
       "file": "missing",
@@ -33,6 +35,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": null,
       "container_id": "<ID 3>",
       "file": "unreadable",
@@ -49,6 +52,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": null,
       "container_id": "<ID 4>",
       "file": "different",
@@ -64,6 +68,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": true,
       "container_id": "<ID 5>",
       "file": "ok",
@@ -85,6 +90,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": true,
       "container_id": "<ID 6>",
       "file": "ok",
@@ -110,6 +116,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": true,
       "container_id": "<ID 7>",
       "file": "ok",
@@ -131,6 +138,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": true,
       "container_id": "<ID 8>",
       "file": "ok",
@@ -152,6 +160,7 @@
     },
     {
       "auto": false,
+      "carrier": "file",
       "clean": true,
       "container_id": "<ID 9>",
       "file": "ok",
@@ -178,6 +187,10 @@
       "path": "<DIR>\\disc.iso"
     }
   ],
+  "fms": {
+    "availability": "unavailable",
+    "mode": "unknown"
+  },
   "guard": {
     "containers": [
       {

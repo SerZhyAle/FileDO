@@ -420,6 +420,23 @@
             </div>
             <div class="card">
               <h3>
+                <span data-l="ru">Диск, к которому вы сами открываете общий доступ</span
+                ><span data-l="en">A disk you choose to share</span
+                ><span data-l="ua">Диск, до якого ви самі відкриваєте спільний доступ</span>
+              </h3>
+              <p>
+                <span data-l="ru"
+                  >Если вы установите Fast Media Sorter for Windows и откроете в ней общий доступ к диску (<code>vd share</code>), файлы открытого диска по сети отдаёт та программа, а не FileDO - устройствам, которые вы с ней связали. Сам FileDO для этого не открывает сетевых соединений: он говорит с той программой по локальному каналу на этом компьютере, а общий доступ выключен, пока вы не включите его, диск за диском. Пока общий диск открыт, каждое связанное устройство может читать его файлы, даже если контейнер зашифрован; закрытие диска или остановка компьютера это прекращают. Зашифрованный диск разблокируется только на этом компьютере, никогда с телефона. Если вы включите автозапуск для зашифрованного общего диска, его пароль хранится на этом компьютере, защищённым для той программы, чтобы диск открывался снова после перезапуска без ввода пароля; он удаляется, когда вы выключите автозапуск, прекратите доступ или смените пароль. Список общих дисков (путь, имя, отметка автозапуска - но не пароль) FileDO записывает в свою папку состояния. Как это включается, выключается и восстанавливается после ошибки - в руководстве <a href="guides/fms-sharing.html">общего доступа через Fast Media Sorter &amp; Sharing</a>.</span
+                >
+                <span data-l="en"
+                  >If you install Fast Media Sorter for Windows and share a disk with it (<code>vd share</code>), that program - not FileDO - serves the files of the open disk over the network to the devices you paired with it. FileDO itself opens no network connection for this: it talks to that program over a local pipe on this computer, and sharing is off until you turn it on, disk by disk. While a shared disk is open, every paired device can read its files, even when the container is encrypted; closing the disk, or stopping the computer, ends that. An encrypted disk is unlocked on this computer only, never from the phone. If you turn on autostart for an encrypted shared disk, its password is kept on this computer, protected for that program, so the disk opens again after a restart without anyone typing it; it is removed when you turn autostart off, stop sharing or change the password. FileDO writes the list of shared disks (path, name, autostart mark - never a password) in its state folder. How to turn it on, off and recover after a failed step is in the <a href="guides/fms-sharing.html">sharing through Fast Media Sorter &amp; Sharing</a> guide.</span
+                >
+                <span data-l="ua"
+                  >Якщо ви встановите Fast Media Sorter for Windows і відкриєте в ній спільний доступ до диска (<code>vd share</code>), файли відкритого диска мережею віддає та програма, а не FileDO - пристроям, які ви з нею зв'язали. Сам FileDO для цього не відкриває мережевих з'єднань: він говорить із тією програмою через локальний канал на цьому комп'ютері, а спільний доступ вимкнено, доки ви не ввімкнете його, диск за диском. Поки спільний диск відкритий, кожен зв'язаний пристрій може читати його файли, навіть коли контейнер зашифровано; закриття диска або вимкнення комп'ютера це припиняє. Зашифрований диск розблоковується лише на цьому комп'ютері, ніколи з телефона. Якщо ви ввімкнете автозапуск для зашифрованого спільного диска, його пароль зберігається на цьому комп'ютері, захищеним для тієї програми, щоб диск відкривався знову після перезапуску без введення пароля; його видаляють, коли ви вимкнете автозапуск, припините доступ або змінете пароль. Список спільних дисків (шлях, ім'я, позначка автозапуску - але не пароль) FileDO записує у свою теку стану. Як це вмикається, вимикається та відновлюється після помилки - у посібнику <a href="guides/fms-sharing.html">спільного доступу через Fast Media Sorter &amp; Sharing</a>.</span
+                >
+              </p>
+            </div>            <div class="card">
+              <h3>
                 <span data-l="ru">Вы можете проверить это сами</span
                 ><span data-l="en">You can verify this yourself</span
                 ><span data-l="ua">Ви можете перевірити це самі</span>
@@ -919,17 +936,35 @@
                   </td>
                   <td>
                     <span data-l="ru"
-                      >Виртуальные диски <code>.fdd</code>: короткие имена, которые вы дали контейнерам (<code>vd add</code>), их пути, что подключено сейчас, и журнал подключений и отключений; пока диск подключён, рядом лежат его служебные файлы. Пароль контейнера сюда никогда не пишется. Блочный сервер подключённого диска слушает только адрес 127.0.0.1: ничего не уходит с этого компьютера, и контейнер никогда не попадает ни в какую сеть.</span
+                      >Виртуальные диски <code>.fdd</code>: короткие имена, которые вы дали контейнерам (<code>vd add</code>), их пути, что подключено сейчас, и журнал подключений и отключений; пока диск подключён, рядом лежат его служебные файлы. Пароль контейнера сюда никогда не пишется. Блочный сервер подключённого диска слушает только адрес 127.0.0.1: содержимое передаётся по сети только при отдельно включённом шаринге через Fast Media Sorter &amp; Sharing.</span
                     >
                     <span data-l="en"
-                      >Virtual disks (<code>.fdd</code>): the short names you gave containers (<code>vd add</code>), their paths, what is mounted now, and a log of mounts and unmounts; while a disk is mounted, its working files sit beside them. A container's password is never written here. The block server of a mounted disk listens on 127.0.0.1 only: nothing leaves this computer, and the container never goes to any network.</span
+                      >Virtual disks (<code>.fdd</code>): the short names you gave containers (<code>vd add</code>), their paths, what is mounted now, and a log of mounts and unmounts; while a disk is mounted, its working files sit beside them. A container's password is never written here. The block server of a mounted disk listens on 127.0.0.1 only: file contents are served over the network only when you separately enable sharing through Fast Media Sorter &amp; Sharing.</span
                     >
                     <span data-l="ua"
-                      >Віртуальні диски <code>.fdd</code>: короткі імена, які ви дали контейнерам (<code>vd add</code>), їхні шляхи, що підключено зараз, і журнал підключень та відключень; поки диск підключений, поруч лежать його службові файли. Пароль контейнера сюди ніколи не пишеться. Блоковий сервер підключеного диска слухає лише адресу 127.0.0.1: ніщо не залишає цей комп'ютер, і контейнер ніколи не потрапляє в жодну мережу.</span
+                      >Віртуальні диски <code>.fdd</code>: короткі імена, які ви дали контейнерам (<code>vd add</code>), їхні шляхи, що підключено зараз, і журнал підключень та відключень; поки диск підключений, поруч лежать його службові файли. Пароль контейнера сюди ніколи не пишеться. Блоковий сервер підключеного диска слухає лише адресу 127.0.0.1: вміст передається мережею лише при окремо ввімкненому доступі через Fast Media Sorter &amp; Sharing.</span
                     >
                   </td>
                 </tr>
-              </tbody>
+                <tr>
+                  <td><code>vdisk-shared.json</code></td>
+                  <td>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                    <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                    <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="ru"
+                      >Диски, к которым вы открыли общий доступ через Fast Media Sorter for Windows: путь к контейнеру, имя папки, под которым он доступен, отметки «только чтение» и «автозапуск». Пароль сюда никогда не пишется.</span
+                    >
+                    <span data-l="en"
+                      >Disks you shared with Fast Media Sorter for Windows: the container's path, the folder name it is shared under, the read-only and autostart marks. A password is never written here.</span
+                    >
+                    <span data-l="ua"
+                      >Диски, до яких ви відкрили спільний доступ через Fast Media Sorter for Windows: шлях до контейнера, ім'я теки, під яким він доступний, позначки «лише читання» й «автозапуск». Пароль сюди ніколи не пишеться.</span
+                    >
+                  </td>
+                </tr>              </tbody>
             </table>
           </div>
           <div class="note">

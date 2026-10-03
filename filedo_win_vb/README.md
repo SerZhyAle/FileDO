@@ -28,12 +28,12 @@ the source, the issue tracker, the privacy page and the author's other tools.
 
 Its one action is **Send logs to the author**:
 
-1. The FileDO artifacts are looked for first - next to the exe and in FileDO's own state folder
+1. The FileDO logs are looked for first - next to the exe and in FileDO's own state folder
    `%LOCALAPPDATA%\FileDO\state\` (the window's log, `filedo_win.log` and its previous generation, in
    `%LOCALAPPDATA%\FileDO`), never in the profile root or `%TEMP%`, where another program's file of the
-   same name may sit: `filedo_win_debug.log`, `history.json`, `check_report_*`, `check_damaged.list`,
-   `compare_report_*.log`, `delete_report_*.log`, `skip_files.list`, `damaged_files.log`. When there are
-   none, the window says so and asks nothing.
+   same name may sit: `filedo_win_debug.log` and the window's own logs. History and every list of files
+   (the check, compare and delete reports, `damaged_files.log`, the skip and check lists) are never
+   packed. When there are none, the window says so and asks nothing.
 2. Otherwise a dialog states what will be collected, that paths inside the logs can contain your own
    folder and account names and the names of the files you protected (history.json says which file
    became which container), and that nothing is sent automatically. **Build the zip** or **Cancel**.
@@ -168,8 +168,8 @@ words and a glyph, kept true without a manual refresh. It is the same program an
 not a new executable (`filedo_win.exe` is a frozen anchor): `AppHost.vb` owns the windows of the process and
 ends it when the last one has closed. Ways in: `filedo_win.exe --disks` starts straight into the manager with
 no shell window (the Start menu's **FileDO Disk Manager** entry, which the MSI installs, runs exactly that); the
-**Disk manager** button in the shell's header, the first row of the rail's Disks group and **Ctrl+Shift+D** open
-it from the shell; and the manager's **Main window** button brings the shell forward, opening it if the manager
+**Disk manager** button in the rail's Disks group and **Ctrl+Shift+D** open
+it from the shell; and the manager's **FileDO operations** button brings the shell forward, opening it if the manager
 was started alone.
 
 Things worth knowing before reading the code:
@@ -178,6 +178,15 @@ Things worth knowing before reading the code:
   `filedo.vd-status`, version 1, the one machine-readable snapshot - and from nothing else: it never opens a
   container, `vd-registry.json` or `vdisk-state.json` itself. A read is one child process, coalesced and killed
   after eight seconds; a read that fails keeps the last good state on screen and says so.
+- **Partition disks** (SP-0148) add `carrier` (`file` or `partition`) to every container row of that snapshot;
+  a partition row has an empty `path` and a `locator` `fdpart:{GUID}` (absent on a file row), so the window
+  keys it by name or locator. Where the free space is comes from a second local wire, `filedo vd disks json` -
+  schema `filedo.vd-disks`, version 1, read by `VdDisksDoc` (`DiskPartition.vb`) when a partition row first
+  appears, when a partition dialog opens and after an operation that changes a disk's layout - never polled. Its fields marked `omitempty` in `vdisk_disks_windows.go` / `vdisk_part.go` are absent,
+  not `""` (`reason`, `warning`, `guid`, `vendor`, `system` on a disk; `name`, `attributes`, `letters`,
+  `registered` on a partition; `reason`, `before`, `after` on a free extent), and a disk's `free` is `[]` or
+  `null` when it has none. The Store build answers `{"available":false,"reason":"store-build","disks":[]}`.
+  ENGINEERING.md "The GUI shell" lists the whole shape.
 - **Everyday operations run from the row, the rest are delegated.** Mount, unmount, open, save, info, verify,
   auto-mount and the list's names build their `filedo.exe` line through `DiskCommands.Build` and run like a job.
   New, export, compact, grow, seal, clone, change password, format and destroy open their existing job page in the

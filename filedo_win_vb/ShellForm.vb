@@ -11,6 +11,19 @@ Public Class ShellForm
     ' Ui.Px at every layout site, so it scales with the rest of the window at higher DPI.
     Friend Const RailTargetHeight As Integer = 44
 
+    ' The rail's column, in design pixels (it was 268). The labels wrap inside it and a row grows to
+    ' hold them (APP-BEHAVIOUR rule 2), so a narrower rail costs height, not text - but a single word
+    ' cannot wrap and may not be cut, so the floor is the longest word in any language
+    ' ("Datentraegerverwaltung", 159 design pixels, plus the glyph column and the scroll bar).
+    ' CheckRailLabels measures every label of every language at exactly this width.
+    Friend Const RailWidth As Integer = 240
+
+    ' The smallest the window may be made, in design pixels. Below this the cards stop being
+    ' readable; but a screen smaller than this at its scaling (1366x768 at 150 %) is the stronger
+    ' fact, so the real minimum is WindowPlacement.MinimumFor, never more than the working area.
+    Friend Const MinDesignWidth As Integer = 760
+    Friend Const MinDesignHeight As Integer = 520
+
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly entries As New List(Of RailEntry)
 
@@ -30,7 +43,6 @@ Public Class ShellForm
     Private header As Panel
     Private titleLabel As Label
     Private headerRow As TableLayoutPanel
-    Private diskManagerBtn As GlyphButton
     Private subtitleLabel As Label
     Private statusLabel As Label
     Private emptyTitle As Label
@@ -191,8 +203,9 @@ Public Class ShellForm
         AutoScaleMode = AutoScaleMode.Font
         ' The minimum is a design size, so it has to be told what a design pixel is worth on this
         ' monitor: 900 device pixels at 200% scaling is half a window, and every string inside it
-        ' is clipped. OnDpiChanged re-states it when the window moves to another display.
-        MinimumSize = Ui.PxSize(Me, 940, 640)
+        ' is clipped. OnDpiChanged re-states it when the window moves to another display, and OnLoad
+        ' once the screen it opens on is known; it is never more than that screen's working area.
+        MinimumSize = WindowPlacement.MinimumFor(Me, MinDesignWidth, MinDesignHeight)
         Size = OpeningSize()
         StartPosition = FormStartPosition.CenterScreen
         DoubleBuffered = True
@@ -205,7 +218,7 @@ Public Class ShellForm
             .Margin = New Padding(0),
             .Padding = New Padding(0)
         }
-        root.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, CSng(Ui.Px(Me, 268))))
+        root.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, CSng(Ui.Px(Me, RailWidth))))
         root.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
         root.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
 
@@ -257,7 +270,7 @@ Public Class ShellForm
     ' minimum that keeps the rail and the cards readable. A saved placement overrides this.
     Private Function OpeningSize() As Size
         Dim work = Screen.PrimaryScreen.WorkingArea
-        Dim least = Ui.PxSize(Me, 940, 640)
+        Dim least = WindowPlacement.MinimumFor(Me, MinDesignWidth, MinDesignHeight)
         Dim most = Ui.PxSize(Me, 1760, 1120)
 
         Dim w = Math.Min(Math.Max(CInt(work.Width * 0.8), least.Width), most.Width)
@@ -310,36 +323,20 @@ Public Class ShellForm
         stack.Controls.Add(subtitleLabel, 0, 1)
         stack.Controls.Add(statusLabel, 0, 2)
 
-        ' The way to the Disk manager, always in view (the rail's row for it sits inside a group that
-        ' can be folded away): the .fdd container's own meaning and the window's name, at the right of
-        ' the title. The Disk manager has the matching "Main window" button back (SP-0063).
-        diskManagerBtn = New GlyphButton With {
-            .Glyph = DiskGlyphs.DiskContainer,
-            .Tier = 24,
-            .Text = L(RailRow.DiskManagerKey),
-            .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
-            .Margin = New Padding(12, 0, 0, 0)
-        }
-        diskManagerBtn.AccessibleName = L(RailRow.DiskManagerKey)
-        diskManagerBtn.AccessibleDescription = L("purpose_job_vd_manager")
-        tips.SetToolTip(diskManagerBtn, L(RailRow.DiskManagerKey) & " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.D) & ")" &
-                                        Environment.NewLine & L("purpose_job_vd_manager"))
-        AddHandler diskManagerBtn.Click, Sub() AppHost.OpenDiskManager()
-
         headerRow = New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .ColumnCount = 2,
+            .ColumnCount = 1,
             .RowCount = 1,
             .Margin = New Padding(0)
         }
         headerRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
-        headerRow.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         headerRow.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         headerRow.Controls.Add(stack, 0, 0)
-        headerRow.Controls.Add(diskManagerBtn, 1, 0)
         header.Controls.Add(headerRow)
+        ' The title and subtitle wrap within the available header width.
+        Ui.Wrap(titleLabel, stack, 4)
         Ui.Wrap(subtitleLabel, stack, 4)
         Ui.Wrap(statusLabel, stack, 4)
     End Sub
@@ -435,7 +432,7 @@ Public Class ShellForm
             .Band = band,
             .TabStop = True,
             .RowUnit = Ui.Px(Me, RailTargetHeight),
-            .Width = Ui.Px(Me, 250),
+            .Width = Ui.Px(Me, RailWidth),
             .Height = Ui.Px(Me, RailTargetHeight),
             .Margin = New Padding(0)
         }
@@ -459,10 +456,14 @@ Public Class ShellForm
             .TabStop = True,
             .RowUnit = Ui.Px(Me, RailTargetHeight),
             .DefaultActionText = L("shell_acc_open"),
-            .Width = Ui.Px(Me, 250),
+            .Width = Ui.Px(Me, RailWidth),
             .Height = Ui.Px(Me, RailTargetHeight),
             .Margin = New Padding(0)
         }
+        If key = RailRow.DiskManagerKey Then
+            e.ProductIcon = DiskManagerIcon.DiskManagerIcon()
+            e.AccessibleDescription = L("purpose_job_vd_manager")
+        End If
         e.AccessibleName = L(key)
         e.AccessibleRole = AccessibleRole.PushButton
         If currentGroupKey IsNot Nothing Then
@@ -471,7 +472,9 @@ Public Class ShellForm
         End If
         ' The label wraps and the row grows to hold it (LayoutRail), so the whole label is always on
         ' screen; the tooltip is where the job's purpose is, in every locale.
-        tips.SetToolTip(e, L(key) & Environment.NewLine & L(PurposeKeyFor(key)))
+        Dim shortcut = If(key = RailRow.DiskManagerKey,
+                          " (" & DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.D) & ")", "")
+        tips.SetToolTip(e, L(key) & shortcut & Environment.NewLine & L(PurposeKeyFor(key)))
         AddHandler e.Click, AddressOf RailEntry_Click
         entries.Add(e)
         rail.Controls.Add(e)
@@ -626,11 +629,26 @@ Public Class ShellForm
     ' Capture.vb's seams: open a page as a click on its row would, optionally on a target, and
     ' draw what the client area shows - the window's own frame is Windows', not the product's.
     ' The self-test's view of the button that opens the Disk manager, and of its tooltip.
-    Friend ReadOnly Property DiskManagerButtonForTest As GlyphButton
+    Friend ReadOnly Property DiskManagerButtonForTest As RailEntry
         Get
-            Return diskManagerBtn
+            Return entries.FirstOrDefault(Function(e) e.Key = RailRow.DiskManagerKey)
         End Get
     End Property
+
+    ' The self-test's view of the header at the window's minimum size: whether the title and its
+    ' subtitle lie wholly inside the column they are drawn in (rule 2: nothing is cut off).
+    Friend ReadOnly Property CommandViewForTest As CommandView
+        Get
+            Return commandView
+        End Get
+    End Property
+
+    Friend Function HeaderTextFitsForTest() As Boolean
+        For Each part In New Label() {titleLabel, subtitleLabel}
+            If part.Parent Is Nothing OrElse part.Right > part.Parent.ClientSize.Width Then Return False
+        Next
+        Return True
+    End Function
 
     Friend Function TipForTest(c As Control) As String
         Return tips.GetToolTip(c)
@@ -750,7 +768,7 @@ Public Class ShellForm
     End Sub
 
     ' The window in front of the user: shown if it was hidden, restored if it was minimized. The
-    ' Disk manager's "Main window" button and its key come here; a delegated operation does as well.
+    ' Disk manager's "FileDO operations" button and its key come here; a delegated operation does as well.
     Friend Sub BringBack()
         If Not Visible Then Show()
         If WindowState = FormWindowState.Minimized Then WindowState = lastShownState
@@ -834,10 +852,7 @@ Public Class ShellForm
     Private Function ConfirmCloseWhileRunning() As Boolean
         If closeWhenIdle Then
             If (DateTime.Now - stopAskedAt).TotalSeconds < 10 Then Return False
-            Dim pickEnd = ShellDialog.Ask(Me, L("shell_close_running_title"),
-                                          Localization.Format(LText("shell_close_still_running"), RunningName()),
-                                          New String() {L("shell_btn_end_now"), L("shell_btn_keep_waiting")},
-                                          1, 1, 0)
+            Dim pickEnd = ShellDialog.Ask(Me, DestructiveDialogs.EndRunNow(dict, RunningName()))
             If pickEnd = 0 Then
                 ShellLog.Info("close: the user ended a run that had not stopped")
                 If jobViewValue IsNot Nothing Then jobViewValue.ForceEnd()
@@ -846,10 +861,7 @@ Public Class ShellForm
             Return False
         End If
 
-        Dim pick = ShellDialog.Ask(Me, L("shell_close_running_title"),
-                                   Localization.Format(LText("shell_close_running"), RunningName()),
-                                   New String() {L("shell_btn_stop_close"), L("shell_btn_keep_running")},
-                                   1, 1)
+        Dim pick = ShellDialog.Ask(Me, DestructiveDialogs.StopAndClose(dict, RunningName()))
         If pick <> 0 Then Return False
 
         closeWhenIdle = True
@@ -884,8 +896,6 @@ Public Class ShellForm
         rightSide.BackColor = p.Background
         header.BackColor = p.Background
         headerRow.BackColor = p.Background
-        diskManagerBtn.Font = Theme.FontBody()
-        diskManagerBtn.Invalidate()
         pageHost.BackColor = p.Surface
 
         titleLabel.Font = Theme.FontTitle()
@@ -925,7 +935,7 @@ Public Class ShellForm
         ' WinForms once this event returns (Theme.vb, "fonts and the display's scaling").
         Theme.CurrentDpi = e.DeviceDpiNew
         MyBase.OnDpiChanged(e)
-        MinimumSize = Ui.PxSize(Me, 940, 640)
+        MinimumSize = WindowPlacement.MinimumFor(Me, MinDesignWidth, MinDesignHeight)
         LayoutRail()
     End Sub
 
@@ -1004,6 +1014,8 @@ Public Class ShellForm
     ' re-scaled for it put the saved rectangle back.
     Protected Overrides Sub OnLoad(e As EventArgs)
         MyBase.OnLoad(e)
+        ' The screen the window opens on is known now: the minimum is held to its working area.
+        MinimumSize = WindowPlacement.MinimumFor(Me, MinDesignWidth, MinDesignHeight)
         If Not pendingBounds.IsEmpty Then
             Location = pendingBounds.Location
             BeginInvoke(New MethodInvoker(AddressOf FinishPendingPlacement))

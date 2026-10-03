@@ -367,3 +367,146 @@ func TestCompareDeleteOnAVolumeWithoutListingIds(t *testing.T) {
 	}
 	assertTreeIntact(t, dst)
 }
+
+// TestCompareStrictVerdictTable is SP-0130 R1: --strict turns the comparison
+// itself into the verdict - Passed when both sides hold the same files (size
+// and time, the delete phase's pair rule; content with --by-hash), Failed
+// when a file is only on one side or differs, Not proven when something
+// could not be read. The counts ride the result event in the default mode
+// and in the judging mode alike (R2, CLI-EVENT-STREAM rule 16), and the
+// default mode still ends Done (R3).
+func TestCompareStrictVerdictTable(t *testing.T) {
+	wd := t.TempDir()
+	src := filepath.Join(wd, "src")
+	dst := filepath.Join(wd, "dst")
+	compareTree(t, src)
+	compareTree(t, dst)
+	stamp := time.Date(2023, 5, 1, 8, 0, 0, 0, time.UTC)
+	seq := 0
+	// compareOne runs one compare and returns the events path, the exit code
+	// and the output.
+	compareOne := func(extra ...string) (string, int, string) {
+		t.Helper()
+		seq++
+		ev := filepath.Join(wd, fmt.Sprintf("events-%02d.jsonl", seq))
+		out, code := run(t, wd, append([]string{"--events", ev, "cmp", src, dst}, extra...)...)
+		return ev, code, out
+	}
+	// wantNumbers reads the counts off the result event.
+	wantNumbers := func(ev string, want map[string]float64) {
+		t.Helper()
+		nums, ok := lastResult(t, ev)["numbers"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("the result event carries no numbers")
+		}
+		for k, w := range want {
+			if nums[k] != w {
+				t.Errorf("numbers[%s] = %v, want %v", k, nums[k], w)
+			}
+		}
+	}
+
+	// The default mode is still an act - Done, exit 0, differences
+	// included - and the counts are in the result event (R2, R3).
+	writeFile(t, filepath.Join(dst, "only-target.txt"), []byte("one side only"))
+	ev, code, out := compareOne()
+	if code != 0 {
+		t.Fatalf("the default mode exited %d, want 0 (R3)\n%s", code, out)
+	}
+	if got := lastResult(t, ev)["verdict"]; got != "Done" {
+		t.Fatalf("the default mode is %q, want Done (R3)\n%s", got, out)
+	}
+	wantNumbers(ev, map[string]float64{"onlyInSource": 0, "onlyInTarget": 1, "differentFiles": 0, "sameFiles": 3, "totalSource": 3, "totalTarget": 4})
+	os.Remove(filepath.Join(dst, "only-target.txt"))
+
+	// Equal trees: Passed, and the numbers say what the verdict does.
+	ev, code, out = compareOne("--strict")
+	if code != 0 {
+		t.Fatalf("an equal comparison exited %d, want 0\n%s", code, out)
+	}
+	if got := lastResult(t, ev)["verdict"]; got != "Passed" {
+		t.Fatalf("an equal comparison is %q, want Passed\n%s", got, out)
+	}
+	wantNumbers(ev, map[string]float64{"onlyInSource": 0, "onlyInTarget": 0, "differentFiles": 0, "sameFiles": 3, "totalSource": 3, "totalTarget": 3})
+
+	// A file only on one side: Failed, exit 1.
+	writeFile(t, filepath.Join(src, "extra.bin"), []byte("only here"))
+	ev, code, out = compareOne("--strict")
+	if code != 1 {
+		t.Fatalf("an only-on-one-side comparison exited %d, want 1\n%s", code, out)
+	}
+	if got := lastResult(t, ev)["verdict"]; got != "Failed" {
+		t.Fatalf("an only-on-one-side comparison is %q, want Failed\n%s", got, out)
+	}
+	wantNumbers(ev, map[string]float64{"onlyInSource": 1, "onlyInTarget": 0, "differentFiles": 0, "sameFiles": 3})
+	os.Remove(filepath.Join(src, "extra.bin"))
+
+	// A pair of different sizes: Failed, exit 1.
+	writeFile(t, filepath.Join(dst, "a.txt"), []byte("a size nobody on the other side has"))
+	ev, code, out = compareOne("--strict")
+	if code != 1 {
+		t.Fatalf("a different-size comparison exited %d, want 1\n%s", code, out)
+	}
+	wantNumbers(ev, map[string]float64{"differentFiles": 1, "sameFiles": 2})
+
+	// The same size and content but a different time differs without
+	// --by-hash - the delete phase's pair rule - and passes it, because
+	// --by-hash answers on content whatever the times say.
+	writeFile(t, filepath.Join(dst, "a.txt"), []byte("content of a.txt"))
+	if err := os.Chtimes(filepath.Join(dst, "a.txt"), stamp.Add(24*time.Hour), stamp.Add(24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	ev, code, out = compareOne("--strict")
+	if code != 1 {
+		t.Fatalf("a different-time comparison exited %d, want 1\n%s", code, out)
+	}
+	wantNumbers(ev, map[string]float64{"differentFiles": 1, "sameFiles": 2})
+	ev, code, out = compareOne("--strict", "--by-hash")
+	if code != 0 {
+		t.Fatalf("--by-hash passed a pair whose content is equal but times differ, exit %d\n%s", code, out)
+	}
+
+	// The same size and time but different content passes without --by-hash
+	// and fails with it.
+	writeFile(t, filepath.Join(dst, "a.txt"), []byte("SABOTAGE!!!!!!!!"))
+	if err := os.Chtimes(filepath.Join(dst, "a.txt"), stamp, stamp); err != nil {
+		t.Fatal(err)
+	}
+	ev, code, out = compareOne("--strict")
+	if code != 0 {
+		t.Fatalf("a same-size same-time pair was failed without --by-hash, exit %d\n%s", code, out)
+	}
+	ev, code, out = compareOne("--strict", "--by-hash")
+	if code != 1 {
+		t.Fatalf("--by-hash did not fail a pair whose content differs, exit %d\n%s", code, out)
+	}
+	wantNumbers(ev, map[string]float64{"differentFiles": 1, "sameFiles": 2})
+
+	// A pair that cannot be hashed ends Not proven.
+	release := holdExclusively(t, filepath.Join(dst, "a.txt"))
+	ev, code, out = compareOne("--strict", "--by-hash")
+	release()
+	if code != 2 {
+		t.Fatalf("a comparison that could not hash a pair exited %d, want 2\n%s", code, out)
+	}
+	if got := lastResult(t, ev)["verdict"]; got != "Not proven" {
+		t.Fatalf("an unhashable pair is %q, want Not proven\n%s", got, out)
+	}
+
+	// A scan that could not read a folder ends Not proven (the CHK-06 rule,
+	// now in the judging mode too).
+	denyList(t, filepath.Join(src, "sub"))
+	ev, code, out = compareOne("--strict")
+	if code != 2 {
+		t.Fatalf("a comparison that could not read a folder exited %d, want 2\n%s", code, out)
+	}
+	if got := lastResult(t, ev)["verdict"]; got != "Not proven" {
+		t.Fatalf("an unreadable folder is %q, want Not proven\n%s", got, out)
+	}
+
+	// The judging mode does not mix with the delete phase.
+	out, code = run(t, wd, "cmp", src, dst, "--strict", "del", "source", "--yes")
+	if code != 2 || !strings.Contains(out, "cannot be combined") {
+		t.Errorf("--strict with a delete phase exited %d, want 2 with a refusal\n%s", code, out)
+	}
+}

@@ -24,6 +24,8 @@ type vdWorker interface {
 	ListSharedDisks() ([]fmsworker.SharedDiskInfo, error)
 	ListRoots() ([]string, error)
 	WorkerMode() fmsworker.WorkerMode
+	OpenDisk(path, password string) error
+	CloseDiskBound(path string, force bool, bound int) error
 }
 
 var vdWorkerFactory = func() (vdWorker, error) {
@@ -189,6 +191,7 @@ func vdShareRun(args []string, batch bool) error {
 		if e = vdRefreshShareSnapshot(client); e != nil {
 			vdSnapshotWarn("unshared", e)
 		}
+		vdLogf("share: off %s", path)
 		if already {
 			fmt.Printf("%s is not shared with FMS for Windows; its local record was cleared.\n", path)
 		} else {
@@ -236,7 +239,9 @@ func vdShareRun(args []string, batch bool) error {
 	if e = vdRefreshShareSnapshot(client); e != nil {
 		vdSnapshotWarn("shared", e)
 	}
+	vdLogf("share: on %s as %s ro=%t", path, name, ro)
 	fmt.Printf("Shared %s as FMS root '%s' (read-only: %t).\n", path, name, ro)
+	vdSayHolderMode(client.WorkerMode())
 	fmt.Println("Open FMS Share Manager to obtain the QR code for paired devices.")
 	return nil
 }
@@ -277,14 +282,25 @@ func checkRootNameClash(client vdWorker, name string) error {
 }
 func vdShareSnapshot() (*vdisk.SharedDiskManager, func(), error) { return vdShareSnapshotOpen(false) }
 
-// vdShareSnapshotOpen locks and loads the snapshot. With rebuild an unreadable
-// file is not an error: the caller replaces the whole cache from the worker.
+// vdShareSnapshotOpen locks and loads the snapshot, waiting up to 5 s for the lock. With rebuild an
+// unreadable file is not an error: the caller replaces the whole cache from the worker.
 func vdShareSnapshotOpen(rebuild bool) (*vdisk.SharedDiskManager, func(), error) {
+	return vdShareSnapshotOpenWait(rebuild, 5*time.Second)
+}
+
+// vdShareSnapshotOpenWait is vdShareSnapshotOpen with its own bound on the lock wait: a reader that
+// polls (the status snapshot) must not sit behind a stuck writer for seconds (AUD-82-F3).
+func vdShareSnapshotOpenWait(rebuild bool, wait time.Duration) (*vdisk.SharedDiskManager, func(), error) {
+	if !vdShareOn {
+		// Nothing is shared in a build without the surface (vdShareShipped): the file is not read, and
+		// the status never waits on its lock.
+		return nil, func() {}, nil
+	}
 	p, e := statedir.Path("vdisk-shared.json")
 	if e != nil {
 		return nil, nil, e
 	}
-	unlock, e := statedir.Lock(p, 5*time.Second)
+	unlock, e := statedir.Lock(p, wait)
 	if e != nil {
 		return nil, nil, e
 	}
@@ -303,14 +319,7 @@ func vdShareSnapshotOpen(rebuild bool) (*vdisk.SharedDiskManager, func(), error)
 func vdShareStates(disks []fmsworker.SharedDiskInfo) []vdisk.SharedDiskState {
 	out := make([]vdisk.SharedDiskState, 0, len(disks))
 	for _, d := range disks {
-		holder := vdisk.HolderNone
-		switch d.Holder {
-		case "service":
-			holder = vdisk.HolderFMSService
-		case "session":
-			holder = vdisk.HolderFMSSession
-		}
-		out = append(out, vdisk.SharedDiskState{ContainerID: d.ContainerID, ContainerPath: d.ContainerPath, RootName: d.RootName, Shared: true, Holder: holder, State: vdisk.DiskState(d.State), ReadOnly: d.ReadOnly, Encrypted: d.Encrypted, Autostart: d.Autostart, HasStoredKey: d.HasStoredKey, MountPath: d.MountPath, OpenHandles: d.OpenHandles, SharedAt: d.SharedAt, LastOpened: d.LastOpened, LastClosed: d.LastClosed})
+		out = append(out, vdisk.SharedDiskState{ContainerID: d.ContainerID, ContainerPath: d.ContainerPath, RootName: d.RootName, Shared: true, Holder: vdHolderOf(d), State: vdSharedStateOf(d.State), ReadOnly: d.ReadOnly, Encrypted: d.Encrypted, Autostart: d.Autostart, HasStoredKey: d.HasStoredKey, MountPath: d.MountPath, OpenHandles: d.OpenHandles, SharedAt: d.SharedAt, LastOpened: d.LastOpened, LastClosed: d.LastClosed})
 	}
 	return out
 }
@@ -327,5 +336,8 @@ func vdRefreshShareSnapshot(client vdWorker) error {
 		return e
 	}
 	defer unlock()
+	if m == nil { // the surface is off in this build (vdShareShipped): there is no cache to refresh
+		return vdShareOffError("the shared-disk snapshot")
+	}
 	return m.ReconcileAll(vdShareStates(disks))
 }

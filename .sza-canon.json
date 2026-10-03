@@ -2,9 +2,10 @@
   "$comment": "AGENTS.md is the authoritative rules file here; CLAUDE.md is a deliberate bare pointer to it. ledgerShape 4 is proven by generate_release_notes in .github/workflows/release.yml.",
 
   "canon": {
-    "version": "2026.09.22.2",
-    "coreDigest": "sha256:13abcb8a7c2f0a354328bdd03c12e75ea361b6f8208134dc1ba3d1bd884e567d",
+    "version": "2026.10.02.3",
+    "coreDigest": "sha256:410463a9ccdfd75af7a233fc91656c200fe05f047cf7617d7fc53d32e7b81afa",
     "adoptedOn": "2026-09-24",
+    "reconciledOn": "2026-10-02",
     "model": "reference",
     "contribRecord": "contrib/filedo.md"
   },

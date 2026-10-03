@@ -12,7 +12,9 @@ import (
 )
 
 // encryptedInspect makes the fixture container an encrypted one.
-func encryptedInspect() {
+func encryptedInspect(t *testing.T) {
+	old := vdShareInspect
+	t.Cleanup(func() { vdShareInspect = old })
 	vdShareInspect = func(string) (vdisk.Info, error) { return vdisk.Info{ContainerID: "id", Obfuscated: false}, nil }
 }
 
@@ -20,7 +22,7 @@ func TestEncryptedAutostartAlwaysRequiresConsent(t *testing.T) {
 	for _, provided := range []bool{false, true} {
 		t.Run(map[bool]string{false: "prompt", true: "provided"}[provided], func(t *testing.T) {
 			path, s := sharedFixture(t)
-			encryptedInspect()
+			encryptedInspect(t)
 			old := vdAutostartConsent
 			t.Cleanup(func() { vdAutostartConsent = old })
 			called := false
@@ -43,7 +45,7 @@ func TestEncryptedAutostartAlwaysRequiresConsent(t *testing.T) {
 
 func TestEncryptedAutostartStoresOnlyAfterConsent(t *testing.T) {
 	path, s := sharedFixture(t)
-	encryptedInspect()
+	encryptedInspect(t)
 	old := vdAutostartCredential
 	t.Cleanup(func() { vdAutostartCredential = old })
 	password := fdsec.Credential([]byte("credential"))
@@ -124,7 +126,7 @@ func TestAutostartConfirmationIsVerified(t *testing.T) {
 	})
 	t.Run("on encrypted without a stored key", func(t *testing.T) {
 		path, s := sharedFixture(t)
-		encryptedInspect()
+		encryptedInspect(t)
 		old := vdAutostartCredential
 		t.Cleanup(func() { vdAutostartCredential = old })
 		vdAutostartCredential = func(credArg, bool) (fdsec.Credential, error) { return fdsec.Credential(nil), nil }
@@ -184,7 +186,7 @@ func TestPlainAutostartDoesNotReadCredential(t *testing.T) {
 // DISK-SHARE-21: the existing password is asked for once, not typed twice.
 func TestAutostartPromptsForThePasswordOnce(t *testing.T) {
 	path, s := sharedFixture(t)
-	encryptedInspect()
+	encryptedInspect(t)
 	oldC, oldK := vdAutostartConsent, vdAutostartCredential
 	t.Cleanup(func() { vdAutostartConsent, vdAutostartCredential = oldC, oldK })
 	asked, confirm, given := 0, true, true
@@ -207,7 +209,7 @@ func TestAutostartPromptsForThePasswordOnce(t *testing.T) {
 
 func TestAutostartExplainsKeyStorageAndAcceptsInteractiveConsent(t *testing.T) {
 	path, s := sharedFixture(t)
-	encryptedInspect()
+	encryptedInspect(t)
 	oldC, oldK := vdAutostartConsent, vdAutostartCredential
 	t.Cleanup(func() { vdAutostartConsent, vdAutostartCredential = oldC, oldK })
 	question, batchSeen := "", true

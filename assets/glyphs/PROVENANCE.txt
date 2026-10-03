@@ -1,12 +1,13 @@
 ICONOGRAPHY VENDORED ARTIFACT
 Do not hand-edit the files in this folder. Regenerate with assets/sync-icon-glyphs.ps1.
-Catalog versions: ICON-SET 0.16; ICON-RENDER 0.13; ICON-EXTERNAL 0.10
-Vocabulary SHA-256: 526f022af02117c44268bb7cfd9940bf8004ef89da74bb6cca40e0d8d558a800
+Catalog versions: ICON-SET 0.17; ICON-RENDER 0.15; ICON-EXTERNAL 0.11
+Vocabulary SHA-256: e9a7b024fb717db0b4bf64c1d3fcd885b66acc5d0865ed137dfd5a017ee93ee7
 Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog
-Taken: 2026-09-30
+Taken: 2026-10-03
 Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt
 
 action.cancel.svg  0b2ee602dece67950e801b3df344297e311e8bc33c592c7ae8cc9f5d4195c873
+action.change-password.svg  61de7244e2bd5c1422940b5a960ab236d175f0fb318f0d1d4c9ca05a20798b8c
 action.clear-all.svg  b8da7d02e71a0cc1340f3e90be6e64cb5617ea96aed7448c4c1f2590b10cf3de
 action.clear-input.svg  7512d856fa655619c7c9637cf107db289b7e023ca5e1435c951d0468923d1ccc
 action.compare.svg  11f33ee4fe098ad7aa141b62fba2ac6bffaecf47c761f815e866ca255ef7e5a7
@@ -15,12 +16,19 @@ action.delete.svg  efb3a1894e53b080471cb062bf20721159f6c4d7e178b70a407265f7aadeb
 action.export.svg  1b83a641113200a977e5644b297e63de05945545ad1f33d8c88dbbc7677caa54
 action.fill-space.svg  cf77265c2f552e7e922cb82e2e0a28026ef8af4fc438673da054f69dc5e35789
 action.find-duplicates.svg  425cde7864b3faeb3a487e1d3c84a5c7b2dea00eeca95497ab5053bbebac7985
+action.format.svg  5705bf38111d10a4e4db15f72c71934d0137d840c76f4ccd0f017cad3ca3955c
+action.grow.svg  f3e19f6ef726d854d64700ef53a8cf3b34ded2a2110d1e680c35badbbf22cdaa
+action.mount-disk.svg  d595b6bf5778056169de6acde3c4a027b4dd599ccb47da02cbbd843ea7d928ef
 action.recover-drive.svg  cf3f7a797c8690a591e76439403c61c930fee52f2dd93bd59a1ecbeb0cc09beb
 action.refresh.svg  b0596bd857534e72010f4efe0c0abfdfa7b7b43f7f2ed8122e197bb1a5fbe22e
+action.remember-name.svg  7d26d4a6676cada539f518fb15f3f520c3060f1c24b8cff16326057b653f80a3
 action.remove.svg  bd143081599ceaea4b237c9ff7069c50b46fda6b783133fb35da8952dcc2159e
 action.save.svg  0860946335362deef99dce8d024c46a18db79479c247dce26770d00382f569ac
+action.seal.svg  037ec8ae9cbca637698849662324f5df3b57967b119e2ea3b9bc531d95a11fa2
 action.secure.svg  1e19c2a11e1057037217bd5f27287d945d182ed609fe9245ed547c0e0019fe86
+action.share.svg  bd2d4c1601b79c8069fcc0dfaabed52784489a6783e0d62d950044331cbf9301
 action.sort.svg  0d779606218fcc8be52a5f19d18d62edea4dfdf83b219a44e657c41fa14b8af4
+action.unmount-disk.svg  46981f894b2b20d1025d4180af444f9a78d6165062d260c9321087bb4eda764f
 action.unsecure.svg  51ed2e088163d70d23de46f49c16ad7c9436c2ba90144cf896df4d9295391bf2
 action.verify.svg  d9862c96c4f05e425c3488f5e8654ad5903bd3e4f31bdba1449d8b82dd553f92
 action.wipe.svg  27ec5b2f9c1294bb5684a07b4099dda276b91f406b8e80e3d55e3eaeefdd18ee
@@ -46,4 +54,4 @@ status.ok.svg  0a6b564ace7eb684243fa2f85b1581ee7dd22587fb1e378ee25095a741c6ad16
 status.stopped.svg  34ac623ac6f9b971695927f85b4ac1167a95eb7453e84ef34ab730ef42764cca
 status.warning.svg  93a74458a1b340a7780d43ec3090e72d469991449d0627e87a37fe24f63a699e
 system.storage.svg  945b139e7d8ebfedfe8a243f7914028373f693c250ebc451618cca75390c0bd3
-palette.json  184896109953a3894b976ef805c7f2534e42c0f77b0109b26c4b09bb8ad628d1
+palette.json  88fc71f5b75cea1371727335b9ea793907c143daaf27fbdd53f9b00a091ffb1e

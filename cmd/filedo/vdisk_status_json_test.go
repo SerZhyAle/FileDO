@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"filedo/fmsworker"
 	"filedo/statedir"
 	"filedo/vdisk"
 )
@@ -35,10 +36,13 @@ func vdSnapFixture(t *testing.T) (string, string) {
 
 	tasks, transport, alive, now := vdSnapshotTasks, vdSnapshotTransport, vdSnapshotAlive, vdSnapshotNow
 	guard := vdSnapshotGuard
+	probe := vdShareProbe
 	t.Cleanup(func() {
+		vdShareProbe = probe
 		vdSnapshotTasks, vdSnapshotTransport, vdSnapshotAlive, vdSnapshotNow = tasks, transport, alive, now
 		vdSnapshotGuard = guard
 	})
+	vdShareProbe = func(time.Duration) vdShareLiveResult { return vdShareLiveResult{Err: fmsworker.ErrWorkerUnavailable} }
 	vdSnapshotTasks = func() map[string]bool { return map[string]bool{"archive": true} }
 	vdSnapshotTransport = func() vdSnapTransport { return vdSnapTransport{Ready: true, InitiatorService: "running"} }
 	// A row with a server process id is alive; the "gone" row has none.

@@ -257,6 +257,12 @@ func vdCheckProse(t *testing.T, where string, l vdSurfaceLang, text string, full
 	}
 }
 
+// vdCatalogReference matches the two ways a surface can point into the shared contracts catalog: a
+// drive-letter path to a Contracts folder, and a catalog folder-qualified contract file (a lower-case,
+// hyphenated function folder, a slash, an upper-case contract document). It is a pattern, not a literal,
+// so this file does not itself name the catalog by path.
+var vdCatalogReference = regexp.MustCompile(`[A-Za-z]:[\\/]+Contracts\b|\b[a-z]+(?:-[a-z]+)+/[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)+\.md`)
+
 // Every README locale carries a virtual-disks section that tells the truth.
 func TestVD_Surfaces_EveryReadmeLocaleTellsTheTruth(t *testing.T) {
 	root := repoRoot(t)
@@ -272,7 +278,7 @@ func TestVD_Surfaces_EveryReadmeLocaleTellsTheTruth(t *testing.T) {
 		}
 		// A link into the catalog would point at a drive a reader does not have (AGENTS.md, External
 		// contracts: cite by id, never link).
-		if strings.Contains(body, `P:\Contracts`) || strings.Contains(body, "disk-container/FDD-") {
+		if vdCatalogReference.MatchString(body) {
 			t.Errorf("%s links into the contracts catalog instead of citing the contract by id", rel)
 		}
 	}

@@ -203,16 +203,24 @@ func TestFdsecFolderDelOnlyAfterTheReadBack(t *testing.T) {
 			t.Fatal("the original folder survived wipe -y")
 		}
 	})
-	t.Run("without -y off a terminal the tree is kept", func(t *testing.T) {
+	// SP-0126: off a terminal nobody can answer the del question, so the tree
+	// is kept and the run is the usage class - not a Done.
+	t.Run("without -y off a terminal the tree is kept and not proven", func(t *testing.T) {
 		dir, items := folderWorkdir(t)
 		out, code := run(t, dir, "Album", "secure", "del", "p:pw")
-		if code != 0 {
-			t.Fatalf("secure del exited %d\n%s", code, out)
+		if code != 2 {
+			t.Fatalf("secure del with a closed stdin exited %d, want 2 (usage)\n%s", code, out)
 		}
 		if !strings.Contains(out, "Original folder kept") {
 			t.Errorf("the kept original was not reported\n%s", out)
 		}
+		if !strings.Contains(out, "-y") {
+			t.Errorf("the refusal does not name the flag that settles it\n%s", out)
+		}
 		assertFolder(t, filepath.Join(dir, "Album"), items)
+		if !exists(filepath.Join(dir, "Album.fd-sec")) {
+			t.Error("the verified container did not survive the unanswered del")
+		}
 	})
 	t.Run("a failed pack keeps the tree even under -y", func(t *testing.T) {
 		dir, items := folderWorkdir(t)

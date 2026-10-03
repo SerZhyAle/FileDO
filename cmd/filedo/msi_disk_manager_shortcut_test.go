@@ -9,7 +9,9 @@ package main
 //     the window's entry too (the window is part of the program, not of that file type);
 //   - it reuses or renames an existing component GUID, so an upgrade leaves the old copy
 //     installed or drops the shortcut of a machine that already has FileDO;
-//   - it stops pointing at filedo_win.exe with --disks, and opens the shell instead.
+//   - it stops pointing at filedo_win.exe with --disks, and opens the shell instead;
+//   - its icon drifts from the window's own plated picture (icons\app.disk-manager.ico) back to
+//     the generic content.disk-container drawing, or to none (the exe's mark).
 // The check is a function over the wxs text, so the second test can prove it fails on each of
 // those mistakes instead of trusting that it would.
 
@@ -34,6 +36,12 @@ type msiShortcut struct {
 	Name      string `xml:"Name,attr"`
 	Target    string `xml:"Target,attr"`
 	Arguments string `xml:"Arguments,attr"`
+	Icon      string `xml:"Icon,attr"`
+}
+
+type msiIcon struct {
+	ID         string `xml:"Id,attr"`
+	SourceFile string `xml:"SourceFile,attr"`
 }
 
 type msiComponent struct {
@@ -55,6 +63,7 @@ type msiFeature struct {
 
 type msiWxsDoc struct {
 	Features   []msiFeature   `xml:"Package>Feature"`
+	Icons      []msiIcon      `xml:"Package>Icon"`
 	Components []msiComponent `xml:"Package>Component"`
 	Fragments  []struct {
 		Components []msiComponent `xml:"Component"`
@@ -141,6 +150,25 @@ func msiDiskManagerProblems(raw string) []string {
 		add("component %s holding the shortcut is in Directory %q, want AppProgramMenuDir (the Start menu folder)", owner.ID, owner.Directory)
 	}
 
+	// The picture: the Disk Manager's own plated icon (the one its window and buttons show), staged
+	// as icons\app.disk-manager.ico - not the generic mono content.disk-container drawing that
+	// stays the .fdd type's, and not the F|D mark.
+	if sc.Icon == "" {
+		add("shortcut %s names no Icon - it would show the exe's mark, not the Disk Manager's picture", sc.ID)
+	} else {
+		var src string
+		for _, ic := range doc.Icons {
+			if ic.ID == sc.Icon {
+				src = ic.SourceFile
+			}
+		}
+		if src == "" {
+			add("shortcut %s names Icon %q, which is not a declared <Icon>", sc.ID, sc.Icon)
+		} else if !strings.HasSuffix(strings.ReplaceAll(src, "/", `\`), `\icons\app.disk-manager.ico`) {
+			add("Icon %s sources %q, want the staged icons\\app.disk-manager.ico (the plated Disk Manager icon)", sc.Icon, src)
+		}
+	}
+
 	// Feature membership: a ComponentRef of Main itself, and of no feature nested under it -
 	// DiskContainerIntegration above all, which a person can deselect.
 	mainFeature, ok := findMSIFeature(doc.Features, "Main")
@@ -213,6 +241,9 @@ func TestMSIDiskManagerShortcut_TheChecksCanFail(t *testing.T) {
 		{"wrong arguments", literal(`Arguments="--disks"`, `Arguments="--disk"`)},
 		{"wrong target", regex(`Target="\[INSTALLFOLDER\]filedo_win\.exe"(\s+Arguments="--disks")`, `Target="[INSTALLFOLDER]filedo.exe"$1`)},
 		{"wrong name", literal(`Name="FileDO Disk Manager"`, `Name="Disks"`)},
+		{"generic mono icon", literal(`$(var.StageDir)\icons\app.disk-manager.ico`, `$(var.StageDir)\icons\content.disk-container.ico`)},
+		{"no icon on the shortcut", literal(`Icon="DiskManagerIcon" />`, `/>`)},
+		{"icon not declared", literal(`<Icon Id="DiskManagerIcon"`, `<Icon Id="DiskManagerIconX"`)},
 		{"wrong directory", regex(`(<Component Id="DiskManagerShortcut" Directory=")AppProgramMenuDir(")`, `${1}DesktopFolder${2}`)},
 		{"not referenced by Main", literal(ref, ``)},
 		{"moved under DiskContainerIntegration", func(s string) string {

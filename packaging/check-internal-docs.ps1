@@ -38,7 +38,7 @@ if (-not $Registry) { $Registry = Join-Path $root 'docs\DOCUMENT_REGISTRY.jsonl'
 $registryRel = [IO.Path]::GetRelativePath($root, $Registry) -replace '\\', '/'
 
 function Stop-Unverified([string]$why) {
-    Write-Host "internal-docs: NOT VERIFIED ($why)" -ForegroundColor Yellow
+    Write-Host "internal-docs: COULD NOT VERIFY ($why)" -ForegroundColor Yellow
     exit 2
 }
 

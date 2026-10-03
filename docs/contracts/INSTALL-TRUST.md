@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `INSTALL-TRUST` |
-| **Version** | 1.0 (no wire carrier - a shipped user-facing document) |
+| **Version** | 1.1 (no wire carrier - a shipped user-facing document) |
 | **Role** | producer - the setup EXE and the MSI are unsigned, so users meet SmartScreen |
 | **Home** | shared contracts catalog, folder `install-trust/` |
 | **Owner** | shared. An amendment is proposed in the catalog, not decided here |
@@ -32,3 +32,5 @@ data-safety answers.
 
 **When the build becomes signed, the page is updated, not deleted** (rule 8): users of older builds still
 meet the warning, and the page is what search engines already point at.
+
+**1.1 (clarifications and additions; a 1.0 page still conforms).** A translated page quotes the OS dialog string as Windows shows it in that language, else English with a bracketed gloss; it says which channels meet the warning; one undo is named per separately uninstallable entry and what survives it; a retired artifact is dated, not deleted. The page has not been re-read against these refinements in SP-0122; that re-read is open work, and until it is done the page is held to 1.0 by `TestSurfaces_TheInstallTrustPageKeepsItsContract`.

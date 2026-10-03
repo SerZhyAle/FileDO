@@ -94,6 +94,10 @@ func (p *PartialFile) Commit(modTime time.Time, replace bool) error {
 	if p.done {
 		return errors.New("partial file already finished")
 	}
+	if !modTime.IsZero() {
+		ft := windows.NsecToFiletime(modTime.UnixNano())
+		_ = windows.SetFileTime(windows.Handle(p.File.Fd()), nil, &ft, &ft)
+	}
 	if err := p.File.Sync(); err != nil {
 		p.Abort()
 		return err
@@ -101,12 +105,6 @@ func (p *PartialFile) Commit(modTime time.Time, replace bool) error {
 	if err := p.File.Close(); err != nil {
 		p.Abort()
 		return err
-	}
-	if !modTime.IsZero() {
-		if err := os.Chtimes(p.partial, modTime, modTime); err != nil {
-			p.Abort()
-			return err
-		}
 	}
 	var err error
 	if replace {

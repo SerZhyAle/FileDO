@@ -29,6 +29,12 @@ Public Class ShellDialog
         End Using
     End Function
 
+    ' Asks a question that is data (see DialogSpec) - the form every confirmation of a destructive
+    ' action takes, so its default can be proven without showing it.
+    Public Shared Function Ask(owner As IWin32Window, spec As DialogSpec) As Integer
+        Return Ask(owner, spec.Title, spec.Text, spec.Choices, spec.CancelAt, spec.DefaultAt, spec.DangerAt)
+    End Function
+
     ' A notice: one button, and it is the no-action answer too.
     Public Shared Sub Notice(owner As IWin32Window, title As String, text As String)
         Ask(owner, title, text, New String() {Localization.T("shell_btn_close")}, 0)
@@ -172,7 +178,9 @@ Public Class ShellDialog
             b.Font = If(i = defaultAt, Theme.FontBodyStrong(), Theme.FontBody())
             If i = dangerAt Then
                 Ui.StyleButton(b, p.Danger, p.AccentText, p.Danger)
-            ElseIf i = defaultAt Then
+            ElseIf i = defaultAt AndAlso dangerAt < 0 Then
+                ' Beside a danger button the safe answer keeps the ordinary face and only holds the
+                ' focus (APP-STYLE section 4): a colour must not make the dangerous answer the easy one.
                 Ui.StyleButton(b, p.Accent, p.AccentText, p.Accent)
             Else
                 Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
@@ -188,7 +196,136 @@ Public Class ShellDialog
         End Using
     End Function
 
+    ' For the self-test: the button Enter presses in a dialog built from a spec, which must also be
+    ' the one that has the focus ("" when the two differ or there is none).
+    Friend Shared Function DefaultOf(spec As DialogSpec) As String
+        Using dlg As New ShellDialog(spec.Title, spec.Text, spec.Choices, spec.CancelAt, spec.DefaultAt, spec.DangerAt)
+            Dim a = TryCast(dlg.AcceptButton, Button)
+            If a Is Nothing OrElse Not ReferenceEquals(a, dlg.ActiveControl) Then Return ""
+            Return a.Text
+        End Using
+    End Function
+
 End Class
+
+' One question as data: what a dialog offers and which answer is which. A confirmation of a
+' destructive action is built only by Destructive, so that its safe answer is the one Enter, Escape
+' and the close box all give, and its acting answer is only painted danger (APP-BEHAVIOUR rule 5,
+' APP-STYLE section 4) - a property of the builder, not of each call site.
+Public NotInheritable Class DialogSpec
+    Public ReadOnly Title As String
+    Public ReadOnly Text As String
+    Public ReadOnly Choices As String()
+    Public ReadOnly CancelAt As Integer
+    Public ReadOnly DefaultAt As Integer
+    Public ReadOnly DangerAt As Integer
+
+    Private Sub New(title As String, text As String, choices As String(), cancelAt As Integer, defaultAt As Integer, dangerAt As Integer)
+        Me.Title = title
+        Me.Text = text
+        Me.Choices = choices
+        Me.CancelAt = cancelAt
+        Me.DefaultAt = defaultAt
+        Me.DangerAt = dangerAt
+    End Sub
+
+    ' safeAt is the answer that changes nothing; dangerAt the one that does the destructive thing.
+    Public Shared Function Destructive(title As String, text As String, choices As String(),
+                                       safeAt As Integer, dangerAt As Integer) As DialogSpec
+        Return New DialogSpec(title, text, choices, safeAt, safeAt, dangerAt)
+    End Function
+End Class
+
+' Every confirmation of a destructive action the shell asks, as a spec built from a language's
+' dictionary: the call sites ask these, and --selftest builds each of them in every language to
+' prove the safe answer is the default (dialog:destructive-default-safe:*).
+Public Module DestructiveDialogs
+
+    Private Function T(d As Dictionary(Of String, String), key As String) As String
+        Dim v As String = Nothing
+        If d IsNot Nothing AndAlso d.TryGetValue(key, v) Then Return v
+        Return key
+    End Function
+
+    Private Function TM(d As Dictionary(Of String, String), key As String) As String
+        Return Localization.Multiline(T(d, key))
+    End Function
+
+    ' Clean: removes the test files FileDO wrote in a folder.
+    Public Function CleanTestFiles(d As Dictionary(Of String, String), target As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "shell_clean_confirm_title"),
+                                      Localization.Format(T(d, "shell_clean_confirm_fmt"), target),
+                                      New String() {T(d, "shell_btn_clean_remove"), T(d, "shell_btn_cancel")}, 1, 0)
+    End Function
+
+    ' Closing the shell while a run is active: Stop and close ends the run.
+    Public Function StopAndClose(d As Dictionary(Of String, String), runName As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "shell_close_running_title"),
+                                      Localization.Format(TM(d, "shell_close_running"), runName),
+                                      New String() {T(d, "shell_btn_stop_close"), T(d, "shell_btn_keep_running")}, 1, 0)
+    End Function
+
+    ' The second close, after Stop was asked and the run did not end: End it now kills the process.
+    Public Function EndRunNow(d As Dictionary(Of String, String), runName As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "shell_close_running_title"),
+                                      Localization.Format(TM(d, "shell_close_still_running"), runName),
+                                      New String() {T(d, "shell_btn_end_now"), T(d, "shell_btn_keep_waiting")}, 1, 0)
+    End Function
+
+    ' The Disk Manager closed with work running or queued: Wait is the safe answer, Stop and close
+    ' stops it, and Finish in the background is offered only when nothing queued needs consent.
+    Public Function CloseDiskManagerBusy(d As Dictionary(Of String, String), names As String, background As Boolean) As DialogSpec
+        Dim choices As New List(Of String) From {T(d, "vd_mgr_btn_wait"), T(d, "vd_mgr_btn_stop_close")}
+        If background Then choices.Add(T(d, "vd_mgr_btn_finish_bg"))
+        Return DialogSpec.Destructive(T(d, "vd_mgr_close_running_title"),
+                                      Localization.Format(TM(d, "vd_mgr_close_running_fmt"), names), choices.ToArray(), 0, 1)
+    End Function
+
+    ' Removing a container from the Disk Manager's list (its files stay).
+    Public Function ForgetDisks(d As Dictionary(Of String, String), names As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "vd_mgr_confirm_forget_title"),
+                                      Localization.Format(TM(d, "vd_mgr_confirm_forget_fmt"), names),
+                                      New String() {T(d, "vd_mgr_btn_remove"), T(d, "shell_btn_cancel")}, 1, 0)
+    End Function
+
+    ' Unmounting a ram disk that holds data not yet saved to its file.
+    Public Function UnmountDirtyRam(d As Dictionary(Of String, String), diskName As String, dirtyText As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "vd_mgr_confirm_unmount_title"),
+                                      Localization.Format(TM(d, "vd_mgr_confirm_unmount_ram_fmt"), diskName, dirtyText),
+                                      New String() {T(d, "vd_mgr_btn_unmount"), T(d, "shell_btn_cancel")}, 1, 0)
+    End Function
+
+    ' Mounting a container that was not closed cleanly: Windows checks the volume and may repair it.
+    Public Function MountUnclean(d As Dictionary(Of String, String), diskName As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "vd_mgr_confirm_unclean_title"),
+                                      Localization.Format(TM(d, "vd_mgr_confirm_unclean_fmt"), diskName),
+                                      New String() {T(d, "vd_mgr_btn_mount"), T(d, "shell_btn_cancel")}, 1, 0)
+    End Function
+
+    ' Creating a partition disk (SP-0148 4.2): a new partition in free space on a real disk. Nothing
+    ' is destroyed, but the disk's layout changes and administrator consent follows - so Cancel is the
+    ' default and Create is painted as the answer that acts.
+    Public Function CreatePartition(d As Dictionary(Of String, String), text As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "vd_part_confirm_title"), Localization.Multiline(text),
+                                      New String() {T(d, "vd_part_btn_create_go"), T(d, "shell_btn_cancel")}, 1, 0)
+    End Function
+
+    ' Every one of them, for the self-test: id and a spec built from the dictionary.
+    Friend Function AllForTest(d As Dictionary(Of String, String)) As List(Of KeyValuePair(Of String, DialogSpec))
+        Dim out As New List(Of KeyValuePair(Of String, DialogSpec))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("clean", CleanTestFiles(d, "D:\Test")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("stop-and-close", StopAndClose(d, "Wipe")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("end-run-now", EndRunNow(d, "Wipe")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("disk-manager-busy", CloseDiskManagerBusy(d, "Mount - Test", True)))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("disk-manager-busy-no-background", CloseDiskManagerBusy(d, "Mount - Test", False)))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("forget-disks", ForgetDisks(d, "test")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("unmount-dirty-ram", UnmountDirtyRam(d, "test", "12 MB")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("mount-unclean", MountUnclean(d, "test")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("create-partition", CreatePartition(d, "Disk 2")))
+        Return out
+    End Function
+
+End Module
 
 ' Names the cause of a failure from the exception's TYPE, never from its message: the message is
 ' the platform's text in the platform's language, and it goes to the log (APP-BEHAVIOUR rule 6).

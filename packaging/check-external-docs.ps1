@@ -59,7 +59,7 @@ $termbasePath = Join-Path $root 'docs\termbase.json'
 $printsPath = Join-Path $root 'docs\translation-fingerprints.json'
 
 function Stop-Unverified([string]$why) {
-    Write-Host "external-docs: NOT VERIFIED ($why)" -ForegroundColor Yellow
+    Write-Host "external-docs: COULD NOT VERIFY ($why)" -ForegroundColor Yellow
     exit 2
 }
 

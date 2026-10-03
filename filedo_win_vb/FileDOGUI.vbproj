@@ -83,6 +83,7 @@
     <Compile Include="SettingsView.vb">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="WindowsAutoPlay.vb" />
     <Compile Include="ArgQuotingTests.vb" />
     <Compile Include="EventStream.vb" />
     <Compile Include="Runner.vb" />
@@ -95,10 +96,13 @@
     <Compile Include="DiskJobs.vb" />
     <Compile Include="DiskSnapshot.vb" />
     <Compile Include="DiskStates.vb" />
+    <Compile Include="DiskSharing.vb" />
+    <Compile Include="DiskSharingTests.vb" />
     <Compile Include="DiskAutostartDialog.vb" />
     <Compile Include="DiskDialogs.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="DiskPartition.vb" />
     <Compile Include="DiskManager.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -135,6 +139,15 @@
     <Compile Include="ShellDialog.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="DiskManagerIcon.vb" />
+    <Compile Include="DiskSettingsDialog.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SettingsPanel.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="StartupLaunch.vb" />
+    <Compile Include="TrayIcon.vb" />
     <Compile Include="WindowPlacement.vb" />
     <Compile Include="TargetPath.vb" />
     <Compile Include="WipeSafety.vb" />
@@ -183,10 +196,6 @@
     <EmbeddedResource Include="..\assets\menu-icons\*.ico">
       <Link>menuicons\%(Filename)%(Extension)</Link>
       <LogicalName>FileDOGUI.menuicons.%(Filename)%(Extension)</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\assets\app.disk-manager.ico">
-      <Link>app.disk-manager.ico</Link>
-      <LogicalName>FileDOGUI.app.disk-manager.ico</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

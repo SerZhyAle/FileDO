@@ -34,7 +34,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-if (-not (Test-Path $Path)) { Write-Host "sha256-sidecars: NOT VERIFIED ($Path does not exist)" -ForegroundColor Yellow; exit 2 }
+if (-not (Test-Path $Path)) { Write-Host "sha256-sidecars: COULD NOT VERIFY ($Path does not exist)" -ForegroundColor Yellow; exit 2 }
 
 $bad      = @()
 $sidecars = @(Get-ChildItem (Join-Path $Path "*.sha256") -File -ErrorAction SilentlyContinue)
@@ -42,7 +42,7 @@ if ($Expect -gt 0 -and $sidecars.Count -ne $Expect) {
     $bad += "expected $Expect .sha256 sidecars in $Path, found $($sidecars.Count)"
 }
 if ($sidecars.Count -eq 0) {
-    Write-Host "sha256-sidecars: NOT VERIFIED (no .sha256 sidecars in $Path)" -ForegroundColor Yellow
+    Write-Host "sha256-sidecars: COULD NOT VERIFY (no .sha256 sidecars in $Path)" -ForegroundColor Yellow
     exit 2
 }
 

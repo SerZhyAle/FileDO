@@ -146,6 +146,8 @@ Public Class RailEntry
     Inherits Control
 
     Public Property Glyph As GlyphRef = Nothing
+    ' A window launcher carries that window's own icon; the shared icon is owned by its module.
+    Public Property ProductIcon As Icon = Nothing
     Public Property Key As String = ""          ' the localization key, kept for a relayout
     Public Property IsGroupHeader As Boolean = False
 
@@ -484,7 +486,12 @@ Public Class RailEntry
 
         ' A lone job stands where a header would, so it shows the colour look; a row inside a group
         ' is mono.
-        If Glyph IsNot Nothing Then
+        If ProductIcon IsNot Nothing Then
+            Dim square = GlyphSquare(Height)
+            Using sized As New Icon(ProductIcon, square.Size)
+                g.DrawIcon(sized, square)
+            End Using
+        ElseIf Glyph IsNot Nothing Then
             Glyphs.Draw(g, Glyph, GlyphSquare(Height), If(Hue <> "", Theme.GroupTone(Hue, p), p.Text))
         End If
 

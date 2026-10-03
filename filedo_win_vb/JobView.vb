@@ -1729,10 +1729,7 @@ Public Class JobView
     ' Clean removes files, and the command it runs carries --yes; this is the question that
     ' --yes stands for. Escape and the close box answer Cancel.
     Private Function ConfirmClean() As Boolean
-        Dim text = Localization.Format(L("shell_clean_confirm_fmt"), GetRawTarget())
-        Dim pick = ShellDialog.Ask(ShellDialog.OwnerOf(Me), L("shell_clean_confirm_title"), text,
-                                   New String() {L("shell_btn_clean_remove"), L("shell_btn_cancel")},
-                                   cancelAt:=1, defaultAt:=1, dangerAt:=0)
+        Dim pick = ShellDialog.Ask(ShellDialog.OwnerOf(Me), DestructiveDialogs.CleanTestFiles(dict, GetRawTarget()))
         Return pick = 0
     End Function
 
@@ -3017,7 +3014,7 @@ Public Class JobView
     ' The verdict's colours, one function of (verdict, palette) for both the result path and a theme
     ' change (APP-STYLE section 3).
     Private Sub PaintVerdict(p As Theme.Palette)
-        verdictGlyph.ForeColor = Theme.VerdictColor(shownVerdict, p)
+        verdictGlyph.ForeColor = Theme.VerdictGlyphColor(shownVerdict, p)
         verdictBadge.BackColor = Theme.VerdictBack(shownVerdict, p)
         verdictBadge.ForeColor = Theme.VerdictFore(shownVerdict, p)
     End Sub

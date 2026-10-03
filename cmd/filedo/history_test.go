@@ -81,8 +81,40 @@ func TestHistoryConcurrentWriters(t *testing.T) {
 }
 
 // TestHistoryImportsLegacyFileOnce: the first run after the move copies the
-// old cwd history into the state root and leaves the old file alone.
+// old cwd history into the state root and leaves the old file alone when opted in.
 func TestHistoryImportsLegacyFileOnce(t *testing.T) {
+	stateDir := t.TempDir()
+	cwd := t.TempDir()
+	t.Setenv(statedir.EnvOverride, stateDir)
+	t.Setenv(statedir.EnvLegacy, "1")
+	legacy := `[{"timestamp":"2026-01-01T00:00:00Z","command":"old","target":"","operation":"","fullCommand":"","parameters":null,"results":null,"duration":"","success":true}]`
+	if err := os.WriteFile(filepath.Join(cwd, "history.json"), []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	wd, _ := os.Getwd()
+	if err := os.Chdir(cwd); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+
+	if err := saveToHistory(HistoryEntry{Timestamp: time.Now(), Command: "new"}); err != nil {
+		t.Fatal(err)
+	}
+	var entries []HistoryEntry
+	if err := json.Unmarshal(mustReadFile(t, filepath.Join(stateDir, "history.json")), &entries); err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 || entries[0].Command != "old" || entries[1].Command != "new" {
+		t.Fatalf("want the imported entry then the new one, got %+v", entries)
+	}
+	if got := string(mustReadFile(t, filepath.Join(cwd, "history.json"))); got != legacy {
+		t.Fatal("the legacy history.json must be left untouched")
+	}
+}
+
+// TestHistoryOverrideDirDoesNotImportLegacy: an overridden state root does not
+// import legacy files from cwd and prints no note.
+func TestHistoryOverrideDirDoesNotImportLegacy(t *testing.T) {
 	stateDir := t.TempDir()
 	cwd := t.TempDir()
 	t.Setenv(statedir.EnvOverride, stateDir)
@@ -103,8 +135,8 @@ func TestHistoryImportsLegacyFileOnce(t *testing.T) {
 	if err := json.Unmarshal(mustReadFile(t, filepath.Join(stateDir, "history.json")), &entries); err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 || entries[0].Command != "old" || entries[1].Command != "new" {
-		t.Fatalf("want the imported entry then the new one, got %+v", entries)
+	if len(entries) != 1 || entries[0].Command != "new" {
+		t.Fatalf("want only the new entry, got %+v", entries)
 	}
 	if got := string(mustReadFile(t, filepath.Join(cwd, "history.json"))); got != legacy {
 		t.Fatal("the legacy history.json must be left untouched")

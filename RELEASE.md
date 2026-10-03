@@ -151,6 +151,8 @@ Full pipeline. Cuts from `main` only, with a clean/committed tree.
 .\release.ps1 -DryRun         # everything EXCEPT push tag / submit / Store
 .\release.ps1 -SkipStore      # CLI + winget only
 .\release.ps1 -SkipWinget     # skip winget sync + submit
+.\release.ps1 -SkipOpsMount   # operations run without its mounted-disk tier (no UAC prompt)
+.\release.ps1 -OpsRebaseline  # accept this operations run as the new baseline (an intended change)
 .\release.ps1 -WingetInstallTest   # also install the synced manifest here, then uninstall
 .\release.ps1 -Resume -Version 2606271600 [-SkipStore]   # continue a release whose tag is out
 ```
@@ -171,9 +173,13 @@ What it does, in order:
    when it is not, then the full fdsec run (amd64), then
    `govulncheck -mode=binary` over the four Go executables - the scan the
    workflow repeats after the tag, so it has to pass before it
-   (`go install golang.org/x/vuln/cmd/govulncheck@v1.8.0`). Fails *before*
-   anything is tagged, and so does a gate that changed any file outside
-   `exe_to_download\`.
+   (`go install golang.org/x/vuln/cmd/govulncheck@v1.8.0`), then the
+   **operations run**, `tests\prove-operations.ps1`: every kind of filedo
+   operation on small data with the freshly built `exe_to_download\filedo.exe`,
+   each step timed and each result checked, the whole run compared with the last
+   passing runs for a loss of function or of speed (see "The operations run" below).
+   Fails *before* anything is tagged, and so does a gate that changed any file
+   outside `exe_to_download\`.
 3. **Commit** - stages `exe_to_download\` and nothing else, and commits it as
    `Build v<version>` if the build changed it. A dry run lists what it would
    commit and does not touch the index.
@@ -228,6 +234,97 @@ What it does, in order:
    submit, or the MSIX) does not stop the ones after it, is shown as `[ ]`
    with its reason, and makes the script exit 1; `release <stamp>: PASS` is
    printed only when every channel that ran succeeded.
+
+### The operations run
+
+`tests\prove-operations.ps1` is the part of the gate that uses the product the way a person does: every kind
+of operation, on small data, each timed, each result checked. `release.ps1` runs it after `govulncheck`,
+against `exe_to_download\filedo.exe` (the binary the release ships); it is also run by hand, from the repo
+root, with no arguments. Its last line is `operations-run <stamp>: PASS`, `FAIL` or `NOT VERIFIED`, with the
+same exit codes as the build gate (0, 1, 2).
+
+- **Judged by the result, not by the console.** Each step is a `filedo` run with `--events`: its exit
+  code, the `result` event's verdict and the numbers in it (files and bytes copied, speeds, files checked)
+  are the verdict. Data that was moved, sealed or restored is judged by a SHA-256 manifest of the source
+  compared with the result (names, sizes, content, modification times) - never by filedo's own account of it.
+  `compare` is informational by design (exit 0 on a difference), so its summary is read and the trees are
+  judged by the manifest. A step with no `result` event, one that outlives `-BudgetSeconds` (90 s, then it is
+  killed) and a prompt that cannot be answered (stdin is closed) are failures.
+- **Tier 1, a folder under `%TEMP%`, no elevation:** help, the usage errors (an unknown command, a missing
+  target and path: exit 2, "Not proven"), info, speed, clean, the seven copy modes (each manifest-checked),
+  `--precount`, a `--stop-file` asked before the start (Stopped, nothing half-written), a repeated copy, a copy
+  that must keep a different file, compare, `cmp .. del`, `cd` (report, `del old`, `move new`, the `abc` /
+  `xyz` name rules), `check` (default, `--mode deep`, `--include-ext`, `--report json`, `--resume`) and its
+  companion launcher, history (a run leaves an entry, its password never), `secure` / `unsecure` /
+  `fdsec info` / `fdsec verify` in suites 1, 2 and 3 with the refusals (wrong password, a flipped byte, a cut
+  container), `del` after a verified seal, `reveal -rw`, `wipe` (refused without the typed word, then
+  `--force`), a batch run, the network target (this machine's own admin share, `\\localhost\C$\..`; skipped
+  and said so when the account cannot reach it), and the virtual-disk verbs that need no elevation (`vd new`,
+  `info`, `verify`, `export`, `add` / `list` / `forget`, a vault's wrong password, and every line of
+  `tests\vd_batch.lst`). A password given as `p:<word>` must not reach the event stream or the output. A
+  private `FILEDO_STATE_DIR` keeps the run out of your own state.
+- **The load section, still no elevation:** the same operations on data sized so that each runs for seconds.
+  On a few kilobytes every step is process start-up and no loss of speed could show; at seconds a step's
+  noise is a few percent of it. Every size is one number in the `$Load` block of the script, with the
+  measurement behind it: 2400 small files for the seven copy modes (about 1 ms a file; `safecopy` and
+  `synccopy` 2.1-2.4), `cmp .. del` over 1000 pairs, two trees of 4500 tiny files for `check` and
+  `check --mode deep` (a first run over a tree costs about 1 ms a file), `cd` and `wipe` over both, 768 MiB
+  in six files for `secure` / `fdsec verify` / `unsecure`, a 640 MiB suite 2 file, a 1.5 GB `speed`, and a
+  1.5 GiB virtual-disk container (`vd new .. fast`, `verify`, `clone`, `export raw`). The fixtures are read
+  once before anything is timed, so Defender's first scan of a fresh file is not in a figure. Each step
+  prints its time, its MB/s and its milliseconds a file. Two operations cannot be made to last seconds with a
+  sane amount of data - `compare` reads metadata only (0.01 ms a file) and a big-file copy runs at 2 GB/s -
+  so they are timed and never gate. The section needs about 4.5 GiB free on the temp drive and says
+  `NOT VERIFIED` below 8 GiB. A load step that runs under 1.5 s is reported ("too noisy to compare well,
+  raise its size"), so a plan gone stale - an operation got faster - says so itself.
+- **Tier 2, mounted virtual disks:** `test` and `fill` are sized by the free space of their volume, so on a
+  folder of the system drive they would take all of it; on a small virtual disk they are small. A 320 MB
+  `.fdd`, carrying a third of its size in data (2000 small files and a 96 MiB one), is mounted, its reported size checked, then `device info`, `speed`, the capacity test, `fill` /
+  `fill verify` / `clean` (free space back to where it started), a copy and its manifest, `check`, `cd`,
+  `compare`, `probe` (refused without the typed word, then `probe yes`) and `recover` - the data must be
+  byte for byte the same after both - a folder `wipe` and the drive-root `wipe` that must be refused (a
+  canary file survives it), unmount, `vd verify` and "closed clean", a read-only remount that holds the data
+  and refuses a write, `vd format` (the volume empty and the same size), a second capacity test, unmount and
+  `destroy`. Then an encrypted **vault** (mount, a copy, unmount, a mount under a wrong password refused with
+  no drive letter, the data back under the right one) and a **ram** disk (copy, `save`, unmount, "closed
+  clean", remount, the saved data back). The drive letter is read from `vd status json` for each scratch
+  container and refused unless it is new and not the system drive; a disk of yours that was mounted before
+  the run is never a target.
+- **Elevation.** Mounting needs administrator rights. From a console that is not elevated the script asks
+  once (one UAC prompt) and runs tier 2 in an elevated child; declined or timed out is `NOT VERIFIED` (exit
+  2), which stops the release. `-SkipMount` (`release.ps1 -SkipOpsMount`) drops tier 2 and the closing line
+  names it as skipped.
+- **Coverage is enforced.** The script keeps an inventory of every verb: a step, a line of `vd_batch.lst`, or
+  an exemption with its reason. The verbs the exe's own help lists (`filedo -?`) are read at run time, and one
+  with no inventory entry fails the run - a verb added later cannot go unexercised. The closing summary
+  counts what ran, what is exempt and what was not run here (tier 2 under `-SkipMount`).
+- **Compared with the last passing runs.** Every pass writes `timings.json` (step, tier, time, exit code,
+  verdict and the counts of its result event). The baseline is up to eight earlier *passing* runs of this
+  machine in `temp\evidence\ops-*\` (a run that did not pass is never one; after a `-Rebaseline` run the older
+  ones stop counting). Against it:
+  - **function:** a step that used to run and is gone, or one whose exit code, verdict or counts changed,
+    fails the run. A change you meant is accepted with `-Rebaseline` (`release.ps1 -OpsRebaseline`), which
+    prints it and makes this run the baseline.
+  - **speed:** the reference is the median of the baseline. In the load section a step that normally runs
+    1.5 s or more trips the gate at 1.5x its median and 500 ms over it, a shorter one at twice and 300 ms;
+    so does the process start-up figure (the best of seven `filedo -?` runs, at twice its median and 20 ms
+    more - the best of seven is the figure noise cannot inflate). A tripped gate measures the load section
+    once more on fresh data and fails only if the best of the two passes still trips - noise is added time,
+    one slow second is not a regression. A load step at 1.25x and 250 ms, any tier 1 or tier 2 step at twice
+    its median (150 ms over; 500 ms in tier 2), and a median step ratio of 1.5 across tier 1, are listed as
+    advisory. The gates apply from three passing runs; before that the run says so and only records. The
+    closing summary shows the spread of the load steps over the baseline, so how comparable the figures are
+    is itself on the page. The thresholds are pinned by `tests\prove-operations-selftest.ps1` (a second, no
+    filedo run); change one and that file in the same edit.
+  - **budget:** a step over `-BudgetSeconds` (90 s) is killed and fails, whatever the baseline says.
+- **Not covered, on purpose:** `ui` / `dm` (`filedo_win.exe --selftest` covers the shell), `vd auto` and
+  `vd stop` (they change the machine or drop every mounted disk), `fdsec register` / `unregister` (the
+  Explorer registration, proven by its own tests), `reveal` without `-rw` (it launches an application), and
+  the `filedo_fill` / `filedo_test` companions (they fill). `device C: info` is not run either: it walks the
+  whole drive (over a minute on a system drive), so a device's info is checked on the small disk of tier 2.
+- **Evidence** - per-step output, event streams and `timings.json` - goes to `temp\evidence\ops-<run-id>\`
+  (git-ignored, private; the last dozen runs are kept); the scratch data is removed after a pass and kept
+  after a failure.
 
 ### The one manual step
 
@@ -313,6 +410,8 @@ the tag:
 - Go `1.26.8` (the `go.mod` toolchain pin) and goversioninfo `v1.4.1` - the
   gate refuses any other, because it must build what the workflow builds.
 - govulncheck - `go install golang.org/x/vuln/cmd/govulncheck@v1.8.0`.
+- For the operations run's mounted-disk tier: the ability to accept one UAC prompt, and the Windows iSCSI
+  initiator service (the same the Disk Manager needs). Without them pass `-SkipOpsMount`.
 - For the MSIX: Windows SDK (`makeappx`) + VS Build Tools (MSBuild) - see
   `msix/README.md`. Skip with `-SkipStore` if unavailable.
 

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"filedo/fsx"
 )
 
 // fileMeta is one file a compare found. rel is the relative path exactly as
@@ -68,6 +70,11 @@ type compareOptions struct {
 	// byHash: a pair is the same file when its content hashes match (and
 	// its sizes), whatever the times say.
 	byHash bool
+	// strict: judge the comparison itself - Passed when both sides hold
+	// the same files, Failed when any file is only on one side or differs
+	// (SP-0130 R1). Without it the compare stays an act: a difference is
+	// information, and the verdict is Done.
+	strict bool
 	// allowMismatch: delete a pair even when size or time differ.
 	allowMismatch bool
 	// assumeYes: --yes skips the question before the delete phase, never a
@@ -83,6 +90,8 @@ func splitCompareArgs(extra []string) (compareOptions, []string) {
 		switch strings.ToLower(a) {
 		case "--by-hash":
 			opts.byHash = true
+		case "--strict":
+			opts.strict = true
 		case "--allow-mismatch":
 			opts.allowMismatch = true
 		case "--yes", "-y", "--force", "/y":
@@ -140,11 +149,27 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 		}
 	}
 
+	// --strict judges the comparison; a delete phase mutates one side, and
+	// a verdict about a snapshot that is about to change is not an answer
+	// anyone asked for (SP-0130 R3: the delete phase keeps its own rules).
+	if opts.strict && deleteMode != "" {
+		return fmt.Errorf("compare: --strict judges the comparison and cannot be combined with a delete phase")
+	}
+
 	start := time.Now()
 	fmt.Printf("🔍 Comparing folders...\n  Source: %s\n  Target: %s\n\n", src, dst)
 
 	srcScan, dstScan := scanFiles(src), scanFiles(dst)
 	res := compareScans(src, dst, srcScan, dstScan)
+	// The counts ride the result event in every mode (SP-0130 R2, published
+	// as CLI-EVENT-STREAM rule 16): a program reads the comparison from the
+	// channel that exists for it, not from this text.
+	runNumber("onlyInSource", res.OnlySourceFiles)
+	runNumber("onlyInTarget", res.OnlyTargetFiles)
+	runNumber("differentFiles", res.DiffFiles)
+	runNumber("sameFiles", res.SameFiles)
+	runNumber("totalSource", res.SourceTotalFiles)
+	runNumber("totalTarget", res.TargetTotalFiles)
 
 	// Print summary to console (pre-delete snapshot)
 	fmt.Printf("Summary:\n")
@@ -200,6 +225,98 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 	if len(problems) > 0 && !runStopRequested() {
 		return fmt.Errorf("compare could not verify everything: %s", strings.Join(problems, "; "))
 	}
+	// SP-0130: with --strict the comparison itself is the verdict. The
+	// scans' unreadable entries have already ended the run Not proven
+	// above, and a stopped scan judges nothing.
+	if opts.strict {
+		if runStopRequested() {
+			return nil
+		}
+		return judgeCompareStrict(src, dst, opts, res, srcScan, dstScan)
+	}
+	return nil
+}
+
+// compareStrictRequested reports whether the extra words ask for the judging
+// mode. dispatch reads it before the run opens - a strict compare ends
+// Passed or Failed, and only a run opened as a judge can - and
+// splitCompareArgs reads the same word again to keep it out of the delete
+// phase's arguments.
+func compareStrictRequested(extra []string) bool {
+	for _, a := range extra {
+		if strings.EqualFold(a, "--strict") {
+			return true
+		}
+	}
+	return false
+}
+
+// judgeCompareStrict is --strict's verdict side (SP-0130 R1). A pair is the
+// same file when its size and modification time match - the rule the delete
+// phase applies - or, with --by-hash, when its content hashes the same,
+// whatever the times say. A file only on one side differs, and the numbers
+// the result carries are this mode's comparison, so the verdict is the
+// numbers' own answer. The scans' unreadable entries were handled by the
+// caller; a pair that cannot be hashed ends Not proven here.
+func judgeCompareStrict(srcRoot, dstRoot string, opts compareOptions, res *CompareResult, srcScan, dstScan *folderScan) error {
+	var samePairs, diffPairs int64
+	var diffNames, hashProblems []string
+	for key, s := range srcScan.files {
+		d, ok := dstScan.files[key]
+		if !ok {
+			continue // only on the source side: counted already
+		}
+		eq := s.size == d.size && sameModTime(s.mod, d.mod)
+		if opts.byHash && s.size == d.size {
+			eqBytes, err := sameContent(filepath.Join(srcRoot, s.rel), filepath.Join(dstRoot, d.rel))
+			if runStopRequested() {
+				return nil
+			}
+			if err != nil {
+				hashProblems = append(hashProblems, fmt.Sprintf("%s could not be hashed: %v", s.rel, err))
+				continue
+			}
+			eq = eqBytes
+		}
+		if eq {
+			samePairs++
+		} else {
+			diffPairs++
+			diffNames = append(diffNames, s.rel)
+		}
+	}
+	if len(hashProblems) > 0 {
+		return fmt.Errorf("compare could not verify everything: %s", strings.Join(hashProblems, "; "))
+	}
+	// SP-0130 R2: the counts are this mode's comparison, so a consumer can
+	// read the verdict off them.
+	runNumber("differentFiles", diffPairs)
+	runNumber("sameFiles", samePairs)
+	if n := len(diffNames); n > 0 {
+		sort.Strings(diffNames)
+		fmt.Printf("Pairs that differ (--strict):\n")
+		for i, rel := range diffNames {
+			if i >= 10 {
+				fmt.Printf("  .. and %d more\n", n-10)
+				break
+			}
+			fmt.Printf("  %s\n", rel)
+		}
+	}
+	n := res.OnlySourceFiles + res.OnlyTargetFiles + diffPairs
+	if n > 0 {
+		return recordedDefect("compare-differs",
+			fmt.Sprintf("%d file(s) differ between the two trees (--strict)", n),
+			map[string]interface{}{
+				"onlyInSource":   res.OnlySourceFiles,
+				"onlyInTarget":   res.OnlyTargetFiles,
+				"differentFiles": diffPairs,
+				"sameFiles":      samePairs,
+				"totalSource":    res.SourceTotalFiles,
+				"totalTarget":    res.TargetTotalFiles,
+			})
+	}
+	fmt.Printf("The trees hold the same files (--strict).\n")
 	return nil
 }
 
@@ -353,18 +470,14 @@ func compareFileID(p string) (fileID, error) {
 // at the deletion boundary. A replacement with the same size and time is not
 // the file whose deletion the user approved.
 func unchangedCompareFile(path string, scanned fileMeta, id fileID) error {
-	now, err := os.Stat(path)
+	fid, err := fsx.FileIDOf(path)
 	if err != nil {
 		return err
 	}
-	if !now.Mode().IsRegular() || now.Size() != scanned.size || !now.ModTime().Equal(scanned.mod) {
+	if !fid.IsRegular || fid.Size != scanned.size || !sameModTime(fid.ModTime, scanned.mod) {
 		return fmt.Errorf("file changed since the scan")
 	}
-	cur, err := compareFileID(path)
-	if err != nil {
-		return err
-	}
-	if cur != id {
+	if fid.VolSerial != id.vol || fid.FileIndex != id.idx {
 		return fmt.Errorf("file replaced since the scan")
 	}
 	return nil
@@ -522,21 +635,63 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 	// Read both files' identity now, before the question: what is deleted
 	// later must be the object listed here, not a replacement with the same
 	// size and time. A pair whose identity cannot be read is kept.
+	type pairIDResult struct {
+		idx     int
+		selfID  fileID
+		otherID fileID
+		err     error
+	}
+	idCh := make(chan int, 256)
+	resCh := make(chan pairIDResult, 256)
+	var idWg sync.WaitGroup
+	idWorkers := 8
+	if len(tasks) < idWorkers {
+		idWorkers = len(tasks)
+	}
+	for i := 0; i < idWorkers; i++ {
+		idWg.Add(1)
+		go func() {
+			defer idWg.Done()
+			for idx := range idCh {
+				t := tasks[idx]
+				self, err := compareFileID(t.abs)
+				var other fileID
+				if err == nil {
+					other, err = compareFileID(t.other)
+				}
+				resCh <- pairIDResult{idx: idx, selfID: self, otherID: other, err: err}
+			}
+		}()
+	}
+	go func() {
+		for i := range tasks {
+			if runStopRequested() {
+				break
+			}
+			idCh <- i
+		}
+		close(idCh)
+		idWg.Wait()
+		close(resCh)
+	}()
+
+	results := make([]pairIDResult, len(tasks))
+	for res := range resCh {
+		results[res.idx] = res
+	}
+	if runStopRequested() {
+		return append(problems, "stopped before the delete: nothing deleted")
+	}
 	identified := tasks[:0]
 	var unidentified []string
-	for _, t := range tasks {
-		if runStopRequested() {
-			return append(problems, "stopped before the delete: nothing deleted")
-		}
-		self, err := compareFileID(t.abs)
-		if err == nil {
-			t.selfID = self
-			t.otherID, err = compareFileID(t.other)
-		}
-		if err != nil {
-			unidentified = append(unidentified, fmt.Sprintf("%s: cannot identify the pair: %v", t.rel, err))
+	for i, t := range tasks {
+		res := results[i]
+		if res.err != nil {
+			unidentified = append(unidentified, fmt.Sprintf("%s: cannot identify the pair: %v", t.rel, res.err))
 			continue
 		}
+		t.selfID = res.selfID
+		t.otherID = res.otherID
 		identified = append(identified, t)
 	}
 	tasks = identified
@@ -629,12 +784,7 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 					continue
 				}
 				// The two names of a pair must be two files.
-				same, err := sameFilePaths(t.abs, t.other)
-				if err != nil {
-					fail(t, "cannot tell the pair apart: %v", err)
-					continue
-				}
-				if same {
+				if t.selfID.vol == t.otherID.vol && t.selfID.idx == t.otherID.idx {
 					fail(t, "both sides are one file - not deleted")
 					continue
 				}

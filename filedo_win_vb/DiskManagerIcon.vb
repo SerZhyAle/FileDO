@@ -1,10 +1,11 @@
-' The Disk Manager specific icon for window, shortcut, tray, and button use.
+' The Disk Manager specific icon for window, shortcut, tray, and button use: the plated
+' content.disk-container icon (MenuIcons.vb, "app.disk-manager"), one picture wherever the
+' window appears. It is read from the copy of assets\menu-icons\app.disk-manager.ico this exe
+' embeds, so the window, the button and the MSI's shortcut (which names the same file) cannot differ.
 '
-Imports System.Reflection
-
 Module DiskManagerIcon
 
-    Private Const ResourceName As String = "FileDOGUI.app.disk-manager.ico"
+    Private Const IconId As String = "app.disk-manager"
 
     Private ReadOnly diskManagerIconValue As Icon = Load()
 
@@ -32,9 +33,12 @@ Module DiskManagerIcon
 
     Private Function Load() As Icon
         Try
-            Using stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName)
-                If stream IsNot Nothing Then Return New Icon(stream)
-            End Using
+            Dim bytes = MenuIcons.EmbeddedIco(IconId)
+            If bytes IsNot Nothing Then
+                Using stream As New IO.MemoryStream(bytes)
+                    Return New Icon(stream)
+                End Using
+            End If
         Catch
             ' Fall through to nothing.
         End Try

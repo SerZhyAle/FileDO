@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-SET` |
-| **Version** | 0.16 draft (no wire carrier - the vocabulary is read by people, never by a shipped product). Adopted as a draft on 2026-09-25; the adoption is re-checked when the contract reaches 1.0 |
+| **Version** | 0.17 draft (no wire carrier - the vocabulary is read by people, never by a shipped product). Adopted as a draft on 2026-09-25; the adoption is re-checked when the contract reaches 1.0 |
 | **Role** | consumer - the shell, the site, the READMEs and the Explorer integration show glyphs |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. A new meaning or a new language is proposed in the catalog, not decided here |
@@ -53,3 +53,5 @@ by all three writers (`packaging/wix/FileDO.wxs`, `fdsec register`, `shellext/Fi
 keeps the product mark. Labels use the meanings' names (German clean job "löschen", English "Secure a
 file" / "Unsecure a file"); "About" and the verdict words are the qualified forms the 0.14 notes declare.
 The site's back-to-top control and copy buttons; emoji-free READMEs. The full inventory is SP-0016.
+
+**0.17 (33 meanings added, one of them from FileDO's disk proposal), read 2026-10-02 (SP-0122).** The vendored folder `assets/glyphs/` is still the 0.16 import: `assets/sync-icon-glyphs.ps1 -Check` reports drift - the catalog's vocabulary hash moved, and seven meanings the shell waits for as `GlyphRef.Waiting` (`action.change-password`, `action.format`, `action.grow`, `action.mount-disk`, `action.remember-name`, `action.seal`, `action.unmount-disk`) now exist in the catalog. Mapping them is the open SP-0016 work (owner-approved meanings, then the import without `-Check`); nothing was imported in SP-0122. The Disk Manager's own picture (`assets/menu-icons/app.disk-manager.ico`, the `content.disk-container` glyph on an accent plate, drawn by `MenuIcons.vb`) is product-private artwork under section 2 rule 7, outside the vocabulary: its stray copy in `assets/glyphs/` and its id in the sync script were removed on 2026-10-02 (owner decision: a program may keep icons for functions no other program has), which clears the self-test row `icons:provenance`.

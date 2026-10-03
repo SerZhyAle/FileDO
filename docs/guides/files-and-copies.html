@@ -113,6 +113,7 @@
           ><span data-l="en">Guide · files and folders</span
           ><span data-l="ua">Посібник · файли та папки</span>
         </p>
+
         <h1>
           <span data-l="ru"
             >Сначала получите список или отчёт. Решение удалить можно принять
@@ -323,6 +324,11 @@
             <code>compare_report_*.log</code>, а журнали видалення - як
             <code>delete_report_&lt;mode&gt;_*.log</code>.</span
           >
+        </p>
+        <p>
+          <span data-l="ru">Для автоматической проверки используйте <code>filedo compare D:\Data E:\Backup --strict</code>: совпадение относительных путей, размеров и времени изменения даёт код 0 (<code>Passed</code>), различие - код 1 (<code>Failed</code>), неполное сравнение - код 2 (<code>Not proven</code>). С <code>--by-hash</code> пары одинакового размера сравниваются по содержимому вместо времени. Обычный <code>compare</code> остаётся отчётом с кодом 0 (<code>Done</code>); <code>--strict</code> нельзя совмещать с удалением.</span
+          ><span data-l="en">For an automated check, use <code>filedo compare D:\Data E:\Backup --strict</code>: matching relative paths, sizes and modification times return exit 0 (<code>Passed</code>), a difference returns exit 1 (<code>Failed</code>), and an incomplete comparison returns exit 2 (<code>Not proven</code>). With <code>--by-hash</code>, equal-size pairs are compared by content instead of time. Plain <code>compare</code> remains a report with exit 0 (<code>Done</code>); <code>--strict</code> cannot be combined with deletion.</span
+          ><span data-l="ua">Для автоматичної перевірки використовуйте <code>filedo compare D:\Data E:\Backup --strict</code>: збіг відносних шляхів, розмірів і часу зміни дає код 0 (<code>Passed</code>), відмінність - код 1 (<code>Failed</code>), неповне порівняння - код 2 (<code>Not proven</code>). З <code>--by-hash</code> пари однакового розміру порівнюються за вмістом замість часу. Звичайний <code>compare</code> лишається звітом із кодом 0 (<code>Done</code>); <code>--strict</code> не можна поєднувати з видаленням.</span>
         </p>
       </section>
     </main>

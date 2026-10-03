@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -28,6 +29,9 @@ func isPathAccessible(path string) bool {
 func handleErrorWithUserMessage(err error, path string, historyLogger *HistoryLogger) bool {
 	if err == nil {
 		return false
+	}
+	if errors.Is(err, errRunStopped) {
+		return true
 	}
 
 	historyLogger.SetError(err)
@@ -226,6 +230,9 @@ func (h DeviceHandler) Info(path string, fullScan bool) (string, error) {
 	info, err := getDeviceInfo(path, fullScan)
 	if err != nil {
 		return "", err
+	}
+	if fullScan {
+		return "", nil
 	}
 	return info.String(), nil
 }

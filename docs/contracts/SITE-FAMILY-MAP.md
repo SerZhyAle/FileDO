@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-FAMILY-MAP` |
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Role** | consumer - product-site footer family grid |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `SITE-FAMILY-MAP.md` |
 | **Owner** | sza.od.ua hub |

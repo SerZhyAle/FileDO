@@ -73,7 +73,7 @@ type DeviceInfo struct {
 	CanWrite         bool
 }
 
-func (di DeviceInfo) String() string {
+func (di DeviceInfo) StringQuickFacts() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("Information for device: %s\n", di.Path))
 
@@ -108,15 +108,41 @@ func (di DeviceInfo) String() string {
 	}
 	b.WriteString(fmt.Sprintf("  Total Size:    %s\n", formatBytes(di.TotalBytes)))
 	b.WriteString(fmt.Sprintf("  Free Space:    %s\n", formatBytes(di.FreeBytes)))
+	b.WriteString(fmt.Sprintf("  Usage:         %.1f%%\n", di.usage()))
+	return b.String()
+}
+
+func (di DeviceInfo) String() string {
+	var b strings.Builder
+	b.WriteString(di.StringQuickFacts())
 	containsLabel := "Contains:"
 	if di.FullScan {
 		containsLabel = "Full Contains:"
 	}
 	b.WriteString(fmt.Sprintf("  %-14s %d files, %d folders\n", containsLabel, di.FileCount, di.FolderCount))
-	b.WriteString(fmt.Sprintf("  Usage:         %.1f%%\n", di.usage()))
 	if di.AccessErrors {
 		b.WriteString("\nWarning: Some information could not be gathered due to access restrictions.\n")
 		b.WriteString("         Run as administrator for a complete scan.\n")
+	}
+	return b.String()
+}
+
+// formatCount formats an integer with space thousands separators (e.g. 540 000).
+func formatCount(n int64) string {
+	s := strconv.FormatInt(n, 10)
+	if len(s) <= 3 {
+		return s
+	}
+	var b strings.Builder
+	lead := len(s) % 3
+	if lead > 0 {
+		b.WriteString(s[:lead])
+	}
+	for i := lead; i < len(s); i += 3 {
+		if b.Len() > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteString(s[i : i+3])
 	}
 	return b.String()
 }

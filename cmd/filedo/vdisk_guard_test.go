@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -225,6 +226,100 @@ func TestVD_GuardExecute(t *testing.T) {
 	rep = vdGuardExecute([]vdGuardTarget{ram("E:", 5)}, nil, steps2, at)
 	if rep.Summary == "" || !strings.Contains(rep.Summary, "1 unfinished") {
 		t.Errorf("an unfinished run is not named: %q", rep.Summary)
+	}
+}
+
+// AUD-44-F1: a ram save that ran out of its cap is abandoned, not cancelled - it is still running in the
+// disk's block server. Unmounting that same disk would overlap the save, and the session may end before
+// either finishes, so the disk is left mounted and the report says why. Every other disk is unmounted as
+// usual.
+func TestVD_GuardNeverUnmountsADiskWhoseSaveIsStillRunning(t *testing.T) {
+	ram := func(letter string, dirty int64) vdGuardTarget {
+		return vdGuardTarget{Row: vdMountRow{Letter: letter, Path: `C:\d\` + letter + ".fdd"}, Name: strings.ToLower(letter), DirtyBytes: dirty, ServerAlive: true, IsRAM: dirty > 0}
+	}
+	var unmounted []string
+	steps := vdGuardSteps{
+		Block: func(bool) {},
+		Save: func(tg vdGuardTarget, cap time.Duration) vdGuardRow {
+			if tg.Row.Letter == "E:" {
+				return vdGuardRow{Name: tg.Name, Path: tg.Row.Path, Action: "save", Outcome: "unfinished", Reason: "did not finish within 60 s"}
+			}
+			return vdGuardRow{Name: tg.Name, Path: tg.Row.Path, Action: "save", Outcome: "saved", BytesSaved: tg.DirtyBytes}
+		},
+		Unmount: func(tg vdGuardTarget, cap time.Duration) vdGuardRow {
+			unmounted = append(unmounted, tg.Row.Letter)
+			return vdGuardRow{Name: tg.Name, Path: tg.Row.Path, Action: "unmount", Outcome: "unmounted"}
+		},
+	}
+	saves, unmounts := vdGuardPlan([]vdGuardTarget{ram("D:", 5<<20), ram("E:", 9<<20), ram("F:", 0)})
+	rep := vdGuardExecute(saves, unmounts, steps, time.Date(2026, 10, 2, 5, 12, 33, 0, time.UTC))
+
+	if got, want := strings.Join(unmounted, ","), "D:,F:"; got != want {
+		t.Errorf("unmounted %q, want %q: the disk whose save was abandoned must stay mounted", got, want)
+	}
+	var withheld *vdGuardRow
+	for i := range rep.Containers {
+		if r := &rep.Containers[i]; r.Action == "unmount" && r.Name == "e:" {
+			withheld = r
+		}
+	}
+	if withheld == nil {
+		t.Fatalf("the report has no unmount row for the disk left mounted: %+v", rep.Containers)
+	}
+	if withheld.Outcome == "unmounted" || !strings.Contains(withheld.Reason, "save") || !strings.Contains(withheld.Reason, "next mount") {
+		t.Errorf("the withheld unmount is %+v; it must not read as unmounted, must name the save and say what the next mount will do", *withheld)
+	}
+	// Three containers, one of them left mounted: counted once, and the run is not called clean.
+	want := "2 of 3 containers were closed cleanly, 1 unfinished (1 left mounted, its save was still running) - the rows above say which and why."
+	if rep.Summary != want {
+		t.Errorf("summary %q, want %q", rep.Summary, want)
+	}
+}
+
+// The same rule with the real producer of the word it keys on: vdGuardCapped abandons a save that runs
+// past its cap, the work is still active when the unmount step would start, and the targets carry
+// container ids (a mixed-case one among them), the real shape of a state row.
+func TestVD_GuardCappedSaveBlocksItsUnmount(t *testing.T) {
+	release := make(chan struct{})
+	defer close(release)
+	var active atomic.Bool
+	var startedUnderSave []string
+	var unmounted []string
+	steps := vdGuardSteps{
+		Block: func(bool) {},
+		Save: func(tg vdGuardTarget, _ time.Duration) vdGuardRow {
+			return vdGuardCapped(vdGuardRow{Name: tg.Name, Path: tg.Row.Path, Action: "save"}, 30*time.Millisecond, func() (string, string, int64) {
+				active.Store(true)
+				<-release
+				active.Store(false)
+				return "saved", "", 1
+			})
+		},
+		Unmount: func(tg vdGuardTarget, _ time.Duration) vdGuardRow {
+			// Only the saving disk's own unmount overlaps its save; another disk is unmounted as usual.
+			if tg.Name == "e" && active.Load() {
+				startedUnderSave = append(startedUnderSave, tg.Row.Letter)
+			}
+			unmounted = append(unmounted, tg.Row.Letter)
+			return vdGuardRow{Name: tg.Name, Path: tg.Row.Path, Action: "unmount", Outcome: "unmounted"}
+		},
+	}
+	e := vdGuardTarget{Row: vdMountRow{Letter: "E:", ContainerID: "AbC-0001", Path: `C:\d\e.fdd`}, Name: "e", DirtyBytes: 9 << 20, ServerAlive: true, IsRAM: true}
+	f := vdGuardTarget{Row: vdMountRow{Letter: "F:", ContainerID: "dEf-0002", Path: `C:\d\f.fdd`}, Name: "f", ServerAlive: true}
+	saves, unmounts := vdGuardPlan([]vdGuardTarget{e, f})
+	rep := vdGuardExecute(saves, unmounts, steps, time.Date(2026, 10, 2, 5, 12, 33, 0, time.UTC))
+
+	if len(startedUnderSave) != 0 {
+		t.Errorf("an unmount started while the save was still running: %v", startedUnderSave)
+	}
+	if strings.Join(unmounted, ",") != "F:" {
+		t.Errorf("unmounted %v, want only F:", unmounted)
+	}
+	if len(rep.Containers) != 3 || rep.Containers[0].Action != "save" || rep.Containers[0].Outcome != vdGuardUnfinished {
+		t.Fatalf("rows %+v; want the abandoned save of e first", rep.Containers)
+	}
+	if r := rep.Containers[1]; r.Name != "e" || r.Action != "unmount" || r.Outcome != "skipped" {
+		t.Errorf("e's unmount row is %+v", r)
 	}
 }
 
@@ -448,6 +543,21 @@ func TestVD_GuardSummary(t *testing.T) {
 	got = vdGuardSummary([]vdGuardRow{row("save", "saved"), row("unmount", "unfinished")})
 	if !strings.Contains(got, "0 of 1") || !strings.Contains(got, "1 unfinished") {
 		t.Errorf("a saved ram disk left mounted reads %q", got)
+	}
+	// A disk whose save ran out of time is withheld from its unmount: one container, counted once.
+	named := func(name, action, outcome string) vdGuardRow {
+		return vdGuardRow{Name: name, Path: `C:\` + name + ".fdd", Action: action, Outcome: outcome}
+	}
+	got = vdGuardSummary([]vdGuardRow{
+		named("d", "save", "saved"), named("e", "save", "unfinished"),
+		named("d", "unmount", "unmounted"), named("e", "unmount", "skipped"), named("f", "unmount", "unmounted")})
+	if want := "2 of 3 containers were closed cleanly, 1 unfinished (1 left mounted, its save was still running) - the rows above say which and why."; got != want {
+		t.Errorf("a disk left mounted under its save reads %q, want %q", got, want)
+	}
+	// A refused detach of another disk stays a skip of its own.
+	got = vdGuardSummary([]vdGuardRow{named("e", "save", "unfinished"), named("e", "unmount", "skipped"), named("g", "unmount", "skipped")})
+	if !strings.Contains(got, "0 of 2") || !strings.Contains(got, "1 skipped") || !strings.Contains(got, "1 unfinished (1 left mounted") {
+		t.Errorf("an unfinished save beside a refused detach reads %q", got)
 	}
 }
 

@@ -91,6 +91,7 @@ Public Class DiskSmallDialog
     Protected Function NewNote(text As String) As Label
         Dim l As New Label With {
             .Text = text,
+            .UseMnemonic = False,
             .AutoSize = True,
             .MaximumSize = New Size(P(460), 0),
             .MinimumSize = New Size(P(320), 0),
@@ -213,7 +214,9 @@ Public Class DiskMountAsDialog
     Private ReadOnly roCheck As CheckBox
     Private ReadOnly noscanCheck As CheckBox
 
-    Public Sub New(d As Dictionary(Of String, String), diskName As String, owner As Control)
+    ' noScanRefused: a partition disk refuses noscan (SP-0148 5.4) - the box is shown disabled with
+    ' the reason under it, so the refusal is said rather than hidden.
+    Public Sub New(d As Dictionary(Of String, String), diskName As String, owner As Control, Optional noScanRefused As Boolean = False)
         MyBase.New(d, Tr(d, "vd_mgr_act_mount_as"),
                    Localization.Format(Tr(d, "vd_mgr_mountas_text_fmt"), diskName), "vd_mgr_btn_mount", owner)
         Dim row As New FlowLayoutPanel With {.AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = New Padding(0)}
@@ -233,6 +236,10 @@ Public Class DiskMountAsDialog
         AddContent(row)
         AddContent(roCheck)
         AddContent(noscanCheck)
+        If noScanRefused Then
+            noscanCheck.Enabled = False
+            AddContent(NewNote(T("vd_part_why_noscan")))
+        End If
         Finish()
     End Sub
 

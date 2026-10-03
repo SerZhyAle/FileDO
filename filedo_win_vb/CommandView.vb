@@ -172,8 +172,49 @@ Public Class CommandView
         root.Controls.Add(runCard, 0, 1)
         Controls.Add(root)
 
+        ' The run card (command line, buttons, verdict, output) is the page's fill: in a short window
+        ' it used to be squeezed to a sliver under the input card. It keeps a floor instead, and the
+        ' page scrolls (compact screens: a 1366x768 laptop at 125 % or more).
+        AutoScroll = True
+        AddHandler inputCard.SizeChanged, Sub() KeepRunCardRoom()
         ResumeLayout(True)
+        KeepRunCardRoom()
     End Sub
+
+    ' The least height the run card is given, in design pixels.
+    Private Const RunCardMinDesignHeight As Integer = 300
+
+    ' The input card changes height inside the root's own layout pass (a wider window wraps less), and
+    ' the floor resizes that same root, so once the window exists the floor is set after the pass.
+    Private runCardRoomPending As Boolean = False
+
+    Private Sub KeepRunCardRoom()
+        If root Is Nothing OrElse inputCard Is Nothing Then Return
+        If Not IsHandleCreated Then
+            ApplyRunCardRoom()
+            Return
+        End If
+        If runCardRoomPending Then Return
+        runCardRoomPending = True
+        BeginInvoke(New MethodInvoker(Sub()
+                                          runCardRoomPending = False
+                                          If Not IsDisposed Then ApplyRunCardRoom()
+                                      End Sub))
+    End Sub
+
+    Private Sub ApplyRunCardRoom()
+        Dim need = inputCard.Height + inputCard.Margin.Vertical + root.Padding.Vertical + Ui.Px(Me, RunCardMinDesignHeight)
+        If AutoScrollMinSize.Height = need Then Return
+        AutoScrollMinSize = New Size(0, need)
+        root.PerformLayout()
+    End Sub
+
+    ' The self-test's view of the floor: the height the run card has been given, in pixels.
+    Friend ReadOnly Property RunCardHeightForTest As Integer
+        Get
+            Return runCard.Height
+        End Get
+    End Property
 
     Private Sub BuildInputCard()
         inputCard = New ShellCard With {
@@ -603,11 +644,23 @@ Public Class CommandView
         tips.SetToolTip(runBtn, If(runBtn.Enabled, "", wipeLabel.Text))
     End Sub
 
+    ' What Copy command puts on the clipboard: the line written for cmd.exe, where the wipe refusal
+    ' tells the user to run it - a path holding & or % would otherwise run something else there
+    ' (GUI-20, as the job page's copy does it). The box keeps the form the runner reads. A line the
+    ' page cannot read as arguments is copied as it stands.
+    Friend Function CopyPayload() As String
+        Dim args = LineArgs()
+        If args.Count = 0 Then Return cmdLineBox.Text
+        Return "filedo.exe " & ArgQuoting.JoinArgsForCmd(args)
+    End Function
+
     ' The line as the argument list it will run as, without the leading "filedo.exe".
     Private Function LineArgs() As List(Of String)
         Dim cmd = If(cmdLineBox Is Nothing, "", cmdLineBox.Text.Trim())
         If cmd.StartsWith("filedo.exe ", StringComparison.OrdinalIgnoreCase) Then
             cmd = cmd.Substring("filedo.exe ".Length).Trim()
+        ElseIf cmd.Equals("filedo.exe", StringComparison.OrdinalIgnoreCase) Then
+            cmd = "" ' the program name alone: no argument
         End If
         Try
             Return New List(Of String)(ArgQuoting.SplitArgs(cmd))
@@ -955,7 +1008,7 @@ Public Class CommandView
         AddHandler stopBtn.Click, Sub() StopRun()
 
         copyBtn = New Button With {.Text = L("shell_btn_copy_cmd"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
-        AddHandler copyBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), cmdLineBox.Text)
+        AddHandler copyBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), CopyPayload())
         secondaryButtons.Add(copyBtn)
 
         shortcutBtn = New GlyphButton With {.Text = L("shortcut_create"),
@@ -1516,7 +1569,7 @@ Public Class CommandView
         ' The glyph is there only for a verdict, never while a run is going or before the first one.
         Dim judged = verdictState <> "" AndAlso verdictState <> "running" AndAlso verdictState <> "stopping"
         verdictGlyph.Visible = judged
-        If judged Then verdictGlyph.ForeColor = Theme.VerdictColor(verdictState, p)
+        If judged Then verdictGlyph.ForeColor = Theme.VerdictGlyphColor(verdictState, p)
     End Sub
 
     ' Run looks like Run when it can be pressed, and like any inactive control while the typed WIPE

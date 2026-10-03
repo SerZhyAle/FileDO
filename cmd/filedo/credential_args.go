@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/term"
 
@@ -54,15 +55,7 @@ func credentialToken(t string) (credArg, bool) {
 func resolveCredential(a credArg, confirm bool, prompt string) (fdsec.Credential, error) {
 	switch a.src {
 	case "stdin":
-		b, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20+1))
-		if err != nil {
-			return nil, err
-		}
-		defer clear(b)
-		if len(b) > 1<<20 {
-			return nil, usagef("stdin credential is too long")
-		}
-		return fdsec.Credential(append([]byte(nil), b...)), nil
+		return readStdinCredential(os.Stdin, credStdinWait, runStopRequested)
 	case "p", "bare":
 		return fdsec.NewCredential(a.val), nil
 	case "pf":
@@ -121,3 +114,58 @@ func isCredentialToken(t string) bool {
 // errCredentialMismatch is the double prompt's two answers differing. The
 // sibling keeps its historical class for it; vd reports it as usage.
 var errCredentialMismatch = errors.New("the two passwords differ; nothing was written")
+
+// credStdinWait is how long a credential on stdin may take to arrive and end; a variable so a test can
+// shorten it. The worker writes the whole credential and closes the pipe at once; a parent that does
+// neither is a defect, and it must not hold the mount before it creates anything (AUD-83-F2).
+var credStdinWait = 30 * time.Second
+
+// readStdinCredential is the `stdin` credential source (DISK-SHARE 19.1): every byte to the end of the
+// stream, at most 1 MiB, with one trailing LF or CRLF dropped - the pf: rule, so `echo hunter2 |` and a
+// worker's exact bytes both work. An empty credential is refused as a usage error exactly as an empty pe:
+// or pf: is: nothing was given and nothing is done (an empty credential belongs to an obfuscated container,
+// which never reads stdin). The wait is bounded and a stop request ends it.
+func readStdinCredential(r io.Reader, wait time.Duration, stopped func() bool) (fdsec.Credential, error) {
+	type result struct {
+		b   []byte
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		b, err := io.ReadAll(io.LimitReader(r, 1<<20+1))
+		done <- result{b, err}
+	}()
+	deadline := time.NewTimer(wait)
+	defer deadline.Stop()
+	tick := time.NewTicker(100 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case res := <-done:
+			defer clear(res.b)
+			if res.err != nil {
+				return nil, res.err
+			}
+			if len(res.b) > 1<<20 {
+				return nil, usagef("stdin credential is too long")
+			}
+			b := res.b
+			switch {
+			case strings.HasSuffix(string(b), "\r\n"):
+				b = b[:len(b)-2]
+			case strings.HasSuffix(string(b), "\n"):
+				b = b[:len(b)-1]
+			}
+			if len(b) == 0 {
+				return nil, usagef("nothing arrived on stdin, so no password was given; nothing was done")
+			}
+			return fdsec.Credential(append([]byte(nil), b...)), nil
+		case <-deadline.C:
+			return nil, usagef("the credential on stdin did not arrive and end within %s; nothing was done", wait)
+		case <-tick.C:
+			if stopped != nil && stopped() {
+				return nil, errRunStopped
+			}
+		}
+	}
+}

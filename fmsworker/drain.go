@@ -313,7 +313,14 @@ func (dm *DrainManager) ExecuteDrain(path string, force bool, bound int) DrainRe
 		result.Message = e.Error()
 		return result
 	}
-	dm.WaitForDrain(path, time.Duration(bound)*unit+unit)
+	// The waiter outlives the bound by a real margin: with a bound second shrunk for a test, one unit
+	// is below the timer tick, and a loaded machine let the waiter give up before the monitor had set
+	// TimedOut (AUD-92-F1). With the production 1 s unit the margin is the same one second.
+	margin := unit
+	if margin < 250*time.Millisecond {
+		margin = 250 * time.Millisecond
+	}
+	dm.WaitForDrain(path, time.Duration(bound)*unit+margin)
 	status, _ := dm.GetDrainStatus(path)
 	if status != nil && !status.Completed && status.TimedOut && force {
 		e = dm.ForceDrain(path)

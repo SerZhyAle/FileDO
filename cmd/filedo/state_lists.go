@@ -68,9 +68,11 @@ type fileStamp struct {
 type fileStateList struct {
 	path string
 
-	mu      sync.Mutex
-	entries map[string]fileStamp
-	out     *os.File
+	mu        sync.Mutex
+	entries   map[string]fileStamp
+	out       *os.File
+	bw        *bufio.Writer
+	unflushed int
 	// legacyIgnored counts lines this build does not trust: path-only lines
 	// and format 1 lines (path, size, time) that carry no volume identity,
 	// and anything that does not parse. They cannot say whether the file is
@@ -95,11 +97,11 @@ var stateListLoads atomic.Int64
 // fileIdentity is the volume serial and file ID of p, as the filesystem
 // reports them. It opens the file for attributes only, which reads no data.
 func fileIdentity(p string) (uint32, uint64, error) {
-	id, err := fsx.IdentityOf(p)
+	fid, err := fsx.FileIDOf(p)
 	if err != nil {
 		return 0, 0, err
 	}
-	return id.VolSerial, id.FileIndex, nil
+	return fid.VolSerial, fid.FileIndex, nil
 }
 
 // openStateList loads the named list from the state root, importing a legacy
@@ -263,6 +265,14 @@ func (l *fileStateList) Add(p string, size int64, mod time.Time) error {
 	return l.addStamp(p, fileStamp{size: size, mod: mod, vol: vol, fid: fid})
 }
 
+// AddStamp records a file whose identity is already known.
+func (l *fileStateList) AddStamp(p string, size int64, mod time.Time, vol uint32, fid uint64) error {
+	if l == nil {
+		return nil
+	}
+	return l.addStamp(p, fileStamp{size: size, mod: mod, vol: vol, fid: fid})
+}
+
 // addStamp records an entry whose identity is already known.
 func (l *fileStateList) addStamp(p string, st fileStamp) error {
 	key := stateListKey(p)
@@ -289,7 +299,14 @@ func (l *fileStateList) addStamp(p string, st fileStamp) error {
 	if a, err := filepath.Abs(p); err == nil {
 		abs = a
 	}
-	_, err := io.WriteString(l.out, formatStateLine(filepath.Clean(abs), st))
+	_, err := io.WriteString(l.bw, formatStateLine(filepath.Clean(abs), st))
+	l.unflushed++
+	if l.unflushed >= 64 {
+		if ferr := l.bw.Flush(); ferr != nil && err == nil {
+			err = ferr
+		}
+		l.unflushed = 0
+	}
 	return err
 }
 
@@ -319,6 +336,8 @@ func (l *fileStateList) openForAppend() error {
 		}
 	}
 	l.out = f
+	l.bw = bufio.NewWriterSize(f, 64*1024)
+	l.unflushed = 0
 	return nil
 }
 
@@ -362,6 +381,20 @@ func (l *fileStateList) AddInfo(p string, info os.FileInfo) error {
 	return l.Add(p, info.Size(), info.ModTime())
 }
 
+// Flush writes any pending buffered entries to disk.
+func (l *fileStateList) Flush() error {
+	if l == nil {
+		return nil
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.bw != nil {
+		l.unflushed = 0
+		return l.bw.Flush()
+	}
+	return nil
+}
+
 // Close releases the append handle.
 func (l *fileStateList) Close() error {
 	if l == nil {
@@ -369,10 +402,19 @@ func (l *fileStateList) Close() error {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	var flushErr error
+	if l.bw != nil {
+		flushErr = l.bw.Flush()
+		l.bw = nil
+		l.unflushed = 0
+	}
 	if l.out == nil {
-		return nil
+		return flushErr
 	}
 	err := l.out.Close()
 	l.out = nil
+	if flushErr != nil {
+		return flushErr
+	}
 	return err
 }

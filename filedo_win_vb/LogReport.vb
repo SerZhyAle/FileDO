@@ -23,19 +23,18 @@ Module LogReport
     Private Const MaxTotalBytes As Long = 20L * 1024L * 1024L
 
     ' Only names FileDO itself produces. No wildcards that could sweep in someone else's files.
+    ' The check, compare and delete reports and damaged_files.log are not here on purpose: they are
+    ' lists of the user's files, which the confirmation promises are excluded, and the sanitizer cannot
+    ' tell a relative path from prose (AUD-90-F1).
     Private ReadOnly logPatterns As String() = {
         "filedo_win.log",
         "filedo_win.log.1",
         "filedo_win.session-*.log",
-        "filedo_win_debug.log",
-        "check_report_*.log",
-        "compare_report_*.log",
-        "delete_report_*.log",
-        "damaged_files.log"
+        "filedo_win_debug.log"
     }
 
-    ' In the data folder itself, the shell's own log and its one older generation - nothing else:
-    ' the reports there are excluded on purpose, and the CLI's files live in its state folder.
+    ' In the data folder itself, the shell's own log and its one older generation - nothing else
+    ' (the CLI's files live in its state folder).
     Private ReadOnly shellLogPatterns As String() = {"filedo_win.log", "filedo_win.log.1", "filedo_win.session-*.log"}
 
     ' Send logs leaves no pile behind: an archive this old is gone at the next Send logs (SHELL-05).
@@ -83,9 +82,9 @@ Module LogReport
                 roots.Add(New SearchRoot With {.Tag = tag, .Dir = full, .Patterns = patterns})
             End Sub
 
-        add("app", AppFolder(), logPatterns)
+        add("app", If(RootsForTest Is Nothing, AppFolder(), RootsForTest(0)), logPatterns)
         Try
-            Dim data = Runner.GetAppDataDir()
+            Dim data = If(RootsForTest Is Nothing, Runner.GetAppDataDir(), RootsForTest(1))
             add("state", Path.Combine(data, "state"), logPatterns)
             add("appdata", data, shellLogPatterns)
         Catch
@@ -252,7 +251,9 @@ Module LogReport
             Dim length = src.Length
             If length > MaxFileBytes Then
                 ' A truncated tail could start inside a private-key block. Do not export fragments.
-                Dim marker = "[Diag] LOG OMITTED | source exceeds safe snapshot cap" & Environment.NewLine
+                ' The marker is the one DIAGNOSTIC-REPORT 0.12 section 8 C names.
+                Dim marker = "[Diag] LOG OMITTED | reason=oversized_untrusted | source_bytes=" &
+                    length.ToString(System.Globalization.CultureInfo.InvariantCulture) & Environment.NewLine
                 Using dst As New StreamWriter(entry.Open(), New UTF8Encoding(False))
                     dst.Write(marker)
                 End Using
@@ -354,6 +355,15 @@ Module LogReport
         b.AppendLine("volume_metrics_capability=unavailable")
         b.AppendLine("catalog_refreshed_utc=")
         Return DiagnosticText.Sanitize(b.ToString())
+    End Function
+
+    ' The self-test points the search at folders of its own - {the program folder, the data folder} -
+    ' so a row never reads, or packs, the machine's real logs.
+    Friend RootsForTest As String() = Nothing
+
+    Friend Function ArchiveCollectedForTest(destination As String, ByRef fileCount As Integer) As String
+        fileCount = 0
+        Return WriteArchive(Collect(), "en", destination, fileCount)
     End Function
 
     Friend Function ArchiveForTest(source As String, destination As String) As String

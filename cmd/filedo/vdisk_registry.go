@@ -33,7 +33,16 @@ type vdRegEntry struct {
 	LogicalSize int64     `json:"logical_size"`
 	Added       time.Time `json:"added"`
 	LastMounted time.Time `json:"last_mounted,omitempty"`
+	// Carrier and Part are written for a partition disk (SP-0148 9.2): Path
+	// is then its locator, and Part its stored identity. An entry without
+	// them is a file, so a registry an older build wrote reads unchanged.
+	Carrier    string        `json:"carrier,omitempty"`
+	Part       *vdPartRecord `json:"part,omitempty"`
+	Protection string        `json:"protection,omitempty"`
 }
+
+// isPart reports whether the entry is a partition disk.
+func (e vdRegEntry) isPart() bool { return e.Part != nil }
 
 type vdRegistry struct {
 	Version    int          `json:"version"`
@@ -231,6 +240,10 @@ func vdForget(args []string) error {
 	}); err != nil {
 		return err
 	}
+	if gone.isPart() {
+		fmt.Printf("Forgot %s. The partition %s stays on its disk, unchanged; filedo vd adopt %s registers it again, and filedo vd destroy deletes it.\n", gone.Name, gone.Path, gone.Path)
+		return nil
+	}
 	fmt.Printf("Forgot %s. The container %s is unchanged.\n", gone.Name, gone.Path)
 	return nil
 }
@@ -247,8 +260,22 @@ func vdList() error {
 		return nil
 	}
 	tasks := vdAutoTasks()
+	var disks []vdDisk
 	for _, e := range r.Containers {
 		state := ""
+		if e.isPart() {
+			// A partition disk's header needs elevation to read; list says
+			// whether its partition is there, from discovery (no prompt).
+			if disks == nil {
+				disks, _ = vdDiscoverDisks()
+			}
+			state = vdPartListState(e, disks)
+			if tasks[strings.ToLower(e.Name)] {
+				state += "; mounts automatically"
+			}
+			fmt.Printf("%-16s %-6s %8s  %s  [partition disk, %s]\n", e.Name, e.Profile, vdSize(e.LogicalSize), e.Path, state)
+			continue
+		}
 		_, serr := os.Stat(e.Path)
 		switch info, err := vdisk.Inspect(e.Path); {
 		case os.IsNotExist(serr):
