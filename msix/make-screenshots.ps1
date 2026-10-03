@@ -99,7 +99,7 @@ $PageRow     = @{ capacity = 'rail_job_capacity'; speed = 'rail_job_speed'; dupl
 # The rail is an accordion (one group open at a time), and a row in a folded group is not on
 # screen for UI Automation to find. Each shot therefore starts with every group folded but the one
 # that holds the page's row; a page that is a lone rail job (command) has no group to open.
-$RailGroups = @('rail_group_check', 'rail_group_tidy', 'rail_group_erase', 'rail_group_protect', 'rail_group_disks', 'rail_group_program')
+$RailGroups = @('rail_group_check', 'rail_group_tidy', 'rail_group_erase', 'rail_group_protect', 'rail_group_disks')
 $PageGroup  = @{ capacity = 'rail_group_check'; speed = 'rail_group_check'; duplicates = 'rail_group_tidy'; secure = 'rail_group_protect'; wipe = 'rail_group_erase'; command = '' }
 foreach ($l in $Languages) { if (-not $StoreLocale.ContainsKey($l)) { throw "make-screenshots: unknown language '$l' (expected $($StoreLocale.Keys -join ' '))." } }
 foreach ($p in $Pages)     { if (-not ($PageRow.ContainsKey($p) -or $p -eq 'secure')) { throw "make-screenshots: unknown page '$p' (expected capacity speed duplicates secure wipe command)." } }

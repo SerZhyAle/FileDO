@@ -37,12 +37,11 @@
 ' The Disks group (SP-0004 P6) is partly that case. Its list of containers draws the .fdd type's
 ' own meaning, content.disk-container (ICON-SET 0.16), the drawing the Explorer type icon is made
 ' from. Six rows mean what a vocabulary record already means - info, verify, export, save, a copy
-' (Clone), a delete (Destroy) - and draw that drawing. The other ten are meanings ICON-SET has no
-' record for (nothing for create, mount, unmount, compact, grow, format, seal, a password change, a
-' schedule or a name), so they draw a Segoe stand-in under a proposed id until the records land and
-' assets\sync-icon-glyphs.ps1 vendors them; SelfTest's baseline says so. Those meanings - and the rest
-' of the Disks rows' pictures - are defined once, in DiskGlyphs.vb, which the Disk manager's toolbar,
-' menus and buttons read too, so a meaning looks the same wherever it is shown (ICON-SET rule 1).
+' (Clone), a delete (Destroy) - and draw that drawing. The other three are meanings ICON-SET has no
+' record for (create, compact, auto-mount), so they draw a Segoe stand-in under a proposed id until the
+' records land and assets\sync-icon-glyphs.ps1 vendors them; SelfTest's baseline says so. Those meanings -
+' and the rest of the Disks rows' pictures - are defined once, in DiskGlyphs.vb, which the Disk manager's
+' toolbar, menus and buttons read too, so a meaning looks the same wherever it is shown (ICON-SET rule 1).
 '
 ' The groups (the owner, 2026-09-30: the folded headers ran into one another). Three things follow:
 '
@@ -135,9 +134,8 @@ Public Class RailRow
         RailRow.Job("rail_job_vd_add", DiskGlyphs.RememberName),
         RailRow.Alone("rail_job_history", GlyphRef.Vocabulary("content.history"), "program.history"),
         RailRow.Alone("rail_job_command", GlyphRef.Vocabulary("app.command-line"), "program.command"),
-        RailRow.Group("rail_group_program", GlyphRef.Vocabulary("app.settings"), "program.app"),
-        RailRow.Job("rail_job_settings", GlyphRef.Vocabulary("app.settings")),
-        RailRow.Job("rail_job_about", GlyphRef.Vocabulary("app.info"))
+        RailRow.Alone("rail_job_settings", GlyphRef.Vocabulary("app.settings"), "program.app"),
+        RailRow.Alone("rail_job_about", GlyphRef.Vocabulary("app.info"), "program.app")
     }
 End Class
 

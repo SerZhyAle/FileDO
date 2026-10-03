@@ -106,7 +106,7 @@ $proc = $null
 try {
     Set-Gui 'GuiLang' $Language
     Set-Gui 'ShellTheme' $Theme
-    Set-Gui 'ShellRailCollapsed' 'rail_group_tidy;rail_group_erase;rail_group_protect;rail_group_disks;rail_group_program'
+    Set-Gui 'ShellRailCollapsed' 'rail_group_tidy;rail_group_erase;rail_group_protect;rail_group_disks'
     Set-Gui 'DiskManagerWelcomed' 1 'DWord'
     foreach ($p in 'Shell', 'DiskManager') {
         Set-Gui "${p}PlacementV" 3 'DWord'
