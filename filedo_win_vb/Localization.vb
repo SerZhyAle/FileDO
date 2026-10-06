@@ -11,6 +11,11 @@ Module Localization
     Public ReadOnly Languages As String() = {"en", "ru", "uk", "de", "fr"}
     Public ReadOnly LanguageNames As String() = {"English", "Русский", "Українська", "Deutsch", "Français"}
 
+    ' Direction is declared with the language inventory. All five shipped scripts are LTR.
+    Friend Function IsRightToLeft(language As String) As Boolean
+        Return New String() {"ar", "he", "fa", "ur"}.Contains(language)
+    End Function
+
     ' Expands the \n line-break marker the tables use, because every value has to stay on one
     ' line inside a "key|value" entry.
     Public Function Multiline(value As String) As String
@@ -160,6 +165,12 @@ Module Localization
 
     Private Function EnLines() As String()
         Return New String() {
+            "settings_appearance|Appearance",
+            "settings_windows|Windows and window positions",
+            "settings_theme_hint|Follows Windows or uses your chosen light or dark palette. Applies immediately.",
+            "settings_minimize_hint|Keep the application available from the notification area when minimized.",
+            "settings_notify_hint|Show a notification after a job ends. Open FileDO to read the result.",
+            "settings_startup_apply|Apply startup choice",
             "vd_share_confirm_fmt|Register as {0}. {1}\n{2}",
             "vd_share_host_session|FMS host: signed-in session. Files are available while signed in and the disk is open.",
             "vd_share_host_service|FMS host: Windows service. An open disk can be available without sign-in.",
@@ -196,7 +207,7 @@ Module Localization
             "vd_share_finished|finished",
             "vd_share_access_ro|Shared access: read-only.",
             "vd_share_access_rw|Shared access: read/write.",
-            "vd_share_help|Select Share with Fast Media Sorter & Sharing.. (Ctrl+Shift+S) for a file-backed disk. Start Share Manager first. Registration defaults to read-only; opening and autostart are separate choices. A mounted disk is transferred cleanly after confirmation. Close keeps registration; Stop sharing deletes the saved autostart key. Inspect refreshed state after a failure. Partition and unverified Store controls are unavailable.",
+            "vd_share_help|Select Share with Fast Media Sorter & Sharing.. (Ctrl+Shift+S) for a file-backed disk. Start Share Manager first. Access is read and write unless you tick Read-only access (a sealed disk is always read-only); opening and autostart are separate choices. A mounted disk is transferred cleanly after confirmation. Close keeps registration; Stop sharing deletes the saved autostart key. Inspect refreshed state after a failure. Partition and unverified Store controls are unavailable.",
             "vd_share_state_open|Open for sharing.",
             "vd_share_state_closed|Registered, closed.",
             "vd_share_state_opening|Opening for sharing.",
@@ -869,7 +880,7 @@ Module Localization
             "shell_theme_light|Light",
             "shell_theme_dark|Dark",
             "shell_settings_lang|Language",
-            "shell_settings_lang_hint|The new language is used the next time this window is opened.",
+            "shell_settings_lang_hint|Applies immediately to every open FileDO window.",
             "shell_settings_history_title|Run history",
             "shell_settings_history|Write a report for every run",
             "shell_lbl_params|Extra parameters (optional):",
@@ -1180,6 +1191,12 @@ Module Localization
 
     Private Function RuLines() As String()
         Return New String() {
+            "settings_appearance|Внешний вид",
+            "settings_windows|Windows и положение окон",
+            "settings_theme_hint|Следовать Windows или выбрать светлую либо тёмную палитру. Применяется сразу.",
+            "settings_minimize_hint|При сворачивании приложение остаётся доступным через значок в области уведомлений.",
+            "settings_notify_hint|Показывать уведомление после завершения задачи. Результат можно прочитать в FileDO.",
+            "settings_startup_apply|Применить выбор автозапуска",
             "vd_share_confirm_fmt|Зарегистрировать как {0}. {1}\n{2}",
             "vd_share_host_session|FMS работает в сеансе пользователя. Файлы доступны при входе в систему и открытом диске.",
             "vd_share_host_service|FMS работает как служба Windows. Открытый диск может быть доступен без входа в систему.",
@@ -1216,7 +1233,7 @@ Module Localization
             "vd_share_finished|завершено",
             "vd_share_access_ro|Общий доступ: только чтение.",
             "vd_share_access_rw|Общий доступ: чтение и запись.",
-            "vd_share_help|Для файлового диска выберите «Поделиться через Fast Media Sorter & Sharing..» (Ctrl+Shift+S). Сначала запустите Share Manager. По умолчанию доступ только на чтение; открытие и автозапуск выбираются отдельно. Подключённый диск передаётся безопасно после подтверждения. Закрытие сохраняет регистрацию; прекращение шаринга удаляет ключ автозапуска. При ошибке проверьте обновлённое состояние. Диски в разделах и непроверенные команды Store недоступны.",
+            "vd_share_help|Для файлового диска выберите «Поделиться через Fast Media Sorter & Sharing..» (Ctrl+Shift+S). Сначала запустите Share Manager. По умолчанию доступ на чтение и запись; «только на чтение» включается галочкой (sealed-диск всегда только на чтение); открытие и автозапуск выбираются отдельно. Подключённый диск передаётся безопасно после подтверждения. Закрытие сохраняет регистрацию; прекращение шаринга удаляет ключ автозапуска. При ошибке проверьте обновлённое состояние. Диски в разделах и непроверенные команды Store недоступны.",
             "vd_share_state_open|Открыт для шаринга.",
             "vd_share_state_closed|Зарегистрирован, закрыт.",
             "vd_share_state_opening|Открывается для шаринга.",
@@ -1889,7 +1906,7 @@ Module Localization
             "shell_theme_light|Светлая",
             "shell_theme_dark|Тёмная",
             "shell_settings_lang|Язык",
-            "shell_settings_lang_hint|Новый язык применится при следующем открытии окна.",
+            "shell_settings_lang_hint|Применяется сразу ко всем открытым окнам FileDO.",
             "shell_settings_history_title|История запусков",
             "shell_settings_history|Записывать отчёт о каждом запуске",
             "shell_lbl_params|Дополнительные параметры (необязательно):",
@@ -2200,6 +2217,12 @@ Module Localization
 
     Private Function UkLines() As String()
         Return New String() {
+            "settings_appearance|Вигляд",
+            "settings_windows|Windows і розташування вікон",
+            "settings_theme_hint|Як у Windows або обрана світла чи темна палітра. Застосовується відразу.",
+            "settings_minimize_hint|Після згортання програма залишається доступною через значок в області сповіщень.",
+            "settings_notify_hint|Показувати сповіщення після завершення завдання. Результат можна прочитати у FileDO.",
+            "settings_startup_apply|Застосувати вибір автозапуску",
             "vd_share_confirm_fmt|Зареєструвати як {0}. {1}\n{2}",
             "vd_share_host_session|FMS працює в сеансі користувача. Файли доступні при вході та відкритому диску.",
             "vd_share_host_service|FMS працює як служба Windows. Відкритий диск може бути доступний без входу.",
@@ -2236,7 +2259,7 @@ Module Localization
             "vd_share_finished|завершено",
             "vd_share_access_ro|Спільний доступ: лише читання.",
             "vd_share_access_rw|Спільний доступ: читання та запис.",
-            "vd_share_help|Для файлового диска виберіть «Поділитися через Fast Media Sorter & Sharing..» (Ctrl+Shift+S). Спочатку запустіть Share Manager. Типово доступ лише для читання; відкриття та автозапуск вибираються окремо. Підключений диск передається безпечно після підтвердження. Закриття зберігає реєстрацію; припинення доступу видаляє ключ автозапуску. При помилці перевірте оновлений стан. Диски в розділах та неперевірені команди Store недоступні.",
+            "vd_share_help|Для файлового диска виберіть «Поділитися через Fast Media Sorter & Sharing..» (Ctrl+Shift+S). Спочатку запустіть Share Manager. Типово доступ на читання і запис; «лише для читання» вмикається галочкою (sealed-диск завжди лише для читання); відкриття та автозапуск вибираються окремо. Підключений диск передається безпечно після підтвердження. Закриття зберігає реєстрацію; припинення доступу видаляє ключ автозапуску. При помилці перевірте оновлений стан. Диски в розділах та неперевірені команди Store недоступні.",
             "vd_share_state_open|Відкрито для доступу.",
             "vd_share_state_closed|Зареєстровано, закрито.",
             "vd_share_state_opening|Відкривається для доступу.",
@@ -2909,7 +2932,7 @@ Module Localization
             "shell_theme_light|Світла",
             "shell_theme_dark|Темна",
             "shell_settings_lang|Мова",
-            "shell_settings_lang_hint|Нова мова застосується під час наступного відкриття вікна.",
+            "shell_settings_lang_hint|Застосовується відразу до всіх відкритих вікон FileDO.",
             "shell_settings_history_title|Історія запусків",
             "shell_settings_history|Записувати звіт про кожен запуск",
             "shell_lbl_params|Додаткові параметри (необов'язково):",
@@ -3220,6 +3243,12 @@ Module Localization
 
     Private Function DeLines() As String()
         Return New String() {
+            "settings_appearance|Darstellung",
+            "settings_windows|Windows und Fensterpositionen",
+            "settings_theme_hint|Windows folgen oder eine helle bzw. dunkle Palette wählen. Wird sofort angewendet.",
+            "settings_minimize_hint|Die Anwendung bleibt nach dem Minimieren über den Infobereich erreichbar.",
+            "settings_notify_hint|Nach dem Ende einer Aufgabe benachrichtigen. Das Ergebnis ist in FileDO zu lesen.",
+            "settings_startup_apply|Startauswahl anwenden",
             "vd_share_confirm_fmt|Als {0} registrieren. {1}\n{2}",
             "vd_share_host_session|FMS-Host: angemeldete Sitzung. Dateien sind bei Anmeldung und geöffnetem Datenträger verfügbar.",
             "vd_share_host_service|FMS-Host: Windows-Dienst. Ein geöffneter Datenträger kann ohne Anmeldung verfügbar sein.",
@@ -3256,7 +3285,7 @@ Module Localization
             "vd_share_finished|abgeschlossen",
             "vd_share_access_ro|Freigabe: nur Lesen.",
             "vd_share_access_rw|Freigabe: Lesen/Schreiben.",
-            "vd_share_help|Wählen Sie Über Fast Media Sorter & Sharing teilen.. (Ctrl+Shift+S) für einen dateibasierten Datenträger. Starten Sie zuerst Share Manager. Standardmäßig nur Lesen; Öffnen und Autostart sind separate Entscheidungen. Ein eingebundener Datenträger wird nach Bestätigung sauber übergeben. Schließen behält die Registrierung; Freigabe beenden löscht den Autostart-Schlüssel. Prüfen Sie bei Fehlern den aktualisierten Zustand. Partitionsdatenträger und ungeprüfte Store-Steuerung sind nicht verfügbar.",
+            "vd_share_help|Wählen Sie Über Fast Media Sorter & Sharing teilen.. (Ctrl+Shift+S) für einen dateibasierten Datenträger. Starten Sie zuerst Share Manager. Standardmäßig Lesen und Schreiben; Nur Lesezugriff wird per Kontrollkästchen gewählt (ein sealed-Datenträger ist immer schreibgeschützt); Öffnen und Autostart sind separate Entscheidungen. Ein eingebundener Datenträger wird nach Bestätigung sauber übergeben. Schließen behält die Registrierung; Freigabe beenden löscht den Autostart-Schlüssel. Prüfen Sie bei Fehlern den aktualisierten Zustand. Partitionsdatenträger und ungeprüfte Store-Steuerung sind nicht verfügbar.",
             "vd_share_state_open|Für Freigabe geöffnet.",
             "vd_share_state_closed|Registriert, geschlossen.",
             "vd_share_state_opening|Wird geöffnet.",
@@ -3929,7 +3958,7 @@ Module Localization
             "shell_theme_light|Hell",
             "shell_theme_dark|Dunkel",
             "shell_settings_lang|Sprache",
-            "shell_settings_lang_hint|Die neue Sprache gilt beim nächsten Öffnen dieses Fensters.",
+            "shell_settings_lang_hint|Wird sofort auf alle geöffneten FileDO-Fenster angewendet.",
             "shell_settings_history_title|Laufverlauf",
             "shell_settings_history|Für jeden Lauf einen Bericht schreiben",
             "shell_lbl_params|Weitere Parameter (optional):",
@@ -4240,6 +4269,12 @@ Module Localization
 
     Private Function FrLines() As String()
         Return New String() {
+            "settings_appearance|Apparence",
+            "settings_windows|Windows et position des fenêtres",
+            "settings_theme_hint|Suivre Windows ou choisir une palette claire ou sombre. Application immédiate.",
+            "settings_minimize_hint|Garder l’application accessible depuis la zone de notification après réduction.",
+            "settings_notify_hint|Notifier la fin d’une tâche. Ouvrir FileDO pour lire le résultat.",
+            "settings_startup_apply|Appliquer le choix au démarrage",
             "vd_share_confirm_fmt|Enregistrer sous {0}. {1}\n{2}",
             "vd_share_host_session|Hôte FMS : session connectée. Fichiers accessibles lorsque la session et le disque sont ouverts.",
             "vd_share_host_service|Hôte FMS : service Windows. Un disque ouvert peut être accessible sans connexion.",
@@ -4276,7 +4311,7 @@ Module Localization
             "vd_share_finished|terminé",
             "vd_share_access_ro|Accès partagé : lecture seule.",
             "vd_share_access_rw|Accès partagé : lecture/écriture.",
-            "vd_share_help|Choisissez Partager via Fast Media Sorter & Sharing.. (Ctrl+Shift+S) pour un disque sur fichier. Démarrez d’abord Share Manager. Lecture seule par défaut ; ouverture et démarrage sont séparés. Un disque monté est transféré proprement après confirmation. Fermer conserve l’enregistrement ; arrêter supprime la clé de démarrage. Vérifiez l’état actualisé après un échec. Disques sur partition et contrôles Store non vérifiés sont indisponibles.",
+            "vd_share_help|Choisissez Partager via Fast Media Sorter & Sharing.. (Ctrl+Shift+S) pour un disque sur fichier. Démarrez d’abord Share Manager. Lecture et écriture par défaut ; la lecture seule se coche (un disque sealed reste en lecture seule) ; ouverture et démarrage sont séparés. Un disque monté est transféré proprement après confirmation. Fermer conserve l’enregistrement ; arrêter supprime la clé de démarrage. Vérifiez l’état actualisé après un échec. Disques sur partition et contrôles Store non vérifiés sont indisponibles.",
             "vd_share_state_open|Ouvert pour le partage.",
             "vd_share_state_closed|Enregistré, fermé.",
             "vd_share_state_opening|Ouverture en cours.",
@@ -4949,7 +4984,7 @@ Module Localization
             "shell_theme_light|Clair",
             "shell_theme_dark|Sombre",
             "shell_settings_lang|Langue",
-            "shell_settings_lang_hint|La nouvelle langue s'applique à la prochaine ouverture de cette fenêtre.",
+            "shell_settings_lang_hint|S’applique immédiatement à toutes les fenêtres FileDO ouvertes.",
             "shell_settings_history_title|Historique des exécutions",
             "shell_settings_history|Écrire un rapport pour chaque exécution",
             "shell_lbl_params|Paramètres supplémentaires (facultatif) :",

@@ -517,7 +517,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   (the rail's glyph map, with a shrink-only count of Segoe stand-ins), `rail-hue:`, `rail-group:`,
   `rail-accordion:` and `rail-band:` (the group icons' hues, no group of one job, one group open, the checker of
   bands), `glyph:` (the verdicts),
-  `state-tone:` (the shared `state.*` tones) and `contrast:` (every glyph against its surface). Its palette switch goes through
+  `state-tone:` (the shared `state.*` tones), `contrast:` (every glyph against its surface) and `hit-target:` (the 28 logical px floor of ICON-RENDER rule 5 under a mouse or a pen, on the glyph buttons at every tier, the Disk Manager's list rows, the check boxes after `Ui.HitTargetFloor` and the plain dialog buttons). Its palette switch goes through
   `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe
   and exits 0, 1, or 2 (the last means its log could not be written). It is a GUI-subsystem process, so from PowerShell it needs
   `Start-Process .\filedo_win.exe --selftest -Wait -PassThru` to have an exit code at all.

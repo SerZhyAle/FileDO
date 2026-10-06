@@ -112,6 +112,16 @@ func (m *NoLetterMountManager) baseLocked() (string, error) {
 	if m.basePath != "" {
 		return m.basePath, nil
 	}
+	// An operator-provided base wins over both profile defaults. The FMS worker's
+	// service mode sets it (FDO_NOLETTER_BASE): a disk it mounts for its phones
+	// must also be reachable by the enrolled management user, and the system
+	// profile's ancestors deny traversal to everyone but SYSTEM - a DACL on the
+	// mount directory alone cannot fix that. The value must already carry the
+	// private base's shape (...FileDO\FMS), so the recorded-base checks of the
+	// cleanup path accept it unchanged.
+	if override := filepath.Clean(m.getenv(NoLetterBaseEnv)); override != "." && filepath.IsAbs(override) && noLetterBaseShape(override) {
+		return override, nil
+	}
 	root := m.getenv("LOCALAPPDATA")
 	if m.isSystem() {
 		root = filepath.Join(m.getenv("SystemRoot"), "System32", "config", "systemprofile", "AppData", "Local")
@@ -121,6 +131,21 @@ func (m *NoLetterMountManager) baseLocked() (string, error) {
 	}
 	return filepath.Join(root, "FileDO", "FMS"), nil
 }
+
+// NoLetterBaseEnv names the operator-provided no-letter mount base. Empty means
+// the profile defaults. Only the process's own operator sets it (the FMS worker);
+// an arbitrary value is still confined: it must be absolute and carry the
+// ...FileDO\FMS shape the cleanup path verifies recorded bases against.
+const NoLetterBaseEnv = "FDO_NOLETTER_BASE"
+
+// noLetterBaseShape mirrors the cleanup path's private-base rule: the base is a
+// directory named FMS inside a directory named FileDO. Kept local so the vdisk
+// package does not import the command layer.
+func noLetterBaseShape(base string) bool {
+	return strings.EqualFold(filepath.Base(base), "FMS") &&
+		strings.EqualFold(filepath.Base(filepath.Dir(base)), "FileDO")
+}
+
 func (m *NoLetterMountManager) BasePath() (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -134,13 +159,42 @@ func mountSDDL() (string, error) {
 	return mountSDDLForSID(sid), nil
 }
 
+// MountGrantSIDEnv names one extra string SID the protected mount DACL grants
+// full control to - beside SYSTEM and the running user. The FMS worker passes
+// its enrolled management SID (its --manage-sid), so a disk the service mounts
+// stays private to the machine account and to the person who shares it; every
+// other principal is still locked out, and the DACL stays protected (no
+// inheritance). A value that is not a well-formed SID is ignored whole.
+const MountGrantSIDEnv = "FDO_MOUNT_GRANT_SID"
+
+// grantEnv is a var so tests can inject the environment the DACL builder reads.
+var grantEnv = os.Getenv
+
 // mountSDDLForSID is a protected DACL: SYSTEM plus the running user, nobody else.
 func mountSDDLForSID(sid string) string {
 	s := "D:P(A;OICI;FA;;;SY)"
 	if sid != sidSystem {
 		s += "(A;OICI;FA;;;" + sid + ")"
 	}
+	if granted := strings.TrimSpace(grantEnv(MountGrantSIDEnv)); granted != sid && granted != sidSystem && validStringSID(granted) {
+		s += "(A;OICI;FA;;;" + granted + ")"
+	}
 	return s
+}
+
+// validStringSID reports whether value parses as a Windows SID string. The DACL
+// string is built by concatenation, so an unvalidated value could inject ACEs -
+// the same rule the control pipe's SDDL builder follows.
+func validStringSID(value string) bool {
+	if value == "" {
+		return false
+	}
+	var sid *windows.SID
+	if e := windows.ConvertStringSidToSid(windows.StringToUTF16Ptr(value), &sid); e != nil {
+		return false
+	}
+	windows.LocalFree(windows.Handle(unsafe.Pointer(sid)))
+	return true
 }
 
 // mountOwnerTrusted accepts the owners the OS gives a directory the process

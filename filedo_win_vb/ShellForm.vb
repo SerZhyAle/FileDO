@@ -93,8 +93,9 @@ Public Class ShellForm
         diskStart = diskDecision
         If Not OpenOnTarget(openTarget) Then
             ' D5: Default to Command page after first-run tour / on startup
-            SelectJobByKey("rail_job_command")
+            SelectJobByKey(ShellSettings.LastPage())
         End If
+        Theme.Watch(Me, AddressOf ApplyTheme)
     End Sub
 
     ' A container opens its reveal page; any other file opens the page that
@@ -182,6 +183,7 @@ Public Class ShellForm
         pageHost.Controls.Add(view)
         view.ApplyTheme()
         Ui.KeepCaptionsReadable(view)
+        Ui.HitTargetFloor(view)
     End Sub
 
     Private Function L(key As String) As String
@@ -343,6 +345,10 @@ Public Class ShellForm
 
     ' Ctrl+Shift+D opens the Disk manager from anywhere in the window.
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
+        If keyData = Keys.Escape AndAlso settingsView IsNot Nothing AndAlso settingsView.Visible Then
+            SelectJobByKey("rail_job_command")
+            Return True
+        End If
         If keyData = (Keys.Control Or Keys.Shift Or Keys.D) Then
             AppHost.OpenDiskManager()
             Return True
@@ -496,12 +502,8 @@ Public Class ShellForm
     End Sub
 
     Private Sub ToggleGroup(head As RailEntry)
-        If head.Collapsed Then
-            OpenGroupOnly(head)
-            rail.ScrollControlIntoView(head)
-        Else
-            SetGroupCollapsed(head, True)
-        End If
+        SetGroupCollapsed(head, Not head.Collapsed)
+        rail.ScrollControlIntoView(head)
     End Sub
 
     ' The self-test's view of the rail, and a click on a header that does not write the user's
@@ -517,15 +519,13 @@ Public Class ShellForm
 
     Private Sub OpenGroupOnly(head As RailEntry)
         rail.SuspendLayout()
-        For Each other In groupHeaders
-            If Not other Is head AndAlso Not other.Collapsed Then SetGroupCollapsed(other, True)
-        Next
         SetGroupCollapsed(head, False)
         rail.ResumeLayout(True)
     End Sub
 
     Private Sub SetGroupCollapsed(head As RailEntry, collapsed As Boolean)
         If head Is Nothing Then Return
+        If collapsed AndAlso groupMembers.ContainsKey(head.Key) AndAlso groupMembers(head.Key).Any(Function(m) m.ContainsFocus) Then head.Focus()
         head.Collapsed = collapsed
 
         Dim members As List(Of RailEntry) = Nothing
@@ -588,15 +588,8 @@ Public Class ShellForm
     ' the accordion that shut nothing) therefore opens the first group.
     Private Sub RestoreCollapsedGroups()
         Dim saved = ShellSettings.CollapsedGroups()
-        Dim keep As RailEntry = Nothing
         For Each head In groupHeaders
-            If Not saved.Contains(head.Key) Then
-                keep = head
-                Exit For
-            End If
-        Next
-        For Each head In groupHeaders
-            SetGroupCollapsed(head, Not head Is keep)
+            SetGroupCollapsed(head, saved.Contains(head.Key))
         Next
     End Sub
 
@@ -632,6 +625,13 @@ Public Class ShellForm
     Friend ReadOnly Property DiskManagerButtonForTest As RailEntry
         Get
             Return entries.FirstOrDefault(Function(e) e.Key = RailRow.DiskManagerKey)
+        End Get
+    End Property
+
+    ' The driven UI acceptance run's view of the settings surface (SP-0150, UiDrive.vb).
+    Friend ReadOnly Property SettingsPanelForTest As SettingsPanel
+        Get
+            Return settingsView.Panel
         End Get
     End Property
 
@@ -821,7 +821,7 @@ Public Class ShellForm
     Friend Sub OpenSettings()
         BringBack()
         SelectJobByKey("rail_job_settings")
-        settingsView.Panel.StartupCombo.Focus()
+        settingsView.Panel.Reveal("theme")
     End Sub
 
     ' The name of what is running, for the close question.
@@ -920,6 +920,7 @@ Public Class ShellForm
         aboutView.ApplyTheme()
         settingsView.ApplyTheme()
         Ui.KeepCaptionsReadable(Me)
+        Ui.HitTargetFloor(Me)
 
         Chrome.Apply(Me)
         Invalidate(True)
@@ -1071,6 +1072,9 @@ Public Class ShellForm
         End If
 
         Dim b = If(WindowState = FormWindowState.Normal, Bounds, RestoreBounds)
+        settingsView.Panel.SaveContext()
+        Dim selected = entries.FirstOrDefault(Function(entry) entry.Selected)
+        If selected IsNot Nothing Then ShellSettings.SetLastPage(selected.Key)
         ShellSettings.SavePlacement(b.X, b.Y, b.Width, b.Height, SavesMaximized(WindowState, lastShownState), DeviceDpi)
         ShellLog.Debug("shell closed")
         MyBase.OnFormClosing(e)

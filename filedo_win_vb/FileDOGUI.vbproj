@@ -76,6 +76,10 @@
     <Compile Include="ArgQuoting.vb" />
     <Compile Include="ShortcutWriter.vb" />
     <Compile Include="Ui.vb" />
+    <Compile Include="UiDrive.vb" />
+    <Compile Include="SettingsLayout.vb" />
+    <Compile Include="NativeEditors.vb" />
+    <Compile Include="LiveLanguage.vb" />
     <Compile Include="Links.vb" />
     <Compile Include="AboutView.vb">
       <SubType>UserControl</SubType>

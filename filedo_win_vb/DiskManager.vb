@@ -193,6 +193,7 @@ Partial Public Class DiskManagerForm
         ApplyTheme()
         RestorePlacement()
         SetDetailOpen(ShellSettings.DiskManagerDetailOpen())
+        Theme.Watch(Me, AddressOf ApplyTheme)
         ' Nothing on the toolbar has the keyboard when the window opens: a focused button draws its
         ' frame at once and looks like a chosen default. The filter has it until the list has rows.
         ActiveControl = filterBox
@@ -333,9 +334,13 @@ Partial Public Class DiskManagerForm
         AddHandler refreshBtn.Click, Sub() RequestRead()
         settingsBtn = NewGlyphButton("rail_job_settings", GlyphRef.Vocabulary("app.settings"), 24, True)
         AddHandler settingsBtn.Click, Sub()
-                                         Using dlg As New DiskSettingsDialog()
-                                             dlg.ShowDialog(Me)
-                                         End Using
+                                         If AppHost.Current IsNot Nothing Then
+                                             AppHost.Current.ShowSettings()
+                                         Else
+                                             Using dlg As New DiskSettingsDialog()
+                                                 dlg.ShowDialog(Me)
+                                             End Using
+                                         End If
                                      End Sub
         helpBtn = NewGlyphButton("vd_mgr_name_help", DiskGlyphs.Help, 24, True)
         AddHandler helpBtn.Click, Sub() helpMenu.Show(helpBtn, 0, helpBtn.Height)
@@ -2721,7 +2726,7 @@ Partial Public Class DiskManagerForm
         Next
         stateBitmaps.Clear()
         glyphImages.Images.Clear()
-        glyphImages.ImageSize = New Size(size, Ui.Px(Me, 24))
+        glyphImages.ImageSize = New Size(size, Ui.Px(Me, 28)) ' a row is a hit target: 28 logical px, the ICON-RENDER 5 floor under a mouse or a pen (0.15; it was 24)
         glyphImages.Images.Add(New Bitmap(glyphImages.ImageSize.Width, glyphImages.ImageSize.Height, Imaging.PixelFormat.Format32bppArgb))
         For Each state In New DiskRowState() {DiskRowState.Mounted, DiskRowState.Unsaved, DiskRowState.ServerGone}
             glyphImages.Images.Add(New Bitmap(glyphImages.ImageSize.Width, glyphImages.ImageSize.Height, Imaging.PixelFormat.Format32bppArgb))
@@ -2975,6 +2980,14 @@ Partial Public Class DiskManagerForm
                 out.Add(it.SubItems.Cast(Of ListViewItem.ListViewSubItem)().Select(Function(s) s.Text).ToArray())
             Next
             Return out
+        End Get
+    End Property
+
+    ' The self-test's view: the height a list row is given. The image list's picture height is what
+    ' sets an owner-drawn list's row height, and a row is a hit target (ICON-RENDER rule 5).
+    Friend ReadOnly Property ListRowHeightForTest As Integer
+        Get
+            Return If(list Is Nothing OrElse glyphImages Is Nothing, 0, glyphImages.ImageSize.Height)
         End Get
     End Property
 

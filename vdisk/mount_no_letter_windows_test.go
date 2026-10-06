@@ -579,6 +579,77 @@ func TestBaseDirectoryUserAndSystem(t *testing.T) {
 	}
 }
 
+func TestBaseDirectoryOperatorOverride(t *testing.T) {
+	// The FMS worker's service mode moves the base out of the system profile so
+	// the enrolled management user can reach a mounted disk: the profile's
+	// ancestors deny traversal to everyone but SYSTEM, which no DACL on the
+	// mount directory alone can fix.
+	env := map[string]string{
+		"LOCALAPPDATA":  `C:\Users\u\AppData\Local`,
+		"SystemRoot":    `C:\Windows`,
+		NoLetterBaseEnv: `C:\ProgramData\FastMediaSorterCompanion\FileDO\FMS`,
+	}
+	m := NewNoLetterMountManager("")
+	m.getenv = func(k string) string { return env[k] }
+	m.isSystem = func() bool { return true }
+	if got, e := m.BasePath(); e != nil || got != `C:\ProgramData\FastMediaSorterCompanion\FileDO\FMS` {
+		t.Fatalf("override base %q %v", got, e)
+	}
+	// The override wins over an explicit-looking SYSTEM default but not over a
+	// manager constructed with its own base.
+	if got, _ := NewNoLetterMountManager(`D:\fixed`).BasePath(); got != `D:\fixed` {
+		t.Fatalf("explicit base must beat the override, got %q", got)
+	}
+	// A relative value, a wrong leaf and a wrong parent are ignored whole.
+	for _, bad := range []string{`relative\FileDO\FMS`, `C:\ProgramData\Other\FMS`, `C:\ProgramData\FileDO\NotFMS`} {
+		env[NoLetterBaseEnv] = bad
+		if got, e := m.BasePath(); e != nil || got != `C:\Windows\System32\config\systemprofile\AppData\Local\FileDO\FMS` {
+			t.Fatalf("override %q accepted as %q %v", bad, got, e)
+		}
+	}
+	env[NoLetterBaseEnv] = ""
+	if got, e := m.BasePath(); e != nil || got != `C:\Windows\System32\config\systemprofile\AppData\Local\FileDO\FMS` {
+		t.Fatalf("default base after empty override %q %v", got, e)
+	}
+}
+
+func TestMountSDDLGrantsTheOperatorSID(t *testing.T) {
+	const user = "S-1-5-18" // SYSTEM itself: no own ACE
+	if got := mountSDDLForSID(user); got != "D:P(A;OICI;FA;;;SY)" {
+		t.Fatalf("SYSTEM SDDL %q", got)
+	}
+	const sid = "S-1-5-21-1046302569-2138773404-4177788119-1002"
+	if got := mountSDDLForSID(sid); got != "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;"+sid+")" {
+		t.Fatalf("user SDDL %q", got)
+	}
+	// The grant extends the DACL, still protected, never doubling the running user:
+	// when the grant IS the running user the string keeps one ACE for it.
+	saved := grantEnv
+	defer func() { grantEnv = saved }()
+	grantEnv = func(k string) string {
+		if k == MountGrantSIDEnv {
+			return sid
+		}
+		return ""
+	}
+	if got := mountSDDLForSID(sid); got != "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;"+sid+")" {
+		t.Fatalf("grant equals the running user: %q", got)
+	}
+	if got := mountSDDLForSID(user); got != "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;"+sid+")" {
+		t.Fatalf("SYSTEM with grant %q", got)
+	}
+	// Not a SID: ignored whole - the DACL is built by concatenation.
+	grantEnv = func(k string) string {
+		if k == MountGrantSIDEnv {
+			return "A;OICI;FA;;;WD)(A;;FA;;;BA"
+		}
+		return ""
+	}
+	if got := mountSDDLForSID(user); got != "D:P(A;OICI;FA;;;SY)" {
+		t.Fatalf("injection attempt accepted: %q", got)
+	}
+}
+
 // fakeDirSystem drives secureMountDirectoryWith without touching the OS.
 type fakeDirSystem struct {
 	user      string

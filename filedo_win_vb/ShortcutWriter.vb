@@ -302,6 +302,7 @@ Friend Class ShortcutDialog
         AddHandler pauseBox.CheckedChanged, Sub() UpdatePreview()
         UpdatePreview()
         ApplyTheme()
+        Theme.Watch(Me, AddressOf ApplyTheme)
     End Sub
 
     Private Sub UpdatePreview()
@@ -349,6 +350,7 @@ Friend Class ShortcutDialog
         Dim p = Theme.Current
         BackColor = p.Surface
         ForeColor = p.Text
+        Ui.HitTargetFloor(Me)
         nameBox.BackColor = p.SurfaceAlt
         nameBox.ForeColor = p.Text
         nameBox.Font = Theme.FontBody()

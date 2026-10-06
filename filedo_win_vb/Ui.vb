@@ -15,6 +15,15 @@
 '      visible in all five locales instead of only in the one it was written in.
 Module Ui
 
+    Friend Iterator Function AllControls(root As Control) As IEnumerable(Of Control)
+        Yield root
+        For Each child As Control In root.Controls
+            For Each item In AllControls(child)
+                Yield item
+            Next
+        Next
+    End Function
+
     ' A design pixel, taken at 96 DPI, in the device units of the monitor this control is on.
     Public Function Px(owner As Control, designPixels As Integer) As Integer
         If owner Is Nothing Then Return designPixels
@@ -118,6 +127,28 @@ Module Ui
         b.ForeColor = fore
         b.UseVisualStyleBackColor = False
         KeepCaptionReadable(b)
+    End Sub
+
+    ' The hit-target floor of ICON-RENDER rule 5 (0.15): a control the user works with under a mouse
+    ' or a pen is at least 28 logical px. GlyphButton carries the floor itself, the rail's rows are
+    ' 44 px and a plain WinForms button at the shell's 10 pt body already measures 30 px and up; a check box
+    ' or a radio button sizes to the font instead (24 px), so the floor is laid on it here as a
+    ' MinimumSize, once per window after its views are built. AutoSize keeps the width, the box and
+    ' the caption centre in the taller bounds (their MiddleLeft align is the shell's only kind), and
+    ' what grows is the clickable area alone.
+    Public Sub HitTargetFloor(root As Control)
+        If root Is Nothing Then Return
+        Dim box = TryCast(root, CheckBox)
+        Dim radio = TryCast(root, RadioButton)
+        If box Is Nothing AndAlso radio Is Nothing Then
+            For Each c In root.Controls
+                HitTargetFloor(c)
+            Next
+            Return
+        End If
+        Dim floor = Px(root, 28)
+        If root.MinimumSize.Height >= floor Then Return
+        root.MinimumSize = New Size(root.MinimumSize.Width, floor)
     End Sub
 
     ' A disabled button, check box or radio button draws its caption in the palette's TextDisabled.

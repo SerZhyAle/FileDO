@@ -60,6 +60,11 @@ Partial Module SelfTest
             Using dlg As New DiskShareDialog(d, r, Nothing)
                 Check("disk-share-manager:dialog-safe:" & lang, dlg.AcceptButton Is dlg.CancelButton AndAlso dlg.Options().ReadOnly AndAlso Not dlg.OpenNow, "")
             End Using
+            ' Read-only is the owner's choice, not a default: a plain disk opens the dialog writable, a sealed one cannot be.
+            Dim plain As New DiskRecord With {.Name = "work", .Path = r.Path, .ContainerId = r.ContainerId, .Profile = "plain", .Carrier = "file"}
+            Using dlg As New DiskShareDialog(d, plain, Nothing)
+                Check("disk-share-manager:dialog-writable-default:" & lang, Not dlg.Options().ReadOnly, "")
+            End Using
         Next
     End Sub
 End Module

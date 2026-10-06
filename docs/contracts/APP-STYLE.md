@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-STYLE` |
-| **Version** | 0.11, draft (no wire - a palette role vocabulary and a theme mechanism) |
+| **Version** | 0.12, draft (no wire - a palette role vocabulary and a theme mechanism) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/Theme.vb`, `Chrome.vb`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-STYLE.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |
@@ -31,6 +31,14 @@ every rail row painted in every state under both palettes without an exception. 
 shell_contract_test.go` - no colour named or mixed outside `Theme.vb`. Rung 3, the light and dark
 screenshot pair, is `msix\make-screenshots.ps1 -Theme light` and `-Theme dark`.
 
-**Status: implemented; 0.11 read and applied 2026-10-02 (SP-0122).** The `danger`, `warning` and `success` roles are [CONTRACT]: the acting button of a destructive confirmation takes `danger` while the safe answer holds the default focus (`ShellDialog.vb`, `dialog:` self-test rows). The live OS signal binds, which `WM_SETTINGCHANGE` under Follow Windows already is.
+**Status: implemented; 0.11 read and applied 2026-10-02 (SP-0122); 0.12 read and applied 2026-10-05 (SP-0150).**
+
+**0.12 (section 10, complete live theme coverage):** every open window and nested child follows a switch through one
+notification (`Theme.Watch`) - the shell, the Disk Manager, every `DiskSmallDialog` / `DiskPageDialog` / `ShellDialog` /
+shortcut dialog, the tray menu, and the native combo editors (`NativeEditors`); a hidden or reused window repaints before it
+is shown again, and the `theme:` and `windows-ui:watch` self-test rows and the driven `--ui-drive` run hold it. High contrast
+takes precedence over the chosen mode with the system's own colours (`Theme.SystemContrastPalette`, WINDOWS-UI section 6.5).
+The rail's per-destination identity tones are the navigation identity inks of ICON-RENDER section 11: declared in `Theme.vb`'s
+one table with light and dark values, gated by the `contrast:` rows, and folded into text ink under high contrast. The `danger`, `warning` and `success` roles are [CONTRACT]: the acting button of a destructive confirmation takes `danger` while the safe answer holds the default focus (`ShellDialog.vb`, `dialog:` self-test rows). The live OS signal binds, which `WM_SETTINGCHANGE` under Follow Windows already is.
 
 **Palette values** default to the shared ones, and `Theme.vb` deviates only where measured contrast forces it: the light theme's muted, danger, success and warning-ink values are darker than the kit's so that text reaches 4.5:1 and glyphs 3:1 on FileDO's tinted surfaces. Each deviation is a dated exception in the catalog registry; none is a local taste choice. The contrast of every role against every surface it is drawn on is measured by the self-test's `contrast:` rows, not claimed.

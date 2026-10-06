@@ -47,6 +47,10 @@ Friend Class TrayIcon
     End Sub
 
     Private Sub BuildMenu()
+        menu.Renderer = New ShellMenuRenderer()
+        menu.BackColor = Theme.Current.Surface
+        menu.ForeColor = Theme.Current.Text
+        menu.Font = Theme.FontBody()
         For Each item In menu.Items.Cast(Of ToolStripItem)().ToArray()
             menu.Items.Remove(item)
             item.Dispose()
@@ -56,7 +60,7 @@ Friend Class TrayIcon
                 menu.Items.Add(New ToolStripSeparator())
                 Continue For
             End If
-            Dim entry As New ToolStripMenuItem(Localization.T(key))
+            Dim entry As New ToolStripMenuItem(Localization.T(key)) With {.ForeColor = Theme.Current.Text}
             If key = "settings_startup" Then entry.Checked = Not Packaging.IsPackaged() AndAlso ShellSettings.Autostart() <> "off"
             AddHandler entry.Click, Sub() Invoke(key)
             menu.Items.Add(entry)

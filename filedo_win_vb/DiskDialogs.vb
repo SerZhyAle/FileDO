@@ -110,6 +110,7 @@ Public Class DiskSmallDialog
     Protected Sub Finish()
         AddContent(buttonRow)
         ApplyTheme()
+        Theme.Watch(Me, AddressOf ApplyTheme)
         ResumeLayout(True)
     End Sub
 
@@ -126,7 +127,9 @@ Public Class DiskSmallDialog
         Dim p = Theme.Current
         BackColor = p.Surface
         ForeColor = p.Text
+        Ui.HitTargetFloor(Me)
         For Each c In AllChildren(Me)
+            c.Font = Theme.FontBody()
             If TypeOf c Is Label Then
                 c.ForeColor = If(notes.Contains(DirectCast(c, Label)) AndAlso c IsNot message, p.MutedText, p.Text)
             ElseIf TypeOf c Is TextBox Then

@@ -83,6 +83,8 @@
 param(
     # Run the local test gate after a successful build (smoke-run + go test).
     [switch]$Test,
+    # Explicit user restriction: do not invoke Git, and report the Git-dependent step as unverified.
+    [switch]$NoGit,
     # Use this exact yyMMddHHmm stamp instead of the current time. release.ps1
     # passes the tag's stamp so the gate, tracked binaries and tag agree.
     [ValidatePattern('^\d{10}$')]
@@ -108,6 +110,7 @@ param(
     [string]$DeployTo = $env:FILEDO_DEPLOY_DIR
 )
 
+if ($NoGit -and $Commit) { throw '-NoGit cannot be combined with -Commit.' }
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 # StrictMode refuses to read an automatic variable no native command has set yet.
@@ -653,8 +656,13 @@ if ($Test) {
     #    relative link and anchor resolving, and the internal corpus in house style with no
     #    remote embeds. The flag tables are held to the parser by go test (step 4).
     Write-Host "documentation registry, links and style ..." -NoNewline
-    $docsOut = & "$root\packaging\check-internal-docs.ps1" *>&1 | Out-String
-    $docsCode = $LASTEXITCODE
+    if ($NoGit) {
+        $docsOut = 'internal-docs: COULD NOT VERIFY (Git prohibited for this run)'
+        $docsCode = 2
+    } else {
+        $docsOut = & "$root\packaging\check-internal-docs.ps1" *>&1 | Out-String
+        $docsCode = $LASTEXITCODE
+    }
     Record-GateStep 'internal-docs' $docsCode $(if ($docsCode -eq 2) { ($docsOut.Trim() -split "`r?`n")[-1] } else { $docsOut })
 
     # 9) The published site and the READMEs against DOC-EXTERNAL-QUALITY (SP-0062): glossary
@@ -670,8 +678,13 @@ if ($Test) {
     #     files on this disk; `git add -A` and the clean-tree check skip an ignored one without a
     #     word, so the tagged run - which builds from a checkout - would be the first to miss it.
     Write-Host "no build input is git-ignored ..." -NoNewline
-    $inputsOut = & "$root\packaging\check-build-inputs.ps1" *>&1 | Out-String
-    $inputsCode = $LASTEXITCODE
+    if ($NoGit) {
+        $inputsOut = 'build-inputs: COULD NOT VERIFY (Git prohibited for this run)'
+        $inputsCode = 2
+    } else {
+        $inputsOut = & "$root\packaging\check-build-inputs.ps1" *>&1 | Out-String
+        $inputsCode = $LASTEXITCODE
+    }
     Record-GateStep 'build-inputs' $inputsCode $(if ($inputsCode -eq 2) { ($inputsOut.Trim() -split "`r?`n")[-1] } else { $inputsOut })
 
     # A failed step outranks a step that could not verify. All ten steps run

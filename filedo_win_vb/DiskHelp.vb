@@ -292,6 +292,7 @@ Friend MustInherit Class DiskPageDialog
     ' Sizes the window to its content, at most most of the screen, and themes it.
     Protected Sub Finish()
         ApplyTheme()
+        Theme.Watch(Me, AddressOf Retheme)
         ResumeLayout(True)
         page.Width = contentWidth
         Dim work = Screen.FromControl(If(CType(ownerControl, Control), Me)).WorkingArea
@@ -314,11 +315,17 @@ Friend MustInherit Class DiskPageDialog
         Dim p = Theme.Current
         BackColor = p.Surface
         ForeColor = p.Text
+        Ui.HitTargetFloor(Me)
         rootLayout.BackColor = p.Surface
         scroller.BackColor = p.Surface
         page.BackColor = p.Surface
         footer.BackColor = p.Surface
         For Each c In AllChildren(page)
+            c.Font = Theme.FontBody()
+            If TypeOf c Is TextBox OrElse TypeOf c Is ComboBox Then
+                c.BackColor = p.Surface
+                c.ForeColor = p.Text
+            End If
             If TypeOf c Is Label Then
                 c.ForeColor = If(mutedLabels.Contains(DirectCast(c, Label)), p.MutedText, p.Text)
                 c.BackColor = p.Surface

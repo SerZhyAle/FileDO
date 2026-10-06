@@ -152,6 +152,7 @@ Public Class ShellDialog
         End If
 
         ApplyTheme(defaultAt, dangerAt)
+        Theme.Watch(Me, Sub() ApplyTheme(defaultAt, dangerAt))
         ResumeLayout(True)
     End Sub
 

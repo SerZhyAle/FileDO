@@ -67,7 +67,7 @@ Friend Class DiskShareDialog
         root = New TextBox With {.Text = r.BaseName, .Dock = DockStyle.Top, .MaxLength = 64, .Margin = PPad(0, 0, 0, 8)}
         root.AccessibleName = T("vd_share_root")
         AddContent(root)
-        ro = New CheckBox With {.Text = T("vd_share_read_only"), .Checked = True, .Enabled = r.Profile <> "sealed", .AutoSize = True}
+        ro = New CheckBox With {.Text = T("vd_share_read_only"), .Checked = r.Profile = "sealed", .Enabled = r.Profile <> "sealed", .AutoSize = True}
         AddContent(ro)
         openIt = New CheckBox With {.Text = T("vd_share_open_now"), .Checked = False, .AutoSize = True}
         AddContent(openIt)

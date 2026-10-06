@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `DISK-SHARE` |
-| **Version** | 1.3 draft |
+| **Version** | 1.4 draft |
 | **Home** | shared contracts catalog, folder `disk-sharing/`, document `DISK-SHARE.md` |
 | **Role** | producer and consumer - FileDO and Fast Media Sorter integration |
 | **Owner** | FileDO. Amendments are written in the catalog first and agreed with affected consumers |

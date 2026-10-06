@@ -29,6 +29,7 @@ Friend Class DiskSettingsDialog
         Controls.Add(root)
         AddHandler Panel.ThemeChanged, AddressOf RepaintTheme
         RepaintTheme()
+        Theme.Watch(Me, AddressOf RepaintTheme)
     End Sub
 
     Friend Sub DrawClientForCapture(bitmap As Bitmap)

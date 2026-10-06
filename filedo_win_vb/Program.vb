@@ -57,6 +57,15 @@ Module Program
             Return
         End If
 
+        ' `--ui-drive <folder>` runs the driven visual acceptance of SP-0150 (UiDrive.vb): real
+        ' windows on the screen, the real theme cycle, reopening - and the user's own HKCU values
+        ' restored afterwards. Exits 0 or 1.
+        Dim driveAt = Array.IndexOf(argv, "--ui-drive")
+        If driveAt >= 0 Then
+            Environment.Exit(If(driveAt + 1 < argv.Length, UiDrive.Run(argv(driveAt + 1)), 1))
+            Return
+        End If
+
         ' `--capture-screens <folder>` renders the guide screenshots (Capture.vb) and exits: 0 when
         ' every file was written, 1 otherwise. It builds windows but writes no setting.
         Dim captureAt = Array.IndexOf(argv, "--capture-screens")

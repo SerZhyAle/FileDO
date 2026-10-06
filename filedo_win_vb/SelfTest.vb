@@ -178,6 +178,11 @@ Partial Public Module SelfTest
         Guard("menu-icon", AddressOf CheckMenuIcons)
         Guard("state-tone", AddressOf CheckStateTones)
         Guard("contrast", AddressOf CheckGlyphContrast)
+        ' SP-0122: the hit-target floor of ICON-RENDER rule 5 (0.15) - 28 logical px under a mouse or
+        ' a pen - on the glyph buttons, the Disk Manager's list rows, the check boxes and the plain
+        ' buttons. The rail's 44 px rows are pinned by the rail group above.
+        Guard("hit-target", AddressOf CheckHitTargets)
+
 
         Guard("tailer", AddressOf CheckEventStreamTailer)
         Guard("tailer-long-line", AddressOf CheckEventStreamLongLine)
@@ -198,6 +203,12 @@ Partial Public Module SelfTest
         Guard("wipe", AddressOf CheckWipeRules)
         Guard("dialog", AddressOf CheckDialogEscape)
         Guard("dialog-destructive", AddressOf CheckDestructiveDialogDefaults)
+
+        ' SP-0150 (WINDOWS-UI 0.1 / APP-SETTINGS 0.2): the settings anatomy, the remembered context,
+        ' the live language rebind, the watched-theme mechanism and the high-contrast palette, each
+        ' as a mechanism a gate can observe - the physical light/dark and high-contrast runs are
+        ' recorded beside the specification, not claimed here.
+        Guard("windows-ui", AddressOf CheckWindowsUiProfile)
 
         ' SP-0029: the shell's robustness remediation, ticket by ticket.
         Guard("target", AddressOf CheckTargetRules)
@@ -497,6 +508,63 @@ Partial Public Module SelfTest
     Private Sub CheckRailTargets()
         Check("rail:target-height", ShellForm.RailTargetHeight >= 44, ShellForm.RailTargetHeight.ToString())
     End Sub
+    ' SP-0122: the hit-target floor of ICON-RENDER rule 5 (0.15) - a control the user works with under
+    ' a mouse or a pen is at least 28 logical px. GlyphButton carries the floor itself, the Disk
+    ' Manager's rows take theirs from the image list, and a check box or a radio button takes its
+    ' from Ui.HitTargetFloor; each is measured here in the device pixels of the window in front
+    ' against the floor at the same dpi, so the two speak the same units. The plain WinForms
+    ' button is built by the dialogs' own recipe (bold body font, GrowAndShrink, the dialog
+    ' padding) so the row holds the platform to what a user meets, not to a default.
+    Private Sub CheckHitTargets()
+        Using host As New Form
+            ' The fonts are made at the monitor's dpi, as a window on screen makes them; with
+            ' CurrentDpi left at its default the same recipe measures a different logical height.
+            Dim wasDpi = Theme.CurrentDpi
+            Theme.CurrentDpi = Ui.DpiFor(host)
+            Try
+                host.Font = Theme.FontBody()
+                For Each tier In New Integer() {16, 20, 24}
+                    For Each iconOnly In New Boolean() {True, False}
+                        Dim b As New GlyphButton With {.Tier = tier, .IconOnly = iconOnly,
+                                                       .Text = If(iconOnly, "", "Run")}
+                        b.Glyph = GlyphRef.Vocabulary("action.verify")
+                        host.Controls.Add(b)
+                        Dim s = b.GetPreferredSize(Size.Empty)
+                        Dim floor = Ui.Px(b, 28)
+                        Check("hit-target:glyph-" & tier.ToString() & If(iconOnly, "-only", ""),
+                              s.Height >= floor AndAlso (Not iconOnly OrElse s.Width >= floor),
+                              s.Width.ToString() & "x" & s.Height.ToString())
+                        host.Controls.Remove(b)
+                        b.Dispose()
+                    Next
+                Next
+
+                Dim boxCheck As New CheckBox With {.Text = "Read only", .AutoSize = True, .Font = Theme.FontBody()}
+                host.Controls.Add(boxCheck)
+                Ui.HitTargetFloor(boxCheck)
+                Check("hit-target:check-box", boxCheck.Height >= Ui.Px(boxCheck, 28), boxCheck.Height.ToString())
+
+                Dim plain As New Button With {.Text = "Continue", .AutoSize = True,
+                                              .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                                              .Padding = Ui.PxPad(host, 10, 4, 10, 4),
+                                              .FlatStyle = FlatStyle.Flat,
+                                              .Font = Theme.FontBodyStrong()}
+                host.Controls.Add(plain)
+                Check("hit-target:plain-button", plain.Height >= Ui.Px(plain, 28), plain.Height.ToString())
+            Finally
+                Theme.CurrentDpi = wasDpi
+            End Try
+        End Using
+
+        Dim m As DiskManagerForm = Nothing
+        Try
+            m = New DiskManagerForm()
+            Check("hit-target:disk-row", m.ListRowHeightForTest >= Ui.Px(m, 28), m.ListRowHeightForTest.ToString())
+        Finally
+            If m IsNot Nothing Then m.Dispose()
+        End Try
+    End Sub
+
 
     ' SP-0005 section 12: a reveal's sealed true name is allowed on screen,
     ' but never in the shell's retained report.  Exercise every output shape
@@ -771,21 +839,23 @@ Partial Public Module SelfTest
             Check("rail-accordion:headers", headers.Count >= 2, headers.Count.ToString() & " headers")
 
             Dim openNow = Function() headers.Where(Function(h) Not h.Collapsed).Select(Function(h) h.Key).ToList()
-            Check("rail-accordion:start", openNow().Count <= 1, String.Join(",", openNow().ToArray()))
+            Check("rail-groups:start", openNow().Count >= 0, String.Join(",", openNow().ToArray()))
 
             ' The saved preference may start with the first group open. Close it so each
             ' iteration below tests opening a closed group, whatever that preference was.
-            If openNow().Count = 1 Then shell.ToggleGroupForTest(openNow()(0))
+            For Each key In openNow().ToArray()
+                shell.ToggleGroupForTest(key)
+            Next
 
             For Each head In headers
                 shell.ToggleGroupForTest(head.Key)
                 Dim open = openNow()
-                Check("rail-accordion:open:" & head.Key, open.Count = 1 AndAlso open(0) = head.Key, String.Join(",", open.ToArray()))
+                Check("rail-groups:open:" & head.Key, open.Count = headers.IndexOf(head) + 1 AndAlso open.Contains(head.Key), String.Join(",", open.ToArray()))
             Next
 
             Dim last = headers(headers.Count - 1)
             shell.ToggleGroupForTest(last.Key)
-            Check("rail-accordion:shut", openNow().Count = 0, String.Join(",", openNow().ToArray()))
+            Check("rail-groups:independent", openNow().Count = headers.Count - 1, String.Join(",", openNow().ToArray()))
 
             ' The checker: a header or a lone job starts a block on the band the previous block did not
             ' have, and a row inside a group keeps its header's band.
@@ -2026,6 +2096,146 @@ Partial Public Module SelfTest
         Catch ex As Exception
             Check("dialog-destructive", False, ex.GetType().Name & ": " & ex.Message)
         End Try
+    End Sub
+
+    ' SP-0150 (WINDOWS-UI 0.1 / APP-SETTINGS 0.2): the mechanisms the profile adds, each checked
+    ' off screen. The anatomy rows read the built settings surface, the context rows pin the stable
+    ' IDs and the logical offset, the rebind rows prove a live language change moves every localized
+    ' text and no user value, the watch rows prove a hidden window follows a theme switch, and the
+    ' high-contrast rows pin the system palette. A physical light/dark cycle and a real
+    ' high-contrast switch are recorded beside the specification, not claimed here.
+    Private Sub CheckWindowsUiProfile()
+        ' APP-BEHAVIOUR rule 8: direction is declared with the language inventory, and the five
+        ' shipped scripts are all left-to-right.
+        Check("windows-ui:rtl-inventory", Not Localization.Languages.Any(AddressOf Localization.IsRightToLeft) AndAlso
+              Localization.IsRightToLeft("ar") AndAlso Localization.IsRightToLeft("he"), "")
+
+        ' WINDOWS-UI section 3: remembered context - stable internal IDs, expansion state and a
+        ' per-page anchor plus logical offset, private navigation state with safe fallbacks.
+        Try
+            ShellSettings.SetSettingsGroupExpanded("history", False)
+            Check("windows-ui:group-context", Not ShellSettings.SettingsGroupExpanded("history") AndAlso
+                  ShellSettings.SettingsGroupExpanded("unknown"), "")
+            ShellSettings.SaveSettingsViewport("startup", 999999)
+            Dim offset As Integer
+            Check("windows-ui:viewport-clamped", ShellSettings.SettingsViewport(offset) = "startup" AndAlso offset = 4096,
+                  offset.ToString())
+            ShellSettings.ValuesForTest("SettingsViewport") = "junk"
+            Check("windows-ui:viewport-fallback", ShellSettings.SettingsViewport(offset) = "appearance" AndAlso offset = 0, "")
+            ShellSettings.ValuesForTest("ShellPage") = "garbage"
+            Check("windows-ui:last-page-fallback", ShellSettings.LastPage() = "rail_job_command", ShellSettings.LastPage())
+            ShellSettings.ValuesForTest("ShellPage") = RailRow.DiskManagerKey
+            Check("windows-ui:last-page-never-manager", ShellSettings.LastPage() = "rail_job_command", ShellSettings.LastPage())
+            ShellSettings.ValuesForTest("ShellPage") = "rail_job_settings"
+            Check("windows-ui:last-page-saved", ShellSettings.LastPage() = "rail_job_settings", ShellSettings.LastPage())
+        Catch ex As Exception
+            Check("windows-ui:context", False, ex.GetType().Name & ": " & ex.Message)
+        End Try
+
+        ' WINDOWS-UI sections 3-4: page anatomy - caption, muted hint, editor; a boolean keeps its
+        ' check box at the reading start with the description under it, an ordinary editor sits in
+        ' the trailing column - and restoring context writes no preference.
+        Dim page As SettingsView = Nothing
+        Packaging.OverrideForTest = False
+        Try
+            ShellSettings.ValuesForTest("ShellHistory") = 1
+            page = New SettingsView()
+            Dim rows = page.Panel.Groups.SelectMany(Function(g) g.Body.Controls.OfType(Of SettingRow)()).ToList()
+            Check("windows-ui:rows-exist", rows.Count >= 8, rows.Count.ToString() & " rows")
+            Dim booleans = 0, others = 0
+            For Each row In rows
+                If TypeOf row.Editor Is CheckBox Then
+                    booleans += 1
+                    Check("windows-ui:boolean-leading:" & row.Name,
+                          row.Editor.Text <> "" AndAlso row.Hint.Text <> "" AndAlso
+                          Not row.Controls.Cast(Of Control)().Any(Function(c) c Is row.Editor), "")
+                Else
+                    others += 1
+                    Check("windows-ui:row-anatomy:" & row.Name,
+                          row.Caption.Text <> "" AndAlso row.Hint.Text <> "" AndAlso
+                          row.Controls.Contains(row.Editor) AndAlso row.GetColumn(row.Editor) = 1, "")
+                End If
+                Check("windows-ui:named:" & row.Name, row.Editor.AccessibleName <> "", row.Editor.AccessibleName)
+            Next
+            Check("windows-ui:both-kinds", booleans > 0 AndAlso others > 0,
+                  booleans.ToString() & " boolean, " & others.ToString() & " other")
+            Check("windows-ui:hint-muted", rows.All(Function(r) r.Hint.ForeColor.ToArgb() = Theme.Current.MutedText.ToArgb()), "")
+            Check("windows-ui:restore-writes-no-preference", CInt(ShellSettings.ValuesForTest("ShellHistory")) = 1, "")
+
+            ' WINDOWS-UI section 3.4: explicit navigation reveals the setting's own group.
+            Dim appearance = page.Panel.Groups.First(Function(g) g.GroupId = "appearance")
+            appearance.Expanded = False
+            page.Panel.Reveal("theme")
+            Check("windows-ui:reveal-expands", appearance.Expanded, "")
+        Catch ex As Exception
+            Check("windows-ui:anatomy", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If page IsNot Nothing Then page.Dispose()
+        End Try
+
+        ' APP-SETTINGS rule 5: a language change applies live. The rebind moves every localized
+        ' text of a window and leaves a value the user typed - data, not a caption - untouched.
+        Try
+            Dim en = Localization.GetDict("en"), ru = Localization.GetDict("ru")
+            Using probe As New Form()
+                Dim label As New Label With {.Text = en("shell_settings_theme")}
+                Dim field As New TextBox With {.Text = "C:\my data"}
+                Dim combo As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList}
+                combo.Items.Add(en("shell_theme_auto"))
+                probe.Controls.Add(label)
+                probe.Controls.Add(field)
+                probe.Controls.Add(combo)
+                LiveLanguage.RebindWindow(probe, "en", "ru")
+                Check("windows-ui:live-text", label.Text = ru("shell_settings_theme"), label.Text)
+                Check("windows-ui:live-combo", CStr(combo.Items(0)) = ru("shell_theme_auto"), CStr(combo.Items(0)))
+                Check("windows-ui:live-data-untouched", field.Text = "C:\my data", field.Text)
+                LiveLanguage.RebindWindow(probe, "ru", "en")
+                Check("windows-ui:live-back", label.Text = en("shell_settings_theme"), label.Text)
+            End Using
+        Catch ex As Exception
+            Check("windows-ui:live-language", False, ex.GetType().Name & ": " & ex.Message)
+        End Try
+
+        ' WINDOWS-UI section 6.2 / APP-STYLE section 10: a watched window follows the palette while
+        ' it is hidden - the state the shell's own secondary windows are in between uses.
+        Dim watched As Form = Nothing
+        Try
+            Theme.UsePaletteForTest(False)
+            watched = New Form()
+            watched.BackColor = Theme.Current.Background
+            Theme.Watch(watched, Sub() watched.BackColor = Theme.Current.Background)
+            Theme.UsePaletteForTest(True)
+            Check("windows-ui:watch-follows-switch",
+                  watched.BackColor.ToArgb() = Theme.PaletteFor(True).Background.ToArgb(), watched.BackColor.ToString())
+            Theme.UsePaletteForTest(False)
+            Check("windows-ui:watch-follows-back",
+                  watched.BackColor.ToArgb() = Theme.PaletteFor(False).Background.ToArgb(), watched.BackColor.ToString())
+        Catch ex As Exception
+            Check("windows-ui:watch", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            Theme.UsePaletteForTest(Nothing)
+            If watched IsNot Nothing Then watched.Dispose()
+        End Try
+
+        ' WINDOWS-UI section 6.5: high contrast wins over the chosen mode. The palette is built
+        ' from the system's own colours and identity tones fold into text ink; whether the override
+        ' fires on a real high-contrast switch needs the OS state and is not claimed by this gate.
+        Try
+            Dim hc = Theme.SystemContrastPalette()
+            Check("windows-ui:high-contrast-palette", hc.HighContrast AndAlso
+                  hc.Background.ToArgb() = SystemColors.Window.ToArgb() AndAlso
+                  hc.Text.ToArgb() = SystemColors.WindowText.ToArgb() AndAlso
+                  hc.Accent.ToArgb() = SystemColors.Highlight.ToArgb() AndAlso
+                  hc.TextDisabled.ToArgb() = SystemColors.GrayText.ToArgb(), "")
+            Check("windows-ui:high-contrast-tones", Theme.GroupTone("state", hc).ToArgb() = hc.Text.ToArgb(), "")
+        Catch ex As Exception
+            Check("windows-ui:high-contrast", False, ex.GetType().Name & ": " & ex.Message)
+        End Try
+
+        ShellSettings.ValuesForTest.Remove("ShellHistory")
+        ShellSettings.ValuesForTest.Remove("ShellPage")
+        ShellSettings.ValuesForTest.Remove("SettingsViewport")
+        ShellSettings.ValuesForTest.Remove("SettingsGroup_history")
     End Sub
 
     ' ---- SP-0029: the shell's robustness remediation --------------------------

@@ -97,6 +97,40 @@ Module ShellSettings
         Theme.Refresh()
     End Sub
 
+    ' Private UI context, stable IDs and logical offsets (WINDOWS-UI section 3).
+    Public Function LastPage() As String
+        Dim key = TryCast(ReadValue("ShellPage"), String)
+        If RailRow.All.Any(Function(r) Not r.IsGroup AndAlso r.Key <> RailRow.DiskManagerKey AndAlso r.Key = key) Then Return key
+        Return "rail_job_command"
+    End Function
+
+    Public Sub SetLastPage(key As String)
+        WriteValue("ShellPage", key)
+    End Sub
+
+    Friend Function SettingsGroupExpanded(id As String) As Boolean
+        Dim value = ReadValue("SettingsGroup_" & id)
+        Return Not TypeOf value Is Integer OrElse CInt(value) <> 0
+    End Function
+
+    Friend Sub SetSettingsGroupExpanded(id As String, expanded As Boolean)
+        WriteValue("SettingsGroup_" & id, If(expanded, 1, 0))
+    End Sub
+
+    Friend Sub SaveSettingsViewport(anchor As String, offset As Integer)
+        WriteValue("SettingsViewport", anchor & ";" & Math.Max(-4096, Math.Min(4096, offset)).ToString(Globalization.CultureInfo.InvariantCulture))
+    End Sub
+
+    Friend Function SettingsViewport(ByRef offset As Integer) As String
+        offset = 0
+        Dim value = TryCast(ReadValue("SettingsViewport"), String)
+        If String.IsNullOrEmpty(value) Then Return "appearance"
+        Dim fields = value.Split(";"c)
+        If fields.Length <> 2 OrElse Not Integer.TryParse(fields(1), offset) Then Return "appearance"
+        offset = Math.Max(-4096, Math.Min(4096, offset))
+        Return fields(0)
+    End Function
+
     ' ---- run history -----------------------------------------------------
 
     ' D8's second half, the owner's addition to the recommendation: automatic run reports are on by
@@ -310,7 +344,11 @@ Module ShellSettings
     End Function
 
     Public Sub SetLanguage(lang As String)
-        If Localization.Languages.Contains(lang) Then WriteValue("GuiLang", lang)
+        If Not Localization.Languages.Contains(lang) OrElse Language() = lang Then Return
+        Dim before = Language()
+        WriteValue("GuiLang", lang)
+        Localization.ResetShellDict()
+        LiveLanguage.Apply(before, lang)
     End Sub
 
 End Module

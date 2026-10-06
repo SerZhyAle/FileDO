@@ -31,6 +31,8 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`INSTALL-TRUST.md`](INSTALL-TRUST.md) | what a user reads after Windows warns about an unsigned build | producer |
 | [`APP-BEHAVIOUR.md`](APP-BEHAVIOUR.md) | shared desktop application UX moments | consumer (GUI shell) |
 | [`APP-STYLE.md`](APP-STYLE.md) | desktop app styling, themes and palette vocabulary | consumer (GUI shell) |
+| [`APP-SETTINGS.md`](APP-SETTINGS.md) | the persistent settings surface | consumer (GUI shell, since 2026-10-05) |
+| [`WINDOWS-UI.md`](WINDOWS-UI.md) | shared Windows settings, dialogs and viewer profile | consumer (GUI shell, since 2026-10-05) |
 | [`ICON-SET.md`](ICON-SET.md) | the glyph vocabulary: one meaning, one glyph, one name | consumer |
 | [`ICON-RENDER.md`](ICON-RENDER.md) | how a glyph is drawn: colour role, themes, sizes, system surfaces | consumer |
 | [`ICON-EXTERNAL.md`](ICON-EXTERNAL.md) | third-party marks, other apps' icons, downloaded pictures | consumer |
@@ -90,4 +92,4 @@ bind leaves this table for one of the tables above and gets a pointer.
 | `USER-PLAYLIST` 0.11 (user-playlist/) | 2026-10-01 | No user playlist/stream collection importer or exporter. |
 | `MEDIA-CLASSIFICATION` 0.10 (`media-classification/`) | 2026-10-02 | FileDO is not a consumer: the catalog accepted FileDO's scope proposal into 0.10. It accepts arbitrary files as storage targets, reports Go's MIME guess in `file info`, and has no media kind enum, browser, routing or sidecar association. The pointer is retired. |
 | `UPDATE-MANIFEST` 0.10 (`app-update-feed/`) | 2026-10-02 | FileDO is a planned consumer only, not bound: no update-check client exists. The site resolves downloads through GitHub Releases and winget uses its own YAML, neither of which is this feed. The pointer is retired; a client that parses the manifest brings it back. |
-| `APP-SETTINGS` 0.1 (`desktop-app-ux/`) | 2026-10-02 | The new draft binds CyrFlip and other desktop products by explicit opt-in. FileDO has not opted into a persistent settings surface; its language/theme selectors remain covered by APP-BEHAVIOUR and APP-STYLE. No adoption or conformance is claimed. |
+| `APP-SETTINGS` 0.1 (`desktop-app-ux/`) | 2026-10-02 -> bound 2026-10-05 | Superseded by the portfolio owner's 2026-10-05 opt-in (WINDOWS-UI 0.1, APP-SETTINGS 0.2 section 8): the settings page is a persistent settings surface and FileDO is a consumer, implemented in SP-0150. The row moved to the table above with its pointer. |

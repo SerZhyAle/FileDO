@@ -35,9 +35,47 @@
 ' so no dialog of FileDO's own is on this list.
 Module Theme
 
+    Friend Event Changed()
+    Private ReadOnly watched As New Runtime.CompilerServices.ConditionalWeakTable(Of Form, Object)
+
+    ' The notification covers hidden companions and modal dialogs, not only the active shell.
+    Friend Sub Watch(window As Form, repaint As Action)
+        Dim found As Object = Nothing
+        If watched.TryGetValue(window, found) Then Return
+        watched.Add(window, New Object())
+        Dim apply As Action = Sub()
+                                  If window.IsDisposed Then Return
+                                  CurrentDpi = If(window.IsHandleCreated, window.DeviceDpi, CurrentDpi)
+                                  repaint()
+                                  NativeEditors.Apply(window)
+                                  Ui.KeepCaptionsReadable(window)
+                                  Chrome.Apply(window)
+                                  window.Invalidate(True)
+                              End Sub
+        Dim repaintEvent As ChangedEventHandler = Sub() apply()
+        Dim systemChanged As Microsoft.Win32.UserPreferenceChangedEventHandler =
+            Sub(sender, e)
+                If window.IsDisposed OrElse Not window.IsHandleCreated Then Return
+                Try
+                    window.BeginInvoke(New MethodInvoker(Sub() Refresh()))
+                Catch ex As InvalidOperationException
+                    ' A window closing while Windows broadcasts the preference needs no repaint.
+                End Try
+            End Sub
+        AddHandler Changed, repaintEvent
+        AddHandler Microsoft.Win32.SystemEvents.UserPreferenceChanged, systemChanged
+        AddHandler window.Shown, Sub() apply()
+        AddHandler window.DpiChanged, Sub() window.BeginInvoke(New MethodInvoker(Sub() apply()))
+        AddHandler window.Disposed, Sub()
+                                        RemoveHandler Changed, repaintEvent
+                                        RemoveHandler Microsoft.Win32.SystemEvents.UserPreferenceChanged, systemChanged
+                                    End Sub
+    End Sub
+
     ' A token set. One instance for light, one for dark; nothing else constructs one.
     Public Class Palette
         Public Property IsDark As Boolean
+        Public Property HighContrast As Boolean
         Public Property Background As Color      ' the window behind everything
         Public Property Surface As Color         ' a card, a panel, the page host
         Public Property SurfaceAlt As Color      ' the rail, and anything one step back
@@ -150,7 +188,10 @@ Module Theme
     ' Re-reads the setting and the system preference. Called when the user changes the override and
     ' when Windows tells the window its theme changed.
     Public Sub Refresh()
-        currentPalette = Resolve()
+        Dim nextPalette = Resolve()
+        Dim old = currentPalette
+        currentPalette = nextPalette
+        If old IsNot nextPalette Then RaiseEvent Changed()
     End Sub
 
     ' The self-test's seam: put one palette in force, or Nothing to go back to the user's. It
@@ -171,11 +212,26 @@ Module Theme
 
     Private Function Resolve() As Palette
         If testPalette IsNot Nothing Then Return testPalette
+        If SystemInformation.HighContrast Then Return SystemContrastPalette()
         Select Case ShellSettings.ThemeChoice()
             Case "light" : Return LightPalette
             Case "dark" : Return DarkPalette
             Case Else : Return If(SystemPrefersDark(), DarkPalette, LightPalette)
         End Select
+    End Function
+
+    Friend Function SystemContrastPalette() As Palette
+        Return New Palette With {
+            .HighContrast = True, .IsDark = RelativeLuminance(SystemColors.Window) < 0.5,
+            .Background = SystemColors.Window, .Surface = SystemColors.Window, .SurfaceAlt = SystemColors.Window,
+            .Border = SystemColors.WindowText, .Text = SystemColors.WindowText, .MutedText = SystemColors.WindowText,
+            .TextDisabled = SystemColors.GrayText, .Link = SystemColors.WindowText,
+            .Accent = SystemColors.Highlight, .AccentText = SystemColors.HighlightText,
+            .ControlHover = SystemColors.Window, .SurfaceSelected = SystemColors.Window,
+            .SurfaceBand = SystemColors.Window, .BandHover = SystemColors.Window,
+            .Success = SystemColors.WindowText, .Warning = SystemColors.WindowText, .Danger = SystemColors.Highlight,
+            .StateOk = SystemColors.WindowText, .StateWarning = SystemColors.WindowText, .StateError = SystemColors.WindowText
+        }
     End Function
 
     ' Windows records the app theme as AppsUseLightTheme: 0 means the user asked for dark. A missing
@@ -419,6 +475,7 @@ Module Theme
     ' The tone of a hue for a palette; the palette's own accent when the key is unknown, so a row
     ' with a mistyped hue is still visible and the self-test (which names the key) fails it.
     Friend Function GroupTone(hue As String, p As Palette) As Color
+        If p.HighContrast Then Return p.Text
         Dim tones As Color() = Nothing
         If hue Is Nothing OrElse Not GroupHues.TryGetValue(hue, tones) Then Return p.Accent
         Return If(p.IsDark, tones(1), tones(0))
