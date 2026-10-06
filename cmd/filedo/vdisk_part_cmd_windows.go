@@ -29,6 +29,7 @@ var errVdPartPackaged = fmt.Errorf("%w: %s", vdisk.ErrUnsupported, vdPartStoreSe
 
 // The refusals of section 5.4, by name.
 var (
+	errVdPartChkdsk  = fmt.Errorf("%w: chkdsk applies to file disks; a partition disk's volume is checked by Windows itself once it is mounted (filedo <name> mount, then chkdsk on its drive)", vdisk.ErrUnsupported)
 	errVdPartFixed   = fmt.Errorf("%w: a partition disk has a fixed size; compact and grow apply to file disks", vdisk.ErrUnsupported)
 	errVdPartShare   = fmt.Errorf("%w: sharing a partition disk through FMS needs a newer FMS; share a file disk", vdisk.ErrUnsupported)
 	errVdPartNoScan  = vdUsagef("noscan applies to file disks; a partition disk is not scanned as a file")
@@ -136,6 +137,8 @@ func vdPartRoute(verb string, rest []string, batch bool) (bool, error) {
 		return true, vdPartFormat(e, args, batch)
 	case "compact", "grow":
 		return true, errVdPartFixed
+	case "chkdsk":
+		return true, errVdPartChkdsk
 	case "share", "autostart", "open", "close":
 		return true, errVdPartShare
 	case "add":

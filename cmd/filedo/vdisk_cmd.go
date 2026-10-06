@@ -35,6 +35,7 @@ import (
 //	filedo <file.fdd> compact [password]
 //	filedo <file.fdd> grow <size> [password]
 //	filedo <file.fdd> format [fs ntfs|exfat] [label <text>] [force] [password]
+//	filedo <file.fdd> chkdsk [fix] [force] [password]  - a read-only scan; fix runs chkdsk /f
 //	filedo <file.fdd> seal <new.fdd> [nopass] [password]   - a sealed, read-only copy
 //	filedo <file.fdd> clone <new.fdd> [nopass] [password]  - a writable copy
 //	filedo <file.fdd> pass [<old credential>] [new <new credential>]
@@ -179,7 +180,7 @@ var vdPackaged = fdsecHasPackageIdentity
 
 // errVdPackaged is the packaged build's refusal of a verb that needs the mount
 // path: class 6, one sentence.
-var errVdPackaged = fmt.Errorf("%w: the Microsoft Store build of FileDO cannot mount - a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights - so mount, unmount, save, format, auto and guard need the setup or the portable build from GitHub, while new, info, verify, export, compact, grow, seal, clone, pass, destroy, list, status, add and forget work here", vdisk.ErrUnsupported)
+var errVdPackaged = fmt.Errorf("%w: the Microsoft Store build of FileDO cannot mount - a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights - so mount, unmount, save, format, chkdsk, auto and guard need the setup or the portable build from GitHub, while new, info, verify, export, compact, grow, seal, clone, pass, destroy, list, status, add and forget work here", vdisk.ErrUnsupported)
 
 func runVd(args []string, hl *HistoryLogger, batch bool) error {
 	word := strings.ToLower(args[0])
@@ -267,6 +268,8 @@ func runVd(args []string, hl *HistoryLogger, batch bool) error {
 		return vdGrow(rest, batch)
 	case "format":
 		return vdFormat(rest, batch)
+	case "chkdsk":
+		return vdChkdsk(rest, batch)
 	case "seal":
 		return vdSeal(rest)
 	case "clone":

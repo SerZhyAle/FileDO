@@ -732,9 +732,9 @@ Create and mount:
                                            nosave drops a ram volume's unsaved
                                            writes
   filedo.exe X: save                     → ram: save to the file now
-  mount, unmount, save, format, vd auto and an image mount need administrator
-  consent (the Windows iSCSI initiator, the disk), asked once per command; a
-  batch never raises that prompt - run it elevated.
+  mount, unmount, save, format, chkdsk, vd auto and an image mount need
+  administrator consent (the Windows iSCSI initiator, the disk), asked once per
+  command; a batch never raises that prompt - run it elevated.
 
 Read without mounting (no network, nothing written to the container; export
 writes only its destination; no elevation for a file disk - a partition disk
@@ -762,6 +762,12 @@ Change (unmounted only - a mounted container is refused, exit 8):
                                            (Disk Management "Extend Volume")
   filedo.exe work.fdd format             → ERASE the volume: an empty NTFS one
                                            (fs exfat, label <text>); asks y/N
+  filedo.exe work.fdd chkdsk             → Scan the volume with chkdsk, read-only
+                                           (needs administrator consent); what
+                                           it finds is exit 4
+  filedo.exe work.fdd chkdsk fix         → chkdsk /f on the volume, for a disk
+                                           not closed cleanly; asks y/N, marks
+                                           it clean once chkdsk finished
   filedo.exe work.fdd seal s.fdd         → A sealed copy: read-only for good
   filedo.exe work.fdd clone c.fdd        → A writable copy with its own id
   filedo.exe s.fdd clone o.fdd nopass    → An OBFUSCATED copy of an encrypted

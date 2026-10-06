@@ -1078,6 +1078,20 @@ function Invoke-Tier2 {
         Dismount-Own $letter $fdd 'read-only'
         $letter = $null
 
+        # chkdsk on the volume of a disk at rest: the scan writes nothing and says so, the repair of a
+        # clean volume finds nothing to repair, and the data is the same after both
+        [void](Op 'vd: chkdsk scan' @($fdd, 'chkdsk') -Budget 300 -RealState -Verify {
+            param($r) if ($r.Text -notmatch 'found no problems') { 'the scan of a clean volume did not say "found no problems"' }
+        })
+        [void](Op 'vd: chkdsk fix' @($fdd, 'chkdsk', 'fix', 'force') -Budget 300 -RealState -Verify {
+            param($r) if ($r.Text -notmatch 'found no problems|repaired them') { 'the repair did not say what chkdsk found' }
+        })
+        $letter = Mount-Own $fdd 'after chkdsk'
+        if (-not $letter) { return }
+        Check 'the data survived chkdsk (byte for byte)' @(Compare-Manifest $want (Get-Manifest "$letter\data"))
+        Dismount-Own $letter $fdd 'after chkdsk'
+        $letter = $null
+
         # clean the whole volume and check its size again
         [void](Op 'vd: format (empty NTFS again)' @($fdd, 'format', 'force') -Budget 180 -RealState)
         $letter = Mount-Own $fdd 'after format'
@@ -1175,6 +1189,7 @@ $Inventory = @(
     E 'vd:destroy' '^vd: destroy$' -tier 2
     E 'vd:mount' '^mount: ' -tier 2; E 'vd:unmount' '^unmount: ' -tier 2; E 'vd:save' '^ram: save to the file$' -tier 2
     E 'vd:format' '^vd: format ' -tier 2
+    E 'vd:chkdsk' '^vd: chkdsk scan$' -tier 2
     E 'vd:compact' -batch 'compact'; E 'vd:grow' -batch 'grow'; E 'vd:seal' -batch 'seal'; E 'vd:clone' -batch 'clone'; E 'vd:pass' -batch 'pass'
     E 'vd:auto' -exempt 'installs the logon task: it changes the machine'
     E 'vd:stop' -exempt 'stops the block server that every mounted disk of this machine depends on'

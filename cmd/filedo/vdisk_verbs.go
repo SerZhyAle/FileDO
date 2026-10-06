@@ -26,6 +26,7 @@ var (
 	vdCompactWords   = []string{"compact", "shrink"}
 	vdGrowWords      = []string{"grow", "resize"}
 	vdFormatWords    = []string{"format"}
+	vdChkdskWords    = []string{"chkdsk"}
 	vdSealWords      = []string{"seal"}
 	vdCloneWords     = []string{"clone"}
 	vdPassWords      = []string{"pass"}
@@ -62,6 +63,9 @@ var vdVerbs = []vdVerb{
 	{name: "compact", words: vdCompactWords, container: true},
 	{name: "grow", words: vdGrowWords, container: true},
 	{name: "format", words: vdFormatWords, container: true, transport: true},
+	// chkdsk attaches the disk like format does, so it is a transport verb: a scan by default, a
+	// repair with the word fix (vdisk_chkdsk_windows.go). It is not "repair", a word of the generic chain.
+	{name: "chkdsk", words: vdChkdskWords, container: true, transport: true},
 	{name: "seal", words: vdSealWords, container: true},
 	{name: "clone", words: vdCloneWords, container: true},
 	{name: "pass", words: vdPassWords, container: true},

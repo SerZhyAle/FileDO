@@ -735,13 +735,13 @@ Public Class Runner
     Friend Shared ReadOnly VdRedactVerbs As String() = {
         "new", "create", "mount", "mnt", "attach", "unmount", "umount", "detach", "save", "seal",
         "info", "i", "pass", "export", "extract", "ext", "verify", "vfy", "compact", "shrink", "grow", "resize",
-        "format", "destroy", "erase", "clone", "add", "forget", "list", "ls", "auto", "guard", "status", "stop",
+        "format", "chkdsk", "destroy", "erase", "clone", "add", "forget", "list", "ls", "auto", "guard", "status", "stop",
         "register", "unregister", "share", "autostart", "open", "close", "disks", "image", "adopt"}
     ' new is pass's word before the new credential, which is itself prefixed.
     Friend Shared ReadOnly VdRedactKeeps As String() = {
         "plain", "fast", "ram", "vault", "sealed", "ro", "readonly", "noscan", "force", "-y", "y",
         "nosave", "off", "on", "logon", "short", "-all-users", "nopass", "new", "raw", "vhd", "wipe",
-        "fs", "ntfs", "exfat", "run", "noletter", "worker", "keep", "stdin", "consent", "part", "max"}
+        "fs", "ntfs", "exfat", "run", "noletter", "worker", "keep", "stdin", "consent", "part", "max", "fix"}
     Friend Shared ReadOnly VdRedactValueWords As String() = {"as", "label", "to", "wait", "size", "at"}
     ' The option words of mount's bare trailing token: a word here is never a password (vdMountWordSet).
     Friend Shared ReadOnly VdMountWords As String() = {"ro", "readonly", "noscan", "as", "noletter", "worker", "keep", "stdin"}

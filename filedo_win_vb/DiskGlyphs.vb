@@ -56,7 +56,9 @@ Public Module DiskGlyphs
             Case DiskAction.OpenDrive : Return OpenExternal
             Case DiskAction.SaveNow : Return GlyphRef.Vocabulary("action.save")
             Case DiskAction.Info : Return GlyphRef.Vocabulary("app.info")
-            Case DiskAction.Verify : Return GlyphRef.Vocabulary("action.verify")
+            Case DiskAction.Verify, DiskAction.CheckVolume : Return GlyphRef.Vocabulary("action.verify")
+            ' The meaning the catalog already has for putting a drive back in order (Recover on the rail).
+            Case DiskAction.RepairVolume : Return GlyphRef.Vocabulary("action.recover-drive")
             Case DiskAction.AutoOn, DiskAction.AutoOff : Return AutoMount
             Case DiskAction.Autostart : Return Autostart
             Case DiskAction.Forget : Return GlyphRef.Vocabulary("action.remove")

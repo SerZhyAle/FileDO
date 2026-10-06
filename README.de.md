@@ -283,7 +283,7 @@ Absturz verliert, was nach der letzten Sicherung geschrieben wurde), und `vault`
 `seal` schreibt eine Kopie, die für immer schreibgeschützt ist, `clone` eine beschreibbare Kopie mit eigener
 Identität, `compact` gibt den ungenutzten Platz der Datei zurück. `format` löscht das Volume (`fs ntfs` oder
 `fs exfat`) und `destroy` entfernt die Containerdatei (`wipe` überschreibt sie vorher): beide fragen zuerst,
-und beide lehnen einen eingebundenen Container ab - kein Schalter hebt diese Prüfung auf.
+und beide lehnen einen eingebundenen Container ab - kein Schalter hebt diese Prüfung auf. `chkdsk` prüft das Volume in einem nicht eingebundenen Container und schreibt nichts, `chkdsk fix` führt dafür `chkdsk /f` aus - die Reparatur für einen Container, der nicht sauber geschlossen wurde - und fragt zuerst.
 `vd add work.fdd as work` gibt ihm einen kurzen Namen, `vd list` und `vd status` zeigen, was bekannt und
 was eingebunden ist, und `vd auto work logon` bindet einen verschleierten Container bei der Anmeldung ein.
 `vd guard on` schaltet die Abschaltwache ein: Endet Ihre Sitzung - Herunterfahren, Neustart oder Abmelden, nie
@@ -315,14 +315,14 @@ Was die Plattform braucht, offen gesagt:
 - **Nur Windows.** Den Laufwerksbuchstaben liefert der in Windows eingebaute iSCSI-Initiator, der mit
   einem Blockserver in `filedo.exe` spricht; der Server lauscht nur auf 127.0.0.1 - nichts verlässt diesen
   Computer, und der Container gelangt nie in ein Netzwerk - es sei denn, Sie geben ihn selbst frei (siehe unten).
-- **Einbinden braucht Administratorrechte.** `mount`, `unmount`, `save`, `format` und `vd auto` bitten Windows um
+- **Einbinden braucht Administratorrechte.** `mount`, `unmount`, `save`, `format`, `chkdsk` und `vd auto` bitten Windows um
   die Zustimmung eines Administrators für den Schritt mit dem Initiator; das Passwort gelangt nie dorthin,
   und der Blockserver selbst läuft nie mit erhöhten Rechten. Ein Batch zeigt diese Abfrage nie - starten Sie
   ihn aus einer erhöhten Konsole. Lässt sich der Dienst Microsoft iSCSI-Initiator nicht nutzen, endet der
   Lauf mit Code 7, und nichts wird eingebunden.
 - **Die Microsoft-Store-Version kann keine Container einbinden.** Eine paketierte App kann den
   iSCSI-Initiator weder konfigurieren noch Administratorrechte anfordern, deshalb enden dort `mount`,
-  `unmount`, `save`, `format`, `vd auto`, `vd guard` und `vd register` mit Code 6. `info`, `verify`, `export`,
+  `unmount`, `save`, `format`, `chkdsk`, `vd auto`, `vd guard` und `vd register` mit Code 6. `info`, `verify`, `export`,
   `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` und
   `vd forget` funktionieren auch dort; zum Einbinden nehmen Sie das Setup oder die portable Version von
   GitHub.

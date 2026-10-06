@@ -170,7 +170,7 @@ var vdRedactVerbs = map[string]bool{
 	"unmount": true, "umount": true, "detach": true, "save": true, "seal": true,
 	"info": true, "i": true, "pass": true, "export": true, "extract": true, "ext": true,
 	"verify": true, "vfy": true, "compact": true, "shrink": true, "grow": true, "resize": true,
-	"format": true, "destroy": true, "erase": true, "clone": true, "add": true, "forget": true,
+	"format": true, "chkdsk": true, "destroy": true, "erase": true, "clone": true, "add": true, "forget": true,
 	"list": true, "ls": true, "auto": true, "guard": true, "status": true, "stop": true,
 	"register": true, "unregister": true, "share": true, "autostart": true,
 	"open": true, "close": true, "disks": true, "image": true, "adopt": true,
@@ -187,7 +187,7 @@ var vdRedactKeeps = map[string]bool{
 	"nopass": true, "new": true, "raw": true, "vhd": true, "wipe": true,
 	"fs": true, "ntfs": true, "exfat": true, "run": true,
 	"noletter": true, "worker": true, "keep": true, "stdin": true, "consent": true,
-	"part": true, "max": true,
+	"part": true, "max": true, "fix": true,
 }
 
 // vdRedactValueWords take a value that is not a secret: a drive letter, a

@@ -256,6 +256,7 @@ Partial Public Module SelfTest
         ' SP-0121: the shared-disk words, the holder's tokens and the refusal that follows from them.
         Guard("disk-share", AddressOf CheckDiskShare)
         Guard("disk-share-manager", AddressOf CheckDiskShareManager)
+        Guard("disk-fms-state", AddressOf CheckDiskFmsState)
         ' SP-0148: partition disks - the disk list's reader, the partition lines, the refusals, the
         ' disk map at every scale, the new-partition and delete dialogs, the Store build's absence.
         Guard("disk-part", AddressOf CheckDiskPartitions)
@@ -869,6 +870,22 @@ Partial Public Module SelfTest
                 End If
                 Check("rail-band:" & entry.Key, entry.Band = band, "band " & entry.Band.ToString() & ", block band " & band.ToString())
             Next
+
+            ' The nesting: a row of a group stands one indent to the right of the header's glyph and
+            ' label columns, a header or a lone job does not (WINDOWS-UI proposal 2026-10-07).
+            Dim headerGlyph = headers(0).GlyphSquare(headers(0).Height).Left
+            Dim headerLabel = headers(0).LabelBounds(headers(0).Width, headers(0).Height).Left
+            For Each entry In all
+                Dim def = rowsByKey(entry.Key)
+                Dim glyphLeft = entry.GlyphSquare(entry.Height).Left
+                Dim labelLeft = entry.LabelBounds(entry.Width, entry.Height).Left
+                Dim ok = If(def.IsChild,
+                            entry.IsChild AndAlso glyphLeft > headerGlyph AndAlso labelLeft > headerLabel,
+                            Not entry.IsChild AndAlso glyphLeft = headerGlyph AndAlso labelLeft = headerLabel)
+                Check("rail-indent:" & entry.Key, ok,
+                      "glyph " & glyphLeft.ToString() & " / label " & labelLeft.ToString() &
+                      " against header " & headerGlyph.ToString() & " / " & headerLabel.ToString())
+            Next
         End Using
     End Sub
 
@@ -1376,6 +1393,7 @@ Partial Public Module SelfTest
                                 .Hue = row.Hue,
                                 .Band = band,
                                 .IsGroupHeader = row.IsGroup,
+                                .IsChild = row.IsChild,
                                 .Text = text,
                                 .RowUnit = 44,
                                 .Size = New Size(250, 44)
@@ -1453,6 +1471,7 @@ Partial Public Module SelfTest
                 Using e As New RailEntry With {
                     .Key = row.Key,
                     .IsGroupHeader = row.IsGroup,
+                    .IsChild = row.IsChild,
                     .Glyph = row.Glyph,
                     .Hue = row.Hue,
                     .RowUnit = unit,
@@ -2092,7 +2111,7 @@ Partial Public Module SelfTest
                           "default=" & shown & ", escape=" & escape & ", danger=" & spec.DangerAt.ToString())
                 Next
             Next
-            Check("dialog:destructive-default-safe:covered", ids.Count = 9, ids.Count.ToString() & " definitions")
+            Check("dialog:destructive-default-safe:covered", ids.Count = 10, ids.Count.ToString() & " definitions")
         Catch ex As Exception
             Check("dialog-destructive", False, ex.GetType().Name & ": " & ex.Message)
         End Try
@@ -4219,6 +4238,8 @@ Partial Public Module SelfTest
                              End Sub)
         Dim image = New DiskRecord With {.Kind = "image", .Path = "C:\i\a disc.iso", .Letter = "I:"}
         Dim withCred = New DiskOptions With {.HasCredential = True}
+        ' chkdsk: a scan by default; the repair is the one that says fix, and force is the answer the
+        ' window already took in its own dialog.
         Dim cases = New Object()() {
             New Object() {"mount", DiskAction.Mount, obf, New DiskOptions(), Q & " mount"},
             New Object() {"mount-cred-ignored-obfuscated", DiskAction.Mount, obf, New DiskOptions With {.HasCredential = True}, Q & " mount"},
@@ -4230,6 +4251,9 @@ Partial Public Module SelfTest
             New Object() {"save", DiskAction.SaveNow, ram, New DiskOptions(), "R: save"},
             New Object() {"info", DiskAction.Info, enc, withCred, Q & " info"},
             New Object() {"verify", DiskAction.Verify, enc, withCred, Q & " verify pe:FILEDO_SHELL_CRED"},
+            New Object() {"chkdsk-scan", DiskAction.CheckVolume, obf, New DiskOptions(), Q & " chkdsk"},
+            New Object() {"chkdsk-repair", DiskAction.RepairVolume, obf, New DiskOptions(), Q & " chkdsk fix force"},
+            New Object() {"chkdsk-encrypted", DiskAction.CheckVolume, enc, withCred, Q & " chkdsk pe:FILEDO_SHELL_CRED"},
             New Object() {"auto-on", DiskAction.AutoOn, obf, New DiskOptions(), "vd auto " & Q & " logon"},
             New Object() {"auto-off", DiskAction.AutoOff, obf, New DiskOptions(), "vd auto off " & Q},
             New Object() {"add", DiskAction.AddToList, MgrVariant(Sub(r) r.Registered = False), New DiskOptions With {.Name = "work2"}, "vd add " & Q & " as work2"},
@@ -4251,6 +4275,28 @@ Partial Public Module SelfTest
         Check("disk-quick:reads-run-beside", Not DiskStates.Serial(DiskAction.Info) AndAlso Not DiskStates.Serial(DiskAction.Verify) AndAlso
                                              DiskStates.Serial(DiskAction.Mount) AndAlso DiskStates.Elevates(DiskAction.Unmount) AndAlso
                                              Not DiskStates.Elevates(DiskAction.Verify), "")
+        ' Check volume and Repair volume (chkdsk): a scan may look at any disk at rest, a repair only at
+        ' the one not closed cleanly; neither at a mounted disk, a partition disk or in the Store build;
+        ' both attach the disk, so both ask consent and run one at a time.
+        Dim unclean = MgrVariant(Sub(r) r.Clean = False)
+        Dim storeCtx = New DiskContext With {.Packaged = True}
+        Dim anyCtx = New DiskContext()
+        Dim partition = MgrVariant(Sub(r) r.Carrier = "partition")
+        Check("disk-quick:chkdsk-rules",
+              DiskStates.WhyNot(DiskAction.RepairVolume, unclean, DiskRowState.Unclean, anyCtx) = "" AndAlso
+              DiskStates.WhyNot(DiskAction.RepairVolume, obf, DiskRowState.NotMounted, anyCtx) = "vd_mgr_why_not_unclean" AndAlso
+              DiskStates.WhyNot(DiskAction.CheckVolume, obf, DiskRowState.NotMounted, anyCtx) = "" AndAlso
+              DiskStates.WhyNot(DiskAction.CheckVolume, unclean, DiskRowState.Unclean, anyCtx) = "" AndAlso
+              DiskStates.WhyNot(DiskAction.CheckVolume, mounted, DiskRowState.Mounted, anyCtx) = "vd_mgr_why_mounted" AndAlso
+              DiskStates.WhyNot(DiskAction.RepairVolume, mounted, DiskRowState.Mounted, anyCtx) = "vd_mgr_why_mounted" AndAlso
+              DiskStates.WhyNot(DiskAction.RepairVolume, unclean, DiskRowState.Unclean, storeCtx) = "vd_packaged" AndAlso
+              DiskStates.WhyNot(DiskAction.CheckVolume, partition, DiskRowState.NotMounted, anyCtx) = "vd_part_why_no_chkdsk" AndAlso
+              DiskStates.HiddenInBuild(DiskAction.CheckVolume, storeCtx) AndAlso DiskStates.HiddenInBuild(DiskAction.RepairVolume, storeCtx) AndAlso
+              DiskStates.Elevates(DiskAction.CheckVolume) AndAlso DiskStates.Serial(DiskAction.CheckVolume) AndAlso
+              DiskStates.Elevates(DiskAction.RepairVolume) AndAlso DiskStates.Serial(DiskAction.RepairVolume) AndAlso
+              Not DiskStates.AppliesToMany(DiskAction.RepairVolume) AndAlso DiskStates.AsksPassword(DiskAction.RepairVolume, enc), "")
+        Check("disk-quick:chkdsk-exit-sentence",
+              DiskCommands.ExitKeyFor("chkdsk", 4, "") = "vd_exit_4_chkdsk" AndAlso DiskCommands.ExitKeyFor("verify", 4, "") = "vd_exit_4", "")
         Check("disk-quick:password-only-encrypted", DiskStates.AsksPassword(DiskAction.Mount, enc) AndAlso Not DiskStates.AsksPassword(DiskAction.Mount, obf) AndAlso
                                                    Not DiskStates.AsksPassword(DiskAction.Unmount, enc) AndAlso Not DiskStates.AsksPassword(DiskAction.Info, enc), "")
         ' The snapshot's own command line, and nothing in it the redaction would take.

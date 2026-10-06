@@ -97,6 +97,8 @@ Public Class DiskOptions
     Public Property Force As Boolean = False
     Public Property NoSave As Boolean = False
     Public Property Wipe As Boolean = False
+    ' chkdsk: a repair (chkdsk /f) instead of a read-only scan.
+    Public Property Repair As Boolean = False
     Public Property NoPass As Boolean = False
     Public Property ExportForm As String = "raw"
     Public Property Dest As String = ""
@@ -122,7 +124,7 @@ Public Module DiskCommands
     ' The verbs that read or change a container's contents and so may need its credential.
     Public Function TakesCredential(verb As String) As Boolean
         Select Case verb
-            Case "new", "mount", "verify", "export", "compact", "grow", "format", "seal", "clone", "pass"
+            Case "new", "mount", "verify", "export", "compact", "grow", "format", "chkdsk", "seal", "clone", "pass"
                 Return True
         End Select
         Return False
@@ -141,7 +143,7 @@ Public Module DiskCommands
     ' the rights the packaged build never asks for.
     Public Function NeedsTransport(verb As String) As Boolean
         Select Case verb
-            Case "mount", "unmount", "save", "format", "auto", "guard"
+            Case "mount", "unmount", "save", "format", "chkdsk", "auto", "guard"
                 Return True
         End Select
         Return False
@@ -151,7 +153,7 @@ Public Module DiskCommands
     ' the page never offers a button the console would refuse (spec 7.4).
     Public Function RefusedWhileMounted(verb As String) As Boolean
         Select Case verb
-            Case "format", "destroy", "compact", "grow", "pass"
+            Case "format", "chkdsk", "destroy", "compact", "grow", "pass"
                 Return True
         End Select
         Return False
@@ -270,6 +272,13 @@ Public Module DiskCommands
                 ' The prompt was answered on the page as the typed FORMAT; force skips the prompt
                 ' and never the check (a mounted container is still refused).
                 a.Add("force")
+            Case "chkdsk"
+                ' A scan by default. The window asked before a repair (its own dialog), so the
+                ' console is told: force skips the question and never a check.
+                If o.Repair Then
+                    a.Add("fix")
+                    a.Add("force")
+                End If
             Case "seal", "clone"
                 If o.Dest.Trim() <> "" Then a.Add(o.Dest.Trim())
                 If o.NoPass Then a.Add("nopass")
@@ -347,6 +356,9 @@ Public Module DiskCommands
     Public Function ExitKeyFor(verb As String, code As Integer, output As String) As String
         If code = 2 AndAlso (verb = "grow" OrElse verb = "compact") AndAlso
            If(output, "").IndexOf(OfflineWriterRefusal, StringComparison.Ordinal) >= 0 Then Return "vd_exit_2_writer"
+        ' chkdsk's own findings are class 4 as well, and a volume with problems is not a damaged
+        ' container: the sentence names chkdsk and what to do next.
+        If code = 4 AndAlso verb = "chkdsk" Then Return "vd_exit_4_chkdsk"
         Return ExitKey(code)
     End Function
 

@@ -65,6 +65,13 @@ Public Class RailRow
     ' A job that stands at the level of the headers because its group would have held only it.
     Public ReadOnly IsAlone As Boolean
 
+    ' A job inside a group: the rows the rail draws one step in from the headers (RailEntry.IsChild).
+    Public ReadOnly Property IsChild As Boolean
+        Get
+            Return Not IsGroup AndAlso Not IsAlone
+        End Get
+    End Property
+
     Private Sub New(key As String, glyph As GlyphRef, isGroup As Boolean, hue As String, isAlone As Boolean)
         Me.Key = key
         Me.Glyph = glyph
@@ -150,6 +157,11 @@ Public Class RailEntry
     Public Property ProductIcon As Icon = Nothing
     Public Property Key As String = ""          ' the localization key, kept for a relayout
     Public Property IsGroupHeader As Boolean = False
+
+    ' A row that belongs to a group, so it stands one step to the right of the header's glyph and
+    ' label column: the nesting reads from the layout and not only from the header above. The accent
+    ' bar and the selection fill stay on the row's own left edge.
+    Public Property IsChild As Boolean = False
 
     ' The Theme.GroupTone key the glyph is drawn in (the colour look), or "" for the text colour.
     Public Property Hue As String = ""
@@ -266,11 +278,21 @@ Public Class RailEntry
     ' The rectangle the label is drawn into, for a row of this width and height. Paint, the row's
     ' height and SelfTest's overflow check all use this one function, so they cannot disagree.
     Friend Function LabelBounds(width As Integer, height As Integer) As Rectangle
-        ' A header's icon sits in the column every row's glyph has, so its label starts where theirs
-        ' do; the chevron takes the right edge, which the label keeps clear of.
-        Dim left = CInt(RowUnit * 0.2) + CInt(RowUnit * 1.1)
+        ' A header's icon sits in the column a lone job's glyph has, so its label starts where that
+        ' one does; a row of a group starts one indent further in. The chevron takes the right edge,
+        ' which the header's label keeps clear of.
+        Dim left = CInt(RowUnit * 0.2) + CInt(RowUnit * 1.1) + ChildIndent()
         Dim right = If(IsGroupHeader, ChevronColumn(), 4)
         Return New Rectangle(left, 0, Math.Max(1, width - left - right), height)
+    End Function
+
+    ' How far a row of a group stands in from the header's columns: a quarter of a rail unit, 11 px
+    ' at 100 %, scaled with the row. The glyph and the label move together, so the gap between them
+    ' is the same on every row.
+    Friend Const ChildIndentUnits As Double = 0.25
+
+    Friend Function ChildIndent() As Integer
+        Return If(IsChild, CInt(RowUnit * ChildIndentUnits), 0)
     End Function
 
     ' The width the chevron of a header takes at the right edge: its glyph and a margin each side.
@@ -291,7 +313,7 @@ Public Class RailEntry
     ' centred on the row's height as the label is.
     Friend Function GlyphSquare(height As Integer) As Rectangle
         Dim px = GlyphPixels()
-        Return New Rectangle(CInt(RowUnit * 0.3), Math.Max(0, (height - px) \ 2), px, px)
+        Return New Rectangle(CInt(RowUnit * 0.3) + ChildIndent(), Math.Max(0, (height - px) \ 2), px, px)
     End Function
 
     ' A header's chevron: the same tier, in the column at the right edge.

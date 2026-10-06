@@ -57,6 +57,10 @@ Public Enum DiskAction
     UnshareDisk
     ShareAutoOn
     ShareAutoOff
+    ' chkdsk on the volume of a disk at rest: a read-only scan, and a repair (chkdsk /f) for a disk
+    ' that was not closed cleanly. Last, so no stored value of an action before them moves.
+    CheckVolume
+    RepairVolume
 End Enum
 
 ' How an action runs (spec 7): a filedo.exe run from the manager, something with no filedo.exe at
@@ -103,6 +107,38 @@ Public Module DiskStates
     ' The state in words (principle 1: never colour alone), with the one most important detail -
     ' the console's own words where it already says them (vdList, vdStatus).
     Public Function StateText(r As DiskRecord, state As DiskRowState, busyVerb As String, dict As Dictionary(Of String, String)) As String
+        Dim text = BaseStateText(r, state, busyVerb, dict)
+        Dim fms = FmsStateText(r, state, dict)
+        If fms.Main <> "" Then Return fms.Main
+        If fms.Tail <> "" Then Return text & " - " & fms.Tail
+        Return text
+    End Function
+
+    ' What FMS does with a disk that is published as a resource, beside what FileDO does with it
+    ' (SP-0121). A disk FMS has opened is in use from outside even though FileDO has it "not mounted",
+    ' so that state is the row's own word; every other state of a published disk gets a tail. Only the
+    ' states that describe a healthy disk carry it - a missing, different or unreadable file, or a run
+    ' in progress, say their own thing.
+    Public Function FmsStateText(r As DiskRecord, state As DiskRowState, dict As Dictionary(Of String, String)) As FmsText
+        Dim none As New FmsText
+        If Not r.IsShared Then Return none
+        Select Case state
+            Case DiskRowState.Mounted, DiskRowState.Unsaved, DiskRowState.NotMounted, DiskRowState.Unclean
+            Case Else
+                Return none
+        End Select
+        Dim s = If(New String() {"open", "closed", "opening", "closing", "locked", "failed"}.Contains(r.SharedState), r.SharedState, "unknown")
+        Dim word = T(dict, "vd_mgr_state_fms_" & s)
+        If s = "open" AndAlso state = DiskRowState.NotMounted Then Return New FmsText With {.Main = T(dict, "vd_mgr_state_fms_open_main")}
+        Return New FmsText With {.Tail = word}
+    End Function
+
+    Public Class FmsText
+        Public Main As String = ""
+        Public Tail As String = ""
+    End Class
+
+    Private Function BaseStateText(r As DiskRecord, state As DiskRowState, busyVerb As String, dict As Dictionary(Of String, String)) As String
         Select Case state
             Case DiskRowState.Busy : Return T(dict, BusyKey(busyVerb))
             Case DiskRowState.ServerGone : Return T(dict, "vd_mgr_state_server_gone")
@@ -147,12 +183,29 @@ Public Module DiskStates
         Return out
     End Function
 
+    ' The sentence that ends a finished chkdsk run, from chkdsk's own exit code (the run's number
+    ' "chkdsk_exit"): what it found, and what the run did to the disk. "" for any other action, and
+    ' for a code this table does not read as a success - the run's own failure sentence says that.
+    ' 0 and 2 are "no problems" (2 is a cleanup, which the verb words the same way); 1 after a repair is
+    ' "found and repaired".
+    Public Function ChkdskDoneKey(a As DiskAction, exitCode As Integer) As String
+        Select Case a
+            Case DiskAction.CheckVolume
+                If exitCode = 0 OrElse exitCode = 2 Then Return "vd_mgr_done_chkdsk_clean_fmt"
+            Case DiskAction.RepairVolume
+                If exitCode = 0 OrElse exitCode = 2 Then Return "vd_mgr_done_repair_clean_fmt"
+                If exitCode = 1 Then Return "vd_mgr_done_repair_fixed_fmt"
+        End Select
+        Return ""
+    End Function
+
     ' The word of an operation in progress, by its verb; "queued" is an operation waiting its turn.
     Public Function BusyKey(verb As String) As String
         Select Case verb
             Case "mount" : Return "vd_mgr_state_busy_mount"
             Case "unmount" : Return "vd_mgr_state_busy_unmount"
             Case "verify" : Return "vd_mgr_state_busy_verify"
+            Case "chkdsk" : Return "vd_mgr_state_busy_chkdsk"
             Case "save" : Return "vd_mgr_state_busy_save"
             Case "queued" : Return "vd_mgr_state_queued"
         End Select
@@ -260,6 +313,7 @@ Public Module DiskStates
             Case DiskAction.SaveNow : Return "save"
             Case DiskAction.Info : Return "info"
             Case DiskAction.Verify : Return "verify"
+            Case DiskAction.CheckVolume, DiskAction.RepairVolume : Return "chkdsk"
             Case DiskAction.AutoOn, DiskAction.AutoOff : Return "auto"
             Case DiskAction.AddToList : Return "add"
             Case DiskAction.Forget : Return "forget"
@@ -332,6 +386,8 @@ Public Module DiskStates
             Case DiskAction.SaveNow : Return "vd_mgr_act_save"
             Case DiskAction.Info : Return "vd_mgr_act_info"
             Case DiskAction.Verify : Return "vd_mgr_act_verify"
+            Case DiskAction.CheckVolume : Return "vd_mgr_act_chkdsk"
+            Case DiskAction.RepairVolume : Return "vd_mgr_act_repair"
             Case DiskAction.AutoOn : Return "vd_mgr_act_auto_on"
             Case DiskAction.AutoOff : Return "vd_mgr_act_auto_off"
             Case DiskAction.Autostart : Return "vd_mgr_act_autostart"
@@ -377,6 +433,8 @@ Public Module DiskStates
         Select Case a
             Case DiskAction.Compact, DiskAction.Grow
                 Return "vd_part_why_fixed_size"
+            Case DiskAction.CheckVolume, DiskAction.RepairVolume
+                Return "vd_part_why_no_chkdsk"
             Case DiskAction.Export, DiskAction.Seal, DiskAction.Clone, DiskAction.ChangePassword, DiskAction.Format
                 Return "vd_part_why_job_page"
             Case DiskAction.AddToList
@@ -503,6 +561,18 @@ Public Module DiskStates
                 If mounted Then Return "vd_mgr_why_mounted"
                 Return FileWhy(state)
 
+            Case DiskAction.CheckVolume, DiskAction.RepairVolume
+                ' chkdsk attaches the disk like a mount does, so it needs the mount path. A scan
+                ' may look at any disk at rest; a repair writes, so it is for the one Windows
+                ' would otherwise check by itself - the disk that was not closed cleanly.
+                If ctx.Packaged Then Return "vd_packaged"
+                If mounted Then Return "vd_mgr_why_mounted"
+                If r.IsHeldByFMS Then Return "vd_mgr_why_held_by_fms"
+                Dim fw = FileWhy(state)
+                If fw <> "" Then Return fw
+                If a = DiskAction.RepairVolume AndAlso state <> DiskRowState.Unclean Then Return "vd_mgr_why_not_unclean"
+                Return TransportWhy(ctx)
+
             Case DiskAction.AutoOn
                 If ctx.Packaged Then Return "vd_packaged"
                 If Not r.Registered Then Return "vd_mgr_why_not_registered"
@@ -570,7 +640,7 @@ Public Module DiskStates
             Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.MountImage,
                  DiskAction.Unmount, DiskAction.UnmountImage, DiskAction.SaveNow,
                  DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.Autostart, DiskAction.Format,
-                 DiskAction.ImageToFile, DiskAction.Adopt
+                 DiskAction.CheckVolume, DiskAction.RepairVolume, DiskAction.ImageToFile, DiskAction.Adopt
                 Return True
         End Select
         Return False
@@ -671,6 +741,9 @@ Public Module DiskStates
                 Return DiskCommands.Build("info", r.Target, New DiskOptions())
             Case DiskAction.Verify
                 Return DiskCommands.Build("verify", r.Target, o)
+            Case DiskAction.CheckVolume, DiskAction.RepairVolume
+                o.Repair = (a = DiskAction.RepairVolume)
+                Return DiskCommands.Build("chkdsk", r.Target, o)
             Case DiskAction.AutoOn
                 Return DiskCommands.Build("auto", r.Target, New DiskOptions With {.AutoOn = True})
             Case DiskAction.AutoOff
@@ -690,7 +763,8 @@ Public Module DiskStates
     Public Function AsksPassword(a As DiskAction, r As DiskRecord) As Boolean
         If r Is Nothing OrElse r.IsImage OrElse r.Protection <> DiskProtection.Encrypted Then Return False
         Select Case a
-            Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Verify, DiskAction.OpenShared, DiskAction.ShareAutoOn
+            Case DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Verify, DiskAction.OpenShared, DiskAction.ShareAutoOn,
+                 DiskAction.CheckVolume, DiskAction.RepairVolume
                 Return True
         End Select
         Return False

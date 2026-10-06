@@ -80,7 +80,8 @@ Partial Public Class DiskManagerForm
     ' The toolbar's own row actions and the detail pane's buttons, in the order they are offered.
     Private Shared ReadOnly DetailActions As DiskAction() = {
         DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.Unmount, DiskAction.UnmountImage, DiskAction.OpenDrive,
-        DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.AutoOn, DiskAction.AutoOff,
+        DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.RepairVolume,
+        DiskAction.AutoOn, DiskAction.AutoOff,
         DiskAction.Autostart, DiskAction.AddToList, DiskAction.ChangePassword, DiskAction.ImageToFile,
         DiskAction.ShareDisk, DiskAction.OpenShared, DiskAction.CloseShared, DiskAction.UnshareDisk,
         DiskAction.ShareAutoOn, DiskAction.ShareAutoOff}
@@ -151,6 +152,10 @@ Partial Public Class DiskManagerForm
     Private staleKey As String = ""
     Private reading As Boolean = False
     Private readAgain As Boolean = False
+    ' Reads still owed after an operation ended: the first read after it can fail while the machine
+    ' is busy letting go of the disk (the iSCSI session of a repair), and the row would stay as it was
+    ' for a whole poll. A failed one is asked again at once, a few times, instead of waiting.
+    Private postJobReads As Integer = 0
     Private shown_ As New List(Of DiskRecord)
     Private sortColumn As Integer = -1
     Private sortDescending As Boolean = False
@@ -1141,6 +1146,9 @@ Partial Public Class DiskManagerForm
                 Return rows.Count = 1 AndAlso Not rows(0).Registered AndAlso Not rows(0).IsImage
             Case DiskAction.Forget
                 Return rows.All(Function(r) r.Registered)
+            Case DiskAction.RepairVolume
+                ' Only for the disk Windows would check by itself; every other row has nothing to repair.
+                Return rows.Count = 1 AndAlso Not anyImage AndAlso RowState(rows(0)) = DiskRowState.Unclean
         End Select
         Return Not anyImage
     End Function
@@ -1317,10 +1325,15 @@ Partial Public Class DiskManagerForm
             End If
             lastGoodAt = DateTime.Now
             staleKey = ""
+            postJobReads = 0
             If watcher Is Nothing AndAlso Visible Then StartWatcher()
         Else
             ' The last good state stays on screen, marked as stale (principle 6).
             staleKey = If(problem = "", "vd_mgr_stale_failed", problem)
+            If postJobReads > 0 Then
+                postJobReads -= 1
+                ScheduleRead()
+            End If
         End If
         RefreshView()
     End Sub
@@ -1487,6 +1500,9 @@ Partial Public Class DiskManagerForm
             Case DiskAction.AutoOff
                 If Ask("vd_mgr_confirm_auto_title", Localization.Format(LText("vd_mgr_confirm_auto_off_fmt"), DisplayName(sel(0))),
                        "vd_mgr_btn_turn_off") <> 0 Then Return
+            Case DiskAction.RepairVolume
+                ' chkdsk /f writes to the volume, so its question is asked before anything starts.
+                If ShellDialog.Ask(Me, DestructiveDialogs.RepairVolume(dict, DisplayName(sel(0)))) <> 0 Then Return
             Case DiskAction.Forget
                 Dim names = String.Join(", ", sel.Select(Function(r) r.Name).ToArray())
                 If ShellDialog.Ask(Me, DestructiveDialogs.ForgetDisks(dict, names)) <> 0 Then Return
@@ -1894,6 +1910,7 @@ Partial Public Class DiskManagerForm
         op.Run.Dispose()
         If IsDisposed Then Return
         Pump()
+        postJobReads = 3
         RequestRead()
         If op.ChangesDisks Then RequestDisksRead()
         If closeWhenIdle AndAlso running.Count = 0 AndAlso queue.Count = 0 Then
@@ -1911,7 +1928,12 @@ Partial Public Class DiskManagerForm
             lastOutcome = Localization.Format(L("vd_mgr_failed_fmt"), label, name, L("shell_start_failed"))
             lastOutcomeWarns = True
         ElseIf res.Verdict = "Done" OrElse res.Verdict = "Passed" Then
-            lastOutcome = Localization.Format(L("vd_mgr_done_fmt"), label, name)
+            Dim doneKey = "vd_mgr_done_fmt"
+            Dim chkExit As Integer
+            If ChkdskExitOf(res, chkExit) AndAlso DiskStates.ChkdskDoneKey(op.Action, chkExit) <> "" Then
+                doneKey = DiskStates.ChkdskDoneKey(op.Action, chkExit)
+            End If
+            lastOutcome = Localization.Format(L(doneKey), label, name)
             lastOutcomeWarns = False
             If op.Action = DiskAction.Info Then infoByKey(op.Record.Key) = InfoLines(res.Output)
         ElseIf res.Verdict = "Stopped" AndAlso op.Stopped Then
@@ -1921,8 +1943,8 @@ Partial Public Class DiskManagerForm
             Dim why As String
             If If(res.Output, "").Contains("administrator consent was not given") OrElse res.Reason = "shell_elevation_refused" Then
                 why = L("vd_mgr_elevation_refused")
-            ElseIf DiskCommands.ExitKey(res.ExitCode) <> "" Then
-                why = L(DiskCommands.ExitKey(res.ExitCode))
+            ElseIf DiskCommands.ExitKeyFor(DiskStates.VerbOf(op.Action), res.ExitCode, res.Output) <> "" Then
+                why = L(DiskCommands.ExitKeyFor(DiskStates.VerbOf(op.Action), res.ExitCode, res.Output))
             ElseIf Not String.IsNullOrEmpty(res.Reason) Then
                 why = L(res.Reason)
             Else
@@ -1933,6 +1955,21 @@ Partial Public Class DiskManagerForm
         End If
         RefreshView()
     End Sub
+
+    ' chkdsk's exit code as the run reported it ("chkdsk_exit" among the result's numbers); False when
+    ' the run did not say - an older filedo.exe - and the line stays the plain "done".
+    Friend Shared Function ChkdskExitOf(res As Runner.RunResult, ByRef code As Integer) As Boolean
+        Try
+            Dim nums = If(res Is Nothing OrElse res.ResultInfo Is Nothing, Nothing, res.ResultInfo.Numbers)
+            Dim v As Object = Nothing
+            If nums IsNot Nothing AndAlso nums.TryGetValue("chkdsk_exit", v) AndAlso v IsNot Nothing Then
+                code = Convert.ToInt32(v, Globalization.CultureInfo.InvariantCulture)
+                Return True
+            End If
+        Catch
+        End Try
+        Return False
+    End Function
 
     ' What `info` printed, without the run's own opening and closing lines.
     Friend Shared Function InfoLines(output As String) As String
@@ -2079,8 +2116,8 @@ Partial Public Class DiskManagerForm
         menu.Items.Clear()
         Dim groups = New DiskAction()() {
             New DiskAction() {DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Unmount, DiskAction.UnmountImage,
-                              DiskAction.OpenDrive, DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.AutoOn,
-                              DiskAction.AutoOff, DiskAction.Autostart, DiskAction.AddToList, DiskAction.Forget, DiskAction.ShowInFolder, DiskAction.CopyPath},
+                              DiskAction.OpenDrive, DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.CheckVolume,
+                              DiskAction.RepairVolume, DiskAction.AutoOn, DiskAction.AutoOff, DiskAction.Autostart, DiskAction.AddToList, DiskAction.Forget, DiskAction.ShowInFolder, DiskAction.CopyPath},
             New DiskAction() {DiskAction.ImageToFile, DiskAction.Export, DiskAction.Compact, DiskAction.Grow, DiskAction.Seal, DiskAction.Clone, DiskAction.ChangePassword},
             New DiskAction() {DiskAction.ShareDisk, DiskAction.OpenShared, DiskAction.CloseShared, DiskAction.UnshareDisk, DiskAction.ShareAutoOn, DiskAction.ShareAutoOff},
             New DiskAction() {DiskAction.Format, DiskAction.Destroy}}

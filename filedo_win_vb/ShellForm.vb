@@ -422,7 +422,7 @@ Public Class ShellForm
                 currentGroupKey = Nothing
                 AddEntry(row.Key, row.Glyph, row.Hue, block Mod 2)
             Else
-                AddEntry(row.Key, row.Glyph, "", block Mod 2)
+                AddEntry(row.Key, row.Glyph, "", block Mod 2, row.IsChild)
             End If
         Next
     End Sub
@@ -455,13 +455,15 @@ Public Class ShellForm
         UpdateGroupAccessibility(e)
     End Sub
 
-    Private Sub AddEntry(key As String, glyph As GlyphRef, hue As String, band As Integer)
+    Private Sub AddEntry(key As String, glyph As GlyphRef, hue As String, band As Integer,
+                         Optional isChild As Boolean = False)
         Dim e As New RailEntry With {
             .Key = key,
             .Name = "rail:" & key,
             .Text = L(key),
             .Glyph = glyph,
             .Hue = hue,
+            .IsChild = isChild,
             .Band = band,
             .TabStop = True,
             .RowUnit = Ui.Px(Me, RailTargetHeight),

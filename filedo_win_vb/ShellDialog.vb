@@ -303,6 +303,14 @@ Public Module DestructiveDialogs
                                       New String() {T(d, "vd_mgr_btn_mount"), T(d, "shell_btn_cancel")}, 1, 0)
     End Function
 
+    ' Repairing the volume of a container that was not closed cleanly: chkdsk /f, which writes to the
+    ' volume and can drop what it cannot recover. Cancel is the default.
+    Public Function RepairVolume(d As Dictionary(Of String, String), diskName As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "vd_mgr_confirm_repair_title"),
+                                      Localization.Format(TM(d, "vd_mgr_confirm_repair_fmt"), diskName),
+                                      New String() {T(d, "vd_mgr_btn_repair"), T(d, "shell_btn_cancel")}, 1, 0)
+    End Function
+
     ' Creating a partition disk (SP-0148 4.2): a new partition in free space on a real disk. Nothing
     ' is destroyed, but the disk's layout changes and administrator consent follows - so Cancel is the
     ' default and Create is painted as the answer that acts.
@@ -322,6 +330,7 @@ Public Module DestructiveDialogs
         out.Add(New KeyValuePair(Of String, DialogSpec)("forget-disks", ForgetDisks(d, "test")))
         out.Add(New KeyValuePair(Of String, DialogSpec)("unmount-dirty-ram", UnmountDirtyRam(d, "test", "12 MB")))
         out.Add(New KeyValuePair(Of String, DialogSpec)("mount-unclean", MountUnclean(d, "test")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("repair-volume", RepairVolume(d, "test")))
         out.Add(New KeyValuePair(Of String, DialogSpec)("create-partition", CreatePartition(d, "Disk 2")))
         Return out
     End Function

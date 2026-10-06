@@ -13,7 +13,11 @@
 - **Window anatomy and navigation** (section 2). Native window management only; the settings page has no
   second close cross beside the native one. The rail is the vertical navigation list: one glyph and a
   localized caption per destination, About last, hover/focus/selection/unavailable distinguishable,
-  never by colour alone.
+  never by colour alone. **Nested rows** (proposed 2026-10-07 as
+  `PROPOSAL-2026-10-07-nested-navigation-rows-indent`, not yet folded into the contract): the rail's rows
+  that belong to a group header stand one indent (a quarter of the row unit) right of the header's glyph and
+  caption columns; headers and lone jobs keep the base columns, the accent bar stays on the row's own edge
+  (`RailEntry.IsChild` / `ChildIndent`, `Rail.vb`).
 - **Independent collapsible groups and remembered context** (section 3). Groups never close one another;
   collapse changes visibility only, hands focus to the header when it held a child, and hidden children
   leave keyboard traversal. Last page, each group's expansion and each page's viewport are remembered
@@ -44,7 +48,8 @@
 **Gates.** `filedo_win.exe --selftest` - the `windows-ui:` rows (anatomy of every settings row, stable
 IDs and viewport fallbacks, live-language rebind that touches no user value, watched hidden window
 following a palette switch, high-contrast palette pinned to the system colours), the `rail-groups:`
-rows (independent folding, focus handoff), the `hit-target:` rows and the `contrast:` rows.
+rows (independent folding, focus handoff), the `rail-indent:` rows (a group's rows are right of its header),
+the `hit-target:` rows and the `contrast:` rows.
 `filedo_win.exe --ui-drive <folder>` - the driven visual acceptance (SP-0150): real windows on the
 screen, light -> dark -> light on the live window and on an open dialog, keyboard activation of a
 group header, Escape leaving the settings page, the real close path and a fresh reopen restoring the

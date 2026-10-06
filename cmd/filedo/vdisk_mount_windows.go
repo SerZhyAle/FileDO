@@ -58,7 +58,7 @@ func vdInternalMain(args []string) int {
 	switch args[0] {
 	case "_serve":
 		err = vdServeMain(args[1:])
-	case "_attach", "_detach", "_task", "_image", "_flush", "_format", "_open", "_part":
+	case "_attach", "_detach", "_task", "_image", "_flush", "_format", "_chkdsk", "_open", "_part":
 		err = vdElevatedMain(args[0], args[1:])
 	default:
 		err = vdUsagef("unknown internal verb %q", args[0])
@@ -336,6 +336,10 @@ type vdRequest struct {
 	// FS ("NTFS" or "exFAT") and Label, and detach again - no drive letter.
 	FormatOnly bool   `json:"format_only,omitempty"`
 	FS         string `json:"fs,omitempty"`
+	// Chkdsk is the _chkdsk step: attach, give the volume a letter, run chkdsk on it - with /f
+	// when Fix is set, a read-only scan otherwise - and detach again (vdisk_chkdsk_windows.go).
+	Chkdsk bool `json:"chkdsk,omitempty"`
+	Fix    bool `json:"fix,omitempty"`
 	// StateDir is the caller's state root. A process started through the
 	// consent prompt gets a fresh environment, so an overridden root would
 	// otherwise not reach it and its log lines would land elsewhere. The
@@ -366,6 +370,10 @@ type vdResult struct {
 	Formatted  bool   `json:"formatted,omitempty"`
 	Unclean    bool   `json:"unclean,omitempty"`
 	Holder     string `json:"holder,omitempty"`
+	// ChkdskExit and ChkdskText are what the _chkdsk step ran: chkdsk's exit code and its report,
+	// decoded and cut to a readable size. The step does not judge the code; the command does.
+	ChkdskExit int    `json:"chkdsk_exit,omitempty"`
+	ChkdskText string `json:"chkdsk_text,omitempty"`
 	// Excluded: this mount added the Defender exclusion and its unmount
 	// removes it. Warning: a step that did not work but does not fail the mount.
 	Excluded bool   `json:"excluded,omitempty"`
@@ -409,6 +417,8 @@ func vdElevatedMain(verb string, args []string) error {
 		res, err = vdFlushStep(req)
 	case verb == "_format":
 		res, err = vdFormatStep(req, resPath+".cancel")
+	case verb == "_chkdsk":
+		res, err = vdChkdskStep(req, resPath+".cancel")
 	default:
 		res, err = vdDetach(req)
 	}
@@ -662,6 +672,16 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 		return res, nil
 	}
 	res.VolumeGUID = vol
+	if req.Chkdsk {
+		// chkdsk names the volume by its letter, the one form it always takes; the detach that
+		// follows takes the volume, and with it the letter, away again.
+		if res.Letter, err = assignLetter(vol, ""); err != nil {
+			return res, err
+		}
+		res.MountPath = res.Letter + `\`
+		vdLogf("attach %s: %s at %s for chkdsk", req.IQN, vol, res.Letter)
+		return res, nil
+	}
 	if req.NoLetter {
 		if have := volumeLetter(vol); have != "" {
 			if err = vdisk.DeleteVolumeMountPoint(have + `\`); err != nil {

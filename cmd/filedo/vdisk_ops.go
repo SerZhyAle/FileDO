@@ -50,7 +50,7 @@ func vdOfflineWriterGate(path string, info vdisk.Info, verb string, batch bool) 
 		return nil
 	}
 	if !vdConfirm(fmt.Sprintf("Run %s anyway?", verb), batch) {
-		return vdUsagef("not changed: %s %s (run %s from a console, or mount it once so Windows checks the volume, unmount it, then try again)", path, vdOfflineWriterRefusal, verb)
+		return vdUsagef("not changed: %s %s (run %s from a console, or repair the volume first with `filedo %s chkdsk fix`, then try again)", path, vdOfflineWriterRefusal, verb, vdQuoteArg(path))
 	}
 	return nil
 }

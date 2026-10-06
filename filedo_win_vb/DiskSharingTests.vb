@@ -67,4 +67,43 @@ Partial Module SelfTest
             End Using
         Next
     End Sub
+
+    ' The row's state in words when the disk is published in FMS, and the ending sentence of a chkdsk run.
+    Private Sub CheckDiskFmsState()
+        Dim keys = {"vd_mgr_state_fms_open_main", "vd_mgr_state_fms_open", "vd_mgr_state_fms_closed", "vd_mgr_state_fms_opening",
+                    "vd_mgr_state_fms_closing", "vd_mgr_state_fms_locked", "vd_mgr_state_fms_failed", "vd_mgr_state_fms_unknown",
+                    "vd_help_state_fms", "vd_mgr_done_chkdsk_clean_fmt", "vd_mgr_done_repair_clean_fmt", "vd_mgr_done_repair_fixed_fmt"}
+        For Each lang In Localization.Languages
+            For Each key In keys
+                Check("disk-fms-state:locale:" & lang & ":" & key, Localization.OwnKeysForTest(lang).Contains(key), "")
+            Next
+        Next
+        Dim ui = Localization.GetDict("en")
+        Dim plain As New DiskRecord With {.Name = "work", .Path = "C:\fixture\work.fdd", .ContainerId = "fixture", .Registered = True, .Carrier = "file"}
+        Dim shared1 As New DiskRecord With {.Name = "work", .Path = "C:\fixture\work.fdd", .ContainerId = "fixture", .Registered = True, .Carrier = "file",
+                                            .[Shared] = True, .Holder = "none", .SharedState = "closed"}
+        Dim notMounted = ui("vd_mgr_state_not_mounted")
+        Check("disk-fms-state:not-shared-unchanged", DiskStates.StateText(plain, DiskRowState.NotMounted, "", ui) = notMounted, "")
+        Check("disk-fms-state:closed-tail", DiskStates.StateText(shared1, DiskRowState.NotMounted, "", ui) = notMounted & " - " & ui("vd_mgr_state_fms_closed"), "")
+        shared1.SharedState = "open"
+        shared1.Holder = "fms-service"
+        Check("disk-fms-state:open-is-the-state", DiskStates.StateText(shared1, DiskRowState.NotMounted, "", ui) = ui("vd_mgr_state_fms_open_main"), "")
+        Check("disk-fms-state:open-tail-when-unclean", DiskStates.StateText(shared1, DiskRowState.Unclean, "", ui) = ui("vd_mgr_state_unclean") & " - " & ui("vd_mgr_state_fms_open"), "")
+        Check("disk-fms-state:mounted-tail", DiskStates.StateText(shared1, DiskRowState.Mounted, "", ui) = ui("vd_mgr_state_mounted") & " - " & ui("vd_mgr_state_fms_open"), "")
+        shared1.SharedState = "something-new"
+        Check("disk-fms-state:unknown-word", DiskStates.StateText(shared1, DiskRowState.NotMounted, "", ui) = notMounted & " - " & ui("vd_mgr_state_fms_unknown"), "")
+        Check("disk-fms-state:busy-and-missing-say-their-own", DiskStates.StateText(shared1, DiskRowState.Busy, "unmount", ui) = ui("vd_mgr_state_busy_unmount") AndAlso
+                                                               DiskStates.StateText(shared1, DiskRowState.Missing, "", ui) = ui("vd_mgr_state_missing"), "")
+        Check("disk-fms-state:chkdsk-sentences",
+              DiskStates.ChkdskDoneKey(DiskAction.CheckVolume, 0) = "vd_mgr_done_chkdsk_clean_fmt" AndAlso
+              DiskStates.ChkdskDoneKey(DiskAction.RepairVolume, 0) = "vd_mgr_done_repair_clean_fmt" AndAlso
+              DiskStates.ChkdskDoneKey(DiskAction.RepairVolume, 2) = "vd_mgr_done_repair_clean_fmt" AndAlso
+              DiskStates.ChkdskDoneKey(DiskAction.RepairVolume, 1) = "vd_mgr_done_repair_fixed_fmt" AndAlso
+              DiskStates.ChkdskDoneKey(DiskAction.CheckVolume, 1) = "" AndAlso DiskStates.ChkdskDoneKey(DiskAction.RepairVolume, 3) = "" AndAlso
+              DiskStates.ChkdskDoneKey(DiskAction.Verify, 0) = "", "")
+        Dim res As New Runner.RunResult With {.ResultInfo = New EventStream.ResultInfo With {.Numbers = New Dictionary(Of String, Object) From {{"chkdsk_exit", 1.0R}}}}
+        Dim code As Integer
+        Check("disk-fms-state:chkdsk-exit-read", DiskManagerForm.ChkdskExitOf(res, code) AndAlso code = 1 AndAlso
+                                                 Not DiskManagerForm.ChkdskExitOf(New Runner.RunResult(), code) AndAlso Not DiskManagerForm.ChkdskExitOf(Nothing, code), "")
+    End Sub
 End Module

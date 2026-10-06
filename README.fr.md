@@ -283,7 +283,7 @@ les quelques secondes (un plantage perd ce qui a été écrit depuis le dernier 
 toujours chiffré. `seal` écrit une copie en lecture seule pour toujours, `clone` une copie modifiable avec
 sa propre identité, `compact` rend au lecteur la place inutilisée du fichier. `format` efface le volume
 (`fs ntfs` ou `fs exfat`) et `destroy` supprime le fichier du conteneur (`wipe` l'écrase d'abord): les deux
-demandent d'abord, et les deux refusent un conteneur monté - aucune option ne lève ce contrôle.
+demandent d'abord, et les deux refusent un conteneur monté - aucune option ne lève ce contrôle. `chkdsk` vérifie le volume d'un conteneur non monté sans rien écrire, et `chkdsk fix` y lance `chkdsk /f` - la réparation d'un conteneur qui n'a pas été fermé proprement - en demandant d'abord.
 `vd add work.fdd as work` lui donne un nom court, `vd list` et `vd status` montrent ce qui est connu et ce
 qui est monté, et `vd auto work logon` monte un conteneur camouflé à l'ouverture de votre session.
 `vd guard on` active le gardien d'arrêt: quand votre session se termine - un arrêt, un redémarrage ou une
@@ -315,14 +315,14 @@ Ce qu'il faut à la plateforme, dit franchement:
 - **Windows uniquement.** La lettre de lecteur vient de l'initiateur iSCSI intégré à Windows, qui parle à un
   serveur de blocs dans `filedo.exe`; ce serveur n'écoute que sur 127.0.0.1 - rien ne quitte cet
   ordinateur, et le conteneur ne passe jamais par aucun réseau - sauf si vous le partagez vous-même (voir plus bas).
-- **Monter demande des droits d'administrateur.** `mount`, `unmount`, `save`, `format` et `vd auto` demandent à
+- **Monter demande des droits d'administrateur.** `mount`, `unmount`, `save`, `format`, `chkdsk` et `vd auto` demandent à
   Windows l'accord d'un administrateur pour l'étape de l'initiateur; le mot de passe n'y va jamais, et le
   serveur de blocs lui-même ne tourne jamais avec des droits élevés. Un lot n'affiche jamais cette
   demande - lancez-le depuis une console administrateur. Si le service Initiateur iSCSI de Microsoft ne
   peut pas être utilisé, l'exécution se termine avec le code 7 et rien n'est monté.
 - **La version du Microsoft Store ne peut pas monter de disque.** Une application empaquetée ne peut ni
   configurer l'initiateur iSCSI ni demander des droits d'administrateur, donc `mount`, `unmount`, `save`,
-  `format`, `vd auto`, `vd guard` et `vd register` s'y terminent avec le code 6. `info`, `verify`, `export`,
+  `format`, `chkdsk`, `vd auto`, `vd guard` et `vd register` s'y terminent avec le code 6. `info`, `verify`, `export`,
   `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`, `vd new`, `vd list`, `vd status`, `vd add` et
   `vd forget` y fonctionnent aussi; pour monter, prenez le setup ou la version portable sur GitHub.
 - **Un montage survit à la fenêtre.** Fermer la fenêtre FileDO laisse le lecteur et son serveur en place,

@@ -566,7 +566,7 @@
           <li>
             <span data-l="ru"
               ><b>Подключение требует прав администратора.</b>
-              <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> и
+              <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code> и
               <code>vd auto</code> просят у Windows согласие администратора - на
               настройку инициатора, и только на неё: пароль туда не передаётся,
               а сам блочный сервер никогда не работает с повышенными правами.
@@ -576,7 +576,7 @@
               заканчивается кодом 7, и ничего не подключено.</span
             ><span data-l="en"
               ><b>Mounting needs administrator rights.</b> <code>mount</code>,
-              <code>unmount</code>, <code>save</code>, <code>format</code> and <code>vd auto</code>
+              <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code> and <code>vd auto</code>
               ask Windows for administrator consent - for the initiator step,
               and for nothing else: the password never goes there, and the block
               server itself never runs elevated. A batch never raises that
@@ -585,7 +585,7 @@
               ends with exit code 7 and nothing is mounted.</span
             ><span data-l="ua"
               ><b>Підключення потребує прав адміністратора.</b>
-              <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> і
+              <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code> і
               <code>vd auto</code> просять у Windows згоду адміністратора - на
               налаштування ініціатора, і лише на нього: пароль туди не
               передається, а сам блоковий сервер ніколи не працює з підвищеними
@@ -600,7 +600,7 @@
               ><b>Сборка из Microsoft Store не может подключать диски.</b>
               Упакованное приложение не может ни настроить инициатор iSCSI, ни
               попросить права администратора, поэтому там <code>mount</code>,
-              <code>unmount</code>, <code>save</code>, <code>format</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code>,
               <code>vd auto</code>, <code>vd guard</code> и <code>vd register</code> заканчиваются
               кодом 6 (не поддерживается). <code>info</code>,
               <code>verify</code>, <code>export</code>, <code>compact</code>,
@@ -614,7 +614,7 @@
               ><b>The Microsoft Store build cannot mount.</b> A packaged app can
               neither configure the iSCSI initiator nor ask for administrator
               rights, so there <code>mount</code>, <code>unmount</code>,
-              <code>save</code>, <code>format</code>, <code>vd auto</code>, <code>vd guard</code> and
+              <code>save</code>, <code>format</code>, <code>chkdsk</code>, <code>vd auto</code>, <code>vd guard</code> and
               <code>vd register</code> end with exit code 6 (unsupported).
               <code>info</code>, <code>verify</code>, <code>export</code>,
               <code>compact</code>, <code>grow</code>, <code>seal</code>,
@@ -627,7 +627,7 @@
               ><b>Збірка з Microsoft Store не може підключати диски.</b>
               Запакований застосунок не може ні налаштувати ініціатор iSCSI, ні
               попросити права адміністратора, тому там <code>mount</code>,
-              <code>unmount</code>, <code>save</code>, <code>format</code>,
+              <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code>,
               <code>vd auto</code>, <code>vd guard</code> і <code>vd register</code> закінчуються
               кодом 6 (не підтримується). <code>info</code>,
               <code>verify</code>, <code>export</code>, <code>compact</code>,
@@ -764,7 +764,11 @@
             <code>destroy</code> удаляет файл контейнера, а с
             <code>wipe</code> сначала его затирает. Оба сначала спрашивают;
             <code>force</code> пропускает вопрос, но не проверку, а пакетный
-            файл без <code>force</code> их не выполнит.</span
+            файл без <code>force</code> их не выполнит. <code>chkdsk</code>
+            проверяет том внутри неподключённого контейнера и ничего не пишет;
+            <code>chkdsk fix</code> запускает для него <code>chkdsk /f</code>
+            - исправление для контейнера, закрытого некорректно, - и сначала
+            спрашивает.</span
           ><span data-l="en"
             >Unmounted only: a mounted container is refused with exit code 8,
             and no flag skips that check. <code>grow 40G</code> makes the disk
@@ -777,7 +781,10 @@
             removes the container file, and with <code>wipe</code> overwrites
             it first. Both ask first; <code>force</code> skips the question,
             never the check, and a batch without <code>force</code> does not
-            run them.</span
+            run them. <code>chkdsk</code> scans the volume inside an unmounted
+            container and writes nothing; <code>chkdsk fix</code> runs
+            <code>chkdsk /f</code> on it - the repair for a container that was
+            not closed cleanly - and asks first.</span
           ><span data-l="ua"
             >Лише відключений: підключений контейнер відхилено з кодом 8, і цю
             заборону не знімає жоден ключ. <code>grow 40G</code> збільшує диск
@@ -790,7 +797,11 @@
             <code>destroy</code> видаляє файл контейнера, а з
             <code>wipe</code> спершу його затирає. Обидва спочатку питають;
             <code>force</code> пропускає питання, але не перевірку, а пакетний
-            файл без <code>force</code> їх не виконає.</span
+            файл без <code>force</code> їх не виконає. <code>chkdsk</code>
+            перевіряє том усередині непідключеного контейнера й нічого не
+            пише; <code>chkdsk fix</code> запускає для нього
+            <code>chkdsk /f</code> - виправлення для контейнера, закритого
+            некоректно, - і спочатку питає.</span
           >
         </p>
         <p class="intro">
@@ -1322,21 +1333,42 @@
                 (диск <code>ram</code> - объём, которого ещё нет в файле);
                 «Сервер пропал - том недоступен»; «Образ подключён»; «Файл
                 пропал»; «По этому пути другой контейнер»; «Не читается»;
-                «Закрыт некорректно»; «Не подключён».</span
+                «Закрыт некорректно»; «Не подключён». Для диска, закрытого
+                некорректно, в меню строки есть «Проверить том» (только чтение)
+                и «Исправить том» - это <code>chkdsk</code> и
+                <code>chkdsk /f</code>; исправление спрашивает заранее, а
+                итоговая строка говорит, что нашёл chkdsk. Диск, опубликованный
+                в Fast Media Sorter, показывает это в том же слове: «Открыт в
+                FMS» (FMS открыл его для других, а FileDO его не подключает)
+                или хвост вроде «опубликован в FMS, закрыт».</span
               ><span data-l="en"
                 >The state is written in words, beside a glyph: "Mounted";
                 "Mounted, read-only"; "Mounted, 180 MiB not saved" (a
                 <code>ram</code> disk - the amount not yet in the file); "Server
                 gone - volume offline"; "Image mounted"; "File missing"; "A
                 different container is at this path"; "Unreadable"; "Not closed
-                cleanly"; "Not mounted".</span
+                cleanly"; "Not mounted". For a disk that was not closed
+                cleanly, the row's menu has Check volume (read-only) and Repair
+                volume - <code>chkdsk</code> and <code>chkdsk /f</code>; the
+                repair asks first, and the closing line says what chkdsk found.
+                A disk published in Fast Media Sorter shows that in the same
+                word: "Open in FMS" (FMS has opened it for others, and FileDO
+                does not mount it) or a tail such as "shared in FMS,
+                closed".</span
               ><span data-l="ua"
                 >Стан написано словами, поруч зі значком: «Підключений»;
                 «Підключений, лише читання»; «Підключений, не збережено 180 MiB»
                 (диск <code>ram</code> - обсяг, якого ще немає у файлі); «Сервер
                 зник - том недоступний»; «Образ підключено»; «Файл зник»; «За
                 цим шляхом інший контейнер»; «Не читається»; «Закритий
-                некоректно»; «Не підключений».</span
+                некоректно»; «Не підключений». Для диска, закритого
+                некоректно, в меню рядка є «Перевірити том» (лише читання) і
+                «Виправити том» - це <code>chkdsk</code> і
+                <code>chkdsk /f</code>; виправлення питає заздалегідь, а
+                підсумковий рядок каже, що знайшов chkdsk. Диск, опублікований
+                у Fast Media Sorter, показує це тим самим словом: «Відкрито в
+                FMS» (FMS відкрив його для інших, а FileDO його не підключає)
+                або хвіст на кшталт «опубліковано в FMS, закрито».</span
               >
             </p>
           </article>

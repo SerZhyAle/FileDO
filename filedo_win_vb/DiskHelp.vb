@@ -419,6 +419,7 @@ Friend Class DiskHelpDialog
 
         AddSection(T("vd_help_notes_title"))
         AddParagraph(T("vd_share_help"))
+        AddParagraph(T("vd_help_state_fms"))
         AddParagraph(T("vd_mgr_close_mounted"))
         AddParagraph(T("vd_help_note_uac"))
         AddParagraph(T("vd_help_note_autostart"))

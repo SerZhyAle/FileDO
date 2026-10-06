@@ -407,7 +407,7 @@ volume in memory while it is mounted and saves it to the file every few seconds 
 after the last save), and `vault` is always encrypted. `seal` writes a copy that is read-only for good,
 `clone` a writable copy with its own identity, `compact` gives the file's unused space back. `format` erases
 the volume (`fs ntfs` or `fs exfat`) and `destroy` removes the container file (`wipe` overwrites it first):
-both ask first, and both refuse a mounted container - no flag skips that check. `vd add work.fdd as work`
+both ask first, and both refuse a mounted container - no flag skips that check. `chkdsk` scans the volume inside an unmounted container and writes nothing, and `chkdsk fix` runs `chkdsk /f` on it - the repair for a container that was not closed cleanly - and asks first. `vd add work.fdd as work`
 gives it a short name, `vd list` and `vd status` show what is known and what is mounted, and
 `vd auto work logon` mounts an obfuscated container when you sign in. `vd guard on` adds the shutdown guard:
 when your session ends - a shutdown, a restart or a sign-out, never sleep - it saves `ram` disks first and then
@@ -436,12 +436,12 @@ What the platform needs, said plainly:
 - **Windows only.** The drive letter comes from the iSCSI initiator built into Windows, talking to a block
   server inside `filedo.exe` that listens on 127.0.0.1 only - nothing leaves this computer, and the
   container never goes to any network - unless you choose to share it (below).
-- **Mounting needs administrator rights.** `mount`, `unmount`, `save`, `format` and `vd auto` ask Windows for
+- **Mounting needs administrator rights.** `mount`, `unmount`, `save`, `format`, `chkdsk` and `vd auto` ask Windows for
   administrator consent for the initiator step; the password never goes there, and the block server itself
   never runs elevated. A batch never raises that prompt - run it from an elevated console. When the
   Microsoft iSCSI Initiator service cannot be used, the run ends with exit 7 and nothing is mounted.
 - **The Microsoft Store build cannot mount.** A packaged app can neither configure the iSCSI initiator nor
-  ask for administrator rights, so there `mount`, `unmount`, `save`, `format`, `vd auto`, `vd guard` and `vd register`
+  ask for administrator rights, so there `mount`, `unmount`, `save`, `format`, `chkdsk`, `vd auto`, `vd guard` and `vd register`
   end with exit 6. `info`, `verify`, `export`, `compact`, `grow`, `seal`, `clone`, `pass`, `destroy`,
   `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` work there too; to mount, use the setup or the
   portable build from GitHub.

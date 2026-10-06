@@ -182,6 +182,7 @@ func TestVD_Aliases(t *testing.T) {
 		"grow": "grow", "resize": "grow", "new": "new", "create": "new",
 		"destroy": "destroy", "erase": "destroy",
 		"clone": "clone", "pass": "pass", "format": "format", "seal": "seal", "save": "save", "info": "info",
+		"chkdsk": "chkdsk",
 	}
 	for w, want := range brief {
 		for _, spelling := range []string{w, strings.ToUpper(w)} {
@@ -375,6 +376,8 @@ func TestVD_CredentialToken(t *testing.T) {
 		{"pass", p, "new", "hunter2"},
 		{"format", p, "hunter2"},
 		{"format", p, "fs", "ntfs", "hunter2"},
+		{"chkdsk", p, "hunter2"},
+		{"chkdsk", p, "fix", "hunter2"},
 		{"destroy", p, "hunter2"},
 		{"destroy", p, "p:hunter2"},
 		{"verify", p, "p:a", "p:hunter2"},
