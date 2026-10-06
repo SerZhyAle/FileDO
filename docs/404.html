@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/png" href="https://serzhyale.github.io/FileDO/assets/filedo.png" />
+    <title>Page not found - FileDO</title>
+    <meta
+      name="description"
+      content="This FileDO address does not exist. Start from the guide hub, the privacy page, or the FileDO landing page."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://serzhyale.github.io/FileDO/kit/sza-kit.css" />
+    <link rel="stylesheet" href="https://serzhyale.github.io/FileDO/guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="https://serzhyale.github.io/FileDO/"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="https://serzhyale.github.io/FileDO/#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">FileDO · ошибка 404</span
+          ><span data-l="en">FileDO · error 404</span
+          ><span data-l="ua">FileDO · помилка 404</span>
+        </p>
+        <h1>
+          <span data-l="ru">Такой страницы здесь нет.</span
+          ><span data-l="en">There is no such page here.</span
+          ><span data-l="ua">Такої сторінки тут немає.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >Адрес мог устареть или содержать опечатку. Начните с одного из
+            разделов ниже.</span
+          ><span data-l="en"
+            >The address may be outdated or mistyped. Start from one of the
+            places below.</span
+          ><span data-l="ua"
+            >Адреса могла застаріти або містити помилку. Почніть з одного з
+            розділів нижче.</span
+          >
+        </p>
+      </section>
+      <section class="section">
+        <nav class="grid guide-grid" aria-labelledby="startTitle"><span class="sr-only" id="startTitle"><span data-l="ru">С чего начать</span><span data-l="en">Start here</span><span data-l="ua">З чого почати</span></span>
+          <article class="card">
+            <h2>
+              <span data-l="ru">Руководства</span
+              ><span data-l="en">Guides</span
+              ><span data-l="ua">Посібники</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Практические руководства по задачам: проверка носителей,
+                дубликаты, копирование, установка.</span
+              ><span data-l="en"
+                >Practical guides by task: checking storage, duplicates,
+                copying, and installation.</span
+              ><span data-l="ua"
+                >Практичні посібники за завданнями: перевірка носіїв,
+                дублікати, копіювання, встановлення.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-primary btn-sm" href="https://serzhyale.github.io/FileDO/guides/"
+                ><span data-l="ru">Открыть руководства</span
+                ><span data-l="en">Open the guides</span
+                ><span data-l="ua">Відкрити посібники</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="ru">Конфиденциальность</span
+              ><span data-l="en">Privacy</span
+              ><span data-l="ua">Конфіденційність</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Что FileDO делает с данными и какие сетевые обращения
+                выполняет.</span
+              ><span data-l="en"
+                >What FileDO does with data and which network requests it
+                makes.</span
+              ><span data-l="ua"
+                >Що FileDO робить з даними та які мережеві звернення
+                виконує.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="https://serzhyale.github.io/FileDO/privacy.html"
+                ><span data-l="ru">Открыть страницу</span
+                ><span data-l="en">Open the page</span
+                ><span data-l="ua">Відкрити сторінку</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="ru">Главная страница</span
+              ><span data-l="en">Landing page</span
+              ><span data-l="ua">Головна сторінка</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Что такое FileDO, как его скачать и установить.</span
+              ><span data-l="en"
+                >What FileDO is, and how to download and install it.</span
+              ><span data-l="ua"
+                >Що таке FileDO, як його завантажити та встановити.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="https://serzhyale.github.io/FileDO/"
+                ><span data-l="ru">На главную</span
+                ><span data-l="en">Go to the landing page</span
+                ><span data-l="ua">На головну</span></a
+              >
+            </p>
+          </article>
+        </nav>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="https://serzhyale.github.io/FileDO/">FileDO</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Страница не найдена - FileDO",
+          description: "Такого адреса FileDO нет. Начните с руководств, страницы о конфиденциальности или главной страницы FileDO.",
+        },
+        en: {
+          title: "Page not found - FileDO",
+          description: "This FileDO address does not exist. Start from the guide hub, the privacy page, or the FileDO landing page.",
+        },
+        ua: {
+          title: "Сторінку не знайдено - FileDO",
+          description: "Такої адреси FileDO немає. Почніть з посібників, сторінки про конфіденційність або головної сторінки FileDO.",
+        },
+      };
+    </script>
+    <script src="https://serzhyale.github.io/FileDO/guides/guide.js"></script>
+  </body>
+</html>

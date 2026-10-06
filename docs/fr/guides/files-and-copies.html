@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Doublons, copie et comparaison avec FileDO" />
+    <meta property="og:description" content="Guide pratique FileDO pour trouver des doublons, copier des fichiers avec suivi de progression et comparer des dossiers avant de rien supprimer." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Doublons, copie et comparaison avec FileDO",
+        "headline": "Doublons, copie et comparaison avec FileDO",
+        "description": "Guide pratique FileDO pour trouver des doublons, copier des fichiers avec suivi de progression et comparer des dossiers avant de rien supprimer.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Doublons, copie et comparaison avec FileDO</title>
+    <meta
+      name="description"
+      content="Guide pratique FileDO pour trouver des doublons, copier des fichiers avec suivi de progression et comparer des dossiers avant de rien supprimer."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/files-and-copies.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/files-and-copies.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/files-and-copies.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/files-and-copies.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/files-and-copies.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/files-and-copies.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/files-and-copies.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · fichiers et dossiers</span>
+        </p>
+
+        <h1>
+          <span data-l="fr">Obtenez d’abord une liste ou un rapport. Décidez de supprimer plus tard.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">FileDO vous aide à voir les doublons, les différences entre dossiers et la progression d’une copie. Un bon premier passage produit une liste claire, un rapport ou une copie de sauvegarde, pas une suppression immédiate.</span>
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Trois situations courantes</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Libérer de l’espace</span>
+            </h3>
+            <p>
+              <span data-l="fr">Trouvez les fichiers identiques, enregistrez ou relisez la liste, puis décidez de ce que vous gardez.</span>
+            </p>
+            <div class="copybox">
+              filedo D:\Media check-duplicates<button
+                class="copy"
+                data-copy="filedo D:\Media check-duplicates"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Faire une copie à emporter</span>
+            </h3>
+            <p>
+              <span data-l="fr">Copiez le dossier source vers un emplacement de sauvegarde ou un autre disque avec une progression visible. La copie démarre dès le premier fichier trouvé ; ajoutez <code>--precount</code> pour compter d’abord toute l’arborescence et voir un temps restant exact.</span>
+            </p>
+            <div class="copybox">
+              filedo C:\Source copy D:\Backup<button
+                class="copy"
+                data-copy="filedo C:\Source copy D:\Backup"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vérifier un dossier de sauvegarde</span>
+            </h3>
+            <p>
+              <span data-l="fr">Comparez deux dossiers par chemins relatifs et tailles, obtenez un rapport et examinez les différences.</span>
+            </p>
+            <div class="copybox">
+              filedo compare D:\Data E:\Backup<button
+                class="copy"
+                data-copy="filedo compare D:\Data E:\Backup"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Un parcours sûr</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="fr">Suppression</span></span
+          >
+          <p>
+            <span data-l="fr">Les modes <code>del</code> des doublons et de la comparaison modifient les données. Ils ne sont volontairement pas montrés en premier exemple : obtenez d’abord une liste ou un rapport, puis sauvegardez et vérifiez le chemin à la main.</span>
+          </p>
+        </div>
+        <ol class="steps">
+          <li>
+            <span data-l="fr">Désignez un dossier précis plutôt qu’un disque entier quand la tâche concerne une seule archive.</span>
+          </li>
+          <li>
+            <span data-l="fr">Lancez la recherche de doublons ou la comparaison sans mode de suppression et examinez le résultat.</span>
+          </li>
+          <li>
+            <span data-l="fr">Avant toute suppression, faites une copie distincte des fichiers que vous voulez garder.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Ce que signifie la comparaison</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">La comparaison associe les chemins relatifs et la taille des fichiers ; les modes old/new utilisent l’heure de modification. La correspondance des chemins sous Windows ne tient pas compte de la casse. Les rapports sont enregistrés sous <code>compare_report_*.log</code>, et les journaux de suppression sous <code>delete_report_&lt;mode&gt;_*.log</code>.</span>
+        </p>
+        <p>
+          <span data-l="fr">Pour une vérification automatisée, utilisez <code>filedo compare D:\Data E:\Backup --strict</code> : des chemins relatifs, tailles et heures de modification identiques renvoient le code 0 (<code>Passed</code>), une différence renvoie le code 1 (<code>Failed</code>), et une comparaison incomplète renvoie le code 2 (<code>Not proven</code>). Avec <code>--by-hash</code>, les paires de même taille sont comparées par leur contenu plutôt que par l’heure. Un <code>compare</code> simple reste un rapport avec le code 0 (<code>Done</code>) ; <code>--strict</code> ne peut pas se combiner avec la suppression.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Doublons, copie et comparaison avec FileDO",
+          description:
+            "Guide pratique FileDO pour trouver des doublons, copier des fichiers avec suivi de progression et comparer des dossiers avant de rien supprimer.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

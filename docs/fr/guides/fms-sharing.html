@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Partager des disques FileDO avec Fast Media Sorter" />
+    <meta property="og:description" content="Pas à pas : partager un disque virtuel FileDO avec des téléphones associés via Fast Media Sorter &amp; Sharing, et que faire si le partage est indisponible." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Partager des disques FileDO avec Fast Media Sorter",
+        "headline": "Partager des disques FileDO avec Fast Media Sorter",
+        "description": "Pas à pas : partager un disque virtuel FileDO avec des téléphones associés via Fast Media Sorter & Sharing, et que faire si le partage est indisponible.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Partager des disques FileDO avec Fast Media Sorter</title>
+    <meta
+      name="description"
+      content="Pas à pas : partager un disque virtuel FileDO avec des téléphones associés via Fast Media Sorter &amp; Sharing, et que faire si le partage est indisponible."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/fms-sharing.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/fms-sharing.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/fms-sharing.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/fms-sharing.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/fms-sharing.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/fms-sharing.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/fms-sharing.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · Partage</span>
+        </p>
+        <h1>
+          <span data-l="fr">Un disque FileDO sur le téléphone : partage via Fast Media Sorter &amp; Sharing</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">FileDO peut servir un disque virtuel <code>.fdd</code> à vos téléphones et tablettes associés - non pas seul, mais par l’intermédiaire de Fast Media Sorter &amp; Sharing for Windows : vous enregistrez le disque dans le Gestionnaire de disques, et ce programme fournit ses fichiers en SFTP aux appareils qui lui sont associés. FileDO n’ouvre lui-même aucune connexion réseau pour cela - il dialogue avec ce programme par un canal local (pipe) sur cet ordinateur. Ci-dessous : ce qu’il faut au préalable, comment partager un disque, ce que voient les téléphones, et que faire quand la boîte de dialogue indique que le partage est indisponible. Les disques eux-mêmes font l’objet du <a href="virtual-disks.html">guide des disques virtuels</a>.</span>
+        </p>
+      </section>
+
+      <section class="section" id="need">
+        <h2>
+          <span data-l="fr">1. Ce qu’il faut au préalable</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Trois choses : la version de bureau de FileDO, Fast Media Sorter &amp; Sharing for Windows avec son composant FileDO facultatif activé, et au moins un appareil associé.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">FileDO, la version de bureau</span>
+            </h3>
+            <p>
+              <span data-l="fr">Le disque doit être enregistré dans le Gestionnaire de disques comme conteneur <code>.fdd</code> sur fichier. La version du Microsoft Store ne peut pas monter de disques, et ce flux de travail y est fermé - utilisez la version de bureau. L’installation et ce que l’installateur écrit sont décrits dans le <a href="install-and-explorer.html">guide d’installation</a>.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Fast Media Sorter &amp; Sharing for Windows</span>
+            </h3>
+            <p>
+              <span data-l="fr">Le programme qui fournit les fichiers sur le réseau. Pendant son installation, activez le composant FileDO facultatif - sans lui, le partage de disques est indisponible. Son installateur de bureau n’est pas signé, si bien que Windows peut afficher le même avertissement que pour FileDO - <a href="install-trust.html">cet avertissement est expliqué ici</a>. La page d’installation est <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener" >serzhyale.github.io/FastMediaSorter_Lite</a >.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Appareils associés</span>
+            </h3>
+            <p>
+              <span data-l="fr">Les téléphones et tablettes sont associés à ce programme dans son Share Manager - de la même façon que pour les dossiers partagés ordinaires. Un appareil que vous n’avez pas associé ne verra pas le disque. Pour le téléphone, un disque partagé ressemble à un dossier de plus, pas à une technologie à part.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="manager">
+        <h2>
+          <span data-l="fr">2. Partager un disque depuis le Gestionnaire de disques</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr"><b>Démarrez Share Manager.</b> Fast Media Sorter &amp; Sharing est le détenteur d’un disque partagé, son Share Manager doit donc être lancé avant que FileDO puisse en proposer un. Si son worker ne répond pas, FileDO propose une nouvelle vérification - un worker indisponible ne prouve pas que le programme est absent.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Choisissez le disque et l’action.</b> Dans le Gestionnaire de disques, sélectionnez un disque sur fichier enregistré et choisissez <strong>Partager via Fast Media Sorter &amp; Sharing..</strong> dans son volet de détails ou dans le menu Plus (<code>Ctrl+Shift+S</code>).</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Vérifiez les choix d’enregistrement.</b> Le nom du dossier est ce que voient les appareils associés ; l’accès est en lecture et écriture par défaut, vous pouvez cocher « Accès en lecture seule », et un disque sealed reste en lecture seule. Vous pouvez aussi ouvrir le disque tout de suite. Si le disque est monté localement, FileDO le déconnecte proprement après votre confirmation ; si le montage automatique FileDO est activé, accepter de le désactiver fait obligatoirement partie du transfert.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Lisez la confirmation.</b> Elle réunit tout ce qui va se passer : le montage local est désactivé, et ce programme fournit sur le réseau les fichiers du disque ouvert. Un disque chiffré demande son mot de passe - une seule fois, ici, sur cet ordinateur.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Plus tard, fermez ou arrêtez.</b> <strong>Fermer le disque partagé</strong> conserve l’enregistrement - le disque peut être rouvert en une étape. <strong>Arrêter le partage</strong> supprime l’enregistrement et la clé de démarrage FMS enregistrée.</span>
+          </li>
+        </ol>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-share-fr.png" width="899" height="823" loading="lazy" alt="Boîte de dialogue d’enregistrement d’un disque avec le nom du dossier partagé, l’accès en lecture seule, l’ouverture séparée, l’avis de déconnexion propre et l’accord pour désactiver le montage automatique local." /></span>
+          <figcaption>
+            <span data-l="fr">Enregistrement d’un disque dans le Gestionnaire de disques. Le mot de passe d’un disque chiffré se saisit sur cet ordinateur et ne parvient jamais au téléphone.</span>
+          </figcaption>
+        </figure>
+        <p class="intro">
+          <span data-l="fr">Le démarrage automatique est un choix distinct, à activer disque par disque : après un redémarrage, le programme ouvre de lui-même le disque chiffré partagé, sans que personne saisisse le mot de passe, et pour cela il demande le mot de passe une fois et explique ce qui change. En ligne de commande, les mêmes étapes se font avec <code>vd share</code> - section 3.</span>
+        </p>
+      </section>
+
+      <section class="section" id="cli">
+        <h2>
+          <span data-l="fr">3. La même chose en ligne de commande</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr"><code>vd share work.fdd on</code> enregistre le disque, <code>vd share work.fdd off</code> arrête le partage, <code>vd open</code> et <code>vd close</code> l’ouvrent et le ferment pour les appareils, <code>vd autostart</code> active et désactive le démarrage automatique, et <code>vd status</code> indique qui détient le disque. Le mot de passe d’un disque chiffré transite par l’entrée standard ou par une variable d’environnement - jamais comme argument de ligne de commande. Un disque détenu par un autre est refusé par <code>mount</code> : un conteneur n’a qu’un détenteur à la fois.</span>
+        </p>
+      </section>
+
+      <section class="section" id="phones">
+        <h2>
+          <span data-l="fr">4. Ce que voient les appareils associés</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Pour le téléphone, un disque partagé ressemble à un dossier partagé de plus de ce programme : les fichiers transitent par SFTP, et aucun partage SMB Windows n’est créé. Tant que le disque est ouvert, chaque appareil associé peut lire ses fichiers - même si le conteneur est chiffré, car il est déverrouillé ici, sur l’ordinateur, jamais depuis le téléphone. Le droit d’écriture d’un appareil se règle à l’enregistrement (section 2). Fermer le disque, ou éteindre l’ordinateur, met fin à l’accès. Le mode session exige une connexion ; l’édition Serveur garde les disques partagés disponibles sans que personne soit connecté.</span>
+        </p>
+      </section>
+
+      <section class="section" id="unavailable">
+        <h2>
+          <span data-l="fr">5. Quand le partage est indisponible</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Chacun de ces messages laisse le disque intact : rien n’est monté et rien n’est modifié. Le message nomme une cause, pas un verdict - l’action à mener pour chacun suit.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">« FMS fonctionne mais le partage de disques est indisponible »</span>
+            </h3>
+            <p>
+              <span data-l="fr">Mettez à jour Fast Media Sorter &amp; Sharing et vérifiez le composant FileDO facultatif de son installateur - sans lui, le programme ne peut pas détenir de disques. Puis relancez la vérification dans le Gestionnaire de disques.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">« Le worker FMS est indisponible »</span>
+            </h3>
+            <p>
+              <span data-l="fr">FileDO ne peut pas distinguer un programme absent d’un programme arrêté. Ouvrez manuellement Fast Media Sorter &amp; Sharing et son Share Manager, puis relancez la vérification. Si le programme n’est pas installé, ouvrez la <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener" >page d’installation</a >.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">« Identité du worker FMS non vérifiée »</span>
+            </h3>
+            <p>
+              <span data-l="fr">Aucun mot de passe n’a été envoyé. Redémarrez l’hôte FMS installé et réessayez.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">« Réponse FMS incomplète ou incompatible »</span>
+            </h3>
+            <p>
+              <span data-l="fr">Les versions des deux programmes ne correspondent plus. Mettez les deux à jour - FileDO et Fast Media Sorter &amp; Sharing - et réessayez.</span>
+            </p>
+          </article>
+        </div>
+        <p class="intro">
+          <span data-l="fr">L’enregistrement et l’ouverture sont deux choses distinctes : si le disque est enregistré mais fermé, choisissez Ouvrir pour le partage. Si une étape d’une séquence échoue en cours de route, ce qui est terminé reste appliqué : actualisez la liste des disques, réessayez l’action restante ou arrêtez le partage - et seulement ensuite rétablissez explicitement le montage local et sa politique automatique antérieure. Ne rétablissez pas le montage local tant que le détenteur du disque est inconnu.</span>
+        </p>
+      </section>
+
+      <section class="section" id="privacy">
+        <h2>
+          <span data-l="fr">6. Ce qui est conservé et ce qui est protégé</span>
+        </h2>
+        <ul>
+          <li>
+            <span data-l="fr"><b>Le mot de passe ne quitte jamais l’ordinateur.</b> Un disque chiffré est déverrouillé ici et seulement ici ; un appareil associé reçoit des fichiers, pas le mot de passe. Le mot de passe n’est écrit dans aucune liste et n’apparaît jamais sur une ligne de commande.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>La clé de démarrage automatique est un accord distinct.</b> Elle est conservée sur cet ordinateur, protégée pour ce programme, et supprimée quand vous désactivez le démarrage automatique, arrêtez le partage ou changez le mot de passe du disque.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>La liste des disques partagés ne contient aucun secret.</b> FileDO écrit dans son dossier d’état le chemin du conteneur, le nom du dossier et les marques de lecture seule et de démarrage automatique. Un mot de passe n’y est jamais écrit.</span>
+          </li>
+        </ul>
+        <p class="intro">
+          <span data-l="fr">Le tableau complet est dans la <a href="../privacy.html">politique de confidentialité</a>. Pour en savoir plus sur les disques - dans le <a href="virtual-disks.html">guide des disques virtuels</a> ; sur l’autre programme - sur <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener" >sa page</a >.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Partager des disques FileDO avec Fast Media Sorter",
+          description:
+            "Pas à pas : partager un disque virtuel FileDO avec des téléphones associés via Fast Media Sorter & Sharing, et que faire si le partage est indisponible.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**Speicher-Tests • Leistungsanalyse • Sicheres Löschen • Fake-Kapazität Erkennung • Duplikat-Verwaltung**
+**Speicher-Tests • Leistungsanalyse • Fake-Kapazität Erkennung • Duplikat-Verwaltung • Sicheres Löschen**
 
 </div>
 

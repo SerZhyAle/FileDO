@@ -26,7 +26,11 @@
   editor theming. FileDO instantiates no native numeric spinner: its numbers are validated textual CLI
   arguments, so the numeric-editor rule binds the day one is added, not as a feature change.
 - **Typography, geometry and DPI** (section 5). PerMonitorV2; dimensions defined once at 96 DPI
-  (`Ui.Px`); long pages scroll; switching a page or folding a group never resizes the window.
+  (`Ui.Px`); long pages scroll; switching a page or folding a group never resizes the window. **Show
+  cost** (proposed 2026-10-06 as `PROPOSAL-2026-10-06-show-layout-once`, not yet folded into the contract):
+  a page or window is shown with its subtree's layout held and laid out once (`Ui.SuspendTree` /
+  `ResumeTree`: `ShellForm.RailEntry_Click`, `SettingsPanel`, `DiskSettingsDialog`), and a remembered
+  scroll position is restored after that layout, not from a hidden page's geometry.
 - **Palette and contrast** (section 6). System/light/dark through APP-STYLE's table; every open window
   and nested child follows a switch (`Theme.Watch`), including hidden and reused dialogs before they are
   shown again; high contrast overrides the chosen mode with the system's own colours

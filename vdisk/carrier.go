@@ -104,7 +104,8 @@ type regionCarrier struct {
 	capacity int64
 	sector   int64
 	closer   io.Closer
-	bridged  int // unaligned writes turned into read-modify-writes; the tests hold it at 0
+	bridged  int        // unaligned writes turned into read-modify-writes; the tests hold it at 0
+	cache    *readCache // nil until EnableReadCache (SP-0148 S9)
 }
 
 // NewRegion makes a fixed carrier of capacity bytes over dev, whose I/O unit
@@ -146,7 +147,11 @@ func (r *regionCarrier) ReadAt(p []byte, off int64) (int, error) {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if lo, hi := r.span(n, off); lo != off || hi != off+int64(n) {
+	if r.cache != nil && int64(n) <= r.cache.maxIO {
+		if err := r.readCached(p[:n], off); err != nil {
+			return 0, err
+		}
+	} else if lo, hi := r.span(n, off); lo != off || hi != off+int64(n) {
 		buf := make([]byte, hi-lo)
 		if _, err := r.dev.ReadAt(buf, lo); err != nil {
 			return 0, err
@@ -175,11 +180,30 @@ func (r *regionCarrier) WriteAt(p []byte, off int64) (int, error) {
 		}
 		copy(buf[off-lo:], p)
 		if _, err := r.dev.WriteAt(buf, lo); err != nil {
+			r.forgetRange(lo, hi-lo) // the device may hold part of it
 			return 0, err
+		}
+		if r.cache != nil {
+			r.cache.afterWrite(buf, lo)
 		}
 		return len(p), nil
 	}
-	return r.dev.WriteAt(p, off)
+	n, err := r.dev.WriteAt(p, off)
+	if err != nil || n != len(p) {
+		r.forgetRange(off, int64(len(p)))
+		return n, err
+	}
+	if r.cache != nil {
+		r.cache.afterWrite(p, off)
+	}
+	return n, nil
+}
+
+// forgetRange drops the cached blocks a failed write may have half changed.
+func (r *regionCarrier) forgetRange(off, n int64) {
+	if r.cache != nil {
+		r.cache.dropRange(off, n)
+	}
 }
 
 // Truncate is a no-op at the partition's own length and refused otherwise: a

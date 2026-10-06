@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/check-storage.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/check-storage.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/check-storage.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/check-storage.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/check-storage.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Vérifier un stockage avec FileDO" />
+    <meta property="og:description" content="Guide pratique FileDO pour inspecter un disque, tester sa capacité et sa vitesse, et vérifier la lecture des fichiers en toute sécurité." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Vérifier un stockage avec FileDO",
+        "headline": "Vérifier un stockage avec FileDO",
+        "description": "Guide pratique FileDO pour inspecter un disque, tester sa capacité et sa vitesse, et vérifier la lecture des fichiers en toute sécurité.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/check-storage.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Vérifier un stockage avec FileDO</title>
+    <meta
+      name="description"
+      content="Guide pratique FileDO pour inspecter un disque, tester sa capacité et sa vitesse, et vérifier la lecture des fichiers en toute sécurité."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/check-storage.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/check-storage.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/check-storage.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/check-storage.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/check-storage.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/check-storage.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/check-storage.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · stockage</span>
+        </p>
+        <h1>
+          <span data-l="fr">Commencez par établir ce que vous avez : un disque, un dossier ou un problème de lecture.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">Cette séquence convient à une nouvelle clé USB, une carte SD, un disque externe, un dossier de données ou un chemin réseau. Elle commence par une commande qui ne fait qu’afficher des informations.</span>
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Quand l’utiliser</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Un disque paraît suspect de bon marché, la copie est lente, des fichiers ne s’ouvrent pas, ou vous devez connaître l’espace libre et le système de fichiers avant de déplacer une archive.</span>
+        </p>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Données de test</span></span
+          >
+          <p>
+            <span data-l="fr"><code>test</code> et <code>speed</code> utilisent des fichiers de test. Vérifiez la lettre de lecteur et l’espace libre. Le suffixe <code>del</code> de <code>test</code> supprime les données de test à la fin ; il ne remplace pas une sauvegarde.</span>
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="fr">Sonde brute</span></span
+          >
+          <p>
+            <span data-l="fr"><code>probe</code> utilise un accès LBA direct, dure environ une minute et exige des droits d’administrateur. Ne l’utilisez pas en première étape : lancez d’abord <code>info</code> puis le <code>test</code> ordinaire.</span>
+          </p>
+        </div>
+        <ol class="steps">
+          <li>
+            <span data-l="fr">Branchez ou repérez la cible et assurez-vous que la lettre de lecteur est la bonne.</span>
+          </li>
+          <li>
+            <span data-l="fr">Obtenez des informations sans modifier les données.</span>
+          </li>
+          <li>
+            <span data-l="fr">Ne choisissez que la vérification nécessaire : capacité, vitesse ou lecture des fichiers.</span>
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo E: info<button class="copy" data-copy="filedo E: info"><span data-l="fr">Copier</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Choisir une vérification</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Capacité USB/SD</span>
+            </h3>
+            <p>
+              <span data-l="fr">Écrit et vérifie des données de test pour détecter un disque dont la capacité annoncée n’est pas utilisable.</span>
+            </p>
+            <div class="copybox">
+              filedo E: test del<button
+                class="copy"
+                data-copy="filedo E: test del"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vitesse</span>
+            </h3>
+            <p>
+              <span data-l="fr">Mesure la lecture et l’écriture avec des données de test. Utilisez une petite taille pour une indication rapide.</span>
+            </p>
+            <div class="copybox">
+              filedo E: speed 100<button
+                class="copy"
+                data-copy="filedo E: speed 100"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Lecture des fichiers</span>
+            </h3>
+            <p>
+              <span data-l="fr">Lit les fichiers d’un dossier et note les délais de première lecture ; utile pour un ancien disque dur, une clé USB ou une archive de médias. <code>--max-files N</code> lit au plus N fichiers (0 signifie sans limite). <code>--resume</code> ignore les fichiers inchangés de la liste des fichiers bien lus ; quand tous les fichiers sont déjà vérifiés, le résultat est <code>Passed</code>, code 0, sans nouvelle lecture.</span>
+            </p>
+            <div class="copybox">
+              filedo check F:\Photos<button
+                class="copy"
+                data-copy="filedo check F:\Photos"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Vérifier un stockage avec FileDO",
+          description:
+            "Guide pratique FileDO pour inspecter un disque, tester sa capacité et sa vitesse, et vérifier la lecture des fichiers en toute sécurité.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

@@ -3,7 +3,7 @@
 # Prose style: ".." statt Auslassungspunkten, einfacher Bindestrich statt Gedankenstrich.
 
 @@ShortDescription
-Prüfen Sie die echte Kapazität und Geschwindigkeit von Laufwerken und SD-Karten, erkennen Sie gefälschte Speichermedien, löschen Sie Daten sicher, räumen Sie doppelte Dateien auf und schützen Sie eine Datei mit einem Passwort - im Fenster oder auf der Befehlszeile. Kein Netzwerk, keine Konten, keine Werbung.
+Prüfen Sie die echte Kapazität und Geschwindigkeit von Laufwerken und SD-Karten, erkennen Sie gefälschte Speichermedien, räumen Sie doppelte Dateien auf, löschen Sie Daten sicher und schützen Sie eine Datei mit einem Passwort - im Fenster oder auf der Befehlszeile. Kein Netzwerk, keine Konten, keine Werbung.
 
 @@Description
 FileDO sagt Ihnen, ob ein Laufwerk hält, was es verspricht, und gibt Ihnen die Werkzeuge, sich um die Daten darauf zu kümmern.

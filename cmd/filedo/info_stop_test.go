@@ -110,12 +110,12 @@ func TestWalkInfoTreeCompletedAndStopped(t *testing.T) {
 	globalInterruptHandler = stopHandler
 	defer func() { globalInterruptHandler = prevHandler }()
 
+	// The stop is raised as the walk starts, not from a timer: a cached tree of
+	// this size is walked in a few milliseconds, so a delayed stop raced the
+	// walk and sometimes arrived after it had already completed.
 	saved := infoWalkStarted
 	infoWalkStarted = func(root string) {
-		go func() {
-			time.Sleep(2 * time.Millisecond)
-			stopHandler.Interrupt()
-		}()
+		stopHandler.Interrupt()
 	}
 	defer func() { infoWalkStarted = saved }()
 

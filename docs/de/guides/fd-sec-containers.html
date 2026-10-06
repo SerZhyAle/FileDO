@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/fd-sec-containers.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/fd-sec-containers.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/fd-sec-containers.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/fd-sec-containers.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/fd-sec-containers.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Geheime Dateien mit FileDO" />
+    <meta property="og:description" content="FileDO-Anleitung zu .fd-sec-Containern: eine Datei hinter ein Passwort packen, zurückholen, ohne Auspacken öffnen - und was jede Wahl verspricht." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Geheime Dateien mit FileDO",
+        "headline": "Geheime Dateien mit FileDO",
+        "description": "FileDO-Anleitung zu .fd-sec-Containern: eine Datei hinter ein Passwort packen, zurückholen, ohne Auspacken öffnen - und was jede Wahl verspricht.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/fd-sec-containers.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Geheime Dateien mit FileDO</title>
+    <meta
+      name="description"
+      content="FileDO-Anleitung zu .fd-sec-Containern: eine Datei hinter ein Passwort packen, zurückholen, ohne Auspacken öffnen - und was jede Wahl verspricht."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/fd-sec-containers.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/fd-sec-containers.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/fd-sec-containers.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/fd-sec-containers.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/fd-sec-containers.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/fd-sec-containers.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/fd-sec-containers.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · geheime Dateien</span>
+        </p>
+        <h1>
+          <span data-l="de">Eine Datei oder ein Ordner, ein Container, ein Passwort - und eine ehrliche Auskunft, was das bringt.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">FileDO packt eine Datei - oder einen ganzen Ordner - in einen <code>.fd-sec</code>-Container, holt sie wieder heraus und kann den Inhalt im zugehörigen Programm öffnen, ohne ihn auszupacken. Der wahre Name, die Größe und die Zeitstempel sind darin versiegelt; von außen sind nur die eigene Größe des Containers, sein sichtbarer Name und seine Zeitstempel zu sehen (Umbenennen erzeugt einen namenlosen Datenblock).</span>
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Drei Vorgänge</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Alles Weitere ist Detail zu diesen dreien. Jeder ist von der Befehlszeile aus verfügbar, aus der Gruppe „File DO..“ im Explorer-Kontextmenü und auf den Seiten der Gruppe „Schützen“ im Programmfenster.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Einpacken</span>
+            </h3>
+            <p>
+              <span data-l="de">Neben der Datei erscheint eine <code>report.fd-sec</code>. Das Passwort wird zweimal abgefragt und nie angezeigt. Das Original bleibt, wo es ist, bis Sie verlangen, dass es verschwindet.</span>
+            </p>
+            <div class="copybox">
+              filedo report.docx secure<button
+                class="copy"
+                data-copy="filedo report.docx secure"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Eine Datei zurückholen (unsecure)</span>
+            </h3>
+            <p>
+              <span data-l="de">Die Datei kommt unter ihrem versiegelten Namen und mit ihren eigenen Zeitstempeln zurück. Eine vorhandene Datei wird nie stillschweigend überschrieben.</span>
+            </p>
+            <div class="copybox">
+              filedo report.fd-sec unsecure<button
+                class="copy"
+                data-copy="filedo report.fd-sec unsecure"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Öffnen ohne Auspacken</span>
+            </h3>
+            <p>
+              <span data-l="de">Der Inhalt öffnet sich im zugehörigen Programm, aus einer temporären Kopie, die danach wieder entfernt wird. Dieser Befehl wird von Hand eingegeben; ein Doppelklick auf den Container tut etwas anderes - siehe unten.</span>
+            </p>
+            <div class="copybox">
+              filedo report.fd-sec reveal<button
+                class="copy"
+                data-copy="filedo report.fd-sec reveal"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Auch ein Ordner ist eine Datei</span></span
+          >
+          <p>
+            <span data-l="de"><code>secure</code> nimmt auch einen Ordner: Sein ganzer Baum, leere Unterordner eingeschlossen, kommt in einen einzigen <code>.fd-sec</code>, der von außen nicht von einem Datei-Container zu unterscheiden ist. <code>unsecure</code> stellt den Baum zuerst in einem temporären Ordner wieder her und verschiebt ihn erst an seinen Platz, nachdem jede Datei geprüft ist - nie in oder über einen vorhandenen Ordner. Ein Ordner mit einer Junction, einer symbolischen Verknüpfung oder einem Bereitstellungspunkt wird abgelehnt. <code>del</code> und <code>wipe</code> entfernen den Originalbaum nur, wenn er sich seit dem Einpacken nicht geändert hat. <code>reveal</code> öffnet eine einzelne Datei und nimmt keinen Ordner-Container.</span>
+          </p>
+          <div class="copybox">
+            filedo "Tax 2025" secure<button
+              class="copy"
+              data-copy='filedo "Tax 2025" secure'
+            ><span data-l="de">Kopieren</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Die leise Suite: suite2</span></span
+          >
+          <p>
+            <span data-l="de"><code>secure suite2</code> versiegelt eine Datei (keinen Ordner) mit Suite 2 statt der Standard-Suite 1: ein mit Pepper gefalteter Argon2id-Schlüssel mit 256 MiB und XChaCha20-Poly1305 in 64-KiB-Frames, sodass die Datei ab dem ersten Byte Rauschen ist, ohne auch nur das 512-Byte-Clusterlängenmuster von Suite 1. Der wahre Name, die tatsächliche Größe und der Zeitpunkt der Verschlüsselung bleiben erhalten, nicht aber die eigenen Zeitstempel des Originals: Die wiederhergestellte Datei erhält die aktuelle Zeit. Nur FileDO ab dieser Version öffnet sie - ältere FileDO-Builds melden sie als beschädigt oder als falsches Passwort, und FastMediaSorter-Apps können sie nicht öffnen, deshalb bleibt Suite 1 der Standard. <code>unsecure</code>, <code>reveal</code>, <code>fdsec info</code> und <code>fdsec verify</code> erkennen die Suite selbst; sonst ändert sich nichts, und ein leeres Passwort bleibt reine Verschleierung.</span>
+          </p>
+          <div class="copybox">
+            filedo report.docx secure suite2<button
+              class="copy"
+              data-copy="filedo report.docx secure suite2"
+            ><span data-l="de">Kopieren</span></button>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Was versprochen wird und was nicht</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="de">Ein leeres Passwort</span></span
+          >
+          <p>
+            <span data-l="de">Ein leeres Passwort wird angenommen, und es bedeutet nur Verschleierung - keine Geheimhaltung: Jeder, der das Format kennt, öffnet diese Datei. Ein kurzes Passwort ist kaum besser. Es gibt keinen Wiederherstellungsschlüssel: Ein vergessenes Passwort ist eine verlorene Datei.</span>
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="de">Das Original überschreiben</span></span
+          >
+          <p>
+            <span data-l="de"><code>secure del</code> entfernt das Original so, dass jedes Undelete-Werkzeug es zurückholen kann. <code>secure wipe</code> überschreibt es zuvor - das senkt die Chancen auf Wiederherstellung und verspricht nichts auf SSDs sowie auf Copy-on-Write- und journalisierenden Dateisystemen, wo das Überschreiben an Ort und Stelle nicht garantiert, dass die alten Blöcke weg sind. Standardmäßig bleibt das Original einfach erhalten.</span>
+          </p>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Wo eine geöffnete Kopie liegt</span></span
+          >
+          <p>
+            <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\reveal</code>, schreibgeschützt und nur für dieses Konto lesbar. Die Kopie verschwindet, wenn Sie es sagen - mit der Schaltfläche „Kopie jetzt entfernen“ im Fenster oder mit Enter in der Konsole - oder wenn das Programm, das sie geöffnet hat, sie freigibt. Fällt der Strom aus, bleibt die Kopie bis zum nächsten FileDO-Start, der sie aufräumt; sonst tut es nichts. Programmdateien und Skripte werden nie aus einem Container heraus gestartet: Sie werden extrahiert und ihr Speicherort wird angezeigt.</span>
+          </p>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Das Passwort und das Protokoll</span></span
+          >
+          <p>
+            <span data-l="de">Im Fenster ist das Passwort maskiert und wird unsichtbar an <code>filedo.exe</code> übergeben: Es steht in keiner Befehlszeile, in keinem Laufbericht und in keiner <code>history.json</code>. In der Befehlszeile ist die Form <code>p:password</code> in der Prozessliste sichtbar - für Skripte gibt es <code>pf:</code> (eine Datei), <code>pe:</code> (eine Umgebungsvariable) und <code>k:</code> (eine Schlüsseldatei). Auch der versiegelte wahre Name wird nie ins Protokoll geschrieben.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Der Doppelklick und das Explorer-Menü</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Das Installationsprogramm bietet die Explorer-Integration als abwählbare Komponente an. In den Builds ohne Installationsprogramm - winget, ZIP, <code>go install</code> - schaltet ein Befehl sie ein. Ein Doppelklick auf eine <code>.fd-sec</code> ist genau der Menüeintrag „Unsecure and start“: Eine Konsole öffnet sich und fragt dort nach dem Passwort, die Datei wird unter ihrem wahren Namen in <code>%LOCALAPPDATA%\FileDO\reveal</code> wiederhergestellt, wo nur Sie und das System sie lesen können, und gleich an ihr gewöhnliches Programm übergeben - so wie ein gewöhnlicher Doppelklick auf jede andere Datei. Die Kopie wird entfernt, wenn Sie dieses Konsolenfenster schließen; hat das Programm die Datei dann noch offen, entfernt sie der nächste FileDO-Start. Der Container selbst bleibt an seinem Platz. Unter Windows 11 steht die Gruppe „File DO..“ unter „Weitere Optionen anzeigen“. Die Microsoft-Store-Version hat keine Menüeinträge, beansprucht aber den Typ <code>.fd-sec</code>: Ein Doppelklick öffnet das FileDO-Fenster auf der Seite „Geheime Datei öffnen“ mit bereits gewähltem Container, und dort wird nach dem Passwort gefragt.</span>
+        </p>
+        <div class="copybox">
+          filedo fdsec register<button
+            class="copy"
+            data-copy="filedo fdsec register"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "Geheime Dateien mit FileDO",
+          description:
+            "FileDO-Anleitung zu .fd-sec-Containern: eine Datei hinter ein Passwort packen, zurückholen, ohne Auspacken öffnen - und was jede Wahl verspricht.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

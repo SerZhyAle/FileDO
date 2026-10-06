@@ -457,9 +457,10 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `.md`/`.html` needs a record there, or the gate fails), every relative link and anchor resolving, and
   the internal corpus in house style with no remote embeds; and packaging/check-external-docs.ps1 - the
   published site and the READMEs against `DOC-EXTERNAL-QUALITY`: glossary and subject index, `sitemap.xml`
-  against the page set, the full SEO block, every `data-l` group in ru/en/ua, translation freshness against
-  `docs/translation-fingerprints.json`, the `docs/termbase.json` forbidden synonyms, screenshots and prose
-  hygiene. **An EN edit on the site or in `README.md` fails it** until the translations are updated and
+  against the page set, the full SEO block, every `data-l` group in ru/en/ua (the standalone `docs/de/` and `docs/fr/` trees mirror the runtime pages group for group, one language each - SP-0154), translation freshness against
+  `docs/translation-fingerprints.json`, the `docs/termbase.json` forbidden synonyms, screenshots, the site addresses held outside it
+  (`packaging/site-held-addresses.json`: every one resolves to a page and anchor, every holder still carries it,
+  none is missing from the list - SP-0153), the product's pillars in the order of `packaging/positioning-source.json` on every surface that lists them (SP-0157) and prose hygiene. **An EN edit on the site or in `README.md` fails it** until the translations are updated and
   `check-external-docs.ps1 -Record` re-records the fingerprints; and `packaging/check-build-inputs.ps1` - no
   build input (a glyph, an icon, a source, project or installer file) is on disk yet git-ignored, because
   `git add -A` and the clean-tree check skip such a file silently and the tagged run builds from a checkout

@@ -239,6 +239,10 @@ Public Class ShellForm
         ' A rail row is as wide as the rail it is in, whatever the window is doing: a fixed width
         ' is a clipped label in the first locale whose word is longer than English's.
         AddHandler rail.SizeChanged, Sub() LayoutRail()
+        AddHandler rail.HandleCreated, Sub()
+                                           ThemeRailScrollBar()
+                                           SyncRailScroll()
+                                       End Sub
 
         rightSide = New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
@@ -535,6 +539,7 @@ Public Class ShellForm
                 m.Visible = Not collapsed
             Next
             rail.ResumeLayout(True)
+            SyncRailScroll()
         End If
 
         UpdateGroupAccessibility(head)
@@ -599,6 +604,34 @@ Public Class ShellForm
             If head.Collapsed Then shut.Add(head.Key)
         Next
         ShellSettings.SetCollapsedGroups(shut)
+    End Sub
+
+    ' A folded group leaves the rail's scroll range as tall as it was while the group was open, so a
+    ' scroll bar stays up beside rows that fit, and the rows run over it: a pale strip below the last
+    ' row. Switching AutoScroll off and on makes the panel measure what is in it now, and the rows
+    ' are then sized to the width that is left.
+    Private Sub SyncRailScroll()
+        If rail Is Nothing OrElse Not rail.IsHandleCreated Then Return
+        rail.SuspendLayout()
+        rail.AutoScroll = False
+        rail.AutoScroll = True
+        rail.ResumeLayout(True)
+        LayoutRail()
+    End Sub
+
+    <Runtime.InteropServices.DllImport("uxtheme.dll", CharSet:=Runtime.InteropServices.CharSet.Unicode)>
+    Private Shared Function SetWindowTheme(hwnd As IntPtr, appName As String, idList As String) As Integer
+    End Function
+
+    ' The rail's own scroll bar in the theme: left to Windows it is a light bar on a dark rail.
+    ' A Windows without the theme keeps its own bar, which is no worse than before.
+    Private Sub ThemeRailScrollBar()
+        If rail Is Nothing OrElse Not rail.IsHandleCreated Then Return
+        Try
+            SetWindowTheme(rail.Handle, If(Theme.Current.IsDark, "DarkMode_Explorer", "Explorer"), Nothing)
+        Catch ex As Exception
+            ShellLog.Write("theme the rail's scroll bar", ex)
+        End Try
     End Sub
 
     ' Every row as wide as the rail and as tall as its label needs: one unit, or more where the label
@@ -722,18 +755,36 @@ Public Class ShellForm
         settingsView.Visible = False
         emptyCentre.Visible = False
 
+        ' The view that comes to the front is laid out once, when it is all in place. Showing it
+        ' with its layout live made every nested AutoSize panel re-measure its labels and check
+        ' boxes on each Visible and text change below: Settings took 0.6-3 s and Damaged files
+        ' 2 s to appear, and with the tree suspended 0.02 s and 0.4 s (Ui.SuspendTree).
+        Dim jobDef = JobCatalogue.GetJob(chosen.Key)
+        Dim front As Control = Nothing
         If chosen.Key = "rail_job_history" Then
-            historyView.RefreshReports()
-            historyView.Visible = True
+            front = historyView
         ElseIf chosen.Key = "rail_job_command" Then
-            commandView.Visible = True
+            front = commandView
         ElseIf chosen.Key = "rail_job_about" Then
-            aboutView.Visible = True
+            front = aboutView
         ElseIf chosen.Key = "rail_job_settings" Then
-            settingsView.Visible = True
-        Else
-            Dim jobDef = JobCatalogue.GetJob(chosen.Key)
-            If jobDef IsNot Nothing Then
+            front = settingsView
+        ElseIf jobDef IsNot Nothing Then
+            front = jobView
+        End If
+
+        Ui.SuspendTree(front)
+        Try
+            If chosen.Key = "rail_job_history" Then
+                historyView.RefreshReports()
+                historyView.Visible = True
+            ElseIf chosen.Key = "rail_job_command" Then
+                commandView.Visible = True
+            ElseIf chosen.Key = "rail_job_about" Then
+                aboutView.Visible = True
+            ElseIf chosen.Key = "rail_job_settings" Then
+                settingsView.Visible = True
+            ElseIf jobDef IsNot Nothing Then
                 ' The page of a job that is running, or whose result arrived while another view was
                 ' in front, is shown as it stands - choosing its row again must not throw either
                 ' one away.
@@ -747,7 +798,9 @@ Public Class ShellForm
                 emptyHint.Text = L("shell_empty_hint")
                 emptyCentre.Visible = True
             End If
-        End If
+        Finally
+            Ui.ResumeTree(front)
+        End Try
     End Sub
 
     ' GUI-12: "Clean files" after a test opens Clean on the drive that was tested, with Clean's rail
@@ -892,6 +945,7 @@ Public Class ShellForm
 
         railHost.BackColor = p.SurfaceAlt
         rail.BackColor = p.SurfaceAlt
+        ThemeRailScrollBar()
 
         rightSide.BackColor = p.Background
         header.BackColor = p.Background

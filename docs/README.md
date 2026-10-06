@@ -23,6 +23,7 @@ edited in place:
 | [`guides/fms-sharing.html`](guides/fms-sharing.html) | Sharing `.fdd` disks through Fast Media Sorter & Sharing - prerequisites (the optional FileDO disk component), registration from the Disk Manager, the `vd share` verbs, what paired devices see over SFTP, the unavailable-sharing dialogs and recovery after a failed step. Reuses the `gui-disk-share-*` screenshots. |
 | [`guides/glossary.html`](guides/glossary.html) | Glossary - one entry per term in [`termbase.json`](termbase.json), `id="term-<id>"`. |
 | [`guides/topics.html`](guides/topics.html) | Subject index - every subject the guides cover and the page for it; it links every guide. |
+| [`guides/release-notes.html`](guides/release-notes.html) | Release notes - what changed in each shipped release, newest first, with its date; one `id="v<stamp>"` section per release of the Version History in `README.md`, which `check-external-docs.ps1` (step `releasenotes`) holds equal. |
 | [`privacy.html`](privacy.html) | Privacy policy - no network, no telemetry, no accounts. |
 
 Supporting files: [`robots.txt`](robots.txt), [`sitemap.xml`](sitemap.xml), [`assets/`](assets/) (the guide
@@ -68,7 +69,9 @@ corpus - these pages and the five READMEs:
 - every public page is in `sitemap.xml` at its canonical URL and nothing else is; every page carries the full
   SEO block (title with FileDO under 60, description under 160, canonical, Open Graph, Twitter card, JSON-LD,
   `hreflang="x-default"`) and its runtime per-locale title and description;
-- every group of `data-l` spans has ru, en and ua exactly once, and every README translation has README.md's
+- every group of `data-l` spans has ru, en and ua exactly once; the German and French pages are standalone
+  (`docs/de/`, `docs/fr/`, one language each, the same path as the runtime page, each group read against the English
+  of the page it mirrors; a secondary DE/FR row on every page, never written to `sza-lang`); and every README translation has README.md's
   `## ` sections. **Changing English text fails the gate** until the ru/ua spans (or the README translations)
   are brought up to date and the fingerprints re-recorded with `packaging/check-external-docs.ps1 -Record` -
   that command is the statement "the translations were read against this English", so run it only then;

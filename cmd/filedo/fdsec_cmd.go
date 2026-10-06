@@ -211,6 +211,32 @@ func fdsecExplicitKind(word string) string {
 	}
 }
 
+// fdsecBareContainerArgs gives a .fd-sec file named with no verb the meaning
+// the file type carries: `filedo my.fd-sec` is `filedo my.fd-sec unsecure` -
+// the password is asked and the original is restored beside the container,
+// which is where the user is standing when they typed the name. Only an
+// existing regular file with the container extension qualifies, and only with
+// nothing after it or a credential token (p:, pf:, pe:, k:), so a verb of the
+// generic chain (`my.fd-sec info`) and a bare word that could be a password
+// keep their own meaning. The Explorer double-click names its verb itself
+// (`unsecure start`) and does not come through here.
+func fdsecBareContainerArgs(argv []string) ([]string, bool) {
+	if len(argv) < 1 || !strings.EqualFold(filepath.Ext(argv[0]), fdsecExtension) {
+		return nil, false
+	}
+	for _, t := range argv[1:] {
+		if !isCredentialToken(t) {
+			return nil, false
+		}
+	}
+	if fi, err := os.Stat(argv[0]); err != nil || !fi.Mode().IsRegular() {
+		return nil, false
+	}
+	out := make([]string, 0, len(argv)+1)
+	out = append(out, argv[0], "unsecure")
+	return append(out, argv[1:]...), true
+}
+
 // fdsecDispatchTarget runs the target-first grammar
 //
 //	<target> secure|unsecure|reveal [options] [password]
@@ -237,6 +263,9 @@ func fdsecDispatchTarget(argv []string, hl *HistoryLogger) (bool, error) {
 		if _, err := os.Stat(argv[0]); err != nil {
 			return true, usagef("%s needs a target: filedo <file> %s [options] [password]", argv[0], strings.ToLower(argv[0]))
 		}
+	}
+	if bare, ok := fdsecBareContainerArgs(argv); ok {
+		argv = bare
 	}
 	if len(argv) < 2 || !isFdsecOp(argv[1]) {
 		return false, nil

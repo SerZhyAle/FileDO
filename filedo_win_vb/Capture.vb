@@ -12,11 +12,13 @@
 ' disposed without closing, which is what keeps OnFormClosing from saving its placement.
 Module Capture
 
-    ' The site authors ru/en/ua; the window calls Ukrainian "uk".
+    ' The site authors ru/en/ua and the standalone de/fr pages; the window calls Ukrainian "uk".
     Private ReadOnly SiteLanguages As String()() = {
         New String() {"en", "en"},
         New String() {"ru", "ru"},
-        New String() {"uk", "ua"}
+        New String() {"uk", "ua"},
+        New String() {"de", "de"},
+        New String() {"fr", "fr"}
     }
 
     ' The pages the guides show, and the target a job page is opened on so that its check step

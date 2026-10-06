@@ -1,0 +1,47 @@
+{
+  "_about": "The addresses of this product's published site (base below) that are held OUTSIDE the site: the program, the READMEs, the Store listing source, the release workflow. SITE-STRUCTURE rule 8 (SP-0153). Read by packaging/check-external-docs.ps1, step 'addresses': every entry must resolve to a public page (or a forwarder stub) and its anchor must exist on it, every holder must still contain the address, and every address found in a surface but missing here fails. An address is permanent: when a page moves, leave a forwarder at the old path and keep the old entry until nothing holds it. Not listed on purpose: winget manifests (they hold github.com addresses only) and the sibling products' sites (owned by those products).",
+  "base": "https://serzhyale.github.io/FileDO/",
+  "surfaces": [
+    "README.md",
+    "README.ru.md",
+    "README.ua.md",
+    "README.de.md",
+    "README.fr.md",
+    "msix/store-listing.md",
+    "msix/*.ps1",
+    "msix/listing/*.txt",
+    ".github/workflows/*.yml",
+    "winget/*.yaml",
+    "filedo_win_vb/Links.vb"
+  ],
+  "addresses": [
+    {
+      "address": "",
+      "heldBy": ["filedo_win_vb/Links.vb", "msix/store-listing.md"]
+    },
+    {
+      "address": "privacy.html",
+      "heldBy": ["filedo_win_vb/Links.vb", "msix/store-listing.md", "msix/test-store-package.ps1"]
+    },
+    {
+      "address": "guides/",
+      "heldBy": ["filedo_win_vb/Links.vb"]
+    },
+    {
+      "address": "guides/install-trust.html",
+      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md", ".github/workflows/release.yml"]
+    },
+    {
+      "address": "guides/fms-sharing.html",
+      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md", "filedo_win_vb/Links.vb"]
+    },
+    {
+      "address": "guides/virtual-disks.html",
+      "heldBy": ["filedo_win_vb/Links.vb"]
+    },
+    {
+      "address": "guides/virtual-disks.html#manager",
+      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"]
+    }
+  ]
+}

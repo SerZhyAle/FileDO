@@ -21,17 +21,35 @@
                image, a Twitter card, parseable JSON-LD, and hreflang x-default = the canonical
                (the locales share one URL - see the proposal). The per-locale titles and
                descriptions the page swaps in at runtime are held to the same lengths.
-    locales    rule 3. Every run of sibling data-l spans carries ru, en and ua exactly once, and
-               every README translation has the section count of README.md. Freshness: the EN text
-               of every span group and every README.md section is fingerprinted beside its
-               translations in docs/translation-fingerprints.json. EN text whose fingerprint is not
-               recorded fails - naming the locales left untouched as stale - until the translations
-               are checked and the fingerprints re-recorded with -Record.
+    locales    rule 3. Every run of sibling data-l spans carries ru, en and ua exactly once (the shared
+               guide script carries de and fr too). The standalone locale pages docs/de/ and docs/fr/
+               (SP-0154) mirror the runtime page of the same path group for group, one language each,
+               and are read against that page's English. Every README translation has the section
+               count of README.md. Freshness: the EN text of every span group and every README.md
+               section is fingerprinted beside its translations in docs/translation-fingerprints.json.
+               EN text whose fingerprint is not recorded fails - naming the locales left untouched as
+               stale - until the translations are checked and the fingerprints re-recorded with -Record.
     terms      rule 4. docs/termbase.json: every term's per-locale form is used in that locale, and
                no forbidden synonym appears in that locale's prose (code excluded).
     screens    rule 6. A page whose <main> carries data-ui-steps shows at least one screenshot;
                every <img> on a public page has alt text, width and height, and a file under
                docs/assets/. The pictures are produced by packaging/capture-guide-screens.ps1.
+    addresses  SITE-STRUCTURE rule 8 (SP-0153). packaging/site-held-addresses.json lists every address
+               of the site held outside it (the program, the READMEs, the Store listing source, the
+               release workflow). Each entry resolves to a public page or a forwarder stub, its anchor
+               exists on that page, and every holder still carries it; an address found in a listed
+               surface and missing from the list fails.
+    positioning SITE-REPRESENTATION rules 1 and 2 (SP-0157). packaging/positioning-source.json is the one
+               positioning source: the ordered pillars, and per surface (landing and its locale pages,
+               the guides hub, the five READMEs, the Store listing source, the winget manifest) the
+               region that lists them. Each region must name the pillars the surface owes and the pillars
+               must occur in the source's order - the last word of one pillar before the first word of
+               the next.
+    releasenotes SITE-STRUCTURE rule 2 and 14 (SP-0158). docs/guides/release-notes.html and its de and fr pages
+               carry one section id="v<stamp>" for every shipped release of the Version History in
+               README.md, newest first, and none that README.md does not list. The page is written by
+               hand from that history when the release's "What's new" is; this step is what stops the two
+               drifting apart. "Unreleased" is not a release and never appears on the page.
     hygiene    rule 7 and the house style: no http:// link, no en or em dash and no three-dot
                ellipsis in prose (code, scripts and styles are quoted, not prose).
 
@@ -52,11 +70,14 @@ $global:LASTEXITCODE = 0
 $root = Split-Path $PSScriptRoot -Parent
 $siteBase = 'https://serzhyale.github.io/FileDO/'
 $siteLangs = @('ru', 'en', 'ua')
+$allLangs = @('ru', 'en', 'ua', 'de', 'fr')
 $readmeLangs = [ordered]@{ 'README.ru.md' = 'ru'; 'README.ua.md' = 'ua'; 'README.de.md' = 'de'; 'README.fr.md' = 'fr' }
 $registryPath = Join-Path $root 'docs\DOCUMENT_REGISTRY.jsonl'
 $sitemapPath = Join-Path $root 'docs\sitemap.xml'
 $termbasePath = Join-Path $root 'docs\termbase.json'
 $printsPath = Join-Path $root 'docs\translation-fingerprints.json'
+$heldPath = Join-Path $root 'packaging\site-held-addresses.json'
+$positioningPath = Join-Path $root 'packaging\positioning-source.json'
 
 function Stop-Unverified([string]$why) {
     Write-Host "external-docs: COULD NOT VERIFY ($why)" -ForegroundColor Yellow
@@ -78,6 +99,8 @@ try {
 } catch { Stop-Unverified "the document registry cannot be read: $($_.Exception.Message)" }
 try { $termbase = [IO.File]::ReadAllText($termbasePath) | ConvertFrom-Json } catch { Stop-Unverified "docs/termbase.json cannot be read: $($_.Exception.Message)" }
 try { [xml]$sitemap = [IO.File]::ReadAllText($sitemapPath) } catch { Stop-Unverified "docs/sitemap.xml cannot be read: $($_.Exception.Message)" }
+try { $held = [IO.File]::ReadAllText($heldPath) | ConvertFrom-Json } catch { Stop-Unverified "packaging/site-held-addresses.json cannot be read: $($_.Exception.Message)" }
+try { $positioning = [IO.File]::ReadAllText($positioningPath) | ConvertFrom-Json } catch { Stop-Unverified "packaging/positioning-source.json cannot be read: $($_.Exception.Message)" }
 $prints = $null
 if (-not $Record) {
     if (-not (Test-Path -LiteralPath $printsPath)) { Stop-Unverified 'docs/translation-fingerprints.json is missing (run with -Record once)' }
@@ -87,11 +110,16 @@ if (-not $Record) {
 $external = @($registry | Where-Object { $_.PSObject.Properties.Name -contains 'path' -and $_.corpus -eq 'external' -and $_.role -eq 'source' })
 $pages = [ordered]@{}   # public site pages: rel path -> raw text
 $stubs = [System.Collections.Generic.List[string]]::new()
+$unlisted = [System.Collections.Generic.HashSet[string]]::new()   # served pages that carry robots noindex (the not-found page): kept out of the sitemap
 foreach ($r in $external) {
     $rel = ([string]$r.path) -replace '\\', '/'
     if ($rel -notmatch '^docs/.+\.html$') { continue }
     $text = Read-Text $rel
-    if ($text -match '(?i)http-equiv\s*=\s*["'']refresh') { $stubs.Add($rel) } else { $pages[$rel] = $text }
+    if ($text -match '(?i)http-equiv\s*=\s*["'']refresh') { $stubs.Add($rel) }
+    else {
+        $pages[$rel] = $text
+        if ($text -match '(?is)<meta\b[^>]*\bname\s*=\s*["'']robots["''][^>]*\bcontent\s*=\s*["''][^"'']*noindex') { [void]$unlisted.Add($rel) }
+    }
 }
 $readmes = [ordered]@{}
 foreach ($rel in @('README.md') + @($readmeLangs.Keys)) { $readmes[$rel] = Read-Text $rel }
@@ -124,6 +152,14 @@ function Get-UrlFor([string]$rel) {
     if ($p.EndsWith('/index.html')) { return $siteBase + $p.Substring(0, $p.Length - 'index.html'.Length) }
     return $siteBase + $p
 }
+
+# A standalone locale page (SP-0154): docs/de/... and docs/fr/... are written in one language and mirror the
+# runtime-localised page of the same path (PAGE-STYLE 4.2: a further locale is its own page, never an sza-lang value).
+function Get-PageLocale([string]$rel) {
+    if ($rel -match '^docs/(de|fr)/') { return $Matches[1] }
+    return $null
+}
+function Get-SourceRel([string]$rel) { return $rel -replace '^docs/(?:de|fr)/', 'docs/' }
 
 # Replaces every match with blanks of the same length, so indexes and line numbers still hold.
 function Clear-Regions([string]$text, [string]$pattern) {
@@ -212,6 +248,14 @@ $groupsByPage = [ordered]@{}
 foreach ($rel in $pages.Keys) { $groupsByPage[$rel] = Get-SpanGroups $pages[$rel] }
 $guideJs = 'docs/guides/guide.js'
 $groupsByPage[$guideJs] = Get-SpanGroups (Read-Text $guideJs)
+# The languages one run of sibling spans must carry: a locale page is one language, the shared guide script
+# carries every language (its labels are injected into runtime pages and into locale pages alike).
+function Get-RequiredLangs([string]$rel) {
+    $loc = Get-PageLocale $rel
+    if ($loc) { return @($loc) }
+    if ($rel -eq $guideJs) { return $allLangs }
+    return $siteLangs
+}
 $sectionsByReadme = [ordered]@{}
 foreach ($rel in $readmes.Keys) { $sectionsByReadme[$rel] = Get-ReadmeSections $readmes[$rel] }
 
@@ -223,10 +267,22 @@ if ($Record) {
         readmes  = [ordered]@{}
     }
     foreach ($rel in $groupsByPage.Keys) {
-        $units = @(foreach ($g in $groupsByPage[$rel]) {
-            $u = [ordered]@{}
-            foreach ($l in $siteLangs) { if ($g.Langs.Contains($l)) { $u[$l] = Get-Fingerprint $g.Langs[$l] } }
-            $u
+        $loc = Get-PageLocale $rel
+        $units = @(if ($loc) {
+            # A locale page is read against the runtime page it mirrors: unit i holds the source's English and its own text.
+            $srcGroups = @($groupsByPage[(Get-SourceRel $rel)])
+            for ($i = 0; $i -lt @($groupsByPage[$rel]).Count; $i++) {
+                $u = [ordered]@{}
+                if ($i -lt $srcGroups.Count -and $srcGroups[$i].Langs.Contains('en')) { $u['en'] = Get-Fingerprint $srcGroups[$i].Langs['en'] }
+                if (@($groupsByPage[$rel])[$i].Langs.Contains($loc)) { $u[$loc] = Get-Fingerprint @($groupsByPage[$rel])[$i].Langs[$loc] }
+                $u
+            }
+        } else {
+            foreach ($g in $groupsByPage[$rel]) {
+                $u = [ordered]@{}
+                foreach ($l in (Get-RequiredLangs $rel)) { if ($g.Langs.Contains($l)) { $u[$l] = Get-Fingerprint $g.Langs[$l] } }
+                $u
+            }
         })
         $out.pages[$rel] = $units
     }
@@ -245,29 +301,40 @@ if ($Record) {
 # ---- structure (rule 1) ---------------------------------------------------------------------
 $terms = @($termbase.terms)
 Add-Section 'structure' {
-    $hub = 'docs/guides/index.html'
-    $glossary = 'docs/guides/glossary.html'
-    $topics = 'docs/guides/topics.html'
-    foreach ($need in $hub, $glossary, $topics) { if (-not $pages.Contains($need)) { $failures.Add("$need is not a declared public page") } }
-    if ($pages.Contains($hub)) {
-        foreach ($href in 'glossary.html', 'topics.html') { if ($pages[$hub] -notmatch "href=[""']$([regex]::Escape($href))[""'#]") { $failures.Add("$hub does not link $href") } }
-    }
-    if ($pages.Contains($topics)) {
-        foreach ($rel in $pages.Keys) {
-            if ($rel -notmatch '^docs/guides/([^/]+\.html)$' -or $rel -in $hub, $topics) { continue }
-            $name = $Matches[1]
-            if ($pages[$topics] -notmatch "href=[""']$([regex]::Escape($name))[""'#]") { $failures.Add("$topics does not index $name") }
+    # The guide set is held once per published locale: the runtime pages and each standalone locale tree.
+    foreach ($prefix in 'docs/', 'docs/de/', 'docs/fr/') {
+        $hub = "${prefix}guides/index.html"
+        $glossary = "${prefix}guides/glossary.html"
+        $topics = "${prefix}guides/topics.html"
+        foreach ($need in $hub, $glossary, $topics) { if (-not $pages.Contains($need)) { $failures.Add("$need is not a declared public page") } }
+        if ($pages.Contains($hub)) {
+            foreach ($href in 'glossary.html', 'topics.html') { if ($pages[$hub] -notmatch "href=[""']$([regex]::Escape($href))[""'#]") { $failures.Add("$hub does not link $href") } }
+        }
+        if ($pages.Contains($topics)) {
+            foreach ($rel in $pages.Keys) {
+                if (-not $rel.StartsWith("${prefix}guides/") -or $rel -notmatch '/guides/([^/]+\.html)$' -or $rel -in $hub, $topics) { continue }
+                $name = $Matches[1]
+                if ($pages[$topics] -notmatch "href=[""']$([regex]::Escape($name))[""'#]") { $failures.Add("$topics does not index $name") }
+            }
+        }
+        if ($pages.Contains($glossary)) {
+            foreach ($t in $terms) { if ($pages[$glossary] -notmatch "id=[""']term-$([regex]::Escape($t.id))[""']") { $failures.Add("$glossary has no entry id=""term-$($t.id)"" for termbase term '$($t.id)'") } }
         }
     }
-    if ($pages.Contains($glossary)) {
-        foreach ($t in $terms) { if ($pages[$glossary] -notmatch "id=[""']term-$([regex]::Escape($t.id))[""']") { $failures.Add("$glossary has no entry id=""term-$($t.id)"" for termbase term '$($t.id)'") } }
+    # A locale tree mirrors the runtime page set exactly: a page in one and not the other is a language control that leads nowhere.
+    foreach ($rel in @($pages.Keys)) {
+        $loc = Get-PageLocale $rel
+        if ($loc -and -not $pages.Contains((Get-SourceRel $rel))) { $failures.Add("$rel mirrors no runtime page ($(Get-SourceRel $rel) is not a public page)") }
+        if (-not $loc -and -not $unlisted.Contains($rel)) {
+            foreach ($l in 'de', 'fr') { $m = $rel -replace '^docs/', "docs/$l/"; if (-not $pages.Contains($m)) { $failures.Add("$rel has no $l page at $m (the declared locale set is ru, en, ua, de, fr)") } }
+        }
     }
 }
 
 # ---- sitemap (rule 2) ------------------------------------------------------------------------
 Add-Section 'sitemap' {
     $want = @{}
-    foreach ($rel in $pages.Keys) { $want[(Get-UrlFor $rel)] = $rel }
+    foreach ($rel in $pages.Keys) { if (-not $unlisted.Contains($rel)) { $want[(Get-UrlFor $rel)] = $rel } }
     $seen = @{}
     $ns = [System.Xml.XmlNamespaceManager]::new($sitemap.NameTable)
     $ns.AddNamespace('s', 'http://www.sitemaps.org/schemas/sitemap/0.9')
@@ -276,7 +343,7 @@ Add-Section 'sitemap' {
         $mod = $u.SelectSingleNode('s:lastmod', $ns)
         if ($seen.ContainsKey($loc)) { $failures.Add("docs/sitemap.xml lists $loc twice"); continue }
         $seen[$loc] = $true
-        if (-not $want.ContainsKey($loc)) { $failures.Add("docs/sitemap.xml lists $loc, which is not a public page (a stub, docs/contracts/, or not on disk)") }
+        if (-not $want.ContainsKey($loc)) { $failures.Add("docs/sitemap.xml lists $loc, which is not a listed public page (a stub, a noindex page, docs/contracts/, or not on disk)") }
         if (-not $mod -or $mod.InnerText -notmatch '^\d{4}-\d{2}-\d{2}$') { $failures.Add("docs/sitemap.xml entry $loc has no yyyy-mm-dd lastmod") }
     }
     foreach ($url in $want.Keys) { if (-not $seen.ContainsKey($url)) { $failures.Add("$($want[$url]) is a public page absent from docs/sitemap.xml (add <loc>$url</loc>)") } }
@@ -315,27 +382,49 @@ Add-Section 'seo' {
         $desc = Get-MetaContent $head 'name' 'description'
         if (-not $desc) { $failures.Add("$rel has no meta description") }
         elseif ($desc.Length -ge 160) { $failures.Add("$rel meta description is $($desc.Length) characters (under 160)") }
-        $canon = Get-LinkHref $head '(?i)rel\s*=\s*"canonical"'
-        if ($canon -ne $url) { $failures.Add("$rel canonical is '$canon', want '$url'") }
-        foreach ($p in 'og:type', 'og:url', 'og:title', 'og:description', 'og:image') {
-            $v = Get-MetaContent $head 'property' $p
-            if (-not $v) { $failures.Add("$rel has no $p") }
-            elseif ($p -eq 'og:url' -and $v -ne $url) { $failures.Add("$rel og:url is '$v', want '$url'") }
-            elseif ($p -eq 'og:image' -and $v -notmatch '^https://') { $failures.Add("$rel og:image is not an absolute https URL") }
-        }
-        if (-not (Get-MetaContent $head 'name' 'twitter:card')) { $failures.Add("$rel has no twitter:card") }
-        $xd = Get-LinkHref $head '(?i)hreflang\s*=\s*"x-default"'
-        if ($xd -ne $url) { $failures.Add("$rel hreflang x-default is '$xd', want '$url'") }
-        $ld = [regex]::Matches($head, '(?is)<script\b[^>]*type\s*=\s*"application/ld\+json"[^>]*>(.*?)</script>')
-        if (-not $ld.Count) { $failures.Add("$rel has no JSON-LD") }
-        foreach ($m in $ld) {
-            try { $j = $m.Groups[1].Value | ConvertFrom-Json; if ([string]$j.'@context' -ne 'https://schema.org') { $failures.Add("$rel JSON-LD @context is not https://schema.org") } }
-            catch { $failures.Add("$rel JSON-LD does not parse: $($_.Exception.Message)") }
+        if ($unlisted.Contains($rel)) {
+            # A noindex page (the not-found page) has no canonical, share card or structured data: it must not be indexed at all.
+            if ($head -match '(?is)<link\b[^>]*rel\s*=\s*"canonical"') { $failures.Add("$rel is noindex but declares a canonical") }
+        } else {
+            $canon = Get-LinkHref $head '(?i)rel\s*=\s*"canonical"'
+            if ($canon -ne $url) { $failures.Add("$rel canonical is '$canon', want '$url'") }
+            foreach ($p in 'og:type', 'og:url', 'og:title', 'og:description', 'og:image') {
+                $v = Get-MetaContent $head 'property' $p
+                if (-not $v) { $failures.Add("$rel has no $p") }
+                elseif ($p -eq 'og:url' -and $v -ne $url) { $failures.Add("$rel og:url is '$v', want '$url'") }
+                elseif ($p -eq 'og:image' -and $v -notmatch '^https://') { $failures.Add("$rel og:image is not an absolute https URL") }
+            }
+            if (-not (Get-MetaContent $head 'name' 'twitter:card')) { $failures.Add("$rel has no twitter:card") }
+            # A runtime page is its own x-default; a locale page names the runtime page it mirrors. Every page lists de and fr.
+            $loc = Get-PageLocale $rel
+            $xdWant = if ($loc) { Get-UrlFor (Get-SourceRel $rel) } else { $url }
+            $xd = Get-LinkHref $head '(?i)hreflang\s*=\s*"x-default"'
+            if ($xd -ne $xdWant) { $failures.Add("$rel hreflang x-default is '$xd', want '$xdWant'") }
+            $srcForAlt = if ($loc) { Get-SourceRel $rel } else { $rel }
+            foreach ($l in 'de', 'fr') {
+                $wantAlt = (Get-UrlFor $srcForAlt) -replace [regex]::Escape($siteBase), "$siteBase$l/"
+                $alt = Get-LinkHref $head "(?i)hreflang\s*=\s*""$l"""
+                if ($alt -ne $wantAlt) { $failures.Add("$rel hreflang $l is '$alt', want '$wantAlt'") }
+            }
+            if ($loc) {
+                $htmlTag = [regex]::Match($text, '(?is)<html\b[^>]*>').Value
+                if ($htmlTag -notmatch "\blang\s*=\s*""$loc""") { $failures.Add("$rel is a $loc page but its <html> lang is not '$loc'") }
+                if ($htmlTag -notmatch "\bdata-page-lang\s*=\s*""$loc""") { $failures.Add("$rel is a $loc page but its <html> has no data-page-lang=""$loc""") }
+            }
+            $ld = [regex]::Matches($head, '(?is)<script\b[^>]*type\s*=\s*"application/ld\+json"[^>]*>(.*?)</script>')
+            if (-not $ld.Count) { $failures.Add("$rel has no JSON-LD") }
+            foreach ($m in $ld) {
+                try { $j = $m.Groups[1].Value | ConvertFrom-Json; if ([string]$j.'@context' -ne 'https://schema.org') { $failures.Add("$rel JSON-LD @context is not https://schema.org") } }
+                catch { $failures.Add("$rel JSON-LD does not parse: $($_.Exception.Message)") }
+            }
         }
         # The per-locale text the page swaps in at runtime (guide.js guideMeta, the landing's meta).
+        # A locale page is one language: its static title and description are all it has to say, and its guide script
+        # keeps only its own entry.
+        $loc = Get-PageLocale $rel
         $rt = [regex]::Match($text, '(?s)(?:window\.guideMeta|var meta)\s*=\s*\{(.*?)\n\s*\};')
-        if (-not $rt.Success) { $failures.Add("$rel has no runtime per-locale title and description"); continue }
-        foreach ($l in $siteLangs) {
+        if (-not $rt.Success) { if (-not $loc) { $failures.Add("$rel has no runtime per-locale title and description") }; continue }
+        foreach ($l in $(if ($loc) { @($loc) } else { $siteLangs })) {
             $b = [regex]::Match($rt.Groups[1].Value, "(?s)\b$l\s*:\s*\{(.*?)\}")
             if (-not $b.Success) { $failures.Add("$rel runtime meta has no '$l' entry"); continue }
             $rtTitle = [regex]::Match($b.Groups[1].Value, '(?s)\b(?:t|title)\s*:\s*"([^"]*)"')
@@ -353,24 +442,42 @@ Add-Section 'locales' {
     foreach ($rel in $groupsByPage.Keys) {
         $recorded = @()
         if ($prints -and $prints.pages.ContainsKey($rel)) { $recorded = @($prints.pages[$rel]) }
+        $loc = Get-PageLocale $rel
+        $need = Get-RequiredLangs $rel
         $byEn = @{}
         $byLang = @{}
-        foreach ($l in $siteLangs) { $byLang[$l] = @{} }
+        foreach ($l in $allLangs) { $byLang[$l] = @{} }
         foreach ($u in $recorded) {
             if ($u.ContainsKey('en')) { $byEn[$u.en] = $true }
-            foreach ($l in $siteLangs) { if ($u.ContainsKey($l)) { $byLang[$l][$u[$l]] = $true } }
+            foreach ($l in $allLangs) { if ($u.ContainsKey($l)) { $byLang[$l][$u[$l]] = $true } }
         }
-        foreach ($g in $groupsByPage[$rel]) {
+        $own = @($groupsByPage[$rel])
+        $srcGroups = @()
+        if ($loc) {
+            # A locale page mirrors its runtime page span for span: the same number of groups, in the same order.
+            $srcGroups = @($groupsByPage[(Get-SourceRel $rel)])
+            if ($own.Count -ne $srcGroups.Count) { $failures.Add("$rel has $($own.Count) span groups, $(Get-SourceRel $rel) has $($srcGroups.Count) - the locale page must mirror it") }
+        }
+        for ($i = 0; $i -lt $own.Count; $i++) {
+            $g = $own[$i]
             $script:groupTotal++
-            $missing = @($siteLangs | Where-Object { -not $g.Langs.Contains($_) })
-            $extra = @($g.Langs.Keys | Where-Object { $_ -notin $siteLangs })
+            $missing = @($need | Where-Object { -not $g.Langs.Contains($_) })
+            $extra = @($g.Langs.Keys | Where-Object { $_ -notin $need })
             if ($missing.Count -or $extra.Count) {
-                $failures.Add("${rel}:$($g.Line) span group has $((@($g.Langs.Keys)) -join '/'), needs ru/en/ua exactly once")
+                $failures.Add("${rel}:$($g.Line) span group has $((@($g.Langs.Keys)) -join '/'), needs $($need -join '/') exactly once")
+                continue
+            }
+            if ($loc) {
+                if ($i -ge $srcGroups.Count -or -not $srcGroups[$i].Langs.Contains('en')) { continue }
+                $en = Get-Fingerprint $srcGroups[$i].Langs['en']
+                if ($byEn.ContainsKey($en)) { continue }
+                if ($byLang[$loc].ContainsKey((Get-Fingerprint $g.Langs[$loc]))) { $failures.Add("${rel}:$($g.Line) the English of $(Get-SourceRel $rel) changed and $loc did not - stale translation") }
+                else { $failures.Add("${rel}:$($g.Line) new or changed text is not recorded - read the translation, then run with -Record") }
                 continue
             }
             $en = Get-Fingerprint $g.Langs['en']
             if ($byEn.ContainsKey($en)) { continue }
-            $stale = @($siteLangs | Where-Object { $_ -ne 'en' -and $byLang[$_].ContainsKey((Get-Fingerprint $g.Langs[$_])) })
+            $stale = @($need | Where-Object { $_ -ne 'en' -and $byLang[$_].ContainsKey((Get-Fingerprint $g.Langs[$_])) })
             if ($stale.Count) { $failures.Add("${rel}:$($g.Line) the English changed and $($stale -join ', ') did not - stale translation") }
             else { $failures.Add("${rel}:$($g.Line) new or changed text is not recorded - read the translations, then run with -Record") }
         }
@@ -458,6 +565,118 @@ Add-Section 'screens' {
     }
 }
 
+# ---- addresses (SITE-STRUCTURE rule 8, SP-0153) --------------------------------------------------
+$heldTotal = 0
+Add-Section 'addresses' {
+    if ([string]$held.base -ne $siteBase) { $failures.Add("packaging/site-held-addresses.json base is '$($held.base)', want '$siteBase'") }
+    $byUrl = @{}
+    foreach ($rel in $pages.Keys) { $byUrl[(Get-UrlFor $rel)] = $rel }
+    foreach ($rel in $stubs) { $byUrl[(Get-UrlFor $rel)] = $rel }   # a forwarder answers too
+
+    # What each listed surface holds: address (relative to the base) -> line of its first mention.
+    $addrRe = [regex]::new('https://serzhyale\.github\.io/FileDO(?:/[^\s)"''<>\]`\\|]*)?')
+    $surfaces = [ordered]@{}
+    foreach ($g in @($held.surfaces)) {
+        $files = @(Get-ChildItem -Path (Join-Path $root $g) -File -ErrorAction SilentlyContinue)
+        if (-not $files.Count) { $failures.Add("packaging/site-held-addresses.json surface '$g' matches no file"); continue }
+        foreach ($f in $files) {
+            $rel = [IO.Path]::GetRelativePath($root, $f.FullName) -replace '\\', '/'
+            $text = [IO.File]::ReadAllText($f.FullName)
+            $held1 = [ordered]@{}
+            foreach ($m in $addrRe.Matches($text)) {
+                $v = $m.Value.TrimEnd('.', ',', ';', ':', '!', '?')
+                $a = if ($v.Length -lt $siteBase.Length) { '' } else { $v.Substring($siteBase.Length) }
+                if (-not $held1.Contains($a)) { $held1[$a] = Get-LineAt $text $m.Index }
+            }
+            $surfaces[$rel] = $held1
+        }
+    }
+
+    $listed = @{}
+    foreach ($e in @($held.addresses)) {
+        $addr = [string]$e.address
+        $label = "$siteBase$addr"
+        if ($listed.ContainsKey($addr)) { $failures.Add("packaging/site-held-addresses.json lists $label twice"); continue }
+        $listed[$addr] = $true
+        $script:heldTotal++
+        $page, $anchor = if ($addr.Contains('#')) { $addr.Substring(0, $addr.IndexOf('#')), $addr.Substring($addr.IndexOf('#') + 1) } else { $addr, '' }
+        $rel = $byUrl[$siteBase + $page]
+        if (-not $rel) { $failures.Add("$label answers no public page and no forwarder stub") }
+        elseif ($anchor) {
+            if (-not $pages.Contains($rel)) { $failures.Add("$label names an anchor on $rel, which is a forwarder stub") }
+            elseif ($pages[$rel] -notmatch "(?i)\b(?:id|name)\s*=\s*[""']$([regex]::Escape($anchor))[""']") { $failures.Add("$label : $rel has no id=""$anchor""") }
+        }
+        if (-not @($e.heldBy).Count) { $failures.Add("packaging/site-held-addresses.json entry $label names no holder") }
+        foreach ($h in @($e.heldBy)) {
+            if (-not $surfaces.Contains($h)) { $failures.Add("$label is said to be held by $h, which is not a file of a listed surface") }
+            elseif (-not $surfaces[$h].Contains($addr)) { $failures.Add("$h no longer holds $label - drop it from heldBy, or drop the entry") }
+        }
+    }
+    foreach ($h in $surfaces.Keys) {
+        foreach ($a in $surfaces[$h].Keys) {
+            if (-not $listed.ContainsKey($a)) { $failures.Add("${h}:$($surfaces[$h][$a]) holds $siteBase$a, which packaging/site-held-addresses.json does not list") }
+            elseif (-not (@(($held.addresses | Where-Object { [string]$_.address -eq $a }).heldBy) -contains $h)) { $failures.Add("${h}:$($surfaces[$h][$a]) holds $siteBase$a, but the list does not name $h as a holder") }
+        }
+    }
+}
+
+# ---- positioning (SITE-REPRESENTATION rules 1 and 2, SP-0157) -------------------------------------
+$positioningRegions = 0
+Add-Section 'positioning' {
+    $src = 'packaging/positioning-source.json'
+    $ids = @($positioning.pillars | ForEach-Object { [string]$_.id })
+    if (-not $ids.Count) { $failures.Add("$src lists no pillar"); return }
+    if (@($ids | Select-Object -Unique).Count -ne $ids.Count) { $failures.Add("$src repeats a pillar id") }
+    foreach ($s in @($positioning.surfaces)) {
+        $file = [string]$s.file
+        $full = Join-Path $root $file
+        if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { $failures.Add("$src surface $file is not a file"); continue }
+        $text = [IO.File]::ReadAllText($full)
+        $anchors = $s.anchors
+        $allowed = if ($s.PSObject.Properties.Name -contains 'allowMissing') { @($s.allowMissing | ForEach-Object { [string]$_ }) } else { @() }
+        foreach ($k in $anchors.PSObject.Properties.Name) { if ($ids -notcontains $k) { $failures.Add("$src surface $file anchors the unknown pillar '$k'") } }
+        $owed = @($ids | Select-Object -First ([int]$s.names) | Where-Object { $allowed -notcontains $_ })
+        foreach ($scope in @($s.scopes)) {
+            $m = [regex]::Match($text, [string]$scope)
+            if (-not $m.Success) { $failures.Add("${file}: the region /$scope/ of the positioning source is not found"); continue }
+            $script:positioningRegions++
+            $at = "${file}:$(Get-LineAt $text $m.Index)"
+            $span = @{}   # pillar id -> first and last index of its words in the region
+            foreach ($id in $ids) {
+                if ($anchors.PSObject.Properties.Name -notcontains $id) { continue }
+                $hits = [regex]::Matches($m.Value, [string]$anchors.$id)
+                if ($hits.Count) { $span[$id] = @($hits[0].Index, $hits[$hits.Count - 1].Index) }
+            }
+            foreach ($id in $owed) {
+                if (-not $span.ContainsKey($id)) { $failures.Add("$at does not name the pillar '$id', which the positioning source puts in its first $($s.names)") }
+            }
+            $prev = $null
+            foreach ($id in $ids) {
+                if (-not $span.ContainsKey($id)) { continue }
+                if ($prev -and $span[$id][0] -lt $span[$prev][1]) { $failures.Add("$at names '$id' before it is done with '$prev' - the order is $($ids -join ', ')") }
+                $prev = $id
+            }
+        }
+    }
+}
+
+# ---- release notes (SITE-STRUCTURE rules 2 and 14, SP-0158) -------------------------------------------
+$releaseNotesCount = 0
+Add-Section 'releasenotes' {
+    $vh = [regex]::Match($readmes['README.md'], '(?ms)^## Version History\s*$(.*?)(?=^---\s*$|^## )')
+    if (-not $vh.Success) { $failures.Add('README.md has no "## Version History" section to hold the release notes page against'); return }
+    $want = @([regex]::Matches($vh.Groups[1].Value, '(?m)^\*\*(v\d{10})\*\*') | ForEach-Object { $_.Groups[1].Value })
+    if (-not $want.Count) { $failures.Add('README.md Version History lists no release (**v<stamp>**)'); return }
+    $script:releaseNotesCount = $want.Count
+    foreach ($rel in 'docs/guides/release-notes.html', 'docs/de/guides/release-notes.html', 'docs/fr/guides/release-notes.html') {
+        if (-not $pages.Contains($rel)) { $failures.Add("$rel is not a declared public page (the release notes page, SITE-STRUCTURE rule 2)"); continue }
+        $have = @([regex]::Matches($pages[$rel], '<section class="section" id="(v\d{10})"') | ForEach-Object { $_.Groups[1].Value })
+        foreach ($v in $want) { if ($v -notin $have) { $failures.Add("$rel has no section id=""$v"" for the release README.md lists") } }
+        foreach ($v in $have) { if ($v -notin $want) { $failures.Add("$rel lists $v, which the README.md Version History does not") } }
+        $shared = @($have | Where-Object { $_ -in $want })
+        if (($shared -join ',') -ne ((@($want | Where-Object { $_ -in $have })) -join ',')) { $failures.Add("$rel lists the releases in a different order than README.md (newest first)") }
+    }
+}
 # ---- hygiene (rule 7, house style) -------------------------------------------------------------
 $hygieneRules = @(
     @{ Name = 'en or em dash (write -)'; Pattern = '[–—]' },
@@ -477,11 +696,14 @@ Add-Section 'hygiene' {
 }
 
 Write-Host "  structure $($counts['structure']) problems (hub, subject index, glossary of $($terms.Count) terms)"
-Write-Host "  sitemap   $($pages.Count) public pages, $($stubs.Count) stubs - $($counts['sitemap']) problems"
+Write-Host "  sitemap   $($pages.Count - $unlisted.Count) listed pages, $($unlisted.Count) noindex, $($stubs.Count) stubs - $($counts['sitemap']) problems"
 Write-Host "  seo       $($pages.Count) pages - $($counts['seo']) problems"
 Write-Host "  locales   $groupTotal span groups, $($sectionsByReadme['README.md'].Count) README sections - $($counts['locales']) problems"
 Write-Host "  terms     $($terms.Count) terms - $($counts['terms']) problems"
 Write-Host "  screens   $imgTotal images - $($counts['screens']) problems"
+Write-Host "  addresses $heldTotal held addresses, $(@($held.surfaces).Count) surface patterns - $($counts['addresses']) problems"
+Write-Host "  positioning $($positioning.pillars.Count) pillars, $positioningRegions regions of $(@($positioning.surfaces).Count) surface entries - $($counts['positioning']) problems"
+Write-Host "  releasenotes $releaseNotesCount releases on 3 pages - $($counts['releasenotes']) problems"
 Write-Host "  hygiene   $($pages.Count + $readmes.Count) documents - $($counts['hygiene']) problems"
 if ($failures.Count) {
     $failures | ForEach-Object { Write-Host "  FAIL  $_" -ForegroundColor Red }

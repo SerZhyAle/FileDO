@@ -326,6 +326,15 @@ same exit codes as the build gate (0, 1, 2).
   (git-ignored, private; the last dozen runs are kept); the scratch data is removed after a pass and kept
   after a failure.
 
+### The release notes on the site
+
+The site's release notes (`docs/guides/release-notes.html`, with its `docs/de/` and `docs/fr/` pages; the
+address is a published one - SITE-STRUCTURE rule 8) are the same list as the Version History in `README.md`,
+written by hand in the same edit as that entry: one `<section class="section" id="v<stamp>">` per shipped
+release, newest first, ru/en/ua in the runtime page and one language per locale page. `Unreleased` is not a
+release and does not appear. `packaging\check-external-docs.ps1` (step `releasenotes`) fails when the three
+pages and the README disagree on which releases exist or in what order; the translation fingerprints are
+re-recorded with `-Record` after the translations are read.
 ### The one manual step
 
 **Microsoft Store upload.** Partner Center has no publishing CLI, so the last

@@ -1,11 +1,15 @@
 (function () {
+  // A standalone locale page (de, fr) is written in one language: it carries
+  // data-page-lang, keeps it, and never writes it to the shared sza-lang key.
+  var own = document.documentElement.dataset.pageLang;
   function setLang(l) {
-    if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
+    if (own) l = own;
+    else if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
     document.documentElement.dataset.lang = l;
     document.documentElement.lang = l === "ua" ? "uk" : l;
-    localStorage.setItem("sza-lang", l);
+    if (!own) localStorage.setItem("sza-lang", l);
     document.querySelectorAll("[data-set-lang]").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
+      b.setAttribute("aria-pressed", String(!own && b.dataset.setLang === l));
     });
     var data = window.guideMeta && window.guideMeta[l];
     if (data) {
@@ -19,12 +23,17 @@
     .forEach(function (container) {
       container.insertAdjacentHTML(
         "afterbegin",
-        '<p class="footer-tools-title"><span data-l="ru">Другие инструменты SZA</span><span data-l="en">More tools by SZA</span><span data-l="ua">Інші інструменти SZA</span></p><div class="tools-grid"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a><a href="https://serzhyale.github.io/StreamsPlayer/"><b>StreamsPlayer</b><span>Windows stream player</span></a><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a></div>',
+        '<p class="footer-tools-title" id="footerToolsTitle"><span data-l="ru">Другие инструменты SZA</span><span data-l="en">More tools by SZA</span><span data-l="ua">Інші інструменти SZA</span><span data-l="de">Weitere Tools von SZA</span><span data-l="fr">Autres outils de SZA</span></p><nav class="tools-grid" aria-labelledby="footerToolsTitle"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a><a href="https://serzhyale.github.io/StreamsPlayer/"><b>StreamsPlayer</b><span>Windows stream player</span></a><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a></nav>',
       );
     });
   document.querySelectorAll("[data-set-lang]").forEach(function (b) {
     b.addEventListener("click", function () {
-      setLang(b.dataset.setLang);
+      if (!own) return setLang(b.dataset.setLang);
+      // Choosing RU, EN or UA on a locale page writes sza-lang, then navigates.
+      try {
+        localStorage.setItem("sza-lang", b.dataset.setLang);
+      } catch (e) {}
+      if (b.dataset.go) location.href = b.dataset.go;
     });
   });
   setLang(document.documentElement.dataset.lang || "en");
@@ -44,9 +53,9 @@
   // The feedback is a word in the page language, not a plain check mark: that
   // shape is action.confirm in ICON-SET, distinct from status.ok.
   var copyLabel =
-    '<span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span>';
+    '<span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span><span data-l="de">Kopieren</span><span data-l="fr">Copier</span>';
   var copiedLabel =
-    '<span data-l="ru">Скопировано</span><span data-l="en">Copied</span><span data-l="ua">Скопійовано</span>';
+    '<span data-l="ru">Скопировано</span><span data-l="en">Copied</span><span data-l="ua">Скопійовано</span><span data-l="de">Kopiert</span><span data-l="fr">Copié</span>';
   function copied(button) {
     button.innerHTML = copiedLabel;
     button.classList.add("done");

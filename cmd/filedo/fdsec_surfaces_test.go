@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -536,5 +537,208 @@ func TestSurfaces_TheGuideHubLeadsToTheGlossaryAndSubjectIndex(t *testing.T) {
 		if !strings.Contains(glossary, `id="term-`+id+`"`) {
 			t.Errorf("the glossary has no entry for %s", id)
 		}
+	}
+}
+
+// PAGE-STYLE section 1, "Use the available width": the site is not a centred
+// column. The kit's --wide cap and the page-level pixel caps are switched off
+// in the layers this repo owns (the kit itself is vendored byte-identical, so
+// the override lives after it), and the hero text starts at the left edge.
+func TestSurfaces_ThePagesUseTheFullWidth(t *testing.T) {
+	root := repoRoot(t)
+	css := readSurface(t, root, filepath.Join("docs", "guides", "guide.css"))
+	for _, banned := range []string{"min(1760px", "min(1100px", "max-width: 600px;\n  margin: 0 auto", "text-align: center;\n}\n.hero .lead"} {
+		if strings.Contains(css, banned) {
+			t.Errorf("docs/guides/guide.css caps the page width again: %q", banned)
+		}
+	}
+	if !strings.Contains(css, ".container {\n  max-width: none;") {
+		t.Error("docs/guides/guide.css does not release the kit's .container cap")
+	}
+	for _, rel := range []string{
+		"index.html", "privacy.html",
+		filepath.Join("de", "index.html"), filepath.Join("de", "privacy.html"),
+		filepath.Join("fr", "index.html"), filepath.Join("fr", "privacy.html"),
+	} {
+		body := readSurface(t, root, filepath.Join("docs", rel))
+		if !strings.Contains(body, "use the available width") || !strings.Contains(body, ".container,.site-header") {
+			t.Errorf("docs/%s lacks the full-width override after its style rules", rel)
+		}
+	}
+}
+
+// SITE-EXPERIENCE rule 17 (SP-0156): the chrome controls are 44 px under any
+// pointer and the light theme carries the tokens that reach 4.5 : 1. The layer
+// lives in guides/guide.css and the trailing block of each standalone page's
+// inline style (the kit stays byte-identical); the measured numbers are in the
+// ticket, this only keeps the layer from being dropped.
+func TestSurfaces_TheChromeKeeps44pxTargetsAndLightContrast(t *testing.T) {
+	root := repoRoot(t)
+	want := []string{
+		".seg button{min-width:44px;min-height:44px}",
+		".theme-btn{flex:none;width:44px;height:44px}",
+		".btn,.copy,.tools-grid a{min-height:44px}",
+		".footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}",
+		`html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}`,
+	}
+	for _, rel := range []string{
+		filepath.Join("guides", "guide.css"),
+		"index.html", "privacy.html",
+		filepath.Join("de", "index.html"), filepath.Join("de", "privacy.html"),
+		filepath.Join("fr", "index.html"), filepath.Join("fr", "privacy.html"),
+	} {
+		body := readSurface(t, root, filepath.Join("docs", rel))
+		for _, w := range want {
+			if !strings.Contains(body, w) {
+				t.Errorf("docs/%s lacks the target-size or contrast rule %s", rel, w)
+			}
+		}
+	}
+}
+
+// The front page (owner brief 2026-10-06, SP-0161) names the product in full
+// and shows its mark once in the header, offers every language in the header
+// group, links the guides and the documentation, keeps the other SZA tools
+// visible in the footer and names and links the author. The footer tools grid
+// had been hidden by a compacting rule, so the test reads the style block too.
+func TestSurfaces_TheFrontPageCarriesItsIdentity(t *testing.T) {
+	root := repoRoot(t)
+	for _, rel := range []string{"index.html", filepath.Join("de", "index.html"), filepath.Join("fr", "index.html")} {
+		body := readSurface(t, root, filepath.Join("docs", rel))
+		header := body[strings.Index(body, `<header class="site-header">`):]
+		header = header[:strings.Index(header, `</header>`)]
+		for _, want := range []string{
+			`assets/filedo.svg" width="46" height="46" alt="FileDO"`,
+			`<small>Advanced File &amp; Storage Operations Tool</small>`,
+			`<nav class="header-nav" aria-labelledby="mainNavTitle">`,
+			`<a href="guides/">`,
+			`https://github.com/SerZhyAle/FileDO#readme`,
+			`<nav class="lang-row"`,
+		} {
+			if !strings.Contains(header, want) {
+				t.Errorf("docs/%s: the header lacks %s", rel, want)
+			}
+		}
+		if strings.Count(body, `assets/filedo.svg"`) != 1 {
+			t.Errorf("docs/%s: the product mark must appear once on the page", rel)
+		}
+		if regexp.MustCompile(`(?s)\.tools-grid\s*\{\s*display:\s*none`).MatchString(body) {
+			t.Errorf("docs/%s hides the other-tools footer grid", rel)
+		}
+		for _, want := range []string{`<nav class="tools-grid"`, `<a href="https://sza.od.ua">Serhii Zhyhunenko</a>`, `https://github.com/SerZhyAle`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("docs/%s: the footer lacks %s", rel, want)
+			}
+		}
+	}
+}
+
+// SITE-EXPERIENCE rules 15 and 16 (SP-0155): every published page opens with a
+// skip link that lands on its one main, and every nav landmark carries a
+// name. The footer tools nav of the guide pages is injected by guide.js, so
+// that one is read from the script, and a nav that points at an id the page
+// never defines would be an unnamed landmark for a screen reader.
+func TestSurfaces_EveryPageHasASkipLinkAndLabelledLandmarks(t *testing.T) {
+	root := repoRoot(t)
+	docs := filepath.Join(root, "docs")
+	guideJS := readSurface(t, root, filepath.Join("docs", "guides", "guide.js"))
+	guideCSS := readSurface(t, root, filepath.Join("docs", "guides", "guide.css"))
+	for _, rule := range []string{".skip-link", ".sr-only"} {
+		if !strings.Contains(guideCSS, rule) {
+			t.Errorf("docs/guides/guide.css has no %s rule", rule)
+		}
+	}
+	for _, token := range []string{
+		`<p class="footer-tools-title" id="footerToolsTitle">`,
+		`<nav class="tools-grid" aria-labelledby="footerToolsTitle">`,
+	} {
+		if !strings.Contains(guideJS, token) {
+			t.Errorf("docs/guides/guide.js no longer injects %s", token)
+		}
+	}
+
+	skipRe := regexp.MustCompile(`(?s)<body>\s*<a class="skip-link" href="#([a-z]+)">(.*?)</a>`)
+	mainRe := regexp.MustCompile(`<main[^>]*\sid="([a-z]+)"`)
+	navRe := regexp.MustCompile(`<nav\b[^>]*>`)
+	labelRe := regexp.MustCompile(`aria-label(?:ledby)?="([^"]+)"`)
+	idRe := regexp.MustCompile(`aria-labelledby="([^"]+)"`)
+
+	pages := 0
+	err := filepath.WalkDir(docs, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(docs, path)
+		rel = filepath.ToSlash(rel)
+		if d.IsDir() {
+			// ru/ and ua/ hold one-line redirects to the shared pages.
+			switch rel {
+			case "ru", "ua", "kit", "assets":
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(rel, ".html") {
+			return nil
+		}
+		pages++
+		body := readSurface(t, root, filepath.Join("docs", filepath.FromSlash(rel)))
+
+		skip := skipRe.FindStringSubmatch(body)
+		if skip == nil {
+			t.Errorf("%s: the skip link is not the first element of body", rel)
+		} else {
+			if n := strings.Count(body, `<main`); n != 1 {
+				t.Errorf("%s: expected one main, found %d", rel, n)
+			}
+			if m := mainRe.FindStringSubmatch(body); m == nil || m[1] != skip[1] {
+				t.Errorf("%s: the skip link targets #%s but main does not carry that id", rel, skip[1])
+			}
+			lang := "ru"
+			switch {
+			case strings.HasPrefix(rel, "de/"):
+				lang = "de"
+			case strings.HasPrefix(rel, "fr/"):
+				lang = "fr"
+			}
+			if !strings.Contains(skip[2], `data-l="`+lang+`"`) {
+				t.Errorf("%s: the skip link has no %s text", rel, lang)
+			}
+			if lang == "ru" && (!strings.Contains(skip[2], `data-l="en"`) || !strings.Contains(skip[2], `data-l="ua"`)) {
+				t.Errorf("%s: the skip link is missing its en or ua text", rel)
+			}
+		}
+
+		if !strings.Contains(body, `<nav aria-labelledby="footerLinksTitle">`) || !strings.Contains(body, `id="footerLinksTitle"`) {
+			t.Errorf("%s: the footer links are not a labelled nav", rel)
+		}
+		if strings.HasSuffix(rel, "index.html") && !strings.Contains(rel, "guides/") || strings.HasSuffix(rel, "privacy.html") {
+			if !strings.Contains(body, `<nav class="tools-grid" aria-labelledby="footerToolsTitle">`) || !strings.Contains(body, `id="footerToolsTitle"`) {
+				t.Errorf("%s: the footer tools grid is not a labelled nav", rel)
+			}
+			if !strings.Contains(body, ".skip-link{") || !strings.Contains(body, ".sr-only{") {
+				t.Errorf("%s: its own style block lacks the skip-link or sr-only rule", rel)
+			}
+		}
+
+		for _, tag := range navRe.FindAllString(body, -1) {
+			m := labelRe.FindStringSubmatch(tag)
+			if m == nil {
+				t.Errorf("%s: unnamed nav landmark %s", rel, tag)
+				continue
+			}
+			if id := idRe.FindStringSubmatch(tag); id != nil {
+				if !strings.Contains(body, `id="`+id[1]+`"`) && !strings.Contains(guideJS, `id="`+id[1]+`"`) {
+					t.Errorf("%s: %s names an id nothing defines", rel, tag)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pages < 40 {
+		t.Errorf("only %d site pages were found under docs - the walk is not seeing the site", pages)
 	}
 }

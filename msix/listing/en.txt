@@ -4,7 +4,7 @@
 # Center console at submit time; the builder only warns about the values known when it was written.
 
 @@ShortDescription
-Test the real capacity and speed of drives and SD cards, spot fake flash, wipe data securely, clear out duplicate files and lock a file behind a password - from a window or the command line. No network, no accounts, no ads.
+Test the real capacity and speed of drives and SD cards, spot fake flash, clear out duplicate files, wipe data securely and lock a file behind a password - from a window or the command line. No network, no accounts, no ads.
 
 @@Description
 FileDO tells you whether a drive is what it claims to be, and gives you the tools to look after the data on it.

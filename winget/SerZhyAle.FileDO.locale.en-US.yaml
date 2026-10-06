@@ -14,12 +14,12 @@ License: MIT
 LicenseUrl: https://github.com/SerZhyAle/FileDO/blob/main/LICENSE
 Copyright: Copyright (c) 2025 sza
 CopyrightUrl: https://github.com/SerZhyAle/FileDO/blob/main/LICENSE
-ShortDescription: Windows CLI for storage testing, fake-capacity detection, secure wipe, and duplicate management.
+ShortDescription: Windows CLI for storage testing, fake-capacity detection, duplicate management, and secure wipe.
 Description: |-
   FileDO is a fast Windows command-line tool for working with storage devices, folders, and network shares.
-  It detects fake USB/SD cards by writing and verifying real data, benchmarks read/write speeds, securely
-  wipes free space at multi-GB/s, finds and manages duplicate files via MD5 with hash caching, and copies
-  large trees with progress and timeout protection.
+  It detects fake USB/SD cards by writing and verifying real data, benchmarks read/write speeds, finds
+  and manages duplicate files via MD5 with hash caching, copies large trees with progress and timeout
+  protection, and securely wipes free space at multi-GB/s.
   It also packs a single file into a password-protected .fd-sec container and takes it back out, or opens
   what is inside in the program it belongs to without unpacking it - from a read-only copy that only your
   account can read and that is removed when you are done with it. An empty password is accepted and means

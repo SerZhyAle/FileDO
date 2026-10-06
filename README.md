@@ -9,9 +9,9 @@
 [![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**Storage Testing • Performance Analysis • Security Wiping • Fake Capacity Detection • Duplicate Management**
+**Storage Testing • Performance Analysis • Fake Capacity Detection • Duplicate Management • Security Wiping**
 
-*A command-line tool for Windows storage: capacity and speed tests, fake-capacity detection, secure wipe, fill and duplicate management.*
+*A command-line tool for Windows storage: capacity and speed tests, fake-capacity detection, duplicate management, secure wipe and fill.*
 
 </div>
 

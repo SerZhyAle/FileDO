@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/check-storage.html" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/check-storage.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/check-storage.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/check-storage.html" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/check-storage.html" />
@@ -83,6 +85,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -106,7 +109,8 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container">
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/check-storage.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/check-storage.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · носители</span
@@ -162,6 +166,54 @@
             зрозуміти вільне місце й файлову систему.</span
           >
         </p>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="ru">Тестовые данные</span
+            ><span data-l="en">Test data</span
+            ><span data-l="ua">Тестові дані</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>test</code> и <code>speed</code> работают с тестовыми
+              файлами. Проверьте букву носителя и свободное место. Суффикс
+              <code>del</code> у <code>test</code> просит удалить тестовые
+              данные по окончании; это не замена резервной копии.</span
+            ><span data-l="en"
+              ><code>test</code> and <code>speed</code> use test files. Check
+              the drive letter and free space. The <code>del</code> suffix on
+              <code>test</code> removes test data when done; it is not a
+              substitute for a backup.</span
+            ><span data-l="ua"
+              ><code>test</code> і <code>speed</code> використовують тестові
+              файли. Перевірте літеру носія та вільне місце. Суфікс
+              <code>del</code> у <code>test</code> прибирає тестові дані після
+              завершення; це не заміна резервної копії.</span
+            >
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="ru">Raw probe</span><span data-l="en">Raw probe</span
+            ><span data-l="ua">Raw probe</span></span
+          >
+          <p>
+            <span data-l="ru"
+              ><code>probe</code> использует прямой доступ к LBA, выполняется
+              примерно минуту и требует прав администратора. Не используйте его
+              как первый шаг: сначала выполните <code>info</code> и обычный
+              <code>test</code>.</span
+            ><span data-l="en"
+              ><code>probe</code> uses direct LBA access, takes about a minute,
+              and needs administrator rights. Do not use it as a first step: run
+              <code>info</code> and the regular <code>test</code> first.</span
+            ><span data-l="ua"
+              ><code>probe</code> використовує прямий доступ до LBA, триває
+              приблизно хвилину та потребує прав адміністратора. Не
+              використовуйте його як перший крок: спочатку виконайте
+              <code>info</code> і звичайний <code>test</code>.</span
+            >
+          </p>
+        </div>
         <ol class="steps">
           <li>
             <span data-l="ru"
@@ -280,70 +332,13 @@
           </article>
         </div>
       </section>
-      <section class="section">
-        <h2>
-          <span data-l="ru">Что важно до запуска</span
-          ><span data-l="en">What matters before running it</span
-          ><span data-l="ua">Що важливо до запуску</span>
-        </h2>
-        <div class="note">
-          <span class="tag"
-            ><span data-l="ru">Тестовые данные</span
-            ><span data-l="en">Test data</span
-            ><span data-l="ua">Тестові дані</span></span
-          >
-          <p>
-            <span data-l="ru"
-              ><code>test</code> и <code>speed</code> работают с тестовыми
-              файлами. Проверьте букву носителя и свободное место. Суффикс
-              <code>del</code> у <code>test</code> просит удалить тестовые
-              данные по окончании; это не замена резервной копии.</span
-            ><span data-l="en"
-              ><code>test</code> and <code>speed</code> use test files. Check
-              the drive letter and free space. The <code>del</code> suffix on
-              <code>test</code> removes test data when done; it is not a
-              substitute for a backup.</span
-            ><span data-l="ua"
-              ><code>test</code> і <code>speed</code> використовують тестові
-              файли. Перевірте літеру носія та вільне місце. Суфікс
-              <code>del</code> у <code>test</code> прибирає тестові дані після
-              завершення; це не заміна резервної копії.</span
-            >
-          </p>
-        </div>
-        <div class="note danger">
-          <span class="tag"
-            ><span data-l="ru">Raw probe</span><span data-l="en">Raw probe</span
-            ><span data-l="ua">Raw probe</span></span
-          >
-          <p>
-            <span data-l="ru"
-              ><code>probe</code> использует прямой доступ к LBA, выполняется
-              примерно минуту и требует прав администратора. Не используйте его
-              как первый шаг: сначала выполните <code>info</code> и обычный
-              <code>test</code>.</span
-            ><span data-l="en"
-              ><code>probe</code> uses direct LBA access, takes about a minute,
-              and needs administrator rights. Do not use it as a first step: run
-              <code>info</code> and the regular <code>test</code> first.</span
-            ><span data-l="ua"
-              ><code>probe</code> використовує прямий доступ до LBA, триває
-              приблизно хвилину та потребує прав адміністратора. Не
-              використовуйте його як перший крок: спочатку виконайте
-              <code>info</code> і звичайний <code>test</code>.</span
-            >
-          </p>
-        </div>
-      </section>
     </main>
     <footer class="site-footer">
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><span
-            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
-            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
-          >
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
     </footer>

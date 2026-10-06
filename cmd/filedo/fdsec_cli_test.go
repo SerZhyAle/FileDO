@@ -240,6 +240,68 @@ func TestFdsecSameVerbsInteractively(t *testing.T) {
 	assertNoPartials(t, dir)
 }
 
+// A .fd-sec named with no verb is `unsecure`: the original comes back beside
+// the container, the container stays, and with no credential and nobody to ask
+// the run refuses as `unsecure` does rather than falling into the generic file
+// path.
+func TestFdsecBareContainerNameUnsecures(t *testing.T) {
+	dir, payload := workdir(t)
+	const secret = "pw-bare-name"
+
+	if out, code := run(t, dir, "plain.txt", "secure", "p:"+secret); code != 0 {
+		t.Fatalf("secure exited %d, want 0\n%s", code, out)
+	}
+	if err := os.Remove(filepath.Join(dir, "plain.txt")); err != nil {
+		t.Fatal(err)
+	}
+
+	out, code := run(t, dir, "plain.fd-sec")
+	if code != 2 {
+		t.Errorf("a bare container with no credential off a terminal exited %d, want 2 (usage)\n%s", code, out)
+	}
+	if exists(filepath.Join(dir, "plain.txt")) {
+		t.Fatal("a restore happened with no credential")
+	}
+
+	if out, code := run(t, dir, "plain.fd-sec", "p:"+secret); code != 0 {
+		t.Fatalf("bare container exited %d, want 0\n%s", code, out)
+	}
+	if got := mustRead(t, filepath.Join(dir, "plain.txt")); !bytes.Equal(got, payload) {
+		t.Error("the bare-name restore is not byte-exact")
+	}
+	if !exists(filepath.Join(dir, "plain.fd-sec")) {
+		t.Error("the bare-name restore removed the container")
+	}
+	assertNoSecretOnDisk(t, dir, secret)
+	assertNoPartials(t, dir)
+}
+
+func TestFdsecBareContainerArgs(t *testing.T) {
+	dir := t.TempDir()
+	box := filepath.Join(dir, "a.FD-SEC")
+	if err := os.WriteFile(box, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := fdsecBareContainerArgs([]string{box}); !ok || len(got) != 2 || got[1] != "unsecure" {
+		t.Errorf("a lone container = %v, %v; want it to gain unsecure", got, ok)
+	}
+	if got, ok := fdsecBareContainerArgs([]string{box, "p:x"}); !ok || len(got) != 3 || got[2] != "p:x" {
+		t.Errorf("container + credential = %v, %v; want unsecure inserted before it", got, ok)
+	}
+	for _, argv := range [][]string{
+		{box, "info"},                          // a generic verb keeps its meaning
+		{box, "hunter2"},                       // a bare word may be a password, not a verb
+		{filepath.Join(dir, "missing.fd-sec")}, // nothing there
+		{dir},                                  // a folder
+		{filepath.Join(dir, "plain.txt")},      // not the extension
+		{},
+	} {
+		if got, ok := fdsecBareContainerArgs(argv); ok {
+			t.Errorf("%v was taken for a bare container: %v", argv, got)
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------
 // The exit criterion, part 2: no credential appears anywhere after a run that
 // used every credential source.

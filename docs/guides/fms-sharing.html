@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
@@ -83,6 +85,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -106,7 +109,8 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container" data-ui-steps>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/fms-sharing.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/fms-sharing.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · Общий доступ</span
@@ -504,9 +508,7 @@
             программы: файлы передаются по SFTP, и Windows SMB-шара при этом не
             создаётся. Пока диск открыт, каждое сопряжённое устройство может
             читать его файлы - даже если контейнер зашифрован, ведь он
-            разблокируется здесь, на компьютере, и никогда с телефона. По
-            умолчанию доступ на чтение и запись; «только на чтение» - галочка
-            при регистрации. Закрытие диска или выключение компьютера прекращает
+            разблокируется здесь, на компьютере, и никогда с телефона. Может ли устройство записывать, задаётся при регистрации (раздел 2). Закрытие диска или выключение компьютера прекращает
             доступ. Сеансовый режим требует, чтобы вы вошли в систему;
             серверная редакция держит общие диски доступными и без входа.</span
           ><span data-l="en"
@@ -514,9 +516,7 @@
             that program: the files travel over SFTP, and no Windows SMB share
             is created. While the disk is open, every paired device can read
             its files - even when the container is encrypted, because it is
-            unlocked here, on the computer, never from the phone. Access is
-            read and write by default; read-only is a checkbox at
-            registration. Closing the disk, or shutting the computer down,
+            unlocked here, on the computer, never from the phone. Whether a device may write is set at registration (section 2). Closing the disk, or shutting the computer down,
             ends the access. The session mode requires you to be signed in;
             the Server edition keeps shared disks available with nobody signed
             in.</span
@@ -526,8 +526,7 @@
             Windows при цьому не створюється. Поки диск відкритий, кожен
             сполучений пристрій може читати його файли - навіть коли контейнер
             зашифрований, адже він розблоковується тут, на комп'ютері, і
-            ніколи з телефона. Типово доступ на читання і запис; «лише для читання» -
-            галочка під час реєстрації. Закриття диска або вимкнення комп'ютера
+            ніколи з телефона. Чи може пристрій записувати, визначається під час реєстрації (розділ 2). Закриття диска або вимкнення комп'ютера
             припиняє доступ. Сеансовий режим потребує, щоб ви ввійшли в
             систему; серверна редакція тримає спільні диски доступними і без
             входу.</span
@@ -627,10 +626,10 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">«Подлинность worker не подтверждена»</span
+              <span data-l="ru">«Подлинность worker FMS не подтверждена»</span
               ><span data-l="en"
-                >&ldquo;The worker identity could not be verified&rdquo;</span
-              ><span data-l="ua">«Автентичність worker не підтверджена»</span>
+                >&ldquo;The FMS worker identity could not be verified&rdquo;</span
+              ><span data-l="ua">«Справжність worker FMS не підтверджена»</span>
             </h3>
             <p>
               <span data-l="ru"
@@ -668,20 +667,23 @@
         </div>
         <p class="intro">
           <span data-l="ru"
-            >Если шаг из нескольких упал на середине, выполненное сохраняется:
+            >Регистрация и открытие выполняются отдельно: если диск
+            зарегистрирован, но закрыт, выберите «Открыть для шаринга». Если шаг из нескольких упал на середине, выполненное сохраняется:
             обновите список дисков, повторите оставшееся действие или
             прекратите общий доступ - и только после этого явно возвращайте
             локальное подключение и прежнюю автоматическую политику. Не
             восстанавливайте локальное подключение, пока неизвестно, кто
             держит диск.</span
           ><span data-l="en"
-            >If a step in a sequence fails halfway, what completed remains:
+            >Registration and opening are separate: if a disk is registered but
+            closed, choose Open for sharing. If a step in a sequence fails halfway, what completed remains:
             refresh the disk list, retry the remaining action, or stop sharing
             - and only then explicitly restore local mounting and its prior
             automatic policy. Do not restore local mounting while the holder of
             the disk is unknown.</span
           ><span data-l="ua"
-            >Якщо крок із кількох упав посередині, виконане зберігається:
+            >Реєстрація та відкриття виконуються окремо: якщо диск зареєстровано,
+            але закрито, виберіть «Відкрити для спільного доступу». Якщо крок із кількох упав посередині, виконане зберігається:
             оновіть список дисків, повторіть решту дій або припиніть спільний
             доступ - і лише після цього явно повертайте локальне підключення
             та попередню автоматичну політику. Не відновлюйте локальне
@@ -793,10 +795,8 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><span
-            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
-            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
-          >
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
     </footer>

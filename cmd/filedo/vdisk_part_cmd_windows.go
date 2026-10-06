@@ -1410,6 +1410,9 @@ func vdServeOpenPart(locator string, h windows.Handle, cred fdsec.Credential, mo
 	if err != nil {
 		return nil, err
 	}
+	// The server's handle is the only one on the partition (share mode 0), so
+	// a write-through read cache is coherent (SP-0148 S9).
+	vdisk.EnableReadCache(c, vdPartReadCacheBytes(os.Getenv(vdPartReadCacheEnv)))
 	cont, err := vdisk.OpenOn(context.Background(), c, locator, cred, mode)
 	if err != nil {
 		c.Close()

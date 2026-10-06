@@ -22,6 +22,10 @@ Public Class SettingsPanel
         AutoScroll = True
         root.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
         Controls.Add(root)
+        ' The groups and rows are built under suspended layout and laid out once at the end: with it
+        ' live, every row added made each nested AutoSize panel measure its labels and check boxes
+        ' again (about 0.9 s for the Disk Manager's Settings window).
+        Ui.SuspendTree(Me)
         restoring = True
         BuildLayout()
         For Each group In Groups
@@ -34,16 +38,22 @@ Public Class SettingsPanel
         AddHandler VisibleChanged, Sub()
                                       If Visible Then
                                           ApplyTheme()
-                                          RestoreViewport()
+                                          ' After the page has its layout: a view shown with its tree
+                                          ' suspended (ShellForm.RailEntry_Click) has none yet, and the
+                                          ' anchor group's position would be read from a stale one.
+                                          If restorePending AndAlso IsHandleCreated Then BeginInvoke(New MethodInvoker(AddressOf RestoreViewport))
                                       ElseIf IsHandleCreated Then
                                           SaveContext()
                                       End If
                                   End Sub
         ApplyTheme()
+        Ui.ResumeTree(Me)
     End Sub
 
     Private Function NewGroup(id As String, key As String) As SettingsGroup
         Dim value As New SettingsGroup(id, Localization.T(key))
+        value.SuspendLayout()
+        value.Body.SuspendLayout()
         root.RowCount += 1
         root.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         root.Controls.Add(value, 0, root.RowStyles.Count - 1)

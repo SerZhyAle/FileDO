@@ -7,7 +7,7 @@
   DOC-EXTERNAL-QUALITY rule 6: a multi-step guide shows the interface as it is today, in the
   reader's language or language-neutral. The pictures are therefore produced, never drawn by hand:
 
-    gui-<page>-<en|ru|ua>.png  filedo_win.exe --capture-screens renders its own pages in each
+    gui-<page>-<en|ru|ua|de|fr>.png  filedo_win.exe --capture-screens renders its own pages in each
                                language the site authors. It writes no setting (Capture.vb).
     msi-customize.png          The MSI's feature page, reached by driving the stock WiX dialogs
                                to "Choose what to install" and captured there; the dialog is then

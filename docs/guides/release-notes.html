@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/release-notes.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/release-notes.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/release-notes.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/release-notes.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/release-notes.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="FileDO release notes - what changed in each release" />
+    <meta property="og:description" content="FileDO release notes: what each version added, fixed and changed, newest first, with the date of every release." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "FileDO release notes - what changed in each release",
+        "description": "FileDO release notes: what each version added, fixed and changed, newest first, with the date of every release.",
+        "url": "https://serzhyale.github.io/FileDO/guides/release-notes.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO release notes - what changed in each release</title>
+    <meta
+      name="description"
+      content="FileDO release notes: what each version added, fixed and changed, newest first, with the date of every release."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/release-notes.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/release-notes.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">FileDO · что нового</span><span data-l="en">FileDO · release notes</span><span data-l="ua">FileDO · що нового</span>
+        </p>
+        <h1>
+          <span data-l="ru">Что менялось в каждой версии.</span><span data-l="en">What changed in each release.</span><span data-l="ua">Що змінювалося в кожній версії.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="ru">Каждый выпуск FileDO, новые сверху, с датой. Файлы каждого выпуска и их контрольные суммы лежат на GitHub.</span><span data-l="en">Every FileDO release, newest first, with its date. The files of each release and their checksums are on GitHub.</span><span data-l="ua">Кожен випуск FileDO, нові згори, з датою. Файли кожного випуску та їхні контрольні суми лежать на GitHub.</span>
+        </p>
+      </section>
+      <section class="section" id="v2609241700">
+        <h2><span>v2609241700</span><time datetime="2026-09-24">2026-09-24</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="ru">Секретные файлы (<code>.fd-sec</code>)</span><span data-l="en">Secret files (<code>.fd-sec</code>)</span><span data-l="ua">Секретні файли (<code>.fd-sec</code>)</span></strong>: <span data-l="ru">один файл упаковывается в контейнер под паролем и возвращается обратно - <code>secure</code>, <code>unsecure</code>, <code>reveal</code> - из командной строки, из меню Проводника или со страниц группы Protect в окне; настоящее имя, размер и даты оригинала запечатаны внутри</span><span data-l="en">pack one file into a password-protected container and get it back - <code>secure</code>, <code>unsecure</code>, <code>reveal</code> - from the command line, the Explorer menu or the window's Protect pages; the original's name, size and timestamps are sealed inside</span><span data-l="ua">один файл пакується в контейнер під паролем і повертається назад - <code>secure</code>, <code>unsecure</code>, <code>reveal</code> - з командного рядка, з меню Провідника або зі сторінок групи Protect у вікні; справжнє ім'я, розмір і дати оригіналу запечатано всередині</span></li>
+          <li><strong><span data-l="ru">Интеграция с Проводником</span><span data-l="en">Explorer integration</span><span data-l="ua">Інтеграція з Провідником</span></strong>: <span data-l="ru">установщик добавляет в контекстное меню группу <code>File DO..</code> (Secure, Unsecure, Wipe this file, Check this file, Info) и тип документа <code>.fd-sec</code>; <code>filedo fdsec register</code> / <code>unregister</code> делает то же без установщика</span><span data-l="en">the setup EXE adds a <code>File DO..</code> right-click group (Secure, Unsecure, Wipe this file, Check this file, Info) and the <code>.fd-sec</code> document type; <code>filedo fdsec register</code> / <code>unregister</code> does the same without an installer</span><span data-l="ua">інсталятор додає до контекстного меню групу <code>File DO..</code> (Secure, Unsecure, Wipe this file, Check this file, Info) і тип документа <code>.fd-sec</code>; <code>filedo fdsec register</code> / <code>unregister</code> робить те саме без інсталятора</span></li>
+          <li><strong><span data-l="ru">GUI</span><span data-l="en">GUI</span><span data-l="ua">GUI</span></strong>: <span data-l="ru">новое окно - слева список задач, на каждую задачу своя страница со всеми параметрами CLI, плюс страницы Command, History, Settings и About; старое окно-конструктор команд убрано</span><span data-l="en">a new window - a rail of jobs with one page per job, each carrying every CLI option, plus Command, History, Settings and About pages; the old command-builder window is retired</span><span data-l="ua">нове вікно - ліворуч перелік завдань, для кожного завдання своя сторінка з усіма параметрами CLI, плюс сторінки Command, History, Settings і About; старе вікно-конструктор команд прибрано</span></li>
+          <li><strong><span data-l="ru">Копирование</span><span data-l="en">Copy</span><span data-l="ua">Копіювання</span></strong>: <span data-l="ru">начинается с первого файла; <code>--precount</code> сначала пересчитывает дерево для точных итогов и оставшегося времени</span><span data-l="en">copying starts at the first file; <code>--precount</code> counts the tree first for exact totals and an ETA</span><span data-l="ua">починається з першого файлу; <code>--precount</code> спочатку перераховує дерево для точних підсумків і часу, що залишився</span></li>
+          <li><strong><span data-l="ru">CLI</span><span data-l="en">CLI</span><span data-l="ua">CLI</span></strong>: <span data-l="ru">единые коды выхода - 0 пройдено или выполнено, 1 найден дефект, 2 проверить не удалось; учётные данные вычищаются до записи в историю</span><span data-l="en">one set of exit codes - 0 passed or done, 1 found a defect, 2 could not be verified; credentials are redacted before anything reaches the history</span><span data-l="ua">єдині коди виходу - 0 пройдено або виконано, 1 знайдено дефект, 2 перевірити не вдалося; облікові дані вичищаються до запису в історію</span></li>
+          <li><strong><span data-l="ru">Распространение</span><span data-l="en">Distribution</span><span data-l="ua">Поширення</span></strong>: <span data-l="ru">FileDO есть в Microsoft Store; <code>THIRD-PARTY-NOTICES.txt</code> входит в zip, MSI и пакет Store</span><span data-l="en">FileDO is on the Microsoft Store; <code>THIRD-PARTY-NOTICES.txt</code> ships in the zip, the MSI and the Store package</span><span data-l="ua">FileDO є в Microsoft Store; <code>THIRD-PARTY-NOTICES.txt</code> входить до zip, MSI і пакета Store</span></li>
+          <li><strong><span data-l="ru">Документация</span><span data-l="en">Docs</span><span data-l="ua">Документація</span></strong>: <span data-l="ru">новые руководства - секретные файлы и "Windows warned you about FileDO"</span><span data-l="en">new guides - secret files and "Windows warned you about FileDO"</span><span data-l="ua">нові посібники - секретні файли та "Windows warned you about FileDO"</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2607301014">
+        <h2><span>v2607301014</span><time datetime="2026-07-30">2026-07-30</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="ru">GUI</span><span data-l="en">GUI</span><span data-l="ua">GUI</span></strong>: <span data-l="ru">интерфейс на 5 языках (английский, русский, украинский, немецкий, французский) с переключением языка на лету и значком приложения</span><span data-l="en">5-language interface (English, Russian, Ukrainian, German, French) with runtime language switching and an app icon</span><span data-l="ua">інтерфейс 5 мовами (англійська, російська, українська, німецька, французька) з перемиканням мови на льоту та значком застосунку</span></li>
+          <li><strong><span data-l="ru">GUI</span><span data-l="en">GUI</span><span data-l="ua">GUI</span></strong>: <span data-l="ru">окно "О программе" с функцией отправки логов автору</span><span data-l="en">About window with a send-logs-to-the-author action</span><span data-l="ua">вікно "Про програму" з функцією надсилання логів автору</span></li>
+          <li><strong><span data-l="ru">Приватность</span><span data-l="en">Privacy</span><span data-l="ua">Приватність</span></strong>: <span data-l="ru">опубликована страница конфиденциальности, на неё ссылаются сайт и страница в Store</span><span data-l="en">hosted privacy page, linked from the site and the Store listing</span><span data-l="ua">опубліковано сторінку конфіденційності, на неї посилаються сайт і сторінка в Store</span></li>
+          <li><strong><span data-l="ru">CLI</span><span data-l="en">CLI</span><span data-l="ua">CLI</span></strong>: <span data-l="ru">новый слоган "pleasantly paranoid" и более понятный текст справки</span><span data-l="en">new "pleasantly paranoid" tagline and clearer usage text</span><span data-l="ua">новий слоган "pleasantly paranoid" і зрозуміліший текст довідки</span></li>
+          <li><strong><span data-l="ru">Документация</span><span data-l="en">Docs</span><span data-l="ua">Документація</span></strong>: <span data-l="ru">переработанный сайт с новыми пошаговыми руководствами (проверка накопителя, файлы и копии, конструктор команд GUI)</span><span data-l="en">redesigned site with new step-by-step guides (storage check, files and copies, GUI command builder)</span><span data-l="ua">перероблений сайт з новими покроковими посібниками (перевірка накопичувача, файли та копії, конструктор команд GUI)</span></li>
+          <li><strong><span data-l="ru">Проект</span><span data-l="en">Project</span><span data-l="ua">Проєкт</span></strong>: <span data-l="ru">исходники реорганизованы в <code>cmd/</code> (filedo, filedo-check, filedo-fill, filedo-test); разделены процессы сборки и релиза</span><span data-l="en">sources reorganized under <code>cmd/</code> (filedo, filedo-check, filedo-fill, filedo-test); separate build and release flows</span><span data-l="ua">вихідні коди реорганізовано в <code>cmd/</code> (filedo, filedo-check, filedo-fill, filedo-test); розділено процеси збірки та релізу</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2606120121">
+        <h2><span>v2606120121</span><time datetime="2026-06-12">2026-06-12</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="ru">Wipe</span><span data-l="en">Wipe</span><span data-l="ua">Wipe</span></strong>: <span data-l="ru">усилены проверки безопасности при затирании</span><span data-l="en">hardened wipe safety checks</span><span data-l="ua">посилено перевірки безпеки під час затирання</span></li>
+          <li><strong><span data-l="ru">Дубликаты</span><span data-l="en">Duplicates</span><span data-l="ua">Дублікати</span></strong>: <span data-l="ru">исправлены корректность и параллелизм кэша дубликатов</span><span data-l="en">fixed duplicate-cache correctness and parallelism</span><span data-l="ua">виправлено коректність і паралелізм кешу дублікатів</span></li>
+          <li><strong><span data-l="ru">Копирование</span><span data-l="en">Copy</span><span data-l="ua">Копіювання</span></strong>: <span data-l="ru">сокращены обходы каталогов при копировании</span><span data-l="en">trimmed copy directory walks</span><span data-l="ua">скорочено обходи каталогів під час копіювання</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2605152056">
+        <h2><span>v2605152056</span><time datetime="2026-05-15">2026-05-15</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="ru">Установщик</span><span data-l="en">Installer</span><span data-l="ua">Інсталятор</span></strong>: <span data-l="ru">setup EXE (пакет WiX с MSI внутри) и отдельный MSI; значок приложения встроен во все EXE и в запись в списке программ</span><span data-l="en">setup EXE (a WiX bundle carrying the MSI) plus the bare MSI; application icon embedded in all EXEs and the installed-programs entry</span><span data-l="ua">setup EXE (пакет WiX з MSI всередині) і окремий MSI; значок застосунку вбудовано в усі EXE та в запис у списку програм</span></li>
+          <li><strong><span data-l="ru">Store</span><span data-l="en">Store</span><span data-l="ua">Store</span></strong>: <span data-l="ru">спецификация публикации в Microsoft Store и картинка предпросмотра</span><span data-l="en">Microsoft Store submission spec and social preview image</span><span data-l="ua">специфікація публікації в Microsoft Store і зображення попереднього перегляду</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2604272228">
+        <h2><span>v2604272228</span><time datetime="2026-04-27">2026-04-27</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="ru">Распространение</span><span data-l="en">Distribution</span><span data-l="ua">Поширення</span></strong>: <span data-l="ru">первый релиз в winget (SerZhyAle.FileDO) и релизный конвейер GitHub Actions</span><span data-l="en">first winget release (SerZhyAle.FileDO) and GitHub Actions release workflow</span><span data-l="ua">перший реліз у winget (SerZhyAle.FileDO) і релізний конвеєр GitHub Actions</span></li>
+          <li><strong><span data-l="ru">Бинарники</span><span data-l="en">Binaries</span><span data-l="ua">Бінарники</span></strong>: <span data-l="ru">во все бинарники встроены PE-версия и манифест приложения Windows</span><span data-l="en">PE version info and Windows application manifest embedded in all binaries</span><span data-l="ua">в усі бінарники вбудовано PE-версію та маніфест застосунку Windows</span></li>
+          <li><strong><span data-l="ru">Документация</span><span data-l="en">Docs</span><span data-l="ua">Документація</span></strong>: <span data-l="ru">страницы GitHub Pages переработаны и упрощены</span><span data-l="en">GitHub Pages redesigned and simplified</span><span data-l="ua">сторінки GitHub Pages перероблено та спрощено</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2507112115">
+        <h2><span>v2507112115</span><time datetime="2025-07-11">2025-07-11</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="ru">Крупный рефакторинг</span><span data-l="en">Major refactoring</span><span data-l="ua">Велика рефакторизація</span></strong>: <span data-l="ru">логика тестирования ёмкости вынесена в отдельный пакет <code>capacitytest</code></span><span data-l="en">capacity testing logic extracted into a dedicated <code>capacitytest</code> package</span><span data-l="ua">логіку тестування місткості винесено в окремий пакет <code>capacitytest</code></span></li>
+          <li><strong><span data-l="ru">Улучшенное прерывание</span><span data-l="en">Better interruption</span><span data-l="ua">Покращене переривання</span></strong>: <span data-l="ru">контекстная отмена с потокобезопасным <code>InterruptHandler</code></span><span data-l="en">context-aware cancellation with a thread-safe <code>InterruptHandler</code></span><span data-l="ua">контекстне скасування з потокобезпечним <code>InterruptHandler</code></span></li>
+          <li><strong><span data-l="ru">Улучшенная производительность</span><span data-l="en">Better performance</span><span data-l="ua">Покращена продуктивність</span></strong>: <span data-l="ru">оптимизированы алгоритмы управления буферами и проверки</span><span data-l="en">optimized buffer management and verification algorithms</span><span data-l="ua">оптимізовано алгоритми управління буферами та верифікації</span></li>
+          <li><strong><span data-l="ru">Лучшая архитектура</span><span data-l="en">Better architecture</span><span data-l="ua">Краща архітектура</span></strong>: <span data-l="ru">модульный дизайн с чётким разделением обязанностей</span><span data-l="en">modular design with a clear separation of concerns</span><span data-l="ua">модульний дизайн з чітким поділом відповідальностей</span></li>
+          <li><strong><span data-l="ru">VB.NET GUI</span><span data-l="en">VB.NET GUI</span><span data-l="ua">VB.NET GUI</span></strong>: <span data-l="ru">обновлённое приложение Windows Forms с лучшей интеграцией</span><span data-l="en">updated Windows Forms application with better integration</span><span data-l="ua">оновлена програма Windows Forms з кращою інтеграцією</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2507082120">
+        <h2><span>v2507082120</span><time datetime="2025-07-08">2025-07-08</time></h2>
+        <ul class="release-list">
+          <li><span data-l="ru">Добавлено обнаружение и управление дубликатами файлов</span><span data-l="en">Added duplicate file detection and management</span><span data-l="ua">Додано виявлення та управління дублікатами файлів</span></li>
+          <li><span data-l="ru">Несколько режимов выбора дубликатов (old/new/abc/xyz)</span><span data-l="en">Multiple duplicate selection modes (old/new/abc/xyz)</span><span data-l="ua">Кілька режимів вибору дублікатів (old/new/abc/xyz)</span></li>
+          <li><span data-l="ru">Кэширование хешей для более быстрого сканирования дубликатов</span><span data-l="en">Hash caching for faster duplicate scanning</span><span data-l="ua">Кешування хешів для швидшого сканування дублікатів</span></li>
+          <li><span data-l="ru">Сохранение и загрузка списков дубликатов</span><span data-l="en">Support for saving and loading duplicate lists</span><span data-l="ua">Збереження та завантаження списків дублікатів</span></li>
+          <li><span data-l="ru">GUI-приложение с функциями управления дубликатами</span><span data-l="en">GUI application with duplicate management features</span><span data-l="ua">GUI-програма з функціями управління дублікатами</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2507062220">
+        <h2><span>v2507062220</span><time datetime="2025-07-06">2025-07-06</time></h2>
+        <ul class="release-list">
+          <li><span data-l="ru">Улучшенная система проверки с многопозиционной проверкой</span><span data-l="en">Enhanced verification system with multi-position checking</span><span data-l="ua">Покращена система верифікації з багатопозиційною перевіркою</span></li>
+          <li><span data-l="ru">Читаемые текстовые паттерны для обнаружения повреждений</span><span data-l="en">Readable text patterns for corruption detection</span><span data-l="ua">Читабельні текстові шаблони для виявлення пошкоджень</span></li>
+          <li><span data-l="ru">Улучшенное отображение прогресса и защитные механизмы</span><span data-l="en">Improved progress display and protection mechanisms</span><span data-l="ua">Покращене відображення прогресу та механізми захисту</span></li>
+          <li><span data-l="ru">Исправления ошибок и улучшения обработки ошибок</span><span data-l="en">Bug fixes and error handling improvements</span><span data-l="ua">Виправлення помилок та покращення обробки помилок</span></li>
+        </ul>
+      </section>
+      <section class="section">
+        <nav aria-labelledby="relatedPagesTitle"><span class="sr-only" id="relatedPagesTitle"><span data-l="ru">Связанные страницы</span><span data-l="en">Related pages</span><span data-l="ua">Суміжні сторінки</span></span><p class="actions">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/SerZhyAle/FileDO/releases"><span data-l="ru">Все выпуски на GitHub</span><span data-l="en">All releases on GitHub</span><span data-l="ua">Усі випуски на GitHub</span></a>
+          <a class="btn btn-ghost btn-sm" href="topics.html"><span data-l="ru">Предметный указатель</span><span data-l="en">Subject index</span><span data-l="ua">Предметний покажчик</span></a>
+          <a class="btn btn-ghost btn-sm" href="./"><span data-l="ru">Все руководства</span><span data-l="en">All guides</span><span data-l="ua">Усі посібники</span></a>
+        </p></nav>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Что нового в FileDO - заметки о выпусках",
+          description:
+            "Что нового в FileDO: что добавила, исправила и изменила каждая версия, новые сверху, с датой каждого выпуска.",
+        },
+        en: {
+          title: "FileDO release notes - what changed in each release",
+          description:
+            "FileDO release notes: what each version added, fixed and changed, newest first, with the date of every release.",
+        },
+        ua: {
+          title: "Що нового у FileDO - нотатки до випусків",
+          description:
+            "Що нового у FileDO: що додала, виправила й змінила кожна версія, нові згори, з датою кожного випуску.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/release-notes.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/release-notes.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/release-notes.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/release-notes.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/release-notes.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Notes de version FileDO - les changements" />
+    <meta property="og:description" content="Notes de version FileDO : ce que chaque version a ajouté, corrigé et changé, la plus récente en premier, avec sa date." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Notes de version FileDO - les changements",
+        "description": "Notes de version FileDO : ce que chaque version a ajouté, corrigé et changé, la plus récente en premier, avec sa date.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/release-notes.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Notes de version FileDO - les changements</title>
+    <meta
+      name="description"
+      content="Notes de version FileDO : ce que chaque version a ajouté, corrigé et changé, la plus récente en premier, avec sa date."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/release-notes.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/release-notes.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/release-notes.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/release-notes.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/release-notes.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/release-notes.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/release-notes.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">FileDO · notes de version</span>
+        </p>
+        <h1>
+          <span data-l="fr">Ce qui a changé à chaque version.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">Chaque version de FileDO, la plus récente en premier, avec sa date. Les fichiers de chaque version et leurs sommes de contrôle sont sur GitHub.</span>
+        </p>
+      </section>
+      <section class="section" id="v2609241700">
+        <h2><span>v2609241700</span><time datetime="2026-09-24">2026-09-24</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Fichiers secrets (<code>.fd-sec</code>)</span></strong>&nbsp;: <span data-l="fr">un fichier est placé dans un conteneur protégé par mot de passe puis restauré - <code>secure</code>, <code>unsecure</code>, <code>reveal</code> - en ligne de commande, depuis le menu de l’Explorateur ou les pages Protect de la fenêtre ; le vrai nom, la taille et les dates de l’original sont scellés à l’intérieur</span></li>
+          <li><strong><span data-l="fr">Intégration à l’Explorateur</span></strong>&nbsp;: <span data-l="fr">le setup ajoute le groupe <code>File DO..</code> au menu contextuel (Secure, Unsecure, Wipe this file, Check this file, Info) et le type de document <code>.fd-sec</code> ; <code>filedo fdsec register</code> / <code>unregister</code> fait de même sans installateur</span></li>
+          <li><strong><span data-l="fr">GUI</span></strong>&nbsp;: <span data-l="fr">une nouvelle fenêtre - la liste des tâches à gauche, une page par tâche avec toutes les options de la CLI, plus les pages Command, History, Settings et About ; l’ancienne fenêtre de construction de commandes est retirée</span></li>
+          <li><strong><span data-l="fr">Copie</span></strong>&nbsp;: <span data-l="fr">elle commence dès le premier fichier ; <code>--precount</code> compte d’abord l’arborescence pour des totaux et une durée restante exacts</span></li>
+          <li><strong><span data-l="fr">CLI</span></strong>&nbsp;: <span data-l="fr">des codes de sortie uniques - 0 réussi ou terminé, 1 défaut trouvé, 2 vérification impossible ; les identifiants sont masqués avant toute écriture dans l’historique</span></li>
+          <li><strong><span data-l="fr">Distribution</span></strong>&nbsp;: <span data-l="fr">FileDO est sur le Microsoft Store ; <code>THIRD-PARTY-NOTICES.txt</code> est inclus dans le zip, le MSI et le paquet Store</span></li>
+          <li><strong><span data-l="fr">Documentation</span></strong>&nbsp;: <span data-l="fr">nouveaux guides - fichiers secrets et "Windows warned you about FileDO"</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2607301014">
+        <h2><span>v2607301014</span><time datetime="2026-07-30">2026-07-30</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">GUI</span></strong>&nbsp;: <span data-l="fr">interface en 5 langues (anglais, russe, ukrainien, allemand, français) avec changement de langue à la volée et icône d’application</span></li>
+          <li><strong><span data-l="fr">GUI</span></strong>&nbsp;: <span data-l="fr">fenêtre "À propos" avec envoi des journaux à l’auteur</span></li>
+          <li><strong><span data-l="fr">Confidentialité</span></strong>&nbsp;: <span data-l="fr">page de confidentialité publiée, liée depuis le site et la fiche du Store</span></li>
+          <li><strong><span data-l="fr">CLI</span></strong>&nbsp;: <span data-l="fr">nouveau slogan "pleasantly paranoid" et texte d’aide plus clair</span></li>
+          <li><strong><span data-l="fr">Documentation</span></strong>&nbsp;: <span data-l="fr">site repensé avec de nouveaux guides pas à pas (vérification du stockage, fichiers et copies, constructeur de commandes GUI)</span></li>
+          <li><strong><span data-l="fr">Projet</span></strong>&nbsp;: <span data-l="fr">sources réorganisées sous <code>cmd/</code> (filedo, filedo-check, filedo-fill, filedo-test) ; flux de build et de release séparés</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2606120121">
+        <h2><span>v2606120121</span><time datetime="2026-06-12">2026-06-12</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Wipe</span></strong>&nbsp;: <span data-l="fr">contrôles de sécurité renforcés pour l’effacement</span></li>
+          <li><strong><span data-l="fr">Doublons</span></strong>&nbsp;: <span data-l="fr">correction de l’exactitude et du parallélisme du cache de doublons</span></li>
+          <li><strong><span data-l="fr">Copie</span></strong>&nbsp;: <span data-l="fr">parcours de répertoires allégés lors de la copie</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2605152056">
+        <h2><span>v2605152056</span><time datetime="2026-05-15">2026-05-15</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Installateur</span></strong>&nbsp;: <span data-l="fr">setup EXE (un bundle WiX contenant le MSI) et le MSI nu ; icône d’application intégrée dans tous les EXE et l’entrée des programmes installés</span></li>
+          <li><strong><span data-l="fr">Store</span></strong>&nbsp;: <span data-l="fr">spécification de publication sur le Microsoft Store et image d’aperçu</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2604272228">
+        <h2><span>v2604272228</span><time datetime="2026-04-27">2026-04-27</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Distribution</span></strong>&nbsp;: <span data-l="fr">première publication sur winget (SerZhyAle.FileDO) et pipeline de release GitHub Actions</span></li>
+          <li><strong><span data-l="fr">Binaires</span></strong>&nbsp;: <span data-l="fr">informations de version PE et manifeste d’application Windows intégrés dans tous les binaires</span></li>
+          <li><strong><span data-l="fr">Documentation</span></strong>&nbsp;: <span data-l="fr">pages GitHub Pages repensées et simplifiées</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2507112115">
+        <h2><span>v2507112115</span><time datetime="2025-07-11">2025-07-11</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Refactorisation majeure</span></strong>&nbsp;: <span data-l="fr">logique de test de capacité extraite dans un package <code>capacitytest</code> dédié</span></li>
+          <li><strong><span data-l="fr">Interruption améliorée</span></strong>&nbsp;: <span data-l="fr">annulation contextuelle avec <code>InterruptHandler</code> thread-safe</span></li>
+          <li><strong><span data-l="fr">Performance améliorée</span></strong>&nbsp;: <span data-l="fr">algorithmes de gestion des buffers et de vérification optimisés</span></li>
+          <li><strong><span data-l="fr">Meilleure architecture</span></strong>&nbsp;: <span data-l="fr">design modulaire avec séparation claire des responsabilités</span></li>
+          <li><strong><span data-l="fr">GUI VB.NET</span></strong>&nbsp;: <span data-l="fr">application Windows Forms mise à jour avec meilleure intégration</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2507082120">
+        <h2><span>v2507082120</span><time datetime="2025-07-08">2025-07-08</time></h2>
+        <ul class="release-list">
+          <li><span data-l="fr">Ajout de détection et gestion des doublons de fichiers</span></li>
+          <li><span data-l="fr">Plusieurs modes de sélection de doublons (old/new/abc/xyz)</span></li>
+          <li><span data-l="fr">Mise en cache des hachages pour un scan de doublons plus rapide</span></li>
+          <li><span data-l="fr">Sauvegarde et chargement des listes de doublons</span></li>
+          <li><span data-l="fr">Application GUI avec fonctionnalités de gestion des doublons</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2507062220">
+        <h2><span>v2507062220</span><time datetime="2025-07-06">2025-07-06</time></h2>
+        <ul class="release-list">
+          <li><span data-l="fr">Système de vérification amélioré avec vérification multi-position</span></li>
+          <li><span data-l="fr">Motifs de texte lisibles pour la détection de corruption</span></li>
+          <li><span data-l="fr">Affichage de progression amélioré et mécanismes de protection</span></li>
+          <li><span data-l="fr">Corrections de bugs et améliorations de la gestion d’erreurs</span></li>
+        </ul>
+      </section>
+      <section class="section">
+        <nav aria-labelledby="relatedPagesTitle"><span class="sr-only" id="relatedPagesTitle"><span data-l="fr">Pages liées</span></span><p class="actions">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/SerZhyAle/FileDO/releases"><span data-l="fr">Toutes les versions sur GitHub</span></a>
+          <a class="btn btn-ghost btn-sm" href="topics.html"><span data-l="fr">Index des sujets</span></a>
+          <a class="btn btn-ghost btn-sm" href="./"><span data-l="fr">Tous les guides</span></a>
+        </p></nav>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="../">FileDO</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Notes de version FileDO - les changements",
+          description:
+            "Notes de version FileDO : ce que chaque version a ajouté, corrigé et changé, la plus récente en premier, avec sa date.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

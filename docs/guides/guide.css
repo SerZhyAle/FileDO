@@ -1,15 +1,24 @@
 html[data-lang="ru"] [data-l]:not([data-l="ru"]),
 html[data-lang="en"] [data-l]:not([data-l="en"]),
-html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
+html[data-lang="ua"] [data-l]:not([data-l="ua"]),
+html[data-lang="de"] [data-l]:not([data-l="de"]),
+html[data-lang="fr"] [data-l]:not([data-l="fr"]) {
   display: none;
 }
-.container,
-.site-header {
-  max-width: min(1760px, 94vw);
+/* PAGE-STYLE section 1: use the available width. The kit's --wide column is
+   not applied; the page keeps a fluid side gutter instead. */
+:root {
+  --gutter: clamp(14px, 2vw, 40px);
+}
+.container {
+  max-width: none;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
 }
 .site-header {
-  margin-left: auto;
-  margin-right: auto;
+  max-width: none;
+  margin-left: var(--gutter);
+  margin-right: var(--gutter);
 }
 .mark {
   display: inline-block;
@@ -22,12 +31,12 @@ html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
 }
 .hero {
   padding: 1.2rem 0;
-  text-align: center;
+  text-align: left;
 }
 .hero .lead {
   font-size: 1.07rem;
-  max-width: 600px;
-  margin: 0 auto 1.2rem;
+  max-width: none;
+  margin: 0 0 1.2rem;
 }
 .intro {
   color: var(--text-2);
@@ -137,7 +146,6 @@ html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
 }
 .term-list dd {
   margin: 0.35rem 0 0;
-  max-width: 72ch;
   color: var(--muted, inherit);
 }
 .subject-index {
@@ -222,4 +230,76 @@ html[data-lang="ua"] [data-l]:not([data-l="ua"]) {
   .brand {
     font-size: 14px;
   }
+}
+.lang-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  max-width: none;
+  margin: 0 auto;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.lang-row a,
+.lang-row span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--text-2);
+}
+.lang-row a:hover {
+  color: var(--acc);
+}
+.lang-row span[aria-current] {
+  color: var(--acc);
+}
+.skip-link{position:absolute;left:.75rem;top:-6rem;z-index:1000;display:inline-flex;align-items:center;min-height:44px;padding:0 1rem;border-radius:var(--radius-sm);background:var(--acc);color:var(--acc-ink);font-family:var(--font-heading);font-weight:700;text-decoration:none}
+.skip-link:focus,.skip-link:focus-visible{top:.75rem}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* SITE-EXPERIENCE reach (SP-0156): every control that is not an inline link in running text is 44 x 44 px or larger,
+   under any pointer. The kit does this under a coarse pointer for some controls; this layer does it everywhere. */
+.site-header{flex-wrap:wrap;row-gap:.25rem}
+.brand{display:inline-flex;align-items:center;min-height:44px}
+.seg{flex:none}
+.seg button{min-width:44px;min-height:44px}
+.theme-btn{flex:none;width:44px;height:44px}
+.btn,.copy,.tools-grid a{min-height:44px}
+.copy{min-width:44px}
+/* SP-0162: the footer text links (author, site links, brand, mail) are separate links in a row, not inline in a sentence, so they get a 44 px target too. */
+.footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}
+.copybox .copy{top:50%;transform:translateY(-50%)}
+.copy-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+/* SITE-EXPERIENCE reach (SP-0156): light-theme tokens that reach 4.5 : 1 as text and under white ink; the code box stays dark in both themes. */
+html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}
+html[data-theme="light"] .pill{color:var(--acc-strong)}
+html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
+html[data-theme="light"] .copybox .copy{color:var(--code-ink)}
+html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
+
+/* Release notes page (SP-0158): one list per shipped release, newest first. */
+.release-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.8rem 0 0;
+  padding-left: 1.25rem;
+}
+.release-list li {
+  list-style: disc;
+  color: var(--text-2);
+}
+.release-list li::marker {
+  color: var(--acc);
+}
+.release-list strong {
+  color: var(--text);
+}
+.section h2 time {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-2);
 }

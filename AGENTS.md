@@ -114,6 +114,18 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
 - **An EN edit on the site or in `README.md` fails `packaging/check-external-docs.ps1`** until the translations
   are updated and `-Record` re-records the fingerprints; a new `.md`/`.html` needs a record in
   `docs/DOCUMENT_REGISTRY.jsonl` or the internal-docs step fails.
+- **Every site page uses the full device width - never a centred column** (owner rule, `PAGE-STYLE` section 1
+  "Use the available width"; the kit stays byte-identical, the override lives in `guides/guide.css` and the
+  trailing block of each inline `<style>`; no px `max-width` caps on hero, lead, intro or sections). The
+  landing's header carries the mark, the full name, Guides/Documentation, one language group; its footer the
+  author and the other SZA tools. Pinned by `TestSurfaces_ThePagesUseTheFullWidth` and
+  `TestSurfaces_TheFrontPageCarriesItsIdentity`; read the contract before touching page CSS.
+- **A site address written outside the site** (README, Store listing source, workflow, `Links.vb`) goes in
+  `packaging/site-held-addresses.json` too, or `check-external-docs.ps1` fails; a page that moves leaves a forwarder.
+- **What the product is for is written once, in order**: `packaging/positioning-source.json` (check, tidy and move,
+  erase, protect, virtual disks). The landing and its de/fr pages, the guides hub, the five READMEs, the Store listing
+  source and the winget manifest list those pillars in that order or name the first ones; `check-external-docs.ps1`
+  (step `positioning`) fails on a surface out of order. Change the order in the source first, then in every surface.
 - A verb's acceptance test is still a batch run (`.lst`): the batch adds its own tokenizer and stop rule.
   List-driven scenarios (`tests\*.lst`) name placeholders and run only through `tests\run-test-list.ps1`;
   never point them at a real data volume.

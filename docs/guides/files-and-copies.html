@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/files-and-copies.html" />
@@ -83,6 +85,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -106,7 +109,8 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container">
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/files-and-copies.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/files-and-copies.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · файлы и папки</span
@@ -237,6 +241,28 @@
           ><span data-l="en">A safe route</span
           ><span data-l="ua">Безпечний маршрут</span>
         </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="ru">Удаление</span><span data-l="en">Deletion</span
+            ><span data-l="ua">Видалення</span></span
+          >
+          <p>
+            <span data-l="ru"
+              >Режимы <code>del</code> для дубликатов и сравнения меняют данные.
+              Они намеренно не показаны как первый пример: сначала нужен список
+              или отчёт, затем резервная копия и ручная проверка пути.</span
+            ><span data-l="en"
+              ><code>del</code> modes for duplicates and comparison change data.
+              They are intentionally not shown as a first example: get a list or
+              report first, then back up and manually check the path.</span
+            ><span data-l="ua"
+              >Режими <code>del</code> для дублікатів і порівняння змінюють
+              дані. Їх навмисно не показано першим прикладом: спочатку потрібен
+              список або звіт, потім резервна копія та ручна перевірка
+              шляху.</span
+            >
+          </p>
+        </div>
         <ol class="steps">
           <li>
             <span data-l="ru"
@@ -275,28 +301,6 @@
             >
           </li>
         </ol>
-        <div class="note danger">
-          <span class="tag"
-            ><span data-l="ru">Удаление</span><span data-l="en">Deletion</span
-            ><span data-l="ua">Видалення</span></span
-          >
-          <p>
-            <span data-l="ru"
-              >Режимы <code>del</code> для дубликатов и сравнения меняют данные.
-              Они намеренно не показаны как первый пример: сначала нужен список
-              или отчёт, затем резервная копия и ручная проверка пути.</span
-            ><span data-l="en"
-              ><code>del</code> modes for duplicates and comparison change data.
-              They are intentionally not shown as a first example: get a list or
-              report first, then back up and manually check the path.</span
-            ><span data-l="ua"
-              >Режими <code>del</code> для дублікатів і порівняння змінюють
-              дані. Їх навмисно не показано першим прикладом: спочатку потрібен
-              список або звіт, потім резервна копія та ручна перевірка
-              шляху.</span
-            >
-          </p>
-        </div>
       </section>
       <section class="section">
         <h2>
@@ -336,10 +340,8 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><span
-            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
-            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
-          >
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
     </footer>

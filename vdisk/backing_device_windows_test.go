@@ -56,3 +56,50 @@ func TestVDPart_DeviceIOUnbuffered(t *testing.T) {
 		t.Fatalf("read back: %v", err)
 	}
 }
+
+// An indicative speed check of the partition read cache (SP-0148 S9; the gate
+// itself is the end-to-end measurement of manual kit H14). Random 4 KiB reads
+// at queue depth 1 over a working set of 32 MiB on an unbuffered handle, with
+// and without the cache: `go test ./vdisk -run xxx -bench ReadCache`.
+func BenchmarkReadCache_Rand4K(b *testing.B) {
+	for _, withCache := range []bool{false, true} {
+		name := "nocache"
+		if withCache {
+			name = "cache"
+		}
+		b.Run(name, func(b *testing.B) {
+			const size, working = 256 << 20, 32 << 20
+			path := filepath.Join(b.TempDir(), "region.bin")
+			if err := os.WriteFile(path, make([]byte, size), 0o644); err != nil {
+				b.Fatal(err)
+			}
+			p, _ := windows.UTF16PtrFromString(path)
+			h, err := windows.CreateFile(p, windows.GENERIC_READ|windows.GENERIC_WRITE, 0, nil, windows.OPEN_EXISTING,
+				windows.FILE_ATTRIBUTE_NORMAL|windows.FILE_FLAG_NO_BUFFERING, 0)
+			if err != nil {
+				b.Fatal(err)
+			}
+			dev := &deviceIO{h: h}
+			c, err := NewRegion(dev, size, 4096)
+			if err != nil {
+				dev.Close()
+				b.Fatal(err)
+			}
+			defer c.Close()
+			if withCache {
+				EnableReadCache(c, 64<<20)
+			}
+			buf := make([]byte, 4096)
+			x := uint64(88172645463325252)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				x ^= x << 13
+				x ^= x >> 7
+				x ^= x << 17
+				if _, err := c.ReadAt(buf, int64(x%(working/4096))*4096); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

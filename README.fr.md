@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**Test de Stockage • Analyse de Performance • Suppression Sécurisée • Détection de Fausse Capacité • Gestion des Doublons**
+**Test de Stockage • Analyse de Performance • Détection de Fausse Capacité • Gestion des Doublons • Suppression Sécurisée**
 
 </div>
 

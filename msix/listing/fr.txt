@@ -3,7 +3,7 @@
 # Prose style: ".." au lieu des points de suspension, trait d'union simple au lieu du tiret.
 
 @@ShortDescription
-Vérifiez la vraie capacité et la vitesse des disques et des cartes SD, repérez les faux supports, effacez vos données en toute sécurité, faites le tri dans les fichiers en double et protégez un fichier par mot de passe - dans une fenêtre ou en ligne de commande. Sans réseau, sans compte, sans publicité.
+Vérifiez la vraie capacité et la vitesse des disques et des cartes SD, repérez les faux supports, faites le tri dans les fichiers en double, effacez vos données en toute sécurité et protégez un fichier par mot de passe - dans une fenêtre ou en ligne de commande. Sans réseau, sans compte, sans publicité.
 
 @@Description
 FileDO vous dit si un support est bien ce qu'il prétend être, et vous donne les outils pour prendre soin des données qu'il contient.

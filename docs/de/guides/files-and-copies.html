@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Duplikate, Kopieren, Vergleichen - FileDO" />
+    <meta property="og:description" content="Praktische FileDO-Anleitung: Duplikate finden, Dateien mit Fortschritt kopieren und Ordner vergleichen, bevor Sie etwas löschen." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Duplikate, Kopieren, Vergleichen - FileDO",
+        "headline": "Duplikate, Kopieren, Vergleichen - FileDO",
+        "description": "Praktische FileDO-Anleitung: Duplikate finden, Dateien mit Fortschritt kopieren und Ordner vergleichen, bevor Sie etwas löschen.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Duplikate, Kopieren, Vergleichen - FileDO</title>
+    <meta
+      name="description"
+      content="Praktische FileDO-Anleitung: Duplikate finden, Dateien mit Fortschritt kopieren und Ordner vergleichen, bevor Sie etwas löschen."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/files-and-copies.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/files-and-copies.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/files-and-copies.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/files-and-copies.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/files-and-copies.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/files-and-copies.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/files-and-copies.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · Dateien und Ordner</span>
+        </p>
+
+        <h1>
+          <span data-l="de">Erst eine Liste oder einen Bericht holen. Später über das Löschen entscheiden.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">FileDO hilft Ihnen, Duplikate, Unterschiede zwischen Ordnern und den Kopierfortschritt zu sehen. Ein guter erster Durchgang liefert eine klare Liste, einen Bericht oder eine Sicherungskopie - kein sofortiges Löschen.</span>
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Drei häufige Situationen</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Speicherplatz freigeben</span>
+            </h3>
+            <p>
+              <span data-l="de">Übereinstimmende Dateien finden, die Liste speichern oder durchsehen und dann entscheiden, was bleibt.</span>
+            </p>
+            <div class="copybox">
+              filedo D:\Media check-duplicates<button
+                class="copy"
+                data-copy="filedo D:\Media check-duplicates"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Eine Kopie anlegen, die Sie mitnehmen können</span>
+            </h3>
+            <p>
+              <span data-l="de">Kopieren Sie den Quellordner mit sichtbarem Fortschritt an einen Sicherungsort oder auf ein anderes Laufwerk. Das Kopieren beginnt mit der ersten gefundenen Datei; mit <code>--precount</code> wird zuerst der ganze Baum gezählt, damit Sie eine genaue Restzeit sehen.</span>
+            </p>
+            <div class="copybox">
+              filedo C:\Source copy D:\Backup<button
+                class="copy"
+                data-copy="filedo C:\Source copy D:\Backup"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Einen Sicherungsordner prüfen</span>
+            </h3>
+            <p>
+              <span data-l="de">Zwei Ordner nach relativen Pfaden und Größen vergleichen, einen Bericht erhalten und die Unterschiede prüfen.</span>
+            </p>
+            <div class="copybox">
+              filedo compare D:\Data E:\Backup<button
+                class="copy"
+                data-copy="filedo compare D:\Data E:\Backup"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Ein sicherer Weg</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="de">Löschen</span></span
+          >
+          <p>
+            <span data-l="de">Die <code>del</code>-Modi für Duplikate und Vergleich verändern Daten. Sie stehen absichtlich nicht im ersten Beispiel: Holen Sie zuerst eine Liste oder einen Bericht, sichern Sie dann und prüfen Sie den Pfad von Hand.</span>
+          </p>
+        </div>
+        <ol class="steps">
+          <li>
+            <span data-l="de">Nennen Sie einen bestimmten Ordner statt eines ganzen Laufwerks, wenn die Aufgabe ein einzelnes Archiv betrifft.</span>
+          </li>
+          <li>
+            <span data-l="de">Führen Sie die Duplikatsuche oder den Vergleich ohne Löschmodus aus und sehen Sie das Ergebnis durch.</span>
+          </li>
+          <li>
+            <span data-l="de">Legen Sie vor jedem Löschen eine eigene Kopie der Dateien an, die Sie behalten wollen.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Was Vergleichen bedeutet</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Der Vergleich gleicht relative Pfade und Dateigrößen ab; die Modi old/new nutzen die Änderungszeit. Der Pfadabgleich unter Windows unterscheidet nicht zwischen Groß- und Kleinschreibung. Berichte werden als <code>compare_report_*.log</code> gespeichert, Löschprotokolle als <code>delete_report_&lt;mode&gt;_*.log</code>.</span>
+        </p>
+        <p>
+          <span data-l="de">Für eine automatisierte Prüfung nutzen Sie <code>filedo compare D:\Data E:\Backup --strict</code>: Übereinstimmende relative Pfade, Größen und Änderungszeiten ergeben Exit 0 (<code>Passed</code>), ein Unterschied ergibt Exit 1 (<code>Failed</code>), und ein unvollständiger Vergleich ergibt Exit 2 (<code>Not proven</code>). Mit <code>--by-hash</code> werden gleich große Paare nach Inhalt statt nach Zeit verglichen. Ein einfaches <code>compare</code> bleibt ein Bericht mit Exit 0 (<code>Done</code>); <code>--strict</code> lässt sich nicht mit dem Löschen kombinieren.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "Duplikate, Kopieren, Vergleichen - FileDO",
+          description:
+            "Praktische FileDO-Anleitung: Duplikate finden, Dateien mit Fortschritt kopieren und Ordner vergleichen, bevor Sie etwas löschen.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

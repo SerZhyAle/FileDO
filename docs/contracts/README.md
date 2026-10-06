@@ -46,6 +46,9 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`SITE-FAMILY-MAP.md`](SITE-FAMILY-MAP.md) | product public web page family grid and canonical URLs | consumer |
 | [`DOC-EXTERNAL-QUALITY.md`](DOC-EXTERNAL-QUALITY.md) | what the published site and READMEs owe their public | consumer |
 | [`DOC-INTERNAL-QUALITY.md`](DOC-INTERNAL-QUALITY.md) | what the internal engineering docs owe their readers | consumer |
+| [`SITE-STRUCTURE.md`](SITE-STRUCTURE.md) | which pages a product site has, how a visitor moves, what an address promises (0.1 draft, opted in 2026-10-06; guide tier) | consumer |
+| [`SITE-EXPERIENCE.md`](SITE-EXPERIENCE.md) | the portal layer over the kit, shared language and theme state, third-party origins, keyboard and screen-reader reach (0.1 draft, opted in 2026-10-06) | consumer |
+| [`SITE-REPRESENTATION.md`](SITE-REPRESENTATION.md) | one positioning source, facts typed once, the fixed anatomy of a function page, the chain of truth (0.1 draft, opted in 2026-10-06) | consumer |
 
 ### Other contracts this repository produces or consumes
 

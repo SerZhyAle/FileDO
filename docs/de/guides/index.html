@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="FileDO-Anleitungen - ein sicherer Einstieg" />
+    <meta property="og:description" content="Praktische FileDO-Anleitungen: Speicher prüfen, Duplikate behandeln, Daten kopieren, Ordner vergleichen und das FileDO-Fenster (GUI) nutzen." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "FileDO-Anleitungen - ein sicherer Einstieg",
+        "description": "Praktische FileDO-Anleitungen: Speicher prüfen, Duplikate behandeln, Daten kopieren, Ordner vergleichen und das FileDO-Fenster (GUI) nutzen.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO-Anleitungen - ein sicherer Einstieg</title>
+    <meta
+      name="description"
+      content="Praktische FileDO-Anleitungen: Speicher prüfen, Duplikate behandeln, Daten kopieren, Ordner vergleichen und das FileDO-Fenster (GUI) nutzen."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/">RU</button
+        ><button data-set-lang="en" data-go="../../guides/">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">FileDO · praktische Anleitungen</span>
+        </p>
+        <h1>
+          <span data-l="de">Aktion wählen und zuerst prüfen, was sie ändert.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">Diese Wege führen eine gewöhnliche Aufgabe bis zum ersten Befehl, zum erwarteten Ergebnis und zu den Stolpersteinen. Sie ergänzen die vollständige README-Referenz, ersetzen sie aber nicht.</span>
+        </p>
+      </section>
+      <section class="section">
+        <nav class="grid guide-grid" aria-labelledby="guideListTitle"><span class="sr-only" id="guideListTitle"><span data-l="de">Anleitungen</span></span>
+          <article class="card">
+            <h2>
+              <span data-l="de">Speicher prüfen</span>
+            </h2>
+            <p>
+              <span data-l="de">Laufwerksinformationen, Kapazitätstest, Tempo, Lese-Checks und wann Administratorrechte nötig sind.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="check-storage.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Duplikate, Kopieren und Vergleichen</span>
+            </h2>
+            <p>
+              <span data-l="de">Wie Sie zuerst eine Liste oder einen Bericht erstellen, Daten kopieren und erst dann über das Löschen nachdenken.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="files-and-copies.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Über ein Fenster arbeiten</span>
+            </h2>
+            <p>
+              <span data-l="de">Für alle, die lieber eine Aufgabe wählen, ihre Seite durcharbeiten und sie im FileDO-Fenster (GUI) ausführen, statt einen Befehl zu tippen. Für jede beliebige Operation gibt es außerdem die Seite „Befehl“.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Windows hat vor FileDO gewarnt</span>
+            </h2>
+            <p>
+              <span data-l="de">Was „Der Computer wurde durch Windows geschützt“ bedeutet, warum der Dialog erscheint, was genau Sie anklicken müssen - und was die App niemals tut.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="install-trust.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Installation und das Explorer-Menü</span>
+            </h2>
+            <p>
+              <span data-l="de">Welche Installation Sie wählen, was das Installationsprogramm Ihrem System hinzufügt und wie Sie die Kontextmenü-Einträge selbst ein- oder ausschalten.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="install-and-explorer.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Geheime Dateien</span>
+            </h2>
+            <p>
+              <span data-l="de">Eine Datei hinter einem Passwort in einen <code>.fd-sec</code>-Container packen, das Original zurückholen, den Inhalt ohne Entpacken öffnen - und was jede dieser Möglichkeiten wirklich verspricht.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="fd-sec-containers.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Virtuelle Datenträger</span>
+            </h2>
+            <p>
+              <span data-l="de">Ein ganzes Volume in einer <code>.fdd</code>-Datei: anlegen, als Laufwerksbuchstabe einbinden, ohne Einbinden lesen und exportieren - und wie sich ein verschleierter Container von einem verschlüsselten unterscheidet. Die Datenträgerverwaltung listet alle Datenträger an einer Stelle auf.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="virtual-disks.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="de">Datenträger auf dem Telefon</span>
+            </h2>
+            <p>
+              <span data-l="de">Einen <code>.fdd</code>-Datenträger über Fast Media Sorter &amp; Sharing teilen: was im Installationsprogramm zu aktivieren ist, die Registrierung in der Datenträgerverwaltung, was gekoppelte Geräte sehen und was zu tun ist, wenn das Teilen nicht verfügbar ist.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="fms-sharing.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+        </nav>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Begriffe und Themen</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Das Glossar erklärt die Wörter, die in FileDO eine genaue Bedeutung haben, und das Stichwortverzeichnis zeigt, welche Seite welches Thema behandelt.</span>
+        </p>
+        <nav aria-labelledby="refPagesTitle"><span class="sr-only" id="refPagesTitle"><span data-l="de">Nachschlageseiten</span></span><p class="actions">
+          <a class="btn btn-ghost btn-sm" href="glossary.html"
+            ><span data-l="de">Glossar</span></a
+          ><a class="btn btn-ghost btn-sm" href="topics.html"
+            ><span data-l="de">Stichwortverzeichnis</span></a
+          ><a class="btn btn-ghost btn-sm" href="release-notes.html"
+            ><span data-l="de">Versionshinweise</span></a
+          >
+        </p></nav>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Was hier nicht vorkommt</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">FileDO arbeitet mit lokalen Geräten, Ordnern, einzelnen Dateien und Windows-Netzwerkpfaden. SFTP, FTP und SSH werden nicht unterstützt. SFTP in Fast Media Sorter für Windows ist eine eigene Funktion: ausgewählte PC-Ordner für Android veröffentlichen.</span>
+        </p>
+        <a
+          href="https://serzhyale.github.io/FastMediaSorter_Lite/"
+          target="_blank"
+          rel="noopener"
+          >Fast Media Sorter for Windows</a
+        >
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="../">FileDO</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "FileDO-Anleitungen - ein sicherer Einstieg",
+          description:
+            "Praktische FileDO-Anleitungen: Speicher prüfen, Duplikate behandeln, Daten kopieren, Ordner vergleichen und das FileDO-Fenster (GUI) nutzen.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

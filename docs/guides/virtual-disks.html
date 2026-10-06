@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
@@ -83,6 +85,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -106,7 +109,8 @@
         ><span data-l="ua">Встановити</span></a
       >
     </header>
-    <main class="container" data-ui-steps>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/virtual-disks.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/virtual-disks.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
           <span data-l="ru">Руководство · виртуальные диски</span
@@ -2127,29 +2131,15 @@
         </div>
       </section>
     <section id="sharing"><h2><span data-l="ru">Общий доступ через Fast Media Sorter &amp; Sharing</span><span data-l="en">Sharing through Fast Media Sorter &amp; Sharing</span><span data-l="ua">Спільний доступ через Fast Media Sorter &amp; Sharing</span></h2>
-        <p><span data-l="ru">В <strong>Диспетчере дисков</strong> выберите зарегистрированный файловый диск и <strong>«Поделиться через Fast Media Sorter &amp; Sharing..»</strong> в панели сведений или меню «Ещё» (<code>Ctrl+Shift+S</code>). Сначала запустите Share Manager этой программы. Если worker недоступен, диалог предлагает повторную проверку и <a href="https://serzhyale.github.io/FastMediaSorter_Lite/">страницу установки</a>; недоступность worker не означает отсутствия программы. При необходимости включите дополнительный компонент дисков FileDO. Настольный установщик не подписан. По умолчанию доступ на чтение и запись, «только на чтение» включается галочкой; sealed-диск всегда доступен только на чтение. Укажите имя папки и при желании откройте её сопряжённым устройствам. Уже подключённый в FileDO диск отключается безопасно после подтверждения; RAM сохраняется штатным отключением. Если включено автоподключение FileDO, явно согласитесь выключить его; ручной режим <code>keep</code> завершается при отключении. Автозапуск FMS включается отдельно. <strong>«Закрыть общий диск»</strong> сохраняет регистрацию; <strong>«Прекратить шаринг»</strong> удаляет её и сохранённый ключ автозапуска FMS. При ошибке выполненные шаги сохраняются: обновите список, повторите оставшееся действие или прекратите шаринг перед явным восстановлением локального подключения и прежней автоматической политики. Сопрягайте устройства через Share Manager. Файлы передаются по SFTP, SMB-шара Windows не создаётся. Сеансовый режим требует входа в систему; служба доступна без входа. Диски в разделах и управление внешним worker из непроверенной Store-сборки здесь недоступны; используйте настольную сборку.</span><span data-l="en">In the <strong>Disk Manager</strong>, select a registered file-backed disk and choose <strong>Share with Fast Media Sorter &amp; Sharing..</strong> in its detail pane or More menu (<code>Ctrl+Shift+S</code>). Start that program&#x27;s Share Manager first. If its worker cannot be reached, the dialog offers retry and the <a href="https://serzhyale.github.io/FastMediaSorter_Lite/">installation page</a>; an unavailable worker does not prove the program is absent. Enable the optional FileDO disk component if needed. Its desktop installer is unsigned. Access is read and write by default; tick Read-only access to change that, and sealed disks stay read-only. Enter the folder name and optionally open it for paired devices. A disk already mounted by FileDO is disconnected cleanly after confirmation, saving RAM first through the normal unmount. If FileDO automatic mounting is enabled, explicitly agree to disable it; a manual <code>keep</code> watcher ends with the unmount. FMS autostart remains a separate opt-in. <strong>Close shared disk</strong> keeps registration; <strong>Stop sharing</strong> removes it and its saved FMS autostart key. If a step fails, completed steps remain: refresh, retry the remaining action, or stop sharing before explicitly restoring local mounting and its prior automatic policy. Pair clients through Share Manager. This publishes files over SFTP, not a Windows SMB share. Session sharing requires sign-in; a service host stays available without sign-in. Partition disks and external-worker controls from the unverified Store build are unavailable here; use the desktop build for this workflow.</span><span data-l="ua">У <strong>Диспетчері дисків</strong> виберіть зареєстрований файловий диск і <strong>«Поділитися через Fast Media Sorter &amp; Sharing..»</strong> у панелі відомостей або меню «Ще» (<code>Ctrl+Shift+S</code>). Спочатку запустіть Share Manager цієї програми. Якщо worker недоступний, діалог пропонує повторну перевірку та <a href="https://serzhyale.github.io/FastMediaSorter_Lite/">сторінку встановлення</a>; недоступність worker не означає відсутності програми. За потреби увімкніть додатковий компонент дисків FileDO. Настільний інсталятор не підписано. Типово доступ на читання і запис, «лише для читання» вмикається галочкою; sealed-диск завжди доступний лише для читання. Укажіть назву папки та за бажанням відкрийте її сполученим пристроям. Уже підключений у FileDO диск відключається безпечно після підтвердження; RAM зберігається штатним відключенням. Якщо ввімкнено автоматичне підключення FileDO, явно погодьтеся вимкнути його; ручний режим <code>keep</code> завершується при відключенні. Автозапуск FMS вмикається окремо. <strong>«Закрити спільний диск»</strong> зберігає реєстрацію; <strong>«Припинити спільний доступ»</strong> видаляє її та ключ автозапуску FMS. При помилці виконані кроки зберігаються: оновіть список, повторіть решту дій або припиніть доступ перед явним відновленням локального підключення та попередньої автоматичної політики. Сполучайте пристрої через Share Manager. Файли передаються через SFTP, ресурс SMB Windows не створюється. Сеансовий режим потребує входу; служба доступна без входу. Диски у розділах та керування зовнішнім worker з неперевіреної збірки Store тут недоступні; використовуйте настільну збірку.</span></p>
-        <p><span data-l="ru">Почему диск не открылся? Регистрация и открытие выполняются отдельно. Если диск зарегистрирован, но закрыт, выберите «Открыть для шаринга». Если FMS не отвечает или версия несовместима, запустите или обновите обе программы и повторите проверку. Не восстанавливайте локальное подключение, пока владелец диска неизвестен.</span><span data-l="en">Why did the disk not open? Registration and opening are separate. If registered but closed, choose Open for sharing. If FMS does not answer or its version is incompatible, start or update both applications and retry. Do not restore local mounting while the holder is unknown.</span><span data-l="ua">Чому диск не відкрився? Реєстрація та відкриття виконуються окремо. Якщо диск зареєстровано, але закрито, виберіть «Відкрити для спільного доступу». Якщо FMS не відповідає або версія несумісна, запустіть або оновіть обидві програми й повторіть перевірку. Не відновлюйте локальне підключення, поки власник диска невідомий.</span></p>
         <p><span data-l="ru">Полная инструкция по общему доступу - установка, шаги, телефоны и восстановление после ошибки - на отдельной странице <a href="fms-sharing.html">общего доступа через Fast Media Sorter &amp; Sharing</a>.</span><span data-l="en">The full sharing instructions - setup, the steps, the phones and recovery after a failure - are on a separate page, <a href="fms-sharing.html">sharing through Fast Media Sorter &amp; Sharing</a>.</span><span data-l="ua">Повна інструкція зі спільного доступу - встановлення, кроки, телефони та відновлення після помилки - на окремій сторінці <a href="fms-sharing.html">спільного доступу через Fast Media Sorter &amp; Sharing</a>.</span></p>
-        <figure class="shot">
-          <span data-l="ru"><img src="../assets/guides/gui-disk-share-ru.png" width="890" height="784" loading="lazy" alt="Диалог регистрации диска: имя общей папки, доступ только на чтение, отдельное открытие, предупреждение об отключении и согласие на выключение автоподключения." /></span>
-          <span data-l="en"><img src="../assets/guides/gui-disk-share-en.png" width="895" height="752" loading="lazy" alt="Disk registration dialog with root name, read-only access, separate opening, clean-disconnect notice and consent to disable local automatic mounting." /></span>
-          <span data-l="ua"><img src="../assets/guides/gui-disk-share-ua.png" width="874" height="816" loading="lazy" alt="Діалог реєстрації диска: назва спільної папки, доступ лише на читання, окреме відкриття, попередження про відключення та згода на вимкнення автоматичного підключення." /></span>
-          <figcaption>
-            <span data-l="ru">Настройки регистрации. «Продолжить» открывает подтверждение; без согласия на выключение активного автоподключения передача недоступна.</span>
-            <span data-l="en">Registration choices. Continue opens a confirmation; transfer remains unavailable until the active local automatic mount policy is explicitly disabled.</span>
-            <span data-l="ua">Параметри реєстрації. «Продовжити» відкриває підтвердження; без згоди на вимкнення активного автоматичного підключення передача недоступна.</span>
-          </figcaption>
-        </figure>
       </section>
 </main>
     <footer class="site-footer">
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><span
-            ><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
-            <a href="mailto:sza@ukr.net">sza@ukr.net</a></span
-          >
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
     </footer>

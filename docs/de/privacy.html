@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/privacy.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/privacy.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/privacy.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/privacy.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/privacy.html" />
+    <meta
+      property="og:image"
+      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>FileDO-Datenschutz - ohne Netzwerk, Telemetrie, Konten</title>
+    <meta
+      name="description"
+      content="FileDO läuft komplett auf Ihrem Gerät: nichts wird gesendet, keine Telemetrie, keine Konten. Was es liest, lokal schreibt und wie Sie es steuern."
+    />
+    <meta
+      property="og:title"
+      content="FileDO-Datenschutz - ohne Netzwerk, Telemetrie, Konten"
+    />
+    <meta
+      property="og:description"
+      content="FileDO läuft komplett auf Ihrem Gerät: nichts wird gesendet, keine Telemetrie, keine Konten. Was es liest, lokal schreibt und wie Sie es steuern."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "PrivacyPolicy",
+        "name": "FileDO-Datenschutz - ohne Netzwerk, Telemetrie, Konten",
+        "url": "https://serzhyale.github.io/FileDO/de/privacy.html",
+        "inLanguage": ["de"],
+        "dateModified": "2026-09-24",
+        "publisher": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko",
+          "email": "sza@ukr.net"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Windows 10, Windows 11",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        }
+      }
+    </script>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <style>
+      html[data-lang="ru"] [data-l]:not([data-l="ru"]),
+      html[data-lang="en"] [data-l]:not([data-l="en"]),
+      html[data-lang="ua"] [data-l]:not([data-l="ua"]),
+      html[data-lang="de"] [data-l]:not([data-l="de"]),
+      html[data-lang="fr"] [data-l]:not([data-l="fr"]) {
+        display: none;
+      }
+      .container,
+      .site-header {
+        max-width: min(1100px, 94vw);
+      }
+      .site-header {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .brand-unit {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-right: auto;
+        min-width: 0;
+        color: var(--text);
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: 15px;
+        text-decoration: none;
+      }
+      .brand-unit .dot {
+        color: var(--acc);
+      }
+      .hero {
+        padding: 1.4rem 0 0.6rem;
+        text-align: center;
+      }
+      .hero h1 {
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: clamp(1.7rem, 4vw, 2.4rem);
+        line-height: 1.15;
+        margin-bottom: 0.6rem;
+      }
+      .hero-kicker {
+        font-family: var(--font-heading);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--acc);
+        margin-bottom: 0.5rem;
+      }
+      .hero .lead {
+        font-size: 1.02rem;
+        color: var(--text-2);
+        max-width: 68ch;
+        margin: 0 auto 1.2rem;
+      }
+      .stamp {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.4rem;
+        margin-top: 0.9rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .stamp b {
+        color: var(--text-2);
+        font-weight: 600;
+      }
+      h2 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+        font-size: 1.18rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: baseline;
+        gap: 0.7rem;
+      }
+      h3 {
+        font-family: var(--font-heading);
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 0.3rem;
+      }
+      p,
+      li {
+        color: var(--text-2);
+        font-size: 0.92rem;
+      }
+      .section p {
+        margin-bottom: 0.7rem;
+        max-width: 78ch;
+      }
+      ul {
+        margin: 0 0 0.8rem 1.1rem;
+      }
+      li {
+        margin-bottom: 0.4rem;
+      }
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0.1em 0.4em;
+      }
+      a {
+        color: var(--acc-strong);
+      }
+      .card h3 {
+        color: var(--text);
+      }
+      .card p {
+        margin-bottom: 0;
+      }
+      .filetable {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.87rem;
+        margin-bottom: 0.9rem;
+      }
+      .filetable th,
+      .filetable td {
+        text-align: left;
+        padding: 0.6rem 0.7rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--text-2);
+      }
+      .filetable th {
+        font-family: var(--font-heading);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .filetable td:first-child {
+        white-space: nowrap;
+        color: var(--text);
+      }
+      .tablewrap {
+        overflow-x: auto;
+      }
+      .site-footer {
+        margin-top: 1.6rem;
+        padding: 1.6rem 0;
+      }
+      .section { padding: 1.6rem 0; }
+      .grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+      .card { padding: 1.35rem 1.5rem; }
+      .tools-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      .lang-row {
+        display: flex;
+        justify-content: center;
+        gap: 0.25rem;
+        max-width: min(1760px, 94vw);
+        margin: 0 auto;
+        font-family: var(--font-heading);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+      .lang-row a,
+      .lang-row span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        color: var(--text-2);
+      }
+      .lang-row a:hover {
+        color: var(--acc);
+      }
+      .lang-row span[aria-current] {
+        color: var(--acc);
+      }
+    .skip-link{position:absolute;left:.75rem;top:-6rem;z-index:1000;display:inline-flex;align-items:center;min-height:44px;padding:0 1rem;border-radius:var(--radius-sm);background:var(--acc);color:var(--acc-ink);font-family:var(--font-heading);font-weight:700;text-decoration:none}
+.skip-link:focus,.skip-link:focus-visible{top:.75rem}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}    /* PAGE-STYLE section 1: use the available width - no centred column. */
+:root{--gutter:clamp(14px,2vw,40px)}
+.container,.site-header,.hero .lead,.section p,.lang-row{max-width:none}
+.container{padding-left:var(--gutter);padding-right:var(--gutter)}
+.site-header{margin-left:var(--gutter);margin-right:var(--gutter)}
+.hero{text-align:left}
+.hero .lead{margin:0 0 1.2rem}
+/* SITE-EXPERIENCE reach (SP-0156): every control that is not an inline link in running text is 44 x 44 px or larger, under any pointer. */
+.seg{flex:none}
+.seg button{min-width:44px;min-height:44px}
+.theme-btn{flex:none;width:44px;height:44px}
+.btn,.copy,.tools-grid a{min-height:44px}
+.copy{min-width:44px}
+/* SP-0162: the footer text links (author, site links, brand, mail) are separate links in a row, not inline in a sentence, so they get a 44 px target too. */
+.footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}
+.copybox .copy{top:50%;transform:translateY(-50%)}
+.site-header{flex-wrap:wrap;row-gap:.25rem}
+.brand-unit{min-height:44px}
+/* SITE-EXPERIENCE reach (SP-0156): light-theme tokens that reach 4.5 : 1 as text and under white ink; the code box stays dark in both themes. */
+html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}
+html[data-theme="light"] .pill{color:var(--acc-strong)}
+html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
+html[data-theme="light"] .copybox .copy{color:var(--code-ink)}
+html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
+.pills.spaced{margin-top:.9rem}
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#top"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand-unit" href="./"
+        ><span>FileDO<span class="dot">.</span></span></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../privacy.html">RU</button
+        ><button data-set-lang="en" data-go="../privacy.html">EN</button
+        ><button data-set-lang="ua" data-go="../privacy.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a
+        class="btn btn-primary btn-sm header-action"
+        href="./#get"
+        ><span data-l="de">Installation</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../privacy.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../privacy.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../privacy.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../fr/privacy.html" hreflang="fr" lang="fr">FR</a></nav>
+
+    <main id="top">
+      <section class="hero">
+        <div class="container">
+          <p class="hero-kicker">
+            <span data-l="de">Datenschutzerklärung</span>
+          </p>
+          <h1>
+            <span data-l="de">FileDO läuft nur auf Ihrem Computer</span>
+          </h1>
+          <p class="lead">
+            <span data-l="de">FileDO sendet nirgendwohin etwas. Es verbindet sich nie mit dem Internet und hat keine Telemetrie, keine Analytik, keine Werbung, keine Konten und keine Update-Prüfung. Alles, was es liest und schreibt, bleibt auf Ihrem eigenen Datenträger.</span>
+          </p>
+          <div class="pills spaced">
+            <span class="pill"
+              ><span data-l="de">Kein Netzwerk</span></span
+            >
+            <span class="pill"
+              ><span data-l="de">Keine Telemetrie</span></span
+            >
+            <span class="pill"
+              ><span data-l="de">Keine Konten</span></span
+            >
+            <span class="pill gold"
+              ><span data-l="de">Open Source</span></span
+            >
+          </div>
+          <div class="stamp">
+            <span
+              ><b
+                ><span data-l="de">Gültig ab:</span></b
+              >
+              2026-07-30</span
+            >
+            <span
+              ><b
+                ><span data-l="de">Gilt für:</span></b
+              >
+              <span data-l="de">FileDO CLI und FileDO GUI für Windows - in jedem Vertriebskanal (GitHub, winget, Microsoft Store)</span></span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">01</span>
+            <span data-l="de">Kurz gesagt</span>
+          </h2>
+          <div class="grid">
+            <div class="card">
+              <h3>
+                <span data-l="de">Wir erheben nichts</span>
+              </h3>
+              <p>
+                <span data-l="de">Der Autor betreibt keine Server, führt keine Datenbank und hat keine Möglichkeit zu erfahren, was Sie in der App tun. Es werden keine personenbezogenen Daten erhoben, gespeichert oder weitergegeben - weder an uns noch an sonst jemanden.</span>
+              </p>
+            </div>
+            <div class="card">
+              <h3>
+                <span data-l="de">Die App geht nie online</span>
+              </h3>
+              <p>
+                <span data-l="de">FileDO verbindet sich weder mit dem Internet noch mit einem anderen Computer. Der einzige Socket, den es öffnet, stellt einen eingebundenen virtuellen <code>.fdd</code>-Datenträger dem iSCSI-Initiator von Windows selbst bereit und lauscht ausschließlich auf 127.0.0.1: Nichts verlässt diesen Computer, und der Container gelangt in kein Netzwerk. Das Microsoft-Store-Paket deklariert keine Internetfunktion, daher würde Windows ohnehin keine gewähren.</span>
+              </p>
+            </div>
+            <div class="card">
+              <h3>
+                <span data-l="de">Ein Datenträger, den Sie freigeben</span>
+              </h3>
+              <p>
+                <span data-l="de">Wenn Sie Fast Media Sorter for Windows installieren und einen Datenträger damit freigeben (<code>vd share</code>), stellt dieses Programm - nicht FileDO - die Dateien des geöffneten Datenträgers über das Netzwerk den Geräten bereit, die Sie mit ihm gekoppelt haben. FileDO selbst öffnet dafür keine Netzwerkverbindung: Es spricht mit diesem Programm über eine lokale Pipe auf diesem Computer, und die Freigabe ist ausgeschaltet, bis Sie sie einschalten, Datenträger für Datenträger. Solange ein freigegebener Datenträger geöffnet ist, kann jedes gekoppelte Gerät seine Dateien lesen, auch wenn der Container verschlüsselt ist; das Schließen des Datenträgers oder das Ausschalten des Computers beendet das. Ein verschlüsselter Datenträger wird nur auf diesem Computer entsperrt, nie vom Smartphone aus. Wenn Sie den Autostart für einen verschlüsselten freigegebenen Datenträger einschalten, wird sein Passwort auf diesem Computer aufbewahrt, für dieses Programm geschützt, damit sich der Datenträger nach einem Neustart wieder öffnet, ohne dass jemand es eintippt; es wird entfernt, wenn Sie den Autostart ausschalten, die Freigabe beenden oder das Passwort ändern. FileDO schreibt die Liste der freigegebenen Datenträger (Pfad, Name, Autostart-Markierung - nie ein Passwort) in seinen Statusordner. Wie Sie die Freigabe ein- und ausschalten und sich nach einem fehlgeschlagenen Schritt erholen, steht in der Anleitung <a href="guides/fms-sharing.html">Freigabe über Fast Media Sorter &amp; Sharing</a>.</span>
+              </p>
+            </div>            <div class="card">
+              <h3>
+                <span data-l="de">Sie können das selbst überprüfen</span>
+              </h3>
+              <p>
+                <span data-l="de">FileDO wird als Open Source unter der MIT-Lizenz ausgeliefert. Jedes Versprechen auf dieser Seite lässt sich durch Lesen des Codes prüfen, statt uns zu vertrauen.</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">02</span>
+            <span data-l="de">Was FileDO auf Ihrem Rechner liest</span>
+          </h2>
+          <p>
+            <span data-l="de">Nur das, worauf Sie es mit einem Befehl richten, und nur solange dieser Befehl läuft:</span>
+          </p>
+          <ul>
+            <li>
+              <span data-l="de"><b>Die Dateien und Ordner, die Sie angegeben haben.</b> Ihr Inhalt wird gelesen, um die Geschwindigkeit zu messen, auf Beschädigungen zu prüfen, Verzeichnisbäume zu vergleichen und bei der Suche nach Duplikaten MD5-Hashes zu berechnen. FileDO durchsucht Ihren Datenträger nie von sich aus und öffnet nichts außerhalb des Pfads, den Sie angegeben haben.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Technische Angaben zum Laufwerk.</b> Für den Befehl <code>info</code> fragt FileDO Windows über WMI nach Modell, Seriennummer und Schnittstellentyp des physischen Datenträgers sowie nach Größe und freiem Speicher. Sie werden auf dem Bildschirm ausgegeben, damit Sie sehen, mit welchem Gerät Sie arbeiten. Sie werden <b>nicht in das Vorgangsprotokoll geschrieben</b> und nirgendwohin gesendet.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>„Netzwerk“ meint hier eine SMB-Freigabe, nicht das Internet.</b> Wenn FileDO mit einem Pfad wie <code>\\server\share</code> arbeitet, behandelt es ihn über Windows wie einen gewöhnlichen Dateisystempfad. Die App öffnet keine eigene Verbindung zu einem anderen Computer.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">03</span>
+            <span data-l="de">Was FileDO schreibt - und wohin</span>
+          </h2>
+          <p>
+            <span data-l="de">Verwaltungsdateien, dazu Testdaten, wenn Sie danach fragen. Alle sind gewöhnliche Dateien auf Ihrem eigenen Datenträger: Sie können sie lesen, löschen oder gar nicht erst anlegen lassen.</span>
+          </p>
+          <div class="tablewrap">
+            <table class="filetable">
+              <thead>
+                <tr>
+                  <th>
+                    <span data-l="de">Datei</span>
+                  </th>
+                  <th>
+                    <span data-l="de">Wo sie landet</span>
+                  </th>
+                  <th>
+                    <span data-l="de">Was darin steht</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>history.json</code></td>
+                  <td>
+                    <span data-l="de">In Ihrem eigenen FileDO-Ordner <code>%LOCALAPPDATA%\FileDO\state\</code>, egal wo der Befehl gestartet wurde. In der Microsoft-Store-Version legt Windows diesen Ordner im eigenen Benutzerspeicher des Pakets unter <code>%LOCALAPPDATA%\Packages\</code> ab. Eine Datei, die eine frühere Version im aktuellen Verzeichnis hinterlassen hat, wird einmal dorthin kopiert und bleibt, wo sie war. Hilfe oder Verlauf anzuzeigen schreibt nichts.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Ein Vorgangsprotokoll: Zeit, Befehlsname, der Pfad, auf den Sie ihn angewendet haben, die vollständige Befehlszeile, Parameter, Ergebnisse (Geschwindigkeit, Dateianzahlen), Dauer und gegebenenfalls der Fehlertext. Die letzten 1000 Einträge werden aufbewahrt; ältere fallen heraus. Ein Passwort gelangt nie in diese Datei - es wird geschwärzt, bevor die Zeile geschrieben wird - und der versiegelte echte Name in einem <code>.fd-sec</code>-Container ebenso wenig: Beim Öffnen wird der Ordner vermerkt, in den die Kopie ging, aber nichts darüber, wie die Datei hieß.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>hash_cache.json</code></td>
+                  <td>
+                    <span data-l="de">Im selben FileDO-Ordner <code>%LOCALAPPDATA%\FileDO\state\</code> (in der Microsoft-Store-Version im eigenen Benutzerspeicher des Pakets). Ein Cache, den eine frühere Version neben der ausführbaren Datei angelegt hat, wird einmal dorthin kopiert.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Ein Cache, der einen wiederholten Duplikat-Scan beschleunigt: Dateipfad, Größe, Änderungszeit, die ID der Datei auf ihrem Volume und die berechneten SHA-256-Hashes. Dateiinhalte werden darin nicht gespeichert.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>skip_files.list</code>, <code>check_damaged.list</code>,
+                    <code>check_files.list</code>
+                  </td>
+                  <td>
+                    <span data-l="de">Im selben FileDO-Ordner <code>%LOCALAPPDATA%\FileDO\state\</code> - nie in dem Ordner, aus dem ein Befehl gestartet wurde. Eine Liste, die eine frühere Version dort hinterlassen hat, wird einmal kopiert und bleibt, wo sie war.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Dateipfade, Größen und Änderungszeiten, die Seriennummer des Volumes und die ID der Datei auf diesem Volume (damit ein Eintrag nur für das Medium gilt, auf dem er aufgezeichnet wurde): die Dateien, die ein Kopiervorgang als beschädigt überspringt, die Dateien, die eine Prüfung als beschädigt gefunden hat, und die Dateien, die eine Prüfung bereits fehlerfrei gelesen hat (für <code>--resume</code>). Keine Dateiinhalte.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span data-l="de">Testdateien</span>
+                  </td>
+                  <td>
+                    <span data-l="de">In dem Ziel, das Sie den Befehlen <code>speed</code>, <code>test</code> oder <code>fill</code> angegeben haben.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Erzeugte Daten, mit denen Geschwindigkeit gemessen und die tatsächliche Kapazität geprüft wird. Werden mit dem Befehl <code>clean</code> entfernt.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span data-l="de">Eine Reveal-Kopie und eine Kopie von „Unsecure and start“</span>
+                  </td>
+                  <td>
+                    <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\reveal\</code>, in einem eigenen Verzeichnis mit zufälligem Namen. Seine Zugriffsliste nennt nur dieses Konto und das System, und die Kopie selbst ist schreibgeschützt. Die Kopie, die <code>unsecure start</code> schreibt - der Doppelklick auf einen Container -, liegt im selben Ordner unter derselben Zugriffsliste, bleibt aber eine gewöhnliche Datei: Es ist Ihre eigene Datei, nur ausgepackt.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Der Inhalt des <code>.fd-sec</code>-Containers, den Sie geöffnet haben, im Klartext, solange er geöffnet ist. Die Kopie verschwindet, wenn Sie es sagen oder wenn das Programm, das sie geöffnet hat, sie loslässt; nach einem Stromausfall bleibt sie bis zum nächsten FileDO-Start, der sie aufräumt. Eine Kopie von <code>unsecure start</code> verschwindet, wenn das Konsolenfenster geschlossen wird, oder - falls das Programm sie dann noch geöffnet hat - beim nächsten FileDO-Start. Nichts davon verlässt den Rechner.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>%LOCALAPPDATA%\FileDO\runs</code></td>
+                  <td>
+                    <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Temporäre Ereignisstrom-Dateien zur Verfolgung aktiver Vorgänge in der GUI. Werden 7 Tage aufbewahrt und beim Start aufgeräumt.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>%LOCALAPPDATA%\FileDO\reports</code></td>
+                  <td>
+                    <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Strukturierte JSON-Laufberichte abgeschlossener Vorgänge und Ergebnisse. Werden 30 Tage aufbewahrt und beim Start aufgeräumt.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>vdisk-state.json</code>, <code>vdisk.log</code></td>
+                  <td>
+                    <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Virtuelle Datenträger (<code>.fdd</code>): die kurzen Namen, die Sie Containern gegeben haben (<code>vd add</code>), ihre Pfade, was gerade eingebunden ist, und ein Protokoll der Einbindungen und Trennungen; solange ein Datenträger eingebunden ist, liegen seine Arbeitsdateien daneben. Das Passwort eines Containers wird hier nie geschrieben. Der Blockserver eines eingebundenen Datenträgers lauscht ausschließlich auf 127.0.0.1: Dateiinhalte werden nur dann über das Netzwerk bereitgestellt, wenn Sie die Freigabe über Fast Media Sorter &amp; Sharing ausdrücklich separat aktivieren.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>vdisk-shared.json</code></td>
+                  <td>
+                    <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Datenträger, die Sie mit Fast Media Sorter for Windows freigegeben haben: der Pfad des Containers, der Ordnername, unter dem er freigegeben ist, die Markierungen für schreibgeschützt und Autostart. Ein Passwort wird hier nie geschrieben.</span>
+                  </td>
+                </tr>              </tbody>
+            </table>
+          </div>
+          <div class="note">
+            <span class="tag"
+              ><span data-l="de">Das Protokoll ausschalten</span></span
+            >
+            <p>
+              <span data-l="de">Fügen Sie dem Befehl <code>nohist</code> (oder <code>no_history</code>) hinzu, und der Lauf wird überhaupt nicht in <code>history.json</code> aufgezeichnet. Lässt sich die Datei nicht schreiben, führt FileDO einfach kein Protokoll und arbeitet weiter. Sie können die Datei jederzeit löschen.</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">04</span>
+            <span data-l="de">Wenn Sie die Logs an den Autor senden</span>
+          </h2>
+          <p>
+            <span data-l="de">Das Fenster „Über“ enthält die Schaltfläche „Logs an den Autor senden“. Sie ist die einzige Stelle im Programm, von der aus Daten Ihren Rechner verlassen können - und nur durch Ihre eigene Hand. Sie löst nie automatisch aus, nicht nach einem Zeitplan und nicht bei einem Fehler.</span>
+          </p>
+          <ul>
+            <li>
+              <span data-l="de"><b>Was erfasst wird.</b> Bereinigte FileDO-Textlogs und -Berichte aus dem Programmordner und aus <code>%LOCALAPPDATA%\FileDO</code>, einschließlich seines Ordners <code>state</code>. Betriebsverlauf, JSON-Berichte und Dateilisten sind ausgeschlossen. <code>environment.txt</code> enthält Angaben zu Build, Windows, Sprache und Anzahl der Logs; <code>filedo-report.txt</code> listet neutrale Namen der Archiveinträge. Archive, die älter als sieben Tage sind, werden beim nächsten Export entfernt.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Bereinigung vor dem Packen.</b> Zeilen mit Zugangsdaten, URLs und absoluten Pfaden werden zu <code>[REDACTED]</code>; Blöcke mit privaten Schlüsseln werden vollständig entfernt. Die Original-Logs auf dem Datenträger bleiben unverändert. Freitext kann persönliche Angaben enthalten, prüfen Sie das Archiv daher, bevor Sie es senden.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Sie sehen zuerst das Archiv.</b> Das Zip wird nach <code>%TEMP%\FileDO_Logs\</code> geschrieben, der Ordner öffnet sich mit der markierten Datei, und der vollständige Pfad landet in Ihrer Zwischenablage. Öffnen Sie es, entfernen Sie alles, was Sie lieber nicht teilen möchten, oder löschen Sie es einfach - dann ist die Sache erledigt.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Sie senden es, nicht das Programm.</b> FileDO öffnet Ihr eigenes Mailprogramm mit der Adresse des Autors, einem Betreff und einem Entwurfstext. Sie hängen das Archiv selbst an und senden die Mail selbst, von Ihrem eigenen Konto. FileDO hat keinen Server, kein eigenes Mailsenden und keine Netzwerkanfragen - hier wie überall sonst.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Was mit dem geschieht, was Sie senden.</b> Die Mail kommt im persönlichen Postfach des Autors an und dient nur dazu, Ihr Problem zu klären. Sie landet in keiner Datenbank, keiner Analytik und nicht in den Händen Dritter.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">05</span>
+            <span data-l="de">Berechtigungen, Datenvernichtung und externe Programme</span>
+          </h2>
+          <ul>
+            <li>
+              <span data-l="de"><b>FileDO erhöht nie stillschweigend die Rechte.</b> Es läuft mit den Rechten, die Sie ohnehin haben. Zwei Laufwerk-Reparaturaufgaben im Fenster fragen Windows für diesen einen Lauf nach Administratorrechten, und Sie sehen die Abfrage. Terminal-Vorgänge, die erhöhte Rechte erfordern, starten Sie bewusst selbst als Administrator.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Vollvertrauenswürdiger Desktop-Zugriff (runFullTrust).</b> Die Microsoft-Store-Version deklariert genau diese eine Funktion, denn das Lesen und Schreiben des Laufwerks direkt ist das, was Geschwindigkeits- und Kapazitätstests ausmacht. Das Paket deklariert keine weitere Funktion - auch keinen Internetzugriff.</span>
+            </li>
+            <li>
+              <span data-l="de"><b >Die Befehle <code>wipe</code> und <code>fill</code> vernichten Daten - das ist ihre Aufgabe.</b > Sie fragen immer nach einer Bestätigung und laufen nie stillschweigend gegen ein Laufwerks-Stammverzeichnis, einen Reparsepunkt (Junction, Symlink) oder den TEMP-Ordner des Systems. Schreibvorgänge, die auf <code>C:</code> zielen, werden standardmäßig nach <code>%TEMP%\FileDO_Operations</code> umgeleitet - auch das erst nach Ihrer Bestätigung.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>FileDO startet manchmal integrierte Windows-Programme.</b> Bei der Wiederherstellung eines Laufwerks (<code>probe</code>) kann es <code>chkdsk</code>, <code>format</code> oder das <code>Format-Volume</code> von PowerShell gegen das von Ihnen genannte Laufwerk aufrufen. Und wenn Sie dem Befehl <code>from</code> eine Datei mit einer Liste von Befehlen übergeben, führt FileDO diese Zeilen aus - auch Zeilen, die andere Programme starten. Ausgeführt wird genau das, was Sie geschrieben haben. Im Fenster „Über“ öffnen sich die Links in Ihrem Browser, und die Schaltfläche zum Senden der Logs öffnet den Explorer und Ihr Mailprogramm - erst, wenn Sie sie gedrückt haben.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">06</span>
+            <span data-l="de">Diese Website</span>
+          </h2>
+          <p>
+            <span data-l="de">Alles oben Gesagte beschreibt die App. Die Website ist eine andere Sache, und es ist nur fair, auch sie zu nennen. Die Website setzt keine Analytik, zeigt keine Werbung und verwendet keine Cookies, doch beim Öffnen einer Seite erreicht Ihr Browser drei externe Adressen:</span>
+          </p>
+          <ul>
+            <li>
+              <span data-l="de"><b>GitHub Pages</b> - die Website wird dort gehostet. GitHub sieht, wie jeder Webhoster, die Anfragen nach diesen Seiten; das richtet sich nach der eigenen Datenschutzerklärung von GitHub.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>Google Fonts</b> - die Seite lädt ihre Schriften von <code>fonts.googleapis.com</code> und <code>fonts.gstatic.com</code>.</span>
+            </li>
+            <li>
+              <span data-l="de"><b>GitHub API</b> - die Startseite fragt bei <code>api.github.com</code> nach dem neuesten Release, damit die Download-Schaltfläche auf die aktuelle Version zeigt.</span>
+            </li>
+          </ul>
+          <p>
+            <span data-l="de">Wie bei jeder Anfrage im Internet sehen diese Dienste Ihre IP-Adresse und Browserdetails. Ihre Sprach- und Designauswahl wird lokal in Ihrem Browser gespeichert und nirgendwohin gesendet. Die installierte App tut nichts davon.</span>
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>
+            <span class="secnum">07</span>
+            <span data-l="de">Kinder, Änderungen und Kontakt</span>
+          </h2>
+          <p>
+            <span data-l="de">FileDO ist ein Speicher-Werkzeug. Es richtet sich nicht an Kinder und erhebt keine Daten über irgendjemanden, Kinder eingeschlossen.</span>
+          </p>
+          <p>
+            <span data-l="de">Wenn sich diese Erklärung ändert, erscheint die neue Fassung auf derselben Seite mit einem neuen Gültigkeitsdatum. Der vollständige Änderungsverlauf ist im Repository öffentlich.</span>
+          </p>
+          <p>
+            <span data-l="de">Datenschutzfragen gehen direkt an den Autor:</span>
+          </p>
+          <ul>
+            <li>
+              <span data-l="de">E-Mail:</span>
+              <a href="mailto:sza@ukr.net">sza@ukr.net</a>
+            </li>
+            <li>
+              <span data-l="de">Issues im Repository:</span>
+              <a
+                href="https://github.com/SerZhyAle/FileDO/issues"
+                target="_blank"
+                rel="noopener"
+                >github.com/SerZhyAle/FileDO/issues</a
+              >
+            </li>
+            <li>
+              <span data-l="de">Quellcode und die MIT-Lizenz:</span>
+              <a
+                href="https://github.com/SerZhyAle/FileDO"
+                target="_blank"
+                rel="noopener"
+                >github.com/SerZhyAle/FileDO</a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p class="footer-tools-title" id="footerToolsTitle">
+          <span data-l="de">Weitere Tools von SZA</span>
+        </p>
+        <nav class="tools-grid" aria-labelledby="footerToolsTitle">
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a
+          ><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a
+          ><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
+          ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>StreamsPlayer</b><span>Windows stream player</span></a
+          ><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a
+          ><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
+          ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
+        </nav>
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="./"
+              ><span data-l="de">FileDO</span></a
+            >
+            · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <button class="to-top" id="toTop" aria-label="Zum Seitenanfang"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z" fill="currentColor"/></svg></button>
+    <script>
+      (function () {
+        document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+          b.onclick = function () {
+            try {
+              localStorage.setItem("sza-lang", b.dataset.setLang);
+            } catch (e) {}
+            if (b.dataset.go) location.href = b.dataset.go;
+          };
+        });
+        var theme = document.getElementById("themeBtn");
+        theme.onclick = function () {
+          var n =
+            document.documentElement.dataset.theme === "light"
+              ? "dark"
+              : "light";
+          document.documentElement.dataset.theme = n;
+          localStorage.setItem("sza-theme", n);
+          document.querySelector('meta[name="theme-color"]').content =
+            n === "light" ? "#eef3ea" : "#0a0f0a";
+          theme.setAttribute(
+            "aria-label",
+            n === "light" ? "Zum dunklen Design wechseln" : "Zum hellen Design wechseln",
+          );
+        };
+        var top = document.getElementById("toTop");
+        addEventListener("scroll", function () {
+          top.classList.toggle("show", scrollY > 600);
+        });
+        top.onclick = function () {
+          scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        };
+      })();
+    </script>
+  </body>
+</html>

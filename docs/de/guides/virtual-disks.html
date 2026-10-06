@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Virtuelle Datenträger mit FileDO" />
+    <meta property="og:description" content="FileDO-Anleitung zu virtuellen .fdd-Datenträgern: ein ganzes Volume in einer Datei, eingebunden als Laufwerk oder ohne Einbinden gelesen." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Virtuelle Datenträger mit FileDO",
+        "headline": "Virtuelle Datenträger mit FileDO",
+        "description": "FileDO-Anleitung zu virtuellen .fdd-Datenträgern: ein ganzes Volume in einer Datei, eingebunden als Laufwerk oder ohne Einbinden gelesen.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Virtuelle Datenträger mit FileDO</title>
+    <meta
+      name="description"
+      content="FileDO-Anleitung zu virtuellen .fdd-Datenträgern: ein ganzes Volume in einer Datei, eingebunden als Laufwerk oder ohne Einbinden gelesen."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/virtual-disks.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/virtual-disks.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/virtual-disks.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/virtual-disks.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/virtual-disks.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/virtual-disks.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/virtual-disks.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · virtuelle Datenträger</span>
+        </p>
+        <h1>
+          <span data-l="de">Ein ganzer Datenträger in einer Datei - ein Laufwerksbuchstabe, wenn Sie einen wollen, und lesbar ohne Einbinden, wenn nicht.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">Ein <code>.fdd</code>-Container ist eine gewöhnliche Datei, die ein ganzes Volume enthält. Eingebunden ist er ein Laufwerksbuchstabe wie jeder andere; nicht eingebunden ist er eine Datei, die Sie kopieren, sichern und allein mit FileDO lesen können, ohne ihn einzubinden. Das Format ist vollständig als Vertrag <code>FDD-FORMAT</code> veröffentlicht, und was ein Programm tun muss, das ihn liest oder schreibt, als <code>FDD-BEHAVIOUR</code> - die Daten hängen also nicht davon ab, dass es FileDO weiter gibt.</span>
+        </p>
+      </section>
+      <section class="section" id="create">
+        <h2>
+          <span data-l="de">Anlegen, einbinden, trennen</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Anlegen</span>
+            </h3>
+            <p>
+              <span data-l="de">Ein neuer Container mit 20 GB. Eine vorhandene Datei wird nie überschrieben. Das erste Einbinden formatiert das Volume mit NTFS.</span>
+            </p>
+            <div class="copybox">
+              filedo vd new work.fdd 20G<button
+                class="copy"
+                data-copy="filedo vd new work.fdd 20G"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Einbinden</span>
+            </h3>
+            <p>
+              <span data-l="de">Beim ersten freien Buchstaben; <code>ro</code> für schreibgeschützt, <code>as X:</code> für einen Buchstaben Ihrer Wahl. Windows fragt nach der Zustimmung eines Administrators.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd mount<button
+                class="copy"
+                data-copy="filedo work.fdd mount"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Trennen</span>
+            </h3>
+            <p>
+              <span data-l="de">Alles Ausstehende wird gesichert, und der Container wird als sauber geschlossen markiert, bevor der Buchstabe verschwindet.</span>
+            </p>
+            <div class="copybox">
+              filedo X: unmount<button
+                class="copy"
+                data-copy="filedo X: unmount"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Vier Profile</span></span
+          >
+          <p>
+            <span data-l="de"><code>plain</code> wächst mit dem Inhalt. <code>fast</code> belegt sofort die ganze Größe, sodass ein Schreibvorgang nie auf das Wachsen der Datei wartet. <code>ram</code> hält das Volume im Speicher, solange es eingebunden ist, und sichert es alle paar Sekunden in die Datei: Ein Absturz oder Stromausfall verliert, was nach der letzten Sicherung geschrieben wurde. <code>vault</code> ist immer verschlüsselt und braucht daher immer ein Passwort. Jedes Profil mit Passwort (<code>p:</code> oder die Abfrage) ist verschlüsselt; ohne Passwort ist es verschleiert, nicht verschlüsselt.</span>
+          </p>
+          <div class="copybox">
+            filedo vd new private.fdd 5G vault<button
+              class="copy"
+              data-copy="filedo vd new private.fdd 5G vault"
+            ><span data-l="de">Kopieren</span></button>
+          </div>
+        </div>
+      </section>
+      <section class="section" id="read">
+        <h2>
+          <span data-l="de">Ohne Einbinden lesen</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Diese drei brauchen keine Administratorrechte, kein iSCSI und kein Netzwerk, und sie schreiben nichts in den Container. Sie funktionieren in jedem Build, auch in dem aus dem Microsoft Store.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Info</span>
+            </h3>
+            <p>
+              <span data-l="de">Profil, Größe, ob er verschleiert oder verschlüsselt ist, ob er sauber geschlossen wurde und wann er zuletzt vollständig gesichert wurde. Kein Passwort nötig.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd info<button
+                class="copy"
+                data-copy="filedo work.fdd info"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Prüfen</span>
+            </h3>
+            <p>
+              <span data-l="de">Header, die Karte und jeden belegten Cluster; Schäden sind Exit-Code 4. Format 1.0 speichert keine Prüfsummen der Daten, daher werden die Daten gelesen, nicht verifiziert.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd verify<button
+                class="copy"
+                data-copy="filedo work.fdd verify"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Abbild exportieren</span>
+            </h3>
+            <p>
+              <span data-l="de"><code>raw</code> ergibt ein einfaches Datenträgerabbild, <code>vhd</code> eine feste VHD, die Windows von selbst einbindet, ganz ohne FileDO. Das Abbild eines verschlüsselten Containers ist nicht verschlüsselt. In diesem Build lassen sich einzelne Dateien nur durch Einbinden herausholen.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd export D:\work.vhd vhd<button
+                class="copy"
+                data-copy="filedo work.fdd export D:\work.vhd vhd"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="protection">
+        <h2>
+          <span data-l="de">Verschleiert oder verschlüsselt</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="de">Ohne Passwort</span></span
+          >
+          <p>
+            <span data-l="de">Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt. Die Verschleierung verbirgt das Volume vor einem flüchtigen Blick und vor Werkzeugen, die nach Datenträgerabbildern suchen - und vor niemandem, der die Datei und FileDO hat. FileDO nennt sie nie Verschlüsselung.</span>
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="de">Mit Passwort</span></span
+          >
+          <p>
+            <span data-l="de">Mit Passwort ist ein Container verschlüsselt: Ohne das Passwort ist die Datei nicht lesbar. Es gibt keine Wiederherstellung - ein vergessenes Passwort ist ein verlorener Container. <code>pass</code> ändert das Passwort, ohne die Daten neu zu schreiben; früher erstellte Kopien der Datei öffnen sich daher weiter mit dem alten.</span>
+          </p>
+          <div class="copybox">
+            filedo private.fdd pass<button
+              class="copy"
+              data-copy="filedo private.fdd pass"
+            ><span data-l="de">Kopieren</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Das Passwort entfernen</span></span
+          >
+          <p>
+            <span data-l="de">Ein Passwort wird nie an Ort und Stelle entfernt: Ein leeres neues Passwort wird abgelehnt. Stattdessen schreibt <code>clone</code> mit <code>nopass</code> eine neue, verschleierte Kopie - jeder, der diese Datei und FileDO hat, liest sie - und das verschlüsselte Original bleibt, wie es war.</span>
+          </p>
+          <div class="copybox">
+            filedo private.fdd clone open-copy.fdd nopass<button
+              class="copy"
+              data-copy="filedo private.fdd clone open-copy.fdd nopass"
+            ><span data-l="de">Kopieren</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Ein eingebundenes Volume</span></span
+          >
+          <p>
+            <span data-l="de">Verschlüsselung schützt die Datei, nicht ein eingebundenes Volume: Solange es eingebunden ist, kann jedes Programm, das Sie starten, es lesen wie jedes andere Laufwerk. <code>ram</code> mit Passwort: Windows kann diesen Speicher auslagern, sodass unverschlüsselte Daten in die Auslagerungsdatei gelangen können. Ein neues Volume wird mit ausgeschalteter Indizierung angelegt; <code>mount noscan</code> nimmt die Containerdatei für die Dauer der Einbindung vom Scan durch Microsoft Defender aus - Dateien auf dem Volume selbst werden weiterhin gescannt.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section" id="platform">
+        <h2>
+          <span data-l="de">Was Windows liefern muss</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="de"><b>Nur Windows.</b> Den Laufwerksbuchstaben liefert der in Windows eingebaute iSCSI-Initiator, der mit einem Blockserver in <code>filedo.exe</code> spricht. Der Server lauscht nur auf 127.0.0.1: Nichts verlässt diesen Computer, und der Container gelangt nie in ein Netzwerk - es sei denn, Sie geben ihn selbst frei (<a href="#share">siehe unten</a>).</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Einbinden braucht Administratorrechte.</b> <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> und <code>vd auto</code> bitten Windows um die Zustimmung eines Administrators - für den Schritt mit dem Initiator und für nichts sonst: Das Passwort gelangt nie dorthin, und der Blockserver selbst läuft nie mit erhöhten Rechten. Ein Batch zeigt diese Abfrage nie - starten Sie ihn aus einer erhöhten Konsole. Lässt sich der Dienst Microsoft iSCSI-Initiator nicht nutzen oder wird die Zustimmung nicht erteilt, endet der Lauf mit Exit-Code 7, und nichts wird eingebunden.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Die Microsoft-Store-Version kann nicht einbinden.</b> Eine paketierte App kann den iSCSI-Initiator weder konfigurieren noch Administratorrechte anfordern, deshalb enden dort <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code>, <code>vd auto</code>, <code>vd guard</code> und <code>vd register</code> mit Exit-Code 6 (nicht unterstützt). <code>info</code>, <code>verify</code>, <code>export</code>, <code>compact</code>, <code>grow</code>, <code>seal</code>, <code>clone</code>, <code>pass</code>, <code>destroy</code>, <code>vd new</code>, <code>vd list</code>, <code>vd status</code>, <code>vd add</code> und <code>vd forget</code> funktionieren auch dort. Zum Einbinden nehmen Sie das Setup oder die portable Version von GitHub.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Eine Einbindung überdauert das Fenster.</b> Schließen Sie das FileDO-Fenster bei eingebundenem Datenträger, bleiben Laufwerk und Server bestehen; ein neues Fenster listet sie wieder auf. Trennen Sie in der Datenträgerverwaltung, auf den Seiten der Gruppe Datenträger oder mit <code>filedo X: unmount</code>.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="share">
+        <h2>
+          <span data-l="de">Einen Datenträger über Fast Media Sorter freigeben</span>
+        </h2>
+        <p>
+          <span data-l="de">Ist Fast Media Sorter for Windows installiert, bietet <code>vd share work.fdd on</code> einen Datenträger den Handys und Tablets an, die Sie damit gekoppelt haben, als einen weiteren Ordner; <code>vd open</code>, <code>vd close</code> und <code>vd autostart</code> öffnen ihn für sie, schließen ihn und öffnen ihn nach einem Neustart erneut. FileDO öffnet dafür keine Netzwerkverbindung - es spricht über eine lokale Pipe mit diesem Programm, und dieses Programm liefert die Dateien aus. Ein verschlüsselter Datenträger wird hier an diesem PC entsperrt, nie vom Handy aus; solange er offen ist, kann jedes gekoppelte Gerät seine Dateien lesen, und <code>vd autostart</code> bewahrt sein Passwort auf diesem PC auf, für dieses Programm geschützt, bis Sie den Autostart ausschalten, die Freigabe beenden oder das Passwort ändern. Ein freigegebener Datenträger wird von diesem Programm gehalten, daher verweigert <code>mount</code> ihn, solange es ihn hält; <code>vd status</code> nennt den Halter. Nur die Server-Edition von Fast Media Sorter for Windows hält freigegebene Datenträger verfügbar, wenn niemand angemeldet ist.</span>
+        </p>
+        <p class="intro">
+          <span data-l="de">Die Schritt-für-Schritt-Anleitung - dieses Programm installieren, einen Datenträger registrieren, was gekoppelte Geräte sehen und die Wiederherstellung nach einem fehlgeschlagenen Schritt - steht auf einer eigenen Seite: <a href="fms-sharing.html">Freigabe über Fast Media Sorter &amp; Sharing</a>.</span>
+        </p>
+      </section>
+      <section class="section" id="change">
+        <h2>
+          <span data-l="de">Einen Container ändern</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Nur im getrennten Zustand: Ein eingebundener Container wird mit Exit-Code 8 abgelehnt, und kein Schalter überspringt diese Prüfung. <code>grow 40G</code> vergrößert den Datenträger - das Volume darin wird beim nächsten Einbinden erweitert (Datenträgerverwaltung, Volume erweitern). <code>compact</code> gibt den ungenutzten Platz der Datei an das Laufwerk zurück. <code>seal</code> schreibt eine Kopie, die für immer schreibgeschützt ist, <code>clone</code> eine beschreibbare Kopie mit eigener Identität. <code>format</code> löscht das Volume (<code>fs ntfs</code> oder <code>fs exfat</code>), <code>destroy</code> entfernt die Containerdatei, und mit <code>wipe</code> überschreibt es sie vorher. Beide fragen zuerst; <code>force</code> überspringt die Frage, nie die Prüfung, und ein Batch ohne <code>force</code> führt sie nicht aus.</span>
+        </p>
+        <p class="intro">
+          <span data-l="de">Exit-Codes eines einzelnen Container-Befehls: 0 erledigt, 2 wie angegeben abgelehnt, 3 falsches Passwort, 4 beschädigt, 5 ein Lese- oder Schreibvorgang ist fehlgeschlagen, 6 nicht unterstützt, 7 Transport nicht verfügbar, 8 belegt. Ein Batch behält seine 0/1/2.</span>
+        </p>
+      </section>
+      <section class="section" id="partition">
+        <h2>
+          <span data-l="de">Partitionsdatenträger</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Ein virtueller Datenträger kann statt in einer Datei auch in einer Partition liegen. FileDO legt im nicht zugeordneten Speicherplatz eines Datenträgers eine neue GPT-Partition an und füllt sie ganz mit einem Container; außerhalb dieses freien Bereichs wird nichts verändert - FileDO wandelt eine vorhandene Partition nie um, ändert nie ihre Größe und schreibt nie in sie. Nur GPT-Datenträger: MBR-Datenträger, dynamische Datenträger, Speicherplätze (Storage Spaces), iSCSI-, Wechsel- und USB-Datenträger werden abgelehnt, und <code>vd disks</code> nennt für jeden den Grund. Sie gewinnen einen Datenträger, den kein Host-Dateisystem trägt, dem Windows keinen Laufwerksbuchstaben gibt und den es nicht zum Formatieren anbietet, mit fest reserviertem Platz; was Sie nicht gewinnen, ist Geschwindigkeit.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Den freien Platz finden</span>
+            </h3>
+            <p>
+              <span data-l="de">Jeder Datenträger, seine Partitionen und seine freien Bereiche; jeder Bereich nutzbar oder nicht, mit Begründung, und ein nutzbarer mit seiner fertigen <code>create</code>-Zeile. Keine Administratorrechte.</span>
+            </p>
+            <div class="copybox">
+              filedo vd disks<button
+                class="copy"
+                data-copy="filedo vd disks"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Anlegen</span>
+            </h3>
+            <p>
+              <span data-l="de"><code>&lt;disk&gt;</code> ist <code>disk:{GUID}</code> oder die Nummer aus <code>vd disks</code>; <code>size</code> ist <code>max</code> oder eine Größe wie <code>40G</code> (abgerundet auf 1 MiB, mindestens 64 MiB). Die Bestätigung zeigt den Datenträger, den Bereich und seine Nachbarn. Das Standardprofil ist <code>fast</code>. Eine Administratorzustimmung; das erste Einbinden formatiert das Volume mit NTFS.</span>
+            </p>
+            <div class="copybox">
+              filedo vd new part disk:{GPT-GUID} size max at &lt;offset&gt; as data<button
+                class="copy"
+                data-copy="filedo vd new part disk:{GPT-GUID} size max at &lt;offset&gt; as data"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Abbild in Datei</span>
+            </h3>
+            <p>
+              <span data-l="de">Kopiert die Partition in eine neue, gewöhnliche <code>.fdd</code>-Datei, die ohne Administratorrechte lesbar ist und sich wie jede andere einbinden, klonen und versiegeln lässt. Ein eingebundener Datenträger wird abgelehnt; die Partition bleibt unverändert.</span>
+            </p>
+            <div class="copybox">
+              filedo vd image data to D:\data.fdd<button
+                class="copy"
+                data-copy="filedo vd image data to D:\data.fdd"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Löschen</span>
+            </h3>
+            <p>
+              <span data-l="de">Ein eingebundener Datenträger wird abgelehnt. Tippen Sie zur Bestätigung den Namen des Datenträgers ein; <code>wipe</code> überschreibt die Partition vorher. Gelöscht wird nur eine Partition, die als die von FileDO nachgewiesen ist, und der Platz wird wieder nicht zugeordnet.</span>
+            </p>
+            <div class="copybox">
+              filedo vd destroy data<button
+                class="copy"
+                data-copy="filedo vd destroy data"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+        </div>
+        <p class="intro">
+          <span data-l="de">Ein Partitionsdatenträger wird über seinen Namen oder seinen Locator <code>fdpart:{GUID}</code> angesprochen, nie über einen Pfad: <code>filedo vd mount data</code>. <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code>, <code>vd auto</code> und die Abschaltwache arbeiten wie bei einer Datei; <code>compact</code> und <code>grow</code> nicht (seine Größe ist fest), und die Freigabe über Fast Media Sorter wird vorerst abgelehnt. <code>vd adopt fdpart:{GUID} as data</code> registriert eine FileDO-Partition, die dieser PC nicht kennt (ein Datenträger von einem anderen PC); <code>vd forget</code> entfernt den Namen und lässt die Partition auf ihrem Datenträger. Ein abgelehnter Datenträger endet mit Exit-Code 6, eine verweigerte Zustimmung mit Exit-Code 7 und ein seit der Auflistung geändertes Layout mit Exit-Code 5 - und nichts wurde verändert.</span>
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="de"><b>Administratorzustimmung für jedes Lesen, nicht nur zum Einbinden.</b> Eine Partition lässt sich ohne Administratorrechte nicht öffnen, daher bitten auch <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code> und <code>vd image</code> Windows um Zustimmung. <code>vd image</code> hebt das auf: Die Datei, die es schreibt, ist eine gewöhnliche <code>.fdd</code>, die jeder Lesepfad ohne Administratorrechte öffnet.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Nicht schneller als ein Datei-Datenträger.</b> Von Anfang bis Ende auf einem NVMe-Laufwerk gemessen, war ein Partitionsdatenträger langsamer als eine <code>.fdd</code>-Datei auf NTFS. Wählen Sie ihn für den festen, getrennten Platz, nicht für Geschwindigkeit.</span>
+          </li>
+          <li>
+            <span data-l="de"><b><code>fast</code> überschreibt den freien Platz, <code>plain</code> und <code>vault</code> nicht.</b> Was der freie Platz vorher enthielt, bleibt in den ungenutzten Clustern eines <code>plain</code>- oder <code>vault</code>-Partitionsdatenträgers, bis das Volume es überschreibt; <code>fast</code> überschreibt beim Anlegen die ganze Partition.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Die Datenträgerverwaltung von Windows (<code>diskmgmt.msc</code>) zeigt die Partition weiterhin an und kann sie löschen.</b> Dort zu löschen löscht den Datenträger darin, ohne nach seinem Inhalt zu fragen. Der sichere Weg ist FileDOs eigenes <code>vd destroy</code>: Es lehnt einen eingebundenen Datenträger ab, verlangt den eingetippten Namen des Datenträgers und löscht nur eine Partition, die es als die von FileDO nachgewiesen hat.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Partitionsdatenträger sind in der Microsoft-Store-Version nicht verfügbar.</b> Dort sagt <code>vd disks</code> das, und jeder Partitionsbefehl endet mit Exit-Code 6; nutzen Sie das Setup oder die portable Version von GitHub.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="explorer">
+        <h2>
+          <span data-l="de">Doppelklick, Explorer und das Fenster</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Das Setup bietet den Typ <code>.fdd</code> als eigenes Feature an, „Disk container files (.fdd)“, das Sie abwählen können (<code>DiskContainerIntegration</code> in <code>ADDLOCAL</code>). Ohne das Setup schreibt <code>filedo vd register</code> dasselbe - für diesen Benutzer, oder mit <code>-all-users</code> für den ganzen Rechner -, und <code>filedo vd unregister</code> nimmt es zurück. Alle drei Einträge öffnen das FileDO-Fenster. Ein Doppelklick bindet ein: einen sauber geschlossenen verschleierten Container sofort; ein verschlüsselter fragt im Fenster nach seinem Passwort, nie auf einer Befehlszeile; einer, der nicht sauber geschlossen wurde, sagt das zuerst, mit der Zeit seiner letzten vollständigen Sicherung, und wartet auf Sie; ein bereits eingebundener öffnet sein Laufwerk. Das Kontextmenü ergänzt „Mount read-only“ und „Unmount“; unter Windows 11 stehen sie unter „Weitere Optionen anzeigen“. Im Fenster hat die Gruppe Datenträger eine Seite je Operation, und <a href="#manager">die Datenträgerverwaltung</a> listet jeden Datenträger an einem Ort. Die Microsoft-Store-Version hat keine Menüeinträge, aber ein Doppelklick auf eine <code>.fdd</code> öffnet das FileDO-Fenster mit diesem Container, und das Fenster sagt klar, dass dieser Build nicht einbinden kann.</span>
+        </p>
+        <div class="copybox">
+          filedo vd register<button
+            class="copy"
+            data-copy="filedo vd register"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+      </section>
+      <section class="section" id="manager">
+        <h2>
+          <span data-l="de">Die Datenträgerverwaltung</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Das FileDO-Fenster hat ein zweites Fenster für virtuelle Datenträger: die Datenträgerverwaltung. Sie ist die grafische Oberfläche von <code>filedo.exe</code>, kein neues Programm - <code>filedo_win.exe</code> öffnet nur ein weiteres Fenster. Sie führt jeden virtuellen Datenträger an einem Ort zusammen, eine Zeile je Datenträger: die Datenträger Ihrer Liste, die jetzt eingebundenen und die Datenträgerabbilder (VHD, VHDX, ISO), die FileDO eingebunden hat. Sie hält sich ohne manuelles Aktualisieren aktuell - eine anderswo ausgeführte Einbindung erscheint binnen Sekunden.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-disk-manager-de.png" width="1901" height="1056" loading="lazy" alt="Das Fenster der Datenträgerverwaltung: eine Werkzeugleiste mit Neuer Datenträger.., Hinzufügen.., Einbinden, Trennen, Öffnen, Speichern, Weitere Aktionen, Aktualisieren, Hilfe und Hauptfenster; eine Filterzeile; eine Liste mit den Spalten Name, Laufwerk, Zustand, Profil, Schutz, Größe und Auto, in der jede Zeile ihren Zustand in Worten neben einem Symbol zeigt; und unter der Liste der Detailbereich des gewählten Datenträgers, secrets, schreibgeschützt eingebunden" /></span>
+          <figcaption>
+            <span data-l="de">Die Datenträgerverwaltung mit einer Beispielliste: eine Zeile je Datenträger, ihr Zustand in Worten und der Detailbereich des gewählten Datenträgers.</span>
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Eine Zeile, ein Datenträger</span>
+            </h3>
+            <p>
+              <span data-l="de">Der Zustand steht in Worten neben einem Symbol: „Eingebunden“; „Eingebunden, schreibgeschützt“; „Eingebunden, 180 MiB nicht gespeichert“ (ein <code>ram</code>-Datenträger - die Menge, die noch nicht in der Datei ist); „Server weg - Volume offline“; „Abbild eingebunden“; „Datei fehlt“; „Unter diesem Pfad liegt ein anderer Container“; „Nicht lesbar“; „Nicht sauber geschlossen“; „Nicht eingebunden“.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Werkzeugleiste, Filter, Details</span>
+            </h3>
+            <p>
+              <span data-l="de">Jede Schaltfläche der Werkzeugleiste trägt ein Symbol: Neuer Datenträger.., Hinzufügen.., Einbinden, Trennen, Öffnen (im Explorer), Speichern (schreibt einen <code>ram</code>-Datenträger jetzt in seine Datei zurück), Weitere Aktionen, Aktualisieren, Hilfe und Hauptfenster. Darunter liegt eine Filterzeile: eine Beschriftung, ein Feld und ein Kreuz, das es leert. Unter der Liste beschreibt ein Detailbereich den gewählten Datenträger in Sätzen, mit den Schaltflächen, die für ihn gelten; er schließt mit einem Kreuz an seinem rechten Rand und kehrt über eine schmale Leiste „Details einblenden“ oder über das Menü Weitere Aktionen zurück. Eine Schaltfläche, die gerade nicht benutzbar ist, ist grau, und ihr Tooltip und der Detailbereich sagen, warum. Die Microsoft-Store-Version kann nie einbinden und blendet die Einbinde-Elemente deshalb aus, statt sie auszugrauen.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Eine Geste</span>
+            </h3>
+            <p>
+              <span data-l="de">Ein Doppelklick oder <kbd>Enter</kbd> bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie. Ein Rechtsklick auf eine Zeile öffnet ihr Menü: zuerst die schnellen Aktionen, unter einem Trennstrich die, die an eine Aufgabenseite übergeben werden, Formatieren und Vernichten zuletzt und in der Gefahrenfarbe. Ziehen Sie <code>.fdd</code>-Dateien auf die Liste, um sie hinzuzufügen; ziehen Sie eine <code>.vhd</code>, <code>.vhdx</code> oder <code>.iso</code>, um das Abbild nach einer Bestätigung einzubinden. Ein Klick mit <kbd>Ctrl</kbd> oder <kbd>Shift</kbd> wählt mehrere Datenträger.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Vorgänge mit Parametern</span>
+            </h3>
+            <p>
+              <span data-l="de">Ein Vorgang mit Parametern oder ohne Weg zurück - Neuer Datenträger, Exportieren, Verkleinern, Vergrößern, Versiegelte Kopie, Klonen, Passwort ändern, Formatieren, Vernichten - öffnet im Hauptfenster seine eigene Aufgabenseite mit bereits gewähltem Container. Die Verwaltung selbst baut diese Befehlszeilen nie, und Formatieren und Vernichten behalten die einzutippende Bestätigung auf der Aufgabenseite.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="autostart">
+        <h2>
+          <span data-l="de">Autostart: bei der Anmeldung und beim Herunterfahren</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Autostart hat zwei Hälften, und beide treffen sich in einem Dialog: Autostart.. in der Datenträgerverwaltung (Weitere Aktionen, das Menü eines Datenträgers oder sein Detailbereich). Die erste Hälfte gilt bei der Anmeldung: Jeder registrierte Container hat einen Schalter, der eine geplante Aufgabe anlegt oder entfernt, die ihn bei Ihrer Anmeldung einbindet (<code>vd auto</code>). Die zweite gilt beim Herunterfahren: die Abschaltwache (<code>vd guard</code>), eine Aufgabe je Konto, die am Ende der Sitzung veränderte <code>ram</code>-Datenträger speichert und jeden eingebundenen Container trennt, sodass jeder sauber geschlossen wird und die nächste Anmeldung nicht „Nicht sauber geschlossen“ meldet.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-disk-autostart-de.png" width="684" height="1836" loading="lazy" alt="Der Autostart-Dialog: unter Bei der Anmeldung vier registrierte Container, jeder mit seinem Zustand in Worten und einem Schalter - scratch und work binden sich bei der Anmeldung nicht ein, archive schon, und beim verschlüsselten secrets ist der Schalter deaktiviert, mit der Begründung darunter; unter Beim Herunterfahren die Wache Eingeschaltet und aktiv, eine Schaltfläche Abschalten und der letzte Lauf, der zwei Container sauber geschlossen hat; darunter Gut zu wissen" /></span>
+          <figcaption>
+            <span data-l="de">Der Autostart-Dialog: die Einbindungen bei der Anmeldung, eine Zeile je Container, und die Abschaltwache mit ihrem letzten Lauf.</span>
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Die ehrlichen Grenzen</span>
+            </h3>
+            <p>
+              <span data-l="de">Ein verschlüsselter Container wird nie automatisch eingebunden: Dazu müssten seine Zugangsdaten dort gespeichert sein, wo der Rechner sie lesen kann, und FileDO speichert keine. Das Sitzungsende ist für die Wache ein Herunterfahren, ein Neustart und eine Abmeldung; Standbymodus, Ruhezustand und Sperre sind es nicht (der Schnellstart beendet die Sitzung wie ein Herunterfahren). Während die Wache einen <code>ram</code>-Datenträger speichert, zeigt Windows „FileDO is saving your RAM disk..“ - und „Trotzdem herunterfahren“ bleibt immer Ihr Ausweg. Was nicht fertig wurde, wird nicht verborgen: Der Bericht des letzten Laufs steht im Autostart-Dialog auf dem Bildschirm und in der Konsole mit <code>filedo vd guard status</code>.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Die Befehle</span>
+            </h3>
+            <div class="copy-row">
+              <code class="cmd" id="cmd-guard-on"
+                ><span data-l="de">filedo vd guard on</span></code
+              >
+              <button
+                class="copy"
+                type="button"
+                data-copy="cmd-guard-on"
+              >
+                <span data-l="de">Kopieren</span></button>
+            </div>
+            <p>
+              <span data-l="de">legt die Aufgabe an (und fragt einmal nach der Zustimmung eines Administrators); <code>vd guard off</code> entfernt sie und berührt keinen Datenträger; <code>vd guard run</code> ist der Wächter selbst, den die Aufgabe bei der Anmeldung startet; <code>vd guard status</code> zeigt in drei Zeilen den Zustand und den letzten Lauf. Beide Aufgaben bleiben nach einer Deinstallation von FileDO bestehen - die Schalter hier und im Autostart-Dialog entfernen sie.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="manager-keys">
+        <h2>
+          <span data-l="de">Tastatur der Datenträgerverwaltung</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Dieselben Tasten stehen in der Hilfe der Verwaltung selbst, die <kbd>F1</kbd> öffnet.</span>
+        </p>
+        <div class="tablewrap">
+          <table class="keytable">
+            <thead>
+              <tr>
+                <th>
+                  <span data-l="de">Tasten</span>
+                </th>
+                <th>
+                  <span data-l="de">Wirkung</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><kbd>Ctrl+N</kbd></td>
+                <td>
+                  <span data-l="de">Neuer Datenträger..</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+O</kbd></td>
+                <td>
+                  <span data-l="de">Hauptfenster</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+O</kbd></td>
+                <td>
+                  <span data-l="de">Hinzufügen..</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+M</kbd></td>
+                <td>
+                  <span data-l="de">Einbinden</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+M</kbd></td>
+                <td>
+                  <span data-l="de">Schreibgeschützt einbinden</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+U</kbd></td>
+                <td>
+                  <span data-l="de">Trennen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+E</kbd></td>
+                <td>
+                  <span data-l="de">Im Explorer öffnen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+S</kbd></td>
+                <td>
+                  <span data-l="de">Jetzt speichern</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+I</kbd></td>
+                <td>
+                  <span data-l="de">Infos</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+V</kbd></td>
+                <td>
+                  <span data-l="de">Prüfen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Enter</kbd></td>
+                <td>
+                  <span data-l="de">Einen ruhenden Datenträger einbinden oder das Laufwerk eines eingebundenen öffnen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Del</kbd></td>
+                <td>
+                  <span data-l="de">Aus der Liste entfernen (nie Vernichten)</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+C</kbd></td>
+                <td>
+                  <span data-l="de">Pfad kopieren</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+A</kbd></td>
+                <td>
+                  <span data-l="de">Alle Datenträger der Liste wählen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Menu</kbd> / <kbd>Shift+F10</kbd></td>
+                <td>
+                  <span data-l="de">Das Menü des gewählten Datenträgers öffnen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>F5</kbd></td>
+                <td>
+                  <span data-l="de">Aktualisieren</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+F</kbd></td>
+                <td>
+                  <span data-l="de">Zum Filterfeld gehen</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Esc</kbd></td>
+                <td>
+                  <span data-l="de">Den Filter leeren</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>F1</kbd></td>
+                <td>
+                  <span data-l="de">Die Hilfe öffnen</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Im FileDO-Hauptfenster</span></span
+          >
+          <p>
+            <span data-l="de"><kbd>Ctrl+Shift+D</kbd> öffnet die Datenträgerverwaltung.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section" id="manager-start">
+        <h2>
+          <span data-l="de">Öffnen, die Hilfe und der erste Start</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="de"><b>Das Startmenü.</b> Das Setup legt einen eigenen Eintrag an, <b>FileDO Disk Manager</b>, als Teil des Hauptfeatures, er ist also immer da. Er startet <code>filedo_win.exe --disks</code> und öffnet die Verwaltung direkt, ohne Hauptfenster.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Das Hauptfenster.</b> Die Schaltfläche „Datenträgerverwaltung“ in seiner Kopfzeile oben rechts und die erste Zeile der Gruppe Datenträger in seiner linken Leiste; <kbd>Ctrl+Shift+D</kbd> tut dasselbe.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Die Befehlszeile.</b> Der Schalter <code>--disks</code>.</span>
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo_win.exe --disks<button
+            class="copy"
+            data-copy="filedo_win.exe --disks"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+        <p class="intro">
+          <span data-l="de">Die beiden Fenster verweisen aufeinander. Die Schaltfläche „Hauptfenster“ der Verwaltung, mit dem FileDO-Zeichen, holt das FileDO-Hauptfenster nach vorn - und öffnet es, wenn die Verwaltung allein gestartet wurde. Die Schaltfläche „Datenträgerverwaltung“ des Hauptfensters öffnet die Verwaltung oder holt sie nach vorn.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Hilfe</span>
+            </h3>
+            <p>
+              <span data-l="de"><kbd>F1</kbd> öffnet das Hilfefenster: was eine Zeile sagt, die Tastentabelle, ein paar gute Hinweise und Links. Die Schaltfläche Hilfe öffnet ein Menü: „Hilfe und Tastenkürzel“, „Erste Schritte..“ und Links zu „Anleitung: virtuelle Datenträger“, „Alle Anleitungen“, „FileDO-Website“, „Dokumentation und Quellcode“ auf GitHub und „Ein Problem melden“. Ein Link wird nur verfolgt, wenn Sie ihn anklicken; nichts wird von selbst abgerufen.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Erster Start</span>
+            </h3>
+            <p>
+              <span data-l="de">Beim ersten Öffnen der Datenträgerverwaltung erscheint einmal „Willkommen in der Datenträgerverwaltung“. Das Fenster erklärt, was ein virtueller Datenträger ist, und hält die beiden Versprechen auseinander: „Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.“ „Verschlüsselt: Er öffnet sich nur mit seinem Passwort.“ Es sagt, dass Windows bei jedem Einbinden und Trennen eines Datenträgers die Zustimmung eines Administrators verlangt und dass Ihre Datenträger eingebunden bleiben, wenn das Fenster geschlossen wird. Es bietet vier Antworten an: „Meinen ersten Datenträger anlegen..“, „Eine vorhandene .fdd-Datei hinzufügen..“, „Die Anleitung auf der Website lesen“ und „Jetzt nicht“ - eine echte Antwort, die ein funktionierendes Fenster hinterlässt. Es öffnet sich erneut über Hilfe, Erste Schritte.., und eine leere Liste zeigt dieselben Wege zum Einstieg.</span>
+            </p>
+          </article>
+        </div>
+        <figure class="shot narrow">
+          <span data-l="de"><img src="../../assets/guides/gui-disk-help-de.png" width="704" height="1836" loading="lazy" alt="Die erste Seite des Hilfefensters der Datenträgerverwaltung: die Überschrift, eine Einleitung und Was eine Zeile sagt - jeder Zustand in Worten mit seinem Symbol und einem erklärenden Satz; darunter folgt die Tastentabelle" /></span>
+          <figcaption>
+            <span data-l="de">Die Hilfe öffnet sich bei Was eine Zeile sagt; die Tastentabelle, ein paar Hinweise und die Links stehen darunter.</span>
+          </figcaption>
+        </figure>
+        <figure class="shot narrow">
+          <span data-l="de"><img src="../../assets/guides/gui-disk-welcome-de.png" width="594" height="1097" loading="lazy" alt="Das Fenster beim ersten Start, Willkommen in der Datenträgerverwaltung: eine kurze Erklärung, die Worte zu verschleiert und verschlüsselt, der Hinweis auf die Zustimmung eines Administrators und die Schaltflächen Meinen ersten Datenträger anlegen.., Eine vorhandene .fdd-Datei hinzufügen.., Die Anleitung auf der Website lesen und Jetzt nicht" /></span>
+          <figcaption>
+            <span data-l="de">Das Fenster beim ersten Start: drei Wege zum Einstieg und „Jetzt nicht“ als echte Antwort.</span>
+          </figcaption>
+        </figure>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="de">Sonst ändert sich nichts</span></span
+          >
+          <p>
+            <span data-l="de">Das Format und die Sicherheitsregeln sind die oben genannten. Eine Einbindung überdauert das Fenster, und das Schließen des Fensters trennt nie. Formatieren und Vernichten behalten die einzutippende Bestätigung auf der Aufgabenseite. Die beiden Wörter behalten ihre Bedeutung: Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt; mit Passwort ist er verschlüsselt.</span>
+          </p>
+        </div>
+      </section>
+    <section id="sharing"><h2><span data-l="de">Freigabe über Fast Media Sorter &amp; Sharing</span></h2>
+        <p><span data-l="de">Die vollständige Anleitung zur Freigabe - Einrichtung, die Schritte, die Handys und die Wiederherstellung nach einem Fehler - steht auf einer eigenen Seite: <a href="fms-sharing.html">Freigabe über Fast Media Sorter &amp; Sharing</a>.</span></p>
+      </section>
+</main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "Virtuelle Datenträger mit FileDO",
+          description:
+            "FileDO-Anleitung zu virtuellen .fdd-Datenträgern: ein ganzes Volume in einer Datei, eingebunden als Laufwerk oder ohne Einbinden gelesen.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

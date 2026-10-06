@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/gui-command-builder.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/gui-command-builder.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Utiliser la fenêtre FileDO (GUI)" />
+    <meta property="og:description" content="Guide de la fenêtre FileDO : un rail de tâches avec une page chacune, la page Commande pour toute opération et les pages Protéger pour les fichiers secrets." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Utiliser la fenêtre FileDO (GUI)",
+        "headline": "Utiliser la fenêtre FileDO (GUI)",
+        "description": "Guide de la fenêtre FileDO : un rail de tâches avec une page chacune, la page Commande pour toute opération et les pages Protéger pour les fichiers secrets.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/gui-command-builder.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Utiliser la fenêtre FileDO (GUI)</title>
+    <meta
+      name="description"
+      content="Guide de la fenêtre FileDO : un rail de tâches avec une page chacune, la page Commande pour toute opération et les pages Protéger pour les fichiers secrets."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/gui-command-builder.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/gui-command-builder.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/gui-command-builder.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/gui-command-builder.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/gui-command-builder.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/gui-command-builder.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/gui-command-builder.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · FileDO GUI</span>
+        </p>
+        <h1>
+          <span data-l="fr">Choisissez la tâche, parcourez sa page, vérifiez, puis lancez.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">FileDO GUI est la fenêtre Windows pour les mêmes commandes FileDO. Elle s’ouvre sur une interface : un rail de tâches sur le côté gauche et une page numérotée par tâche - quoi traiter, quels paramètres, puis vérifier et lancer. Elle ne change pas les règles de sécurité : elle rend visibles la cible, l’opération et la commande avant l’exécution.</span>
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Quand choisir l’interface graphique</span>
+        </h2>
+        <p>
+          <span data-l="fr">Les réglages sont disponibles dans la fenêtre principale et depuis le bouton Réglages du Gestionnaire de disques. Les changements de thème s’appliquent immédiatement ; ceux de langue à la réouverture. Choisissez le lancement à l’ouverture de session Windows : Désactivé, FileDO, Gestionnaire de disques ou icône de notification uniquement. Le démarrage ne demande pas de droits d’administrateur ; son entrée reste après la désinstallation. Dans la version du Store, utilisez Paramètres Windows, Applications - Démarrage, ou le Gestionnaire des tâches. Un lancement manuel affiche toujours une fenêtre. La réduction dans la zone de notification s’applique aux deux fenêtres ; un clic sur l’icône ouvre FileDO. Son menu ouvre le gestionnaire et les réglages, arrête une tâche, démonte tous les disques montés et quitte. Quitter pendant une tâche demande quoi faire. Les notifications de fin peuvent être désactivées ; la réinitialisation des positions de fenêtre s’applique à la prochaine ouverture.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-settings-fr.png" width="2041" height="1266" loading="lazy" alt="La page Réglages dans la fenêtre principale de FileDO" /></span>
+        </figure>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-settings-fr.png" width="1061" height="1004" loading="lazy" alt="Réglages FileDO partagés dans la boîte de dialogue du Gestionnaire de disques" /></span>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vous préférez choisir une tâche</span>
+            </h3>
+            <p>
+              <span data-l="fr">Choisissez la tâche dans le rail et remplissez sa page au lieu de saisir chaque argument.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vous devez vérifier un chemin</span>
+            </h3>
+            <p>
+              <span data-l="fr">Chaque page commence par ce qu’il faut traiter et se termine par une vérification, de sorte que la cible reste sous vos yeux avant de lancer.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vous avez besoin d’une commande pour une procédure</span>
+            </h3>
+            <p>
+              <span data-l="fr">La page Commande affiche la ligne de commande : on peut la modifier, la copier ou la lancer.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Quelque chose se comporte mal</span>
+            </h3>
+            <p>
+              <span data-l="fr">La page À propos affiche la version, les liens et un bouton Envoyer les logs à l’auteur (dans l’ancienne fenêtre, le bouton À propos en haut à droite) : les logs sont regroupés dans un seul zip, le dossier s’ouvre avec lui sélectionné, le chemin va dans le presse-papiers, et votre messagerie s’ouvre avec l’adresse de l’auteur et un objet. Joindre l’archive et envoyer le message, c’est à vous de le faire - FileDO ne transmet rien lui-même.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Premier lancement sans risque</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr">Démarrez <code>filedo_win</code> depuis le paquet winget/Store, ou <code>filedo_win.exe</code> à côté de <code>filedo.exe</code> dans le ZIP portable. L’interface s’ouvre avec le rail de tâches à gauche.</span>
+          </li>
+          <li>
+            <span data-l="fr">Pour un premier contrôle, choisissez Infos sur la cible et indiquez ce qu’il faut traiter.</span>
+          </li>
+          <li>
+            <span data-l="fr">Lisez l’étape Vérifier et lancer, puis lancez. Infos sur la cible n’affiche que des informations.</span>
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo_win<button class="copy" data-copy="filedo_win"><span data-l="fr">Copier</span></button>
+        </div>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-target-info-fr.png" width="2041" height="1266" loading="lazy" alt="La fenêtre FileDO : le rail de tâches à gauche avec Infos sur la cible sélectionné ; les étapes 1-4 à droite avec la cible C:\ et la commande filedo.exe C:\ info" /></span>
+          <figcaption>
+            <span data-l="fr">Infos sur la cible : l’étape 4 affiche la cible et la commande exacte avant que quoi que ce soit ne s’exécute.</span>
+          </figcaption>
+        </figure>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Ce que la fenêtre propose</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Le rail liste les tâches, et chaque tâche ouvre une page numérotée : quoi traiter, quels paramètres, puis vérifier et lancer. Il existe des pages pour un test de capacité, un test de vitesse, les infos sur la cible, un contrôle des fichiers endommagés, un sondage direct de la capacité, la récupération d’un disque, les fichiers en double, la comparaison de deux dossiers, le remplissage de l’espace libre, la copie de fichiers et l’effacement d’un dossier ; les pages Protéger, les pages Disques, l’Historique, les Réglages et À propos se trouvent à côté. Chaque option que la CLI accepte pour une tâche figure sur sa page.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-command-fr.png" width="2041" height="1266" loading="lazy" alt="La page Commande : l’opération info, la cible, les indicateurs short et nohist, et la ligne modifiable filedo.exe C: info au-dessus du bouton Exécuter la commande" /></span>
+          <figcaption>
+            <span data-l="fr">La page Commande : opération, cible, indicateurs, et la ligne de commande elle-même, modifiable.</span>
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">La page Commande</span>
+            </h3>
+            <p>
+              <span data-l="fr">Le constructeur expert : chaque opération que prend <code>filedo.exe</code>, avec les indicateurs et les sélecteurs de règles propres à celle que vous choisissez, et la ligne de commande elle-même modifiable en dessous. Lisez-la, modifiez-la à la main, copiez-la ou lancez-la.</span>
+            </p>
+            <p>
+              <span data-l="fr">Créer un raccourci enregistre cette ligne sur votre bureau. Double-cliquez dessus pour lancer la commande dans une console ; la case cochée par défaut garde la fenêtre ouverte pour que vous puissiez lire le résultat. Un raccourci stocke ses arguments, donc une ligne contenant un mot de passe <code>p:</code> ou <code>pe:FILEDO_SHELL_CRED</code> ne peut pas être enregistrée. Retirez cet argument et saisissez le mot de passe dans la console.</span>
+            </p>
+            <p>
+              <span data-l="fr">Les opérations qui exigent un mot de passe disposent ici de leur propre champ masqué, et <code>secure</code> le demande deux fois. Le mot de passe n’entre jamais dans la ligne de commande : la ligne ne contient que <code>pe:FILEDO_SHELL_CRED</code>, le nom de la variable qui le transmet à l’exécution. Un <code>secure</code> qui supprime ou écrase l’original exige aussi <code>-y</code> depuis cette page ; sans lui, l’original est conservé et l’exécution le signale.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Les pages Protéger</span>
+            </h3>
+            <p>
+              <span data-l="fr">Trois pages rendent un fichier secret, restituent l’original et ouvrent un fichier secret sans le décompresser. Le mot de passe est masqué et saisi deux fois lors de l’empaquetage ; un mot de passe vide est accepté et ne donne qu’un camouflage, sans aucun secret.</span>
+            </p>
+            <p>
+              <span data-l="fr">Ce qui arrive à l’original se choisit avant tout lancement : le conserver (par défaut), le supprimer, ou l’écraser puis le supprimer. Seul ce dernier choix vous demande de saisir <code>WIPE</code>. L’ouverture d’un conteneur démarre une exécution qui dure exactement aussi longtemps que la copie en clair existe ; le bouton Retirer la copie maintenant y met fin.</span>
+            </p>
+            <p>
+              <span data-l="fr">Le format, ce qu’il protège et ce qu’il ne protège pas, sont décrits dans le <a href="fd-sec-containers.html">guide des fichiers secrets</a>.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Les pages Disques</span>
+            </h3>
+            <p>
+              <span data-l="fr">Dix-sept pages pour les disques virtuels <code>.fdd</code> : la liste de ce qui est monté, créer, monter, démonter, infos, vérifier, exporter une image et les autres opérations. Chaque page indique si le conteneur est camouflé ou chiffré avant tout lancement ; le mot de passe est masqué et n’atteint jamais une ligne de commande. Un disque monté reste monté à la fermeture de la fenêtre. La première ligne du groupe ouvre le Gestionnaire de disques, une seconde fenêtre qui liste tous les disques au même endroit. <a href="virtual-disks.html">Le guide des disques virtuels</a>.</span>
+            </p>
+          </article>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="fr">Même responsabilité</span></span
+          >
+          <p>
+            <span data-l="fr">L’interface graphique ne rend pas <code>wipe</code>, <code>fill … del</code> ni les modes de suppression réversibles. Vérifiez la cible et la commande avant de lancer ; sauvegardez avant les actions irréversibles. Sondage direct de la capacité et Récupérer un disque sont marqués comme destructeurs et demandent les droits d’administrateur ; Effacer un dossier exige toujours <code>WIPE</code> saisi en entier et <code>-y</code> coché, et envoie une racine de disque, un partage ou TEMP vers la console.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="fr">Façons de démarrer la fenêtre</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Sur un fichier</span>
+            </h3>
+            <p>
+              <span data-l="fr">Un double-clic sur un fichier <code>.fd-sec</code> ouvre la fenêtre sur ce conteneur. Depuis une ligne de commande, c’est la même chose avec <code>filedo_win.exe C:\a\secret.fd-sec</code>. Chaque conteneur a sa propre fenêtre.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Avec un journal de débogage</span>
+            </h3>
+            <p>
+              <span data-l="fr">La fenêtre écrit toujours ses erreurs dans <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - le fichier que Envoyer les logs transmet à l’auteur. L’option <code>-debug</code> y ajoute des lignes détaillées.</span>
+            </p>
+            <div class="copybox">
+              filedo_win.exe -debug<button
+                class="copy"
+                data-copy="filedo_win.exe -debug"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Utiliser la fenêtre FileDO (GUI)",
+          description:
+            "Guide de la fenêtre FileDO : un rail de tâches avec une page chacune, la page Commande pour toute opération et les pages Protéger pour les fichiers secrets.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

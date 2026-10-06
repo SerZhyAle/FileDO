@@ -6,6 +6,7 @@ import (
 	"io"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"filedo/vdisk"
@@ -762,4 +763,19 @@ func vdHumanSize(n int64) string {
 	default:
 		return fmt.Sprintf("%d MiB", n>>20)
 	}
+}
+
+// vdPartReadCacheEnv names the knob that sizes (or, at 0, switches off) the
+// read cache of a served partition disk. It exists for the speed measurement's
+// baseline (SP-0148 S9, manual kit H14); the product leaves it unset.
+const vdPartReadCacheEnv = "FILEDO_VD_READCACHE_MB"
+
+// vdPartReadCacheBytes is the cache cap for a served partition disk: the
+// default, or the megabytes in value when it parses as a whole number >= 0.
+func vdPartReadCacheBytes(value string) int64 {
+	mb, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	if err != nil || mb < 0 || mb > 1<<20 {
+		return vdisk.ReadCacheDefaultBytes
+	}
+	return mb << 20
 }

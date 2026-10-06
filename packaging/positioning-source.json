@@ -1,0 +1,206 @@
+{
+  "_about": "The ONE positioning source of FileDO (SITE-REPRESENTATION rules 1 and 2, SP-0157). Every external surface that lists what the product does - the landing and its two standalone locale pages, the guides hub, the five READMEs, the Store listing source, the winget manifest - is written from this list and names the pillars in this order; a surface too short for all of them names the first ones. No surface is written from another surface; where two disagree this file decides which is wrong. Read by packaging/check-external-docs.ps1, step 'positioning'. Each 'surfaces' entry names a file, the region of it that lists the pillars ('scopes', regular expressions, one region each) and, per pillar, a regular expression that finds that pillar's words in that file's language. The step fails when a region is not found, when a pillar the surface must name (the first 'names' pillars, less 'allowMissing') is not found in a region, or when the last word of one pillar comes after the first word of the next. A change of the order is a change of this file first, then of every surface.",
+  "lead": "Know your storage before you trust it.",
+  "storePolicyExceptions": [],
+  "pillars": [
+    { "id": "check",   "title": "Check",             "says": "The real capacity (fake-capacity detection), the speed and the readability of a drive, folder or network share." },
+    { "id": "tidy",    "title": "Tidy and move",     "says": "Find duplicates, compare two folders, copy large trees with progress and care for slow or damaged disks." },
+    { "id": "erase",   "title": "Erase",             "says": "Wipe a folder or fill the free space to make recovery harder, always behind a confirmation." },
+    { "id": "protect", "title": "Protect",           "says": "Pack a file or a folder into a password-protected .fd-sec container and open it again." },
+    { "id": "virtual", "title": "Virtual disks",     "says": "A whole volume in one .fdd file, mounted as a drive letter or read without mounting." }
+  ],
+  "surfaces": [
+    {
+      "file": "docs/index.html", "names": 2,
+      "why": "meta description",
+      "scopes": ["(?s)name=\"description\"\\s+content=\"[^\"]*\""],
+      "anchors": { "check": "(?i)capacity", "tidy": "(?i)duplicates" }
+    },
+    {
+      "file": "docs/index.html", "names": 2,
+      "why": "landing, what FileDO checks and does",
+      "scopes": ["(?s)id=\"why\".*?id=\"get\""],
+      "anchors": { "check": "Check storage|Check reading", "tidy": "Find duplicates|Copy and compare" }
+    },
+    {
+      "file": "docs/index.html", "names": 5,
+      "why": "landing, main capabilities",
+      "scopes": ["(?s)id=\"capabilities\".*?id=\"guides\""],
+      "anchors": {
+        "check": "Capacity &amp; speed|Read check",
+        "tidy": "<h3>Duplicates</h3>|Copy &amp; compare",
+        "erase": "Wipe &amp; fill",
+        "protect": "Secret files",
+        "virtual": "Virtual disks"
+      }
+    },
+    {
+      "file": "docs/de/index.html", "names": 2,
+      "why": "meta description",
+      "scopes": ["(?s)name=\"description\"\\s+content=\"[^\"]*\""],
+      "anchors": { "check": "Kapazität", "tidy": "Duplikate" }
+    },
+    {
+      "file": "docs/de/index.html", "names": 2,
+      "why": "landing, what FileDO checks and does",
+      "scopes": ["(?s)id=\"why\".*?id=\"get\""],
+      "anchors": { "check": "Speicher prüfen|Lesen prüfen", "tidy": "Duplikate finden|Kopieren und vergleichen" }
+    },
+    {
+      "file": "docs/de/index.html", "names": 5,
+      "why": "landing, main capabilities",
+      "scopes": ["(?s)id=\"capabilities\".*?id=\"guides\""],
+      "anchors": {
+        "check": "Kapazität &amp; Tempo|Leseprüfung",
+        "tidy": "<h3>Duplikate</h3>|Kopieren &amp; Vergleichen",
+        "erase": "Löschen &amp; Füllen",
+        "protect": "Geheime Dateien",
+        "virtual": "Virtuelle Datenträger"
+      }
+    },
+    {
+      "file": "docs/fr/index.html", "names": 2,
+      "why": "meta description",
+      "scopes": ["(?s)name=\"description\"\\s+content=\"[^\"]*\""],
+      "anchors": { "check": "capacité", "tidy": "doublons" }
+    },
+    {
+      "file": "docs/fr/index.html", "names": 2,
+      "why": "landing, what FileDO checks and does",
+      "scopes": ["(?s)id=\"why\".*?id=\"get\""],
+      "anchors": { "check": "Vérifier le stockage|Vérifier la lecture", "tidy": "Trouver les doublons|Copier et comparer" }
+    },
+    {
+      "file": "docs/fr/index.html", "names": 5,
+      "why": "landing, main capabilities",
+      "scopes": ["(?s)id=\"capabilities\".*?id=\"guides\""],
+      "anchors": {
+        "check": "Capacité &amp; vitesse|Contrôle de lecture",
+        "tidy": "<h3>Doublons</h3>|Copie &amp; comparaison",
+        "erase": "Effacer &amp; remplir",
+        "protect": "Fichiers secrets",
+        "virtual": "Disques virtuels"
+      }
+    },
+    {
+      "file": "docs/guides/index.html", "names": 5, "allowMissing": ["erase"],
+      "why": "guides hub: no guide for erasing exists yet (renewed exception, SP-0157)",
+      "scopes": ["(?s)class=\"grid guide-grid\".*?</nav>"],
+      "anchors": { "check": "Check storage", "tidy": "Duplicates, copy", "protect": "Secret files", "virtual": "Virtual disks" }
+    },
+    {
+      "file": "docs/de/guides/index.html", "names": 5, "allowMissing": ["erase"],
+      "why": "guides hub: no guide for erasing exists yet (renewed exception, SP-0157)",
+      "scopes": ["(?s)class=\"grid guide-grid\".*?</nav>"],
+      "anchors": { "check": "Speicher prüfen", "tidy": "Duplikate, Kopieren", "protect": "Geheime Dateien", "virtual": "Virtuelle Datenträger" }
+    },
+    {
+      "file": "docs/fr/guides/index.html", "names": 5, "allowMissing": ["erase"],
+      "why": "guides hub: no guide for erasing exists yet (renewed exception, SP-0157)",
+      "scopes": ["(?s)class=\"grid guide-grid\".*?</nav>"],
+      "anchors": { "check": "Vérifier le stockage", "tidy": "Doublons, copie", "protect": "Fichiers secrets", "virtual": "Disques virtuels" }
+    },
+    {
+      "file": "README.md", "names": 3,
+      "why": "README lead: the bold line, then the italic summary",
+      "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$", "(?m)^\\*[^*\\r\\n][^\\r\\n]*\\*[ \\t\\r]*$"],
+      "anchors": { "check": "(?i)capacity|speed|testing|performance", "tidy": "(?i)duplicate", "erase": "(?i)wip" }
+    },
+    {
+      "file": "README.ru.md", "names": 3,
+      "why": "README lead: the bold line, then the italic summary",
+      "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$", "(?m)^\\*[^*\\r\\n][^\\r\\n]*\\*[ \\t\\r]*$"],
+      "anchors": { "check": "(?i)ёмкост|скорост|тестирован|производительност", "tidy": "(?i)дубликат", "erase": "(?i)удален|очистк" }
+    },
+    {
+      "file": "README.ua.md", "names": 3,
+      "why": "README lead: the bold line, then the italic summary",
+      "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$", "(?m)^\\*[^*\\r\\n][^\\r\\n]*\\*[ \\t\\r]*$"],
+      "anchors": { "check": "(?i)ємност|місткост|швидкост|тестуван|продуктивн", "tidy": "(?i)дублікат", "erase": "(?i)видален|очищенн" }
+    },
+    {
+      "file": "README.de.md", "names": 3,
+      "why": "README lead: the bold line",
+      "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$"],
+      "anchors": { "check": "(?i)test|leistung|kapazität", "tidy": "(?i)duplikat", "erase": "(?i)löschen" }
+    },
+    {
+      "file": "README.fr.md", "names": 3,
+      "why": "README lead: the bold line",
+      "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$"],
+      "anchors": { "check": "(?i)test|performance|capacité", "tidy": "(?i)doublons", "erase": "(?i)suppression" }
+    },
+    {
+      "file": "msix/listing/en.txt", "names": 4,
+      "why": "Store listing: the short description",
+      "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?i)capacity|speed|fake", "tidy": "(?i)duplicate", "erase": "(?i)wipe", "protect": "(?i)password" }
+    },
+    {
+      "file": "msix/listing/en.txt", "names": 5,
+      "why": "Store listing: the section headings of the long description",
+      "scopes": ["(?s)@@Description\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?m)^CHECK[ \\t\\r]*$", "tidy": "(?m)^TIDY AND MOVE[ \\t\\r]*$", "erase": "(?m)^ERASE[ \\t\\r]*$", "protect": "(?m)^PROTECT[ \\t\\r]*$", "virtual": "(?m)^VIRTUAL DISKS[ \\t\\r]*$" }
+    },
+    {
+      "file": "msix/listing/ru.txt", "names": 4,
+      "why": "Store listing: the short description",
+      "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?i)ёмкост|скорост|подделк", "tidy": "(?i)дубликат", "erase": "(?i)стирайт", "protect": "(?i)парол" }
+    },
+    {
+      "file": "msix/listing/ru.txt", "names": 5,
+      "why": "Store listing: the section headings of the long description",
+      "scopes": ["(?s)@@Description\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?m)^ПРОВЕРКА[ \\t\\r]*$", "tidy": "(?m)^ПОРЯДОК И ПЕРЕНОС[ \\t\\r]*$", "erase": "(?m)^СТИРАНИЕ[ \\t\\r]*$", "protect": "(?m)^ЗАЩИТА[ \\t\\r]*$", "virtual": "(?m)^ВИРТУАЛЬНЫЕ ДИСКИ[ \\t\\r]*$" }
+    },
+    {
+      "file": "msix/listing/uk.txt", "names": 4,
+      "why": "Store listing: the short description",
+      "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?i)ємніст|швидкіст|підробк", "tidy": "(?i)дублікат", "erase": "(?i)стирайт", "protect": "(?i)парол" }
+    },
+    {
+      "file": "msix/listing/uk.txt", "names": 5,
+      "why": "Store listing: the section headings of the long description",
+      "scopes": ["(?s)@@Description\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?m)^ПЕРЕВІРКА[ \\t\\r]*$", "tidy": "(?m)^ПОРЯДОК І ПЕРЕНЕСЕННЯ[ \\t\\r]*$", "erase": "(?m)^СТИРАННЯ[ \\t\\r]*$", "protect": "(?m)^ЗАХИСТ[ \\t\\r]*$", "virtual": "(?m)^ВІРТУАЛЬНІ ДИСКИ[ \\t\\r]*$" }
+    },
+    {
+      "file": "msix/listing/de.txt", "names": 4,
+      "why": "Store listing: the short description",
+      "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?i)kapazität|geschwindigkeit|gefälscht", "tidy": "(?i)doppelte", "erase": "(?i)löschen sie", "protect": "(?i)passwort" }
+    },
+    {
+      "file": "msix/listing/de.txt", "names": 5,
+      "why": "Store listing: the section headings of the long description",
+      "scopes": ["(?s)@@Description\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?m)^PRÜFEN[ \\t\\r]*$", "tidy": "(?m)^AUFRÄUMEN UND VERSCHIEBEN[ \\t\\r]*$", "erase": "(?m)^LÖSCHEN[ \\t\\r]*$", "protect": "(?m)^SCHÜTZEN[ \\t\\r]*$", "virtual": "(?m)^VIRTUELLE DATENTRÄGER[ \\t\\r]*$" }
+    },
+    {
+      "file": "msix/listing/fr.txt", "names": 4,
+      "why": "Store listing: the short description",
+      "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?i)capacité|vitesse|faux", "tidy": "(?i)en double", "erase": "(?i)effacez", "protect": "(?i)mot de passe" }
+    },
+    {
+      "file": "msix/listing/fr.txt", "names": 5,
+      "why": "Store listing: the section headings of the long description",
+      "scopes": ["(?s)@@Description\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
+      "anchors": { "check": "(?m)^VÉRIFIER[ \\t\\r]*$", "tidy": "(?m)^RANGER ET DÉPLACER[ \\t\\r]*$", "erase": "(?m)^EFFACER[ \\t\\r]*$", "protect": "(?m)^PROTÉGER[ \\t\\r]*$", "virtual": "(?m)^DISQUES VIRTUELS[ \\t\\r]*$" }
+    },
+    {
+      "file": "winget/SerZhyAle.FileDO.locale.en-US.yaml", "names": 3,
+      "why": "winget manifest: the short description",
+      "scopes": ["(?m)^ShortDescription:[^\\r\\n]*"],
+      "anchors": { "check": "(?i)testing|fake", "tidy": "(?i)duplicate", "erase": "(?i)wipe" }
+    },
+    {
+      "file": "winget/SerZhyAle.FileDO.locale.en-US.yaml", "names": 5,
+      "why": "winget manifest: the long description",
+      "scopes": ["(?ms)^Description: \\|-.*?(?=^Moniker)"],
+      "anchors": { "check": "fake USB/SD|benchmarks", "tidy": "duplicate files|copies\\s+large trees", "erase": "wipes", "protect": "password-protected", "virtual": "Virtual disks" }
+    }
+  ]
+}

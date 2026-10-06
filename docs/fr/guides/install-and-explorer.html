@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/install-and-explorer.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/install-and-explorer.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/install-and-explorer.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/install-and-explorer.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/install-and-explorer.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Installer FileDO et l’ajouter à l’Explorateur" />
+    <meta property="og:description" content="Quelle installation de FileDO choisir, ce que le MSI écrit sur votre machine et comment ajouter ou retirer vous-même les entrées de l’Explorateur." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Installer FileDO et l’ajouter à l’Explorateur",
+        "headline": "Installer FileDO et l’ajouter à l’Explorateur",
+        "description": "Quelle installation de FileDO choisir, ce que le MSI écrit sur votre machine et comment ajouter ou retirer vous-même les entrées de l’Explorateur.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/install-and-explorer.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Installer FileDO et l’ajouter à l’Explorateur</title>
+    <meta
+      name="description"
+      content="Quelle installation de FileDO choisir, ce que le MSI écrit sur votre machine et comment ajouter ou retirer vous-même les entrées de l’Explorateur."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/install-and-explorer.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/install-and-explorer.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/install-and-explorer.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installation</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/install-and-explorer.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/install-and-explorer.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/install-and-explorer.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/install-and-explorer.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · Installation</span>
+        </p>
+        <h1>
+          <span data-l="fr">Installez FileDO comme un programme Windows - et décidez ce qu’il ajoute à votre système.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">FileDO est avant tout un outil en ligne de commande, mais il s’installe comme un programme ordinaire : une fenêtre, des raccourcis, le type de document <code>.fd-sec</code> et des entrées dans le menu contextuel de l’Explorateur. Rien de tout cela n’apparaît en silence - le programme d’installation demande, et la version portable n’enregistre rien du tout tant que vous ne le demandez pas.</span>
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="fr">Choisir comment installer</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Programme d’installation (setup EXE)</span>
+            </h3>
+            <p>
+              <span data-l="fr">L’option complète : les fichiers dans <code>Program Files</code>, <code>filedo</code> dans le <code>PATH</code>, des raccourcis et - si vous la laissez cochée - l’intégration à l’Explorateur. La désinstallation reprend tout.</span>
+            </p>
+            <p>
+              <a
+                class="btn btn-primary btn-sm"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                ><span data-l="fr">Télécharger setup.exe</span></a
+              >
+            </p>
+            <div class="copybox">FileDO-&lt;version&gt;-setup.exe</div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">winget ou ZIP</span>
+            </h3>
+            <p>
+              <span data-l="fr">Rapide, et aucun programme d’installation ne s’exécute. Les commandes fonctionnent aussitôt ; les entrées de l’Explorateur relèvent d’une commande distincte - voir plus bas.</span>
+            </p>
+            <div class="copybox">
+              winget install SerZhyAle.FileDO<button
+                class="copy"
+                data-copy="winget install SerZhyAle.FileDO"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Microsoft Store</span>
+            </h3>
+            <p>
+              <span data-l="fr">La tuile FileDO et la commande <code>filedo</code> dans n’importe quel terminal. Cette version n’a pas encore d’entrées dans l’Explorateur : un paquet ne peut les obtenir que par un gestionnaire shell signé, ce qui est un travail distinct.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="first-run">
+        <h2>
+          <span data-l="fr">Premier lancement : ce que Windows va dire</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr">Prenez <code>FileDO-&lt;version&gt;-setup.exe</code> dans la dernière release. Un fichier <code>.sha256</code> se trouve à côté.</span>
+          </li>
+          <li>
+            <span data-l="fr">Vérifiez le hachage : la ligne qu’affiche la commande ci-dessous doit correspondre au contenu du fichier <code>.sha256</code>. C’est ainsi que vous savez que le fichier est bien celui qui a été publié.</span>
+          </li>
+          <li>
+            <span data-l="fr">Lancez le fichier. Le programme d’installation n’est pas signé numériquement, donc Windows peut afficher « Windows a protégé votre ordinateur ». Cela signifie seulement que le système ne connaît pas l’éditeur d’un nouveau fichier non signé - ce n’est pas un constat sur le contenu. Choisissez « Informations complémentaires », puis « Exécuter quand même ». <a href="install-trust.html" >Pourquoi, et ce que l’application ne fait jamais</a >.</span>
+          </li>
+          <li>
+            <span data-l="fr">Windows demande ensuite l’autorisation de l’administrateur : les programmes vont dans <code>C:\Program Files\FileDO</code> et les entrées de l’Explorateur sont écrites dans le registre de la machine.</span>
+          </li>
+        </ol>
+        <div class="copybox">
+          certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
+        </div>
+        <p class="intro">
+          <span data-l="fr">Pour mettre à jour, lancez le setup EXE plus récent : il remplace la copie installée au lieu d’en ajouter une seconde.</span>
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="fr">Ce que fait le programme d’installation</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">La page « Choose what to install » propose quatre fonctionnalités. La première est obligatoire ; vous pouvez décocher les trois autres maintenant, ou les modifier plus tard avec Modifier dans « Applications et fonctionnalités ».</span>
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="fr"><b>FileDO program</b> - les programmes dans <code>C:\Program Files\FileDO</code>, <code>filedo</code> dans le <code>PATH</code> système et deux entrées du menu Démarrer : FileDO, et <b>FileDO Disk Manager</b>, qui ouvre directement le <a href="virtual-disks.html#manager">Gestionnaire de disques</a>.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Explorer right-click menu</b> - le groupe <code>File DO..</code> dans le menu de chaque fichier, et le type de document <code>.fd-sec</code> avec sa propre icône.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Disk container files (.fdd)</b> - le type de fichier <code>.fdd</code> des disques virtuels avec sa propre icône : un double-clic ouvre la fenêtre FileDO et monte le conteneur, et le menu contextuel ajoute Mount read-only et Unmount. <a href="virtual-disks.html#explorer">Disques virtuels</a>.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Desktop icon</b> - une icône sur le bureau qui ouvre la même fenêtre que l’entrée FileDO du menu Démarrer.</span>
+          </li>
+        </ol>
+        <figure class="shot">
+          <img
+            src="../../assets/guides/msi-customize.png"
+            width="807"
+            height="631"
+            loading="lazy"
+            alt="FileDO Setup, page Choose what to install: the feature tree FileDO program with Explorer right-click menu and Desktop icon under it"
+          />
+          <figcaption>
+            <span data-l="fr">Le programme d’installation est en anglais quelle que soit la langue de Windows, donc une seule image suffit.</span>
+          </figcaption>
+        </figure>
+        <p class="intro">
+          <span data-l="fr">Pour un déploiement sans surveillance, les fonctionnalités se choisissent par leur nom :</span>
+        </p>
+        <div class="copybox">
+          FileDO-&lt;version&gt;-setup.exe /quiet<button
+            class="copy"
+            data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="copybox">
+          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
+            class="copy"
+            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="copybox">
+          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main<button
+            class="copy"
+            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <p class="intro">
+          <span data-l="fr"><code>/quiet</code> installe tout sans rien demander, <code>/uninstall</code> reprend tout. Le <code>.msi</code> nu est publié à côté - c’est exactement le fichier que contient le setup EXE - et c’est celui à utiliser quand un outil de déploiement veut les noms des fonctionnalités.</span>
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="fr">Contenu du groupe « File DO.. »</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Faites un clic droit sur un fichier, <code>File DO..</code>, et un sous-menu de dix entrées s’ouvre. Chacune ouvre une fenêtre de console, pose les questions nécessaires et reste à l’écran jusqu’à ce que vous appuyiez sur Entrée.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Emballer</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Secure</b> place le fichier dans un conteneur <code>.fd-sec</code> à côté de lui et conserve l’original. <b>Secure and delete original</b> supprime ensuite l’original - une suppression ordinaire, et l’entrée de menu que vous avez choisie vaut confirmation, donc rien n’est demandé deux fois. <b>Secure and wipe original</b> l’écrase sur place, et celle-ci demande encore de taper WIPE : aucun outil de récupération ne le ramène. <b>Secure with a random name</b> donne au conteneur un nom aléatoire sans extension. L’original n’est touché qu’une fois le conteneur vérifié bloc par bloc.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Déballer</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Unsecure</b> ressort définitivement l’original d’un conteneur, horodatages compris. <b>Unsecure and delete container</b> fait de même et supprime le conteneur. <b>Unsecure and start</b> ouvre le fichier restauré avec son programme habituel sans laisser de copie extraite à côté du conteneur : elle va dans <code>%LOCALAPPDATA%\FileDO\reveal</code>, que seuls vous et le système pouvez lire, et est supprimée quand vous fermez la console ; un double-clic sur un <code>.fd-sec</code> est exactement cette commande, le mot de passe étant demandé dans la console qu’elle ouvre. Pour un simple coup d’œil sans rien conserver ensuite, il existe une commande distincte, <code>reveal</code> - saisie à la main. <a href="fd-sec-containers.html" >En savoir plus sur les conteneurs</a >.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Et sans aucun conteneur</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Wipe this file</b> écrase le fichier sur place puis le supprime ; la console vous demande de taper <code>WIPE</code> et dit sans détour ce que vaut un écrasement sur un SSD. <b>Check this file</b> lit le fichier et indique s’il se lit sans erreur. <b>Info</b> affiche la taille, les attributs, le type et les dates.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="fr">Les entrées de l’Explorateur sans programme d’installation</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">winget, l’archive zip portable et <code>go install</code> ne lancent aucun programme d’installation et n’enregistrent rien. Demandez vous-même les entrées, et reprenez-les de la même façon :</span>
+        </p>
+        <div class="copybox">
+          filedo fdsec register<button
+            class="copy"
+            data-copy="filedo fdsec register"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="copybox">
+          filedo fdsec register -all-users<button
+            class="copy"
+            data-copy="filedo fdsec register -all-users"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="copybox">
+          filedo fdsec unregister<button
+            class="copy"
+            data-copy="filedo fdsec unregister"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Pour vous, ou pour la machine</span>
+            </h3>
+            <p>
+              <span data-l="fr">Sans option, les entrées ne concernent que vous et n’exigent aucun administrateur. <code>-all-users</code> les écrit pour toute la machine et exige une console élevée.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Seul ce qui a été écrit est retiré</span>
+            </h3>
+            <p>
+              <span data-l="fr">FileDO marque ses propres entrées et ne touche à rien d’autre. Si <code>.fd-sec</code> appartenait auparavant à un autre programme, il lui est rendu.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>
+          <span data-l="fr">Bon à savoir</span>
+        </h2>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Windows 11</span></span
+          >
+          <p>
+            <span data-l="fr">Sous Windows 11, les entrées de FileDO se trouvent sous « Afficher d’autres options » - c’est là que le système place toute entrée de menu classique, et non le signe d’une installation incomplète.</span>
+          </p>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Double-clic</span></span
+          >
+          <p>
+            <span data-l="fr">Un double-clic sur un <code>.fd-sec</code> équivaut exactement à l’entrée de menu « Unsecure and start » : une fenêtre de console s’ouvre, demande le mot de passe, restaure l’original sous son vrai nom dans <code>%LOCALAPPDATA%\FileDO\reveal</code> - un dossier que seuls vous et le système pouvez lire - et l’ouvre aussitôt dans le programme auquel appartient sa véritable extension : un <code>.txt</code> empaqueté s’ouvre dans votre éditeur de texte, une vidéo dans votre lecteur. La copie est supprimée quand vous fermez cette fenêtre de console ; si le programme a encore le fichier ouvert, le démarrage suivant de FileDO la supprime. Le conteneur reste en place. Si vous voulez que le fichier reste, utilisez <b>Unsecure</b> sans démarrage - il remet définitivement l’original à côté du conteneur. Il n’y a pas d’entrée de menu distincte pour le double-clic et il n’en faut pas - c’est l’association propre à l’extension qui s’exécute. Un exécutable ou un script restauré ainsi s’ouvre exactement comme lors d’un double-clic ordinaire dessus - aucun refus supplémentaire sur ce chemin.</span>
+          </p>
+        </div>
+      </section>
+    <p><span data-l="fr">Partage de disque via SFTP avec Fast Media Sorter &amp; Sharing : enregistrement dans le Gestionnaire de disques, installation, mots de passe et reprise après une étape échouée.</span> <a href="fms-sharing.html"><span data-l="fr">Instructions</span></a></p>
+</main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Installer FileDO et l’ajouter à l’Explorateur",
+          description:
+            "Quelle installation de FileDO choisir, ce que le MSI écrit sur votre machine et comment ajouter ou retirer vous-même les entrées de l’Explorateur.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

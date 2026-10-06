@@ -563,3 +563,17 @@ func TestVDPart_WordIsPath(t *testing.T) {
 		t.Fatal("a locator or an empty word is taken as a path")
 	}
 }
+
+// The cache cap of a served partition disk: the default, an override in
+// megabytes for the speed measurement, 0 for none, and nonsense falls back.
+func TestVDPart_ReadCacheBytes(t *testing.T) {
+	def := vdisk.ReadCacheDefaultBytes
+	for _, c := range []struct {
+		in   string
+		want int64
+	}{{"", def}, {"  ", def}, {"abc", def}, {"-5", def}, {"99999999999", def}, {"0", 0}, {"64", 64 << 20}, {" 512 ", 512 << 20}} {
+		if got := vdPartReadCacheBytes(c.in); got != c.want {
+			t.Errorf("vdPartReadCacheBytes(%q) = %d, want %d", c.in, got, c.want)
+		}
+	}
+}

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/gui-command-builder.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/gui-command-builder.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/gui-command-builder.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="FileDO-Fenster (GUI) verwenden" />
+    <meta property="og:description" content="Anleitung zum FileDO-Fenster: eine Leiste mit Aufgaben, je eine Seite, die Seite „Befehl“ für jede Operation und „Schützen“ für geheime Dateien." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "FileDO-Fenster (GUI) verwenden",
+        "headline": "FileDO-Fenster (GUI) verwenden",
+        "description": "Anleitung zum FileDO-Fenster: eine Leiste mit Aufgaben, je eine Seite, die Seite „Befehl“ für jede Operation und „Schützen“ für geheime Dateien.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/gui-command-builder.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO-Fenster (GUI) verwenden</title>
+    <meta
+      name="description"
+      content="Anleitung zum FileDO-Fenster: eine Leiste mit Aufgaben, je eine Seite, die Seite „Befehl“ für jede Operation und „Schützen“ für geheime Dateien."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/gui-command-builder.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/gui-command-builder.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/gui-command-builder.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/gui-command-builder.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/gui-command-builder.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/gui-command-builder.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/gui-command-builder.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · FileDO GUI</span>
+        </p>
+        <h1>
+          <span data-l="de">Aufgabe wählen, ihre Seite durcharbeiten, prüfen, dann ausführen.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">FileDO GUI ist das Windows-Fenster für dieselben FileDO-Befehle. Es öffnet sich als Shell: links eine Leiste mit den Aufgaben und je Aufgabe eine nummerierte Seite - was bearbeitet wird, welche Parameter, dann Prüfen und Ausführen. Die Sicherheitsregeln ändert es nicht: Es macht Ziel, Operation und Befehl vor der Ausführung sichtbar.</span>
+        </p>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Wann die GUI die richtige Wahl ist</span>
+        </h2>
+        <p>
+          <span data-l="de">Die Einstellungen sind im Hauptfenster und über die Schaltfläche „Einstellungen“ der Datenträgerverwaltung erreichbar. Designwechsel gelten sofort; Sprachwechsel gelten nach dem erneuten Öffnen. Wählen Sie den Start bei der Windows-Anmeldung: Aus, FileDO, Datenträgerverwaltung oder nur das Symbol im Infobereich. Für den Start sind keine Administratorrechte nötig; der Eintrag bleibt nach dem Deinstallieren bestehen. In der Store-Version nutzen Sie die Windows-Einstellungen, Apps - Autostart, oder den Task-Manager. Ein manueller Start zeigt immer ein Fenster. „In den Infobereich minimieren“ gilt für beide Fenster; ein Klick auf das Symbol öffnet FileDO. Sein Menü öffnet die Verwaltung und die Einstellungen, stoppt eine Aufgabe, trennt alle eingebundenen Datenträger und beendet das Programm. Beenden während einer Aufgabe fragt nach, was geschehen soll. Benachrichtigungen am Ende können abgeschaltet werden; das Zurücksetzen der Fensterpositionen gilt beim nächsten Öffnen.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-settings-de.png" width="2041" height="1266" loading="lazy" alt="Die Seite „Einstellungen“ im FileDO-Hauptfenster" /></span>
+        </figure>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-disk-settings-de.png" width="1061" height="1004" loading="lazy" alt="Gemeinsame FileDO-Einstellungen im Dialog der Datenträgerverwaltung" /></span>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Sie wählen lieber eine Aufgabe</span>
+            </h3>
+            <p>
+              <span data-l="de">Wählen Sie die Aufgabe in der Leiste und füllen Sie ihre Seite aus, statt jedes Argument zu tippen.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Sie müssen einen Pfad prüfen</span>
+            </h3>
+            <p>
+              <span data-l="de">Jede Seite beginnt mit dem Ziel und endet mit einer Prüfung, sodass Sie das Ziel vor dem Start vor Augen haben.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Sie brauchen einen Befehl für eine Anleitung</span>
+            </h3>
+            <p>
+              <span data-l="de">Die Seite „Befehl“ zeigt die Befehlszeile: Sie lässt sich bearbeiten, kopieren oder ausführen.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Etwas verhält sich falsch</span>
+            </h3>
+            <p>
+              <span data-l="de">Die Seite „Über“ zeigt den Build, die Links und eine Schaltfläche „Logs an den Autor senden“ (im älteren Fenster die Schaltfläche „Über“ oben rechts): Die Logs werden in ein ZIP gepackt, der Ordner öffnet sich mit markierter Datei, der Pfad landet in der Zwischenablage, und Ihr Mailprogramm öffnet sich mit der Adresse des Autors und einem Betreff. Das Archiv anzuhängen und die Mail abzuschicken ist Ihr Schritt - FileDO selbst überträgt nichts.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Erster sicherer Lauf</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="de">Starten Sie <code>filedo_win</code> aus dem winget-/Store-Paket oder <code>filedo_win.exe</code> neben <code>filedo.exe</code> im portablen ZIP. Die Shell öffnet sich mit der Leiste der Aufgaben links.</span>
+          </li>
+          <li>
+            <span data-l="de">Wählen Sie für eine erste Prüfung „Ziel-Informationen“ und legen Sie fest, was bearbeitet wird.</span>
+          </li>
+          <li>
+            <span data-l="de">Lesen Sie den Schritt „Prüfen und starten“ und führen Sie ihn dann aus. „Ziel-Informationen“ zeigt nur Informationen an.</span>
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo_win<button class="copy" data-copy="filedo_win"><span data-l="de">Kopieren</span></button>
+        </div>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-target-info-de.png" width="2041" height="1266" loading="lazy" alt="Das FileDO-Fenster: links die Leiste der Aufgaben mit gewählter Seite „Ziel-Informationen“; rechts die Schritte 1-4 mit dem Ziel C:\ und dem Befehl filedo.exe C:\ info" /></span>
+          <figcaption>
+            <span data-l="de">Ziel-Informationen: Schritt 4 zeigt das Ziel und den genauen Befehl, bevor etwas läuft.</span>
+          </figcaption>
+        </figure>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Was das Fenster bietet</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Die Leiste listet die Aufgaben, und jede Aufgabe öffnet eine nummerierte Seite: was bearbeitet wird, welche Parameter, dann Prüfen und Starten. Es gibt Seiten für einen Kapazitätstest, einen Geschwindigkeitstest, Ziel-Informationen, eine Prüfung auf beschädigte Dateien, eine direkte Kapazitätsprüfung, die Wiederherstellung eines Laufwerks, doppelte Dateien, den Vergleich zweier Ordner, das Füllen des freien Speichers, das Kopieren von Dateien und das Leeren eines Ordners; daneben stehen die Seiten „Schützen“, die Seiten „Datenträger“, „Verlauf“, „Einstellungen“ und „Über“. Jede Option, die die CLI für eine Aufgabe kennt, steht auf ihrer Seite.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-command-de.png" width="2041" height="1266" loading="lazy" alt="Die Seite „Befehl“: die Operation info, das Ziel, die Schalter short und nohist und die bearbeitbare Zeile filedo.exe C: info über der Schaltfläche „Befehl ausführen“" /></span>
+          <figcaption>
+            <span data-l="de">Die Seite „Befehl“: Operation, Ziel, Schalter und die Befehlszeile selbst, bearbeitbar.</span>
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Die Seite „Befehl“</span>
+            </h3>
+            <p>
+              <span data-l="de">Der Experten-Baukasten: jede Operation, die <code>filedo.exe</code> kennt, mit den Schaltern und Regelauswahlen, die zur gewählten Operation gehören, und der bearbeitbaren Befehlszeile darunter. Lesen, von Hand bearbeiten, kopieren oder ausführen.</span>
+            </p>
+            <p>
+              <span data-l="de">„Verknüpfung erstellen“ speichert diese Zeile auf Ihrem Desktop. Ein Doppelklick führt den Befehl in einer Konsole aus; das Standard-Kontrollkästchen hält das Fenster offen, damit Sie das Ergebnis lesen können. Eine Verknüpfung speichert ihre Argumente, deshalb lässt sich eine Zeile mit einem Passwort <code>p:</code> oder mit <code>pe:FILEDO_SHELL_CRED</code> nicht speichern. Entfernen Sie dieses Argument und geben Sie das Passwort in der Konsole ein.</span>
+            </p>
+            <p>
+              <span data-l="de">Operationen, die ein Passwort brauchen, erhalten hier ein eigenes maskiertes Feld, und <code>secure</code> fragt zweimal. Das Passwort gelangt nie in die Befehlszeile: Die Zeile enthält nur <code>pe:FILEDO_SHELL_CRED</code>, den Namen der Variablen, die es an den Lauf weitergibt. Ein <code>secure</code>, das das Original löscht oder überschreibt, braucht von hier aus außerdem <code>-y</code>; ohne es bleibt das Original erhalten, und der Lauf sagt das.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Die Seiten „Schützen“</span>
+            </h3>
+            <p>
+              <span data-l="de">Drei Seiten machen eine Datei geheim, holen das Original zurück und öffnen eine geheime Datei ohne Entpacken. Das Passwort wird maskiert und beim Packen zweimal eingegeben; ein leeres Passwort wird akzeptiert und bedeutet nur Verschleierung, ohne Geheimhaltung.</span>
+            </p>
+            <p>
+              <span data-l="de">Was mit dem Original geschieht, wird gewählt, bevor etwas läuft: behalten (Standard), löschen oder überschreiben und dann löschen. Nur Letzteres verlangt, dass Sie <code>WIPE</code> eintippen. Das Öffnen eines Containers startet einen Lauf, der genau so lange dauert, wie die Klartextkopie existiert; die Schaltfläche „Kopie jetzt entfernen“ beendet ihn.</span>
+            </p>
+            <p>
+              <span data-l="de">Das Format und was es schützt und was nicht, steht in der <a href="fd-sec-containers.html">Anleitung zu geheimen Dateien</a>.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Die Seiten „Datenträger“</span>
+            </h3>
+            <p>
+              <span data-l="de">Siebzehn Seiten für die virtuellen <code>.fdd</code>-Datenträger: die Liste der eingebundenen, anlegen, einbinden, trennen, Info, prüfen, ein Abbild exportieren und die übrigen Operationen. Jede Seite sagt, ob der Container verschleiert oder verschlüsselt ist, bevor etwas läuft; das Passwort wird maskiert und gelangt nie in eine Befehlszeile. Ein eingebundener Datenträger bleibt eingebunden, wenn das Fenster geschlossen wird. Die erste Zeile der Gruppe öffnet die Datenträgerverwaltung, ein zweites Fenster, das alle Datenträger an einer Stelle auflistet. <a href="virtual-disks.html">Die Anleitung zu virtuellen Datenträgern</a>.</span>
+            </p>
+          </article>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="de">Gleiche Verantwortung</span></span
+          >
+          <p>
+            <span data-l="de">Die GUI macht <code>wipe</code>, <code>fill … del</code> oder Löschmodi nicht umkehrbar. Prüfen Sie Ziel und Befehl vor dem Start; sichern Sie Ihre Daten vor unwiderruflichen Aktionen. „Direkte Kapazitätsprüfung“ und „Laufwerk wiederherstellen“ sind als zerstörerisch markiert und verlangen Administratorrechte; „Ordner leeren“ verlangt weiterhin das ausgeschriebene <code>WIPE</code> und das gesetzte <code>-y</code> und schickt ein Laufwerks-Stammverzeichnis, eine Freigabe oder TEMP in die Konsole.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section">
+        <h2>
+          <span data-l="de">Wege, das Fenster zu starten</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Auf einer Datei</span>
+            </h3>
+            <p>
+              <span data-l="de">Ein Doppelklick auf eine <code>.fd-sec</code>-Datei öffnet das Fenster auf diesem Container. Von der Befehlszeile aus ist dasselbe <code>filedo_win.exe C:\a\secret.fd-sec</code>. Jeder Container bekommt sein eigenes Fenster.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Mit Debug-Log</span>
+            </h3>
+            <p>
+              <span data-l="de">Das Fenster schreibt seine Fehler immer nach <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - die Datei, die „Logs an den Autor senden“ weitergibt. Der Schalter <code>-debug</code> fügt ihr ausführliche Zeilen hinzu.</span>
+            </p>
+            <div class="copybox">
+              filedo_win.exe -debug<button
+                class="copy"
+                data-copy="filedo_win.exe -debug"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "FileDO-Fenster (GUI) verwenden",
+          description:
+            "Anleitung zum FileDO-Fenster: eine Leiste mit Aufgaben, je eine Seite, die Seite „Befehl“ für jede Operation und „Schützen“ für geheime Dateien.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

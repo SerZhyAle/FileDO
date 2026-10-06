@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="FileDO-Datenträger mit Fast Media Sorter freigeben" />
+    <meta property="og:description" content="Schritt für Schritt: einen virtuellen FileDO-Datenträger über Fast Media Sorter &amp; Sharing für Handys freigeben - und was tun, wenn das nicht geht." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "FileDO-Datenträger mit Fast Media Sorter freigeben",
+        "headline": "FileDO-Datenträger mit Fast Media Sorter freigeben",
+        "description": "Schritt für Schritt: einen virtuellen FileDO-Datenträger über Fast Media Sorter & Sharing für Handys freigeben - und was tun, wenn das nicht geht.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO-Datenträger mit Fast Media Sorter freigeben</title>
+    <meta
+      name="description"
+      content="Schritt für Schritt: einen virtuellen FileDO-Datenträger über Fast Media Sorter &amp; Sharing für Handys freigeben - und was tun, wenn das nicht geht."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/fms-sharing.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/fms-sharing.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/fms-sharing.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/fms-sharing.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/fms-sharing.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/fms-sharing.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/fms-sharing.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · Freigabe</span>
+        </p>
+        <h1>
+          <span data-l="de">Ein FileDO-Datenträger auf dem Handy: Freigabe über Fast Media Sorter &amp; Sharing</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">FileDO kann einen virtuellen <code>.fdd</code>-Datenträger für Ihre gekoppelten Handys und Tablets bereitstellen - nicht selbst, sondern über Fast Media Sorter &amp; Sharing for Windows: Sie registrieren den Datenträger in der Datenträgerverwaltung, und dieses Programm liefert seine Dateien per SFTP an die mit ihm gekoppelten Geräte aus. FileDO selbst öffnet dafür keine Netzwerkverbindung - es spricht über eine lokale Pipe auf diesem Computer mit jenem Programm. Unten: was Sie zuerst brauchen, wie Sie einen Datenträger freigeben, was die Handys sehen und was zu tun ist, wenn der Dialog meldet, die Freigabe sei nicht verfügbar. Die Datenträger selbst behandelt die <a href="virtual-disks.html">Anleitung zu virtuellen Datenträgern</a>.</span>
+        </p>
+      </section>
+
+      <section class="section" id="need">
+        <h2>
+          <span data-l="de">1. Was Sie zuerst brauchen</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Drei Dinge: den Desktop-Build von FileDO, Fast Media Sorter &amp; Sharing for Windows mit aktivierter optionaler FileDO-Datenträger-Komponente und mindestens ein damit gekoppeltes Gerät.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">FileDO, der Desktop-Build</span>
+            </h3>
+            <p>
+              <span data-l="de">Der Datenträger muss in der Datenträgerverwaltung als dateibasierter <code>.fdd</code>-Container registriert sein. Der Microsoft-Store-Build kann keine Datenträger einbinden, dieser Ablauf ist dort gesperrt - nutzen Sie den Desktop-Build. Wie Sie ihn installieren und was das Installationsprogramm schreibt, steht in der <a href="install-and-explorer.html">Installationsanleitung</a>.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Fast Media Sorter &amp; Sharing for Windows</span>
+            </h3>
+            <p>
+              <span data-l="de">Das Programm, das die Dateien über das Netzwerk ausliefert. Aktivieren Sie bei seiner Einrichtung die optionale FileDO-Datenträger-Komponente - ohne sie ist die Datenträgerfreigabe nicht verfügbar. Sein Desktop-Installer ist nicht signiert, daher zeigt Windows möglicherweise dieselbe Warnung wie bei FileDO - <a href="install-trust.html">diese Warnung wird hier erklärt</a>. Die Installationsseite ist <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener" >serzhyale.github.io/FastMediaSorter_Lite</a >.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Gekoppelte Geräte</span>
+            </h3>
+            <p>
+              <span data-l="de">Handys und Tablets werden in dessen Share Manager mit dem Programm gekoppelt - genauso wie bei gewöhnlichen freigegebenen Ordnern. Ein Gerät, das Sie nicht gekoppelt haben, sieht den Datenträger nicht. Für das Handy ist ein freigegebener Datenträger einfach ein weiterer Ordner, keine eigene Technik.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="manager">
+        <h2>
+          <span data-l="de">2. Einen Datenträger aus der Datenträgerverwaltung freigeben</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="de"><b>Share Manager starten.</b> Fast Media Sorter &amp; Sharing hält den freigegebenen Datenträger, daher muss sein Share Manager laufen, bevor FileDO einen Datenträger anbieten kann. Antwortet sein Worker nicht, bietet FileDO eine erneute Prüfung an - ein nicht erreichbarer Worker beweist nicht, dass das Programm fehlt.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Datenträger und Aktion wählen.</b> Wählen Sie in der Datenträgerverwaltung einen registrierten dateibasierten Datenträger und im Detailbereich oder im Menü „Weitere Aktionen“ den Eintrag <strong>Über Fast Media Sorter &amp; Sharing teilen..</strong> (<code>Ctrl+Shift+S</code>).</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Die Registrierungsoptionen prüfen.</b> Der Ordnername ist das, was gekoppelte Geräte sehen; der Zugriff ist standardmäßig lesend und schreibend, Sie können Nur Lesezugriff ankreuzen, und ein versiegelter Datenträger bleibt schreibgeschützt. Auf Wunsch öffnen Sie den Datenträger gleich. Ist der Datenträger lokal eingebunden, trennt FileDO ihn nach Ihrer Bestätigung sauber; ist das automatische Einbinden durch FileDO eingeschaltet, gehört Ihre Zustimmung zum Abschalten zwingend zur Übergabe.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Die Bestätigung lesen.</b> Sie fasst zusammen, was gleich geschieht: das lokale Einbinden wird abgeschaltet, und jenes Programm liefert die Dateien des geöffneten Datenträgers über das Netzwerk aus. Ein verschlüsselter Datenträger fragt hier einmal nach seinem Passwort - auf diesem Computer.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Später schließen oder beenden.</b> <strong>Freigabe schließen</strong> behält die Registrierung - der Datenträger lässt sich in einem Schritt wieder öffnen. <strong>Freigabe beenden</strong> entfernt die Registrierung und den gespeicherten FMS-Autostart-Schlüssel.</span>
+          </li>
+        </ol>
+        <figure class="shot">
+          <span data-l="de"><img src="../../assets/guides/gui-disk-share-de.png" width="861" height="823" loading="lazy" alt="Registrierungsdialog für einen Datenträger mit Ordnername, Nur Lesezugriff, separatem Öffnen, Hinweis auf sauberes Trennen und Zustimmung zum Abschalten des lokalen automatischen Einbindens." /></span>
+          <figcaption>
+            <span data-l="de">Einen Datenträger in der Datenträgerverwaltung registrieren. Das Passwort eines verschlüsselten Datenträgers wird auf diesem Computer eingegeben und gelangt nie zum Handy.</span>
+          </figcaption>
+        </figure>
+        <p class="intro">
+          <span data-l="de">Der Autostart ist eine eigene Zustimmung je Datenträger: Nach einem Neustart öffnet das Programm den freigegebenen verschlüsselten Datenträger selbst, ohne dass jemand das Passwort eingibt; dafür fragt es einmal nach dem Passwort und erklärt, was sich ändert. Von der Befehlszeile erledigt <code>vd share</code> dieselben Schritte - Abschnitt 3.</span>
+        </p>
+      </section>
+
+      <section class="section" id="cli">
+        <h2>
+          <span data-l="de">3. Dasselbe von der Befehlszeile</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de"><code>vd share work.fdd on</code> registriert den Datenträger, <code>vd share work.fdd off</code> beendet die Freigabe, <code>vd open</code> und <code>vd close</code> öffnen und schließen ihn für die Geräte, <code>vd autostart</code> schaltet den Autostart ein und aus, und <code>vd status</code> nennt den Halter des Datenträgers. Das Passwort eines verschlüsselten Datenträgers wird über die Standardeingabe oder eine Umgebungsvariable übergeben - nie als Befehlszeilenargument. Einen Datenträger, den jemand anderes hält, lehnt <code>mount</code> ab: Ein Container hat jeweils einen Halter.</span>
+        </p>
+      </section>
+
+      <section class="section" id="phones">
+        <h2>
+          <span data-l="de">4. Was gekoppelte Geräte sehen</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Für das Handy ist ein freigegebener Datenträger ein weiterer freigegebener Ordner jenes Programms: Die Dateien laufen über SFTP, und es wird keine Windows-SMB-Freigabe angelegt. Solange der Datenträger geöffnet ist, kann jedes gekoppelte Gerät seine Dateien lesen - auch wenn der Container verschlüsselt ist, denn er wird hier auf dem Computer entsperrt, nie vom Handy aus. Ob ein Gerät schreiben darf, wird bei der Registrierung festgelegt (Abschnitt 2). Das Schließen des Datenträgers oder das Herunterfahren des Computers beendet den Zugriff. Der Sitzungsmodus setzt voraus, dass Sie angemeldet sind; die Server-Edition hält freigegebene Datenträger auch ohne angemeldeten Benutzer bereit.</span>
+        </p>
+      </section>
+
+      <section class="section" id="unavailable">
+        <h2>
+          <span data-l="de">5. Wenn die Freigabe nicht verfügbar ist</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Jede dieser Meldungen lässt den Datenträger unberührt: Nichts wird eingebunden und nichts geändert. Die Meldung nennt eine Ursache, kein Urteil - was jeweils zu tun ist, steht darunter.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">„FMS läuft, aber Datenträgerfreigabe fehlt“</span>
+            </h3>
+            <p>
+              <span data-l="de">Aktualisieren Sie Fast Media Sorter &amp; Sharing und prüfen Sie die optionale FileDO-Datenträger-Komponente seines Installers - ohne sie kann das Programm keine Datenträger halten. Prüfen Sie dann in der Datenträgerverwaltung erneut.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">„FMS-Worker nicht erreichbar“</span>
+            </h3>
+            <p>
+              <span data-l="de">FileDO kann ein fehlendes Programm nicht von einem gestoppten unterscheiden. Öffnen Sie Fast Media Sorter &amp; Sharing und seinen Share Manager manuell und prüfen Sie dann erneut. Ist das Programm nicht installiert, öffnen Sie die <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener" >Installationsseite</a >.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">„Identität des FMS-Workers nicht bestätigt“</span>
+            </h3>
+            <p>
+              <span data-l="de">Es wurde kein Passwort gesendet. Starten Sie den installierten FMS-Host neu und versuchen Sie es erneut.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">„FMS-Antwort unvollständig oder inkompatibel“</span>
+            </h3>
+            <p>
+              <span data-l="de">Die Versionen der beiden Programme passen nicht mehr zusammen. Aktualisieren Sie beide - FileDO und Fast Media Sorter &amp; Sharing - und versuchen Sie es erneut.</span>
+            </p>
+          </article>
+        </div>
+        <p class="intro">
+          <span data-l="de">Registrierung und Öffnen sind getrennte Schritte: Ist der Datenträger registriert, aber geschlossen, wählen Sie Für Freigabe öffnen. Schlägt ein Schritt einer Abfolge auf halbem Weg fehl, bleibt das Erledigte bestehen: Aktualisieren Sie die Datenträgerliste, wiederholen Sie die verbleibende Aktion oder beenden Sie die Freigabe - und erst danach stellen Sie das lokale Einbinden und seine frühere automatische Richtlinie ausdrücklich wieder her. Stellen Sie das lokale Einbinden nicht wieder her, solange der Halter des Datenträgers unbekannt ist.</span>
+        </p>
+      </section>
+
+      <section class="section" id="privacy">
+        <h2>
+          <span data-l="de">6. Was gespeichert und was geschützt wird</span>
+        </h2>
+        <ul>
+          <li>
+            <span data-l="de"><b>Das Passwort verlässt den Computer nie.</b> Ein verschlüsselter Datenträger wird hier und nur hier entsperrt; ein gekoppeltes Gerät erhält Dateien, nicht das Passwort. Das Passwort wird in keine Liste geschrieben und erscheint nie in einer Befehlszeile.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Der Autostart-Schlüssel ist eine eigene Zustimmung.</b> Er bleibt auf diesem Computer, für jenes Programm geschützt, und wird entfernt, wenn Sie den Autostart ausschalten, die Freigabe beenden oder das Passwort des Datenträgers ändern.</span>
+          </li>
+          <li>
+            <span data-l="de"><b>Die Liste der freigegebenen Datenträger enthält keine Geheimnisse.</b> FileDO schreibt den Pfad des Containers, den Ordnernamen sowie die Markierungen für Nur-Lesen und Autostart in seinen Statusordner. Ein Passwort wird dort nie gespeichert.</span>
+          </li>
+        </ul>
+        <p class="intro">
+          <span data-l="de">Das vollständige Bild steht in der <a href="../privacy.html">Datenschutzerklärung</a>. Mehr zu den Datenträgern in der <a href="virtual-disks.html">Anleitung zu virtuellen Datenträgern</a>; mehr zum anderen Programm auf <a href="https://serzhyale.github.io/FastMediaSorter_Lite/" target="_blank" rel="noopener" >seiner Seite</a >.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "FileDO-Datenträger mit Fast Media Sorter freigeben",
+          description:
+            "Schritt für Schritt: einen virtuellen FileDO-Datenträger über Fast Media Sorter & Sharing für Handys freigeben - und was tun, wenn das nicht geht.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

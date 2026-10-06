@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/install-trust.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/install-trust.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/install-trust.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/install-trust.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/install-trust.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Pourquoi Windows signale FileDO" />
+    <meta property="og:description" content="Ce que signifie l’avertissement SmartScreen sur FileDO, pourquoi il apparaît, sur quoi cliquer exactement et ce que FileDO ne fait jamais." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Pourquoi Windows signale FileDO",
+        "headline": "Pourquoi Windows signale FileDO",
+        "description": "Ce que signifie l’avertissement SmartScreen sur FileDO, pourquoi il apparaît, sur quoi cliquer exactement et ce que FileDO ne fait jamais.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/install-trust.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Pourquoi Windows signale FileDO</title>
+    <meta
+      name="description"
+      content="Ce que signifie l’avertissement SmartScreen sur FileDO, pourquoi il apparaît, sur quoi cliquer exactement et ce que FileDO ne fait jamais."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/install-trust.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/install-trust.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/install-trust.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installation</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/install-trust.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/install-trust.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/install-trust.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/install-trust.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · Confiance</span>
+        </p>
+        <h1>
+          <span data-l="fr">Windows vous a avertis au sujet de FileDO. Voici ce que cela signifie et ce qu’il faut faire ensuite.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">FileDO est un petit outil gratuit d’un développeur indépendant. Cette version n’est pas signée numériquement, si bien que Windows la traite avec une prudence accrue et affiche une ou deux invites. Ci-dessous : ce que sont ces invites, pourquoi elles apparaissent, sur quoi cliquer exactement et ce que FileDO ne fait jamais.</span>
+        </p>
+      </section>
+
+      <section class="section" id="what">
+        <h2>
+          <span data-l="fr">1. Ce qu’est l’avertissement</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Vous avez devant vous l’une de deux boîtes de dialogue, parfois les deux, l’une après l’autre.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">« Windows a protégé votre ordinateur »</span>
+            </h3>
+            <p>
+              <span data-l="fr">La boîte de dialogue bleue SmartScreen avec un bouton « Ne pas exécuter ». Elle apparaît la première fois que vous lancez l’un des fichiers de la release non signés - le programme d’installation <code>FileDO-&lt;version&gt;-setup.exe</code>, le <code>FileDO-&lt;version&gt;-windows-x64.msi</code> autonome, ou les exécutables de <code>FileDO-&lt;version&gt;-windows-x64.zip</code> (<code>filedo_win.exe</code>, <code>filedo.exe</code>). C’est un filtre de réputation, pas un constat sur le contenu : Windows dit qu’il ne connaît pas l’éditeur d’un nouveau fichier non signé, non qu’il a trouvé quelque chose d’anormal à l’intérieur.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">« Voulez-vous autoriser cette application à apporter des modifications à votre appareil ? »</span>
+            </h3>
+            <p>
+              <span data-l="fr">L’invite d’administrateur (UAC). Elle apparaît pendant l’installation, puis plus tard seulement quand vous lancez l’une des deux tâches de réparation de disque ou enregistrez le menu de l’Explorateur pour tous les comptes. Les programmes vont dans <code>C:\Program Files\FileDO</code> et les entrées de l’Explorateur sont écrites dans le registre de la machine. L’usage quotidien de FileDO n’exige aucun droit d’administrateur. Ce qu’on en fait exactement est décrit à la section 3.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Une réaction de l’antivirus</span>
+            </h3>
+            <p>
+              <span data-l="fr">Certains antivirus notent prudemment les nouveaux binaires non signés et peuvent mettre le programme en quarantaine. C’est la même réputation que lit SmartScreen, et elle se construit avec le temps.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="why">
+        <h2>
+          <span data-l="fr">2. Pourquoi elle apparaît</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Parce que la version n’est pas signée avec un certificat de développeur. Un certificat coûte plusieurs centaines de dollars par an, et s’en passer était un choix : FileDO est gratuit et open source, et cet argent n’y a pas été investi. L’avertissement fonctionne exactement comme prévu - ce n’est ni une erreur, ni un bogue, ni quelque chose que vous n’auriez pas dû voir.</span>
+        </p>
+        <p class="intro">
+          <span data-l="fr">La version du Microsoft Store est signée par Microsoft lors de la certification et n’affiche aucun de ces avertissements - c’est exactement le même programme.</span>
+        </p>
+        <p class="intro">
+          <span data-l="fr">La réputation se construit : plus il y a de personnes qui téléchargent et lancent la même version, moins SmartScreen s’en inquiète souvent. L’avertissement s’estompe donc de lui-même avec le temps, et revient brièvement après chaque nouvelle version.</span>
+        </p>
+        <p class="intro">
+          <span data-l="fr">Vous pouvez vérifier que vous avez téléchargé le fichier publié sans nous croire sur parole : un fichier <code>.sha256</code> se trouve à côté du téléchargement, et la ligne qu’affiche la commande ci-dessous doit correspondre à son contenu.</span>
+        </p>
+        <div class="copybox">
+          certutil -hashfile &lt;the-file-you-downloaded&gt; SHA256
+        </div>
+      </section>
+
+      <section class="section" id="what-to-click">
+        <h2>
+          <span data-l="fr">3. Sur quoi cliquer exactement</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr">Dans « Windows a protégé votre ordinateur », cliquez sur <b>Informations complémentaires</b>. La boîte de dialogue se déploie et affiche le nom du fichier.</span>
+          </li>
+          <li>
+            <span data-l="fr">Cliquez sur <b>Exécuter quand même</b>. Cette décision ne concerne que ce fichier et rien d’autre.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Pour les programmes d’installation :</b> dans l’invite d’administrateur, cliquez sur <b>Oui</b>. Choisir « Non » signifie simplement que l’installation ne démarre pas et que rien ne change. La version portable du ZIP ne déclenche pas cette invite au démarrage normal.</span>
+          </li>
+          <li>
+            <span data-l="fr">Si votre antivirus a mis le fichier en quarantaine, ajoutez une exception pour le seul dossier d’installation, <code>C:\Program Files\FileDO</code>. Ne désactivez ni votre antivirus ni SmartScreen : FileDO n’a besoin ni de l’un ni de l’autre, et nous ne demandons ni l’un ni l’autre.</span>
+          </li>
+        </ol>
+        <h3>
+          <span data-l="fr">À quoi servent les droits d’administrateur</span>
+        </h3>
+        <p class="intro">
+          <span data-l="fr">Cela et rien de plus. Chaque élément, sauf les trois premiers, est un choix de l’assistant d’installation.</span>
+        </p>
+        <ul class="steps">
+          <li>
+            <span data-l="fr">Copie les programmes dans <code>C:\Program Files\FileDO</code>.</span>
+          </li>
+          <li>
+            <span data-l="fr">Ajoute ce dossier au <code>PATH</code> de la machine, ainsi qu’un enregistrement de l’installation elle-même sous <code>HKLM\Software\FileDO</code>, pour que la version suivante remplace celle-ci au lieu de s’installer à côté.</span>
+          </li>
+          <li>
+            <span data-l="fr">Crée deux entrées du menu Démarrer : FileDO et FileDO Disk Manager.</span>
+          </li>
+          <li>
+            <span data-l="fr">Si vous l’avez accepté, crée une icône sur le bureau.</span>
+          </li>
+          <li>
+            <span data-l="fr">Si vous avez gardé la fonctionnalité « Explorer integration », écrit le groupe <code>File DO..</code> dans le menu contextuel des fichiers et le type de document <code>.fd-sec</code> avec son icône.</span>
+          </li>
+          <li>
+            <span data-l="fr">Si vous avez gardé la fonctionnalité « Disk container files (.fdd) », écrit le type de fichier <code>.fdd</code> des disques virtuels avec son icône et les entrées Mount with FileDO, Mount read-only et Unmount. Ce sont les trois seuls enregistrements de ce genre, et rien d’autre n’est écrit dans le registre.</span>
+          </li>
+        </ul>
+        <h3>
+          <span data-l="fr">Élévations après l’installation</span>
+        </h3>
+        <ul class="steps">
+          <li>
+            <span data-l="fr"><b>Sondage direct de la capacité</b> et <b>Récupérer un disque</b> dans l’interface graphique - demandent les droits d’administrateur à chaque exécution. Le badge sur le bouton le dit avant que vous ne commenciez ; les droits servent à ce seul processus et s’arrêtent avec lui. Elles écrivent directement sur le volume et sont <b>irréversibles par conception</b> (elles n’ont pas d’action d’annulation).</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Enregistrement dans l’Explorateur pour toute la machine</b> : <code>filedo fdsec register -all-users</code> depuis une console élevée écrit les mêmes entrées HKLM que le programme d’installation. Annulé par <code>filedo fdsec unregister -all-users</code>.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Disques virtuels</b> : <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> et <code>vd auto</code> demandent le consentement de l’administrateur à chaque exécution - pour l’étape qui configure l’initiateur iSCSI intégré à Windows, et rien d’autre ; le mot de passe du conteneur n’atteint jamais cette étape. Le type <code>.fdd</code> pour toute la machine est écrit par <code>filedo vd register -all-users</code> depuis une console élevée et retiré par <code>filedo vd unregister -all-users</code>.</span>
+          </li>
+        </ul>
+        <div class="note">
+          <p>
+            <span data-l="fr"><b>Tout se retire en une seule action.</b> Paramètres → Applications → FileDO → Désinstaller retire ensemble les fichiers, l’entrée du <code>PATH</code>, les raccourcis, les entrées de l’Explorateur et les deux types de fichier. Pour le MSI autonome, utilisez Modifier au même endroit pour ne retirer que les entrées du menu ; pour le setup EXE ou la version portable, utilisez <code>filedo fdsec unregister</code> et <code>filedo vd unregister</code> (ajoutez <code>-all-users</code> si l’enregistrement a été fait pour toute la machine).</span>
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="never">
+        <h2>
+          <span data-l="fr">4. Ce que FileDO ne fait jamais</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">C’est la même liste que sur la <a href="../privacy.html">page de confidentialité</a> et dans le formulaire de données du Microsoft Store. Elle se vérifie en lisant le code plutôt qu’en nous faisant confiance.</span>
+        </p>
+        <ul class="steps">
+          <li>
+            <span data-l="fr"><b>Il ne se connecte jamais.</b> FileDO ne se connecte ni à Internet ni à aucun autre ordinateur. Le seul socket qu’il ouvre sert un disque virtuel monté à l’initiateur iSCSI de Windows lui-même et n’écoute que sur 127.0.0.1 : rien ne quitte cet ordinateur. Le paquet du Microsoft Store ne déclare aucune capacité Internet, donc Windows n’en accorderait de toute façon aucune.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Il ne collecte rien.</b> L’auteur n’exploite aucun serveur, ne tient aucune base de données et n’a aucun moyen de savoir ce que vous faites dans l’application. Ni télémétrie, ni analyse d’usage, ni publicité, ni comptes.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Il ne fouille pas votre disque.</b> FileDO ne touche à vos données que là où vous le lui indiquez - le disque, le dossier ou le partage que vous avez choisi ; sa propre gestion interne (listée sur la <a href="../privacy.html">page de confidentialité</a>) reste dans le répertoire de travail, à côté du programme, et sous <code>%LOCALAPPDATA%\FileDO</code>. Le paquet du Store déclare exactement une capacité, <code>runFullTrust</code> : c’est elle qui permet l’accès direct au disque, sans lequel on ne peut ni mesurer la vraie vitesse ni détecter une fausse capacité.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Il n’enregistre jamais votre mot de passe ni le vrai nom de fichier d’un conteneur.</b> Ni dans un journal, ni dans <code>history.json</code>, ni dans un titre de fenêtre, ni dans un fichier temporaire. Le journal <code>history.json</code> reste sur votre disque et se désactive avec <code>nohist</code>.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Il ne supprime jamais rien sans qu’on le lui demande.</b> Les commandes destructrices demandent d’abord confirmation - <code>wipe</code> vous demande de taper le mot <code>WIPE</code> - et continuent de vérifier la sécurité de la cible même lorsqu’une option a désactivé la question.</span>
+          </li>
+        </ul>
+        <p class="intro">
+          <span data-l="fr">FileDO est distribué en open source sous licence MIT : <a href="https://github.com/SerZhyAle/FileDO" target="_blank" rel="noopener" >github.com/SerZhyAle/FileDO</a >. Pour le reste de l’installation, consultez le <a href="install-and-explorer.html">guide d’installation</a>.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Pourquoi Windows signale FileDO",
+          description:
+            "Ce que signifie l’avertissement SmartScreen sur FileDO, pourquoi il apparaît, sur quoi cliquer exactement et ce que FileDO ne fait jamais.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

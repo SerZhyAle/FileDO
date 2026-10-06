@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-preview.png" />
+    <meta property="og:title" content="Disques virtuels avec FileDO" />
+    <meta property="og:description" content="Guide FileDO des disques virtuels .fdd : un volume entier dans un fichier, monté comme lecteur ou lu sans montage, et ce que promet chaque choix." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Disques virtuels avec FileDO",
+        "headline": "Disques virtuels avec FileDO",
+        "description": "Guide FileDO des disques virtuels .fdd : un volume entier dans un fichier, monté comme lecteur ou lu sans montage, et ce que promet chaque choix.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-preview.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Disques virtuels avec FileDO</title>
+    <meta
+      name="description"
+      content="Guide FileDO des disques virtuels .fdd : un volume entier dans un fichier, monté comme lecteur ou lu sans montage, et ce que promet chaque choix."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/virtual-disks.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/virtual-disks.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/virtual-disks.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/virtual-disks.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/virtual-disks.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/virtual-disks.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/virtual-disks.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container" data-ui-steps>
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · disques virtuels</span>
+        </p>
+        <h1>
+          <span data-l="fr">Un disque entier dans un seul fichier - une lettre de lecteur quand vous en voulez une, et lisible sans montage quand vous n’en voulez pas.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">Un conteneur <code>.fdd</code> est un fichier ordinaire qui contient un volume entier. Monté, c’est une lettre de lecteur comme une autre ; non monté, c’est un fichier que vous pouvez copier, sauvegarder et lire avec FileDO seul, sans le monter. Le format est publié en entier sous la forme du contrat <code>FDD-FORMAT</code>, et ce que doit faire un programme qui en lit ou en écrit un sous la forme de <code>FDD-BEHAVIOUR</code>, de sorte que les données ne dépendent pas de la survie de FileDO.</span>
+        </p>
+      </section>
+      <section class="section" id="create">
+        <h2>
+          <span data-l="fr">Créer, monter, démonter</span>
+        </h2>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Créer</span>
+            </h3>
+            <p>
+              <span data-l="fr">Un nouveau conteneur de 20 Go. Un fichier existant n’est jamais écrasé. Le premier montage formate le volume en NTFS.</span>
+            </p>
+            <div class="copybox">
+              filedo vd new work.fdd 20G<button
+                class="copy"
+                data-copy="filedo vd new work.fdd 20G"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Monter</span>
+            </h3>
+            <p>
+              <span data-l="fr">Sur la première lettre libre ; <code>ro</code> pour la lecture seule, <code>as X:</code> pour une lettre de votre choix. Windows demande l’accord d’un administrateur.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd mount<button
+                class="copy"
+                data-copy="filedo work.fdd mount"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Démonter</span>
+            </h3>
+            <p>
+              <span data-l="fr">Tout ce qui est en attente est enregistré et le conteneur est marqué comme fermé proprement avant que la lettre disparaisse.</span>
+            </p>
+            <div class="copybox">
+              filedo X: unmount<button
+                class="copy"
+                data-copy="filedo X: unmount"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Quatre profils</span></span
+          >
+          <p>
+            <span data-l="fr"><code>plain</code> grandit à mesure que les données sont écrites. <code>fast</code> prend tout de suite la taille entière, si bien qu’une écriture n’attend jamais que le fichier grossisse. <code>ram</code> garde le volume en mémoire tant qu’il est monté et l’enregistre dans le fichier toutes les quelques secondes : un plantage ou une coupure de courant fait perdre ce qui a été écrit depuis le dernier enregistrement. <code>vault</code> est toujours chiffré, il exige donc toujours un mot de passe. Tout profil auquel on donne un mot de passe (<code>p:</code> ou l’invite) est chiffré ; sans mot de passe, il est camouflé, pas chiffré.</span>
+          </p>
+          <div class="copybox">
+            filedo vd new private.fdd 5G vault<button
+              class="copy"
+              data-copy="filedo vd new private.fdd 5G vault"
+            ><span data-l="fr">Copier</span></button>
+          </div>
+        </div>
+      </section>
+      <section class="section" id="read">
+        <h2>
+          <span data-l="fr">Lire sans monter</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Ces trois commandes n’exigent ni droits d’administrateur, ni iSCSI, ni réseau, et n’écrivent rien dans le conteneur. Elles fonctionnent dans toutes les versions, y compris celle du Microsoft Store.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Infos</span>
+            </h3>
+            <p>
+              <span data-l="fr">Profil, taille, camouflé ou chiffré, fermé proprement ou non, et date du dernier enregistrement complet. Aucun mot de passe n’est nécessaire.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd info<button
+                class="copy"
+                data-copy="filedo work.fdd info"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vérifier</span>
+            </h3>
+            <p>
+              <span data-l="fr">Les en-têtes, la carte et chaque cluster alloué ; un dommage donne le code de sortie 4. Le format 1.0 ne garde aucune somme de contrôle des données : elles sont donc lues, pas vérifiées.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd verify<button
+                class="copy"
+                data-copy="filedo work.fdd verify"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Exporter une image</span>
+            </h3>
+            <p>
+              <span data-l="fr"><code>raw</code> donne une image disque brute, <code>vhd</code> un VHD fixe que Windows attache tout seul, sans FileDO. L’image d’un conteneur chiffré n’est pas chiffrée. Dans cette version, les fichiers isolés ne sortent que par le montage.</span>
+            </p>
+            <div class="copybox">
+              filedo work.fdd export D:\work.vhd vhd<button
+                class="copy"
+                data-copy="filedo work.fdd export D:\work.vhd vhd"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="protection">
+        <h2>
+          <span data-l="fr">Camouflé ou chiffré</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="fr">Sans mot de passe</span></span
+          >
+          <p>
+            <span data-l="fr">Sans mot de passe, un conteneur est camouflé, pas chiffré. Le camouflage soustrait le volume à un coup d’œil rapide et aux outils qui cherchent des images disque - mais pas à quiconque a le fichier et FileDO. FileDO ne l’appelle jamais chiffrement.</span>
+          </p>
+        </div>
+        <div class="note danger">
+          <span class="tag"
+            ><span data-l="fr">Avec un mot de passe</span></span
+          >
+          <p>
+            <span data-l="fr">Avec un mot de passe, un conteneur est chiffré : sans lui, le fichier est illisible. Il n’y a aucune récupération - un mot de passe oublié est un conteneur perdu. <code>pass</code> change le mot de passe sans réécrire les données ; les copies du fichier faites auparavant s’ouvrent donc toujours avec l’ancien.</span>
+          </p>
+          <div class="copybox">
+            filedo private.fdd pass<button
+              class="copy"
+              data-copy="filedo private.fdd pass"
+            ><span data-l="fr">Copier</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Retirer le mot de passe</span></span
+          >
+          <p>
+            <span data-l="fr">Un mot de passe n’est jamais retiré sur place : un nouveau mot de passe vide est refusé. À la place, <code>clone</code> avec <code>nopass</code> écrit une nouvelle copie camouflée - quiconque a ce fichier et FileDO la lit - et l’original chiffré reste tel quel.</span>
+          </p>
+          <div class="copybox">
+            filedo private.fdd clone open-copy.fdd nopass<button
+              class="copy"
+              data-copy="filedo private.fdd clone open-copy.fdd nopass"
+            ><span data-l="fr">Copier</span></button>
+          </div>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Un volume monté</span></span
+          >
+          <p>
+            <span data-l="fr">Le chiffrement protège le fichier, pas un volume monté : tant qu’il est monté, tout programme que vous lancez peut le lire, comme n’importe quel lecteur. <code>ram</code> avec un mot de passe : Windows peut paginer cette mémoire, et des données non chiffrées peuvent donc arriver dans le fichier d’échange. Un nouveau volume est créé avec l’indexation désactivée ; <code>mount noscan</code> exclut le fichier conteneur de l’analyse de Microsoft Defender pendant toute la durée du montage - les fichiers du volume lui-même restent analysés.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section" id="platform">
+        <h2>
+          <span data-l="fr">Ce que Windows doit fournir</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr"><b>Windows uniquement.</b> La lettre de lecteur vient de l’initiateur iSCSI intégré à Windows, qui parle à un serveur de blocs situé dans <code>filedo.exe</code>. Le serveur n’écoute que sur 127.0.0.1 : rien ne quitte cet ordinateur et le conteneur ne passe jamais par un réseau - sauf si vous choisissez de le partager (<a href="#share">voir plus bas</a>).</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Monter demande des droits d’administrateur.</b> <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code> et <code>vd auto</code> demandent à Windows l’accord d’un administrateur - pour l’étape de l’initiateur, et pour rien d’autre : le mot de passe n’y va jamais, et le serveur de blocs lui-même ne tourne jamais avec des droits élevés. Un lot n’affiche jamais cette demande - lancez-le depuis une console administrateur. Si le service Initiateur iSCSI de Microsoft ne peut pas être utilisé, ou si l’accord n’est pas donné, l’exécution se termine avec le code de sortie 7 et rien n’est monté.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>La version du Microsoft Store ne peut pas monter.</b> Une application empaquetée ne peut ni configurer l’initiateur iSCSI ni demander des droits d’administrateur ; <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code>, <code>vd auto</code>, <code>vd guard</code> et <code>vd register</code> s’y terminent donc avec le code de sortie 6 (non pris en charge). <code>info</code>, <code>verify</code>, <code>export</code>, <code>compact</code>, <code>grow</code>, <code>seal</code>, <code>clone</code>, <code>pass</code>, <code>destroy</code>, <code>vd new</code>, <code>vd list</code>, <code>vd status</code>, <code>vd add</code> et <code>vd forget</code> y fonctionnent aussi. Pour monter, installez le setup ou la version portable depuis GitHub.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Un montage survit à la fenêtre.</b> Si vous fermez la fenêtre FileDO alors qu’un disque est monté, le lecteur et son serveur restent ; une nouvelle fenêtre les liste de nouveau. Démontez dans le Gestionnaire de disques, sur les pages du groupe Disques, ou avec <code>filedo X: unmount</code>.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="share">
+        <h2>
+          <span data-l="fr">Partager un disque avec Fast Media Sorter</span>
+        </h2>
+        <p>
+          <span data-l="fr">Si Fast Media Sorter for Windows est installé, <code>vd share work.fdd on</code> propose un disque aux téléphones et tablettes que vous lui avez associés, comme un dossier de plus ; <code>vd open</code>, <code>vd close</code> et <code>vd autostart</code> l’ouvrent pour eux, le ferment et le rouvrent après un redémarrage. FileDO n’ouvre aucune connexion réseau pour cela - il parle à ce programme par un canal local, et c’est ce programme qui sert les fichiers. Un disque chiffré se déverrouille ici, sur ce PC, jamais depuis le téléphone ; tant qu’il est ouvert, chaque appareil associé peut lire ses fichiers, et <code>vd autostart</code> garde son mot de passe sur ce PC, protégé pour ce programme, jusqu’à ce que vous désactiviez le démarrage automatique, arrêtiez le partage ou changiez le mot de passe. Un disque partagé est détenu par ce programme : <code>mount</code> le refuse tant qu’il le détient ; <code>vd status</code> indique qui le détient. Seule l’édition Serveur de Fast Media Sorter for Windows garde les disques partagés disponibles quand personne n’est connecté.</span>
+        </p>
+        <p class="intro">
+          <span data-l="fr">Les instructions pas à pas - installer ce programme, enregistrer un disque, ce que voient les appareils associés et la reprise après une étape échouée - sont sur une page à part, <a href="fms-sharing.html">partage via Fast Media Sorter &amp; Sharing</a>.</span>
+        </p>
+      </section>
+      <section class="section" id="change">
+        <h2>
+          <span data-l="fr">Modifier un conteneur</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Uniquement à l’état démonté : un conteneur monté est refusé avec le code de sortie 8, et aucun indicateur ne contourne cette vérification. <code>grow 40G</code> agrandit le disque - le volume qu’il contient est étendu au montage suivant (Gestion des disques, Étendre le volume). <code>compact</code> rend au lecteur l’espace inutilisé du fichier. <code>seal</code> écrit une copie en lecture seule pour toujours, <code>clone</code> une copie modifiable avec sa propre identité. <code>format</code> efface le volume (<code>fs ntfs</code> ou <code>fs exfat</code>), <code>destroy</code> supprime le fichier conteneur, et avec <code>wipe</code> l’écrase d’abord. Les deux posent d’abord la question ; <code>force</code> saute la question, jamais la vérification, et un lot sans <code>force</code> ne les exécute pas.</span>
+        </p>
+        <p class="intro">
+          <span data-l="fr">Codes de sortie d’une commande de conteneur : 0 terminé, 2 refusée telle qu’écrite, 3 mauvais mot de passe, 4 endommagé, 5 échec de lecture ou d’écriture, 6 non pris en charge, 7 transport indisponible, 8 occupé. Un lot garde ses 0/1/2.</span>
+        </p>
+      </section>
+      <section class="section" id="partition">
+        <h2>
+          <span data-l="fr">Disques sur partition</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Un disque virtuel peut aussi vivre dans une partition plutôt que dans un fichier. FileDO crée une nouvelle partition GPT dans l’espace non alloué d’un disque et la remplit, entière, d’un seul conteneur ; rien n’est modifié hors de cet espace libre - FileDO ne convertit jamais une partition existante, ne la redimensionne jamais et n’y écrit jamais. Disques GPT uniquement : les disques MBR, dynamiques, les espaces de stockage (Storage Spaces), les disques iSCSI, amovibles et USB sont refusés, et <code>vd disks</code> en donne la raison pour chacun. Vous gagnez un disque qu’aucun système de fichiers hôte ne porte, auquel Windows ne donne pas de lettre et qu’il ne propose pas de formater, avec son espace réservé ; vous ne gagnez pas de vitesse.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Trouver l’espace libre</span>
+            </h3>
+            <p>
+              <span data-l="fr">Chaque disque, ses partitions et ses zones libres ; chaque zone est utilisable ou non, avec la raison, et une zone utilisable s’accompagne de sa ligne <code>create</code> prête à l’emploi. Sans droits d’administrateur.</span>
+            </p>
+            <div class="copybox">
+              filedo vd disks<button
+                class="copy"
+                data-copy="filedo vd disks"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Créer</span>
+            </h3>
+            <p>
+              <span data-l="fr"><code>&lt;disk&gt;</code> est <code>disk:{GUID}</code> ou le numéro donné par <code>vd disks</code> ; <code>size</code> est <code>max</code> ou une taille comme <code>40G</code> (arrondie vers le bas au MiB, 64 MiB au minimum). La confirmation montre le disque, la zone et ses voisines. Le profil par défaut est <code>fast</code>. Un seul accord administrateur ; le premier montage formate le volume en NTFS.</span>
+            </p>
+            <div class="copybox">
+              filedo vd new part disk:{GPT-GUID} size max at &lt;offset&gt; as data<button
+                class="copy"
+                data-copy="filedo vd new part disk:{GPT-GUID} size max at &lt;offset&gt; as data"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Image vers un fichier</span>
+            </h3>
+            <p>
+              <span data-l="fr">Copie la partition dans un nouveau fichier <code>.fdd</code> ordinaire, qui se lit sans droits d’administrateur et se monte, se clone et se scelle comme n’importe quel autre. Un disque monté est refusé ; la partition reste inchangée.</span>
+            </p>
+            <div class="copybox">
+              filedo vd image data to D:\data.fdd<button
+                class="copy"
+                data-copy="filedo vd image data to D:\data.fdd"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Supprimer</span>
+            </h3>
+            <p>
+              <span data-l="fr">Un disque monté est refusé. Tapez le nom du disque pour confirmer ; <code>wipe</code> écrase d’abord la partition. Seule une partition dont il est prouvé qu’elle appartient à FileDO est supprimée, et l’espace redevient non alloué.</span>
+            </p>
+            <div class="copybox">
+              filedo vd destroy data<button
+                class="copy"
+                data-copy="filedo vd destroy data"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+        </div>
+        <p class="intro">
+          <span data-l="fr">Un disque sur partition se désigne par son nom ou par son localisateur <code>fdpart:{GUID}</code>, jamais par un chemin : <code>filedo vd mount data</code>. <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code>, <code>vd auto</code> et le gardien d’arrêt fonctionnent comme pour un fichier ; <code>compact</code> et <code>grow</code> non (sa taille est fixe), et le partager via Fast Media Sorter est refusé pour l’instant. <code>vd adopt fdpart:{GUID} as data</code> enregistre une partition FileDO que ce PC ne connaît pas (un disque venu d’un autre PC) ; <code>vd forget</code> retire le nom et laisse la partition sur son disque. Un disque refusé se termine avec le code de sortie 6, un accord refusé avec le code de sortie 7, et une disposition modifiée depuis son affichage dans la liste avec le code de sortie 5 - sans que rien ne soit modifié.</span>
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="fr"><b>L’accord administrateur pour chaque lecture, pas seulement pour monter.</b> Une partition ne s’ouvre pas sans droits d’administrateur, donc <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code> et <code>vd image</code> demandent eux aussi l’accord à Windows. <code>vd image</code> lève ce besoin : le fichier qu’il écrit est un <code>.fdd</code> ordinaire que chaque chemin de lecture ouvre sans droits d’administrateur.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Pas plus rapide qu’un disque sur fichier.</b> Mesuré de bout en bout sur un disque NVMe, un disque sur partition était plus lent qu’un fichier <code>.fdd</code> sur NTFS. Choisissez-le pour l’espace fixe et séparé, pas pour la vitesse.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b><code>fast</code> écrase l’espace libre ; <code>plain</code> et <code>vault</code> non.</b> Ce que l’espace libre contenait avant reste dans les clusters inutilisés d’un disque sur partition <code>plain</code> ou <code>vault</code> jusqu’à ce que le volume écrive par-dessus ; <code>fast</code> écrase toute la partition à sa création.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>La Gestion des disques de Windows (<code>diskmgmt.msc</code>) affiche toujours la partition et peut la supprimer.</b> La supprimer là supprime le disque qu’elle contient, sans aucune question sur son contenu. Le <code>vd destroy</code> de FileDO est le moyen sûr : il refuse un disque monté, vous demande de taper le nom du disque et ne supprime qu’une partition dont il a prouvé qu’elle appartient à FileDO.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>Les disques sur partition ne sont pas disponibles dans la version du Microsoft Store.</b> Là, <code>vd disks</code> le dit et toute commande de partition se termine avec le code de sortie 6 ; utilisez le setup ou la version portable depuis GitHub.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="explorer">
+        <h2>
+          <span data-l="fr">Le double-clic, l’Explorateur et la fenêtre</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Le programme d’installation propose le type <code>.fdd</code> comme fonctionnalité à part, « Disk container files (.fdd) », que vous pouvez décocher (<code>DiskContainerIntegration</code> dans <code>ADDLOCAL</code>). Sans le programme d’installation, <code>filedo vd register</code> écrit la même chose - pour cet utilisateur, ou avec <code>-all-users</code> pour toute la machine - et <code>filedo vd unregister</code> la retire. Les trois entrées ouvrent la fenêtre FileDO. Un double-clic monte : un conteneur camouflé fermé proprement tout de suite ; un conteneur chiffré demande son mot de passe dans la fenêtre, jamais sur une ligne de commande ; un conteneur qui n’a pas été fermé proprement le dit d’abord, avec l’heure de son dernier enregistrement complet, et attend ; un conteneur déjà monté ouvre son lecteur. Le menu contextuel ajoute « Mount read-only » et « Unmount » ; sous Windows 11, ils se trouvent sous « Afficher d’autres options ». Dans la fenêtre, le groupe Disques a une page par opération, et <a href="#manager">le Gestionnaire de disques</a> liste tous les disques au même endroit. La version du Microsoft Store n’a aucune entrée de menu, mais un double-clic sur un <code>.fdd</code> ouvre la fenêtre FileDO sur ce conteneur, et la fenêtre dit clairement que cette version ne peut pas monter.</span>
+        </p>
+        <div class="copybox">
+          filedo vd register<button
+            class="copy"
+            data-copy="filedo vd register"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+      </section>
+      <section class="section" id="manager">
+        <h2>
+          <span data-l="fr">Le Gestionnaire de disques</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">La fenêtre FileDO a une seconde fenêtre pour les disques virtuels : le Gestionnaire de disques. C’est l’interface graphique de <code>filedo.exe</code>, pas un nouveau programme - <code>filedo_win.exe</code> ne fait qu’ouvrir une autre fenêtre. Il réunit tous les disques virtuels au même endroit, une ligne par disque : les disques de votre liste, ceux qui sont montés maintenant et les images disque (VHD, VHDX, ISO) que FileDO a montées. Il se tient à jour sans actualisation manuelle - un montage fait ailleurs apparaît en quelques secondes.</span>
+        </p>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-manager-fr.png" width="1901" height="1056" loading="lazy" alt="La fenêtre du Gestionnaire de disques : une barre d’outils avec Nouveau disque.., Ajouter.., Monter, Démonter, Ouvrir, Enregistrer, Autres actions, Actualiser, Aide et Fenêtre principale ; une ligne de filtre ; une liste avec les colonnes Nom, Lecteur, État, Profil, Protection, Taille et Auto, où chaque ligne dit son état en toutes lettres à côté d’une icône ; et sous la liste le volet de détails du disque choisi, secrets, monté en lecture seule" /></span>
+          <figcaption>
+            <span data-l="fr">Le Gestionnaire de disques sur une liste d’exemple : une ligne par disque, son état en toutes lettres, et le volet de détails du disque choisi.</span>
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Une ligne, un disque</span>
+            </h3>
+            <p>
+              <span data-l="fr">L’état est écrit en toutes lettres, à côté d’une icône : « Monté » ; « Monté, lecture seule » ; « Monté, 180 MiB non enregistrés » (un disque <code>ram</code> - la quantité pas encore dans le fichier) ; « Serveur disparu - volume hors ligne » ; « Image montée » ; « Fichier absent » ; « Un autre conteneur se trouve à ce chemin » ; « Illisible » ; « Mal fermé » ; « Non monté ».</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Barre d’outils, filtre, détails</span>
+            </h3>
+            <p>
+              <span data-l="fr">Chaque bouton de la barre d’outils porte une icône : Nouveau disque.., Ajouter.., Monter, Démonter, Ouvrir (dans l’Explorateur), Enregistrer (écrit tout de suite un disque <code>ram</code> dans son fichier), Autres actions, Actualiser, Aide et Fenêtre principale. Une ligne de filtre se trouve dessous : une étiquette, un champ et une croix qui l’efface. Sous la liste, un volet de détails décrit le disque choisi en phrases, avec les boutons qui s’y appliquent ; il se ferme par une croix à son bord droit et revient depuis une fine barre « Afficher les détails » ou depuis le menu Autres actions. Un bouton inutilisable est grisé, et son info-bulle ainsi que le volet de détails disent pourquoi. La version du Microsoft Store ne peut jamais monter : elle masque donc les commandes de montage au lieu de les griser.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Un seul geste</span>
+            </h3>
+            <p>
+              <span data-l="fr">Un double-clic ou <kbd>Entrée</kbd> monte un disque au repos et ouvre le lecteur d’un disque monté - il ne démonte jamais. Un clic droit sur une ligne ouvre son menu : les actions rapides d’abord, celles confiées à une page de tâche sous un séparateur, Formater et Détruire en dernier et dans la couleur de danger. Faites glisser des fichiers <code>.fdd</code> sur la liste pour les ajouter ; faites glisser un <code>.vhd</code>, <code>.vhdx</code> ou <code>.iso</code> pour monter l’image après une confirmation. Un clic avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> sélectionne plusieurs disques.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Opérations à paramètres</span>
+            </h3>
+            <p>
+              <span data-l="fr">Une opération avec des paramètres, ou sans retour possible - Nouveau disque, Exporter, Compacter, Agrandir, Copie scellée, Cloner, Changer le mot de passe, Formater, Détruire - ouvre sa propre page de tâche dans la fenêtre principale, le conteneur étant déjà choisi. Le gestionnaire ne construit jamais lui-même ces lignes de commande, et Formater et Détruire gardent sur la page de tâche la confirmation à saisir.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="autostart">
+        <h2>
+          <span data-l="fr">Démarrage automatique : à l’ouverture de session et à l’arrêt</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Le démarrage automatique a deux moitiés, réunies dans un seul dialogue : Démarrage automatique.. dans le Gestionnaire de disques (Autres actions, le menu d’un disque ou son volet de détails). La première moitié se joue à l’ouverture de session : chaque conteneur enregistré a un interrupteur qui crée ou supprime une tâche planifiée le montant à l’ouverture de votre session (<code>vd auto</code>). La seconde se joue à l’arrêt : le gardien d’arrêt (<code>vd guard</code>), une tâche par compte, qui à la fin de la session enregistre les disques <code>ram</code> modifiés et démonte chaque conteneur monté, de sorte que chacun est fermé proprement et que l’ouverture de session suivante ne dit pas « Mal fermé ».</span>
+        </p>
+        <figure class="shot">
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-autostart-fr.png" width="684" height="1836" loading="lazy" alt="Le dialogue Démarrage automatique : sous À l’ouverture de session, quatre conteneurs enregistrés, chacun avec son état en toutes lettres et un interrupteur - scratch et work ne se montent pas à l’ouverture de session, archive si, et le conteneur chiffré secrets a son interrupteur désactivé avec la raison dessous ; sous À l’arrêt, le gardien Activé et en cours, un bouton Couper, et le dernier passage, qui a fermé proprement deux conteneurs ; puis Bon à savoir" /></span>
+          <figcaption>
+            <span data-l="fr">Le dialogue Démarrage automatique : les montages à l’ouverture de session, une ligne par conteneur, et le gardien d’arrêt avec son dernier passage.</span>
+          </figcaption>
+        </figure>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Les limites, dites franchement</span>
+            </h3>
+            <p>
+              <span data-l="fr">Un conteneur chiffré n’est jamais monté automatiquement à l’ouverture de session : cela exigerait son identifiant stocké là où la machine peut le lire, et FileDO n’en stocke aucun. La fin de session, pour le gardien, est un arrêt, un redémarrage et une déconnexion ; la veille, l’hibernation et le verrouillage n’en sont pas (le démarrage rapide termine la session comme un arrêt). Pendant que le gardien enregistre un disque <code>ram</code>, Windows affiche « FileDO is saving your RAM disk.. » - et « Arrêter quand même » reste toujours votre issue. Ce qui n’a pas fini n’est pas caché : le rapport du dernier passage est à l’écran dans le dialogue Démarrage automatique, et dans la console avec <code>filedo vd guard status</code>.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Les commandes</span>
+            </h3>
+            <div class="copy-row">
+              <code class="cmd" id="cmd-guard-on"
+                ><span data-l="fr">filedo vd guard on</span></code
+              >
+              <button
+                class="copy"
+                type="button"
+                data-copy="cmd-guard-on"
+              >
+                <span data-l="fr">Copier</span></button>
+            </div>
+            <p>
+              <span data-l="fr">crée la tâche (en demandant une fois l’accord d’un administrateur) ; <code>vd guard off</code> la supprime et ne touche aucun disque ; <code>vd guard run</code> est le guetteur lui-même, que la tâche démarre à l’ouverture de session ; <code>vd guard status</code> donne l’état et le dernier passage en trois lignes. Les deux tâches survivent à une désinstallation de FileDO - les interrupteurs ici et dans le dialogue Démarrage automatique sont ce qui les supprime.</span>
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="section" id="manager-keys">
+        <h2>
+          <span data-l="fr">Clavier du Gestionnaire de disques</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Les mêmes touches figurent dans l’aide du gestionnaire lui-même, que <kbd>F1</kbd> ouvre.</span>
+        </p>
+        <div class="tablewrap">
+          <table class="keytable">
+            <thead>
+              <tr>
+                <th>
+                  <span data-l="fr">Touches</span>
+                </th>
+                <th>
+                  <span data-l="fr">Ce que ça fait</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><kbd>Ctrl+N</kbd></td>
+                <td>
+                  <span data-l="fr">Nouveau disque..</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+O</kbd></td>
+                <td>
+                  <span data-l="fr">Fenêtre principale</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+O</kbd></td>
+                <td>
+                  <span data-l="fr">Ajouter..</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+M</kbd></td>
+                <td>
+                  <span data-l="fr">Monter</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+M</kbd></td>
+                <td>
+                  <span data-l="fr">Monter en lecture seule</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+U</kbd></td>
+                <td>
+                  <span data-l="fr">Démonter</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+E</kbd></td>
+                <td>
+                  <span data-l="fr">Ouvrir dans l’Explorateur</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+S</kbd></td>
+                <td>
+                  <span data-l="fr">Enregistrer maintenant</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+I</kbd></td>
+                <td>
+                  <span data-l="fr">Infos</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+Shift+V</kbd></td>
+                <td>
+                  <span data-l="fr">Vérifier</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Enter</kbd></td>
+                <td>
+                  <span data-l="fr">Monter un disque au repos, ou ouvrir le lecteur d’un disque monté</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Del</kbd></td>
+                <td>
+                  <span data-l="fr">Retirer de la liste (jamais Détruire)</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+C</kbd></td>
+                <td>
+                  <span data-l="fr">Copier le chemin</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+A</kbd></td>
+                <td>
+                  <span data-l="fr">Choisir tous les disques de la liste</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Menu</kbd> / <kbd>Shift+F10</kbd></td>
+                <td>
+                  <span data-l="fr">Ouvrir le menu du disque choisi</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>F5</kbd></td>
+                <td>
+                  <span data-l="fr">Actualiser</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl+F</kbd></td>
+                <td>
+                  <span data-l="fr">Aller au champ de filtre</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>Esc</kbd></td>
+                <td>
+                  <span data-l="fr">Effacer le filtre</span>
+                </td>
+              </tr>
+              <tr>
+                <td><kbd>F1</kbd></td>
+                <td>
+                  <span data-l="fr">Ouvrir l’aide</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Dans la fenêtre principale de FileDO</span></span
+          >
+          <p>
+            <span data-l="fr"><kbd>Ctrl+Shift+D</kbd> ouvre le Gestionnaire de disques.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section" id="manager-start">
+        <h2>
+          <span data-l="fr">L’ouvrir, l’aide et la première ouverture</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr"><b>Le menu Démarrer.</b> Le programme d’installation ajoute une entrée à part, <b>FileDO Disk Manager</b>, dans le cadre de la fonctionnalité principale, elle est donc toujours là. Elle lance <code>filedo_win.exe --disks</code> et ouvre directement le gestionnaire, sans fenêtre principale.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>La fenêtre principale.</b> Le bouton « Gestionnaire de disques » dans son en-tête, en haut à droite, et la première ligne du groupe Disques dans sa colonne de gauche ; <kbd>Ctrl+Shift+D</kbd> fait la même chose.</span>
+          </li>
+          <li>
+            <span data-l="fr"><b>La ligne de commande.</b> Le commutateur <code>--disks</code>.</span>
+          </li>
+        </ol>
+        <div class="copybox">
+          filedo_win.exe --disks<button
+            class="copy"
+            data-copy="filedo_win.exe --disks"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <p class="intro">
+          <span data-l="fr">Les deux fenêtres se renvoient l’une à l’autre. Le bouton « Fenêtre principale » du gestionnaire, avec la marque FileDO, ramène la fenêtre principale de FileDO au premier plan - et l’ouvre si le gestionnaire a été lancé seul. Le bouton « Gestionnaire de disques » de la fenêtre principale ouvre le gestionnaire, ou le ramène au premier plan.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Aide</span>
+            </h3>
+            <p>
+              <span data-l="fr"><kbd>F1</kbd> ouvre la fenêtre d’aide : ce que dit une ligne, le tableau des touches, quelques points bons à savoir et des liens. Le bouton Aide ouvre un menu : « Aide et raccourcis clavier », « Premiers pas.. », et des liens vers « Guide : disques virtuels », « Tous les guides », « Site de FileDO », « Documentation et code source » sur GitHub et « Signaler un problème ». Un lien n’est suivi que si vous cliquez dessus ; rien n’est récupéré de lui-même.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Première ouverture</span>
+            </h3>
+            <p>
+              <span data-l="fr">La première fois que le Gestionnaire de disques s’ouvre, il affiche une seule fois « Bienvenue dans le Gestionnaire de disques ». Il dit ce qu’est un disque virtuel et sépare les deux promesses : « Camouflé, pas chiffré : quiconque a ce fichier et FileDO peut le lire. Il s’ouvre sans mot de passe. » « Chiffré : il ne s’ouvre qu’avec son mot de passe. » Il dit que Windows demande l’accord d’un administrateur à chaque montage ou démontage d’un disque, et que vos disques restent montés quand la fenêtre se ferme. Il propose quatre réponses : « Créer mon premier disque.. », « Ajouter un fichier .fdd que j’ai déjà.. », « Lire le guide sur le site » et « Pas maintenant » - une vraie réponse, qui laisse une fenêtre utilisable. Il se rouvre depuis Aide, Premiers pas.., et une liste vide montre les mêmes façons de commencer.</span>
+            </p>
+          </article>
+        </div>
+        <figure class="shot narrow">
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-help-fr.png" width="704" height="1836" loading="lazy" alt="Le premier écran de la fenêtre d’aide du Gestionnaire de disques : le titre, une introduction et Ce que dit une ligne - chaque état en toutes lettres avec son icône et une phrase d’explication ; le tableau des touches suit plus bas" /></span>
+          <figcaption>
+            <span data-l="fr">L’aide s’ouvre sur Ce que dit une ligne ; le tableau des touches, quelques notes et les liens sont en dessous.</span>
+          </figcaption>
+        </figure>
+        <figure class="shot narrow">
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-welcome-fr.png" width="594" height="1033" loading="lazy" alt="La fenêtre de première ouverture, Bienvenue dans le Gestionnaire de disques : une courte explication, les mots sur camouflé et chiffré, la note sur l’accord administrateur, et les boutons Créer mon premier disque.., Ajouter un fichier .fdd que j’ai déjà.., Lire le guide sur le site et Pas maintenant" /></span>
+          <figcaption>
+            <span data-l="fr">La fenêtre de première ouverture : trois façons de commencer, et « Pas maintenant » comme vraie réponse.</span>
+          </figcaption>
+        </figure>
+        <div class="note">
+          <span class="tag"
+            ><span data-l="fr">Rien d’autre ne change</span></span
+          >
+          <p>
+            <span data-l="fr">Le format et les règles de sécurité sont ceux décrits plus haut. Un montage survit à la fenêtre, et fermer la fenêtre ne démonte jamais. Formater et Détruire gardent sur la page de tâche la confirmation à saisir. Les deux mots gardent leur sens : sans mot de passe, un conteneur est camouflé, pas chiffré ; avec un mot de passe, il est chiffré.</span>
+          </p>
+        </div>
+      </section>
+    <section id="sharing"><h2><span data-l="fr">Partage via Fast Media Sorter &amp; Sharing</span></h2>
+        <p><span data-l="fr">Les instructions complètes du partage - installation, étapes, téléphones et reprise après un échec - sont sur une page à part, <a href="fms-sharing.html">partage via Fast Media Sorter &amp; Sharing</a>.</span></p>
+      </section>
+</main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Disques virtuels avec FileDO",
+          description:
+            "Guide FileDO des disques virtuels .fdd : un volume entier dans un fichier, monté comme lecteur ou lu sans montage, et ce que promet chaque choix.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

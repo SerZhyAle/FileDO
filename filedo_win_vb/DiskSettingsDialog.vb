@@ -41,6 +41,21 @@ Friend Class DiskSettingsDialog
         Chrome.Apply(Me)
     End Sub
 
+    ' Shown with the tree suspended and laid out once: with the layout live, every Visible change
+    ' made the nested AutoSize panels measure their labels again (0.7 s on every show).
+    Protected Overrides Sub SetVisibleCore(value As Boolean)
+        If value AndAlso Not Visible AndAlso Panel IsNot Nothing Then
+            Ui.SuspendTree(Me)
+            Try
+                MyBase.SetVisibleCore(value)
+            Finally
+                Ui.ResumeTree(Me)
+            End Try
+        Else
+            MyBase.SetVisibleCore(value)
+        End If
+    End Sub
+
     Protected Overrides Sub OnLoad(e As EventArgs)
         MyBase.OnLoad(e)
         Dim work = Screen.FromHandle(Handle).WorkingArea
