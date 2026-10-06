@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2609241700-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610070200-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test de Stockage • Analyse de Performance • Détection de Fausse Capacité • Gestion des Doublons • Suppression Sécurisée**
@@ -723,13 +723,17 @@ FileDO/
 
 ## Historique des Versions
 
-**Pas encore publiée** (la prochaine version)
+**v2610070200** (Actuelle)
 - **Disques virtuels (`.fdd`)**: un volume entier dans un fichier, monté comme lettre de lecteur - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` et `export` (image brute ou VHD) sans montage, et `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre
+- **Disques sur partition**: un disque virtuel peut vivre dans une nouvelle partition GPT prise sur l'espace libre d'un disque au lieu d'un fichier - `filedo vd disks` liste chaque disque, son espace libre et pourquoi une zone est utilisable ou non; `vd new part`, `vd image` (copie dans un `.fdd` ordinaire) et `vd adopt`; rien en dehors de l'espace libre n'est touché, Windows demande l'accord d'un administrateur à chaque lecture, et la version du Microsoft Store ne les propose pas
+- **Vérification et sécurité**: `chkdsk` vérifie le volume d'un conteneur non monté sans rien écrire, `chkdsk fix` répare un conteneur qui n'a pas été fermé proprement; `vd guard on` enregistre les disques `ram` et démonte proprement chaque conteneur à la fin de votre session; `vd auto` monte un conteneur camouflé à l'ouverture de votre session
+- **Partage**: en option, `vd share` propose un disque aux téléphones et tablettes associés à Fast Media Sorter for Windows comme un dossier de plus (`vd open`, `vd close`, `vd autostart`, ou *Partager via Fast Media Sorter & Sharing..* dans le Gestionnaire de disques); ce programme sert les fichiers en SFTP, FileDO n'ouvre lui-même aucune connexion réseau, et un disque chiffré est déverrouillé sur ce PC, jamais depuis le téléphone
 - **Explorateur**: la nouvelle fonctionnalité *Disk container files (.fdd)* du setup (`DiskContainerIntegration`) donne à `.fdd` une icône, un double-clic qui monte et *Mount read-only* / *Unmount*; sans programme d'installation, `filedo vd register` fait de même
 - **GUI**: un nouveau groupe **Disques** - une page par opération - et le **Gestionnaire de disques**, une seconde fenêtre avec une ligne par disque virtuel, son état en toutes lettres, et monter, démonter, ouvrir et enregistrer depuis la ligne; un montage survit à la fenêtre, et le programme d'installation ajoute l'entrée *FileDO Disk Manager* au menu Démarrer, qui l'ouvre directement
-- **Limites**: Windows uniquement; monter demande l'accord d'un administrateur; la version du Microsoft Store lit, vérifie et exporte les conteneurs mais ne peut pas les monter
+- **Limites**: Windows uniquement; monter demande l'accord d'un administrateur; la version du Microsoft Store lit, vérifie et exporte les conteneurs mais ne peut ni les monter, ni utiliser les disques sur partition, ni les partager
+- **Documentation**: nouveaux guides - disques virtuels et partage de disques via Fast Media Sorter; pages du site en allemand et en français, et une page des nouveautés
 
-**v2609241700** (Actuelle)
+**v2609241700** (Précédente)
 - **Fichiers secrets (`.fd-sec`)** : un fichier est placé dans un conteneur protégé par mot de passe puis restauré - `secure`, `unsecure`, `reveal` - en ligne de commande, depuis le menu de l'Explorateur ou les pages Protect de la fenêtre ; le vrai nom, la taille et les dates de l'original sont scellés à l'intérieur
 - **Intégration à l'Explorateur** : le setup ajoute le groupe `File DO..` au menu contextuel (Secure, Unsecure, Wipe this file, Check this file, Info) et le type de document `.fd-sec` ; `filedo fdsec register` / `unregister` fait de même sans installateur
 - **GUI** : une nouvelle fenêtre - la liste des tâches à gauche, une page par tâche avec toutes les options de la CLI, plus les pages Command, History, Settings et About ; l'ancienne fenêtre de construction de commandes est retirée
@@ -738,7 +742,7 @@ FileDO/
 - **Distribution** : FileDO est sur le Microsoft Store ; `THIRD-PARTY-NOTICES.txt` est inclus dans le zip, le MSI et le paquet Store
 - **Documentation** : nouveaux guides - fichiers secrets et "Windows warned you about FileDO"
 
-**v2607301014** (Précédente)
+**v2607301014**
 - **GUI** : interface en 5 langues (anglais, russe, ukrainien, allemand, français) avec changement de langue à la volée et icône d'application
 - **GUI** : fenêtre "À propos" avec envoi des journaux à l'auteur
 - **Confidentialité** : page de confidentialité publiée, liée depuis le site et la fiche du Store
@@ -784,7 +788,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2609241700** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2610070200** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
