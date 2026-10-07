@@ -17,6 +17,8 @@ and the owner's decision.
 | `build-store-listing-csv.ps1` | Patches a fresh Partner Center export with `listing/*.txt`, keeping the export's own style. |
 | `make-screenshots.ps1` | Captures the window per page and language into `screenshots/`. |
 | `screenshots/` | `<page>-<locale>.png`, 1920x1200, dark theme. Order = `DesktopScreenshot1..5`. |
+| `make-store-logos.ps1` | Renders the optional Partner Center "Store logos" set from the vector mark `assets/icon.svg` (headless Edge) into `store-logos/<locale>/`, reading every size and corner alpha back. Writes files only. The tagline is the site's headline and the strip words are the listing's section names; a new language is one row in the script's `$locales`. |
+| `store-logos/<locale>/` | One complete set per listing language (`en-us ru uk`): `poster-720x1080/1440x2160` (9:16), `box-1080x1080/2160x2160` (1:1), `tile-300x300/150x150/71x71`. The tiles carry no words and are identical everywhere. Upload by hand in the listing's Store logos section: the larger of each pair. |
 | `store-listing.md` | What the CSV does **not** carry: the `runFullTrust` justification, the export-compliance answer, the privacy declaration. |
 | `test-store-tools.ps1`, `testdata/` | Self-test of the listing sources, the manifest template (including the default-off Explorer command) and the CSV builder (62 checks, no Partner Center session, no build). |
 | `stage/`, `out/` | Generated, git-ignored. `out/FileDO_<ver>.msix` is what you upload. |

@@ -208,7 +208,12 @@ What it does, in order:
 7. **Submit** - `wingetcreate submit` opens the PR to `microsoft/winget-pkgs`.
    The GitHub token reaches it in `WINGET_CREATE_GITHUB_TOKEN`, set for that
    one call - never on a command line, where the process list sees it. The
-   exit codes of the winget commit, push and submit are all read.
+   exit codes of the winget commit, push and submit are all read. Right after
+   the submit, `packaging\set-winget-pr-checklist.ps1` ticks the template
+   boxes of the PR and fills its Description - each box only on evidence (CLA
+   status, `winget validate`, schema, one manifest, no other open PR; the
+   install box only under `-WingetInstallTest`). A box left empty is named in
+   the output and is not fatal; run the script again, or tick it by hand.
 8. **Store** - builds the unsigned MSIX into `msix\out\`, **pinned to this
    release's stamp** (`filedo.exe` prints it; `filedo_win.exe` carries it as
    its PE version and `BuildStamp`), and **only from sources equal to the

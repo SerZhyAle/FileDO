@@ -572,6 +572,16 @@ try {
                     $wingetFailure = "wingetcreate submit failed (exit $submitCode)"
                 } else {
                     Write-Host "  winget-pkgs PR submitted."
+                    # The PR opens with every template box empty and a blank Description. Fill them
+                    # from evidence (CLA status, validate, schema, one manifest, no other PR; the
+                    # install box only when -WingetInstallTest just passed). A box left empty is
+                    # reported, not fatal: the PR exists and the owner can tick it by hand.
+                    $prArgs = @{ Version = $Version }
+                    if ($WingetInstallTest) { $prArgs['InstallTested'] = $true }
+                    & "$root\packaging\set-winget-pr-checklist.ps1" @prArgs
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "  winget PR checklist: not every box was ticked (see above) - tick the rest on the PR." -ForegroundColor Yellow
+                    }
                 }
             }
         }
