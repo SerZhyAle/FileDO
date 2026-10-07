@@ -104,8 +104,8 @@
           <span data-l="de">Jede FileDO-Version, die neueste zuerst, mit ihrem Datum. Die Dateien jeder Version und ihre Prüfsummen liegen auf GitHub.</span>
         </p>
       </section>
-      <section class="section" id="v2610070322">
-        <h2><span>v2610070322</span><time datetime="2026-10-07">2026-10-07</time></h2>
+      <section class="section" id="v2610070412">
+        <h2><span>v2610070412</span><time datetime="2026-10-07">2026-10-07</time></h2>
         <ul class="release-list">
           <li><strong><span data-l="de">Virtuelle Datenträger (<code>.fdd</code>)</span></strong>: <span data-l="de">ein ganzes Volume in einer Datei, eingebunden als Laufwerksbuchstabe - <code>filedo vd new</code>, <code>mount</code>, <code>unmount</code>, dazu <code>info</code>, <code>verify</code> und <code>export</code> (Rohabbild oder VHD) ohne Einbinden sowie <code>grow</code>, <code>compact</code>, <code>format</code>, <code>seal</code>, <code>clone</code>, <code>pass</code>, <code>destroy</code>; ohne Passwort verschleiert, mit Passwort verschlüsselt, und nie das eine als das andere bezeichnet</span></li>
           <li><strong><span data-l="de">Partitionsdatenträger</span></strong>: <span data-l="de">ein virtueller Datenträger kann statt in einer Datei in einer neuen GPT-Partition liegen, die aus dem freien Platz eines Datenträgers geschnitten wird - <code>filedo vd disks</code> listet jeden Datenträger, seinen freien Platz und warum ein Bereich nutzbar ist oder nicht; <code>vd new part</code>, <code>vd image</code> (Kopie in eine gewöhnliche <code>.fdd</code>) und <code>vd adopt</code>; außerhalb des freien Platzes wird nichts angerührt, Windows fragt bei jedem Lesen nach Administratorzustimmung, und die Microsoft-Store-Version bietet sie nicht an</span></li>

@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610070322-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Тестування сховищ • Аналіз продуктивності • Виявлення підробної місткості • Управління дублікатами • Безпечне видалення**
@@ -712,7 +712,7 @@ FileDO/
 
 ## Історія версій
 
-**v2610070322** (Поточна)
+**v2610070412** (Поточна)
 - **Віртуальні диски (`.fdd`)**: цілий том в одному файлі, що підключається літерою диска - `filedo vd new`, `mount`, `unmount`, а також `info`, `verify` і `export` (простий образ або VHD) без підключення та `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; без пароля контейнер замаскований, з паролем - зашифрований, і одне ніколи не називається іншим
 - **Диски-розділи**: віртуальний диск може жити не у файлі, а в новому GPT-розділі, вирізаному з вільного місця диска - `filedo vd disks` перелічує кожен диск, його вільне місце і причину, чому ділянка підходить або ні; `vd new part`, `vd image` (копія в звичайний `.fdd`) і `vd adopt`; за межами вільного місця нічого не змінюється, Windows просить згоду адміністратора під час кожного читання, а збірка з Microsoft Store їх не пропонує
 - **Перевірка й захист**: `chkdsk` перевіряє том усередині непідключеного контейнера й нічого не пише, `chkdsk fix` виправляє контейнер, закритий некоректно; `vd guard on` зберігає `ram`-диски й акуратно відключає кожен контейнер, коли завершується сеанс; `vd auto` підключає замаскований контейнер під час входу в систему
@@ -777,7 +777,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610070322** - Розширені інструменти для файлів і сховищ
+**FileDO v2610070412** - Розширені інструменти для файлів і сховищ
 
 Створено **sza@ukr.net** | [Ліцензія MIT](LICENSE) | [GitHub репозиторій](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
