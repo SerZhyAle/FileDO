@@ -906,7 +906,8 @@ function Get-MountLetter([string]$fdd) {
     $doc = $r.Text.Substring($a, $b - $a + 1) | ConvertFrom-Json
     $want = [IO.Path]::GetFullPath($fdd)
     foreach ($d in @($doc.disks)) {
-        if ($d.PSObject.Properties['path'] -and [string]::Equals([IO.Path]::GetFullPath($d.path), $want, 'OrdinalIgnoreCase') -and $d.PSObject.Properties['mount'] -and $d.mount) { return [string]$d.mount.letter }
+        # a partition disk is registered with an empty path (it is addressed by name or locator): never the scratch file
+        if ($d.PSObject.Properties['path'] -and -not [string]::IsNullOrWhiteSpace([string]$d.path) -and [string]::Equals([IO.Path]::GetFullPath($d.path), $want, 'OrdinalIgnoreCase') -and $d.PSObject.Properties['mount'] -and $d.mount) { return [string]$d.mount.letter }
     }
     $null
 }
