@@ -104,8 +104,8 @@
           <span data-l="fr">Chaque version de FileDO, la plus récente en premier, avec sa date. Les fichiers de chaque version et leurs sommes de contrôle sont sur GitHub.</span>
         </p>
       </section>
-      <section class="section" id="v2610070200">
-        <h2><span>v2610070200</span><time datetime="2026-10-07">2026-10-07</time></h2>
+      <section class="section" id="v2610070322">
+        <h2><span>v2610070322</span><time datetime="2026-10-07">2026-10-07</time></h2>
         <ul class="release-list">
           <li><strong><span data-l="fr">Disques virtuels (<code>.fdd</code>)</span></strong>: <span data-l="fr">un volume entier dans un fichier, monté comme lettre de lecteur - <code>filedo vd new</code>, <code>mount</code>, <code>unmount</code>, plus <code>info</code>, <code>verify</code> et <code>export</code> (image brute ou VHD) sans montage, et <code>grow</code>, <code>compact</code>, <code>format</code>, <code>seal</code>, <code>clone</code>, <code>pass</code>, <code>destroy</code>; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre</span></li>
           <li><strong><span data-l="fr">Disques sur partition</span></strong>: <span data-l="fr">un disque virtuel peut vivre dans une nouvelle partition GPT prise sur l'espace libre d'un disque au lieu d'un fichier - <code>filedo vd disks</code> liste chaque disque, son espace libre et pourquoi une zone est utilisable ou non; <code>vd new part</code>, <code>vd image</code> (copie dans un <code>.fdd</code> ordinaire) et <code>vd adopt</code>; rien en dehors de l'espace libre n'est touché, Windows demande l'accord d'un administrateur à chaque lecture, et la version du Microsoft Store ne les propose pas</span></li>

@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610070200-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610070322-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test de Stockage • Analyse de Performance • Détection de Fausse Capacité • Gestion des Doublons • Suppression Sécurisée**
@@ -723,7 +723,7 @@ FileDO/
 
 ## Historique des Versions
 
-**v2610070200** (Actuelle)
+**v2610070322** (Actuelle)
 - **Disques virtuels (`.fdd`)**: un volume entier dans un fichier, monté comme lettre de lecteur - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` et `export` (image brute ou VHD) sans montage, et `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre
 - **Disques sur partition**: un disque virtuel peut vivre dans une nouvelle partition GPT prise sur l'espace libre d'un disque au lieu d'un fichier - `filedo vd disks` liste chaque disque, son espace libre et pourquoi une zone est utilisable ou non; `vd new part`, `vd image` (copie dans un `.fdd` ordinaire) et `vd adopt`; rien en dehors de l'espace libre n'est touché, Windows demande l'accord d'un administrateur à chaque lecture, et la version du Microsoft Store ne les propose pas
 - **Vérification et sécurité**: `chkdsk` vérifie le volume d'un conteneur non monté sans rien écrire, `chkdsk fix` répare un conteneur qui n'a pas été fermé proprement; `vd guard on` enregistre les disques `ram` et démonte proprement chaque conteneur à la fin de votre session; `vd auto` monte un conteneur camouflé à l'ouverture de votre session
@@ -788,7 +788,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610070200** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2610070322** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

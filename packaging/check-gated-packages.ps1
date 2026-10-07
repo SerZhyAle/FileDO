@@ -37,11 +37,15 @@ $exempt = [ordered]@{
 Push-Location $root
 try {
     $env:GOARCH = 'amd64'
-    $listed = go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... 2>&1
+    $all = go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... 2>&1
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "check-gated-packages: COULD NOT VERIFY (go list failed: $($listed -join ' '))" -ForegroundColor Yellow
+        Write-Host "check-gated-packages: COULD NOT VERIFY (go list failed: $($all -join ' '))" -ForegroundColor Yellow
         exit 2
     }
+    # Only standard output names packages. On a machine with an empty module cache (a CI runner) go also
+    # writes "go: downloading <module>" lines to standard error; merged by 2>&1 they were read as package
+    # names and failed the release gate there, while it passed on every machine that had the modules.
+    $listed = @($all | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] -and "$_" -match '^\S+$' })
 } finally {
     Pop-Location
 }

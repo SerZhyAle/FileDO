@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610070200-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610070322-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Тестирование накопителей • Анализ производительности • Обнаружение поддельной ёмкости • Управление дубликатами • Безопасное удаление**
@@ -791,7 +791,7 @@ FileDO/
 
 ## История версий
 
-**v2610070200** (Текущая)
+**v2610070322** (Текущая)
 - **Виртуальные диски (`.fdd`)**: целый том в одном файле, подключаемый буквой диска - `filedo vd new`, `mount`, `unmount`, а также `info`, `verify` и `export` (простой образ или VHD) без подключения и `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; без пароля контейнер замаскирован, с паролем - зашифрован, и одно никогда не называется другим
 - **Диски-разделы**: виртуальный диск может жить не в файле, а в новом GPT-разделе, вырезанном из свободного места диска - `filedo vd disks` перечисляет каждый диск, его свободное место и причину, по которой участок подходит или нет; `vd new part`, `vd image` (копия в обычный `.fdd`) и `vd adopt`; за пределами свободного места ничего не меняется, Windows просит согласие администратора при каждом чтении, а сборка из Microsoft Store их не предлагает
 - **Проверка и защита**: `chkdsk` проверяет том внутри неподключённого контейнера и ничего не пишет, `chkdsk fix` исправляет контейнер, закрытый некорректно; `vd guard on` сохраняет `ram`-диски и аккуратно отключает каждый контейнер, когда завершается сеанс; `vd auto` подключает замаскированный контейнер при входе в систему
@@ -856,7 +856,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610070200** - Продвинутый инструмент для работы с файлами и накопителями
+**FileDO v2610070322** - Продвинутый инструмент для работы с файлами и накопителями
 
 Создан **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
