@@ -971,7 +971,9 @@ function Invoke-Tier2 {
         $letter = Mount-Own $fdd 'first mount formats NTFS'
         if (-not $letter) { return }
         $drive = [IO.DriveInfo]::new($letter)
-        Check "mount: $letter is a new drive of the right size" @(
+        # The step name carries no drive letter: the letter depends on the machine, and a baseline that
+        # names one reports the step as gone on any machine that hands out another.
+        Check 'mount: the new drive is of the right size' @(
             $(if ($drive.TotalSize -gt $volume -or $drive.TotalSize -lt 0.8 * $volume) { "TotalSize $($drive.TotalSize) is not within 80..100 % of $volume" })
             $(if ($drive.DriveFormat -ne 'NTFS') { "formatted $($drive.DriveFormat), want NTFS" }))
         $freeStart = $drive.AvailableFreeSpace
