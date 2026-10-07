@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 
 PackageIdentifier: SerZhyAle.FileDO
-PackageVersion: "2609260512"
+PackageVersion: "2610070412"
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
@@ -19,8 +19,8 @@ NestedInstallerFiles:
 ArchiveBinariesDependOnPath: true
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/SerZhyAle/FileDO/releases/download/v2609260512/FileDO-2609260512-windows-x64.zip
-  InstallerSha256: 003DC131AD2B229498847E4244C7A87DC1ECBEB106B416D98004D73F64B5C724
+  InstallerUrl: https://github.com/SerZhyAle/FileDO/releases/download/v2610070412/FileDO-2610070412-windows-x64.zip
+  InstallerSha256: 4B65E86035156FA67730DF939A49821F04F839B325A7FC20820AD279E1410E13
 ManifestType: installer
 ManifestVersion: 1.12.0
-ReleaseDate: 2026-09-26
+ReleaseDate: 2026-10-07
