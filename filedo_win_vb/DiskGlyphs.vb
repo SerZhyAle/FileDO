@@ -3,25 +3,26 @@
 ' The rail's Disks rows, the manager's toolbar, its menus and its detail buttons all show a meaning
 ' by asking this module, so one meaning is one picture wherever it appears and the two surfaces
 ' cannot drift apart. A meaning the vocabulary has a record for draws the catalog's file (vendored
-' under assets/glyphs by assets/sync-icon-glyphs.ps1). Three meanings have no record yet - create,
-' compact, auto-mount; they draw a Segoe stand-in under the id FileDO proposed for each (the catalog's
-' PROPOSAL-2026-09-30-filedo-disk-meanings.md), which is what SelfTest's rail baseline counts, and the
-' number goes down as each record lands - never up.
+' under assets/glyphs by assets/sync-icon-glyphs.ps1). Create, compact and auto-mount were the three
+' that waited for a record, drawing a Segoe stand-in under the id FileDO proposed for each; ICON-SET
+' 0.24 took them and they are vendored since 2026-10-07 (SP-0165), so no rail row waits any more
+' (SelfTest's rail baseline is zero). Two meanings still have no record - autostart and create
+' shortcut - and draw a stand-in on surfaces that are not the rail.
 '
 ' A mount, a read-only mount, Mount as.. and Mount image.. are one meaning, "mount"; an unmount and an
 ' image unmount are "unmount"; Clone and Copy path are both "copy" - so they share a picture, which
 ' ICON-SET rule 1 asks for, not forbids.
 Public Module DiskGlyphs
 
-    Public ReadOnly CreateDisk As GlyphRef = GlyphRef.Waiting("action.create-disk", &HE710, "Add")
+    Public ReadOnly CreateDisk As GlyphRef = GlyphRef.Vocabulary("action.create-disk")
     Public ReadOnly MountDisk As GlyphRef = GlyphRef.Vocabulary("action.mount-disk")
     Public ReadOnly UnmountDisk As GlyphRef = GlyphRef.Vocabulary("action.unmount-disk")
-    Public ReadOnly CompactDisk As GlyphRef = GlyphRef.Waiting("action.compact", &HE73F, "BackToWindow")
+    Public ReadOnly CompactDisk As GlyphRef = GlyphRef.Vocabulary("action.compact")
     Public ReadOnly GrowDisk As GlyphRef = GlyphRef.Vocabulary("action.grow")
     Public ReadOnly FormatDisk As GlyphRef = GlyphRef.Vocabulary("action.format")
     Public ReadOnly SealDisk As GlyphRef = GlyphRef.Vocabulary("action.seal")
     Public ReadOnly ChangePassword As GlyphRef = GlyphRef.Vocabulary("action.change-password")
-    Public ReadOnly AutoMount As GlyphRef = GlyphRef.Waiting("action.auto-mount", &HE823, "Recent")
+    Public ReadOnly AutoMount As GlyphRef = GlyphRef.Vocabulary("action.auto-mount")
     Public ReadOnly RememberName As GlyphRef = GlyphRef.Vocabulary("action.remember-name")
     ' The Autostart surface (SP-0080 5): the logon mounts and the shutdown guard in one place. The
     ' picture is the power button - the session's end is the guard's half of it.
@@ -64,10 +65,11 @@ Public Module DiskGlyphs
             Case DiskAction.Forget : Return GlyphRef.Vocabulary("action.remove")
             Case DiskAction.ShowInFolder : Return GlyphRef.Vocabulary("content.folder")
             Case DiskAction.CopyPath, DiskAction.Clone : Return GlyphRef.Vocabulary("action.copy")
-            ' SP-0148: Image to file is an export of a partition disk into a new .fdd, and Adopt gives
-            ' a found partition its name in the list - the meanings Export and Add to list already
-            ' draw. No partition-carrier glyph: the catalog has no approved meaning for one yet.
-            Case DiskAction.Export, DiskAction.ImageToFile : Return GlyphRef.Vocabulary("action.export")
+            ' SP-0148: Adopt gives a found partition its name in the list - the meaning Add to list
+            ' already draws. Image to file copies a partition disk byte for byte into a new .fdd:
+            ' ICON-SET 0.26 gave it its own meaning, action.image-to-file, beside Export.
+            Case DiskAction.Export : Return GlyphRef.Vocabulary("action.export")
+            Case DiskAction.ImageToFile : Return GlyphRef.Vocabulary("action.image-to-file")
             Case DiskAction.Adopt : Return RememberName
             Case DiskAction.Compact : Return CompactDisk
             Case DiskAction.Grow : Return GrowDisk

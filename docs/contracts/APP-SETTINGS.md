@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-SETTINGS` |
-| **Version** | 0.2, draft (no wire - a shipped user-facing surface) |
+| **Version** | 0.3, draft (no wire - a shipped user-facing surface) |
 | **Role** | consumer - the settings page of the shell (`SettingsView.vb`, `SettingsPanel.vb`, `SettingsLayout.vb`) and the Disk Manager's settings dialog that hosts the same panel |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-SETTINGS.md` |
 | **Owner** | CyrFlip. An amendment is proposed in the catalog, not decided here |
@@ -26,7 +26,9 @@ the row below replaces that non-adoption record.
 - **Commit model** (rule 4). The touch-commit surface: reversible values apply when touched
   (theme, language, history, minimize, notification); the one action with external effects - the
   Windows startup choice - has its own explicit Apply button; resetting window positions is its own
-  button too. Nothing irreversible rides on a control that fires on touch.
+  button too. Nothing irreversible rides on a control that fires on touch. **0.3:** where a surface offers no
+  Commit, an irreversible operation may sit on a page only as its own button behind `APP-BEHAVIOUR` rule 5's
+  confirmation, never on a value control; the shell has no such operation today (read 2026-10-07, SP-0165).
 - **Language and theme selectors** (rules 5-6). Both on the first page's Appearance group; languages by
   endonym, applied live to every open window (`LiveLanguage`); System/Light/Dark applied without a
   restart (`ShellSettings.SetThemeChoice`); while Windows is in a high-contrast theme the surface follows
@@ -46,5 +48,5 @@ settings key), `windows-ui:` rows (anatomy, context, live language, watch, high 
 `rail-groups:` rows. `filedo_win.exe --ui-drive`: the driven acceptance of the settings page
 (SP-0150).
 
-**Status: implemented 2026-10-05 (SP-0150); read against 0.2, sections 2 and 8.** The registry carries
+**Status: implemented 2026-10-05 (SP-0150); read against 0.3 on 2026-10-07 (SP-0165).** The registry carries
 the row. Physically unverified: the high-contrast and multi-DPI runs named beside SP-0150.

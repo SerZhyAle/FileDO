@@ -225,6 +225,11 @@ func TestSurfaces_TheInstallTrustPageKeepsItsContract(t *testing.T) {
 		"run as administrator",
 		"запустите от имени администратора",
 		"запустіть від імені адміністратора",
+		// INSTALL-TRUST 1.2 item K: the per-file "Unblock" checkbox removes the mark of the web that
+		// SmartScreen keys on, and rule 4's list of instructions is closed.
+		"unblock",
+		"разблокировать",
+		"розблокувати",
 	} {
 		if strings.Contains(strings.ToLower(page), strings.ToLower(forbidden)) {
 			t.Errorf("the trust page tells the user to weaken their protection: %q (rule 4)", forbidden)

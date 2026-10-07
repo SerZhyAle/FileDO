@@ -52,9 +52,10 @@ trap {
 # The catalog remains the source of truth; mapping a new meaning means adding it here as well, and
 # the shell's self-test fails on an id it draws that is not vendored.
 $glyphIds = @(
-    'action.cancel', 'action.change-password', 'action.clear-all', 'action.clear-input', 'action.compare', 'action.copy',
+    'action.auto-mount', 'action.cancel', 'action.change-password', 'action.clear-all', 'action.clear-input', 'action.compact',
+    'action.compare', 'action.copy', 'action.create-disk',
     'action.delete', 'action.export', 'action.fill-space', 'action.find-duplicates', 'action.format', 'action.grow',
-    'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name', 'action.remove', 'action.save',
+    'action.image-to-file', 'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name', 'action.remove', 'action.save',
     'action.seal', 'action.secure', 'action.share', 'action.sort', 'action.unmount-disk', 'action.unsecure', 'action.verify', 'action.wipe',
     'app.command-line', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
     'content.history', 'content.secret-file',

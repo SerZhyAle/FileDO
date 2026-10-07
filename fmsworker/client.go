@@ -62,18 +62,24 @@ func (s DiskState) String() string {
 	}
 	return names[s]
 }
+
+// UnmarshalJSON reads a state word this build does not know - a new word, a null, a value that is not a
+// string - as DiskStateUnknown, never as an error: WORKER-IPC section 10 item D reads it as unknown per
+// record, and a refused record would fail the whole answer, even one whose schemaVersion is the thing the
+// user has to be told about. Unknown is never "closed" and never authorizes a mount.
 func (s *DiskState) UnmarshalJSON(b []byte) error {
+	*s = DiskStateUnknown
 	var name string
 	if err := json.Unmarshal(b, &name); err != nil {
-		return err
+		return nil
 	}
-	for i := DiskStateUnknown; i <= DiskStateLocked; i++ {
+	for i := DiskStateClosed; i <= DiskStateLocked; i++ {
 		if i.String() == name {
 			*s = i
-			return nil
+			break
 		}
 	}
-	return fmt.Errorf("unknown disk state")
+	return nil
 }
 
 type SharedDiskInfo struct {

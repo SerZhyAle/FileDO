@@ -65,7 +65,7 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | scope disputed; the focus-only question awaits the owner |
 | [`INPUT-PARITY.md`](INPUT-PARITY.md) | keyboard and pointer action parity | consumer; partial adoption |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
-| [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; Windows desktop profile, `compact` rendering (0.2); dated draft exception is the owner's to close |
+| [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; Windows desktop profile, `compact` rendering (registered in 0.2, untouched by 0.3 and 0.4); the former rendering exception is closed |
 | [`WINDOWS-STORE.md`](WINDOWS-STORE.md) | the package and listing a product hands to Microsoft Store | consumer (Store channel) |
 
 ### Read against this repository and found not to bind it

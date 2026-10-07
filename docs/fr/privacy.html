@@ -276,6 +276,8 @@ html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
 html[data-theme="light"] .copybox .copy{color:var(--code-ink)}
 html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
 .pills.spaced{margin-top:.9rem}
+    /* PAGE-STYLE 1.5: the kit's reduced-motion rule reads `*` only, which does not match a pseudo-element; the disclosure marker of details.sec turns on one. */
+    @media (prefers-reduced-motion:reduce){*::before,*::after{animation:none!important;transition:none!important}}
     </style>
   </head>
   <body>
@@ -665,8 +667,8 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           <span data-l="fr">Autres outils de SZA</span>
         </p>
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
-          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>FastMediaSorter v2</b><span>Android media sorter</span></a
-          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter</b><span>Fast Media Sorter for Windows</span></a
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a
           ><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a
           ><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
           ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>StreamsPlayer</b><span>Windows stream player</span></a

@@ -1,23 +1,27 @@
 ICONOGRAPHY VENDORED ARTIFACT
 Do not hand-edit the files in this folder. Regenerate with assets/sync-icon-glyphs.ps1.
-Catalog versions: ICON-SET 0.17; ICON-RENDER 0.15; ICON-EXTERNAL 0.11
-Vocabulary SHA-256: e9a7b024fb717db0b4bf64c1d3fcd885b66acc5d0865ed137dfd5a017ee93ee7
+Catalog versions: ICON-SET 0.27; ICON-RENDER 0.17; ICON-EXTERNAL 0.11
+Vocabulary SHA-256: e62f571052f953fc70c5045da755dffca045883c8a85b35630abef75c0972756
 Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog
-Taken: 2026-10-03
+Taken: 2026-10-07
 Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt
 
+action.auto-mount.svg  b46edf46c0b914585c833b1e9e96d7b4b161c143f44e6909a7d356c8f562067c
 action.cancel.svg  0b2ee602dece67950e801b3df344297e311e8bc33c592c7ae8cc9f5d4195c873
 action.change-password.svg  61de7244e2bd5c1422940b5a960ab236d175f0fb318f0d1d4c9ca05a20798b8c
 action.clear-all.svg  b8da7d02e71a0cc1340f3e90be6e64cb5617ea96aed7448c4c1f2590b10cf3de
 action.clear-input.svg  7512d856fa655619c7c9637cf107db289b7e023ca5e1435c951d0468923d1ccc
+action.compact.svg  ad9309e1b39d01297378229c5f1f1f5a392b2c46279844a6fc22b2ffaf3bb4d2
 action.compare.svg  11f33ee4fe098ad7aa141b62fba2ac6bffaecf47c761f815e866ca255ef7e5a7
 action.copy.svg  f63a4d96328e52ee0aca695c302057ecba8f48b789d22131d90a6669f0ca8595
+action.create-disk.svg  b8b24974b9d7ef9b60ec7f0f9ab6380530e6fc1d3f58325b2fb9969f58b31560
 action.delete.svg  efb3a1894e53b080471cb062bf20721159f6c4d7e178b70a407265f7aadebfe8
 action.export.svg  1b83a641113200a977e5644b297e63de05945545ad1f33d8c88dbbc7677caa54
 action.fill-space.svg  cf77265c2f552e7e922cb82e2e0a28026ef8af4fc438673da054f69dc5e35789
 action.find-duplicates.svg  425cde7864b3faeb3a487e1d3c84a5c7b2dea00eeca95497ab5053bbebac7985
 action.format.svg  5705bf38111d10a4e4db15f72c71934d0137d840c76f4ccd0f017cad3ca3955c
 action.grow.svg  f3e19f6ef726d854d64700ef53a8cf3b34ded2a2110d1e680c35badbbf22cdaa
+action.image-to-file.svg  f971808d263badd92300cbee3ab901006fc22e181f0ef456cd0a07620242e521
 action.mount-disk.svg  d595b6bf5778056169de6acde3c4a027b4dd599ccb47da02cbbd843ea7d928ef
 action.recover-drive.svg  cf3f7a797c8690a591e76439403c61c930fee52f2dd93bd59a1ecbeb0cc09beb
 action.refresh.svg  b0596bd857534e72010f4efe0c0abfdfa7b7b43f7f2ed8122e197bb1a5fbe22e

@@ -84,14 +84,14 @@ unchanged for a `cmd.exe` prompt.
   version, the manifest); the separate test-module compile check and placement
   registry; fdsec short tests; the fdsec command-surface tests plus its vet
   baseline; the GUI self-test (its log is deleted first, so a missing log is
-  `NOT VERIFIED`, never the previous run's); `THIRD-PARTY-NOTICES.txt` against
+  `COULD NOT VERIFY`, never the previous run's); `THIRD-PARTY-NOTICES.txt` against
   the Go modules each shipped executable links
   (`packaging\check-third-party-notices.ps1`); `release.yml`'s Go pin
   against `go.mod`'s; and the documentation corpus - registry, links and
   anchors, house style (`packaging\check-internal-docs.ps1`); and the published
   site and READMEs - sitemap, SEO block, locales and translation freshness,
   termbase, screenshots (`packaging\check-external-docs.ps1`). Its final `build-gate <stamp>:` line is `PASS`, `FAIL`,
-  or `NOT VERIFIED`; exit codes are 0, 1, and 2 respectively. (Root
+  or `COULD NOT VERIFY`; exit codes are 0, 1, and 2 respectively. (Root
   `go test ./...` is known-broken per `AGENTS.md`, so it is intentionally not
   run.)
 - `-Commit` implies `-Test` and commits the working tree only after the gate
@@ -240,7 +240,7 @@ What it does, in order:
 `tests\prove-operations.ps1` is the part of the gate that uses the product the way a person does: every kind
 of operation, on small data, each timed, each result checked. `release.ps1` runs it after `govulncheck`,
 against `exe_to_download\filedo.exe` (the binary the release ships); it is also run by hand, from the repo
-root, with no arguments. Its last line is `operations-run <stamp>: PASS`, `FAIL` or `NOT VERIFIED`, with the
+root, with no arguments. Its last line is `operations-run <stamp>: PASS`, `FAIL` or `COULD NOT VERIFY`, with the
 same exit codes as the build gate (0, 1, 2).
 
 - **Judged by the result, not by the console.** Each step is a `filedo` run with `--events`: its exit
@@ -275,7 +275,7 @@ same exit codes as the build gate (0, 1, 2).
   prints its time, its MB/s and its milliseconds a file. Two operations cannot be made to last seconds with a
   sane amount of data - `compare` reads metadata only (0.01 ms a file) and a big-file copy runs at 2 GB/s -
   so they are timed and never gate. The section needs about 4.5 GiB free on the temp drive and says
-  `NOT VERIFIED` below 8 GiB. A load step that runs under 1.5 s is reported ("too noisy to compare well,
+  `COULD NOT VERIFY` below 8 GiB. A load step that runs under 1.5 s is reported ("too noisy to compare well,
   raise its size"), so a plan gone stale - an operation got faster - says so itself.
 - **Tier 2, mounted virtual disks:** `test` and `fill` are sized by the free space of their volume, so on a
   folder of the system drive they would take all of it; on a small virtual disk they are small. A 320 MB
@@ -291,7 +291,7 @@ same exit codes as the build gate (0, 1, 2).
   container and refused unless it is new and not the system drive; a disk of yours that was mounted before
   the run is never a target.
 - **Elevation.** Mounting needs administrator rights. From a console that is not elevated the script asks
-  once (one UAC prompt) and runs tier 2 in an elevated child; declined or timed out is `NOT VERIFIED` (exit
+  once (one UAC prompt) and runs tier 2 in an elevated child; declined or timed out is `COULD NOT VERIFY` (exit
   2), which stops the release. `-SkipMount` (`release.ps1 -SkipOpsMount`) drops tier 2 and the closing line
   names it as skipped.
 - **Coverage is enforced.** The script keeps an inventory of every verb: a step, a line of `vd_batch.lst`, or

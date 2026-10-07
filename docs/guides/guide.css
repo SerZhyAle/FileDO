@@ -303,3 +303,5 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
   font-weight: 500;
   color: var(--text-2);
 }
+/* PAGE-STYLE 1.5: the kit's reduced-motion rule reads `*` only, which does not match a pseudo-element; the disclosure marker of details.sec turns on one. */
+@media (prefers-reduced-motion:reduce){*::before,*::after{animation:none!important;transition:none!important}}

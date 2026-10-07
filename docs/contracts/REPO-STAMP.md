@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `REPO-STAMP` |
-| **Version** | 0.11, draft (no wire carrier: the stamp has no version field of its own, rule 9) |
+| **Version** | 0.12, draft (no wire carrier: the stamp has no version field of its own, rule 9) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 2 |
 | **Role** | producer - this repository writes its own stamp, `.sza-canon.json`; nothing here reads it |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |
@@ -21,3 +21,4 @@
 - **Additive only.** The stamp has no carrier, so a rewrite never removes or renames a key it does not
   own - `$comment` included (rule 9, compatibility law rule 5).
 - **0.11: `canon.reconciledOn`.** The optional key records the last reconciliation with the canon and moves together with `version` and `coreDigest` at every re-sync; `adoptedOn` stays the date of first adoption (2026-09-24) and is never moved by a re-sync (rule 8).
+- **0.12, read 2026-10-07 (SP-0165):** an absent or unparseable `canon.adoptedOn` with `canon.reconciledOn` also missing is read as an unknown age, past the window - only a reader moves, no stamp does. This repository writes the stamp and carries both dates, parseable, so nothing changes here.

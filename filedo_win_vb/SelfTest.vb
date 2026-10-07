@@ -769,8 +769,11 @@ Partial Public Module SelfTest
     ' the records land; the number goes back down as each one is vendored, never up.
     '
     ' Amended 2026-10-02 (SP-0016 / SP-0122, ICON-SET 0.17): seven of those records landed and were
-    ' vendored; three remain waiting (create, compact, auto-mount).
-    Private Const WaitingRailRowsBaseline As Integer = 3
+    ' vendored; three remained waiting (create, compact, auto-mount).
+    '
+    ' Amended 2026-10-07 (SP-0165, ICON-SET 0.24): the last three landed and are vendored; no rail row
+    ' draws a stand-in, so the baseline is zero again and raising it is an amendment with a reason.
+    Private Const WaitingRailRowsBaseline As Integer = 0
 
     ' T1, ICON-SET rules 1, 4 and 5 on the rail: every job row shows a glyph; a vocabulary one is
     ' drawable; a waiting one names the id proposed for it and a Segoe stand-in in the private-use

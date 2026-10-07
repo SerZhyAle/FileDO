@@ -468,7 +468,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   Go builds and tests all run as windows/amd64 - the shipped target; CI rebuilds the published binaries from the
   tag and re-runs the same `go test` gate before packaging - and the `cmd/filedo` suite's own
   exe is linked with the same version resource and manifest. Its last line is `build-gate <stamp>: PASS`,
-  `FAIL`, or `NOT VERIFIED`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate
+  `FAIL`, or `COULD NOT VERIFY`. Its exit codes are **0 = pass**, **1 = a defect was found**, and **2 = the gate
   could not verify** (a missing prerequisite - Go other than the pin, goversioninfo, MSBuild without
   `-SkipGui` - is 2 as well). Exit 2 is not a pass and not a defect report; treat it as "nothing was proven".
 - `cmd/filedo-test` is **its own module**, so the compile-check must run from inside it

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-RENDER` |
-| **Version** | 0.15 draft (no wire carrier - a picture, not a payload) |
+| **Version** | 0.17 draft (no wire carrier - a picture, not a payload) |
 | **Role** | consumer - the shell draws glyphs, the site draws one, the MSIX and MSI carry the product mark |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |
@@ -40,3 +40,5 @@ group with the product mark. Open: the MSIX WACK run and the on-screen screensho
 **0.14 and 0.15, applied 2026-10-02 (SP-0122).**
 - **`state.warning` day tone is `#EF6C00`** (3.08:1 on white). The shell's light `StateWarning` is that tone, held to the vendored `palette.json` by the `state-tone:state.warning:day` row; the former day-exception row and its registry exception are retired. The tone is drawn as a glyph only where it reaches 3:1 (the verdict glyph on a card, a Disk Manager row on its plain background, the help legend); on the hover and selected row backgrounds, and for the verdict word and badge (4.5:1 needed), the shell uses its darker warning ink `#7E560F`. That fallback is a dated exception in the catalog registry, not a local choice.
 - **Hit-target floor on Windows: 28 px under a mouse or a pen, 44 px under touch or when the input is unknown**, in logical pixels. Verified 2026-10-04, off screen: the rail's rows are 44 px; `GlyphButton` has a 28 px floor (36 px toolbar buttons, 28 to 32 px inline ones); the Disk Manager's list rows and the shell's check boxes and radio buttons were raised from 24 to 28 px (`Ui.HitTargetFloor`); plain WinForms buttons measure 30 to 40 px at the shell's fonts. The self-test's `hit-target:` rows pin the floor mechanically. Open: the shell cannot tell the input in use, so its pointer controls fall under the 44 px that rule requires; recorded as a dated exception, together with the platform's own text-metric controls still under the 28 px floor (a single-line text field 25 px, a link label 23 px, a menu item 24 px at the 10 pt body). Owner decision 2026-10-02: Windows is pointer-first for this product and compactness outranks a touch floor, so the amendment is asked for in the catalog (a declared pointer-first profile keeps 28 px); the exception stands until the catalog decides.
+
+**0.16 and 0.17, read 2026-10-07 (SP-0165).** 0.16's navigation identity inks are applied (SP-0150). 0.17 adds the **pointer-first profile** (item H, section 3 rule 5), and FileDO declares it: a tool for keyboard and mouse with no touch use case, run on desktops and laptops. Its pointer controls keep the 28 px floor without detecting touch, the rail rows stay 44 px, and the site stays 44 px under every pointer. The 44 px unknown-input requirement no longer applies; the exception narrows to the platform's own text-metric controls (a single-line text field 25 px, a link label 23 px, a menu item 24 px at the 10 pt body).

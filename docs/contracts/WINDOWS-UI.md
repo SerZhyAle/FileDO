@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `WINDOWS-UI` |
-| **Version** | 0.1, draft (no wire - observable Windows UI and UX) |
+| **Version** | 0.3, draft (no wire - observable Windows UI and UX) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`), opted in by the portfolio decision of 2026-10-05 |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `WINDOWS-UI.md` |
 | **Owner** | Fast Media Sorter & Sharing for Windows (portfolio owner decision). An amendment is proposed in the catalog, not decided here |
@@ -13,11 +13,11 @@
 - **Window anatomy and navigation** (section 2). Native window management only; the settings page has no
   second close cross beside the native one. The rail is the vertical navigation list: one glyph and a
   localized caption per destination, About last, hover/focus/selection/unavailable distinguishable,
-  never by colour alone. **Nested rows** (proposed 2026-10-07 as
-  `PROPOSAL-2026-10-07-nested-navigation-rows-indent`, not yet folded into the contract): the rail's rows
+  never by colour alone. **Nested rows** (0.3, section 2 item 6): the rail's rows
   that belong to a group header stand one indent (a quarter of the row unit) right of the header's glyph and
   caption columns; headers and lone jobs keep the base columns, the accent bar stays on the row's own edge
-  (`RailEntry.IsChild` / `ChildIndent`, `Rail.vb`).
+  (`RailEntry.IsChild` / `ChildIndent`, `Rail.vb`); the caption wraps and grows the row; the indent is not
+  mirrored for right-to-left, and no right-to-left language ships.
 - **Independent collapsible groups and remembered context** (section 3). Groups never close one another;
   collapse changes visibility only, hands focus to the header when it held a child, and hidden children
   leave keyboard traversal. Last page, each group's expansion and each page's viewport are remembered
@@ -31,7 +31,8 @@
   arguments, so the numeric-editor rule binds the day one is added, not as a feature change.
 - **Typography, geometry and DPI** (section 5). PerMonitorV2; dimensions defined once at 96 DPI
   (`Ui.Px`); long pages scroll; switching a page or folding a group never resizes the window. **Show
-  cost** (proposed 2026-10-06 as `PROPOSAL-2026-10-06-show-layout-once`, not yet folded into the contract):
+  cost** (0.2, section 5; budget 500 ms first visit, 150 ms repeat visit, 500 ms dialog - the repeat show of
+  the 29-flag check-options page runs about 0.3 s, a dated exception in the registry):
   a page or window is shown with its subtree's layout held and laid out once (`Ui.SuspendTree` /
   `ResumeTree`: `ShellForm.RailEntry_Click`, `SettingsPanel`, `DiskSettingsDialog`), and a remembered
   scroll position is restored after that layout, not from a hidden page's geometry.
@@ -55,7 +56,7 @@ screen, light -> dark -> light on the live window and on an open dialog, keyboar
 group header, Escape leaving the settings page, the real close path and a fresh reopen restoring the
 page, the groups and the viewport, every step screened by its dominant colour.
 
-**Status: implemented 2026-10-05 (SP-0150); read against 0.1.** Physically unverified and open:
+**Status: implemented 2026-10-05 (SP-0150); read against 0.3 on 2026-10-07 (SP-0165).** Physically unverified and open: the section 9 timings of every page and dialog at the largest supported scale,
 150%/200% and mixed-monitor movement on real displays (P01), a real high-contrast session (the palette
 and its precedence are pinned mechanically), and a right-to-left locale (the five shipped languages are
 left-to-right; direction is declared with the inventory and no RTL language ships). The driven

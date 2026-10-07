@@ -98,7 +98,7 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. The
   real gate is **`build.ps1 -Test`**, ten steps (the list is in "Testing - the gate in full"); its last line is
-  `build-gate <stamp>: PASS`, `FAIL` or `NOT VERIFIED`, and its exit codes are **0 = pass**, **1 = a defect was
+  `build-gate <stamp>: PASS`, `FAIL` or `COULD NOT VERIFY`, and its exit codes are **0 = pass**, **1 = a defect was
   found**, **2 = it could not verify** (a missing prerequisite). Exit 2 is "nothing was proven".
 - `go test ./cmd/filedo/` needs **`-vet=off`**: package main carries recorded vet debt
   (`cmd/filedo/vet-baseline.txt`, shrink-only). `cmd/filedo-test` is its own module - run its tests from

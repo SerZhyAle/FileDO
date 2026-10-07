@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `RULE-DELIVERY` |
-| **Version** | 0.11, draft (wire carrier: the `sza` plugin version, derived from `CANON_VERSION`) |
+| **Version** | 0.12, draft (wire carrier: the `sza` plugin version, derived from `CANON_VERSION`) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 5 |
 | **Role** | consumer - this repository receives the canon through the `sza` plugin |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |
@@ -19,3 +19,4 @@
 - **Never hand-edit the version pair.** The canon's deploy path writes it; this repository only records
   what it holds (rule 7).
 - **0.11: the 180-day age counts from `canon.reconciledOn`** when the stamp carries it, from `canon.adoptedOn` otherwise. The clock restarts at every reconciliation and only there.
+- **0.12, read 2026-10-07 (SP-0165):** where neither `canon.reconciledOn` nor `canon.adoptedOn` parses, the age is unknown and read as past the window, so a differing digest is an error. The stamp here carries both dates, so that rung is never taken, and this repository holds no copy of the check.

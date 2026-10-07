@@ -309,11 +309,34 @@ func TestDiskStatusWithoutRecordIsRefused(t *testing.T) {
 		t.Fatal("a failed handle query became a zero count")
 	}
 }
-func TestUnknownDiskStateIsRefused(t *testing.T) {
+// WORKER-IPC section 10 item D: a state this build does not know is read as unknown, per record - the
+// answer is not refused, and a neighbour record keeps its own state. Unknown is never "closed".
+func TestUnknownDiskStateIsReadAsUnknown(t *testing.T) {
+	for _, word := range []any{"melting", "", nil, 7, true, map[string]any{"x": 1}} {
+		c, _ := recordingClient(t, func(map[string]any) any {
+			return map[string]any{"schemaVersion": 2, "ok": true,
+				"disk":  map[string]any{"containerId": "a", "state": word, "holder": "session"},
+				"disks": []any{map[string]any{"containerId": "a", "state": word}, map[string]any{"containerId": "b", "state": "open"}}}
+		})
+		d, e := c.GetDiskStatus(`C:\a.fdd`)
+		if e != nil || d.State != DiskStateUnknown || d.State == DiskStateClosed || d.Holder != "session" {
+			t.Fatalf("state %v: %+v err=%v", word, d, e)
+		}
+		list, e := c.ListSharedDisks()
+		if e != nil || len(list) != 2 || list[0].State != DiskStateUnknown || list[1].State != DiskStateOpen {
+			t.Fatalf("state %v: list=%+v err=%v", word, list, e)
+		}
+	}
+}
+
+// A higher schemaVersion carrying a state word of its own is told apart from a malformed answer: the
+// user reads "update both halves", not "invalid worker response".
+func TestHigherSchemaWithNewStateIsASchemaMismatch(t *testing.T) {
 	c, _ := recordingClient(t, func(map[string]any) any {
-		return map[string]any{"schemaVersion": 2, "ok": true, "disk": map[string]any{"state": "melting"}}
+		return map[string]any{"schemaVersion": 3, "ok": true, "disk": map[string]any{"state": "quiescing"}}
 	})
-	if _, e := c.GetDiskStatus(`C:\a.fdd`); !errors.Is(e, ErrCommunication) {
+	_, e := c.GetDiskStatus(`C:\a.fdd`)
+	if !errors.Is(e, ErrCommunication) || !strings.Contains(e.Error(), "schema mismatch") {
 		t.Fatalf("err=%v", e)
 	}
 }

@@ -287,7 +287,7 @@ try {
 }
 
 $failed = @($results | Where-Object { -not $_.Pass })
-if ($results.Count -eq 0) { Say 'NOT VERIFIED: no step ran'; exit 2 }
+if ($results.Count -eq 0) { Say 'COULD NOT VERIFY: no step ran'; exit 2 }
 $results | Format-Table -AutoSize | Out-String | Tee-Object -Append $log | Write-Host
 if ($failed.Count) { Say "FAIL: $($failed.Count) of $($results.Count) steps"; exit 1 }
 Say "PASS: $($results.Count) steps"

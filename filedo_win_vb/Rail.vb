@@ -37,9 +37,9 @@
 ' The Disks group (SP-0004 P6) is partly that case. Its list of containers draws the .fdd type's
 ' own meaning, content.disk-container (ICON-SET 0.16), the drawing the Explorer type icon is made
 ' from. Six rows mean what a vocabulary record already means - info, verify, export, save, a copy
-' (Clone), a delete (Destroy) - and draw that drawing. The other three are meanings ICON-SET has no
-' record for (create, compact, auto-mount), so they draw a Segoe stand-in under a proposed id until the
-' records land and assets\sync-icon-glyphs.ps1 vendors them; SelfTest's baseline says so. Those meanings -
+' (Clone), a delete (Destroy) - and draw that drawing. The other three (create, compact, auto-mount) drew a
+' Segoe stand-in until ICON-SET 0.24 took them; assets\sync-icon-glyphs.ps1 vendors them since
+' 2026-10-07 (SP-0165) and SelfTest's baseline is zero. Those meanings -
 ' and the rest of the Disks rows' pictures - are defined once, in DiskGlyphs.vb, which the Disk manager's
 ' toolbar, menus and buttons read too, so a meaning looks the same wherever it is shown (ICON-SET rule 1).
 '
