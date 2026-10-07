@@ -589,14 +589,34 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 	// (vdDetach): it goes now, before a new disk appears beside its old device.
 	if stale, serr := iscsiSessionsFor(req.IQN); serr == nil {
 		for _, s := range stale {
-			if lerr := vdLogoutRetry(s, 3); lerr != nil {
-				h := pnpVetoHolder()
-				if h == "" {
-					h = "a program"
+			if lerr := vdLogoutWithin(s, vdLogoutBudget); lerr != nil {
+				// A program holding the disk device open - a monitor such as Task Manager - kept the
+				// earlier unmount from logging the session out. It holds no data and does not let go;
+				// Windows ends the dead session itself within about a minute. Wait for that, in the log
+				// only, rather than fail the mount.
+				who := pnpVetoHolder()
+				if who == "" {
+					who = "a program"
 				}
-				return res, errBusy(fmt.Sprintf("the disk of this container's earlier mount is still held open by %s; close it and mount again", h))
+				if err = step("the session %s of the earlier mount is held open by %s; waiting for Windows to release it, up to %d s", s, who, int(vdStaleHold/time.Second)); err != nil {
+					return res, err
+				}
+				lastNote := time.Now()
+				check := func() error {
+					if time.Since(lastNote) >= 15*time.Second {
+						lastNote = time.Now()
+						return step("still waiting for the session %s of the earlier mount", s)
+					}
+					if _, e := os.Stat(cancelPath); e == nil {
+						return fmt.Errorf("%w: the mount was interrupted", vdisk.ErrStopped)
+					}
+					return nil
+				}
+				if err = vdWaitStaleGone(req.IQN, s, who, vdStaleHold, check); err != nil {
+					return res, err
+				}
 			}
-			vdLogf("attach %s: logged out the session %s an earlier unmount left", req.IQN, s)
+			vdLogf("attach %s: the session %s an earlier unmount left is gone", req.IQN, s)
 		}
 	}
 	if err = step("adding portal 127.0.0.1:%d", req.Port); err != nil {
@@ -750,6 +770,105 @@ func vdLogoutRetry(sid iscsiSessionID, attempts int) error {
 	return err
 }
 
+// Tuning of the logout after a clean dismount (vdLogoutWithin, vdWaitStaleGone).
+const (
+	// vdLogoutBudget is how long a logout is retried after the volumes were dismounted and the disk taken
+	// offline. What can still refuse it then is either a write that has not settled (a few seconds) or a
+	// program holding the disk device open, which holds no data and does not let go: a retry beyond the few
+	// seconds only makes the caller wait for nothing.
+	vdLogoutBudget = 6 * time.Second
+	// vdLogoutGap is the pause between two attempts.
+	vdLogoutGap = 2 * time.Second
+	// vdStaleHold is how long a mount waits for the session of an earlier mount that a program holding the
+	// disk device open kept Windows from logging out. The initiator ends such a session itself about a
+	// minute after its connection ends (65 s measured, Task Manager and a plain handle alike); the bound is
+	// more than twice that.
+	vdStaleHold = 150 * time.Second
+	// vdStalePoll and vdStaleLogoutEvery pace the wait: how often the session list is read, and how often
+	// the logout is tried again.
+	vdStalePoll        = time.Second
+	vdStaleLogoutEvery = 6 * time.Second
+)
+
+// vdLogoutWithin logs a session out like vdLogoutRetry, but stops retrying once budget is used up.
+func vdLogoutWithin(sid iscsiSessionID, budget time.Duration) error {
+	return vdLogoutWithinFn(iscsiLogout, sid, budget, vdLogoutGap)
+}
+
+// vdLogoutWithinFn is vdLogoutWithin with the logout call and the pause injected.
+func vdLogoutWithinFn(logout func(iscsiSessionID) error, sid iscsiSessionID, budget, gap time.Duration) error {
+	start := time.Now()
+	for i := 1; ; i++ {
+		err := logout(sid)
+		if err == nil || iscsiStatusOf(err) == isdscInvalidSessionID {
+			return nil
+		}
+		vdLogf("logout %s attempt %d: %v", sid, i, err)
+		if time.Since(start)+gap > budget {
+			return err
+		}
+		time.Sleep(gap)
+	}
+}
+
+// vdWaitStaleGone waits for the session of an earlier mount to go, and returns nil once it has - gone from
+// the initiator's list or logged out - or an error of class busy when it does not within limit. The
+// earlier unmount was clean (it dismounted the volumes and took the disk offline before it logged out), so
+// what keeps the logout from succeeding is a program that holds the disk device, which holds no data: the
+// mount waits for Windows to give the session up instead of failing for something the user did not do and
+// cannot see. check runs between the polls; an error from it (a cancelled mount) ends the wait.
+func vdWaitStaleGone(iqn string, sid iscsiSessionID, who string, limit time.Duration, check func() error) error {
+	gone := func() bool {
+		sessions, err := iscsiSessionsFor(iqn)
+		if err != nil {
+			return false
+		}
+		for _, s := range sessions {
+			if s == sid {
+				return false
+			}
+		}
+		return true
+	}
+	logout := func() bool {
+		err := iscsiLogout(sid)
+		return err == nil || iscsiStatusOf(err) == isdscInvalidSessionID
+	}
+	ok, err := vdPollStale(limit, vdStalePoll, vdStaleLogoutEvery, gone, logout, check)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errBusy(fmt.Sprintf("the disk of this container's earlier mount is still held open by %s after %d s; close it and mount again", who, int(limit/time.Second)))
+	}
+	return nil
+}
+
+// vdPollStale is the loop of vdWaitStaleGone with its three probes injected: gone reads the session list,
+// logout tries the logout, check carries a cancellation. It reports whether the session went within limit.
+func vdPollStale(limit, poll, logoutEvery time.Duration, gone func() bool, logout func() bool, check func() error) (bool, error) {
+	deadline := time.Now().Add(limit)
+	nextLogout := time.Now().Add(logoutEvery)
+	for {
+		if gone() {
+			return true, nil
+		}
+		if !time.Now().Before(deadline) {
+			return false, nil
+		}
+		if err := check(); err != nil {
+			return false, err
+		}
+		time.Sleep(poll)
+		if !time.Now().Before(nextLogout) {
+			if logout() {
+				return true, nil
+			}
+			nextLogout = time.Now().Add(logoutEvery)
+		}
+	}
+}
+
 func vdDetach(req vdRequest) (res vdResult, err error) {
 	// A serial that is not a container disk's names no disk to dismount: usage,
 	// before the initiator or any disk is touched (AUD-32-F8).
@@ -808,7 +927,14 @@ func vdDetach(req vdRequest) (res vdResult, err error) {
 		return res, vdIscsiErr(serr)
 	}
 	for _, s := range sessions {
-		if lerr := vdLogoutRetry(s, 5); lerr != nil {
+		var lerr error
+		if closedClean {
+			// Dismounted and offline: a refusal now is a program holding the device, and retrying does not move it.
+			lerr = vdLogoutWithin(s, vdLogoutBudget)
+		} else {
+			lerr = vdLogoutRetry(s, 5)
+		}
+		if lerr != nil {
 			res.Holder = pnpVetoHolder()
 			holder := "Windows refused to remove the disk"
 			if res.Holder != "" {
