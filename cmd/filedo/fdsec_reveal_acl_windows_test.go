@@ -58,7 +58,7 @@ func TestRevealSandbox_AccessListNamesThisUserAndSystemOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot read this process's user: %v", err)
 	}
-	if !strings.Contains(sddl, tu.User.Sid.String()) {
+	if !strings.Contains(sddl, ";"+sddlTrustee(t, tu.User.Sid)+")") {
 		t.Errorf("the sandbox DACL does not name this user %s\n%s", tu.User.Sid, sddl)
 	}
 	if !strings.Contains(sddl, ";SY)") {
@@ -100,7 +100,7 @@ func TestRevealSandbox_TheCopyInheritsTheList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(sddl, tu.User.Sid.String()) || !strings.Contains(sddl, ";SY)") {
+	if !strings.Contains(sddl, ";"+sddlTrustee(t, tu.User.Sid)+")") || !strings.Contains(sddl, ";SY)") {
 		t.Errorf("the copy did not inherit the sandbox's access list\n%s", sddl)
 	}
 	for _, unwanted := range []string{";WD)", ";BU)", ";AU)", ";BA)"} {

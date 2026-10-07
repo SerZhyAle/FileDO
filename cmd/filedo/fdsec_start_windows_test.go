@@ -66,7 +66,7 @@ func TestStartSandbox_AccessListNamesThisUserAndSystemOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot read this process's user: %v", err)
 	}
-	if !strings.Contains(sddl, tu.User.Sid.String()) {
+	if !strings.Contains(sddl, ";"+sddlTrustee(t, tu.User.Sid)+")") {
 		t.Errorf("the sandbox DACL does not name this user %s\n%s", tu.User.Sid, sddl)
 	}
 	if !strings.Contains(sddl, ";SY)") {

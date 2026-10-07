@@ -52,7 +52,9 @@ func readSurface(t *testing.T, root, rel string) string {
 	if err != nil {
 		t.Fatalf("surface %s cannot be read: %v", rel, err)
 	}
-	return string(body)
+	// A checkout with core.autocrlf (the release runner's) has CRLF in a surface that is LF in the
+	// repository; the assertions below spell their line breaks as LF.
+	return strings.ReplaceAll(string(body), "\r\n", "\n")
 }
 
 // The reveal directory, spelled the same way everywhere. A surface that
