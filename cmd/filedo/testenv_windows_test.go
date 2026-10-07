@@ -19,6 +19,9 @@ import (
 func init() {
 	t := os.TempDir()
 	long, ok := longPathName(t)
+	if ok && len(long) > 1 && long[1] == ':' {
+		long = strings.ToUpper(long[:1]) + long[1:] // GetLongPathName keeps the drive letter as it was given
+	}
 	if ok && long != t {
 		os.Setenv("TMP", long)
 		os.Setenv("TEMP", long)
@@ -86,7 +89,10 @@ func TestTestEnv_TempIsCanonical(t *testing.T) {
 	if !ok {
 		t.Skip("the temporary folder cannot be resolved")
 	}
-	if long != dir {
+	if len(dir) < 2 || dir[1] != ':' || dir[:1] != strings.ToUpper(dir[:1]) {
+		t.Errorf("t.TempDir() %q does not start with an upper-case drive letter", dir)
+	}
+	if !strings.EqualFold(long, dir) || strings.TrimPrefix(long, long[:1]) != strings.TrimPrefix(dir, dir[:1]) {
 		t.Errorf("t.TempDir() %q is not the canonical spelling %q", dir, long)
 	}
 }
