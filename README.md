@@ -1,6 +1,6 @@
 <p align="center"><img src="assets/icon.png" alt="FileDO" width="128" height="128" /></p>
 
-# FileDO - Advanced File & Storage Operations Tool
+# FileDO - Know your storage before you trust it
 
 <div align="center">
 
@@ -9,9 +9,9 @@
 [![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**Storage Testing • Performance Analysis • Fake Capacity Detection • Duplicate Management • Security Wiping**
+**Fake-Capacity Check • Speed Test • Duplicate Finder • Folder Compare • Wipe Free Space • Password-Protected Files • Virtual Disks**
 
-*A command-line tool for Windows storage: capacity and speed tests, fake-capacity detection, duplicate management, secure wipe and fill.*
+*Test USB sticks and SD cards for fake capacity, check drive speed, find duplicate files and wipe free space to make recovery harder - on Windows, with a window and a command line. For anyone who bought a stick or card and wants to know it is real.*
 
 </div>
 
@@ -28,7 +28,7 @@ filedo E: test del
 # Test drive performance
 filedo C: speed 100
 
-# Secure wipe free space
+# Wipe free space
 filedo D: fill 1000 del
 
 # Find and manage duplicate files
@@ -581,7 +581,7 @@ with nothing changed.
   or symlink target is refused outright: wipe the folder it points to by its own path.
 
 ### **Security Features**
-- High-speed secure data wiping to prevent recovery (4.7+ GB/s)
+- Wipe free space and single files to make recovery harder (no guarantee on SSDs or copy-on-write disks)
 - Fill operations with parallel writing and automatic cleanup
 - Secret files: one file or one whole folder per `.fd-sec` container behind a password, with a bounded plaintext window when
   one is opened - see [Secret Files](#secret-files-fd-sec) for what each choice does and does not promise
@@ -724,7 +724,7 @@ filedo network \\pc\share info
 
 > **Enhanced Interruption**: All long-running operations support **Ctrl+C graceful cancellation** with automatic cleanup. Context-aware interruption checks at optimal points for immediate responsiveness.
 
-> **Secure Wiping**: `fill <size> del` overwrites free space with optimized buffer management and context-aware writing for secure data deletion.
+> **Wiping**: `fill <size> del` overwrites free space with optimized buffer management and context-aware writing to make recovery harder.
 
 > **Test Files**: Creates `FILL_*.tmp` and `speedtest_*.txt` files. `clean` removes the ones FileDO wrote - its own names and its own content, nothing else - after listing them and asking; `--yes` answers the question.
 
@@ -767,10 +767,10 @@ filedo \\server\backup speed 500
 </details>
 
 <details>
-<summary><b>Secure Data Wiping</b></summary>
+<summary><b>Wiping</b></summary>
 
 ```bash
-# Fill 5GB then secure delete
+# Fill 5GB, then delete the test files
 filedo C: fill 5000 del
 
 # Clean existing test files

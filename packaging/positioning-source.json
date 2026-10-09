@@ -1,14 +1,157 @@
 {
   "_about": "The ONE positioning source of FileDO (SITE-REPRESENTATION rules 1 and 2, SP-0157). Every external surface that lists what the product does - the landing and its two standalone locale pages, the guides hub, the five READMEs, the Store listing source, the winget manifest - is written from this list and names the pillars in this order; a surface too short for all of them names the first ones. No surface is written from another surface; where two disagree this file decides which is wrong. Read by packaging/check-external-docs.ps1, step 'positioning'. Each 'surfaces' entry names a file, the region of it that lists the pillars ('scopes', regular expressions, one region each) and, per pillar, a regular expression that finds that pillar's words in that file's language. The step fails when a region is not found, when a pillar the surface must name (the first 'names' pillars, less 'allowMissing') is not found in a region, or when the last word of one pillar comes after the first word of the next. A change of the order is a change of this file first, then of every surface.",
   "lead": "Know your storage before you trust it.",
+  "tagline": "Test USB sticks and SD cards for fake capacity",
+  "localized": {
+    "_about": "The lead and the tagline as the READMEs word them in the other languages (SP-0166 P4). The English pair is 'lead' and 'tagline' above: the lead is the promise (the H1 of every README, 'FileDO - <lead>'), the tagline is the category phrase under it (the opening of the italic summary of README.md, README.ru.md and README.ua.md, and of the winget ShortDescription). Step 'lead' of packaging/check-external-docs.ps1 compares letters and digits only, case ignored. A wording change is a change of this file first, then of every surface that carries it; the translations are still read against the English by step 'locales'.",
+    "ru": { "lead": "Узнайте носитель, прежде чем доверить ему данные", "tagline": "Проверка флешек и SD-карт на поддельную ёмкость" },
+    "ua": { "lead": "Дізнайтеся про носій, перш ніж довірити йому дані", "tagline": "Перевірка флешок і SD-карток на підроблену ємність" },
+    "de": { "lead": "Prüfen Sie Ihren Speicher, bevor Sie ihm vertrauen" },
+    "fr": { "lead": "Connaissez votre stockage avant de lui faire confiance" }
+  },
   "storePolicyExceptions": [],
   "pillars": [
     { "id": "check",   "title": "Check",             "says": "The real capacity (fake-capacity detection), the speed and the readability of a drive, folder or network share." },
     { "id": "tidy",    "title": "Tidy and move",     "says": "Find duplicates, compare two folders, copy large trees with progress and care for slow or damaged disks." },
-    { "id": "erase",   "title": "Erase",             "says": "Wipe a folder or fill the free space to make recovery harder, always behind a confirmation." },
+    { "id": "erase",   "title": "Erase",             "says": "Wipe free space and single files by overwriting them, to make recovery harder, and empty folders (a plain delete) - a file or folder wipe asks for a typed confirmation unless you pass --yes." },
     { "id": "protect", "title": "Protect",           "says": "Pack a file or a folder into a password-protected .fd-sec container and open it again." },
     { "id": "virtual", "title": "Virtual disks",     "says": "A whole volume in one .fdd file, mounted as a drive letter or read without mounting." }
   ],
+  "tagDenyList": {
+    "_about": "Words that must never appear in a tag or a search term the build owns (SP-0166 P4, PROMOTION section 4 item 5): the Tags of every winget locale manifest, every @@SearchTerm of msix/listing/*.txt, and the tags of a Scoop manifest or a Chocolatey nuspec the caller names on the command line. Owned by the feature-to-site flow: a word is added when a channel's tag would over-claim or contradict a decision. A competitor's name is NEVER added - this file is tracked and public, so listing a name here would publish it. An entry denies every tag word that starts with it; case is ignored and a hyphen, an underscore or a space count as one separator, so 'file-manager' and 'file manager' are the same entry. 'words' applies to the tags and search terms of every locale, 'locale' adds to the words of its own language (ru, ua, de, fr; the Store file uk.txt is ua). The docs/termbase.json 'forbidden' fragments are held against the same fields by the same step and are not repeated here. Read by packaging/check-external-docs.ps1, step 'tags'.",
+    "words": {
+      "encryption": "A .fd-sec or .fdd without a password is obfuscated, not encrypted, so FileDO is not listed as encryption software (docs/termbase.json term 'obfuscation').",
+      "encrypt": "The same claim as a verb or a participle (encrypts, encrypted).",
+      "file-manager": "The Store category stays 'Utilities + tools' / 'Backup + manage', never 'File managers' (msix/store-listing.md); FileDO is a storage tool, not a file manager.",
+      "file manager": "The same, written with a space.",
+      "secure-eras": "A wipe makes recovery harder and promises nothing on an SSD, so 'secure' over-claims.",
+      "secure-delet": "The same over-claim (secure deletion).",
+      "secure-wip": "The same over-claim.",
+      "data-wip": "The same over-claim; the tag for the feature is 'wipe'.",
+      "md5": "The duplicate finder hashes with SHA-256, not MD5.",
+      "alternative": "No tag or search term of the form 'X alternative': a competitor is never named or implied (PROMOTION section 1 rule 4).",
+      "filemanager": "The same, written as one word.",
+      "cryptograph": "Encryption, as above.",
+      "file manag": "The same, for 'file-management' (it reads as a file manager)."
+    },
+    "locale": {
+      "ru": {
+        "шифр": "Encryption, as above: a container without a password is masked, not encrypted.",
+        "файловый менеджер": "File manager, as above.",
+        "файловые менеджеры": "File managers, as above.",
+        "безопасное удаление": "Secure deletion, as above.",
+        "безопасное стирание": "Secure erase, as above.",
+        "безопасное затирание": "Secure wipe, as above.",
+        "альтернатив": "An 'alternative to X' term, as above.",
+        "аналог": "An 'analogue of X' term, as above.",
+        "зашифр": "Encrypted, as above."
+      },
+      "ua": {
+        "шифр": "Encryption, as above: a container without a password is masked, not encrypted.",
+        "файловий менеджер": "File manager, as above.",
+        "файлові менеджери": "File managers, as above.",
+        "безпечне видалення": "Secure deletion, as above.",
+        "безпечне стирання": "Secure erase, as above.",
+        "безпечне затирання": "Secure wipe, as above.",
+        "альтернатив": "An 'alternative to X' term, as above.",
+        "аналог": "An 'analogue of X' term, as above.",
+        "зашифр": "Encrypted, as above."
+      },
+      "de": {
+        "verschlüssel": "Encryption, as above: a container without a password is obfuscated (Verschleierung), not encrypted.",
+        "dateimanager": "File manager, as above.",
+        "datei manager": "File manager, as above.",
+        "sicher löschen": "Secure erase, as above.",
+        "sicheres löschen": "Secure erase, as above.",
+        "alternative": "An 'alternative to X' term, as above.",
+        "dateiverschl": "Dateiverschluesselung, encryption as above."
+      },
+      "fr": {
+        "chiffr": "Encryption, as above: a container without a password is camouflaged, not encrypted.",
+        "gestionnaire de fichiers": "File manager, as above.",
+        "effacement sécurisé": "Secure erase, as above.",
+        "suppression sécurisée": "Secure deletion, as above.",
+        "alternative": "An 'alternative to X' term, as above.",
+        "cryptage": "Encryption, as above."
+      }
+    }
+  },
+  "claimDenyList": {
+    "_about": "Wording the descriptions must never carry (SP-0166 P4, the over-claim traps of the promotion campaign): the winget ShortDescription and Description of every locale manifest, the Store @@ShortDescription of every locale, and the description, notes, summary and title of a Scoop manifest or a Chocolatey nuspec the caller names on the command line. Each key is a regular expression matched as a whole word, case-insensitive; 'all' applies to every text, a language key adds to the texts of that language (ru, ua, de, fr; the Store file uk.txt is ua). A competitor's name is NEVER added (this file is public). The network entries stand until release-queue row 2 / SP-0065 gives the privacy claim its disk-sharing carve-out; drop them in that change. Read by packaging/check-external-docs.ps1, step 'claims'.",
+    "all": {
+      "#1": "A ranking; no source backs one.",
+      "MD5": "The duplicate finder hashes with SHA-256, not MD5.",
+      "multi[- ]?[KMGT]B\\s*/\\s*s": "The multi-GB/s form: no measured artefact in the tree backs a throughput claim.",
+      "\\d[\\d.,]*\\+?\\s*[KMGT]B\\s*/\\s*s": "A throughput figure: a number is read from its source at writing time, and a description has none.",
+      "\\d[\\d.,]*\\+?\\s*[KMGT]i?B\\s*(?:/|per\\s+)s(?:ec(?:ond)?s?)?": "A throughput figure in any unit spelling: a number is read from its source at writing time, and a description has none.",
+      "file[- ]?manager": "FileDO is a storage tool, not a file manager; the Store category stays 'Backup + manage' (msix/store-listing.md).",
+      "encryption\\s+(?:software|tool|app)": "A .fd-sec or .fdd without a password is obfuscated, not encrypted; FileDO is not encryption software (docs/termbase.json term 'obfuscation')."
+    },
+    "en": {
+      "fast(?:er|est)?(?!\\s+media\\s+sorter)": "'fast' and 'fastest' are unsourced boasts; FileDO's own verb 'fastcopy' and the sibling product's name 'Fast Media Sorter' are different words and pass.",
+      "best(?!-effort)": "A ranking; no source backs one.",
+      "securely": "A wipe makes recovery harder and promises nothing on an SSD.",
+      "secure[- ]?(?:wip|eras|delet)\\w*": "The same over-claim (secure wipe, erase, deletion).",
+      "military[- ]?grade": "A wipe is never military-grade.",
+      "DoD": "A wipe is never described by a defence standard.",
+      "(?:un|ir)recoverable": "Recovery is made harder, never impossible.",
+      "quick(?:ly)?\\s+(?:\\w+\\s+)?(?:checks?|tests?|scans?|verifications?)": "The capacity test fills the free space and is slow on large media, so it is never a quick check.",
+      "never\\s+(?:connects\\b|connect\\s+to\\b|goes\\s+online)": "Disk sharing through Fast Media Sorter exists, so no absolute network claim is made until SP-0065 adds the carve-out.",
+      "no\\s+(?:network|internet)": "Absolute network claim, as above.",
+      "without\\s+(?:a\\s+|any\\s+)?(?:network|internet)": "Absolute network claim, as above.",
+      "(?:whole|entire)\\s+(?:device|drive|disk)": "The capacity test covers the free space, not the whole device.",
+      "every\\s+(?:byte|fake)": "The read-back is sampled and the verdict can be Not proven, so nothing is checked byte by byte or every time.",
+      "vault|encrypted\\s+archive": "A .fd-sec or .fdd without a password is obfuscated, never a vault or an encrypted archive (docs/termbase.json).",
+      "recovery\\s+(?:is\\s+)?impossible|impossible\\s+to\\s+recover|cannot\\s+be\\s+recovered|irreversibl\\w+|for\\s+good|forever|permanent(?:ly)?": "A wipe makes recovery harder, never impossible; a folder wipe is a delete.",
+      "signed\\s+(?:and\\s+verified\\s+)?(?:installer|setup)|verified\\s+(?:installer|setup)": "The setup is unsigned and SmartScreen warns.",
+      "(?:completely|fully|100\\s*%)\\s+offline": "Absolute network claim, as above."
+    },
+    "ru": {
+      "быстр\\w*": "'Fast', unsourced.",
+      "лучш\\w*": "'Best', a ranking.",
+      "(?:безопасн|надёжн|надежн|гарантированн)\\w*\\s+(?:удал|стир|затир)\\w*": "Secure wipe: a wipe makes recovery harder and promises nothing on an SSD.",
+      "невосстановим\\w*": "Unrecoverable: recovery is made harder, never impossible.",
+      "военн\\w*": "Military-grade: a wipe is never described by a defence standard.",
+      "без\\s+(?:сети|интернета)": "Absolute network claim: none until SP-0065 adds the disk-sharing carve-out.",
+      "не\\s+подключается": "Absolute network claim, as above.",
+      "(?:стира|затира|удаля)\\w*[^.;]{0,40}безопасн\\w*": "Secure wipe, verb before the adverb.",
+      "безвозвратн\\w*|навсегда": "Recovery is made harder, never impossible."
+    },
+    "ua": {
+      "швидк(?:о|ий|а|е|і|их|ого|ому|им|ою|у|ої)": "'Fast', unsourced (the noun 'швидкість', speed, passes).",
+      "найкращ\\w*": "'Best', a ranking.",
+      "(?:безпечн|надійн|гарантован)\\w*\\s+(?:видал|стир|затир)\\w*": "Secure wipe: a wipe makes recovery harder and promises nothing on an SSD.",
+      "невідновн\\w*|невідновл\\w*": "Unrecoverable: recovery is made harder, never impossible.",
+      "військов\\w*": "Military-grade: a wipe is never described by a defence standard.",
+      "без\\s+(?:мережі|інтернету)": "Absolute network claim: none until SP-0065 adds the disk-sharing carve-out.",
+      "не\\s+підключається": "Absolute network claim, as above.",
+      "(?:видаля|стира|затира)\\w*[^.;]{0,40}безпечн\\w*": "Secure wipe, verb before the adverb.",
+      "безповоротн\\w*|назавжди": "Recovery is made harder, never impossible."
+    },
+    "de": {
+      "schnell\\w*": "'Fast', unsourced.",
+      "best(?:e|er|en|em|es)?": "'Best', a ranking.",
+      "sicher(?:e|er|es|en)?\\s+lösch\\w*": "Secure erase: a wipe makes recovery harder and promises nothing on an SSD.",
+      "unwiederherstellbar\\w*": "Unrecoverable: recovery is made harder, never impossible.",
+      "militär\\w*": "Military-grade: a wipe is never described by a defence standard.",
+      "ohne\\s+(?:netzwerk|internet)": "Absolute network claim: none until SP-0065 adds the disk-sharing carve-out.",
+      "nie\\s+(?:mit\\s+dem\\s+internet|online)": "Absolute network claim, as above.",
+      "lösch\\w*[^.;]{0,40}\\bsicher(?:e|er|es|en|em)?\\b": "Secure erase, verb before the adverb.",
+      "kein(?:e|en)?\\s+(?:Netzwerk|Internet)": "Absolute network claim, as above.",
+      "für\\s+immer|unwiderruflich": "Recovery is made harder, never impossible."
+    },
+    "fr": {
+      "rapide\\w*": "'Fast', unsourced.",
+      "meilleur\\w*": "'Best', a ranking.",
+      "sécuris\\w*": "Secure wipe: a wipe makes recovery harder and promises nothing on an SSD.",
+      "irrécupérable\\w*|irrecuperable\\w*": "Unrecoverable: recovery is made harder, never impossible.",
+      "militaire\\w*": "Military-grade: a wipe is never described by a defence standard.",
+      "sans\\s+(?:réseau|internet)": "Absolute network claim: none until SP-0065 adds the disk-sharing carve-out.",
+      "jamais\\s+(?:de\\s+)?connect\\w*": "Absolute network claim, as above.",
+      "en\\s+toute\\s+s[ée]curit[ée]": "Secure wipe wording.",
+      "pour\\s+toujours|définitivement": "Recovery is made harder, never impossible."
+    }
+  },
   "surfaces": [
     {
       "file": "docs/index.html", "names": 2,
@@ -110,13 +253,13 @@
       "file": "README.ru.md", "names": 3,
       "why": "README lead: the bold line, then the italic summary",
       "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$", "(?m)^\\*[^*\\r\\n][^\\r\\n]*\\*[ \\t\\r]*$"],
-      "anchors": { "check": "(?i)ёмкост|скорост|тестирован|производительност", "tidy": "(?i)дубликат", "erase": "(?i)удален|очистк" }
+      "anchors": { "check": "(?i)ёмкост|скорост|тестирован|производительност", "tidy": "(?i)дубликат", "erase": "(?i)удален|очистк|затир" }
     },
     {
       "file": "README.ua.md", "names": 3,
       "why": "README lead: the bold line, then the italic summary",
       "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$", "(?m)^\\*[^*\\r\\n][^\\r\\n]*\\*[ \\t\\r]*$"],
-      "anchors": { "check": "(?i)ємност|місткост|швидкост|тестуван|продуктивн", "tidy": "(?i)дублікат", "erase": "(?i)видален|очищенн" }
+      "anchors": { "check": "(?i)ємност|місткост|швидкост|тестуван|продуктивн", "tidy": "(?i)дублікат", "erase": "(?i)видален|очищенн|затир" }
     },
     {
       "file": "README.de.md", "names": 3,
@@ -128,7 +271,7 @@
       "file": "README.fr.md", "names": 3,
       "why": "README lead: the bold line",
       "scopes": ["(?m)^\\*\\*[^\\r\\n]+\\*\\*[ \\t\\r]*$"],
-      "anchors": { "check": "(?i)test|performance|capacité", "tidy": "(?i)doublons", "erase": "(?i)suppression" }
+      "anchors": { "check": "(?i)test|performance|capacité", "tidy": "(?i)doublons", "erase": "(?i)suppression|effac" }
     },
     {
       "file": "msix/listing/en.txt", "names": 4,
@@ -146,7 +289,7 @@
       "file": "msix/listing/ru.txt", "names": 4,
       "why": "Store listing: the short description",
       "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
-      "anchors": { "check": "(?i)ёмкост|скорост|подделк", "tidy": "(?i)дубликат", "erase": "(?i)стирайт", "protect": "(?i)парол" }
+      "anchors": { "check": "(?i)ёмкост|скорост|подделк", "tidy": "(?i)дубликат", "erase": "(?i)стирайт|затир", "protect": "(?i)парол" }
     },
     {
       "file": "msix/listing/ru.txt", "names": 5,
@@ -158,7 +301,7 @@
       "file": "msix/listing/uk.txt", "names": 4,
       "why": "Store listing: the short description",
       "scopes": ["(?s)@@ShortDescription\\s*\\r?\\n.*?(?=\\r?\\n@@)"],
-      "anchors": { "check": "(?i)ємніст|швидкіст|підробк", "tidy": "(?i)дублікат", "erase": "(?i)стирайт", "protect": "(?i)парол" }
+      "anchors": { "check": "(?i)ємніст|швидкіст|підробк", "tidy": "(?i)дублікат", "erase": "(?i)стирайт|затир", "protect": "(?i)парол" }
     },
     {
       "file": "msix/listing/uk.txt", "names": 5,

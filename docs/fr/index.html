@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/" />
     <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/" />
     <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
@@ -13,7 +14,13 @@
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/" />
     <meta
       property="og:image"
-      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+      content="https://serzhyale.github.io/FileDO/assets/social-card.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Logo et nom FileDO avec la devise anglaise Know your storage before you trust it, sur fond vert foncé"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <title>FileDO - connaissez votre stockage avant de vous y fier</title>
@@ -1517,7 +1524,7 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           <article class="card">
             <h3>Doublons</h3>
             <p>
-              <span data-l="fr">Correspondance MD5 avec cache ; enregistrez une liste et traitez-la plus tard.</span>
+              <span data-l="fr">Correspondance par contenu avec cache ; enregistrez une liste et traitez-la plus tard.</span>
             </p>
           </article>
           <article class="card">
@@ -1531,7 +1538,7 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
               <span data-l="fr">Effacer &amp; remplir</span>
             </h3>
             <p>
-              <span data-l="fr"><code>wipe</code> écrase les fichiers d’un dossier puis les supprime ; <code>fill … del</code> remplit l’espace libre de données puis les supprime, pour compliquer la récupération. <code>wipe</code> vous demande de saisir <code>WIPE</code> ; les racines de disque/partage, les points d’analyse et le dossier TEMP du système exigent une confirmation interactive même avec <code>--force</code>. Aucune des deux actions ne peut être annulée.</span>
+              <span data-l="fr"><code>wipe</code> supprime le contenu d’un dossier - une suppression ordinaire, la récupération reste possible tant que l’espace n’est pas réutilisé ; <code>fill … del</code> remplit l’espace libre de données puis les supprime, et sur un seul fichier <code>wipe</code> écrase le fichier avant de le retirer, les deux pour compliquer la récupération. <code>wipe</code> vous demande de saisir <code>WIPE</code> ; les racines de disque/partage, les points d’analyse et le dossier TEMP du système exigent une confirmation interactive même avec <code>--force</code>. Aucune de ces actions ne peut être annulée.</span>
             </p>
           </article>
           <article class="card">
@@ -1848,6 +1855,9 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           <span><span data-l="fr">Auteur</span>: <a href="https://sza.od.ua">Serhii Zhyhunenko</a> · © 2026</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="guides/"><span data-l="fr">Guides</span></a> · <a href="privacy.html"
               ><span data-l="fr">Confidentialité</span></a
+            >
+            · <a href="guides/support.html"
+              ><span data-l="fr">Assistance</span></a
             >
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·

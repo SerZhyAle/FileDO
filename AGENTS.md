@@ -92,7 +92,8 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
 - **GUI shell** ("The GUI shell"): `Theme.vb` alone names a colour; no fixed coordinates; every glyph is a
   vendored catalog drawing; both DPI files ship; every string goes through `Localization.vb` in five languages;
   no exception text on screen; every question is a `ShellDialog` whose safe answer is the default.
-- **Site** ("Site"): hand-authored, no generator; release asset names are the download buttons' contract, and
+- **Site** ("Site"): hand-authored pages; the generated files (`docs/sitemap.xml`, written by
+  `packaging/write-sitemap.ps1`, and the two share images, drawn by `assets/make-product-icons.ps1 -SocialOnly`) are never edited by hand; release asset names are the download buttons' contract, and
   the installer is **not code-signed**, which every download surface says.
 
 ## Testing
@@ -126,6 +127,8 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
   erase, protect, virtual disks). The landing and its de/fr pages, the guides hub, the five READMEs, the Store listing
   source and the winget manifest list those pillars in that order or name the first ones; `check-external-docs.ps1`
   (step `positioning`) fails on a surface out of order. Change the order in the source first, then in every surface.
+  The tag deny-list, the claim deny-list and the lead and tagline live in the same file (steps `tags`, `claims`, `lead`);
+  add a word there in the same edit that introduces a channel's tag or description.
 - A verb's acceptance test is still a batch run (`.lst`): the batch adds its own tokenizer and stop rule.
   List-driven scenarios (`tests\*.lst`) name placeholders and run only through `tests\run-test-list.ps1`;
   never point them at a real data volume.

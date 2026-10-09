@@ -6,9 +6,27 @@ through the export, merge, import round trip of `msix/build-store-listing-csv.ps
 section 4). Edit it THERE and never in the console: the console is a render target, and two
 sources of truth is how a corrected claim survives in a live listing.
 
+What those fields say (SP-0166): the short description fits the 270 characters the Store shows in
+every view and makes no network claim; the long description opens with the value for the reader, not
+with a list of commands; there are at most seven search terms of at most 30 characters, each relevant
+to the product, none another product's title and none a pricing term (policy 10.1.3), and neither
+"encryption" nor "file manager" among them. The closing "No accounts, no ads, no telemetry." is in
+the English short description only: the ru, uk, de and fr texts are at 259-268 of 270 characters and
+cannot hold it; the long description (PRIVATE BY DESIGN) and Feature10 carry the claim in every
+locale. The capacity test is described as testing the free space and taking time on large media; a
+folder wipe is a plain delete; wiping free space or one file is described as making recovery harder,
+never as secure or unrecoverable. The builder fills only empty cells and `-Refresh` takes exact
+field names, so a change to these fields is imported with
+`-Refresh ShortDescription,Description,Feature1,Feature3,Feature5,SearchTerm1,SearchTerm2,SearchTerm3,SearchTerm4,SearchTerm5,SearchTerm6,SearchTerm7`.
+Run the builder from a PowerShell session (`& .\msix\build-store-listing-csv.ps1 -Refresh a,b,c`),
+not through `pwsh -File`, which passes the comma list as one string and refreshes nothing; a good
+run prints a non-zero "refreshed N".
+
 This file keeps only what the CSV does not carry and a person pastes or ticks by hand: the
 Properties page, the `runFullTrust` justification, the export-compliance answer and the privacy
-declaration. The justification has a ~1000-char limit (both versions below are well under it).
+declaration. The justification has a ~1000-char limit: the short variant below (about 380
+characters) fits; the long variant is about 1100 characters, so paste it only where the console
+accepts that length and use the short one otherwise.
 
 Repo: https://github.com/SerZhyAle/FileDO - Contact: sza@ukr.net - License: MIT
 
@@ -31,8 +49,8 @@ types it, which is why it is written down once instead of being decided again at
 
 **Category.** `Utilities + tools` has exactly two subcategories, `Backup + manage` and
 `File managers` ([the Store's own table][cat]). FileDO is not a file manager - it browses nothing -
-so `Backup + manage` is the honest one. `Security` as the secondary category is earned by the secure
-wipe and the password-protected `.fd-sec` container, not bought for reach.
+so `Backup + manage` is the honest one. `Security` as the secondary category is earned by the wipe
+of free space and files and the password-protected `.fd-sec` container, not bought for reach.
 
 **The personal-information answer is Yes, deliberately**, and it does not contradict the "no data
 collected" declaration further down. The question asks what the product *accesses*, not what its
@@ -45,19 +63,19 @@ SP-0007 C6).
 [cat]: https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/categories-and-subcategories
 
 ---
-## runFullTrust justification (keep under ~1000 chars)
+## runFullTrust justification (short variant fits ~1000 chars; long variant is about 1100)
 
 ```
 FileDO is a full-trust Win32 desktop application, not a UWP app: a Go command-line engine (filedo.exe) and a .NET Framework window (filedo_win.exe) that starts it. runFullTrust is required to run as a normal desktop process and to call the Win32 storage APIs its core features depend on:
-- Direct device/volume access (CreateFile on \\.\PhysicalDrive and volume handles, SetFilePointer, raw read/write): needed to measure true disk speed and to detect fake-capacity drives by writing and reading back data across the full device. It accesses storage the user explicitly targets; it does not scan the system or read personal files on its own.
-- High-throughput file I/O for secure wipe/fill: overwrites free space or user-specified folders to prevent recovery. Destructive actions confirm first and never auto-force drive roots, reparse points, or system TEMP.
+- Direct device/volume access (CreateFile on \\.\PhysicalDrive and volume handles, SetFilePointer, raw read/write): needed to measure true disk speed and to detect fake-capacity drives by writing data into the free space and reading it back. It accesses storage the user explicitly targets; it does not scan the system or read personal files on its own.
+- High-throughput file I/O for wipe and fill: fills free space or overwrites one file to make recovery harder; a folder wipe is a plain delete. Destructive actions confirm first and never auto-force drive roots, reparse points, or system TEMP.
 These APIs are available only to full-trust desktop apps. FileDO runs entirely locally, never connects to the internet or to any other computer, and collects no user data. Open source: https://github.com/SerZhyAle/FileDO
 ```
 
 ### Short variant (if a brief reason is also requested)
 
 ```
-Full-trust Win32 desktop app (Go command-line engine plus a .NET Framework window). Needs runFullTrust for raw disk/volume access (CreateFile on \\.\PhysicalDrive, raw read/write) used for speed testing, fake-capacity detection, and secure wiping - APIs only available to full-trust desktop apps. Runs locally, no internet connection, no data collection. https://github.com/SerZhyAle/FileDO
+Full-trust Win32 desktop app (Go command-line engine plus a .NET Framework window). Needs runFullTrust for raw disk/volume access (CreateFile on \\.\PhysicalDrive, raw read/write) used for speed testing, fake-capacity detection, and wiping - APIs only available to full-trust desktop apps. Runs locally, no internet connection, no data collection. https://github.com/SerZhyAle/FileDO
 ```
 
 ## Export compliance - encryption (answer this BEFORE the first submission carrying secret files)
@@ -125,7 +143,7 @@ telemetry/analytics/ads/accounts.
 
 What it accesses and why:
 - Raw disk/device data (read and write) on the drives, folders, or shares you target -
-  used only for speed testing, fake-capacity detection, secure wiping, and copying.
+  used only for speed testing, fake-capacity detection, wiping, and copying.
 - Drive model, serial number, and interface type, read via WMI for the `info` command and
   shown on screen only - never logged to file, never transmitted.
 - The wipe and fill features intentionally overwrite/destroy data you point them at; they

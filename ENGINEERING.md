@@ -460,7 +460,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   against the page set, the full SEO block, every `data-l` group in ru/en/ua (the standalone `docs/de/` and `docs/fr/` trees mirror the runtime pages group for group, one language each - SP-0154), translation freshness against
   `docs/translation-fingerprints.json`, the `docs/termbase.json` forbidden synonyms, screenshots, the site addresses held outside it
   (`packaging/site-held-addresses.json`: every one resolves to a page and anchor, every holder still carries it,
-  none is missing from the list - SP-0153), the product's pillars in the order of `packaging/positioning-source.json` on every surface that lists them (SP-0157) and prose hygiene. **An EN edit on the site or in `README.md` fails it** until the translations are updated and
+  none is missing from the list - SP-0153), the product's pillars in the order of `packaging/positioning-source.json` on every surface that lists them (SP-0157), the tag and claim deny-lists (`tagDenyList` and `claimDenyList` in the same file, owned by the feature-to-site flow: a winget tag, a Store search term or a description wording is held against them and against `docs/termbase.json`), the README H1 and the winget `ShortDescription` against the lead and tagline (SP-0166), the share image's declared size and alt text against the PNG, the absence of any tracker or analytics script, and prose hygiene. **An EN edit on the site or in `README.md` fails it** until the translations are updated and
   `check-external-docs.ps1 -Record` re-records the fingerprints; and `packaging/check-build-inputs.ps1` - no
   build input (a glyph, an icon, a source, project or installer file) is on disk yet git-ignored, because
   `git add -A` and the clean-tree check skip such a file silently and the tagged run builds from a checkout
@@ -679,9 +679,11 @@ running the GUI self-test never change AutoPlay. The Store build offers the Wind
 only, to keep this system preference outside package registry virtualization.
 
 ## Site (`docs/`)
-Hand-authored, **no generator** - so the pages are edited in place and are not render targets. The tree
-index, the canonical page list and the redirect-stub rule are in [`docs/README.md`](docs/README.md); adding
-a public page means editing `docs/sitemap.xml` in the same commit.
+Hand-authored pages, **generated files** - the pages are edited in place and are not render targets;
+`docs/sitemap.xml` is a render target of `packaging/write-sitemap.ps1` (each lastmod is the page file's last
+commit date) and is never edited by hand; the two share images (`docs/assets/social-card.png`, 1200x630, and `social-preview.png`, 1280x640) are render targets of `assets/make-product-icons.ps1 -SocialOnly`. `packaging/write-promo-checkpoint.ps1 -OutDir <folder>` writes the free-promotion metrics checkpoint by hand (at most fourteen days apart while outreach is active); no gate runs it. The tree index, the canonical page list and the redirect-stub rule
+are in [`docs/README.md`](docs/README.md); adding a public page means running `packaging/write-sitemap.ps1`
+in the same commit (the external-docs gate fails until the sitemap lists the page).
 
 **The download buttons are resolved at runtime, and the release asset names are the contract.** The
 landing page (`docs/index.html`, the install band `#get`) starts every link on `releases/latest` and, when

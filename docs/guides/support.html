@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/support.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/support.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/support.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/support.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/support.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/support.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background" />
+    <meta property="og:title" content="Getting help with FileDO" />
+    <meta property="og:description" content="How to get help with FileDO: where to report a problem, what to include, which pages answer questions, and what one maintainer can promise." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Getting help with FileDO",
+        "description": "How to get help with FileDO: where to report a problem, what to include, which pages answer questions, and what one maintainer can promise.",
+        "url": "https://serzhyale.github.io/FileDO/guides/support.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Getting help with FileDO</title>
+    <meta
+      name="description"
+      content="How to get help with FileDO: where to report a problem, what to include, which pages answer questions, and what one maintainer can promise."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
+        ◐</button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/support.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/support.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru">Руководство · Поддержка</span><span data-l="en">Guide · Support</span><span data-l="ua">Посібник · Підтримка</span>
+        </p>
+        <h1>
+          <span data-l="ru">Что-то не работает? Расскажите автору, что вы увидели.</span><span data-l="en">Something not working? Tell the author what you saw.</span><span data-l="ua">Щось не працює? Розкажіть авторові, що ви побачили.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="ru">FileDO делает и сопровождает один человек. С сообщением, где названы версия, ваши действия и результат, автор может работать. Ниже - куда его отправить, что в него включить и что прочитать до этого.</span><span data-l="en">FileDO is made and looked after by one person. The author can work with a report that names the version, what you did and what happened. Below: where to send it, what to put in it, and what to read first.</span><span data-l="ua">FileDO створює й супроводжує одна людина. З повідомленням, у якому названо версію, ваші дії та результат, автор може працювати. Нижче - куди його надіслати, що в нього включити і що прочитати перед цим.</span>
+        </p>
+      </section>
+
+      <section class="section" id="report">
+        <h2>
+          <span data-l="ru">1. Куда сообщить о проблеме</span><span data-l="en">1. Where to report a problem</span><span data-l="ua">1. Куди повідомити про проблему</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru">Два способа связаться с автором, оба бесплатные, и ещё короткий путь из программы. Выбирайте по тому, чем хотите поделиться.</span><span data-l="en">Two ways to reach the author, both free, plus a shortcut from the program. Choose by what you want to share.</span><span data-l="ua">Два способи зв'язатися з автором, обидва безкоштовні, і ще короткий шлях із програми. Обирайте за тим, чим хочете поділитися.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">GitHub issues</span><span data-l="en">GitHub issues</span><span data-l="ua">GitHub issues</span>
+            </h3>
+            <p>
+              <span data-l="ru">Место для ошибок, вопросов и идей. Нужна бесплатная учётная запись GitHub, а обращение публично: прочитать его может любой.</span><span data-l="en">The place for bugs, questions and ideas. It needs a free GitHub account, and an issue is public: anyone can read it.</span><span data-l="ua">Місце для помилок, запитань та ідей. Потрібен безкоштовний обліковий запис GitHub, а звернення публічне: прочитати його може будь-хто.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-primary btn-sm" href="https://github.com/SerZhyAle/FileDO/issues" target="_blank" rel="noopener"
+                ><span data-l="ru">Открыть трекер задач</span><span data-l="en">Open the issue tracker</span><span data-l="ua">Відкрити трекер задач</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Электронная почта</span><span data-l="en">E-mail</span><span data-l="ua">Електронна пошта</span>
+            </h3>
+            <p>
+              <span data-l="ru">Для всего, что вы не хотите выкладывать публично, и на случай, если вы не пользуетесь GitHub. Пишите на <a href="mailto:sza@ukr.net">sza@ukr.net</a>, в теме укажите FileDO и версию.</span><span data-l="en">For anything you would rather not post in public, or if you do not use GitHub. Write to <a href="mailto:sza@ukr.net">sza@ukr.net</a> and put FileDO and the version in the subject.</span><span data-l="ua">Для всього, що ви не хочете викладати публічно, і на випадок, якщо ви не користуєтеся GitHub. Пишіть на <a href="mailto:sza@ukr.net">sza@ukr.net</a>, у темі вкажіть FileDO і версію.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Из программы</span><span data-l="en">From the program</span><span data-l="ua">З програми</span>
+            </h3>
+            <p>
+              <span data-l="ru">На странице «О программе» окна FileDO есть ссылка «Сообщить о проблеме», адрес автора и кнопка «Отправить логи автору» (раздел 3).</span><span data-l="en">The About page of the FileDO window has a Report an issue link, the author's address and a Send logs to the author button (section 3).</span><span data-l="ua">На сторінці «Про програму» вікна FileDO є посилання «Повідомити про проблему», адреса автора та кнопка «Надіслати логи автору» (розділ 3).</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="include">
+        <h2>
+          <span data-l="ru">2. Что указать</span><span data-l="en">2. What to include</span><span data-l="ua">2. Що вказати</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru">Пять сведений превращают сообщение в то, что автор сможет повторить у себя.</span><span data-l="en">Five facts turn a report into something the author can try for themselves.</span><span data-l="ua">П'ять відомостей перетворюють повідомлення на те, що автор зможе повторити в себе.</span>
+        </p>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"><b>Версия FileDO.</b> В окне FileDO откройте страницу «О программе» и прочитайте строку «Сборка GUI». В терминале выполните <code>filedo --no-ui</code>: вверху вывода будут дата, адрес автора и версия - десятизначное число. Назовите именно его, а не номер из списка установленных приложений Windows: там он может быть записан иначе.</span><span data-l="en"><b>The FileDO version.</b> In the FileDO window, open the About page and read the GUI build line. In a terminal, run <code>filedo --no-ui</code>: the top of the output shows the date, the author's address and the version, a ten-digit number. Quote that number rather than the one Windows lists under installed apps, which can be written another way.</span><span data-l="ua"><b>Версія FileDO.</b> У вікні FileDO відкрийте сторінку «Про програму» й прочитайте рядок «Збірка GUI». У терміналі виконайте <code>filedo --no-ui</code>: угорі виводу буде дата, адреса автора та версія - десятицифрове число. Назвіть саме його, а не номер зі списку встановлених програм Windows: там він може бути записаний інакше.</span>
+          </li>
+          <li>
+            <span data-l="ru"><b>Как установлена программа и какая у вас Windows.</b> Setup EXE, MSI, ZIP, winget или Microsoft Store: возможности этих сборок различаются. Укажите, какая у вас, и версию Windows (её покажет <code>winver</code>).</span><span data-l="en"><b>How you installed it, and your Windows.</b> Setup EXE, MSI, ZIP, winget or Microsoft Store: the builds differ in what they can do. Say which one you have, and your Windows version (<code>winver</code> shows it).</span><span data-l="ua"><b>Як встановлено програму і яка у вас Windows.</b> Setup EXE, MSI, ZIP, winget або Microsoft Store: можливості цих збірок різняться. Вкажіть, яка у вас, і версію Windows (її покаже <code>winver</code>).</span>
+          </li>
+          <li>
+            <span data-l="ru"><b>Что именно вы делали.</b> Команда так, как вы её набрали (страница «Команда» в окне показывает её и умеет копировать), либо страница и кнопки, которыми вы пользовались. Пароль не указывайте.</span><span data-l="en"><b>What you did, exactly.</b> The command as you typed it (the Command page of the window shows it and can copy it), or the page and the buttons you used. Leave any password out.</span><span data-l="ua"><b>Що саме ви робили.</b> Команда так, як ви її набрали (сторінка «Команда» у вікні показує її й уміє копіювати), або сторінка й кнопки, якими ви користувалися. Пароль не вказуйте.</span>
+          </li>
+          <li>
+            <span data-l="ru"><b>Что произошло и чего вы ждали.</b> Приведите текст сообщений дословно. Добавьте код выхода: после завершения команды его показывает <code>echo %ERRORLEVEL%</code> в командной строке или <code>$LASTEXITCODE</code> в PowerShell. 0 - пройдено или выполнено, 1 - найден дефект, 2 - проверить не удалось. Команды над контейнерами (<code>secure</code>, <code>unsecure</code>, <code>reveal</code>, <code>vd</code>) используют более широкий набор кодов, он перечислен в <a href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">README</a>.</span><span data-l="en"><b>What happened, and what you expected.</b> Quote any message word for word. Add the exit code: once a command has ended, <code>echo %ERRORLEVEL%</code> in Command Prompt or <code>$LASTEXITCODE</code> in PowerShell shows it. 0 means passed or done, 1 means it ran and found a defect, 2 means it could not be verified. The container commands (<code>secure</code>, <code>unsecure</code>, <code>reveal</code>, <code>vd</code>) use a wider set of codes, listed in the <a href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">README</a>.</span><span data-l="ua"><b>Що сталося і чого ви очікували.</b> Наведіть текст повідомлень дослівно. Додайте код виходу: після завершення команди його показує <code>echo %ERRORLEVEL%</code> у командному рядку або <code>$LASTEXITCODE</code> у PowerShell. 0 - пройдено або виконано, 1 - знайдено дефект, 2 - перевірити не вдалося. Команди над контейнерами (<code>secure</code>, <code>unsecure</code>, <code>reveal</code>, <code>vd</code>) використовують ширший набір кодів, він перелічений у <a href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">README</a>.</span>
+          </li>
+          <li>
+            <span data-l="ru"><b>Логи, если получится.</b> Как получить их, не разыскивая файлы, - в разделе 3.</span><span data-l="en"><b>Logs, if you can.</b> Section 3 shows how to get them without digging for files.</span><span data-l="ua"><b>Логи, якщо вдасться.</b> Як отримати їх, не шукаючи файли, - у розділі 3.</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section" id="logs">
+        <h2>
+          <span data-l="ru">3. Логи, если их можно отправить</span><span data-l="en">3. Logs, if you can send them</span><span data-l="ua">3. Логи, якщо їх можна надіслати</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru">На странице «О программе» есть кнопка «Отправить логи автору». Она собирает текстовые логи FileDO, записанные на этом компьютере, в один zip, открывает папку с выделенным архивом, кладёт его путь в буфер обмена и открывает вашу почтовую программу с уже вписанным адресом автора. Сначала вы видите архив, и ничего не уходит, пока вы сами не нажмёте «Отправить».</span><span data-l="en">The About page has a Send logs to the author button. It packs the text logs FileDO wrote on this computer into one zip, opens the folder with the zip selected, puts its path on the clipboard and opens your mail program already addressed to the author. You see the zip first, and nothing is sent until you press Send yourself.</span><span data-l="ua">На сторінці «Про програму» є кнопка «Надіслати логи автору». Вона збирає текстові логи FileDO, записані на цьому комп'ютері, в один zip, відкриває теку з виділеним архівом, кладе його шлях до буфера обміну й відкриває вашу поштову програму з уже вписаною адресою автора. Спершу ви бачите архів, і нічого не йде, доки ви самі не натиснете «Надіслати».</span>
+        </p>
+        <p class="intro">
+          <span data-l="ru">Почтовая ссылка (mailto) не может содержать вложение, поэтому архив вы прикладываете сами: его путь уже в буфере обмена.</span><span data-l="en">A mail link cannot carry an attachment, so you attach the zip yourself: its path is already on the clipboard.</span><span data-l="ua">Поштове посилання (mailto) не може містити вкладення, тому архів ви прикладаєте самі: його шлях уже в буфері обміну.</span>
+        </p>
+        <div class="note">
+          <p>
+            <span data-l="ru"><b>Прочитайте архив, прежде чем прикладывать.</b> В упакованных строках учётные данные, ссылки и абсолютные пути заменяются на <code>[REDACTED]</code>, но произвольный текст всё равно может содержать личные сведения. Обращение на GitHub публично: прикладывайте архив туда только после прочтения или отправьте его по электронной почте.</span><span data-l="en"><b>Read the zip before you attach it.</b> In the packed lines, credentials, links and absolute paths become <code>[REDACTED]</code>, but free text can still carry personal details. A GitHub issue is public: attach the zip there only after you have read it, or send it by e-mail instead.</span><span data-l="ua"><b>Прочитайте архів, перш ніж прикладати.</b> У запакованих рядках облікові дані, посилання й абсолютні шляхи замінюються на <code>[REDACTED]</code>, але довільний текст усе одно може містити особисті відомості. Звернення на GitHub публічне: прикладайте архів туди лише після прочитання або надішліть його електронною поштою.</span>
+          </p>
+        </div>
+        <p class="intro">
+          <span data-l="ru">История запусков, списки проверки и JSON-отчёты в архив не попадают: в них могут быть имена ваших файлов и папок. <a href="../privacy.html">Страница приватности</a> перечисляет файлы, которые пишет FileDO, где они лежат и что в них хранится. Пароль контейнера в сообщение не вставляйте никогда.</span><span data-l="en">The history, the check lists and the JSON reports are not in the zip, because they can name your own files and folders. The <a href="../privacy.html">privacy page</a> lists the files FileDO writes, where they live and what they hold. Never put a container password in a report.</span><span data-l="ua">Історія запусків, списки перевірки та JSON-звіти до архіву не потрапляють: у них можуть бути імена ваших файлів і тек. <a href="../privacy.html">Сторінка приватності</a> перелічує файли, які пише FileDO, де вони лежать і що в них зберігається. Пароль контейнера в повідомлення не вставляйте ніколи.</span>
+        </p>
+      </section>
+
+      <section class="section" id="first">
+        <h2>
+          <span data-l="ru">4. Что прочитать сначала</span><span data-l="en">4. Read these first</span><span data-l="ua">4. Що прочитати спершу</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru">Эти страницы могут ответить на ваш вопрос раньше, чем вы напишете.</span><span data-l="en">These pages may answer your question before you write.</span><span data-l="ua">Ці сторінки можуть відповісти на ваше запитання ще до того, як ви напишете.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru">Windows показала предупреждение</span><span data-l="en">Windows showed a warning</span><span data-l="ua">Windows показала попередження</span>
+            </h3>
+            <p>
+              <span data-l="ru">SmartScreen предупреждает о сборке, потому что она не подписана цифровым сертификатом. Страница объясняет, что значит предупреждение и что именно нажать.</span><span data-l="en">SmartScreen warns about the build because it is not code-signed. The page explains what the warning means and exactly what to click.</span><span data-l="ua">SmartScreen попереджає про збірку, бо вона не підписана цифровим сертифікатом. Сторінка пояснює, що означає попередження і що саме натиснути.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="install-trust.html"
+                ><span data-l="ru">Открыть руководство</span><span data-l="en">Open the guide</span><span data-l="ua">Відкрити посібник</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Чего-то нет в сборке из Microsoft Store</span><span data-l="en">Something is missing in the Microsoft Store build</span><span data-l="ua">Чогось немає у збірці з Microsoft Store</span>
+            </h3>
+            <p>
+              <span data-l="ru">Часть возможностей в сборке из Microsoft Store недоступна, и это описано в <a href="install-and-explorer.html">руководстве по установке</a> и в разделе <a href="virtual-disks.html#platform">«Что нужно от Windows»</a> руководства по виртуальным дискам. Загляните туда, прежде чем сообщать об отсутствии.</span><span data-l="en">Some features are documented as unavailable in the Microsoft Store build: see the <a href="install-and-explorer.html">installation guide</a> and the section <a href="virtual-disks.html#platform">What Windows has to provide</a> of the virtual disks guide before you report one as missing.</span><span data-l="ua">Частина можливостей у збірці з Microsoft Store недоступна, і це описано в <a href="install-and-explorer.html">посібнику зі встановлення</a> та в розділі <a href="virtual-disks.html#platform">«Що потрібно від Windows»</a> посібника з віртуальних дисків. Зазирніть туди, перш ніж повідомляти про відсутність.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Что-то изменилось?</span><span data-l="en">Did something change?</span><span data-l="ua">Щось змінилося?</span>
+            </h3>
+            <p>
+              <span data-l="ru">Страница «Что нового» перечисляет, что менялось в каждом выпуске, новые сверху, с датой.</span><span data-l="en">The release notes list what changed in each release, newest first, with its date.</span><span data-l="ua">Сторінка «Що нового» перелічує, що змінювалося в кожному випуску, нові згори, з датою.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="release-notes.html"
+                ><span data-l="ru">Открыть «Что нового»</span><span data-l="en">Open the release notes</span><span data-l="ua">Відкрити «Що нового»</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru">Вопрос о ваших данных</span><span data-l="en">A question about your data</span><span data-l="ua">Питання про ваші дані</span>
+            </h3>
+            <p>
+              <span data-l="ru">Страница приватности перечисляет файлы, которые пишет FileDO, где они лежат и что в них хранится.</span><span data-l="en">The privacy page lists the files FileDO writes, where they live and what they hold.</span><span data-l="ua">Сторінка приватності перелічує файли, які пише FileDO, де вони лежать і що в них зберігається.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="../privacy.html"
+                ><span data-l="ru">Открыть страницу приватности</span><span data-l="en">Open the privacy page</span><span data-l="ua">Відкрити сторінку приватності</span></a
+              >
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="expect">
+        <h2>
+          <span data-l="ru">5. Чего ожидать</span><span data-l="en">5. What to expect</span><span data-l="ua">5. Чого очікувати</span>
+        </h2>
+        <p class="intro">
+          <span data-l="ru">У FileDO один автор и нет службы поддержки. Срока ответа никто не обещает: сообщение читают, когда у автора есть возможность, а исправление, если оно будет сделано, выходит в одном из следующих выпусков - что изменилось, видно на странице <a href="release-notes.html">«Что нового»</a>. Сообщение, составленное по разделу 2, проще взять в работу.</span><span data-l="en">FileDO has one maintainer and no support team. There is no response-time promise: a report is read when the author can, and a fix, if one is made, ships with a later release - the <a href="release-notes.html">release notes</a> show what changed. A report that follows section 2 is easier to act on.</span><span data-l="ua">У FileDO один автор і немає служби підтримки. Строку відповіді ніхто не обіцяє: повідомлення читають, коли в автора є можливість, а виправлення, якщо його буде зроблено, виходить в одному з наступних випусків - що змінилося, видно на сторінці <a href="release-notes.html">«Що нового»</a>. Повідомлення, складене за розділом 2, простіше взяти в роботу.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Как получить помощь по FileDO",
+          description:
+            "Как получить помощь по FileDO: куда сообщить о проблеме, что указать, какие страницы отвечают на вопросы и что может обещать один автор.",
+        },
+        en: {
+          title: "Getting help with FileDO",
+          description:
+            "How to get help with FileDO: where to report a problem, what to include, which pages answer questions, and what one maintainer can promise.",
+        },
+        ua: {
+          title: "Як отримати допомогу з FileDO",
+          description:
+            "Як отримати допомогу з FileDO: куди повідомити про проблему, що вказати, які сторінки відповідають на запитання і що може обіцяти один автор.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

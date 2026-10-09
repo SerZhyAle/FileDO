@@ -1,5 +1,5 @@
 {
-  "_about": "The addresses of this product's published site (base below) that are held OUTSIDE the site: the program, the READMEs, the Store listing source, the release workflow. SITE-STRUCTURE rule 8 (SP-0153). Read by packaging/check-external-docs.ps1, step 'addresses': every entry must resolve to a public page (or a forwarder stub) and its anchor must exist on it, every holder must still contain the address, and every address found in a surface but missing here fails. An address is permanent: when a page moves, leave a forwarder at the old path and keep the old entry until nothing holds it. Not listed on purpose: winget manifests (they hold github.com addresses only) and the sibling products' sites (owned by those products).",
+  "_about": "The addresses of this product's published site (base below) that are held OUTSIDE the site: the program, the READMEs, the Store listing source, the release workflow. SITE-STRUCTURE rule 8 (SP-0153). Read by packaging/check-external-docs.ps1, step 'addresses': every entry must resolve to a public page (or a forwarder stub) and its anchor must exist on it, every holder must still contain the address, and every address found in a surface but missing here fails. An address is permanent: when a page moves, leave a forwarder at the old path and keep the old entry until nothing holds it. The winget locale manifest holds the site root as its PackageUrl (SP-0166), so it is a holder here; the winget installer and version manifests hold github.com addresses only. Not listed on purpose: the sibling products' sites (owned by those products).",
   "base": "https://serzhyale.github.io/FileDO/",
   "surfaces": [
     "README.md",
@@ -17,7 +17,7 @@
   "addresses": [
     {
       "address": "",
-      "heldBy": ["filedo_win_vb/Links.vb", "msix/store-listing.md"]
+      "heldBy": ["filedo_win_vb/Links.vb", "msix/store-listing.md", "winget/SerZhyAle.FileDO.locale.en-US.yaml"]
     },
     {
       "address": "privacy.html",

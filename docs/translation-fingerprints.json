@@ -263,9 +263,9 @@
         "ua": "a9139d59b5d4f499"
       },
       {
-        "ru": "5c2cfead2cce47ca",
-        "en": "f0955b7ba076511d",
-        "ua": "970ad1f963339434"
+        "ru": "7932995ba5678610",
+        "en": "77c6cf241ff53c95",
+        "ua": "be843edc4540b2d7"
       },
       {
         "ru": "b265aa626c3d9b7f",
@@ -278,9 +278,9 @@
         "ua": "5488a7b2467e5d5b"
       },
       {
-        "ru": "69ecd3b681c33a33",
-        "en": "12ad0d4fa2261650",
-        "ua": "71e105cbc2e7c587"
+        "ru": "a9389d401f2f2f8a",
+        "en": "4d875b1d08c396f1",
+        "ua": "4a32273858ee8d94"
       },
       {
         "ru": "41729234f21c7d27",
@@ -593,6 +593,11 @@
         "ua": "dca43e30fc120616"
       },
       {
+        "ru": "f0012086d52ed643",
+        "en": "be91940b79f46910",
+        "ua": "a398555cccd63d9d"
+      },
+      {
         "ru": "1ecddf40bfeb28ab",
         "en": "e21f935f11d7e966",
         "ua": "649c3911c6703993"
@@ -720,9 +725,9 @@
         "ua": "d79c620ff17bf954"
       },
       {
-        "ru": "08ef5528904e83ff",
-        "en": "769795d28028b631",
-        "ua": "430d0b3afb492603"
+        "ru": "f3d7c306797faec5",
+        "en": "4498697ae3e66764",
+        "ua": "a589c4988454ced0"
       },
       {
         "ru": "e91be89e1913d733",
@@ -1272,6 +1277,11 @@
         "ru": "a9d8fa6044586d31",
         "en": "1254829bd9996472",
         "ua": "8198260dc03e9b76"
+      },
+      {
+        "ru": "f0012086d52ed643",
+        "en": "be91940b79f46910",
+        "ua": "a398555cccd63d9d"
       },
       {
         "ru": "aad03279f38f9e6f",
@@ -2292,6 +2302,218 @@
         "ru": "befc23f921f3f922",
         "en": "540b8627e20dc465",
         "ua": "9a2aebc9f4a15de8"
+      },
+      {
+        "ru": "98ea974d63ec0216",
+        "en": "193906b22d30c813",
+        "ua": "ad5bba9be2300f28"
+      }
+    ],
+    "docs/guides/support.html": [
+      {
+        "ru": "0ebff3642a236405",
+        "en": "ac576a66d4563e60",
+        "ua": "2b4404aa4fd2bb73"
+      },
+      {
+        "ru": "b7cd6fae08d93f3f",
+        "en": "569ca49f4aaf7846",
+        "ua": "716162372e4fd490"
+      },
+      {
+        "ru": "7dbbb91275555a6e",
+        "en": "1e81743dcef13a42",
+        "ua": "c5074c64ada4480b"
+      },
+      {
+        "ru": "7bafccfb0ee35c10",
+        "en": "dcdfe1fa946efd87",
+        "ua": "c7efe1c44b4652f8"
+      },
+      {
+        "ru": "53ff7264cae21fab",
+        "en": "687dae12aad5d296",
+        "ua": "ce6080ae69bbb6f1"
+      },
+      {
+        "ru": "1e3f8776d24db978",
+        "en": "3d0a475533d06bd2",
+        "ua": "fbefdd478a48ba5d"
+      },
+      {
+        "ru": "a6c3d3cdf133ddad",
+        "en": "b019ddee6d12fdf6",
+        "ua": "b58003e7a3fbb984"
+      },
+      {
+        "ru": "b1f5866f204f32ea",
+        "en": "b1f5866f204f32ea",
+        "ua": "b1f5866f204f32ea"
+      },
+      {
+        "ru": "ba6a308142966b72",
+        "en": "56cba79e00a60fa9",
+        "ua": "703fd14dcb35dff5"
+      },
+      {
+        "ru": "817f95518cc42e35",
+        "en": "d30cb4445a180988",
+        "ua": "fe7efe160158a50e"
+      },
+      {
+        "ru": "9738aeca24273360",
+        "en": "2550d962e536e7c0",
+        "ua": "ffb8c4c87e587988"
+      },
+      {
+        "ru": "425259a6b03a3d9c",
+        "en": "fe0b7d0c1cecd31a",
+        "ua": "b7d75a5ba652675b"
+      },
+      {
+        "ru": "8003312029791142",
+        "en": "386aead742946696",
+        "ua": "c9c173adc37cb04e"
+      },
+      {
+        "ru": "14de30b5dbd06a69",
+        "en": "5c3ee8435984b88d",
+        "ua": "a588a7f898d45f54"
+      },
+      {
+        "ru": "c4d3d7f01139162b",
+        "en": "20ef75ab59f64b9b",
+        "ua": "05fe12dd53755505"
+      },
+      {
+        "ru": "643af207a5cc675b",
+        "en": "a25dc7f293c1d556",
+        "ua": "8c784c98b1293a45"
+      },
+      {
+        "ru": "3fe0e157b9e448f2",
+        "en": "4532af823847e8bb",
+        "ua": "276c71fc01bd40e8"
+      },
+      {
+        "ru": "b24eea0996c8a96e",
+        "en": "8faea9c75858f3fb",
+        "ua": "94710c529d050a40"
+      },
+      {
+        "ru": "4a8281f5e96a6fc8",
+        "en": "56014df57c99c5ce",
+        "ua": "516d53f9b41fbae4"
+      },
+      {
+        "ru": "7e94a973dbb78d61",
+        "en": "34fff26d9bb7df1a",
+        "ua": "d0830defd32fc0dd"
+      },
+      {
+        "ru": "684ae5917350051d",
+        "en": "46d6104e2dcf52cd",
+        "ua": "bb8b932ceb909dcd"
+      },
+      {
+        "ru": "220f38b25086bfa3",
+        "en": "cfb3951bde95bac2",
+        "ua": "6cf7d9109ae2bf6d"
+      },
+      {
+        "ru": "eb17b987432275fe",
+        "en": "fe7673a471c4d543",
+        "ua": "faaa45e373c37e44"
+      },
+      {
+        "ru": "5e019c8b72ca265c",
+        "en": "d61a40bdf74e24cd",
+        "ua": "edb75716733e5847"
+      },
+      {
+        "ru": "43699215687a7244",
+        "en": "cea2e9441bc99608",
+        "ua": "25796a40d9bf49b0"
+      },
+      {
+        "ru": "d2bdf62c738de515",
+        "en": "a193cf7eb33b1409",
+        "ua": "3db5f3fbedf3d940"
+      },
+      {
+        "ru": "7c1b9724f4093e18",
+        "en": "6180fedd31ab38a7",
+        "ua": "a22b10ef42a31907"
+      },
+      {
+        "ru": "8836d0327e927385",
+        "en": "d23ff6e3ac39dc32",
+        "ua": "30c209bb7ebb2c75"
+      },
+      {
+        "ru": "ce3e13f85ef75df6",
+        "en": "db09d4e3e9212f7f",
+        "ua": "79fadfb8e1e95d2d"
+      },
+      {
+        "ru": "4b2d47301d260218",
+        "en": "ef7e58d8d089c346",
+        "ua": "cd6d52a6915d4bbc"
+      },
+      {
+        "ru": "fadf896667799e10",
+        "en": "5628ad34f644c258",
+        "ua": "e162ca5c3ff36246"
+      },
+      {
+        "ru": "d0f1138d24bb9c8f",
+        "en": "2124634f401d810e",
+        "ua": "2420b44d99d2beae"
+      },
+      {
+        "ru": "0010a0c245a9be58",
+        "en": "ddd20077cd1e097f",
+        "ua": "02e1970a9ce53fc2"
+      },
+      {
+        "ru": "065095bb5734dd07",
+        "en": "77517d6e5db7fca0",
+        "ua": "4be63a6df0814ec6"
+      },
+      {
+        "ru": "e329c87f95169b43",
+        "en": "c10c7c2eacfe0a3e",
+        "ua": "e987de9d1a8a80b3"
+      },
+      {
+        "ru": "146115f3adefe3a5",
+        "en": "dda6a95195eccb33",
+        "ua": "554d9fe008d276c6"
+      },
+      {
+        "ru": "80477dc4afa48550",
+        "en": "1ec672eae5fb1556",
+        "ua": "8ff78806027d2038"
+      },
+      {
+        "ru": "0297aef74a6672e8",
+        "en": "194980261ab3516f",
+        "ua": "d42fe20853958f30"
+      },
+      {
+        "ru": "750bdf9f084c13cb",
+        "en": "7b7cb62425a1a9d5",
+        "ua": "f553db4e2cfcb2b3"
+      },
+      {
+        "ru": "4ba8fcc25667eb6a",
+        "en": "1bf4aa5a9214f191",
+        "ua": "db3849c09b252cb3"
+      },
+      {
+        "ru": "f78041ab207dc9b3",
+        "en": "0b57ee64c4b2071b",
+        "ua": "3f9f0e939eb06de5"
       },
       {
         "ru": "98ea974d63ec0216",
@@ -3457,9 +3679,9 @@
         "ua": "8000fd1c82a15d8b"
       },
       {
-        "ru": "2983553221b1dcea",
-        "en": "fc07a9b00cca15f0",
-        "ua": "46f0ea6af68409ab"
+        "ru": "05f521ba7d82ad30",
+        "en": "bdb58e23fe280fed",
+        "ua": "7823aadbedcb8d9b"
       },
       {
         "ru": "0b3b6a8e61e42c42",
@@ -4171,6 +4393,26 @@
         "ua": "766aaa0e7db6b89a"
       },
       {
+        "ru": "64fca8b24222628c",
+        "en": "eb0d091fcab4d0c6",
+        "ua": "677ca7eb6dee47a7"
+      },
+      {
+        "ru": "70341d3ddaa19a7b",
+        "en": "40e7b9cb245efb0f",
+        "ua": "b459ab5e0c9b61cb"
+      },
+      {
+        "ru": "4a81a8320d58dc89",
+        "en": "a18603086e5bdf9d",
+        "ua": "61b7b6c1ed2d3fbb"
+      },
+      {
+        "ru": "dddff908d7a76680",
+        "en": "68989b37eff1b4c5",
+        "ua": "579097851866fc1a"
+      },
+      {
         "ru": "efc910d68cd73e85",
         "en": "60e971e860daff70",
         "ua": "cd88abe3d52cf4ac"
@@ -4526,8 +4768,8 @@
         "de": "359f8a7d9f614252"
       },
       {
-        "en": "f0955b7ba076511d",
-        "de": "844528a816f9e105"
+        "en": "77c6cf241ff53c95",
+        "de": "1cd1dd6bdf3764fb"
       },
       {
         "en": "42d8346a4567dd03",
@@ -4538,8 +4780,8 @@
         "de": "6204c8704655dbde"
       },
       {
-        "en": "12ad0d4fa2261650",
-        "de": "cebeda36a4fbe9fa"
+        "en": "4d875b1d08c396f1",
+        "de": "b40d9ce4f77d45eb"
       },
       {
         "en": "fdcb78bde2b21e66",
@@ -4790,6 +5032,10 @@
         "de": "f624fcf0dcbb39c0"
       },
       {
+        "en": "be91940b79f46910",
+        "de": "be91940b79f46910"
+      },
+      {
         "en": "e21f935f11d7e966",
         "de": "472050b730a60f23"
       },
@@ -4892,8 +5138,8 @@
         "de": "c5390d873c0e489f"
       },
       {
-        "en": "769795d28028b631",
-        "de": "f31a301fa1733e13"
+        "en": "4498697ae3e66764",
+        "de": "0169ea6c941e388f"
       },
       {
         "en": "3eb605808fed091b",
@@ -5270,6 +5516,10 @@
         "de": "f8237b88233a8144"
       },
       {
+        "en": "be91940b79f46910",
+        "de": "be91940b79f46910"
+      },
+      {
         "en": "b6cd39a857950be5",
         "de": "54f195092d2cb662"
       },
@@ -5332,8 +5582,8 @@
         "de": "3404644e01177ee9"
       },
       {
-        "en": "fc07a9b00cca15f0",
-        "de": "9978c90190d43c23"
+        "en": "bdb58e23fe280fed",
+        "de": "de0771142858ec06"
       },
       {
         "en": "0447e37a03ad2e73",
@@ -5902,6 +6152,22 @@
       {
         "en": "871ccfe6bad204fd",
         "de": "e8b4c49f2a009ec3"
+      },
+      {
+        "en": "eb0d091fcab4d0c6",
+        "de": "cf992c6b1ed58cb3"
+      },
+      {
+        "en": "40e7b9cb245efb0f",
+        "de": "c0f3a36e7261f750"
+      },
+      {
+        "en": "a18603086e5bdf9d",
+        "de": "be91940b79f46910"
+      },
+      {
+        "en": "68989b37eff1b4c5",
+        "de": "dc486f2b4ed749c0"
       },
       {
         "en": "60e971e860daff70",
@@ -7146,6 +7412,176 @@
         "de": "b945d413b5763fd8"
       }
     ],
+    "docs/de/guides/support.html": [
+      {
+        "en": "ac576a66d4563e60",
+        "de": "0223fd4834ed4884"
+      },
+      {
+        "en": "569ca49f4aaf7846",
+        "de": "c3fc54aa5390dc2c"
+      },
+      {
+        "en": "1e81743dcef13a42",
+        "de": "3736fbca3c7d43d1"
+      },
+      {
+        "en": "dcdfe1fa946efd87",
+        "de": "77f8666c8f761b7c"
+      },
+      {
+        "en": "687dae12aad5d296",
+        "de": "ec27edac4ca75703"
+      },
+      {
+        "en": "3d0a475533d06bd2",
+        "de": "f62ec57bf4f38ef2"
+      },
+      {
+        "en": "b019ddee6d12fdf6",
+        "de": "b79b32874ed4ccbd"
+      },
+      {
+        "en": "b1f5866f204f32ea",
+        "de": "b1f5866f204f32ea"
+      },
+      {
+        "en": "56cba79e00a60fa9",
+        "de": "c9fdce66e96d89c8"
+      },
+      {
+        "en": "d30cb4445a180988",
+        "de": "fdb7048ea25fa786"
+      },
+      {
+        "en": "2550d962e536e7c0",
+        "de": "2fae6fb30b0d0077"
+      },
+      {
+        "en": "fe0b7d0c1cecd31a",
+        "de": "ddf15c9e86e97317"
+      },
+      {
+        "en": "386aead742946696",
+        "de": "6e3378cd9e8ad452"
+      },
+      {
+        "en": "5c3ee8435984b88d",
+        "de": "9424fdb9c9db0e42"
+      },
+      {
+        "en": "20ef75ab59f64b9b",
+        "de": "9f1e0a1db65869a2"
+      },
+      {
+        "en": "a25dc7f293c1d556",
+        "de": "5b511f32defe9c86"
+      },
+      {
+        "en": "4532af823847e8bb",
+        "de": "db947ff24ab9ca60"
+      },
+      {
+        "en": "8faea9c75858f3fb",
+        "de": "e4f1b704bf588349"
+      },
+      {
+        "en": "56014df57c99c5ce",
+        "de": "379458a93a94670c"
+      },
+      {
+        "en": "34fff26d9bb7df1a",
+        "de": "bf902f75e1925286"
+      },
+      {
+        "en": "46d6104e2dcf52cd",
+        "de": "cc0c03f2ef9e8ee0"
+      },
+      {
+        "en": "cfb3951bde95bac2",
+        "de": "5821a1de6543e1c8"
+      },
+      {
+        "en": "fe7673a471c4d543",
+        "de": "e7c9b3e6af8041fd"
+      },
+      {
+        "en": "d61a40bdf74e24cd",
+        "de": "ae422595ae59f0cf"
+      },
+      {
+        "en": "cea2e9441bc99608",
+        "de": "6414f2aa44faecfd"
+      },
+      {
+        "en": "a193cf7eb33b1409",
+        "de": "51dff49bd63a7086"
+      },
+      {
+        "en": "6180fedd31ab38a7",
+        "de": "2952404ad6cc2259"
+      },
+      {
+        "en": "d23ff6e3ac39dc32",
+        "de": "05234ee35d2c8fde"
+      },
+      {
+        "en": "db09d4e3e9212f7f",
+        "de": "3fd5045d98a296f4"
+      },
+      {
+        "en": "ef7e58d8d089c346",
+        "de": "5851fcd42e7283ad"
+      },
+      {
+        "en": "5628ad34f644c258",
+        "de": "b8a64c498726f9aa"
+      },
+      {
+        "en": "2124634f401d810e",
+        "de": "5a11d8c2c2b2857a"
+      },
+      {
+        "en": "ddd20077cd1e097f",
+        "de": "4961b1feb709c123"
+      },
+      {
+        "en": "77517d6e5db7fca0",
+        "de": "490424c2ed19e989"
+      },
+      {
+        "en": "c10c7c2eacfe0a3e",
+        "de": "3f6183ea54bf8151"
+      },
+      {
+        "en": "dda6a95195eccb33",
+        "de": "d928b518a1942618"
+      },
+      {
+        "en": "1ec672eae5fb1556",
+        "de": "5a52570b46c50d2c"
+      },
+      {
+        "en": "194980261ab3516f",
+        "de": "225192151c6bd54c"
+      },
+      {
+        "en": "7b7cb62425a1a9d5",
+        "de": "9ac3fa99b561e01e"
+      },
+      {
+        "en": "1bf4aa5a9214f191",
+        "de": "58646b75813b6bd2"
+      },
+      {
+        "en": "0b57ee64c4b2071b",
+        "de": "a1b6200db34828cb"
+      },
+      {
+        "en": "193906b22d30c813",
+        "de": "b945d413b5763fd8"
+      }
+    ],
     "docs/de/guides/virtual-disks.html": [
       {
         "en": "ac576a66d4563e60",
@@ -7918,8 +8354,8 @@
         "fr": "6497f7524a091304"
       },
       {
-        "en": "f0955b7ba076511d",
-        "fr": "ccdee376e3bfba36"
+        "en": "77c6cf241ff53c95",
+        "fr": "f0290499c6d88914"
       },
       {
         "en": "42d8346a4567dd03",
@@ -7930,8 +8366,8 @@
         "fr": "69fe13c6fb2c4077"
       },
       {
-        "en": "12ad0d4fa2261650",
-        "fr": "d03caf8b81302147"
+        "en": "4d875b1d08c396f1",
+        "fr": "f8b1bbca3c99d046"
       },
       {
         "en": "fdcb78bde2b21e66",
@@ -8182,6 +8618,10 @@
         "fr": "f19bb4113dafe7cf"
       },
       {
+        "en": "be91940b79f46910",
+        "fr": "1b451b10ab6a95f1"
+      },
+      {
         "en": "e21f935f11d7e966",
         "fr": "84b03702780e4858"
       },
@@ -8284,8 +8724,8 @@
         "fr": "09ebda76a55369a0"
       },
       {
-        "en": "769795d28028b631",
-        "fr": "0b494a7ff9895715"
+        "en": "4498697ae3e66764",
+        "fr": "c862c92cafef5858"
       },
       {
         "en": "3eb605808fed091b",
@@ -8662,6 +9102,10 @@
         "fr": "8191a9655f356695"
       },
       {
+        "en": "be91940b79f46910",
+        "fr": "1b451b10ab6a95f1"
+      },
+      {
         "en": "b6cd39a857950be5",
         "fr": "1a8d69ad9c8782c0"
       },
@@ -8724,8 +9168,8 @@
         "fr": "e4750da99f0f7665"
       },
       {
-        "en": "fc07a9b00cca15f0",
-        "fr": "5f9d9221e0873a45"
+        "en": "bdb58e23fe280fed",
+        "fr": "987c09de18ccc3e4"
       },
       {
         "en": "0447e37a03ad2e73",
@@ -9294,6 +9738,22 @@
       {
         "en": "871ccfe6bad204fd",
         "fr": "ded43c5e41e52fd7"
+      },
+      {
+        "en": "eb0d091fcab4d0c6",
+        "fr": "b99b11498035c437"
+      },
+      {
+        "en": "40e7b9cb245efb0f",
+        "fr": "f39a9bfaa573edaf"
+      },
+      {
+        "en": "a18603086e5bdf9d",
+        "fr": "bfa1102f63afcdbc"
+      },
+      {
+        "en": "68989b37eff1b4c5",
+        "fr": "3270636eaa2b83d1"
       },
       {
         "en": "60e971e860daff70",
@@ -10538,6 +10998,176 @@
         "fr": "b58d5648fe83c2e0"
       }
     ],
+    "docs/fr/guides/support.html": [
+      {
+        "en": "ac576a66d4563e60",
+        "fr": "4d1606f6a962dfc5"
+      },
+      {
+        "en": "569ca49f4aaf7846",
+        "fr": "c3fc54aa5390dc2c"
+      },
+      {
+        "en": "1e81743dcef13a42",
+        "fr": "6136d4d130a7b84c"
+      },
+      {
+        "en": "dcdfe1fa946efd87",
+        "fr": "9938bac7d71b0bbd"
+      },
+      {
+        "en": "687dae12aad5d296",
+        "fr": "9a16f33f21949a6f"
+      },
+      {
+        "en": "3d0a475533d06bd2",
+        "fr": "33717846d6601f75"
+      },
+      {
+        "en": "b019ddee6d12fdf6",
+        "fr": "f1f53458c29355a2"
+      },
+      {
+        "en": "b1f5866f204f32ea",
+        "fr": "b1f5866f204f32ea"
+      },
+      {
+        "en": "56cba79e00a60fa9",
+        "fr": "9f36bd4116c2cc1b"
+      },
+      {
+        "en": "d30cb4445a180988",
+        "fr": "d61c1a11403fc428"
+      },
+      {
+        "en": "2550d962e536e7c0",
+        "fr": "2550d962e536e7c0"
+      },
+      {
+        "en": "fe0b7d0c1cecd31a",
+        "fr": "4fad19a34f63c72b"
+      },
+      {
+        "en": "386aead742946696",
+        "fr": "0060bff4e7cf1223"
+      },
+      {
+        "en": "5c3ee8435984b88d",
+        "fr": "a6fd63d6e95ac2bc"
+      },
+      {
+        "en": "20ef75ab59f64b9b",
+        "fr": "dab4b3555b7f388a"
+      },
+      {
+        "en": "a25dc7f293c1d556",
+        "fr": "65c3d63bae3a8c71"
+      },
+      {
+        "en": "4532af823847e8bb",
+        "fr": "3c9e5772acf5f4fd"
+      },
+      {
+        "en": "8faea9c75858f3fb",
+        "fr": "929ed09b25477040"
+      },
+      {
+        "en": "56014df57c99c5ce",
+        "fr": "8faa0183edd122d8"
+      },
+      {
+        "en": "34fff26d9bb7df1a",
+        "fr": "b739833def946561"
+      },
+      {
+        "en": "46d6104e2dcf52cd",
+        "fr": "bbd8602420bffbe5"
+      },
+      {
+        "en": "cfb3951bde95bac2",
+        "fr": "df2fee5e1539bfff"
+      },
+      {
+        "en": "fe7673a471c4d543",
+        "fr": "9b55ebd0992de3dc"
+      },
+      {
+        "en": "d61a40bdf74e24cd",
+        "fr": "467dc5947ec6f023"
+      },
+      {
+        "en": "cea2e9441bc99608",
+        "fr": "bb51e73f5c38206d"
+      },
+      {
+        "en": "a193cf7eb33b1409",
+        "fr": "a0e8b841a001cd99"
+      },
+      {
+        "en": "6180fedd31ab38a7",
+        "fr": "1f27b5131d07922a"
+      },
+      {
+        "en": "d23ff6e3ac39dc32",
+        "fr": "515a48907b1f7362"
+      },
+      {
+        "en": "db09d4e3e9212f7f",
+        "fr": "037faff354ae2fca"
+      },
+      {
+        "en": "ef7e58d8d089c346",
+        "fr": "c56466096d0ade8a"
+      },
+      {
+        "en": "5628ad34f644c258",
+        "fr": "768f5e6ce26e4b75"
+      },
+      {
+        "en": "2124634f401d810e",
+        "fr": "8e590c9205287aeb"
+      },
+      {
+        "en": "ddd20077cd1e097f",
+        "fr": "4d70834a9f929695"
+      },
+      {
+        "en": "77517d6e5db7fca0",
+        "fr": "8bbe6743b9bb41b4"
+      },
+      {
+        "en": "c10c7c2eacfe0a3e",
+        "fr": "0c7c829ca4c338a7"
+      },
+      {
+        "en": "dda6a95195eccb33",
+        "fr": "b78e2434713db98f"
+      },
+      {
+        "en": "1ec672eae5fb1556",
+        "fr": "027865942e3f63c9"
+      },
+      {
+        "en": "194980261ab3516f",
+        "fr": "39cffccc1396dcef"
+      },
+      {
+        "en": "7b7cb62425a1a9d5",
+        "fr": "9b0b6ef35d7282c1"
+      },
+      {
+        "en": "1bf4aa5a9214f191",
+        "fr": "b75a41edfcaf1494"
+      },
+      {
+        "en": "0b57ee64c4b2071b",
+        "fr": "047ea7791fb27ce6"
+      },
+      {
+        "en": "193906b22d30c813",
+        "fr": "b58d5648fe83c2e0"
+      }
+    ],
     "docs/fr/guides/virtual-disks.html": [
       {
         "en": "ac576a66d4563e60",
@@ -11127,23 +11757,23 @@
   "readmes": {
     "README.md": [
       {
-        "en": "745db0e980686f5f",
-        "ru": "4fd2b175279b8777",
-        "ua": "dd0a6efc25d5d643",
-        "de": "cca7c3419dbb5d89",
-        "fr": "7ca626bddd0cb6ac"
+        "en": "9446afd967d0fc94",
+        "ru": "656a93018e4a71b9",
+        "ua": "ac7add5155b9d914",
+        "de": "2829e4c7e0a6e29b",
+        "fr": "34344eee379d8da1"
       },
       {
-        "en": "045067ab7f399df1",
-        "ru": "6e7b58c2a7bf8764",
-        "ua": "b215c7aa3fe253b5",
-        "de": "d9aeeca30eea3930",
-        "fr": "d06dc299680bc80b"
+        "en": "cc8dbc1017faa57a",
+        "ru": "7bef5add45fc5643",
+        "ua": "6e18ce550ec5221f",
+        "de": "3ee00cefd60fd485",
+        "fr": "21238e0ba7e7c58e"
       },
       {
         "en": "9cb02f57e6acc47e",
         "ru": "dfa3aa5934bd3bd9",
-        "ua": "e6e77ad95f79bdd4",
+        "ua": "63b8a1c5f437759c",
         "de": "adfa42e0b85efd42",
         "fr": "23d7e57f7515fd6e"
       },
@@ -11162,16 +11792,16 @@
         "fr": "62686273ab8dac06"
       },
       {
-        "en": "6a239ef5ac840eec",
-        "ru": "9add993b4be0eccc",
-        "ua": "c67da1b6d0aa8007",
-        "de": "ad711b8b18d2da86",
-        "fr": "9baeae8e82e3a71c"
+        "en": "dfcf11a8898f64e6",
+        "ru": "043d3242ec6168e7",
+        "ua": "f2e30a5adeb93928",
+        "de": "7b7dc4b31acb4b98",
+        "fr": "8994770c5abdcd34"
       },
       {
         "en": "c16dd689de8267c7",
         "ru": "f6e16d6916d422cf",
-        "ua": "eb21acf3a765221a",
+        "ua": "47d52b88bf5872b0",
         "de": "2c21b76f4ff35924",
         "fr": "3ecb043a17f381e3"
       },
@@ -11190,23 +11820,23 @@
         "fr": "6dc6e290f180b08a"
       },
       {
-        "en": "01003105ba4ea9cd",
-        "ru": "8ccf3268fb7aac04",
-        "ua": "472b1fc6179c05cd",
-        "de": "a3a52e6e8718c0a3",
-        "fr": "bfc5ef10c06681b8"
+        "en": "36e0faba3852f9f3",
+        "ru": "39d3ff543b62279a",
+        "ua": "17bb871478034820",
+        "de": "779e64bc9e01a019",
+        "fr": "df9cd46e5d9d0790"
       },
       {
-        "en": "2c8378b8a6e31b04",
-        "ru": "30f9bdfa63ca3566",
-        "ua": "4146a792a4dbaa2e",
-        "de": "679d241936411c01",
-        "fr": "95f2915b66a19280"
+        "en": "3df0d8bc12367cd5",
+        "ru": "af1d4bed99f37cb7",
+        "ua": "01b554601bfee447",
+        "de": "6bb3ac46081d3624",
+        "fr": "1e30c0e46058252c"
       },
       {
         "en": "8018732724d1124c",
         "ru": "3489e8d50e0d04db",
-        "ua": "412e31d3743d0da3",
+        "ua": "b4edf8f6f982c908",
         "de": "9ebe9e64f9ce29e5",
         "fr": "308b661d926bdc39"
       },

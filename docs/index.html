@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/" />
     <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/" />
     <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/" />
     <link rel="icon" type="image/png" href="assets/filedo.png" />
@@ -13,7 +14,13 @@
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/" />
     <meta
       property="og:image"
-      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+      content="https://serzhyale.github.io/FileDO/assets/social-card.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <title>FileDO - know your storage before you trust it</title>
@@ -1776,14 +1783,14 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
             <h3>Duplicates</h3>
             <p>
               <span data-l="ru"
-                >Поиск совпадений по MD5 с кэшем; список можно сохранить и
-                обработать позже.</span
+                >Поиск совпадений по содержимому с кэшем; список можно
+                сохранить и обработать позже.</span
               ><span data-l="en"
-                >MD5 matching with a cache; save a list and process it
+                >Matching by content with a cache; save a list and process it
                 later.</span
               ><span data-l="ua"
-                >Пошук збігів за MD5 з кешем; список можна зберегти й обробити
-                пізніше.</span
+                >Пошук збігів за вмістом з кешем; список можна зберегти й
+                обробити пізніше.</span
               >
             </p>
           </article>
@@ -1810,25 +1817,33 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
             </h3>
             <p>
               <span data-l="ru"
-                ><code>wipe</code> перезаписывает файлы папки и удаляет их;
-                <code>fill … del</code> заполняет свободное место данными и
-                снова удаляет их, чтобы затруднить восстановление.
+                ><code>wipe</code> удаляет содержимое папки - это обычное
+                удаление, поэтому восстановить данные можно, пока место не
+                занято заново; <code>fill … del</code> заполняет свободное
+                место данными и снова удаляет их, а затирание одного файла
+                сначала перезаписывает его, - и то и другое, чтобы затруднить
+                восстановление.
                 <code>wipe</code> требует ввода <code>WIPE</code>; корни
                 дисков, reparse points и системная TEMP-папка требуют
                 интерактивного подтверждения даже с <code>--force</code>.
                 Отменить это нельзя.</span
               ><span data-l="en"
-                ><code>wipe</code> overwrites the files of a folder and removes
-                them; <code>fill … del</code> fills the free space with data
-                and deletes it again, to make recovery harder.
+                ><code>wipe</code> deletes the contents of a folder - a plain
+                delete, so recovery stays possible until the space is reused;
+                <code>fill … del</code> fills the free space with data and
+                deletes it again, and a single-file wipe overwrites the file
+                before removing it, both to make recovery harder.
                 <code>wipe</code> asks you to type <code>WIPE</code>; drive
                 roots, reparse points, and the system TEMP folder need
-                interactive confirmation even with <code>--force</code>. Neither
-                can be undone.</span
+                interactive confirmation even with <code>--force</code>. None of
+                these can be undone.</span
               ><span data-l="ua"
-                ><code>wipe</code> перезаписує файли теки й видаляє їх;
-                <code>fill … del</code> заповнює вільне місце даними й знову
-                видаляє їх, щоб ускладнити відновлення. <code>wipe</code>
+                ><code>wipe</code> видаляє вміст теки - це звичайне
+                видалення, тому відновити дані можна, доки місце не зайняте
+                знову; <code>fill … del</code> заповнює вільне місце даними й
+                знову видаляє їх, а затирання одного файлу спершу перезаписує
+                його, - і те, і інше, щоб ускладнити відновлення.
+                <code>wipe</code>
                 просить ввести <code>WIPE</code>; корені дисків, reparse points
                 і системна TEMP-папка потребують інтерактивного підтвердження
                 навіть із <code>--force</code>. Скасувати це не можна.</span
@@ -2478,6 +2493,11 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
               ><span data-l="en">Privacy</span
               ><span data-l="ua">Конфіденційність</span></a
             >
+            · <a href="guides/support.html"
+              ><span data-l="ru">Поддержка</span
+              ><span data-l="en">Support</span
+              ><span data-l="ua">Підтримка</span></a
+            >
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
@@ -2491,14 +2511,17 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           ru: {
             t: "FileDO - узнайте носитель, прежде чем доверить ему данные",
             d: "Узнайте реальную ёмкость, скорость и читаемость носителя, найдите дубликаты и различия папок до действий с данными.",
+            alt: "Логотип и название FileDO с английским девизом Know your storage before you trust it на тёмно-зелёном фоне",
           },
           en: {
             t: "FileDO - know your storage before you trust it",
             d: "Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data.",
+            alt: "FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background",
           },
           ua: {
             t: "FileDO - дізнайтеся про носій, перш ніж довірити йому дані",
             d: "Дізнайтеся реальну ємність, швидкість і читання носія, знайдіть дублікати та відмінності папок до дій із даними.",
+            alt: "Логотип і назва FileDO з англійським гаслом Know your storage before you trust it на темно-зеленому тлі",
           },
         };
         function lang(l) {
@@ -2523,6 +2546,8 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
             meta[l].t;
           document.querySelector('meta[property="og:description"]').content =
             meta[l].d;
+          document.querySelector('meta[property="og:image:alt"]').content =
+            meta[l].alt;
         }
         document.querySelectorAll("[data-set-lang]").forEach(function (b) {
           b.onclick = function () {

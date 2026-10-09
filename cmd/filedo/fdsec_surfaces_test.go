@@ -464,6 +464,8 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 		{filepath.Join("docs", "guides", "fd-sec-containers.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "glossary.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "topics.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "support.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "release-notes.html"), `href="../#get"`},
 	} {
 		body := readSurface(t, root, header.rel)
 		start := strings.Index(body, `<header class="site-header">`)
@@ -507,6 +509,8 @@ func TestSurfaces_TheSiteOnlyTrustsKnownStoredPreferences(t *testing.T) {
 		filepath.Join("docs", "guides", "fd-sec-containers.html"),
 		filepath.Join("docs", "guides", "glossary.html"),
 		filepath.Join("docs", "guides", "topics.html"),
+		filepath.Join("docs", "guides", "support.html"),
+		filepath.Join("docs", "guides", "release-notes.html"),
 	} {
 		body := readSurface(t, root, rel)
 		if !strings.Contains(body, `t !== "dark" && t !== "light"`) ||

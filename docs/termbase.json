@@ -45,7 +45,7 @@
     },
     {
       "id": "wipe",
-      "concept": "wipe: overwrite in place, then remove - not an ordinary delete.",
+      "concept": "wipe: overwrite a file in place, then remove it - not an ordinary delete; on a folder it deletes the contents.",
       "forms": { "en": "wipe", "ru": "затир", "ua": "затир" },
       "forbidden": {
         "en": ["shred"],

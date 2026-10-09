@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/privacy.html" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/privacy.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/privacy.html" />
     <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/privacy.html" />
     <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/privacy.html" />
     <link rel="icon" type="image/png" href="assets/filedo.png" />
@@ -13,7 +14,13 @@
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/privacy.html" />
     <meta
       property="og:image"
-      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+      content="https://serzhyale.github.io/FileDO/assets/social-card.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <title>FileDO privacy - no network, no telemetry, no accounts</title>
@@ -36,7 +43,7 @@
         "name": "FileDO Privacy Policy",
         "url": "https://serzhyale.github.io/FileDO/privacy.html",
         "inLanguage": ["en", "ru", "uk"],
-        "dateModified": "2026-09-24",
+        "dateModified": "2026-10-09",
         "publisher": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
@@ -551,21 +558,21 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
               <span data-l="ru"
                 ><b>Файлы и папки, которые вы указали.</b> Содержимое читается
                 для проверки скорости, поиска повреждений, сравнения папок и
-                вычисления хешей MD5 при поиске дубликатов. FileDO не обходит
+                вычисления хешей SHA-256 при поиске дубликатов. FileDO не обходит
                 диск самостоятельно и не открывает ничего за пределами
                 указанного вами пути.</span
               >
               <span data-l="en"
                 ><b>The files and folders you named.</b> Their contents are read
                 to measure speed, check for corruption, compare trees and
-                compute MD5 hashes when looking for duplicates. FileDO never
+                compute SHA-256 hashes when looking for duplicates. FileDO never
                 walks your disk on its own and opens nothing outside the path
                 you gave it.</span
               >
               <span data-l="ua"
                 ><b>Файли та теки, які ви вказали.</b> Вміст читається для
                 перевірки швидкості, пошуку пошкоджень, порівняння тек і
-                обчислення хешів MD5 під час пошуку дублікатів. FileDO не обходить
+                обчислення хешів SHA-256 під час пошуку дублікатів. FileDO не обходить
                 диск самостійно й не відкриває нічого поза вказаним вами
                 шляхом.</span
               >
@@ -1520,14 +1527,17 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           ru: {
             t: "Конфиденциальность FileDO - без сети, телеметрии, аккаунтов",
             d: "FileDO работает только на вашем устройстве: ничего не отправляет, нет телеметрии и аккаунтов. Что программа читает, что пишет локально и как этим управлять.",
+            alt: "Логотип и название FileDO с английским девизом Know your storage before you trust it на тёмно-зелёном фоне",
           },
           en: {
             t: "FileDO privacy - no network, no telemetry, no accounts",
             d: "FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it.",
+            alt: "FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background",
           },
           ua: {
             t: "Конфіденційність FileDO - без мережі, телеметрії, акаунтів",
             d: "FileDO працює лише на вашому пристрої: нічого не надсилає, немає телеметрії та акаунтів. Що програма читає, що пише локально і як цим керувати.",
+            alt: "Логотип і назва FileDO з англійським гаслом Know your storage before you trust it на темно-зеленому тлі",
           },
         };
         function lang(l) {
@@ -1552,6 +1562,8 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
             meta[l].t;
           document.querySelector('meta[property="og:description"]').content =
             meta[l].d;
+          document.querySelector('meta[property="og:image:alt"]').content =
+            meta[l].alt;
         }
         document.querySelectorAll("[data-set-lang]").forEach(function (b) {
           b.onclick = function () {

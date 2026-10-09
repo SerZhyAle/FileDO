@@ -5,10 +5,19 @@
 #    - assets\icon-branded-512.png (512x512 high-res)
 #    - assets\icon.ico (16, 24, 32, 48, 64, 128, 256 px frames)
 #    - docs\assets\filedo.png (256x256 web icon)
-#    - docs\assets\social-preview.png & assets\social-preview.png (1280x640)
+#    - docs\assets\social-preview.png & assets\social-preview.png (1280x640, the
+#      GitHub repository social preview)
+#    - docs\assets\social-card.png (1200x630, the Open Graph image)
+#  The two social files are one artwork from one drawing function (Render-SocialCard);
+#  only the canvas size differs.
+#
+#  -SocialOnly regenerates ONLY the three social files above. The icons, the .ico and
+#  the MSIX logos are not drawn, written or touched.
 # ============================================================================
 [CmdletBinding()]
-param()
+param(
+    [switch]$SocialOnly
+)
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
@@ -281,10 +290,18 @@ function Save-MultiFrameIcon([string]$icoPath, [System.Drawing.Bitmap[]]$bitmaps
     $fs.Dispose()
 }
 
-# Function to render 1280x640 Social Preview
-function Render-SocialPreview([string]$outPath) {
-    $w = 1280
-    $h = 640
+# Function to render the social artwork at any canvas size ($w x $h).
+# The artwork is laid out on a fixed 1280x640 design canvas, scaled uniformly by
+# min($w/1280, $h/640) and centred; the background gradient fills the whole canvas.
+# At 1280x640 the scale is 1 and the offset 0 (the repository social preview);
+# at 1200x630 everything is scaled to 93.75 % and centred (the Open Graph image) -
+# nothing is cropped, nothing is re-laid out.
+function Render-SocialCard([int]$w, [int]$h, [string]$outPath) {
+    $designW = 1280.0
+    $designH = 640.0
+    $s  = [float][Math]::Min($w / $designW, $h / $designH)
+    $ox = [float](($w - $designW * $s) / 2.0)
+    $oy = [float](($h - $designH * $s) / 2.0)
     $bmp = [System.Drawing.Bitmap]::new($w, $h)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.SmoothingMode     = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
@@ -303,14 +320,23 @@ function Render-SocialPreview([string]$outPath) {
     $g.FillRectangle($bgBrush, 0, 0, $w, $h)
     $bgBrush.Dispose()
 
+    # Everything below is positioned on the 1280x640 design canvas
+    $g.TranslateTransform($ox, $oy)
+    $g.ScaleTransform($s, $s)
+
     # Decorative background glow
     $glowPen = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(20, 94, 214, 132), 2.0)
     $g.DrawEllipse($glowPen, 80, 100, 440, 440)
     $glowPen.Dispose()
 
-    # Draw Master Emblem on left (360x360)
-    $emblem = Render-FileDOIcon -size 360 -showText $false
-    $g.DrawImage($emblem, 100, 140, 360, 360)
+    # Draw Master Emblem on left (360x360 on the design canvas). It is rendered at its
+    # final pixel size and blitted 1:1 outside the world transform, so it stays sharp.
+    $emblemPx = [int][Math]::Round(360.0 * $s)
+    $emblem = Render-FileDOIcon -size $emblemPx -showText $false
+    $gState = $g.Save()
+    $g.ResetTransform()
+    $g.DrawImage($emblem, [int][Math]::Round($ox + 100.0 * $s), [int][Math]::Round($oy + 140.0 * $s), $emblemPx, $emblemPx)
+    $g.Restore($gState)
     $emblem.Dispose()
 
     # Draw Right Side Branding & Copy
@@ -335,14 +361,16 @@ function Render-SocialPreview([string]$outPath) {
     $g.DrawString("Know your storage before you trust it", $fSlogan, $sBrush, 520.0, 245.0)
     $sBrush.Dispose()
 
-    # Description
-    $desc = "Storage speed tests, counterfeit flash & fake capacity detection,`nsecure .fd-sec encrypted containers, safe wipe & duplicate finder."
+    # Description - pillar order of packaging\positioning-source.json (check, tidy, erase, protect);
+    # wording kept inside docs\termbase.json (no "vault", no "encrypted", "fake" not "counterfeit")
+    # and the over-claim lines (a wipe "makes recovery harder", a container is password-protected).
+    $desc = "Storage speed tests, fake capacity detection, duplicate finder,`nwipe that makes recovery harder, password-protected .fd-sec containers."
     $dBrush = [System.Drawing.SolidBrush]::new($cSubtleText)
     $g.DrawString($desc, $fBody, $dBrush, 520.0, 295.0)
     $dBrush.Dispose()
 
     # Capability Pills / Badges
-    $badges = @("Speed Benchmark", "Fake Capacity Test", "Secure Vault .fd-sec", "Safe Wipe", "Duplicates")
+    $badges = @("Speed Benchmark", "Fake Capacity Test", "Secret Files .fd-sec", "Wipe & Fill", "Duplicates")
     $bx = 520.0
     $by = 400.0
     foreach ($b in $badges) {
@@ -369,7 +397,9 @@ function Render-SocialPreview([string]$outPath) {
 
     # Platform tag
     $tagBrush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(180, 150, 173, 156))
-    $g.DrawString("Windows x64 · Portable · Setup EXE · WiX MSI · MSIX Store · Go + VB.NET", $fBadge, $tagBrush, 520.0, 520.0)
+    $dot = " " + [char]0x00B7 + " "   # middle dot, spelled as a code point so the file stays pure ASCII
+    $platformTag = ("Windows x64", "Portable", "Setup EXE", "WiX MSI", "MSIX Store", "Go + VB.NET") -join $dot
+    $g.DrawString($platformTag, $fBadge, $tagBrush, 520.0, 520.0)
     $tagBrush.Dispose()
 
     $fKicker.Dispose(); $fTitle.Dispose(); $fSlogan.Dispose(); $fBody.Dispose(); $fBadge.Dispose()
@@ -380,44 +410,61 @@ function Render-SocialPreview([string]$outPath) {
 }
 
 # --- Generation Execution ---
-Write-Host "Generating FileDO product icons..."
-
-# 1. Generate PNGs
-$icon256 = Render-FileDOIcon -size 256 -showText $false
-$icon256Path = Join-Path $assetsDir "icon.png"
-$icon256.Save($icon256Path, [System.Drawing.Imaging.ImageFormat]::Png)
-
-$icon512 = Render-FileDOIcon -size 512 -showText $true
-$icon512Path = Join-Path $assetsDir "icon-branded-512.png"
-$icon512.Save($icon512Path, [System.Drawing.Imaging.ImageFormat]::Png)
-$icon512.Dispose()
-
-# Web icon
-if (Test-Path $docsAssets) {
-    Copy-Item $icon256Path (Join-Path $docsAssets "filedo.png") -Force
+if ($SocialOnly) {
+    Write-Host "Generating FileDO social artwork only (-SocialOnly)..."
+} else {
+    Write-Host "Generating FileDO product icons..."
 }
 
-# 2. Generate multi-resolution ICO
-$icoSizes = @(16, 24, 32, 48, 64, 128, 256)
-$bitmaps = @()
-foreach ($s in $icoSizes) {
-    $bitmaps += (Render-FileDOIcon -size $s -showText $false)
-}
-$icoPath = Join-Path $assetsDir "icon.ico"
-Save-MultiFrameIcon -icoPath $icoPath -bitmaps $bitmaps
-foreach ($b in $bitmaps) { $b.Dispose() }
-$icon256.Dispose()
+if (-not $SocialOnly) {
+    # 1. Generate PNGs
+    $icon256 = Render-FileDOIcon -size 256 -showText $false
+    $icon256Path = Join-Path $assetsDir "icon.png"
+    $icon256.Save($icon256Path, [System.Drawing.Imaging.ImageFormat]::Png)
 
-# 3. Generate Social Previews (1280x640)
+    $icon512 = Render-FileDOIcon -size 512 -showText $true
+    $icon512Path = Join-Path $assetsDir "icon-branded-512.png"
+    $icon512.Save($icon512Path, [System.Drawing.Imaging.ImageFormat]::Png)
+    $icon512.Dispose()
+
+    # Web icon
+    if (Test-Path $docsAssets) {
+        Copy-Item $icon256Path (Join-Path $docsAssets "filedo.png") -Force
+    }
+
+    # 2. Generate multi-resolution ICO
+    $icoSizes = @(16, 24, 32, 48, 64, 128, 256)
+    $bitmaps = @()
+    foreach ($s in $icoSizes) {
+        $bitmaps += (Render-FileDOIcon -size $s -showText $false)
+    }
+    $icoPath = Join-Path $assetsDir "icon.ico"
+    Save-MultiFrameIcon -icoPath $icoPath -bitmaps $bitmaps
+    foreach ($b in $bitmaps) { $b.Dispose() }
+    $icon256.Dispose()
+}
+
+# 3. Generate the social artwork: one drawing, two sizes
+#    1280x640 - the GitHub repository social preview (assets\ and docs\assets\)
+#    1200x630 - the Open Graph image (docs\assets\social-card.png)
+#    Both PNGs must stay under 1 MB.
 $socialAssets = Join-Path $assetsDir "social-preview.png"
-Render-SocialPreview -outPath $socialAssets
+Render-SocialCard -w 1280 -h 640 -outPath $socialAssets
+$socialFiles = @($socialAssets)
 if (Test-Path $docsAssets) {
     Copy-Item $socialAssets (Join-Path $docsAssets "social-preview.png") -Force
+    $socialCard = Join-Path $docsAssets "social-card.png"
+    Render-SocialCard -w 1200 -h 630 -outPath $socialCard
+    $socialFiles += $socialCard
+}
+foreach ($f in $socialFiles) {
+    $len = (Get-Item -LiteralPath $f).Length
+    if ($len -ge 1000000) { throw "$f is $len bytes - a social image must stay under 1 MB" }
 }
 
 # 4. Generate MSIX Package Logos
 $msixAssets = Join-Path $root "msix\stage\Assets"
-if (Test-Path $msixAssets) {
+if ((-not $SocialOnly) -and (Test-Path $msixAssets)) {
     function New-MsixLogo([string]$src, [string]$dst, [int]$size) {
         $img = [System.Drawing.Image]::FromFile($src)
         try {
@@ -447,4 +494,8 @@ if (Test-Path $msixAssets) {
     }
 }
 
-Write-Host "FileDO product icons successfully generated across product, site, packaging, and MSIX."
+if ($SocialOnly) {
+    Write-Host "FileDO social artwork successfully generated (social-preview 1280x640, social-card 1200x630)."
+} else {
+    Write-Host "FileDO product icons successfully generated across product, site, packaging, and MSIX."
+}

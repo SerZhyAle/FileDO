@@ -1,4 +1,4 @@
-# FileDO - Erweiterte Datei- und Speicher-Tools
+# FileDO - Prüfen Sie Ihren Speicher, bevor Sie ihm vertrauen
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**Speicher-Tests • Leistungsanalyse • Fake-Kapazität Erkennung • Duplikat-Verwaltung • Sicheres Löschen**
+**Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
 
 </div>
 
@@ -24,7 +24,7 @@ filedo E: test del
 # Festplatten-Leistungstest
 filedo C: speed 100
 
-# Sicheres Löschen des freien Speicherplatzes
+# Freien Speicherplatz überschreiben
 filedo D: fill 1000 del
 
 # Duplikate suchen und verwalten
@@ -447,7 +447,7 @@ und nichts wurde verändert.
 - **Modulare Architektur** mit dediziertem fileduplicates-Package
 
 ### **Sicherheitsfunktionen**
-- **Hochgeschwindigkeits-Datenlöschung** um Wiederherstellung zu verhindern
+- **Freien Speicherplatz und einzelne Dateien überschreiben**, damit sich nichts so leicht wiederherstellen lässt (auf SSDs und Copy-on-Write-Datenträgern ohne Garantie)
 - **Fülloperationen** mit optimierter Puffer-Verwaltung
 - **Stapelverarbeitung** für mehrere Ziele
 - **Umfassende Operationshistorie** mit JSON-Protokollierung
@@ -599,7 +599,7 @@ filedo network \\pc\share info
 
 > **Verbesserte Unterbrechung**: Alle langen Operationen unterstützen **eleganten Ctrl+C-Abbruch** mit automatischer Bereinigung. Kontextabhängige Unterbrechungsprüfungen an optimalen Punkten für sofortige Reaktionsfähigkeit.
 
-> **Sicheres Löschen**: `fill <größe> del` überschreibt freien Speicherplatz mit optimierter Puffer-Verwaltung und kontextabhängigem Schreiben für sichere Datenlöschung.
+> **Überschreiben**: `fill <größe> del` überschreibt freien Speicherplatz mit optimierter Puffer-Verwaltung und kontextabhängigem Schreiben, damit sich nichts so leicht wiederherstellen lässt.
 
 > **Testdateien**: Erstellt `FILL_*.tmp` und `speedtest_*.txt` Dateien. `clean` entfernt nur die, die FileDO geschrieben hat - mit FileDO-Namen und FileDO-Inhalt, sonst nichts -, nachdem es sie aufgelistet und nachgefragt hat; `--yes` beantwortet die Frage.
 
@@ -640,10 +640,10 @@ filedo \\server\backup speed 500
 </details>
 
 <details>
-<summary><b>Sicheres Datenlöschen</b></summary>
+<summary><b>Überschreiben</b></summary>
 
 ```bash
-# 5GB füllen dann sicher löschen
+# 5GB füllen, dann die Testdateien löschen
 filedo C: fill 5000 del
 
 # Vorhandene Testdateien bereinigen

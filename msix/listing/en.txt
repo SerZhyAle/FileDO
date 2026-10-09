@@ -4,23 +4,23 @@
 # Center console at submit time; the builder only warns about the values known when it was written.
 
 @@ShortDescription
-Test the real capacity and speed of drives and SD cards, spot fake flash, clear out duplicate files, wipe data securely and lock a file behind a password - from a window or the command line. No network, no accounts, no ads.
+Test the real capacity and speed of USB sticks and SD cards, spot fakes, clear out duplicate files, wipe free space to make recovery harder and keep a file behind a password - from a window or the command line. No accounts, no ads, no telemetry.
 
 @@Description
-FileDO tells you whether a drive is what it claims to be, and gives you the tools to look after the data on it.
+Is your USB stick or SD card really as big as its label says? FileDO writes real data to it and reads it back, so a fake is caught before it swallows your files. The test fills the free space, so it takes time on large media. FileDO also helps you look after the data on any drive: it finds duplicate files, compares and copies folders, wipes free space to make recovery harder, and keeps a file behind a password.
 
 Open it from the Start menu, or type filedo in any terminal - the same engine runs behind both.
 
 CHECK
-- Capacity test: writes real data across the whole device and reads it back, so a USB stick or SD card that promises more space than it has is caught before it swallows your files.
+- Capacity test: writes real data across the free space and reads it back, so a USB stick or SD card that promises more space than it has is caught before it swallows your files. Start with an empty card: only free space is tested, and a large card takes time.
 - Speed test for disks, folders and network shares, with detailed timing.
 
 TIDY AND MOVE
-- Duplicate finder: MD5 hashing with a cache that is reused between runs; delete or move duplicates by oldest, newest or name.
+- Duplicate finder: matches files by content, with a hash cache that is reused between runs; a duplicate is deleted only after a byte-for-byte check; delete or move duplicates by oldest, newest or name.
 - Compare two folders, and copy large trees with live progress, an ETA and care for slow or damaged disks.
 
 ERASE
-- Wipe a folder or fill the free space to make recovery harder. Wipe always asks you to type WIPE, and drive roots, junctions and system temp folders are never forced.
+- Fill the free space with data and delete it again, or overwrite a single file before removing it, to make recovery harder; on SSDs and copy-on-write disks that promises nothing. Emptying a folder is a plain delete, and it asks you to type WIPE first. Drive roots, junctions and system temp folders are never forced.
 
 PROTECT
 - Pack one file into a password-protected .fd-sec container, get the original back, or open the contents in the program they belong to without unpacking - from a read-only copy that only your account can read and that is removed when you are done with it. An empty password is accepted and means obfuscation only, not secrecy; FileDO says so where you type it. The container format is published in full, so your data can be read without FileDO.
@@ -33,24 +33,24 @@ FileDO runs entirely on your device. It never connects to the internet or to any
 
 GOOD TO KNOW
 - This is the Microsoft Store edition. It does not add Explorer context-menu entries; those come with the MSI installer. It does claim the .fd-sec file type, so double-clicking a container opens FileDO. The same operations are available in the window and with the filedo command.
-- FileDO needs full-trust desktop access to read and write raw disk and device data: capacity testing, speed benchmarking and secure wiping cannot work without it. Wipe and fill destroy data by design and always confirm before touching drive roots or system folders.
-- Mounting .fdd virtual disks is not available in the Microsoft Store edition: a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights. Double-clicking a .fdd opens FileDO on that container, which can be read, verified and exported here; to mount one, use the setup or the portable build from GitHub.
+- FileDO needs full-trust desktop access to read and write raw disk and device data: capacity testing, speed benchmarking and wiping cannot work without it. Wipe and fill destroy data by design and always confirm before touching drive roots or system folders.
+- Mounting .fdd virtual disks is not available in the Microsoft Store edition: a packaged app can neither configure the Windows iSCSI initiator nor ask for administrator rights. Double-clicking a .fdd opens FileDO on that container, which can be read through for damage and exported here; to mount one, use the setup or the portable build from GitHub.
 - Windows 10 version 1903 or later.
 
 @@Feature1
-Capacity test: writes and verifies real data across the whole device to expose fake USB drives and SD cards
+Capacity test: writes real data to the free space and reads it back to expose fake USB drives and SD cards
 
 @@Feature2
 Read and write speed tests for disks, folders and network shares, with detailed timing
 
 @@Feature3
-Duplicate finder with MD5 hashing and a reusable cache; delete or move duplicates by oldest, newest or name
+Duplicate finder that matches by content, with a reusable hash cache; delete or move duplicates by oldest, newest or name
 
 @@Feature4
 Compare two folders and copy large trees with live progress, an ETA and care for slow or damaged disks
 
 @@Feature5
-Wipe a folder or fill free space to make recovery harder - always asks you to type WIPE first
+Overwrite free space or a single file to make recovery harder; emptying a folder asks you to type WIPE first
 
 @@Feature6
 Secret files: pack one file into a password-protected .fd-sec container, get it back, or open it without unpacking
@@ -74,19 +74,19 @@ fake usb test
 sd card capacity test
 
 @@SearchTerm3
-disk speed test
+test usb drive capacity
 
 @@SearchTerm4
-secure wipe
+fake sd card test
 
 @@SearchTerm5
 duplicate file finder
 
 @@SearchTerm6
-password protect file
+wipe free space
 
 @@SearchTerm7
-usb flash checker
+password protect file
 
 @@ReleaseNotes
 New: .fdd virtual disks. In this edition you can create them, read and verify them, export them as a raw image or a VHD, grow, compact, copy and change their password; mounting one as a drive letter needs the setup or the portable build from GitHub. Without a password a container is obfuscated, not encrypted.

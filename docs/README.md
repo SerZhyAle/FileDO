@@ -6,8 +6,8 @@ research notes - are not here; see "What does not live here" below.
 
 ## The published site (GitHub Pages serves this tree)
 
-Canonical pages, all hand-authored - there is no generator, so these are **not** render targets and are
-edited in place:
+Canonical pages, all hand-authored and edited in place - none of them is a render target. The renders in this
+tree are named under "Supporting files" below.
 
 | Page | What it is |
 | --- | --- |
@@ -24,11 +24,16 @@ edited in place:
 | [`guides/glossary.html`](guides/glossary.html) | Glossary - one entry per term in [`termbase.json`](termbase.json), `id="term-<id>"`. |
 | [`guides/topics.html`](guides/topics.html) | Subject index - every subject the guides cover and the page for it; it links every guide. |
 | [`guides/release-notes.html`](guides/release-notes.html) | Release notes - what changed in each shipped release, newest first, with its date; one `id="v<stamp>"` section per release of the Version History in `README.md`, which `check-external-docs.ps1` (step `releasenotes`) holds equal. |
+| [`guides/support.html`](guides/support.html) | Support - where to report a problem, what to include, and which pages answer the usual questions (the install warning, privacy, release notes). |
 | [`privacy.html`](privacy.html) | Privacy policy - no network, no telemetry, no accounts. |
 
-Supporting files: [`robots.txt`](robots.txt), [`sitemap.xml`](sitemap.xml), [`assets/`](assets/) (the guide
-screenshots in `assets/guides/` are produced by `packaging/capture-guide-screens.ps1`, never drawn by hand),
+Supporting files: [`robots.txt`](robots.txt), [`sitemap.xml`](sitemap.xml) (a render: written by
+`packaging/write-sitemap.ps1`, never by hand), [`assets/`](assets/) (the guide
+screenshots in `assets/guides/` are produced by `packaging/capture-guide-screens.ps1`, never drawn by hand; the
+share images `social-card.png` (1200x630) and `social-preview.png` (1280x640) are written by
+`assets/make-product-icons.ps1 -SocialOnly`),
 [`termbase.json`](termbase.json), [`translation-fingerprints.json`](translation-fingerprints.json) (a render - see below),
+the IndexNow key file `ac596e568e538e6f5b1d5a60660ae226.txt` (its name is the key; keep it),
 [`kit/sza-kit.css`](kit/sza-kit.css), `_config.yml`, `.nojekyll`.
 
 `ru/`, `ua/`, `de/` and `fr/` hold **redirect stubs only**. Each sets `sza-lang` and bounces to the site
@@ -60,15 +65,18 @@ pages above, the READMEs, and the listing sources.
 ## Editing rules
 
 A user-visible change lands in **every** surface in one edit - the landing page, the guides, the READMEs
-and the listing sources - per canon `DOCUMENTATION_CONCEPT.md` 5. Add a public page and `sitemap.xml`
-changes in the same commit; the sitemap lists canonical URLs only.
+and the listing sources - per canon `DOCUMENTATION_CONCEPT.md` 5. Add a public page and run
+`packaging/write-sitemap.ps1`; the sitemap lists canonical URLs only. Each `lastmod` is the page file's last
+commit date, so run the script again after the commit and commit that one-file change (a page not yet committed
+carries its last-write date until then).
 
 `packaging/check-external-docs.ps1` (step 9 of `build.ps1 -Test`, `DOC-EXTERNAL-QUALITY`) holds the published
 corpus - these pages and the five READMEs:
 
 - every public page is in `sitemap.xml` at its canonical URL and nothing else is; every page carries the full
-  SEO block (title with FileDO under 60, description under 160, canonical, Open Graph, Twitter card, JSON-LD,
-  `hreflang="x-default"`) and its runtime per-locale title and description;
+  SEO block (title with FileDO under 60, description under 160, canonical, Open Graph with the size and alt
+  text of its image, Twitter card, JSON-LD, `hreflang` x-default, en, de and fr, no `keywords` meta) and its
+  runtime per-locale title and description;
 - every group of `data-l` spans has ru, en and ua exactly once; the German and French pages are standalone
   (`docs/de/`, `docs/fr/`, one language each, the same path as the runtime page, each group read against the English
   of the page it mirrors; a secondary DE/FR row on every page, never written to `sza-lang`); and every README translation has README.md's
@@ -80,8 +88,8 @@ corpus - these pages and the five READMEs:
   width and height of a file under `assets/`;
 - no `http://` link, no en or em dash and no `...` in prose.
 
-The locales share one URL (runtime switch), so `hreflang` is `x-default` only, and there is no search index;
-both are put to the contract owner as a proposal (`docs/contracts/DOC-EXTERNAL-QUALITY.md`).
+The ru and ua locales share the English URL (runtime switch), so `hreflang` names x-default, en, de and fr only,
+and there is no search index; both are put to the contract owner as a proposal (`docs/contracts/DOC-EXTERNAL-QUALITY.md`).
 
 The product pages consume `PAGE-CONTENT`, `PAGE-STYLE`, and `SITE-FAMILY-MAP`. `kit/sza-kit.css` is the
 vendored `PAGE-STYLE` artifact: copy it byte-for-byte from the catalog and put FileDO-specific styling in

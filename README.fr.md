@@ -1,4 +1,4 @@
-# FileDO - Outil Avancé pour Fichiers et Stockage
+# FileDO - Connaissez votre stockage avant de lui faire confiance
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
-**Test de Stockage • Analyse de Performance • Détection de Fausse Capacité • Gestion des Doublons • Suppression Sécurisée**
+**Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
 
 </div>
 
@@ -24,7 +24,7 @@ filedo E: test del
 # Test de performance du disque
 filedo C: speed 100
 
-# Nettoyage sécurisé de l'espace libre
+# Effacement de l'espace libre
 filedo D: fill 1000 del
 
 # Recherche et gestion des doublons
@@ -444,7 +444,7 @@ code 7, et une disposition modifiée depuis la liste avec le code 5 - sans que r
 - **Architecture modulaire** avec le package fileduplicates dédié
 
 ### **Fonctionnalités de Sécurité**
-- **Suppression sécurisée de données haute vitesse** pour empêcher la récupération
+- **Effacement de l'espace libre et de fichiers isolés** pour compliquer la récupération (sans garantie sur les SSD et les disques à copie sur écriture)
 - **Opérations de remplissage** avec gestion optimisée des buffers
 - **Traitement par lots** pour multiples cibles
 - **Historique d'opérations complet** avec journalisation JSON
@@ -595,7 +595,7 @@ Notes: appariement par chemin relatif; `del source` et `del target` ne supprimen
 
 > **Interruption Améliorée** : Toutes les opérations longues supportent **l'annulation gracieuse Ctrl+C** avec nettoyage automatique. Vérifications d'interruption contextuelle aux points optimaux pour une réactivité immédiate.
 
-> **Suppression Sécurisée** : `fill <taille> del` écrase l'espace libre avec gestion optimisée des buffers et écriture contextuelle pour la suppression sécurisée des données.
+> **Effacement** : `fill <taille> del` écrase l'espace libre avec gestion optimisée des buffers et écriture contextuelle, pour compliquer la récupération.
 
 > **Fichiers de Test** : Crée des fichiers `FILL_*.tmp` et `speedtest_*.txt`. `clean` supprime seulement ceux que FileDO a écrits - avec ses noms et son contenu, rien d'autre - après les avoir listés et avoir demandé ; `--yes` répond à la question.
 
@@ -636,10 +636,10 @@ filedo \\server\backup speed 500
 </details>
 
 <details>
-<summary><b>Suppression Sécurisée de Données</b></summary>
+<summary><b>Effacement</b></summary>
 
 ```bash
-# Remplir 5GB puis supprimer de façon sécurisée
+# Remplir 5GB puis supprimer les fichiers de test
 filedo C: fill 5000 del
 
 # Nettoyer les fichiers de test existants

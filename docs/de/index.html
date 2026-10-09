@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0a0f0a" />
     <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/" />
     <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/" />
     <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/" />
     <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
@@ -13,7 +14,13 @@
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/" />
     <meta
       property="og:image"
-      content="https://serzhyale.github.io/FileDO/assets/social-preview.png"
+      content="https://serzhyale.github.io/FileDO/assets/social-card.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="FileDO-Logo und Name mit dem englischen Leitsatz Know your storage before you trust it auf dunkelgrünem Grund"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <title>FileDO - Speicher prüfen, bevor Sie ihm vertrauen</title>
@@ -1517,7 +1524,7 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           <article class="card">
             <h3>Duplikate</h3>
             <p>
-              <span data-l="de">MD5-Abgleich mit Cache; eine Liste speichern und später verarbeiten.</span>
+              <span data-l="de">Abgleich nach Inhalt mit Cache; eine Liste speichern und später verarbeiten.</span>
             </p>
           </article>
           <article class="card">
@@ -1531,7 +1538,7 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
               <span data-l="de">Löschen &amp; Füllen</span>
             </h3>
             <p>
-              <span data-l="de"><code>wipe</code> überschreibt die Dateien eines Ordners und entfernt sie; <code>fill … del</code> füllt den freien Speicherplatz mit Daten und löscht sie wieder, damit sich nichts so leicht wiederherstellen lässt. <code>wipe</code> verlangt, dass Sie <code>WIPE</code> eintippen; Laufwerks- und Freigabe-Stammverzeichnisse, Reparse-Punkte und der TEMP-Ordner des Systems erfordern auch mit <code>--force</code> eine interaktive Bestätigung. Beides lässt sich nicht rückgängig machen.</span>
+              <span data-l="de"><code>wipe</code> löscht den Inhalt eines Ordners - ein gewöhnliches Löschen, die Daten bleiben wiederherstellbar, bis der Platz neu belegt wird; <code>fill … del</code> füllt den freien Speicherplatz mit Daten und löscht sie wieder, und bei einer einzelnen Datei überschreibt <code>wipe</code> die Datei vor dem Entfernen - beides, damit sich nichts so leicht wiederherstellen lässt. <code>wipe</code> verlangt, dass Sie <code>WIPE</code> eintippen; Laufwerks- und Freigabe-Stammverzeichnisse, Reparse-Punkte und der TEMP-Ordner des Systems erfordern auch mit <code>--force</code> eine interaktive Bestätigung. Nichts davon lässt sich rückgängig machen.</span>
             </p>
           </article>
           <article class="card">
@@ -1848,6 +1855,9 @@ html[data-theme="light"] .copybox .copy.done{color:#56d364;border-color:#56d364}
           <span><span data-l="de">Autor</span>: <a href="https://sza.od.ua">Serhii Zhyhunenko</a> · © 2026</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="guides/"><span data-l="de">Anleitungen</span></a> · <a href="privacy.html"
               ><span data-l="de">Datenschutz</span></a
+            >
+            · <a href="guides/support.html"
+              ><span data-l="de">Support</span></a
             >
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
