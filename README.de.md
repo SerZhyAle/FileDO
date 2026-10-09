@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610091940-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
@@ -727,7 +727,12 @@ FileDO/
 
 ## Versionshistorie
 
-**v2610070412** (Aktuell)
+**v2610091940** (Aktuell)
+- **Datenträger**: die Aktionen Erstellen, Verkleinern und Automatisch einbinden der Gruppe **Datenträger** sowie Abbild in Datei zeigen jetzt eigene Symbole aus dem gemeinsamen Symbolsatz statt Platzhaltersymbolen - in der Gruppe und in der Datenträgerverwaltung
+- **Freigabe**: ein Datenträgerzustand, den das Freigabeprogramm mit einem dieser Version unbekannten Wort nennt, wird als unbekannt angezeigt, statt die ganze Antwort scheitern zu lassen; ein unbekannter Zustand gilt nie als geschlossen und erlaubt nie ein Einbinden
+- **Beschreibung**: README, Website und Store-Eintrag beginnen jetzt mit "Know your storage before you trust it"; das Löschen wird als Erschwerung der Wiederherstellung beschrieben, ohne Garantie auf SSDs oder Copy-on-Write-Datenträgern
+
+**v2610070412** (Vorherige)
 - **Virtuelle Datenträger (`.fdd`)**: ein ganzes Volume in einer Datei, eingebunden als Laufwerksbuchstabe - `filedo vd new`, `mount`, `unmount`, dazu `info`, `verify` und `export` (Rohabbild oder VHD) ohne Einbinden sowie `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; ohne Passwort verschleiert, mit Passwort verschlüsselt, und nie das eine als das andere bezeichnet
 - **Partitionsdatenträger**: ein virtueller Datenträger kann statt in einer Datei in einer neuen GPT-Partition liegen, die aus dem freien Platz eines Datenträgers geschnitten wird - `filedo vd disks` listet jeden Datenträger, seinen freien Platz und warum ein Bereich nutzbar ist oder nicht; `vd new part`, `vd image` (Kopie in eine gewöhnliche `.fdd`) und `vd adopt`; außerhalb des freien Platzes wird nichts angerührt, Windows fragt bei jedem Lesen nach Administratorzustimmung, und die Microsoft-Store-Version bietet sie nicht an
 - **Prüfung und Sicherheit**: `chkdsk` prüft das Volume in einem nicht eingebundenen Container und schreibt nichts, `chkdsk fix` repariert einen Container, der nicht sauber geschlossen wurde; `vd guard on` speichert `ram`-Datenträger und trennt jeden Container sauber, wenn Ihre Sitzung endet; `vd auto` bindet einen verschleierten Container bei der Anmeldung ein
@@ -737,7 +742,7 @@ FileDO/
 - **Grenzen**: nur Windows; Einbinden fragt nach Administratorzustimmung; die Microsoft-Store-Version liest, prüft und exportiert Container, kann sie aber weder einbinden noch Partitionsdatenträger nutzen noch freigeben
 - **Dokumentation**: neue Anleitungen - virtuelle Datenträger und Freigabe von Datenträgern über Fast Media Sorter; die Seiten der Website auf Deutsch und Französisch sowie eine Seite mit den Neuerungen
 
-**v2609241700** (Vorherige)
+**v2609241700**
 - **Geheime Dateien (`.fd-sec`)**: eine Datei wird in einen passwortgeschützten Container gepackt und wieder herausgeholt - `secure`, `unsecure`, `reveal` - per Kommandozeile, über das Explorer-Menü oder auf den Protect-Seiten des Fensters; Name, Größe und Zeitstempel des Originals sind darin versiegelt
 - **Explorer-Integration**: das Setup fügt die Kontextmenügruppe `File DO..` (Secure, Unsecure, Wipe this file, Check this file, Info) und den Dokumenttyp `.fd-sec` hinzu; `filedo fdsec register` / `unregister` erledigt dasselbe ohne Installer
 - **GUI**: ein neues Fenster - links die Aufgaben, pro Aufgabe eine Seite mit allen CLI-Optionen, dazu die Seiten Command, History, Settings und About; das alte Befehlsbaukasten-Fenster entfällt
@@ -792,7 +797,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610070412** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2610091940** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

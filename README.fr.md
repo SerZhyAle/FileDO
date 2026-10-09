@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610091940-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
@@ -723,7 +723,12 @@ FileDO/
 
 ## Historique des Versions
 
-**v2610070412** (Actuelle)
+**v2610091940** (Actuelle)
+- **Disques**: les actions créer, compacter et monter automatiquement du groupe **Disques**, ainsi que « Image vers fichier », ont maintenant leurs propres icônes du jeu commun au lieu de symboles de remplacement - dans le groupe et dans le Gestionnaire de disques
+- **Partage**: un état de disque que le programme de partage nomme par un mot inconnu de cette version s'affiche comme inconnu au lieu de faire échouer toute la réponse; un état inconnu n'est jamais considéré comme fermé et n'autorise jamais un montage
+- **Description**: le README, le site et la fiche du Store s'ouvrent maintenant sur « Know your storage before you trust it »; l'effacement est décrit comme une façon de rendre la récupération plus difficile, sans garantie sur les SSD ni sur les disques à copie sur écriture
+
+**v2610070412** (Précédente)
 - **Disques virtuels (`.fdd`)**: un volume entier dans un fichier, monté comme lettre de lecteur - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` et `export` (image brute ou VHD) sans montage, et `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre
 - **Disques sur partition**: un disque virtuel peut vivre dans une nouvelle partition GPT prise sur l'espace libre d'un disque au lieu d'un fichier - `filedo vd disks` liste chaque disque, son espace libre et pourquoi une zone est utilisable ou non; `vd new part`, `vd image` (copie dans un `.fdd` ordinaire) et `vd adopt`; rien en dehors de l'espace libre n'est touché, Windows demande l'accord d'un administrateur à chaque lecture, et la version du Microsoft Store ne les propose pas
 - **Vérification et sécurité**: `chkdsk` vérifie le volume d'un conteneur non monté sans rien écrire, `chkdsk fix` répare un conteneur qui n'a pas été fermé proprement; `vd guard on` enregistre les disques `ram` et démonte proprement chaque conteneur à la fin de votre session; `vd auto` monte un conteneur camouflé à l'ouverture de votre session
@@ -733,7 +738,7 @@ FileDO/
 - **Limites**: Windows uniquement; monter demande l'accord d'un administrateur; la version du Microsoft Store lit, vérifie et exporte les conteneurs mais ne peut ni les monter, ni utiliser les disques sur partition, ni les partager
 - **Documentation**: nouveaux guides - disques virtuels et partage de disques via Fast Media Sorter; pages du site en allemand et en français, et une page des nouveautés
 
-**v2609241700** (Précédente)
+**v2609241700**
 - **Fichiers secrets (`.fd-sec`)** : un fichier est placé dans un conteneur protégé par mot de passe puis restauré - `secure`, `unsecure`, `reveal` - en ligne de commande, depuis le menu de l'Explorateur ou les pages Protect de la fenêtre ; le vrai nom, la taille et les dates de l'original sont scellés à l'intérieur
 - **Intégration à l'Explorateur** : le setup ajoute le groupe `File DO..` au menu contextuel (Secure, Unsecure, Wipe this file, Check this file, Info) et le type de document `.fd-sec` ; `filedo fdsec register` / `unregister` fait de même sans installateur
 - **GUI** : une nouvelle fenêtre - la liste des tâches à gauche, une page par tâche avec toutes les options de la CLI, plus les pages Command, History, Settings et About ; l'ancienne fenêtre de construction de commandes est retirée
@@ -788,7 +793,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610070412** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2610091940** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

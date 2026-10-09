@@ -88,4 +88,4 @@ speicherplatz überschreiben
 dateien mit passwort schützen
 
 @@ReleaseNotes
-Neu: virtuelle .fdd-Datenträger. In dieser Edition lassen sie sich anlegen, lesen und prüfen, als Rohabbild oder VHD exportieren, vergrößern, verkleinern, kopieren und mit neuem Passwort versehen; zum Einbinden als Laufwerksbuchstabe braucht es das Setup oder die portable Version von GitHub. Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt.
+Neu: die Datenträgeraktionen Erstellen, Verkleinern, Automatisch einbinden und Abbild in Datei haben eigene Symbole, und die Beschreibung beginnt jetzt mit "Know your storage before you trust it"; das Löschen wird als Erschwerung der Wiederherstellung beschrieben, ohne Garantie auf SSDs oder Copy-on-Write-Datenträgern.

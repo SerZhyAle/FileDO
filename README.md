@@ -6,7 +6,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610070412-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610091940-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Fake-Capacity Check • Speed Test • Duplicate Finder • Folder Compare • Wipe Free Space • Password-Protected Files • Virtual Disks**
@@ -852,7 +852,12 @@ FileDO/
 
 ## Version History
 
-**v2610070412** (Current)
+**v2610091940** (Current)
+- **Disks**: the create, compact and auto-mount actions of the **Disks** group, and Image to file, now draw their own icons from the shared icon set instead of stand-in symbols - in the group and in the Disk manager
+- **Sharing**: a disk state that the sharing program names with a word this build does not know is shown as unknown instead of failing the whole answer; an unknown state never counts as closed and never allows a mount
+- **Description**: the README, the site and the Store listing now open with "Know your storage before you trust it"; wiping is described as making recovery harder, with no guarantee on SSDs or copy-on-write disks
+
+**v2610070412** (Previous)
 - **Virtual disks (`.fdd`)**: a whole volume in one file, mounted as a drive letter - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` and `export` (raw image or VHD) without mounting, and `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; obfuscated without a password, encrypted with one, and never called the other
 - **Partition disks**: a virtual disk can live in a new GPT partition cut from a disk's free space instead of a file - `filedo vd disks` lists every disk, its free space and why an extent is usable or not; `vd new part`, `vd image` (copy it into an ordinary `.fdd`) and `vd adopt`; nothing outside the free space is touched, Windows asks for administrator consent on every read, and the Microsoft Store build does not offer them
 - **Check and safety**: `chkdsk` scans the volume inside an unmounted container and writes nothing, `chkdsk fix` repairs one that was not closed cleanly; `vd guard on` saves `ram` disks and unmounts every container cleanly when your session ends; `vd auto` mounts an obfuscated container when you sign in
@@ -862,7 +867,7 @@ FileDO/
 - **Limits**: Windows only; mounting asks for administrator consent; the Microsoft Store build reads, verifies and exports containers but cannot mount them, use partition disks or share
 - **Docs**: new guides - virtual disks and sharing disks with Fast Media Sorter; the site pages in German and French, and a release notes page
 
-**v2609241700** (Previous)
+**v2609241700**
 - **Secret files (`.fd-sec`)**: pack one file into a password-protected container and get it back - `secure`, `unsecure`, `reveal` - from the command line, the Explorer menu or the window's Protect pages; the original's name, size and timestamps are sealed inside
 - **Explorer integration**: the setup EXE adds a `File DO..` right-click group (Secure, Unsecure, Wipe this file, Check this file, Info) and the `.fd-sec` document type; `filedo fdsec register` / `unregister` does the same without an installer
 - **GUI**: a new window - a rail of jobs with one page per job, each carrying every CLI option, plus Command, History, Settings and About pages; the old command-builder window is retired
@@ -917,7 +922,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610070412** - Advanced File & Storage Operations Tool
+**FileDO v2610091940** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

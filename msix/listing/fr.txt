@@ -88,4 +88,4 @@ effacer espace libre
 protéger fichier mot de passe
 
 @@ReleaseNotes
-Nouveau : disques virtuels .fdd. Dans cette édition, on peut les créer, les lire et les vérifier, les exporter en image brute ou en VHD, les agrandir, les compacter, les copier et changer leur mot de passe ; pour en monter un comme lettre de lecteur, il faut le setup ou la version portable sur GitHub. Sans mot de passe, un conteneur est camouflé, pas chiffré.
+Nouveau : les actions de disque créer, compacter, monter automatiquement et image vers fichier ont leurs propres icônes, et la description s'ouvre maintenant sur « Know your storage before you trust it » ; l'effacement est décrit comme une façon de rendre la récupération plus difficile, sans garantie sur les SSD ni sur les disques à copie sur écriture.

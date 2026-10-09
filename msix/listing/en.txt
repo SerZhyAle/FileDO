@@ -89,4 +89,4 @@ wipe free space
 password protect file
 
 @@ReleaseNotes
-New: .fdd virtual disks. In this edition you can create them, read and verify them, export them as a raw image or a VHD, grow, compact, copy and change their password; mounting one as a drive letter needs the setup or the portable build from GitHub. Without a password a container is obfuscated, not encrypted.
+New: the create, compact, auto-mount and image-to-file disk actions have their own icons, and the description now opens with "Know your storage before you trust it"; wiping is described as making recovery harder, with no guarantee on SSDs or copy-on-write disks.
