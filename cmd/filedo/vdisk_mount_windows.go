@@ -317,9 +317,6 @@ type vdRequest struct {
 	// Only then may a missing partition table trigger formatting (AUD-32-F3).
 	NeverHeld bool   `json:"never_held,omitempty"`
 	Session   string `json:"session,omitempty"`
-	// NoScan names the backing file to exclude from Microsoft Defender for
-	// this mount (the opt-in word noscan), or to un-exclude at unmount.
-	NoScan string `json:"no_scan,omitempty"`
 	// TaskName and TaskSID (or TaskDelete) name the automatic-mount task the
 	// _task step registers or removes (vdisk_auto_windows.go). They are data:
 	// the step builds the task itself from the registered container of that
@@ -374,10 +371,6 @@ type vdResult struct {
 	// decoded and cut to a readable size. The step does not judge the code; the command does.
 	ChkdskExit int    `json:"chkdsk_exit,omitempty"`
 	ChkdskText string `json:"chkdsk_text,omitempty"`
-	// Excluded: this mount added the Defender exclusion and its unmount
-	// removes it. Warning: a step that did not work but does not fail the mount.
-	Excluded bool   `json:"excluded,omitempty"`
-	Warning  string `json:"warning,omitempty"`
 	// CleanupWarning: the detach finished, but the private mount folder of a no-letter mount could not be
 	// removed. The next no-letter mount's sweep removes it; the unmount still succeeded (AUD-84-F2).
 	CleanupWarning string `json:"cleanup_warning,omitempty"`
@@ -548,11 +541,6 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 		if portal {
 			iscsiRemovePortal(req.Port)
 		}
-		if res.Excluded {
-			if _, e := defenderExclude(req.NoScan, false); e != nil {
-				vdLogf("attach %s: removing the Defender exclusion: %v", req.IQN, e)
-			}
-		}
 	}()
 	if !vdSerialSpelling.MatchString(req.Serial) {
 		// AUD-32-F8: usage, before the initiator or any disk is touched.
@@ -566,23 +554,6 @@ func vdAttach(req vdRequest, cancelPath string) (res vdResult, err error) {
 	}
 	if err = iscsiLoad(); err != nil {
 		return res, errTransport(err.Error())
-	}
-	if req.NoScan != "" {
-		if err = step("excluding %s from Microsoft Defender", req.NoScan); err != nil {
-			return res, err
-		}
-		present, xerr := defenderExclude(req.NoScan, true)
-		switch {
-		case xerr != nil:
-			// Another antivirus, or Defender managed by policy: the mount
-			// still works, only slower, so this is a warning and not a failure.
-			res.Warning = xerr.Error()
-			vdLogf("attach %s: %v", req.IQN, xerr)
-		case present:
-			vdLogf("attach %s: the Defender exclusion was already there; it stays after unmount", req.IQN)
-		default:
-			res.Excluded = true
-		}
 	}
 	// A session to this container's target that is still listed belongs to an
 	// earlier mount whose logout a program holding the disk device refused
@@ -957,12 +928,6 @@ func vdDetach(req vdRequest) (res vdResult, err error) {
 	}
 	if perr := iscsiRemovePortal(req.Port); perr != nil {
 		vdLogf("detach %s: portal 127.0.0.1:%d: %v", req.IQN, req.Port, perr)
-	}
-	if req.NoScan != "" {
-		if _, xerr := defenderExclude(req.NoScan, false); xerr != nil {
-			res.Warning = xerr.Error()
-			vdLogf("detach %s: %v", req.IQN, xerr)
-		}
 	}
 	// The folder is housekeeping after a finished detach: the volume is dismounted, the disk offline and
 	// the session gone, so a folder that cannot be cleaned up is a warning and never a failed unmount
@@ -1432,8 +1397,14 @@ func vdWaitExit(pid int, timeout time.Duration) bool {
 
 // ---------------------------------------------------------------- mount
 
-// vdMountOpts is a parsed mount line. NoScan is the opt-in word noscan: the
-// backing file is excluded from Microsoft Defender while it is mounted.
+// vdNoScanRetired is what a mount line that still carries the word noscan is
+// told. The word used to add the container file to the Microsoft Defender
+// exclusions for the life of the mount; FileDO no longer changes antivirus
+// settings (a program that writes them is what malware looks like to one), so
+// the word is read, ignored, and said so. A saved script keeps working.
+const vdNoScanRetired = "Note: noscan is retired and ignored. FileDO does not change Microsoft Defender settings; to skip scanning the container file, add it under Windows Security > Virus & threat protection > Manage settings > Exclusions."
+
+// vdMountOpts is a parsed mount line. NoScan reports the retired word noscan.
 type vdMountOpts struct {
 	Path     string
 	Letter   string
@@ -1447,7 +1418,7 @@ type vdMountOpts struct {
 
 func vdParseMountOpts(args []string) (o vdMountOpts, err error) {
 	if len(args) < 1 {
-		return o, vdUsagef("mount needs a container: filedo <file.fdd> mount [ro] [noscan] [as <X:>] [p:<password>]")
+		return o, vdUsagef("mount needs a container: filedo <file.fdd> mount [ro] [as <X:>] [p:<password>]")
 	}
 	o.Path = args[0]
 	// The bare trailing token of the shared grammar: a password is taken
@@ -1505,7 +1476,7 @@ func vdParseMountOpts(args []string) (o vdMountOpts, err error) {
 		default:
 			// Never quoted back: the word may be a password typed without
 			// p: beside an option, and this message reaches history.json.
-			return vdMountOpts{}, vdUsagef("unknown mount word %d (want ro, noscan, as <X:>; with any option a password is given as p:<password>)", i+1)
+			return vdMountOpts{}, vdUsagef("unknown mount word %d (want ro, as <X:>; with any option a password is given as p:<password>)", i+1)
 		}
 	}
 	if o.NoLetter && o.Letter != "" {
@@ -1613,7 +1584,7 @@ func vdMount(args []string, batch bool) error {
 		if o.Cred.src == "bare" {
 			// Nothing here takes a password, so a lone unknown word is a
 			// mistyped option (`mount rw`), refused as it always was.
-			return vdUsagef("unknown mount word 2 (want ro, noscan, as <X:>)")
+			return vdUsagef("unknown mount word 2 (want ro, as <X:>)")
 		}
 		if o.Cred.given() {
 			fmt.Println(vdCredentialNotUsed)
@@ -1662,9 +1633,6 @@ func vdMount(args []string, batch bool) error {
 	}
 	req := vdRequest{Port: h.Port, IQN: h.IQN, Secret: h.Secret, Serial: h.Serial,
 		Label: h.Label, Letter: letter, ReadOnly: ro, NeverHeld: vdNeverHeldData(info), NoLetter: o.NoLetter}
-	if o.NoScan {
-		req.NoScan = path
-	}
 	res, err := vdRunElevated("_attach", req, batch, func(c string) { cancelPath = c })
 	os.Remove(handoff) // the secret is not needed any more
 	if err != nil {
@@ -1674,7 +1642,7 @@ func vdMount(args []string, batch bool) error {
 	attached = true
 	row := vdMountRow{ContainerID: info.ContainerID, Path: path, Letter: res.Letter, ReadOnly: ro,
 		MountedAt: time.Now(), ServerPID: pid, ServerStarted: started, Port: h.Port, IQN: h.IQN,
-		Serial: h.Serial, Session: res.Session, ScanExcluded: res.Excluded, Profile: info.Profile.String(), MountPath: res.MountPath, VolumeGUID: res.VolumeGUID, MountBase: res.MountBase}
+		Serial: h.Serial, Session: res.Session, Profile: info.Profile.String(), MountPath: res.MountPath, VolumeGUID: res.VolumeGUID, MountBase: res.MountBase}
 	if err := vdUpdateState(func(s *vdState) error {
 		s.Mounts = append(s.Mounts, row)
 		return nil
@@ -1684,11 +1652,8 @@ func vdMount(args []string, batch bool) error {
 	if res.Formatted {
 		fmt.Println("The new volume was formatted NTFS, with indexing turned off (the drive's Properties can turn it back on).")
 	}
-	switch {
-	case res.Warning != "":
-		fmt.Printf("Warning: the container file was not excluded from antivirus scanning: %s\n", res.Warning)
-	case res.Excluded:
-		fmt.Println("The container file is excluded from Microsoft Defender until unmount; files on the volume are still scanned.")
+	if o.NoScan {
+		fmt.Println(vdNoScanRetired)
 	}
 	roText := ""
 	if ro {
@@ -1850,8 +1815,10 @@ func vdUnmount(args []string, batch bool) error {
 	if err != nil {
 		return err
 	}
-	if res.Warning != "" {
-		fmt.Printf("Warning: the Defender exclusion of %s could not be removed: %s\n", row.Path, res.Warning)
+	if row.ScanExcluded {
+		// A mount of an earlier FileDO added this file to the Defender exclusions and recorded it. This
+		// build does not change Defender settings, so it cannot take the exclusion back: it says where.
+		fmt.Printf("Note: %s was excluded from Microsoft Defender by an earlier FileDO. The exclusion stays; remove it under Windows Security > Virus & threat protection > Manage settings > Exclusions.\n", row.Path)
 	}
 	if res.CleanupWarning != "" {
 		fmt.Printf("Warning: %s\n", res.CleanupWarning)
@@ -1884,9 +1851,6 @@ func vdUnmountOne(row vdMountRow, force, nosave, batch bool) (alive bool, how st
 	if row.Letter == "" {
 		req.MountPath = row.MountPath
 		req.MountBase = row.MountBase
-	}
-	if row.ScanExcluded {
-		req.NoScan = row.Path
 	}
 	res, err = vdRunElevated("_detach", req, batch, nil)
 	if err != nil {

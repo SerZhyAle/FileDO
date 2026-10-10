@@ -440,7 +440,7 @@ Public NotInheritable Class PartitionCommands
             "vd_part_detail_fmt", "vd_part_detail_locator_fmt", "vd_part_detail_consent", "vd_part_detail_refusals", "vd_part_state_missing",
             "vd_part_state_different", "vd_part_why_missing", "vd_part_why_different", "vd_part_detail_missing", "vd_part_detail_different",
             "vd_part_why_fixed_size", "vd_part_why_job_page", "vd_part_why_no_file", "vd_part_why_adopt", "vd_part_why_not_partition",
-            "vd_part_why_noscan", "vd_mgr_act_image", "vd_mgr_act_adopt", "vd_part_image_exists", "vd_part_destroy_title",
+            "vd_mgr_act_image", "vd_mgr_act_adopt", "vd_part_image_exists", "vd_part_destroy_title",
             "vd_part_destroy_fmt", "vd_part_destroy_lbl", "vd_part_btn_delete", "vd_part_destroy_wipe", "vd_part_adopt_title",
             "vd_part_adopt_text", "vd_part_adopt_none", "vd_part_adopt_lbl", "vd_part_adopt_item_fmt", "vd_part_btn_adopt",
             "vd_part_reason_other"}

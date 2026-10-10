@@ -92,7 +92,6 @@ Public Class DiskOptions
     Public Property Label As String = ""
     Public Property FileSystem As String = "ntfs"
     Public Property [ReadOnly] As Boolean = False
-    Public Property NoScan As Boolean = False
     Public Property Letter As String = ""
     Public Property Force As Boolean = False
     Public Property NoSave As Boolean = False
@@ -247,7 +246,6 @@ Public Module DiskCommands
         Select Case verb
             Case "mount"
                 If o.ReadOnly Then a.Add("ro")
-                If o.NoScan Then a.Add("noscan")
                 If o.Letter <> "" Then
                     a.Add("as")
                     a.Add(o.Letter)

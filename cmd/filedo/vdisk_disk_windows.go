@@ -389,33 +389,6 @@ func setNotIndexed(guidPath string) error {
 	return windows.SetFileAttributes(p, a|windows.FILE_ATTRIBUTE_NOT_CONTENT_INDEXED)
 }
 
-// defenderExclude adds (add true) or removes the backing file as a Microsoft
-// Defender exclusion path, through the in-box Defender cmdlets. The file holds
-// only ciphertext or obfuscated sectors, so scanning it finds nothing and costs
-// a read of the whole container; the volume's own files are still scanned. It
-// needs administrator rights and runs in the elevated step. present reports an
-// exclusion that was there before, which the unmount must then leave alone.
-func defenderExclude(path string, add bool) (present bool, err error) {
-	script := `$ErrorActionPreference = 'Stop'
-$containerPath = ` + psDataExpr(path) + `
-$pref = Get-MpPreference
-$have = @($pref.ExclusionPath) -contains $containerPath
-`
-	if add {
-		script += `if ($have) { 'present' } else { Add-MpPreference -ExclusionPath $containerPath; 'added' }
-`
-	} else {
-		script += `if ($have) { Remove-MpPreference -ExclusionPath $containerPath; 'removed' } else { 'absent' }
-`
-	}
-	out, err := vdPowerShell(script)
-	text := strings.TrimSpace(out)
-	if err != nil {
-		return false, fmt.Errorf("Microsoft Defender did not take the change (%v): %s", err, text)
-	}
-	return text == "present", nil
-}
-
 var labelUnsafe = regexp.MustCompile(`[^A-Za-z0-9 _-]`)
 
 // vdFileSystem is the file system a format writes: NTFS unless exFAT was

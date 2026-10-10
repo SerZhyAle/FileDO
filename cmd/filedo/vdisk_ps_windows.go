@@ -22,6 +22,10 @@ import (
 // can shorten it.
 var vdPowerShellTimeout = 10 * time.Minute
 
+// vdPowerShellMaxScript is what a script may take of the 32767-character
+// command line, leaving room for the executable path and the switches.
+const vdPowerShellMaxScript = 30000
+
 // psQuote is s as a PowerShell single-quoted string literal. PowerShell treats
 // U+2018..U+201B as quote characters too, so each of them is doubled like the
 // ASCII apostrophe: a path holding one is data, never the end of the literal
@@ -53,14 +57,21 @@ func psDataExpr(s string) string {
 
 // vdPowerShell runs script in Windows PowerShell and returns its output.
 //
-// The script goes in as -EncodedCommand, one unit: a `throw` (or any error under
-// $ErrorActionPreference = 'Stop') ends the whole script and the process exits
-// non-zero. Piping it to `-Command -` ran every line as a command of its own, so
-// a guard that threw ended only its own line and the destructive line after it
-// still ran, and a failing step was hidden by a last line that could not fail
-// (AUD-34-F1, AUD-34-F2). The text is UTF-16, so a non-ASCII path arrives as it
-// is whatever the console code page, and the output is read back as UTF-8. The
-// run ends with the run's stop or the timeout, whichever comes first.
+// The script goes in as the one argument of -Command, one unit: a `throw` (or
+// any error under $ErrorActionPreference = 'Stop') ends the whole script and the
+// process exits non-zero. Piping it to `-Command -` ran every line as a command
+// of its own, so a guard that threw ended only its own line and the destructive
+// line after it still ran, and a failing step was hidden by a last line that
+// could not fail (AUD-34-F1, AUD-34-F2). The command line is UTF-16, so a
+// non-ASCII path arrives as it is whatever the console code page, and the
+// output is read back as UTF-8. The run ends with the run's stop or the
+// timeout, whichever comes first.
+//
+// There is no -ExecutionPolicy and no -EncodedCommand: the policy governs script
+// files, which this never runs, and the in-box Storage cmdlets load under
+// Restricted and AllSigned alike. Both switches are what malware passes, and
+// antivirus engines weigh them so (the winget validation of the builds that
+// first carried them was blocked by Defender).
 func vdPowerShell(script string) (string, error) {
 	ctx := context.Background()
 	if globalInterruptHandler != nil {
@@ -85,18 +96,15 @@ func vdPowerShellCtx(ctx context.Context, script string, timeout time.Duration) 
 		"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n" +
 		"try {\n" + script + "\n} catch {\n" +
 		"[Console]::Error.WriteLine($_.Exception.Message)\nexit 1\n}\n"
-	u := utf16.Encode([]rune(wrapped))
-	raw := make([]byte, 0, len(u)*2)
-	for _, c := range u {
-		raw = append(raw, byte(c), byte(c>>8))
+	if len(utf16.Encode([]rune(wrapped))) > vdPowerShellMaxScript {
+		return "", fmt.Errorf("the PowerShell script is too long for a command line (%d characters, limit %d)", len(wrapped), vdPowerShellMaxScript)
 	}
-	encoded := base64.StdEncoding.EncodeToString(raw)
 
 	sys, _ := windows.GetSystemDirectory()
 	ps := filepath.Join(sys, `WindowsPowerShell\v1.0\powershell.exe`)
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	cmd := exec.CommandContext(runCtx, ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-OutputFormat", "Text", "-EncodedCommand", encoded)
+	cmd := exec.CommandContext(runCtx, ps, "-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-Command", wrapped)
 	out, err := cmd.CombinedOutput()
 	text := strings.ReplaceAll(string(out), "\r", "")
 	if err != nil {

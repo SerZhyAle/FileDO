@@ -22,7 +22,7 @@ import (
 // command line the consent covers cannot be rewritten, so it carries the
 // SHA-256 of the request bytes the parent wrote; the elevated half reads the
 // file once, refuses unless the bytes hash to that value, and parses only
-// those bytes. Every field (port, IQN, serial, noscan path, image path,
+// those bytes. Every field (port, IQN, serial, image path,
 // NeverHeld, FormatOnly, StateDir, the task's SID) is thereby the parent's.
 // The task's SID must resolve to a user account, and the state root is used
 // only when it is an existing directory that is not a reparse point. Neither

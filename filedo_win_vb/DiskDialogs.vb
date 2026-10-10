@@ -208,18 +208,14 @@ Public Class DiskPasswordDialog
 
 End Class
 
-' Mount as.. (spec 7.2): the letter from the free letters, read-only, and noscan with its
-' consequence in its own words.
+' Mount as.. (spec 7.2): the letter from the free letters, and read-only.
 Public Class DiskMountAsDialog
     Inherits DiskSmallDialog
 
     Private ReadOnly letterCombo As ComboBox
     Private ReadOnly roCheck As CheckBox
-    Private ReadOnly noscanCheck As CheckBox
 
-    ' noScanRefused: a partition disk refuses noscan (SP-0148 5.4) - the box is shown disabled with
-    ' the reason under it, so the refusal is said rather than hidden.
-    Public Sub New(d As Dictionary(Of String, String), diskName As String, owner As Control, Optional noScanRefused As Boolean = False)
+    Public Sub New(d As Dictionary(Of String, String), diskName As String, owner As Control)
         MyBase.New(d, Tr(d, "vd_mgr_act_mount_as"),
                    Localization.Format(Tr(d, "vd_mgr_mountas_text_fmt"), diskName), "vd_mgr_btn_mount", owner)
         Dim row As New FlowLayoutPanel With {.AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = New Padding(0)}
@@ -234,15 +230,8 @@ Public Class DiskMountAsDialog
         row.Controls.Add(label)
         row.Controls.Add(letterCombo)
         roCheck = New CheckBox With {.Text = T("vd_opt_ro"), .AutoSize = True, .Margin = PPad(0, 6, 0, 2)}
-        noscanCheck = New CheckBox With {.Text = T("vd_opt_noscan"), .AutoSize = True, .MaximumSize = New Size(P(460), 0),
-                                         .Margin = PPad(0, 2, 0, 2)}
         AddContent(row)
         AddContent(roCheck)
-        AddContent(noscanCheck)
-        If noScanRefused Then
-            noscanCheck.Enabled = False
-            AddContent(NewNote(T("vd_part_why_noscan")))
-        End If
         Finish()
     End Sub
 
@@ -273,12 +262,6 @@ Public Class DiskMountAsDialog
     Public ReadOnly Property MountReadOnly As Boolean
         Get
             Return roCheck.Checked
-        End Get
-    End Property
-
-    Public ReadOnly Property NoScan As Boolean
-        Get
-            Return noscanCheck.Checked
         End Get
     End Property
 

@@ -26,7 +26,7 @@ import (
 // `filedo vd <verb> <name|path> ..`:
 //
 //	filedo vd new <path> <size> [plain|fast|ram|vault] [label <text>] [password]
-//	filedo <file.fdd> mount [ro] [noscan] [as <X:>] [keep] [password]
+//	filedo <file.fdd> mount [ro] [as <X:>] [keep] [password]
 //	filedo <file.fdd|X:> unmount [force] [nosave]
 //	filedo <file.fdd ..|mask> info
 //	filedo <file.fdd ..|mask> verify [password]      - read-only; damage is class 4
@@ -678,7 +678,8 @@ type vdMountRow struct {
 	Serial        string    `json:"serial"`
 	Session       string    `json:"session"`
 	Profile       string    `json:"profile,omitempty"`
-	// ScanExcluded: the mount added a Defender exclusion that the unmount removes.
+	// ScanExcluded: the mount, made by a FileDO that still had the noscan option, added a Defender
+	// exclusion. Never written now; read so the unmount can say where the exclusion is to be removed.
 	ScanExcluded bool `json:"scan_excluded,omitempty"`
 	// MountBase is where the private folder of a no-letter mount was made (see vdRequest.MountBase).
 	MountBase string `json:"mount_base,omitempty"`

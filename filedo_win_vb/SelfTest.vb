@@ -3111,8 +3111,8 @@ Partial Public Module SelfTest
                                 "filedo.exe vd new " & Q & " 1.5T ram pe:FILEDO_SHELL_CRED"})
         cases.Add(New Object() {"mount", "mount", New DiskOptions With {.ReadOnly = True, .Letter = "X:"}, DiskSecret, "", "", Nothing,
                                 "filedo.exe " & Q & " mount ro as X: pe:FILEDO_SHELL_CRED"})
-        cases.Add(New Object() {"mount-obfuscated", "mount", New DiskOptions With {.NoScan = True}, DiskSecret, "", "", DiskFacts(DiskProtection.Obfuscated, True, ""),
-                                "filedo.exe " & Q & " mount noscan"})
+        cases.Add(New Object() {"mount-obfuscated", "mount", New DiskOptions(), DiskSecret, "", "", DiskFacts(DiskProtection.Obfuscated, True, ""),
+                                "filedo.exe " & Q & " mount"})
         cases.Add(New Object() {"mount-encrypted", "mount", New DiskOptions(), DiskSecret, "", "", DiskFacts(DiskProtection.Encrypted, True, ""),
                                 "filedo.exe " & Q & " mount pe:FILEDO_SHELL_CRED"})
         cases.Add(New Object() {"unmount", "unmount", New DiskOptions(), "", "", "", Nothing, "filedo.exe " & Q & " unmount"})
@@ -3745,8 +3745,8 @@ Partial Public Module SelfTest
         Check("disk-part:snapshot-carrier", pr.IsPartition AndAlso pr.Path = "" AndAlso pr.Target = "pdisk" AndAlso
                                              pr.Locator = "fdpart:{" & PartSampleFdGuid & "}" AndAlso Not fileRow.IsPartition AndAlso fileRow.Target = fileRow.Path,
               pr.Carrier & " " & pr.Target)
-        Dim mountLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.MountAs, pr, New DiskOptions With {.NoScan = True, .Letter = "P:"}))
-        Check("disk-part:mount-by-name-never-noscan", mountLine = "pdisk mount as P:", mountLine)
+        Dim mountLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.MountAs, pr, New DiskOptions With {.Letter = "P:"}))
+        Check("disk-part:mount-by-name", mountLine = "pdisk mount as P:", mountLine)
         Dim infoLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.Info, pr, Nothing))
         Check("disk-part:info-by-name", infoLine = "pdisk info", infoLine)
         Dim imgLine = ArgQuoting.JoinArgs(DiskStates.QuickCommand(DiskAction.ImageToFile, pr, New DiskOptions With {.Dest = "D:\p.fdd"}))
@@ -4248,7 +4248,7 @@ Partial Public Module SelfTest
             New Object() {"mount-cred-ignored-obfuscated", DiskAction.Mount, obf, New DiskOptions With {.HasCredential = True}, Q & " mount"},
             New Object() {"mount-encrypted", DiskAction.Mount, enc, withCred, Q & " mount pe:FILEDO_SHELL_CRED"},
             New Object() {"mount-ro", DiskAction.MountReadOnly, obf, New DiskOptions(), Q & " mount ro"},
-            New Object() {"mount-as", DiskAction.MountAs, obf, New DiskOptions With {.Letter = "X:", .ReadOnly = True, .NoScan = True}, Q & " mount ro noscan as X:"},
+            New Object() {"mount-as", DiskAction.MountAs, obf, New DiskOptions With {.Letter = "X:", .ReadOnly = True}, Q & " mount ro as X:"},
             New Object() {"unmount", DiskAction.Unmount, mounted, New DiskOptions(), "W: unmount"},
             New Object() {"unmount-image", DiskAction.UnmountImage, image, New DiskOptions(), "I: unmount"},
             New Object() {"save", DiskAction.SaveNow, ram, New DiskOptions(), "R: save"},

@@ -1488,11 +1488,10 @@ Partial Public Class DiskManagerForm
         Dim o As New DiskOptions()
         Select Case a
             Case DiskAction.MountAs
-                Using dlg As New DiskMountAsDialog(dict, DisplayName(sel(0)), Me, sel(0).IsPartition)
+                Using dlg As New DiskMountAsDialog(dict, DisplayName(sel(0)), Me)
                     If dlg.ShowDialog(Me) <> DialogResult.OK Then Return
                     o.Letter = dlg.Letter
                     o.ReadOnly = dlg.MountReadOnly
-                    o.NoScan = dlg.NoScan
                 End Using
             Case DiskAction.AutoOn
                 If Ask("vd_mgr_confirm_auto_title", Localization.Format(LText("vd_mgr_confirm_auto_on_fmt"), DisplayName(sel(0))),
@@ -1518,7 +1517,7 @@ Partial Public Class DiskManagerForm
 
         For Each r In sel
             Dim state = RowState(r)
-            Dim ro As New DiskOptions With {.Letter = o.Letter, .ReadOnly = o.ReadOnly, .NoScan = o.NoScan, .Name = o.Name, .Dest = o.Dest}
+            Dim ro As New DiskOptions With {.Letter = o.Letter, .ReadOnly = o.ReadOnly, .Name = o.Name, .Dest = o.Dest}
             ' A ram disk with unsaved data says so before it is unmounted (spec 6.1); the unmount
             ' saves it first, which is why it can take a while.
             If a = DiskAction.Unmount AndAlso state = DiskRowState.Unsaved Then

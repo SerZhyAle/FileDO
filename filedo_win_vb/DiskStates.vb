@@ -709,9 +709,6 @@ Public Module DiskStates
     Public Function QuickCommand(a As DiskAction, r As DiskRecord, o As DiskOptions) As List(Of String)
         If o Is Nothing Then o = New DiskOptions()
         o.Protection = r.Protection
-        ' A partition disk is named by its registered name (its path is empty), and it refuses noscan
-        ' (SP-0148 5.4): the window never sends the word for one.
-        If r.IsPartition Then o.NoScan = False
         Select Case a
             Case DiskAction.ShareDisk
                 o.ShareOn = True

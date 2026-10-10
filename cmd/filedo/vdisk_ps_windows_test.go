@@ -340,3 +340,49 @@ func TestVdImageRun_AFailedMountIsAnError(t *testing.T) {
 		}
 	}
 }
+
+// The script travels as one -Command argument (no -EncodedCommand, no
+// -ExecutionPolicy): double quotes, a backslash before a quote, a subexpression
+// and the characters cmd.exe treats as syntax must all arrive as the script's own
+// text, and the script must still run as one unit over several lines.
+func TestVdPowerShell_QuotesAndBackslashesArriveIntact(t *testing.T) {
+	psAvailable(t)
+	script := `$p = 'C:\dir with space\'
+$q = "say ""hi"" to $($p)"
+Write-Output ($q + ' | 100% & ^ | \"x\" | Привет')
+@(1,2,3) | ForEach-Object { "n=$_" }
+`
+	out, err := vdPowerShell(script)
+	if err != nil {
+		t.Fatalf("script failed: %v\n%s", err, out)
+	}
+	want := `say "hi" to C:\dir with space\ | 100% & ^ | \"x\" | Привет` + "\nn=1\nn=2\nn=3\n"
+	if out != want {
+		t.Fatalf("the script's text changed on the way:\n got %q\nwant %q", out, want)
+	}
+}
+
+func TestVdPowerShell_CarriesNoSwitchAntivirusWeighs(t *testing.T) {
+	// The two switches below are what antivirus engines weigh against a program
+	// (the winget validation of the builds that carried them was blocked). The
+	// source of the runner must not carry them again.
+	b, err := os.ReadFile("vdisk_ps_windows.go")
+	if err != nil {
+		t.Skip(err)
+	}
+	code := string(b)
+	// Strip comments: the file explains why the switches are absent.
+	var kept []string
+	for _, l := range strings.Split(code, "\n") {
+		if i := strings.Index(l, "//"); i >= 0 {
+			l = l[:i]
+		}
+		kept = append(kept, l)
+	}
+	live := strings.Join(kept, "\n")
+	for _, bad := range []string{"EncodedCommand", "ExecutionPolicy", "MpPreference"} {
+		if strings.Contains(live, bad) {
+			t.Errorf("vdisk_ps_windows.go passes %s", bad)
+		}
+	}
+}

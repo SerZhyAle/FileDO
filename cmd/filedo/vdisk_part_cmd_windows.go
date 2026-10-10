@@ -32,7 +32,6 @@ var (
 	errVdPartChkdsk  = fmt.Errorf("%w: chkdsk applies to file disks; a partition disk's volume is checked by Windows itself once it is mounted (filedo <name> mount, then chkdsk on its drive)", vdisk.ErrUnsupported)
 	errVdPartFixed   = fmt.Errorf("%w: a partition disk has a fixed size; compact and grow apply to file disks", vdisk.ErrUnsupported)
 	errVdPartShare   = fmt.Errorf("%w: sharing a partition disk through FMS needs a newer FMS; share a file disk", vdisk.ErrUnsupported)
-	errVdPartNoScan  = vdUsagef("noscan applies to file disks; a partition disk is not scanned as a file")
 	errVdPartAddFile = vdUsagef("a partition disk is registered by filedo vd new part or filedo vd adopt, not by vd add")
 )
 
@@ -1176,11 +1175,11 @@ func vdPartMount(e vdRegEntry, args []string, batch bool) error {
 	if err != nil {
 		return err
 	}
-	switch {
-	case o.NoScan:
-		return errVdPartNoScan
-	case o.Worker || o.NoLetter:
+	if o.Worker || o.NoLetter {
 		return errVdPartShare
+	}
+	if o.NoScan {
+		fmt.Println(vdNoScanRetired)
 	}
 	if o.Keep {
 		if o.Cred.given() {

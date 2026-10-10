@@ -722,8 +722,6 @@ Create and mount:
   filedo.exe work.fdd mount              → Mount at the first free letter; the
                                            first mount formats it NTFS
   filedo.exe work.fdd mount ro as X:     → Read-only, at X: (also: mnt, attach)
-  filedo.exe work.fdd mount noscan       → Exclude the file from Defender
-                                           while mounted
   filedo.exe work.fdd mount keep         → Mount, then stay and remount if the
                                            block server dies (the logon task)
   filedo.exe X: unmount                  → Flush, mark clean, detach (also

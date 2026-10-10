@@ -63,7 +63,6 @@ Public Class DiskOptionsPanel
     Private fsCombo As ComboBox
 
     Private roCheck As CheckBox
-    Private noscanCheck As CheckBox
     Private letterRow As FlowLayoutPanel
     Private letterLabel As Label
     Private letterCombo As ComboBox
@@ -221,7 +220,6 @@ Public Class DiskOptionsPanel
 
         ' Mount.
         roCheck = NewCheck("vd_opt_ro")
-        noscanCheck = NewCheck("vd_opt_noscan")
         letterRow = NewRow()
         letterLabel = NewLabel("vd_lbl_letter")
         letterCombo = New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = Ui.Px(Me, 150), .Margin = Ui.PxPad(Me, 0, 2, 8, 2)}
@@ -294,7 +292,7 @@ Public Class DiskOptionsPanel
         confirmRow.Controls.Add(confirmBox)
 
         For Each c As Control In New Control() {
-            factsLabel, sizeRow, profileRow, labelRow, fsRow, roCheck, noscanCheck, letterRow,
+            factsLabel, sizeRow, profileRow, labelRow, fsRow, roCheck, letterRow,
             forceCheck, nosaveCheck, wipeCheck, exportRow, destRow, nopassCheck, nopassNotice,
             autoRow, nameRow, listRow, credBlock, noteLabel, elevationLabel, confirmRow}
             Controls.Add(c)
@@ -354,7 +352,6 @@ Public Class DiskOptionsPanel
         labelRow.Visible = (verb = "new" OrElse verb = "format")
         fsRow.Visible = (verb = "format")
         roCheck.Visible = (verb = "mount")
-        noscanCheck.Visible = (verb = "mount")
         letterRow.Visible = (verb = "mount")
         forceCheck.Visible = (verb = "unmount")
         nosaveCheck.Visible = (verb = "unmount")
@@ -393,7 +390,7 @@ Public Class DiskOptionsPanel
                                     newCredBox, newCredConfirmBox, confirmBox}
             b.Text = ""
         Next
-        For Each c In New CheckBox() {roCheck, noscanCheck, forceCheck, nosaveCheck, wipeCheck, nopassCheck, credShowCheck}
+        For Each c In New CheckBox() {roCheck, forceCheck, nosaveCheck, wipeCheck, nopassCheck, credShowCheck}
             c.Checked = False
         Next
         profilePlain.Checked = True
@@ -521,7 +518,6 @@ Public Class DiskOptionsPanel
             .Label = volLabelBox.Text,
             .FileSystem = CStr(If(fsCombo.SelectedItem, "ntfs")),
             .ReadOnly = roCheck.Checked,
-            .NoScan = noscanCheck.Checked,
             .Letter = If(letterCombo.SelectedIndex > 0, CStr(letterCombo.SelectedItem), ""),
             .Force = forceCheck.Checked,
             .NoSave = nosaveCheck.Checked,
@@ -843,7 +839,6 @@ Public Class DiskOptionsPanel
         volLabelBox.Text = o.Label
         fsCombo.SelectedIndex = If(o.FileSystem = "exfat", 1, 0)
         roCheck.Checked = o.ReadOnly
-        noscanCheck.Checked = o.NoScan
         If o.Letter <> "" Then
             If Not letterCombo.Items.Contains(o.Letter) Then letterCombo.Items.Add(o.Letter)
             letterCombo.SelectedItem = o.Letter
