@@ -89,4 +89,4 @@ wipe free space
 password protect file
 
 @@ReleaseNotes
-New: the create, compact, auto-mount and image-to-file disk actions have their own icons, and the description now opens with "Know your storage before you trust it"; wiping is described as making recovery harder, with no guarantee on SSDs or copy-on-write disks.
+Changed: FileDO no longer changes Microsoft Defender settings (the noscan option of mount is retired), and its disk steps no longer run PowerShell as an encoded command.

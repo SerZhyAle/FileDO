@@ -88,4 +88,4 @@ speicherplatz überschreiben
 dateien mit passwort schützen
 
 @@ReleaseNotes
-Neu: die Datenträgeraktionen Erstellen, Verkleinern, Automatisch einbinden und Abbild in Datei haben eigene Symbole, und die Beschreibung beginnt jetzt mit "Know your storage before you trust it"; das Löschen wird als Erschwerung der Wiederherstellung beschrieben, ohne Garantie auf SSDs oder Copy-on-Write-Datenträgern.
+Geändert: FileDO ändert keine Einstellungen von Microsoft Defender mehr (die Option noscan von mount ist abgeschafft), und die Datenträgerschritte starten PowerShell nicht mehr als codierten Befehl.

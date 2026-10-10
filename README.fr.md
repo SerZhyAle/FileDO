@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610091940-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610102316-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
@@ -723,12 +723,16 @@ FileDO/
 
 ## Historique des Versions
 
-**v2610091940** (Actuelle)
+**v2610102316** (Actuelle)
+- **Disques virtuels**: `mount noscan` est retiré - FileDO ne modifie plus les paramètres de Microsoft Defender ; le mot est toujours accepté et ignoré, la fenêtre de montage n'a plus de case antivirus, et le fichier conteneur peut être exclu à la main dans Sécurité Windows
+- **Logiciels de sécurité**: les étapes de disque n'exécutent plus PowerShell en commande encodée ni avec un contournement de la stratégie d'exécution - deux signes que les logiciels de sécurité retiennent contre un programme
+
+**v2610091940** (Précédente)
 - **Disques**: les actions créer, compacter et monter automatiquement du groupe **Disques**, ainsi que « Image vers fichier », ont maintenant leurs propres icônes du jeu commun au lieu de symboles de remplacement - dans le groupe et dans le Gestionnaire de disques
 - **Partage**: un état de disque que le programme de partage nomme par un mot inconnu de cette version s'affiche comme inconnu au lieu de faire échouer toute la réponse; un état inconnu n'est jamais considéré comme fermé et n'autorise jamais un montage
 - **Description**: le README, le site et la fiche du Store s'ouvrent maintenant sur « Know your storage before you trust it »; l'effacement est décrit comme une façon de rendre la récupération plus difficile, sans garantie sur les SSD ni sur les disques à copie sur écriture
 
-**v2610070412** (Précédente)
+**v2610070412**
 - **Disques virtuels (`.fdd`)**: un volume entier dans un fichier, monté comme lettre de lecteur - `filedo vd new`, `mount`, `unmount`, plus `info`, `verify` et `export` (image brute ou VHD) sans montage, et `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; camouflé sans mot de passe, chiffré avec, et jamais l'un appelé l'autre
 - **Disques sur partition**: un disque virtuel peut vivre dans une nouvelle partition GPT prise sur l'espace libre d'un disque au lieu d'un fichier - `filedo vd disks` liste chaque disque, son espace libre et pourquoi une zone est utilisable ou non; `vd new part`, `vd image` (copie dans un `.fdd` ordinaire) et `vd adopt`; rien en dehors de l'espace libre n'est touché, Windows demande l'accord d'un administrateur à chaque lecture, et la version du Microsoft Store ne les propose pas
 - **Vérification et sécurité**: `chkdsk` vérifie le volume d'un conteneur non monté sans rien écrire, `chkdsk fix` répare un conteneur qui n'a pas été fermé proprement; `vd guard on` enregistre les disques `ram` et démonte proprement chaque conteneur à la fin de votre session; `vd auto` monte un conteneur camouflé à l'ouverture de votre session
@@ -793,7 +797,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610091940** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2610102316** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

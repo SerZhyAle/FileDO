@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610091940-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610102316-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
@@ -727,12 +727,16 @@ FileDO/
 
 ## Versionshistorie
 
-**v2610091940** (Aktuell)
+**v2610102316** (Aktuell)
+- **Virtuelle Datenträger**: `mount noscan` ist abgeschafft - FileDO ändert keine Einstellungen von Microsoft Defender mehr; das Wort wird weiter angenommen und ignoriert, das Einbinden-Fenster hat kein Antiviren-Kästchen mehr, und die Containerdatei lässt sich in der Windows-Sicherheit von Hand ausnehmen
+- **Sicherheitssoftware**: die Datenträgerschritte starten PowerShell nicht mehr als codierten Befehl und nicht mit abgeschalteter Ausführungsrichtlinie - beides wertet Sicherheitssoftware gegen ein Programm
+
+**v2610091940** (Vorherige)
 - **Datenträger**: die Aktionen Erstellen, Verkleinern und Automatisch einbinden der Gruppe **Datenträger** sowie Abbild in Datei zeigen jetzt eigene Symbole aus dem gemeinsamen Symbolsatz statt Platzhaltersymbolen - in der Gruppe und in der Datenträgerverwaltung
 - **Freigabe**: ein Datenträgerzustand, den das Freigabeprogramm mit einem dieser Version unbekannten Wort nennt, wird als unbekannt angezeigt, statt die ganze Antwort scheitern zu lassen; ein unbekannter Zustand gilt nie als geschlossen und erlaubt nie ein Einbinden
 - **Beschreibung**: README, Website und Store-Eintrag beginnen jetzt mit "Know your storage before you trust it"; das Löschen wird als Erschwerung der Wiederherstellung beschrieben, ohne Garantie auf SSDs oder Copy-on-Write-Datenträgern
 
-**v2610070412** (Vorherige)
+**v2610070412**
 - **Virtuelle Datenträger (`.fdd`)**: ein ganzes Volume in einer Datei, eingebunden als Laufwerksbuchstabe - `filedo vd new`, `mount`, `unmount`, dazu `info`, `verify` und `export` (Rohabbild oder VHD) ohne Einbinden sowie `grow`, `compact`, `format`, `seal`, `clone`, `pass`, `destroy`; ohne Passwort verschleiert, mit Passwort verschlüsselt, und nie das eine als das andere bezeichnet
 - **Partitionsdatenträger**: ein virtueller Datenträger kann statt in einer Datei in einer neuen GPT-Partition liegen, die aus dem freien Platz eines Datenträgers geschnitten wird - `filedo vd disks` listet jeden Datenträger, seinen freien Platz und warum ein Bereich nutzbar ist oder nicht; `vd new part`, `vd image` (Kopie in eine gewöhnliche `.fdd`) und `vd adopt`; außerhalb des freien Platzes wird nichts angerührt, Windows fragt bei jedem Lesen nach Administratorzustimmung, und die Microsoft-Store-Version bietet sie nicht an
 - **Prüfung und Sicherheit**: `chkdsk` prüft das Volume in einem nicht eingebundenen Container und schreibt nichts, `chkdsk fix` repariert einen Container, der nicht sauber geschlossen wurde; `vd guard on` speichert `ram`-Datenträger und trennt jeden Container sauber, wenn Ihre Sitzung endet; `vd auto` bindet einen verschleierten Container bei der Anmeldung ein
@@ -797,7 +801,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610091940** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2610102316** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 
