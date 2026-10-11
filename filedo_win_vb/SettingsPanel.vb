@@ -2,7 +2,7 @@ Public Class SettingsPanel
     Inherits UserControl
     Public Event ThemeChanged()
     Friend ReadOnly StartupCombo As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList}
-    Friend ReadOnly AutoPlayButton As New Button With {.AutoSize = True}
+    Friend ReadOnly AutoPlayButton As New GlyphButton With {.AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Glyph = GlyphRef.Vocabulary("action.autoplay-disable"), .Tier = 16}
     Friend ReadOnly Groups As New List(Of SettingsGroup)
     Private ReadOnly themeCombo As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList}
     Private ReadOnly langCombo As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList}
@@ -94,7 +94,7 @@ Public Class SettingsPanel
         Dim packaged = Packaging.IsPackaged()
         If Not packaged Then
             AddRow(startup, "startup", "settings_startup", "settings_startup_hint", StartupCombo)
-            Dim apply As New Button With {.Text = Localization.T("settings_startup_apply"), .AutoSize = True}
+            Dim apply As GlyphButton = Ui.GlyphCommandButton(Localization.T("settings_startup_apply"), GlyphRef.Vocabulary("action.confirm"), New Padding(0))
             AddRow(startup, "startup-apply", "settings_startup_apply", "settings_startup_hint", apply)
             AddHandler apply.Click, Sub()
                                        If StartupCombo.SelectedIndex >= 0 Then StartupLaunch.SetChoice(StartupLaunch.Choices(StartupCombo.SelectedIndex), FindForm())
@@ -102,7 +102,7 @@ Public Class SettingsPanel
                                    End Sub
         Else
             StartupCombo.Visible = False
-            Dim openStartup As New Button With {.Text = Localization.T("settings_startup"), .AutoSize = True}
+            Dim openStartup As GlyphButton = Ui.GlyphCommandButton(Localization.T("settings_startup"), GlyphRef.Vocabulary("nav.open-external"), New Padding(0))
             AddRow(startup, "startup-system", "settings_startup", "settings_startup_packaged", openStartup)
             AddHandler openStartup.Click, Sub() Links.Open(FindForm(), "ms-settings:startupapps")
         End If
@@ -124,10 +124,10 @@ Public Class SettingsPanel
                                                 If WindowsAutoPlay.Disable(FindForm()) Then autoPlayStatus.Text = Localization.T("settings_autoplay_done")
                                             End Sub
         End If
-        Dim autoplayOpen As New Button With {.Text = Localization.T("settings_autoplay_open"), .AutoSize = True}
+        Dim autoplayOpen As GlyphButton = Ui.GlyphCommandButton(Localization.T("settings_autoplay_open"), GlyphRef.Vocabulary("nav.open-external"), New Padding(0))
         AddRow(windows, "autoplay-system", "settings_autoplay_open", "settings_autoplay_hint", autoplayOpen)
         AddHandler autoplayOpen.Click, Sub() Links.Open(FindForm(), WindowsAutoPlay.SettingsUri)
-        Dim reset As New Button With {.Text = Localization.T("settings_reset"), .AutoSize = True}
+        Dim reset As GlyphButton = Ui.GlyphCommandButton(Localization.T("settings_reset"), GlyphRef.Vocabulary("action.reset"), New Padding(0))
         AddRow(windows, "reset", "settings_reset", "settings_reset_hint", reset)
         AddHandler reset.Click, Sub() ShellSettings.ResetPlacements()
         windows.Body.RowCount += 1

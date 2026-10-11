@@ -764,7 +764,7 @@ Public Class DiskNewPartitionDialog
     Friend AskToCreate As Func(Of DialogSpec, Integer) = Function(spec) ShellDialog.Ask(Me, spec)
 
     Public Sub New(d As Dictionary(Of String, String), doc As VdDisksDoc, takenNames As HashSet(Of String), owner As Control)
-        MyBase.New(d, Tr(d, "vd_part_title"), Tr(d, "vd_part_intro"), "vd_part_btn_create", owner)
+        MyBase.New(d, Tr(d, "vd_part_title"), Tr(d, "vd_part_intro"), "vd_part_btn_create", owner, GlyphRef.Vocabulary("action.create-disk"))
         taken = If(takenNames, New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
         ' The disks, each a heading, what stands in its way, and its map.
@@ -1155,7 +1155,7 @@ Public Class DiskDestroyPartitionDialog
     Public Sub New(d As Dictionary(Of String, String), name As String, place As String, owner As Control)
         MyBase.New(d, Tr(d, "vd_part_destroy_title"),
                    Localization.Format(Tr(d, "vd_part_destroy_fmt"), name, If(String.IsNullOrEmpty(place), name, place)),
-                   "vd_part_btn_delete", owner)
+                   "vd_part_btn_delete", owner, GlyphRef.Vocabulary("action.delete"))
         expected = If(name, "")
         Dim label As New Label With {.Text = T("vd_part_destroy_lbl"), .AutoSize = True, .Margin = PPad(0, 2, 0, 2)}
         box = New TextBox With {.Width = P(240), .Margin = PPad(0, 0, 0, 4)}
@@ -1171,9 +1171,11 @@ Public Class DiskDestroyPartitionDialog
         ' The safe answer is the default: Enter in the box is Cancel, never Delete.
         AcceptButton = cancelBtn
         okBtn.DialogResult = DialogResult.OK
-        Dim pal = Theme.Current
+        ' The acting answer alone takes the danger face; beside it the dismissing answer keeps the
+        ' red glyph and no tint, and the safe answer holds the focus (WINDOWS-UI section 11 item 7).
+        okBtn.Face = GlyphButtonFace.DangerFill
+        cancelBtn.Face = GlyphButtonFace.AnswerErrorSafe
         okBtn.Font = Theme.FontBody()
-        Ui.StyleButton(okBtn, pal.Danger, pal.AccentText, pal.Danger)
         cancelBtn.Font = Theme.FontBodyStrong()
         ActiveControl = box
     End Sub

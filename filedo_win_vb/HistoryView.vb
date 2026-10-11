@@ -84,13 +84,13 @@ Public Class HistoryView
             .Margin = New Padding(0)
         }
 
-        openReportBtn = New Button With {.Text = L("shell_btn_open_report"), .AutoSize = True, .Margin = New Padding(0, 0, 8, 0)}
+        openReportBtn = Ui.GlyphCommandButton(L("shell_btn_open_report"), GlyphRef.Vocabulary("nav.open-external"), New Padding(0, 0, 8, 0))
         AddHandler openReportBtn.Click, AddressOf OpenReportBtn_Click
 
-        showDirBtn = New Button With {.Text = L("shell_btn_show_reports_dir"), .AutoSize = True, .Margin = New Padding(0, 0, 8, 0)}
+        showDirBtn = Ui.GlyphCommandButton(L("shell_btn_show_reports_dir"), GlyphRef.Vocabulary("nav.open-external"), New Padding(0, 0, 8, 0))
         AddHandler showDirBtn.Click, AddressOf ShowDirBtn_Click
 
-        refreshBtn = New Button With {.Text = L("shell_btn_refresh"), .AutoSize = True, .Margin = New Padding(0, 0, 8, 0)}
+        refreshBtn = Ui.GlyphCommandButton(L("shell_btn_refresh"), GlyphRef.Vocabulary("action.refresh"), New Padding(0, 0, 8, 0))
         AddHandler refreshBtn.Click, Sub() RefreshReports()
 
         btnRow.Controls.Add(openReportBtn)
@@ -241,7 +241,8 @@ Public Class HistoryView
                 ShellLog.Write("open report in notepad", ex)
                 If ShellDialog.Problem(ShellDialog.OwnerOf(Me),
                                        Localization.Format(L("shell_report_open_failed"), Problems.Cause(ex)),
-                                       L("shell_btn_show_reports_dir")) Then
+                                       L("shell_btn_show_reports_dir"), offerLogs:=True,
+                                       actionGlyph:=GlyphRef.Vocabulary("nav.open-external")) Then
                     ShowDirBtn_Click(sender, e)
                 End If
             End Try
@@ -291,7 +292,6 @@ Public Class HistoryView
 
         For Each b In buttons
             b.Font = Theme.FontBody()
-            Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
         Next
 
         Invalidate(True)

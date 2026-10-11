@@ -210,8 +210,8 @@ Friend Class ShortcutDialog
     Private ReadOnly pauseBox As CheckBox
     Private ReadOnly preview As Label
     Private ReadOnly feedback As Label
-    Private ReadOnly createButton As Button
-    Private ReadOnly cancelButtonValue As Button
+    Private ReadOnly createButton As GlyphButton
+    Private ReadOnly cancelButtonValue As GlyphButton
     Private ReadOnly showLink As LinkLabel
     Private createdPath As String = ""
     Private ReadOnly labels As Dictionary(Of String, String)
@@ -289,8 +289,10 @@ Friend Class ShortcutDialog
         root.Controls.Add(showLink)
         Dim buttons As New FlowLayoutPanel With {.AutoSize = True, .WrapContents = False,
             .FlowDirection = FlowDirection.RightToLeft, .Anchor = AnchorStyles.Right}
-        cancelButtonValue = New Button With {.Text = L("shortcut_cancel"), .AutoSize = True}
-        createButton = New Button With {.Text = L("shortcut_create"), .AutoSize = True}
+        cancelButtonValue = New GlyphButton With {.Text = L("shortcut_cancel"), .Glyph = GlyphRef.Vocabulary("action.cancel"), .Tier = 16,
+            .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Face = GlyphButtonFace.AnswerError}
+        createButton = New GlyphButton With {.Text = L("shortcut_create"), .Glyph = GlyphRef.Vocabulary("action.create-shortcut"), .Tier = 16,
+            .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Face = GlyphButtonFace.AnswerOk}
         AddHandler cancelButtonValue.Click, Sub() Close()
         AddHandler createButton.Click, AddressOf CreateClicked
         buttons.Controls.Add(cancelButtonValue)
@@ -359,8 +361,8 @@ Friend Class ShortcutDialog
         feedback.ForeColor = p.MutedText
         showLink.LinkColor = p.Accent
         showLink.ActiveLinkColor = p.Accent
-        Ui.StyleButton(createButton, p.Accent, p.AccentText, p.Accent)
-        Ui.StyleButton(cancelButtonValue, p.SurfaceAlt, p.Text, p.Border)
+        createButton.Face = GlyphButtonFace.AnswerOk
+        cancelButtonValue.Face = GlyphButtonFace.AnswerError
     End Sub
 
     Protected Overrides Sub OnHandleCreated(e As EventArgs)

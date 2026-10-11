@@ -10,12 +10,13 @@ Public Class DiskSmallDialog
     Protected ReadOnly dict As Dictionary(Of String, String)
     Protected ReadOnly body As TableLayoutPanel
     Protected ReadOnly message As Label
-    Protected ReadOnly okBtn As Button
-    Protected ReadOnly cancelBtn As Button
+    Protected ReadOnly okBtn As GlyphButton
+    Protected ReadOnly cancelBtn As GlyphButton
     Private ReadOnly buttonRow As FlowLayoutPanel
     Protected ReadOnly notes As New List(Of Label)
 
-    Protected Sub New(d As Dictionary(Of String, String), title As String, text As String, okKey As String, scaleBy As Control)
+    Protected Sub New(d As Dictionary(Of String, String), title As String, text As String, okKey As String, scaleBy As Control,
+                      Optional okGlyph As GlyphRef = Nothing)
         dict = If(d, New Dictionary(Of String, String)())
         scaleOwner = scaleBy
         SuspendLayout()
@@ -52,12 +53,15 @@ Public Class DiskSmallDialog
             .Anchor = AnchorStyles.Right,
             .Margin = PPad(0, 12, 0, 0)
         }
-        okBtn = New Button With {.Text = T(okKey), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                                 .Padding = PPad(10, 4, 10, 4), .Margin = PPad(8, 0, 0, 0),
-                                 .DialogResult = DialogResult.OK}
-        cancelBtn = New Button With {.Text = T("shell_btn_cancel"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                                     .Padding = PPad(10, 4, 10, 4), .Margin = PPad(8, 0, 0, 0),
-                                     .DialogResult = DialogResult.Cancel}
+        ' The answers draw the eye (WINDOWS-UI 0.4 section 11 item 4): the go answer in state.ok with
+        ' its verb's glyph, Cancel in state.error. Both keep their words.
+        okBtn = New GlyphButton With {.Text = T(okKey), .Glyph = okGlyph, .Tier = 16, .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                                      .Margin = PPad(8, 0, 0, 0), .Face = GlyphButtonFace.AnswerOk,
+                                      .DialogResult = DialogResult.OK}
+        cancelBtn = New GlyphButton With {.Text = T("shell_btn_cancel"), .Glyph = GlyphRef.Vocabulary("action.cancel"), .Tier = 16,
+                                          .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                                          .Margin = PPad(8, 0, 0, 0), .Face = GlyphButtonFace.AnswerError,
+                                          .DialogResult = DialogResult.Cancel}
         buttonRow.Controls.Add(okBtn)
         buttonRow.Controls.Add(cancelBtn)
         AcceptButton = okBtn
@@ -146,8 +150,7 @@ Public Class DiskSmallDialog
             End If
         Next
         okBtn.Font = Theme.FontBodyStrong()
-        Ui.StyleButton(okBtn, p.Accent, p.AccentText, p.Accent)
-        Ui.StyleButton(cancelBtn, p.SurfaceAlt, p.Text, p.Border)
+        cancelBtn.Font = Theme.FontBody()
     End Sub
 
     Private Iterator Function AllChildren(root As Control) As IEnumerable(Of Control)
@@ -174,7 +177,8 @@ Public Class DiskPasswordDialog
 
     Public Sub New(d As Dictionary(Of String, String), diskName As String, owner As Control)
         MyBase.New(d, Tr(d, "vd_mgr_pw_title"),
-                   Localization.Format(Tr(d, "vd_mgr_pw_text_fmt"), diskName), "vd_mgr_btn_continue", owner)
+                   Localization.Format(Tr(d, "vd_mgr_pw_text_fmt"), diskName), "vd_mgr_btn_continue", owner,
+                   GlyphRef.Vocabulary("action.confirm"))
         Dim label As New Label With {.Text = T("shell_lbl_password"), .AutoSize = True, .Margin = PPad(0, 2, 0, 2)}
         box = New TextBox With {.Width = P(320), .UseSystemPasswordChar = True, .Margin = PPad(0, 0, 0, 4)}
         box.AccessibleName = T("shell_lbl_password")
@@ -217,7 +221,8 @@ Public Class DiskMountAsDialog
 
     Public Sub New(d As Dictionary(Of String, String), diskName As String, owner As Control)
         MyBase.New(d, Tr(d, "vd_mgr_act_mount_as"),
-                   Localization.Format(Tr(d, "vd_mgr_mountas_text_fmt"), diskName), "vd_mgr_btn_mount", owner)
+                   Localization.Format(Tr(d, "vd_mgr_mountas_text_fmt"), diskName), "vd_mgr_btn_mount", owner,
+                   GlyphRef.Vocabulary("action.mount-disk"))
         Dim row As New FlowLayoutPanel With {.AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = New Padding(0)}
         Dim label As New Label With {.Text = T("vd_lbl_letter"), .AutoSize = True, .Margin = PPad(0, 6, 8, 0)}
         letterCombo = New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = P(160), .Margin = PPad(0, 2, 0, 2)}
@@ -279,7 +284,7 @@ Public Class DiskNameDialog
     Public Sub New(d As Dictionary(Of String, String), path As String, proposal As String, takenNames As HashSet(Of String), owner As Control)
         MyBase.New(d, Tr(d, "vd_mgr_add_title"),
                    Localization.Format(Tr(d, "vd_mgr_add_text_fmt"), IO.Path.GetFileName(path)),
-                   "vd_mgr_btn_add_ok", owner)
+                   "vd_mgr_btn_add_ok", owner, GlyphRef.Vocabulary("action.add"))
         taken = If(takenNames, New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
         Dim label As New Label With {.Text = T("vd_mgr_add_name"), .AutoSize = True, .Margin = PPad(0, 2, 0, 2)}
         box = New TextBox With {.Width = P(240), .Text = If(proposal, ""), .Margin = PPad(0, 0, 0, 4)}

@@ -22,7 +22,7 @@ Friend Class DiskSettingsDialog
         root.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
         root.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         Panel = New SettingsPanel()
-        closeButton = New Button With {.Text = Localization.T("settings_close"), .AutoSize = True, .Anchor = AnchorStyles.Right, .DialogResult = DialogResult.Cancel}
+        closeButton = New GlyphButton With {.Text = Localization.T("settings_close"), .Glyph = GlyphRef.Vocabulary("nav.close"), .Tier = 16, .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Anchor = AnchorStyles.Right, .DialogResult = DialogResult.Cancel}
         CancelButton = closeButton
         root.Controls.Add(Panel, 0, 0)
         root.Controls.Add(closeButton, 0, 1)
@@ -74,7 +74,7 @@ Friend Class DiskSettingsDialog
         BackColor = Theme.Current.Background
         ForeColor = Theme.Current.Text
         Panel.ApplyTheme()
-        Ui.StyleButton(closeButton, Theme.Current.SurfaceAlt, Theme.Current.Text, Theme.Current.Border)
+
         Chrome.Apply(Me)
         AppHost.SettingsThemeChanged()
     End Sub

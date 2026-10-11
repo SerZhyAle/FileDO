@@ -100,12 +100,7 @@ Public Class AboutView
         licenseLabel = New Label With {.Text = L("about_license"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 12)}
         logsHintLabel = New Label With {.Text = LText("about_logs_hint"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 8)}
 
-        sendLogsBtn = New Button With {
-            .Text = L("ui_send_logs"),
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .Padding = Ui.PxPad(Me, 12, 5, 12, 5)
-        }
+        sendLogsBtn = Ui.GlyphCommandButton(L("ui_send_logs"), GlyphRef.Vocabulary("action.email"), New Padding(0))
         AddHandler sendLogsBtn.Click, AddressOf SendLogs_Click
         tips.SetToolTip(sendLogsBtn, LText("logs_tip"))
 
@@ -190,7 +185,7 @@ Public Class AboutView
         logsHintLabel.ForeColor = p.MutedText
 
         sendLogsBtn.Font = Theme.FontBody()
-        Ui.StyleButton(sendLogsBtn, p.SurfaceAlt, p.Text, p.Border)
+
 
         Invalidate(True)
     End Sub

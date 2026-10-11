@@ -52,19 +52,29 @@ trap {
 # The catalog remains the source of truth; mapping a new meaning means adding it here as well, and
 # the shell's self-test fails on an id it draws that is not vendored.
 $glyphIds = @(
-    'action.auto-mount', 'action.cancel', 'action.change-password', 'action.clear-all', 'action.clear-input', 'action.compact',
-    'action.compare', 'action.copy', 'action.create-disk',
-    'action.delete', 'action.export', 'action.fill-space', 'action.find-duplicates', 'action.format', 'action.grow',
-    'action.image-to-file', 'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name', 'action.remove', 'action.save',
+    'action.add', 'action.auto-mount', 'action.cancel', 'action.change-password', 'action.choose-file', 'action.choose-folder',
+    'action.clear-all', 'action.clear-input', 'action.compact',
+    'action.compare', 'action.copy', 'action.confirm', 'action.create-disk',
+    'action.delete', 'action.email', 'action.export', 'action.fill-space', 'action.find-duplicates', 'action.format', 'action.grow',
+    'action.image-to-file', 'action.install', 'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name',
+    'action.remove', 'action.reset', 'action.run', 'action.save',
     'action.seal', 'action.secure', 'action.share', 'action.sort', 'action.unmount-disk', 'action.unsecure', 'action.verify', 'action.wipe',
     'app.command-line', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
-    'content.history', 'content.secret-file',
+    'content.history', 'content.partition-disk', 'content.secret-file',
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
-    'nav.close', 'nav.collapse', 'nav.expand', 'nav.more', 'nav.open-external',
+    'nav.close', 'nav.collapse', 'nav.expand', 'nav.go-to', 'nav.more', 'nav.open-external',
     'status.error', 'status.not-proven', 'status.ok', 'status.stopped', 'status.warning',
     'system.storage'
 )
 $dataFiles = @('palette.json')
+
+# Provisional drawings (ICON-SET 0.30 section 15): meanings the vocabulary had no record for, drawn
+# to the catalog's style by FileDO, shipped here, and proposed in the same change - see
+# iconography/PROPOSAL-2026-10-11-filedo-button-meanings.md in the catalog. The master file lives in
+# assets/glyph-sources/ and is copied beside the vendored set; the check pins it to that source, not
+# to the catalog, until the owner folds the record in and the id moves to $glyphIds.
+$provisionalIds = @('action.autoplay-disable', 'action.create-shortcut', 'action.skip')
+$provisionalSources = Join-Path $PSScriptRoot 'glyph-sources'
 
 $subject = 'sync-icon-glyphs'
 
@@ -164,10 +174,24 @@ if ($Check) {
         if (-not $recorded.ContainsKey($name)) { $drift.Add("$name has no line in PROVENANCE.txt") }
         elseif ($recorded[$name] -ne $vendored) { $drift.Add("$name does not match its PROVENANCE.txt line") }
     }
+    $provisional = @($provisionalIds | ForEach-Object { $_ + '.svg' })
+    foreach ($name in $provisional) {
+        $target = Join-Path $destination $name
+        $source = Join-Path $provisionalSources $name
+        if (-not (Test-Path -LiteralPath $source)) { $drift.Add("$name has no master file in assets/glyph-sources/"); continue }
+        if (-not (Test-Path -LiteralPath $target)) { $drift.Add("$name is declared but not vendored"); continue }
+        $vendored = Get-Sha256 $target
+        if ($vendored -ne (Get-Sha256 $source)) { $drift.Add("$name differs from its assets/glyph-sources/ master") }
+        if (-not $recorded.ContainsKey($name)) { $drift.Add("$name has no line in PROVENANCE.txt") }
+        elseif ($recorded[$name] -ne $vendored) { $drift.Add("$name does not match its PROVENANCE.txt line") }
+        if (Test-Path -LiteralPath (Join-Path $sourceGlyphs $name)) {
+            $drift.Add("the catalog now has $name - fold the record in, drop the provisional copy and import from the catalog")
+        }
+    }
     if (Test-Path -LiteralPath $destination) {
         foreach ($file in Get-ChildItem -LiteralPath $destination -File) {
             if ($file.Name -eq 'PROVENANCE.txt') { continue }
-            if ($declared -notcontains $file.Name) { $drift.Add("$($file.Name) is vendored but not declared in this script") }
+            if (($declared + $provisional) -notcontains $file.Name) { $drift.Add("$($file.Name) is vendored but not declared in this script") }
         }
     }
 
@@ -191,7 +215,7 @@ if ($recordedMajor -ne $null -and $recordedMajor -ne $catalogMajor) {
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 
 # A vendored file the lists no longer declare would otherwise linger with no provenance line.
-$declaredNames = @($glyphIds | ForEach-Object { $_ + '.svg' }) + $dataFiles + @('PROVENANCE.txt')
+$declaredNames = @($glyphIds | ForEach-Object { $_ + '.svg' }) + @($provisionalIds | ForEach-Object { $_ + '.svg' }) + $dataFiles + @('PROVENANCE.txt')
 foreach ($file in Get-ChildItem -LiteralPath $destination -File) {
     if ($declaredNames -notcontains $file.Name) { Remove-Item -LiteralPath $file.FullName }
 }
@@ -202,6 +226,8 @@ $provenance.Add('Do not hand-edit the files in this folder. Regenerate with asse
 $provenance.Add("Catalog versions: $versionsText")
 $provenance.Add("Vocabulary SHA-256: $vocabularyHash")
 $provenance.Add('Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog')
+$provenance.Add('Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as ' +
+    'PROPOSAL-2026-10-11-filedo-button-meanings.md): ' + ($provisionalIds -join ', '))
 $provenance.Add("Taken: $(Get-Date -Format 'yyyy-MM-dd')")
 $provenance.Add('Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt')
 $provenance.Add('')
@@ -209,6 +235,11 @@ $provenance.Add('')
 foreach ($id in $glyphIds) {
     $target = Join-Path $destination ($id + '.svg')
     Copy-Item -LiteralPath (Join-Path $sourceGlyphs ($id + '.svg')) -Destination $target -Force
+    $provenance.Add("$id.svg  $(Get-Sha256 $target)")
+}
+foreach ($id in $provisionalIds) {
+    $target = Join-Path $destination ($id + '.svg')
+    Copy-Item -LiteralPath (Join-Path $provisionalSources ($id + '.svg')) -Destination $target -Force
     $provenance.Add("$id.svg  $(Get-Sha256 $target)")
 }
 foreach ($name in $dataFiles) {

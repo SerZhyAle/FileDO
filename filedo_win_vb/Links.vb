@@ -38,7 +38,8 @@ Module Links
         Catch ex As Exception
             ShellLog.Write("open link " & target, ex)
             If ShellDialog.Problem(owner, Localization.Format(Localization.T("shell_link_failed"), target, Problems.Cause(ex)),
-                                   Localization.T("shell_btn_copy_address")) Then
+                                   Localization.T("shell_btn_copy_address"), offerLogs:=True,
+                                   actionGlyph:=GlyphRef.Vocabulary("action.copy")) Then
                 Ui.CopyText(owner, target)
             End If
         End Try

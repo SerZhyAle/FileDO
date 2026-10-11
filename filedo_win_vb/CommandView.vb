@@ -121,8 +121,8 @@ Public Class CommandView
     Private wipeLabel As Label
     Private wipeBox As TextBox
     Private wipeNotice As Label
-    Private runBtn As Button
-    Private stopBtn As Button
+    Private runBtn As GlyphButton
+    Private stopBtn As GlyphButton
     Private copyBtn As Button
     Private shortcutBtn As GlyphButton
     Private verdictLabel As Label
@@ -266,7 +266,7 @@ Public Class CommandView
         targetCombo.AccessibleName = L("shell_lbl_target")
         AddHandler targetCombo.TextChanged, Sub() BuildCommandLine()
 
-        browseFolderBtn = New Button With {.Text = L("shell_btn_browse_folder"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 2, 8, 6)}
+        browseFolderBtn = Ui.GlyphCommandButton(L("shell_btn_browse_folder"), GlyphRef.Vocabulary("action.choose-folder"), Ui.PxPad(Me, 0, 2, 8, 6))
         AddHandler browseFolderBtn.Click, Sub()
                                               Using dlg As New FolderBrowserDialog()
                                                   dlg.Description = L("shell_dlg_select_folder")
@@ -277,7 +277,7 @@ Public Class CommandView
 
         ' The file picker is offered wherever the CLI takes a file, instead of being named in a
         ' label and then missing from the page.
-        browseFileBtn = New Button With {.Text = L("shell_btn_browse_file"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 2, 0, 6)}
+        browseFileBtn = Ui.GlyphCommandButton(L("shell_btn_browse_file"), GlyphRef.Vocabulary("action.choose-file"), Ui.PxPad(Me, 0, 2, 0, 6))
         AddHandler browseFileBtn.Click, Sub()
                                             Using dlg As New OpenFileDialog()
                                                 dlg.Title = L("shell_dlg_select_file")
@@ -426,7 +426,8 @@ Public Class CommandView
         dupMoveBox.AccessibleName = L("dup_move")
         AddHandler dupMoveBox.TextChanged, Sub() BuildCommandLine()
 
-        dupMoveBrowseBtn = New Button With {.Text = L("shell_btn_browse_folder"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 2, 16, 2), .Enabled = False}
+        dupMoveBrowseBtn = Ui.GlyphCommandButton(L("shell_btn_browse_folder"), GlyphRef.Vocabulary("action.choose-folder"), Ui.PxPad(Me, 0, 2, 16, 2))
+        dupMoveBrowseBtn.Enabled = False
         AddHandler dupMoveBrowseBtn.Click,
             Sub()
                 Using dlg As New FolderBrowserDialog()
@@ -990,30 +991,23 @@ Public Class CommandView
             .WrapContents = True,
             .Margin = Ui.PxPad(Me, 0, 0, 0, 8)
         }
-        runBtn = New Button With {
-            .Text = L("shell_btn_run_cmd"),
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .Padding = Ui.PxPad(Me, 16, 6, 16, 6),
-            .Margin = Ui.PxPad(Me, 0, 0, 10, 0)
-        }
+        runBtn = Ui.GlyphCommandButton(L("shell_btn_run_cmd"), GlyphRef.Vocabulary("action.run"), Ui.PxPad(Me, 0, 0, 8, 0))
         AddHandler runBtn.Click, AddressOf RunBtn_Click
         AddHandler runBtn.EnabledChanged, Sub() StyleRunButton()
 
-        stopBtn = New Button With {.Text = L("shell_btn_stop"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0), .Enabled = False}
+        stopBtn = Ui.GlyphCommandButton(L("shell_btn_stop"), GlyphRef.Vocabulary("action.cancel"), Ui.PxPad(Me, 0, 0, 8, 0))
+        stopBtn.Enabled = False
         ' A red button that cannot be pressed is the loudest thing on a page where nothing is
         ' running. Stop looks like Stop while there is something to stop, and like any other
         ' inactive control the rest of the time.
         AddHandler stopBtn.EnabledChanged, Sub() StyleStopButton()
         AddHandler stopBtn.Click, Sub() StopRun()
 
-        copyBtn = New Button With {.Text = L("shell_btn_copy_cmd"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
+        copyBtn = Ui.GlyphCommandButton(L("shell_btn_copy_cmd"), GlyphRef.Vocabulary("action.copy"), New Padding(0))
         AddHandler copyBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), CopyPayload())
         secondaryButtons.Add(copyBtn)
 
-        shortcutBtn = New GlyphButton With {.Text = L("shortcut_create"),
-            .Glyph = GlyphRef.Waiting("action.create-shortcut", &HE71B, "Link"),
-            .Tier = 20, .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
+        shortcutBtn = Ui.GlyphCommandButton(L("shortcut_create"), GlyphRef.Vocabulary("action.create-shortcut"), New Padding(0))
         AddHandler shortcutBtn.Click, Sub() ShortcutDialog.ShowFor(ShellDialog.OwnerOf(Me), cmdLineBox.Text,
                                                                   LineWipes(LineArgs()))
 
@@ -1575,23 +1569,15 @@ Public Class CommandView
     ' Run looks like Run when it can be pressed, and like any inactive control while the typed WIPE
     ' or the password pair is still missing.
     Private Sub StyleRunButton()
-        If runBtn Is Nothing Then Return
-        Dim p = Theme.Current
-        If runBtn.Enabled Then
-            Ui.StyleButton(runBtn, p.Accent, p.AccentText, p.Accent)
-        Else
-            Ui.StyleButton(runBtn, p.SurfaceAlt, p.TextDisabled, p.Border)
-        End If
+        ' The accent fill of a primary action outside a dialog is unchanged (WINDOWS-UI section 11
+        ' item 7); disabled, the button falls back to the muted mono face.
+        If runBtn IsNot Nothing Then runBtn.Face = If(runBtn.Enabled, GlyphButtonFace.AccentFill, GlyphButtonFace.Normal)
     End Sub
 
     Private Sub StyleStopButton()
-        If stopBtn Is Nothing Then Return
-        Dim p = Theme.Current
-        If stopBtn.Enabled Then
-            Ui.StyleButton(stopBtn, p.Danger, p.AccentText, p.Danger)
-        Else
-            Ui.StyleButton(stopBtn, p.SurfaceAlt, p.TextDisabled, p.Border)
-        End If
+        ' Stop looks like Stop while there is something to stop: the danger face, and the muted mono
+        ' face the rest of the time.
+        If stopBtn IsNot Nothing Then stopBtn.Face = If(stopBtn.Enabled, GlyphButtonFace.DangerFill, GlyphButtonFace.Normal)
     End Sub
 
     Public Sub ApplyTheme()
@@ -1720,10 +1706,8 @@ Public Class CommandView
 
         For Each b In secondaryButtons
             b.Font = Theme.FontBody()
-            Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
         Next
         shortcutBtn.Font = Theme.FontBody()
-        shortcutBtn.Invalidate()
 
         Invalidate(True)
     End Sub

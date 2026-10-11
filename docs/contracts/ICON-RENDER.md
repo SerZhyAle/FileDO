@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-RENDER` |
-| **Version** | 0.17 draft (no wire carrier - a picture, not a payload) |
+| **Version** | 0.19 draft (no wire carrier - a picture, not a payload) |
 | **Role** | consumer - the shell draws glyphs, the site draws one, the MSIX and MSI carry the product mark |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

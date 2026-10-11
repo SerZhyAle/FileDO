@@ -290,14 +290,14 @@ Partial Public Class DiskManagerForm
 
     ' A button with a glyph and its caption, painted in the palette (GlyphButton). The tooltip and the
     ' accessible name are the label; a button with no caption takes the meaning's canonical name.
-    Private Function NewGlyphButton(labelKey As String, glyph As GlyphRef, Optional tier As Integer = 24,
+    Private Function NewGlyphButton(labelKey As String, glyph As GlyphRef, Optional tier As Integer = 16,
                                     Optional iconOnly As Boolean = False) As GlyphButton
         Dim b As New GlyphButton With {
             .Glyph = glyph,
             .Tier = tier,
             .IconOnly = iconOnly,
             .Text = If(iconOnly, "", L(labelKey)),
-            .Margin = Ui.PxPad(Me, 0, 0, 6, 6)
+            .Margin = Ui.PxPad(Me, 0, 0, 8, 6)
         }
         b.AccessibleName = L(labelKey)
         If bodyFont IsNot Nothing Then b.Font = bodyFont
@@ -1107,7 +1107,7 @@ Partial Public Class DiskManagerForm
         Next
         For Each a In wanted
             Dim action = a
-            Dim b = NewGlyphButton(DiskStates.LabelKey(a, Nothing), DiskGlyphs.For(a), 20)
+            Dim b = NewGlyphButton(DiskStates.LabelKey(a, Nothing), DiskGlyphs.For(a), 16)
             b.Danger = (DiskStates.KindOf(a) = DiskActionKind.Destructive)
             tips.SetToolTip(b, b.Text & DiskShortcuts.Suffix(a))
             AddHandler b.Click, Sub() Perform(action)
@@ -1467,7 +1467,7 @@ Partial Public Class DiskManagerForm
                 Catch ex As Exception
                     ShellLog.Write("show the container in its folder", ex)
                     If ShellDialog.Problem(Me, Localization.Format(L("shell_folder_open_failed"), r.Path, Problems.Cause(ex)),
-                                           L("shell_btn_copy_path")) Then
+                                           L("shell_btn_copy_path"), offerLogs:=True, actionGlyph:=GlyphRef.Vocabulary("action.copy")) Then
                         Ui.CopyText(Me, r.Path)
                     End If
                 End Try
@@ -1482,7 +1482,7 @@ Partial Public Class DiskManagerForm
         ' D5: several disks that each need consent - each asks once, and the window says so first.
         If sel.Count > 1 AndAlso DiskStates.Elevates(a) Then
             If Ask("vd_mgr_confirm_multi_title", Localization.Format(LText("vd_mgr_confirm_multi_fmt"), sel.Count),
-                   "vd_mgr_btn_continue") <> 0 Then Return
+                   "vd_mgr_btn_continue", GlyphRef.Vocabulary("action.confirm")) <> 0 Then Return
         End If
 
         Dim o As New DiskOptions()
@@ -1495,10 +1495,10 @@ Partial Public Class DiskManagerForm
                 End Using
             Case DiskAction.AutoOn
                 If Ask("vd_mgr_confirm_auto_title", Localization.Format(LText("vd_mgr_confirm_auto_on_fmt"), DisplayName(sel(0))),
-                       "vd_mgr_btn_turn_on") <> 0 Then Return
+                       "vd_mgr_btn_turn_on", DiskGlyphs.AutoMount) <> 0 Then Return
             Case DiskAction.AutoOff
                 If Ask("vd_mgr_confirm_auto_title", Localization.Format(LText("vd_mgr_confirm_auto_off_fmt"), DisplayName(sel(0))),
-                       "vd_mgr_btn_turn_off") <> 0 Then Return
+                       "vd_mgr_btn_turn_off", DiskGlyphs.AutoMount) <> 0 Then Return
             Case DiskAction.RepairVolume
                 ' chkdsk /f writes to the volume, so its question is asked before anything starts.
                 If ShellDialog.Ask(Me, DestructiveDialogs.RepairVolume(dict, DisplayName(sel(0)))) <> 0 Then Return
@@ -1543,9 +1543,12 @@ Partial Public Class DiskManagerForm
     End Sub
 
     ' A plain question whose go answer is the default. A confirmation of a destructive action is not
-    ' asked here: it is a DestructiveDialogs spec, whose safe answer is the default.
-    Private Function Ask(titleKey As String, text As String, goKey As String) As Integer
-        Return ShellDialog.Ask(Me, L(titleKey), text, New String() {L(goKey), L("shell_btn_cancel")}, 1, 0)
+    ' asked here: it is a DestructiveDialogs spec, whose safe answer is the default. goGlyph is the
+    ' verb the go answer names (WINDOWS-UI 0.4 section 11 item 4: the affirmative answer keeps its
+    ' verb own glyph; without one it draws action.confirm).
+    Private Function Ask(titleKey As String, text As String, goKey As String, Optional goGlyph As GlyphRef = Nothing) As Integer
+        Return ShellDialog.Ask(Me, L(titleKey), text, New String() {L(goKey), L("shell_btn_cancel")}, 1, 0, glyphs:=
+                               New GlyphRef() {goGlyph, GlyphRef.Vocabulary("action.cancel")})
     End Function
 
     ' The name a container is added under: the file's name when it is a usable one and free, else
@@ -1591,7 +1594,7 @@ Partial Public Class DiskManagerForm
             Return
         End If
         If confirm AndAlso Ask("vd_mgr_act_mount_image", Localization.Format(LText("vd_mgr_confirm_mount_image_fmt"), IO.Path.GetFileName(path)),
-                               "vd_mgr_btn_mount") <> 0 Then Return
+                               "vd_mgr_btn_mount", DiskGlyphs.MountDisk) <> 0 Then Return
         Dim r As New DiskRecord With {.Kind = "image", .Path = path}
         Enqueue(New DiskOp With {.Action = DiskAction.MountImage, .Record = r, .Args = DiskStates.QuickCommand(DiskAction.MountImage, r, Nothing)})
     End Sub
@@ -1624,7 +1627,10 @@ Partial Public Class DiskManagerForm
     Private Sub ChooseNewDisk()
         Dim title = "", text = ""
         Dim choices = NewDiskChoice(title, text)
-        Dim pick = ShellDialog.Ask(Me, title, text, choices, choices.Length - 1, 0)
+        Dim answerGlyphs As New List(Of GlyphRef) From {GlyphRef.Vocabulary("action.create-disk")}
+        If choices.Length = 3 Then answerGlyphs.Add(GlyphRef.Vocabulary("content.partition-disk"))
+        answerGlyphs.Add(GlyphRef.Vocabulary("action.cancel"))
+        Dim pick = ShellDialog.Ask(Me, title, text, choices, choices.Length - 1, 0, glyphs:=answerGlyphs.ToArray())
         If pick = 0 Then
             OpenNewFileJob()
         ElseIf pick = 1 AndAlso choices.Length = 3 Then
@@ -2461,7 +2467,8 @@ Partial Public Class DiskManagerForm
            snapshot.MountedCount > 0 AndAlso ShellSettings.DiskManagerCloseNotice() Then
             closeNoticeSaid = True
             Dim pick = ShellDialog.Ask(Me, L("vd_mgr_close_mounted_title"), LText("vd_mgr_close_mounted"),
-                                       New String() {L("shell_btn_close"), L("vd_mgr_btn_dont_say")}, 0, 0)
+                                       New String() {L("shell_btn_close"), L("vd_mgr_btn_dont_say")}, 0, 0, glyphs:=
+                                       New GlyphRef() {GlyphRef.Vocabulary("action.cancel"), GlyphRef.Vocabulary("nav.close")})
             If pick = 1 Then ShellSettings.SetDiskManagerCloseNotice(False)
         End If
 

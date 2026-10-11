@@ -203,6 +203,10 @@ Partial Public Module SelfTest
         Guard("wipe", AddressOf CheckWipeRules)
         Guard("dialog", AddressOf CheckDialogEscape)
         Guard("dialog-destructive", AddressOf CheckDestructiveDialogDefaults)
+        ' WINDOWS-UI 0.4 section 11: the answers of a dialog draw the eye, and every command button
+        ' carries its meaning's glyph.
+        Guard("dialog-answer", AddressOf CheckDialogAnswerFaces)
+        Guard("button-glyph", AddressOf CheckCommandButtonsCarryGlyphs)
 
         ' SP-0150 (WINDOWS-UI 0.1 / APP-SETTINGS 0.2): the settings anatomy, the remembered context,
         ' the live language rebind, the watched-theme mechanism and the high-contrast palette, each
@@ -683,10 +687,37 @@ Partial Public Module SelfTest
     ' ---- SP-0016: the vocabulary's drawings -----------------------------------
 
     ' Every vocabulary id the shell draws: the rail's glyph map, the group chevrons, the verdicts,
-    ' and the Explorer icons it writes (MenuIcons.vb).
+    ' the Explorer icons it writes (MenuIcons.vb), and every GlyphRef.Vocabulary literal in the
+    ' sources - the buttons and dialogs name their meanings where they are built, so the scan reads
+    ' the sources the way assets/sync-icon-glyphs.ps1 does.
+    Private Sub CollectMappedSources(dir As DirectoryInfo, ids As HashSet(Of String))
+        For Each file In dir.GetFiles("*.vb")
+            For Each m As RegularExpressions.Match In RegularExpressions.Regex.Matches(
+                    IO.File.ReadAllText(file.FullName), "GlyphRef\.Vocabulary\(""([a-z0-9.-]+)""")
+                ids.Add(m.Groups(1).Value)
+            Next
+        Next
+    End Sub
+
     Private Function MappedVocabularyIds() As HashSet(Of String)
         Dim ids As New HashSet(Of String)(MenuIcons.Ids, StringComparer.Ordinal)
         Dim refs As New List(Of GlyphRef)()
+        ' The sources sit beside the project (bin\Release) or one folder below the repository root
+        ' (exe_to_download, where the build gate runs the exe from): walk up and take both shapes.
+        Dim sourceDir = New FileInfo(Application.ExecutablePath).Directory
+        For i = 1 To 6
+            If sourceDir Is Nothing Then Exit For
+            If sourceDir.GetFiles("ShellDialog.vb").Length > 0 Then
+                CollectMappedSources(sourceDir, ids)
+                Exit For
+            End If
+            Dim nested = Path.Combine(sourceDir.FullName, "filedo_win_vb")
+            If Directory.Exists(nested) AndAlso New DirectoryInfo(nested).GetFiles("ShellDialog.vb").Length > 0 Then
+                CollectMappedSources(New DirectoryInfo(nested), ids)
+                Exit For
+            End If
+            sourceDir = sourceDir.Parent
+        Next
         For Each row In RailRow.All
             If row.Glyph IsNot Nothing Then refs.Add(row.Glyph)
         Next
@@ -1074,6 +1105,23 @@ Partial Public Module SelfTest
                 ContrastPair("contrast:" & t & ":verdict-glyph:" & verdict, Theme.VerdictGlyphColor(verdict, p), p.Surface, 3.0)
                 ContrastPair("contrast:" & t & ":badge:" & verdict, Theme.VerdictFore(verdict, p), Theme.VerdictBack(verdict, p), 4.5)
             Next
+            ' The dialog answers (WINDOWS-UI 0.4 section 11 item 6): each answer's hue and its caption
+            ' against the tinted face the answer is actually drawn on - the glyph at 3:1, the word at
+            ' 4.5:1. Under high contrast the tint is not drawn and the system colours carry the pair;
+            ' SystemContrastPalette pins those, and the windows-ui rows hold it.
+            ContrastPair("contrast:" & t & ":answer-ok:glyph", p.StateOk, p.AnswerOkBack, 3.0)
+            ContrastPair("contrast:" & t & ":answer-ok:caption", p.Text, p.AnswerOkBack, 4.5)
+            ContrastPair("contrast:" & t & ":answer-error:glyph", p.StateError, p.AnswerErrorBack, 3.0)
+            ContrastPair("contrast:" & t & ":answer-error:caption", p.Text, p.AnswerErrorBack, 4.5)
+            ' The caution glyph reads through the dated warning-ink fallback where the shared tone
+            ' cannot reach 3:1 on its tinted face (the registry exception, WarningGlyphOn).
+            ContrastPair("contrast:" & t & ":answer-warning:glyph", Theme.WarningGlyphOn(p, p.AnswerWarningBack), p.AnswerWarningBack, 3.0)
+            ContrastPair("contrast:" & t & ":answer-warning:caption", p.Text, p.AnswerWarningBack, 4.5)
+            ContrastPair("contrast:" & t & ":answer-error-safe:glyph", p.StateError, p.SurfaceAlt, 3.0)
+            ContrastPair("contrast:" & t & ":danger-fill:glyph", p.AccentText, p.Danger, 3.0)
+            ContrastPair("contrast:" & t & ":danger-fill:caption", p.AccentText, p.Danger, 4.5)
+            ContrastPair("contrast:" & t & ":accent-fill:glyph", p.AccentText, p.Accent, 3.0)
+            ContrastPair("contrast:" & t & ":accent-fill:caption", p.AccentText, p.Accent, 4.5)
         Next
     End Sub
 
@@ -2118,6 +2166,99 @@ Partial Public Module SelfTest
         Catch ex As Exception
             Check("dialog-destructive", False, ex.GetType().Name & ": " & ex.Message)
         End Try
+    End Sub
+
+    ' WINDOWS-UI 0.4 section 11, items 4 and 7, on every destructive confirmation: every answer
+    ' carries a glyph; the safe answer Escape gives is the dismissing one - action.cancel in the
+    ' state.error hue with the tint taken away; the acting answer alone keeps the danger face under
+    ' its verb's own glyph; and the extra answers keep the mono look. Built (not shown) in every
+    ' language, from the same polarity rule the dialog draws by.
+    Private Sub CheckDialogAnswerFaces()
+        Try
+            Dim widest As Integer = 0
+            For Each lang In Localization.Languages
+                For Each entry In DestructiveDialogs.AllForTest(Localization.GetDict(lang))
+                    Dim spec = entry.Value
+                    Dim answers = ShellDialog.AnswersOf(spec)
+                    ' Item 3: the narrow answer row wraps whole buttons; even the longest translated
+                    ' captions never push it past the dialog's own width budget.
+                    widest = Math.Max(widest, ShellDialog.LastAnswerRowWidth())
+                    Dim ok = answers.Length = spec.Choices.Length
+                    For i = 0 To answers.Length - 1
+                        ' Item 1: no answer button goes without a glyph.
+                        ok = ok AndAlso answers(i).IndexOf(":"c) >= 0 AndAlso
+                             answers(i).Substring(answers(i).IndexOf(":"c) + 1) <> ""
+                    Next
+                    Dim safeAnswer = answers(spec.CancelAt)
+                    Dim acting = answers(spec.DangerAt)
+                    ok = ok AndAlso safeAnswer = "answererrorsafe:action.cancel"
+                    ok = ok AndAlso acting.StartsWith("dangerfill:", StringComparison.Ordinal)
+                    For i = 0 To answers.Length - 1
+                        If i <> spec.CancelAt AndAlso i <> spec.DangerAt Then
+                            ok = ok AndAlso answers(i).StartsWith("normal:", StringComparison.Ordinal)
+                        End If
+                    Next
+                    Check("dialog-answer:" & entry.Key & ":" & lang, ok, String.Join(" | ", answers))
+                Next
+            Next
+            ' The polarity rule itself, over the small matrix the dialogs are built from: a lone
+            ' button is a pure exit; beside a danger answer the cancel answer takes no tint; a go
+            ' answer that is not the cancel one is the affirmative.
+            Dim matrixOk =
+                ShellDialog.FaceOf(1, 0, 0, 0, -1) = GlyphButtonFace.Normal AndAlso
+                ShellDialog.FaceOf(2, 0, 1, 0, -1) = GlyphButtonFace.AnswerOk AndAlso
+                ShellDialog.FaceOf(2, 1, 1, 0, -1) = GlyphButtonFace.AnswerError AndAlso
+                ShellDialog.FaceOf(2, 0, 0, 0, 1) = GlyphButtonFace.AnswerErrorSafe AndAlso
+                ShellDialog.FaceOf(2, 1, 0, 0, 1) = GlyphButtonFace.DangerFill AndAlso
+                ShellDialog.FaceOf(4, 2, 3, 0, -1) = GlyphButtonFace.Normal
+            Check("dialog-answer:polarity-matrix", matrixOk, If(matrixOk, "6 of 6", "a cell is wrong"))
+            Check("dialog-answer:row-width", widest <= 560, "the widest answer row, " & widest.ToString() & " logical px of 560")
+        Catch ex As Exception
+            Check("dialog-answer", False, ex.GetType().Name & ": " & ex.Message)
+        End Try
+    End Sub
+
+    ' WINDOWS-UI 0.4 section 11, items 1 and 2, walked over the built surfaces: every command button
+    ' is a GlyphButton that carries its meaning's glyph (or the product mark, for the one button that
+    ' stands for the product itself); a captioned one draws the 16 px tier; an icon-only one carries
+    ' an accessible name (APP-BEHAVIOUR rule 9).
+    Private Sub CheckCommandButtonsCarryGlyphs()
+        Dim missing As New List(Of String)()
+        Dim views As New List(Of Control)()
+        Try
+            views.AddRange(New Control() {New JobView(), New CommandView(), New HistoryView(),
+                                          New AboutView(), New SettingsPanel(), New DiskOptionsPanel(),
+                                          New DiskManagerForm()})
+            For Each view In views
+                For Each c As Control In Ui.AllControls(view)
+                    Dim b = TryCast(c, Button)
+                    If b Is Nothing Then Continue For
+                    Dim g = TryCast(b, GlyphButton)
+                    If g Is Nothing Then
+                        missing.Add(view.GetType().Name & "/" & b.Name & ": a plain Button")
+                        Continue For
+                    End If
+                    If g.Glyph Is Nothing AndAlso g.Picture Is Nothing Then
+                        missing.Add(view.GetType().Name & "/" & g.Name & ": no glyph")
+                        Continue For
+                    End If
+                    If g.IconOnly Then
+                        If String.IsNullOrEmpty(g.AccessibleName) Then missing.Add(view.GetType().Name & "/" & g.Name & ": icon-only without a name")
+                    ElseIf g.Glyph IsNot Nothing AndAlso g.Tier <> 16 Then
+                        missing.Add(view.GetType().Name & "/" & g.Name & ": tier " & g.Tier.ToString() & " beside a caption")
+                    End If
+                Next
+            Next
+        Catch ex As Exception
+            missing.Add(ex.GetType().Name & ": " & ex.Message)
+        Finally
+            For Each view In views
+                view.Dispose()
+            Next
+        End Try
+        Check("button-glyph:command-buttons", missing.Count = 0,
+              If(missing.Count = 0, "every command button carries its meaning's glyph",
+                 String.Join("; ", missing.Take(6))))
     End Sub
 
     ' SP-0150 (WINDOWS-UI 0.1 / APP-SETTINGS 0.2): the mechanisms the profile adds, each checked

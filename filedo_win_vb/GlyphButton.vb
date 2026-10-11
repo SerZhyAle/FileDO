@@ -12,6 +12,25 @@
 ' A button with a caption and a glyph is not "glyph-only" (APP-BEHAVIOUR rule 9): the caption is its
 ' accessible name. A button with no caption (IconOnly) carries the meaning's canonical name as its
 ' accessible name and its tooltip - the caller sets both, and the self-test fails one that does not.
+'
+' The Face is where the button's colour is spent (WINDOWS-UI 0.4 section 11): the ordinary mono look,
+' the accent fill of a primary action outside a dialog, the danger fill of an irreversible acting
+' answer or an enabled Stop, or one of the dialog answers - affirmative, dismissing, caution - whose
+' glyph takes the shared state hue over the tinted face. AnswerErrorSafe is the dismissing answer of
+' an irreversible confirmation: the red glyph stays, the tint does not, so the only red face in the
+' window is the acting button's (section 11 item 7). A disabled button mutes glyph and caption
+' together and shows no hue (item 6); under high contrast the palette itself replaces hue and tint
+' with the system colours.
+Public Enum GlyphButtonFace
+    Normal
+    AccentFill
+    DangerFill
+    AnswerOk
+    AnswerError
+    AnswerWarning
+    AnswerErrorSafe
+End Enum
+
 Public Class GlyphButton
     Inherits Button
 
@@ -19,6 +38,7 @@ Public Class GlyphButton
     Private tierValue As Integer = 24
     Private iconOnlyValue As Boolean = False
     Private dangerValue As Boolean = False
+    Private faceValue As GlyphButtonFace = GlyphButtonFace.Normal
     Private hot As Boolean = False
     Private pressed As Boolean = False
 
@@ -92,6 +112,81 @@ Public Class GlyphButton
         End Set
     End Property
 
+    ' Where the button's colour is spent (WINDOWS-UI 0.4 section 11). Normal is the mono look.
+    Public Property Face As GlyphButtonFace
+        Get
+            Return faceValue
+        End Get
+        Set(value As GlyphButtonFace)
+            faceValue = value
+            Invalidate()
+        End Set
+    End Property
+
+    ' The colours of one paint: the face the button draws on, the ink of its caption, the ink of its
+    ' glyph, and its border. Every value is read from the palette in force at paint time, so a theme
+    ' switch needs no plumbing beyond the repaint (APP-STYLE section 3).
+    Private Structure FaceColours
+        Public Back As Color
+        Public Caption As Color
+        Public Glyph As Color
+        Public Border As Color
+        Public FocusRing As Color
+    End Structure
+
+    Private Function ColoursFor(p As Theme.Palette) As FaceColours
+        Dim c As New FaceColours
+        If Not Enabled Then
+            ' Unavailable: glyph and caption mute together to text.disabled and show no hue
+            ' (section 11 item 6), on the ordinary face.
+            c.Back = p.SurfaceAlt
+            c.Caption = p.TextDisabled
+            c.Glyph = p.TextDisabled
+            c.Border = p.Border
+            c.FocusRing = p.Border
+            Return c
+        End If
+        c.Caption = p.Text
+        c.Border = p.Border
+        c.FocusRing = p.Accent
+        Select Case faceValue
+            Case GlyphButtonFace.AccentFill
+                c.Back = p.Accent
+                c.Caption = p.AccentText
+                c.Glyph = p.AccentText
+                c.Border = p.Accent
+                c.FocusRing = p.AccentText
+            Case GlyphButtonFace.DangerFill
+                c.Back = p.Danger
+                c.Caption = p.AccentText
+                c.Glyph = p.AccentText
+                c.Border = p.Danger
+                c.FocusRing = p.AccentText
+            Case GlyphButtonFace.AnswerOk
+                c.Back = p.AnswerOkBack
+                c.Glyph = p.StateOk
+            Case GlyphButtonFace.AnswerError
+                c.Back = p.AnswerErrorBack
+                c.Glyph = p.StateError
+            Case GlyphButtonFace.AnswerWarning
+                c.Back = p.AnswerWarningBack
+                ' The shared warning tone cannot always reach 3:1 on the tint it sits over in the light
+                ' theme; there the palette's own darker warning ink stands in - the dated registry
+                ' exception, decided by WarningGlyphOn exactly as on the row backgrounds.
+                c.Glyph = Theme.WarningGlyphOn(p, p.AnswerWarningBack)
+            Case GlyphButtonFace.AnswerErrorSafe
+                ' The dismissing answer of an irreversible confirmation: the red glyph, no tint
+                ' (section 11 item 7) - the ordinary face, the state hue on the glyph alone.
+                c.Back = p.SurfaceAlt
+                c.Glyph = p.StateError
+            Case Else
+                c.Back = p.SurfaceAlt
+                c.Glyph = If(dangerValue, p.Danger, p.Text)
+                c.Caption = c.Glyph
+        End Select
+        Return c
+    End Function
+
     Private Sub Relayout()
         If Parent IsNot Nothing Then Parent.PerformLayout()
         Invalidate()
@@ -133,28 +228,29 @@ Public Class GlyphButton
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
         Dim p = Theme.Current
         Dim g = e.Graphics
-        Dim back As Color
-        If Not Enabled Then
-            back = p.SurfaceAlt
-        ElseIf pressed AndAlso hot Then
-            back = p.SurfaceSelected
-        ElseIf hot Then
-            back = p.ControlHover
-        Else
-            back = p.SurfaceAlt
+        Dim c = ColoursFor(p)
+        ' Only the mono face follows the pointer and the press; a filled or tinted face keeps its
+        ' colour while it is worked, because the fill is the button's rank (the accent of a primary
+        ' action, an answer's hue) and would lose it exactly when the pointer confirms it.
+        Dim back = c.Back
+        If faceValue = GlyphButtonFace.Normal Then
+            If Enabled AndAlso pressed AndAlso hot Then
+                back = p.SurfaceSelected
+            ElseIf Enabled AndAlso hot Then
+                back = p.ControlHover
+            End If
         End If
-        Dim fore As Color = If(Enabled, If(dangerValue, p.Danger, p.Text), p.TextDisabled)
 
         Using b As New SolidBrush(back)
             g.FillRectangle(b, ClientRectangle)
         End Using
-        Using pen As New Pen(p.Border)
+        Using pen As New Pen(c.Border)
             g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1)
         End Using
-        ' The keyboard's place: the accent, two pixels inside the border. A pointer click gives the
-        ' button the focus without asking for a cue (ShowFocusCues is what Windows says is wanted).
+        ' The keyboard's place, two pixels inside the border. A pointer click gives the button the
+        ' focus without asking for a cue (ShowFocusCues is what Windows says is wanted).
         If Enabled AndAlso ((Focused AndAlso ShowFocusCues) OrElse defaultLook) Then
-            Using pen As New Pen(p.Accent, 2.0F)
+            Using pen As New Pen(c.FocusRing, 2.0F)
                 g.DrawRectangle(pen, 1, 1, Width - 3, Height - 3)
             End Using
         End If
@@ -167,14 +263,14 @@ Public Class GlyphButton
         If gp > 0 Then
             Dim square As New Rectangle(x, (Height - gp) \ 2, gp, gp)
             If glyphValue IsNot Nothing Then
-                Glyphs.Draw(g, glyphValue, square, fore)
+                Glyphs.Draw(g, glyphValue, square, c.Glyph)
             ElseIf pictureValue IsNot Nothing Then
                 g.DrawImage(pictureValue, square)
             End If
             x += gp + If(cap.Width > 0, Ui.Px(Me, 6), 0)
         End If
         If cap.Width > 0 Then
-            TextRenderer.DrawText(g, Text, Font, New Rectangle(x, 0, Math.Max(0, Width - x - 2), Height), fore, TextFlags)
+            TextRenderer.DrawText(g, Text, Font, New Rectangle(x, 0, Math.Max(0, Width - x - 2), Height), c.Caption, TextFlags)
         End If
     End Sub
 

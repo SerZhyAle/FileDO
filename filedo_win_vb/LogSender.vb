@@ -18,7 +18,8 @@ Module LogSender
 
         If ShellDialog.Ask(owner, title, Localization.T("logs_confirm"),
                            New String() {Localization.T("logs_btn_build"), Localization.T("shell_btn_cancel")},
-                           1, 0) <> 0 Then
+                           1, 0, glyphs:=
+                           New GlyphRef() {GlyphRef.Vocabulary("action.confirm"), GlyphRef.Vocabulary("action.cancel")}) <> 0 Then
             Return
         End If
 
@@ -32,7 +33,8 @@ Module LogSender
             ShellLog.Write("send logs: building the archive", ex)
             If busy IsNot Nothing Then busy.Cursor = Cursors.Default
             If ShellDialog.Problem(owner, Localization.Format(Localization.T("logs_error"), Problems.Cause(ex)),
-                                   Localization.T("shell_btn_retry"), offerLogs:=False) Then
+                                   Localization.T("shell_btn_retry"), offerLogs:=False,
+                                   actionGlyph:=GlyphRef.Vocabulary("action.refresh")) Then
                 Run(owner)
             End If
             Return

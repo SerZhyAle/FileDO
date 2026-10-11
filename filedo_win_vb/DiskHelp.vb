@@ -279,7 +279,7 @@ Friend MustInherit Class DiskPageDialog
     ' is both the accept and the cancel button, so Enter, Escape, the close box and the button are one
     ' path (APP-BEHAVIOUR rule 1).
     Protected Function NewButton(text As String, Optional glyph As GlyphRef = Nothing, Optional leave As Boolean = False) As GlyphButton
-        Dim b As New GlyphButton With {.Text = text, .Glyph = glyph, .Tier = 20, .Margin = PPad(8, 0, 0, 0)}
+        Dim b As New GlyphButton With {.Text = text, .Glyph = glyph, .Tier = 16, .Margin = PPad(8, 0, 0, 0)}
         b.AccessibleName = text
         If leave Then
             b.DialogResult = DialogResult.Cancel
@@ -433,7 +433,7 @@ Friend Class DiskHelpDialog
             AddRow(NewLink(T(kv.Key), kv.Value))
         Next
 
-        Dim close = NewButton(T("shell_btn_close"), Nothing, True)
+        Dim close = NewButton(T("shell_btn_close"), DiskGlyphs.CloseIt, True)
         close.Margin = PPad(0, 0, 0, 0)
         footer.Controls.Add(close)
         Finish()
@@ -518,7 +518,7 @@ Friend Class DiskWelcomeDialog
         AddAnswer(T("vd_welcome_add"), DiskGlyphs.RememberName, DiskWelcomeAnswer.AddExisting)
         AddAnswer(T("vd_welcome_guide"), DiskGlyphs.OpenExternal, DiskWelcomeAnswer.OpenGuide)
 
-        Dim later = NewButton(T("vd_welcome_later"), Nothing, True)
+        Dim later = NewButton(T("vd_welcome_later"), DiskGlyphs.CloseIt, True)
         later.Margin = PPad(0, 0, 0, 0)
         footer.Controls.Add(later)
         Finish()

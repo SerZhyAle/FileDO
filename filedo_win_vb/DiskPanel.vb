@@ -245,7 +245,7 @@ Public Class DiskOptionsPanel
         destRow = NewRow()
         destLabel = NewLabel("vd_lbl_dest")
         destBox = NewBox("vd_lbl_dest", 320)
-        destBrowseBtn = New Button With {.Text = L("shell_btn_browse_file"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 1, 0, 2)}
+        destBrowseBtn = Ui.GlyphCommandButton(L("shell_btn_browse_file"), GlyphRef.Vocabulary("action.choose-file"), Ui.PxPad(Me, 0, 1, 0, 2))
         AddHandler destBrowseBtn.Click, AddressOf BrowseDest_Click
         buttons.Add(destBrowseBtn)
         destRow.Controls.Add(destLabel)
@@ -809,7 +809,6 @@ Public Class DiskOptionsPanel
 
             For Each b In buttons
                 SetFont(b, body)
-                Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
             Next
         Finally
             ResumeLayout(True)
@@ -947,13 +946,13 @@ Public Class DiskResultPanel
         AddHandler table.SelectedIndexChanged, Sub() UpdateButtons()
 
         buttonRow = New FlowLayoutPanel With {.AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .WrapContents = True, .Dock = DockStyle.Top, .Margin = Ui.PxPad(Me, 0, 0, 0, 8)}
-        openDriveBtn = NewButton("vd_btn_open_drive")
+        openDriveBtn = NewButton("vd_btn_open_drive", GlyphRef.Vocabulary("nav.open-external"))
         AddHandler openDriveBtn.Click, AddressOf OpenDrive_Click
-        unmountBtn = NewButton("vd_btn_unmount_row")
+        unmountBtn = NewButton("vd_btn_unmount_row", GlyphRef.Vocabulary("action.unmount-disk"))
         AddHandler unmountBtn.Click, Sub() RequestForSelected("rail_job_vd_unmount", "")
-        autoOffBtn = NewButton("vd_btn_auto_off_row")
+        autoOffBtn = NewButton("vd_btn_auto_off_row", GlyphRef.Vocabulary("action.auto-mount"))
         AddHandler autoOffBtn.Click, Sub() RequestForSelected("rail_job_vd_auto", "off")
-        managerBtn = NewButton("vd_btn_open_manager")
+        managerBtn = NewButton("vd_btn_open_manager", GlyphRef.Vocabulary("nav.go-to"))
         AddHandler managerBtn.Click, Sub() RaiseEvent ManagerRequested()
         buttonRow.Controls.Add(openDriveBtn)
         buttonRow.Controls.Add(unmountBtn)
@@ -971,8 +970,8 @@ Public Class DiskResultPanel
         Return key
     End Function
 
-    Private Function NewButton(key As String) As Button
-        Dim b As New Button With {.Text = L(key), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0), .Visible = False}
+    Private Function NewButton(key As String, glyph As GlyphRef) As GlyphButton
+        Dim b As New GlyphButton With {.Text = L(key), .Glyph = glyph, .Tier = 16, .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0), .Visible = False}
         buttons.Add(b)
         Return b
     End Function
@@ -1129,7 +1128,6 @@ Public Class DiskResultPanel
         table.BorderStyle = BorderStyle.FixedSingle
         For Each b In buttons
             b.Font = Theme.FontBody()
-            Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
         Next
     End Sub
 

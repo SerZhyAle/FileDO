@@ -134,7 +134,7 @@ Friend Class DiskAutostartDialog
 
         RefreshState()
 
-        Dim close = NewButton(T("shell_btn_close"), Nothing, True)
+        Dim close = NewButton(T("shell_btn_close"), DiskGlyphs.CloseIt, True)
         close.Margin = PPad(0, 0, 0, 0)
         footer.Controls.Add(close)
         Finish()
@@ -271,7 +271,7 @@ Friend Class DiskAutostartDialog
         guardHost.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         guardHost.Controls.Add(NewLabel(T(DiskAutostart.GuardWordKey(g)), LineWidth, strong:=True), 0, guardHost.RowStyles.Count - 1)
 
-        Dim switch = NewButton(T(If(isOn, "vd_mgr_btn_turn_off", "vd_mgr_btn_turn_on")), Nothing)
+        Dim switch = NewButton(T(If(isOn, "vd_mgr_btn_turn_off", "vd_mgr_btn_turn_on")), DiskGlyphs.AutoMount)
         switch.Margin = PPad(0, 4, 8, 6)
         switch.AccessibleName = switch.Text & " - " & T("vd_auto_name_guard")
         If isOn Then
@@ -307,7 +307,8 @@ Friend Class DiskAutostartDialog
         Dim titleKey = If(turnOn, "vd_auto_switch_on_title", "vd_auto_switch_off_title")
         Dim textKey = If(turnOn, "vd_auto_switch_on_text", "vd_auto_switch_off_text")
         Dim goKey = If(turnOn, "vd_mgr_btn_turn_on", "vd_mgr_btn_turn_off")
-        If ShellDialog.Ask(Me, T(titleKey), T(textKey), New String() {T(goKey), T("shell_btn_cancel")}, 1, 0) <> 0 Then Return
+        If ShellDialog.Ask(Me, T(titleKey), T(textKey), New String() {T(goKey), T("shell_btn_cancel")}, 1, 0, glyphs:=
+                           New GlyphRef() {DiskGlyphs.AutoMount, GlyphRef.Vocabulary("action.cancel")}) <> 0 Then Return
         If guardRunFn IsNot Nothing Then guardRunFn(turnOn)
     End Sub
 

@@ -129,6 +129,23 @@ Module Ui
         KeepCaptionReadable(b)
     End Sub
 
+    ' A command button with its meaning's glyph before the caption (WINDOWS-UI 0.4 section 11 item
+    ' 1): the vocabulary's own drawing at the 16 px tier, a 6 px gap to the caption, the ordinary
+    ' mono face - colour is spent on dialog answers, not here (item 5). The caption is the
+    ' accessible name; the glyph is decoration beside it (ICON-RENDER rule 8).
+    Public Function GlyphCommandButton(text As String, glyph As GlyphRef, margin As Padding) As GlyphButton
+        Dim b As New GlyphButton With {
+            .Text = text,
+            .Glyph = glyph,
+            .Tier = 16,
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .Margin = margin
+        }
+        b.AccessibleName = text
+        Return b
+    End Function
+
     ' The hit-target floor of ICON-RENDER rule 5 (0.15): a control the user works with under a mouse
     ' or a pen is at least 28 logical px. GlyphButton carries the floor itself, the rail's rows are
     ' 44 px and a plain WinForms button at the shell's 10 pt body already measures 30 px and up; a check box
@@ -254,7 +271,8 @@ Module Ui
         Catch ex As Exception
             ShellLog.Write("copy to clipboard", ex)
             If ShellDialog.Problem(owner, Localization.Format(Localization.T("shell_copy_failed"), Problems.Cause(ex)),
-                                   Localization.T("shell_btn_retry"), offerLogs:=False) Then
+                                   Localization.T("shell_btn_retry"), offerLogs:=False,
+                                   actionGlyph:=GlyphRef.Vocabulary("action.refresh")) Then
                 CopyText(owner, text)
             End If
         End Try
@@ -295,7 +313,8 @@ Module Ui
         Catch ex As Exception
             ShellLog.Write("open folder " & folder, ex)
             If ShellDialog.Problem(owner, Localization.Format(Localization.T("shell_folder_open_failed"), folder, Problems.Cause(ex)),
-                                   Localization.T("shell_btn_copy_path")) Then
+                                   Localization.T("shell_btn_copy_path"), offerLogs:=True,
+                                   actionGlyph:=GlyphRef.Vocabulary("action.copy")) Then
                 CopyText(owner, folder)
             End If
         End Try

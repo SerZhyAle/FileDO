@@ -41,6 +41,13 @@ Public Class JobView
     Private ReadOnly runner As New Runner()
     Private job As JobDefinition
 
+    ' The two chooser meanings, decided with the job's target kind in ApplyJobShape (ICON-SET rule 1:
+    ' one meaning, one glyph - the button's caption changes with the kind, so its glyph does too).
+    Private Shared ReadOnly ChooseFileGlyph As GlyphRef = GlyphRef.Vocabulary("action.choose-file")
+    Private Shared ReadOnly ChooseFolderGlyph As GlyphRef = GlyphRef.Vocabulary("action.choose-folder")
+    Private Shared ReadOnly ExpandOutputGlyph As GlyphRef = GlyphRef.Vocabulary("nav.expand")
+    Private Shared ReadOnly CollapseOutputGlyph As GlyphRef = GlyphRef.Vocabulary("nav.collapse")
+
     ' The target of the run that ran last, for "Clean files" (GUI-12).
     Private lastRunTarget As String = ""
 
@@ -84,7 +91,7 @@ Public Class JobView
     Private targetHeader As Label
     Private targetLabel As Label
     Private targetCombo As ComboBox
-    Private targetBrowseBtn As Button
+    Private targetBrowseBtn As GlyphButton
     Private targetBrowseFolderBtn As Button
     Private dropHintLabel As Label
     Private secondTargetLabel As Label
@@ -205,7 +212,7 @@ Public Class JobView
     Private commandBox As TextBox
     Private copyCmdBtn As Button
     Private openInCmdBtn As Button
-    Private startBtn As Button
+    Private startBtn As GlyphButton
 
     ' The run strip
     Private stateBadge As Label
@@ -213,8 +220,8 @@ Public Class JobView
     Private progressBar As ProgressBar
     Private throughputLabel As Label
     Private timeLabel As Label
-    Private stopBtn As Button
-    Private toggleOutputBtn As Button
+    Private stopBtn As GlyphButton
+    Private toggleOutputBtn As GlyphButton
     Private runTimer As Windows.Forms.Timer
 
     ' The result card
@@ -410,15 +417,19 @@ Public Class JobView
             Case JobDefinition.TargetType.File
                 targetLabel.Text = If(job.DefaultVerb = "secure", L("shell_lbl_file_or_folder"), L("shell_lbl_file"))
                 targetBrowseBtn.Text = L("shell_btn_browse_file")
+                targetBrowseBtn.Glyph = ChooseFileGlyph
             Case JobDefinition.TargetType.Folder
                 targetLabel.Text = L("ui_folder")
                 targetBrowseBtn.Text = L("shell_btn_browse_folder")
+                targetBrowseBtn.Glyph = ChooseFolderGlyph
             Case JobDefinition.TargetType.SourceAndTarget
                 targetLabel.Text = L("ui_source")
                 targetBrowseBtn.Text = L("shell_btn_browse_folder")
+                targetBrowseBtn.Glyph = ChooseFolderGlyph
             Case Else
                 targetLabel.Text = L("shell_lbl_target_drive_folder")
                 targetBrowseBtn.Text = L("shell_btn_browse_folder")
+                targetBrowseBtn.Glyph = ChooseFolderGlyph
         End Select
 
         ' A Disks page names a container file - a new one for Create, one that may also be given by
@@ -430,6 +441,7 @@ Public Class JobView
                 Case Else : targetLabel.Text = L("vd_lbl_container")
             End Select
             targetBrowseBtn.Text = L("shell_btn_browse_file")
+            targetBrowseBtn.Glyph = ChooseFileGlyph
         End If
         targetCombo.AccessibleName = targetLabel.Text
 
@@ -926,24 +938,14 @@ Public Class JobView
         AddHandler targetCombo.TextChanged, Sub() TargetChanged()
         AddHandler targetCombo.SelectedIndexChanged, Sub() TargetChanged()
 
-        targetBrowseBtn = New Button With {
-            .Text = L("shell_btn_browse"),
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .Margin = Ui.PxPad(Me, 0, 2, 0, 4)
-        }
+        targetBrowseBtn = Ui.GlyphCommandButton(L("shell_btn_browse"), ChooseFolderGlyph, Ui.PxPad(Me, 0, 2, 0, 4))
         AddHandler targetBrowseBtn.Click, AddressOf BrowseTarget_Click
         secondaryButtons.Add(targetBrowseBtn)
 
         ' The secure page packs a file or a whole folder (SP-0009), so it offers both choosers;
         ' every other page shows the one button that matches its target kind.
-        targetBrowseFolderBtn = New Button With {
-            .Text = L("shell_btn_browse_folder"),
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .Margin = Ui.PxPad(Me, 6, 2, 0, 4),
-            .Visible = False
-        }
+        targetBrowseFolderBtn = Ui.GlyphCommandButton(L("shell_btn_browse_folder"), GlyphRef.Vocabulary("action.choose-folder"), Ui.PxPad(Me, 6, 2, 0, 4))
+        targetBrowseFolderBtn.Visible = False
         AddHandler targetBrowseFolderBtn.Click, AddressOf BrowseTargetFolder_Click
         secondaryButtons.Add(targetBrowseFolderBtn)
 
@@ -975,12 +977,7 @@ Public Class JobView
         secondTargetBox.AccessibleName = L("shell_lbl_dest")
         AddHandler secondTargetBox.TextChanged, Sub() UpdatePlanCard()
 
-        secondTargetBrowseBtn = New Button With {
-            .Text = L("shell_btn_browse_dest"),
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .Margin = Ui.PxPad(Me, 0, 2, 0, 4)
-        }
+        secondTargetBrowseBtn = Ui.GlyphCommandButton(L("shell_btn_browse_dest"), GlyphRef.Vocabulary("action.choose-folder"), Ui.PxPad(Me, 0, 2, 0, 4))
         AddHandler secondTargetBrowseBtn.Click, AddressOf BrowseSecondTarget_Click
         secondaryButtons.Add(secondTargetBrowseBtn)
 
@@ -1103,7 +1100,7 @@ Public Class JobView
             .Visible = False
         }
         blastRadiusLabel = New Label With {.Text = "", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 8, 0)}
-        blastRadiusSkipBtn = New Button With {.Text = L("shell_btn_skip_count"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
+        blastRadiusSkipBtn = Ui.GlyphCommandButton(L("shell_btn_skip_count"), GlyphRef.Vocabulary("action.skip"), New Padding(0))
         AddHandler blastRadiusSkipBtn.Click, AddressOf SkipCounting_Click
         secondaryButtons.Add(blastRadiusSkipBtn)
         blastRadiusRow.Controls.Add(blastRadiusLabel)
@@ -1233,7 +1230,8 @@ Public Class JobView
         dupMoveBox = New TextBox With {.Width = Ui.Px(Me, 260), .Margin = Ui.PxPad(Me, 0, 2, 8, 0), .Enabled = False}
         dupMoveBox.AccessibleName = L("dup_move")
         AddHandler dupMoveBox.TextChanged, Sub() UpdatePlanCard()
-        dupMoveBrowseBtn = New Button With {.Text = L("shell_btn_browse_folder"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Enabled = False}
+        dupMoveBrowseBtn = Ui.GlyphCommandButton(L("shell_btn_browse_folder"), GlyphRef.Vocabulary("action.choose-folder"), New Padding(0))
+        dupMoveBrowseBtn.Enabled = False
         AddHandler dupMoveBrowseBtn.Click,
             Sub()
                 Using dlg As New FolderBrowserDialog()
@@ -1480,21 +1478,15 @@ Public Class JobView
             .Dock = DockStyle.Top,
             .Margin = Ui.PxPad(Me, 0, 4, 0, 0)
         }
-        startBtn = New Button With {
-            .Text = L("shell_btn_run_cmd"),
-            .AutoSize = True,
-            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .Padding = Ui.PxPad(Me, 18, 7, 18, 7),
-            .Margin = Ui.PxPad(Me, 0, 0, 10, 0)
-        }
+        startBtn = Ui.GlyphCommandButton(L("shell_btn_run_cmd"), GlyphRef.Vocabulary("action.run"), Ui.PxPad(Me, 0, 0, 8, 0))
         AddHandler startBtn.Click, AddressOf StartBtn_Click
         AddHandler startBtn.EnabledChanged, Sub(s, e) StyleStartBtn()
 
-        copyCmdBtn = New Button With {.Text = L("shell_btn_copy_cmd"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0)}
+        copyCmdBtn = Ui.GlyphCommandButton(L("shell_btn_copy_cmd"), GlyphRef.Vocabulary("action.copy"), Ui.PxPad(Me, 0, 0, 8, 0))
         AddHandler copyCmdBtn.Click, AddressOf CopyCmdBtn_Click
         secondaryButtons.Add(copyCmdBtn)
 
-        openInCmdBtn = New Button With {.Text = L("shell_btn_open_in_cmd"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0)}
+        openInCmdBtn = Ui.GlyphCommandButton(L("shell_btn_open_in_cmd"), GlyphRef.Vocabulary("app.command-line"), Ui.PxPad(Me, 0, 0, 8, 0))
         AddHandler openInCmdBtn.Click, AddressOf OpenInCmdBtn_Click
         secondaryButtons.Add(openInCmdBtn)
 
@@ -1550,7 +1542,8 @@ Public Class JobView
         progressBar = New ProgressBar With {.Dock = DockStyle.Fill, .Height = Ui.Px(Me, 18), .Margin = Ui.PxPad(Me, 0, 4, 8, 6)}
         progressBar.AccessibleName = L("shell_state_running")
 
-        stopBtn = New Button With {.Text = L("shell_btn_stop"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 0, 6)}
+        stopBtn = Ui.GlyphCommandButton(L("shell_btn_stop"), GlyphRef.Vocabulary("action.cancel"), Ui.PxPad(Me, 0, 0, 0, 6))
+        stopBtn.Face = GlyphButtonFace.DangerFill
         AddHandler stopBtn.Click, AddressOf StopBtn_Click
 
         Dim metaRow As New FlowLayoutPanel With {
@@ -1565,7 +1558,7 @@ Public Class JobView
         metaRow.Controls.Add(throughputLabel)
         metaRow.Controls.Add(timeLabel)
 
-        toggleOutputBtn = New Button With {.Text = L("shell_btn_show_output"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
+        toggleOutputBtn = Ui.GlyphCommandButton(L("shell_btn_show_output"), GlyphRef.Vocabulary("nav.expand"), New Padding(0))
         AddHandler toggleOutputBtn.Click, AddressOf ToggleOutputBtn_Click
         secondaryButtons.Add(toggleOutputBtn)
 
@@ -1617,15 +1610,17 @@ Public Class JobView
             .WrapContents = True,
             .Dock = DockStyle.Top
         }
-        actionCleanBtn = New Button With {.Text = L("shell_btn_clean_files"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0), .Visible = False}
+        actionCleanBtn = Ui.GlyphCommandButton(L("shell_btn_clean_files"), GlyphRef.Vocabulary("action.delete"), Ui.PxPad(Me, 0, 0, 8, 0))
+        actionCleanBtn.Visible = False
         AddHandler actionCleanBtn.Click, AddressOf CleanTestFiles_Click
         secondaryButtons.Add(actionCleanBtn)
 
-        actionOpenReportBtn = New Button With {.Text = L("shell_btn_open_report"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0), .Visible = False}
+        actionOpenReportBtn = Ui.GlyphCommandButton(L("shell_btn_open_report"), GlyphRef.Vocabulary("nav.open-external"), Ui.PxPad(Me, 0, 0, 8, 0))
+        actionOpenReportBtn.Visible = False
         AddHandler actionOpenReportBtn.Click, AddressOf OpenLatestReport_Click
         secondaryButtons.Add(actionOpenReportBtn)
 
-        actionRunAgainBtn = New Button With {.Text = L("shell_btn_run_again"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink, .Margin = Ui.PxPad(Me, 0, 0, 8, 0)}
+        actionRunAgainBtn = Ui.GlyphCommandButton(L("shell_btn_run_again"), GlyphRef.Vocabulary("action.run"), Ui.PxPad(Me, 0, 0, 8, 0))
         AddHandler actionRunAgainBtn.Click, Sub() ResetView()
         secondaryButtons.Add(actionRunAgainBtn)
 
@@ -1668,7 +1663,7 @@ Public Class JobView
         rawOutputBox.AccessibleName = L("shell_btn_show_output")
         outputPane = New OutputPane(rawOutputBox)
 
-        copyOutputBtn = New Button With {.Text = L("shell_btn_copy_output"), .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink}
+        copyOutputBtn = Ui.GlyphCommandButton(L("shell_btn_copy_output"), GlyphRef.Vocabulary("action.copy"), New Padding(0))
         AddHandler copyOutputBtn.Click, Sub() Ui.CopyText(ShellDialog.OwnerOf(Me), rawOutputBox.Text)
         secondaryButtons.Add(copyOutputBtn)
 
@@ -2483,13 +2478,9 @@ Public Class JobView
     ' A flat button keeps its fill when disabled, so a run that is waiting on a field (the typed
     ' WIPE, the password pair) looked live and just ignored clicks. Disabled is drawn muted.
     Private Sub StyleStartBtn()
-        If startBtn Is Nothing Then Return
-        Dim p = Theme.Current
-        If startBtn.Enabled Then
-            Ui.StyleButton(startBtn, p.Accent, p.AccentText, p.Accent)
-        Else
-            Ui.StyleButton(startBtn, p.SurfaceAlt, p.TextDisabled, p.Border)
-        End If
+        ' The accent fill of a primary action outside a dialog is unchanged (WINDOWS-UI section 11
+        ' item 7); disabled, the button falls back to the muted mono face.
+        If startBtn IsNot Nothing Then startBtn.Face = If(startBtn.Enabled, GlyphButtonFace.AccentFill, GlyphButtonFace.Normal)
     End Sub
 
     ' True when step 3 has been answered well enough to run. Each failure sets the tooltip that
@@ -2918,6 +2909,8 @@ Public Class JobView
     Private Sub ToggleOutputBtn_Click(sender As Object, e As EventArgs)
         rawOutputDrawer.Visible = Not rawOutputDrawer.Visible
         toggleOutputBtn.Text = If(rawOutputDrawer.Visible, L("shell_btn_hide_output"), L("shell_btn_show_output"))
+        ' The disclosure pair: the glyph shows the action a click performs (ICON-SET 0.17 note).
+        toggleOutputBtn.Glyph = If(rawOutputDrawer.Visible, CollapseOutputGlyph, ExpandOutputGlyph)
     End Sub
 
     ' ---- the result ------------------------------------------------------
@@ -3221,12 +3214,10 @@ Public Class JobView
 
         startBtn.Font = Theme.FontBodyStrong()
         StyleStartBtn()
-        Ui.StyleButton(stopBtn, p.Danger, p.AccentText, p.Danger)
         stopBtn.Font = Theme.FontBodyStrong()
 
         For Each b In secondaryButtons
             b.Font = Theme.FontBody()
-            Ui.StyleButton(b, p.SurfaceAlt, p.Text, p.Border)
         Next
 
         stateBadge.Font = Theme.FontCaption()

@@ -128,7 +128,9 @@ Partial Public Class DiskManagerForm
         Dim reason = If(s Is Nothing, "unknown", s.FMSAvailability)
         Dim key = If(New String() {"not-capable", "untrusted", "communication"}.Contains(reason), "vd_share_avail_" & reason, "vd_share_avail_unknown")
         Dim answer = ShellDialog.Ask(Me, L("vd_share_register"), LText(key),
-            New String() {L("vd_share_install"), L("vd_mgr_act_refresh"), L("shell_btn_cancel")}, 2, 0)
+            New String() {L("vd_share_install"), L("vd_mgr_act_refresh"), L("shell_btn_cancel")}, 2, 0, glyphs:=
+            New GlyphRef() {GlyphRef.Vocabulary("action.install"), GlyphRef.Vocabulary("action.refresh"),
+                            GlyphRef.Vocabulary("action.cancel")})
         If answer = 0 Then Links.Open(Me, Links.FMSInstall)
         If answer = 1 Then RequestRead()
     End Sub

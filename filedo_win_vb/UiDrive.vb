@@ -282,6 +282,24 @@ Module UiDrive
         ShellSettings.SetThemeChoice("light")
         Pump()
 
+        ' 6b) The answer pair of a destructive confirmation on screen (WINDOWS-UI 0.4 section 11
+        ' items 4 and 7): the acting answer alone on the danger face, the dismissing answer with the
+        ' red glyph and no tint, the safe answer holding the default focus.
+        Using destructive = ShellDialog.ForTest(DestructiveDialogs.CleanTestFiles(dict, "D:\Test"))
+            destructive.Show(shell)
+            Pump()
+            Shot(destructive, "05b-destructive-light")
+            CheckShot("05b-destructive-light", False)
+            ShellSettings.SetThemeChoice("dark")
+            Pump()
+            Shot(destructive, "05c-destructive-dark")
+            CheckShot("05c-destructive-dark", True)
+            ShellSettings.SetThemeChoice("light")
+            Pump()
+            destructive.Close()
+            Pump()
+        End Using
+
         ' 7) Escape leaves the settings page (the companion-surface exit, APP-BEHAVIOUR rule 1).
         shell.OpenSettings()
         Pump()
