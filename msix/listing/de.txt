@@ -88,4 +88,4 @@ speicherplatz überschreiben
 dateien mit passwort schützen
 
 @@ReleaseNotes
-Geändert: FileDO ändert keine Einstellungen von Microsoft Defender mehr (die Option noscan von mount ist abgeschafft), und die Datenträgerschritte starten PowerShell nicht mehr als codierten Befehl.
+Neu: F1 und die neue Schaltfläche ? öffnen die Hilfeseite des Fensters, in dem Sie sich befinden, in fünf Sprachen. Geändert: Schaltflächen und Dialogantworten sehen überall gleich aus, F6 und Umschalt+F6 wechseln zwischen den Bereichen eines Fensters, und ein .fd-sec-Container, dessen versiegelter Name ein unter Windows verbotenes Dateinamenzeichen enthält, wird jetzt geprüft, statt als beschädigt zu gelten.

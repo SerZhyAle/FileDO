@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610102316-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610211540-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
@@ -723,11 +723,21 @@ FileDO/
 
 ## Historique des Versions
 
-**v2610102316** (Actuelle)
+**v2610211540** (Actuelle)
+- **Aide**: **F1** ou le nouveau bouton **?** ouvre dans le navigateur la page d'aide de la fenêtre où vous êtes - les pages de tâches, la page des commandes, les paramètres, la page À propos, l'historique et le Gestionnaire de disques - en anglais, russe, ukrainien, allemand et français, avec des repères numérotés sur une image de la fenêtre ; le menu de l'icône de la zone de notification a une entrée *Aide*, et le premier lien de la page À propos ouvre l'index de l'aide
+- **Aspect**: tous les boutons ont la même hauteur et des coins arrondis, et une longue légende passe à la ligne au lieu d'être coupée par des points de suspension ; les réponses des boîtes de dialogue ont un aspect neutre unique, Annuler en premier et la réponse qui agit en dernier ; les groupes des paramètres s'ouvrent et se ferment depuis un en-tête avec un triangle d'état
+- **Clavier**: **F6** et **Maj+F6** déplacent le focus vers la zone suivante ou précédente de la fenêtre, dans la fenêtre principale et dans le Gestionnaire de disques ; le menu d'aide du Gestionnaire de disques (touches, visite guidée, liens) s'ouvre aussi au clavier - touche **Menu** ou **Maj+F10** sur le bouton **?** - et figure dans son menu *Autres actions*
+- **Fenêtres**: une fenêtre ouverte depuis le Gestionnaire de disques ou la zone de notification apparaît maintenant sur l'écran où vous travaillez
+- **Fichiers secrets (`.fd-sec`)**: un conteneur créé par un autre programme, dont le nom scellé contient `"`, `<`, `>` ou `|`, n'est plus jugé endommagé - il est vérifié et lu ; la restauration ici s'arrête avant d'écrire quoi que ce soit et indique que ce nom ne peut pas être créé sur ce PC ; `to <chemin>` ou `rename` restaure le fichier sous un autre nom ; un nom scellé qui n'est pas de l'UTF-8 valide est endommagé dans toutes les suites ; les scripts reçoivent la raison fermée `destination-name`
+- **Icônes**: les boutons *Réessayer* ont leur propre icône de nouvel essai, et la relecture de la première prise en main dans le Gestionnaire de disques s'appelle *Visite guidée* et a sa propre icône
+- **Corrections**: un événement de tâche avec une valeur vide parmi ses nombres ne fait plus lever d'erreur à la fenêtre
+- **Documentation**: nouveaux guides du site sur l'effacement des données et sur la version du Microsoft Store, en cinq langues ; les pieds de page et le sélecteur de thème des pages du site sont harmonisés ; les spécifications du format et du comportement des conteneurs `.fdd` passent en version 1.0
+
+**v2610102316** (Précédente)
 - **Disques virtuels**: `mount noscan` est retiré - FileDO ne modifie plus les paramètres de Microsoft Defender ; le mot est toujours accepté et ignoré, la fenêtre de montage n'a plus de case antivirus, et le fichier conteneur peut être exclu à la main dans Sécurité Windows
 - **Logiciels de sécurité**: les étapes de disque n'exécutent plus PowerShell en commande encodée ni avec un contournement de la stratégie d'exécution - deux signes que les logiciels de sécurité retiennent contre un programme
 
-**v2610091940** (Précédente)
+**v2610091940**
 - **Disques**: les actions créer, compacter et monter automatiquement du groupe **Disques**, ainsi que « Image vers fichier », ont maintenant leurs propres icônes du jeu commun au lieu de symboles de remplacement - dans le groupe et dans le Gestionnaire de disques
 - **Partage**: un état de disque que le programme de partage nomme par un mot inconnu de cette version s'affiche comme inconnu au lieu de faire échouer toute la réponse; un état inconnu n'est jamais considéré comme fermé et n'autorise jamais un montage
 - **Description**: le README, le site et la fiche du Store s'ouvrent maintenant sur « Know your storage before you trust it »; l'effacement est décrit comme une façon de rendre la récupération plus difficile, sans garantie sur les SSD ni sur les disques à copie sur écriture
@@ -797,7 +807,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610102316** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2610211540** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

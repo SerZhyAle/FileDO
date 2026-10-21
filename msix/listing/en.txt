@@ -90,4 +90,4 @@ wipe free space
 password protect file
 
 @@ReleaseNotes
-Changed: FileDO no longer changes Microsoft Defender settings (the noscan option of mount is retired), and its disk steps no longer run PowerShell as an encoded command.
+New: F1 and a new ? button open the help page of the window you are in, in five languages. Changed: buttons and dialog answers look the same everywhere, F6 and Shift+F6 move between the areas of a window, and a .fd-sec container whose sealed name holds a character that Windows refuses in a file name now verifies instead of counting as damaged.

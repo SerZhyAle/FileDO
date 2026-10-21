@@ -6,7 +6,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610102316-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610211540-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Fake-Capacity Check • Speed Test • Duplicate Finder • Folder Compare • Wipe Free Space • Password-Protected Files • Virtual Disks**
@@ -852,11 +852,21 @@ FileDO/
 
 ## Version History
 
-**v2610102316** (Current)
+**v2610211540** (Current)
+- **Help**: **F1** or the new **?** button opens the help page of the window you are in, in your browser - the job pages, Command, Settings, About, History and the Disk manager, in English, Russian, Ukrainian, German and French, with numbered markers over a picture of the window; the tray menu has a *Help* entry, and the first link of About opens the help index
+- **Look**: all buttons share one height and rounded corners, and a long caption wraps instead of being cut off with an ellipsis; dialog answers have one neutral face, with Cancel first and the acting answer last; the groups in Settings open and close from a header with a state triangle
+- **Keyboard**: **F6** and **Shift+F6** move the focus to the next or the previous area of the window, in the main window and in the Disk manager; the Disk manager's help menu (keyboard map, welcome tour, links) opens from the keyboard too - **Menu** or **Shift+F10** on the **?** button - and is listed in its *More actions* menu
+- **Windows**: a window opened from the Disk manager or the tray now appears on the monitor you are working on
+- **Secret files (`.fd-sec`)**: a container made by another program whose sealed name holds `"`, `<`, `>` or `|` is no longer called damaged - it verifies and reads; restoring it here stops before anything is written and says the name cannot be created on this PC, and `to <path>` or `rename` restores the file under another name; a sealed name that is not valid UTF-8 is damaged in every suite; scripts get the closed reason `destination-name`
+- **Icons**: the *Retry* buttons draw their own retry icon, and the Disk manager's replay of the first steps is called *Welcome tour* and draws its own icon
+- **Fixes**: a job event with an empty value among its numbers no longer makes the window throw an error
+- **Docs**: new site guides on erasing data and on the Microsoft Store build, in five languages; the footers and the theme control of the site pages are aligned; the specifications of the `.fdd` container format and behaviour are version 1.0
+
+**v2610102316** (Previous)
 - **Virtual disks**: `mount noscan` is retired - FileDO no longer changes Microsoft Defender settings; the word is still accepted and ignored, the mount window has no antivirus box any more, and a container file can be excluded by hand in Windows Security
 - **Security software**: the disk steps no longer run PowerShell as an encoded command or with an execution-policy override - both are signs that security software weighs against a program
 
-**v2610091940** (Previous)
+**v2610091940**
 - **Disks**: the create, compact and auto-mount actions of the **Disks** group, and Image to file, now draw their own icons from the shared icon set instead of stand-in symbols - in the group and in the Disk manager
 - **Sharing**: a disk state that the sharing program names with a word this build does not know is shown as unknown instead of failing the whole answer; an unknown state never counts as closed and never allows a mount
 - **Description**: the README, the site and the Store listing now open with "Know your storage before you trust it"; wiping is described as making recovery harder, with no guarantee on SSDs or copy-on-write disks
@@ -926,7 +936,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610102316** - Advanced File & Storage Operations Tool
+**FileDO v2610211540** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

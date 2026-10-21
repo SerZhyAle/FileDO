@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610102316-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2610211540-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
@@ -727,11 +727,21 @@ FileDO/
 
 ## Versionshistorie
 
-**v2610102316** (Aktuell)
+**v2610211540** (Aktuell)
+- **Hilfe**: **F1** oder die neue Schaltfläche **?** öffnet im Browser die Hilfeseite des Fensters, in dem Sie sich befinden - die Aufgabenseiten, die Befehlsseite, die Einstellungen, Info, den Verlauf und die Datenträgerverwaltung - auf Englisch, Russisch, Ukrainisch, Deutsch und Französisch, mit nummerierten Markierungen auf einem Bild des Fensters; das Menü des Tray-Symbols hat einen Eintrag *Hilfe*, und der erste Link von Info öffnet das Hilfeverzeichnis
+- **Aussehen**: alle Schaltflächen haben dieselbe Höhe und abgerundete Ecken, und eine lange Beschriftung wird umbrochen, statt mit Auslassungspunkten abgeschnitten zu werden; die Antworten in Dialogen haben ein einheitlich neutrales Aussehen, Abbrechen steht zuerst und die ausführende Antwort zuletzt; die Gruppen in den Einstellungen öffnen und schließen sich über eine Kopfzeile mit Zustandsdreieck
+- **Tastatur**: **F6** und **Umschalt+F6** verschieben den Fokus zum nächsten oder vorherigen Bereich des Fensters, im Hauptfenster und in der Datenträgerverwaltung; das Hilfemenü der Datenträgerverwaltung (Tastenübersicht, Einführung, Links) öffnet sich auch per Tastatur - **Menütaste** oder **Umschalt+F10** auf der Schaltfläche **?** - und steht in ihrem Menü *Weitere Aktionen*
+- **Fenster**: ein Fenster, das aus der Datenträgerverwaltung oder dem Tray geöffnet wird, erscheint jetzt auf dem Monitor, an dem Sie arbeiten
+- **Geheime Dateien (`.fd-sec`)**: ein von einem anderen Programm erstellter Container, dessen versiegelter Name `"`, `<`, `>` oder `|` enthält, gilt nicht mehr als beschädigt - er wird geprüft und gelesen; das Wiederherstellen hier stoppt, bevor etwas geschrieben wird, und meldet, dass sich der Name auf diesem PC nicht anlegen lässt; mit `to <Pfad>` oder `rename` wird die Datei unter einem anderen Namen wiederhergestellt; ein versiegelter Name, der kein gültiges UTF-8 ist, gilt in jeder Suite als beschädigt; Skripte erhalten den geschlossenen Grund `destination-name`
+- **Symbole**: die Schaltflächen *Erneut versuchen* zeigen ein eigenes Wiederholen-Symbol, und die Wiederholung der ersten Schritte in der Datenträgerverwaltung heißt *Einführung* und zeigt ein eigenes Symbol
+- **Korrekturen**: ein Aufgabenereignis mit einem leeren Wert unter seinen Zahlen löst im Fenster keinen Fehler mehr aus
+- **Dokumentation**: neue Anleitungen auf der Website zum Löschen von Daten und zum Microsoft-Store-Build, in fünf Sprachen; Fußzeilen und Designschalter der Website-Seiten sind vereinheitlicht; die Spezifikationen für Format und Verhalten der `.fdd`-Container haben Version 1.0
+
+**v2610102316** (Vorherige)
 - **Virtuelle Datenträger**: `mount noscan` ist abgeschafft - FileDO ändert keine Einstellungen von Microsoft Defender mehr; das Wort wird weiter angenommen und ignoriert, das Einbinden-Fenster hat kein Antiviren-Kästchen mehr, und die Containerdatei lässt sich in der Windows-Sicherheit von Hand ausnehmen
 - **Sicherheitssoftware**: die Datenträgerschritte starten PowerShell nicht mehr als codierten Befehl und nicht mit abgeschalteter Ausführungsrichtlinie - beides wertet Sicherheitssoftware gegen ein Programm
 
-**v2610091940** (Vorherige)
+**v2610091940**
 - **Datenträger**: die Aktionen Erstellen, Verkleinern und Automatisch einbinden der Gruppe **Datenträger** sowie Abbild in Datei zeigen jetzt eigene Symbole aus dem gemeinsamen Symbolsatz statt Platzhaltersymbolen - in der Gruppe und in der Datenträgerverwaltung
 - **Freigabe**: ein Datenträgerzustand, den das Freigabeprogramm mit einem dieser Version unbekannten Wort nennt, wird als unbekannt angezeigt, statt die ganze Antwort scheitern zu lassen; ein unbekannter Zustand gilt nie als geschlossen und erlaubt nie ein Einbinden
 - **Beschreibung**: README, Website und Store-Eintrag beginnen jetzt mit "Know your storage before you trust it"; das Löschen wird als Erschwerung der Wiederherstellung beschrieben, ohne Garantie auf SSDs oder Copy-on-Write-Datenträgern
@@ -801,7 +811,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610102316** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2610211540** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

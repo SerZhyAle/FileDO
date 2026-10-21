@@ -88,4 +88,4 @@ effacer espace libre
 fichier mot de passe
 
 @@ReleaseNotes
-Modifié : FileDO ne modifie plus les paramètres de Microsoft Defender (l'option noscan de mount est retirée), et ses étapes de disque n'exécutent plus PowerShell en commande encodée.
+Nouveau : F1 et le nouveau bouton ? ouvrent la page d'aide de la fenêtre où vous êtes, en cinq langues. Modifié : les boutons et les réponses des boîtes de dialogue ont partout le même aspect, F6 et Maj+F6 passent d'une zone de la fenêtre à l'autre, et un conteneur .fd-sec dont le nom scellé contient un caractère interdit dans les noms de fichiers Windows est maintenant vérifié au lieu d'être jugé endommagé.
