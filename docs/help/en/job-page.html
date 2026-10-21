@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Help - The job page</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Help index</a><span class="sep" aria-hidden="true">/</span><span>The job page</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Window help</p>
+    <h1>The job page</h1>
+    <p class="lead">Every job in the list on the left - checking a drive, copying files, wiping a folder, protecting a file, managing virtual disks - opens the same page. You choose what to work on, set the options, read what will happen, and press Run.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/job-page.en.dark.png" width="1457" height="903" alt="The job page: the window with its numbered parts">
+      <img class="on-light" src="../img/job-page.en.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:0.3%;--y:1.1%" href="#e-rail" aria-label="1, The list of jobs">1</a>
+      <a class="pin" style="--x:22.6%;--y:11.4%" href="#e-target" aria-label="2, 2 - What to work on">2</a>
+      <a class="pin" style="--x:22.6%;--y:32.8%" href="#e-options" aria-label="3, 3 - Parameters">3</a>
+      <a class="pin" style="--x:22.6%;--y:53.7%" href="#e-plan" aria-label="4, 4 - Check and run">4</a>
+      <a class="pin" style="--x:24.1%;--y:74.0%" href="#e-command" aria-label="5, Command line">5</a>
+      <a class="pin" style="--x:37.7%;--y:82.1%" href="#e-copy" aria-label="6, Copy command">6</a>
+      <a class="pin" style="--x:50.9%;--y:82.1%" href="#e-open" aria-label="7, Open in Command">7</a>
+      <a class="pin" style="--x:24.1%;--y:82.1%" href="#e-run" aria-label="8, Run">8</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="13, Help">13</a>
+    </div>
+    <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
+  </figure>
+
+  <h2>In this order</h2>
+  <ol class="order">
+    <li>Choose the job in the list on the left <a class="ref" href="#e-rail">1</a>. The header of the page repeats it as step 1.</li>
+    <li>Choose what to work on <a class="ref" href="#e-target">2</a>: a drive, a folder or a file.</li>
+    <li>Set the parameters <a class="ref" href="#e-options">3</a>, or keep the defaults.</li>
+    <li>Read the plan <a class="ref" href="#e-plan">4</a>. It says what will be touched and whether it can be undone. The command line <a class="ref" href="#e-command">5</a> is exactly what will run.</li>
+    <li>Press Run <a class="ref" href="#e-run">8</a>. Nothing has been changed before this point.</li>
+    <li>Watch the progress <a class="ref" href="#e-progress">9</a> and press Stop <a class="ref" href="#e-stop">10</a> if you need to end the job. Then read the result <a class="ref" href="#e-result">11</a>.</li>
+  </ol>
+
+  <h2>The elements</h2>
+  <div class="elements">
+    <details class="el" id="e-rail">
+      <summary><span class="mk">1</span><span><span class="name">The list of jobs</span><span class="one">Every job FileDO can do, in groups.</span></span></summary>
+      <div class="full">
+        <p>The groups - Check, Tidy, Copy files, Erase, Protect and Disks - fold and unfold; open one and pick a job. History, Command, Settings and About are in the list as well. While a job is running its row stays selected and the other jobs wait until it ends.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The page on the right changes to the job you chose, and the header says what the job is for.</dd>
+          <dt>Undo</dt><dd>Choosing a job only opens its page. Nothing runs.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">2 - What to work on</span><span class="one">The drive, folder or file the job works on.</span></span></summary>
+      <div class="full">
+        <p>Type or pick a path, or use Folder.. and File.. to browse for one. You can also drop a file or a folder anywhere on the page. A job that needs two places, such as Copy files, asks for the second one right below.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The plan below updates at once. The job itself starts only when you press Run.</dd>
+          <dt>Undo</dt><dd>Choosing a target changes nothing.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-options">
+      <summary><span class="mk">3</span><span><span class="name">3 - Parameters</span><span class="one">How the job should run.</span></span></summary>
+      <div class="full">
+        <p>The options that belong to this job, with safe defaults already chosen. A job with nothing to choose shows no options. Hover over an option to see what it does.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The plan and the command line below change as you choose.</dd>
+          <dt>Undo</dt><dd>Options change nothing by themselves; set them back at any time.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-plan">
+      <summary><span class="mk">4</span><span><span class="name">4 - Check and run</span><span class="one">What will happen, before it happens.</span></span></summary>
+      <div class="full">
+        <p>The plan says in plain words what the job will do and which files or drives it touches. Badges say whether it can be undone, whether it destroys data and whether Windows will ask for administrator rights. A job that can destroy data, such as Wipe a folder, also asks you to type a confirmation word before it runs.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Run becomes available when the target and the options are complete. If it does not, the page says what is missing.</dd>
+          <dt>Undo</dt><dd>Reading the plan changes nothing.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-command">
+      <summary><span class="mk">5</span><span><span class="name">Command line</span><span class="one">The exact command this page runs.</span></span></summary>
+      <div class="full">
+        <p>Every job is done by filedo.exe, the same program you can use in a terminal. The line shows the command your choices add up to, so you can see exactly what will happen, run it yourself later, or learn how the options are spelled.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Copy it, or open it in the Command page to change it by hand.</dd>
+          <dt>Undo</dt><dd>Reading it changes nothing.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">6</span><span><span class="name">Copy command</span><span class="one">Puts the command on the clipboard.</span></span></summary>
+      <div class="full">
+        <p>Copies the command line above so you can paste it into a terminal, a script or a message. Nothing runs.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">7</span><span><span class="name">Open in Command</span><span class="one">Moves the command to the Command page.</span></span></summary>
+      <div class="full">
+        <p>Opens the Command page with this command already filled in, ready to be changed by hand and run there.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The window changes to the Command page. Nothing runs yet.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">8</span><span><span class="name">Run</span><span class="one">Starts the job.</span></span></summary>
+      <div class="full">
+        <p>The only button on this page that does the work. A job that can destroy data, such as Wipe a folder, asks you to type a confirmation word first. While the job runs, the page cannot be switched to another job, so a run is never lost by a stray click.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Progress and a Stop button appear. When the job ends, the result appears.</dd>
+          <dt>Undo</dt><dd>Whether the job can be undone is written in the plan. Stop ends it cleanly at any time; work already done stays done.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-progress">
+      <summary><span class="mk">9</span><span><span class="name">Progress</span><span class="one">How far the job has come.</span></span></summary>
+      <div class="full">
+        <p>Shows the current step, a progress bar, the speed and the time. It appears when the job starts and stays until the result takes its place.</p>
+        <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">10</span><span><span class="name">Stop</span><span class="one">Asks the job to end cleanly.</span></span></summary>
+      <div class="full">
+        <p>The job finishes the piece it is doing, cleans up after itself and stops. If it does not stop, a second press offers to end it at once - which skips its own clean-up, so test files may stay until the next run.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The result shows what was done before the stop.</dd>
+          <dt>Undo</dt><dd>Work already done stays done.</dd>
+        </dl>
+        <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-result">
+      <summary><span class="mk">11</span><span><span class="name">Result</span><span class="one">What the job found or did.</span></span></summary>
+      <div class="full">
+        <p>A verdict (passed, failed, or could not verify), the numbers, any files left behind and where the report is kept. Buttons offer the next step that fits, for example Clean up test files after a capacity test, Open report folder, or Run again.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The report is added to History.</dd>
+          <dt>Undo</dt><dd>Clean up and Run again act only when you press them.</dd>
+        </dl>
+        <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">12</span><span><span class="name">Show raw output</span><span class="one">The text the program printed.</span></span></summary>
+      <div class="full">
+        <p>Shows the raw output of the command. It is meant for support and for experts; the result already says what matters. Copy output puts it on the clipboard.</p>
+        <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">13</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <div class="full">
+        <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The page opens in your web browser. FileDO stays open and nothing in it changes.</dd>
+          <dt>Shortcut</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Related</h2>
+  <ul class="related">
+    <li><a href="command.html"><b>Command</b><span class="pill">Window</span><small>The same operations, written as a command line.</small></a></li>
+    <li><a href="history.html"><b>History</b><span class="pill">Window</span><small>The report of every finished run.</small></a></li>
+    <li><a href="settings.html"><b>Settings</b><span class="pill">Window</span><small>Theme, language, history and startup.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Guide: the window and the command builder</b><span class="pill gold">Site</span><small>Every page of the window, with pictures.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/check-storage.html"><b>Guide: checking a drive</b><span class="pill gold">Site</span><small>The whole task, start to finish.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html"><b>Guide: files and copies</b><span class="pill gold">Site</span><small>The whole task, start to finish.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Help index</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

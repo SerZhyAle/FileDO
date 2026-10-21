@@ -43,6 +43,7 @@ Public Class ShellForm
     Private header As Panel
     Private titleLabel As Label
     Private headerRow As TableLayoutPanel
+    Private helpBtn As GlyphButton
     Private subtitleLabel As Label
     Private statusLabel As Label
     Private emptyTitle As Label
@@ -224,7 +225,7 @@ Public Class ShellForm
         root.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
         root.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
 
-        railHost = New Panel With {.Dock = DockStyle.Fill, .Padding = Ui.PxPad(Me, 0, 6, 0, 6)}
+        railHost = New Panel With {.Dock = DockStyle.Fill, .Padding = Ui.PxPad(Me, 0, 6, 0, 6), .Name = "help:rail"}
         rail = New FlowLayoutPanel With {
             .Dock = DockStyle.Fill,
             .FlowDirection = FlowDirection.TopDown,
@@ -329,17 +330,26 @@ Public Class ShellForm
         stack.Controls.Add(subtitleLabel, 0, 1)
         stack.Controls.Add(statusLabel, 0, 2)
 
+        ' The first row of the content ends in the help button (CONTEXT-HELP rule 2): the window keeps
+        ' the system caption, so the corner is the trailing end of this row, and nothing that was in
+        ' it moves - the title stack keeps the first column and only gives up the width of the button.
+        helpBtn = Help.NewButton()
+        AddHandler helpBtn.Click, Sub() OpenHelp()
+        tips.SetToolTip(helpBtn, Help.ButtonTip())
+
         headerRow = New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            .ColumnCount = 1,
+            .ColumnCount = 2,
             .RowCount = 1,
             .Margin = New Padding(0)
         }
         headerRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        headerRow.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         headerRow.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         headerRow.Controls.Add(stack, 0, 0)
+        headerRow.Controls.Add(helpBtn, 1, 0)
         header.Controls.Add(headerRow)
         ' The title and subtitle wrap within the available header width.
         Ui.Wrap(titleLabel, stack, 4)
@@ -347,8 +357,14 @@ Public Class ShellForm
         Ui.Wrap(statusLabel, stack, 4)
     End Sub
 
+    ' F1 asks for help, here and nowhere else (CONTEXT-HELP rule 1): the window's own key, never a
+    ' system-wide chord. It and the button go through OpenHelp, so they cannot answer differently.
     ' Ctrl+Shift+D opens the Disk manager from anywhere in the window.
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
+        If keyData = Keys.F1 Then
+            OpenHelp()
+            Return True
+        End If
         If keyData = Keys.Escape AndAlso settingsView IsNot Nothing AndAlso settingsView.Visible Then
             SelectJobByKey("rail_job_command")
             Return True
@@ -696,6 +712,51 @@ Public Class ShellForm
 
     Friend Sub DrawClientForCapture(bmp As Bitmap)
         root.DrawToBitmap(bmp, New Rectangle(0, 0, bmp.Width, bmp.Height))
+    End Sub
+
+    ' The page on screen as the help pages' pictures show it (HelpCapture): Settings with every group
+    ' open, History with sample reports instead of the user's.
+    Friend Sub PrepareForHelpCapture(key As String)
+        If key = "rail_job_settings" Then
+            For Each group In settingsView.Panel.Groups
+                group.Expanded = True
+            Next
+        ElseIf key = "rail_job_history" Then
+            historyView.LoadDemoForCapture()
+        End If
+    End Sub
+
+    ' For SelfTest.vb: the help button, the controls of the row it ends, and a key press as the window
+    ' receives it.
+    Friend ReadOnly Property HelpButtonForTest As GlyphButton
+        Get
+            Return helpBtn
+        End Get
+    End Property
+
+    Friend ReadOnly Property HeaderRowControlsForTest As Control.ControlCollection
+        Get
+            Return headerRow.Controls
+        End Get
+    End Property
+
+    Friend Function HandleKeyForTest(keyData As Keys) As Boolean
+        Dim msg As New Message()
+        Return ProcessCmdKey(msg, keyData)
+    End Function
+
+    ' The key of the rail row that is selected, the page on screen. Command when nothing is.
+    Friend Function CurrentRailKey() As String
+        For Each it In entries
+            If it.Selected Then Return it.Key
+        Next
+        Return "rail_job_command"
+    End Function
+
+    ' What F1 and the help button both ask: the help of the page on screen, or of the part of it that
+    ' has the focus (rule 3). One resolver answers, so no page carries help code of its own.
+    Friend Sub OpenHelp()
+        Help.Open(Me, Help.ShellSurfaceId(CurrentRailKey()), Help.ElementOf(Help.FocusedControl(Me)))
     End Sub
 
     Private Sub SelectJobByKey(key As String)

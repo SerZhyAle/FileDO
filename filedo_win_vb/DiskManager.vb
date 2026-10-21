@@ -271,6 +271,9 @@ Partial Public Class DiskManagerForm
         root.Controls.Add(detailBar, 0, 4)
         root.Controls.Add(strip, 0, 5)
         Controls.Add(root)
+        listHost.Name = "help:list"
+        detailPanel.Name = "help:detail"
+        strip.Name = "help:strip"
         ' The tab order the spec names (6.2): toolbar, filter, list, detail, strip.
         toolbar.TabIndex = 0
         filterUnit.TabIndex = 1
@@ -348,7 +351,12 @@ Partial Public Class DiskManagerForm
                                          End If
                                      End Sub
         helpBtn = NewGlyphButton("vd_mgr_name_help", DiskGlyphs.Help, 24, True)
-        AddHandler helpBtn.Click, Sub() helpMenu.Show(helpBtn, 0, helpBtn.Height)
+        ' The key and the button give the same answer (CONTEXT-HELP rule 3): the page. The older menu -
+        ' this window's own help dialog, the first steps and the links - is on the button's right click.
+        AddHandler helpBtn.Click, Sub() OpenHelpPage()
+        AddHandler helpBtn.MouseUp, Sub(s As Object, e As MouseEventArgs)
+                                        If e.Button = MouseButtons.Right Then helpMenu.Show(helpBtn, 0, helpBtn.Height)
+                                    End Sub
         ' The way to the main window: the product's own mark and its name, at the end of the toolbar.
         mainBtn = NewGlyphButton("vd_mgr_btn_main", Nothing, 24)
         mainBtn.Picture = AppIcon.Mark(Ui.Px(Me, 24))
@@ -382,11 +390,25 @@ Partial Public Class DiskManagerForm
             filterUnit.Controls.Add(c)
         Next
 
-        For Each c As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn, refreshBtn, settingsBtn, helpBtn, mainBtn}
+        ' The help button ends the toolbar (CONTEXT-HELP rule 2: the trailing end of the first row).
+        For Each c As Control In New Control() {newBtn, addBtn, mountBtn, unmountBtn, openBtn, saveBtn, moreBtn, refreshBtn, settingsBtn, mainBtn, helpBtn}
             toolbar.Controls.Add(c)
         Next
+        ' The parts the help explains (HelpContent, page disk-manager).
+        newBtn.Name = "help:new"
+        addBtn.Name = "help:add"
+        mountBtn.Name = "help:mount"
+        unmountBtn.Name = "help:unmount"
+        openBtn.Name = "help:open"
+        saveBtn.Name = "help:save"
+        moreBtn.Name = "help:more"
+        refreshBtn.Name = "help:refresh"
+        settingsBtn.Name = "help:settings"
+        mainBtn.Name = "help:main"
+        helpBtn.Name = "help:help"
+        filterBox.Name = "help:filter"
         ' The groups, told apart by a wider gap: the list, the disk, and the window's own.
-        For Each c As Control In New Control() {addBtn, saveBtn, moreBtn, helpBtn}
+        For Each c As Control In New Control() {addBtn, saveBtn, moreBtn, settingsBtn}
             c.Margin = Ui.PxPad(Me, 0, 0, 20, 6)
         Next
         For i = 0 To toolbar.Controls.Count - 1
@@ -648,7 +670,7 @@ Partial Public Class DiskManagerForm
     ' A link is followed only when it is clicked (APP-BEHAVIOUR rule 4).
     Private Sub BuildHelpMenu()
         helpMenu.Items.Clear()
-        Dim helpItem As New ToolStripMenuItem(L("vd_help_menu_help")) With {.ShortcutKeyDisplayString = DiskShortcuts.KeyText(Keys.F1)}
+        Dim helpItem As New ToolStripMenuItem(L("vd_help_menu_help"))
         helpItem.Image = MenuImage(DiskGlyphs.Help, True, False)
         AddHandler helpItem.Click, Sub() ShowHelp()
         helpMenu.Items.Add(helpItem)
@@ -675,6 +697,19 @@ Partial Public Class DiskManagerForm
         Return GlyphBitmaps.Render(g, Ui.Px(Me, 16), colour)
     End Function
 
+    Friend ReadOnly Property HelpButtonForTest As GlyphButton
+        Get
+            Return helpBtn
+        End Get
+    End Property
+
+    ' F1 and the Help button: the page of this window (CONTEXT-HELP rules 1-3), opened in the browser.
+    Friend Sub OpenHelpPage()
+        Help.Open(Me, "disk-manager")
+    End Sub
+
+    ' The window's own help dialog: the keyboard map and what a row says. Reached from the menu of the
+    ' Help button's right click; the page carries the same tables from the same sources.
     Private Sub ShowHelp()
         Using dlg As New DiskHelpDialog(dict, Me, Context().Packaged)
             dlg.ShowDialog(Me)
@@ -2241,7 +2276,7 @@ Partial Public Class DiskManagerForm
                 BrowseAndAdd()
                 Return True
             Case DiskCommand.Help
-                ShowHelp()
+                OpenHelpPage()
                 Return True
             Case DiskCommand.MainWindow
                 RaiseEvent ShellRequested()
@@ -2397,7 +2432,7 @@ Partial Public Class DiskManagerForm
                                                 refreshBtn, settingsBtn, helpBtn, mainBtn, emptyNew, emptyAdd, stopBtn, clearQueueBtn}
             b.Margin = Ui.PxPad(Me, 0, 0, 6, 6)
         Next
-        For Each b As Control In New Control() {addBtn, saveBtn, moreBtn, helpBtn}
+        For Each b As Control In New Control() {addBtn, saveBtn, moreBtn, settingsBtn}
             b.Margin = Ui.PxPad(Me, 0, 0, 20, 6)
         Next
         For Each b In detailButtons.Controls.Cast(Of Control)()

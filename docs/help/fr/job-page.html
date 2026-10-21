@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - La page d'une tâche</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Index de l'aide</a><span class="sep" aria-hidden="true">/</span><span>La page d'une tâche</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Aide de la fenêtre</p>
+    <h1>La page d'une tâche</h1>
+    <p class="lead">Chaque tâche de la liste à gauche - vérifier un support, copier des fichiers, vider un dossier, protéger un fichier, gérer des disques virtuels - ouvre la même page. Vous choisissez ce sur quoi travailler, réglez les paramètres, lisez ce qui va se passer, puis appuyez sur Exécuter.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/job-page.fr.dark.png" width="1457" height="903" alt="La page d'une tâche : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/job-page.fr.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:0.3%;--y:1.1%" href="#e-rail" aria-label="1, La liste des tâches">1</a>
+      <a class="pin" style="--x:22.6%;--y:11.4%" href="#e-target" aria-label="2, 2 - Sur quoi">2</a>
+      <a class="pin" style="--x:22.6%;--y:32.8%" href="#e-options" aria-label="3, 3 - Paramètres">3</a>
+      <a class="pin" style="--x:22.6%;--y:53.7%" href="#e-plan" aria-label="4, 4 - Vérifier et lancer">4</a>
+      <a class="pin" style="--x:24.1%;--y:74.0%" href="#e-command" aria-label="5, Ligne de commande">5</a>
+      <a class="pin" style="--x:43.5%;--y:82.1%" href="#e-copy" aria-label="6, Copier la commande">6</a>
+      <a class="pin" style="--x:59.2%;--y:82.1%" href="#e-open" aria-label="7, Ouvrir dans Command">7</a>
+      <a class="pin" style="--x:24.1%;--y:82.1%" href="#e-run" aria-label="8, Exécuter">8</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="13, Aide">13</a>
+    </div>
+    <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
+  </figure>
+
+  <h2>Dans cet ordre</h2>
+  <ol class="order">
+    <li>Choisissez la tâche dans la liste à gauche <a class="ref" href="#e-rail">1</a>. L'en-tête de la page la reprend comme étape 1.</li>
+    <li>Choisissez sur quoi travailler <a class="ref" href="#e-target">2</a> : un lecteur, un dossier ou un fichier.</li>
+    <li>Réglez les paramètres <a class="ref" href="#e-options">3</a>, ou gardez les valeurs par défaut.</li>
+    <li>Lisez le plan <a class="ref" href="#e-plan">4</a>. Il dit ce qui sera touché et si l'on peut l'annuler. La ligne de commande <a class="ref" href="#e-command">5</a> est exactement ce qui sera exécuté.</li>
+    <li>Appuyez sur Exécuter <a class="ref" href="#e-run">8</a>. Rien n'a été modifié jusque-là.</li>
+    <li>Suivez la progression <a class="ref" href="#e-progress">9</a> et appuyez sur Arrêter <a class="ref" href="#e-stop">10</a> pour interrompre la tâche. Lisez ensuite le résultat <a class="ref" href="#e-result">11</a>.</li>
+  </ol>
+
+  <h2>Les éléments</h2>
+  <div class="elements">
+    <details class="el" id="e-rail">
+      <summary><span class="mk">1</span><span><span class="name">La liste des tâches</span><span class="one">Tout ce que FileDO sait faire, par groupes.</span></span></summary>
+      <div class="full">
+        <p>Les groupes - Vérifier, Ranger, Copier des fichiers, Effacer, Protéger et Disques - se replient et se déplient : ouvrez-en un et choisissez une tâche. Historique, Commande, Réglages et À propos figurent aussi dans la liste. Tant qu'une tâche s'exécute, sa ligne reste choisie et les autres tâches attendent sa fin.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page de droite passe à la tâche choisie, et l'en-tête dit à quoi elle sert.</dd>
+          <dt>Annuler</dt><dd>Choisir une tâche ouvre seulement sa page. Rien ne s'exécute.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">2 - Sur quoi</span><span class="one">Le lecteur, le dossier ou le fichier sur lequel la tâche travaille.</span></span></summary>
+      <div class="full">
+        <p>Saisissez ou choisissez un chemin, ou cherchez-le avec les boutons Dossier.. et Fichier.. de la page. Vous pouvez aussi déposer un fichier ou un dossier n'importe où sur la page. Une tâche qui demande deux emplacements, comme Copier des fichiers, demande le second juste en dessous.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le plan en dessous se met à jour aussitôt. La tâche elle-même ne démarre que si vous appuyez sur Exécuter.</dd>
+          <dt>Annuler</dt><dd>Choisir une cible ne change rien.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-options">
+      <summary><span class="mk">3</span><span><span class="name">3 - Paramètres</span><span class="one">Comment la tâche doit s'exécuter.</span></span></summary>
+      <div class="full">
+        <p>Les paramètres propres à cette tâche, avec des valeurs sûres déjà choisies. Une tâche sans rien à choisir n'affiche aucun paramètre. Passez la souris sur un paramètre pour voir ce qu'il fait.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le plan et la ligne de commande en dessous changent au fil de vos choix.</dd>
+          <dt>Annuler</dt><dd>Les paramètres ne changent rien par eux-mêmes ; remettez-les comme avant à tout moment.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-plan">
+      <summary><span class="mk">4</span><span><span class="name">4 - Vérifier et lancer</span><span class="one">Ce qui va se passer, avant que cela se passe.</span></span></summary>
+      <div class="full">
+        <p>Le plan dit en mots simples ce que la tâche va faire et quels fichiers ou lecteurs elle touche. Des pastilles indiquent si l'on peut l'annuler, si elle détruit des données et si Windows demandera les droits d'administrateur. Une tâche qui peut détruire des données, comme Effacer un dossier, demande aussi de saisir un mot de confirmation avant de s'exécuter.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Exécuter devient disponible quand la cible et les paramètres sont complets. Sinon, la page dit ce qui manque.</dd>
+          <dt>Annuler</dt><dd>Lire le plan ne change rien.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-command">
+      <summary><span class="mk">5</span><span><span class="name">Ligne de commande</span><span class="one">La commande exacte que cette page exécute.</span></span></summary>
+      <div class="full">
+        <p>Chaque tâche est faite par filedo.exe, le même programme que vous pouvez utiliser dans un terminal. La ligne montre la commande à laquelle vos choix aboutissent : vous voyez exactement ce qui va se passer, vous pouvez l'exécuter plus tard vous-même ou apprendre comment s'écrivent les paramètres.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Copiez-la, ou ouvrez-la dans la page Commande pour la modifier à la main.</dd>
+          <dt>Annuler</dt><dd>Lire la ligne ne change rien.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">6</span><span><span class="name">Copier la commande</span><span class="one">Place la commande dans le presse-papiers.</span></span></summary>
+      <div class="full">
+        <p>Copie la ligne de commande ci-dessus pour que vous la colliez dans un terminal, un script ou un message. Rien ne s'exécute.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">7</span><span><span class="name">Ouvrir dans Command</span><span class="one">Envoie la commande à la page Commande.</span></span></summary>
+      <div class="full">
+        <p>Ouvre la page Commande avec cette commande déjà saisie, prête à être modifiée à la main et exécutée là-bas.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La fenêtre passe à la page Commande. Rien ne s'exécute encore.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">8</span><span><span class="name">Exécuter</span><span class="one">Démarre la tâche.</span></span></summary>
+      <div class="full">
+        <p>Le seul bouton de cette page qui fait le travail. Une tâche qui peut détruire des données, comme Effacer un dossier, demande d'abord de saisir un mot de confirmation. Tant que la tâche s'exécute, on ne peut pas passer à une autre : un clic malheureux ne fait donc jamais perdre une exécution.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La progression et un bouton Arrêter apparaissent. Quand la tâche se termine, le résultat apparaît.</dd>
+          <dt>Annuler</dt><dd>Le plan dit si la tâche peut être annulée. Arrêter la termine proprement à tout moment ; ce qui est déjà fait reste fait.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-progress">
+      <summary><span class="mk">9</span><span><span class="name">Progression</span><span class="one">Où en est la tâche.</span></span></summary>
+      <div class="full">
+        <p>Montre l'étape en cours, une barre de progression, la vitesse et la durée. Elle apparaît au démarrage de la tâche et reste jusqu'à ce que le résultat prenne sa place.</p>
+        <p class="one"><small>Absent de l'image : il n'apparaît que lorsque la fenêtre en a besoin.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">10</span><span><span class="name">Arrêter</span><span class="one">Demande à la tâche de se terminer proprement.</span></span></summary>
+      <div class="full">
+        <p>La tâche termine la partie en cours, nettoie derrière elle et s'arrête. Si elle ne s'arrête pas, un second appui propose de la terminer tout de suite - sans son propre nettoyage, si bien que des fichiers de test peuvent rester jusqu'à la prochaine exécution.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le résultat montre ce qui a été fait avant l'arrêt.</dd>
+          <dt>Annuler</dt><dd>Ce qui est déjà fait reste fait.</dd>
+        </dl>
+        <p class="one"><small>Absent de l'image : il n'apparaît que lorsque la fenêtre en a besoin.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-result">
+      <summary><span class="mk">11</span><span><span class="name">Résultat</span><span class="one">Ce que la tâche a trouvé ou fait.</span></span></summary>
+      <div class="full">
+        <p>Un verdict (réussi, échoué ou impossible à vérifier), les chiffres, les fichiers restants et l'endroit où le rapport est conservé. Des boutons proposent l'étape suivante qui convient, par exemple Nettoyer les fichiers de test après un test de capacité, Ouvrir le dossier des rapports ou Réexécuter.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le rapport est ajouté à l'Historique.</dd>
+          <dt>Annuler</dt><dd>Nettoyer les fichiers de test et Réexécuter n'agissent que si vous appuyez dessus.</dd>
+        </dl>
+        <p class="one"><small>Absent de l'image : il n'apparaît que lorsque la fenêtre en a besoin.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">12</span><span><span class="name">Afficher la sortie console</span><span class="one">Le texte qu'a imprimé le programme.</span></span></summary>
+      <div class="full">
+        <p>Montre la sortie console de la commande. Elle est destinée à l'assistance et aux experts ; le résultat dit déjà l'essentiel. Copier la sortie la place dans le presse-papiers.</p>
+        <p class="one"><small>Absent de l'image : il n'apparaît que lorsque la fenêtre en a besoin.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">13</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <div class="full">
+        <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page s'ouvre dans votre navigateur. FileDO reste ouvert et rien n'y change.</dd>
+          <dt>Raccourci</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Voir aussi</h2>
+  <ul class="related">
+    <li><a href="command.html"><b>Commande</b><span class="pill">Fenêtre</span><small>Les mêmes opérations, écrites en ligne de commande.</small></a></li>
+    <li><a href="history.html"><b>Historique</b><span class="pill">Fenêtre</span><small>Le rapport de chaque exécution terminée.</small></a></li>
+    <li><a href="settings.html"><b>Réglages</b><span class="pill">Fenêtre</span><small>Apparence, langue, historique et démarrage.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Guide : la fenêtre et le générateur de commandes</b><span class="pill gold">Site</span><small>Chaque page de la fenêtre, avec des images.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/check-storage.html"><b>Guide : vérifier un support</b><span class="pill gold">Site</span><small>Toute la tâche, du début à la fin.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html"><b>Guide : fichiers et copies</b><span class="pill gold">Site</span><small>Toute la tâche, du début à la fin.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Index de l'aide</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="de" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Hilfe - Die Aufgabenseite</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Hilfe-Übersicht</a><span class="sep" aria-hidden="true">/</span><span>Die Aufgabenseite</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Hilfe zum Fenster</p>
+    <h1>Die Aufgabenseite</h1>
+    <p class="lead">Jede Aufgabe in der Liste links - einen Datenträger prüfen, Dateien kopieren, einen Ordner leeren, eine Datei schützen, virtuelle Datenträger verwalten - öffnet dieselbe Seite. Sie wählen, womit gearbeitet wird, stellen die Optionen ein, lesen, was geschehen wird, und drücken Ausführen.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/job-page.de.dark.png" width="1457" height="903" alt="Die Aufgabenseite: das Fenster mit seinen nummerierten Teilen">
+      <img class="on-light" src="../img/job-page.de.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:0.3%;--y:1.1%" href="#e-rail" aria-label="1, Die Liste der Aufgaben">1</a>
+      <a class="pin" style="--x:22.6%;--y:11.4%" href="#e-target" aria-label="2, 2 - Woran">2</a>
+      <a class="pin" style="--x:22.6%;--y:32.8%" href="#e-options" aria-label="3, 3 - Parameter">3</a>
+      <a class="pin" style="--x:22.6%;--y:53.7%" href="#e-plan" aria-label="4, 4 - Prüfen und starten">4</a>
+      <a class="pin" style="--x:24.1%;--y:74.0%" href="#e-command" aria-label="5, Befehlszeile">5</a>
+      <a class="pin" style="--x:45.6%;--y:82.1%" href="#e-copy" aria-label="6, Befehl kopieren">6</a>
+      <a class="pin" style="--x:58.5%;--y:82.1%" href="#e-open" aria-label="7, In Befehlsansicht öffnen">7</a>
+      <a class="pin" style="--x:24.1%;--y:82.1%" href="#e-run" aria-label="8, Ausführen">8</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="13, Hilfe">13</a>
+    </div>
+    <figcaption>Beispieldaten. Wählen Sie eine Nummer, um mehr über diesen Teil des Fensters zu lesen.</figcaption>
+  </figure>
+
+  <h2>In dieser Reihenfolge</h2>
+  <ol class="order">
+    <li>Wählen Sie die Aufgabe in der Liste links <a class="ref" href="#e-rail">1</a>. Die Kopfzeile der Seite wiederholt sie als Schritt 1.</li>
+    <li>Wählen Sie, womit gearbeitet wird <a class="ref" href="#e-target">2</a>: ein Laufwerk, einen Ordner oder eine Datei.</li>
+    <li>Stellen Sie die Parameter ein <a class="ref" href="#e-options">3</a> oder behalten Sie die Voreinstellungen.</li>
+    <li>Lesen Sie den Plan <a class="ref" href="#e-plan">4</a>. Er sagt, was berührt wird und ob es sich rückgängig machen lässt. Die Befehlszeile <a class="ref" href="#e-command">5</a> ist genau das, was ausgeführt wird.</li>
+    <li>Drücken Sie Ausführen <a class="ref" href="#e-run">8</a>. Bis hierhin ist nichts verändert worden.</li>
+    <li>Verfolgen Sie den Fortschritt <a class="ref" href="#e-progress">9</a> und drücken Sie Anhalten <a class="ref" href="#e-stop">10</a>, wenn die Aufgabe enden soll. Lesen Sie dann das Ergebnis <a class="ref" href="#e-result">11</a>.</li>
+  </ol>
+
+  <h2>Die Elemente</h2>
+  <div class="elements">
+    <details class="el" id="e-rail">
+      <summary><span class="mk">1</span><span><span class="name">Die Liste der Aufgaben</span><span class="one">Alles, was FileDO kann, nach Gruppen.</span></span></summary>
+      <div class="full">
+        <p>Die Gruppen - Prüfen, Aufräumen, Dateien kopieren, Löschen, Schützen und Datenträger - lassen sich ein- und ausklappen: Öffnen Sie eine und wählen Sie eine Aufgabe. Verlauf, Befehl, Einstellungen und Über stehen ebenfalls in der Liste. Solange eine Aufgabe läuft, bleibt ihre Zeile gewählt, und die anderen Aufgaben warten, bis sie endet.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Seite rechts wechselt zur gewählten Aufgabe, und die Kopfzeile sagt, wofür sie da ist.</dd>
+          <dt>Rückgängig</dt><dd>Eine Aufgabe zu wählen öffnet nur ihre Seite. Nichts wird ausgeführt.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">2 - Woran</span><span class="one">Das Laufwerk, der Ordner oder die Datei, mit der die Aufgabe arbeitet.</span></span></summary>
+      <div class="full">
+        <p>Geben Sie einen Pfad ein oder wählen Sie ihn, oder suchen Sie ihn über die Schaltflächen Ordner.. und Datei.. aus. Sie können eine Datei oder einen Ordner auch an eine beliebige Stelle der Seite ziehen. Braucht eine Aufgabe zwei Orte, etwa Dateien kopieren, fragt sie direkt darunter nach dem zweiten.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Der Plan darunter wird sofort aktualisiert. Die Aufgabe selbst beginnt erst, wenn Sie Ausführen drücken.</dd>
+          <dt>Rückgängig</dt><dd>Ein Ziel zu wählen ändert nichts.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-options">
+      <summary><span class="mk">3</span><span><span class="name">3 - Parameter</span><span class="one">Wie die Aufgabe laufen soll.</span></span></summary>
+      <div class="full">
+        <p>Die Optionen, die zu dieser Aufgabe gehören; sichere Voreinstellungen sind schon gewählt. Gibt es nichts zu wählen, werden keine Optionen gezeigt. Zeigen Sie mit der Maus auf eine Option, um zu sehen, was sie tut.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Der Plan und die Befehlszeile darunter ändern sich mit Ihrer Wahl.</dd>
+          <dt>Rückgängig</dt><dd>Optionen ändern von sich aus nichts; stellen Sie sie jederzeit zurück.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-plan">
+      <summary><span class="mk">4</span><span><span class="name">4 - Prüfen und starten</span><span class="one">Was geschehen wird, bevor es geschieht.</span></span></summary>
+      <div class="full">
+        <p>Der Plan sagt in einfachen Worten, was die Aufgabe tun wird und welche Dateien oder Laufwerke sie berührt. Markierungen zeigen, ob es sich rückgängig machen lässt, ob Daten zerstört werden und ob Windows nach Administratorrechten fragt. Eine Aufgabe, die Daten zerstören kann, etwa Ordner leeren, verlangt vor dem Start außerdem ein Bestätigungswort.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Ausführen wird verfügbar, sobald Ziel und Optionen vollständig sind. Wenn nicht, sagt die Seite, was fehlt.</dd>
+          <dt>Rückgängig</dt><dd>Den Plan zu lesen ändert nichts.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-command">
+      <summary><span class="mk">5</span><span><span class="name">Befehlszeile</span><span class="one">Der genaue Befehl, den diese Seite ausführt.</span></span></summary>
+      <div class="full">
+        <p>Jede Aufgabe erledigt filedo.exe, dasselbe Programm, das Sie im Terminal benutzen können. Die Zeile zeigt den Befehl, zu dem sich Ihre Auswahl zusammensetzt: So sehen Sie genau, was geschehen wird, können ihn später selbst ausführen oder lernen, wie die Optionen geschrieben werden.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Kopieren Sie ihn oder öffnen Sie ihn auf der Seite Befehl, um ihn von Hand zu ändern.</dd>
+          <dt>Rückgängig</dt><dd>Die Zeile zu lesen ändert nichts.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">6</span><span><span class="name">Befehl kopieren</span><span class="one">Legt den Befehl in die Zwischenablage.</span></span></summary>
+      <div class="full">
+        <p>Kopiert die Befehlszeile oben, damit Sie sie in ein Terminal, ein Skript oder eine Nachricht einfügen können. Nichts wird ausgeführt.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">7</span><span><span class="name">In Befehlsansicht öffnen</span><span class="one">Überträgt den Befehl auf die Seite Befehl.</span></span></summary>
+      <div class="full">
+        <p>Öffnet die Seite Befehl mit dem bereits eingetragenen Befehl, den Sie dort von Hand ändern und ausführen können.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Das Fenster wechselt zur Seite Befehl. Noch wird nichts ausgeführt.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">8</span><span><span class="name">Ausführen</span><span class="one">Startet die Aufgabe.</span></span></summary>
+      <div class="full">
+        <p>Die einzige Schaltfläche dieser Seite, die die Arbeit tut. Eine Aufgabe, die Daten zerstören kann, etwa Ordner leeren, verlangt zuerst ein Bestätigungswort. Solange die Aufgabe läuft, lässt sich nicht zu einer anderen wechseln, damit ein Lauf nicht durch einen versehentlichen Klick verloren geht.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Fortschritt und eine Schaltfläche Anhalten erscheinen. Wenn die Aufgabe endet, erscheint das Ergebnis.</dd>
+          <dt>Rückgängig</dt><dd>Ob sich die Aufgabe rückgängig machen lässt, steht im Plan. Anhalten beendet sie jederzeit sauber; bereits Erledigtes bleibt erledigt.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-progress">
+      <summary><span class="mk">9</span><span><span class="name">Fortschritt</span><span class="one">Wie weit die Aufgabe gekommen ist.</span></span></summary>
+      <div class="full">
+        <p>Zeigt den aktuellen Schritt, einen Fortschrittsbalken, die Geschwindigkeit und die Zeit. Er erscheint beim Start und bleibt, bis das Ergebnis seinen Platz einnimmt.</p>
+        <p class="one"><small>Nicht im Bild: erscheint nur, wenn das Fenster es braucht.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">10</span><span><span class="name">Anhalten</span><span class="one">Bittet die Aufgabe, sauber zu enden.</span></span></summary>
+      <div class="full">
+        <p>Die Aufgabe beendet das Stück, an dem sie arbeitet, räumt hinter sich auf und hält an. Hält sie nicht an, bietet ein zweiter Druck an, sie sofort zu beenden - ohne ihr eigenes Aufräumen, sodass Testdateien bis zum nächsten Lauf liegen bleiben können.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Das Ergebnis zeigt, was vor dem Anhalten erledigt wurde.</dd>
+          <dt>Rückgängig</dt><dd>Bereits Erledigtes bleibt erledigt.</dd>
+        </dl>
+        <p class="one"><small>Nicht im Bild: erscheint nur, wenn das Fenster es braucht.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-result">
+      <summary><span class="mk">11</span><span><span class="name">Ergebnis</span><span class="one">Was die Aufgabe gefunden oder getan hat.</span></span></summary>
+      <div class="full">
+        <p>Ein Urteil (bestanden, nicht bestanden oder nicht prüfbar), die Zahlen, übrig gebliebene Dateien und der Ort des Berichts. Schaltflächen bieten den passenden nächsten Schritt an, zum Beispiel Testdateien bereinigen nach einem Kapazitätstest, Berichtsordner öffnen oder Erneut ausführen.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Der Bericht wird dem Verlauf hinzugefügt.</dd>
+          <dt>Rückgängig</dt><dd>Testdateien bereinigen und Erneut ausführen wirken nur, wenn Sie sie drücken.</dd>
+        </dl>
+        <p class="one"><small>Nicht im Bild: erscheint nur, wenn das Fenster es braucht.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">12</span><span><span class="name">Konsolenausgabe anzeigen</span><span class="one">Der Text, den das Programm ausgegeben hat.</span></span></summary>
+      <div class="full">
+        <p>Zeigt die Konsolenausgabe des Befehls. Sie ist für den Support und für Fachleute gedacht; das Ergebnis sagt bereits, worauf es ankommt. Ausgabe kopieren legt sie in die Zwischenablage.</p>
+        <p class="one"><small>Nicht im Bild: erscheint nur, wenn das Fenster es braucht.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">13</span><span><span class="name">Hilfe</span><span class="one">Öffnet die Seite, die Sie gerade lesen.</span></span></summary>
+      <div class="full">
+        <p>Jedes FileDO-Fenster hat diese Schaltfläche oben rechts. Sie öffnet die Hilfeseite des Fensters, in dem Sie sich befinden - mit Bild und Erklärung jedes Teils, in Ihrer Sprache.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Seite öffnet sich in Ihrem Browser. FileDO bleibt geöffnet, und nichts darin ändert sich.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Siehe auch</h2>
+  <ul class="related">
+    <li><a href="command.html"><b>Befehl</b><span class="pill">Fenster</span><small>Dieselben Operationen als Befehlszeile geschrieben.</small></a></li>
+    <li><a href="history.html"><b>Verlauf</b><span class="pill">Fenster</span><small>Der Bericht jedes abgeschlossenen Laufs.</small></a></li>
+    <li><a href="settings.html"><b>Einstellungen</b><span class="pill">Fenster</span><small>Darstellung, Sprache, Verlauf und Autostart.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Anleitung: das Fenster und der Befehlsgenerator</b><span class="pill gold">Website</span><small>Jede Seite des Fensters, mit Bildern.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/check-storage.html"><b>Anleitung: einen Datenträger prüfen</b><span class="pill gold">Website</span><small>Die ganze Aufgabe von Anfang bis Ende.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html"><b>Anleitung: Dateien und Kopien</b><span class="pill gold">Website</span><small>Die ganze Aufgabe von Anfang bis Ende.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Aufgenommen mit FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Hilfe-Übersicht</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Eine Frage stellen oder ein Problem melden</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

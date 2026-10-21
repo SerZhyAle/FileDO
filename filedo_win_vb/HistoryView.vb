@@ -120,6 +120,30 @@ Public Class HistoryView
 
         Controls.Add(rootTable)
         ResumeLayout(True)
+
+        ' The parts the help explains (HelpContent, page history).
+        stateLabel.Name = "help:state"
+        reportListBox.Name = "help:list"
+        detailsBox.Name = "help:details"
+        openReportBtn.Name = "help:open"
+        showDirBtn.Name = "help:folder"
+        refreshBtn.Name = "help:refresh"
+    End Sub
+
+    ' Sample reports for the help page's picture (HelpCapture): the list and the details a page shows
+    ' once a few runs have finished, and not the reports of the person who builds the pictures.
+    Friend Sub LoadDemoForCapture()
+        readVersion += 1
+        reportFiles.Clear()
+        reportListBox.Items.Clear()
+        For Each ln In New String() {"2026-10-20 18:42:07 - report_20261020_184207.log", "2026-10-20 17:15:33 - report_20261020_171533.log",
+                                     "2026-10-19 09:03:51 - report_20261019_090351.log"}
+            reportListBox.Items.Add(ln)
+        Next
+        stateLabel.Text = Localization.Format(L("shell_reports_dir_fmt"), "%LOCALAPPDATA%\FileDO\reports")
+        reportListBox.SelectedIndex = 0
+        detailsBox.Text = "FileDO run report" & vbCrLf & "Command: filedo speed D:\" & vbCrLf & "Started: 2026-10-20 18:42:07" & vbCrLf &
+                          "Duration: 00:01:12" & vbCrLf & "Exit code: 0" & vbCrLf & "Verdict: PASS"
     End Sub
 
     Public Sub RefreshReports()

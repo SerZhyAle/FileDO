@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - Aide de FileDO</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <header class="hero">
+    <p class="kicker">Aide</p>
+    <h1>Aide de FileDO</h1>
+    <p class="lead">Une page pour chaque fenêtre de FileDO : à quoi servent ses parties et dans quel ordre s'en servir. Dans n'importe quelle fenêtre, appuyez sur F1 ou sur le bouton ? en haut à droite pour ouvrir la page de cette fenêtre.</p>
+  </header>
+
+  <h2>La fenêtre principale</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>La page d'une tâche</b><span class="pill">Fenêtre</span><small>Comment se fait chaque tâche : choisir, régler, lire le plan, exécuter.</small></a></li>
+    <li><a href="command.html"><b>Commande</b><span class="pill">Fenêtre</span><small>Les mêmes opérations, écrites en ligne de commande.</small></a></li>
+    <li><a href="settings.html"><b>Réglages</b><span class="pill">Fenêtre</span><small>Apparence, langue, historique et démarrage.</small></a></li>
+    <li><a href="about.html"><b>À propos</b><span class="pill">Fenêtre</span><small>Version, liens et assistance.</small></a></li>
+    <li><a href="history.html"><b>Historique</b><span class="pill">Fenêtre</span><small>Le rapport de chaque exécution terminée.</small></a></li>
+  </ul>
+
+  <h2>Le gestionnaire de disques</h2>
+  <ul class="related">
+    <li><a href="disk-manager.html"><b>FileDO - Gestionnaire de disques</b><span class="pill">Fenêtre</span><small>La fenêtre des disques virtuels : créer, monter, ouvrir, enregistrer et démonter.</small></a></li>
+  </ul>
+
+  <h2>Sur le site</h2>
+  <ul class="related">
+    <li><a href="https://serzhyale.github.io/FileDO/guides/"><b>Tous les guides</b><span class="pill gold">Site</span><small>Tous les guides du site, avec des images.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Assistance</b><span class="pill gold">Site</span><small>Poser une question ou signaler un problème.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Confidentialité</b><span class="pill gold">Site</span><small>Aucune télémétrie : ce qui reste sur votre machine.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+</main>
+</body>
+</html>

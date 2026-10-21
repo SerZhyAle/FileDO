@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Id** | `APP-ACTIVATION` |
-| **Version** | 0.11, draft; scope disputed, awaiting the owner |
-| **Role** | applicability disputed - GUI focus-only second starts use a window message |
+| **Version** | 0.13, draft; read 2026-10-21 (SP-0170) |
+| **Role** | consumer, focus-only profile (the 2026-10-17 amendment) - GUI shell only |
 | **Home** | shared contracts catalog, folder `app-activation/`, document `README.md` |
 | **Owner** | CyrFlip |
 
 ## What this repository must do to stay conformant
 
-- FileDO's console invocations and Explorer verbs do not use this draft's URI/named-pipe hand-off. The GUI's plain second start focuses the running window; `--disks` uses a registered window message, while a file target opens its own window.
-- The owner's scope decision is requested in the catalog proposal dated 2026-09-30. This pointer stays until that decision; it does not claim named-pipe or URI conformance.
+- **Profile.** FileDO is bound as the focus-only profile and as nothing else: no `filedo://` scheme, no named pipe and no forwarded payload. Rules 1, 3 and 4 do not apply; rule 2's session-local mutex does (`Local\FileDO.Shell`, a frozen anchor).
+- **The signal.** A plain second start asks the running copy for its window with a registered local window message (`FileDO.Shell.ShowShell`; `--disks` uses `FileDO.Shell.ShowDiskManager` - both frozen), sent with `SendMessageTimeout` and `SMTO_ABORTIFHUNG` inside a fixed bound, with no payload. A window that does not answer is not a holder and not an absence: the start waits out its bound and opens its own window rather than vanish.
+- **Per-target window policy.** A start that carries a file is never handed over; each file opens its own window. FileDO is therefore single-instance per session for plain starts and deliberately multi-window per file target - it is never described as a globally single-window application.
+- **Tests that must stay.** `filedo_win.exe --selftest`, group `activation`: a hung receiver (bounded, not claimed, recovers), a payload-less signal, a file target that is not lost. A receiver in another user's session or at a higher integrity level is not testable in the selftest and stays a manual check.

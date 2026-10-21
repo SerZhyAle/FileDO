@@ -76,6 +76,8 @@
     <Compile Include="ArgQuoting.vb" />
     <Compile Include="ShortcutWriter.vb" />
     <Compile Include="Ui.vb" />
+    <Compile Include="UiTokens.vb" />
+    <Compile Include="SelfTestUiContracts.vb" />
     <Compile Include="UiDrive.vb" />
     <Compile Include="SettingsLayout.vb" />
     <Compile Include="NativeEditors.vb" />
@@ -102,6 +104,7 @@
     <Compile Include="DiskStates.vb" />
     <Compile Include="DiskSharing.vb" />
     <Compile Include="DiskSharingTests.vb" />
+    <Compile Include="ActivationTests.vb" />
     <Compile Include="DiskAutostartDialog.vb" />
     <Compile Include="DiskDialogs.vb">
       <SubType>Form</SubType>
@@ -137,6 +140,16 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Localization.vb" />
+    <Compile Include="Help.vb" />
+    <Compile Include="HelpContent.vb" />
+    <Compile Include="HelpStringsEn.vb" />
+    <Compile Include="HelpStringsRu.vb" />
+    <Compile Include="HelpStringsUk.vb" />
+    <Compile Include="HelpStringsDe.vb" />
+    <Compile Include="HelpStringsFr.vb" />
+    <Compile Include="HelpPages.vb" />
+    <Compile Include="HelpCapture.vb" />
+    <Compile Include="SelfTestHelp.vb" />
     <Compile Include="LogReport.vb" />
     <Compile Include="LogSender.vb" />
     <Compile Include="ShellLog.vb" />

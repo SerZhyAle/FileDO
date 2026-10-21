@@ -96,9 +96,6 @@ Module Theme
         Public Property StateOk As Color         ' palette.json state.ok
         Public Property StateWarning As Color    ' palette.json state.warning
         Public Property StateError As Color      ' palette.json state.error
-        Public Property AnswerOkBack As Color    ' an affirmative answer's face: state.ok tinted
-        Public Property AnswerErrorBack As Color ' a dismissing answer's face: state.error tinted
-        Public Property AnswerWarningBack As Color ' a caution answer's face: state.warning tinted
     End Class
 
     ' The tokens are the ones the product's own pages use, so the window and the site are visibly
@@ -173,12 +170,9 @@ Module Theme
         p.BandHover = Blend(p.SurfaceBand, p.Text, 0.07F)
         p.TextDisabled = Blend(p.MutedText, p.SurfaceAlt, 0.2F)
         p.Link = p.Accent
-        ' A dialog answer's face: the answer's hue at about 12 percent over the control face, so the
-        ' OK and Cancel pair reads as a pair (WINDOWS-UI 0.4 section 11 item 4). Under high contrast
-        ' the tint is not drawn at all - the system colours replace hue and tint together (item 6).
-        p.AnswerOkBack = If(p.HighContrast, p.SurfaceAlt, Blend(p.SurfaceAlt, p.StateOk, 0.12F))
-        p.AnswerErrorBack = If(p.HighContrast, p.SurfaceAlt, Blend(p.SurfaceAlt, p.StateError, 0.12F))
-        p.AnswerWarningBack = If(p.HighContrast, p.SurfaceAlt, Blend(p.SurfaceAlt, p.StateWarning, 0.12F))
+        ' A dialog answer's face is the ordinary control face (BUTTONS 2.0 section 3 rule 5: no
+        ' decorative green or red tint on a non-destructive answer); the answer's hue is on its glyph
+        ' alone, so there is no answer-face role here any more.
         Return p
     End Function
 
@@ -240,8 +234,7 @@ Module Theme
             .ControlHover = SystemColors.Window, .SurfaceSelected = SystemColors.Window,
             .SurfaceBand = SystemColors.Window, .BandHover = SystemColors.Window,
             .Success = SystemColors.WindowText, .Warning = SystemColors.WindowText, .Danger = SystemColors.Highlight,
-            .StateOk = SystemColors.WindowText, .StateWarning = SystemColors.WindowText, .StateError = SystemColors.WindowText,
-            .AnswerOkBack = SystemColors.Window, .AnswerErrorBack = SystemColors.Window, .AnswerWarningBack = SystemColors.Window
+            .StateOk = SystemColors.WindowText, .StateWarning = SystemColors.WindowText, .StateError = SystemColors.WindowText
         }
     End Function
 

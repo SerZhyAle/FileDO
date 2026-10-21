@@ -59,6 +59,7 @@ $glyphIds = @(
     'action.image-to-file', 'action.install', 'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name',
     'action.remove', 'action.reset', 'action.run', 'action.save',
     'action.seal', 'action.secure', 'action.share', 'action.sort', 'action.unmount-disk', 'action.unsecure', 'action.verify', 'action.wipe',
+    'action.autoplay-disable', 'action.create-shortcut', 'action.skip',
     'app.command-line', 'app.help', 'app.info', 'app.settings', 'content.disk-container', 'content.folder',
     'content.history', 'content.partition-disk', 'content.secret-file',
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
@@ -72,8 +73,10 @@ $dataFiles = @('palette.json')
 # to the catalog's style by FileDO, shipped here, and proposed in the same change - see
 # iconography/PROPOSAL-2026-10-11-filedo-button-meanings.md in the catalog. The master file lives in
 # assets/glyph-sources/ and is copied beside the vendored set; the check pins it to that source, not
-# to the catalog, until the owner folds the record in and the id moves to $glyphIds.
-$provisionalIds = @('action.autoplay-disable', 'action.create-shortcut', 'action.skip')
+# to the catalog, until the owner folds the record in and the id moves to $glyphIds. None is open since
+# ICON-SET 0.31 recorded action.autoplay-disable, action.create-shortcut and action.skip (SP-0170,
+# 2026-10-21: the catalog files are byte-identical to the former masters, so nothing was redrawn).
+$provisionalIds = @()
 $provisionalSources = Join-Path $PSScriptRoot 'glyph-sources'
 
 $subject = 'sync-icon-glyphs'
@@ -226,8 +229,10 @@ $provenance.Add('Do not hand-edit the files in this folder. Regenerate with asse
 $provenance.Add("Catalog versions: $versionsText")
 $provenance.Add("Vocabulary SHA-256: $vocabularyHash")
 $provenance.Add('Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog')
-$provenance.Add('Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as ' +
-    'PROPOSAL-2026-10-11-filedo-button-meanings.md): ' + ($provisionalIds -join ', '))
+if ($provisionalIds.Count -gt 0) {
+    $provenance.Add('Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as ' +
+        'PROPOSAL-2026-10-11-filedo-button-meanings.md): ' + ($provisionalIds -join ', '))
+}
 $provenance.Add("Taken: $(Get-Date -Format 'yyyy-MM-dd')")
 $provenance.Add('Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt')
 $provenance.Add('')

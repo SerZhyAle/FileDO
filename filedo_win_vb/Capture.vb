@@ -178,7 +178,7 @@ Module Capture
 
     ' What the guide's picture of the window shows: a plausible machine, not the test fixture (whose paths
     ' are placeholders and whose mounts have no time). One line, the way `vd status json` prints it.
-    Private Function SampleSnapshotLine() As String
+    Friend Function SampleSnapshotLine() As String
         Const t As String = "2026-09-30T09:12:40+02:00"
         
         Dim disks As New List(Of String)

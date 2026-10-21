@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-STYLE` |
-| **Version** | 0.12, draft (no wire - a palette role vocabulary and a theme mechanism) |
+| **Version** | 0.13, read 2026-10-21 (SP-0170); implemented 0.12; the 0.13 state-fill roles are open, SP-0171 W9, draft (no wire - a palette role vocabulary and a theme mechanism) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/Theme.vb`, `Chrome.vb`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-STYLE.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |

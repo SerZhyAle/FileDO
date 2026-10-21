@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Help - Command</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Help index</a><span class="sep" aria-hidden="true">/</span><span>Command</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Window help</p>
+    <h1>Command</h1>
+    <p class="lead">Build a FileDO command by hand: pick an operation, point it at a target, tick the flags, read the command line and run it. The same line works in a terminal.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/command.en.dark.png" width="1457" height="903" alt="Command: the window with its numbered parts">
+      <img class="on-light" src="../img/command.en.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:20.9%" href="#e-operation" aria-label="1, Operation">1</a>
+      <a class="pin" style="--x:24.1%;--y:35.1%" href="#e-target" aria-label="2, Drive, folder or file">2</a>
+      <a class="pin" style="--x:24.1%;--y:48.6%" href="#e-parameter" aria-label="3, Extra parameters (optional)">3</a>
+      <a class="pin" style="--x:24.1%;--y:55.9%" href="#e-flags" aria-label="4, Flags">4</a>
+      <a class="pin" style="--x:24.1%;--y:78.3%" href="#e-commandline" aria-label="5, The command that will run - edit it freely">5</a>
+      <a class="pin" style="--x:24.1%;--y:82.9%" href="#e-run" aria-label="6, Run command">6</a>
+      <a class="pin" style="--x:36.9%;--y:82.3%" href="#e-stop" aria-label="7, Stop">7</a>
+      <a class="pin" style="--x:44.2%;--y:82.3%" href="#e-copy" aria-label="8, Copy command">8</a>
+      <a class="pin" style="--x:56.6%;--y:82.3%" href="#e-shortcut" aria-label="9, Create shortcut">9</a>
+      <a class="pin" style="--x:24.1%;--y:90.7%" href="#e-output" aria-label="10, Output">10</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="11, Help">11</a>
+    </div>
+    <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
+  </figure>
+
+  <h2>In this order</h2>
+  <ol class="order">
+    <li>Pick the operation <a class="ref" href="#e-operation">1</a>. The line under the list says what it does.</li>
+    <li>Choose the target <a class="ref" href="#e-target">2</a>.</li>
+    <li>Fill in the parameter <a class="ref" href="#e-parameter">3</a> if the operation takes one, and tick the flags <a class="ref" href="#e-flags">4</a> you need.</li>
+    <li>Read the command line <a class="ref" href="#e-commandline">5</a>. It is exactly what will run.</li>
+    <li>Press Run <a class="ref" href="#e-run">6</a>. Watch the output <a class="ref" href="#e-output">10</a>; Stop <a class="ref" href="#e-stop">7</a> ends the command.</li>
+  </ol>
+
+  <h2>The elements</h2>
+  <div class="elements">
+    <details class="el" id="e-operation">
+      <summary><span class="mk">1</span><span><span class="name">Operation</span><span class="one">Which FileDO operation to build.</span></span></summary>
+      <div class="full">
+        <p>The list holds every operation of the command line: checks, copies, wipes, secure files and virtual disks. The line under the list says in a sentence what the chosen one does and whether it changes anything.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The rest of the page adjusts: only the boxes and flags that apply to this operation are shown.</dd>
+          <dt>Undo</dt><dd>Choosing an operation changes nothing.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">Drive, folder or file</span><span class="one">The drive, folder or file the operation works on.</span></span></summary>
+      <div class="full">
+        <p>Type a full path or use Folder.. and File.. to browse. An operation that needs two places has a second box for the other one.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The command line below is rewritten.</dd>
+          <dt>Undo</dt><dd>Choosing a target changes nothing until you run.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-parameter">
+      <summary><span class="mk">3</span><span><span class="name">Extra parameters (optional)</span><span class="one">An extra value that some operations take.</span></span></summary>
+      <div class="full">
+        <p>A destination, a list file or a size, depending on the operation. The box is shown only when the operation takes one.</p>
+      </div>
+    </details>
+    <details class="el" id="e-flags">
+      <summary><span class="mk">4</span><span><span class="name">Flags</span><span class="one">Switches that change how the operation behaves.</span></span></summary>
+      <div class="full">
+        <p>Each flag is an option the command line spells as a word or a dash. Hover over a flag to see what it does. Only the flags that fit the chosen operation are shown.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The command line below changes as you tick.</dd>
+          <dt>Undo</dt><dd>Untick a flag to take it out again.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-commandline">
+      <summary><span class="mk">5</span><span><span class="name">The command that will run - edit it freely</span><span class="one">The command that will run.</span></span></summary>
+      <div class="full">
+        <p>Built from your choices; you can edit it by hand as well. It is exactly what Run starts, and you can copy it into a terminal. A password you type in its own box is not part of this line.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Editing the line changes nothing until you run it.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">6</span><span><span class="name">Run command</span><span class="one">Runs the command.</span></span></summary>
+      <div class="full">
+        <p>Starts the command shown above. A command that wipes or recovers a drive asks you to type a confirmation word first.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Progress and the output appear below.</dd>
+          <dt>Undo</dt><dd>It depends on the operation; the hint under the operation list says. Stop ends the command cleanly at any time.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">7</span><span><span class="name">Stop</span><span class="one">Asks the command to end cleanly.</span></span></summary>
+      <div class="full">
+        <p>The command finishes the piece it is doing and stops. If it does not, a second press offers to end it at once.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Work already done stays done.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">8</span><span><span class="name">Copy command</span><span class="one">Puts the command on the clipboard.</span></span></summary>
+      <div class="full">
+        <p>Copies the command line so you can paste it into a terminal, a script or a message. Nothing runs.</p>
+      </div>
+    </details>
+    <details class="el" id="e-shortcut">
+      <summary><span class="mk">9</span><span><span class="name">Create shortcut</span><span class="one">Makes a desktop shortcut that runs this command.</span></span></summary>
+      <div class="full">
+        <p>Writes a shortcut file on your desktop that starts the command in a console window. You choose its name and whether the window stays open at the end. A command that may wipe data shows a warning, and the console still asks for confirmation when the shortcut is used.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The shortcut appears on the desktop. Uninstalling FileDO does not remove it.</dd>
+          <dt>Undo</dt><dd>Delete the shortcut file to remove it.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">10</span><span><span class="name">Output</span><span class="one">What the command printed, as it runs.</span></span></summary>
+      <div class="full">
+        <p>The progress bar and the text of the command, live. When the command ends, a verdict line says whether it passed, failed or could not verify, and the report is added to History.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <div class="full">
+        <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The page opens in your web browser. FileDO stays open and nothing in it changes.</dd>
+          <dt>Shortcut</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Related</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>The job page</b><span class="pill">Window</span><small>How every job is done: choose, set, read the plan, run.</small></a></li>
+    <li><a href="history.html"><b>History</b><span class="pill">Window</span><small>The report of every finished run.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Guide: the window and the command builder</b><span class="pill gold">Site</span><small>Every page of the window, with pictures.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Glossary</b><span class="pill gold">Site</span><small>What FileDO means by container, wipe, mount and the rest.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Help index</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

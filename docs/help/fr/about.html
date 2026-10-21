@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - À propos</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Index de l'aide</a><span class="sep" aria-hidden="true">/</span><span>À propos</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Aide de la fenêtre</p>
+    <h1>À propos</h1>
+    <p class="lead">Quelle version de FileDO s'exécute, qui l'a faite, où lire la suite et comment demander de l'aide. FileDO lui-même n'envoie rien nulle part.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/about.fr.dark.png" width="1457" height="903" alt="À propos : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/about.fr.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:13.6%" href="#e-build" aria-label="1, Version de l'interface">1</a>
+      <a class="pin" style="--x:24.1%;--y:18.9%" href="#e-author" aria-label="2, Auteur">2</a>
+      <a class="pin" style="--x:24.1%;--y:27.5%" href="#e-links" aria-label="3, Liens">3</a>
+      <a class="pin" style="--x:24.1%;--y:48.9%" href="#e-license" aria-label="4, Licence">4</a>
+      <a class="pin" style="--x:24.1%;--y:56.4%" href="#e-logs" aria-label="5, Envoyer les logs à l'auteur">5</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="6, Aide">6</a>
+    </div>
+    <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
+  </figure>
+
+  <h2>Dans cet ordre</h2>
+  <ol class="order">
+    <li>Lisez la version <a class="ref" href="#e-build">1</a> si vous devez dire à l'auteur laquelle vous avez.</li>
+    <li>Suivez un lien <a class="ref" href="#e-links">3</a> vers le site, le code source ou le suivi des problèmes.</li>
+    <li>Si quelque chose tourne mal, envoyez les journaux <a class="ref" href="#e-logs">5</a> - vous les voyez d'abord vous-même.</li>
+  </ol>
+
+  <h2>Les éléments</h2>
+  <div class="elements">
+    <details class="el" id="e-build">
+      <summary><span class="mk">1</span><span><span class="name">Version de l'interface</span><span class="one">Quelle version de la fenêtre et du programme s'exécute.</span></span></summary>
+      <div class="full">
+        <p>La première ligne est la version de cette fenêtre, la seconde le filedo.exe avec lequel elle travaille. Citez les deux quand vous signalez un problème. Si la seconde ligne dit que le programme n'est pas à côté de la fenêtre, FileDO le cherche dans le PATH ou parmi les alias du Store.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Lire une version ne change rien.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-author">
+      <summary><span class="mk">2</span><span><span class="name">Auteur</span><span class="one">Qui a écrit FileDO.</span></span></summary>
+      <div class="full">
+        <p>Le nom sous lequel FileDO est publié. L'adresse e-mail de l'auteur figure parmi les liens ci-dessous.</p>
+      </div>
+    </details>
+    <details class="el" id="e-links">
+      <summary><span class="mk">3</span><span><span class="name">Liens</span><span class="one">Où lire la suite, obtenir le code source ou signaler un problème.</span></span></summary>
+      <div class="full">
+        <p>L'aide (ces pages, sur votre machine), le site avec les téléchargements et les guides, le code source, le suivi des problèmes, la déclaration de confidentialité, les autres programmes de l'auteur et son adresse e-mail. Un lien n'est suivi que si vous cliquez dessus.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le lien s'ouvre dans votre navigateur ou votre programme de messagerie. FileDO reste ouvert.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-license">
+      <summary><span class="mk">4</span><span><span class="name">Licence</span><span class="one">Licence MIT. Libre d'utilisation, le code source est ouvert.</span></span></summary>
+      <div class="full">
+        <p>FileDO est un logiciel libre sous licence MIT : vous pouvez l'utiliser, le copier, le modifier et le partager. Le code source est public, et la déclaration de confidentialité dit que rien n'est envoyé nulle part.</p>
+      </div>
+    </details>
+    <details class="el" id="e-logs">
+      <summary><span class="mk">5</span><span><span class="name">Envoyer les logs à l'auteur</span><span class="one">Réunit les fichiers journaux dans un zip pour l'auteur.</span></span></summary>
+      <div class="full">
+        <p>Rassemble les journaux de FileDO trouvés sur cette machine dans un zip, vous montre le zip et ouvre votre programme de messagerie avec un message pour l'auteur. Rien n'est envoyé tant que vous n'envoyez pas le courrier vous-même.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Un dossier avec le zip s'ouvre, ainsi qu'un nouveau message indiquant l'emplacement du zip.</dd>
+          <dt>Annuler</dt><dd>Fermez le message sans l'envoyer et rien ne quitte votre machine.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">6</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <div class="full">
+        <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page s'ouvre dans votre navigateur. FileDO reste ouvert et rien n'y change.</dd>
+          <dt>Raccourci</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Voir aussi</h2>
+  <ul class="related">
+    <li><a href="settings.html"><b>Réglages</b><span class="pill">Fenêtre</span><small>Apparence, langue, historique et démarrage.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Assistance</b><span class="pill gold">Site</span><small>Poser une question ou signaler un problème.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Confidentialité</b><span class="pill gold">Site</span><small>Aucune télémétrie : ce qui reste sur votre machine.</small></a></li>
+    <li><a href="https://sza.od.ua"><b>Autres outils de l'auteur</b><span class="pill gold">Auteur</span><small>Les autres programmes de l'auteur.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Index de l'aide</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

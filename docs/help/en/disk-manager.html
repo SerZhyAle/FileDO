@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Help - FileDO - Disk manager</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Help index</a><span class="sep" aria-hidden="true">/</span><span>FileDO - Disk manager</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Window help</p>
+    <h1>FileDO - Disk manager</h1>
+    <p class="lead">Keep your virtual disks in one list: create a disk, add one you already have, mount it as a drive, open it, save it and unmount it. A virtual disk is one .fdd file that Windows shows as a drive.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/disk-manager.en.dark.png" width="1052" height="733" alt="FileDO - Disk manager: the window with its numbered parts">
+      <img class="on-light" src="../img/disk-manager.en.light.png" width="1052" height="733" alt="">
+      <a class="pin" style="--x:1.6%;--y:1.6%" href="#e-new" aria-label="1, New disk..">1</a>
+      <a class="pin" style="--x:15.3%;--y:1.6%" href="#e-add" aria-label="2, Add..">2</a>
+      <a class="pin" style="--x:27.1%;--y:1.6%" href="#e-mount" aria-label="3, Mount">3</a>
+      <a class="pin" style="--x:38.4%;--y:1.6%" href="#e-unmount" aria-label="4, Unmount">4</a>
+      <a class="pin" style="--x:51.8%;--y:1.6%" href="#e-open" aria-label="5, Open">5</a>
+      <a class="pin" style="--x:62.3%;--y:1.6%" href="#e-save" aria-label="6, Save">6</a>
+      <a class="pin" style="--x:73.7%;--y:1.6%" href="#e-more" aria-label="7, More actions">7</a>
+      <a class="pin" style="--x:91.2%;--y:1.6%" href="#e-refresh" aria-label="8, Refresh">8</a>
+      <a class="pin" style="--x:1.6%;--y:8.7%" href="#e-settings" aria-label="9, Settings">9</a>
+      <a class="pin" style="--x:8.2%;--y:8.7%" href="#e-main" aria-label="10, FileDO operations">10</a>
+      <a class="pin" style="--x:28.5%;--y:8.7%" href="#e-help" aria-label="11, Help">11</a>
+      <a class="pin" style="--x:7.2%;--y:17.2%" href="#e-filter" aria-label="12, Filter the disks">12</a>
+      <a class="pin" style="--x:0.2%;--y:22.9%" href="#e-list" aria-label="13, The list of disks">13</a>
+      <a class="pin" style="--x:0.2%;--y:58.7%" href="#e-detail" aria-label="14, Details">14</a>
+      <a class="pin" style="--x:0.2%;--y:94.3%" href="#e-strip" aria-label="15, Status strip">15</a>
+    </div>
+    <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
+  </figure>
+
+  <h2>In this order</h2>
+  <ol class="order">
+    <li>Create a disk with New disk <a class="ref" href="#e-new">1</a>, or add a .fdd file you already have with Add <a class="ref" href="#e-add">2</a>.</li>
+    <li>Select it in the list <a class="ref" href="#e-list">13</a>. The details <a class="ref" href="#e-detail">14</a> say what it is and what can be done with it now.</li>
+    <li>Press Mount <a class="ref" href="#e-mount">3</a>. Windows asks for your consent each time.</li>
+    <li>Work in the new drive; Open <a class="ref" href="#e-open">5</a> shows it in Explorer.</li>
+    <li>Press Unmount <a class="ref" href="#e-unmount">4</a> when you are done. A ram disk is saved first, and Save <a class="ref" href="#e-save">6</a> writes it earlier.</li>
+  </ol>
+
+  <h2>The elements</h2>
+  <div class="elements">
+    <details class="el" id="e-new">
+      <summary><span class="mk">1</span><span><span class="name">New disk..</span><span class="one">Create a new virtual disk: one .fdd file that Windows shows as a drive</span></span></summary>
+      <div class="full">
+        <p>Opens the page for creating a disk in the main window, where you choose the file, the size and the kind of disk, including its protection. The disk joins the list when it has been made.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>You press Run on that page; the Disk Manager stays open and shows the new disk.</dd>
+          <dt>Undo</dt><dd>Nothing is created until you press Run on that page.</dd>
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>N</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-add">
+      <summary><span class="mk">2</span><span><span class="name">Add..</span><span class="one">Add .fdd containers to the list - or drop them on it</span></span></summary>
+      <div class="full">
+        <p>Choose one or more .fdd files, or drop them on the list. The list only remembers where they are: the files are not copied, moved or changed.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Remove a name from the list at any time; that touches no file.</dd>
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-mount">
+      <summary><span class="mk">3</span><span><span class="name">Mount</span><span class="one">Attach the selected disks as drives. Windows asks for consent for each</span></span></summary>
+      <div class="full">
+        <p>Attaches each selected disk as a drive with its own letter. Windows asks for administrator consent each time, and a disk with a password asks for it. More actions offers Mount read-only, which keeps the disk from being changed.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The row shows the drive letter and the state Mounted.</dd>
+          <dt>Undo</dt><dd>Unmount detaches the drive again; the file keeps everything.</dd>
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>M</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-unmount">
+      <summary><span class="mk">4</span><span><span class="name">Unmount</span><span class="one">Detach the drives of the selected disks. The files keep everything</span></span></summary>
+      <div class="full">
+        <p>Detaches the drives of the selected disks. A ram disk writes what it keeps in memory to its file first.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The row goes back to Not mounted, and the drive letter is free again.</dd>
+          <dt>Undo</dt><dd>Mount brings the disk back, with everything you wrote.</dd>
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>U</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">5</span><span><span class="name">Open</span><span class="one">Open the drive of the selected disk in Explorer</span></span></summary>
+      <div class="full">
+        <p>Shows the drive of the selected mounted disk in Explorer. A double-click on a mounted row does the same.</p>
+        <dl class="facts">
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>E</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-save">
+      <summary><span class="mk">6</span><span><span class="name">Save</span><span class="one">Write what a ram disk keeps in memory back to its file now</span></span></summary>
+      <div class="full">
+        <p>A ram disk keeps what you write in memory. Save writes it to the file now, so a power cut costs less. Unmounting saves first, so Save is for a safe point in a long session. It is offered for ram disks only.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Saving only writes the file; you can go on working.</dd>
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-more">
+      <summary><span class="mk">7</span><span><span class="name">More actions</span><span class="one">Every operation for the selected disks, and the list's columns</span></span></summary>
+      <div class="full">
+        <p>The menu with every operation for the selected disks - verify, compact, grow, format, change the password, share, destroy and more - and the choice of columns of the list. An operation that does not apply now is unavailable, and the details say why.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>An operation that changes a disk opens its own page in the main window, which asks before it runs.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">8</span><span><span class="name">Refresh</span><span class="one">Read the state of the disks again</span></span></summary>
+      <div class="full">
+        <p>Reads the state of every disk again. The list also refreshes by itself; use this after you changed something outside FileDO.</p>
+        <dl class="facts">
+          <dt>Shortcut</dt><dd><kbd>F5</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-settings">
+      <summary><span class="mk">9</span><span><span class="name">Settings</span><span class="one">Opens the settings.</span></span></summary>
+      <div class="full">
+        <p>Opens Settings: the theme, the language and what FileDO does when Windows starts. They are the same settings as in the main window.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Settings apply at once and can be set back.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-main">
+      <summary><span class="mk">10</span><span><span class="name">FileDO operations</span><span class="one">Open the FileDO main window with all its operations: checks, copies, secure files, wipes and more</span></span></summary>
+      <div class="full">
+        <p>Brings the FileDO main window forward. It holds every operation that is not about disks: checks, copies, secure files and wipes.</p>
+        <dl class="facts">
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <div class="full">
+        <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The page opens in your web browser. FileDO stays open and nothing in it changes.</dd>
+          <dt>Shortcut</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-filter">
+      <summary><span class="mk">12</span><span><span class="name">Filter the disks</span><span class="one">Show only the disks that match a name, a drive letter, a path or a state</span></span></summary>
+      <div class="full">
+        <p>Type part of a name, a drive letter, a path or a state to show only the matching disks. The cross beside the box, or Esc, clears it.</p>
+        <dl class="facts">
+          <dt>Shortcut</dt><dd><kbd>Ctrl</kbd> + <kbd>F</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">13</span><span><span class="name">The list of disks</span><span class="one">Every disk FileDO knows about, one row each.</span></span></summary>
+      <div class="full">
+        <p>The disks in your list, the ones mounted now and the disk images FileDO mounted. A row shows the name, the drive letter, the size, the kind of protection and a state. A double-click mounts a disk at rest and opens the drive of a mounted one. The states are listed below.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Removing a name from the list touches no file.</dd>
+        </dl>
+        <dl class="facts states">
+          <dt>Mounted</dt><dd>The drive is there and its block server is running. A double-click opens it in Explorer.</dd>
+          <dt>Mounted, not saved</dt><dd>A ram disk keeps its writes in memory; the amount shown is not in the file yet. Save now writes it, and unmounting saves first.</dd>
+          <dt>Server gone - volume offline</dt><dd>The block server behind the drive stopped, so the volume is offline. Unmount the disk to clean up.</dd>
+          <dt>Image mounted</dt><dd>A disk image (VHD, VHDX or ISO) that FileDO mounted. Unmount it here when you are done.</dd>
+          <dt>Not mounted</dt><dd>Ready. A double-click mounts it.</dd>
+          <dt>Not closed cleanly</dt><dd>It was not closed cleanly last time. The next mount reports it, and Windows checks the volume as after a power loss.</dd>
+          <dt>File missing</dt><dd>The file is not at its path any more. Put it back, or remove the name from the list - that touches no file.</dd>
+          <dt>A different container is at this path</dt><dd>Another container is at this path now. Remove the old name and add this file again if it is the one you mean.</dd>
+          <dt>Unreadable</dt><dd>The header of the file cannot be read. The details say why.</dd>
+          <dt>Working..</dt><dd>An operation you started is running on it, or waits for its turn.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-detail">
+      <summary><span class="mk">14</span><span><span class="name">Details</span><span class="one">What the selected disk is, and what can be done now.</span></span></summary>
+      <div class="full">
+        <p>Shows the file, the kind, the size and the state of the selected disk, with the buttons for what can be done with it now. An operation that is not offered says why. With several disks selected, the buttons act on all of them, one after another.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>A button either does its work here or opens the page of that operation in the main window.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-strip">
+      <summary><span class="mk">15</span><span><span class="name">Status strip</span><span class="one">What is running, and what is waiting.</span></span></summary>
+      <div class="full">
+        <p>The first line says how many disks are mounted and how fresh the information is. The second shows the operation that is running or how the last one ended. Stop ends the running operation cleanly, and Clear the queue drops the ones that are waiting.</p>
+      </div>
+    </details>
+    <details class="el" id="e-keyboard">
+      <summary><span class="mk">16</span><span><span class="name">Keyboard</span><span class="one">Every key of this window.</span></span></summary>
+      <div class="full">
+        <p>The Disk Manager can be used from the keyboard alone. This is the whole map of its keys; the same table drives the keys, the tooltips and the menus, so it cannot list a key that does not work.</p>
+        <dl class="facts keys">
+          <dt><kbd>Ctrl</kbd> + <kbd>N</kbd></dt><dd>New disk..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dt><dd>FileDO operations</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Add..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>M</kbd></dt><dd>Mount</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd></dt><dd>Mount read-only</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>U</kbd></dt><dd>Unmount</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>E</kbd></dt><dd>Open in Explorer</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Save now</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></dt><dd>Share with Fast Media Sorter &amp; Sharing..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Info</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Verify</dd>
+          <dt><kbd>Enter</kbd></dt><dd>Mount a disk at rest, or open the drive of a mounted one</dd>
+          <dt><kbd>Del</kbd></dt><dd>Remove from list</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Copy path</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Select every disk in the list</dd>
+          <dt><kbd>Menu</kbd></dt><dd>Open the menu of the selected disk</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Open the menu of the selected disk</dd>
+          <dt><kbd>F5</kbd></dt><dd>Refresh</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>Go to the filter box</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Clear the filter</dd>
+          <dt><kbd>F1</kbd></dt><dd>Open this help</dd>
+        </dl>
+        <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
+      </div>
+    </details>
+  </div>
+
+  <h2>Related</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>The job page</b><span class="pill">Window</span><small>The Disks jobs of the main window do the same things one page at a time.</small></a></li>
+    <li><a href="settings.html"><b>Settings</b><span class="pill">Window</span><small>Theme, language, history and startup.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html"><b>Guide: virtual disks</b><span class="pill gold">Site</span><small>The whole task, start to finish.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html"><b>Guide: sharing disks</b><span class="pill gold">Site</span><small>Sharing a mounted disk through Fast Media Sorter and Sharing.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter and Sharing</b><span class="pill gold">Sibling product</span><small>The sibling program that shares a mounted disk with other devices.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Glossary</b><span class="pill gold">Site</span><small>What FileDO means by container, wipe, mount and the rest.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Help index</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

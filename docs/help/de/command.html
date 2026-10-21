@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="de" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Hilfe - Befehl</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Hilfe-Übersicht</a><span class="sep" aria-hidden="true">/</span><span>Befehl</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Hilfe zum Fenster</p>
+    <h1>Befehl</h1>
+    <p class="lead">Bauen Sie einen FileDO-Befehl von Hand: Wählen Sie eine Operation, richten Sie sie auf ein Ziel, setzen Sie die Flags, lesen Sie die Befehlszeile und führen Sie sie aus. Dieselbe Zeile funktioniert im Terminal.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/command.de.dark.png" width="1457" height="903" alt="Befehl: das Fenster mit seinen nummerierten Teilen">
+      <img class="on-light" src="../img/command.de.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:20.9%" href="#e-operation" aria-label="1, Operation">1</a>
+      <a class="pin" style="--x:24.1%;--y:35.1%" href="#e-target" aria-label="2, Laufwerk, Ordner oder Datei">2</a>
+      <a class="pin" style="--x:24.1%;--y:48.6%" href="#e-parameter" aria-label="3, Weitere Parameter (optional)">3</a>
+      <a class="pin" style="--x:24.1%;--y:55.9%" href="#e-flags" aria-label="4, Flags">4</a>
+      <a class="pin" style="--x:24.1%;--y:78.3%" href="#e-commandline" aria-label="5, Der Befehl, der ausgeführt wird - frei bearbeitbar">5</a>
+      <a class="pin" style="--x:24.1%;--y:82.9%" href="#e-run" aria-label="6, Befehl ausführen">6</a>
+      <a class="pin" style="--x:38.2%;--y:82.3%" href="#e-stop" aria-label="7, Anhalten">7</a>
+      <a class="pin" style="--x:47.9%;--y:82.3%" href="#e-copy" aria-label="8, Befehl kopieren">8</a>
+      <a class="pin" style="--x:60.1%;--y:82.3%" href="#e-shortcut" aria-label="9, Verknüpfung erstellen">9</a>
+      <a class="pin" style="--x:24.1%;--y:90.7%" href="#e-output" aria-label="10, Ausgabe">10</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="11, Hilfe">11</a>
+    </div>
+    <figcaption>Beispieldaten. Wählen Sie eine Nummer, um mehr über diesen Teil des Fensters zu lesen.</figcaption>
+  </figure>
+
+  <h2>In dieser Reihenfolge</h2>
+  <ol class="order">
+    <li>Wählen Sie die Operation <a class="ref" href="#e-operation">1</a>. Die Zeile unter der Liste sagt, was sie tut.</li>
+    <li>Wählen Sie das Ziel <a class="ref" href="#e-target">2</a>.</li>
+    <li>Tragen Sie den Parameter <a class="ref" href="#e-parameter">3</a> ein, falls die Operation einen nimmt, und setzen Sie die benötigten Flags <a class="ref" href="#e-flags">4</a>.</li>
+    <li>Lesen Sie die Befehlszeile <a class="ref" href="#e-commandline">5</a>. Sie ist genau das, was ausgeführt wird.</li>
+    <li>Drücken Sie Befehl ausführen <a class="ref" href="#e-run">6</a>. Beobachten Sie die Ausgabe <a class="ref" href="#e-output">10</a>; Anhalten <a class="ref" href="#e-stop">7</a> beendet den Befehl.</li>
+  </ol>
+
+  <h2>Die Elemente</h2>
+  <div class="elements">
+    <details class="el" id="e-operation">
+      <summary><span class="mk">1</span><span><span class="name">Operation</span><span class="one">Welche FileDO-Operation gebaut wird.</span></span></summary>
+      <div class="full">
+        <p>Die Liste enthält jede Operation der Befehlszeile: Prüfungen, Kopien, Löschen, geheime Dateien und virtuelle Datenträger. Die Zeile unter der Liste sagt in einem Satz, was die gewählte Operation tut und ob sie etwas verändert.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Der Rest der Seite passt sich an: Es werden nur die Felder und Flags gezeigt, die zu dieser Operation gehören.</dd>
+          <dt>Rückgängig</dt><dd>Eine Operation zu wählen ändert nichts.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">Laufwerk, Ordner oder Datei</span><span class="one">Das Laufwerk, der Ordner oder die Datei, mit der die Operation arbeitet.</span></span></summary>
+      <div class="full">
+        <p>Geben Sie einen vollständigen Pfad ein oder suchen Sie ihn über die Schaltflächen Ordner.. und Datei.. aus. Braucht eine Operation zwei Orte, gibt es für den anderen ein zweites Feld.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Befehlszeile darunter wird neu geschrieben.</dd>
+          <dt>Rückgängig</dt><dd>Ein Ziel zu wählen ändert nichts, bis Sie den Befehl ausführen.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-parameter">
+      <summary><span class="mk">3</span><span><span class="name">Weitere Parameter (optional)</span><span class="one">Ein zusätzlicher Wert, den manche Operationen annehmen.</span></span></summary>
+      <div class="full">
+        <p>Ein Zielordner, eine Listendatei oder eine Größe, je nach Operation. Das Feld wird nur gezeigt, wenn die Operation einen Wert annimmt.</p>
+      </div>
+    </details>
+    <details class="el" id="e-flags">
+      <summary><span class="mk">4</span><span><span class="name">Flags</span><span class="one">Schalter, die das Verhalten der Operation ändern.</span></span></summary>
+      <div class="full">
+        <p>Jedes Flag ist eine Option, die die Befehlszeile als Wort oder mit Bindestrich schreibt. Zeigen Sie mit der Maus auf ein Flag, um zu sehen, was es tut. Es werden nur die Flags gezeigt, die zur gewählten Operation passen.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Befehlszeile darunter ändert sich mit Ihren Häkchen.</dd>
+          <dt>Rückgängig</dt><dd>Nehmen Sie das Häkchen weg, um das Flag wieder zu entfernen.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-commandline">
+      <summary><span class="mk">5</span><span><span class="name">Der Befehl, der ausgeführt wird - frei bearbeitbar</span><span class="one">Der Befehl, der ausgeführt wird.</span></span></summary>
+      <div class="full">
+        <p>Wird aus Ihrer Auswahl gebaut; Sie können sie auch von Hand bearbeiten. Sie ist genau das, was Ausführen startet, und lässt sich in ein Terminal kopieren. Ein Passwort, das Sie in sein eigenes Feld eingeben, gehört nicht zu dieser Zeile.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Die Zeile zu bearbeiten ändert nichts, bis Sie sie ausführen.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">6</span><span><span class="name">Befehl ausführen</span><span class="one">Führt den Befehl aus.</span></span></summary>
+      <div class="full">
+        <p>Startet den oben gezeigten Befehl. Ein Befehl, der löscht oder ein Laufwerk wiederherstellt, verlangt zuerst ein Bestätigungswort.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Fortschritt und Ausgabe erscheinen darunter.</dd>
+          <dt>Rückgängig</dt><dd>Das hängt von der Operation ab; der Hinweis unter der Operationsliste sagt es. Anhalten beendet den Befehl jederzeit sauber.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">7</span><span><span class="name">Anhalten</span><span class="one">Bittet den Befehl, sauber zu enden.</span></span></summary>
+      <div class="full">
+        <p>Der Befehl beendet das Stück, an dem er arbeitet, und hält an. Tut er das nicht, bietet ein zweiter Druck an, ihn sofort zu beenden.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Bereits Erledigtes bleibt erledigt.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">8</span><span><span class="name">Befehl kopieren</span><span class="one">Legt den Befehl in die Zwischenablage.</span></span></summary>
+      <div class="full">
+        <p>Kopiert die Befehlszeile, damit Sie sie in ein Terminal, ein Skript oder eine Nachricht einfügen können. Nichts wird ausgeführt.</p>
+      </div>
+    </details>
+    <details class="el" id="e-shortcut">
+      <summary><span class="mk">9</span><span><span class="name">Verknüpfung erstellen</span><span class="one">Erstellt eine Verknüpfung auf dem Desktop, die diesen Befehl ausführt.</span></span></summary>
+      <div class="full">
+        <p>Schreibt eine Verknüpfungsdatei auf Ihren Desktop, die den Befehl in einem Konsolenfenster startet. Sie wählen den Namen und ob das Fenster am Ende offen bleibt. Ein Befehl, der Daten löschen kann, zeigt eine Warnung, und die Konsole fragt beim Benutzen der Verknüpfung trotzdem nach einer Bestätigung.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Verknüpfung erscheint auf dem Desktop. Das Deinstallieren von FileDO entfernt sie nicht.</dd>
+          <dt>Rückgängig</dt><dd>Löschen Sie die Verknüpfungsdatei, um sie zu entfernen.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">10</span><span><span class="name">Ausgabe</span><span class="one">Was der Befehl ausgibt, während er läuft.</span></span></summary>
+      <div class="full">
+        <p>Der Fortschrittsbalken und der Text des Befehls, live. Wenn der Befehl endet, sagt eine Urteilszeile, ob er bestanden hat, durchgefallen ist oder nicht geprüft werden konnte, und der Bericht wird dem Verlauf hinzugefügt.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Hilfe</span><span class="one">Öffnet die Seite, die Sie gerade lesen.</span></span></summary>
+      <div class="full">
+        <p>Jedes FileDO-Fenster hat diese Schaltfläche oben rechts. Sie öffnet die Hilfeseite des Fensters, in dem Sie sich befinden - mit Bild und Erklärung jedes Teils, in Ihrer Sprache.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Seite öffnet sich in Ihrem Browser. FileDO bleibt geöffnet, und nichts darin ändert sich.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Siehe auch</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Die Aufgabenseite</b><span class="pill">Fenster</span><small>Wie jede Aufgabe erledigt wird: wählen, einstellen, Plan lesen, ausführen.</small></a></li>
+    <li><a href="history.html"><b>Verlauf</b><span class="pill">Fenster</span><small>Der Bericht jedes abgeschlossenen Laufs.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Anleitung: das Fenster und der Befehlsgenerator</b><span class="pill gold">Website</span><small>Jede Seite des Fensters, mit Bildern.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Glossar</b><span class="pill gold">Website</span><small>Was FileDO unter Container, Löschen, Einbinden und dem Rest versteht.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Aufgenommen mit FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Hilfe-Übersicht</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Eine Frage stellen oder ein Problem melden</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

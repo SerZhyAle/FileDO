@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-FORMAT` |
-| **Version** | 1.3 (wire carrier: format version byte 1, suite id 1 - one file - or 3 - one directory tree; suite 2 - one file, no head - is found by opening, section 13.4) |
+| **Version** | 1.4, read 2026-10-21 (SP-0170); implemented 1.3; the portable-name rules are SP-0171 W1 to W3 (wire carrier: format version byte 1, suite id 1 - one file - or 3 - one directory tree; suite 2 - one file, no head - is found by opening, section 13.4) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FDSEC-FORMAT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |

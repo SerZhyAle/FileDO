@@ -120,19 +120,24 @@ Module Localization
         Return key
     End Function
 
-    Public Function GetDict(lang As String) As Dictionary(Of String, String)
-        Dim src As String()
+    ' The help pages' words are a second set of tables (HelpStrings, one file per language), merged here
+    ' so a help page, a layer and the UI draw on one source (CONTEXT-HELP rule 13).
+    Private Function TableFor(lang As String) As String()
         Select Case lang
-            Case "ru" : src = RuLines()
-            Case "uk" : src = UkLines()
-            Case "de" : src = DeLines()
-            Case "fr" : src = FrLines()
-            Case Else : src = EnLines()
+            Case "ru" : Return RuLines().Concat(HelpStrings.RuLines()).ToArray()
+            Case "uk" : Return UkLines().Concat(HelpStrings.UkLines()).ToArray()
+            Case "de" : Return DeLines().Concat(HelpStrings.DeLines()).ToArray()
+            Case "fr" : Return FrLines().Concat(HelpStrings.FrLines()).ToArray()
+            Case Else : Return EnLines().Concat(HelpStrings.EnLines()).ToArray()
         End Select
+    End Function
+
+    Public Function GetDict(lang As String) As Dictionary(Of String, String)
+        Dim src As String() = TableFor(lang)
         Dim d As New Dictionary(Of String, String)
         ' English is the fallback for any key a translation forgot.
         If lang <> "en" Then
-            For Each ln As String In EnLines()
+            For Each ln As String In TableFor("en")
                 Dim j As Integer = ln.IndexOf("|"c)
                 If j > 0 Then d(ln.Substring(0, j)) = ln.Substring(j + 1)
             Next
@@ -147,14 +152,7 @@ Module Localization
     ' The keys one table holds itself, without the English fallback GetDict adds - so the self-test
     ' can fail a key added to English alone, which a merged dictionary would hide (SP-0004 7.3).
     Friend Function OwnKeysForTest(lang As String) As HashSet(Of String)
-        Dim src As String()
-        Select Case lang
-            Case "ru" : src = RuLines()
-            Case "uk" : src = UkLines()
-            Case "de" : src = DeLines()
-            Case "fr" : src = FrLines()
-            Case Else : src = EnLines()
-        End Select
+        Dim src As String() = TableFor(lang)
         Dim keys As New HashSet(Of String)(StringComparer.Ordinal)
         For Each ln As String In src
             Dim i As Integer = ln.IndexOf("|"c)

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Hilfe - FileDO-Hilfe</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <header class="hero">
+    <p class="kicker">Hilfe</p>
+    <h1>FileDO-Hilfe</h1>
+    <p class="lead">Eine Seite für jedes Fenster von FileDO: wofür seine Teile da sind und in welcher Reihenfolge man sie benutzt. Drücken Sie in jedem Fenster F1 oder die Schaltfläche ? oben rechts, um die Seite zu diesem Fenster zu öffnen.</p>
+  </header>
+
+  <h2>Das Hauptfenster</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Die Aufgabenseite</b><span class="pill">Fenster</span><small>Wie jede Aufgabe erledigt wird: wählen, einstellen, Plan lesen, ausführen.</small></a></li>
+    <li><a href="command.html"><b>Befehl</b><span class="pill">Fenster</span><small>Dieselben Operationen als Befehlszeile geschrieben.</small></a></li>
+    <li><a href="settings.html"><b>Einstellungen</b><span class="pill">Fenster</span><small>Darstellung, Sprache, Verlauf und Autostart.</small></a></li>
+    <li><a href="about.html"><b>Über</b><span class="pill">Fenster</span><small>Version, Links und Support.</small></a></li>
+    <li><a href="history.html"><b>Verlauf</b><span class="pill">Fenster</span><small>Der Bericht jedes abgeschlossenen Laufs.</small></a></li>
+  </ul>
+
+  <h2>Die Datenträgerverwaltung</h2>
+  <ul class="related">
+    <li><a href="disk-manager.html"><b>FileDO - Datenträgerverwaltung</b><span class="pill">Fenster</span><small>Das Fenster für virtuelle Datenträger: erstellen, einbinden, öffnen, speichern und trennen.</small></a></li>
+  </ul>
+
+  <h2>Auf der Website</h2>
+  <ul class="related">
+    <li><a href="https://serzhyale.github.io/FileDO/guides/"><b>Alle Anleitungen</b><span class="pill gold">Website</span><small>Alle Anleitungen der Website, mit Bildern.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Support</b><span class="pill gold">Website</span><small>Eine Frage stellen oder ein Problem melden.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Datenschutz</b><span class="pill gold">Website</span><small>Keine Telemetrie: was auf Ihrem Rechner bleibt.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Aufgenommen mit FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Eine Frage stellen oder ein Problem melden</a>
+  </footer>
+</main>
+</body>
+</html>

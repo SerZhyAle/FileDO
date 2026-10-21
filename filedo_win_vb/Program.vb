@@ -20,8 +20,11 @@ Imports System.Threading
 Module Program
 
     Private Declare Function SetForegroundWindow Lib "user32" (hWnd As IntPtr) As Boolean
-    Private Declare Function ShowWindow Lib "user32" (hWnd As IntPtr, nCmdShow As Integer) As Boolean
+    ' Posts the request to the window's own thread; ShowWindow would wait for it, and a hung first copy
+    ' would hold this start (APP-ACTIVATION 0.13, a hung receiver).
+    Private Declare Function ShowWindowAsync Lib "user32" (hWnd As IntPtr, nCmdShow As Integer) As Boolean
     Private Declare Function IsIconic Lib "user32" (hWnd As IntPtr) As Boolean
+    Private Declare Function IsHungAppWindow Lib "user32" (hWnd As IntPtr) As Boolean
     Private Const SW_RESTORE As Integer = 9
 
     ' SHELL-12: the single-instance claim, held for the life of the process. A named mutex in the
@@ -74,6 +77,15 @@ Module Program
             Return
         End If
 
+        ' `--build-help <folder>` writes the help pages (HelpPages.vb) and the pictures they show, in every
+        ' language and both themes, from the real windows, and exits: 0 when every file was written, 1
+        ' otherwise. Like --capture-screens it builds windows and writes no setting of the user's.
+        Dim helpAt = Array.IndexOf(argv, "--build-help")
+        If helpAt >= 0 Then
+            Environment.Exit(If(helpAt + 1 < argv.Length, HelpPages.Build(argv(helpAt + 1)), 1))
+            Return
+        End If
+
         If Environment.GetCommandLineArgs().Contains("--selftest") Then
             ' SHELL-15: whatever happens inside, the gate ends with a log and a code - a crash is a
             ' FAIL, never a process that dies with nothing written.
@@ -101,7 +113,7 @@ Module Program
         ' second one while this program runs brings the running copy's manager forward (D1).
         Dim disksOnly = target Is Nothing AndAlso WantsDiskManager(Environment.GetCommandLineArgs())
         Dim first = ClaimSingleInstance()
-        If target Is Nothing AndAlso Not first Then
+        If WantsHandOver(target, first) Then
             If disksOnly AndAlso AppHost.HandOverDisks() Then Return
             ' A plain start asks the running copy for its shell window - which it opens if the copy was
             ' started as the Disk Manager alone (the Start menu's FileDO entry after its Disk Manager
@@ -228,8 +240,18 @@ Module Program
         End Try
     End Function
 
+    ' The focus-only profile of APP-ACTIVATION 0.13: a second start with no file hands the desktop back to
+    ' the first copy. A start that carries a file is a per-target start - it opens its own window, because
+    ' the file is what the start is about and focusing another window would lose it. The first copy of
+    ' the session never hands over. FileDO is therefore single-instance per session for plain starts and
+    ' deliberately multi-window per file target; it is never described as a globally single-window app.
+    Friend Function WantsHandOver(target As String, first As Boolean) As Boolean
+        Return target Is Nothing AndAlso Not first
+    End Function
+
     ' A start that lost the claim waits for the first copy's window - it may still be opening - and
-    ' brings it forward. When none appears in time, this start opens its own rather than nothing.
+    ' brings it forward. When none appears in time, or the one there does not respond, this start opens
+    ' its own rather than nothing: a second launch must not vanish.
     Private Function HandOverToRunningCopy(Optional wantsManager As Boolean = False) As Boolean
         Dim deadline = DateTime.Now.AddMilliseconds(HandOverWaitMs)
         Do
@@ -239,16 +261,22 @@ Module Program
             Else
                 If AppHost.HandOverShell() Then Return True
             End If
-            Dim hwnd = RunningCopyWindow()
-            If hwnd <> IntPtr.Zero Then
-                If IsIconic(hwnd) Then ShowWindow(hwnd, SW_RESTORE)
-                SetForegroundWindow(hwnd)
-                Return True
-            End If
+            If FocusWindow(RunningCopyWindow()) Then Return True
             If DateTime.Now >= deadline Then Exit Do
             Thread.Sleep(100)
         Loop
         Return False
+    End Function
+
+    ' The fallback for a first copy that does not listen (an older one): restore and focus its window.
+    ' Both calls return at once - the restore is posted, not waited for - and a window the system calls
+    ' hung is not claimed, so a hung first copy cannot hold this start nor swallow it.
+    Friend Function FocusWindow(hwnd As IntPtr) As Boolean
+        If hwnd = IntPtr.Zero Then Return False
+        If IsHungAppWindow(hwnd) Then Return False
+        If IsIconic(hwnd) Then ShowWindowAsync(hwnd, SW_RESTORE)
+        SetForegroundWindow(hwnd)
+        Return True
     End Function
 
     Private Function RunningCopyWindow() As IntPtr

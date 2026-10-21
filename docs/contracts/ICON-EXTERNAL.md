@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-EXTERNAL` |
-| **Version** | 0.11 draft (no wire carrier) |
+| **Version** | 0.12, read 2026-10-21 (SP-0170); implemented 0.12 draft (no wire carrier) |
 | **Role** | consumer - the site and the READMEs name third-party services |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

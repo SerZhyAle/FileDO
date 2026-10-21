@@ -297,6 +297,10 @@ if ($ExplorerCommand) {
 
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt") -Force
 Copy-Item (Join-Path $root "THIRD-PARTY-NOTICES.txt") (Join-Path $stage "THIRD-PARTY-NOTICES.txt") -Force
+# The in-app help (SP-0168): the pages, their pictures and the help map, beside the exe in help\. A
+# packaged run copies them out of the package folder to a readable one before it opens a page, because
+# the browser may not read the package's own folder (Help.vb, ReadableCopyOf).
+Copy-Item (Join-Path $root "docs\help") (Join-Path $stage "help") -Recurse -Force
 
 # --- logos -------------------------------------------------------------------
 function New-Logo([string]$src, [string]$dst, [int]$size) {
@@ -478,7 +482,7 @@ foreach ($p in (Test-DiskContainerAssociation -Manifest $packed -Entries $entrie
 # one CLSID in three places (verb, COM class, the DLL's source) and the DLL in the package.
 $srcClsid = if ($ExplorerCommand) { Get-FileDOShellClsid (Join-Path $root "shellext\FileDOShell.cpp") } else { $null }
 foreach ($p in (Test-ExplorerCommand -Manifest $packed -Entries $entries -ExplorerCommand ([bool]$ExplorerCommand) -SourceClsid $srcClsid)) { [void]$problems.Add($p) }
-foreach ($need in 'filedo_win.exe.config', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'Assets\StoreLogo.png') {
+foreach ($need in 'filedo_win.exe.config', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt', 'Assets\StoreLogo.png', 'help\help-map.json', 'help\en\index.html') {
     if ($entries -notcontains $need) { [void]$problems.Add("$need is not in the package") }
 }
 foreach ($need in @('resources.pri') + $logoVariants) {

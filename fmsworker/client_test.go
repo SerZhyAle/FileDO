@@ -120,6 +120,53 @@ func TestRootsComeFromWorker(t *testing.T) {
 		t.Fatalf("roots=%v err=%v", roots, e)
 	}
 }
+
+// The worker's response type omits an empty `disks` list (Go's omitempty), so for a user with no shared
+// disk a successful schema-2 disk-list answer reaches the wire without the member. That is an empty list,
+// whatever its spelling - absent, null or [] - and not a malformed answer (the Share Manager's proposal of
+// 2026-10-20 on DISK-SHARE section 16). A false ok still refuses the operation and its list is not read.
+func TestDiskListWithoutDisksMemberIsEmpty(t *testing.T) {
+	status := map[string]any{"schemaVersion": 1, "ok": true, "status": map[string]any{"capabilities": map[string]bool{"disk-sharing": true}}}
+	for name, members := range map[string]map[string]any{"absent": {}, "null": {"disks": nil}, "empty": {"disks": []any{}}} {
+		t.Run(name, func(t *testing.T) {
+			c := exchangeClient(t, func(req map[string]any) any {
+				if req["type"] == "GetStatus" {
+					return status
+				}
+				if req["type"] != "disk-list" || req["schemaVersion"] != float64(2) {
+					t.Errorf("unexpected request: %v", req)
+				}
+				resp := map[string]any{"schemaVersion": 2, "ok": true}
+				for k, v := range members {
+					resp[k] = v
+				}
+				return resp
+			})
+			disks, e := c.ListSharedDisks()
+			if e != nil || len(disks) != 0 {
+				t.Fatalf("an answer with no disks was read as disks=%v err=%v", disks, e)
+			}
+			_, probed, e := c.Probe(context.Background())
+			if e != nil || len(probed) != 0 {
+				t.Fatalf("the probe read an answer with no disks as disks=%v err=%v", probed, e)
+			}
+		})
+	}
+}
+
+func TestDiskListRefusalIsNotAList(t *testing.T) {
+	c := exchangeClient(t, func(req map[string]any) any {
+		if req["type"] == "GetStatus" {
+			return map[string]any{"schemaVersion": 1, "ok": true, "status": map[string]any{"capabilities": map[string]bool{"disk-sharing": true}}}
+		}
+		return map[string]any{"schemaVersion": 2, "ok": false, "error": "refused", "disks": []any{map[string]any{"containerPath": `C:\x.fdd`}}}
+	})
+	disks, e := c.ListSharedDisks()
+	if e == nil || len(disks) != 0 {
+		t.Fatalf("a refused disk-list was read as disks=%v err=%v", disks, e)
+	}
+}
+
 func TestCancelledSilentPeerCloses(t *testing.T) {
 	closed := make(chan struct{})
 	c := NewClient("test", func(context.Context, string) (net.Conn, error) {

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - Historique</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Index de l'aide</a><span class="sep" aria-hidden="true">/</span><span>Historique</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Aide de la fenêtre</p>
+    <h1>Historique</h1>
+    <p class="lead">Relisez ce que FileDO a fait : chaque exécution terminée laisse un rapport avec sa commande, son verdict et ses détails. La page liste les rapports, montre celui que vous choisissez et ouvre le dossier où ils sont conservés.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/history.fr.dark.png" width="1457" height="903" alt="Historique : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/history.fr.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:18.1%" href="#e-state" aria-label="1, Dossier des rapports">1</a>
+      <a class="pin" style="--x:24.2%;--y:22.7%" href="#e-list" aria-label="2, Historique">2</a>
+      <a class="pin" style="--x:57.3%;--y:21.4%" href="#e-details" aria-label="3, Contenu du rapport">3</a>
+      <a class="pin" style="--x:24.1%;--y:90.8%" href="#e-open" aria-label="4, Ouvrir le dossier des rapports">4</a>
+      <a class="pin" style="--x:44.1%;--y:90.8%" href="#e-folder" aria-label="5, Ouvrir le dossier des rapports">5</a>
+      <a class="pin" style="--x:64.0%;--y:90.8%" href="#e-refresh" aria-label="6, Actualiser">6</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="7, Aide">7</a>
+    </div>
+    <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
+  </figure>
+
+  <h2>Dans cet ordre</h2>
+  <ol class="order">
+    <li>Lisez la ligne du haut <a class="ref" href="#e-state">1</a> : elle dit où sont conservés les rapports, ou qu'ils sont désactivés.</li>
+    <li>Choisissez un rapport dans la liste <a class="ref" href="#e-list">2</a>.</li>
+    <li>Lisez ses détails <a class="ref" href="#e-details">3</a> ou ouvrez le rapport entier <a class="ref" href="#e-open">4</a>.</li>
+    <li>Ouvrez le dossier <a class="ref" href="#e-folder">5</a> pour copier ou supprimer vous-même des rapports.</li>
+  </ol>
+
+  <h2>Les éléments</h2>
+  <div class="elements">
+    <details class="el" id="e-state">
+      <summary><span class="mk">1</span><span><span class="name">Dossier des rapports</span><span class="one">Où sont conservés les rapports - ou qu'ils sont désactivés.</span></span></summary>
+      <div class="full">
+        <p>Les rapports sont écrits tant que le réglage Écrire un rapport pour chaque exécution est activé, et conservés 30 jours. Désactivé, cette ligne le dit, car une liste vide donnerait l'impression que rien ne s'est passé.</p>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">2</span><span><span class="name">Historique</span><span class="one">Les exécutions terminées, les plus récentes d'abord.</span></span></summary>
+      <div class="full">
+        <p>Une ligne par rapport. Choisissez une ligne pour lire le rapport à droite. La liste est relue à chaque ouverture de la page et avec Actualiser.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>À droite, les détails montrent la commande, le verdict et la fin du rapport.</dd>
+          <dt>Annuler</dt><dd>Choisir un rapport ne change rien.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-details">
+      <summary><span class="mk">3</span><span><span class="name">Contenu du rapport</span><span class="one">La commande, le verdict et la fin du rapport choisi.</span></span></summary>
+      <div class="full">
+        <p>Montre le début et la fin du rapport, où se trouvent la commande et le verdict. Un rapport très long n'est pas chargé en entier ; ouvrez-le pour tout lire.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">4</span><span><span class="name">Ouvrir le dossier des rapports</span><span class="one">Ouvre le rapport entier dans le Bloc-notes.</span></span></summary>
+      <div class="full">
+        <p>Ouvre le fichier du rapport choisi dans le Bloc-notes. C'est le fichier original : les modifications que vous y faites et enregistrez y sont enregistrées.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le rapport s'ouvre dans un autre programme. FileDO reste ouvert.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-folder">
+      <summary><span class="mk">5</span><span><span class="name">Ouvrir le dossier des rapports</span><span class="one">Ouvre le dossier où sont conservés les rapports.</span></span></summary>
+      <div class="full">
+        <p>Ouvre le dossier des rapports dans l'Explorateur. Les rapports de plus de 30 jours sont supprimés automatiquement ; ici, vous pouvez aussi les copier ou les supprimer vous-même.</p>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">6</span><span><span class="name">Actualiser</span><span class="one">Relit la liste.</span></span></summary>
+      <div class="full">
+        <p>Utile après une exécution dans une autre fenêtre ou après avoir supprimé des fichiers à la main. Elle ne fait que lire ; rien n'est modifié.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">7</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <div class="full">
+        <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page s'ouvre dans votre navigateur. FileDO reste ouvert et rien n'y change.</dd>
+          <dt>Raccourci</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Voir aussi</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>La page d'une tâche</b><span class="pill">Fenêtre</span><small>Comment se fait chaque tâche : choisir, régler, lire le plan, exécuter.</small></a></li>
+    <li><a href="command.html"><b>Commande</b><span class="pill">Fenêtre</span><small>Les mêmes opérations, écrites en ligne de commande.</small></a></li>
+    <li><a href="settings.html"><b>Réglages</b><span class="pill">Fenêtre</span><small>Apparence, langue, historique et démarrage.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Index de l'aide</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

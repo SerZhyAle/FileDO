@@ -135,6 +135,17 @@ Public Class CommandView
         DoubleBuffered = True
         Dock = DockStyle.Fill
         BuildLayout()
+        ' The parts the help explains (HelpContent, page command).
+        opCombo.Name = "help:operation"
+        targetCombo.Name = "help:target"
+        paramBox.Name = "help:parameter"
+        flagsFlow.Name = "help:flags"
+        cmdLineBox.Name = "help:commandline"
+        runBtn.Name = "help:run"
+        stopBtn.Name = "help:stop"
+        copyBtn.Name = "help:copy"
+        shortcutBtn.Name = "help:shortcut"
+        outputBox.Name = "help:output"
         Ui.SuspendTree(Me)
         Try
             PopulateControls()

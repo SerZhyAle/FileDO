@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `DOC-EXTERNAL-QUALITY` |
-| **Version** | 0.10 draft (no wire carrier - a documentation corpus and its web rendering) |
+| **Version** | 0.12, read 2026-10-21 (SP-0170); implemented 0.10 gates; the 0.12 items are SP-0171 W14 and W15 draft (no wire carrier - a documentation corpus and its web rendering) |
 | **Role** | consumer - the published site under `docs/` (landing, privacy, `guides/`) and the five root READMEs |
 | **Home** | shared contracts catalog, folder `documentation-quality/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

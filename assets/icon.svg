@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F1A12" />
+      <stop offset="100%" stop-color="#080E0A" />
+    </linearGradient>
+    <linearGradient id="fGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A7F3D0" />
+      <stop offset="100%" stop-color="#5ED684" />
+    </linearGradient>
+    <linearGradient id="dGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ED684" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#A7F3D0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Plate -->
+  <rect x="14" y="14" width="228" height="228" rx="48" ry="48" fill="url(#bgGrad)" stroke="#5ED684" stroke-opacity="0.75" stroke-width="2.5" />
+
+  <!-- Circuit track accents -->
+  <path d="M 34 54 L 74 54 L 94 74 M 162 202 L 202 202" fill="none" stroke="#5ED684" stroke-opacity="0.12" stroke-width="1.5" />
+
+  <!-- Monogram F & D -->
+  <g id="emblem">
+    <!-- Left F Stem -->
+    <path d="M 72 74 C 68.7 74 66 76.7 66 80 L 66 182 C 66 185.3 68.7 188 72 188 L 90 188 L 90 74 Z" fill="url(#fGrad)" />
+
+    <!-- Top F Bar -->
+    <path d="M 72 74 L 140 74 C 143.3 74 146 76.7 146 80 L 146 94 L 90 94 L 90 74 Z" fill="url(#fGrad)" />
+
+    <!-- Middle F Speed Bar -->
+    <path d="M 90 120 L 126 120 L 134 128 L 126 136 L 90 136 Z" fill="#00E676" />
+
+    <!-- Right D Shield Arc -->
+    <path d="M 118 74 C 158 74 186 102 186 131 C 186 160 158 188 118 188 L 118 166 C 146 166 164 146 164 131 C 164 116 146 96 118 96 Z" fill="url(#dGrad)" filter="url(#glow)" />
+
+    <!-- Central Data Pulse Spark -->
+    <polygon points="148,119 158,131 148,143 138,131" fill="url(#sparkGrad)" />
+  </g>
+</svg>

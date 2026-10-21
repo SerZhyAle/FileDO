@@ -141,6 +141,15 @@ func (c *Container) Unpack(dst io.Writer, opts ...StreamOption) (Metadata, error
 		return meta, fmt.Errorf("%w: file length %d is impossible for size %d (want %d..%d, cluster-aligned)", ErrDamaged, total, meta.Size, lMin, lMin+int64(h.ClusterAlignment)-1)
 	}
 
+	// The caller's say on the name, before any output exists: a name the
+	// format accepts and its destination cannot create is not damage
+	// (FDSEC-FORMAT 1.4 section 20).
+	if so.nameCheck != nil {
+		if err := so.nameCheck(meta.Name); err != nil {
+			return Metadata{}, err
+		}
+	}
+
 	// Chunks, in order, each opened with its own derived nonce and AD.
 	dh, err := blake2b.New256(nil)
 	if err != nil {

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="uk" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Довідка - Сторінка завдання</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Зміст довідки</a><span class="sep" aria-hidden="true">/</span><span>Сторінка завдання</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Довідка про вікно</p>
+    <h1>Сторінка завдання</h1>
+    <p class="lead">Будь-яке завдання зі списку ліворуч - перевірка носія, копіювання файлів, очищення теки, захист файла, віртуальні диски - відкриває одну й ту саму сторінку. Ви вибираєте, з чим працювати, задаєте параметри, читаєте, що буде зроблено, і натискаєте «Виконати».</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/job-page.uk.dark.png" width="1457" height="903" alt="Сторінка завдання: вікно з пронумерованими частинами">
+      <img class="on-light" src="../img/job-page.uk.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:0.3%;--y:1.1%" href="#e-rail" aria-label="1, Список завдань">1</a>
+      <a class="pin" style="--x:22.6%;--y:11.4%" href="#e-target" aria-label="2, 2 - Над чим">2</a>
+      <a class="pin" style="--x:22.6%;--y:32.8%" href="#e-options" aria-label="3, 3 - Параметри">3</a>
+      <a class="pin" style="--x:22.6%;--y:53.7%" href="#e-plan" aria-label="4, 4 - Перевірити та запустити">4</a>
+      <a class="pin" style="--x:24.1%;--y:74.0%" href="#e-command" aria-label="5, Командний рядок">5</a>
+      <a class="pin" style="--x:47.0%;--y:82.1%" href="#e-copy" aria-label="6, Копіювати команду">6</a>
+      <a class="pin" style="--x:62.4%;--y:82.1%" href="#e-open" aria-label="7, Відкрити в Command">7</a>
+      <a class="pin" style="--x:24.1%;--y:82.1%" href="#e-run" aria-label="8, Виконати">8</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="13, Довідка">13</a>
+    </div>
+    <figcaption>Демонстраційні дані. Виберіть номер, щоб прочитати про цю частину вікна.</figcaption>
+  </figure>
+
+  <h2>У якому порядку</h2>
+  <ol class="order">
+    <li>Виберіть завдання у списку ліворуч <a class="ref" href="#e-rail">1</a>. Заголовок сторінки повторює його як крок 1.</li>
+    <li>Виберіть, з чим працювати <a class="ref" href="#e-target">2</a>: диск, теку або файл.</li>
+    <li>Задайте параметри <a class="ref" href="#e-options">3</a> або залиште значення за замовчуванням.</li>
+    <li>Прочитайте план <a class="ref" href="#e-plan">4</a>. Він каже, що буде зачеплено і чи можна це скасувати. Командний рядок <a class="ref" href="#e-command">5</a> - точно те, що буде виконано.</li>
+    <li>Натисніть «Виконати» <a class="ref" href="#e-run">8</a>. До цього моменту нічого не змінено.</li>
+    <li>Стежте за перебігом <a class="ref" href="#e-progress">9</a> і натисніть «Зупинити» <a class="ref" href="#e-stop">10</a>, якщо треба перервати завдання. Потім прочитайте результат <a class="ref" href="#e-result">11</a>.</li>
+  </ol>
+
+  <h2>Елементи вікна</h2>
+  <div class="elements">
+    <details class="el" id="e-rail">
+      <summary><span class="mk">1</span><span><span class="name">Список завдань</span><span class="one">Усе, що вміє FileDO, за групами.</span></span></summary>
+      <div class="full">
+        <p>Групи - Перевірка, Порядок, Копіювати файли, Стирання, Захист і Диски - згортаються й розгортаються: відкрийте одну та виберіть завдання. У списку є також Історія, Команда, Налаштування та Про програму. Поки завдання виконується, його рядок залишається вибраним, а решта завдань чекають на його кінець.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Сторінка праворуч змінюється на вибране завдання, а заголовок каже, для чого воно.</dd>
+          <dt>Чи можна скасувати</dt><dd>Вибір завдання лише відкриває його сторінку. Нічого не запускається.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">2 - Над чим</span><span class="one">Диск, тека або файл, з якими працює завдання.</span></span></summary>
+      <div class="full">
+        <p>Введіть або виберіть шлях, або знайдіть його кнопками «Тека..» і «Файл..». Файл чи теку можна також перетягнути в будь-яке місце сторінки. Завдання, якому потрібні два місця, наприклад копіювання файлів, просить друге одразу нижче.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>План нижче оновлюється одразу. Саме завдання починається лише за кнопкою «Виконати».</dd>
+          <dt>Чи можна скасувати</dt><dd>Вибір цілі нічого не змінює.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-options">
+      <summary><span class="mk">3</span><span><span class="name">3 - Параметри</span><span class="one">Як має виконуватися завдання.</span></span></summary>
+      <div class="full">
+        <p>Параметри, які стосуються цього завдання; безпечні значення вже вибрано. Якщо вибирати нічого, параметрів немає. Наведіть курсор на параметр, щоб побачити, що він робить.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>План і командний рядок нижче змінюються в міру вибору.</dd>
+          <dt>Чи можна скасувати</dt><dd>Параметри самі нічого не змінюють; поверніть їх назад будь-якої миті.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-plan">
+      <summary><span class="mk">4</span><span><span class="name">4 - Перевірити та запустити</span><span class="one">Що буде зроблено - до того, як це зроблено.</span></span></summary>
+      <div class="full">
+        <p>План простими словами каже, що зробить завдання і яких файлів чи дисків торкнеться. Позначки показують, чи можна це скасувати, чи знищує завдання дані та чи попросить Windows прав адміністратора. Завдання, яке може знищити дані, наприклад очищення теки, перед запуском просить ввести слово-підтвердження.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Кнопка запуску стає доступною, коли ціль і параметри заповнені. Якщо ні, сторінка каже, чого бракує.</dd>
+          <dt>Чи можна скасувати</dt><dd>Читання плану нічого не змінює.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-command">
+      <summary><span class="mk">5</span><span><span class="name">Командний рядок</span><span class="one">Точна команда, яку виконає сторінка.</span></span></summary>
+      <div class="full">
+        <p>Будь-яке завдання виконує filedo.exe - та сама програма, якою можна користуватися в терміналі. Рядок показує команду, у яку склалися ваші вибори: видно, що саме буде зроблено, команду можна запустити самому пізніше або дізнатися, як пишуться параметри.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Скопіюйте її або відкрийте на сторінці «Команда», щоб змінити вручну.</dd>
+          <dt>Чи можна скасувати</dt><dd>Читання рядка нічого не змінює.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">6</span><span><span class="name">Копіювати команду</span><span class="one">Кладе команду в буфер обміну.</span></span></summary>
+      <div class="full">
+        <p>Копіює командний рядок вище, щоб вставити його в термінал, скрипт чи лист. Нічого не запускається.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">7</span><span><span class="name">Відкрити в Command</span><span class="one">Переносить команду на сторінку «Команда».</span></span></summary>
+      <div class="full">
+        <p>Відкриває сторінку «Команда» з уже підставленою командою - її можна змінити вручну й запустити там.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Вікно перемикається на сторінку «Команда». Поки що нічого не запущено.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">8</span><span><span class="name">Виконати</span><span class="one">Запускає завдання.</span></span></summary>
+      <div class="full">
+        <p>Єдина кнопка на сторінці, яка робить роботу. Завдання, яке може знищити дані, наприклад очищення теки, спершу просить ввести слово-підтвердження. Поки завдання виконується, перемкнутися на інше не можна, тож випадковий клік не втратить запуск.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>З'являються перебіг виконання та кнопка «Зупинити». Коли завдання закінчиться, з'явиться результат.</dd>
+          <dt>Чи можна скасувати</dt><dd>Чи можна скасувати завдання, написано в плані. «Зупинити» перериває його акуратно будь-якої миті; зроблене вже залишається зробленим.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-progress">
+      <summary><span class="mk">9</span><span><span class="name">Перебіг виконання</span><span class="one">Як далеко просунулося завдання.</span></span></summary>
+      <div class="full">
+        <p>Показує поточний крок, індикатор, швидкість і час. З'являється під час запуску й залишається, доки його не замінить результат.</p>
+        <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">10</span><span><span class="name">Зупинити</span><span class="one">Просить завдання закінчити акуратно.</span></span></summary>
+      <div class="full">
+        <p>Завдання доводить до кінця поточний шматок, прибирає за собою й зупиняється. Якщо воно не зупиняється, друге натискання пропонує завершити його одразу - без власного прибирання, тому тестові файли можуть залишитися до наступного запуску.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Результат показує, що було зроблено до зупинки.</dd>
+          <dt>Чи можна скасувати</dt><dd>Зроблене вже залишається зробленим.</dd>
+        </dl>
+        <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-result">
+      <summary><span class="mk">11</span><span><span class="name">Результат</span><span class="one">Що завдання знайшло чи зробило.</span></span></summary>
+      <div class="full">
+        <p>Вердикт (пройдено, не пройдено або перевірити не вдалося), числа, файли, що залишилися, і місце, де зберігається звіт. Кнопки пропонують наступний слушний крок, наприклад «Видалити тестові файли» після перевірки ємності, «Відкрити папку звітів» або «Запустити знову».</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Звіт додається до Історії.</dd>
+          <dt>Чи можна скасувати</dt><dd>«Видалити тестові файли» і «Запустити знову» діють лише за вашим натисканням.</dd>
+        </dl>
+        <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">12</span><span><span class="name">Показати вивід консолі</span><span class="one">Текст, який надрукувала програма.</span></span></summary>
+      <div class="full">
+        <p>Показує вивід консолі команди. Він потрібен для підтримки й для досвідчених користувачів; важливе результат уже сказав. «Копіювати вивід» кладе його в буфер обміну.</p>
+        <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">13</span><span><span class="name">Довідка</span><span class="one">Відкриває сторінку, яку ви читаєте.</span></span></summary>
+      <div class="full">
+        <p>У правому верхньому куті кожного вікна FileDO є ця кнопка. Вона відкриває довідку про те вікно, у якому ви перебуваєте, - з картинкою та поясненням кожної частини, вашою мовою.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Сторінка відкривається в браузері. FileDO залишається відкритим, і в ньому нічого не змінюється.</dd>
+          <dt>Поєднання клавіш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Дивіться також</h2>
+  <ul class="related">
+    <li><a href="command.html"><b>Команда</b><span class="pill">Вікно</span><small>Ті самі операції, записані командним рядком.</small></a></li>
+    <li><a href="history.html"><b>Історія</b><span class="pill">Вікно</span><small>Звіт про кожен завершений запуск.</small></a></li>
+    <li><a href="settings.html"><b>Налаштування</b><span class="pill">Вікно</span><small>Тема, мова, історія та автозапуск.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Посібник: вікно та конструктор команд</b><span class="pill gold">Сайт</span><small>Кожна сторінка вікна, з картинками.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/check-storage.html"><b>Посібник: перевірка носія</b><span class="pill gold">Сайт</span><small>Усе завдання від початку до кінця.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/files-and-copies.html"><b>Посібник: файли та копії</b><span class="pill gold">Сайт</span><small>Усе завдання від початку до кінця.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Знято з FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Зміст довідки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Поставити запитання або повідомити про проблему</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

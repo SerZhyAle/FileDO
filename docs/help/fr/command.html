@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - Commande</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Index de l'aide</a><span class="sep" aria-hidden="true">/</span><span>Commande</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Aide de la fenêtre</p>
+    <h1>Commande</h1>
+    <p class="lead">Construisez une commande FileDO à la main : choisissez une opération, pointez-la sur une cible, cochez les options, lisez la ligne de commande et exécutez-la. La même ligne fonctionne dans un terminal.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/command.fr.dark.png" width="1457" height="903" alt="Commande : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/command.fr.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:20.9%" href="#e-operation" aria-label="1, Opération">1</a>
+      <a class="pin" style="--x:24.1%;--y:35.1%" href="#e-target" aria-label="2, Lecteur, dossier ou fichier">2</a>
+      <a class="pin" style="--x:24.1%;--y:48.6%" href="#e-parameter" aria-label="3, Paramètres supplémentaires (facultatif)">3</a>
+      <a class="pin" style="--x:24.1%;--y:55.9%" href="#e-flags" aria-label="4, Options">4</a>
+      <a class="pin" style="--x:24.1%;--y:78.3%" href="#e-commandline" aria-label="5, La commande qui sera exécutée - modifiable">5</a>
+      <a class="pin" style="--x:24.1%;--y:82.9%" href="#e-run" aria-label="6, Exécuter la commande">6</a>
+      <a class="pin" style="--x:41.3%;--y:82.3%" href="#e-stop" aria-label="7, Arrêter">7</a>
+      <a class="pin" style="--x:50.1%;--y:82.3%" href="#e-copy" aria-label="8, Copier la commande">8</a>
+      <a class="pin" style="--x:65.1%;--y:82.3%" href="#e-shortcut" aria-label="9, Créer un raccourci">9</a>
+      <a class="pin" style="--x:24.1%;--y:90.7%" href="#e-output" aria-label="10, Sortie">10</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="11, Aide">11</a>
+    </div>
+    <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
+  </figure>
+
+  <h2>Dans cet ordre</h2>
+  <ol class="order">
+    <li>Choisissez l'opération <a class="ref" href="#e-operation">1</a>. La ligne sous la liste dit ce qu'elle fait.</li>
+    <li>Choisissez la cible <a class="ref" href="#e-target">2</a>.</li>
+    <li>Renseignez le paramètre <a class="ref" href="#e-parameter">3</a> si l'opération en prend un, et cochez les options <a class="ref" href="#e-flags">4</a> dont vous avez besoin.</li>
+    <li>Lisez la ligne de commande <a class="ref" href="#e-commandline">5</a>. C'est exactement ce qui sera exécuté.</li>
+    <li>Appuyez sur Exécuter la commande <a class="ref" href="#e-run">6</a>. Suivez la sortie <a class="ref" href="#e-output">10</a> ; Arrêter <a class="ref" href="#e-stop">7</a> interrompt la commande.</li>
+  </ol>
+
+  <h2>Les éléments</h2>
+  <div class="elements">
+    <details class="el" id="e-operation">
+      <summary><span class="mk">1</span><span><span class="name">Opération</span><span class="one">Quelle opération FileDO construire.</span></span></summary>
+      <div class="full">
+        <p>La liste contient toutes les opérations de la ligne de commande : vérifications, copies, effacements, fichiers secrets et disques virtuels. La ligne sous la liste dit en une phrase ce que fait l'opération choisie et si elle modifie quelque chose.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le reste de la page s'adapte : seuls les champs et les options qui conviennent à cette opération sont affichés.</dd>
+          <dt>Annuler</dt><dd>Choisir une opération ne change rien.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">Lecteur, dossier ou fichier</span><span class="one">Le lecteur, le dossier ou le fichier sur lequel l'opération travaille.</span></span></summary>
+      <div class="full">
+        <p>Saisissez un chemin complet ou cherchez-le avec les boutons Dossier.. et Fichier.. de la page. Une opération qui demande deux emplacements a un second champ pour l'autre.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La ligne de commande en dessous est réécrite.</dd>
+          <dt>Annuler</dt><dd>Choisir une cible ne change rien tant que vous n'exécutez pas la commande.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-parameter">
+      <summary><span class="mk">3</span><span><span class="name">Paramètres supplémentaires (facultatif)</span><span class="one">Une valeur supplémentaire que certaines opérations acceptent.</span></span></summary>
+      <div class="full">
+        <p>Un dossier de destination, un fichier liste ou une taille, selon l'opération. Le champ n'est affiché que si l'opération en accepte une.</p>
+      </div>
+    </details>
+    <details class="el" id="e-flags">
+      <summary><span class="mk">4</span><span><span class="name">Options</span><span class="one">Des interrupteurs qui changent le comportement de l'opération.</span></span></summary>
+      <div class="full">
+        <p>Chaque option est un réglage que la ligne de commande écrit comme un mot ou avec un tiret. Passez la souris sur une option pour voir ce qu'elle fait. Seules les options qui conviennent à l'opération choisie sont affichées.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La ligne de commande en dessous change à mesure que vous cochez.</dd>
+          <dt>Annuler</dt><dd>Décochez une option pour la retirer.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-commandline">
+      <summary><span class="mk">5</span><span><span class="name">La commande qui sera exécutée - modifiable</span><span class="one">La commande qui sera exécutée.</span></span></summary>
+      <div class="full">
+        <p>Construite à partir de vos choix ; vous pouvez aussi la modifier à la main. C'est exactement ce que lance Exécuter, et vous pouvez la copier dans un terminal. Un mot de passe saisi dans son propre champ ne fait pas partie de cette ligne.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Modifier la ligne ne change rien tant que vous ne l'exécutez pas.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">6</span><span><span class="name">Exécuter la commande</span><span class="one">Exécute la commande.</span></span></summary>
+      <div class="full">
+        <p>Lance la commande affichée ci-dessus. Une commande qui efface ou qui récupère un lecteur demande d'abord de saisir un mot de confirmation.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La progression et la sortie apparaissent en dessous.</dd>
+          <dt>Annuler</dt><dd>Cela dépend de l'opération ; l'indication sous la liste des opérations le dit. Arrêter termine la commande proprement à tout moment.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">7</span><span><span class="name">Arrêter</span><span class="one">Demande à la commande de se terminer proprement.</span></span></summary>
+      <div class="full">
+        <p>La commande termine la partie en cours et s'arrête. Sinon, un second appui propose de la terminer tout de suite.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Ce qui est déjà fait reste fait.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">8</span><span><span class="name">Copier la commande</span><span class="one">Place la commande dans le presse-papiers.</span></span></summary>
+      <div class="full">
+        <p>Copie la ligne de commande pour que vous la colliez dans un terminal, un script ou un message. Rien ne s'exécute.</p>
+      </div>
+    </details>
+    <details class="el" id="e-shortcut">
+      <summary><span class="mk">9</span><span><span class="name">Créer un raccourci</span><span class="one">Crée un raccourci sur le bureau qui exécute cette commande.</span></span></summary>
+      <div class="full">
+        <p>Écrit sur votre bureau un fichier raccourci qui lance la commande dans une fenêtre de console. Vous choisissez son nom et si la fenêtre reste ouverte à la fin. Une commande qui peut effacer des données affiche un avertissement, et la console demande tout de même une confirmation quand le raccourci est utilisé.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Le raccourci apparaît sur le bureau. Désinstaller FileDO ne le supprime pas.</dd>
+          <dt>Annuler</dt><dd>Supprimez le fichier raccourci pour l'enlever.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">10</span><span><span class="name">Sortie</span><span class="one">Ce que la commande imprime, pendant qu'elle s'exécute.</span></span></summary>
+      <div class="full">
+        <p>La barre de progression et le texte de la commande, en direct. Quand la commande se termine, une ligne de verdict dit si elle a réussi, échoué ou n'a pas pu être vérifiée, et le rapport est ajouté à l'Historique.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <div class="full">
+        <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page s'ouvre dans votre navigateur. FileDO reste ouvert et rien n'y change.</dd>
+          <dt>Raccourci</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Voir aussi</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>La page d'une tâche</b><span class="pill">Fenêtre</span><small>Comment se fait chaque tâche : choisir, régler, lire le plan, exécuter.</small></a></li>
+    <li><a href="history.html"><b>Historique</b><span class="pill">Fenêtre</span><small>Le rapport de chaque exécution terminée.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Guide : la fenêtre et le générateur de commandes</b><span class="pill gold">Site</span><small>Chaque page de la fenêtre, avec des images.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Glossaire</b><span class="pill gold">Site</span><small>Ce que FileDO entend par conteneur, effacement, montage et le reste.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Index de l'aide</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

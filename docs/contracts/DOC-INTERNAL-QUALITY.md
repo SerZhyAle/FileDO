@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `DOC-INTERNAL-QUALITY` |
-| **Version** | 0.9 draft (no wire carrier - a file tree layout and check invariants) |
+| **Version** | 0.10, read 2026-10-21 (SP-0170); implemented 0.10 draft (no wire carrier - a file tree layout and check invariants) |
 | **Role** | consumer - the internal engineering corpus: `AGENTS.md`, `RELEASE.md`, `docs/README.md`, `docs/contracts/`, the per-folder READMEs |
 | **Home** | shared contracts catalog, folder `documentation-quality/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

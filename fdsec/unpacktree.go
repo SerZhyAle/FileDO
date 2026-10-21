@@ -167,6 +167,20 @@ func (c *Container) UnpackTree(sink TreeSink, opts ...StreamOption) (TreeMetadat
 		return tm, nil, fmt.Errorf("%w: file length %d is impossible for this tree (want %d)", ErrDamaged, total, end)
 	}
 
+	// The caller's say on every name the sink is about to create, before the
+	// sink sees the first entry - so a name the destination cannot create ends
+	// the restore with nothing written (FDSEC-FORMAT 1.4 section 20); see
+	// WithNameCheck.
+	if so.nameCheck != nil {
+		for _, e := range entries {
+			for _, comp := range strings.Split(e.Path, "/") {
+				if err := so.nameCheck(comp); err != nil {
+					return tm, nil, err
+				}
+			}
+		}
+	}
+
 	var done int64
 	for i, e := range entries {
 		if e.Kind == KindDir {

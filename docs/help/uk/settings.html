@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="uk" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Довідка - Налаштування</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Зміст довідки</a><span class="sep" aria-hidden="true">/</span><span>Налаштування</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Довідка про вікно</p>
+    <h1>Налаштування</h1>
+    <p class="lead">Виберіть, як FileDO виглядає й поводиться: тему, мову, чи ведеться історія, що відбувається під час запуску Windows, та кілька параметрів Windows. Кожне налаштування діє одразу після зміни.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/settings.uk.dark.png" width="1457" height="1175" alt="Налаштування: вікно з пронумерованими частинами">
+      <img class="on-light" src="../img/settings.uk.light.png" width="1457" height="1175" alt="">
+      <a class="pin" style="--x:22.6%;--y:8.8%" href="#e-group-appearance" aria-label="1, Вигляд">1</a>
+      <a class="pin" style="--x:24.0%;--y:14.7%" href="#e-setting-theme" aria-label="2, Вигляд">2</a>
+      <a class="pin" style="--x:24.0%;--y:20.2%" href="#e-setting-language" aria-label="3, Мова">3</a>
+      <a class="pin" style="--x:22.6%;--y:26.6%" href="#e-group-history" aria-label="4, Історія запусків">4</a>
+      <a class="pin" style="--x:24.0%;--y:32.6%" href="#e-setting-history" aria-label="5, Записувати звіт про кожен запуск">5</a>
+      <a class="pin" style="--x:22.6%;--y:39.7%" href="#e-group-startup" aria-label="6, Запускати під час входу у Windows">6</a>
+      <a class="pin" style="--x:24.0%;--y:45.7%" href="#e-setting-startup" aria-label="7, Запускати під час входу у Windows">7</a>
+      <a class="pin" style="--x:24.0%;--y:53.0%" href="#e-setting-startup-apply" aria-label="8, Застосувати вибір автозапуску">8</a>
+      <a class="pin" style="--x:24.0%;--y:60.3%" href="#e-setting-minimize" aria-label="9, Згортати в трей">9</a>
+      <a class="pin" style="--x:24.0%;--y:66.5%" href="#e-setting-notification" aria-label="10, Сповіщати про завершення завдання">10</a>
+      <a class="pin" style="--x:22.6%;--y:73.6%" href="#e-group-windows" aria-label="11, Windows і розташування вікон">11</a>
+      <a class="pin" style="--x:24.0%;--y:79.6%" href="#e-setting-autoplay" aria-label="12, Вимкнути автовідтворення Windows">12</a>
+      <a class="pin" style="--x:24.0%;--y:90.6%" href="#e-setting-autoplay-system" aria-label="13, Налаштування автовідтворення Windows..">13</a>
+      <a class="pin" style="--x:95.3%;--y:1.8%" href="#e-help" aria-label="15, Довідка">15</a>
+    </div>
+    <figcaption>Демонстраційні дані. Виберіть номер, щоб прочитати про цю частину вікна.</figcaption>
+  </figure>
+
+  <h2>У якому порядку</h2>
+  <p>У налаштувань немає порядку: змінюйте будь-яке будь-якої миті. Вони згруповані, як на сторінці, - Вигляд, Історія запусків, Автозапуск і Windows, - і кожна група згортається за заголовком.</p>
+
+  <h2>Елементи вікна</h2>
+  <div class="elements">
+    <details class="el" id="e-group-appearance">
+      <summary><span class="mk">1</span><span><span class="name">Вигляд</span><span class="one">Тема та мова.</span></span></summary>
+      <div class="full">
+        <p>Як виглядають вікна і якою мовою вони говорять. І те, й інше діє на всі відкриті вікна FileDO одразу.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-theme">
+      <summary><span class="mk">2</span><span><span class="name">Вигляд</span><span class="one">Як у Windows або обрана світла чи темна палітра. Застосовується відразу.</span></span></summary>
+      <div class="full">
+        <p>«Світла» й «Темна» вибирають палітру; автоматичний вибір слідує світлому чи темному налаштуванню Windows. Виберіть те, що легше для очей там, де ви працюєте.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Усі відкриті вікна FileDO змінюються одразу.</dd>
+          <dt>Чи можна скасувати</dt><dd>Виберіть попереднє значення, щоб повернути все назад.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-language">
+      <summary><span class="mk">3</span><span><span class="name">Мова</span><span class="one">Застосовується відразу до всіх відкритих вікон FileDO.</span></span></summary>
+      <div class="full">
+        <p>Мова всіх вікон FileDO, меню в треї та цих сторінок довідки. Доступні англійська, російська, українська, німецька та французька.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Відкриті вікна змінюються одразу, а сторінка довідки відкривається вибраною тут мовою.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-history">
+      <summary><span class="mk">4</span><span><span class="name">Історія запусків</span><span class="one">Чи записуються завершені запуски.</span></span></summary>
+      <div class="full">
+        <p>FileDO може зберігати звіт про кожен запуск, щоб потім можна було прочитати, що було зроблено і чим закінчилося.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-history">
+      <summary><span class="mk">5</span><span><span class="name">Записувати звіт про кожен запуск</span><span class="one">Звіти зберігаються в %LOCALAPPDATA%\FileDO\reports 30 днів. Якщо вимкнути, файли звітів не створюються взагалі.</span></span></summary>
+      <div class="full">
+        <p>Коли ввімкнено, кожен запуск залишає звіт, який можна прочитати в Історії: команда, вердикт і подробиці. Вимкніть, якщо не хочете, щоб записувалися файли звітів.</p>
+        <dl class="facts">
+          <dt>Чи можна скасувати</dt><dd>Уже записані звіти залишаються, доки їм не виповниться 30 днів. Увімкніть знову, щоб вони знову записувалися.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-startup">
+      <summary><span class="mk">6</span><span><span class="name">Запускати під час входу у Windows</span><span class="one">Що робить FileDO під час запуску Windows і по закінченні завдання.</span></span></summary>
+      <div class="full">
+        <p>Чи запускається FileDO разом із Windows, чи залишається в треї під час згортання і чи повідомляють вам про закінчення завдання.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-startup">
+      <summary><span class="mk">7</span><span><span class="name">Запускати під час входу у Windows</span><span class="one">Для цього користувача, без прав адміністратора. Запис автозапуску залишається після видалення FileDO.</span></span></summary>
+      <div class="full">
+        <p>Виберіть, що відбувається під час входу у Windows: нічого, головне вікно, Диспетчер дисків або лише значок у треї. Вибір робиться для вашого облікового запису й не потребує прав адміністратора. У збірці Microsoft Store цей рядок відкриває Параметри Windows, де керують автозапуском застосунків.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Нічого не змінюється, доки ви не натиснете кнопку під ним.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-startup-apply">
+      <summary><span class="mk">8</span><span><span class="name">Застосувати вибір автозапуску</span><span class="one">Зберігає вибір автозапуску.</span></span></summary>
+      <div class="full">
+        <p>Записує вибір вище та реєструє його у Windows.</p>
+        <dl class="facts">
+          <dt>Чи можна скасувати</dt><dd>Виберіть «Вимкнено» і застосуйте знову, щоб прибрати автозапуск.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-minimize">
+      <summary><span class="mk">9</span><span><span class="name">Згортати в трей</span><span class="one">Після згортання програма залишається доступною через значок в області сповіщень.</span></span></summary>
+      <div class="full">
+        <p>Коли ввімкнено, під час згортання вікно FileDO залишається в треї, а не на панелі завдань. Завдання, що виконуються, і підключені диски лишаються доступними через значок у треї.</p>
+        <dl class="facts">
+          <dt>Чи можна скасувати</dt><dd>Вимкніть, щоб знову згортати на панель завдань.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-notification">
+      <summary><span class="mk">10</span><span><span class="name">Сповіщати про завершення завдання</span><span class="one">Показувати сповіщення після завершення завдання. Результат можна прочитати у FileDO.</span></span></summary>
+      <div class="full">
+        <p>Коли завдання закінчується, Windows показує коротке сповіщення. Результату в ньому немає: відкрийте FileDO або Диспетчер дисків, щоб його прочитати.</p>
+        <dl class="facts">
+          <dt>Чи можна скасувати</dt><dd>Вимкніть, щоб сповіщення припинилися.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-windows">
+      <summary><span class="mk">11</span><span><span class="name">Windows і розташування вікон</span><span class="one">Параметри Windows і розташування вікон.</span></span></summary>
+      <div class="full">
+        <p>Дві речі, які живуть у Windows, а не у FileDO, і спосіб повернути вікна на початкові місця.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-autoplay">
+      <summary><span class="mk">12</span><span><span class="name">Вимкнути автовідтворення Windows</span><span class="one">Не дає Windows реагувати на носії, які ви підключаєте.</span></span></summary>
+      <div class="full">
+        <p>Windows може відкривати Провідник або запускати інші дії щоразу, коли підключають диск чи картку пам'яті. Ця кнопка вимикає це для вашого облікового запису - для всіх носіїв, а не лише для FileDO. Власне автоматичне підключення дисків у FileDO - окрема річ і продовжує працювати.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Автовідтворення Windows вимкнено, і рядок під кнопкою це каже.</dd>
+          <dt>Чи можна скасувати</dt><dd>Наступна кнопка відкриває налаштування Windows, де автовідтворення можна ввімкнути знову.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-autoplay-system">
+      <summary><span class="mk">13</span><span><span class="name">Налаштування автовідтворення Windows..</span><span class="one">Відкриває сторінку автовідтворення в Параметрах Windows.</span></span></summary>
+      <div class="full">
+        <p>Показує саме налаштування Windows, щоб його можна було переглянути або змінити там, без FileDO.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Параметри Windows відкриваються у власному вікні.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-reset">
+      <summary><span class="mk">14</span><span><span class="name">Скинути положення вікон</span><span class="one">Типове положення застосовується під час наступного відкриття кожного вікна.</span></span></summary>
+      <div class="full">
+        <p>Забуває, де ви пересували вікна FileDO і якого розміру вони були. Стане в пригоді, якщо вікно опинилося за межами екрана або в незручному місці.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Кожне вікно наступного разу відкриється на місці за замовчуванням.</dd>
+          <dt>Чи можна скасувати</dt><dd>Перемістіть вікно знову, і в нього з'явиться нове запам'ятоване місце.</dd>
+        </dl>
+        <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">15</span><span><span class="name">Довідка</span><span class="one">Відкриває сторінку, яку ви читаєте.</span></span></summary>
+      <div class="full">
+        <p>У правому верхньому куті кожного вікна FileDO є ця кнопка. Вона відкриває довідку про те вікно, у якому ви перебуваєте, - з картинкою та поясненням кожної частини, вашою мовою.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Сторінка відкривається в браузері. FileDO залишається відкритим, і в ньому нічого не змінюється.</dd>
+          <dt>Поєднання клавіш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Дивіться також</h2>
+  <ul class="related">
+    <li><a href="about.html"><b>Про програму</b><span class="pill">Вікно</span><small>Версія, посилання та підтримка.</small></a></li>
+    <li><a href="history.html"><b>Історія</b><span class="pill">Вікно</span><small>Звіт про кожен завершений запуск.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Приватність</b><span class="pill gold">Сайт</span><small>Без телеметрії: що залишається на вашому комп'ютері.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Знято з FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Зміст довідки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Поставити запитання або повідомити про проблему</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

@@ -98,6 +98,7 @@
     <Feature Id="Main" Title="FileDO program" Level="1" Display="expand" AllowAbsent="no"
              Description="The program itself, into C:\Program Files\FileDO: the FileDO window, the filedo command line and its three companion tools (check, fill, test), and the helper scripts. Adds the folder to the system PATH so filedo works in any terminal, and puts FileDO and its Disk Manager in the Start menu. Required.">
       <ComponentGroupRef Id="FileDOFiles" />
+      <ComponentGroupRef Id="HelpPages" />
       <ComponentRef Id="EnvPath" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DiskManagerShortcut" />
@@ -126,6 +127,7 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="FileDO">
         <Directory Id="MENUICONSFOLDER" Name="icons" />
+        <Directory Id="HELPFOLDER" Name="help" />
       </Directory>
     </StandardDirectory>
 
@@ -516,6 +518,14 @@
       <Component Id="ReadmeFile" Guid="*">
         <File Source="$(var.StageDir)\README.md" KeyPath="yes" />
       </Component>
+    </ComponentGroup>
+
+    <!-- The in-app help (SP-0168, CONTEXT-HELP rule 12): the pages, their pictures, the style sheets and
+         the help map, beside the exe in help\, so a page opens with no network and the application
+         prefers its own copy. The folder is harvested from the stage, so a page added later ships
+         without a line here; the component guids are derived from the paths and stay put. -->
+    <ComponentGroup Id="HelpPages" Directory="HELPFOLDER">
+      <Files Include="$(var.StageDir)\help\**" />
     </ComponentGroup>
   </Fragment>
 

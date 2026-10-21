@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Справка - Команда</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Оглавление справки</a><span class="sep" aria-hidden="true">/</span><span>Команда</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Справка по окну</p>
+    <h1>Команда</h1>
+    <p class="lead">Соберите команду FileDO вручную: выберите операцию, укажите цель, отметьте флаги, прочитайте командную строку и выполните её. Та же строка работает в терминале.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/command.ru.dark.png" width="1457" height="903" alt="Команда: окно с пронумерованными частями">
+      <img class="on-light" src="../img/command.ru.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:20.9%" href="#e-operation" aria-label="1, Операция">1</a>
+      <a class="pin" style="--x:24.1%;--y:35.1%" href="#e-target" aria-label="2, Диск, папка или файл">2</a>
+      <a class="pin" style="--x:24.1%;--y:48.6%" href="#e-parameter" aria-label="3, Дополнительные параметры (необязательно)">3</a>
+      <a class="pin" style="--x:24.1%;--y:55.9%" href="#e-flags" aria-label="4, Флаги">4</a>
+      <a class="pin" style="--x:24.1%;--y:78.3%" href="#e-commandline" aria-label="5, Команда, которая будет выполнена - её можно править">5</a>
+      <a class="pin" style="--x:24.1%;--y:82.9%" href="#e-run" aria-label="6, Выполнить команду">6</a>
+      <a class="pin" style="--x:40.6%;--y:82.3%" href="#e-stop" aria-label="7, Остановить">7</a>
+      <a class="pin" style="--x:52.1%;--y:82.3%" href="#e-copy" aria-label="8, Копировать команду">8</a>
+      <a class="pin" style="--x:67.5%;--y:82.3%" href="#e-shortcut" aria-label="9, Создать ярлык">9</a>
+      <a class="pin" style="--x:24.1%;--y:90.7%" href="#e-output" aria-label="10, Вывод">10</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="11, Справка">11</a>
+    </div>
+    <figcaption>Демонстрационные данные. Выберите номер, чтобы прочитать об этой части окна.</figcaption>
+  </figure>
+
+  <h2>В каком порядке</h2>
+  <ol class="order">
+    <li>Выберите операцию <a class="ref" href="#e-operation">1</a>. Строка под списком говорит, что она делает.</li>
+    <li>Выберите цель <a class="ref" href="#e-target">2</a>.</li>
+    <li>Заполните параметр <a class="ref" href="#e-parameter">3</a>, если операция его принимает, и отметьте нужные флаги <a class="ref" href="#e-flags">4</a>.</li>
+    <li>Прочитайте командную строку <a class="ref" href="#e-commandline">5</a>. Это ровно то, что будет выполнено.</li>
+    <li>Нажмите «Выполнить команду» <a class="ref" href="#e-run">6</a>. Смотрите вывод <a class="ref" href="#e-output">10</a>; «Остановить» <a class="ref" href="#e-stop">7</a> прерывает команду.</li>
+  </ol>
+
+  <h2>Элементы окна</h2>
+  <div class="elements">
+    <details class="el" id="e-operation">
+      <summary><span class="mk">1</span><span><span class="name">Операция</span><span class="one">Какую операцию FileDO собрать.</span></span></summary>
+      <div class="full">
+        <p>В списке все операции командной строки: проверки, копирование, очистка, секретные файлы и виртуальные диски. Строка под списком одним предложением говорит, что делает выбранная операция и меняет ли она что-нибудь.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Остальная страница подстраивается: показаны только поля и флаги, которые подходят к этой операции.</dd>
+          <dt>Можно ли отменить</dt><dd>Выбор операции ничего не меняет.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-target">
+      <summary><span class="mk">2</span><span><span class="name">Диск, папка или файл</span><span class="one">Диск, папка или файл, с которыми работает операция.</span></span></summary>
+      <div class="full">
+        <p>Введите полный путь или найдите его кнопками «Папка..» и «Файл..». Если операции нужны два места, для второго есть отдельное поле.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Командная строка ниже переписывается.</dd>
+          <dt>Можно ли отменить</dt><dd>Выбор цели ничего не меняет, пока вы не запустите команду.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-parameter">
+      <summary><span class="mk">3</span><span><span class="name">Дополнительные параметры (необязательно)</span><span class="one">Дополнительное значение, которое принимают некоторые операции.</span></span></summary>
+      <div class="full">
+        <p>Папка назначения, файл-список или размер - в зависимости от операции. Поле показано, только если операция его принимает.</p>
+      </div>
+    </details>
+    <details class="el" id="e-flags">
+      <summary><span class="mk">4</span><span><span class="name">Флаги</span><span class="one">Переключатели, меняющие поведение операции.</span></span></summary>
+      <div class="full">
+        <p>Каждый флаг - параметр, который командная строка пишет словом или с чёрточкой. Наведите курсор на флаг, чтобы увидеть, что он делает. Показаны только флаги, подходящие к выбранной операции.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Командная строка ниже меняется по мере отметок.</dd>
+          <dt>Можно ли отменить</dt><dd>Снимите отметку, чтобы убрать флаг.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-commandline">
+      <summary><span class="mk">5</span><span><span class="name">Команда, которая будет выполнена - её можно править</span><span class="one">Команда, которая будет выполнена.</span></span></summary>
+      <div class="full">
+        <p>Собирается из ваших выборов; её можно править и вручную. Это ровно то, что запускает кнопка выполнения, и её можно скопировать в терминал. Пароль, введённый в его собственное поле, в эту строку не попадает.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Правка строки ничего не меняет, пока вы её не выполните.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-run">
+      <summary><span class="mk">6</span><span><span class="name">Выполнить команду</span><span class="one">Выполняет команду.</span></span></summary>
+      <div class="full">
+        <p>Запускает команду, показанную выше. Команда, которая стирает данные или восстанавливает диск, сначала просит ввести слово-подтверждение.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Ниже появляются ход выполнения и вывод.</dd>
+          <dt>Можно ли отменить</dt><dd>Зависит от операции: об этом говорит подсказка под списком операций. «Остановить» прерывает команду аккуратно в любой момент.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-stop">
+      <summary><span class="mk">7</span><span><span class="name">Остановить</span><span class="one">Просит команду закончить аккуратно.</span></span></summary>
+      <div class="full">
+        <p>Команда доводит до конца текущий кусок и останавливается. Если этого не происходит, второе нажатие предлагает завершить её сразу.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Уже сделанное остаётся сделанным.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-copy">
+      <summary><span class="mk">8</span><span><span class="name">Копировать команду</span><span class="one">Кладёт команду в буфер обмена.</span></span></summary>
+      <div class="full">
+        <p>Копирует командную строку, чтобы вставить её в терминал, скрипт или письмо. Ничего не запускается.</p>
+      </div>
+    </details>
+    <details class="el" id="e-shortcut">
+      <summary><span class="mk">9</span><span><span class="name">Создать ярлык</span><span class="one">Создаёт ярлык на рабочем столе, который выполняет эту команду.</span></span></summary>
+      <div class="full">
+        <p>Записывает на рабочий стол файл-ярлык, который запускает команду в окне консоли. Вы выбираете имя и то, останется ли окно открытым в конце. Если команда может стереть данные, показывается предупреждение, а консоль при запуске ярлыка всё равно просит подтверждения.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Ярлык появляется на рабочем столе. Удаление FileDO его не удаляет.</dd>
+          <dt>Можно ли отменить</dt><dd>Удалите файл ярлыка, чтобы убрать его.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-output">
+      <summary><span class="mk">10</span><span><span class="name">Вывод</span><span class="one">Что напечатала команда - по мере выполнения.</span></span></summary>
+      <div class="full">
+        <p>Индикатор и текст команды в реальном времени. Когда команда заканчивается, строка вердикта говорит, пройдена ли проверка, не пройдена или не удалось проверить, а отчёт добавляется в Историю.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Справка</span><span class="one">Открывает страницу, которую вы читаете.</span></span></summary>
+      <div class="full">
+        <p>В правом верхнем углу каждого окна FileDO есть эта кнопка. Она открывает справку по тому окну, в котором вы находитесь, - с картинкой и объяснением каждой части, на вашем языке.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Страница открывается в браузере. FileDO остаётся открытым, и в нём ничего не меняется.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>См. также</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Страница задачи</b><span class="pill">Окно</span><small>Как выполняется любая задача: выбрать, настроить, прочитать план, запустить.</small></a></li>
+    <li><a href="history.html"><b>История</b><span class="pill">Окно</span><small>Отчёт о каждом завершённом запуске.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/gui-command-builder.html"><b>Руководство: окно и конструктор команд</b><span class="pill gold">Сайт</span><small>Каждая страница окна, с картинками.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Глоссарий</b><span class="pill gold">Сайт</span><small>Что FileDO называет контейнером, затиранием, подключением и остальным.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Снято с FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Оглавление справки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

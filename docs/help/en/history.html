@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Help - History</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Help index</a><span class="sep" aria-hidden="true">/</span><span>History</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Window help</p>
+    <h1>History</h1>
+    <p class="lead">Read what FileDO did before: every finished run leaves a report with its command, its verdict and its details. The page lists the reports, shows the one you select and opens the folder they are kept in.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/history.en.dark.png" width="1457" height="903" alt="History: the window with its numbered parts">
+      <img class="on-light" src="../img/history.en.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:18.1%" href="#e-state" aria-label="1, Reports folder">1</a>
+      <a class="pin" style="--x:24.2%;--y:22.7%" href="#e-list" aria-label="2, History">2</a>
+      <a class="pin" style="--x:57.3%;--y:21.4%" href="#e-details" aria-label="3, Report contents">3</a>
+      <a class="pin" style="--x:24.1%;--y:90.8%" href="#e-open" aria-label="4, Open report folder">4</a>
+      <a class="pin" style="--x:38.6%;--y:90.8%" href="#e-folder" aria-label="5, Open reports directory">5</a>
+      <a class="pin" style="--x:55.1%;--y:90.8%" href="#e-refresh" aria-label="6, Refresh">6</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="7, Help">7</a>
+    </div>
+    <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
+  </figure>
+
+  <h2>In this order</h2>
+  <ol class="order">
+    <li>Read the line at the top <a class="ref" href="#e-state">1</a>: it says where the reports are kept, or that they are turned off.</li>
+    <li>Select a report in the list <a class="ref" href="#e-list">2</a>.</li>
+    <li>Read its details <a class="ref" href="#e-details">3</a>, or open the whole report <a class="ref" href="#e-open">4</a>.</li>
+    <li>Open the folder <a class="ref" href="#e-folder">5</a> to copy or delete reports yourself.</li>
+  </ol>
+
+  <h2>The elements</h2>
+  <div class="elements">
+    <details class="el" id="e-state">
+      <summary><span class="mk">1</span><span><span class="name">Reports folder</span><span class="one">Where the reports are kept, or that they are off.</span></span></summary>
+      <div class="full">
+        <p>Reports are written when the setting Write a report for every run is on, and kept for 30 days. With it off, this line says so, because an empty list would look like nothing had happened.</p>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">2</span><span><span class="name">History</span><span class="one">The finished runs, newest first.</span></span></summary>
+      <div class="full">
+        <p>One row per report. Select a row to read it on the right. The list is read again each time you open this page and when you press Refresh.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The details on the right show the command, the verdict and the end of the report.</dd>
+          <dt>Undo</dt><dd>Selecting a report changes nothing.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-details">
+      <summary><span class="mk">3</span><span><span class="name">Report contents</span><span class="one">The command, the verdict and the end of the selected report.</span></span></summary>
+      <div class="full">
+        <p>Shows the start and the end of the report, which is where the command and the verdict are. A very long report is not loaded whole; open it to read all of it.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">4</span><span><span class="name">Open report folder</span><span class="one">Opens the whole report in Notepad.</span></span></summary>
+      <div class="full">
+        <p>Opens the selected report file in Notepad. It is the original file, so changes you make there and save are saved in it.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The report opens in another program. FileDO stays open.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-folder">
+      <summary><span class="mk">5</span><span><span class="name">Open reports directory</span><span class="one">Opens the folder the reports are kept in.</span></span></summary>
+      <div class="full">
+        <p>Opens the reports folder in Explorer. Reports older than 30 days are removed automatically; here you can also copy or delete them yourself.</p>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">6</span><span><span class="name">Refresh</span><span class="one">Reads the list again.</span></span></summary>
+      <div class="full">
+        <p>Use it after a run in another window or after deleting files by hand. It only reads; nothing is changed.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">7</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <div class="full">
+        <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The page opens in your web browser. FileDO stays open and nothing in it changes.</dd>
+          <dt>Shortcut</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Related</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>The job page</b><span class="pill">Window</span><small>How every job is done: choose, set, read the plan, run.</small></a></li>
+    <li><a href="command.html"><b>Command</b><span class="pill">Window</span><small>The same operations, written as a command line.</small></a></li>
+    <li><a href="settings.html"><b>Settings</b><span class="pill">Window</span><small>Theme, language, history and startup.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Help index</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

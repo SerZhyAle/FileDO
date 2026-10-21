@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Справка - История</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Оглавление справки</a><span class="sep" aria-hidden="true">/</span><span>История</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Справка по окну</p>
+    <h1>История</h1>
+    <p class="lead">Прочитайте, что FileDO делал раньше: каждый завершённый запуск оставляет отчёт с командой, вердиктом и подробностями. Страница перечисляет отчёты, показывает выбранный и открывает папку, где они лежат.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/history.ru.dark.png" width="1457" height="903" alt="История: окно с пронумерованными частями">
+      <img class="on-light" src="../img/history.ru.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:18.1%" href="#e-state" aria-label="1, Папка отчётов">1</a>
+      <a class="pin" style="--x:24.2%;--y:22.7%" href="#e-list" aria-label="2, История">2</a>
+      <a class="pin" style="--x:57.3%;--y:21.4%" href="#e-details" aria-label="3, Содержимое отчёта">3</a>
+      <a class="pin" style="--x:24.1%;--y:90.8%" href="#e-open" aria-label="4, Открыть папку отчётов">4</a>
+      <a class="pin" style="--x:41.3%;--y:90.8%" href="#e-folder" aria-label="5, Открыть папку отчётов">5</a>
+      <a class="pin" style="--x:58.5%;--y:90.8%" href="#e-refresh" aria-label="6, Обновить">6</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="7, Справка">7</a>
+    </div>
+    <figcaption>Демонстрационные данные. Выберите номер, чтобы прочитать об этой части окна.</figcaption>
+  </figure>
+
+  <h2>В каком порядке</h2>
+  <ol class="order">
+    <li>Прочитайте строку сверху <a class="ref" href="#e-state">1</a>: она говорит, где хранятся отчёты, или что они выключены.</li>
+    <li>Выберите отчёт в списке <a class="ref" href="#e-list">2</a>.</li>
+    <li>Прочитайте подробности <a class="ref" href="#e-details">3</a> или откройте отчёт целиком <a class="ref" href="#e-open">4</a>.</li>
+    <li>Откройте папку <a class="ref" href="#e-folder">5</a>, чтобы скопировать или удалить отчёты самостоятельно.</li>
+  </ol>
+
+  <h2>Элементы окна</h2>
+  <div class="elements">
+    <details class="el" id="e-state">
+      <summary><span class="mk">1</span><span><span class="name">Папка отчётов</span><span class="one">Где хранятся отчёты - или что они выключены.</span></span></summary>
+      <div class="full">
+        <p>Отчёты пишутся, пока включена настройка «Записывать отчёт о каждом запуске», и хранятся 30 дней. Когда она выключена, эта строка так и говорит: пустой список выглядел бы так, будто ничего не произошло.</p>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">2</span><span><span class="name">История</span><span class="one">Завершённые запуски, сначала новые.</span></span></summary>
+      <div class="full">
+        <p>Одна строка на отчёт. Выберите строку, чтобы прочитать отчёт справа. Список читается заново при каждом открытии страницы и по кнопке «Обновить».</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Справа показаны команда, вердикт и конец отчёта.</dd>
+          <dt>Можно ли отменить</dt><dd>Выбор отчёта ничего не меняет.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-details">
+      <summary><span class="mk">3</span><span><span class="name">Содержимое отчёта</span><span class="one">Команда, вердикт и конец выбранного отчёта.</span></span></summary>
+      <div class="full">
+        <p>Показывает начало и конец отчёта - там находятся команда и вердикт. Очень длинный отчёт целиком не загружается; откройте его, чтобы прочитать всё.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">4</span><span><span class="name">Открыть папку отчётов</span><span class="one">Открывает отчёт целиком в Блокноте.</span></span></summary>
+      <div class="full">
+        <p>Открывает файл выбранного отчёта в Блокноте. Это сам файл, поэтому изменения, которые вы там внесёте и сохраните, сохранятся в нём.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Отчёт открывается в другой программе. FileDO остаётся открытым.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-folder">
+      <summary><span class="mk">5</span><span><span class="name">Открыть папку отчётов</span><span class="one">Открывает папку, где хранятся отчёты.</span></span></summary>
+      <div class="full">
+        <p>Открывает папку отчётов в Проводнике. Отчёты старше 30 дней удаляются автоматически; здесь их можно также скопировать или удалить самому.</p>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">6</span><span><span class="name">Обновить</span><span class="one">Читает список заново.</span></span></summary>
+      <div class="full">
+        <p>Нужна после запуска в другом окне или после удаления файлов вручную. Она только читает; ничего не меняется.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">7</span><span><span class="name">Справка</span><span class="one">Открывает страницу, которую вы читаете.</span></span></summary>
+      <div class="full">
+        <p>В правом верхнем углу каждого окна FileDO есть эта кнопка. Она открывает справку по тому окну, в котором вы находитесь, - с картинкой и объяснением каждой части, на вашем языке.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Страница открывается в браузере. FileDO остаётся открытым, и в нём ничего не меняется.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>См. также</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Страница задачи</b><span class="pill">Окно</span><small>Как выполняется любая задача: выбрать, настроить, прочитать план, запустить.</small></a></li>
+    <li><a href="command.html"><b>Команда</b><span class="pill">Окно</span><small>Те же операции, записанные командной строкой.</small></a></li>
+    <li><a href="settings.html"><b>Настройки</b><span class="pill">Окно</span><small>Тема, язык, история и автозапуск.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Снято с FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Оглавление справки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

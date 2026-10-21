@@ -280,15 +280,28 @@ Friend Class AppHost
         Return False
     End Function
 
+    ' The most one request to one window may hold a second start (APP-ACTIVATION 0.13: a bounded
+    ' SendMessageTimeout with SMTO_ABORTIFHUNG; an unbounded SendMessage to another process is forbidden).
+    Friend Const HandOverSendMs As Integer = 2000
+
+    ' One payload-less signal to one window. True only when that window's procedure answered 1 inside the
+    ' bound. A window that is hung, slow, on another desktop or at a higher integrity level does not answer,
+    ' and that is False - never a wait past the bound, never an exception, never a claim that nobody holds
+    ' the app: the caller decides what an unanswered signal means.
+    Friend Shared Function AskWindow(hwnd As IntPtr, message As Integer, timeoutMs As Integer) As Boolean
+        If hwnd = IntPtr.Zero OrElse message = 0 Then Return False
+        Dim result As IntPtr = IntPtr.Zero
+        Return SendMessageTimeout(hwnd, message, IntPtr.Zero, IntPtr.Zero, SMTO_ABORTIFHUNG, timeoutMs, result) <> IntPtr.Zero AndAlso
+               result = New IntPtr(1)
+    End Function
+
     Private Shared Function AskWindowsOf(pid As Integer, message As Integer) As Boolean
         Dim answered = False
         EnumWindows(Function(hwnd, l)
                         Dim owner = 0
                         GetWindowThreadProcessId(hwnd, owner)
                         If owner <> pid Then Return True
-                        Dim result As IntPtr = IntPtr.Zero
-                        If SendMessageTimeout(hwnd, message, IntPtr.Zero, IntPtr.Zero, SMTO_ABORTIFHUNG, 2000, result) <> IntPtr.Zero AndAlso
-                           result = New IntPtr(1) Then
+                        If AskWindow(hwnd, message, HandOverSendMs) Then
                             answered = True
                             Return False
                         End If

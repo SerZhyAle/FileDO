@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Справка - FileDO - Диспетчер дисков</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Оглавление справки</a><span class="sep" aria-hidden="true">/</span><span>FileDO - Диспетчер дисков</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Справка по окну</p>
+    <h1>FileDO - Диспетчер дисков</h1>
+    <p class="lead">Все виртуальные диски в одном списке: создайте диск, добавьте уже имеющийся, подключите его как диск, откройте, сохраните и отключите. Виртуальный диск - это один файл .fdd, который Windows показывает как диск.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/disk-manager.ru.dark.png" width="1052" height="733" alt="FileDO - Диспетчер дисков: окно с пронумерованными частями">
+      <img class="on-light" src="../img/disk-manager.ru.light.png" width="1052" height="733" alt="">
+      <a class="pin" style="--x:1.6%;--y:1.6%" href="#e-new" aria-label="1, Новый диск..">1</a>
+      <a class="pin" style="--x:17.7%;--y:1.6%" href="#e-add" aria-label="2, Добавить..">2</a>
+      <a class="pin" style="--x:33.7%;--y:1.6%" href="#e-mount" aria-label="3, Подключить">3</a>
+      <a class="pin" style="--x:49.5%;--y:1.6%" href="#e-unmount" aria-label="4, Отключить">4</a>
+      <a class="pin" style="--x:64.3%;--y:1.6%" href="#e-open" aria-label="5, Открыть">5</a>
+      <a class="pin" style="--x:77.0%;--y:1.6%" href="#e-save" aria-label="6, Сохранить">6</a>
+      <a class="pin" style="--x:1.6%;--y:7.6%" href="#e-more" aria-label="7, Ещё">7</a>
+      <a class="pin" style="--x:12.7%;--y:7.6%" href="#e-refresh" aria-label="8, Обновить">8</a>
+      <a class="pin" style="--x:17.7%;--y:7.6%" href="#e-settings" aria-label="9, Настройки">9</a>
+      <a class="pin" style="--x:24.2%;--y:7.6%" href="#e-main" aria-label="10, Операции FileDO">10</a>
+      <a class="pin" style="--x:44.6%;--y:7.6%" href="#e-help" aria-label="11, Справка">11</a>
+      <a class="pin" style="--x:9.1%;--y:16.1%" href="#e-filter" aria-label="12, Фильтр дисков">12</a>
+      <a class="pin" style="--x:0.2%;--y:21.8%" href="#e-list" aria-label="13, Список дисков">13</a>
+      <a class="pin" style="--x:0.2%;--y:49.7%" href="#e-detail" aria-label="14, Сведения">14</a>
+      <a class="pin" style="--x:0.2%;--y:94.3%" href="#e-strip" aria-label="15, Строка состояния">15</a>
+    </div>
+    <figcaption>Демонстрационные данные. Выберите номер, чтобы прочитать об этой части окна.</figcaption>
+  </figure>
+
+  <h2>В каком порядке</h2>
+  <ol class="order">
+    <li>Создайте диск кнопкой «Новый диск..» <a class="ref" href="#e-new">1</a> или добавьте имеющийся файл .fdd кнопкой «Добавить..» <a class="ref" href="#e-add">2</a>.</li>
+    <li>Выберите его в списке <a class="ref" href="#e-list">13</a>. Сведения <a class="ref" href="#e-detail">14</a> говорят, что это и что с ним можно сделать сейчас.</li>
+    <li>Нажмите «Подключить» <a class="ref" href="#e-mount">3</a>. Windows каждый раз спрашивает согласие.</li>
+    <li>Работайте в новом диске; «Открыть» <a class="ref" href="#e-open">5</a> показывает его в Проводнике.</li>
+    <li>Когда закончите, нажмите «Отключить» <a class="ref" href="#e-unmount">4</a>. Ram-диск сначала сохраняется, а «Сохранить» <a class="ref" href="#e-save">6</a> записывает его раньше.</li>
+  </ol>
+
+  <h2>Элементы окна</h2>
+  <div class="elements">
+    <details class="el" id="e-new">
+      <summary><span class="mk">1</span><span><span class="name">Новый диск..</span><span class="one">Создать новый виртуальный диск: один файл .fdd, который Windows показывает как диск</span></span></summary>
+      <div class="full">
+        <p>Открывает в главном окне страницу создания диска, где вы выбираете файл, размер и вид диска, включая защиту. Диск появляется в списке, когда будет создан.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>На той странице вы нажимаете «Выполнить»; Диспетчер дисков остаётся открытым и показывает новый диск.</dd>
+          <dt>Можно ли отменить</dt><dd>Ничего не создаётся, пока вы не нажмёте «Выполнить» на той странице.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>N</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-add">
+      <summary><span class="mk">2</span><span><span class="name">Добавить..</span><span class="one">Добавить контейнеры .fdd в список - или перетащить их на него</span></span></summary>
+      <div class="full">
+        <p>Выберите один или несколько файлов .fdd или перетащите их на список. Список лишь запоминает, где они лежат: файлы не копируются, не переносятся и не изменяются.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Уберите имя из списка в любой момент; на файл это не влияет.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-mount">
+      <summary><span class="mk">3</span><span><span class="name">Подключить</span><span class="one">Подключить выбранные диски как тома. Windows спросит согласие для каждого</span></span></summary>
+      <div class="full">
+        <p>Подключает каждый выбранный диск как диск со своей буквой. Windows каждый раз просит согласие администратора, а диск с паролем спрашивает пароль. В меню «Ещё» есть подключение только для чтения - диск при этом не изменить.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>В строке появляются буква диска и состояние «Подключён».</dd>
+          <dt>Можно ли отменить</dt><dd>«Отключить» снова отсоединяет диск; файл хранит всё.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>M</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-unmount">
+      <summary><span class="mk">4</span><span><span class="name">Отключить</span><span class="one">Отключить тома выбранных дисков. Файлы сохраняют всё</span></span></summary>
+      <div class="full">
+        <p>Отключает выбранные диски, и их буквы исчезают. Ram-диск сначала записывает в файл то, что держит в памяти.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Строка возвращается в состояние «Не подключён», и буква диска снова свободна.</dd>
+          <dt>Можно ли отменить</dt><dd>«Подключить» вернёт диск со всем, что вы в него записали.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>U</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">5</span><span><span class="name">Открыть</span><span class="one">Открыть том выбранного диска в Проводнике</span></span></summary>
+      <div class="full">
+        <p>Открывает в Проводнике выбранный подключённый диск. Двойной щелчок по подключённой строке делает то же.</p>
+        <dl class="facts">
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>E</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-save">
+      <summary><span class="mk">6</span><span><span class="name">Сохранить</span><span class="one">Записать в файл то, что ram-диск держит в памяти, прямо сейчас</span></span></summary>
+      <div class="full">
+        <p>Ram-диск держит записанное в оперативной памяти. «Сохранить» записывает это в файл сейчас, чтобы отключение питания стоило меньше. Отключение сначала сохраняет, поэтому «Сохранить» нужно как точка безопасности в долгой работе. Предлагается только для ram-дисков.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Сохранение только записывает файл; можно продолжать работать.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-more">
+      <summary><span class="mk">7</span><span><span class="name">Ещё</span><span class="one">Все операции для выбранных дисков и колонки списка</span></span></summary>
+      <div class="full">
+        <p>Меню со всеми операциями для выбранных дисков - проверить, уплотнить, увеличить, форматировать, сменить пароль, открыть доступ, уничтожить и другие - и выбор столбцов списка. Операция, которая сейчас не подходит, недоступна, а сведения говорят почему.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Операция, меняющая диск, открывает свою страницу в главном окне, которая спрашивает перед запуском.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">8</span><span><span class="name">Обновить</span><span class="one">Прочитать состояние дисков заново</span></span></summary>
+      <div class="full">
+        <p>Заново читает состояние всех дисков. Список обновляется и сам; нажмите после изменений вне FileDO.</p>
+        <dl class="facts">
+          <dt>Сочетание клавиш</dt><dd><kbd>F5</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-settings">
+      <summary><span class="mk">9</span><span><span class="name">Настройки</span><span class="one">Открывает настройки.</span></span></summary>
+      <div class="full">
+        <p>Открывает Настройки: тему, язык и то, что делает FileDO при запуске Windows. Это те же настройки, что и в главном окне.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Настройки действуют сразу, и их можно вернуть.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-main">
+      <summary><span class="mk">10</span><span><span class="name">Операции FileDO</span><span class="one">Открыть главное окно FileDO со всеми операциями: проверки, копирование, защита файлов, стирание и другое</span></span></summary>
+      <div class="full">
+        <p>Выводит вперёд главное окно FileDO. В нём все операции, не связанные с дисками: проверки, копирование, секретные файлы и очистка.</p>
+        <dl class="facts">
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Справка</span><span class="one">Открывает страницу, которую вы читаете.</span></span></summary>
+      <div class="full">
+        <p>В правом верхнем углу каждого окна FileDO есть эта кнопка. Она открывает справку по тому окну, в котором вы находитесь, - с картинкой и объяснением каждой части, на вашем языке.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Страница открывается в браузере. FileDO остаётся открытым, и в нём ничего не меняется.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-filter">
+      <summary><span class="mk">12</span><span><span class="name">Фильтр дисков</span><span class="one">Показывать только диски, подходящие по имени, букве, пути или состоянию</span></span></summary>
+      <div class="full">
+        <p>Введите часть имени, букву диска, путь или состояние, чтобы показать только подходящие диски. Крестик у поля или Esc очищает фильтр.</p>
+        <dl class="facts">
+          <dt>Сочетание клавиш</dt><dd><kbd>Ctrl</kbd> + <kbd>F</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">13</span><span><span class="name">Список дисков</span><span class="one">Все диски, о которых знает FileDO, по строке на диск.</span></span></summary>
+      <div class="full">
+        <p>Диски из вашего списка, подключённые сейчас и образы дисков, которые подключил FileDO. В строке - имя, буква диска, размер, вид защиты и состояние. Двойной щелчок подключает неподключённый диск, а подключённый открывает в Проводнике. Состояния перечислены ниже.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Удаление имени из списка не затрагивает ни одного файла.</dd>
+        </dl>
+        <dl class="facts states">
+          <dt>Подключён</dt><dd>Диск подключён, его блочный сервер работает. Двойной щелчок открывает его в Проводнике.</dd>
+          <dt>Подключён, есть несохранённое</dt><dd>ram-диск держит записи в памяти; показанный объём ещё не в файле. «Сохранить сейчас» записывает его, а при отключении сохранение выполняется первым.</dd>
+          <dt>Сервер пропал - том недоступен</dt><dd>Блочный сервер, обслуживавший диск, пропал, поэтому том недоступен. Отключите диск, чтобы прибрать за ним.</dd>
+          <dt>Образ подключён</dt><dd>Образ диска (VHD, VHDX или ISO), подключённый FileDO. Отключите его здесь, когда закончите.</dd>
+          <dt>Не подключён</dt><dd>Готов. Двойной щелчок подключает его.</dd>
+          <dt>Закрыт некорректно</dt><dd>В прошлый раз закрыт некорректно. Следующее подключение сообщит об этом, а Windows проверит том, как после отключения питания.</dd>
+          <dt>Файл пропал</dt><dd>Файла по этому пути больше нет. Верните его на место или уберите имя из списка - файлы это не затрагивает.</dd>
+          <dt>По этому пути другой контейнер</dt><dd>По этому пути теперь другой контейнер. Уберите старое имя и добавьте этот файл заново, если нужен именно он.</dd>
+          <dt>Не читается</dt><dd>Заголовок файла не читается. Причина указана в подробностях.</dd>
+          <dt>Выполняется..</dt><dd>Идёт операция, которую вы запустили, или она ждёт своей очереди.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-detail">
+      <summary><span class="mk">14</span><span><span class="name">Сведения</span><span class="one">Что это за диск и что с ним можно сделать сейчас.</span></span></summary>
+      <div class="full">
+        <p>Показывает файл, вид, размер и состояние выбранного диска и кнопки того, что с ним можно сделать сейчас. Если операция не предлагается, сказано почему. Когда выбрано несколько дисков, кнопки действуют на все по очереди.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Кнопка либо делает работу здесь, либо открывает страницу этой операции в главном окне.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-strip">
+      <summary><span class="mk">15</span><span><span class="name">Строка состояния</span><span class="one">Что выполняется и что ждёт.</span></span></summary>
+      <div class="full">
+        <p>Первая строка говорит, сколько дисков подключено и насколько свежие сведения. Вторая показывает выполняемую операцию или чем закончилась последняя. «Остановить» прерывает выполняемую операцию аккуратно, а «Очистить очередь» убирает ожидающие.</p>
+      </div>
+    </details>
+    <details class="el" id="e-keyboard">
+      <summary><span class="mk">16</span><span><span class="name">Клавиатура</span><span class="one">Все клавиши этого окна.</span></span></summary>
+      <div class="full">
+        <p>Диспетчером дисков можно пользоваться только с клавиатуры. Это полная карта его клавиш; по этой же таблице работают клавиши, подсказки и меню, поэтому в ней не может быть клавиши, которая не работает.</p>
+        <dl class="facts keys">
+          <dt><kbd>Ctrl</kbd> + <kbd>N</kbd></dt><dd>Новый диск..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dt><dd>Операции FileDO</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Добавить..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>M</kbd></dt><dd>Подключить</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd></dt><dd>Подключить только для чтения</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>U</kbd></dt><dd>Отключить</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>E</kbd></dt><dd>Открыть в Проводнике</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Сохранить сейчас</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></dt><dd>Поделиться через Fast Media Sorter &amp; Sharing..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Сведения</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Проверить</dd>
+          <dt><kbd>Enter</kbd></dt><dd>Подключить неподключённый диск или открыть том подключённого</dd>
+          <dt><kbd>Del</kbd></dt><dd>Убрать из списка</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Копировать путь</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Выбрать все диски в списке</dd>
+          <dt><kbd>Menu</kbd></dt><dd>Открыть меню выбранного диска</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Открыть меню выбранного диска</dd>
+          <dt><kbd>F5</kbd></dt><dd>Обновить</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>Перейти в поле фильтра</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Очистить фильтр</dd>
+          <dt><kbd>F1</kbd></dt><dd>Открыть эту справку</dd>
+        </dl>
+        <p class="one"><small>Нет на картинке: показывается только тогда, когда окну это нужно.</small></p>
+      </div>
+    </details>
+  </div>
+
+  <h2>См. также</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Страница задачи</b><span class="pill">Окно</span><small>Задачи группы Диски в главном окне делают то же самое, по одной на странице.</small></a></li>
+    <li><a href="settings.html"><b>Настройки</b><span class="pill">Окно</span><small>Тема, язык, история и автозапуск.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html"><b>Руководство: виртуальные диски</b><span class="pill gold">Сайт</span><small>Вся задача от начала до конца.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html"><b>Руководство: общий доступ к дискам</b><span class="pill gold">Сайт</span><small>Общий доступ к подключённому диску через Fast Media Sorter and Sharing.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter and Sharing</b><span class="pill gold">Родственная программа</span><small>Родственная программа, которая открывает подключённый диск другим устройствам.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Глоссарий</b><span class="pill gold">Сайт</span><small>Что FileDO называет контейнером, затиранием, подключением и остальным.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Снято с FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Оглавление справки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

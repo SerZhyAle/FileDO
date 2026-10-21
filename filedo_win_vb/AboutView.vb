@@ -35,6 +35,11 @@ Public Class AboutView
         Dock = DockStyle.Fill
         AutoScroll = True
         BuildLayout()
+        ' The parts the help explains (HelpContent, page about).
+        buildLabel.Name = "help:build"
+        authorLabel.Name = "help:author"
+        licenseLabel.Name = "help:license"
+        sendLogsBtn.Name = "help:logs"
     End Sub
 
     Private Function L(key As String) As String
@@ -90,6 +95,10 @@ Public Class AboutView
             .WrapContents = False,
             .Margin = Ui.PxPad(Me, 0, 0, 0, 10)
         }
+        linkFlow.Name = "help:links"
+        ' The help of this program comes first among the links: it is on this machine and needs no
+        ' network. It opens the index of the help pages (CONTEXT-HELP, the About page links to it).
+        linkFlow.Controls.Add(NewLink(L("vd_mgr_name_help"), "", Sub() Help.OpenIndex(ShellDialog.OwnerOf(Me))))
         linkFlow.Controls.Add(NewLink(L("about_site"), Links.Site))
         linkFlow.Controls.Add(NewLink(L("about_source"), Links.GitHub))
         linkFlow.Controls.Add(NewLink(L("about_issues"), Links.Issues))
@@ -123,17 +132,22 @@ Public Class AboutView
         ResumeLayout(True)
     End Sub
 
-    Private Function NewLink(text As String, url As String) As LinkLabel
+    ' A link that opens an address, or - given onClick - does something of the program's own (the help).
+    Private Function NewLink(text As String, url As String, Optional onClick As Action = Nothing) As LinkLabel
         Dim lbl As New LinkLabel With {
             .Text = text,
             .AutoSize = True,
             .Margin = Ui.PxPad(Me, 0, 2, 0, 2),
             .Tag = url
         }
-        lbl.AccessibleName = text & " - " & url
-        tips.SetToolTip(lbl, url)
+        lbl.AccessibleName = If(url = "", text, text & " - " & url)
+        If url <> "" Then tips.SetToolTip(lbl, url)
         AddHandler lbl.LinkClicked, Sub(s As Object, e As LinkLabelLinkClickedEventArgs)
-                                      Links.Open(ShellDialog.OwnerOf(Me), CStr(DirectCast(s, LinkLabel).Tag))
+                                      If onClick IsNot Nothing Then
+                                          onClick()
+                                      Else
+                                          Links.Open(ShellDialog.OwnerOf(Me), CStr(DirectCast(s, LinkLabel).Tag))
+                                      End If
                                   End Sub
         linkLabels.Add(lbl)
         Return lbl

@@ -85,6 +85,39 @@ Module Ui
         Next
     End Sub
 
+    ' BUTTONS 2.0 section 3 rule 4: every button in one visual row has the height that row's tallest
+    ' button needs - a multiline caption included - and separate rows do not inherit another row's
+    ' maximum. Which row a button is on is decided by wrapping, so the heights are cleared, the flow is
+    ' laid out again, the rows are read from the result and only then equalized. Widths are never touched
+    ' (they stay content-based). A flow calls this from its SizeChanged; the table keeps the equalizing
+    ' itself, which changes the size, from re-entering.
+    Private ReadOnly equalizing As New Runtime.CompilerServices.ConditionalWeakTable(Of Control, Object)()
+
+    Public Sub EqualizeRowHeights(flow As Control)
+        If flow Is Nothing OrElse flow.IsDisposed Then Return
+        Dim busy As Object = Nothing
+        If equalizing.TryGetValue(flow, busy) Then Return
+        equalizing.Add(flow, Nothing)
+        Try
+            For Each c As Control In flow.Controls
+                If c.MinimumSize.Height <> 0 Then c.MinimumSize = New Size(c.MinimumSize.Width, 0)
+            Next
+            flow.PerformLayout()
+            ' Control.Visible folds in the parents: for a flow that has not been shown yet every child reads
+            ' as hidden, so the visibility filter applies only when the flow itself is on screen.
+            Dim honourVisible = flow.Visible
+            For Each visualRow In flow.Controls.Cast(Of Control)().Where(Function(c) Not honourVisible OrElse c.Visible).GroupBy(Function(c) c.Top)
+                Dim tallest = visualRow.Max(Function(c) c.Height)
+                For Each c In visualRow
+                    If c.Height <> tallest Then c.MinimumSize = New Size(c.MinimumSize.Width, tallest)
+                Next
+            Next
+            flow.PerformLayout()
+        Finally
+            equalizing.Remove(flow)
+        End Try
+    End Sub
+
     ' Makes a label wrap inside whatever width its container ends up with, and keep its full text.
     '
     ' The label stays AutoSize - that is what lets a card grow to fit its content - but its maximum
@@ -137,7 +170,7 @@ Module Ui
         Dim b As New GlyphButton With {
             .Text = text,
             .Glyph = glyph,
-            .Tier = 16,
+            .Tier = 16,   ' the caption glyph tier of BUTTONS 3 (UiTokens.CaptionGlyph), scaled by the button
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .Margin = margin

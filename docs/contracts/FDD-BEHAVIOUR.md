@@ -3,14 +3,14 @@
 | | |
 | --- | --- |
 | **Id** | `FDD-BEHAVIOUR` |
-| **Version** | 0.2 draft (wire carrier: the exit-code classes 0 and 2-8 of its section 4) |
+| **Version** | 1.0, promoted from the 0.2 draft on 2026-10-21 (wire carrier: the exit-code classes 0 and 2-8 of its section 4) |
 | **Home** | shared contracts catalog, folder `disk-container/`, document `FDD-BEHAVIOUR.md` |
-| **Role** | producer and consumer - this repository will be the reference implementation |
+| **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |
 
 ## What this repository must do to stay conformant
 
-- **`vdisk/` and `filedo vd` implement it**, unreleased: the read path, the writer, the mount path and
+- **`vdisk/` and `filedo vd` implement it**, shipped since the tag v2610070200: the read path, the writer, the mount path and
   exit classes 7 and 8.
 - **The read path needs nothing but the file** - no mount, driver, socket or elevation - and never writes
   to the container. It runs in every build that ships `filedo.exe`, the packaged one included.

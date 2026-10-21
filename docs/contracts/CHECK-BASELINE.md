@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CHECK-BASELINE` |
-| **Version** | 0.10, draft |
+| **Version** | 0.11, read 2026-10-21 (SP-0170); implemented partial 0.11; SP-0171 W8, draft |
 | **Role** | producer - quality and baseline tracking |
 | **Home** | shared contracts catalog, folder `automated-checks/`, document `README.md` |
 | **Owner** | FastMediaSorter Android |

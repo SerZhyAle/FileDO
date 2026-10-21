@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Справка - Справка FileDO</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <header class="hero">
+    <p class="kicker">Справка</p>
+    <h1>Справка FileDO</h1>
+    <p class="lead">По странице на каждое окно FileDO: для чего его части и в каком порядке ими пользоваться. В любом окне нажмите F1 или кнопку ? в правом верхнем углу, чтобы открыть страницу этого окна.</p>
+  </header>
+
+  <h2>Главное окно</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Страница задачи</b><span class="pill">Окно</span><small>Как выполняется любая задача: выбрать, настроить, прочитать план, запустить.</small></a></li>
+    <li><a href="command.html"><b>Команда</b><span class="pill">Окно</span><small>Те же операции, записанные командной строкой.</small></a></li>
+    <li><a href="settings.html"><b>Настройки</b><span class="pill">Окно</span><small>Тема, язык, история и автозапуск.</small></a></li>
+    <li><a href="about.html"><b>О программе</b><span class="pill">Окно</span><small>Версия, ссылки и поддержка.</small></a></li>
+    <li><a href="history.html"><b>История</b><span class="pill">Окно</span><small>Отчёт о каждом завершённом запуске.</small></a></li>
+  </ul>
+
+  <h2>Диспетчер дисков</h2>
+  <ul class="related">
+    <li><a href="disk-manager.html"><b>FileDO - Диспетчер дисков</b><span class="pill">Окно</span><small>Окно для виртуальных дисков: создать, подключить, открыть, сохранить и отключить.</small></a></li>
+  </ul>
+
+  <h2>На сайте</h2>
+  <ul class="related">
+    <li><a href="https://serzhyale.github.io/FileDO/guides/"><b>Все руководства</b><span class="pill gold">Сайт</span><small>Все руководства сайта, с картинками.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Поддержка</b><span class="pill gold">Сайт</span><small>Задать вопрос или сообщить о проблеме.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Приватность</b><span class="pill gold">Сайт</span><small>Без телеметрии: что остаётся на вашем компьютере.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Снято с FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
+  </footer>
+</main>
+</body>
+</html>

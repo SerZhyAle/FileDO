@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="de" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Hilfe - FileDO - Datenträgerverwaltung</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Hilfe-Übersicht</a><span class="sep" aria-hidden="true">/</span><span>FileDO - Datenträgerverwaltung</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Hilfe zum Fenster</p>
+    <h1>FileDO - Datenträgerverwaltung</h1>
+    <p class="lead">Alle virtuellen Datenträger in einer Liste: einen Datenträger erstellen, einen vorhandenen hinzufügen, als Laufwerk einbinden, öffnen, speichern und trennen. Ein virtueller Datenträger ist eine einzige .fdd-Datei, die Windows als Laufwerk zeigt.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/disk-manager.de.dark.png" width="1052" height="733" alt="FileDO - Datenträgerverwaltung: das Fenster mit seinen nummerierten Teilen">
+      <img class="on-light" src="../img/disk-manager.de.light.png" width="1052" height="733" alt="">
+      <a class="pin" style="--x:1.6%;--y:1.6%" href="#e-new" aria-label="1, Neuer Datenträger..">1</a>
+      <a class="pin" style="--x:22.5%;--y:1.6%" href="#e-add" aria-label="2, Hinzufügen..">2</a>
+      <a class="pin" style="--x:39.7%;--y:1.6%" href="#e-mount" aria-label="3, Einbinden">3</a>
+      <a class="pin" style="--x:53.4%;--y:1.6%" href="#e-unmount" aria-label="4, Trennen">4</a>
+      <a class="pin" style="--x:65.8%;--y:1.6%" href="#e-open" aria-label="5, Öffnen">5</a>
+      <a class="pin" style="--x:77.2%;--y:1.6%" href="#e-save" aria-label="6, Speichern">6</a>
+      <a class="pin" style="--x:1.6%;--y:7.6%" href="#e-more" aria-label="7, Weitere Aktionen">7</a>
+      <a class="pin" style="--x:22.1%;--y:7.6%" href="#e-refresh" aria-label="8, Aktualisieren">8</a>
+      <a class="pin" style="--x:27.1%;--y:7.6%" href="#e-settings" aria-label="9, Einstellungen">9</a>
+      <a class="pin" style="--x:33.7%;--y:7.6%" href="#e-main" aria-label="10, FileDO-Operationen">10</a>
+      <a class="pin" style="--x:55.6%;--y:7.6%" href="#e-help" aria-label="11, Hilfe">11</a>
+      <a class="pin" style="--x:7.2%;--y:16.1%" href="#e-filter" aria-label="12, Datenträger filtern">12</a>
+      <a class="pin" style="--x:0.2%;--y:21.8%" href="#e-list" aria-label="13, Die Liste der Datenträger">13</a>
+      <a class="pin" style="--x:0.2%;--y:52.7%" href="#e-detail" aria-label="14, Einzelheiten">14</a>
+      <a class="pin" style="--x:0.2%;--y:94.3%" href="#e-strip" aria-label="15, Statuszeile">15</a>
+    </div>
+    <figcaption>Beispieldaten. Wählen Sie eine Nummer, um mehr über diesen Teil des Fensters zu lesen.</figcaption>
+  </figure>
+
+  <h2>In dieser Reihenfolge</h2>
+  <ol class="order">
+    <li>Erstellen Sie einen Datenträger mit Neuer Datenträger.. <a class="ref" href="#e-new">1</a> oder fügen Sie eine vorhandene .fdd-Datei mit Hinzufügen.. <a class="ref" href="#e-add">2</a> hinzu.</li>
+    <li>Wählen Sie ihn in der Liste <a class="ref" href="#e-list">13</a>. Die Einzelheiten <a class="ref" href="#e-detail">14</a> sagen, was er ist und was jetzt damit möglich ist.</li>
+    <li>Drücken Sie Einbinden <a class="ref" href="#e-mount">3</a>. Windows fragt jedes Mal nach Ihrer Zustimmung.</li>
+    <li>Arbeiten Sie im neuen Laufwerk; Öffnen <a class="ref" href="#e-open">5</a> zeigt es im Explorer.</li>
+    <li>Drücken Sie Trennen <a class="ref" href="#e-unmount">4</a>, wenn Sie fertig sind. Ein ram-Datenträger wird vorher gespeichert, und Speichern <a class="ref" href="#e-save">6</a> schreibt ihn früher.</li>
+  </ol>
+
+  <h2>Die Elemente</h2>
+  <div class="elements">
+    <details class="el" id="e-new">
+      <summary><span class="mk">1</span><span><span class="name">Neuer Datenträger..</span><span class="one">Einen neuen virtuellen Datenträger anlegen: eine .fdd-Datei, die Windows als Laufwerk zeigt</span></span></summary>
+      <div class="full">
+        <p>Öffnet im Hauptfenster die Seite zum Erstellen eines Datenträgers, wo Sie die Datei, die Größe und die Art des Datenträgers samt Schutz wählen. Der Datenträger erscheint in der Liste, sobald er erstellt ist.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Auf dieser Seite drücken Sie Ausführen; die Datenträgerverwaltung bleibt geöffnet und zeigt den neuen Datenträger.</dd>
+          <dt>Rückgängig</dt><dd>Es wird nichts erstellt, bis Sie auf dieser Seite Ausführen drücken.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>N</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-add">
+      <summary><span class="mk">2</span><span><span class="name">Hinzufügen..</span><span class="one">.fdd-Container zur Liste hinzufügen - oder auf sie ziehen</span></span></summary>
+      <div class="full">
+        <p>Wählen Sie eine oder mehrere .fdd-Dateien oder ziehen Sie sie auf die Liste. Die Liste merkt sich nur, wo sie liegen: Die Dateien werden nicht kopiert, verschoben oder verändert.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Entfernen Sie einen Namen jederzeit aus der Liste; das berührt keine Datei.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-mount">
+      <summary><span class="mk">3</span><span><span class="name">Einbinden</span><span class="one">Die gewählten Datenträger als Laufwerke einbinden. Windows fragt jedes Mal um Zustimmung</span></span></summary>
+      <div class="full">
+        <p>Bindet jeden gewählten Datenträger als Laufwerk mit eigenem Buchstaben ein. Windows fragt jedes Mal nach der Zustimmung des Administrators, und ein Datenträger mit Passwort fragt danach. Weitere Aktionen bietet Schreibgeschützt einbinden, damit der Datenträger nicht verändert werden kann.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Zeile zeigt den Laufwerksbuchstaben und den Zustand Eingebunden.</dd>
+          <dt>Rückgängig</dt><dd>Trennen löst das Laufwerk wieder; die Datei behält alles.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>M</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-unmount">
+      <summary><span class="mk">4</span><span><span class="name">Trennen</span><span class="one">Die Laufwerke der gewählten Datenträger trennen. Die Dateien behalten alles</span></span></summary>
+      <div class="full">
+        <p>Trennt die gewählten Datenträger, und ihre Buchstaben verschwinden. Ein ram-Datenträger schreibt zuerst in seine Datei, was er im Speicher hält.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Zeile geht zurück auf Nicht eingebunden, und der Laufwerksbuchstabe ist wieder frei.</dd>
+          <dt>Rückgängig</dt><dd>Einbinden bringt den Datenträger zurück, mit allem, was Sie geschrieben haben.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>U</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">5</span><span><span class="name">Öffnen</span><span class="one">Das Laufwerk des gewählten Datenträgers im Explorer öffnen</span></span></summary>
+      <div class="full">
+        <p>Öffnet das Laufwerk des gewählten eingebundenen Datenträgers im Explorer. Ein Doppelklick auf eine eingebundene Zeile tut dasselbe.</p>
+        <dl class="facts">
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>E</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-save">
+      <summary><span class="mk">6</span><span><span class="name">Speichern</span><span class="one">Jetzt in die Datei schreiben, was ein ram-Datenträger im Speicher hält</span></span></summary>
+      <div class="full">
+        <p>Ein ram-Datenträger hält Geschriebenes im Arbeitsspeicher. Speichern schreibt es jetzt in die Datei, damit ein Stromausfall weniger kostet. Das Trennen speichert zuerst, daher ist Speichern ein sicherer Zwischenstand in einer langen Sitzung. Es wird nur für ram-Datenträger angeboten.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Speichern schreibt nur die Datei; Sie können weiterarbeiten.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-more">
+      <summary><span class="mk">7</span><span><span class="name">Weitere Aktionen</span><span class="one">Alle Vorgänge für die gewählten Datenträger und die Spalten der Liste</span></span></summary>
+      <div class="full">
+        <p>Das Menü mit allen Operationen für die gewählten Datenträger - prüfen, verdichten, vergrößern, formatieren, Passwort ändern, freigeben, zerstören und mehr - und die Auswahl der Spalten der Liste. Eine Operation, die jetzt nicht passt, ist nicht verfügbar, und die Einzelheiten sagen warum.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Eine Operation, die einen Datenträger ändert, öffnet ihre eigene Seite im Hauptfenster, die vor dem Ausführen nachfragt.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">8</span><span><span class="name">Aktualisieren</span><span class="one">Den Zustand der Datenträger neu lesen</span></span></summary>
+      <div class="full">
+        <p>Liest den Zustand aller Datenträger neu. Die Liste aktualisiert sich auch selbst; nutzen Sie dies nach Änderungen außerhalb von FileDO.</p>
+        <dl class="facts">
+          <dt>Tastenkürzel</dt><dd><kbd>F5</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-settings">
+      <summary><span class="mk">9</span><span><span class="name">Einstellungen</span><span class="one">Öffnet die Einstellungen.</span></span></summary>
+      <div class="full">
+        <p>Öffnet die Einstellungen: Darstellung, Sprache und was FileDO beim Windows-Start tut. Es sind dieselben Einstellungen wie im Hauptfenster.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Einstellungen gelten sofort und lassen sich zurücksetzen.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-main">
+      <summary><span class="mk">10</span><span><span class="name">FileDO-Operationen</span><span class="one">Das FileDO-Hauptfenster mit allen Vorgängen öffnen: Prüfungen, Kopieren, geschützte Dateien, Löschen und mehr</span></span></summary>
+      <div class="full">
+        <p>Holt das FileDO-Hauptfenster nach vorn. Es enthält alle Operationen, die nicht Datenträger betreffen: Prüfungen, Kopien, geheime Dateien und Löschen.</p>
+        <dl class="facts">
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Hilfe</span><span class="one">Öffnet die Seite, die Sie gerade lesen.</span></span></summary>
+      <div class="full">
+        <p>Jedes FileDO-Fenster hat diese Schaltfläche oben rechts. Sie öffnet die Hilfeseite des Fensters, in dem Sie sich befinden - mit Bild und Erklärung jedes Teils, in Ihrer Sprache.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Die Seite öffnet sich in Ihrem Browser. FileDO bleibt geöffnet, und nichts darin ändert sich.</dd>
+          <dt>Tastenkürzel</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-filter">
+      <summary><span class="mk">12</span><span><span class="name">Datenträger filtern</span><span class="one">Nur Datenträger zeigen, die zu Name, Laufwerksbuchstabe, Pfad oder Zustand passen</span></span></summary>
+      <div class="full">
+        <p>Geben Sie einen Teil eines Namens, einen Laufwerksbuchstaben, einen Pfad oder einen Zustand ein, um nur passende Datenträger zu zeigen. Das Kreuz neben dem Feld oder Esc leert den Filter.</p>
+        <dl class="facts">
+          <dt>Tastenkürzel</dt><dd><kbd>Ctrl</kbd> + <kbd>F</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">13</span><span><span class="name">Die Liste der Datenträger</span><span class="one">Jeder Datenträger, den FileDO kennt, eine Zeile pro Datenträger.</span></span></summary>
+      <div class="full">
+        <p>Die Datenträger Ihrer Liste, die jetzt eingebundenen und die Datenträgerabbilder, die FileDO eingebunden hat. Eine Zeile zeigt Name, Laufwerksbuchstaben, Größe, Art des Schutzes und einen Zustand. Ein Doppelklick bindet einen nicht eingebundenen Datenträger ein und öffnet bei einem eingebundenen das Laufwerk im Explorer. Die Zustände stehen weiter unten.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Einen Namen aus der Liste zu entfernen berührt keine Datei.</dd>
+        </dl>
+        <dl class="facts states">
+          <dt>Eingebunden</dt><dd>Das Laufwerk ist da und sein Blockserver läuft. Ein Doppelklick öffnet es im Explorer.</dd>
+          <dt>Eingebunden, nicht gespeichert</dt><dd>Ein ram-Datenträger hält seine Schreibvorgänge im Speicher; die gezeigte Menge ist noch nicht in der Datei. Jetzt speichern schreibt sie, und beim Trennen wird zuerst gespeichert.</dd>
+          <dt>Server weg - Volume offline</dt><dd>Der Blockserver hinter dem Laufwerk ist weg, das Volume ist also offline. Trennen Sie den Datenträger, um aufzuräumen.</dd>
+          <dt>Abbild eingebunden</dt><dd>Ein Datenträgerabbild (VHD, VHDX oder ISO), das FileDO eingebunden hat. Trennen Sie es hier, wenn Sie fertig sind.</dd>
+          <dt>Nicht eingebunden</dt><dd>Bereit. Ein Doppelklick bindet ihn ein.</dd>
+          <dt>Nicht sauber geschlossen</dt><dd>Er wurde beim letzten Mal nicht sauber geschlossen. Das nächste Einbinden meldet es, und Windows prüft das Volume wie nach einem Stromausfall.</dd>
+          <dt>Datei fehlt</dt><dd>Die Datei ist unter diesem Pfad nicht mehr vorhanden. Legen Sie sie zurück, oder entfernen Sie den Namen aus der Liste - das berührt keine Datei.</dd>
+          <dt>Unter diesem Pfad liegt ein anderer Container</dt><dd>Unter diesem Pfad liegt jetzt ein anderer Container. Entfernen Sie den alten Namen und fügen Sie diese Datei neu hinzu, wenn Sie genau sie meinen.</dd>
+          <dt>Nicht lesbar</dt><dd>Der Kopf der Datei lässt sich nicht lesen. Die Details nennen den Grund.</dd>
+          <dt>In Arbeit..</dt><dd>Ein von Ihnen gestarteter Vorgang läuft darauf oder wartet auf seine Reihe.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-detail">
+      <summary><span class="mk">14</span><span><span class="name">Einzelheiten</span><span class="one">Was der gewählte Datenträger ist und was jetzt damit möglich ist.</span></span></summary>
+      <div class="full">
+        <p>Zeigt Datei, Art, Größe und Zustand des gewählten Datenträgers, mit den Schaltflächen für das, was jetzt damit möglich ist. Wird eine Operation nicht angeboten, steht dort warum. Sind mehrere Datenträger gewählt, wirken die Schaltflächen auf alle, einen nach dem anderen.</p>
+        <dl class="facts">
+          <dt>Danach</dt><dd>Eine Schaltfläche erledigt ihre Arbeit entweder hier oder öffnet die Seite dieser Operation im Hauptfenster.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-strip">
+      <summary><span class="mk">15</span><span><span class="name">Statuszeile</span><span class="one">Was läuft und was wartet.</span></span></summary>
+      <div class="full">
+        <p>Die erste Zeile sagt, wie viele Datenträger eingebunden sind und wie aktuell die Angaben sind. Die zweite zeigt die laufende Operation oder wie die letzte endete. Anhalten beendet die laufende Operation sauber, und Warteschlange leeren verwirft die wartenden.</p>
+      </div>
+    </details>
+    <details class="el" id="e-keyboard">
+      <summary><span class="mk">16</span><span><span class="name">Tastatur</span><span class="one">Jede Taste dieses Fensters.</span></span></summary>
+      <div class="full">
+        <p>Die Datenträgerverwaltung lässt sich allein mit der Tastatur bedienen. Dies ist die ganze Belegung; dieselbe Tabelle steuert die Tasten, die Kurzinfos und die Menüs, daher kann sie keine Taste nennen, die nicht funktioniert.</p>
+        <dl class="facts keys">
+          <dt><kbd>Ctrl</kbd> + <kbd>N</kbd></dt><dd>Neuer Datenträger..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dt><dd>FileDO-Operationen</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Hinzufügen..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>M</kbd></dt><dd>Einbinden</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd></dt><dd>Schreibgeschützt einbinden</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>U</kbd></dt><dd>Trennen</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>E</kbd></dt><dd>Im Explorer öffnen</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Jetzt speichern</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></dt><dd>Über Fast Media Sorter &amp; Sharing teilen..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Infos</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Prüfen</dd>
+          <dt><kbd>Enter</kbd></dt><dd>Einen ruhenden Datenträger einbinden oder das Laufwerk eines eingebundenen öffnen</dd>
+          <dt><kbd>Del</kbd></dt><dd>Aus der Liste entfernen</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Pfad kopieren</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Alle Datenträger der Liste wählen</dd>
+          <dt><kbd>Menu</kbd></dt><dd>Das Menü des gewählten Datenträgers öffnen</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Das Menü des gewählten Datenträgers öffnen</dd>
+          <dt><kbd>F5</kbd></dt><dd>Aktualisieren</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>Zum Filterfeld gehen</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Den Filter leeren</dd>
+          <dt><kbd>F1</kbd></dt><dd>Diese Hilfe öffnen</dd>
+        </dl>
+        <p class="one"><small>Nicht im Bild: erscheint nur, wenn das Fenster es braucht.</small></p>
+      </div>
+    </details>
+  </div>
+
+  <h2>Siehe auch</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Die Aufgabenseite</b><span class="pill">Fenster</span><small>Die Aufgaben der Gruppe Datenträger im Hauptfenster tun dasselbe, jeweils eine pro Seite.</small></a></li>
+    <li><a href="settings.html"><b>Einstellungen</b><span class="pill">Fenster</span><small>Darstellung, Sprache, Verlauf und Autostart.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html"><b>Anleitung: virtuelle Datenträger</b><span class="pill gold">Website</span><small>Die ganze Aufgabe von Anfang bis Ende.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html"><b>Anleitung: Datenträger freigeben</b><span class="pill gold">Website</span><small>Einen eingebundenen Datenträger über Fast Media Sorter and Sharing freigeben.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter and Sharing</b><span class="pill gold">Schwesterprogramm</span><small>Das Schwesterprogramm, das einen eingebundenen Datenträger für andere Geräte freigibt.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Glossar</b><span class="pill gold">Website</span><small>Was FileDO unter Container, Löschen, Einbinden und dem Rest versteht.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Aufgenommen mit FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Hilfe-Übersicht</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Eine Frage stellen oder ein Problem melden</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

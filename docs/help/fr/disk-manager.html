@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - FileDO - Gestionnaire de disques</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Index de l'aide</a><span class="sep" aria-hidden="true">/</span><span>FileDO - Gestionnaire de disques</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Aide de la fenêtre</p>
+    <h1>FileDO - Gestionnaire de disques</h1>
+    <p class="lead">Tous vos disques virtuels dans une seule liste : créez un disque, ajoutez-en un que vous avez déjà, montez-le comme lecteur, ouvrez-le, enregistrez-le et démontez-le. Un disque virtuel est un seul fichier .fdd que Windows montre comme un lecteur.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/disk-manager.fr.dark.png" width="1052" height="733" alt="FileDO - Gestionnaire de disques : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/disk-manager.fr.light.png" width="1052" height="733" alt="">
+      <a class="pin" style="--x:1.6%;--y:1.6%" href="#e-new" aria-label="1, Nouveau disque..">1</a>
+      <a class="pin" style="--x:20.6%;--y:1.6%" href="#e-add" aria-label="2, Ajouter..">2</a>
+      <a class="pin" style="--x:34.8%;--y:1.6%" href="#e-mount" aria-label="3, Monter">3</a>
+      <a class="pin" style="--x:46.6%;--y:1.6%" href="#e-unmount" aria-label="4, Démonter">4</a>
+      <a class="pin" style="--x:60.4%;--y:1.6%" href="#e-open" aria-label="5, Ouvrir">5</a>
+      <a class="pin" style="--x:71.3%;--y:1.6%" href="#e-save" aria-label="6, Enregistrer">6</a>
+      <a class="pin" style="--x:1.6%;--y:7.6%" href="#e-more" aria-label="7, Autres actions">7</a>
+      <a class="pin" style="--x:20.0%;--y:7.6%" href="#e-refresh" aria-label="8, Actualiser">8</a>
+      <a class="pin" style="--x:24.9%;--y:7.6%" href="#e-settings" aria-label="9, Réglages">9</a>
+      <a class="pin" style="--x:31.5%;--y:7.6%" href="#e-main" aria-label="10, Opérations FileDO">10</a>
+      <a class="pin" style="--x:52.1%;--y:7.6%" href="#e-help" aria-label="11, Aide">11</a>
+      <a class="pin" style="--x:7.7%;--y:16.1%" href="#e-filter" aria-label="12, Filtrer les disques">12</a>
+      <a class="pin" style="--x:0.2%;--y:21.8%" href="#e-list" aria-label="13, La liste des disques">13</a>
+      <a class="pin" style="--x:0.2%;--y:49.7%" href="#e-detail" aria-label="14, Détails">14</a>
+      <a class="pin" style="--x:0.2%;--y:94.3%" href="#e-strip" aria-label="15, Barre d'état">15</a>
+    </div>
+    <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
+  </figure>
+
+  <h2>Dans cet ordre</h2>
+  <ol class="order">
+    <li>Créez un disque avec Nouveau disque.. <a class="ref" href="#e-new">1</a>, ou ajoutez un fichier .fdd existant avec Ajouter.. <a class="ref" href="#e-add">2</a>.</li>
+    <li>Choisissez-le dans la liste <a class="ref" href="#e-list">13</a>. Les détails <a class="ref" href="#e-detail">14</a> disent ce que c'est et ce qu'on peut en faire maintenant.</li>
+    <li>Appuyez sur Monter <a class="ref" href="#e-mount">3</a>. Windows demande votre accord à chaque fois.</li>
+    <li>Travaillez dans le nouveau lecteur ; Ouvrir <a class="ref" href="#e-open">5</a> l'affiche dans l'Explorateur.</li>
+    <li>Appuyez sur Démonter <a class="ref" href="#e-unmount">4</a> quand vous avez fini. Un disque ram est d'abord enregistré, et Enregistrer <a class="ref" href="#e-save">6</a> l'écrit plus tôt.</li>
+  </ol>
+
+  <h2>Les éléments</h2>
+  <div class="elements">
+    <details class="el" id="e-new">
+      <summary><span class="mk">1</span><span><span class="name">Nouveau disque..</span><span class="one">Créer un nouveau disque virtuel : un fichier .fdd que Windows présente comme un lecteur</span></span></summary>
+      <div class="full">
+        <p>Ouvre dans la fenêtre principale la page de création d'un disque, où vous choisissez le fichier, la taille et le type de disque, protection comprise. Le disque rejoint la liste quand il est créé.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Vous appuyez sur Exécuter sur cette page ; le gestionnaire de disques reste ouvert et montre le nouveau disque.</dd>
+          <dt>Annuler</dt><dd>Rien n'est créé tant que vous n'appuyez pas sur Exécuter sur cette page.</dd>
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>N</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-add">
+      <summary><span class="mk">2</span><span><span class="name">Ajouter..</span><span class="one">Ajouter des conteneurs .fdd à la liste - ou les déposer dessus</span></span></summary>
+      <div class="full">
+        <p>Choisissez un ou plusieurs fichiers .fdd, ou déposez-les sur la liste. La liste ne retient que leur emplacement : les fichiers ne sont ni copiés, ni déplacés, ni modifiés.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Retirez un nom de la liste à tout moment ; cela ne touche aucun fichier.</dd>
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-mount">
+      <summary><span class="mk">3</span><span><span class="name">Monter</span><span class="one">Monter les disques choisis comme lecteurs. Windows demande son accord pour chacun</span></span></summary>
+      <div class="full">
+        <p>Attache chaque disque choisi comme un lecteur avec sa propre lettre. Windows demande à chaque fois l'accord de l'administrateur, et un disque protégé par mot de passe le demande. Autres actions propose Monter en lecture seule, qui empêche toute modification du disque.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La ligne affiche la lettre du lecteur et l'état Monté.</dd>
+          <dt>Annuler</dt><dd>Démonter détache de nouveau le lecteur ; le fichier garde tout.</dd>
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>M</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-unmount">
+      <summary><span class="mk">4</span><span><span class="name">Démonter</span><span class="one">Démonter les lecteurs des disques choisis. Les fichiers gardent tout</span></span></summary>
+      <div class="full">
+        <p>Détache les lecteurs des disques choisis, et leurs lettres disparaissent. Un disque ram écrit d'abord dans son fichier ce qu'il garde en mémoire.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La ligne repasse à Non monté, et la lettre du lecteur est de nouveau libre.</dd>
+          <dt>Annuler</dt><dd>Monter ramène le disque, avec tout ce que vous y avez écrit.</dd>
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>U</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">5</span><span><span class="name">Ouvrir</span><span class="one">Ouvrir le lecteur du disque choisi dans l'Explorateur</span></span></summary>
+      <div class="full">
+        <p>Ouvre dans l'Explorateur le lecteur du disque monté choisi. Un double-clic sur une ligne montée fait la même chose.</p>
+        <dl class="facts">
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>E</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-save">
+      <summary><span class="mk">6</span><span><span class="name">Enregistrer</span><span class="one">Écrire maintenant dans son fichier ce qu'un disque ram garde en mémoire</span></span></summary>
+      <div class="full">
+        <p>Un disque ram garde ce que vous écrivez dans la mémoire. Enregistrer l'écrit maintenant dans le fichier, pour qu'une coupure de courant coûte moins cher. Démonter enregistre d'abord, donc Enregistrer sert de point de sécurité dans une longue session. Il n'est proposé que pour les disques ram.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Enregistrer ne fait qu'écrire le fichier ; vous pouvez continuer à travailler.</dd>
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-more">
+      <summary><span class="mk">7</span><span><span class="name">Autres actions</span><span class="one">Toutes les opérations pour les disques choisis, et les colonnes de la liste</span></span></summary>
+      <div class="full">
+        <p>Le menu de toutes les opérations pour les disques choisis - vérifier, compacter, agrandir, formater, changer le mot de passe, partager, détruire et d'autres - et le choix des colonnes de la liste. Une opération qui ne convient pas maintenant est indisponible, et les détails disent pourquoi.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Une opération qui modifie un disque ouvre sa propre page dans la fenêtre principale, qui demande avant de s'exécuter.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">8</span><span><span class="name">Actualiser</span><span class="one">Relire l'état des disques</span></span></summary>
+      <div class="full">
+        <p>Relit l'état de tous les disques. La liste se rafraîchit aussi toute seule ; utilisez ce bouton après un changement fait hors de FileDO.</p>
+        <dl class="facts">
+          <dt>Raccourci</dt><dd><kbd>F5</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-settings">
+      <summary><span class="mk">9</span><span><span class="name">Réglages</span><span class="one">Ouvre les réglages.</span></span></summary>
+      <div class="full">
+        <p>Ouvre les Réglages : le thème, la langue et ce que FileDO fait au démarrage de Windows. Ce sont les mêmes réglages que dans la fenêtre principale.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Les réglages s'appliquent aussitôt et peuvent être remis comme avant.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-main">
+      <summary><span class="mk">10</span><span><span class="name">Opérations FileDO</span><span class="one">Ouvrir la fenêtre principale de FileDO avec toutes ses opérations : vérifications, copies, fichiers protégés, effacement et plus</span></span></summary>
+      <div class="full">
+        <p>Ramène la fenêtre principale de FileDO au premier plan. Elle contient toutes les opérations qui ne concernent pas les disques : vérifications, copies, fichiers secrets et effacements.</p>
+        <dl class="facts">
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">11</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <div class="full">
+        <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page s'ouvre dans votre navigateur. FileDO reste ouvert et rien n'y change.</dd>
+          <dt>Raccourci</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-filter">
+      <summary><span class="mk">12</span><span><span class="name">Filtrer les disques</span><span class="one">Ne montrer que les disques qui correspondent à un nom, une lettre, un chemin ou un état</span></span></summary>
+      <div class="full">
+        <p>Saisissez une partie d'un nom, une lettre de lecteur, un chemin ou un état pour n'afficher que les disques correspondants. La croix à côté du champ, ou Échap, efface le filtre.</p>
+        <dl class="facts">
+          <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>F</kbd></dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">13</span><span><span class="name">La liste des disques</span><span class="one">Tous les disques que FileDO connaît, une ligne chacun.</span></span></summary>
+      <div class="full">
+        <p>Les disques de votre liste, ceux qui sont montés maintenant et les images de disque que FileDO a montées. Une ligne montre le nom, la lettre du lecteur, la taille, le type de protection et un état. Un double-clic monte un disque non monté et ouvre dans l'Explorateur le lecteur d'un disque monté. Les états sont listés plus bas.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Retirer un nom de la liste ne touche aucun fichier.</dd>
+        </dl>
+        <dl class="facts states">
+          <dt>Monté</dt><dd>Le lecteur est là et son serveur de blocs tourne. Un double-clic l'ouvre dans l'Explorateur.</dd>
+          <dt>Monté, non enregistré</dt><dd>Un disque ram garde ses écritures en mémoire ; la quantité affichée n'est pas encore dans le fichier. Enregistrer maintenant l'écrit, et le démontage enregistre d'abord.</dd>
+          <dt>Serveur disparu - volume hors ligne</dt><dd>Le serveur de blocs derrière le lecteur a disparu, le volume est donc hors ligne. Démontez le disque pour nettoyer.</dd>
+          <dt>Image montée</dt><dd>Une image disque (VHD, VHDX ou ISO) que FileDO a montée. Démontez-la ici quand vous avez fini.</dd>
+          <dt>Non monté</dt><dd>Prêt. Un double-clic le monte.</dd>
+          <dt>Mal fermé</dt><dd>Il n'a pas été fermé proprement la dernière fois. Le prochain montage le signale, et Windows vérifie le volume comme après une coupure de courant.</dd>
+          <dt>Fichier absent</dt><dd>Le fichier n'est plus à ce chemin. Remettez-le en place, ou retirez le nom de la liste - cela ne touche aucun fichier.</dd>
+          <dt>Un autre conteneur se trouve à ce chemin</dt><dd>Un autre conteneur se trouve maintenant à ce chemin. Retirez l'ancien nom et ajoutez ce fichier à nouveau si c'est bien lui que vous voulez.</dd>
+          <dt>Illisible</dt><dd>L'en-tête du fichier ne peut pas être lu. Les détails en donnent la raison.</dd>
+          <dt>En cours..</dt><dd>Une opération que vous avez lancée s'exécute dessus, ou attend son tour.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-detail">
+      <summary><span class="mk">14</span><span><span class="name">Détails</span><span class="one">Ce qu'est le disque choisi, et ce qu'on peut en faire maintenant.</span></span></summary>
+      <div class="full">
+        <p>Montre le fichier, le type, la taille et l'état du disque choisi, avec les boutons de ce qu'on peut en faire maintenant. Une opération qui n'est pas proposée dit pourquoi. Quand plusieurs disques sont choisis, les boutons agissent sur tous, l'un après l'autre.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Un bouton fait son travail ici ou ouvre la page de cette opération dans la fenêtre principale.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-strip">
+      <summary><span class="mk">15</span><span><span class="name">Barre d'état</span><span class="one">Ce qui s'exécute et ce qui attend.</span></span></summary>
+      <div class="full">
+        <p>La première ligne dit combien de disques sont montés et à quel point l'information est récente. La seconde montre l'opération en cours ou comment la dernière s'est terminée. Arrêter termine proprement l'opération en cours, et Vider la file supprime celles qui attendent.</p>
+      </div>
+    </details>
+    <details class="el" id="e-keyboard">
+      <summary><span class="mk">16</span><span><span class="name">Clavier</span><span class="one">Chaque touche de cette fenêtre.</span></span></summary>
+      <div class="full">
+        <p>Le gestionnaire de disques s'utilise au clavier seul. Voici la carte complète de ses touches ; la même table pilote les touches, les infobulles et les menus, elle ne peut donc pas lister une touche qui ne fonctionne pas.</p>
+        <dl class="facts keys">
+          <dt><kbd>Ctrl</kbd> + <kbd>N</kbd></dt><dd>Nouveau disque..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dt><dd>Opérations FileDO</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Ajouter..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>M</kbd></dt><dd>Monter</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd></dt><dd>Monter en lecture seule</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>U</kbd></dt><dd>Démonter</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>E</kbd></dt><dd>Ouvrir dans l'Explorateur</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Enregistrer maintenant</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></dt><dd>Partager via Fast Media Sorter &amp; Sharing..</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Infos</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Vérifier</dd>
+          <dt><kbd>Enter</kbd></dt><dd>Monter un disque au repos, ou ouvrir le lecteur d'un disque monté</dd>
+          <dt><kbd>Del</kbd></dt><dd>Retirer de la liste</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Copier le chemin</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Choisir tous les disques de la liste</dd>
+          <dt><kbd>Menu</kbd></dt><dd>Ouvrir le menu du disque choisi</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Ouvrir le menu du disque choisi</dd>
+          <dt><kbd>F5</kbd></dt><dd>Actualiser</dd>
+          <dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>Aller au champ de filtre</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Effacer le filtre</dd>
+          <dt><kbd>F1</kbd></dt><dd>Ouvrir cette aide</dd>
+        </dl>
+        <p class="one"><small>Absent de l'image : il n'apparaît que lorsque la fenêtre en a besoin.</small></p>
+      </div>
+    </details>
+  </div>
+
+  <h2>Voir aussi</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>La page d'une tâche</b><span class="pill">Fenêtre</span><small>Les tâches du groupe Disques de la fenêtre principale font les mêmes choses, une par page.</small></a></li>
+    <li><a href="settings.html"><b>Réglages</b><span class="pill">Fenêtre</span><small>Apparence, langue, historique et démarrage.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/virtual-disks.html"><b>Guide : disques virtuels</b><span class="pill gold">Site</span><small>Toute la tâche, du début à la fin.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/fms-sharing.html"><b>Guide : partager des disques</b><span class="pill gold">Site</span><small>Partager un disque monté avec Fast Media Sorter and Sharing.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter and Sharing</b><span class="pill gold">Programme frère</span><small>Le programme frère qui partage un disque monté avec d'autres appareils.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/glossary.html"><b>Glossaire</b><span class="pill gold">Site</span><small>Ce que FileDO entend par conteneur, effacement, montage et le reste.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Index de l'aide</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

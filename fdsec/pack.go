@@ -57,9 +57,34 @@ type Info struct {
 type StreamOption func(*streamOpts)
 
 type streamOpts struct {
-	progress func(done, total int64)
-	stop     func() bool
-	replace  bool
+	progress  func(done, total int64)
+	stop      func() bool
+	replace   bool
+	nameCheck func(name string) error
+}
+
+// WithNameCheck registers the caller's check of the sealed names an unpack is
+// about to turn into file names. It separates reading from restoring
+// (FDSEC-FORMAT 1.4 section 20, FDSEC-BEHAVIOUR 1.6 section 18): the reader
+// accepts every name the format calls valid, and the caller - who knows what
+// its destination can create - refuses the ones it cannot, before a byte of
+// output exists.
+//
+// Container.Unpack calls it once with the sealed name of a suite-1 or suite-2
+// container, after the metadata authenticated and parsed and before the first
+// chunk is written. Container.UnpackTree calls it with every component of every
+// manifest path, after the whole manifest passed its checks and before the
+// sink sees its first entry; the root folder's own name is not passed - the
+// caller reads it with TreeMetadata and knows whether it will use it.
+//
+// An error it returns ends the unpack and reaches the caller unchanged: it is
+// not wrapped in ErrDamaged or ErrCredentialOrTamper, because a name the
+// destination cannot create is not a damaged container. Like every error of
+// this package it must not hold the name. The check never sees a name the
+// format refuses - those end the unpack as damage before it runs. Verify and
+// the read-back of a pack pass no check.
+func WithNameCheck(fn func(name string) error) StreamOption {
+	return func(o *streamOpts) { o.nameCheck = fn }
 }
 
 // WithProgress registers a callback invoked at chunk boundaries with the

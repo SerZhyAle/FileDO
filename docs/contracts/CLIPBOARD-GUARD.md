@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CLIPBOARD-GUARD` |
-| **Version** | 0.10, draft |
+| **Version** | 0.11, read 2026-10-21 (SP-0170); implemented 0.11, scoped to persistent plain-text copies, draft |
 | **Role** | consumer - persistent plain-text copying on the GUI thread |
 | **Home** | shared contracts catalog, folder `clipboard-guard/`, document `README.md` |
 | **Owner** | CyrFlip |

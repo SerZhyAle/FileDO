@@ -13,6 +13,9 @@ Friend Class TrayIcon
         If jobs > 0 Then keys.Add("tray_stop")
         If keys.Last() <> "-" Then keys.Add("-")
         keys.Add("settings_startup")
+        ' A tray application has no main window to carry the help button, so the menu opens the help
+        ' index (CONTEXT-HELP section 2.5), and every window it opens answers F1 itself.
+        keys.Add("tray_help")
         keys.Add("tray_exit")
         Return keys.ToArray()
     End Function
@@ -74,6 +77,7 @@ Friend Class TrayIcon
             Case "tray_unmount" : host.UnmountAll()
             Case "tray_stop" : host.StopJobs()
             Case "settings_startup" : host.ShowSettings()
+            Case "tray_help" : Help.OpenIndex(Nothing)
             Case "tray_exit" : host.RequestExit()
         End Select
     End Sub

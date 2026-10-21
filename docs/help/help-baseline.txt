@@ -1,0 +1,53 @@
+# The help baseline (CONTEXT-HELP rule 19, CHECK-BASELINE): debt that is accepted for now and may only fall.
+# page <help id> - the page of a surface is not written yet (the surface answers with its fallback page).
+# ask <surface id> - the surface has help in the map but its F1 key and help button are not wired yet.
+# A line whose debt is paid is stale and fails the gate: delete it in the same edit that pays the debt.
+page disk-adopt
+page disk-autostart
+page disk-destroy-partition
+page disk-new-partition
+page disk-share
+page job-capacity
+page job-clean
+page job-compare
+page job-copy
+page job-damaged
+page job-duplicates
+page job-fill
+page job-info
+page job-probe
+page job-recover
+page job-reveal
+page job-secure
+page job-speed
+page job-unsecure
+page job-vd-add
+page job-vd-auto
+page job-vd-clone
+page job-vd-compact
+page job-vd-destroy
+page job-vd-export
+page job-vd-format
+page job-vd-grow
+page job-vd-info
+page job-vd-list
+page job-vd-mount
+page job-vd-new
+page job-vd-pass
+page job-vd-save
+page job-vd-seal
+page job-vd-unmount
+page job-vd-verify
+page job-wipe
+ask shortcut-dialog
+ask disk.password
+ask disk.mount-as
+ask disk.name
+ask disk.settings
+ask disk.help
+ask disk.welcome
+ask disk.autostart
+ask disk.share
+ask disk.new-partition
+ask disk.destroy-partition
+ask disk.adopt

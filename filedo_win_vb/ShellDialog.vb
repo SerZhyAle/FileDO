@@ -50,9 +50,33 @@ Public Class ShellDialog
                                   defaultAt As Integer, dangerAt As Integer) As GlyphButtonFace
         If total = 1 Then Return GlyphButtonFace.Normal
         If index = dangerAt Then Return GlyphButtonFace.DangerFill
-        If index = cancelAt Then Return If(dangerAt >= 0, GlyphButtonFace.AnswerErrorSafe, GlyphButtonFace.AnswerError)
+        ' BUTTONS 2.0 section 3 rule 5: Cancel, No and a plain Close are neutral - no red glyph, no tint.
+        If index = cancelAt Then Return GlyphButtonFace.Normal
         If index = defaultAt AndAlso dangerAt < 0 Then Return GlyphButtonFace.AnswerOk
         Return GlyphButtonFace.Normal
+    End Function
+
+    ' The order the answers are laid out in (BUTTONS 2.0 section 4 rule 4): reading order is Cancel, any
+    ' middle answer (Apply), then the final affirmative - the destructive answer of a destructive
+    ' confirmation. The indices every caller passes stay as they are (the Go sweep over the call sites
+    ' reads them positionally and `chosen` is still the caller's index); only the left-to-right place of
+    ' each button, and so the Tab order, follows this list.
+    Friend Shared Function AnswerOrder(total As Integer, cancelAt As Integer,
+                                       defaultAt As Integer, dangerAt As Integer) As Integer()
+        Dim first = If(cancelAt >= 0 AndAlso cancelAt < total, cancelAt, -1)
+        Dim last = -1
+        If dangerAt >= 0 AndAlso dangerAt < total AndAlso dangerAt <> first Then
+            last = dangerAt
+        ElseIf defaultAt >= 0 AndAlso defaultAt < total AndAlso defaultAt <> first Then
+            last = defaultAt
+        End If
+        Dim order As New List(Of Integer)
+        If first >= 0 Then order.Add(first)
+        For i = 0 To total - 1
+            If i <> first AndAlso i <> last Then order.Add(i)
+        Next
+        If last >= 0 Then order.Add(last)
+        Return order.ToArray()
     End Function
 
     ' The meaning drawn at an index, decided while the buttons are built: the caller's verb, the
@@ -178,7 +202,7 @@ Public Class ShellDialog
             .AutoSize = True,
             .MaximumSize = New Size(Ui.Px(Me, 520), 0),
             .MinimumSize = New Size(Ui.Px(Me, 300), 0),
-            .Margin = Ui.PxPad(Me, 0, 0, 0, 16)
+            .Margin = New Padding(0, 0, 0, Ui.Px(Me, UiTokens.GroupGap() - UiTokens.ButtonGap()))
         }
         root.Controls.Add(message, 0, 0)
 
@@ -196,14 +220,17 @@ Public Class ShellDialog
             .Margin = New Padding(0)
         }
         answerRow = row
+        Dim gap = Ui.Px(Me, UiTokens.ButtonGap())
         For i = 0 To choices.Length - 1
             Dim index = i
+            ' The gap token sits left of and above each button: between answers and between wrapped lines.
             Dim b As New GlyphButton With {
                 .Text = choices(i),
                 .Glyph = GlyphAt(i, choices.Length),
                 .AutoSize = True,
                 .AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                .Margin = Ui.PxPad(Me, 8, 0, 0, 0),
+                .MaximumSize = New Size(Ui.Px(Me, 560), 0),
+                .Margin = New Padding(gap, gap, 0, 0),
                 .Tag = index
             }
             AddHandler b.Click, Sub()
@@ -212,8 +239,14 @@ Public Class ShellDialog
                                     Close()
                                 End Sub
             buttons.Add(b)
-            row.Controls.Add(b)
         Next
+        ' Left to right: Cancel, the middle answers, the final affirmative (see AnswerOrder).
+        For Each i In AnswerOrder(choices.Length, cancelAt, defaultIndex, dangerAt)
+            row.Controls.Add(buttons(i))
+        Next
+        ' Every answer in one visual row has the height of that row's tallest (BUTTONS section 3 rule 4),
+        ' recalculated when the row is laid out again (a wrapped line, a font or a dpi change).
+        AddHandler row.SizeChanged, Sub() Ui.EqualizeRowHeights(row)
         root.Controls.Add(row, 0, 1)
         Controls.Add(root)
 
@@ -281,6 +314,13 @@ Public Class ShellDialog
             lastRowWidth = CInt(Math.Round(dlg.answerRow.Width * 96.0 / dlg.DeviceDpi))
             Return dlg.buttons.Select(Function(b) b.Face.ToString().ToLowerInvariant() & ":" &
                                       If(b.Glyph Is Nothing, "", b.Glyph.Meaning)).ToArray()
+        End Using
+    End Function
+
+    ' For the self-test: the answers' captions in the order the row lays them out, left to right.
+    Friend Shared Function DisplayedOrderOf(spec As DialogSpec) As String()
+        Using dlg As New ShellDialog(spec.Title, spec.Text, spec.Choices, spec.CancelAt, spec.DefaultAt, spec.DangerAt, spec.Glyphs)
+            Return dlg.answerRow.Controls.Cast(Of Control)().Select(Function(c) c.Text).ToArray()
         End Using
     End Function
 

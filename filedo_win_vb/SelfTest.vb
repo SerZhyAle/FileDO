@@ -62,7 +62,7 @@ Partial Public Module SelfTest
                 Next
             Next
         Next
-        Check("tray:menu-order", String.Join(",", TrayIcon.MenuKeys(False, 1, 1)) = "tray_open,tray_manager,-,tray_unmount,tray_stop,-,settings_startup,tray_exit", "")
+        Check("tray:menu-order", String.Join(",", TrayIcon.MenuKeys(False, 1, 1)) = "tray_open,tray_manager,-,tray_unmount,tray_stop,-,settings_startup,tray_help,tray_exit", "")
         Check("tray:exit-with-job-asks", DiskManagerForm.DecisionOnClose(True, False, False) = DiskManagerForm.CloseDecision.Ask, "")
         ShellSettings.SavePlacementOf(ShellSettings.ShellPrefix, 10, 10, 900, 600, False, 96)
         ShellSettings.ResetPlacements()
@@ -182,7 +182,12 @@ Partial Public Module SelfTest
         ' a pen - on the glyph buttons, the Disk Manager's list rows, the check boxes and the plain
         ' buttons. The rail's 44 px rows are pinned by the rail group above.
         Guard("hit-target", AddressOf CheckHitTargets)
-
+        ' SP-0168: the in-app help (CONTEXT-HELP) - the map against the surfaces, the pages against the
+        ' languages, the key and the button, the anatomy of a page.
+        Guard("help", AddressOf CheckHelp)
+        ' SP-0169: the unified UI contracts - the token resolver, button geometry, the group header and the
+        ' order of a dialog's answers.
+        Guard("ui-contracts", AddressOf CheckUiContracts)
 
         Guard("tailer", AddressOf CheckEventStreamTailer)
         Guard("tailer-long-line", AddressOf CheckEventStreamLongLine)
@@ -266,6 +271,8 @@ Partial Public Module SelfTest
         Guard("disk-part", AddressOf CheckDiskPartitions)
         Guard("disk-mgr", AddressOf CheckDiskManagerWindow)
         Guard("disk-host", AddressOf CheckDiskHost)
+        ' SP-0170 / APP-ACTIVATION 0.13: the focus-only second start - a hung receiver, a file target.
+        Guard("activation", AddressOf CheckSecondStart)
         Guard("disk-ui", AddressOf CheckDiskUi)
         Guard("locale-keys", AddressOf CheckLocaleKeySets)
     End Sub
@@ -1105,19 +1112,25 @@ Partial Public Module SelfTest
                 ContrastPair("contrast:" & t & ":verdict-glyph:" & verdict, Theme.VerdictGlyphColor(verdict, p), p.Surface, 3.0)
                 ContrastPair("contrast:" & t & ":badge:" & verdict, Theme.VerdictFore(verdict, p), Theme.VerdictBack(verdict, p), 4.5)
             Next
-            ' The dialog answers (WINDOWS-UI 0.4 section 11 item 6): each answer's hue and its caption
-            ' against the tinted face the answer is actually drawn on - the glyph at 3:1, the word at
-            ' 4.5:1. Under high contrast the tint is not drawn and the system colours carry the pair;
-            ' SystemContrastPalette pins those, and the windows-ui rows hold it.
-            ContrastPair("contrast:" & t & ":answer-ok:glyph", p.StateOk, p.AnswerOkBack, 3.0)
-            ContrastPair("contrast:" & t & ":answer-ok:caption", p.Text, p.AnswerOkBack, 4.5)
-            ContrastPair("contrast:" & t & ":answer-error:glyph", p.StateError, p.AnswerErrorBack, 3.0)
-            ContrastPair("contrast:" & t & ":answer-error:caption", p.Text, p.AnswerErrorBack, 4.5)
-            ' The caution glyph reads through the dated warning-ink fallback where the shared tone
-            ' cannot reach 3:1 on its tinted face (the registry exception, WarningGlyphOn).
-            ContrastPair("contrast:" & t & ":answer-warning:glyph", Theme.WarningGlyphOn(p, p.AnswerWarningBack), p.AnswerWarningBack, 3.0)
-            ContrastPair("contrast:" & t & ":answer-warning:caption", p.Text, p.AnswerWarningBack, 4.5)
-            ContrastPair("contrast:" & t & ":answer-error-safe:glyph", p.StateError, p.SurfaceAlt, 3.0)
+            ' The dialog answers (BUTTONS 2.0 section 3 rule 5-6): every non-destructive answer sits on the
+            ' ordinary neutral face - no green or red tint - with the hue on its glyph alone. The glyph at
+            ' 3:1 and the caption at 4.5:1, measured on the normal, hover and pressed (selected) faces the
+            ' button is actually drawn on. Cancel, No and a plain Close are mono: the text ink itself.
+            ' Under high contrast the system colours carry the pair; SystemContrastPalette pins those,
+            ' and the windows-ui rows hold it.
+            For Each face In New KeyValuePair(Of String, Color)() {
+                    New KeyValuePair(Of String, Color)("normal", p.SurfaceAlt),
+                    New KeyValuePair(Of String, Color)("hover", p.ControlHover),
+                    New KeyValuePair(Of String, Color)("pressed", p.SurfaceSelected)}
+                ContrastPair("contrast:" & t & ":answer-ok:glyph:" & face.Key, p.StateOk, face.Value, 3.0)
+                ContrastPair("contrast:" & t & ":answer-ok:caption:" & face.Key, p.Text, face.Value, 4.5)
+                ContrastPair("contrast:" & t & ":answer-cancel:glyph:" & face.Key, p.Text, face.Value, 3.0)
+                ContrastPair("contrast:" & t & ":answer-cancel:caption:" & face.Key, p.Text, face.Value, 4.5)
+                ' The caution glyph reads through the dated warning-ink fallback where the shared tone
+                ' cannot reach 3:1 on the light face (the registry exception, WarningGlyphOn).
+                ContrastPair("contrast:" & t & ":answer-warning:glyph:" & face.Key, Theme.WarningGlyphOn(p, face.Value), face.Value, 3.0)
+                ContrastPair("contrast:" & t & ":answer-warning:caption:" & face.Key, p.Text, face.Value, 4.5)
+            Next
             ContrastPair("contrast:" & t & ":danger-fill:glyph", p.AccentText, p.Danger, 3.0)
             ContrastPair("contrast:" & t & ":danger-fill:caption", p.AccentText, p.Danger, 4.5)
             ContrastPair("contrast:" & t & ":accent-fill:glyph", p.AccentText, p.Accent, 3.0)
@@ -2191,7 +2204,8 @@ Partial Public Module SelfTest
                     Next
                     Dim safeAnswer = answers(spec.CancelAt)
                     Dim acting = answers(spec.DangerAt)
-                    ok = ok AndAlso safeAnswer = "answererrorsafe:action.cancel"
+                    ' BUTTONS 2.0 rule 3.5: the dismissing answer is neutral - action.cancel in the mono ink.
+                    ok = ok AndAlso safeAnswer = "normal:action.cancel"
                     ok = ok AndAlso acting.StartsWith("dangerfill:", StringComparison.Ordinal)
                     For i = 0 To answers.Length - 1
                         If i <> spec.CancelAt AndAlso i <> spec.DangerAt Then
@@ -2207,8 +2221,8 @@ Partial Public Module SelfTest
             Dim matrixOk =
                 ShellDialog.FaceOf(1, 0, 0, 0, -1) = GlyphButtonFace.Normal AndAlso
                 ShellDialog.FaceOf(2, 0, 1, 0, -1) = GlyphButtonFace.AnswerOk AndAlso
-                ShellDialog.FaceOf(2, 1, 1, 0, -1) = GlyphButtonFace.AnswerError AndAlso
-                ShellDialog.FaceOf(2, 0, 0, 0, 1) = GlyphButtonFace.AnswerErrorSafe AndAlso
+                ShellDialog.FaceOf(2, 1, 1, 0, -1) = GlyphButtonFace.Normal AndAlso
+                ShellDialog.FaceOf(2, 0, 0, 0, 1) = GlyphButtonFace.Normal AndAlso
                 ShellDialog.FaceOf(2, 1, 0, 0, 1) = GlyphButtonFace.DangerFill AndAlso
                 ShellDialog.FaceOf(4, 2, 3, 0, -1) = GlyphButtonFace.Normal
             Check("dialog-answer:polarity-matrix", matrixOk, If(matrixOk, "6 of 6", "a cell is wrong"))
@@ -3124,6 +3138,34 @@ Partial Public Module SelfTest
             End Using
             ShellLog.PruneSessions(dir)
             Check("diagnostic:ten-sessions", Directory.GetFiles(dir, "filedo_win.session-*.log").Length = 10 AndAlso Not File.Exists(active))
+
+            ' DIAGNOSTIC-REPORT 0.14: a source over the per-file cap is omitted whole, with the one frozen
+            ' marker - `[Diag] LOG OMITTED`, then `reason=oversized_untrusted` and `source_bytes=<decimal>`,
+            ' separated by ` | ` in that order - and nothing of the source in it: no name, path or content.
+            Dim huge = Path.Combine(dir, "huge-name-canary.log")
+            Dim hugeBytes = 16L * 1024L * 1024L + 1L
+            Using fs As New FileStream(huge, FileMode.Create, FileAccess.Write)
+                fs.SetLength(hugeBytes)
+                fs.Position = 0
+                Dim canary = Encoding.ASCII.GetBytes("huge-content-canary")
+                fs.Write(canary, 0, canary.Length)
+            End Using
+            Dim hugeEntry As String = Nothing
+            Dim hugeAll As New StringBuilder()
+            Using fs As New FileStream(LogReport.ArchiveForTest(huge, dir), FileMode.Open, FileAccess.Read)
+                Using zip As New System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read)
+                    For Each entry In zip.Entries
+                        Using reader As New StreamReader(entry.Open(), Encoding.UTF8)
+                            Dim text = reader.ReadToEnd()
+                            hugeAll.AppendLine(entry.FullName).AppendLine(text)
+                            If entry.FullName = "logs/log-01.txt" Then hugeEntry = text
+                        End Using
+                    Next
+                End Using
+            End Using
+            Dim marker = "[Diag] LOG OMITTED | reason=oversized_untrusted | source_bytes=" & hugeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            Check("diagnostic:omitted-marker", hugeEntry IsNot Nothing AndAlso hugeEntry.TrimEnd() = marker, If(hugeEntry, "(no entry)"))
+            Check("diagnostic:omitted-no-source", Not hugeAll.ToString().Contains("huge-name-canary") AndAlso Not hugeAll.ToString().Contains("huge-content-canary"), "")
         Finally
             If Directory.Exists(dir) Then Directory.Delete(dir, True)
         End Try
@@ -5078,8 +5120,10 @@ Partial Public Module SelfTest
                 Check("disk-ui:menu-image:" & mi.Text, mi.Image IsNot Nothing, "")
             Next
             Dim help = m.MenuItemsForTest("help")
+            ' F1 opens the window's help page now (CONTEXT-HELP rule 3), so the menu's help-window item, which
+            ' this menu keeps on the button's right click, no longer shows F1 as its key.
             Check("disk-ui:help-menu", help.Count >= 8 AndAlso TryCast(help(0), ToolStripMenuItem).Text = ui("vd_help_menu_help") AndAlso
-                                       TryCast(help(0), ToolStripMenuItem).ShortcutKeyDisplayString = "F1", help.Count.ToString())
+                                       TryCast(help(0), ToolStripMenuItem).ShortcutKeyDisplayString = "", help.Count.ToString())
             Dim linkItems = help.OfType(Of ToolStripMenuItem)().Where(Function(i) If(i.ToolTipText, "").StartsWith("https://", StringComparison.Ordinal)).ToList()
             Check("disk-ui:help-menu-links", linkItems.Count = DiskHelpLinks.All.Length AndAlso linkItems.All(Function(i) i.Image IsNot Nothing), linkItems.Count.ToString())
             Check("disk-ui:help-menu-first-steps", help.OfType(Of ToolStripMenuItem)().Any(Function(i) i.Text = ui("vd_help_menu_first")), "")

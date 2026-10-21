@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Справка - О программе</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Оглавление справки</a><span class="sep" aria-hidden="true">/</span><span>О программе</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Справка по окну</p>
+    <h1>О программе</h1>
+    <p class="lead">Какая сборка FileDO у вас запущена, кто её сделал, где читать дальше и как попросить помощи. Сам FileDO ничего никуда не отправляет.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/about.ru.dark.png" width="1457" height="903" alt="О программе: окно с пронумерованными частями">
+      <img class="on-light" src="../img/about.ru.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:13.6%" href="#e-build" aria-label="1, Сборка GUI">1</a>
+      <a class="pin" style="--x:24.1%;--y:18.9%" href="#e-author" aria-label="2, Автор">2</a>
+      <a class="pin" style="--x:24.1%;--y:27.5%" href="#e-links" aria-label="3, Ссылки">3</a>
+      <a class="pin" style="--x:24.1%;--y:48.9%" href="#e-license" aria-label="4, Лицензия">4</a>
+      <a class="pin" style="--x:24.1%;--y:56.4%" href="#e-logs" aria-label="5, Отправить логи автору">5</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="6, Справка">6</a>
+    </div>
+    <figcaption>Демонстрационные данные. Выберите номер, чтобы прочитать об этой части окна.</figcaption>
+  </figure>
+
+  <h2>В каком порядке</h2>
+  <ol class="order">
+    <li>Прочитайте сборку <a class="ref" href="#e-build">1</a>, если нужно сообщить автору, какая у вас версия.</li>
+    <li>Перейдите по ссылке <a class="ref" href="#e-links">3</a> на сайт, к исходному коду или в трекер проблем.</li>
+    <li>Если что-то пошло не так, отправьте логи <a class="ref" href="#e-logs">5</a> - сначала вы увидите их сами.</li>
+  </ol>
+
+  <h2>Элементы окна</h2>
+  <div class="elements">
+    <details class="el" id="e-build">
+      <summary><span class="mk">1</span><span><span class="name">Сборка GUI</span><span class="one">Какая версия окна и программы запущена.</span></span></summary>
+      <div class="full">
+        <p>Первая строка - сборка этого окна, вторая - filedo.exe, с которым оно работает. Назовите обе, когда сообщаете о проблеме. Если вторая строка говорит, что программы нет рядом с окном, FileDO ищет её в PATH или среди псевдонимов Store.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Чтение версии ничего не меняет.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-author">
+      <summary><span class="mk">2</span><span><span class="name">Автор</span><span class="one">Кто написал FileDO.</span></span></summary>
+      <div class="full">
+        <p>Имя, под которым публикуется FileDO. Почтовый адрес автора есть среди ссылок ниже.</p>
+      </div>
+    </details>
+    <details class="el" id="e-links">
+      <summary><span class="mk">3</span><span><span class="name">Ссылки</span><span class="one">Где читать дальше, взять исходный код или сообщить о проблеме.</span></span></summary>
+      <div class="full">
+        <p>Справка (эти страницы, на вашем компьютере), сайт с загрузками и руководствами, исходный код, трекер проблем, заявление о приватности, другие программы автора и почтовый адрес автора. Ссылка открывается только по вашему щелчку.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Ссылка открывается в браузере или почтовой программе. FileDO остаётся открытым.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-license">
+      <summary><span class="mk">4</span><span><span class="name">Лицензия</span><span class="one">Лицензия MIT. Свободное использование, исходный код открыт.</span></span></summary>
+      <div class="full">
+        <p>FileDO - свободная программа под лицензией MIT: её можно использовать, копировать, изменять и распространять. Исходный код открыт, а в заявлении о приватности сказано, что ничего никуда не отправляется.</p>
+      </div>
+    </details>
+    <details class="el" id="e-logs">
+      <summary><span class="mk">5</span><span><span class="name">Отправить логи автору</span><span class="one">Упаковывает файлы журнала в один zip для автора.</span></span></summary>
+      <div class="full">
+        <p>Собирает журналы FileDO, найденные на этом компьютере, в один zip, показывает вам этот zip и открывает почтовую программу с письмом автору. Ничего не отправляется, пока вы сами не отправите письмо.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Открывается папка с zip и новое письмо с указанием, где лежит zip.</dd>
+          <dt>Можно ли отменить</dt><dd>Закройте письмо, не отправляя, и ничего не покинет ваш компьютер.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">6</span><span><span class="name">Справка</span><span class="one">Открывает страницу, которую вы читаете.</span></span></summary>
+      <div class="full">
+        <p>В правом верхнем углу каждого окна FileDO есть эта кнопка. Она открывает справку по тому окну, в котором вы находитесь, - с картинкой и объяснением каждой части, на вашем языке.</p>
+        <dl class="facts">
+          <dt>Что дальше</dt><dd>Страница открывается в браузере. FileDO остаётся открытым, и в нём ничего не меняется.</dd>
+          <dt>Сочетание клавиш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>См. также</h2>
+  <ul class="related">
+    <li><a href="settings.html"><b>Настройки</b><span class="pill">Окно</span><small>Тема, язык, история и автозапуск.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Поддержка</b><span class="pill gold">Сайт</span><small>Задать вопрос или сообщить о проблеме.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Приватность</b><span class="pill gold">Сайт</span><small>Без телеметрии: что остаётся на вашем компьютере.</small></a></li>
+    <li><a href="https://sza.od.ua"><b>Другие программы автора</b><span class="pill gold">Автор</span><small>Другие программы автора.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Снято с FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Оглавление справки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

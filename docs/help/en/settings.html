@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Help - Settings</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Help index</a><span class="sep" aria-hidden="true">/</span><span>Settings</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Window help</p>
+    <h1>Settings</h1>
+    <p class="lead">Choose how FileDO looks and behaves: the theme, the language, whether it keeps a history, what it does when Windows starts, and a few Windows options. Each setting applies as soon as you change it.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/settings.en.dark.png" width="1457" height="1175" alt="Settings: the window with its numbered parts">
+      <img class="on-light" src="../img/settings.en.light.png" width="1457" height="1175" alt="">
+      <a class="pin" style="--x:22.6%;--y:8.8%" href="#e-group-appearance" aria-label="1, Appearance">1</a>
+      <a class="pin" style="--x:24.0%;--y:14.7%" href="#e-setting-theme" aria-label="2, Appearance">2</a>
+      <a class="pin" style="--x:24.0%;--y:20.2%" href="#e-setting-language" aria-label="3, Language">3</a>
+      <a class="pin" style="--x:22.6%;--y:26.6%" href="#e-group-history" aria-label="4, Run history">4</a>
+      <a class="pin" style="--x:24.0%;--y:32.6%" href="#e-setting-history" aria-label="5, Write a report for every run">5</a>
+      <a class="pin" style="--x:22.6%;--y:39.7%" href="#e-group-startup" aria-label="6, Run at Windows startup">6</a>
+      <a class="pin" style="--x:24.0%;--y:45.7%" href="#e-setting-startup" aria-label="7, Run at Windows startup">7</a>
+      <a class="pin" style="--x:24.0%;--y:51.1%" href="#e-setting-startup-apply" aria-label="8, Apply startup choice">8</a>
+      <a class="pin" style="--x:24.0%;--y:56.6%" href="#e-setting-minimize" aria-label="9, Minimize to the tray icon">9</a>
+      <a class="pin" style="--x:24.0%;--y:62.7%" href="#e-setting-notification" aria-label="10, Notify when a job finishes">10</a>
+      <a class="pin" style="--x:22.6%;--y:69.9%" href="#e-group-windows" aria-label="11, Windows and window positions">11</a>
+      <a class="pin" style="--x:24.0%;--y:75.8%" href="#e-setting-autoplay" aria-label="12, Disable Windows AutoPlay">12</a>
+      <a class="pin" style="--x:24.0%;--y:85.0%" href="#e-setting-autoplay-system" aria-label="13, Windows AutoPlay settings..">13</a>
+      <a class="pin" style="--x:24.0%;--y:94.2%" href="#e-setting-reset" aria-label="14, Reset window positions">14</a>
+      <a class="pin" style="--x:95.3%;--y:1.8%" href="#e-help" aria-label="15, Help">15</a>
+    </div>
+    <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
+  </figure>
+
+  <h2>In this order</h2>
+  <p>Settings have no order: change any of them at any time. They are grouped as on the page - Appearance, Run history, Startup and Windows - and each group folds by its header.</p>
+
+  <h2>The elements</h2>
+  <div class="elements">
+    <details class="el" id="e-group-appearance">
+      <summary><span class="mk">1</span><span><span class="name">Appearance</span><span class="one">Theme and language.</span></span></summary>
+      <div class="full">
+        <p>How the windows look and which language they speak. Both apply to every open FileDO window at once.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-theme">
+      <summary><span class="mk">2</span><span><span class="name">Appearance</span><span class="one">Follows Windows or uses your chosen light or dark palette. Applies immediately.</span></span></summary>
+      <div class="full">
+        <p>Light and Dark pick a palette; the automatic choice follows the light or dark setting of Windows. Pick whatever is easiest on your eyes where you work.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Every open FileDO window changes at once.</dd>
+          <dt>Undo</dt><dd>Choose the previous value to go back.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-language">
+      <summary><span class="mk">3</span><span><span class="name">Language</span><span class="one">Applies immediately to every open FileDO window.</span></span></summary>
+      <div class="full">
+        <p>The language of every FileDO window, the tray menu and these help pages. English, Russian, Ukrainian, German and French are available.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Open windows change at once, and a help page opens in the language chosen here.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-history">
+      <summary><span class="mk">4</span><span><span class="name">Run history</span><span class="one">Whether finished runs are written down.</span></span></summary>
+      <div class="full">
+        <p>FileDO can keep a report of every run, so that you can read later what was done and how it ended.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-history">
+      <summary><span class="mk">5</span><span><span class="name">Write a report for every run</span><span class="one">Reports are kept under %LOCALAPPDATA%\FileDO\reports for 30 days. With this off, no report files are written at all.</span></span></summary>
+      <div class="full">
+        <p>With this on, every run leaves a report that you can read in History: the command, the verdict and the details. Turn it off if you do not want any report files written.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Reports already written stay until they are 30 days old. Turn it back on to write them again.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-startup">
+      <summary><span class="mk">6</span><span><span class="name">Run at Windows startup</span><span class="one">What FileDO does when Windows starts and when a job ends.</span></span></summary>
+      <div class="full">
+        <p>Whether FileDO starts with Windows, whether minimizing leaves it in the tray, and whether you are told when a job finishes.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-startup">
+      <summary><span class="mk">7</span><span><span class="name">Run at Windows startup</span><span class="one">For this user, without admin rights. The startup entry survives uninstalling FileDO.</span></span></summary>
+      <div class="full">
+        <p>Choose what happens when you sign in to Windows: nothing, the main window, the Disk Manager, or only the tray icon. The choice is made for your account and needs no administrator rights. In the Microsoft Store build this row opens Windows Settings, where startup apps are managed.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Nothing changes until you press the button below it.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-startup-apply">
+      <summary><span class="mk">8</span><span><span class="name">Apply startup choice</span><span class="one">Saves the startup choice.</span></span></summary>
+      <div class="full">
+        <p>Writes the choice above and registers it with Windows.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Choose Off and apply again to remove it.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-minimize">
+      <summary><span class="mk">9</span><span><span class="name">Minimize to the tray icon</span><span class="one">Keep the application available from the notification area when minimized.</span></span></summary>
+      <div class="full">
+        <p>With this on, minimizing the window leaves FileDO in the tray instead of the taskbar. Running jobs and mounted disks stay reachable from the tray icon.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Turn it off to minimize to the taskbar again.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-notification">
+      <summary><span class="mk">10</span><span><span class="name">Notify when a job finishes</span><span class="one">Show a notification after a job ends. Open FileDO to read the result.</span></span></summary>
+      <div class="full">
+        <p>When a job ends, Windows shows a short notice. It does not carry the result; open FileDO or the Disk Manager to read it.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Turn it off to stop the notices.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-windows">
+      <summary><span class="mk">11</span><span><span class="name">Windows and window positions</span><span class="one">Windows options and window positions.</span></span></summary>
+      <div class="full">
+        <p>Two things that live in Windows rather than in FileDO, and the way to put the windows back where they started.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-autoplay">
+      <summary><span class="mk">12</span><span><span class="name">Disable Windows AutoPlay</span><span class="one">Stops Windows from acting on drives you connect.</span></span></summary>
+      <div class="full">
+        <p>Windows can open Explorer or start other actions whenever a drive or a memory card is connected. This button turns that off for your account - for all drives, not only FileDO's. FileDO's own automatic mounting is a separate thing and keeps working.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Windows AutoPlay is disabled, and the line below the button says so.</dd>
+          <dt>Undo</dt><dd>The next button opens the Windows setting, where you can turn AutoPlay on again.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-autoplay-system">
+      <summary><span class="mk">13</span><span><span class="name">Windows AutoPlay settings..</span><span class="one">Opens the AutoPlay page of Windows Settings.</span></span></summary>
+      <div class="full">
+        <p>Shows the Windows setting itself, so you can look at it or change it there without FileDO.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Windows Settings opens in its own window.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-reset">
+      <summary><span class="mk">14</span><span><span class="name">Reset window positions</span><span class="one">Default positions apply the next time each window opens.</span></span></summary>
+      <div class="full">
+        <p>Forgets where you moved and resized the FileDO windows. Use it when a window has ended up off the screen or somewhere inconvenient.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>Each window opens in its default place the next time it is opened.</dd>
+          <dt>Undo</dt><dd>Move a window again to give it a new remembered place.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">15</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <div class="full">
+        <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
+        <dl class="facts">
+          <dt>Next</dt><dd>The page opens in your web browser. FileDO stays open and nothing in it changes.</dd>
+          <dt>Shortcut</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Related</h2>
+  <ul class="related">
+    <li><a href="about.html"><b>About</b><span class="pill">Window</span><small>Version, links and support.</small></a></li>
+    <li><a href="history.html"><b>History</b><span class="pill">Window</span><small>The report of every finished run.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Privacy</b><span class="pill gold">Site</span><small>No telemetry: what stays on your machine.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Help index</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

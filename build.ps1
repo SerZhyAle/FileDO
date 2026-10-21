@@ -604,6 +604,9 @@ if ($Test) {
         Copy-Item -LiteralPath $guiExe -Destination (Join-Path $guiEvidence 'filedo_win.exe') -Force
         Copy-Item -LiteralPath "$out\filedo_win.exe.config" -Destination $guiEvidence -Force
         Copy-Item -LiteralPath "$out\filedo.exe" -Destination $guiEvidence -Force
+        # The help set beside the exe, where the application reads it (SP-0168): the self-test's help rows
+        # diff the map against the surfaces, and a copy that has no map would read as "nothing to check".
+        Copy-Item -LiteralPath "$root\docs\help" -Destination (Join-Path $guiEvidence 'help') -Recurse -Force
         $log = Join-Path $guiEvidence 'filedo_win_selftest.log'
         $staleLog = $null
         if (Test-Path $log) {
@@ -687,7 +690,16 @@ if ($Test) {
     }
     Record-GateStep 'build-inputs' $inputsCode $(if ($inputsCode -eq 2) { ($inputsOut.Trim() -split "`r?`n")[-1] } else { $inputsOut })
 
-    # A failed step outranks a step that could not verify. All ten steps run
+    # 11) The in-app help set against CONTEXT-HELP (SP-0168): the map, a page per surface in every shipped
+    #     language, the anatomy, no request, every link and picture. The surfaces of the source against
+    #     the map are the `help:` rows of step 5; the regenerated-and-compared half (rung 2) is
+    #     `packaging\check-help.ps1 -Exe`, which needs a desktop session and runs before a release.
+    Write-Host "in-app help pages, map and links ..." -NoNewline
+    $helpOut = & "$root\packaging\check-help.ps1" *>&1 | Out-String
+    $helpCode = $LASTEXITCODE
+    Record-GateStep 'help-pages' $helpCode $(if ($helpCode -eq 2) { ($helpOut.Trim() -split "`r?`n")[-1] } else { $helpOut })
+
+    # A failed step outranks a step that could not verify. All eleven steps run
     # before this decision, so one run names every defect it found.
     $gateExit = if ($gateFailures.Count) { 1 } elseif ($gateUnverified.Count) { 2 } else { 0 }
     if ($gateExit -ne 0) {
@@ -787,6 +799,8 @@ function Build-FileDOInstaller {
     # The Explorer entries' and the document type's meaning icons (SP-0016 T8).
     New-Item -ItemType Directory -Force -Path "$stage\icons" | Out-Null
     Copy-Item "$root\assets\menu-icons\*.ico" "$stage\icons" -Force
+    # The in-app help: pages in every language, their pictures and the help map (SP-0168).
+    Copy-Item "$root\docs\help" "$stage\help" -Recurse -Force
 
     # Every file the wxs names must be in the stage, or wix reports it one at
     # a time. Saying so here names them all at once.
@@ -795,7 +809,8 @@ function Build-FileDOInstaller {
                   "filedo_cd.bat", "filedo_clean.bat", "filedo_fill.bat", "filedo_speed.bat", "filedo_test.bat",
                   "icons\action.secure.ico", "icons\action.unsecure.ico", "icons\action.wipe.ico",
                   "icons\action.verify.ico", "icons\app.info.ico", "icons\content.secret-file.ico",
-                  "icons\content.disk-container.ico", "icons\app.disk-manager.ico")
+                  "icons\content.disk-container.ico", "icons\app.disk-manager.ico",
+                  "help\help-map.json", "help\help.css", "help\en\index.html")
     $missing = $required | Where-Object { -not (Test-Path "$stage\$_") }
     if ($missing) {
         Write-Host "No installer this run: the stage is missing $($missing -join ', ')." -ForegroundColor Yellow

@@ -284,6 +284,9 @@ jobs:
           # icon from icons\ beside the exe (SP-0016 T8) - in the MSI and the zip alike.
           New-Item -ItemType Directory -Force -Path "$stage\icons" | Out-Null
           Copy-Item assets\menu-icons\*.ico "$stage\icons" -Force
+          # The in-app help (SP-0168): the pages, their pictures and the help map, beside the exes in
+          # help\ - in the MSI and the zip alike, so a page opens with no network.
+          Copy-Item docs\help "$stage\help" -Recurse -Force
 
       # CI-03: no known-vulnerable code ships. Binary mode reads what is linked into each
       # executable - the standard library of the pinned toolchain included - and exits

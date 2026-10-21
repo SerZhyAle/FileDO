@@ -52,6 +52,13 @@ var reservedStems = map[string]bool{
 // ValidateName screens the sealed true name against path separators, reserved
 // device names, control characters and trailing dots or spaces (FDSEC-FORMAT.md
 // section 7, FDSEC-BEHAVIOUR.md section 4.3). The error does not echo the name.
+//
+// This is the format's portable validity, and nothing platform-specific. The
+// four characters U+0022, U+003C, U+003E and U+007C are valid in an
+// authenticated name (FDSEC-FORMAT 1.4 section 20): a Windows destination
+// cannot create them, but that is a fact about the destination, decided where
+// the name becomes a file name (cmd/filedo, fdsecDestinationNameRefusal), and
+// never a reason to call an authenticated container damaged.
 func ValidateName(name string) error {
 	if len(name) < 1 || len(name) > MaxNameBytes {
 		return fmt.Errorf("name must be 1..%d UTF-8 bytes", MaxNameBytes)
@@ -59,7 +66,7 @@ func ValidateName(name string) error {
 	if name == "." || name == ".." {
 		return fmt.Errorf("name is a relative directory reference")
 	}
-	if strings.ContainsAny(name, `/\:*?"<>|`) {
+	if strings.ContainsAny(name, `/\:*?`) {
 		return fmt.Errorf("name contains a path separator or illegal character")
 	}
 	for _, r := range name {

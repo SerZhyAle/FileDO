@@ -446,7 +446,8 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 ## Testing - the gate in full
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate is `build.ps1 -Test`, in ten steps: smoke every shipped executable for its stamped version
+- The real gate is `build.ps1 -Test`, in eleven steps (the last, `packaging/check-help.ps1`, holds the in-app
+  help set - see "The GUI shell"): smoke every shipped executable for its stamped version
   and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); compile-check
   `cmd\filedo-test`, validate `packaging/check-placement.jsonl` and run `packaging/check-gated-packages.ps1` (a Go package with tests that
   no gate runs fails it unless it is exempt there with a reason); `go test ./fdsec/ -count=1 -short`;
@@ -611,6 +612,16 @@ file does **not** stand down for the single-instance check - focusing another wi
 the start was about - and each double-clicked container therefore gets its own window, which is what makes
 "remove the copy now" belong to one reveal rather than to whichever ran last.
 
+**A second plain start is the focus-only profile of `APP-ACTIVATION`** (0.13): no scheme, no pipe, no payload.
+The session-local mutex `Local\FileDO.Shell` and the registered messages `FileDO.Shell.ShowShell` and
+`FileDO.Shell.ShowDiskManager` are frozen anchors. `Program.WantsHandOver` decides who hands over (a start with
+no file, after the first copy); `AppHost.AskWindow` sends the empty signal with `SendMessageTimeout` and
+`SMTO_ABORTIFHUNG` inside `HandOverSendMs`; the fallback for a first copy that does not listen,
+`Program.FocusWindow`, never waits on the other process (`ShowWindowAsync`) and does not claim a window the system
+calls hung - the start then opens its own window after its 5 s wait, so a second launch never vanishes. The
+`activation:` self-test rows hold the hung receiver, the empty signal and the file target; another account's
+session and an elevated first copy are manual checks (the mutex is per session, a second account cannot open it).
+
 **The shell consumes `APP-BEHAVIOUR` and `APP-STYLE`** (see "External contracts"). What that means in
 code, each held by a gate:
 - **No exception text on screen.** A caught exception goes to `ShellLog` (`%LOCALAPPDATA%\FileDO\
@@ -668,6 +679,54 @@ Every user-visible string goes through `Localization.vb` in all five languages (
 `fr`), in its `key|value` format - no `|` inside a value, `\n` for a line break, English as the fallback.
 Two traps: VB rejects a **comment line inside an array initializer**, and a key added to English alone
 will silently fall back rather than fail.
+
+**In-app help (SP-0168, contract `CONTEXT-HELP`).** F1 and the `?` button (the `app.help` glyph, trailing
+control of the first content row) call one resolver, `Help.vb`; both answer with the page of the surface on
+screen, opened in the system browser from `help\<language>\<page>.html` beside the exe (the site's copy only when
+that folder is missing; a Store run copies the folder to `%TEMP%\FileDO-help\<stamp>` first, because the browser
+may not read the package folder). F1 is the window's own key - `RegisterHotKey` and keyboard hooks are refused by
+`TestHelp_F1IsNeverAGlobalHotkey`. **The help map** is `docs/help/help-map.json`: one row per rail destination
+and per window class, each with its form (`layer`, `page`, `both`, `inherit` or `none`), its help id, and a reason for
+`inherit` and `none`; the `help:` rows of `--selftest` enumerate `RailRow.All` and the `Form` classes of the
+assembly and fail a surface with no row, a row with no surface, a missing reason or a stale baseline line.
+**Pages are a render target**: `HelpContent.vb` says which parts a page explains (names of the controls the
+views give as `help:<id>`, `setting:<id>`), the words are the `help_*` keys of `HelpStrings{En,Ru,Uk,De,Fr}.vb`
+(one `Partial Module`, merged into every language table by `Localization.GetDict`, so the usual locale parity
+rows cover them), and `filedo_win.exe --build-help docs\help` writes `<language>\<page>.html` plus
+`img\<page>.<language>.<theme>.png` from the real windows, with every numbered marker placed from the control
+tree (`HelpCapture.vb`); it writes no setting of the user's. Never edit a generated page; edit the content or
+the strings and regenerate. The page set is copied into every channel (`build.ps1` MSI stage, `release.yml`
+stage for the zip and MSI, `msix/build-msix.ps1`; the MSI harvests `help\**` with `<Files>`).
+`packaging/check-help.ps1` (gate step 11) checks the set on disk - a page per surface in every language, the
+anatomy, no request, links, pictures - and, given `-Exe`, regenerates it and compares (rung 2). Debt is
+`docs/help/help-baseline.txt` (`page <help id>`, `ask <surface id>`), which may only fall: a line whose debt is
+paid fails as stale. Traps: control names are shared by the views of one window ("help:run" is on the job page
+and on Command), so a picture takes the visible one; VB is case-insensitive, so a local named `file`, `theme` or
+`pageFile` hides `File`, `Theme` or `PageFile`; and a Friend function in a Module is visible in every file, so
+helper names in the help modules stay Private unless they are an API.
+
+**The unified UI contracts (SP-0169; `UI-SIZING`, `BUTTONS`, `BOOLEAN-OPTION`, `COLLAPSIBLE-GROUP`,
+`SETTINGS-NAVIGATION`) - migration in progress, not conformant yet.** What is built and what a change here must
+keep, each held by the `ui-contracts` group of `--selftest`:
+- **The product's size profile.** `UiTokens.vb` is the one resolver of the ordinary-size tokens (pointer target 32,
+  button padding 12, caption glyph 16, glyph gap 8, radius 4, group marker 16, option box 20); a covered component
+  reads a token and turns it into device pixels with `Ui.Px`, never a literal, and the interface scale is composed
+  once with the monitor's DPI. The input profile is the pointer one - an approved permanent variant, declared by the
+  owner on 2026-10-02 and never changed by an input event; there is no touch profile in the shell. The supported
+  scale range is 0.875 (compact) to 2.0, the declared smallest target 28 logical px; no size selector is exposed (a
+  product decision not taken). Native combo, edit and list controls keep platform sizing.
+- **Buttons.** `GlyphButton` draws a 4-radius rectangle of content width, never ellipsizes a caption (it wraps and
+  the button grows) and honours `MinimumSize`, which is how `Ui.EqualizeRowHeights` gives one visual row one height.
+  A dialog answer sits on the ordinary face with its hue on the glyph alone (state.ok affirmative, state.warning
+  caution; Cancel and Close mono); only an irreversible confirmation's acting button is danger-filled.
+  `ShellDialog.AnswerOrder` lays the answers out Cancel first and the acting answer last and sets the Tab order; the
+  indices callers pass are unchanged, so the Go sweep over `ShellDialog.Ask` still reads them positionally.
+- **Groups.** A settings group's header is a `GroupHeader`: a filled state triangle at the reading start, a face that
+  differs from the body, a bold caption, 32-unit height, the whole header toggling once. The shell rail's job groups
+  are navigation parents and stay `RailEntry` rows.
+- **Not built yet:** the boolean option component, the button-row helper on every page, one ink policy and the
+  32/16 row tokens for the rail, the complete About set, complete-frame timings, the component showcase and the
+  site's page layer. The registry migration entry carries the milestones and the final deadline (2026-12-31).
 
 **Windows AutoPlay is separate from disk automounting.** The shared settings panel in the shell and
 Disk Manager has a *Disable Windows AutoPlay* button. Only its click writes the current user's

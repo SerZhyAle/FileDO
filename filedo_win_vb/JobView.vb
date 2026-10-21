@@ -249,6 +249,7 @@ Public Class JobView
         AutoScroll = True
         AllowDrop = True
         BuildLayout()
+        NameHelpParts()
         HookRunnerEvents()
         AddHandler DragEnter, AddressOf JobView_DragEnter
         AddHandler DragDrop, AddressOf JobView_DragDrop
@@ -259,6 +260,22 @@ Public Class JobView
         If dict IsNot Nothing AndAlso dict.TryGetValue(key, v) Then Return v
         Return key
     End Function
+
+    ' The parts of this page the help explains (HelpContent, page job-page): the name is how the help
+    ' picture finds the part to put a marker on, and how F1 finds the part a focus is in.
+    Private Sub NameHelpParts()
+        targetCard.Name = "help:target"
+        paramsCard.Name = "help:options"
+        planCard.Name = "help:plan"
+        commandBox.Name = "help:command"
+        copyCmdBtn.Name = "help:copy"
+        openInCmdBtn.Name = "help:open"
+        startBtn.Name = "help:run"
+        runStrip.Name = "help:progress"
+        stopBtn.Name = "help:stop"
+        resultCard.Name = "help:result"
+        toggleOutputBtn.Name = "help:output"
+    End Sub
 
     Public Sub SetJob(jobDef As JobDefinition)
         ' The page never changes job under a running run: the window keeps the running page in

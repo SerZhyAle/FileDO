@@ -13,14 +13,16 @@
 ' accessible name. A button with no caption (IconOnly) carries the meaning's canonical name as its
 ' accessible name and its tooltip - the caller sets both, and the self-test fails one that does not.
 '
-' The Face is where the button's colour is spent (WINDOWS-UI 0.4 section 11): the ordinary mono look,
-' the accent fill of a primary action outside a dialog, the danger fill of an irreversible acting
-' answer or an enabled Stop, or one of the dialog answers - affirmative, dismissing, caution - whose
-' glyph takes the shared state hue over the tinted face. AnswerErrorSafe is the dismissing answer of
-' an irreversible confirmation: the red glyph stays, the tint does not, so the only red face in the
-' window is the acting button's (section 11 item 7). A disabled button mutes glyph and caption
-' together and shows no hue (item 6); under high contrast the palette itself replaces hue and tint
-' with the system colours.
+' The Face is where the button's colour is spent (BUTTONS 2.0 section 3 rule 5): the ordinary neutral
+' face, the accent fill of a primary action outside a dialog, or the danger fill of an irreversible
+' acting answer or an enabled Stop. A dialog answer keeps the neutral face: an affirmative answer's
+' glyph takes state.ok and a caution answer's state.warning, and Cancel, No and a plain Close stay
+' mono - "non-destructive answer faces MUST NOT acquire decorative green or red tints" and "Cancel,
+' No and plain Close MUST use neutral treatment". AnswerError and AnswerErrorSafe are the names the
+' dismissing answers were built with before BUTTONS 2.0; they now draw exactly as Normal and stay
+' only so the call sites that name them keep compiling (the polarity rule, ShellDialog.FaceOf, no
+' longer returns them). A disabled button mutes glyph and caption together and shows no hue; under
+' high contrast the palette itself replaces hue with the system colours.
 Public Enum GlyphButtonFace
     Normal
     AccentFill
@@ -126,7 +128,7 @@ Public Class GlyphButton
     ' The colours of one paint: the face the button draws on, the ink of its caption, the ink of its
     ' glyph, and its border. Every value is read from the palette in force at paint time, so a theme
     ' switch needs no plumbing beyond the repaint (APP-STYLE section 3).
-    Private Structure FaceColours
+    Friend Structure FaceColours
         Public Back As Color
         Public Caption As Color
         Public Glyph As Color
@@ -134,7 +136,7 @@ Public Class GlyphButton
         Public FocusRing As Color
     End Structure
 
-    Private Function ColoursFor(p As Theme.Palette) As FaceColours
+    Friend Function ColoursFor(p As Theme.Palette) As FaceColours
         Dim c As New FaceColours
         If Not Enabled Then
             ' Unavailable: glyph and caption mute together to text.disabled and show no hue
@@ -163,23 +165,17 @@ Public Class GlyphButton
                 c.Border = p.Danger
                 c.FocusRing = p.AccentText
             Case GlyphButtonFace.AnswerOk
-                c.Back = p.AnswerOkBack
-                c.Glyph = p.StateOk
-            Case GlyphButtonFace.AnswerError
-                c.Back = p.AnswerErrorBack
-                c.Glyph = p.StateError
-            Case GlyphButtonFace.AnswerWarning
-                c.Back = p.AnswerWarningBack
-                ' The shared warning tone cannot always reach 3:1 on the tint it sits over in the light
-                ' theme; there the palette's own darker warning ink stands in - the dated registry
-                ' exception, decided by WarningGlyphOn exactly as on the row backgrounds.
-                c.Glyph = Theme.WarningGlyphOn(p, p.AnswerWarningBack)
-            Case GlyphButtonFace.AnswerErrorSafe
-                ' The dismissing answer of an irreversible confirmation: the red glyph, no tint
-                ' (section 11 item 7) - the ordinary face, the state hue on the glyph alone.
+                ' An affirmative answer: the neutral face, the glyph in state.ok (BUTTONS 3.5).
                 c.Back = p.SurfaceAlt
-                c.Glyph = p.StateError
+                c.Glyph = p.StateOk
+            Case GlyphButtonFace.AnswerWarning
+                ' A caution answer: the neutral face, the glyph in state.warning. The shared warning
+                ' tone cannot always reach 3:1 on the light face; there the palette's own darker warning
+                ' ink stands in - the dated registry exception, decided by WarningGlyphOn.
+                c.Back = p.SurfaceAlt
+                c.Glyph = Theme.WarningGlyphOn(p, p.SurfaceAlt)
             Case Else
+                ' Normal, and the retired AnswerError / AnswerErrorSafe: the neutral face, mono ink.
                 c.Back = p.SurfaceAlt
                 c.Glyph = If(dangerValue, p.Danger, p.Text)
                 c.Caption = c.Glyph
@@ -187,42 +183,97 @@ Public Class GlyphButton
         Return c
     End Function
 
+    ' Every face but the accent and danger fills is the neutral one, which follows the pointer and the
+    ' press; a filled face keeps its colour while it is worked (it is the button's rank).
+    Private Function IsNeutralFace() As Boolean
+        Return faceValue <> GlyphButtonFace.AccentFill AndAlso faceValue <> GlyphButtonFace.DangerFill
+    End Function
+
     Private Sub Relayout()
         If Parent IsNot Nothing Then Parent.PerformLayout()
         Invalidate()
     End Sub
 
-    Private Const TextFlags As TextFormatFlags = TextFormatFlags.NoPrefix Or TextFormatFlags.NoPadding Or
-                                                 TextFormatFlags.SingleLine Or TextFormatFlags.VerticalCenter Or
-                                                 TextFormatFlags.EndEllipsis
+    ' A caption is never ellipsized or clipped (BUTTONS 2.0 section 3 rule 4): it is measured and drawn
+    ' with word breaking, so when the width a layout gives the button (MaximumSize) is narrower than
+    ' the caption the caption wraps and the button grows in height instead.
+    Private Const CaptionFlags As TextFormatFlags = TextFormatFlags.NoPrefix Or TextFormatFlags.NoPadding Or
+                                                    TextFormatFlags.WordBreak Or TextFormatFlags.Left Or
+                                                    TextFormatFlags.Top
+
+    Private Const BorderPx As Integer = 1
 
     Private Function GlyphPx() As Integer
-        Return If(glyphValue Is Nothing AndAlso pictureValue Is Nothing, 0, Ui.Px(Me, tierValue))
+        Return If(glyphValue Is Nothing AndAlso pictureValue Is Nothing, 0, Ui.Px(Me, UiTokens.Scaled(tierValue)))
     End Function
 
-    Private Function CaptionSize() As Size
+    Private Function PadXPx() As Integer
+        Return Ui.Px(Me, UiTokens.ButtonPadX())
+    End Function
+
+    Private Function GapPx() As Integer
+        Return Ui.Px(Me, UiTokens.GlyphGap())
+    End Function
+
+    ' The widest a caption may be before it wraps: from the width cap a layout set (MaximumSize), or
+    ' unbounded. Never less than a few characters, so a degenerate cap cannot make a one-letter column.
+    Private Function CaptionLimit() As Integer
+        If MaximumSize.Width <= 0 Then Return Integer.MaxValue
+        Dim gp = GlyphPx()
+        Dim avail = MaximumSize.Width - 2 * BorderPx - 2 * PadXPx() - If(gp > 0, gp + GapPx(), 0)
+        Return Math.Max(Ui.Px(Me, 40), avail)
+    End Function
+
+    Private Function CaptionSize(limit As Integer) As Size
         If iconOnlyValue OrElse String.IsNullOrEmpty(Text) Then Return Size.Empty
-        Return TextRenderer.MeasureText(Text, Font, New Size(Integer.MaxValue, Integer.MaxValue),
-                                        TextFormatFlags.NoPrefix Or TextFormatFlags.NoPadding Or TextFormatFlags.SingleLine)
+        Return TextRenderer.MeasureText(Text, Font, New Size(limit, Integer.MaxValue), CaptionFlags)
+    End Function
+
+    ' The smallest this button is allowed to be on either axis for its kind.
+    Private Function TargetPx() As Integer
+        Return Ui.Px(Me, UiTokens.Target())
     End Function
 
     Public Overrides Function GetPreferredSize(proposedSize As Size) As Size
         Dim gp = GlyphPx()
-        Dim cap = CaptionSize()
-        Dim border = 1
-        ' ICON-RENDER rule 3.5: a Windows hit target is at least 28 logical px under a mouse or a pen.
-        ' The padding rounds down at some scalings (a 16 px tier came out at 27.2 logical px at 125 %),
-        ' so the floor is stated here rather than left to the rounding.
-        Dim floorPx = Ui.Px(Me, 28)
+        Dim cap = CaptionSize(CaptionLimit())
+        ' UI-SIZING rule 4 and BUTTONS section 3: the ordinary pointer target is 32 logical units and the
+        ' height of a single-line button. The padding rounds down at some scalings, so the floor is
+        ' stated here rather than left to the rounding. A multiline caption grows the height past it.
+        Dim floorPx = TargetPx()
         If iconOnlyValue Then
-            Dim side = Math.Max(gp + 2 * Ui.Px(Me, 5) + 2 * border, floorPx)
-            Return New Size(side, side)
+            Dim side = Math.Max(gp + 2 * Ui.Px(Me, UiTokens.Scaled(5)) + 2 * BorderPx, floorPx)
+            Return WithinLimits(New Size(side, side))
         End If
         Dim content = gp + cap.Width
-        If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 6)
-        Dim w = content + 2 * Ui.Px(Me, 8) + 2 * border
-        Dim h = Math.Max(Math.Max(gp, cap.Height) + 2 * Ui.Px(Me, 5) + 2 * border, floorPx)
-        Return New Size(w, h)
+        If gp > 0 AndAlso cap.Width > 0 Then content += GapPx()
+        Dim w = Math.Max(content + 2 * PadXPx() + 2 * BorderPx, If(gp > 0 AndAlso cap.Width = 0, floorPx, 0))
+        Dim h = Math.Max(Math.Max(gp, cap.Height) + 2 * Ui.Px(Me, UiTokens.Scaled(5)) + 2 * BorderPx, floorPx)
+        Return WithinLimits(New Size(w, h))
+    End Function
+
+    ' The base class applies MaximumSize and MinimumSize to the size it computes; overriding
+    ' GetPreferredSize bypasses that, so it is stated here - a layout that equalizes the heights of a
+    ' row (Ui.EqualizeRowHeights) sets MinimumSize and the AutoSize button has to honour it.
+    Private Function WithinLimits(size As Size) As Size
+        Dim w = size.Width
+        Dim h = size.Height
+        If MaximumSize.Width > 0 Then w = Math.Min(w, MaximumSize.Width)
+        If MaximumSize.Height > 0 Then h = Math.Min(h, MaximumSize.Height)
+        Return New Size(Math.Max(w, MinimumSize.Width), Math.Max(h, MinimumSize.Height))
+    End Function
+
+    ' A rounded rectangle with the contract's modest radius (never a pill).
+    Private Function FacePath(r As Rectangle) As Drawing2D.GraphicsPath
+        Dim path As New Drawing2D.GraphicsPath()
+        Dim d = Math.Max(2, 2 * Ui.Px(Me, UiTokens.Radius()))
+        d = Math.Min(d, Math.Min(r.Width, r.Height))
+        path.AddArc(r.Left, r.Top, d, d, 180, 90)
+        path.AddArc(r.Right - d, r.Top, d, d, 270, 90)
+        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90)
+        path.AddArc(r.Left, r.Bottom - d, d, d, 90, 90)
+        path.CloseFigure()
+        Return path
     End Function
 
     Protected Overrides Sub OnPaint(e As PaintEventArgs)
@@ -233,7 +284,7 @@ Public Class GlyphButton
         ' colour while it is worked, because the fill is the button's rank (the accent of a primary
         ' action, an answer's hue) and would lose it exactly when the pointer confirms it.
         Dim back = c.Back
-        If faceValue = GlyphButtonFace.Normal Then
+        If IsNeutralFace() Then
             If Enabled AndAlso pressed AndAlso hot Then
                 back = p.SurfaceSelected
             ElseIf Enabled AndAlso hot Then
@@ -241,25 +292,41 @@ Public Class GlyphButton
             End If
         End If
 
-        Using b As New SolidBrush(back)
+        ' The corners outside the rounded face take the surface the button sits on, so a 4-radius
+        ' rectangle is not a rectangle with four stray corner pixels of the control's own colour.
+        Using b As New SolidBrush(If(Parent IsNot Nothing, Parent.BackColor, back))
             g.FillRectangle(b, ClientRectangle)
         End Using
-        Using pen As New Pen(c.Border)
-            g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1)
+        g.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias
+        Using path = FacePath(New Rectangle(0, 0, Width - 1, Height - 1))
+            Using b As New SolidBrush(back)
+                g.FillPath(b, path)
+            End Using
+            Using pen As New Pen(c.Border)
+                g.DrawPath(pen, path)
+            End Using
         End Using
         ' The keyboard's place, two pixels inside the border. A pointer click gives the button the
         ' focus without asking for a cue (ShowFocusCues is what Windows says is wanted).
         If Enabled AndAlso ((Focused AndAlso ShowFocusCues) OrElse defaultLook) Then
-            Using pen As New Pen(c.FocusRing, 2.0F)
-                g.DrawRectangle(pen, 1, 1, Width - 3, Height - 3)
+            Using path = FacePath(New Rectangle(1, 1, Width - 3, Height - 3))
+                Using pen As New Pen(c.FocusRing, 2.0F)
+                    g.DrawPath(pen, path)
+                End Using
             End Using
         End If
+        g.SmoothingMode = Drawing2D.SmoothingMode.Default
 
         Dim gp = GlyphPx()
-        Dim cap = CaptionSize()
+        Dim gap = GapPx()
+        ' The caption is laid out in the width the button actually has, so a button a layout made
+        ' narrower than its caption wraps the caption (and the preferred size above grew its height)
+        ' instead of cutting it.
+        Dim capLimit = Math.Max(1, Width - 2 * BorderPx - 2 * PadXPx() - If(gp > 0, gp + gap, 0))
+        Dim cap = CaptionSize(capLimit)
         Dim content = gp + cap.Width
-        If gp > 0 AndAlso cap.Width > 0 Then content += Ui.Px(Me, 6)
-        Dim x = (Width - content) \ 2
+        If gp > 0 AndAlso cap.Width > 0 Then content += gap
+        Dim x = Math.Max(BorderPx, (Width - content) \ 2)
         If gp > 0 Then
             Dim square As New Rectangle(x, (Height - gp) \ 2, gp, gp)
             If glyphValue IsNot Nothing Then
@@ -267,10 +334,11 @@ Public Class GlyphButton
             ElseIf pictureValue IsNot Nothing Then
                 g.DrawImage(pictureValue, square)
             End If
-            x += gp + If(cap.Width > 0, Ui.Px(Me, 6), 0)
+            x += gp + If(cap.Width > 0, gap, 0)
         End If
         If cap.Width > 0 Then
-            TextRenderer.DrawText(g, Text, Font, New Rectangle(x, 0, Math.Max(0, Width - x - 2), Height), c.Caption, TextFlags)
+            TextRenderer.DrawText(g, Text, Font, New Rectangle(x, Math.Max(0, (Height - cap.Height) \ 2), cap.Width + 1, cap.Height),
+                                  c.Caption, CaptionFlags)
         End If
     End Sub
 

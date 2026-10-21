@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-REPRESENTATION` |
-| **Version** | 0.1 draft (opted in 2026-10-06; no wire carrier - a content model: facts, their sources and the shape of a function page) |
+| **Version** | 0.1, read 2026-10-21 (SP-0170); implemented partial 0.1 draft (opted in 2026-10-06; no wire carrier - a content model: facts, their sources and the shape of a function page) |
 | **Role** | consumer - the site, the READMEs and the listing sources, at the guide tier |
 | **Home** | shared contracts catalog, folder `product-site/`, document `SITE-REPRESENTATION.md` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

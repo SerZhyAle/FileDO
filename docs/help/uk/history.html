@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="uk" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Довідка - Історія</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Зміст довідки</a><span class="sep" aria-hidden="true">/</span><span>Історія</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Довідка про вікно</p>
+    <h1>Історія</h1>
+    <p class="lead">Прочитайте, що FileDO робив раніше: кожен завершений запуск залишає звіт із командою, вердиктом і подробицями. Сторінка перелічує звіти, показує вибраний і відкриває теку, де вони лежать.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/history.uk.dark.png" width="1457" height="903" alt="Історія: вікно з пронумерованими частинами">
+      <img class="on-light" src="../img/history.uk.light.png" width="1457" height="903" alt="">
+      <a class="pin" style="--x:24.1%;--y:18.1%" href="#e-state" aria-label="1, Тека звітів">1</a>
+      <a class="pin" style="--x:24.2%;--y:22.7%" href="#e-list" aria-label="2, Історія">2</a>
+      <a class="pin" style="--x:57.3%;--y:21.4%" href="#e-details" aria-label="3, Вміст звіту">3</a>
+      <a class="pin" style="--x:24.1%;--y:90.8%" href="#e-open" aria-label="4, Відкрити папку звітів">4</a>
+      <a class="pin" style="--x:40.0%;--y:90.8%" href="#e-folder" aria-label="5, Відкрити папку звітів">5</a>
+      <a class="pin" style="--x:55.9%;--y:90.8%" href="#e-refresh" aria-label="6, Оновити">6</a>
+      <a class="pin" style="--x:95.3%;--y:2.3%" href="#e-help" aria-label="7, Довідка">7</a>
+    </div>
+    <figcaption>Демонстраційні дані. Виберіть номер, щоб прочитати про цю частину вікна.</figcaption>
+  </figure>
+
+  <h2>У якому порядку</h2>
+  <ol class="order">
+    <li>Прочитайте рядок угорі <a class="ref" href="#e-state">1</a>: він каже, де зберігаються звіти, або що їх вимкнено.</li>
+    <li>Виберіть звіт у списку <a class="ref" href="#e-list">2</a>.</li>
+    <li>Прочитайте подробиці <a class="ref" href="#e-details">3</a> або відкрийте звіт повністю <a class="ref" href="#e-open">4</a>.</li>
+    <li>Відкрийте теку <a class="ref" href="#e-folder">5</a>, щоб скопіювати чи видалити звіти самостійно.</li>
+  </ol>
+
+  <h2>Елементи вікна</h2>
+  <div class="elements">
+    <details class="el" id="e-state">
+      <summary><span class="mk">1</span><span><span class="name">Тека звітів</span><span class="one">Де зберігаються звіти - або що їх вимкнено.</span></span></summary>
+      <div class="full">
+        <p>Звіти пишуться, поки ввімкнено налаштування «Записувати звіт про кожен запуск», і зберігаються 30 днів. Коли його вимкнено, цей рядок так і каже: порожній список виглядав би так, ніби нічого не сталося.</p>
+      </div>
+    </details>
+    <details class="el" id="e-list">
+      <summary><span class="mk">2</span><span><span class="name">Історія</span><span class="one">Завершені запуски, спершу нові.</span></span></summary>
+      <div class="full">
+        <p>Один рядок на звіт. Виберіть рядок, щоб прочитати звіт праворуч. Список читається заново під час кожного відкриття сторінки й за кнопкою «Оновити».</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Праворуч показано команду, вердикт і кінець звіту.</dd>
+          <dt>Чи можна скасувати</dt><dd>Вибір звіту нічого не змінює.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-details">
+      <summary><span class="mk">3</span><span><span class="name">Вміст звіту</span><span class="one">Команда, вердикт і кінець вибраного звіту.</span></span></summary>
+      <div class="full">
+        <p>Показує початок і кінець звіту - там є команда та вердикт. Дуже довгий звіт повністю не завантажується; відкрийте його, щоб прочитати все.</p>
+      </div>
+    </details>
+    <details class="el" id="e-open">
+      <summary><span class="mk">4</span><span><span class="name">Відкрити папку звітів</span><span class="one">Відкриває звіт повністю в Блокноті.</span></span></summary>
+      <div class="full">
+        <p>Відкриває файл вибраного звіту в Блокноті. Це сам файл, тому зміни, які ви там внесете й збережете, збережуться в ньому.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Звіт відкривається в іншій програмі. FileDO залишається відкритим.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-folder">
+      <summary><span class="mk">5</span><span><span class="name">Відкрити папку звітів</span><span class="one">Відкриває теку, де зберігаються звіти.</span></span></summary>
+      <div class="full">
+        <p>Відкриває теку звітів у Провіднику. Звіти старші за 30 днів видаляються автоматично; тут їх можна також скопіювати чи видалити самому.</p>
+      </div>
+    </details>
+    <details class="el" id="e-refresh">
+      <summary><span class="mk">6</span><span><span class="name">Оновити</span><span class="one">Читає список заново.</span></span></summary>
+      <div class="full">
+        <p>Потрібна після запуску в іншому вікні або після видалення файлів уручну. Вона лише читає; нічого не змінюється.</p>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">7</span><span><span class="name">Довідка</span><span class="one">Відкриває сторінку, яку ви читаєте.</span></span></summary>
+      <div class="full">
+        <p>У правому верхньому куті кожного вікна FileDO є ця кнопка. Вона відкриває довідку про те вікно, у якому ви перебуваєте, - з картинкою та поясненням кожної частини, вашою мовою.</p>
+        <dl class="facts">
+          <dt>Що далі</dt><dd>Сторінка відкривається в браузері. FileDO залишається відкритим, і в ньому нічого не змінюється.</dd>
+          <dt>Поєднання клавіш</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Дивіться також</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Сторінка завдання</b><span class="pill">Вікно</span><small>Як виконується будь-яке завдання: вибрати, налаштувати, прочитати план, запустити.</small></a></li>
+    <li><a href="command.html"><b>Команда</b><span class="pill">Вікно</span><small>Ті самі операції, записані командним рядком.</small></a></li>
+    <li><a href="settings.html"><b>Налаштування</b><span class="pill">Вікно</span><small>Тема, мова, історія та автозапуск.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Знято з FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Зміст довідки</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Поставити запитання або повідомити про проблему</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

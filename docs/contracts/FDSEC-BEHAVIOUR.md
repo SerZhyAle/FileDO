@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-BEHAVIOUR` |
-| **Version** | 1.5 (wire carrier: the exit-code classes of section 7.1) |
+| **Version** | 1.6, read 2026-10-21 (SP-0170); implemented 1.5; the portable-name rules are SP-0171 W1 to W3 (wire carrier: the exit-code classes of section 7.1) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FD-SEC-CONTRACT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |

@@ -470,6 +470,13 @@ func (c *Container) unpackSuite2(dst io.Writer, so streamOpts) (Metadata, [diges
 	st := c.s2
 	var digest [digestSize]byte
 	meta := Metadata{Name: st.body.Name, Size: st.body.Size, EncodedAt: st.body.EncodedAt}
+	// The caller's say on the name, before any output exists (FDSEC-FORMAT 1.4
+	// section 20); see WithNameCheck.
+	if so.nameCheck != nil {
+		if err := so.nameCheck(meta.Name); err != nil {
+			return Metadata{}, digest, err
+		}
+	}
 	dh, err := blake2b.New256(nil)
 	if err != nil {
 		return meta, digest, err

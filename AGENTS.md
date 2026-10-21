@@ -92,13 +92,18 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
 - **GUI shell** ("The GUI shell"): `Theme.vb` alone names a colour; no fixed coordinates; every glyph is a
   vendored catalog drawing; both DPI files ship; every string goes through `Localization.vb` in five languages;
   no exception text on screen; every question is a `ShellDialog` whose safe answer is the default.
+- **In-app help** ("The GUI shell"): the help map is **`docs/help/help-map.json`** (contract `CONTEXT-HELP`,
+  SP-0168). F1 and the `?` button go through `Help.vb` only; `docs/help/<language>/*.html` and `img/` are
+  **generated** by `filedo_win.exe --build-help docs\help` - edit `HelpContent.vb` or the `help_*` strings, never a
+  page; a new window or rail destination needs a map row, and unwritten pages live in
+  `docs/help/help-baseline.txt`, which only falls.
 - **Site** ("Site"): hand-authored pages; the generated files (`docs/sitemap.xml`, written by
   `packaging/write-sitemap.ps1`, and the two share images, drawn by `assets/make-product-icons.ps1 -SocialOnly`) are never edited by hand; release asset names are the download buttons' contract, and
   the installer is **not code-signed**, which every download surface says.
 
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. The
-  real gate is **`build.ps1 -Test`**, ten steps (the list is in "Testing - the gate in full"); its last line is
+  real gate is **`build.ps1 -Test`**, eleven steps (the list is in "Testing - the gate in full"); its last line is
   `build-gate <stamp>: PASS`, `FAIL` or `COULD NOT VERIFY`, and its exit codes are **0 = pass**, **1 = a defect was
   found**, **2 = it could not verify** (a missing prerequisite). Exit 2 is "nothing was proven".
 - `go test ./cmd/filedo/` needs **`-vet=off`**: package main carries recorded vet debt

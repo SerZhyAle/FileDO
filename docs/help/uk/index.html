@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="uk" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Довідка - Довідка FileDO</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <header class="hero">
+    <p class="kicker">Довідка</p>
+    <h1>Довідка FileDO</h1>
+    <p class="lead">По сторінці на кожне вікно FileDO: для чого його частини і в якому порядку ними користуватися. У будь-якому вікні натисніть F1 або кнопку ? у правому верхньому куті, щоб відкрити сторінку цього вікна.</p>
+  </header>
+
+  <h2>Головне вікно</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>Сторінка завдання</b><span class="pill">Вікно</span><small>Як виконується будь-яке завдання: вибрати, налаштувати, прочитати план, запустити.</small></a></li>
+    <li><a href="command.html"><b>Команда</b><span class="pill">Вікно</span><small>Ті самі операції, записані командним рядком.</small></a></li>
+    <li><a href="settings.html"><b>Налаштування</b><span class="pill">Вікно</span><small>Тема, мова, історія та автозапуск.</small></a></li>
+    <li><a href="about.html"><b>Про програму</b><span class="pill">Вікно</span><small>Версія, посилання та підтримка.</small></a></li>
+    <li><a href="history.html"><b>Історія</b><span class="pill">Вікно</span><small>Звіт про кожен завершений запуск.</small></a></li>
+  </ul>
+
+  <h2>Диспетчер дисків</h2>
+  <ul class="related">
+    <li><a href="disk-manager.html"><b>FileDO - Диспетчер дисків</b><span class="pill">Вікно</span><small>Вікно для віртуальних дисків: створити, підключити, відкрити, зберегти та відключити.</small></a></li>
+  </ul>
+
+  <h2>На сайті</h2>
+  <ul class="related">
+    <li><a href="https://serzhyale.github.io/FileDO/guides/"><b>Усі посібники</b><span class="pill gold">Сайт</span><small>Усі посібники сайту, з картинками.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Підтримка</b><span class="pill gold">Сайт</span><small>Поставити запитання або повідомити про проблему.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Приватність</b><span class="pill gold">Сайт</span><small>Без телеметрії: що залишається на вашому комп'ютері.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Знято з FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Поставити запитання або повідомити про проблему</a>
+  </footer>
+</main>
+</body>
+</html>

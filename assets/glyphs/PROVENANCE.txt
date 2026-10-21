@@ -1,10 +1,9 @@
 ICONOGRAPHY VENDORED ARTIFACT
 Do not hand-edit the files in this folder. Regenerate with assets/sync-icon-glyphs.ps1.
-Catalog versions: ICON-SET 0.30; ICON-RENDER 0.19; ICON-EXTERNAL 0.12
-Vocabulary SHA-256: 2ee1c3c79155bd3d9fdeed70ddbe34a475fbbfdd0c3a5c7566ab6d15aa18f48b
+Catalog versions: ICON-SET 0.36; ICON-RENDER 0.24; ICON-EXTERNAL 0.12
+Vocabulary SHA-256: 56f60197d922c2adc11236801fe3842825b93a561d99baf7610e149c49a42710
 Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog
-Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as PROPOSAL-2026-10-11-filedo-button-meanings.md): action.autoplay-disable, action.create-shortcut, action.skip
-Taken: 2026-10-11
+Taken: 2026-10-21
 Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt
 
 action.add.svg  98cece8c14e972a3a5b6b440d667a1caff32da7f75c0bee2a896a1d8da5ac011
@@ -45,6 +44,9 @@ action.unmount-disk.svg  46981f894b2b20d1025d4180af444f9a78d6165062d260c9321087b
 action.unsecure.svg  51ed2e088163d70d23de46f49c16ad7c9436c2ba90144cf896df4d9295391bf2
 action.verify.svg  d9862c96c4f05e425c3488f5e8654ad5903bd3e4f31bdba1449d8b82dd553f92
 action.wipe.svg  27ec5b2f9c1294bb5684a07b4099dda276b91f406b8e80e3d55e3eaeefdd18ee
+action.autoplay-disable.svg  73a40903d18e75b20e4ed6101289928c2c4d929019d030c06701944ca444aaa1
+action.create-shortcut.svg  fa71f7d2bb4b342901b8db53b1666667fb1d9f7f849183acade96e2808a3c025
+action.skip.svg  9df81b7fd15ca1c4ccd84ad773681ca1cfb6222d02b7afbafed3ab685d50c7a7
 app.command-line.svg  04e811ac521d8f48d74d62326c9f8d33a78dbf434439b1341dbf1aee4eae8996
 app.help.svg  fb1e2fa9efb662d3bd3dfe513b28f96b8aea2c1bc989e281f2093e8b2631174a
 app.info.svg  bee8e268059d56aeda5b1c0c64f186c24809c9407301a81f5a76a5cccff14b14
@@ -69,7 +71,4 @@ status.ok.svg  0a6b564ace7eb684243fa2f85b1581ee7dd22587fb1e378ee25095a741c6ad16
 status.stopped.svg  34ac623ac6f9b971695927f85b4ac1167a95eb7453e84ef34ab730ef42764cca
 status.warning.svg  93a74458a1b340a7780d43ec3090e72d469991449d0627e87a37fe24f63a699e
 system.storage.svg  945b139e7d8ebfedfe8a243f7914028373f693c250ebc451618cca75390c0bd3
-action.autoplay-disable.svg  73a40903d18e75b20e4ed6101289928c2c4d929019d030c06701944ca444aaa1
-action.create-shortcut.svg  fa71f7d2bb4b342901b8db53b1666667fb1d9f7f849183acade96e2808a3c025
-action.skip.svg  9df81b7fd15ca1c4ccd84ad773681ca1cfb6222d02b7afbafed3ab685d50c7a7
 palette.json  88fc71f5b75cea1371727335b9ea793907c143daaf27fbdd53f9b00a091ffb1e

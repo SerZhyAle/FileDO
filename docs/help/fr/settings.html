@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Aide - Réglages</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="index.html">Index de l'aide</a><span class="sep" aria-hidden="true">/</span><span>Réglages</span>
+  </nav>
+  <header class="hero">
+    <p class="kicker">Aide de la fenêtre</p>
+    <h1>Réglages</h1>
+    <p class="lead">Choisissez l'apparence et le comportement de FileDO : le thème, la langue, la tenue d'un historique, ce qui se passe au démarrage de Windows et quelques options de Windows. Chaque réglage s'applique dès que vous le changez.</p>
+  </header>
+
+  <figure class="shot">
+    <div class="frame">
+      <img class="on-dark" src="../img/settings.fr.dark.png" width="1457" height="1175" alt="Réglages : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/settings.fr.light.png" width="1457" height="1175" alt="">
+      <a class="pin" style="--x:22.6%;--y:8.8%" href="#e-group-appearance" aria-label="1, Apparence">1</a>
+      <a class="pin" style="--x:24.0%;--y:14.7%" href="#e-setting-theme" aria-label="2, Apparence">2</a>
+      <a class="pin" style="--x:24.0%;--y:20.2%" href="#e-setting-language" aria-label="3, Langue">3</a>
+      <a class="pin" style="--x:22.6%;--y:26.6%" href="#e-group-history" aria-label="4, Historique des exécutions">4</a>
+      <a class="pin" style="--x:24.0%;--y:32.6%" href="#e-setting-history" aria-label="5, Écrire un rapport pour chaque exécution">5</a>
+      <a class="pin" style="--x:22.6%;--y:39.7%" href="#e-group-startup" aria-label="6, Lancer au démarrage de Windows">6</a>
+      <a class="pin" style="--x:24.0%;--y:45.7%" href="#e-setting-startup" aria-label="7, Lancer au démarrage de Windows">7</a>
+      <a class="pin" style="--x:24.0%;--y:53.0%" href="#e-setting-startup-apply" aria-label="8, Appliquer le choix au démarrage">8</a>
+      <a class="pin" style="--x:24.0%;--y:60.3%" href="#e-setting-minimize" aria-label="9, Réduire dans la zone de notification">9</a>
+      <a class="pin" style="--x:24.0%;--y:66.5%" href="#e-setting-notification" aria-label="10, Notifier la fin d’une tâche">10</a>
+      <a class="pin" style="--x:22.6%;--y:73.6%" href="#e-group-windows" aria-label="11, Windows et position des fenêtres">11</a>
+      <a class="pin" style="--x:24.0%;--y:79.6%" href="#e-setting-autoplay" aria-label="12, Désactiver la lecture automatique de Windows">12</a>
+      <a class="pin" style="--x:24.0%;--y:88.8%" href="#e-setting-autoplay-system" aria-label="13, Paramètres de lecture automatique de Windows..">13</a>
+      <a class="pin" style="--x:24.0%;--y:98.0%" href="#e-setting-reset" aria-label="14, Réinitialiser la position des fenêtres">14</a>
+      <a class="pin" style="--x:95.3%;--y:1.8%" href="#e-help" aria-label="15, Aide">15</a>
+    </div>
+    <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
+  </figure>
+
+  <h2>Dans cet ordre</h2>
+  <p>Les réglages n'ont pas d'ordre : changez-les dans n'importe quel ordre, à tout moment. Ils sont groupés comme sur la page - Apparence, Historique des exécutions, Démarrage et Windows - et chaque groupe se replie par son en-tête.</p>
+
+  <h2>Les éléments</h2>
+  <div class="elements">
+    <details class="el" id="e-group-appearance">
+      <summary><span class="mk">1</span><span><span class="name">Apparence</span><span class="one">Thème et langue.</span></span></summary>
+      <div class="full">
+        <p>L'aspect des fenêtres et la langue dans laquelle elles parlent. Les deux s'appliquent aussitôt à toutes les fenêtres FileDO ouvertes.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-theme">
+      <summary><span class="mk">2</span><span><span class="name">Apparence</span><span class="one">Suivre Windows ou choisir une palette claire ou sombre. Application immédiate.</span></span></summary>
+      <div class="full">
+        <p>Clair et Sombre choisissent une palette ; le choix automatique suit le réglage clair ou sombre de Windows. Choisissez ce qui fatigue le moins vos yeux là où vous travaillez.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Toutes les fenêtres FileDO ouvertes changent aussitôt.</dd>
+          <dt>Annuler</dt><dd>Choisissez la valeur précédente pour revenir en arrière.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-language">
+      <summary><span class="mk">3</span><span><span class="name">Langue</span><span class="one">S’applique immédiatement à toutes les fenêtres FileDO ouvertes.</span></span></summary>
+      <div class="full">
+        <p>La langue de toutes les fenêtres FileDO, du menu de la zone de notification et de ces pages d'aide. L'anglais, le russe, l'ukrainien, l'allemand et le français sont disponibles.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Les fenêtres ouvertes changent aussitôt, et une page d'aide s'ouvre dans la langue choisie ici.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-history">
+      <summary><span class="mk">4</span><span><span class="name">Historique des exécutions</span><span class="one">Si les exécutions terminées sont consignées.</span></span></summary>
+      <div class="full">
+        <p>FileDO peut conserver un rapport de chaque exécution, pour que vous puissiez relire plus tard ce qui a été fait et comment cela s'est terminé.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-history">
+      <summary><span class="mk">5</span><span><span class="name">Écrire un rapport pour chaque exécution</span><span class="one">Les rapports restent 30 jours dans %LOCALAPPDATA%\FileDO\reports. Désactivé, aucun fichier de rapport n'est écrit.</span></span></summary>
+      <div class="full">
+        <p>Activé, chaque exécution laisse un rapport que vous pouvez lire dans l'Historique : la commande, le verdict et les détails. Désactivez-le si vous ne voulez écrire aucun fichier de rapport.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Les rapports déjà écrits restent jusqu'à leurs 30 jours. Réactivez-le pour en écrire de nouveau.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-startup">
+      <summary><span class="mk">6</span><span><span class="name">Lancer au démarrage de Windows</span><span class="one">Ce que FileDO fait au démarrage de Windows et à la fin d'une tâche.</span></span></summary>
+      <div class="full">
+        <p>Si FileDO démarre avec Windows, si la réduction le laisse dans la zone de notification et si l'on vous prévient de la fin d'une tâche.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-startup">
+      <summary><span class="mk">7</span><span><span class="name">Lancer au démarrage de Windows</span><span class="one">Pour cet utilisateur, sans droits administrateur. L’entrée de démarrage reste après la désinstallation de FileDO.</span></span></summary>
+      <div class="full">
+        <p>Choisissez ce qui se passe à l'ouverture de session Windows : rien, la fenêtre principale, le gestionnaire de disques ou seulement l'icône de la zone de notification. Le choix vaut pour votre compte et ne demande pas de droits d'administrateur. Dans la version du Microsoft Store, cette ligne ouvre les Paramètres de Windows, où se gèrent les applications au démarrage.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Rien ne change tant que vous n'appuyez pas sur le bouton en dessous.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-startup-apply">
+      <summary><span class="mk">8</span><span><span class="name">Appliquer le choix au démarrage</span><span class="one">Enregistre le choix du démarrage.</span></span></summary>
+      <div class="full">
+        <p>Écrit le choix ci-dessus et l'inscrit dans Windows.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Choisissez Désactivé et appliquez de nouveau pour le retirer.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-minimize">
+      <summary><span class="mk">9</span><span><span class="name">Réduire dans la zone de notification</span><span class="one">Garder l’application accessible depuis la zone de notification après réduction.</span></span></summary>
+      <div class="full">
+        <p>Activé, réduire la fenêtre laisse FileDO dans la zone de notification plutôt que dans la barre des tâches. Les tâches en cours et les disques montés restent accessibles depuis l'icône de la zone de notification.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Désactivez-le pour réduire de nouveau dans la barre des tâches.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-notification">
+      <summary><span class="mk">10</span><span><span class="name">Notifier la fin d’une tâche</span><span class="one">Notifier la fin d’une tâche. Ouvrir FileDO pour lire le résultat.</span></span></summary>
+      <div class="full">
+        <p>Quand une tâche se termine, Windows affiche un court avis. Il ne contient pas le résultat ; ouvrez FileDO ou le gestionnaire de disques pour le lire.</p>
+        <dl class="facts">
+          <dt>Annuler</dt><dd>Désactivez-le pour ne plus recevoir d'avis.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-group-windows">
+      <summary><span class="mk">11</span><span><span class="name">Windows et position des fenêtres</span><span class="one">Options de Windows et position des fenêtres.</span></span></summary>
+      <div class="full">
+        <p>Deux choses qui se trouvent dans Windows plutôt que dans FileDO, et le moyen de remettre les fenêtres à leur place d'origine.</p>
+      </div>
+    </details>
+    <details class="el" id="e-setting-autoplay">
+      <summary><span class="mk">12</span><span><span class="name">Désactiver la lecture automatique de Windows</span><span class="one">Empêche Windows de réagir aux supports que vous branchez.</span></span></summary>
+      <div class="full">
+        <p>Windows peut ouvrir l'Explorateur ou lancer d'autres actions chaque fois qu'on branche un lecteur ou une carte mémoire. Ce bouton le désactive pour votre compte - pour tous les supports, pas seulement ceux de FileDO. Le montage automatique de FileDO est une autre chose et continue de fonctionner.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La lecture automatique de Windows est désactivée, et la ligne sous le bouton le dit.</dd>
+          <dt>Annuler</dt><dd>Le bouton suivant ouvre le réglage de Windows, où vous pouvez réactiver la lecture automatique.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-autoplay-system">
+      <summary><span class="mk">13</span><span><span class="name">Paramètres de lecture automatique de Windows..</span><span class="one">Ouvre la page de lecture automatique des Paramètres de Windows.</span></span></summary>
+      <div class="full">
+        <p>Montre le réglage de Windows lui-même, pour le consulter ou le changer là-bas, sans FileDO.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Les Paramètres de Windows s'ouvrent dans leur propre fenêtre.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-setting-reset">
+      <summary><span class="mk">14</span><span><span class="name">Réinitialiser la position des fenêtres</span><span class="one">La position par défaut s’applique à la prochaine ouverture de chaque fenêtre.</span></span></summary>
+      <div class="full">
+        <p>Oublie où vous avez déplacé les fenêtres de FileDO et la taille qu'elles avaient. Utile quand une fenêtre s'est retrouvée hors de l'écran ou à un endroit gênant.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>Chaque fenêtre s'ouvrira à sa place par défaut la prochaine fois.</dd>
+          <dt>Annuler</dt><dd>Déplacez de nouveau une fenêtre et elle aura une nouvelle place mémorisée.</dd>
+        </dl>
+      </div>
+    </details>
+    <details class="el" id="e-help">
+      <summary><span class="mk">15</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <div class="full">
+        <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
+        <dl class="facts">
+          <dt>Ensuite</dt><dd>La page s'ouvre dans votre navigateur. FileDO reste ouvert et rien n'y change.</dd>
+          <dt>Raccourci</dt><dd><kbd>F1</kbd></dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <h2>Voir aussi</h2>
+  <ul class="related">
+    <li><a href="about.html"><b>À propos</b><span class="pill">Fenêtre</span><small>Version, liens et assistance.</small></a></li>
+    <li><a href="history.html"><b>Historique</b><span class="pill">Fenêtre</span><small>Le rapport de chaque exécution terminée.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Confidentialité</b><span class="pill gold">Site</span><small>Aucune télémétrie : ce qui reste sur votre machine.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Capturé avec FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="index.html">Index de l'aide</a>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
+  </footer>
+
+</main>
+<script>
+/* Progressive enhancement only: the page is complete without it. */
+(function () {
+  function openHash() {
+    var id = location.hash.slice(1);
+    var el = id && document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  addEventListener('hashchange', openHash);
+  openHash();
+  document.querySelectorAll('details.el').forEach(function (d) {
+    var pin = document.querySelector('.pin[href="#' + d.id + '"]');
+    if (!pin) { return; }
+    function on() { pin.classList.add('on'); d.classList.add('on'); }
+    function off() { pin.classList.remove('on'); d.classList.remove('on'); }
+    d.addEventListener('mouseenter', on); d.addEventListener('mouseleave', off);
+    d.addEventListener('focusin', on); d.addEventListener('focusout', off);
+    pin.addEventListener('mouseenter', on); pin.addEventListener('mouseleave', off);
+    pin.addEventListener('focus', on); pin.addEventListener('blur', off);
+  });
+})();
+</script>
+</body>
+</html>

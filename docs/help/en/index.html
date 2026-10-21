@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Help - FileDO help</title>
+<script>
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('theme');
+    var t = (q === 'light' || q === 'dark') ? q : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* no script: help.css follows the system */ }
+})();
+</script>
+<link rel="stylesheet" href="../sza-kit.css">
+<link rel="stylesheet" href="../help.css">
+</head>
+<body class="help">
+<main class="container">
+
+  <header class="hero">
+    <p class="kicker">Help</p>
+    <h1>FileDO help</h1>
+    <p class="lead">One page for each window of FileDO: what its parts are for and in what order to use them. In any window, press F1 or the ? button in its top-right corner to open the page for that window.</p>
+  </header>
+
+  <h2>The main window</h2>
+  <ul class="related">
+    <li><a href="job-page.html"><b>The job page</b><span class="pill">Window</span><small>How every job is done: choose, set, read the plan, run.</small></a></li>
+    <li><a href="command.html"><b>Command</b><span class="pill">Window</span><small>The same operations, written as a command line.</small></a></li>
+    <li><a href="settings.html"><b>Settings</b><span class="pill">Window</span><small>Theme, language, history and startup.</small></a></li>
+    <li><a href="about.html"><b>About</b><span class="pill">Window</span><small>Version, links and support.</small></a></li>
+    <li><a href="history.html"><b>History</b><span class="pill">Window</span><small>The report of every finished run.</small></a></li>
+  </ul>
+
+  <h2>The Disk Manager</h2>
+  <ul class="related">
+    <li><a href="disk-manager.html"><b>FileDO - Disk manager</b><span class="pill">Window</span><small>The window for virtual disks: create, mount, open, save and unmount.</small></a></li>
+  </ul>
+
+  <h2>On the site</h2>
+  <ul class="related">
+    <li><a href="https://serzhyale.github.io/FileDO/guides/"><b>All guides</b><span class="pill gold">Site</span><small>Every guide on the site, with pictures.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/support.html"><b>Support</b><span class="pill gold">Site</span><small>Ask a question or report a problem.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Privacy</b><span class="pill gold">Site</span><small>No telemetry: what stays on your machine.</small></a></li>
+  </ul>
+
+  <footer class="help-foot">
+    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
+  </footer>
+</main>
+</body>
+</html>
