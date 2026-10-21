@@ -103,7 +103,7 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
 
 ## Testing
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. The
-  real gate is **`build.ps1 -Test`**, eleven steps (the list is in "Testing - the gate in full"); its last line is
+  real gate is **`build.ps1 -Test`**, twelve steps (the list is in "Testing - the gate in full"; a green run prints `ran 12`); its last line is
   `build-gate <stamp>: PASS`, `FAIL` or `COULD NOT VERIFY`, and its exit codes are **0 = pass**, **1 = a defect was
   found**, **2 = it could not verify** (a missing prerequisite). Exit 2 is "nothing was proven".
 - `go test ./cmd/filedo/` needs **`-vet=off`**: package main carries recorded vet debt
@@ -202,8 +202,10 @@ comply or amend, never deviate in silence) is the canon's `CONTRACTS.md`. Two ru
   link to it or name its path - whoever clones this repository does not have `P:\`. A contract read against
   this repository and found not to bind it is listed, dated, at the end of the `docs/contracts/README.md`.
 - **The vectors are the arbiter, and they are generated.** `fdsec/testdata/vectors/` is this repository's
-  test fixture, produced by `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Suite1|TestVectors_Suite3"`
-  (suite 3 in its `suite3/` subfolder); the copy in the catalog's `secure-container/vectors/` is what an outside
+  test fixture, produced by `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Suite1|TestVectors_Suite2|TestVectors_Suite3"`
+  (suite 2 in its `suite2/` subfolder, suite 3 in `suite3/`); the sealed-name boundary set of FDSEC-FORMAT 1.5
+  sections 20 to 22 is a fourth folder, `names/`, written by `-run "TestVectors_Names$"` alone so the three older sets are
+  never rewritten by it. The copy in the catalog's `secure-container/vectors/` is what an outside
   implementation checks itself against. Regenerate the fixture, then copy it across - never hand-edit either one.
 
 ## PR specifics

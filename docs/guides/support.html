@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -64,6 +64,7 @@
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
@@ -105,8 +106,7 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
-        ◐</button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
         ><span data-l="ru">Установить</span><span data-l="en">Install</span><span data-l="ua">Встановити</span></a
       >
@@ -237,7 +237,7 @@
               <span data-l="ru">Чего-то нет в сборке из Microsoft Store</span><span data-l="en">Something is missing in the Microsoft Store build</span><span data-l="ua">Чогось немає у збірці з Microsoft Store</span>
             </h3>
             <p>
-              <span data-l="ru">Часть возможностей в сборке из Microsoft Store недоступна, и это описано в <a href="install-and-explorer.html">руководстве по установке</a> и в разделе <a href="virtual-disks.html#platform">«Что нужно от Windows»</a> руководства по виртуальным дискам. Загляните туда, прежде чем сообщать об отсутствии.</span><span data-l="en">Some features are documented as unavailable in the Microsoft Store build: see the <a href="install-and-explorer.html">installation guide</a> and the section <a href="virtual-disks.html#platform">What Windows has to provide</a> of the virtual disks guide before you report one as missing.</span><span data-l="ua">Частина можливостей у збірці з Microsoft Store недоступна, і це описано в <a href="install-and-explorer.html">посібнику зі встановлення</a> та в розділі <a href="virtual-disks.html#platform">«Що потрібно від Windows»</a> посібника з віртуальних дисків. Зазирніть туди, перш ніж повідомляти про відсутність.</span>
+              <span data-l="ru">Часть возможностей в сборке из Microsoft Store недоступна, и это описано на <a href="microsoft-store.html">странице этой сборки</a>, в <a href="install-and-explorer.html">руководстве по установке</a> и в разделе <a href="virtual-disks.html#platform">«Что нужно от Windows»</a> руководства по виртуальным дискам. Загляните туда, прежде чем сообщать об отсутствии.</span><span data-l="en">Some features are documented as unavailable in the Microsoft Store build: see the <a href="microsoft-store.html">Microsoft Store build page</a>, the <a href="install-and-explorer.html">installation guide</a> and the section <a href="virtual-disks.html#platform">What Windows has to provide</a> of the virtual disks guide before you report one as missing.</span><span data-l="ua">Частина можливостей у збірці з Microsoft Store недоступна, і це описано на <a href="microsoft-store.html">сторінці цієї збірки</a>, у <a href="install-and-explorer.html">посібнику зі встановлення</a> та в розділі <a href="virtual-disks.html#platform">«Що потрібно від Windows»</a> посібника з віртуальних дисків. Зазирніть туди, перш ніж повідомляти про відсутність.</span>
             </p>
           </article>
           <article class="card">
@@ -282,7 +282,7 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>

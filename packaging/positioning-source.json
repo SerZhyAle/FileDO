@@ -226,22 +226,22 @@
       }
     },
     {
-      "file": "docs/guides/index.html", "names": 5, "allowMissing": ["erase"],
-      "why": "guides hub: no guide for erasing exists yet (renewed exception, SP-0157)",
+      "file": "docs/guides/index.html", "names": 5,
+      "why": "guides hub: one card per pillar guide",
       "scopes": ["(?s)class=\"grid guide-grid\".*?</nav>"],
-      "anchors": { "check": "Check storage", "tidy": "Duplicates, copy", "protect": "Secret files", "virtual": "Virtual disks" }
+      "anchors": { "check": "Check storage", "tidy": "Duplicates, copy", "erase": "Erase and wipe", "protect": "Secret files", "virtual": "Virtual disks" }
     },
     {
-      "file": "docs/de/guides/index.html", "names": 5, "allowMissing": ["erase"],
-      "why": "guides hub: no guide for erasing exists yet (renewed exception, SP-0157)",
+      "file": "docs/de/guides/index.html", "names": 5,
+      "why": "guides hub: one card per pillar guide",
       "scopes": ["(?s)class=\"grid guide-grid\".*?</nav>"],
-      "anchors": { "check": "Speicher prüfen", "tidy": "Duplikate, Kopieren", "protect": "Geheime Dateien", "virtual": "Virtuelle Datenträger" }
+      "anchors": { "check": "Speicher prüfen", "tidy": "Duplikate, Kopieren", "erase": "Löschen und Überschreiben", "protect": "Geheime Dateien", "virtual": "Virtuelle Datenträger" }
     },
     {
-      "file": "docs/fr/guides/index.html", "names": 5, "allowMissing": ["erase"],
-      "why": "guides hub: no guide for erasing exists yet (renewed exception, SP-0157)",
+      "file": "docs/fr/guides/index.html", "names": 5,
+      "why": "guides hub: one card per pillar guide",
       "scopes": ["(?s)class=\"grid guide-grid\".*?</nav>"],
-      "anchors": { "check": "Vérifier le stockage", "tidy": "Doublons, copie", "protect": "Fichiers secrets", "virtual": "Disques virtuels" }
+      "anchors": { "check": "Vérifier le stockage", "tidy": "Doublons, copie", "erase": "Effacer et écraser", "protect": "Fichiers secrets", "virtual": "Disques virtuels" }
     },
     {
       "file": "README.md", "names": 3,

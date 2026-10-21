@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"filedo/fdsec"
 )
 
 // SP-0008's acceptance criteria, against the shipped exe.
@@ -224,6 +227,21 @@ func TestUnsecureStart_RefusesASealedNameThatWouldEscapeOrMislead(t *testing.T) 
 	} {
 		if got, err := sb.path(tc.name, false); err == nil {
 			t.Errorf("a start accepted %q as %s; want a refusal - %s", tc.name, got, tc.why)
+		}
+	}
+	// FDSEC-FORMAT 1.4 section 20: U+0022 U+003C U+003E U+007C are valid sealed
+	// names that Windows cannot create. The start refuses them too - nothing is
+	// written - but as the destination failure of FDSEC-BEHAVIOUR 1.6 section 18
+	// (exit 5), never as the damaged container the format used to call them.
+	for _, name := range []string{`a"b.txt`, `a<b.txt`, `a>b.txt`, `a|b.txt`} {
+		got, err := sb.path(name, false)
+		var dest *fdsecDestinationNameError
+		if err == nil || !errors.As(err, &dest) || errors.Is(err, fdsec.ErrDamaged) {
+			t.Errorf("a start gave %q = %q, %v; want the destination-name refusal and not damage", name, got, err)
+		}
+		// rename is the way out: a random name, whatever the sealed one is.
+		if got, err := sb.path(name, true); err != nil || filepath.Dir(got) != sb.dir {
+			t.Errorf("rename did not give the sealed name %q a random one: %q, %v", name, got, err)
 		}
 	}
 	// And an ordinary name lands inside the sandbox and nowhere else.

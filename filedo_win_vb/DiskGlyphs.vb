@@ -32,6 +32,9 @@ Public Module DiskGlyphs
 
     ' The window's own controls, none of which is an action on a disk.
     Public ReadOnly Help As GlyphRef = GlyphRef.Vocabulary("app.help")
+    ' Replaying the introduction to the window's features (ICON-SET 0.35 app.tour, "Welcome tour"); the
+    ' help for the window itself stays app.help, and the .fdd container's picture is not this.
+    Public ReadOnly Tour As GlyphRef = GlyphRef.Vocabulary("app.tour")
     Public ReadOnly More As GlyphRef = GlyphRef.Vocabulary("nav.more")
     Public ReadOnly CloseIt As GlyphRef = GlyphRef.Vocabulary("nav.close")
     Public ReadOnly ClearInput As GlyphRef = GlyphRef.Vocabulary("action.clear-input")

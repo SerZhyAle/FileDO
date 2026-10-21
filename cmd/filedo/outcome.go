@@ -197,7 +197,14 @@ func runFailure(err error) {
 	currentRun.notProven = true
 	currentRun.failures++
 	currentRun.mu.Unlock()
-	EmitFindingEvent("error", eventSafeErrorMessage(err), nil)
+	// A destination-name refusal says why in a closed token (CLI-EVENT-STREAM
+	// rule 17), so a window with no console can show a sentence of its own.
+	var details map[string]interface{}
+	var dest *fdsecDestinationNameError
+	if errors.As(err, &dest) {
+		details = map[string]interface{}{"reason": fdsecReasonDestinationName}
+	}
+	EmitFindingEvent("error", eventSafeErrorMessage(err), details)
 }
 
 // runProblemCount is how many defects and failures the run has recorded so

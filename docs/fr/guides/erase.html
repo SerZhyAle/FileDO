@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/erase.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/erase.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/erase.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/erase.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logo et nom FileDO avec la devise anglaise Know your storage before you trust it, sur fond vert foncé" />
+    <meta property="og:title" content="Effacer et écraser avec FileDO" />
+    <meta property="og:description" content="Guide pratique FileDO : écraser un fichier, vider un dossier, écraser l’espace libre - la question WIPE, les refus et les limites sur SSD." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Effacer et écraser avec FileDO",
+        "headline": "Effacer et écraser avec FileDO",
+        "description": "Guide pratique FileDO : écraser un fichier, vider un dossier, écraser l’espace libre - la question WIPE, les refus et les limites sur SSD.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/erase.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Effacer et écraser avec FileDO</title>
+    <meta
+      name="description"
+      content="Guide pratique FileDO : écraser un fichier, vider un dossier, écraser l’espace libre - la question WIPE, les refus et les limites sur SSD."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/erase.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/erase.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/erase.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="fr">Thème</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/erase.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/erase.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/erase.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/erase.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="fr">Guide · effacer et écraser</span>
+        </p>
+        <h1>
+          <span data-l="fr">Certaines méthodes écrasent, d’autres se contentent de supprimer. Sachez laquelle vous lancez.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="fr">FileDO peut écraser un fichier, vider un dossier, écraser l’espace libre d’un disque ou simplement supprimer. Chaque méthode pose d’abord sa propre question, refuse ses propres cibles et promet moins que vous ne l’espérez sur un SSD. Cette page dit exactement ce que fait chacune.</span>
+        </p>
+      </section>
+      <section class="section" id="ways">
+        <h2>
+          <span data-l="fr">Quatre façons de retirer des données</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Parmi ces quatre, seuls l’écrasement d’un fichier et celui de l’espace libre écrasent quelque chose. Vider un dossier et une suppression ordinaire retirent les fichiers et laissent les octets où ils étaient.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="fr">Écraser un fichier</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Écrase.</b> Un passage de données aléatoires sur le fichier, sur place, synchronisé sur le disque, puis le fichier est supprimé. Demande d’abord de saisir <code>WIPE</code>. L’entrée <b>Wipe this file</b> de l’Explorateur lance la même chose.</span>
+            </p>
+            <div class="copybox">
+              filedo file D:\Work\old-report.docx wipe<button
+                class="copy"
+                data-copy="filedo file D:\Work\old-report.docx wipe"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Vider un dossier</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Supprime, n’écrase pas.</b> Tout ce qui est dedans disparaît ; le dossier lui-même reste, avec sa liste d’accès, son propriétaire, ses attributs, son chiffrement et sa compression. Le contenu peut être récupéré tant que l’espace n’est pas réutilisé. Demande d’abord de saisir <code>WIPE</code>.</span>
+            </p>
+            <div class="copybox">
+              filedo folder D:\Cache wipe<button
+                class="copy"
+                data-copy="filedo folder D:\Cache wipe"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Écraser l’espace libre</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Écrase l’espace libre, ne touche à aucun fichier.</b> Écrit des fichiers de test jusqu’à ce qu’il ne reste qu’une réserve, puis les supprime avec <code>del</code> ; ce que contenaient auparavant les clusters libres a été écrasé au passage. Le nombre est la taille de chaque fichier de test en Mo. Aucune saisie n’est demandée : il crée ses propres fichiers et ne supprime que ceux-là.</span>
+            </p>
+            <div class="copybox">
+              filedo D: fill 1000 del<button
+                class="copy"
+                data-copy="filedo D: fill 1000 del"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">Une suppression ordinaire</span>
+            </h3>
+            <p>
+              <span data-l="fr"><b>Retire, n’écrase pas.</b> Les modes <code>del</code> des doublons, de la comparaison et de <code>secure</code>, ainsi que <code>clean</code>, retirent les fichiers de façon ordinaire : un outil de récupération rend les octets tant que l’espace n’est pas réutilisé. Les doublons et la comparaison sont décrits dans le guide <a href="files-and-copies.html">Doublons, copie et comparaison</a>.</span>
+            </p>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"><span data-l="fr">Lecteur système et restes</span></span>
+          <p>
+            <span data-l="fr">Les fichiers de test sont écrits là où vous dirigez le remplissage. Visant la racine du lecteur système (<code>C:</code>), il est redirigé, après confirmation, vers <code>%TEMP%\FileDO_Operations</code> ; un dossier sous la racine est utilisé tel que vous l’avez nommé. Si un remplissage est interrompu, ou si vous avez omis <code>del</code>, <code>filedo D: clean</code> liste les fichiers de test propres à FileDO, demande, puis les supprime.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section" id="confirm">
+        <h2>
+          <span data-l="fr">La confirmation par WIPE</span>
+        </h2>
+        <p>
+          <span data-l="fr">L’écrasement d’un fichier et le vidage d’un dossier s’arrêtent, affichent le chemin complet qu’ils ont résolu (et, pour un dossier, le nombre d’éléments trouvés), puis demandent <code>Type WIPE to continue:</code>. Tout ce qui n’est pas <code>WIPE</code> en majuscules annule l’exécution, et rien n’est supprimé. Lisez le chemin avant de taper.</span>
+        </p>
+        <p>
+          <span data-l="fr"><code>--yes</code> (aussi <code>-y</code> et <code>--force</code>) saute cette unique question sur une cible ordinaire, pour les scripts. Il ne saute rien d’autre : l’écrasement d’un fichier affiche toujours sa mise en garde sur les SSD, et les refus ci-dessous s’appliquent toujours. La variable d’environnement <code>FILEDO_AUTO_CONFIRM=1</code> répond à la question de la même façon.</span>
+        </p>
+        <div class="copybox">
+          filedo folder D:\Cache wipe --yes<button
+            class="copy"
+            data-copy="filedo folder D:\Cache wipe --yes"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <p>
+          <span data-l="fr">Si personne ne peut répondre (entrée standard fermée, comme dans un script sans <code>--yes</code>), la question reçoit une réponse vide : l’exécution affiche <code>wipe cancelled by user</code>, ne supprime rien et se termine avec le code 2. Un effacement mené à terme se termine avec 0.</span>
+        </p>
+      </section>
+      <section class="section" id="refusals">
+        <h2>
+          <span data-l="fr">Ce qui est refusé, et ce qui est demandé deux fois</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Ces contrôles tiennent à la cible, pas à la question ; <code>--yes</code> ne les saute donc pas.</span>
+        </p>
+        <dl class="term-list">
+          <dt>
+            <span data-l="fr">La racine d’un lecteur ou d’un partage</span>
+          </dt>
+          <dd>
+            <span data-l="fr"><code>D:</code>, <code>D:\</code>, <code>\\server\share</code>, leurs écritures en chemins de périphérique, et la racine de tout volume ou point de montage. <code>filedo D: wipe</code> signifie <code>D:\</code> ; vider un lecteur entier relève donc toujours de cette classe. FileDO demande deux fois : <code>WIPE</code>, puis le chemin de la cible saisi tel qu’il est affiché.</span>
+          </dd>
+          <dt>
+            <span data-l="fr">Dossiers système et dossiers de FileDO</span>
+          </dt>
+          <dd>
+            <span data-l="fr">Les dossiers TEMP, le profil utilisateur et le dossier des profils, le dossier d’où FileDO s’exécute, et tout dossier situé au-dessus de l’un d’eux ; les dossiers Windows et Program Files et le dossier de données de FileDO, avec tout ce qu’ils contiennent. La question est posée deux fois, comme ci-dessus, quelle que soit l’écriture du chemin : une lettre subst, une jonction, un nom court 8.3 ou <code>\\localhost\C$</code> ne les cache pas.</span>
+          </dd>
+          <dt>
+            <span data-l="fr">Une jonction, un lien symbolique ou un point de montage</span>
+          </dt>
+          <dd>
+            <span data-l="fr">Refus immédiat, aussi bien pour l’écrasement d’un fichier que pour le vidage d’un dossier : agir à travers un lien soit retire le lien et laisse les données, soit écrase ce vers quoi il pointe aujourd’hui - et ce n’est pas ce que veut qui demande un effacement. Videz le dossier visé par son propre chemin.</span>
+          </dd>
+          <dt>
+            <span data-l="fr">Un fichier ayant un autre lien physique</span>
+          </dt>
+          <dd>
+            <span data-l="fr">Refusé : l’écrasement atteint tous les noms du fichier. Le message indique combien il y en a ; retirez d’abord les liens en trop, ou utilisez <code>del</code>.</span>
+          </dd>
+          <dt>
+            <span data-l="fr">Un élément impossible à supprimer</span>
+          </dt>
+          <dd>
+            <span data-l="fr">Le vidage d’un dossier liste les dix premiers éléments qu’il n’a pas pu supprimer (utilisés, verrouillés, accès refusé), poursuit avec le reste et se termine avec le code 2 et le nombre d’éléments de premier niveau restants. Un attribut en lecture seule n’est pas un refus : FileDO le retire et réessaie.</span>
+          </dd>
+        </dl>
+      </section>
+      <section class="section" id="limits">
+        <h2>
+          <span data-l="fr">Ce qu’un écrasement ne peut pas promettre</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"><span data-l="fr">Limites</span></span>
+          <p>
+            <span data-l="fr">L’écrasement sur place réduit les chances de récupération et ne promet rien. Sur un SSD, une carte flash ou une clé USB, et sur les systèmes de fichiers à copie sur écriture ou journalisés, l’écrasement sur place ne garantit pas que les anciens blocs ont disparu ; un lecteur peut garder d’anciennes copies dans sa zone de réserve. Vider un dossier n’écrase rien du tout.</span>
+          </p>
+        </div>
+        <p>
+          <span data-l="fr">Un effacement n’agit que sur le fichier ou le dossier que vous nommez, sur ce volume. Une copie conservée ailleurs - par un client de synchronisation, une sauvegarde, un autre disque ou vous-même - est un autre fichier, et FileDO ne la cherche pas.</span>
+        </p>
+        <p>
+          <span data-l="fr">L’écrasement de l’espace libre a ses propres limites. Il s’arrête à une réserve (le plus petit de 100 Mo et 5 % du volume ; sur le volume système, le plus grand de 10 Go et 10 %) et au reste inférieur à un fichier de test : ces clusters ne sont donc pas écrits. Il n’atteint que des clusters libres, jamais un fichier qui existe encore.</span>
+        </p>
+      </section>
+      <section class="section" id="window">
+        <h2>
+          <span data-l="fr">Dans la fenêtre</span>
+        </h2>
+        <p>
+          <span data-l="fr">Dans la liste de gauche, le groupe <b>Effacer</b> compte deux pages. <b>Remplir l'espace libre</b> prend un lecteur et la case <b>Suppression automatique des fichiers de test (del)</b>, et répète la note de redirection quand la cible est le lecteur système. <b>Effacer un dossier</b> compte ce que contient la cible, puis exige <code>WIPE</code> en majuscules et la case <b>Ignorer la confirmation (-y / --force)</b> cochée, car la fenêtre n’a pas de console pour la question propre au programme. Une racine de lecteur ou de partage, une jonction ou TEMP n’est pas lancée depuis la fenêtre : la page dit pourquoi et montre la commande à exécuter dans une console, où FileDO demande deux fois.</span>
+        </p>
+        <p>
+          <span data-l="fr">Un fichier seul est écrasé par l’entrée <b>Wipe this file</b> du menu de l’Explorateur, depuis la page <b>Commande</b> (elle demande aussi <code>WIPE</code>) ou - après l’avoir empaqueté dans un conteneur - par le choix d’écraser l’original sur <b>Rendre un fichier secret</b>. La version du Microsoft Store n’a pas d’entrées dans l’Explorateur ; voir <a href="microsoft-store.html">sa page</a>.</span>
+        </p>
+      </section>
+      <section class="section" id="order">
+        <h2>
+          <span data-l="fr">Un ordre prudent</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="fr">Désignez le fichier ou le dossier exact. Ne visez un disque entier que si vider tout le disque est le but.</span>
+          </li>
+          <li>
+            <span data-l="fr">Lisez le chemin et le nombre d’éléments qu’affiche la question avant de taper <code>WIPE</code>.</span>
+          </li>
+          <li>
+            <span data-l="fr">Copiez d’abord ce que vous voulez garder sur un autre disque. FileDO n’a pas d’annulation pour un écrasement ou un vidage.</span>
+          </li>
+          <li>
+            <span data-l="fr">Si les données supprimées doivent être difficiles à récupérer, terminez par un écrasement de l’espace libre de ce volume, en connaissant les limites ci-dessus.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="related">
+        <h2>
+          <span data-l="fr">Où l’on retrouve les mêmes mots</span>
+        </h2>
+        <p>
+          <span data-l="fr"><code>secure wipe</code> écrase l’original après l’avoir empaqueté dans un conteneur <code>.fd-sec</code> - voir <a href="fd-sec-containers.html">Fichiers secrets</a>. <code>vd destroy</code> avec <code>wipe</code> écrase un disque virtuel avant de le supprimer - voir <a href="virtual-disks.html">Disques virtuels</a>. Les entrées de l’Explorateur sont décrites dans <a href="install-and-explorer.html">Installation et menu de l’Explorateur</a>. <b>Effacer</b> et <b>Remplir</b> sont définis dans le <a href="glossary.html#term-wipe">glossaire</a>.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html"><span data-l="fr">Guides</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="fr">Assistance</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Effacer et écraser avec FileDO",
+          description:
+            "Guide pratique FileDO : écraser un fichier, vider un dossier, écraser l’espace libre - la question WIPE, les refus et les limites sur SSD.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

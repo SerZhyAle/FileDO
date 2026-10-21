@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-FAMILY-MAP` |
-| **Version** | 1.5, read 2026-10-21 (SP-0170); implemented 1.3; the STREAMS Player label is SP-0171 W14 |
+| **Version** | 1.5, read 2026-10-21 (SP-0170); implemented 1.5 (SP-0171 W14) |
 | **Role** | consumer - product-site footer family grid |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `SITE-FAMILY-MAP.md` |
 | **Owner** | sza.od.ua hub |

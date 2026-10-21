@@ -31,23 +31,22 @@
 
   <figure class="shot">
     <div class="frame">
-      <img class="on-dark" src="../img/disk-manager.en.dark.png" width="1052" height="733" alt="FileDO - Disk manager: the window with its numbered parts">
-      <img class="on-light" src="../img/disk-manager.en.light.png" width="1052" height="733" alt="">
-      <a class="pin" style="--x:1.6%;--y:1.6%" href="#e-new" aria-label="1, New disk..">1</a>
-      <a class="pin" style="--x:15.3%;--y:1.6%" href="#e-add" aria-label="2, Add..">2</a>
-      <a class="pin" style="--x:27.1%;--y:1.6%" href="#e-mount" aria-label="3, Mount">3</a>
-      <a class="pin" style="--x:38.4%;--y:1.6%" href="#e-unmount" aria-label="4, Unmount">4</a>
-      <a class="pin" style="--x:51.8%;--y:1.6%" href="#e-open" aria-label="5, Open">5</a>
-      <a class="pin" style="--x:62.3%;--y:1.6%" href="#e-save" aria-label="6, Save">6</a>
-      <a class="pin" style="--x:73.7%;--y:1.6%" href="#e-more" aria-label="7, More actions">7</a>
-      <a class="pin" style="--x:91.2%;--y:1.6%" href="#e-refresh" aria-label="8, Refresh">8</a>
-      <a class="pin" style="--x:1.6%;--y:8.7%" href="#e-settings" aria-label="9, Settings">9</a>
-      <a class="pin" style="--x:8.2%;--y:8.7%" href="#e-main" aria-label="10, FileDO operations">10</a>
-      <a class="pin" style="--x:28.5%;--y:8.7%" href="#e-help" aria-label="11, Help">11</a>
-      <a class="pin" style="--x:7.2%;--y:17.2%" href="#e-filter" aria-label="12, Filter the disks">12</a>
-      <a class="pin" style="--x:0.2%;--y:22.9%" href="#e-list" aria-label="13, The list of disks">13</a>
-      <a class="pin" style="--x:0.2%;--y:58.7%" href="#e-detail" aria-label="14, Details">14</a>
-      <a class="pin" style="--x:0.2%;--y:94.3%" href="#e-strip" aria-label="15, Status strip">15</a>
+      <img class="on-dark" src="../img/disk-manager.en.dark.png" width="974" height="708" alt="FileDO - Disk manager: the window with its numbered parts">
+      <img class="on-light" src="../img/disk-manager.en.light.png" width="974" height="708" alt="">
+      <a class="pin" style="--x:1.7%;--y:1.7%" href="#e-new" aria-label="1, New disk..">1</a>
+      <a class="pin" style="--x:17.8%;--y:1.7%" href="#e-add" aria-label="2, Add..">2</a>
+      <a class="pin" style="--x:31.7%;--y:1.7%" href="#e-mount" aria-label="3, Mount">3</a>
+      <a class="pin" style="--x:45.2%;--y:1.7%" href="#e-unmount" aria-label="4, Unmount">4</a>
+      <a class="pin" style="--x:60.9%;--y:1.7%" href="#e-open" aria-label="5, Open">5</a>
+      <a class="pin" style="--x:73.4%;--y:1.7%" href="#e-save" aria-label="6, Save">6</a>
+      <a class="pin" style="--x:1.7%;--y:8.5%" href="#e-more" aria-label="7, More actions">7</a>
+      <a class="pin" style="--x:21.9%;--y:8.5%" href="#e-refresh" aria-label="8, Refresh">8</a>
+      <a class="pin" style="--x:27.2%;--y:8.5%" href="#e-settings" aria-label="9, Settings">9</a>
+      <a class="pin" style="--x:34.3%;--y:8.5%" href="#e-main" aria-label="10, FileDO operations">10</a>
+      <a class="pin" style="--x:57.5%;--y:8.5%" href="#e-help" aria-label="11, Help">11</a>
+      <a class="pin" style="--x:7.8%;--y:17.2%" href="#e-filter" aria-label="12, Filter the disks">12</a>
+      <a class="pin" style="--x:0.2%;--y:23.9%" href="#e-list" aria-label="13, The list of disks">13</a>
+      <a class="pin" style="--x:0.2%;--y:51.8%" href="#e-detail" aria-label="14, Details">14</a>
     </div>
     <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
   </figure>
@@ -214,6 +213,7 @@
       <summary><span class="mk">15</span><span><span class="name">Status strip</span><span class="one">What is running, and what is waiting.</span></span></summary>
       <div class="full">
         <p>The first line says how many disks are mounted and how fresh the information is. The second shows the operation that is running or how the last one ended. Stop ends the running operation cleanly, and Clear the queue drops the ones that are waiting.</p>
+        <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
       </div>
     </details>
     <details class="el" id="e-keyboard">
@@ -236,12 +236,14 @@
           <dt><kbd>Del</kbd></dt><dd>Remove from list</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Copy path</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Select every disk in the list</dd>
-          <dt><kbd>Menu</kbd></dt><dd>Open the menu of the selected disk</dd>
-          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Open the menu of the selected disk</dd>
+          <dt><kbd>Menu</kbd></dt><dd>Open the menu of the selected disk, or of the Help button when it has the focus</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Open the menu of the selected disk, or of the Help button when it has the focus</dd>
           <dt><kbd>F5</kbd></dt><dd>Refresh</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>Go to the filter box</dd>
           <dt><kbd>Esc</kbd></dt><dd>Clear the filter</dd>
           <dt><kbd>F1</kbd></dt><dd>Open this help</dd>
+          <dt><kbd>F6</kbd></dt><dd>Move to the next area of the window (Shift: the previous one)</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F6</kbd></dt><dd>Move to the next area of the window (Shift: the previous one)</dd>
         </dl>
         <p class="one"><small>Not in the picture: it appears only when the window needs it.</small></p>
       </div>
@@ -259,7 +261,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Captured against FileDO dev (2610211054), 2026-10-21.</span>
+    <span>Captured against FileDO dev (2610211338), 2026-10-21.</span>
     <a href="index.html">Help index</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
   </footer>

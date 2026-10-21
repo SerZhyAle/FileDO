@@ -95,6 +95,9 @@
     <Compile Include="Runner.vb" />
     <Compile Include="JobCatalogue.vb" />
     <Compile Include="SelfTest.vb" />
+    <Compile Include="SelfTestStateFill.vb" />
+    <Compile Include="SelfTestSettingsFollow.vb" />
+    <Compile Include="SelfTestResultNumbers.vb" />
     <Compile Include="DiagnosticText.vb" />
     <Compile Include="CheckOptions.vb">
       <SubType>UserControl</SubType>
@@ -116,6 +119,7 @@
     <Compile Include="DiskGlyphs.vb" />
     <Compile Include="GlyphButton.vb" />
     <Compile Include="DiskHelp.vb" />
+    <Compile Include="PaneCycle.vb" />
     <Compile Include="AppHost.vb" />
     <Compile Include="DiskPanel.vb">
       <SubType>UserControl</SubType>
@@ -150,6 +154,7 @@
     <Compile Include="HelpPages.vb" />
     <Compile Include="HelpCapture.vb" />
     <Compile Include="SelfTestHelp.vb" />
+    <Compile Include="SelfTestInput.vb" />
     <Compile Include="LogReport.vb" />
     <Compile Include="LogSender.vb" />
     <Compile Include="ShellLog.vb" />

@@ -57,9 +57,25 @@ Friend Class AppHost
         trayHeldValue = hiddenWindows.Count > 0
         If tray IsNot Nothing Then tray.UpdateState()
     End Sub
-    Friend Sub ShowSettings()
-        EnsureShell().OpenSettings()
+    ' APP-SETTINGS 0.7 rule 1: the settings page is found where the user is. `from` is the window the
+    ' request came from (the Disk Manager's button); the tray menu belongs to no window of ours and
+    ' passes nothing, so the pointer decides.
+    Friend Sub ShowSettings(Optional from As Form = Nothing)
+        EnsureShell().OpenSettings(ScreenOfUser(from))
     End Sub
+
+    Private Shared Function ScreenOfUser(from As Form) As WindowPlacement.ScreenArea
+        Try
+            Dim window As Rectangle? = Nothing
+            If from IsNot Nothing AndAlso Not from.IsDisposed AndAlso from.Visible AndAlso from.WindowState <> FormWindowState.Minimized Then
+                window = from.Bounds
+            End If
+            Return WindowPlacement.ScreenToFollow(window, Cursor.Position, WindowPlacement.LiveScreens())
+        Catch ex As Exception
+            ShellLog.Write("find the user's monitor", ex)
+            Return Nothing
+        End Try
+    End Function
     Friend Sub UnmountAll()
         If manager Is Nothing Then Return
         ShowManager()

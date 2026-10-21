@@ -41,6 +41,15 @@ so every release after `v2609241700` compares greater than it, and
 not greater (SP-0030 PKG-01). The MSIX mapping is in `msix/build-msix.ps1`
 (the Store requires 4 parts, each <= 65535).
 
+The version is read back from what the build produced, not trusted from the
+argument that was meant to put it there: after `wix build`, `build.ps1` reads
+the MSI's `ProductVersion` (its Property table) and the setup EXE's file and
+product version (its version resource) and compares both with the mapping of
+the stamp. A mismatch ends the build with exit 1 (`installer-version <stamp>:
+FAIL`, and under `-Test` the `build-gate` line after it); a file that cannot be
+read is exit 2. The reader is `Get-MsiProductVersion`, shared by `build.ps1` and
+`release.ps1` through `packaging\wix\installer-version.ps1`.
+
 ---
 
 ## BUILD - `build.ps1`
@@ -79,18 +88,32 @@ unchanged for a `cmd.exe` prompt.
   (`go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1`),
   or a Windows that cannot run amd64 programs. A missing MSBuild is exit 2 as
   well, unless `-SkipGui` said so.
-- `-Test` runs nine gate steps: stamped-executable smoke tests, which also
-  read each exe's build info (amd64, `-trimpath`, the pinned Go, the PE
-  version, the manifest); the separate test-module compile check and placement
-  registry; fdsec short tests; the fdsec command-surface tests plus its vet
-  baseline; the GUI self-test (its log is deleted first, so a missing log is
-  `COULD NOT VERIFY`, never the previous run's); `THIRD-PARTY-NOTICES.txt` against
-  the Go modules each shipped executable links
-  (`packaging\check-third-party-notices.ps1`); `release.yml`'s Go pin
-  against `go.mod`'s; and the documentation corpus - registry, links and
-  anchors, house style (`packaging\check-internal-docs.ps1`); and the published
-  site and READMEs - sitemap, SEO block, locales and translation freshness,
-  termbase, screenshots (`packaging\check-external-docs.ps1`). Its final `build-gate <stamp>:` line is `PASS`, `FAIL`,
+- `-Test` runs twelve gate steps, recorded under these names in this order
+  (a failing run prints the names; a green one prints
+  `build-gate <stamp>: PASS (ran 12, skipped 0)`, and `-SkipGui` counts
+  `gui-selftest` as skipped: `ran 11, skipped 1`): `smoke` - stamped-executable
+  smoke tests, which also read each exe's build info (amd64, `-trimpath`, the
+  pinned Go, the PE version, the manifest); `compile-test-module` - the tests of
+  the three companion modules (`cmd\filedo-test`, `cmd\filedo-check`,
+  `cmd\filedo-fill`, each its own module), the placement registry and the
+  gated-packages check, all three always run so one run names every failure;
+  `fdsec` - the fdsec short tests; `vdisk` - the vdisk and fmsworker tests;
+  `filedo-cli-and-vet` - the fdsec command-surface tests plus its vet baseline;
+  `gui-selftest` - the GUI self-test (its log is deleted first, so a missing log
+  is `COULD NOT VERIFY`, never the previous run's); `third-party-notices` -
+  `THIRD-PARTY-NOTICES.txt` against the Go modules each shipped executable links
+  (`packaging\check-third-party-notices.ps1`); `release-pins` - `release.yml`'s
+  Go pin against `go.mod`'s; `internal-docs` - the documentation corpus:
+  registry, links and anchors, house style (`packaging\check-internal-docs.ps1`);
+  `external-docs` - the published site and READMEs: sitemap, SEO block, locales
+  and translation freshness, termbase, screenshots
+  (`packaging\check-external-docs.ps1`); `build-inputs` - no build input is
+  git-ignored (`packaging\check-build-inputs.ps1`); and `help-pages` - the
+  in-app help set, its map and its baseline (`packaging\check-help.ps1`). Every
+  gated `go test` run ends in its own test verdict line,
+  `go test <package>: PASS (run=N skipped=M)`, with each skipped test named above
+  it; a package that discovers no test, or whose tests all skip, is
+  `COULD NOT VERIFY`, never a pass. Its final `build-gate <stamp>:` line is `PASS`, `FAIL`,
   or `COULD NOT VERIFY`; exit codes are 0, 1, and 2 respectively. (Root
   `go test ./...` is known-broken per `AGENTS.md`, so it is intentionally not
   run.)

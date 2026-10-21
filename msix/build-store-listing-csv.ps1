@@ -16,6 +16,14 @@
   worked and do nothing: add the language in Partner Center (Store listings > Manage additional
   languages), export again, then run this.
 
+  What it REFUSES (exit 1, nothing written - no file, no folder; WINDOWS-STORE rules 7 and 9 and the
+  0.2 amendment): a language the product ships (en ru uk de fr) with no column in the export or no
+  msix\listing\<code>.txt; a cell over its cap (counted after CRLF normalisation); more than seven
+  search terms, or a duplicate among them; and more than 21 words across a language's seven search
+  terms (a word is a non-whitespace run). One cell over its cap loses the whole language at import,
+  so the run stops here instead of producing a file that would. Each problem is named by language,
+  field, length and deck file. Missing screenshots, empty required fields and the like stay warnings.
+
   The file's own style is preserved, not imposed: the BOM (or its absence), the record newline,
   whether a final newline exists, and the quoting style are all read from the export and written
   back the same way. A real export measured on 2026-09-21 is UTF-8 WITH BOM, CRLF between records,
@@ -55,7 +63,8 @@
 
 .PARAMETER FillNothing
   Parse and rewrite without filling anything. A byte-identical result proves the reader and writer
-  round-trip this export. Run it before any real patching.
+  round-trip this export. Run it before any real patching. It writes no file and no folder, and it
+  refuses an export that lacks the column of a shipped language, exactly as a patching run does.
 
 .EXAMPLE
   .\msix\build-store-listing-csv.ps1 -FillNothing                 # self-test on the export
@@ -95,10 +104,12 @@ if ($Out -eq $Csv) { throw "build-store-listing-csv: -Out is the export itself; 
 # (Localization.vb) and per Resource in AppxManifest.xml; keep the three in step.
 $Locale = [ordered]@{ en = "en-us"; ru = "ru"; uk = "uk"; de = "de"; fr = "fr" }
 
-# The values known when this was written, used ONLY to warn. Partner Center's console is the
-# authority and its caps drift; an over-length cell is rejected there, not here.
+# The values known when this was written (WINDOWS-STORE rule 9; the word cap is the 0.2 amendment of
+# 2026-10-17, conservative: 22 was never measured). A cell over one is REFUSED before anything is
+# written. Partner Center's console is the authority and its caps drift: when the console and the
+# contract move, change the number here in the same edit (comply or amend, never work around).
 $KnownCaps = @{ ShortDescription = 1000; Description = 10000; ReleaseNotes = 1500 }
-$FeatureCap = 200; $SearchTermCap = 30; $SearchTermMax = 7
+$FeatureCap = 200; $SearchTermCap = 30; $SearchTermMax = 7; $SearchTermWordCap = 21
 
 # --- reader / writer ---------------------------------------------------------------------------
 function Read-Csv([string]$text) {
@@ -185,6 +196,22 @@ foreach ($code in $Locale.Keys) {
 $present = @(); $missing = @()
 foreach ($tag in $Locale.Values) { if ($header -contains $tag) { $present += $tag } else { $missing += $tag } }
 
+# Every language the product ships needs a column in the export AND a source file (WINDOWS-STORE rule 7
+# and section 3). An import cannot create a column and drops the copy of a language that has none; a
+# column with no deck stays empty. Continuing would look like a success and do nothing for that
+# language, so this is a failure that names the language, in the round-trip self-test as well.
+$languageProblems = New-Object System.Collections.ArrayList
+foreach ($code in $Locale.Keys) {
+    $tag = $Locale[$code]
+    if ($missing -contains $tag) { [void]$languageProblems.Add("${tag}: the export has no '$tag' column, so the import would drop this language's copy without an error. Add the language in Partner Center (Store listings > Manage additional languages), take a fresh export, then run this again") }
+    if (-not $source.ContainsKey($tag)) { [void]$languageProblems.Add("${tag}: no source file msix\listing\$code.txt, so this language's column would stay empty") }
+}
+if ($languageProblems.Count) {
+    foreach ($p in $languageProblems) { Write-Host "  refused: $p" -ForegroundColor Red }
+    Write-Host "build-store-listing-csv: $($languageProblems.Count) shipped-language problem(s); nothing was written." -ForegroundColor Red
+    exit 1
+}
+
 # Asset rows must never be refreshed: their cells hold URLs of images already uploaded.
 $assetFields = @($rows | ForEach-Object { $_[$fieldCol] } | Where-Object { $_ -match 'Screenshot|Logo' })
 foreach ($f in $Refresh) {
@@ -247,8 +274,52 @@ if ($Screenshots -and -not $FillNothing) {
     }
 }
 
+# --- the caps, BEFORE anything is written (WINDOWS-STORE rule 9, 0.2 amendment) ----------------------
+# What is checked is the file about to be written: the cells as they stand after the patch, including
+# the ones this script does not own. One cell over its cap loses the whole language at import, so a
+# problem refuses the run: exit 1, no file, no folder. The round-trip self-test writes nothing and
+# checks no copy, so it skips this.
+$rowByField = @{}
+for ($r = 1; $r -lt $rows.Count; $r++) { $rowByField[$rows[$r][$fieldCol]] = $rows[$r] }
+$wordTotals = @()
+if (-not $FillNothing) {
+    $capProblems = New-Object System.Collections.ArrayList
+    foreach ($code in $Locale.Keys) {
+        $tag = $Locale[$code]
+        $c = [array]::IndexOf($header, $tag)
+        $deck = "msix\listing\$code.txt"
+        $terms = New-Object System.Collections.ArrayList
+        $words = 0
+        foreach ($f in @($rowByField.Keys | Sort-Object)) {
+            $fieldRow = $rowByField[$f]
+            if ($c -lt 0 -or $c -ge $fieldRow.Count) { continue }
+            $v = [string]$fieldRow[$c]
+            if (-not $v) { continue }
+            # Partner Center counts the characters after the line breaks are CRLF, so a multi-line cell
+            # is longer than its LF-joined source: normalise first, then count.
+            $len = (($v -replace "`r`n", "`n") -replace "`n", "`r`n").Length
+            $cap = if ($KnownCaps.ContainsKey($f)) { $KnownCaps[$f] } elseif ($f -match '^Feature\d+$') { $FeatureCap } elseif ($f -match '^SearchTerm\d+$') { $SearchTermCap } else { 0 }
+            if ($cap -and $len -gt $cap) { [void]$capProblems.Add("${tag} ${f}: $len characters, over the cap of $cap (deck $deck)") }
+            if ($f -match '^SearchTerm\d+$') {
+                [void]$terms.Add($v.ToLowerInvariant())
+                $words += ([regex]::Matches($v, '\S+')).Count
+            }
+        }
+        if ($terms.Count -gt $SearchTermMax) { [void]$capProblems.Add("${tag}: $($terms.Count) search terms, at most $SearchTermMax (deck $deck)") }
+        if (@($terms | Select-Object -Unique).Count -ne $terms.Count) { [void]$capProblems.Add("${tag}: duplicate search terms (deck $deck)") }
+        if ($words -gt $SearchTermWordCap) { [void]$capProblems.Add("${tag}: $words words across the $($terms.Count) search terms, over the cap of $SearchTermWordCap (WINDOWS-STORE 0.2; deck $deck)") }
+        $wordTotals += "$tag $words"
+    }
+    if ($capProblems.Count) {
+        foreach ($p in $capProblems) { Write-Host "  refused: $p" -ForegroundColor Red }
+        Write-Host "build-store-listing-csv: $($capProblems.Count) cap problem(s); one cell over its cap loses the whole language at import, so nothing was written." -ForegroundColor Red
+        exit 1
+    }
+}
+
 # --- write, preserving the export's style ----------------------------------------------------------
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Out) | Out-Null
+# The folder is made only for a real write: the self-test leaves nothing behind, not even an empty one.
+if (-not $FillNothing) { New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Out) | Out-Null }
 $text = Format-Csv $rows $newline $trailing $alwaysQuote
 # The self-test never leaves a file in the import folder: an unpatched CSV sitting there is one
 # careless upload away from a listing that was never filled.
@@ -267,27 +338,12 @@ if ($FillNothing) {
     exit 0
 }
 Write-Host "filled $filled empty cells, refreshed $refreshed, attached $shots screenshots, across $($present.Count) locales -> $Out" -ForegroundColor Green
-if ($missing.Count) {
-    Write-Host ("locales NOT in this export (add them in Partner Center > Store listings > Manage additional languages, then export again): {0}" -f ($missing -join ' ')) -ForegroundColor Yellow
-}
+Write-Host ("search-term words (cap {0}): {1}" -f $SearchTermWordCap, ($wordTotals -join ', ')) -ForegroundColor DarkGray
 
-# --- lint: warnings only ---------------------------------------------------------------------------
+# --- completeness: warnings only (the caps above are refusals) ------------------------------------------
 $warn = New-Object System.Collections.ArrayList
-$rowByField = @{}
-for ($r = 1; $r -lt $rows.Count; $r++) { $rowByField[$rows[$r][$fieldCol]] = $rows[$r] }
 foreach ($tag in $present) {
     $c = [array]::IndexOf($header, $tag)
-    if (-not $source.ContainsKey($tag)) { [void]$warn.Add("${tag}: no source file msix\listing\<code>.txt for this column; its cells stay as exported"); continue }
-    $terms = @()
-    foreach ($f in $rowByField.Keys) {
-        $v = $rowByField[$f][$c]
-        if (-not $v) { continue }
-        $cap = if ($KnownCaps.ContainsKey($f)) { $KnownCaps[$f] } elseif ($f -match '^Feature\d+$') { $FeatureCap } elseif ($f -match '^SearchTerm\d+$') { $SearchTermCap } else { 0 }
-        if ($cap -and $v.Length -gt $cap) { [void]$warn.Add("${tag} ${f}: $($v.Length) chars, over the $cap known when this was written (the console decides)") }
-        if ($f -match '^SearchTerm\d+$') { $terms += $v.ToLowerInvariant() }
-    }
-    if ($terms.Count -gt $SearchTermMax) { [void]$warn.Add("${tag}: $($terms.Count) search terms, at most $SearchTermMax") }
-    if (($terms | Select-Object -Unique).Count -ne $terms.Count) { [void]$warn.Add("${tag}: duplicate search terms") }
     foreach ($need in 'Title', 'ShortDescription', 'Description') {
         if ($rowByField.ContainsKey($need) -and -not $rowByField[$need][$c]) { [void]$warn.Add("${tag}: $need is empty - the listing stays Incomplete") }
     }

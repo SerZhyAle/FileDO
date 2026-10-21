@@ -170,8 +170,9 @@ Public Class EventStream
             ' unknown kind, not a result that happened to be capitalized.
             Select Case ev.Kind
                 Case "step"
-                    Dim name = If(ev.Data.ContainsKey("name"), ev.Data("name").ToString(), "")
-                    Dim desc = If(ev.Data.ContainsKey("description"), ev.Data("description").ToString(), "")
+                    ' A null is an absent field (rule 7): the empty string, not a dropped event.
+                    Dim name = GetString(ev.Data, "name")
+                    Dim desc = GetString(ev.Data, "description")
                     RaiseEvent StepChanged(name, desc)
 
                 Case "progress"

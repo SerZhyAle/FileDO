@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -422,7 +424,24 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 	sources := []string{
 		filepath.Join("docs", "index.html"),
 		filepath.Join("docs", "privacy.html"),
+		filepath.Join("docs", "de", "index.html"),
+		filepath.Join("docs", "de", "privacy.html"),
+		filepath.Join("docs", "fr", "index.html"),
+		filepath.Join("docs", "fr", "privacy.html"),
 		filepath.Join("docs", "guides", "guide.js"),
+	}
+	// SITE-FAMILY-MAP section 2 as the footer must show it: the Tool cell is the label and the Type cell
+	// sits under it. 1.4 made the application's own English identity STREAMS Player, not the repository
+	// name StreamsPlayer.
+	cards := []struct{ name, kind string }{
+		{"Fast Media Sorter &amp; Organizer", "Android media sorter"},
+		{"Fast Media Sorter for Windows", "Windows media sorter"},
+		{"CyrFlip", "Windows layout fixer"},
+		{"doc-html-translate", "Windows ebook converter"},
+		{"STREAMS Player", "Windows stream player"},
+		{"OneClickRunner", "Windows tray launcher"},
+		{"Universal Agent Kit", "AI-dev methodology"},
+		{"SZA", "Portfolio"},
 	}
 	urls := []string{
 		"https://serzhyale.github.io/FastMediaSorter_mob_v2/",
@@ -441,6 +460,14 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 				t.Errorf("%s footer is missing %s", rel, u)
 			}
 		}
+		for _, c := range cards {
+			if want := "<b>" + c.name + "</b><span>" + c.kind + "</span>"; !strings.Contains(body, want) {
+				t.Errorf("%s footer grid lacks the map's label and type %s", rel, want)
+			}
+		}
+		if strings.Contains(body, "<b>StreamsPlayer</b>") {
+			t.Errorf("%s still labels STREAMS Player with its repository name", rel)
+		}
 		if strings.Contains(body, "github.com/SerZhyAle/OneClickRunner") {
 			t.Errorf("%s still links OneClickRunner's repository", rel)
 		}
@@ -458,6 +485,7 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 		{filepath.Join("docs", "guides", "index.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "check-storage.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "files-and-copies.html"), `href="../#get"`},
+		{filepath.Join("docs", "guides", "erase.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "gui-command-builder.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "install-and-explorer.html"), `href="../#get"`},
 		{filepath.Join("docs", "guides", "install-trust.html"), `href="../#get"`},
@@ -485,6 +513,38 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 	}
 }
 
+// SITE-STRUCTURE 0.3 (the Support page "is linked from every page footer") and PAGE-CONTENT
+// 1.5 item 2 (a child page carries the contact line and a hub link): the static footer of
+// every site page links the support page and the hub, and the Guides label is a localised
+// span group, never the bare English word (DOC-EXTERNAL-QUALITY 0.11 section 9 F).
+func TestSurfaces_EveryFooterLinksSupportAndTheHub(t *testing.T) {
+	root := repoRoot(t)
+	bareGuides := regexp.MustCompile(`<a\b[^>]*>\s*Guides\s*</a>`)
+	supportLink := regexp.MustCompile(`<a\s+href="(?:[^"]*/)?support\.html"`)
+	for _, rel := range sitePages(t, root) {
+		body := readSurface(t, root, filepath.Join("docs", filepath.FromSlash(rel)))
+		start := strings.Index(body, `<footer class="site-footer">`)
+		end := strings.Index(body, `</footer>`)
+		if start < 0 || end < start {
+			t.Errorf("%s has no site footer", rel)
+			continue
+		}
+		footer := body[start:end]
+		if !supportLink.MatchString(footer) {
+			t.Errorf("%s: the footer does not link the support page", rel)
+		}
+		if !strings.Contains(footer, `href="https://sza.od.ua"`) {
+			t.Errorf("%s: the footer does not link the hub", rel)
+		}
+		if !strings.Contains(footer, `href="mailto:sza@ukr.net"`) {
+			t.Errorf("%s: the footer does not carry the contact line", rel)
+		}
+		if bareGuides.MatchString(footer) {
+			t.Errorf("%s: the footer carries a bare English Guides label outside a data-l span", rel)
+		}
+	}
+}
+
 func TestSurfaces_TheSiteOnlyTrustsKnownStoredPreferences(t *testing.T) {
 	root := repoRoot(t)
 	for _, rel := range []string{
@@ -503,6 +563,7 @@ func TestSurfaces_TheSiteOnlyTrustsKnownStoredPreferences(t *testing.T) {
 		filepath.Join("docs", "guides", "index.html"),
 		filepath.Join("docs", "guides", "check-storage.html"),
 		filepath.Join("docs", "guides", "files-and-copies.html"),
+		filepath.Join("docs", "guides", "erase.html"),
 		filepath.Join("docs", "guides", "gui-command-builder.html"),
 		filepath.Join("docs", "guides", "install-and-explorer.html"),
 		filepath.Join("docs", "guides", "install-trust.html"),
@@ -516,6 +577,180 @@ func TestSurfaces_TheSiteOnlyTrustsKnownStoredPreferences(t *testing.T) {
 		if !strings.Contains(body, `t !== "dark" && t !== "light"`) ||
 			!strings.Contains(body, `l !== "ru" && l !== "en" && l !== "ua"`) {
 			t.Errorf("%s does not whitelist stored theme and language values", rel)
+		}
+	}
+}
+
+// PAGE-STYLE sections 6 and 7 (1.2): a page whose languages are all in the DOM ships
+// data-lang="en" statically, so a visitor without script sees English instead of the ru,
+// en and ua text of every group at once, and its pre-paint reader maps a stored "uk" to
+// "ua". The pages are the runtime pages: the landing, the privacy page, the 404 page and
+// every guide; the standalone de and fr pages are written in one language and read no
+// stored language.
+func TestSurfaces_TheRuntimePagesDefaultToEnglishAndMapUkToUa(t *testing.T) {
+	root := repoRoot(t)
+	pages := []string{
+		filepath.Join("docs", "index.html"),
+		filepath.Join("docs", "privacy.html"),
+		filepath.Join("docs", "404.html"),
+	}
+	guides, err := filepath.Glob(filepath.Join(root, "docs", "guides", "*.html"))
+	if err != nil || len(guides) < 14 {
+		t.Fatalf("the guide pages were not found (%d, %v)", len(guides), err)
+	}
+	for _, g := range guides {
+		pages = append(pages, filepath.Join("docs", "guides", filepath.Base(g)))
+	}
+	for _, rel := range pages {
+		body := readSurface(t, root, rel)
+		if !strings.Contains(body, `<html lang="en" data-lang="en">`) {
+			t.Errorf("%s does not ship data-lang=\"en\" statically on <html>", rel)
+		}
+		if !strings.Contains(body, `if (l === "uk") l = "ua";`) {
+			t.Errorf("%s does not map a stored uk to ua before the whitelist", rel)
+		}
+		if i, j := strings.Index(body, `if (l === "uk") l = "ua";`), strings.Index(body, `l !== "ru" && l !== "en" && l !== "ua"`); i < 0 || j < 0 || i > j {
+			t.Errorf("%s maps uk to ua after the whitelist already dropped it", rel)
+		}
+	}
+}
+
+// PAGE-STYLE section 0 step 1 and the domain README section 2: the vendored web kit is
+// the catalog's reference file byte for byte, and no line-ending conversion may change
+// what the site serves. The catalog is not reachable from a clone, so the expected
+// SHA-256 is recorded here; a re-vendor changes it in the same edit, as it changes the
+// pointer docs/contracts/PAGE-STYLE.md. The in-app help set carries a second copy
+// (HelpPages.CopyKit), which packaging/check-help.ps1 compares with the first.
+func TestSurfaces_TheVendoredKitIsHeldByteForByte(t *testing.T) {
+	const catalogKitSHA256 = "e438fef279fea8165ba6db46289c3ab35ac2fbcfaa5b2ea50bb009716eddfac9" // reference/sza-kit.css, 2026-10-17
+	root := repoRoot(t)
+	for _, rel := range []string{filepath.Join("docs", "kit", "sza-kit.css"), filepath.Join("docs", "help", "sza-kit.css")} {
+		raw, err := os.ReadFile(filepath.Join(root, rel))
+		if err != nil {
+			t.Fatalf("%s cannot be read: %v", rel, err)
+		}
+		sum := sha256.Sum256(raw)
+		if got := hex.EncodeToString(sum[:]); got != catalogKitSHA256 {
+			t.Errorf("%s is not the catalog kit: SHA-256 %s, want %s (a CRLF checkout or a hand edit changes it)", rel, got, catalogKitSHA256)
+		}
+	}
+	attrs, err := os.ReadFile(filepath.Join(root, ".gitattributes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ReplaceAll(string(attrs), "\r\n", "\n")
+	for _, line := range []string{"docs/kit/sza-kit.css -text", "docs/help/sza-kit.css -text"} {
+		if !strings.Contains("\n"+text, "\n"+line+"\n") {
+			t.Errorf(".gitattributes does not list %q", line)
+		}
+	}
+}
+
+// sitePages lists every site page under docs as a slash path relative to docs, leaving out
+// what is not a site page: the one-line redirects (ru, ua), the kit, the assets and the
+// generated in-app help (CONTEXT-HELP).
+func sitePages(t *testing.T, root string) []string {
+	t.Helper()
+	docs := filepath.Join(root, "docs")
+	var pages []string
+	err := filepath.WalkDir(docs, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(docs, path)
+		rel = filepath.ToSlash(rel)
+		if d.IsDir() {
+			switch rel {
+			case "ru", "ua", "kit", "assets", "help", "contracts":
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(rel, ".html") {
+			pages = append(pages, rel)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pages) < 40 {
+		t.Fatalf("only %d site pages were found under docs - the walk is not seeing the site", len(pages))
+	}
+	return pages
+}
+
+// PAGE-STYLE 4.3 (1.4), 9 and the 2026-10-17 amendment item 6: the theme control is
+// labelled - the ICON-SET glyph app.theme beside a word in the page language, never the
+// text glyph U+25D0 - and its accessible name is the page language too. The drawing is
+// the catalog's iconography/glyphs/app.theme.svg inlined (the site has no glyph folder),
+// so its path data is pinned here; guide.js names the control in every language.
+func TestSurfaces_TheThemeControlIsLabelledWithItsGlyph(t *testing.T) {
+	const appThemePath = `M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z`
+	root := repoRoot(t)
+	for _, rel := range sitePages(t, root) {
+		body := readSurface(t, root, filepath.Join("docs", filepath.FromSlash(rel)))
+		start := strings.Index(body, `<button class="theme-btn" id="themeBtn"`)
+		if start < 0 {
+			t.Errorf("%s has no theme control", rel)
+			continue
+		}
+		end := strings.Index(body[start:], `</button`)
+		if end < 0 {
+			t.Errorf("%s: the theme control is not closed", rel)
+			continue
+		}
+		button := body[start : start+end]
+		if strings.Contains(body, "◐") {
+			t.Errorf("%s still draws the theme control with the text glyph U+25D0", rel)
+		}
+		if !strings.Contains(button, `<svg`) || !strings.Contains(button, appThemePath) {
+			t.Errorf("%s: the theme control does not carry the app.theme glyph", rel)
+		}
+		langs := []string{"ru", "en", "ua"}
+		switch {
+		case strings.HasPrefix(rel, "de/"):
+			langs = []string{"de"}
+		case strings.HasPrefix(rel, "fr/"):
+			langs = []string{"fr"}
+		}
+		for _, l := range langs {
+			if !strings.Contains(button, `<span data-l="`+l+`">`) {
+				t.Errorf("%s: the theme control has no visible %s name", rel, l)
+			}
+		}
+	}
+	js := readSurface(t, root, filepath.Join("docs", "guides", "guide.js"))
+	for _, want := range []string{`ru: "Сменить тему"`, `en: "Switch theme"`, `ua: "Змінити тему"`, `de: "Design wechseln"`, `fr: "Changer de thème"`} {
+		if !strings.Contains(js, want) {
+			t.Errorf("docs/guides/guide.js does not name the theme control: %s", want)
+		}
+	}
+	if strings.Contains(js, "Switch to dark theme") || strings.Contains(js, "Switch to light theme") {
+		t.Error("docs/guides/guide.js still renames the theme control in English after a click")
+	}
+}
+
+// SP-0170 slice S: the Microsoft Store build has its own page, and the places that talk
+// about that build point to it - the landing's install block and the Store text of the
+// install, support and install-trust guides, in every locale.
+func TestSurfaces_TheStoreTextLinksTheStoreBuildPage(t *testing.T) {
+	root := repoRoot(t)
+	for _, rel := range []string{
+		filepath.Join("docs", "index.html"),
+		filepath.Join("docs", "de", "index.html"),
+		filepath.Join("docs", "fr", "index.html"),
+	} {
+		if !strings.Contains(readSurface(t, root, rel), `href="guides/microsoft-store.html"`) {
+			t.Errorf("%s does not link guides/microsoft-store.html from the install block", rel)
+		}
+	}
+	for _, guide := range []string{"install-and-explorer.html", "support.html", "install-trust.html"} {
+		for _, dir := range []string{"guides", filepath.Join("de", "guides"), filepath.Join("fr", "guides")} {
+			rel := filepath.Join("docs", dir, guide)
+			if !strings.Contains(readSurface(t, root, rel), `href="microsoft-store.html"`) {
+				t.Errorf("%s does not link the Microsoft Store build page", rel)
+			}
 		}
 	}
 }
@@ -548,6 +783,69 @@ func TestSurfaces_TheGuideHubLeadsToTheGlossaryAndSubjectIndex(t *testing.T) {
 		if !strings.Contains(glossary, `id="term-`+id+`"`) {
 			t.Errorf("the glossary has no entry for %s", id)
 		}
+	}
+}
+
+// SP-0171 W15: the erase pillar has its guide (SITE-REPRESENTATION rule 1). The guide exists in
+// every locale; the hub, the subject index, the landing page, the sitemap and the registry list
+// it; the positioning source no longer carries the hub exception; and the page keeps what a wipe
+// guide may not lose - the typed WIPE question, what --yes skips, the refusals, the honest limits
+// - and none of the words the claim deny-list bans. The behaviour is pinned by wipe_safety_test.go;
+// this holds that the page says it.
+func TestSurfaces_TheEraseGuideIsListedAndKeepsItsCaveats(t *testing.T) {
+	root := repoRoot(t)
+	guides := map[string][]string{
+		filepath.Join("docs", "guides", "erase.html"):       {`data-l="ru"`, `data-l="en"`, `data-l="ua"`},
+		filepath.Join("docs", "de", "guides", "erase.html"): {`data-l="de"`},
+		filepath.Join("docs", "fr", "guides", "erase.html"): {`data-l="fr"`},
+	}
+	for rel, langs := range guides {
+		body := readSurface(t, root, rel)
+		for _, l := range langs {
+			if !strings.Contains(body, l) {
+				t.Errorf("%s has no %s text", rel, l)
+			}
+		}
+		for _, want := range []string{"WIPE", "--yes", "FILEDO_AUTO_CONFIRM", "SSD", `id="confirm"`, `id="refusals"`, `id="limits"`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("%s lost %q", rel, want)
+			}
+		}
+	}
+	runtime := strings.ToLower(readSurface(t, root, filepath.Join("docs", "guides", "erase.html")))
+	for _, banned := range []string{"secure erase", "securely", "unrecoverable", "military", "irreversible", "for good", "permanently", "impossible to recover"} {
+		if strings.Contains(runtime, banned) {
+			t.Errorf("docs/guides/erase.html over-claims with %q (positioning-source.json claimDenyList)", banned)
+		}
+	}
+	for rel, href := range map[string]string{
+		filepath.Join("docs", "guides", "index.html"):        `href="erase.html"`,
+		filepath.Join("docs", "de", "guides", "index.html"):  `href="erase.html"`,
+		filepath.Join("docs", "fr", "guides", "index.html"):  `href="erase.html"`,
+		filepath.Join("docs", "guides", "topics.html"):       `href="erase.html#limits"`,
+		filepath.Join("docs", "de", "guides", "topics.html"): `href="erase.html#limits"`,
+		filepath.Join("docs", "fr", "guides", "topics.html"): `href="erase.html#limits"`,
+		filepath.Join("docs", "index.html"):                  `href="guides/erase.html"`,
+		filepath.Join("docs", "de", "index.html"):            `href="guides/erase.html"`,
+		filepath.Join("docs", "fr", "index.html"):            `href="guides/erase.html"`,
+	} {
+		if !strings.Contains(readSurface(t, root, rel), href) {
+			t.Errorf("%s does not link the erase guide (%s)", rel, href)
+		}
+	}
+	sitemap := readSurface(t, root, filepath.Join("docs", "sitemap.xml"))
+	registry := readSurface(t, root, filepath.Join("docs", "DOCUMENT_REGISTRY.jsonl"))
+	for _, page := range []string{"guides/erase.html", "de/guides/erase.html", "fr/guides/erase.html"} {
+		if !strings.Contains(sitemap, "/FileDO/"+page) {
+			t.Errorf("%s is published but absent from docs/sitemap.xml", page)
+		}
+		if !strings.Contains(registry, `"path":"docs/`+page+`"`) {
+			t.Errorf("%s is not in docs/DOCUMENT_REGISTRY.jsonl", page)
+		}
+	}
+	positioning := readSurface(t, root, filepath.Join("packaging", "positioning-source.json"))
+	if strings.Contains(positioning, `"allowMissing"`) {
+		t.Error("packaging/positioning-source.json still excuses a surface from naming a pillar; the erase guide closed the last such exception")
 	}
 }
 
@@ -587,10 +885,14 @@ func TestSurfaces_TheChromeKeeps44pxTargetsAndLightContrast(t *testing.T) {
 	root := repoRoot(t)
 	want := []string{
 		".seg button{min-width:44px;min-height:44px}",
-		".theme-btn{flex:none;width:44px;height:44px}",
+		// The labelled theme control (PAGE-STYLE 4.3) is a pill that grows with its word, so its floor is a
+		// minimum, not a fixed square.
+		".theme-btn{flex:none;min-width:44px;min-height:44px}",
 		".btn,.copy,.tools-grid a{min-height:44px}",
 		".footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}",
 		`html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}`,
+		// Kit e438fef2 draws .seg button in the code ink (1.2 : 1 on the light theme); the layer keeps the muted ink.
+		`html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}`,
 	}
 	for _, rel := range []string{
 		filepath.Join("guides", "guide.css"),
@@ -632,6 +934,10 @@ func TestSurfaces_TheFrontPageCarriesItsIdentity(t *testing.T) {
 		}
 		if strings.Count(body, `assets/filedo.svg"`) != 1 {
 			t.Errorf("docs/%s: the product mark must appear once on the page", rel)
+		}
+		// PAGE-CONTENT 1.3 item 1: the name is at least 24 px at 360 px (1.5rem) and 28 px at 1280 px.
+		if !strings.Contains(body, ".brand-name b{font-size:clamp(1.5rem,2.3vw,1.8rem)") {
+			t.Errorf("docs/%s: the header name is smaller than 24 px at 360 px", rel)
 		}
 		if regexp.MustCompile(`(?s)\.tools-grid\s*\{\s*display:\s*none`).MatchString(body) {
 			t.Errorf("docs/%s hides the other-tools footer grid", rel)

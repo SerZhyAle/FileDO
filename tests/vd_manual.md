@@ -180,7 +180,7 @@ The second window of `filedo_win.exe`. Run it with the containers of the top of 
    manager forward. Close them in turn: the program ends only when the last one has closed.
 3. [ ] **First run.** With `HKCU\Software\FileDO\DiskManagerWelcomed` absent, the first opening shows *Welcome
    to the Disk manager* once. *Not now*, Escape and the close box all leave a working window, and the next
-   start does not show it again; Help > *First steps..* opens it whenever asked. *Create my first disk..* opens
+   start does not show it again; Help > *Welcome tour* opens it whenever asked. *Create my first disk..* opens
    the Create a disk page in the FileDO window, *Add a .fdd file I already have..* opens the file dialog, and
    the guide link opens the browser only when clicked - Resource Monitor > Network shows nothing before that
    click. With an empty list the same three ways to start are on the list area itself.
@@ -212,6 +212,13 @@ The second window of `filedo_win.exe`. Run it with the containers of the top of 
     from the list; double-click, Enter and Backspace never reach either.
 12. [ ] **No credential anywhere.** Mount `vault.fdd` from the manager with its password, unmount, then repeat
     the search of step 5.5: nothing in the run report, `history.json` or the event stream.
+13. [ ] **Keyboard only (SP-0171 W11, INPUT-PARITY 0.4 rules 1 and 5).** Without the mouse: F6 moves the focus toolbar,
+    filter, list, details (a detail action, not the close cross), status line, and back to the toolbar; Shift+F6 goes
+    the other way; an area that is hidden (the details pane after its cross) is skipped and the focus ring is
+    visible in each area it lands in. Tab to the Help button: Menu or Shift+F10 opens its menu (Help and keyboard
+    shortcuts, Welcome tour, the links) below the button, Esc closes it and the focus returns to the button. Tab to
+    *More actions*: its last entry *Help* opens the same menu as a sub-menu. In the FileDO window F6 and Shift+F6 go
+    rail (on the row of the page on screen), the Help button, the page. Light and Dark, one screenshot of each menu.
 
 ## 6. Destroy and the auto-mount task
 
@@ -607,3 +614,74 @@ On the machine of section 7 (the Store build, or the `-SelfSign` package, and no
 15. [ ] In the Disk manager, *New disk..* says a new disk is a `.fdd` file and that partition disks are not
     available in the Microsoft Store version, and offers *File on a drive..* and Cancel only - no partition
     choice. *Image to file..* and *Adopt partition..* are absent (hidden, not greyed) from every menu.
+
+## Second start of the window (APP-ACTIVATION 0.13)
+
+What `filedo_win.exe --selftest` cannot reach: a second start made by a different Windows account, a second
+start while the first copy runs elevated, and a first copy that does not answer. The selftest proves the pieces
+(the `activation:*` rows: the signal carries no payload, a receiver that hangs is abandoned inside its bound, a
+hung window is not claimed, a start on a file is never handed over); this section is the whole behaviour on a screen.
+
+Use the desktop build (setup or portable zip), not the Store build: a packaged app cannot run elevated. The
+table at the end is where a run is recorded; nothing in it says that any step was run.
+
+- Close every FileDO window first (Task Manager > Details shows no `filedo_win.exe`).
+- What a second plain start does by design: it asks the first copy to bring its window forward (a message with
+  no payload, answered or abandoned within 2 s). When the first copy cannot be asked, it waits up to 5 s for it,
+  then opens its own window. A second start must never vanish. A start on a file always opens its own window.
+- A step that does not do what it says is a finding: note the step, what you saw, a screenshot, and Task Manager
+  > Details at that moment (columns *PID*, *Status*, *User name*, *Elevated*; add them with a right-click on the
+  header). Raw evidence goes to `temp/evidence/<run-id>/`, never to a tracked folder.
+
+1. [ ] **A second Windows account in the same interactive session.** Needs a second local standard account made
+   for this test (Settings > Accounts > Other users; delete it afterwards) and the *Secondary Logon* service
+   running.
+   - As the first account start FileDO from the Start menu. Put a Notepad window over the FileDO window, so that
+     any change of focus is visible.
+   - From a console of the first account: `runas /user:<second account> "C:\Program Files\FileDO\filedo_win.exe"`
+     (portable: the unzipped path), and type that account's password. The new process runs as the second account
+     on the first account's desktop.
+   - Expected: within a few seconds a FileDO window of the second account opens, in its own process (Task Manager
+     > Details: two `filedo_win.exe`, one per user name). The first account's window is not brought forward, not
+     restored, not resized - Notepad stays above it - and it still answers (click a rail row: it reacts at once).
+     Closing the second account's window ends only the second process.
+   - A finding: no window of the second account appears (the start vanished, with or without the first window
+     coming forward), or it takes longer than 8 s, or the first window stops answering. The second account's own
+     log (`%LOCALAPPDATA%\FileDO\filedo_win.log`, or the newest `filedo_win.session-*.log`) may carry a
+     `single-instance claim` line when it could not open the first account's mutex; note whether it does.
+2. [ ] **A second start while the first copy runs elevated.**
+   - Start FileDO with *Run as administrator* (the UAC prompt appears); Task Manager > Details shows *Elevated:
+     Yes* for it. Put Notepad over its window, or minimize it.
+   - From the normal, non-elevated account start FileDO again from the Start menu or Explorer - not from an
+     elevated console.
+   - Expected, one of these two and nothing else: (a) the elevated window comes to the front (restored if it was
+     minimized) and no second window appears; or (b) at most 5 s after the start (allow 8 s with the window's own
+     start-up) a second, non-elevated FileDO window opens. Both are correct; write down which one happened.
+   - A finding: neither within 10 s - no second window and the elevated one stays behind or minimized. A flashing
+     taskbar button on its own is a finding: the start vanished. (The contract's declared limit is that Windows
+     may not carry the request across the two integrity levels, which is why the start has to fall back.)
+   - Close the extra window, if any, and then the elevated one.
+3. [ ] **A first copy that does not answer.**
+   - Start FileDO normally and note its PID (Task Manager > Details).
+   - Suspend that process: Process Explorer (right-click the process > Suspend) or, from a console,
+     `pssuspend <PID>` (Sysinternals PsTools). Wait until the first window's title bar says *Not responding* -
+     Windows calls a window hung after about 5 s without an answer - then start FileDO again from the Start menu
+     and note the time.
+   - Expected: no new window for about 5 s (the second start tries to hand over, then waits for the first copy);
+     then a second FileDO window opens, in its own process, at about 5 s after the start (allow 8 s). The frozen
+     window is not touched.
+   - Resume the first process (Process Explorer > Resume, or `pssuspend -r <PID>`). Expected: its window repaints
+     and answers; both windows work; closing either ends only its own process.
+   - A finding: no second window after 10 s; a second start that itself hangs longer than that; the first window
+     closing, crashing or losing what it showed after the resume; a second window that opens at once (then the
+     first copy was not yet hung when it was asked - repeat after the title bar says *Not responding*).
+   - Not a pass criterion, an observation only: a start made within 5 s of the suspension, before Windows calls
+     the window hung. Write down what happens if you try it.
+
+Record of runs (fill in; an empty row means the step has not been run):
+
+| Step | Date | Build (About window) | Windows version | Result (PASS / FAIL) | Evidence run id |
+| --- | --- | --- | --- | --- | --- |
+| 1. Second account, same session | | | | | |
+| 2. First copy elevated | | | | | |
+| 3. First copy suspended | | | | | |

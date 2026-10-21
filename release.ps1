@@ -142,24 +142,12 @@ function Get-InstallerVersion([datetime]$when) {
     [version]("{0}.{1}.{2}" -f ($when.Year % 100), $when.Month, (($when.Day - 1) * 1440 + $when.Hour * 60 + $when.Minute))
 }
 
-# The ProductVersion a published MSI really carries, read from its Property table. Read, not
-# derived: the tags before PKG-01 used another mapping, and the arithmetic is exactly what
-# this comparison must not have to trust.
-function Get-MsiProductVersion([string]$msiPath) {
-    $installer = New-Object -ComObject WindowsInstaller.Installer
-    $db = $installer.OpenDatabase($msiPath, 0)   # 0 = read-only
-    $view = $db.OpenView("SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ProductVersion'")
-    try {
-        # [void]: a COM method without a result still writes a $null into the output.
-        [void]$view.Execute()
-        $record = $view.Fetch()
-        if ($null -eq $record) { throw "$msiPath has no ProductVersion" }
-        return [version]$record.StringData(1)
-    } finally {
-        [void]$view.Close()
-        foreach ($com in @($view, $db, $installer)) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($com) }
-    }
-}
+# Get-MsiProductVersion: the ProductVersion a published MSI really carries, read from its Property
+# table. Read, not derived: the tags before PKG-01 used another mapping, and the arithmetic is exactly
+# what this comparison must not have to trust. It lives in the one helper build.ps1 also uses to read
+# the version back from the MSI and the setup EXE it builds (PACKAGE-VERSIONING P5 / W4); the file
+# holds functions only, so dot-sourcing it runs nothing.
+. (Join-Path $PSScriptRoot 'packaging\wix\installer-version.ps1')
 
 # Git status lines for anything outside the given top-level folders. Untracked files count:
 # an unignored *.pfx at the root is exactly what must never reach a public commit (REL-01).

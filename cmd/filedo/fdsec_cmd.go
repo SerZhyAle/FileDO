@@ -118,6 +118,12 @@ func reportFdsecError(err error, hl *HistoryLogger) {
 	fdsecSetExit(err)
 	runFailure(err)
 	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	// The closed token of a destination-name refusal (FDSEC-BEHAVIOUR 1.7
+	// section 19): a line of its own, exactly, so a wrapper can match it.
+	var dest *fdsecDestinationNameError
+	if errors.As(err, &dest) {
+		fmt.Fprintln(os.Stderr, fdsecReasonLine)
+	}
 }
 
 func fdsecHumanizeError(err error) error {

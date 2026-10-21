@@ -171,7 +171,8 @@ jobs:
       # AUD-68-F1 (owner decision 2026-10-01): the go tests of build.ps1's gate run here, on
       # the tagged source, with this toolchain and windows/amd64, BEFORE anything is built,
       # packaged or published; a failing test stops the job. Same packages and flags as
-      # build.ps1 step 2-3: the cmd\filedo-test module compile check, fdsec -short, vdisk, fmsworker, and
+      # build.ps1 step 2-3: the tests of the three companion modules (cmd\filedo-test, cmd\filedo-check,
+      # cmd\filedo-fill - each its own module, SP-0171 W6), fdsec -short, vdisk, fmsworker, and
       # cmd\filedo -vet=off with its version resource and FILEDO_FDSEC_REQUIRE_REPO_ROOT=1.
       # Not mirrored: build.ps1's vet baseline, placement check and GUI selftest.
       - name: Go test gate (as build.ps1)
@@ -187,11 +188,13 @@ jobs:
           VBLD: ${{ steps.ver.outputs.vBld }}
           PE_VERSION: ${{ steps.ver.outputs.peVersion }}
         run: |
-          Push-Location cmd\filedo-test
-          try {
-            go test ./...
-            if ($LASTEXITCODE -ne 0) { throw "go test ./... in cmd\filedo-test failed - nothing is built or published" }
-          } finally { Pop-Location }
+          foreach ($module in 'filedo-test', 'filedo-check', 'filedo-fill') {
+            Push-Location "cmd\$module"
+            try {
+              go test ./... -count=1
+              if ($LASTEXITCODE -ne 0) { throw "go test ./... in cmd\$module failed - nothing is built or published" }
+            } finally { Pop-Location }
+          }
           go test ./fdsec/ -count=1 -short
           if ($LASTEXITCODE -ne 0) { throw "go test ./fdsec/ failed - nothing is built or published" }
           go test ./vdisk/ -count=1

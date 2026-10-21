@@ -15,8 +15,9 @@
   It also declares, per surface, the region that lists the pillars - the landing and its de/fr pages, the
   guides hub, the five READMEs, the Store listing source, the winget manifest. `packaging/check-external-docs.ps1`
   (step `positioning`) fails when a region does not name the pillars it owes or names them out of order. No
-  surface is written from another; a change of order is made in the source first. The guides hub has no
-  guide for the erase pillar yet, so it is the one declared omission (`allowMissing`).
+  surface is written from another; a change of order is made in the source first. The guides hub names all
+  five pillars: the erase guide (`guides/erase.html`, with its de and fr pages) exists since SP-0171 W15 and
+  the one declared omission (`allowMissing`) is retired from the source.
 - **A fact is typed once.** The release version and channels come from the release source the landing reads;
   the public editions are one product (one release, one tag, a companion binary - not an edition), declared
   as such; a count or a name typed by hand on a page is compared with its source by a gate or is a gap.

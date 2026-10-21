@@ -12,3 +12,12 @@ vdisk/testdata/vectors/** -text
 cmd/filedo/testdata/events/*.jsonl -text
 # The Explorer icons (MenuIcons.vb) are compared pixel by pixel by the shell's self-test.
 assets/menu-icons/*.ico binary
+# The vendored web kit is served byte for byte and held to the catalog's SHA-256 (PAGE-STYLE section 0 step 1:
+# a line-ending conversion would change what the site serves). The help generator copies it beside the in-app help
+# pages (HelpPages.CopyKit) and packaging/check-help.ps1 compares the two files, so both are never converted.
+docs/kit/sza-kit.css -text
+docs/help/sza-kit.css -text
+# The Store listing builder proves itself on this committed export (BOM, CRLF between records, LF inside
+# cells, no final newline) by a byte-identical round trip (WINDOWS-STORE rule 13; msix/test-store-tools.ps1),
+# so git never normalises its line endings.
+msix/testdata/listingData.fixture.csv -text

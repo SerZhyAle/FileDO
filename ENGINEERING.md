@@ -249,12 +249,33 @@ code. Three things there are load-bearing and each has a test that fails loudly 
 - **A sweep runs at the top of `main()`, before argument dispatch**, and removes leftover sandboxes; a
   live reveal holds `<sandbox>.lock` open exclusively and is stepped around. The lock is taken *before*
   the sandbox directory exists, or a concurrently starting FileDO would delete a reveal about to be used.
-- **The sealed true name is never trusted and never logged.** It is refused if it carries a path
-  separator, a colon, a wildcard, a control character, a reserved device name, or a trailing dot or space
-  - that last one because Windows drops it, so `invoice.exe ` would land as `invoice.exe` while the
-  extension check saw something that is on no list. Refused, never sanitised. And the name goes to the
-  screen only: `history.json` records the sandbox directory, because the name is the thing the format
-  exists to hide.
+- **The sealed true name is never trusted and never logged, and two questions about it stay apart**
+  (FDSEC-FORMAT 1.5 sections 20 and 22, FDSEC-BEHAVIOUR 1.7 sections 18 and 19). *Does the format accept it?*
+  `fdsec.ValidateName`, called by every reader of every suite and again by `fdsecSandboxName`: bytes that
+  are not UTF-8 (the reader never turns one into U+FFFD and creates a file), a path
+  separator, a colon, a wildcard, a control character, a reserved device name (by its stem, so `nul.txt`
+  too), or a trailing dot or space
+  is damage - that last one because Windows drops it, so `invoice.exe ` would land as `invoice.exe` while
+  the extension check saw something that is on no list. Refused, never sanitised. A name that is not in NFC
+  is **not** decided (section 22 item 3): suites 2 and 3 refuse it, suite 1 reads it as written, and
+  `ValidateName` does not check it. *Can this destination
+  create it?* The four characters `"` `<` `>` `|` are **valid** in an authenticated name - in no suite
+  are they damage - and Windows cannot create them, nor a name over 255 UTF-16 units. That is a destination
+  failure, decided where the name becomes a file name: `fdsecDestinationNameCheck`, reached before the
+  first byte is written through `fdsec.WithNameCheck` (unsecure, reveal, `unsecure start`, a folder
+  container's root and every component of its entries), ends the restore with exit 5, one sentence that
+  names the rule and never the name, nothing written and the container untouched. It must never be a
+  class-4 error: calling a readable container damaged is the mistake this split exists to prevent. The
+  refusal also carries the closed token `destination-name` (`fdsecReasonDestinationName`): one stderr line
+  `reason=destination-name` after the error line (`reportFdsecError`) and `details.reason` on the error
+  finding (`runFailure`), so a wrapper or a window with no console says why without parsing a sentence;
+  nothing else may write it, and a format refusal (class 4) never does.
+  `rename` and an exact `to <path>` do not use the sealed name and are the way out; a name inside a
+  folder container has none. And the name goes to the screen only: `history.json` records the sandbox
+  directory, because the name is the thing the format exists to hide. The tests that hold this:
+  `fdsec_reveal_name_test.go` (what the format refuses), `fdsec_destname_test.go` and
+  `fdsec_destname_cli_test.go` (the destination, per verb and suite), `fdsec/names_test.go` (the three
+  suites) and `TestVectors_Names` (the generated boundary set in `fdsec/testdata/vectors/names/`).
 - **Executable and script types are extracted and never handed to the shell** (safety invariant 7), and a
   reveal takes exactly one container - never a mask, because a batch of plaintext copies is the shape of
   malware staging.
@@ -436,6 +457,15 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 - **`msix/listing/<code>.txt` is the one source of listing copy** (en ru uk de fr - the GUI's languages, kept in
   step with the manifest `Resources` and the builder's locale map). The Partner Center console is a render
   target and `store-listing.md` carries only what the CSV cannot. `msix/test-store-tools.ps1` gates both.
+- **The listing builder refuses, it does not warn** (WINDOWS-STORE rules 7 and 9, the 0.2 amendment):
+  `msix/build-store-listing-csv.ps1` exits 1 and writes nothing (no file, no folder) when a cell is over its cap
+  (counted after CRLF normalisation), when a language's seven search terms hold more than **21 words** in all (a
+  word is a non-whitespace run), when a term repeats, or when a shipped language has no column in the export or no
+  `msix/listing/<code>.txt`; its `-FillNothing` round trip refuses a missing column too. `msix/test-store-tools.ps1`
+  holds each with a negative case and counts the same 21 words on the sources; `msix/build-msix.ps1` asserts the
+  packed Store file has no `AppxSignature.p7x`; the committed export fixture is `-text`. That Partner Center
+  accepted a built file is shown only by re-exporting the draft and comparing bytes with the uploaded file, which
+  needs the owner's session and which nothing in `msix/` does.
 - **`msix/make-screenshots.ps1` takes the foreground**: run it on an idle machine. It chooses rail rows
   through UI Automation (each row is named `rail:<key>` and has a default action; the rail is an accordion, so
   it first folds every group but the page's own), captures either theme
@@ -446,12 +476,17 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 ## Testing - the gate in full
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
-- The real gate is `build.ps1 -Test`, in eleven steps (the last, `packaging/check-help.ps1`, holds the in-app
-  help set - see "The GUI shell"): smoke every shipped executable for its stamped version
-  and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); compile-check
-  `cmd\filedo-test`, validate `packaging/check-placement.jsonl` and run `packaging/check-gated-packages.ps1` (a Go package with tests that
-  no gate runs fails it unless it is exempt there with a reason); `go test ./fdsec/ -count=1 -short`;
-  `go test ./vdisk/ -count=1` and `go test ./fmsworker/ -count=1` (the FMS worker client linked into `filedo.exe`); `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt`;
+- The real gate is `build.ps1 -Test`, in twelve recorded steps - the `Record-GateStep` names, in the order they run:
+  `smoke`, `compile-test-module`, `fdsec`, `vdisk`, `filedo-cli-and-vet`, `gui-selftest`, `third-party-notices`,
+  `release-pins`, `internal-docs`, `external-docs`, `build-inputs` and `help-pages` (a green run prints
+  `build-gate <stamp>: PASS (ran 12, skipped 0)`; `-SkipGui` counts `gui-selftest` as skipped, `ran 11, skipped 1`):
+  smoke every shipped executable for its stamped version
+  and its release build shape (amd64, `-trimpath`, the pinned Go, PE version, manifest); run the tests of the three
+  companion modules `cmd\filedo-test`, `cmd\filedo-check` and `cmd\filedo-fill` (each its own module), validate
+  `packaging/check-placement.jsonl` and run `packaging/check-gated-packages.ps1` (a Go package with tests that
+  no gate runs fails it unless it is exempt there with a reason) - the step always runs all of them and names every
+  failure, none hides another; `go test ./fdsec/ -count=1 -short`;
+  `go test ./vdisk/ -count=1` and `go test ./fmsworker/ -count=1` (the FMS worker client linked into `filedo.exe`); `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt` (FileDO holds two set baselines, both shrink-only: this one and `docs/help/help-baseline.txt`, which `help-pages` reads);
   `filedo_win.exe --selftest` (skipped only with `-SkipGui`; its old log is deleted first, and a missing log
   is exit 2); `packaging/check-third-party-notices.ps1`; `release.yml`'s Go pin against `go.mod`'s; and
   `packaging/check-internal-docs.ps1` - every document declared in `docs/DOCUMENT_REGISTRY.jsonl` (a new
@@ -465,7 +500,16 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `check-external-docs.ps1 -Record` re-records the fingerprints; and `packaging/check-build-inputs.ps1` - no
   build input (a glyph, an icon, a source, project or installer file) is on disk yet git-ignored, because
   `git add -A` and the clean-tree check skip such a file silently and the tagged run builds from a checkout
-  that lacks it (SP-0049 AUD-18-F1). The
+  that lacks it (SP-0049 AUD-18-F1); and `packaging/check-help.ps1`, the last step, which holds the in-app help
+  set (see "The GUI shell"). Every gated `go test` runs as `go test -json` and ends in a test verdict line,
+  `go test <package>: PASS (run=N skipped=M)` (CHECK-VERDICT 0.13): `run` counts the tests that passed or failed,
+  `skipped` the tests that skipped, a subtest counts as a test, each skipped test is named above the line, and a
+  package that discovers no test - or whose tests all skip - is `COULD NOT VERIFY` and never a pass (the
+  `release.yml` mirror of these runs still reads only the exit code). The
+  `build-gate` line itself keeps the aggregator form. When `wix` is present, the installer step reads the version
+  back from the MSI (`ProductVersion`) and the setup EXE (its version resource) and compares both with the
+  remapped stamp (`installer-version <stamp>: PASS|FAIL`, exit 1 on a mismatch; the reader is shared with
+  `release.ps1` in `packaging/wix/installer-version.ps1`). The
   Go builds and tests all run as windows/amd64 - the shipped target; CI rebuilds the published binaries from the
   tag and re-runs the same `go test` gate before packaging - and the `cmd/filedo` suite's own
   exe is linked with the same version resource and manifest. Its last line is `build-gate <stamp>: PASS`,
@@ -479,8 +523,8 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   test and not only a compile: each companion's `main_test.go` pins every documented command line to the
   exact `filedo.exe` argv, and the shared `launcher_test.go` builds the launcher beside a stub `filedo.exe`
   and proves exit-code and argv forwarding, exit 2 with no `filedo.exe`, no current-folder/`PATH` lookup,
-  the symlink case and Ctrl+Break. `cmd\filedo-check` and `cmd\filedo-fill` carry the same suite, run the
-  same way from inside each module.
+  the symlink case and Ctrl+Break. `cmd\filedo-check` and `cmd\filedo-fill` carry the same suite, and the gate runs
+  all three the same way from inside each module (`release.yml` mirrors it).
 - **Three packages carry real tests** and all are part of the gate:
   - `fdsec/` - the container format, its boundary corpus, every tampering class and the committed vectors.
     It is vet-clean, so it runs plainly. `-short` drops the >4 GiB round trip; `release.ps1`
@@ -519,7 +563,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   (the rail's glyph map, with a shrink-only count of Segoe stand-ins), `rail-hue:`, `rail-group:`,
   `rail-accordion:` and `rail-band:` (the group icons' hues, no group of one job, one group open, the checker of
   bands), `glyph:` (the verdicts),
-  `state-tone:` (the shared `state.*` tones), `contrast:` (every glyph against its surface) and `hit-target:` (the 28 logical px floor of ICON-RENDER rule 5 under a mouse or a pen, on the glyph buttons at every tier, the Disk Manager's list rows, the check boxes after `Ui.HitTargetFloor` and the plain dialog buttons). Its palette switch goes through
+  `state-tone:` (the shared `state.*` tones), `contrast:` (every glyph against its surface), `state-fill:` (the APP-STYLE 0.13 status fill roles and their one ink: the ink against every fill at 4.5:1, every fill against the card, window and rail at 3:1, the verdict badge read back as drawn - light, dark and the high-contrast mapping), `settings-follow:` (APP-SETTINGS 0.7 rule 1: the pure choice of the monitor to bring the settings window to, over invented screens), `result-numbers:` (CLI-EVENT-STREAM: a null in a result's `numbers` is absent and the card still draws) and `hit-target:` (the 28 logical px floor of ICON-RENDER rule 5 under a mouse or a pen, on the glyph buttons at every tier, the Disk Manager's list rows, the check boxes after `Ui.HitTargetFloor` and the plain dialog buttons). Its palette switch goes through
   `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe
   and exits 0, 1, or 2 (the last means its log could not be written). It is a GUI-subsystem process, so from PowerShell it needs
   `Start-Process .\filedo_win.exe --selftest -Wait -PassThru` to have an exit code at all.
@@ -561,7 +605,8 @@ way back (new, export, compact, grow, seal, clone, pass, format, destroy) opens 
 with the container chosen, so the page that holds a typed confirmation stays the only one; the rail's Disks
 rows and the window's toolbar, menus and buttons draw their meanings from the one table in `DiskGlyphs.vb`;
 the keyboard map is the data table `DiskShortcuts.All` that the key handler, every tooltip and the help
-window all read; a control the build can never run (the Store build cannot mount) is **hidden**, not greyed
+window all read (F6 / Shift+F6 go between the window's areas, the shell's too, through `PaneCycle.vb`; Menu /
+Shift+F10 on the focused Help button open its menu, which is also the Help entry of the More menu); a control the build can never run (the Store build cannot mount) is **hidden**, not greyed
 (`DiskStates.HiddenInBuild`, APP-BEHAVIOUR rule 11). Its gate is `--selftest` (`disk-snap:`, `disk-state:`,
 `disk-matrix:`, `disk-quick:`, `disk-mgr:`, `disk-host:`, `disk-ui:`); `--capture-screens` also renders its
 three guide pictures; `tests/vd_manual.md` sections 5b and 7 are what only a screen can prove.
@@ -658,7 +703,9 @@ Four rules a change here must not break:
   and embedded in the exe; `Glyphs.vb` hashes each against `PROVENANCE.txt` before drawing it. A control
   names its meaning - `GlyphRef.Vocabulary("<id>")`, or `GlyphRef.Waiting("<proposed id>", ..)` with a
   Segoe stand-in while the catalog has no record - never a codepoint of its own. Mapping a new meaning is
-  three edits: the id in the sync script's list, the import, and the control; never hand-edit the folder,
+  three edits: the id in the sync script's list, the import, and the control (the `icons:used` rows read the
+  sources, so they prove a use only for an exe run from `bin\Release` or `exe_to_download`; elsewhere they say
+  "not proven" for every meaning only a button draws); never hand-edit the folder,
   and never drop `.gitattributes`' `-text` on it, or a checkout's line endings change every hash. The
   Explorer entries' and the `.fd-sec` type's icons are the same drawings as `.ico` files in
   `assets/menu-icons/`, written by `filedo_win.exe --write-menu-icons assets\menu-icons` (`MenuIcons.vb`)
@@ -697,7 +744,7 @@ rows cover them), and `filedo_win.exe --build-help docs\help` writes `<language>
 tree (`HelpCapture.vb`); it writes no setting of the user's. Never edit a generated page; edit the content or
 the strings and regenerate. The page set is copied into every channel (`build.ps1` MSI stage, `release.yml`
 stage for the zip and MSI, `msix/build-msix.ps1`; the MSI harvests `help\**` with `<Files>`).
-`packaging/check-help.ps1` (gate step 11) checks the set on disk - a page per surface in every language, the
+`packaging/check-help.ps1` (gate step `help-pages`, the twelfth) checks the set on disk - a page per surface in every language, the
 anatomy, no request, links, pictures - and, given `-Exe`, regenerates it and compares (rung 2). Debt is
 `docs/help/help-baseline.txt` (`page <help id>`, `ask <surface id>`), which may only fall: a line whose debt is
 paid fails as stale. Traps: control names are shared by the views of one window ("help:run" is on the job page

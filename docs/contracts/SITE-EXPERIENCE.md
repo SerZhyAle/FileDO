@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-EXPERIENCE` |
-| **Version** | 0.4, read 2026-10-21 (SP-0170); implemented partial 0.3 draft (opted in 2026-10-06; no wire carrier - a stylesheet layer, a set of components and a behaviour contract) |
+| **Version** | 0.4, read 2026-10-21 (SP-0170); implemented partial 0.4 draft (opted in 2026-10-06; no wire carrier - a stylesheet layer, a set of components and a behaviour contract) |
 | **Role** | consumer - the guide pages and the landing under `docs/` |
 | **Home** | shared contracts catalog, folder `product-site/`, document `SITE-EXPERIENCE.md` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

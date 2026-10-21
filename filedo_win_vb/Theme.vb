@@ -24,6 +24,10 @@
 '   SurfaceSelected surface.selected      AccentText      accent.ink
 '   Success, Warning, Danger              success, warning, danger (proposed roles)
 '   StateOk, StateWarning, StateError     ICON-RENDER's state role: a status glyph and a verdict plate
+'   StatusOkFill, StatusWarningFill,      status.ok.fill, status.warning.fill, status.error.fill,
+'   StatusErrorFill, StatusUnknownFill    status.unknown.fill (APP-STYLE 0.13: the fill of a state-filled
+'                                         surface - here the verdict badge; unknown is not disabled)
+'   StatusInk                             status.ink: the one ink drawn on all four fills of a theme
 ' Section 5, the surfaces that stay outside the theme, and why. They are native Win32 controls that
 ' WinForms cannot recolour without owner-drawing them whole:
 '   - the scroll bars of text boxes, list boxes and scrolled pages (system-drawn);
@@ -96,6 +100,17 @@ Module Theme
         Public Property StateOk As Color         ' palette.json state.ok
         Public Property StateWarning As Color    ' palette.json state.warning
         Public Property StateError As Color      ' palette.json state.error
+        ' APP-STYLE 0.13: the fill of a surface that stands for a state, and the one ink drawn on it.
+        ' Four fills - works, works with a risk, failed, no completed result yet ("unknown" is not
+        ' "disabled": it has its own fill and never the sunken surface) - and ONE ink per theme that
+        ' reaches 4.5:1 on every one of them. The state is never carried by the fill alone: the badge
+        ' also says the word and sits beside the state's glyph. Under high contrast every fill is the
+        ' window colour and the ink the window text colour (an unknown one: the disabled text colour).
+        Public Property StatusOkFill As Color       ' status.ok.fill
+        Public Property StatusWarningFill As Color  ' status.warning.fill
+        Public Property StatusErrorFill As Color    ' status.error.fill
+        Public Property StatusUnknownFill As Color  ' status.unknown.fill
+        Public Property StatusInk As Color          ' status.ink
     End Class
 
     ' The tokens are the ones the product's own pages use, so the window and the site are visibly
@@ -110,7 +125,8 @@ Module Theme
     ' The three State roles are not the site's: they are the portfolio's shared state hues
     ' (ICON-RENDER section 10 item D, the catalog's palette.json, vendored in assets/glyphs/), which
     ' the owner chose to take as exact tones on 2026-09-25 once a contrast proof held (SP-0016 D2).
-    ' They paint the verdict glyph, the verdict line of the Command page and the verdict badge. The
+    ' They paint the verdict glyph and the verdict line of the Command page; the verdict badge's fill
+    ' is the status fill roles below (APP-STYLE 0.13). The
     ' proof is the self-test's contrast: rows, and its state-tone: rows hold each role to the
     ' vendored palette - so a changed tone in the catalog fails here rather than drifting.
     ' state.warning's day tone was #F57C00 (2.70:1 on white, under the 3:1 of rule 3), and the light
@@ -118,11 +134,18 @@ Module Theme
     ' tone to #EF6C00 (3.08:1 on white), the exception is retired and the light StateWarning is now
     ' the catalog's tone, like the other five; the state-tone: rows hold all six. #EF6C00 is drawn
     ' only where it reaches its threshold - as a glyph at 3:1 on the white card; as the verdict word
-    ' or badge (4.5:1) and as a glyph on a hover or selection tint (2.2:1) the palette's own Warning
-    ' ink stands in (VerdictColor, VerdictBack, WarningGlyphOn). The text roles
+    ' (4.5:1) and as a glyph on a hover or selection tint (2.2:1) the palette's own Warning
+    ' ink stands in (VerdictColor, WarningGlyphOn). The text roles
     ' Success, Warning and Danger stay APP-STYLE's own, because they are held to 4.5:1 as text on
     ' every surface of the shell, where state.error's day tone is 4.4:1 on the window and 4.1:1 on
     ' the rail.
+    '
+    ' The four status fills (APP-STYLE 0.13) are FileDO's own values. One ink per theme - white by
+    ' day, the green-black of AccentText by night - reaches 4.5:1 on all four fills of its theme, and
+    ' every fill reaches 3:1 on the window, the card and the rail (the self-test's state-fill: rows
+    ' measure both on every run). Passed and Failed keep the tones of their glyphs; by day the warning
+    ' fill is the darker amber #A15C00, because the shared #EF6C00 reaches only 3.08:1 under white;
+    ' unknown is a blue-grey that belongs to no other role, never the sunken surface.
 
     Private ReadOnly LightPalette As Palette = Derive(New Palette With {
         .IsDark = False,
@@ -139,7 +162,12 @@ Module Theme
         .Danger = Color.FromArgb(179, 38, 30),
         .StateOk = Color.FromArgb(46, 125, 50),        ' #2E7D32 state.ok day
         .StateWarning = Color.FromArgb(239, 108, 0),   ' #EF6C00 state.warning day
-        .StateError = Color.FromArgb(211, 47, 47)      ' #D32F2F state.error day
+        .StateError = Color.FromArgb(211, 47, 47),     ' #D32F2F state.error day
+        .StatusOkFill = Color.FromArgb(46, 125, 50),       ' #2E7D32, white ink 5.13:1
+        .StatusWarningFill = Color.FromArgb(161, 92, 0),   ' #A15C00, white ink 5.19:1
+        .StatusErrorFill = Color.FromArgb(211, 47, 47),    ' #D32F2F, white ink 4.98:1
+        .StatusUnknownFill = Color.FromArgb(95, 107, 122), ' #5F6B7A, white ink 5.43:1
+        .StatusInk = Color.FromArgb(255, 255, 255)
     })
 
     Private ReadOnly DarkPalette As Palette = Derive(New Palette With {
@@ -157,7 +185,12 @@ Module Theme
         .Danger = Color.FromArgb(229, 83, 75),
         .StateOk = Color.FromArgb(129, 199, 132),      ' #81C784 state.ok night
         .StateWarning = Color.FromArgb(255, 183, 77),  ' #FFB74D state.warning night
-        .StateError = Color.FromArgb(239, 83, 80)      ' #EF5350 state.error night
+        .StateError = Color.FromArgb(239, 83, 80),     ' #EF5350 state.error night
+        .StatusOkFill = Color.FromArgb(129, 199, 132),      ' #81C784, ink 9.46:1
+        .StatusWarningFill = Color.FromArgb(255, 183, 77),  ' #FFB74D, ink 10.99:1
+        .StatusErrorFill = Color.FromArgb(239, 83, 80),     ' #EF5350, ink 5.46:1
+        .StatusUnknownFill = Color.FromArgb(163, 173, 184), ' #A3ADB8, ink 8.36:1
+        .StatusInk = Color.FromArgb(4, 19, 12)
     })
 
     ' The roles that are a mix of two others, mixed here once per palette (APP-STYLE section 4). A
@@ -234,7 +267,10 @@ Module Theme
             .ControlHover = SystemColors.Window, .SurfaceSelected = SystemColors.Window,
             .SurfaceBand = SystemColors.Window, .BandHover = SystemColors.Window,
             .Success = SystemColors.WindowText, .Warning = SystemColors.WindowText, .Danger = SystemColors.Highlight,
-            .StateOk = SystemColors.WindowText, .StateWarning = SystemColors.WindowText, .StateError = SystemColors.WindowText
+            .StateOk = SystemColors.WindowText, .StateWarning = SystemColors.WindowText, .StateError = SystemColors.WindowText,
+            .StatusOkFill = SystemColors.Window, .StatusWarningFill = SystemColors.Window,
+            .StatusErrorFill = SystemColors.Window, .StatusUnknownFill = SystemColors.Window,
+            .StatusInk = SystemColors.WindowText
         }
     End Function
 
@@ -575,21 +611,64 @@ Module Theme
     ' The verdict badge: its fill and its text, as one function of (verdict, palette). The result
     ' path and ApplyTheme both call it, so a theme switch with a result on screen repaints the badge
     ' in the new palette instead of keeping the old one (APP-STYLE section 3, "a reference resolved
-    ' once at load"). The fill is the state's own hue, the plate of the glyph beside it.
+    ' once at load"). Since APP-STYLE 0.13 the fill is one of the four status fill roles and the text
+    ' is the one status ink - there is no second ink, and no verdict borrows the sunken surface.
     Public Function VerdictBack(verdict As String, p As Palette) As Color
-        Select Case If(verdict, "").ToLowerInvariant()
-            Case "passed" : Return p.StateOk
-            Case "failed" : Return p.StateError
-            Case "stopped" : Return If(ContrastRatio(p.AccentText, p.StateWarning) >= 4.5, p.StateWarning, p.Warning)
-            Case "done" : Return p.Accent
-            Case Else : Return p.SurfaceAlt
-        End Select
+        Return StatusFill(StatusOf(verdict), p)
     End Function
 
     Public Function VerdictFore(verdict As String, p As Palette) As Color
+        Return StatusInkOn(StatusOf(verdict), p)
+    End Function
+
+    ' ---- the status fill roles (APP-STYLE 0.13) ------------------------------
+    ' The four states a state-filled surface can stand for. The verdict badge is FileDO's only such
+    ' surface; the Disk Manager's row states and the Command page's verdict line are glyph and text
+    ' tones on a plain surface, and the job page's caution badges (destructive, needs admin) are the
+    ' danger and warning ink roles, which APP-STYLE 0.13 leaves with their own meaning.
+    Friend Enum StatusKind
+        Ok          ' status.ok.fill      - it worked, it is verified
+        Warning     ' status.warning.fill - it worked, with a risk the user should know about
+        Failure     ' status.error.fill   - it failed and needs attention
+        Unknown     ' status.unknown.fill - no completed result; not "off" and not "disabled"
+    End Enum
+
+    ' Which state a verdict word is. Passed and Done both worked and both draw status.ok (the word on
+    ' the badge tells them apart); Stopped ended early because the user asked - it did not fail, and
+    ' it did not finish; "Not proven" and any word this build does not know are no completed result.
+    Friend Function StatusOf(verdict As String) As StatusKind
         Select Case If(verdict, "").ToLowerInvariant()
-            Case "passed", "failed", "stopped", "done" : Return p.AccentText
-            Case Else : Return p.Text
+            Case "passed", "done" : Return StatusKind.Ok
+            Case "stopped" : Return StatusKind.Warning
+            Case "failed" : Return StatusKind.Failure
+            Case Else : Return StatusKind.Unknown
+        End Select
+    End Function
+
+    Friend Function StatusFill(kind As StatusKind, p As Palette) As Color
+        Select Case kind
+            Case StatusKind.Ok : Return p.StatusOkFill
+            Case StatusKind.Warning : Return p.StatusWarningFill
+            Case StatusKind.Failure : Return p.StatusErrorFill
+            Case Else : Return p.StatusUnknownFill
+        End Select
+    End Function
+
+    ' The ink on a status fill: status.ink, the same for all four. Under high contrast the fills are the
+    ' window colour and the ink the window text colour, except that an unknown state is drawn in the
+    ' system's disabled text colour (APP-STYLE 0.13: window, window text and disabled text).
+    Friend Function StatusInkOn(kind As StatusKind, p As Palette) As Color
+        If p.HighContrast AndAlso kind = StatusKind.Unknown Then Return p.TextDisabled
+        Return p.StatusInk
+    End Function
+
+    ' The role's name as the contract spells it, for the self-test's rows.
+    Friend Function StatusRoleName(kind As StatusKind) As String
+        Select Case kind
+            Case StatusKind.Ok : Return "status.ok.fill"
+            Case StatusKind.Warning : Return "status.warning.fill"
+            Case StatusKind.Failure : Return "status.error.fill"
+            Case Else : Return "status.unknown.fill"
         End Select
     End Function
 

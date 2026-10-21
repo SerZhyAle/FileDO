@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -469,5 +470,10 @@ func TestHistoryErrorIsScreened(t *testing.T) {
 	}
 	if _, nerr := fdsecSandboxName(strings.Repeat("s", 300) + ".txt"); nerr == nil || strings.Contains(nerr.Error(), "sss") {
 		t.Fatalf("a 300-character sealed name must be refused without being echoed: %v", nerr)
+	} else if errors.Is(nerr, fdsec.ErrDamaged) {
+		// FDSEC-FORMAT 1.4 section 20 / FDSEC-BEHAVIOUR 1.6 section 18: a name the
+		// format holds and no file system here can create is a destination
+		// failure (exit 5), not a damaged container. It used to be ErrDamaged.
+		t.Fatalf("a valid sealed name the destination cannot create was reported as damage: %v", nerr)
 	}
 }

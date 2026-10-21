@@ -493,6 +493,10 @@ if (($packedResourceLanguages -join ',') -cne ($expectedResourceLanguages -join 
     [void]$problems.Add("packed Resource languages are '$($packedResourceLanguages -join ',')', expected '$($expectedResourceLanguages -join ',')'; resources.pri must not narrow Store listing reach")
 }
 if (-not $testMode -and ($IdentityName -match 'LocalTest' -or $Publisher -match 'LocalTest')) { [void]$problems.Add("a Store package carries the local-test identity") }
+# WINDOWS-STORE rule 2 / rung 3: the file offered for upload is unsigned (Microsoft signs at certification).
+# A -SelfSign package is signed only after this check, so the entries read here are the unsigned pack in
+# every mode; the assertion is made for the Store build, the one that is uploaded.
+if (-not $testMode) { foreach ($p in (Test-UnsignedStorePackage -Entries $entries)) { [void]$problems.Add($p) } }
 if ($problems.Count) {
     Write-Host " FAILED" -ForegroundColor Red
     $problems | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }

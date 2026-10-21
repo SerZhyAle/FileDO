@@ -8,7 +8,8 @@ sources of truth is how a corrected claim survives in a live listing.
 
 What those fields say (SP-0166): the short description fits the 270 characters the Store shows in
 every view and makes no network claim; the long description opens with the value for the reader, not
-with a list of commands; there are at most seven search terms of at most 30 characters, each relevant
+with a list of commands; there are at most seven search terms of at most 30 characters and 21 words in
+all (WINDOWS-STORE 0.2; the builder refuses more), each relevant
 to the product, none another product's title and none a pricing term (policy 10.1.3), and neither
 "encryption" nor "file manager" among them. The closing "No accounts, no ads, no telemetry." is in
 the English short description only: the ru, uk, de and fr texts are at 259-268 of 270 characters and

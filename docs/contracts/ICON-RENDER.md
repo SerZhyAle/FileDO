@@ -26,8 +26,8 @@
 themes; every vocabulary glyph is the catalog's Material filled drawing on the 24 grid, filled as a vector
 path (`filedo_win_vb/Glyphs.vb`, `SvgPath.vb`) in the colour of its role, at the 20 px tier on the rail and
 its group chevrons and 24 px beside the job page's verdict badge; the verdict glyph, the Command page's
-verdict line and the verdict badge take the shared `state.*` tones exactly (`Theme.vb` `StateOk`,
-`StateWarning`, `StateError`), held to the vendored `palette.json` by the self-test's `state-tone:` rows;
+verdict line take the shared `state.*` tones exactly (`Theme.vb` `StateOk`,
+`StateWarning`, `StateError`), held to the vendored `palette.json` by the self-test's `state-tone:` rows; the verdict badge takes the APP-STYLE 0.13 status fills (`StatusOkFill`, `StatusWarningFill`, `StatusErrorFill`, `StatusUnknownFill`, `StatusInk`, held by the `state-fill:` rows);
 every glyph's contrast against every surface it is drawn on is measured by the `contrast:` rows (3:1 for a
 glyph, 4.5:1 for the verdict word and badge) in both palettes; the verdict glyph is decoration beside the
 word that names the verdict; the rail's 44 px targets; the site's glyph as a single-colour inline SVG

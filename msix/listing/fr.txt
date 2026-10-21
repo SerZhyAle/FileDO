@@ -70,22 +70,22 @@ Code source ouvert, sans accès au réseau, sans télémétrie, sans publicité,
 fausse clé usb
 
 @@SearchTerm2
-clé usb fausse capacité
+fausse capacité
 
 @@SearchTerm3
-vérifier capacité clé usb
+capacité clé usb
 
 @@SearchTerm4
-tester capacité carte sd
+capacité carte sd
 
 @@SearchTerm5
-trouver fichiers en double
+fichiers en double
 
 @@SearchTerm6
 effacer espace libre
 
 @@SearchTerm7
-protéger fichier mot de passe
+fichier mot de passe
 
 @@ReleaseNotes
 Modifié : FileDO ne modifie plus les paramètres de Microsoft Defender (l'option noscan de mount est retirée), et ses étapes de disque n'exécutent plus PowerShell en commande encodée.

@@ -167,6 +167,9 @@ $installerVersion = Get-InstallerVersion $stampDate
 $vMaj = $stampDate.Year % 100; $vMin = $stampDate.Month; $vPat = $stampDate.Day
 $vBld = $stampDate.Hour * 100 + $stampDate.Minute
 $peVersion = "$vMaj.$vMin.$vPat.$vBld"
+# Reading the installer's version back from the files wix produces (PACKAGE-VERSIONING P5 / W4) uses the
+# one reader release.ps1 also uses. The file holds functions only: dot-sourcing it runs nothing.
+. "$root\packaging\wix\installer-version.ps1"
 
 Write-Host "Version: $version   (PE $peVersion, installer $installerVersion)"
 Write-Host ""
@@ -212,6 +215,112 @@ function Write-GateVerdict([int]$code, [string[]]$failures, [string[]]$unverifie
     } else {
         Write-Host "build-gate ${version}: COULD NOT VERIFY ($($unverified -join '; '))" -ForegroundColor Yellow
     }
+}
+
+# CHECK-VERDICT 0.13 rules 12 and 13 (SP-0171 W5). `go test` exits 0 over a package whose every test skipped and
+# over one that discovered no test, so its exit code alone says nothing about what ran. Every gated go test run
+# goes through here: it runs `go test -json`, counts the tests from the event stream itself and ends in a test
+# verdict line
+#     go test ./fdsec/: PASS (run=N skipped=M)
+# `run` is the tests that executed to a pass or a fail, `skipped` the tests that skipped; a subtest is a test and
+# is counted once. A FAIL or COULD NOT VERIFY line carries the same two tokens (the deciding tests are above it).
+#   Code 0  go test passed and at least one test ran
+#   Code 1  go test failed
+#   Code 2  could not verify: no test executed, or a package passed without running a test (rule 12: undetermined,
+#           never the empty-set pass), or $UnverifiedMarker (the caller's declared input) appeared on a failing run
+# A skip stays code 0 and is named above the verdict line, one per line (rule 13); the one declared input of this
+# gate, the repository root of the cmd\filedo surfaces test, is a failure that carries the marker, not a skip.
+# Returns the result object; Write-GoTestReport prints it, Record-GateStep takes Code and Detail.
+function Invoke-GateGoTest([string]$Subject, [string[]]$GoArgs, [string]$UnverifiedMarker = '') {
+    $run = 0; $skipped = 0; $sawMarker = $false
+    $skipLines = [System.Collections.Generic.List[string]]::new()
+    $failedText = [System.Collections.Generic.List[string]]::new()
+    $loose = [System.Text.StringBuilder]::new()     # output that belongs to no test, and lines that are no event
+    $perTest = @{}                                  # "package|test" -> its output, until the test has a result
+    $resultsIn = @{}                                # package -> tests that reached a result
+    $emptyPackages = [System.Collections.Generic.List[string]]::new()
+    & go test -json @GoArgs 2>&1 | ForEach-Object {
+        $raw = [string]$_
+        $ev = $null
+        if ($raw.StartsWith('{')) { try { $ev = $raw | ConvertFrom-Json } catch { $ev = $null } }
+        if ($null -eq $ev -or $null -eq $ev.PSObject.Properties['Action']) {
+            [void]$loose.AppendLine($raw)
+            if ($UnverifiedMarker -and $raw.Contains($UnverifiedMarker)) { $sawMarker = $true }
+            return
+        }
+        $action = [string]$ev.Action
+        $pkg = if ($ev.PSObject.Properties['Package']) { [string]$ev.Package } elseif ($ev.PSObject.Properties['ImportPath']) { [string]$ev.ImportPath } else { '' }
+        $test = if ($ev.PSObject.Properties['Test']) { [string]$ev.Test } else { '' }
+        $out = if ($ev.PSObject.Properties['Output']) { [string]$ev.Output } else { '' }
+        if ($UnverifiedMarker -and $out.Contains($UnverifiedMarker)) { $sawMarker = $true }
+        $key = "$pkg|$test"
+        if ($action -eq 'output' -or $action -eq 'build-output') {
+            if ($test) {
+                if (-not $perTest.ContainsKey($key)) { $perTest[$key] = [System.Text.StringBuilder]::new() }
+                [void]$perTest[$key].Append($out)
+            } else {
+                [void]$loose.Append($out)
+            }
+        } elseif ($test -and ($action -eq 'pass' -or $action -eq 'fail' -or $action -eq 'skip')) {
+            $buffer = if ($perTest.ContainsKey($key)) { $perTest[$key].ToString() } else { '' }
+            $perTest.Remove($key)
+            $resultsIn[$pkg] = 1 + [int]$resultsIn[$pkg]
+            if ($action -eq 'pass') {
+                $run++
+            } elseif ($action -eq 'fail') {
+                $run++
+                $failedText.Add("--- FAIL: $test ($pkg)`n$($buffer.TrimEnd())")
+            } else {
+                $skipped++
+                # The reason is the last "file_test.go:NN: text" line the test printed before it skipped.
+                $why = [regex]::Matches($buffer, '(?m)^\s*(\S+_test\.go:\d+):\s*(.+?)\s*$') | Select-Object -Last 1
+                $skipLines.Add($(if ($why) { "  skipped: $test ($($why.Groups[1].Value): $($why.Groups[2].Value.Substring(0, [Math]::Min(100, $why.Groups[2].Value.Length))))" } else { "  skipped: $test" }))
+            }
+        } elseif (-not $test -and $action -eq 'pass') {
+            # A package-level pass with no test result in it: the package has test files and discovered no test.
+            if (-not $resultsIn.ContainsKey($pkg)) { $emptyPackages.Add($pkg) }
+        }
+    }
+    $nativeCode = $LASTEXITCODE
+
+    $problems = [System.Collections.Generic.List[string]]::new()
+    if ($nativeCode -eq 0) {
+        if ($run -eq 0) { $problems.Add($(if ($skipped) { "every test skipped ($skipped), none ran" } else { 'no test was discovered, none ran' })) }
+        else { foreach ($p in $emptyPackages) { $problems.Add("package $p passed without running a test") } }
+    }
+    $code = if ($nativeCode -ne 0) { if ($sawMarker) { 2 } else { 1 } } elseif ($problems.Count) { 2 } else { 0 }
+
+    $detail = ''
+    if ($code -ne 0 -and $nativeCode -eq 0) {
+        # go test passed; what is wrong is what it did not run, and the reasons say all of it.
+        $detail = ($problems | ForEach-Object { "${Subject}: $_" }) -join "`n"
+    } elseif ($code -ne 0) {
+        $parts = [System.Collections.Generic.List[string]]::new()
+        foreach ($t in $failedText) { $parts.Add($t) }
+        # A test that never reached a result (a panic, a timeout) still has its output.
+        foreach ($k in $perTest.Keys) { $parts.Add("--- no result: $($k.Replace('|', ' '))`n$($perTest[$k].ToString().TrimEnd())") }
+        if ($loose.Length) { $parts.Add($loose.ToString().TrimEnd()) }
+        $detail = ($parts | Where-Object { $_ }) -join "`n"
+    }
+    $word = if ($code -eq 0) { 'PASS' } elseif ($code -eq 1) { 'FAIL' } else { 'COULD NOT VERIFY' }
+    [pscustomobject]@{
+        Subject = $Subject; Code = $code; Run = $run; Skipped = $skipped; Detail = $detail
+        SkipLines = $skipLines.ToArray(); Line = "${Subject}: $word (run=$run skipped=$skipped)"
+    }
+}
+
+# The skipped tests, one per line, then the test verdict line (rule 13: the names come before the line).
+function Write-GoTestReport($result) {
+    foreach ($l in $result.SkipLines) { Write-Host $l -ForegroundColor DarkYellow }
+    $color = if ($result.Code -eq 0) { 'Green' } elseif ($result.Code -eq 1) { 'Red' } else { 'Yellow' }
+    Write-Host $result.Line -ForegroundColor $color
+}
+
+# The code of several results: a defect outranks "could not verify", which outranks a pass (rule 14's precedence).
+function Get-WorstGateCode([int[]]$codes) {
+    if (@($codes | Where-Object { $_ -ne 0 -and $_ -ne 2 }).Count) { return 1 }
+    if (@($codes | Where-Object { $_ -eq 2 }).Count) { return 2 }
+    return 0
 }
 
 # Environment before work, not after: a missing toolchain means this run can
@@ -448,41 +557,44 @@ if ($Test) {
         Record-GateStep 'smoke' 0
     }
 
-    # 2) Compile-check the test module (root `go test ./...` is known-broken per
-    #    AGENTS.md, so we only run the module that is expected to pass).
-    #    cmd\filedo-test is its own module: the check must run from inside it.
-    #    `go test ./cmd/filedo-test` from the root fails with "main module
-    #    (filedo) does not contain package", so do not print that form here -
-    #    a console line naming a command that cannot work gets copy-pasted.
-    Write-Host "go test ./... (in cmd\filedo-test) ..." -NoNewline
-    $compileCode = 0; $compileDetail = ''
-    Push-Location "$root\cmd\filedo-test"
-    try {
-        $testOut = go test ./... 2>&1 | Out-String
-        if ($LASTEXITCODE -ne 0) {
-            $compileCode = 1; $compileDetail = $testOut
+    # 2) Compile-check the companion test modules (root `go test ./...` is known-broken per
+    #    AGENTS.md, so we only run the modules that are expected to pass).
+    #    cmd\filedo-test, cmd\filedo-check and cmd\filedo-fill are each their own module: the
+    #    run must happen from inside it. `go test ./cmd/filedo-test` from the root fails with
+    #    "main module (filedo) does not contain package", so do not print that form here -
+    #    a console line naming a command that cannot work gets copy-pasted. Since SP-0171 W6
+    #    all three run (no gate ran the check and fill modules before): each carries the shared
+    #    launcher suite and a main_test.go that pins its documented command lines to the argv
+    #    of filedo.exe.
+    #    CHECK-VERDICT rule 9: the step runs every one of its checks - the three module tests,
+    #    the placement registry and the gated-packages check - and names all the failures,
+    #    where it used to stop at the first.
+    Write-Host "go test ./... (in cmd\filedo-test, cmd\filedo-check, cmd\filedo-fill), placement registry, gated packages ..." -NoNewline
+    $compileCodes = [System.Collections.Generic.List[int]]::new()
+    $compileDetails = [System.Collections.Generic.List[string]]::new()
+    $moduleResults = [System.Collections.Generic.List[object]]::new()
+    foreach ($module in @('filedo-test', 'filedo-check', 'filedo-fill')) {
+        Push-Location "$root\cmd\$module"
+        try {
+            $moduleResult = Invoke-GateGoTest "go test ./... (in cmd\$module)" @('./...', '-count=1')
+        } finally {
+            Pop-Location
         }
-    } finally {
-        Pop-Location
+        $moduleResults.Add($moduleResult)
+        $compileCodes.Add($moduleResult.Code)
+        if ($moduleResult.Code -ne 0) { $compileDetails.Add("cmd\${module}:`n$($moduleResult.Detail)") }
     }
-    if ($compileCode -eq 0) {
-        $placementOut = & "$root\packaging\check-placement.ps1" 2>&1 | Out-String
-        $placementCode = $LASTEXITCODE
-        if ($placementCode -ne 0) {
-            $compileCode = $placementCode
-            $compileDetail = $placementOut
-        }
-    }
-    if ($compileCode -eq 0) {
-        # A Go package with tests that no gate runs is a regression that ships green (AUD-92-F1).
-        $gatedOut = & "$root\packaging\check-gated-packages.ps1" 2>&1 | Out-String
-        $gatedCode = $LASTEXITCODE
-        if ($gatedCode -ne 0) {
-            $compileCode = $gatedCode
-            $compileDetail = $gatedOut
-        }
-    }
-    Record-GateStep 'compile-test-module' $compileCode $compileDetail
+    $placementOut = & "$root\packaging\check-placement.ps1" 2>&1 | Out-String
+    $placementCode = $LASTEXITCODE
+    $compileCodes.Add($placementCode)
+    if ($placementCode -ne 0) { $compileDetails.Add($placementOut.TrimEnd()) }
+    # A Go package with tests that no gate runs is a regression that ships green (AUD-92-F1).
+    $gatedOut = & "$root\packaging\check-gated-packages.ps1" 2>&1 | Out-String
+    $gatedCode = $LASTEXITCODE
+    $compileCodes.Add($gatedCode)
+    if ($gatedCode -ne 0) { $compileDetails.Add($gatedOut.TrimEnd()) }
+    Record-GateStep 'compile-test-module' (Get-WorstGateCode $compileCodes.ToArray()) ($compileDetails -join "`n")
+    foreach ($moduleResult in $moduleResults) { Write-GoTestReport $moduleResult }
 
     # 3) The real tests. Three packages carry `func Test*` today and all must be
     #    green: fdsec (the container format and its vectors), vdisk (the disk
@@ -494,12 +606,9 @@ if ($Test) {
     #    package main carries pre-existing vet debt (AGENTS.md "Testing");
     #    fdsec is vet-clean and is checked without it.
     Write-Host "go test ./fdsec/ ..." -NoNewline
-    $fdsecOut = go test ./fdsec/ -count=1 -short 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0) {
-        Record-GateStep 'fdsec' 1 $fdsecOut
-    } else {
-        Record-GateStep 'fdsec' 0
-    }
+    $fdsecResult = Invoke-GateGoTest 'go test ./fdsec/' @('./fdsec/', '-count=1', '-short')
+    Record-GateStep 'fdsec' $fdsecResult.Code $fdsecResult.Detail
+    Write-GoTestReport $fdsecResult
 
     # vdisk (SP-0004): the disk container, its abrupt-failure cases and the
     # FDD-FORMAT vectors. Vet-clean like fdsec, so it runs plainly. fmsworker
@@ -508,18 +617,12 @@ if ($Test) {
     # (a password sent to a foreign pipe server, a drain that forces by itself)
     # would have shipped green.
     Write-Host "go test ./vdisk/ and ./fmsworker/ ..." -NoNewline
-    $vdiskOut = go test ./vdisk/ -count=1 2>&1 | Out-String
-    $vdiskCode = $LASTEXITCODE
-    $fmsworkerOut = go test ./fmsworker/ -count=1 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0) {
-        $vdiskCode = 1
-        $vdiskOut += "`n" + $fmsworkerOut
-    }
-    if ($vdiskCode -ne 0) {
-        Record-GateStep 'vdisk' 1 $vdiskOut
-    } else {
-        Record-GateStep 'vdisk' 0
-    }
+    $vdiskResult = Invoke-GateGoTest 'go test ./vdisk/' @('./vdisk/', '-count=1')
+    $fmsworkerResult = Invoke-GateGoTest 'go test ./fmsworker/' @('./fmsworker/', '-count=1')
+    $vdiskDetails = @(@($vdiskResult, $fmsworkerResult) | Where-Object { $_.Code -ne 0 } | ForEach-Object { $_.Detail })
+    Record-GateStep 'vdisk' (Get-WorstGateCode @($vdiskResult.Code, $fmsworkerResult.Code)) ($vdiskDetails -join "`n")
+    Write-GoTestReport $vdiskResult
+    Write-GoTestReport $fmsworkerResult
 
     # The suite builds its own filedo.exe from this package directory. The version resource
     # is put back for the length of the run, so that exe carries the same app.manifest (UTF-8
@@ -528,20 +631,27 @@ if ($Test) {
     $oldRootRequirement = $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT
     $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT = '1'
     try {
-        New-VersionResource "$root\cmd\filedo"
-        $cliOut = go test ./cmd/filedo/ -count=1 -vet=off 2>&1 | Out-String
-        $cliNativeCode = $LASTEXITCODE
-    } catch {
-        $cliOut = "could not prepare the version resource: $_"
-        $cliNativeCode = 1
+        $resourceError = $null
+        try { New-VersionResource "$root\cmd\filedo" } catch { $resourceError = "$_" }
+        if ($resourceError) {
+            $cliResult = [pscustomobject]@{
+                Subject = 'go test ./cmd/filedo/'; Code = 1; Run = 0; Skipped = 0; SkipLines = @()
+                Detail = "could not prepare the version resource: $resourceError"
+                Line = 'go test ./cmd/filedo/: FAIL (run=0 skipped=0)'
+            }
+        } else {
+            # The marker is the one declared input of this gate: the surfaces test fails with it, under the
+            # variable set above, when it cannot find the repository root - "could not verify", not a defect.
+            $cliResult = Invoke-GateGoTest 'go test ./cmd/filedo/' @('./cmd/filedo/', '-count=1', '-vet=off') 'FDSEC_SURFACES_REPO_ROOT_MISSING'
+        }
     } finally {
         Remove-VersionResource "$root\cmd\filedo"
         if ($null -eq $oldRootRequirement) { Remove-Item Env:FILEDO_FDSEC_REQUIRE_REPO_ROOT -ErrorAction SilentlyContinue }
         else { $env:FILEDO_FDSEC_REQUIRE_REPO_ROOT = $oldRootRequirement }
     }
-    $cliCode = if ($cliNativeCode -eq 0) { 0 } elseif ($cliOut -match 'FDSEC_SURFACES_REPO_ROOT_MISSING') { 2 } else { 1 }
+    $cliCode = $cliResult.Code
     $cliDetails = [System.Collections.Generic.List[string]]::new()
-    if ($cliCode -ne 0) { $cliDetails.Add($cliOut) }
+    if ($cliCode -ne 0) { $cliDetails.Add($cliResult.Detail) }
 
     # CHECK-BASELINE: vet debt is a set, never a suppression. A missing file is
     # "could not verify" (rule 4), never "accept everything". HashSets rather
@@ -581,6 +691,7 @@ if ($Test) {
     # A defect in either half outranks "could not verify" in the other.
     $stepCode = if ($cliCode -eq 1 -or $vetCode -eq 1) { 1 } elseif ($cliCode -eq 2 -or $vetCode -eq 2) { 2 } else { 0 }
     Record-GateStep 'filedo-cli-and-vet' $stepCode ($cliDetails -join "`n")
+    Write-GoTestReport $cliResult
 
     # The GUI's own gate (filedo_win_vb\SelfTest.vb): it builds every job page, checks the
     # command each one would run and the localization keys behind it, then exits 0 or 1. A page
@@ -699,8 +810,12 @@ if ($Test) {
     $helpCode = $LASTEXITCODE
     Record-GateStep 'help-pages' $helpCode $(if ($helpCode -eq 2) { ($helpOut.Trim() -split "`r?`n")[-1] } else { $helpOut })
 
-    # A failed step outranks a step that could not verify. All eleven steps run
-    # before this decision, so one run names every defect it found.
+    # A failed step outranks a step that could not verify. All twelve recorded steps run before
+    # this decision - smoke, compile-test-module, fdsec, vdisk, filedo-cli-and-vet, gui-selftest,
+    # third-party-notices, release-pins, internal-docs, external-docs, build-inputs, help-pages
+    # (the Record-GateStep names, in the order they run) - so one run names every defect it found.
+    # A green run therefore prints "ran 12, skipped 0"; with -SkipGui, gui-selftest is counted as
+    # skipped instead: "ran 11, skipped 1".
     $gateExit = if ($gateFailures.Count) { 1 } elseif ($gateUnverified.Count) { 2 } else { 0 }
     if ($gateExit -ne 0) {
         Write-BuildSummary
@@ -871,6 +986,27 @@ function Build-FileDOInstaller {
     # Leaving it next to the two artifacts is what makes a person ask which of
     # the three things in dist\ is the installer.
     Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+
+    # PACKAGE-VERSIONING P5 / W4 (SP-0171 W7): the version the two files really carry, read back from the
+    # files wix just wrote and compared with the one the stamp maps to. $productVersion was only ever an
+    # argument to wix; a package or bundle that came out with another one would upgrade wrongly (Windows
+    # Installer compares three fields) and nothing else in this script would notice. A mismatch is a
+    # defect (exit 1), a file that cannot be read is "could not verify" (exit 2). Under -Test the gate's
+    # own verdict line stays the last line either way.
+    $readBack = Test-InstallerVersions $productVersion $msiPath $setupPath
+    if ($readBack.Code -eq 0) {
+        Write-Host "installer-version ${version}: PASS (the MSI and the setup EXE carry $productVersion)" -ForegroundColor Green
+    } else {
+        $readBackReasons = @($readBack.Problems) + @($readBack.Unverified)
+        foreach ($reason in $readBackReasons) { Write-Host "  $reason" -ForegroundColor Yellow }
+        if ($readBack.Code -eq 1) {
+            Write-Host "installer-version ${version}: FAIL ($($readBackReasons.Count) problem(s))" -ForegroundColor Red
+        } else {
+            Write-Host "installer-version ${version}: COULD NOT VERIFY ($($readBack.Unverified -join '; '))" -ForegroundColor Yellow
+        }
+        if ($Test) { Write-GateVerdict $readBack.Code @('installer-version') $readBack.Unverified $gateRan $gateSkipped }
+        exit $readBack.Code
+    }
 
     Write-Host ""
     Write-Host "Install it:"

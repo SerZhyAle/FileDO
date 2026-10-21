@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -64,6 +64,7 @@
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
@@ -105,8 +106,7 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
-        ◐</button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
         ><span data-l="ru">Установить</span><span data-l="en">Install</span
         ><span data-l="ua">Встановити</span></a
@@ -201,6 +201,35 @@
           </article>
           <article class="card">
             <h2>
+              <span data-l="ru">Стирание и затирание</span
+              ><span data-l="en">Erase and wipe</span
+              ><span data-l="ua">Стирання і затирання</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Что делают затирание файла, очистка папки и затирание
+                свободного места, о чём они спрашивают заранее, что
+                отвергают и чего не может обещать ни одно из них на SSD.</span
+              ><span data-l="en"
+                >What a file wipe, a folder wipe and a free-space wipe each do,
+                what they ask first, what they refuse, and what none of them
+                can promise on an SSD.</span
+              ><span data-l="ua"
+                >Що роблять затирання файлу, очищення теки й затирання
+                вільного місця, про що вони питають заздалегідь, що
+                відхиляють і чого жодне з них не може обіцяти на SSD.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="erase.html"
+                ><span data-l="ru">Открыть руководство</span
+                ><span data-l="en">Open guide</span
+                ><span data-l="ua">Відкрити посібник</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
               <span data-l="ru">Работать через окно</span
               ><span data-l="en">Work through a window</span
               ><span data-l="ua">Працювати через вікно</span>
@@ -280,6 +309,35 @@
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="install-and-explorer.html"
+                ><span data-l="ru">Открыть руководство</span
+                ><span data-l="en">Open guide</span
+                ><span data-l="ua">Відкрити посібник</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <span data-l="ru">Сборка из Microsoft Store</span
+              ><span data-l="en">The Microsoft Store build</span
+              ><span data-l="ua">Збірка з Microsoft Store</span>
+            </h2>
+            <p>
+              <span data-l="ru"
+                >Что умеет сборка из Microsoft Store, чего в ней нет (подключение
+                дисков, пункты Проводника, общий доступ) и как она
+                подписана.</span
+              ><span data-l="en"
+                >What the build from the Microsoft Store does, what it leaves out
+                (mounting, Explorer entries, sharing) and how it is
+                signed.</span
+              ><span data-l="ua"
+                >Що вміє збірка з Microsoft Store, чого в ній немає (підключення
+                дисків, пункти Провідника, спільний доступ) і як вона
+                підписана.</span
+              >
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="microsoft-store.html"
                 ><span data-l="ru">Открыть руководство</span
                 ><span data-l="en">Open guide</span
                 ><span data-l="ua">Відкрити посібник</span></a
@@ -457,7 +515,7 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>

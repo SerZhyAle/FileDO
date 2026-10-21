@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CLI-EVENT-STREAM` |
-| **Version** | 0.12, draft (wire carrier: `schemaVersion` 1 on every line) |
+| **Version** | 0.13, draft; the producer implements 0.13 (rule 17, 2026-10-21), the shell reads 0.12 and ignores `details.reason` (wire carrier: `schemaVersion` 1 on every line) |
 | **Home** | shared contracts catalog, folder `cli-event-stream/` |
 | **Role** | producer (`cmd/filedo`) and consumer (`filedo_win_vb`) - both implementations live here |
 | **Owner** | FileDO. Amendments are written in the catalog first |
@@ -27,6 +27,10 @@
   defect recorded before the stop outranks it - *Failed*, exit 1, on the graceful and the forced path
   (`outcome.go` `verdict`, `finishForcedRun`), and the shell's `Judge` keeps a *Failed* result even with
   its stop file present (rule 15).
+- **A destination-name refusal says why in a closed token** (rule 17): `runFailure` gives the `error` finding
+  `details.reason` = `destination-name` when the error is `fdsecDestinationNameError`, and nothing else ever
+  carries it. The message stays one sentence that names the rule and never the name. The shell does not read the
+  key yet (it matches the sentence); a second value needs the catalog first.
 - Both sides cite `CLI-EVENT-STREAM rule N` in their comments.
 - Open deviations are recorded as dated exceptions in the catalog's registry; ticket SP-0012.
 

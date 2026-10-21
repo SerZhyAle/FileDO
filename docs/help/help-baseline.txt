@@ -2,6 +2,7 @@
 # page <help id> - the page of a surface is not written yet (the surface answers with its fallback page).
 # ask <surface id> - the surface has help in the map but its F1 key and help button are not wired yet.
 # A line whose debt is paid is stale and fails the gate: delete it in the same edit that pays the debt.
+# A set baseline (CHECK-BASELINE rule 3): one identifier per line, the page lines first and then the ask lines, each group in ordinal order. check-help.ps1 fails a file that is out of order.
 page disk-adopt
 page disk-autostart
 page disk-destroy-partition
@@ -39,15 +40,15 @@ page job-vd-seal
 page job-vd-unmount
 page job-vd-verify
 page job-wipe
-ask shortcut-dialog
-ask disk.password
+ask disk.adopt
+ask disk.autostart
+ask disk.destroy-partition
+ask disk.help
 ask disk.mount-as
 ask disk.name
-ask disk.settings
-ask disk.help
-ask disk.welcome
-ask disk.autostart
-ask disk.share
 ask disk.new-partition
-ask disk.destroy-partition
-ask disk.adopt
+ask disk.password
+ask disk.settings
+ask disk.share
+ask disk.welcome
+ask shortcut-dialog

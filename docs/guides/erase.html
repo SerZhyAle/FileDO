@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/erase.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/erase.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background" />
+    <meta property="og:title" content="Erase and wipe with FileDO" />
+    <meta property="og:description" content="A practical FileDO guide to wiping a file, emptying a folder and wiping free space: the typed WIPE question, what is refused, and the limits on SSDs." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Erase and wipe with FileDO",
+        "headline": "Erase and wipe with FileDO",
+        "description": "A practical FileDO guide to wiping a file, emptying a folder and wiping free space: the typed WIPE question, what is refused, and the limits on SSDs.",
+        "url": "https://serzhyale.github.io/FileDO/guides/erase.html",
+        "inLanguage": [
+          "en",
+          "ru",
+          "uk"
+        ],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Erase and wipe with FileDO</title>
+    <meta
+      name="description"
+      content="A practical FileDO guide to wiping a file, emptying a folder and wiping free space: the typed WIPE question, what is refused, and the limits on SSDs."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var l = localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="ru">Установить</span><span data-l="en">Install</span
+        ><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/erase.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/erase.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="ru"
+            >Руководство · стирание и затирание</span
+          ><span data-l="en"
+            >Guide · erase and wipe</span
+          ><span data-l="ua"
+            >Посібник · стирання і затирання</span
+          >
+        </p>
+        <h1>
+          <span data-l="ru"
+            >Одни способы перезаписывают, другие только удаляют. Знайте, какой запускаете.</span
+          ><span data-l="en"
+            >Some removals overwrite. Some only delete. Know which one you run.</span
+          ><span data-l="ua"
+            >Одні способи перезаписують, інші лише видаляють. Знайте, який запускаєте.</span
+          >
+        </h1>
+        <p class="lead">
+          <span data-l="ru"
+            >FileDO умеет затереть один файл, очистить папку, затереть свободное место диска или просто удалить. У каждого способа свой вопрос перед запуском, свои отказы и обещание скромнее, чем можно надеяться, - особенно на SSD. Здесь сказано точно, что делает каждый.</span
+          ><span data-l="en"
+            >FileDO can wipe one file, empty a folder, wipe the free space of a drive, or simply delete. Each asks its own question first, refuses its own targets, and promises less than you may hope on an SSD. This page says exactly what each one does.</span
+          ><span data-l="ua"
+            >FileDO вміє затерти один файл, очистити теку, затерти вільне місце диска або просто видалити. Кожен спосіб має власне запитання перед запуском, власні відмови й обіцяє менше, ніж можна сподіватися, - особливо на SSD. Тут сказано точно, що робить кожен.</span
+          >
+        </p>
+      </section>
+      <section class="section" id="ways">
+        <h2>
+          <span data-l="ru"
+            >Четыре способа убрать данные</span
+          ><span data-l="en"
+            >Four ways to remove data</span
+          ><span data-l="ua"
+            >Чотири способи прибрати дані</span
+          >
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Из этих четырёх что-либо перезаписывают только затирание файла и затирание свободного места. Очистка папки и простое удаление убирают файлы, а байты остаются на своих местах.</span
+          ><span data-l="en"
+            >Of these four, only the file wipe and the free-space wipe overwrite anything. The folder wipe and a plain delete remove the files and leave the bytes where they were.</span
+          ><span data-l="ua"
+            >З цих чотирьох щось перезаписують лише затирання файлу і затирання вільного місця. Очищення теки та просте видалення прибирають файли, а байти лишаються на своїх місцях.</span
+          >
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="ru"
+                >Затереть один файл</span
+              ><span data-l="en"
+                >Wipe one file</span
+              ><span data-l="ua"
+                >Затерти один файл</span
+              >
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Перезаписывает.</b> Один проход случайных данных по файлу на месте, сброс на диск, затем файл удаляется. Сначала просит набрать <code>WIPE</code>. Пункт Проводника <b>Wipe this file</b> запускает то же самое.</span
+              ><span data-l="en"
+                ><b>Overwrites.</b> One pass of random data over the file in place, flushed to the disk, then the file is removed. It asks you to type <code>WIPE</code> first. The Explorer entry <b>Wipe this file</b> runs the same thing.</span
+              ><span data-l="ua"
+                ><b>Перезаписує.</b> Один прохід випадкових даних по файлу на місці, скидання на диск, потім файл видаляється. Спершу просить набрати <code>WIPE</code>. Пункт Провідника <b>Wipe this file</b> запускає те саме.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo file D:\Work\old-report.docx wipe<button
+                class="copy"
+                data-copy="filedo file D:\Work\old-report.docx wipe"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru"
+                >Очистить папку</span
+              ><span data-l="en"
+                >Empty a folder</span
+              ><span data-l="ua"
+                >Очистити теку</span
+              >
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Удаляет, не перезаписывает.</b> Всё внутри уходит, сама папка остаётся - с правами доступа, владельцем, атрибутами, шифрованием и сжатием. Содержимое можно восстановить, пока место не занято другими данными. Сначала просит набрать <code>WIPE</code>.</span
+              ><span data-l="en"
+                ><b>Deletes, does not overwrite.</b> Every entry inside goes; the folder itself stays, with its access list, owner, attributes, encryption and compression. The contents can be recovered until the space is reused. It asks you to type <code>WIPE</code> first.</span
+              ><span data-l="ua"
+                ><b>Видаляє, не перезаписує.</b> Усе всередині зникає, сама тека лишається - з правами доступу, власником, атрибутами, шифруванням і стисненням. Вміст можна відновити, поки місце не зайняте іншими даними. Спершу просить набрати <code>WIPE</code>.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo folder D:\Cache wipe<button
+                class="copy"
+                data-copy="filedo folder D:\Cache wipe"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru"
+                >Затереть свободное место</span
+              ><span data-l="en"
+                >Wipe the free space</span
+              ><span data-l="ua"
+                >Затерти вільне місце</span
+              >
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Перезаписывает свободное место, ни один файл не трогает.</b> Пишет тестовые файлы, пока не останется только резерв, затем удаляет их словом <code>del</code>; всё, что лежало в свободных кластерах, при этом перезаписано. Число - размер каждого тестового файла в МБ. Набирать ничего не просит: создаёт собственные файлы и удаляет только их.</span
+              ><span data-l="en"
+                ><b>Overwrites the free space, touches no file.</b> Writes test files until only a reserve is left, then deletes them with <code>del</code>; whatever the free clusters held before has been overwritten on the way. The number is the size of each test file in MB. It asks no typed question: it creates files of its own and removes only those.</span
+              ><span data-l="ua"
+                ><b>Перезаписує вільне місце, жодного файлу не чіпає.</b> Пише тестові файли, доки не залишиться лише резерв, потім видаляє їх словом <code>del</code>; усе, що лежало у вільних кластерах, при цьому перезаписано. Число - розмір кожного тестового файлу в МБ. Нічого набирати не просить: створює власні файли й видаляє лише їх.</span
+              >
+            </p>
+            <div class="copybox">
+              filedo D: fill 1000 del<button
+                class="copy"
+                data-copy="filedo D: fill 1000 del"
+              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="ru"
+                >Простое удаление</span
+              ><span data-l="en"
+                >A plain delete</span
+              ><span data-l="ua"
+                >Просте видалення</span
+              >
+            </h3>
+            <p>
+              <span data-l="ru"
+                ><b>Удаляет, не перезаписывает.</b> Режимы <code>del</code> у дубликатов, сравнения и <code>secure</code>, а также <code>clean</code> убирают файлы обычным способом: программа восстановления вернёт байты, пока место не занято. Дубликаты и сравнение описаны в руководстве <a href="files-and-copies.html">«Дубликаты, копирование и сравнение»</a>.</span
+              ><span data-l="en"
+                ><b>Removes, does not overwrite.</b> The <code>del</code> modes of duplicates, compare and secure, and <code>clean</code>, remove files the ordinary way: an undelete tool can bring the bytes back until the space is reused. Duplicates and compare are described in <a href="files-and-copies.html">Duplicates, copy, and compare</a>.</span
+              ><span data-l="ua"
+                ><b>Видаляє, не перезаписує.</b> Режими <code>del</code> у дублікатів, порівняння та <code>secure</code>, а також <code>clean</code> прибирають файли звичайним способом: програма відновлення поверне байти, доки місце не зайняте. Дублікати й порівняння описано в посібнику <a href="files-and-copies.html">«Дублікати, копіювання та порівняння»</a>.</span
+              >
+            </p>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"><span data-l="ru">Системный диск и остатки</span><span data-l="en">System drive and leftovers</span><span data-l="ua">Системний диск і залишки</span></span>
+          <p>
+            <span data-l="ru"
+              >Тестовые файлы пишутся туда, куда вы направили заполнение. Если цель - корень системного диска (<code>C:</code>), заполнение после подтверждения перенаправляется в <code>%TEMP%\FileDO_Operations</code>; папка ниже корня используется как названа. Если заполнение прервано или вы не указали <code>del</code>, <code>filedo D: clean</code> покажет собственные тестовые файлы FileDO, спросит и удалит их.</span
+            ><span data-l="en"
+              >Test files are written where you point the fill. Aimed at the root of the system drive (<code>C:</code>), a fill is redirected, after a confirmation, to <code>%TEMP%\FileDO_Operations</code>; a folder below the root is used as you named it. If a fill is stopped, or you left out <code>del</code>, <code>filedo D: clean</code> lists FileDO's own test files, asks, and removes them.</span
+            ><span data-l="ua"
+              >Тестові файли пишуться туди, куди ви спрямували заповнення. Якщо ціль - корінь системного диска (<code>C:</code>), заповнення після підтвердження перенаправляється в <code>%TEMP%\FileDO_Operations</code>; тека нижче кореня використовується як названо. Якщо заповнення перервано або ви не вказали <code>del</code>, <code>filedo D: clean</code> покаже власні тестові файли FileDO, запитає й видалить їх.</span
+            >
+          </p>
+        </div>
+      </section>
+      <section class="section" id="confirm">
+        <h2>
+          <span data-l="ru"
+            >Подтверждение набором WIPE</span
+          ><span data-l="en"
+            >The typed confirmation</span
+          ><span data-l="ua"
+            >Підтвердження набором WIPE</span
+          >
+        </h2>
+        <p>
+          <span data-l="ru"
+            >Затирание файла и очистка папки останавливаются, печатают полный путь, к которому пришли (для папки - ещё и число найденных объектов), и спрашивают <code>Type WIPE to continue:</code>. Всё, кроме <code>WIPE</code> заглавными буквами, отменяет запуск, и ничего не удаляется. Прочитайте путь, прежде чем набирать.</span
+          ><span data-l="en"
+            >A file wipe and a folder wipe stop and print the full path they resolved (and, for a folder, how many items they found), then ask <code>Type WIPE to continue:</code>. Anything other than <code>WIPE</code> in capital letters cancels the run and nothing is removed. Read the path before you type.</span
+          ><span data-l="ua"
+            >Затирання файлу й очищення теки зупиняються, друкують повний шлях, до якого дійшли (для теки - ще й кількість знайдених об'єктів), і питають <code>Type WIPE to continue:</code>. Усе, крім <code>WIPE</code> великими літерами, скасовує запуск, і нічого не видаляється. Прочитайте шлях, перш ніж набирати.</span
+          >
+        </p>
+        <p>
+          <span data-l="ru"
+            ><code>--yes</code> (а также <code>-y</code> и <code>--force</code>) пропускает этот единственный вопрос для обычной цели - для скриптов. Больше он ничего не пропускает: затирание файла по-прежнему печатает оговорку про SSD, а отказы ниже действуют как прежде. Переменная окружения <code>FILEDO_AUTO_CONFIRM=1</code> отвечает на вопрос так же.</span
+          ><span data-l="en"
+            ><code>--yes</code> (also <code>-y</code> and <code>--force</code>) skips that single question on an ordinary target, for scripts. It skips nothing else: the file wipe still prints its caveat about SSDs, and the refusals below still apply. Setting <code>FILEDO_AUTO_CONFIRM=1</code> in the environment answers the question the same way.</span
+          ><span data-l="ua"
+            ><code>--yes</code> (а також <code>-y</code> і <code>--force</code>) пропускає це єдине запитання для звичайної цілі - для скриптів. Більше він нічого не пропускає: затирання файлу, як і раніше, друкує застереження про SSD, а відмови нижче діють як раніше. Змінна середовища <code>FILEDO_AUTO_CONFIRM=1</code> відповідає на запитання так само.</span
+          >
+        </p>
+        <div class="copybox">
+          filedo folder D:\Cache wipe --yes<button
+            class="copy"
+            data-copy="filedo folder D:\Cache wipe --yes"
+          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <p>
+          <span data-l="ru"
+            >Если ответить некому (стандартный ввод закрыт, как в скрипте без <code>--yes</code>), вопрос получает пустой ответ: запуск сообщает <code>wipe cancelled by user</code>, ничего не удаляет и завершается кодом 2. Завершённое затирание заканчивается кодом 0.</span
+          ><span data-l="en"
+            >With no one to answer (standard input closed, as in a script without <code>--yes</code>), the question gets an empty answer: the run says <code>wipe cancelled by user</code>, removes nothing and ends with exit code 2. A wipe that finishes ends with 0.</span
+          ><span data-l="ua"
+            >Якщо відповісти нікому (стандартний ввід закрито, як у скрипті без <code>--yes</code>), запитання отримує порожню відповідь: запуск повідомляє <code>wipe cancelled by user</code>, нічого не видаляє й завершується кодом 2. Завершене затирання закінчується кодом 0.</span
+          >
+        </p>
+      </section>
+      <section class="section" id="refusals">
+        <h2>
+          <span data-l="ru"
+            >Что отвергает и о чём спрашивает дважды</span
+          ><span data-l="en"
+            >What it refuses, and what it asks twice</span
+          ><span data-l="ua"
+            >Що відхиляє і про що питає двічі</span
+          >
+        </h2>
+        <p class="intro">
+          <span data-l="ru"
+            >Эти проверки относятся к цели, а не к вопросу, поэтому <code>--yes</code> их не пропускает.</span
+          ><span data-l="en"
+            >These checks belong to the target, not to the question, so <code>--yes</code> does not skip them.</span
+          ><span data-l="ua"
+            >Ці перевірки стосуються цілі, а не запитання, тому <code>--yes</code> їх не пропускає.</span
+          >
+        </p>
+        <dl class="term-list">
+          <dt>
+            <span data-l="ru"
+              >Корень диска или общей папки</span
+            ><span data-l="en"
+              >A drive root or a share root</span
+            ><span data-l="ua"
+              >Корінь диска або спільної теки</span
+            >
+          </dt>
+          <dd>
+            <span data-l="ru"
+              ><code>D:</code>, <code>D:\</code>, <code>\\server\share</code>, их записи через пути устройств и корень любого тома или точки подключения. <code>filedo D: wipe</code> означает <code>D:\</code>, так что очистка всего диска всегда относится к этому классу. FileDO спрашивает дважды: <code>WIPE</code>, затем путь цели, набранный так, как он показан.</span
+            ><span data-l="en"
+              ><code>D:</code>, <code>D:\</code>, <code>\\server\share</code>, their device-path spellings, and the root of any volume or mount point. <code>filedo D: wipe</code> means <code>D:\</code>, so wiping a drive is always in this class. FileDO asks twice: <code>WIPE</code>, then the target path typed as shown.</span
+            ><span data-l="ua"
+              ><code>D:</code>, <code>D:\</code>, <code>\\server\share</code>, їхні записи через шляхи пристроїв і корінь будь-якого тому чи точки підключення. <code>filedo D: wipe</code> означає <code>D:\</code>, тож очищення всього диска завжди належить до цього класу. FileDO питає двічі: <code>WIPE</code>, потім шлях цілі, набраний так, як його показано.</span
+            >
+          </dd>
+          <dt>
+            <span data-l="ru"
+              >Системные папки и папки FileDO</span
+            ><span data-l="en"
+              >System and FileDO folders</span
+            ><span data-l="ua"
+              >Системні теки та теки FileDO</span
+            >
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Папки TEMP, профиль пользователя и папка профилей, папка, из которой запущен FileDO, и все папки выше любой из них; папки Windows и Program Files и каталог данных самого FileDO - вместе со всем, что внутри. Спрашивает дважды, как выше, как бы ни был записан путь: буква subst, соединение (junction), короткое имя 8.3 или <code>\\localhost\C$</code> их не скрывают.</span
+            ><span data-l="en"
+              >The TEMP folders, the user profile and the profiles folder, the folder FileDO runs from, and every folder above any of these; the Windows and Program Files folders and FileDO's own data folder, with everything inside them as well. Asked twice, as above, however the path is spelled: a subst letter, a junction, a short 8.3 name or <code>\\localhost\C$</code> does not hide them.</span
+            ><span data-l="ua"
+              >Теки TEMP, профіль користувача й тека профілів, тека, з якої запущено FileDO, і всі теки вище будь-якої з них; теки Windows і Program Files та каталог даних самого FileDO - разом з усім, що всередині. Питає двічі, як вище, як би не було записано шлях: літера subst, з'єднання (junction), коротке ім'я 8.3 чи <code>\\localhost\C$</code> їх не приховують.</span
+            >
+          </dd>
+          <dt>
+            <span data-l="ru"
+              >Соединение, символическая ссылка или точка подключения</span
+            ><span data-l="en"
+              >A junction, symbolic link or mount point</span
+            ><span data-l="ua"
+              >З'єднання, символічне посилання або точка підключення</span
+            >
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Отказ сразу, и для затирания файла, и для очистки папки: действие через ссылку либо уберёт ссылку и оставит данные, либо перезапишет то, на что она указывает сегодня, - а это не то, чего хочет человек, просящий затирание. Очищайте нужную папку по её собственному пути.</span
+            ><span data-l="en"
+              >Refused outright, by the file wipe and by the folder wipe: acting through a link either removes the link and leaves the data, or overwrites whatever it points at today, and neither is what a person asking for a wipe means. Wipe the folder it points to by its own path.</span
+            ><span data-l="ua"
+              >Відмова одразу, і для затирання файлу, і для очищення теки: дія через посилання або прибере посилання й залишить дані, або перезапише те, на що воно вказує сьогодні, - а це не те, чого хоче людина, яка просить затирання. Очищайте потрібну теку за її власним шляхом.</span
+            >
+          </dd>
+          <dt>
+            <span data-l="ru"
+              >Файл с другой жёсткой ссылкой</span
+            ><span data-l="en"
+              >A file with another hard link</span
+            ><span data-l="ua"
+              >Файл з іншим жорстким посиланням</span
+            >
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Отказ: перезапись затрагивает все имена файла. Сообщение называет, сколько у файла имён; сначала уберите лишние ссылки или используйте <code>del</code>.</span
+            ><span data-l="en"
+              >Refused: the overwrite reaches every name of the file. The message says how many names there are; remove the extra links first, or use <code>del</code>.</span
+            ><span data-l="ua"
+              >Відмова: перезапис зачіпає всі імена файлу. Повідомлення називає, скільки імен має файл; спершу приберіть зайві посилання або скористайтеся <code>del</code>.</span
+            >
+          </dd>
+          <dt>
+            <span data-l="ru"
+              >Объект, который не удаётся удалить</span
+            ><span data-l="en"
+              >An entry that cannot be deleted</span
+            ><span data-l="ua"
+              >Об'єкт, який не вдається видалити</span
+            >
+          </dt>
+          <dd>
+            <span data-l="ru"
+              >Очистка папки перечисляет первые десять объектов, которые не удалось удалить (используются, заблокированы, отказано в доступе), продолжает с остальными и завершается кодом 2 с числом уцелевших объектов верхнего уровня. Атрибут «только чтение» - не отказ: FileDO снимает его и пробует снова.</span
+            ><span data-l="en"
+              >A folder wipe lists the first ten entries it could not delete (in use, locked, access denied), goes on with the rest and ends with exit code 2 and the number of top-level entries that survived. A read-only flag is not a refusal: FileDO clears it and retries.</span
+            ><span data-l="ua"
+              >Очищення теки перелічує перші десять об'єктів, які не вдалося видалити (використовуються, заблоковані, відмовлено в доступі), продовжує з рештою й завершується кодом 2 з кількістю вцілілих об'єктів верхнього рівня. Атрибут «лише читання» - не відмова: FileDO знімає його й пробує знову.</span
+            >
+          </dd>
+        </dl>
+      </section>
+      <section class="section" id="limits">
+        <h2>
+          <span data-l="ru"
+            >Что затирание обещать не может</span
+          ><span data-l="en"
+            >What a wipe cannot promise</span
+          ><span data-l="ua"
+            >Що затирання обіцяти не може</span
+          >
+        </h2>
+        <div class="note danger">
+          <span class="tag"><span data-l="ru">Пределы</span><span data-l="en">Limits</span><span data-l="ua">Межі</span></span>
+          <p>
+            <span data-l="ru"
+              >Перезапись на месте снижает шансы на восстановление и ничего не обещает. На SSD, флеш-картах и USB-накопителях, а также на файловых системах с копированием при записи и журналируемых перезапись на месте не гарантирует, что старые блоки исчезли; накопитель может хранить старые копии в резервной области. Очистка папки не перезаписывает ничего.</span
+            ><span data-l="en"
+              >Overwriting in place lowers the odds of recovery and promises nothing. On an SSD, a flash card or a USB stick, and on copy-on-write or journaled file systems, overwriting in place does not guarantee that the old blocks are gone; a drive may keep old copies in its spare area. The folder wipe overwrites nothing at all.</span
+            ><span data-l="ua"
+              >Перезапис на місці знижує шанси відновлення й нічого не обіцяє. На SSD, флеш-картках і USB-накопичувачах, а також на файлових системах із копіюванням під час запису та журнальованих перезапис на місці не гарантує, що старі блоки зникли; накопичувач може зберігати старі копії в резервній області. Очищення теки не перезаписує нічого.</span
+            >
+          </p>
+        </div>
+        <p>
+          <span data-l="ru"
+            >Затирание действует на один файл или одну папку, которые вы назвали, на этом томе. Копия, оставленная в другом месте - клиентом синхронизации, резервным копированием, другим диском или вами самим, - это другой файл, и FileDO его не ищет.</span
+          ><span data-l="en"
+            >A wipe acts on the one file or folder you name, on that volume. A copy kept somewhere else - by a sync client, a backup, another drive or yourself - is a different file, and FileDO does not look for it.</span
+          ><span data-l="ua"
+            >Затирання діє на один файл або одну теку, які ви назвали, на цьому томі. Копія, залишена в іншому місці - клієнтом синхронізації, резервним копіюванням, іншим диском або вами самим, - це інший файл, і FileDO його не шукає.</span
+          >
+        </p>
+        <p>
+          <span data-l="ru"
+            >У затирания свободного места есть свои пределы. Оно останавливается на резерве (меньшее из 100 МБ и 5 % тома; на системном томе - большее из 10 ГБ и 10 %) и на остатке меньше одного тестового файла, так что эти кластеры не записываются. Оно достаёт только свободные кластеры и никогда - файл, который ещё существует.</span
+          ><span data-l="en"
+            >The free-space wipe has limits of its own. It stops at a reserve (the smaller of 100 MB and 5 % of the volume; on the system volume the larger of 10 GB and 10 %) and at the remainder smaller than one test file, so those clusters are not written. It reaches only free clusters, never a file that still exists.</span
+          ><span data-l="ua"
+            >У затирання вільного місця є власні межі. Воно зупиняється на резерві (менше з 100 МБ і 5 % тому; на системному томі - більше з 10 ГБ і 10 %) та на залишку, меншому за один тестовий файл, тож ці кластери не записуються. Воно сягає лише вільних кластерів і ніколи - файлу, який ще існує.</span
+          >
+        </p>
+      </section>
+      <section class="section" id="window">
+        <h2>
+          <span data-l="ru"
+            >В окне</span
+          ><span data-l="en"
+            >In the window</span
+          ><span data-l="ua"
+            >У вікні</span
+          >
+        </h2>
+        <p>
+          <span data-l="ru"
+            >В списке слева группа <b>Стирание</b> содержит две страницы. <b>Заполнить свободное место</b> принимает диск и флажок <b>Автоматически удалять тестовые файлы (del)</b> и повторяет примечание о перенаправлении, когда цель - системный диск. <b>Очистить папку</b> считает, что лежит в цели, затем требует набрать <code>WIPE</code> заглавными буквами и отметить <b>Пропускать подтверждение (-y / --force)</b>, потому что у окна нет консоли для собственного вопроса программы. Корень диска, общую папку, соединение или TEMP окно вообще не запускает: страница говорит почему и показывает команду для консоли, где FileDO спрашивает дважды.</span
+          ><span data-l="en"
+            >In the rail, the <b>Erase</b> group has two pages. <b>Fill the free space</b> takes a drive and the <b>Auto-delete test files (del)</b> checkbox, and repeats the redirect note when the target is the system drive. <b>Wipe a folder</b> counts what the target holds, then wants <code>WIPE</code> typed in capital letters and <b>Skip confirmation prompt (-y / --force)</b> ticked, because the window has no console for the program's own question. A drive root, a share root, a junction or TEMP is not run from the window at all: the page says why and shows the command to run in a console, where FileDO asks twice.</span
+          ><span data-l="ua"
+            >У списку ліворуч група <b>Стирання</b> містить дві сторінки. <b>Заповнити вільне місце</b> приймає диск і прапорець <b>Автоматично видаляти тестові файли (del)</b> та повторює примітку про перенаправлення, коли ціль - системний диск. <b>Очистити теку</b> рахує, що лежить у цілі, потім вимагає набрати <code>WIPE</code> великими літерами й позначити <b>Пропускати підтвердження (-y / --force)</b>, бо у вікна немає консолі для власного запитання програми. Корінь диска, спільну теку, з'єднання чи TEMP вікно взагалі не запускає: сторінка каже чому й показує команду для консолі, де FileDO питає двічі.</span
+          >
+        </p>
+        <p>
+          <span data-l="ru"
+            >Отдельный файл затирается пунктом Проводника <b>Wipe this file</b>, со страницы <b>Команда</b> (она тоже просит <code>WIPE</code>) или - после упаковки в контейнер - выбором перезаписи оригинала на странице <b>Сделать файл секретным</b>. У сборки из Microsoft Store нет пунктов Проводника; см. <a href="microsoft-store.html">её страницу</a>.</span
+          ><span data-l="en"
+            >A single file is wiped from the <b>Wipe this file</b> entry of the Explorer menu, from the <b>Command</b> page (it also asks for <code>WIPE</code>), or - after packing it into a container - as the overwrite choice for the original on <b>Secure a file</b>. The Microsoft Store build has no Explorer entries; see <a href="microsoft-store.html">its page</a>.</span
+          ><span data-l="ua"
+            >Окремий файл затирається пунктом Провідника <b>Wipe this file</b>, зі сторінки <b>Команда</b> (вона теж просить <code>WIPE</code>) або - після запакування в контейнер - вибором перезапису оригіналу на сторінці <b>Зробити файл секретним</b>. У збірки з Microsoft Store немає пунктів Провідника; див. <a href="microsoft-store.html">її сторінку</a>.</span
+          >
+        </p>
+      </section>
+      <section class="section" id="order">
+        <h2>
+          <span data-l="ru"
+            >Осторожный порядок</span
+          ><span data-l="en"
+            >A careful order</span
+          ><span data-l="ua"
+            >Обережний порядок</span
+          >
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="ru"
+              >Назовите точный файл или папку. Направляйте на диск целиком, только если очистить весь диск - и есть цель.</span
+            ><span data-l="en"
+              >Name the exact file or folder. Point at a drive only when emptying that drive is the point.</span
+            ><span data-l="ua"
+              >Назвіть точний файл або теку. Спрямовуйте на диск цілком, лише якщо мета - очистити весь диск.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Прочитайте путь и число объектов, которые печатает вопрос, прежде чем набирать <code>WIPE</code>.</span
+            ><span data-l="en"
+              >Read the path and the item count the prompt prints before you type <code>WIPE</code>.</span
+            ><span data-l="ua"
+              >Прочитайте шлях і кількість об'єктів, які друкує запитання, перш ніж набирати <code>WIPE</code>.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Сначала скопируйте то, что хотите сохранить, на другой диск. У затирания в FileDO нет отмены.</span
+            ><span data-l="en"
+              >Copy what you mean to keep to another drive first. FileDO has no undo for a wipe.</span
+            ><span data-l="ua"
+              >Спершу скопіюйте те, що хочете зберегти, на інший диск. У затирання у FileDO немає скасування.</span
+            >
+          </li>
+          <li>
+            <span data-l="ru"
+              >Если удалённые данные должно быть трудно восстановить, закончите затиранием свободного места этого тома, помня о пределах выше.</span
+            ><span data-l="en"
+              >If the deleted data must be hard to recover, finish with a free-space wipe of that volume, knowing the limits above.</span
+            ><span data-l="ua"
+              >Якщо видалені дані має бути важко відновити, завершіть затиранням вільного місця цього тому, пам'ятаючи про межі вище.</span
+            >
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="related">
+        <h2>
+          <span data-l="ru"
+            >Где встречаются те же слова</span
+          ><span data-l="en"
+            >Where the same words appear</span
+          ><span data-l="ua"
+            >Де трапляються ті самі слова</span
+          >
+        </h2>
+        <p>
+          <span data-l="ru"
+            ><code>secure wipe</code> затирает оригинал после упаковки в контейнер <code>.fd-sec</code> - см. <a href="fd-sec-containers.html">«Секретные файлы»</a>. <code>vd destroy</code> со словом <code>wipe</code> затирает виртуальный диск перед удалением - см. <a href="virtual-disks.html">«Виртуальные диски»</a>. Пункты Проводника описаны в <a href="install-and-explorer.html">«Установка и пункты Проводника»</a>. <b>Затирание</b> и <b>Заполнение</b> определены в <a href="glossary.html#term-wipe">глоссарии</a>.</span
+          ><span data-l="en"
+            ><code>secure wipe</code> overwrites the original after packing it into a <code>.fd-sec</code> container - see <a href="fd-sec-containers.html">Secret files</a>. <code>vd destroy</code> with <code>wipe</code> overwrites a virtual disk before removing it - see <a href="virtual-disks.html">Virtual disks</a>. The Explorer entries are in <a href="install-and-explorer.html">Installation and the Explorer menu</a>. <b>Wipe</b> and <b>Fill</b> are defined in the <a href="glossary.html#term-wipe">glossary</a>.</span
+          ><span data-l="ua"
+            ><code>secure wipe</code> затирає оригінал після запакування в контейнер <code>.fd-sec</code> - див. <a href="fd-sec-containers.html">«Секретні файли»</a>. <code>vd destroy</code> зі словом <code>wipe</code> затирає віртуальний диск перед видаленням - див. <a href="virtual-disks.html">«Віртуальні диски»</a>. Пункти Провідника описано в <a href="install-and-explorer.html">«Встановлення і пункти Провідника»</a>. <b>Затирання</b> і <b>Заповнення</b> визначено в <a href="glossary.html#term-wipe">глосарії</a>.</span
+          >
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Стирание и затирание в FileDO",
+          description:
+            "Практическое руководство FileDO: затирание файла, очистка папки и затирание свободного места - вопрос WIPE, отказы защиты и пределы на SSD.",
+        },
+        en: {
+          title: "Erase and wipe with FileDO",
+          description:
+            "A practical FileDO guide to wiping a file, emptying a folder and wiping free space: the typed WIPE question, what is refused, and the limits on SSDs.",
+        },
+        ua: {
+          title: "Стирання і затирання у FileDO",
+          description:
+            "Практичний посібник FileDO: затирання файлу, очищення теки й затирання вільного місця - запитання WIPE, відмови захисту та межі на SSD.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

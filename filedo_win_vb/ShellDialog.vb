@@ -123,7 +123,7 @@ Public Class ShellDialog
     ' never the exception's own text (APP-BEHAVIOUR rule 6). The exception has already gone to the
     ' log by the time this is called. Returns True when the user chose the extra action - try again,
     ' open the folder, copy the address - which the caller then performs. actionGlyph is that
-    ' action's meaning (Try again - action.refresh, Copy the path - action.copy).
+    ' action's meaning (Retry - action.retry, Copy the path - action.copy).
     Public Shared Function Problem(owner As IWin32Window, text As String, Optional actionText As String = Nothing,
                                    Optional offerLogs As Boolean = True, Optional actionGlyph As GlyphRef = Nothing) As Boolean
         Dim choices As New List(Of String)

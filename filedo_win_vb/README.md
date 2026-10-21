@@ -197,7 +197,7 @@ Things worth knowing before reading the code:
 - **Closing never unmounts.** A mount outlives the manager, as it outlives the shell.
 - **The keyboard is data**: `DiskShortcuts.All` in `DiskHelp.vb`. The key handler, every tooltip and menu item
   that shows a shortcut and the help window's table all read it, and `--selftest` walks it.
-- **The first run** shows the welcome window once (`DiskWelcomeDialog`); Help, First steps.. opens it again. Neither
+- **The first run** shows the welcome window once (`DiskWelcomeDialog`); Help, Welcome tour (the `app.tour` meaning) opens it again. Neither
   the help nor the welcome makes a network call: a link is followed only when it is clicked.
 - **Autostart, in one dialog** (`DiskAutostartDialog.vb`, SP-0080): the per-container logon mounts and the shutdown
   guard together, opened by *Autostart..* under More actions - with or without a selection, since the guard

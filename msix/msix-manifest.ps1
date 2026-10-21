@@ -9,6 +9,8 @@
                          against the Explorer-command choice the build was made with.
   Test-DiskContainerAssociation  asserts the .fdd declaration (SP-0004 T6.27): once, for the GUI
                          app, with no verb - the Store build cannot mount.
+  Test-UnsignedStorePackage  asserts a packed archive's entry list has no AppxSignature.p7x
+                         (WINDOWS-STORE rule 2, rung 3): the upload is unsigned.
 
   The packaged Explorer command (SP-0020: the desktop4:FileExplorerContextMenus verb, the
   com:SurrogateServer class, and FileDOShell.dll) is OPT-IN at build time (AUD-17-F1, owner decision
@@ -206,5 +208,19 @@ function Test-DiskContainerAssociation {
     $logo = $assoc[0].SelectSingleNode('uap:Logo', $ns)
     if (-not $logo -or -not $logo.InnerText) { $problems.Add("the .fdd association has no logo") }
     elseif ($PSBoundParameters.ContainsKey('Entries') -and $Entries -notcontains $logo.InnerText) { $problems.Add("the .fdd association's logo $($logo.InnerText) is not in the package") }
+    return , $problems
+}
+
+function Test-UnsignedStorePackage {
+    <# Returns the problems (strings) of a packed archive's entry list against WINDOWS-STORE rule 2 and
+       conformance rung 3: the file offered for upload is UNSIGNED - Microsoft signs at certification, and
+       a signed package is a local test that is never uploaded - so it has no AppxSignature.p7x entry.
+       Observable: list the archive. The entries are the package-relative names build-msix.ps1 reads back
+       from the packed file. #>
+    [CmdletBinding()]
+    param([AllowEmptyCollection()][string[]]$Entries)
+    $problems = New-Object System.Collections.Generic.List[string]
+    $signed = @($Entries | Where-Object { $_ -ieq 'AppxSignature.p7x' })
+    if ($signed.Count) { $problems.Add("the package carries an AppxSignature.p7x entry; a Store upload is unsigned (a signed package is a local test and is never uploaded)") }
     return , $problems
 }

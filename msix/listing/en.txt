@@ -1,7 +1,8 @@
 # Store listing source for en (Partner Center locale: en-us).
 # Read by build-store-listing-csv.ps1, which fills only empty cells of a fresh export.
 # Prose style: ".." for an ellipsis, a plain hyphen for a dash. Caps are read from the Partner
-# Center console at submit time; the builder only warns about the values known when it was written.
+# Center console at submit time; the builder refuses a cell over the values known when it was written
+# (exit 1, nothing written), and the seven search terms of a language hold 21 words in all.
 
 @@ShortDescription
 Test the real capacity and speed of USB sticks and SD cards, spot fakes, clear out duplicate files, wipe free space to make recovery harder and keep a file behind a password - from a window or the command line. No accounts, no ads, no telemetry.
@@ -71,13 +72,13 @@ Open source, no network access, no telemetry, no ads, no accounts
 fake usb test
 
 @@SearchTerm2
-sd card capacity test
+sd card capacity
 
 @@SearchTerm3
-test usb drive capacity
+usb drive capacity
 
 @@SearchTerm4
-fake sd card test
+fake sd card
 
 @@SearchTerm5
 duplicate file finder

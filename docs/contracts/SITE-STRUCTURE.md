@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-STRUCTURE` |
-| **Version** | 0.3, read 2026-10-21 (SP-0170); implemented partial 0.1 draft (opted in 2026-10-06; no wire carrier - a page set, a navigation shape and an address scheme) |
+| **Version** | 0.3, read 2026-10-21 (SP-0170); implemented partial 0.3 draft (opted in 2026-10-06; no wire carrier - a page set, a navigation shape and an address scheme) |
 | **Role** | consumer - the published site under `docs/`, declared at the **guide** tier |
 | **Home** | shared contracts catalog, folder `product-site/`, document `SITE-STRUCTURE.md` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

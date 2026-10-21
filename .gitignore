@@ -140,6 +140,9 @@ shellext/out/
 # and a build input (SP-0049 AUD-18-F1). Re-include exactly these two folders' icon files.
 !assets/glyphs/*.svg
 !assets/menu-icons/*.ico
+# ..and not the shell's design-token source: `UiTokens.vb` is compiled (FileDOGUI.vbproj), and `*token*` would keep it
+# out of a clean clone (SP-0169 S1, found by check-build-inputs in SP-0171).
+!filedo_win_vb/UiTokens.vb
 
 # Virtual-disk containers (SP-0004): a test run can leave a multi-gigabyte .fdd behind.
 *.fdd

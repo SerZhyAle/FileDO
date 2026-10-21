@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 )
@@ -49,9 +50,10 @@ var reservedStems = map[string]bool{
 	"lpt6": true, "lpt7": true, "lpt8": true, "lpt9": true,
 }
 
-// ValidateName screens the sealed true name against path separators, reserved
-// device names, control characters and trailing dots or spaces (FDSEC-FORMAT.md
-// section 7, FDSEC-BEHAVIOUR.md section 4.3). The error does not echo the name.
+// ValidateName screens the sealed true name against bytes that are not UTF-8,
+// path separators, reserved device names (by stem), control characters and
+// trailing dots or spaces (FDSEC-FORMAT.md section 7 and section 22,
+// FDSEC-BEHAVIOUR.md section 4.3). The error does not echo the name.
 //
 // This is the format's portable validity, and nothing platform-specific. The
 // four characters U+0022, U+003C, U+003E and U+007C are valid in an
@@ -62,6 +64,9 @@ var reservedStems = map[string]bool{
 func ValidateName(name string) error {
 	if len(name) < 1 || len(name) > MaxNameBytes {
 		return fmt.Errorf("name must be 1..%d UTF-8 bytes", MaxNameBytes)
+	}
+	if !utf8.ValidString(name) {
+		return fmt.Errorf("name is not valid UTF-8")
 	}
 	if name == "." || name == ".." {
 		return fmt.Errorf("name is a relative directory reference")

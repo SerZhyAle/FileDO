@@ -81,15 +81,32 @@ if ($map.schemaVersion -ne 1) { Fail "map: schemaVersion is $($map.schemaVersion
 # ---- baseline -----------------------------------------------------------------------------------
 $baselineFile = Join-Path $Help 'help-baseline.txt'
 $owedPages = @()
+$owedAsks = @()
+$baselineKinds = [System.Collections.Generic.List[string]]::new()
 if (Test-Path $baselineFile) {
     foreach ($ln in Get-Content $baselineFile) {
         $t = $ln.Trim()
         if ($t -eq '' -or $t.StartsWith('#')) { continue }
-        if ($t -match '^page (\S+)$') { $owedPages += $Matches[1] }
-        elseif ($t -match '^ask (\S+)$') { if (-not $ids.ContainsKey($Matches[1])) { Fail "baseline: 'ask $($Matches[1])' names no surface" } }
+        if ($t -match '^page (\S+)$') { $owedPages += $Matches[1]; $baselineKinds.Add('page') }
+        elseif ($t -match '^ask (\S+)$') {
+            $owedAsks += $Matches[1]; $baselineKinds.Add('ask')
+            if (-not $ids.ContainsKey($Matches[1])) { Fail "baseline: 'ask $($Matches[1])' names no surface" }
+        }
         else { Fail "baseline: unknown line '$t'" }
     }
 }
+# CHECK-BASELINE rule 3: a set baseline holds one identifier per line, sorted. The page lines come first and then
+# the ask lines (as the file's own header says), each group in ordinal order - a hand edit that lands a line in the
+# wrong place fails here instead of turning the diff of the next edit into noise.
+foreach ($group in @(@{ Kind = 'page'; Owed = $owedPages }, @{ Kind = 'ask'; Owed = $owedAsks })) {
+    $have = [string[]]@($group.Owed)
+    $want = [string[]]@($group.Owed)
+    [Array]::Sort($want, [StringComparer]::Ordinal)
+    for ($i = 0; $i -lt $have.Count; $i++) {
+        if ($have[$i] -cne $want[$i]) { Fail "baseline: the $($group.Kind) lines are not in ordinal order - '$($group.Kind) $($have[$i])' stands where '$($group.Kind) $($want[$i])' belongs"; break }
+    }
+}
+if ($baselineKinds.Contains('ask') -and $baselineKinds.LastIndexOf('page') -gt $baselineKinds.IndexOf('ask')) { Fail 'baseline: a page line follows an ask line (the page lines come first)' }
 
 # ---- pages --------------------------------------------------------------------------------------
 $wanted = @($surfaces | Where-Object { $_.PSObject.Properties.Name -contains 'help' -and $_.help } | ForEach-Object { $_.help }) + @($surfaces | Where-Object { $_.PSObject.Properties.Name -contains 'fallback' -and $_.fallback } | ForEach-Object { $_.fallback }) | Sort-Object -Unique

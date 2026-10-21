@@ -20,7 +20,7 @@ and the owner's decision.
 | `make-store-logos.ps1` | Renders the optional Partner Center "Store logos" set from the vector mark `assets/icon.svg` (headless Edge) into `store-logos/<locale>/`, reading every size and corner alpha back. Writes files only. The tagline is the site's headline and the strip words are the listing's section names; a new language is one row in the script's `$locales`. |
 | `store-logos/<locale>/` | One complete set per listing language (`en-us ru uk`): `poster-720x1080/1440x2160` (9:16), `box-1080x1080/2160x2160` (1:1), `tile-300x300/150x150/71x71`. The tiles carry no words and are identical everywhere. Upload by hand in the listing's Store logos section: the larger of each pair. |
 | `store-listing.md` | What the CSV does **not** carry: the `runFullTrust` justification, the export-compliance answer, the privacy declaration. |
-| `test-store-tools.ps1`, `testdata/` | Self-test of the listing sources, the manifest template (including the default-off Explorer command) and the CSV builder (62 checks, no Partner Center session, no build). |
+| `test-store-tools.ps1`, `testdata/` | Self-test of the listing sources, the manifest template (including the default-off Explorer command) and the CSV builder, with a negative case for each refusal (no Partner Center session, no build). |
 | `stage/`, `out/` | Generated, git-ignored. `out/FileDO_<ver>.msix` is what you upload. |
 
 ## 1. Prerequisites
@@ -173,6 +173,13 @@ local-test package has neither, and both are decided at upload.
 .\msix\build-store-listing-csv.ps1 -Refresh ReleaseNotes   # every later release: "What's new" only
 ```
 
+The builder **refuses** (exit 1, no file and no folder written) whatever would lose a language at import: a
+shipped language with no column in the export or no `listing\<code>.txt` (the export retained from 2026-09-22 has
+no `de` or `fr` column, so it refuses that file until a fresh export has them), a cell over its cap counted
+after CRLF normalisation, a repeated search term, and more than **21 words** across a language's seven search
+terms (WINDOWS-STORE 0.2; 22 was never measured). Each refusal names the language, the field, the length and the
+deck file: fix the deck, never the console.
+
 4. **Import** `msix\out\store-import\` - the folder, in the console's own folder picker. The CSV and the
    images travel together. (The console offers no zip upload; the builder still writes `store-import.zip`
    only as a copy to keep.) Rules that were measured, all of them:
@@ -180,6 +187,9 @@ local-test package has neither, and both are decided at upload.
      `en-us`, `ru` and `uk` in completely - text and all five screenshots each - while `de` and `fr` were
      refused. The console named the two languages and gave **no field-level detail**, so the failing field
      has to be found by bisection.
+   - A refusal can be **whole**: the report may be empty and its progress label need not name the offending
+     language or field. Bisect with complete files based on the last accepted fresh draft export - never by
+     blanking cells to narrow it.
    - **Bisect with `-Only`.** Because the builder fills only *empty* cells, a re-run after a partial import
      targets exactly the languages that failed; `-Only Description`, `-Only 'Feature*'`, `-Only 'SearchTerm*'`,
      `-Only ReleaseNotes` are four small files, and the first one refused names the field. Start from a file
@@ -197,6 +207,10 @@ local-test package has neither, and both are decided at upload.
      CRLF between records, LF inside cells, minimal quoting and no final newline, and the builder reproduces
      exactly that; the canon's "no BOM, every field quoted" line describes a different target and is left to
      the first real import to settle. `-FillNothing` is the guard either way.
+   - **Verify the acceptance**: after the import, re-export the draft and compare its bytes with the file that
+     was uploaded (WINDOWS-STORE 0.2). That needs a Partner Center session, so nothing here automates it, and
+     the 2026-09-22 import was never checked this way. Record the date and the result under "Where the listing
+     stands" below, and keep the import report with the submission record, outside the repository.
 5. `ReleaseNotes` is refreshed per release with `-Refresh ReleaseNotes`. **On a first submission the Store's
    own guidance is to leave "What's new in this version" blank**; it was sent anyway on 2026-09-22 and
    `en-us`, `ru` and `uk` accepted it, so it is not what refuses a language - but it is the first thing to
@@ -209,6 +223,12 @@ local-test package has neither, and both are decided at upload.
 release notes and five screenshots each, the screenshot cells now holding `developer.microsoft.com` asset
 URLs. `de`, `fr`: empty, refused by the import with no reason given; the field that refuses them has not
 been identified yet, and the four `-Only` files above are how to find it.
+
+**Since 2026-10-21 (not an import).** The search terms were trimmed to the 21-word cap in every language (the
+sources of 2026-09-22 held 21, 21, 22, 23 and 25 words for en, ru, uk, de and fr, which fits a cap of 21 or 22; the
+sources of that day are not proven to be the files imported). The trimmed listing has not been imported, so
+nothing about its acceptance is verified: the next step is the owner's fresh export with `de` and `fr`, the
+import, and the re-export compared byte for byte.
 
 ## 5. Screenshots
 

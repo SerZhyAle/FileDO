@@ -70,16 +70,16 @@ Open Source, kein Netzwerkzugriff, keine Telemetrie, keine Werbung, keine Konten
 fake usb stick erkennen
 
 @@SearchTerm2
-usb stick kapazität prüfen
+usb stick kapazität
 
 @@SearchTerm3
-sd karte kapazität prüfen
+sd karte kapazität
 
 @@SearchTerm4
 usb stick tester
 
 @@SearchTerm5
-doppelte dateien finden
+doppelte dateien
 
 @@SearchTerm6
 speicherplatz überschreiben

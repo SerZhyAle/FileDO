@@ -1891,6 +1891,12 @@ Public Class JobView
         End Get
     End Property
 
+    Friend ReadOnly Property ResultNumbersTextForTest As String
+        Get
+            Return resultNumbersLabel.Text
+        End Get
+    End Property
+
     ' The Disks page's answers and passwords, as a user would give them (SP-0004 P6).
     Friend Sub SetDiskForTest(o As DiskOptions, password As String, newPassword As String, typed As String)
         diskPanel.SetForTest(o, password, newPassword, typed)
@@ -2954,10 +2960,23 @@ Public Class JobView
             verdictReasonLabel.Text = L(res.Reason)
         End If
 
+        ' FDSEC-BEHAVIOUR 1.6 section 18: a container whose sealed name this PC cannot create is
+        ' neither damaged nor a wrong password. The console says so in English; the card says it in
+        ' the language of the window, and what to do about it.
+        If IsFdsec() Then
+            Dim fdsecKey = FdsecResults.ExitKeyFor(job.DefaultVerb, res.ExitCode, res.Output)
+            If fdsecKey <> "" Then
+                Dim sentence = Localization.Format(L(fdsecKey), FdsecResults.RefusedCharacters)
+                verdictReasonLabel.Text = If(verdictReasonLabel.Visible AndAlso verdictReasonLabel.Text <> "",
+                                             verdictReasonLabel.Text & Environment.NewLine & sentence, sentence)
+                verdictReasonLabel.Visible = True
+            End If
+        End If
+
         Dim numStr = Localization.Format(L("shell_result_summary_fmt"), Ui.FormatDuration(res.Duration), res.ExitCode)
-        If res.ResultInfo IsNot Nothing AndAlso res.ResultInfo.Numbers IsNot Nothing Then
-            For Each kvp In res.ResultInfo.Numbers
-                numStr &= Environment.NewLine & kvp.Key & ": " & kvp.Value.ToString()
+        If res.ResultInfo IsNot Nothing Then
+            For Each line In ResultNumberLines(res.ResultInfo.Numbers)
+                numStr &= Environment.NewLine & line
             Next
         End If
         resultNumbersLabel.Text = numStr
@@ -3020,6 +3039,24 @@ Public Class JobView
         diskResult.ShowResult(job.DefaultVerb, showMounted, res)
         diskResult.ApplyTheme()
     End Sub
+
+    ' The `key: value` lines of a result's `numbers`. CLI-EVENT-STREAM rules 6, 7 and 16: the bag's keys
+    ' belong to the verb that filled it, and a reader uses what it can read and ignores the rest. A JSON
+    ' null reaches here as Nothing and is an absent value - its key is left out, never printed and never
+    ' a reason to lose the result card; an object or an array has no single reading as `key: value` and
+    ' is left out the same way (it used to print its type name).
+    Friend Shared Function ResultNumberLines(numbers As Dictionary(Of String, Object)) As List(Of String)
+        Dim lines As New List(Of String)()
+        If numbers Is Nothing Then Return lines
+        For Each kvp In numbers
+            Dim value = kvp.Value
+            If value Is Nothing Then Continue For
+            If TypeOf value Is System.Collections.IDictionary Then Continue For
+            If TypeOf value Is System.Collections.IEnumerable AndAlso Not TypeOf value Is String Then Continue For
+            lines.Add(kvp.Key & ": " & value.ToString())
+        Next
+        Return lines
+    End Function
 
     ' The verdict's colours, one function of (verdict, palette) for both the result path and a theme
     ' change (APP-STYLE section 3).

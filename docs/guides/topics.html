@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -64,6 +64,7 @@
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
@@ -105,8 +106,7 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
-        ◐</button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
         ><span data-l="ru">Установить</span><span data-l="en">Install</span
         ><span data-l="ua">Встановити</span></a
@@ -245,6 +245,11 @@
             <span data-l="ru">Заполнение свободного места</span
             ><span data-l="en">Filling the free space</span
             ><span data-l="ua">Заповнення вільного місця</span>
+            <a href="erase.html"
+              ><span data-l="ru">стирание и затирание</span
+              ><span data-l="en">erase and wipe</span
+              ><span data-l="ua">стирання і затирання</span></a
+            >
             <a href="glossary.html#term-fill"
               ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
@@ -259,6 +264,16 @@
               ><span data-l="ru">установка и Проводник</span
               ><span data-l="en">install and Explorer</span
               ><span data-l="ua">встановлення і Провідник</span></a
+            >
+          </li>
+          <li>
+            <span data-l="ru">Сборка из Microsoft Store: что она умеет и чего в ней нет</span
+            ><span data-l="en">The Microsoft Store build: what it can and cannot do</span
+            ><span data-l="ua">Збірка з Microsoft Store: що вона вміє й чого в ній немає</span>
+            <a href="microsoft-store.html"
+              ><span data-l="ru">сборка из Microsoft Store</span
+              ><span data-l="en">the Microsoft Store build</span
+              ><span data-l="ua">збірка з Microsoft Store</span></a
             >
           </li>
           <li>
@@ -400,6 +415,11 @@
             <span data-l="ru">Затирание файлов и папок</span
             ><span data-l="en">Wiping files and folders</span
             ><span data-l="ua">Затирання файлів і тек</span>
+            <a href="erase.html"
+              ><span data-l="ru">стирание и затирание</span
+              ><span data-l="en">erase and wipe</span
+              ><span data-l="ua">стирання і затирання</span></a
+            >
             <a href="glossary.html#term-wipe"
               ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
@@ -409,6 +429,31 @@
               ><span data-l="ru">пункты Проводника</span
               ><span data-l="en">Explorer entries</span
               ><span data-l="ua">пункти Провідника</span></a
+            >
+          </li>
+          <li>
+            <span data-l="ru">Вопрос WIPE и отказы защиты при затирании</span
+            ><span data-l="en">The WIPE question and what a wipe refuses</span
+            ><span data-l="ua">Запитання WIPE і відмови захисту при затиранні</span>
+            <a href="erase.html#confirm"
+              ><span data-l="ru">подтверждение</span
+              ><span data-l="en">confirmation</span
+              ><span data-l="ua">підтвердження</span></a
+            >
+            <a href="erase.html#refusals"
+              ><span data-l="ru">отказы</span
+              ><span data-l="en">refusals</span
+              ><span data-l="ua">відмови</span></a
+            >
+          </li>
+          <li>
+            <span data-l="ru">Что затирание не обещает: SSD, копирование при записи, копии в других местах</span
+            ><span data-l="en">What a wipe does not promise: SSDs, copy-on-write, copies elsewhere</span
+            ><span data-l="ua">Що затирання не обіцяє: SSD, копіювання під час запису, копії в інших місцях</span>
+            <a href="erase.html#limits"
+              ><span data-l="ru">пределы затирания</span
+              ><span data-l="en">limits of a wipe</span
+              ><span data-l="ua">межі затирання</span></a
             >
           </li>
           <li>
@@ -452,7 +497,7 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>

@@ -31,23 +31,22 @@
 
   <figure class="shot">
     <div class="frame">
-      <img class="on-dark" src="../img/disk-manager.uk.dark.png" width="1052" height="733" alt="FileDO - Диспетчер дисків: вікно з пронумерованими частинами">
-      <img class="on-light" src="../img/disk-manager.uk.light.png" width="1052" height="733" alt="">
-      <a class="pin" style="--x:1.6%;--y:1.6%" href="#e-new" aria-label="1, Новий диск..">1</a>
-      <a class="pin" style="--x:17.5%;--y:1.6%" href="#e-add" aria-label="2, Додати..">2</a>
-      <a class="pin" style="--x:31.7%;--y:1.6%" href="#e-mount" aria-label="3, Підключити">3</a>
-      <a class="pin" style="--x:47.1%;--y:1.6%" href="#e-unmount" aria-label="4, Відключити">4</a>
-      <a class="pin" style="--x:62.2%;--y:1.6%" href="#e-open" aria-label="5, Відкрити">5</a>
-      <a class="pin" style="--x:75.1%;--y:1.6%" href="#e-save" aria-label="6, Зберегти">6</a>
-      <a class="pin" style="--x:1.6%;--y:7.6%" href="#e-more" aria-label="7, Ще">7</a>
-      <a class="pin" style="--x:12.2%;--y:7.6%" href="#e-refresh" aria-label="8, Оновити">8</a>
-      <a class="pin" style="--x:17.1%;--y:7.6%" href="#e-settings" aria-label="9, Налаштування">9</a>
-      <a class="pin" style="--x:23.7%;--y:7.6%" href="#e-main" aria-label="10, Операції FileDO">10</a>
-      <a class="pin" style="--x:42.9%;--y:7.6%" href="#e-help" aria-label="11, Довідка">11</a>
-      <a class="pin" style="--x:8.6%;--y:16.1%" href="#e-filter" aria-label="12, Фільтр дисків">12</a>
-      <a class="pin" style="--x:0.2%;--y:21.8%" href="#e-list" aria-label="13, Список дисків">13</a>
-      <a class="pin" style="--x:0.2%;--y:49.7%" href="#e-detail" aria-label="14, Відомості">14</a>
-      <a class="pin" style="--x:0.2%;--y:94.3%" href="#e-strip" aria-label="15, Рядок стану">15</a>
+      <img class="on-dark" src="../img/disk-manager.uk.dark.png" width="974" height="708" alt="FileDO - Диспетчер дисків: вікно з пронумерованими частинами">
+      <img class="on-light" src="../img/disk-manager.uk.light.png" width="974" height="708" alt="">
+      <a class="pin" style="--x:1.7%;--y:1.7%" href="#e-new" aria-label="1, Новий диск..">1</a>
+      <a class="pin" style="--x:20.1%;--y:1.7%" href="#e-add" aria-label="2, Додати..">2</a>
+      <a class="pin" style="--x:36.8%;--y:1.7%" href="#e-mount" aria-label="3, Підключити">3</a>
+      <a class="pin" style="--x:54.5%;--y:1.7%" href="#e-unmount" aria-label="4, Відключити">4</a>
+      <a class="pin" style="--x:72.1%;--y:1.7%" href="#e-open" aria-label="5, Відкрити">5</a>
+      <a class="pin" style="--x:1.7%;--y:8.5%" href="#e-save" aria-label="6, Зберегти">6</a>
+      <a class="pin" style="--x:19.0%;--y:8.5%" href="#e-more" aria-label="7, Ще">7</a>
+      <a class="pin" style="--x:31.6%;--y:8.5%" href="#e-refresh" aria-label="8, Оновити">8</a>
+      <a class="pin" style="--x:37.0%;--y:8.5%" href="#e-settings" aria-label="9, Налаштування">9</a>
+      <a class="pin" style="--x:44.0%;--y:8.5%" href="#e-main" aria-label="10, Операції FileDO">10</a>
+      <a class="pin" style="--x:66.0%;--y:8.5%" href="#e-help" aria-label="11, Довідка">11</a>
+      <a class="pin" style="--x:9.2%;--y:17.2%" href="#e-filter" aria-label="12, Фільтр дисків">12</a>
+      <a class="pin" style="--x:0.2%;--y:23.9%" href="#e-list" aria-label="13, Список дисків">13</a>
+      <a class="pin" style="--x:0.2%;--y:51.8%" href="#e-detail" aria-label="14, Відомості">14</a>
     </div>
     <figcaption>Демонстраційні дані. Виберіть номер, щоб прочитати про цю частину вікна.</figcaption>
   </figure>
@@ -214,6 +213,7 @@
       <summary><span class="mk">15</span><span><span class="name">Рядок стану</span><span class="one">Що виконується і що чекає.</span></span></summary>
       <div class="full">
         <p>Перший рядок каже, скільки дисків підключено і наскільки свіжі відомості. Другий показує операцію, що виконується, або чим закінчилася остання. «Зупинити» перериває операцію, що виконується, акуратно, а «Очистити чергу» прибирає ті, що чекають.</p>
+        <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
       </div>
     </details>
     <details class="el" id="e-keyboard">
@@ -236,12 +236,14 @@
           <dt><kbd>Del</kbd></dt><dd>Прибрати зі списку</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Копіювати шлях</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Вибрати всі диски у списку</dd>
-          <dt><kbd>Menu</kbd></dt><dd>Відкрити меню вибраного диска</dd>
-          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Відкрити меню вибраного диска</dd>
+          <dt><kbd>Menu</kbd></dt><dd>Відкрити меню вибраного диска або, якщо фокус на кнопці довідки, її меню</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F10</kbd></dt><dd>Відкрити меню вибраного диска або, якщо фокус на кнопці довідки, її меню</dd>
           <dt><kbd>F5</kbd></dt><dd>Оновити</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>Перейти в поле фільтра</dd>
           <dt><kbd>Esc</kbd></dt><dd>Очистити фільтр</dd>
           <dt><kbd>F1</kbd></dt><dd>Відкрити цю довідку</dd>
+          <dt><kbd>F6</kbd></dt><dd>Перейти до наступної області вікна (Shift - до попередньої)</dd>
+          <dt><kbd>Shift</kbd> + <kbd>F6</kbd></dt><dd>Перейти до наступної області вікна (Shift - до попередньої)</dd>
         </dl>
         <p class="one"><small>Немає на картинці: показується лише тоді, коли вікну це потрібно.</small></p>
       </div>
@@ -259,7 +261,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Знято з FileDO dev (2610211054), 2026-10-21.</span>
+    <span>Знято з FileDO dev (2610211338), 2026-10-21.</span>
     <a href="index.html">Зміст довідки</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Поставити запитання або повідомити про проблему</a>
   </footer>

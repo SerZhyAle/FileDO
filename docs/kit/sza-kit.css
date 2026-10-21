@@ -29,7 +29,7 @@
   --gold-ink:#1c1403;
   /* code */
   --code-bg:#070f08;
-  --code-ink:#d6e2cf;
+  --code-ink:#d6e2cf; --code-accent:#7ee787; --code-output:#e6c35a;
   /* semantic */
   --ok:#3fb950; --warn:#e3b341; --danger:#e5534b;
   /* effects */
@@ -41,7 +41,7 @@
   --font-body:'Plus Jakarta Sans',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-mono:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,Menlo,monospace;
   /* metrics */
-  --wide:1100px; --radius:16px; --radius-sm:10px; --radius-pill:30px;
+  --wide:100%; --gutter:clamp(16px,2.5vw,40px); --radius:16px; --radius-sm:10px; --radius-pill:30px;
   --step:clamp(.9rem,2.2vw,1rem);
 }
 
@@ -51,9 +51,9 @@ html[data-theme="light"]{
   --card:rgba(255,255,255,.70); --card-hover:rgba(255,255,255,.92);
   --border:rgba(16,40,20,.12); --border-hover:rgba(47,143,58,.40);
   --text:#16210f; --text-2:#384534; --muted:#5f6b54;
-  --acc:#2f8f3a; --acc-strong:#267a30; --acc-ink:#ffffff;
+  --acc:#267a30; --acc-strong:#206629; --acc-ink:#ffffff;
   --gold:#9a6a13; --gold-strong:#7e560f; --gold-ink:#ffffff;
-  --code-bg:#0e1411; --code-ink:#d6e2cf;          /* code stays dark in light mode */
+  --code-bg:#0e1411; --code-ink:#d6e2cf; --code-accent:#7ee787; --code-output:#e6c35a;          /* code stays dark in light mode */
   --shadow:0 6px 24px rgba(20,40,20,.10);
   --glow:0 0 26px rgba(47,143,58,.18);
 }
@@ -78,13 +78,15 @@ img{max-width:100%;height:auto}
 .blob-3{bottom:-120px;left:12%;width:380px;height:380px;background:radial-gradient(circle,var(--blob-3),transparent 70%)}
 @keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(36px,28px) scale(1.08)}}
 
-/* ---------- LAYOUT ---------- */
-.container{max-width:var(--wide);margin:0 auto;padding:0 20px;position:relative;z-index:1}
+/* ---------- LAYOUT ----------
+   Full width (PAGE-STYLE 1.3, section 5): the container spans the viewport less the side gutter at every
+   width. --wide stays as a token so a page layer that reads it keeps working, and it is 100%, never a cap. */
+.container{max-width:var(--wide);margin:0 auto;padding:0 var(--gutter);position:relative;z-index:1}
 .section{padding:2rem 0}
 
 /* ---------- STICKY GLASS HEADER ---------- */
 .site-header{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;
-  padding:10px 16px;margin:14px auto;max-width:var(--wide);
+  padding:10px 16px;margin:14px var(--gutter);max-width:var(--wide);
   border:1px solid var(--border);border-radius:14px;
   background:color-mix(in srgb,var(--bg-2) 78%,transparent);backdrop-filter:saturate(140%) blur(10px)}
 .brand{font-family:var(--font-heading);font-weight:800;font-size:15px;letter-spacing:.2px;margin-right:auto;color:var(--text)}
@@ -94,10 +96,14 @@ img{max-width:100%;height:auto}
 .seg{display:flex;gap:2px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:3px}
 html[data-theme="light"] .seg{background:rgba(16,40,20,.05)}
 .seg button{font-family:var(--font-heading);font-size:11px;font-weight:700;letter-spacing:.04em;
-  padding:5px 10px;border:none;border-radius:14px;background:transparent;color:var(--muted);cursor:pointer}
+  padding:5px 10px;border:none;border-radius:14px;background:transparent;color:var(--code-ink);cursor:pointer}
 .seg button[aria-pressed="true"],.seg button.on{background:var(--acc);color:var(--acc-ink)}
-.theme-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:50%;background:transparent;
-  color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:14px}
+/* PAGE-STYLE 4.3 (1.4): the control is labelled - its name is visible text beside the app.theme glyph -
+   so this is a pill in the .seg family, not a bare round glyph. A page still carrying the 1.0 bare-glyph
+   markup renders the same pill with the glyph alone until it adopts the label. */
+.theme-btn{display:inline-flex;align-items:center;gap:.45rem;padding:5px 12px;border:1px solid var(--border);
+  border-radius:var(--radius-pill);background:transparent;color:var(--muted);cursor:pointer;
+  font-family:var(--font-heading);font-size:11px;font-weight:700;letter-spacing:.04em}
 .theme-btn:hover{color:var(--text);border-color:var(--border-hover)}
 
 /* ---------- BUTTONS ---------- */
@@ -121,9 +127,16 @@ html[data-theme="light"] .btn-ghost{background:rgba(16,40,20,.03)}
 .hero h1{font-size:clamp(2rem,5vw,2.9rem);font-weight:800;margin-bottom:.5rem}
 .hero .lead{color:var(--muted);max-width:none;margin:0 0 1.2rem;font-size:1.02rem}
 
+/* ---------- IDENTITY BLOCK (PAGE-STYLE 4.1b): application icon + full product name, first in the hero ---------- */
+.identity{display:flex;align-items:center;gap:1rem 1.2rem;margin-bottom:1.1rem}
+.product-icon{width:clamp(64px,10vw,104px);height:auto;aspect-ratio:1;border-radius:22%;flex:none}
+.product-name{font-family:var(--font-heading);font-weight:800;letter-spacing:-.02em;line-height:1.1;
+  font-size:clamp(1.75rem,4.2vw,2.6rem);color:var(--text);overflow-wrap:anywhere}
+.identity .kicker{margin:.35rem 0 0}
+
 /* ---------- "GET IT" / DISTRIBUTION BLOCK (required above the fold on app sites) ---------- */
 .get{display:grid;gap:1rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  backdrop-filter:blur(16px);padding:1.4rem 1.5rem;margin:1rem auto 2rem;max-width:760px}
+  backdrop-filter:blur(16px);padding:1.4rem 1.5rem;margin:1rem 0 2rem;max-width:none}
 .get .whatfor{color:var(--text-2);font-size:.98rem}
 .get .channels{display:flex;flex-wrap:wrap;gap:.6rem}
 .quickstart{counter-reset:qs;display:grid;gap:.5rem;margin-top:.4rem}
@@ -133,9 +146,7 @@ html[data-theme="light"] .btn-ghost{background:rgba(16,40,20,.03)}
   color:var(--acc);font-family:var(--font-heading);font-weight:800;font-size:.72rem;display:grid;place-items:center}
 
 /* ---------- GLASS CARDS / GRID ---------- */
-.grid{display:grid;grid-template-columns:1fr;gap:1.25rem}
-@media(min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:960px){.grid{grid-template-columns:repeat(3,1fr)}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr));gap:1.25rem}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
   backdrop-filter:blur(16px);padding:1.6rem;transition:transform .3s,border-color .3s,background .3s}
 .card:hover{transform:translateY(-4px);border-color:var(--border-hover);background:var(--card-hover)}
@@ -146,8 +157,11 @@ details.sec{background:var(--card);border:1px solid var(--border);border-radius:
 details.sec[open]{border-color:var(--border-hover)}
 details.sec>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:.8rem;padding:1.1rem 0;font-family:var(--font-heading);font-weight:700;font-size:1.05rem}
 details.sec>summary::-webkit-details-marker{display:none}
-details.sec>summary::after{content:"▸";margin-left:auto;color:var(--muted);transition:transform .2s}
-details.sec[open]>summary::after{transform:rotate(90deg)}
+details.sec>summary::after{content:"";width:20px;height:20px;margin-left:auto;flex:none;align-self:center;
+  background:var(--muted);transition:transform .2s;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3E%3C/svg%3E") center/contain no-repeat}
+details.sec[open]>summary::after{transform:rotate(180deg)}
 .secnum{font-family:var(--font-heading);font-weight:800;font-size:.8rem;color:var(--acc);font-variant-numeric:tabular-nums;min-width:2ch}
 details.sec>*:not(summary){margin-bottom:1.1rem}
 
@@ -155,11 +169,11 @@ details.sec>*:not(summary){margin-bottom:1.1rem}
 .copybox{position:relative;background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius-sm);
   padding:.85rem 1rem;padding-right:5rem;font-family:var(--font-mono);font-size:.86rem;color:var(--code-ink);
   overflow-x:auto;white-space:nowrap}
-.copybox .tok{color:var(--acc-strong)}
+.copybox .tok{color:var(--code-accent)}
 .copybox .copy{position:absolute;top:.5rem;right:.5rem;font-family:var(--font-body);font-size:.72rem;font-weight:600;
-  padding:.35rem .7rem;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);cursor:pointer}
-.copybox .copy:hover{color:var(--text);border-color:var(--border-hover)}
-.copybox .copy.done{color:var(--acc);border-color:var(--acc)}
+  padding:.35rem .7rem;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--code-ink);cursor:pointer}
+.copybox .copy:hover{color:var(--code-ink);border-color:var(--border-hover)}
+.copybox .copy.done{color:var(--code-accent);border-color:var(--code-accent)}
 
 /* ---------- CALLOUT / NOTE ---------- */
 .note{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);
@@ -179,13 +193,12 @@ kbd{font-size:.8em;padding:.12em .45em;border-radius:5px;background:var(--bg-3);
 .demo{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;background:var(--code-bg);
   border:1px solid var(--border);border-radius:var(--radius-sm);padding:.8rem 1rem;font-family:var(--font-mono);font-size:.86rem}
 .demo,.demo code{color:var(--code-ink)}
-.demo .arrow{color:var(--acc);font-weight:700;font-family:var(--font-body);font-size:.8rem}
-.demo .out{color:var(--gold)}
+.demo .arrow{color:var(--code-accent);font-weight:700;font-family:var(--font-body);font-size:.8rem}
+.demo .out{color:var(--code-output)}
 
 /* ---------- FOOTER : "MORE TOOLS BY SZA" + CONTACT ---------- */
 .site-footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0}
-.tools-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1.5rem}
-@media(min-width:760px){.tools-grid{grid-template-columns:repeat(3,1fr)}}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,14rem),1fr));gap:.6rem;margin-bottom:1.5rem}
 .tools-grid a{display:block;padding:.7rem .9rem;border:1px solid var(--border);border-radius:var(--radius-sm);
   background:var(--card);color:var(--text);font-size:.85rem}
 .tools-grid a:hover{border-color:var(--border-hover);background:var(--card-hover)}
@@ -199,11 +212,16 @@ kbd{font-size:.8em;padding:.12em .45em;border-radius:5px;background:var(--bg-3);
   background:var(--acc);color:var(--acc-ink);border:none;cursor:pointer;display:none;place-items:center;box-shadow:var(--shadow)}
 .to-top.show{display:grid}
 
-/* ---------- RESPONSIVE / A11Y ---------- */
+/* ---------- RESPONSIVE / A11Y ----------
+   44px targets (PAGE-STYLE section 5, 1.4): .btn, .seg button and .theme-btn for every pointer;
+   .copybox .copy and .tools-grid a keep the coarse-pointer rule, which was not asked to widen;
+   .to-top is drawn 44px. */
 @media(max-width:480px){.site-header .btn{display:none}}
-@media(pointer:coarse){.btn,.seg button,.theme-btn,.copybox .copy,.tools-grid a{min-height:44px}
+.btn,.seg button,.theme-btn{min-height:44px}
+.seg button,.theme-btn{min-width:44px}
+@media(pointer:coarse){.copybox .copy,.tools-grid a{min-height:44px}
   .copybox .copy{min-width:44px;top:50%;transform:translateY(-50%)}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* ---------- PRINT (optional; PAGE-STYLE 4.13) ----------
    Dark ink on white; chrome hidden; URL after each external link.
@@ -217,3 +235,6 @@ kbd{font-size:.8em;padding:.12em .45em;border-radius:5px;background:var(--bg-3);
   .card,.get,details.sec{backdrop-filter:none;box-shadow:none;break-inside:avoid}
   a[href^="http"]::after{content:" (" attr(href) ")";font-size:.85em;word-break:break-all}
 }
+
+/* Code ink stays readable when the page changes its light-theme prose colors. */
+.demo code,.copybox code{color:var(--code-ink)}

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CHECK-PLACEMENT` |
-| **Version** | 0.11, read 2026-10-21 (SP-0170); implemented partial 0.11; SP-0171 W6, draft |
+| **Version** | 0.11, read 2026-10-21 (SP-0170); implemented 0.11 (SP-0171 W6), draft |
 | **Role** | producer - script organization |
 | **Home** | shared contracts catalog, folder `automated-checks/`, document `README.md` |
 | **Owner** | FastMediaSorter Android |

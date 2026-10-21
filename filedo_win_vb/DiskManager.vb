@@ -343,7 +343,7 @@ Partial Public Class DiskManagerForm
         settingsBtn = NewGlyphButton("rail_job_settings", GlyphRef.Vocabulary("app.settings"), 24, True)
         AddHandler settingsBtn.Click, Sub()
                                          If AppHost.Current IsNot Nothing Then
-                                             AppHost.Current.ShowSettings()
+                                             AppHost.Current.ShowSettings(Me)
                                          Else
                                              Using dlg As New DiskSettingsDialog()
                                                  dlg.ShowDialog(Me)
@@ -352,10 +352,12 @@ Partial Public Class DiskManagerForm
                                      End Sub
         helpBtn = NewGlyphButton("vd_mgr_name_help", DiskGlyphs.Help, 24, True)
         ' The key and the button give the same answer (CONTEXT-HELP rule 3): the page. The older menu -
-        ' this window's own help dialog, the first steps and the links - is on the button's right click.
+        ' this window's own help dialog, the welcome tour and the links - is on the button's right click,
+        ' on the Menu / Shift+F10 key with the button focused (the key every right-click menu has,
+        ' INPUT-PARITY 3.2 rule 1), and as the Help entry of the More menu.
         AddHandler helpBtn.Click, Sub() OpenHelpPage()
         AddHandler helpBtn.MouseUp, Sub(s As Object, e As MouseEventArgs)
-                                        If e.Button = MouseButtons.Right Then helpMenu.Show(helpBtn, 0, helpBtn.Height)
+                                        If e.Button = MouseButtons.Right Then ShowHelpMenu()
                                     End Sub
         ' The way to the main window: the product's own mark and its name, at the end of the toolbar.
         mainBtn = NewGlyphButton("vd_mgr_btn_main", Nothing, 24)
@@ -665,29 +667,49 @@ Partial Public Class DiskManagerForm
         ThemeMenu(spaceMenu)
     End Sub
 
-    ' The Help button's menu: the help window, the first steps, and the places to read more - the
+    ' The Help button's menu: the help window, the welcome tour, and the places to read more - the
     ' guide of this window, the guides, the site, the project's documentation and its issue tracker.
     ' A link is followed only when it is clicked (APP-BEHAVIOUR rule 4).
     Private Sub BuildHelpMenu()
         helpMenu.Items.Clear()
+        FillHelpItems(helpMenu.Items)
+        ThemeMenu(helpMenu)
+    End Sub
+
+    ' The entries of the Help menu, written once for the two places that show them: the button's own
+    ' menu and the Help entry of the More menu. The tour is app.tour (ICON-SET 0.35), named by the
+    ' catalog's word for it; the .fdd container's picture is a different meaning.
+    Private Sub FillHelpItems(items As ToolStripItemCollection)
         Dim helpItem As New ToolStripMenuItem(L("vd_help_menu_help"))
         helpItem.Image = MenuImage(DiskGlyphs.Help, True, False)
         AddHandler helpItem.Click, Sub() ShowHelp()
-        helpMenu.Items.Add(helpItem)
+        items.Add(helpItem)
         Dim firstItem As New ToolStripMenuItem(L("vd_help_menu_first"))
-        firstItem.Image = MenuImage(DiskGlyphs.DiskContainer, True, False)
+        firstItem.Image = MenuImage(DiskGlyphs.Tour, True, False)
         AddHandler firstItem.Click, Sub() ShowWelcome()
-        helpMenu.Items.Add(firstItem)
-        helpMenu.Items.Add(New ToolStripSeparator())
+        items.Add(firstItem)
+        items.Add(New ToolStripSeparator())
         For Each kv In DiskHelpLinks.All
             Dim url = kv.Value
             Dim item As New ToolStripMenuItem(L(kv.Key)) With {.ToolTipText = url}
             item.Image = MenuImage(DiskGlyphs.OpenExternal, True, False)
             AddHandler item.Click, Sub() Links.Open(Me, url)
-            helpMenu.Items.Add(item)
+            items.Add(item)
         Next
-        ThemeMenu(helpMenu)
     End Sub
+
+    ' The Help button's menu, below the button: the right click and the Menu / Shift+F10 key open it
+    ' the same way.
+    Private Sub ShowHelpMenu()
+        If HelpMenuOpenedForTest IsNot Nothing Then
+            HelpMenuOpenedForTest()
+            Return
+        End If
+        helpMenu.Show(helpBtn, 0, helpBtn.Height)
+    End Sub
+
+    ' The self-test counts the openings instead of showing a menu that nobody there can answer.
+    Friend HelpMenuOpenedForTest As Action = Nothing
 
     ' The menu picture of a meaning: 16 px at this window's scale, in the text colour of the menu, the
     ' disabled text colour when the item does not apply, the danger colour for a destructive one.
@@ -2191,6 +2213,13 @@ Partial Public Class DiskManagerForm
             Dim detailItem As New ToolStripMenuItem(L(If(detailOpenState, "vd_mgr_detail_hide", "vd_mgr_detail_show")))
             AddHandler detailItem.Click, Sub() ToggleDetail()
             menu.Items.Add(detailItem)
+            ' The Help button's menu, as an entry a Tab walk reaches (INPUT-PARITY 3.2 rule 1): the keyboard
+            ' map, the welcome tour and the links, which are otherwise on the button's right click.
+            menu.Items.Add(New ToolStripSeparator())
+            Dim helpEntry As New ToolStripMenuItem(L("vd_mgr_name_help"))
+            helpEntry.Image = MenuImage(DiskGlyphs.Help, True, False)
+            FillHelpItems(helpEntry.DropDownItems)
+            menu.Items.Add(helpEntry)
         End If
         ThemeMenu(menu)
     End Sub
@@ -2256,9 +2285,23 @@ Partial Public Class DiskManagerForm
     ' The keyboard map of spec 6.2, read from DiskShortcuts.All - the table the help window lists and
     ' the tooltips and menus quote. Delete removes from the list and is never Destroy (spec 9).
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
-        Dim s = DiskShortcuts.Find(keyData, list.Focused)
+        Dim s = DiskShortcuts.Find(keyData, list.Focused, HelpButtonHasFocus())
         If s IsNot Nothing AndAlso RunShortcut(s) Then Return True
         Return MyBase.ProcessCmdKey(msg, keyData)
+    End Function
+
+    Private Function HelpButtonHasFocus() As Boolean
+        Return Help.FocusedControl(Me) Is helpBtn
+    End Function
+
+    ' The areas F6 and Shift+F6 go between, in the order Tab visits them (TabOrderForTest): the toolbar,
+    ' the filter, the list, the details (landing on a detail action, not on the cross that closes them),
+    ' the bar that brings the details back, and the status line. A hidden area is skipped (PaneCycle).
+    Private Function Panes() As List(Of Pane)
+        Return New List(Of Pane) From {
+            New Pane(toolbar), New Pane(filterUnit), New Pane(listHost),
+            New Pane(detailPanel, Function() PaneCycle.FirstStop(detailButtons)),
+            New Pane(detailBar), New Pane(strip)}
     End Function
 
     Friend Function RunShortcut(s As DiskShortcut) As Boolean
@@ -2302,8 +2345,14 @@ Partial Public Class DiskManagerForm
                 Perform(DiskAction.CopyPath)
                 Return True
             Case DiskCommand.ContextMenu
-                ShowRowMenuAtFocus()
+                If HelpButtonHasFocus() Then
+                    ShowHelpMenu()
+                Else
+                    ShowRowMenuAtFocus()
+                End If
                 Return True
+            Case DiskCommand.NextPane, DiskCommand.PreviousPane
+                Return PaneCycle.Move(Me, Panes(), s.Command = DiskCommand.PreviousPane)
             Case DiskCommand.DefaultAction
                 DoDefaultAction()
                 Return True
@@ -2992,7 +3041,7 @@ Partial Public Class DiskManagerForm
     Private headerFont As Font
     Private bodyFont As Font
 
-    Private Sub ThemeMenu(menu As ContextMenuStrip)
+    Private Sub ThemeMenu(menu As ToolStripDropDown)
         If menu Is Nothing Then Return
         Dim p = Theme.Current
         If Not TypeOf menu.Renderer Is ShellMenuRenderer Then menu.Renderer = New ShellMenuRenderer()
@@ -3002,6 +3051,9 @@ Partial Public Class DiskManagerForm
         If bodyFont IsNot Nothing Then menu.Font = bodyFont
         For Each item As ToolStripItem In menu.Items
             item.ForeColor = If(TryCast(item.Tag, String) = "danger", p.Danger, p.Text)
+            ' An entry that opens a menu of its own (the Help entry of More) dresses that menu the same way.
+            Dim parent = TryCast(item, ToolStripDropDownItem)
+            If parent IsNot Nothing AndAlso parent.HasDropDownItems Then ThemeMenu(parent.DropDown)
         Next
     End Sub
 
@@ -3196,6 +3248,33 @@ Partial Public Class DiskManagerForm
     Friend ReadOnly Property TabOrderForTest As Integer()
         Get
             Return New Integer() {toolbar.TabIndex, filterUnit.TabIndex, listHost.TabIndex, detailPanel.TabIndex, detailBar.TabIndex, strip.TabIndex}
+        End Get
+    End Property
+
+    ' The areas F6 cycles through, and which of them has the focus (-1 when none does).
+    Friend Function PaneHostsForTest() As List(Of Control)
+        Return Panes().Select(Function(p) p.Host).ToList()
+    End Function
+
+    Friend Function PaneIndexForTest() As Integer
+        Return PaneCycle.PaneOf(Panes(), Help.FocusedControl(Me))
+    End Function
+
+    ' A key press as the window receives it, through the same ProcessCmdKey the keyboard reaches.
+    Friend Function HandleKeyForTest(keyData As Keys) As Boolean
+        Dim msg As New Message()
+        Return ProcessCmdKey(msg, keyData)
+    End Function
+
+    Friend ReadOnly Property FilterBoxForTest As Control
+        Get
+            Return filterBox
+        End Get
+    End Property
+
+    Friend ReadOnly Property ListForTest As Control
+        Get
+            Return list
         End Get
     End Property
 

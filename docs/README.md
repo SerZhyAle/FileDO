@@ -15,6 +15,7 @@ tree are named under "Supporting files" below.
 | [`guides/index.html`](guides/index.html) | Guide hub - the safe starting point chooser. |
 | [`guides/check-storage.html`](guides/check-storage.html) | Verifying real capacity and speed of a drive. |
 | [`guides/files-and-copies.html`](guides/files-and-copies.html) | Duplicates, copies and folder differences. |
+| [`guides/erase.html`](guides/erase.html) | Erasing: what a file wipe, a folder wipe, a free-space wipe and a plain delete each do, the typed `WIPE` confirmation and what `--yes` skips, what is refused, and what a wipe cannot promise on an SSD. It is the guide behind the `erase` pillar of `packaging/positioning-source.json`. |
 | [`guides/gui-command-builder.html`](guides/gui-command-builder.html) | Building a command in the VB.NET GUI. |
 | [`guides/install-and-explorer.html`](guides/install-and-explorer.html) | Choosing an install, what the MSI writes, and the Explorer entries. |
 | [`guides/install-trust.html`](guides/install-trust.html) | The `INSTALL-TRUST` page: what the Windows warning is, why it appears, exactly what to click, and what the app never does - in that order. Its fourth section says the same thing as `privacy.html`, the MSIX capability list and the Store data-safety answers, so the four change together. When the build becomes signed the page is **updated, not deleted** - users of older builds still meet the warning. |
@@ -25,6 +26,7 @@ tree are named under "Supporting files" below.
 | [`guides/topics.html`](guides/topics.html) | Subject index - every subject the guides cover and the page for it; it links every guide. |
 | [`guides/release-notes.html`](guides/release-notes.html) | Release notes - what changed in each shipped release, newest first, with its date; one `id="v<stamp>"` section per release of the Version History in `README.md`, which `check-external-docs.ps1` (step `releasenotes`) holds equal. |
 | [`guides/support.html`](guides/support.html) | Support - where to report a problem, what to include, and which pages answer the usual questions (the install warning, privacy, release notes). |
+| [`guides/microsoft-store.html`](guides/microsoft-store.html) | The channel page of the Microsoft Store build (`SITE-STRUCTURE` edition-or-channel page) - what that build does, what it leaves out (mounting, partition disks, sharing, Explorer entries, startup in Windows Settings), how it is signed, and where to get it. The limits are stated here once and stay next to their function in the other guides; when the Store build gains or loses a capability this page changes in the same edit. |
 | [`privacy.html`](privacy.html) | Privacy policy - no network, no telemetry, no accounts. |
 
 Supporting files: [`robots.txt`](robots.txt), [`sitemap.xml`](sitemap.xml) (a render: written by

@@ -6,7 +6,7 @@
 .DESCRIPTION
   The JSON Lines registry records each check's runner class, owner ticket and
   reason. This check proves every record still names a real runner that invokes
-  it, and every check script under packaging\ and msix\test-* has a record.
+  it, and every check script under packaging\, tests\ and msix\test-* has a record.
 
   Exit code: 0 = pass, 1 = placement defect, 2 = could not verify.
 #>
@@ -50,6 +50,7 @@ foreach ($record in $records) {
 
 $declaredScripts = @(
     Get-ChildItem $PSScriptRoot -Filter '*.ps1' -File | ForEach-Object { "packaging/$($_.Name)" }
+    Get-ChildItem (Join-Path $root 'tests') -Filter '*.ps1' -File | ForEach-Object { "tests/$($_.Name)" }
     Get-ChildItem (Join-Path $root 'msix') -Filter 'test-*.ps1' -File | ForEach-Object { "msix/$($_.Name)" }
 )
 foreach ($scriptPath in $declaredScripts) {

@@ -34,7 +34,7 @@ Module LogSender
             If busy IsNot Nothing Then busy.Cursor = Cursors.Default
             If ShellDialog.Problem(owner, Localization.Format(Localization.T("logs_error"), Problems.Cause(ex)),
                                    Localization.T("shell_btn_retry"), offerLogs:=False,
-                                   actionGlyph:=GlyphRef.Vocabulary("action.refresh")) Then
+                                   actionGlyph:=GlyphRef.Vocabulary("action.retry")) Then
                 Run(owner)
             End If
             Return

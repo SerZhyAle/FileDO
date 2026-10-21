@@ -153,6 +153,20 @@ func TestEventSample_V1(t *testing.T) {
 	if !bytes.Equal(want, got) {
 		t.Fatalf("%s differs from the producer-generated stream; rerun with FILEDO_WRITE_EVENT_SAMPLE=1", path)
 	}
+
+	// Opt-in, as FDSEC_CATALOG_VECTORS and FDD_CATALOG_VECTORS are for their formats: point
+	// CLI_EVENT_STREAM_CATALOG_VECTORS at the catalog's cli-event-stream/vectors folder and the fixture
+	// must also be that folder's sample byte for byte. Nothing but this test reads the catalog, and only
+	// when asked; the product never does.
+	if catDir := os.Getenv("CLI_EVENT_STREAM_CATALOG_VECTORS"); catDir != "" {
+		cat, err := os.ReadFile(filepath.Join(catDir, "sample-v1.jsonl"))
+		if err != nil {
+			t.Fatalf("read the catalog's sample-v1.jsonl: %v", err)
+		}
+		if !bytes.Equal(want, cat) {
+			t.Fatalf("the catalog's sample-v1.jsonl differs from %s", path)
+		}
+	}
 }
 
 func generatedEventSample(t *testing.T) []byte {

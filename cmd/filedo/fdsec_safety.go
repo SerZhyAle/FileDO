@@ -108,6 +108,17 @@ const fdsecWindowsRefusedNameChars = "\"<>|"
 // the result card can say it in the user's language.
 const fdsecDestinationNameMarker = "cannot be created on this PC"
 
+// fdsecReasonDestinationName is the closed token of a destination-name refusal
+// (FDSEC-BEHAVIOUR 1.7 section 19, CLI-EVENT-STREAM rule 17). It carries no
+// name, path or credential and is written in two places: one stderr line,
+// "reason=destination-name", after the human-readable error line, and
+// details.reason on the error finding that ends the run, so a wrapper or the
+// window can say why without parsing a sentence. Exit code 5 is unchanged.
+const fdsecReasonDestinationName = "destination-name"
+
+// fdsecReasonLine is the stderr line a wrapper may match exactly.
+const fdsecReasonLine = "reason=" + fdsecReasonDestinationName
+
 // fdsecDestinationNameError is a valid sealed name that this destination
 // cannot create (FDSEC-BEHAVIOUR 1.6 section 18). It is the outcome class of an
 // I/O or destination failure - exit 5 - and deliberately wraps no container

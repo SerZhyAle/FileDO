@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/erase.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/erase.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/erase.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/erase.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/erase.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO-Logo und Name mit dem englischen Leitsatz Know your storage before you trust it auf dunkelgrünem Grund" />
+    <meta property="og:title" content="Löschen und Überschreiben mit FileDO" />
+    <meta property="og:description" content="Praktische FileDO-Anleitung: eine Datei überschreiben, einen Ordner leeren, freien Speicher überschreiben - die WIPE-Frage, Abweisungen und Grenzen auf SSDs." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Löschen und Überschreiben mit FileDO",
+        "headline": "Löschen und Überschreiben mit FileDO",
+        "description": "Praktische FileDO-Anleitung: eine Datei überschreiben, einen Ordner leeren, freien Speicher überschreiben - die WIPE-Frage, Abweisungen und Grenzen auf SSDs.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/erase.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Löschen und Überschreiben mit FileDO</title>
+    <meta
+      name="description"
+      content="Praktische FileDO-Anleitung: eine Datei überschreiben, einen Ordner leeren, freien Speicher überschreiben - die WIPE-Frage, Abweisungen und Grenzen auf SSDs."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/erase.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/erase.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/erase.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="de">Design</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/erase.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/erase.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/erase.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/erase.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · Löschen und Überschreiben</span>
+        </p>
+        <h1>
+          <span data-l="de">Manche Verfahren überschreiben, andere löschen nur. Wissen Sie, welches Sie starten.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">FileDO kann eine Datei überschreiben, einen Ordner leeren, den freien Speicher eines Laufwerks überschreiben oder einfach löschen. Jedes Verfahren stellt zuerst seine eigene Frage, weist eigene Ziele ab und verspricht weniger, als Sie auf einer SSD vielleicht hoffen. Diese Seite sagt genau, was jedes davon tut.</span>
+        </p>
+      </section>
+      <section class="section" id="ways">
+        <h2>
+          <span data-l="de">Vier Wege, Daten zu entfernen</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Von diesen vier Wegen überschreiben nur zwei etwas: das Überschreiben einer Datei und das des freien Speichers. Das Leeren eines Ordners und ein gewöhnliches Löschen entfernen die Dateien und lassen die Bytes, wo sie waren.</span>
+        </p>
+        <div class="grid guide-grid">
+          <article class="card">
+            <h3>
+              <span data-l="de">Eine Datei überschreiben</span>
+            </h3>
+            <p>
+              <span data-l="de"><b>Überschreibt.</b> Ein Durchgang mit Zufallsdaten über die Datei an Ort und Stelle, auf den Datenträger geschrieben, dann wird die Datei entfernt. Es verlangt zuerst, dass Sie <code>WIPE</code> eintippen. Der Explorer-Eintrag <b>Wipe this file</b> führt dasselbe aus.</span>
+            </p>
+            <div class="copybox">
+              filedo file D:\Work\old-report.docx wipe<button
+                class="copy"
+                data-copy="filedo file D:\Work\old-report.docx wipe"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Einen Ordner leeren</span>
+            </h3>
+            <p>
+              <span data-l="de"><b>Löscht, überschreibt nicht.</b> Alles darin verschwindet; der Ordner selbst bleibt, mit seiner Zugriffsliste, seinem Besitzer, seinen Attributen, seiner Verschlüsselung und Komprimierung. Der Inhalt lässt sich wiederherstellen, bis der Speicherplatz neu belegt wird. Es verlangt zuerst, dass Sie <code>WIPE</code> eintippen.</span>
+            </p>
+            <div class="copybox">
+              filedo folder D:\Cache wipe<button
+                class="copy"
+                data-copy="filedo folder D:\Cache wipe"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Freien Speicher überschreiben</span>
+            </h3>
+            <p>
+              <span data-l="de"><b>Überschreibt den freien Speicher, rührt keine Datei an.</b> Schreibt Testdateien, bis nur noch eine Reserve übrig ist, und löscht sie dann mit <code>del</code>; was die freien Cluster vorher enthielten, wurde dabei überschrieben. Die Zahl ist die Größe jeder Testdatei in MB. Es verlangt keine getippte Bestätigung: Es legt eigene Dateien an und entfernt nur diese.</span>
+            </p>
+            <div class="copybox">
+              filedo D: fill 1000 del<button
+                class="copy"
+                data-copy="filedo D: fill 1000 del"
+              ><span data-l="de">Kopieren</span></button>
+            </div>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Ein gewöhnliches Löschen</span>
+            </h3>
+            <p>
+              <span data-l="de"><b>Entfernt, überschreibt nicht.</b> Die <code>del</code>-Modi von Duplikaten, Vergleich und <code>secure</code> sowie <code>clean</code> entfernen Dateien auf die gewöhnliche Weise: Ein Wiederherstellungsprogramm holt die Bytes zurück, solange der Speicherplatz nicht neu belegt ist. Duplikate und Vergleich sind in der Anleitung <a href="files-and-copies.html">Duplikate, Kopieren und Vergleichen</a> beschrieben.</span>
+            </p>
+          </article>
+        </div>
+        <div class="note">
+          <span class="tag"><span data-l="de">Systemlaufwerk und Reste</span></span>
+          <p>
+            <span data-l="de">Testdateien werden dorthin geschrieben, wohin Sie das Füllen richten. Zielt es auf das Stammverzeichnis des Systemlaufwerks (<code>C:</code>), wird es nach einer Bestätigung nach <code>%TEMP%\FileDO_Operations</code> umgeleitet; ein Ordner unterhalb des Stamms wird so verwendet, wie Sie ihn nennen. Wurde ein Füllvorgang abgebrochen oder <code>del</code> weggelassen, zeigt <code>filedo D: clean</code> die eigenen Testdateien von FileDO, fragt nach und entfernt sie.</span>
+          </p>
+        </div>
+      </section>
+      <section class="section" id="confirm">
+        <h2>
+          <span data-l="de">Die Bestätigung mit WIPE</span>
+        </h2>
+        <p>
+          <span data-l="de">Das Überschreiben einer Datei und das Leeren eines Ordners halten an, geben den aufgelösten vollständigen Pfad aus (bei einem Ordner auch, wie viele Objekte sie gefunden haben) und fragen <code>Type WIPE to continue:</code>. Alles außer <code>WIPE</code> in Großbuchstaben bricht den Lauf ab, und nichts wird entfernt. Lesen Sie den Pfad, bevor Sie tippen.</span>
+        </p>
+        <p>
+          <span data-l="de"><code>--yes</code> (auch <code>-y</code> und <code>--force</code>) überspringt diese eine Frage bei einem gewöhnlichen Ziel, für Skripte. Mehr überspringt es nicht: Das Überschreiben einer Datei gibt weiterhin seinen Hinweis zu SSDs aus, und die Abweisungen unten gelten weiter. Die Umgebungsvariable <code>FILEDO_AUTO_CONFIRM=1</code> beantwortet die Frage auf dieselbe Weise.</span>
+        </p>
+        <div class="copybox">
+          filedo folder D:\Cache wipe --yes<button
+            class="copy"
+            data-copy="filedo folder D:\Cache wipe --yes"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+        <p>
+          <span data-l="de">Gibt es niemanden, der antwortet (Standardeingabe geschlossen, etwa in einem Skript ohne <code>--yes</code>), bekommt die Frage eine leere Antwort: Der Lauf meldet <code>wipe cancelled by user</code>, entfernt nichts und endet mit Exitcode 2. Ein abgeschlossenes Überschreiben oder Leeren endet mit 0.</span>
+        </p>
+      </section>
+      <section class="section" id="refusals">
+        <h2>
+          <span data-l="de">Was abgewiesen wird und was doppelt gefragt wird</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Diese Prüfungen gehören zum Ziel, nicht zur Frage; deshalb überspringt <code>--yes</code> sie nicht.</span>
+        </p>
+        <dl class="term-list">
+          <dt>
+            <span data-l="de">Das Stammverzeichnis eines Laufwerks oder einer Freigabe</span>
+          </dt>
+          <dd>
+            <span data-l="de"><code>D:</code>, <code>D:\</code>, <code>\\server\share</code>, ihre Schreibweisen als Gerätepfade und das Stammverzeichnis jedes Volumes oder Bereitstellungspunkts. <code>filedo D: wipe</code> bedeutet <code>D:\</code>; ein Leeren des ganzen Laufwerks fällt also immer in diese Klasse. FileDO fragt zweimal: <code>WIPE</code>, dann den Zielpfad, so getippt, wie er angezeigt wird.</span>
+          </dd>
+          <dt>
+            <span data-l="de">System- und FileDO-Ordner</span>
+          </dt>
+          <dd>
+            <span data-l="de">Die TEMP-Ordner, das Benutzerprofil und der Profilordner, der Ordner, aus dem FileDO läuft, und jeder Ordner darüber; die Ordner Windows und Program Files sowie der Datenordner von FileDO selbst samt allem darin. Es wird zweimal gefragt, wie oben, gleich wie der Pfad geschrieben ist: Ein subst-Laufwerk, eine Verzweigung, ein kurzer 8.3-Name oder <code>\\localhost\C$</code> verbirgt sie nicht.</span>
+          </dd>
+          <dt>
+            <span data-l="de">Eine Verzweigung, ein symbolischer Link oder ein Bereitstellungspunkt</span>
+          </dt>
+          <dd>
+            <span data-l="de">Sofortige Abweisung, sowohl beim Überschreiben einer Datei als auch beim Leeren eines Ordners: Wer über einen Link handelt, entfernt entweder den Link und lässt die Daten stehen oder überschreibt, worauf er heute zeigt - beides meint niemand, der ein Überschreiben verlangt. Leeren Sie den Ordner, auf den er zeigt, über dessen eigenen Pfad.</span>
+          </dd>
+          <dt>
+            <span data-l="de">Eine Datei mit einem weiteren Hardlink</span>
+          </dt>
+          <dd>
+            <span data-l="de">Abgewiesen: Das Überschreiben erreicht jeden Namen der Datei. Die Meldung nennt die Zahl der Namen; entfernen Sie zuerst die überzähligen Links oder nutzen Sie <code>del</code>.</span>
+          </dd>
+          <dt>
+            <span data-l="de">Ein Eintrag, der sich nicht löschen lässt</span>
+          </dt>
+          <dd>
+            <span data-l="de">Das Leeren eines Ordners listet die ersten zehn Einträge auf, die sich nicht löschen ließen (in Gebrauch, gesperrt, Zugriff verweigert), macht mit dem Rest weiter und endet mit Exitcode 2 und der Zahl der übrig gebliebenen Einträge der obersten Ebene. Ein Schreibschutz-Attribut ist keine Abweisung: FileDO entfernt es und versucht es erneut.</span>
+          </dd>
+        </dl>
+      </section>
+      <section class="section" id="limits">
+        <h2>
+          <span data-l="de">Was ein Überschreiben nicht versprechen kann</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"><span data-l="de">Grenzen</span></span>
+          <p>
+            <span data-l="de">Das Überschreiben an Ort und Stelle senkt die Chance auf Wiederherstellung und verspricht nichts. Auf einer SSD, einer Flash-Karte oder einem USB-Stick sowie auf Copy-on-Write- und journalisierenden Dateisystemen ist nicht garantiert, dass die alten Blöcke verschwunden sind; ein Laufwerk kann alte Kopien in seinem Reservebereich behalten. Das Leeren eines Ordners überschreibt gar nichts.</span>
+          </p>
+        </div>
+        <p>
+          <span data-l="de">Ein Überschreiben wirkt nur auf die eine Datei oder den einen Ordner, die Sie nennen, auf diesem Volume. Eine Kopie an anderer Stelle - von einem Synchronisierungsclient, einer Sicherung, einem anderen Laufwerk oder von Ihnen selbst - ist eine andere Datei, und FileDO sucht sie nicht.</span>
+        </p>
+        <p>
+          <span data-l="de">Das Überschreiben des freien Speichers hat eigene Grenzen. Es hört bei einer Reserve auf (der kleinere Wert aus 100 MB und 5 % des Volumes; auf dem Systemvolume der größere aus 10 GB und 10 %) und bei dem Rest, der kleiner als eine Testdatei ist; diese Cluster werden also nicht beschrieben. Es erreicht nur freie Cluster, nie eine Datei, die noch existiert.</span>
+        </p>
+      </section>
+      <section class="section" id="window">
+        <h2>
+          <span data-l="de">Im Fenster</span>
+        </h2>
+        <p>
+          <span data-l="de">In der Liste links hat die Gruppe <b>Löschen</b> zwei Seiten. <b>Freien Speicher füllen</b> nimmt ein Laufwerk und das Kästchen <b>Testdateien automatisch löschen (del)</b> und wiederholt den Umleitungshinweis, wenn das Ziel das Systemlaufwerk ist. <b>Ordner leeren</b> zählt, was das Ziel enthält, und verlangt dann <code>WIPE</code> in Großbuchstaben und ein Häkchen bei <b>Bestätigung überspringen (-y / --force)</b>, weil das Fenster keine Konsole für die eigene Frage des Programms hat. Ein Laufwerks- oder Freigabe-Stammverzeichnis, eine Verzweigung oder TEMP führt das Fenster gar nicht aus: Die Seite sagt, warum, und zeigt den Befehl für eine Konsole, in der FileDO zweimal fragt.</span>
+        </p>
+        <p>
+          <span data-l="de">Eine einzelne Datei überschreiben Sie mit dem Eintrag <b>Wipe this file</b> des Explorer-Menüs, auf der Seite <b>Befehl</b> (auch sie verlangt <code>WIPE</code>) oder - nach dem Einpacken in einen Container - mit der Überschreib-Wahl für das Original auf <b>Datei geheim machen</b>. Die Microsoft-Store-Version hat keine Explorer-Einträge; siehe <a href="microsoft-store.html">ihre Seite</a>.</span>
+        </p>
+      </section>
+      <section class="section" id="order">
+        <h2>
+          <span data-l="de">Ein vorsichtiger Ablauf</span>
+        </h2>
+        <ol class="steps">
+          <li>
+            <span data-l="de">Nennen Sie die genaue Datei oder den genauen Ordner. Zielen Sie nur dann auf ein ganzes Laufwerk, wenn gerade das Leeren des ganzen Laufwerks gemeint ist.</span>
+          </li>
+          <li>
+            <span data-l="de">Lesen Sie den Pfad und die Objektzahl, die die Frage ausgibt, bevor Sie <code>WIPE</code> tippen.</span>
+          </li>
+          <li>
+            <span data-l="de">Kopieren Sie zuerst, was Sie behalten wollen, auf ein anderes Laufwerk. FileDO kennt kein Rückgängigmachen für ein Überschreiben oder Leeren.</span>
+          </li>
+          <li>
+            <span data-l="de">Müssen gelöschte Daten schwer wiederherstellbar sein, schließen Sie mit dem Überschreiben des freien Speichers dieses Volumes ab - im Wissen um die Grenzen oben.</span>
+          </li>
+        </ol>
+      </section>
+      <section class="section" id="related">
+        <h2>
+          <span data-l="de">Wo dieselben Wörter vorkommen</span>
+        </h2>
+        <p>
+          <span data-l="de"><code>secure wipe</code> überschreibt das Original nach dem Einpacken in einen <code>.fd-sec</code>-Container - siehe <a href="fd-sec-containers.html">Geheime Dateien</a>. <code>vd destroy</code> mit <code>wipe</code> überschreibt einen virtuellen Datenträger, bevor er entfernt wird - siehe <a href="virtual-disks.html">Virtuelle Datenträger</a>. Die Explorer-Einträge stehen in <a href="install-and-explorer.html">Installation und das Explorer-Menü</a>. <b>Wipe</b> und <b>Fill</b> sind im <a href="glossary.html#term-wipe">Glossar</a> erklärt.</span>
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "Löschen und Überschreiben mit FileDO",
+          description:
+            "Praktische FileDO-Anleitung: eine Datei überschreiben, einen Ordner leeren, freien Speicher überschreiben - die WIPE-Frage, Abweisungen und Grenzen auf SSDs.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

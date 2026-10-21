@@ -373,7 +373,30 @@ Public Class ShellForm
             AppHost.OpenDiskManager()
             Return True
         End If
+        ' F6 and Shift+F6 go between the rail, the header's Help button and the page on screen
+        ' (INPUT-PARITY, `move`); the rail alone is thirty Tab stops.
+        If keyData = Keys.F6 OrElse keyData = (Keys.Shift Or Keys.F6) Then
+            If PaneCycle.Move(Me, Panes(), keyData = (Keys.Shift Or Keys.F6)) Then Return True
+        End If
         Return MyBase.ProcessCmdKey(msg, keyData)
+    End Function
+
+    ' The areas F6 cycles through, in reading order: the rail (landing on the row of the page on screen
+    ' when it is shown), the header with its Help button, and the page. A hidden or empty one is skipped.
+    Private Function Panes() As List(Of Pane)
+        Return New List(Of Pane) From {
+            New Pane(railHost, Function() entries.FirstOrDefault(Function(e) e.Selected AndAlso e.Visible)),
+            New Pane(header),
+            New Pane(pageHost)}
+    End Function
+
+    ' For SelfTest.vb: where F6 would take the focus from the control that has it now.
+    Friend Function PaneTargetForTest(backwards As Boolean) As Control
+        Return PaneCycle.Target(Panes(), Help.FocusedControl(Me), backwards)
+    End Function
+
+    Friend Function PaneIndexForTest() As Integer
+        Return PaneCycle.PaneOf(Panes(), Help.FocusedControl(Me))
     End Function
 
     Private Sub BuildPageHost()
@@ -934,10 +957,50 @@ Public Class ShellForm
             Return closeWhenIdle
         End Get
     End Property
-    Friend Sub OpenSettings()
+    ' APP-SETTINGS 0.7 rule 1: settings are found where the user is. `follow` is the screen of the
+    ' window or pointer that asked (the Disk Manager's button, the tray menu); the page is a page of
+    ' this window, so the window comes to that screen, on the page the user left. Nothing given: the
+    ' window stays where it is.
+    Friend Sub OpenSettings(Optional follow As WindowPlacement.ScreenArea = Nothing)
         BringBack()
+        If follow IsNot Nothing Then MoveToScreen(follow)
         SelectJobByKey("rail_job_settings")
         settingsView.Panel.Reveal("theme")
+    End Sub
+
+    ' Brings this window to `target`, centred on its working area - unless most of it is on that screen
+    ' already, where it stays exactly as the user left it. A maximized window leaves maximized, on the
+    ' new screen. Moving across screens of another scaling makes WinForms re-scale the window, so the
+    ' rectangle is put right once that has happened. True when the window moved.
+    Friend Function MoveToScreen(target As WindowPlacement.ScreenArea) As Boolean
+        If target Is Nothing OrElse WindowState = FormWindowState.Minimized Then Return False
+        Try
+            Dim own = WindowPlacement.ScreenToFollow(Bounds, Nothing, WindowPlacement.LiveScreens())
+            If own Is Nothing OrElse own.Area = target.Area Then Return False
+            Dim wasMaximized = (WindowState = FormWindowState.Maximized)
+            Dim current = If(wasMaximized, RestoreBounds.Size, Size)
+            If wasMaximized Then WindowState = FormWindowState.Normal
+            Location = WindowPlacement.CentreOn(current, target.Area).Location
+            If IsHandleCreated Then
+                BeginInvoke(New MethodInvoker(Sub() SettleOnScreen(target, wasMaximized)))
+            Else
+                SettleOnScreen(target, wasMaximized)
+            End If
+            Return True
+        Catch ex As Exception
+            ShellLog.Write("bring the window to the user's monitor", ex)
+            Return False
+        End Try
+    End Function
+
+    Private Sub SettleOnScreen(target As WindowPlacement.ScreenArea, wasMaximized As Boolean)
+        If IsDisposed Then Return
+        Try
+            Bounds = WindowPlacement.CentreOn(Size, target.Area)
+            If wasMaximized Then WindowState = FormWindowState.Maximized
+        Catch ex As Exception
+            ShellLog.Write("settle the window on the user's monitor", ex)
+        End Try
     End Sub
 
     ' The name of what is running, for the close question.

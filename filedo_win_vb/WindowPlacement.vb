@@ -166,6 +166,73 @@ Module WindowPlacement
         Return best
     End Function
 
+    ' ---- following the user to their monitor ------------------------------
+    ' APP-SETTINGS 0.7 rule 1: a surface that already exists is brought "to the monitor the user is
+    ' working on". Both decisions are pure functions of rectangles, so the self-test checks them with
+    ' invented screens - two of them, a window spread over both, a monitor that has been unplugged.
+
+    ' The screen the user is working on. The window they are in decides when there is one: the screen
+    ' holding most of it, and - when it is spread evenly over several - the one the pointer is on. A
+    ' window that lies on no screen (its monitor is gone) says nothing, and the pointer decides; the
+    ' pointer itself, when it is on the taskbar or off every working area, counts for the nearest screen.
+    ' With neither a window nor a pointer there is nothing to follow and the answer is Nothing.
+    Public Function ScreenToFollow(window As Rectangle?, pointer As Point?, screens As IList(Of ScreenArea)) As ScreenArea
+        If screens Is Nothing OrElse screens.Count = 0 Then Return Nothing
+
+        Dim pointed As ScreenArea = Nothing
+        If pointer.HasValue Then
+            Dim pt = pointer.Value
+            For Each s In screens
+                If s.Area.Contains(pt) Then
+                    pointed = s
+                    Exit For
+                End If
+            Next
+            If pointed Is Nothing Then pointed = Nearest(New Rectangle(pt, New Size(1, 1)), screens)
+        End If
+
+        If window.HasValue AndAlso window.Value.Width > 0 AndAlso window.Value.Height > 0 Then
+            Dim r = window.Value
+            Dim leaders As New List(Of ScreenArea)()
+            Dim bestArea As Long = 0
+            For Each s In screens
+                Dim i = Rectangle.Intersect(r, s.Area)
+                Dim a = CLng(Math.Max(0, i.Width)) * CLng(Math.Max(0, i.Height))
+                If a > bestArea Then
+                    bestArea = a
+                    leaders.Clear()
+                    leaders.Add(s)
+                ElseIf a = bestArea AndAlso a > 0 Then
+                    leaders.Add(s)
+                End If
+            Next
+            If leaders.Count > 0 Then
+                If leaders.Count > 1 AndAlso pointed IsNot Nothing AndAlso leaders.Contains(pointed) Then Return pointed
+                Return leaders(0)
+            End If
+            If pointed Is Nothing Then Return Nearest(r, screens)
+        End If
+
+        Return pointed
+    End Function
+
+    ' The rectangle a window of this size takes when it is brought to a screen: centred on that screen's
+    ' working area, and no larger than the area (a size made on a bigger monitor still fits).
+    Public Function CentreOn(size As Size, area As Rectangle) As Rectangle
+        Dim w = Math.Max(1, Math.Min(size.Width, area.Width))
+        Dim h = Math.Max(1, Math.Min(size.Height, area.Height))
+        Return New Rectangle(area.Left + (area.Width - w) \ 2, area.Top + (area.Height - h) \ 2, w, h)
+    End Function
+
+    ' The screens as they are now, working areas and scalings.
+    Public Function LiveScreens() As List(Of ScreenArea)
+        Dim screens As New List(Of ScreenArea)()
+        For Each s As Screen In Screen.AllScreens
+            screens.Add(New ScreenArea(s.WorkingArea, DpiOf(s)))
+        Next
+        Return screens
+    End Function
+
     ' ---- the DPI of a real screen ----------------------------------------
 
     <DllImport("user32.dll")>

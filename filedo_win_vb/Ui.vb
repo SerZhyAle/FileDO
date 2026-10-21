@@ -305,7 +305,7 @@ Module Ui
             ShellLog.Write("copy to clipboard", ex)
             If ShellDialog.Problem(owner, Localization.Format(Localization.T("shell_copy_failed"), Problems.Cause(ex)),
                                    Localization.T("shell_btn_retry"), offerLogs:=False,
-                                   actionGlyph:=GlyphRef.Vocabulary("action.refresh")) Then
+                                   actionGlyph:=GlyphRef.Vocabulary("action.retry")) Then
                 CopyText(owner, text)
             End If
         End Try

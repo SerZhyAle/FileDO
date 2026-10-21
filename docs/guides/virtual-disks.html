@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -65,6 +65,7 @@
               : "dark");
           document.documentElement.dataset.theme = t;
           var l = localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
             l =
@@ -106,8 +107,7 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme">
-        ◐</button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
         ><span data-l="ru">Установить</span><span data-l="en">Install</span
         ><span data-l="ua">Встановити</span></a
@@ -1977,23 +1977,24 @@
               <span data-l="ru"
                 ><kbd>F1</kbd> открывает окно справки: что говорит строка,
                 таблица клавиш, немного полезного и ссылки. Кнопка «Справка»
-                открывает меню: «Справка и сочетания клавиш», «Первые шаги..» и
-                ссылки - «Руководство: виртуальные диски», «Все руководства»,
+                открывает меню: «Справка и сочетания клавиш», «Знакомство с
+                программой» и ссылки - «Руководство: виртуальные диски», «Все
+                руководства»,
                 «Сайт FileDO», «Документация и исходный код» на GitHub и
                 «Сообщить о проблеме». Ссылка открывается только по щелчку;
                 сама по себе программа ничего не загружает.</span
               ><span data-l="en"
                 ><kbd>F1</kbd> opens the help window: what a row says, the
                 keyboard table, a few things good to know, and links. The Help
-                button opens a menu: "Help and keyboard shortcuts", "First
-                steps..", and links to "Guide: virtual disks", "All guides",
+                button opens a menu: "Help and keyboard shortcuts", "Welcome
+                tour", and links to "Guide: virtual disks", "All guides",
                 "FileDO website", "Documentation and source" on GitHub and
                 "Report a problem". A link is followed only when you click it;
                 nothing is fetched by itself.</span
               ><span data-l="ua"
                 ><kbd>F1</kbd> відкриває вікно довідки: що каже рядок, таблиця
                 клавіш, дещо корисне й посилання. Кнопка «Довідка» відкриває
-                меню: «Довідка та скорочення клавіш», «Перші кроки..» і
+                меню: «Довідка та скорочення клавіш», «Знайомство з програмою» і
                 посилання - «Посібник: віртуальні диски», «Усі посібники», «Сайт
                 FileDO», «Документація та вихідний код» на GitHub і «Повідомити
                 про проблему». Посилання відкривається лише за кліком; сама
@@ -2020,8 +2021,8 @@
                 предлагает четыре ответа: «Создать мой первый диск..», «Добавить файл .fdd,
                 который у меня уже есть..», «Прочитать руководство на сайте» и
                 «Не сейчас» - это настоящий ответ, после него остаётся рабочее
-                окно. Открыть его снова можно через «Справка», «Первые
-                шаги..»; пустой список показывает те же способы начать.</span
+                окно. Открыть его снова можно через «Справка», «Знакомство с
+                программой»; пустой список показывает те же способы начать.</span
               ><span data-l="en"
                 >The first time the Disk manager opens, it shows "Welcome to the
                 Disk manager" once. It says what a virtual disk is and puts the
@@ -2034,7 +2035,7 @@
                 "Add a .fdd file
                 I already have..", "Read the guide on the website" and "Not now"
                 - a real answer, which leaves a working window. It opens again
-                from Help, First steps.., and an empty list shows the same ways
+                from Help, Welcome tour, and an empty list shows the same ways
                 to start.</span
               ><span data-l="ua"
                 >Під час першого відкриття диспетчер один раз показує вікно
@@ -2048,7 +2049,7 @@
                 пропонує чотири відповіді: «Створити мій перший диск..», «Додати файл .fdd, який
                 у мене вже є..», «Прочитати посібник на сайті» і «Не зараз» - це
                 справжня відповідь, після неї лишається робоче вікно. Відкрити
-                його знову можна через «Довідка», «Перші кроки..»; порожній
+                його знову можна через «Довідка», «Знайомство з програмою»; порожній
                 список показує ті самі способи почати.</span
               >
             </p>
@@ -2168,7 +2169,7 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html">Guides</a> · <a href="../">FileDO</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>

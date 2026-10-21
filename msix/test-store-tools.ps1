@@ -16,6 +16,10 @@
             export's structure (453 rows, BOM, CRLF records, minimal quoting, no final newline)
             with every copy cell emptied. It carries no product data: the field IDs are the
             format's own. Replace it with FileDO's real, emptied export after the first submission.
+            Also the WINDOWS-STORE 0.2 refusals, each with a negative case that must exit 1 and
+            write nothing: more than 21 search-term words in a language (and exactly 21 passing),
+            a cell over its cap in the unit Partner Center counts, a duplicate term, a shipped
+            language with no column in the export or no source file; and the fixture marked -text.
 
   Exit code: 0 = every check passed, 1 = a defect was found, 2 = could not verify.
 
@@ -43,8 +47,8 @@ function Check([string]$name, [bool]$ok, [string]$detail = "") {
     if ($ok) { $script:pass++; Write-Host "  PASS  $name" -ForegroundColor Green }
     else     { $script:fail++; Write-Host "  FAIL  $name  $detail" -ForegroundColor Red }
 }
-function Run-Builder([string[]]$argv) {
-    $out = & $hostExe -NoProfile -ExecutionPolicy Bypass -File $builder @argv 2>&1 | Out-String
+function Run-Builder([string[]]$argv, [string]$script = $builder) {
+    $out = & $hostExe -NoProfile -ExecutionPolicy Bypass -File $script @argv 2>&1 | Out-String
     return @{ Code = $LASTEXITCODE; Text = $out }
 }
 function Read-Fields([string]$path) {
@@ -74,6 +78,9 @@ foreach ($code in $Locale.Keys) {
     Check "$code.txt every feature <= 200 chars" ($longF.Count -eq 0) ("Feature" + ($longF -join ',Feature'))
     $terms = @(1..7 | ForEach-Object { $f["SearchTerm$_"] })
     Check "$code.txt search terms: 7, unique, <= 30 chars" (($terms | Select-Object -Unique).Count -eq 7 -and -not ($terms | Where-Object { $_.Length -gt 30 })) ($terms -join ' | ')
+    # WINDOWS-STORE 0.2: at most 21 words across the seven cells (a word is a non-whitespace run).
+    $termWords = ($terms | ForEach-Object { ([regex]::Matches([string]$_, '\S+')).Count } | Measure-Object -Sum).Sum
+    Check "$code.txt search terms: at most 21 words in all (WINDOWS-STORE 0.2)" ($termWords -le 21) "$termWords words: $($terms -join ' | ')"
     $all = ($f.Values -join "`n")
     # house text style for prose: no em/en dash, ".." never "..."
     Check "$code.txt house text style (no em/en dash, no three dots)" (($all -notmatch [regex]::Escape([string][char]0x2014)) -and ($all -notmatch [regex]::Escape([string][char]0x2013)) -and ($all -notmatch '\.\.\.'))
@@ -162,6 +169,14 @@ try {
     $p = Test-ExplorerCommand -Manifest $defXml -Entries $withDll -ExplorerCommand $true -SourceClsid $cppClsid
     Check "-ExplorerCommand build whose manifest lacks the command is refused" ($p.Count -ge 2) ($p -join '; ')
 
+    # WINDOWS-STORE rule 2 and rung 3: the packed file offered for upload is unsigned.
+    $p = Test-UnsignedStorePackage -Entries $baseEntries
+    Check "a package with no AppxSignature.p7x entry passes the unsigned-upload check" ($p.Count -eq 0) ($p -join '; ')
+    $p = Test-UnsignedStorePackage -Entries ($baseEntries + 'AppxSignature.p7x')
+    Check "a package carrying AppxSignature.p7x is refused for a Store upload" ($p.Count -eq 1 -and $p[0] -match 'AppxSignature\.p7x') ($p -join '; ')
+    $p = Test-UnsignedStorePackage -Entries ($baseEntries + 'appxsignature.P7X')
+    Check "the AppxSignature.p7x check does not depend on case" ($p.Count -eq 1) ($p -join '; ')
+
     # SP-0004 T6.27: .fdd is declared for the GUI app only (its info and export page), once, with
     # no verb - the Store build cannot mount. The same check build-msix.ps1 runs on the packed
     # manifest, here on the template in both shapes and on four broken copies of it.
@@ -199,6 +214,10 @@ try {
 
 # ---------------------------------------------------------------------------------------------
 Write-Host "BUILDER" -ForegroundColor Cyan
+# WINDOWS-STORE rule 13: the committed export is marked -text, so git (core.autocrlf on a developer machine
+# or a runner) never normalises the BOM, the CRLF record breaks or the LF inside cells it is compared by.
+$attrs = [System.IO.File]::ReadAllText((Join-Path (Split-Path $msix -Parent) ".gitattributes"))
+Check "the committed export fixture is marked -text in .gitattributes (rule 13)" ($attrs -match '(?m)^msix/testdata/listingData\.fixture\.csv[ \t]+-text[ \t\r]*$')
 $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("fd-listing-test-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 [void][System.IO.Directory]::CreateDirectory($tmp)
 try {
@@ -300,7 +319,8 @@ try {
     $chg = @(); for ($i = 0; $i -lt $orig.Count; $i++) { foreach ($p in $Locale.Values) { if ($orig[$i].$p -cne $n7[$i].$p) { $chg += $orig[$i].Field } } }
     Check "-Only 'SearchTerm*' changes search-term rows and nothing else" ($chg.Count -eq 35 -and -not ($chg | Where-Object { $_ -notmatch '^SearchTerm\d$' })) "changed: $(($chg | Select-Object -Unique) -join ',')"
 
-    # a locale that is not a column of the export is reported and never invented
+    # a shipped language that is not a column of the export is refused by name (WINDOWS-STORE rule 7, section 3)
+    # and never invented: an import drops the copy of a column it does not have, without an error
     $nofr = Join-Path $tmp "nofr.csv"
     $lines = [System.IO.File]::ReadAllText($fx) -split "`r`n"
     $hdr = $lines[0] -split ','; $frIdx = [array]::IndexOf($hdr, 'fr')
@@ -308,11 +328,79 @@ try {
     [System.IO.File]::WriteAllText($nofr, ($cut -join "`r`n"), (New-Object System.Text.UTF8Encoding($true)))
     $o8 = Join-Path $tmp "o8\listingData.csv"
     $r = Run-Builder @('-Csv', $nofr, '-Out', $o8)
-    $h8 = (Get-Content $o8 -TotalCount 1 -Encoding utf8) -replace [char]0xFEFF, ''
-    Check "a language missing from the export is warned about, never added as a column" ($r.Code -eq 0 -and $r.Text -match 'NOT in this export' -and $r.Text -match 'fr' -and ($h8 -split ',') -notcontains 'fr') $r.Text
+    Check "a shipped language missing from the export is refused by name (exit 1) and nothing is written" ($r.Code -eq 1 -and $r.Text -match "refused: fr: the export has no 'fr' column" -and -not (Test-Path (Split-Path $o8))) $r.Text
+    $r = Run-Builder @('-Csv', $nofr, '-FillNothing')
+    Check "the round-trip self-test refuses that export too" ($r.Code -eq 1 -and $r.Text -match "refused: fr: the export has no 'fr' column" -and $r.Text -notmatch 'byte-identical') $r.Text
 
     $r = Run-Builder @('-Csv', $fx, '-Out', $fx)
     Check "-Out equal to the export is refused" ($r.Code -ne 0 -and $r.Text -match 'never overwritten') $r.Text
+
+    # The self-test of the round trip leaves nothing behind, not even the empty default import folder.
+    $dflt = Join-Path $msix "out\store-import"
+    $hadDflt = Test-Path $dflt
+    $r = Run-Builder @('-Csv', $fx, '-FillNothing')
+    Check "-FillNothing creates no import folder" ($r.Code -eq 0 -and ($hadDflt -or -not (Test-Path $dflt))) $r.Text
+
+    # --- WINDOWS-STORE 0.2 and rule 9: the caps refuse BEFORE anything is written ---------------------
+    # The builder reads its decks from <its own folder>\listing, so a copy of the script beside a copy of
+    # the decks lets a case break a deck without touching the real one.
+    $alt = Join-Path $tmp "alt\msix"
+    [void][System.IO.Directory]::CreateDirectory($alt)
+    Copy-Item $builder $alt
+    $altBuilder = Join-Path $alt "build-store-listing-csv.ps1"
+    $altListing = Join-Path $alt "listing"
+    function Reset-Decks { if (Test-Path $altListing) { [System.IO.Directory]::Delete($altListing, $true) }; Copy-Item $listing $altListing -Recurse }
+    function Set-Deck([string]$code, [string]$field, [string]$value) {
+        $path = Join-Path $altListing "$code.txt"
+        $deck = [System.IO.File]::ReadAllText($path)
+        $deck = ([regex]"(?ms)^@@$field[ \t]*\r?\n.*?(?=^@@|\z)").Replace($deck, "@@$field`n$value`n`n", 1)
+        [System.IO.File]::WriteAllText($path, $deck, (New-Object System.Text.UTF8Encoding($false)))
+    }
+    function Built([string]$name) { Test-Path (Join-Path $tmp $name) }   # was the output folder created at all?
+
+    Reset-Decks
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "cap0\listingData.csv")) $altBuilder
+    Check "the unmodified decks pass the caps and the run reports each language's search-term words" ($r.Code -eq 0 -and $r.Text -match 'search-term words \(cap 21\): en-us \d+, ru \d+, uk \d+, de \d+, fr \d+' -and (Built "cap0\listingData.csv")) $r.Text
+
+    # exactly 21 words passes, 22 is refused naming the language and the count, and nothing is created
+    1..7 | ForEach-Object { Set-Deck 'en' "SearchTerm$_" "aa$_ bb$_ cc$_" }
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "cap21\listingData.csv")) $altBuilder
+    Check "exactly 21 search-term words in a language pass" ($r.Code -eq 0 -and $r.Text -match 'en-us 21,' -and (Built "cap21\listingData.csv")) $r.Text
+    Set-Deck 'en' 'SearchTerm7' "aa7 bb7 cc7 dd7"
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "cap22\listingData.csv")) $altBuilder
+    Check "22 search-term words are refused: exit 1, the language and both numbers named" ($r.Code -eq 1 -and $r.Text -match 'refused: en-us: 22 words across the 7 search terms, over the cap of 21' -and $r.Text -match 'msix\\listing\\en\.txt') $r.Text
+    Check "an over-cap run writes nothing: no file, no folder, no zip" (-not (Built "cap22") -and -not (Built "cap22.zip")) ((Get-ChildItem $tmp -Recurse -Filter 'listingData.csv' | ForEach-Object FullName) -join '; ')
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "cap22s\listingData.csv"), '-Screenshots') $altBuilder
+    Check "an over-cap -Screenshots run writes no CSV, copies no image and builds no zip" ($r.Code -eq 1 -and -not (Built "cap22s") -and -not (Built "cap22s.zip")) $r.Text
+    $r = Run-Builder @('-Csv', $fx, '-FillNothing') $altBuilder
+    Check "the round-trip self-test does not read the copy, so an over-cap deck does not stop it" ($r.Code -eq 0 -and $r.Text -match 'byte-identical') $r.Text
+
+    # ReleaseNotes is counted after CRLF normalisation: 600 lines are 1199 characters joined by LF, 1798 by CRLF
+    Reset-Decks
+    Set-Deck 'ru' 'ReleaseNotes' ((1..600 | ForEach-Object { 'x' }) -join "`n")
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "cap1798\listingData.csv")) $altBuilder
+    Check "a 1199-character ReleaseNotes (1798 after CRLF normalisation) is refused, in the unit Partner Center counts" ($r.Code -eq 1 -and $r.Text -match 'refused: ru ReleaseNotes: 1798 characters, over the cap of 1500' -and -not (Built "cap1798")) $r.Text
+
+    # a cell the builder does not own counts too: an over-cap value already in the export is in the file
+    Reset-Decks
+    $heavy = Join-Path $tmp "heavy.csv"
+    $htext = [System.IO.File]::ReadAllText($fx)
+    $htext = ([regex]'(?m)^(ShortDescription,\d+,[^,\r\n]*,,),').Replace($htext, ('${1}' + ('s' * 1001) + ','), 1)
+    [System.IO.File]::WriteAllText($heavy, $htext, (New-Object System.Text.UTF8Encoding($true)))
+    $r = Run-Builder @('-Csv', $heavy, '-Out', (Join-Path $tmp "capheavy\listingData.csv")) $altBuilder
+    Check "an over-cap cell already in the export is refused too (1001 characters in ShortDescription)" ($r.Code -eq 1 -and $r.Text -match 'refused: en-us ShortDescription: 1001 characters, over the cap of 1000' -and -not (Built "capheavy")) $r.Text
+
+    # a duplicate search term is refused (rule 15)
+    Reset-Decks
+    Set-Deck 'de' 'SearchTerm2' 'usb stick tester'
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "capdup\listingData.csv")) $altBuilder
+    Check "a duplicate search term is refused" ($r.Code -eq 1 -and $r.Text -match 'refused: de: duplicate search terms' -and -not (Built "capdup")) $r.Text
+
+    # a shipped language with a column but no deck is refused by name (rule 7, section 3)
+    Reset-Decks
+    [System.IO.File]::Delete((Join-Path $altListing "fr.txt"))
+    $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "nodeck\listingData.csv")) $altBuilder
+    Check "a shipped language with no source file is refused by name (exit 1) and nothing is written" ($r.Code -eq 1 -and $r.Text -match 'refused: fr: no source file msix\\listing\\fr\.txt' -and -not (Built "nodeck")) $r.Text
 }
 finally {
     if (Test-Path $tmp) { [System.IO.Directory]::Delete($tmp, $true) }

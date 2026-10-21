@@ -301,3 +301,28 @@ Public Module CliRules
     }
 
 End Module
+
+' What a container verb's result says in the user's language (FDSEC-BEHAVIOUR 1.6 section 18). A
+' container the reader accepted whose sealed name this PC cannot create - one of the characters
+' " < > | or a name over 255 UTF-16 units - stops a restore with exit class 5 and a sentence that
+' names the rule and never the name (cmd\filedo\fdsec_safety.go, fdsecDestinationNameError). The
+' console's sentence is English; the result card says the same thing in the language of the window.
+Public Module FdsecResults
+
+    ' The words every one of the CLI's destination-name refusals carries (fdsecDestinationNameMarker;
+    ' a Go test reads this file for it).
+    Public Const DestinationNameRefusal As String = "cannot be created on this PC"
+
+    ' The four characters, for the {0} of the sentence: a translation value may not hold the bar
+    ' itself (GetDict splits on it), so the characters are supplied here.
+    Public ReadOnly RefusedCharacters As String = """ < > " & ChrW(&H7C)
+
+    ' The sentence key for a run of unsecure or reveal that ended in that refusal, or "" for none.
+    ' Class 5 alone is every I/O failure; the marker is what says which one this was.
+    Public Function ExitKeyFor(verb As String, code As Integer, output As String) As String
+        If code = 5 AndAlso (verb = "unsecure" OrElse verb = "reveal") AndAlso
+           If(output, "").IndexOf(DestinationNameRefusal, StringComparison.Ordinal) >= 0 Then Return "shell_fdsec_dest_name"
+        Return ""
+    End Function
+
+End Module

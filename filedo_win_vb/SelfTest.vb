@@ -178,6 +178,9 @@ Partial Public Module SelfTest
         Guard("menu-icon", AddressOf CheckMenuIcons)
         Guard("state-tone", AddressOf CheckStateTones)
         Guard("contrast", AddressOf CheckGlyphContrast)
+        ' SP-0171 W9 / APP-STYLE 0.13: the five status fill roles and their ink, measured in both
+        ' palettes and under high contrast, and the verdict badge read back as it is drawn.
+        Guard("state-fill", AddressOf CheckStateFill)
         ' SP-0122: the hit-target floor of ICON-RENDER rule 5 (0.15) - 28 logical px under a mouse or
         ' a pen - on the glyph buttons, the Disk Manager's list rows, the check boxes and the plain
         ' buttons. The rail's 44 px rows are pinned by the rail group above.
@@ -185,6 +188,10 @@ Partial Public Module SelfTest
         ' SP-0168: the in-app help (CONTEXT-HELP) - the map against the surfaces, the pages against the
         ' languages, the key and the button, the anatomy of a page.
         Guard("help", AddressOf CheckHelp)
+        ' SP-0171 W10 / W11: action.retry and app.tour on the controls that show them, and INPUT-PARITY's
+        ' F6 / Shift+F6 and the Disk Manager's Help menu key (SelfTestInput.vb).
+        Guard("icons-use", AddressOf CheckIconMeanings)
+        Guard("input", AddressOf CheckInputParity)
         ' SP-0169: the unified UI contracts - the token resolver, button geometry, the group header and the
         ' order of a dialog's answers.
         Guard("ui-contracts", AddressOf CheckUiContracts)
@@ -192,6 +199,9 @@ Partial Public Module SelfTest
         Guard("tailer", AddressOf CheckEventStreamTailer)
         Guard("tailer-long-line", AddressOf CheckEventStreamLongLine)
         Guard("sample", AddressOf CheckEventStreamSample)
+        ' SP-0171 W13 / CLI-EVENT-STREAM rules 6, 7, 16: a null inside `numbers` (or a step's fields) is an
+        ' absent value, and the result card still draws.
+        Guard("result-numbers", AddressOf CheckResultNumbers)
         Guard("fdsec", AddressOf CheckFdsecReportRedaction)
 
         ' SP-0014: the shared desktop contracts APP-BEHAVIOUR and APP-STYLE, rung by rung.
@@ -204,6 +214,8 @@ Partial Public Module SelfTest
         Guard("format", AddressOf CheckLocalizedFormat)
         Guard("a11y", AddressOf CheckAccessibleNames)
         Guard("placement", AddressOf CheckPlacement)
+        ' SP-0171 W12 / APP-SETTINGS 0.7 rule 1: settings are brought to the monitor the user is on.
+        Guard("settings-follow", AddressOf CheckSettingsFollow)
         Guard("fit", AddressOf CheckWindowFit)
         Guard("wipe", AddressOf CheckWipeRules)
         Guard("dialog", AddressOf CheckDialogEscape)
@@ -274,6 +286,9 @@ Partial Public Module SelfTest
         ' SP-0170 / APP-ACTIVATION 0.13: the focus-only second start - a hung receiver, a file target.
         Guard("activation", AddressOf CheckSecondStart)
         Guard("disk-ui", AddressOf CheckDiskUi)
+        ' SP-0170 / FDSEC-BEHAVIOUR 1.6 section 18: the result card's sentence for a sealed name this
+        ' PC cannot create - when it is chosen, and that all five languages carry it.
+        Guard("fdsec-name", AddressOf CheckFdsecDestinationName)
         Guard("locale-keys", AddressOf CheckLocaleKeySets)
     End Sub
 
@@ -774,8 +789,14 @@ Partial Public Module SelfTest
         Next
 
         Dim p = Theme.PaletteFor(False)
+        Dim sourcesFound = FindShellSources() IsNot Nothing
         For Each id In Glyphs.DrawableIds().OrderBy(Function(s) s)
-            Check("icons:used:" & id, mapped.Contains(id), If(mapped.Contains(id), "drawn by the shell", "vendored but drawn by nothing"))
+            ' The use is read from the sources, so an exe run away from them proves nothing about a button's glyph:
+            ' it says so rather than call every button-only meaning "drawn by nothing" (SP-0171 W19).
+            Check("icons:used:" & id, mapped.Contains(id),
+                  If(mapped.Contains(id), "drawn by the shell",
+                     If(sourcesFound, "vendored but drawn by nothing",
+                        "not proven: the shell's sources were not found beside the exe (run it from bin\Release or exe_to_download)")))
             Dim box = Glyphs.InkBounds(id)
             Check("icons:grid:" & id, box.Width > 0 AndAlso box.Height > 0 AndAlso box.Left >= 0 AndAlso box.Top >= 0 AndAlso
                                       box.Right <= 24 AndAlso box.Bottom <= 24, box.ToString())
@@ -1298,7 +1319,8 @@ Partial Public Module SelfTest
 
     ' APP-STYLE section 3, the defect class "a reference resolved once at load": a Failed result on
     ' screen under one palette, the other palette applied, and the badge and both verdict glyphs
-    ' must carry the new palette's StateError. The palette is switched through Theme's test seam,
+    ' must carry the new palette's colours (the glyphs StateError, the badge StatusErrorFill, APP-STYLE
+    ' 0.13). The palette is switched through Theme's test seam,
     ' never through HKCU.
     Private Sub CheckThemeRoundTrip()
         Dim jv As JobView = Nothing
@@ -1311,14 +1333,15 @@ Partial Public Module SelfTest
             cv = New CommandView()
             cv.ShowVerdictForTest("Failed")
             Dim light = Theme.PaletteFor(False)
-            Check("theme:job-badge-light", jv.VerdictBadgeForTest.BackColor.ToArgb() = light.StateError.ToArgb(),
+            ' APP-STYLE 0.13: the badge is filled with status.error.fill (it was StateError, the glyph's tone).
+            Check("theme:job-badge-light", jv.VerdictBadgeForTest.BackColor.ToArgb() = light.StatusErrorFill.ToArgb(),
                   jv.VerdictBadgeForTest.BackColor.ToString())
 
             Theme.UsePaletteForTest(True)
             jv.ApplyTheme()
             cv.ApplyTheme()
             Dim dark = Theme.PaletteFor(True)
-            Check("theme:job-badge-follows", jv.VerdictBadgeForTest.BackColor.ToArgb() = dark.StateError.ToArgb(),
+            Check("theme:job-badge-follows", jv.VerdictBadgeForTest.BackColor.ToArgb() = dark.StatusErrorFill.ToArgb(),
                   jv.VerdictBadgeForTest.BackColor.ToString())
             Check("theme:job-glyph-follows", jv.VerdictGlyphForTest.ForeColor.ToArgb() = dark.StateError.ToArgb() AndAlso
                   jv.VerdictGlyphForTest.Glyph IsNot Nothing AndAlso jv.VerdictGlyphForTest.Glyph.Meaning = "status.error",
@@ -3673,6 +3696,43 @@ Partial Public Module SelfTest
             If Not enDict.ContainsKey(key) Then missingKeys.Add(key)
         Next
         Check("locale-keys:disk-manager", missingKeys.Count = 0, String.Join(",", missingKeys.Take(12).ToArray()))
+    End Sub
+
+    ' FDSEC-FORMAT 1.4 section 20 / FDSEC-BEHAVIOUR 1.6 section 18. A container the reader accepted
+    ' whose sealed name this PC cannot create ends unsecure or reveal with exit class 5 and a CLI
+    ' sentence carrying FdsecResults.DestinationNameRefusal (a Go test holds the two together). The
+    ' card turns exactly that run into the window-language sentence, and no other run: class 5 is
+    ' every I/O failure, and another class or verb must not be told it is a name problem.
+    Private Sub CheckFdsecDestinationName()
+        Const key As String = "shell_fdsec_dest_name"
+        Dim said = "Error: the name sealed in this container " & FdsecResults.DestinationNameRefusal &
+                   " (Windows refuses "" < > | in a name, and any name over 255 characters), so nothing was restored"
+        Check("fdsec-name:unsecure", FdsecResults.ExitKeyFor("unsecure", 5, said) = key)
+        Check("fdsec-name:reveal", FdsecResults.ExitKeyFor("reveal", 5, said & vbLf & "more output") = key)
+        Check("fdsec-name:other-io-failure", FdsecResults.ExitKeyFor("unsecure", 5, "Error: there is not enough space on the disk") = "")
+        Check("fdsec-name:other-class", FdsecResults.ExitKeyFor("unsecure", 4, said) = "" AndAlso
+              FdsecResults.ExitKeyFor("unsecure", 3, said) = "" AndAlso FdsecResults.ExitKeyFor("unsecure", 0, said) = "")
+        Check("fdsec-name:other-verb", FdsecResults.ExitKeyFor("secure", 5, said) = "" AndAlso
+              FdsecResults.ExitKeyFor("info", 5, said) = "")
+        Check("fdsec-name:no-output", FdsecResults.ExitKeyFor("unsecure", 5, Nothing) = "" AndAlso
+              FdsecResults.ExitKeyFor("unsecure", 5, "") = "")
+
+        Dim enText As String = Nothing
+        Localization.GetDict("en").TryGetValue(key, enText)
+        For Each lang In Localization.Languages
+            Dim own = Localization.OwnKeysForTest(lang)
+            Dim text As String = Nothing
+            Dim found = Localization.GetDict(lang).TryGetValue(key, text)
+            ' The sentence names the rule: the four characters (the {0} the card fills in - a value
+            ' may not hold the bar) and the 255-character limit, and it is the language's own text,
+            ' not English standing in for it.
+            Dim shown = If(found, Localization.Format(text, FdsecResults.RefusedCharacters), "")
+            Dim ok = own.Contains(key) AndAlso found AndAlso Not String.IsNullOrEmpty(text) AndAlso
+                     text.Contains("255") AndAlso text.Contains("{0}") AndAlso (Not text.Contains("|")) AndAlso
+                     shown.Contains("""") AndAlso shown.Contains("<") AndAlso shown.Contains(">") AndAlso
+                     shown.Contains("|") AndAlso (lang = "en" OrElse text <> enText)
+            Check("fdsec-name:text:" & lang, ok, If(found, "", "missing"))
+        Next
     End Sub
 
     ' The keys the manager's decisions can return: every state word, every action label, every

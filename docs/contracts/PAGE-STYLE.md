@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PAGE-STYLE` |
-| **Version** | 3.1, read 2026-10-21 (SP-0170); implemented partial 1.6; the kit is the 1.2 file, SP-0171 W14 |
+| **Version** | 3.1, read 2026-10-21 (SP-0170); implemented partial 3.1; kit e438fef2 vendored (SP-0171 W14), one kit defect worked around |
 | **Role** | consumer - `docs/kit/sza-kit.css` and site styling |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `PAGE-STYLE.md` |
 | **Owner** | sza.od.ua hub. Reference kit maintained in catalog |

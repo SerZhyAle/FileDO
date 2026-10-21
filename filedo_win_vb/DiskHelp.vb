@@ -23,6 +23,8 @@ Friend Enum DiskCommand
     CopyPath
     ContextMenu
     DefaultAction   ' a double-click's action for the row (spec 6.2, D3)
+    NextPane        ' F6: the focus goes to the next area of the window (INPUT-PARITY, `move`)
+    PreviousPane    ' Shift+F6: ...and back
 End Enum
 
 Friend Class DiskShortcut
@@ -33,20 +35,29 @@ Friend Class DiskShortcut
     ' Keys that a text box also uses (Ctrl+C, Ctrl+A, Delete, Enter) act on the list only while the
     ' list has the focus, and are left to the box otherwise.
     Public ReadOnly ListOnly As Boolean
+    ' The context key (Menu, Shift+F10) also acts while the Help button has the focus: it opens the
+    ' button's own right-click menu (INPUT-PARITY 3.2 rule 1: a right-click menu has a key).
+    Public ReadOnly OnHelpButton As Boolean
 
-    Public Sub New(chord As Keys, command As DiskCommand, action As DiskAction?, labelKey As String, listOnly As Boolean)
+    Public Sub New(chord As Keys, command As DiskCommand, action As DiskAction?, labelKey As String, listOnly As Boolean,
+                   Optional onHelpButton As Boolean = False)
         Me.Chord = chord
         Me.Command = command
         Me.Action = action
         Me.LabelKey = labelKey
         Me.ListOnly = listOnly
+        Me.OnHelpButton = onHelpButton
     End Sub
 End Class
 
 Friend Module DiskShortcuts
 
     ' In the order the help window lists them. The same operations the spec's 6.2 names, and the rest
-    ' of what the toolbar offers.
+    ' of what the toolbar offers. Menu and Shift+F10 open the list's row menu, and - with the Help button
+    ' focused - that button's menu (the keyboard map, the welcome tour, the links), which is otherwise on
+    ' its right click only (INPUT-PARITY 3.2 rule 1). F6 and Shift+F6 go between the window's areas -
+    ' toolbar, filter, list, details, status line - in the order Tab visits them (INPUT-PARITY section 4,
+    ' `move`; PaneCycle.vb).
     Friend ReadOnly All As DiskShortcut() = {
         New DiskShortcut(Keys.Control Or Keys.N, DiskCommand.Perform, DiskAction.NewDisk, "vd_mgr_act_new", False),
         New DiskShortcut(Keys.Control Or Keys.Shift Or Keys.O, DiskCommand.MainWindow, Nothing, "vd_mgr_btn_main", False),
@@ -63,18 +74,21 @@ Friend Module DiskShortcuts
         New DiskShortcut(Keys.Delete, DiskCommand.Perform, DiskAction.Forget, "vd_mgr_act_forget", True),
         New DiskShortcut(Keys.Control Or Keys.C, DiskCommand.CopyPath, Nothing, "vd_mgr_act_copy_path", True),
         New DiskShortcut(Keys.Control Or Keys.A, DiskCommand.SelectAll, Nothing, "vd_mgr_key_select_all", True),
-        New DiskShortcut(Keys.Apps, DiskCommand.ContextMenu, Nothing, "vd_mgr_key_menu", True),
-        New DiskShortcut(Keys.Shift Or Keys.F10, DiskCommand.ContextMenu, Nothing, "vd_mgr_key_menu", True),
+        New DiskShortcut(Keys.Apps, DiskCommand.ContextMenu, Nothing, "vd_mgr_key_menu", True, True),
+        New DiskShortcut(Keys.Shift Or Keys.F10, DiskCommand.ContextMenu, Nothing, "vd_mgr_key_menu", True, True),
         New DiskShortcut(Keys.F5, DiskCommand.Perform, DiskAction.Refresh, "vd_mgr_act_refresh", False),
         New DiskShortcut(Keys.Control Or Keys.F, DiskCommand.Filter, Nothing, "vd_mgr_key_filter", False),
         New DiskShortcut(Keys.Escape, DiskCommand.ClearFilter, Nothing, "vd_mgr_key_clear_filter", False),
-        New DiskShortcut(Keys.F1, DiskCommand.Help, Nothing, "vd_mgr_key_help", False)
+        New DiskShortcut(Keys.F1, DiskCommand.Help, Nothing, "vd_mgr_key_help", False),
+        New DiskShortcut(Keys.F6, DiskCommand.NextPane, Nothing, "vd_mgr_key_pane", False),
+        New DiskShortcut(Keys.Shift Or Keys.F6, DiskCommand.PreviousPane, Nothing, "vd_mgr_key_pane", False)
     }
 
-    ' The shortcut a key press is, or Nothing.
-    Friend Function Find(keyData As Keys, listFocused As Boolean) As DiskShortcut
+    ' The shortcut a key press is, or Nothing. A list-only key acts with the list focused, and the
+    ' context key (OnHelpButton) also with the Help button focused.
+    Friend Function Find(keyData As Keys, listFocused As Boolean, Optional helpButtonFocused As Boolean = False) As DiskShortcut
         For Each s In All
-            If s.Chord = keyData AndAlso (Not s.ListOnly OrElse listFocused) Then Return s
+            If s.Chord = keyData AndAlso (Not s.ListOnly OrElse listFocused OrElse (s.OnHelpButton AndAlso helpButtonFocused)) Then Return s
         Next
         Return Nothing
     End Function
