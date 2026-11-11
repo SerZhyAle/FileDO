@@ -25,6 +25,7 @@ Module Program
     Private Declare Function ShowWindowAsync Lib "user32" (hWnd As IntPtr, nCmdShow As Integer) As Boolean
     Private Declare Function IsIconic Lib "user32" (hWnd As IntPtr) As Boolean
     Private Declare Function IsHungAppWindow Lib "user32" (hWnd As IntPtr) As Boolean
+    Private Declare Function GetForegroundWindow Lib "user32" () As IntPtr
     Private Const SW_RESTORE As Integer = 9
 
     ' SHELL-12: the single-instance claim, held for the life of the process. A named mutex in the
@@ -152,7 +153,10 @@ Module Program
             ElseIf disksOnly Then
                 host = New AppHost(Nothing, True)
             Else
-                host = New AppHost(New ShellForm(target, diskDecision), False)
+                Dim startShell As New ShellForm(target, diskDecision)
+                ' A plain start, with no file to open, is where leftover test files are asked about (SP-0194).
+                startShell.OffersLeftoverCleanup = (target Is Nothing)
+                host = New AppHost(startShell, False)
             End If
         Catch ex As Exception
             ' The window could not be built. There is no window to own the message, so it stands on
@@ -271,12 +275,15 @@ Module Program
     ' The fallback for a first copy that does not listen (an older one): restore and focus its window.
     ' Both calls return at once - the restore is posted, not waited for - and a window the system calls
     ' hung is not claimed, so a hung first copy cannot hold this start nor swallow it.
+    ' A claim is made only when the window is the foreground window afterwards: the system may refuse
+    ' SetForegroundWindow, and a refused call hands nothing over (APP-ACTIVATION section 7C), so the
+    ' caller keeps waiting and then opens its own window.
     Friend Function FocusWindow(hwnd As IntPtr) As Boolean
         If hwnd = IntPtr.Zero Then Return False
         If IsHungAppWindow(hwnd) Then Return False
         If IsIconic(hwnd) Then ShowWindowAsync(hwnd, SW_RESTORE)
         SetForegroundWindow(hwnd)
-        Return True
+        Return GetForegroundWindow() = hwnd
     End Function
 
     Private Function RunningCopyWindow() As IntPtr

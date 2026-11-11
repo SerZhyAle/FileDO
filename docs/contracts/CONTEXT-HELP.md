@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CONTEXT-HELP` |
-| **Version** | 0.1, read 2026-10-21 (SP-0170); implemented partial 0.1; SP-0168 owns the rest, draft (no wire - a key, a button, a help map file and a page anatomy) |
+| **Version** | 0.2, read 2026-10-29 (SP-0174); implemented partial 0.2; SP-0168, SP-0183 and SP-0190 own the rest, draft (no wire - a key, a button, a help map file and a page anatomy) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`), opted in by the portfolio owner's request of 2026-10-16 (SP-0168) |
 | **Home** | shared contracts catalog, folder `in-app-help/`, document `README.md`, with its three reference artifacts |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
@@ -42,4 +42,6 @@ Disk Manager dialogs have map rows and fall back, and their key and button are n
 (freshness) and rung 3 (the walk of every surface in every language and theme, by a person or UI
 automation) are open. The Disk Manager's `?` is the trailing end of its toolbar and wraps with the toolbar in
 a narrow window; its older menu (first steps, the help dialog, the links) is on the button's right click -
-the owner's decision O3 is open.
+the owner's decision O3 is open. Proposal `PROPOSAL-2026-11-10-help-button-opens-page-top.md` filed in
+the catalog domain `in-app-help/` (SP-0197): clarifying rules 2 and 3 so that clicking the `?` button or
+pressing F1 on it opens the top of the surface help page rather than `#e-help`.

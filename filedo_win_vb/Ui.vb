@@ -254,8 +254,9 @@ Module Ui
     ' text - and was measured equal to it, pixel for pixel, for all three kinds; the self-test's
     ' disabled-caption: rows hold that on every build. Any other kind - a system-drawn button,
     ' another alignment, right-to-left, an image, a high-contrast theme, where Windows's own
-    ' GrayText is already readable - is left to WinForms.
+    ' GrayText is already readable - is left to WinForms. A BooleanOption draws its own disabled caption.
     Private Function CaptionBounds(b As ButtonBase, g As Graphics, ByRef bounds As Rectangle, ByRef flags As TextFormatFlags) As Boolean
+        If TypeOf b Is BooleanOption Then Return False
         If SystemInformation.HighContrast OrElse b.RightToLeft = RightToLeft.Yes OrElse b.Image IsNot Nothing Then Return False
         flags = TextFormatFlags.VerticalCenter Or TextFormatFlags.WordBreak Or TextFormatFlags.TextBoxControl Or
                 If(b.UseMnemonic, TextFormatFlags.HidePrefix, TextFormatFlags.NoPrefix)

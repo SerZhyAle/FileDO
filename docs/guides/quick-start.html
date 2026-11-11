@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/quick-start.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/quick-start.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/quick-start.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/quick-start.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/quick-start.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/quick-start.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background" />
+    <meta property="og:title" content="Quick-start matrix: GUI and CLI - FileDO" />
+    <meta property="og:description" content="Map common storage tasks to the exact page in the FileDO window and the corresponding filedo.exe command, grouped by data safety." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Quick-start matrix: GUI and CLI - FileDO",
+        "headline": "Quick-start matrix: GUI and CLI - FileDO",
+        "description": "Map common storage tasks to the exact page in the FileDO window and the corresponding filedo.exe command, grouped by data safety.",
+        "url": "https://serzhyale.github.io/FileDO/guides/quick-start.html",
+        "inLanguage": ["en"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Quick-start matrix: GUI and CLI - FileDO</title>
+    <meta
+      name="description"
+      content="Map common storage tasks to the exact page in the FileDO window and the corresponding filedo.exe command, grouped by data safety."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/quick-start.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/quick-start.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="en">Guide · quick-start matrix</span
+          ><span data-l="ru">Руководство · быстрый старт</span
+          ><span data-l="ua">Посібник · швидкий старт</span>
+        </p>
+        <h1>
+          <span data-l="en">Match your task to the window page or the command line.</span
+          ><span data-l="ru">Сопоставьте задачу со страницей окна или командой консоли.</span
+          ><span data-l="ua">Зіставте завдання зі сторінкою вікна або командою консолі.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="en"
+            >FileDO ships one engine with two interfaces: the Windows window (<code>filedo_win.exe</code>) and the command line (<code>filedo.exe</code>). These three tables group common tasks by what they do to your data: read-only checks first, operations that write test files or copies second, and destructive operations last.</span
+          ><span data-l="ru"
+            >FileDO поставляется как единый движок с двумя интерфейсами: окном Windows (<code>filedo_win.exe</code>) и командной строкой (<code>filedo.exe</code>). Три таблицы ниже группируют частые задачи по тому, как они влияют на данные: сначала проверки только на чтение, затем операции с записью тестовых файлов или копий и отдельно операции удаления и перезаписи.</span
+          ><span data-l="ua"
+            >FileDO постачається як єдиний рушій із двома інтерфейсами: вікном Windows (<code>filedo_win.exe</code>) і командним рядком (<code>filedo.exe</code>). Три таблиці нижче групують типові завдання за тим, як вони впливають на дані: спочатку перевірки лише на читання, потім операції із записом тестових файлів чи копій і окремо операції видалення та перезапису.</span
+          >
+        </p>
+      </section>
+
+      <section class="section" id="read-only">
+        <h2>
+          <span data-l="en">1. Read-only checks and inspection</span
+          ><span data-l="ru">1. Проверки только на чтение и осмотр</span
+          ><span data-l="ua">1. Перевірки лише на читання та огляд</span>
+        </h2>
+        <p class="intro">
+          <span data-l="en">These operations read drive headers, directory trees, or file bytes without modifying, creating, or deleting any files on the target.</span
+          ><span data-l="ru">Эти операции читают заголовки дисков, деревья каталогов или содержимое файлов, не изменяя, не создавая и не удаляя файлы на цели.</span
+          ><span data-l="ua">Ці операції читають заголовки дисків, дерева каталогів або вміст файлів, не змінюючи, не створюючи та не видаляючи файли на цілі.</span>
+        </p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">What I want to do</span><span data-l="ru">Задача</span><span data-l="ua">Завдання</span></th>
+                <th><span data-l="en">In the window (filedo_win.exe)</span><span data-l="ru">В окне (filedo_win.exe)</span><span data-l="ua">У вікні (filedo_win.exe)</span></th>
+                <th><span data-l="en">Command line (filedo.exe)</span><span data-l="ru">Командная строка (filedo.exe)</span><span data-l="ua">Командний рядок (filedo.exe)</span></th>
+                <th><span data-l="en">What it touches &amp; guide</span><span data-l="ru">Влияние на данные и руководство</span><span data-l="ua">Вплив на дані та посібник</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="en">Inspect drive or folder size, file system, and free space</span><span data-l="ru">Посмотреть размер диска или папки, файловую систему и свободное место</span><span data-l="ua">Переглянути розмір диска чи теки, файлову систему та вільне місце</span></td>
+                <td><span data-l="en">Check - Target info</span><span data-l="ru">Проверка - Информация о цели</span><span data-l="ua">Перевірка - Інформація про ціль</span></td>
+                <td><code>filedo E: info</code></td>
+                <td><span data-l="en">Read-only; changes nothing. <a href="check-storage.html">Check storage</a></span><span data-l="ru">Только чтение; ничего не меняет. <a href="check-storage.html">Проверка накопителя</a></span><span data-l="ua">Лише читання; нічого не змінює. <a href="check-storage.html">Перевірка сховища</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Find damaged, unreadable, or slow-reading files</span><span data-l="ru">Найти повреждённые, нечитаемые или медленно читающиеся файлы</span><span data-l="ua">Знайти пошкоджені, нечитабельні або повільні під час читання файли</span></td>
+                <td><span data-l="en">Check - Damaged files check</span><span data-l="ru">Проверка - Проверка повреждённых файлов</span><span data-l="ua">Перевірка - Перевірка пошкоджених файлів</span></td>
+                <td><code>filedo check F:\Photos</code></td>
+                <td><span data-l="en">Read-only; reads files and reports read errors or delays. <a href="check-storage.html">Check storage</a></span><span data-l="ru">Только чтение; читает файлы и сообщает об ошибках или задержках. <a href="check-storage.html">Проверка накопителя</a></span><span data-l="ua">Лише читання; читає файли та повідомляє про помилки чи затримки. <a href="check-storage.html">Перевірка сховища</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Find duplicate files (report only)</span><span data-l="ru">Найти дубликаты файлов (только отчёт)</span><span data-l="ua">Знайти дублікати файлів (лише звіт)</span></td>
+                <td><span data-l="en">Tidy - Duplicate files</span><span data-l="ru">Порядок - Дубликаты файлов</span><span data-l="ua">Порядок - Дублікати файлів</span></td>
+                <td><code>filedo D:\Archive cd</code></td>
+                <td><span data-l="en">Read-only without <code>del</code> or <code>move</code>; lists duplicate groups by SHA-256. <a href="files-and-copies.html">Duplicates &amp; copies</a></span><span data-l="ru">Только чтение без <code>del</code> или <code>move</code>; выводит группы дубликатов по SHA-256. <a href="files-and-copies.html">Дубликаты и копии</a></span><span data-l="ua">Лише читання без <code>del</code> або <code>move</code>; виводить групи дублікатів за SHA-256. <a href="files-and-copies.html">Дублікати та копії</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Compare two folders (report only)</span><span data-l="ru">Сравнить две папки (только отчёт)</span><span data-l="ua">Порівняти дві теки (лише звіт)</span></td>
+                <td><span data-l="en">Tidy - Compare two folders</span><span data-l="ru">Порядок - Сравнить две папки</span><span data-l="ua">Порядок - Порівняти дві теки</span></td>
+                <td><code>filedo compare D:\A E:\B</code></td>
+                <td><span data-l="en">Read-only when no delete rule is passed; reports differences. <a href="files-and-copies.html">Duplicates &amp; copies</a></span><span data-l="ru">Только чтение, если не указано правило удаления; выводит различия. <a href="files-and-copies.html">Дубликаты и копии</a></span><span data-l="ua">Лише читання, якщо не вказано правило видалення; виводить відмінності. <a href="files-and-copies.html">Дублікати та копії</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Inspect a .fdd virtual disk or list mounted disks</span><span data-l="ru">Осмотреть виртуальный диск .fdd или список подключённых дисков</span><span data-l="ua">Оглянути віртуальний диск .fdd або список підключених дисків</span></td>
+                <td><span data-l="en">Disks - Disk manager / Disk info</span><span data-l="ru">Диски - Диспетчер дисков / Сведения о диске</span><span data-l="ua">Диски - Диспетчер дисків / Відомості про диск</span></td>
+                <td><code>filedo vd status</code></td>
+                <td><span data-l="en">Read-only; reads container state or header without mounting. <a href="virtual-disks.html">Virtual disks</a></span><span data-l="ru">Только чтение; читает состояние или заголовок контейнера без подключения. <a href="virtual-disks.html">Виртуальные диски</a></span><span data-l="ua">Лише читання; читає стан або заголовок контейнера без підключення. <a href="virtual-disks.html">Віртуальні диски</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="tests-and-copies">
+        <h2>
+          <span data-l="en">2. Temporary test files, copies, backups, and containers</span
+          ><span data-l="ru">2. Временные тестовые файлы, копии, архивы и контейнеры</span
+          ><span data-l="ua">2. Тимчасові тестові файли, копії, архіви та контейнери</span>
+        </h2>
+        <p class="intro">
+          <span data-l="en">These operations write temporary test files into free space or create new destination files, containers, or virtual disks. Existing user files are kept unless you explicitly choose a removal flag.</span
+          ><span data-l="ru">Эти операции записывают временные тестовые файлы в свободное место либо создают новые файлы, контейнеры или виртуальные диски. Существующие пользовательские файлы сохраняются, если вы явно не выбрали удаление оригинала.</span
+          ><span data-l="ua">Ці операції записують тимчасові тестові файли у вільне місце або створюють нові файли, контейнери чи віртуальні диски. Наявні файли користувача зберігаються, якщо ви явно не вибрали видалення оригіналу.</span>
+        </p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">What I want to do</span><span data-l="ru">Задача</span><span data-l="ua">Завдання</span></th>
+                <th><span data-l="en">In the window (filedo_win.exe)</span><span data-l="ru">В окне (filedo_win.exe)</span><span data-l="ua">У вікні (filedo_win.exe)</span></th>
+                <th><span data-l="en">Command line (filedo.exe)</span><span data-l="ru">Командная строка (filedo.exe)</span><span data-l="ua">Командний рядок (filedo.exe)</span></th>
+                <th><span data-l="en">What it touches &amp; guide</span><span data-l="ru">Влияние на данные и руководство</span><span data-l="ua">Вплив на дані та посібник</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="en">Test a USB drive or SD card for fake capacity</span><span data-l="ru">Проверить USB-флешку или SD-карту на поддельную ёмкость</span><span data-l="ua">Перевірити USB-флешку або SD-картку на підроблену ємність</span></td>
+                <td><span data-l="en">Check - Capacity test (fake drives)</span><span data-l="ru">Проверка - Тест ёмкости (поддельные диски)</span><span data-l="ua">Перевірка - Тест ємності (підроблені диски)</span></td>
+                <td><code>filedo E: test del</code></td>
+                <td><span data-l="en">Writes and verifies test files in free space; <code>del</code> removes them on pass (kept as evidence on defect). <a href="check-storage.html">Check storage</a></span><span data-l="ru">Пишет и проверяет тестовые файлы в свободном месте; <code>del</code> удаляет их при успехе (оставляет как улику при дефекте). <a href="check-storage.html">Проверка накопителя</a></span><span data-l="ua">Пише та перевіряє тестові файли у вільному місці; <code>del</code> видаляє їх у разі успіху (залишає як доказ у разі дефекту). <a href="check-storage.html">Перевірка сховища</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Measure real read and write speed</span><span data-l="ru">Измерить реальную скорость чтения и записи</span><span data-l="ua">Виміряти реальну швидкість читання та запису</span></td>
+                <td><span data-l="en">Check - Speed test</span><span data-l="ru">Проверка - Тест скорости</span><span data-l="ua">Перевірка - Тест швидкості</span></td>
+                <td><code>filedo E: speed 100</code></td>
+                <td><span data-l="en">Writes a temporary test file and removes it afterwards (<code>nodel</code> keeps it). <a href="check-storage.html">Check storage</a></span><span data-l="ru">Записывает временный тестовый файл и удаляет его после замера (<code>nodel</code> оставляет). <a href="check-storage.html">Проверка накопителя</a></span><span data-l="ua">Записує тимчасовий тестовий файл і видаляє його після вимірювання (<code>nodel</code> залишає). <a href="check-storage.html">Перевірка сховища</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Copy a folder or rescue readable files from a failing drive</span><span data-l="ru">Скопировать папку или спасти читаемые файлы с проблемного диска</span><span data-l="ua">Скопіювати теку або врятувати читабельні файли з проблемного диска</span></td>
+                <td><span data-l="en">Move - Copy files</span><span data-l="ru">Перенос - Копировать файлы</span><span data-l="ua">Перенесення - Копіювати файли</span></td>
+                <td><code>filedo D:\Src copy E:\Dst</code></td>
+                <td><span data-l="en">Writes to destination; source is untouched. Use <code>safecopy</code> to skip unreadable files and log them. <a href="files-and-copies.html">Duplicates &amp; copies</a></span><span data-l="ru">Пишет в целевую папку; источник не меняется. Используйте <code>safecopy</code>, чтобы пропускать нечитаемые файлы с записью в лог. <a href="files-and-copies.html">Дубликаты и копии</a></span><span data-l="ua">Пише в цільову теку; джерело не змінюється. Використовуйте <code>safecopy</code>, щоб пропускати нечитабельні файли із записом у лог. <a href="files-and-copies.html">Дублікати та копії</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Seal a file or folder into a .fd-sec container, or open it</span><span data-l="ru">Упаковать файл или папку в контейнер .fd-sec либо открыть его</span><span data-l="ua">Запакувати файл або теку в контейнер .fd-sec чи відкрити його</span></td>
+                <td><span data-l="en">Protect - Secure a file / Open a secret file</span><span data-l="ru">Защита - Защитить файл / Открыть секретный файл</span><span data-l="ua">Захист - Захистити файл / Відкрити секретний файл</span></td>
+                <td><code>filedo C:\doc.pdf secure</code></td>
+                <td><span data-l="en">Creates and verifies the container; keeps the original by default. <a href="fd-sec-containers.html">Secret files</a></span><span data-l="ru">Создаёт и проверяет контейнер; по умолчанию сохраняет оригинал. <a href="fd-sec-containers.html">Секретные файлы</a></span><span data-l="ua">Створює та перевіряє контейнер; за замовчуванням зберігає оригінал. <a href="fd-sec-containers.html">Секретні файли</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Create or mount a .fdd virtual disk</span><span data-l="ru">Создать или подключить виртуальный диск .fdd</span><span data-l="ua">Створити або підключити віртуальний диск .fdd</span></td>
+                <td><span data-l="en">Disks - Create a disk / Mount</span><span data-l="ru">Диски - Создать диск / Подключить</span><span data-l="ua">Диски - Створити диск / Підключити</span></td>
+                <td><code>filedo vd new work.fdd 20G vault</code></td>
+                <td><span data-l="en">Creates a new <code>.fdd</code> file (never overwrites an existing file) or attaches it as a drive letter. <a href="virtual-disks.html">Virtual disks</a></span><span data-l="ru">Создаёт новый файл <code>.fdd</code> (никогда не перезаписывает существующий) или подключает его как букву диска. <a href="virtual-disks.html">Виртуальные диски</a></span><span data-l="ua">Створює новий файл <code>.fdd</code> (ніколи не перезаписує наявний) або підключає його як літеру диска. <a href="virtual-disks.html">Віртуальні диски</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="destructive">
+        <h2>
+          <span data-l="en">3. Operations that delete or overwrite data</span
+          ><span data-l="ru">3. Операции, которые удаляют или перезаписывают данные</span
+          ><span data-l="ua">3. Операції, що видаляють або перезаписують дані</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"><span data-l="en">Deletes or overwrites data</span><span data-l="ru">Удаление и перезапись данных</span><span data-l="ua">Видалення та перезапис даних</span></span>
+          <p>
+            <span data-l="en">These commands delete files, overwrite free space, or write raw sectors. Double-check the drive letter or folder path before starting, and keep a backup of anything you cannot afford to lose.</span><span data-l="ru">Эти команды удаляют файлы, перезаписывают свободное место или пишут напрямую в сектора диска. Перед запуском проверьте букву диска или путь к папке и сохраните резервную копию важных данных.</span><span data-l="ua">Ці команди видаляють файли, перезаписують вільне місце або пишуть безпосередньо в сектори диска. Перед запуском перевірте літеру диска або шлях до теки та збережіть резервну копію важливих даних.</span>
+          </p>
+        </div>
+        <div class="matrix-wrap danger">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">What I want to do</span><span data-l="ru">Задача</span><span data-l="ua">Завдання</span></th>
+                <th><span data-l="en">In the window (filedo_win.exe)</span><span data-l="ru">В окне (filedo_win.exe)</span><span data-l="ua">У вікні (filedo_win.exe)</span></th>
+                <th><span data-l="en">Command line (filedo.exe)</span><span data-l="ru">Командная строка (filedo.exe)</span><span data-l="ua">Командний рядок (filedo.exe)</span></th>
+                <th><span data-l="en">Guard &amp; guide</span><span data-l="ru">Защита и руководство</span><span data-l="ua">Захист і посібник</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="en">Overwrite and delete one file</span><span data-l="ru">Перезаписать и удалить один файл</span><span data-l="ua">Перезаписати та видалити один файл</span></td>
+                <td><span data-l="en"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command (or Explorer File DO.. menu)</span><span data-l="ru"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Команда (или меню Проводника File DO..)</span><span data-l="ua"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Команда (або меню Провідника File DO..)</span></td>
+                <td><code>filedo C:\old.doc wipe</code></td>
+                <td><span data-l="en">Overwrites the file's bytes, flushes, and deletes it. Demands typing <code>WIPE</code>. <a href="erase.html">Erase &amp; wipe</a></span><span data-l="ru">Перезаписывает байты файла, сбрасывает буферы и удаляет его. Требует ввести <code>WIPE</code>. <a href="erase.html">Стирание и затирание</a></span><span data-l="ua">Перезаписує байти файлу, скидає буфери та видаляє його. Вимагає ввести <code>WIPE</code>. <a href="erase.html">Стирання і затирання</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Empty a folder quickly (without overwriting)</span><span data-l="ru">Быстро очистить папку (без перезаписи)</span><span data-l="ua">Швидко очистити теку (без перезапису)</span></td>
+                <td><span data-l="en">Erase - Wipe a folder</span><span data-l="ru">Стирание - Очистить папку</span><span data-l="ua">Стирання - Очистити теку</span></td>
+                <td><code>filedo D:\Scratch wipe</code></td>
+                <td><span data-l="en">Deletes all contents inside the folder; demands typing <code>WIPE</code> and refuses drive roots, share roots, reparse points, and system TEMP. <a href="erase.html">Erase &amp; wipe</a></span><span data-l="ru">Удаляет всё содержимое папки; требует ввести <code>WIPE</code> и отвергает корни дисков и шар, точки повторной обработки и системный TEMP. <a href="erase.html">Стирание и затирание</a></span><span data-l="ua">Видаляє весь вміст теки; вимагає ввести <code>WIPE</code> і відхиляє корені дисків і шар, точки повторної обробки та системний TEMP. <a href="erase.html">Стирання і затирання</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Overwrite free space on a drive</span><span data-l="ru">Перезаписать свободное место на диске</span><span data-l="ua">Перезаписати вільне місце на диску</span></td>
+                <td><span data-l="en">Erase - Fill the free space (with auto-delete)</span><span data-l="ru">Стирание - Заполнить свободное место (с автоудалением)</span><span data-l="ua">Стирання - Заповнити вільне місце (з автовидаленням)</span></td>
+                <td><code>filedo E: fill del</code></td>
+                <td><span data-l="en">Fills free space with <code>FILL_*</code> files and deletes them afterwards to overwrite earlier deleted data. <a href="erase.html">Erase &amp; wipe</a></span><span data-l="ru">Заполняет свободное место файлами <code>FILL_*</code> и затем удаляет их, перезаписывая ранее удалённые данные. <a href="erase.html">Стирание и затирание</a></span><span data-l="ua">Заповнює вільне місце файлами <code>FILL_*</code> і потім видаляє їх, перезаписуючи раніше видалені дані. <a href="erase.html">Стирання і затирання</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Delete or move duplicate files</span><span data-l="ru">Удалить или переместить дубликаты файлов</span><span data-l="ua">Видалити або перемістити дублікати файлів</span></td>
+                <td><span data-l="en">Tidy - Duplicate files</span><span data-l="ru">Порядок - Дубликаты файлов</span><span data-l="ua">Порядок - Дублікати файлів</span></td>
+                <td><code>filedo D:\Archive cd old del</code></td>
+                <td><span data-l="en">Keeps one copy per SHA-256 group and deletes or moves the rest; the window asks to type <code>DELETE</code> or <code>MOVE</code>. <a href="files-and-copies.html">Duplicates &amp; copies</a></span><span data-l="ru">Оставляет одну копию в каждой группе SHA-256 и удаляет или переносит остальные; окно просит ввести <code>DELETE</code> или <code>MOVE</code>. <a href="files-and-copies.html">Дубликаты и копии</a></span><span data-l="ua">Залишає одну копію в кожній групі SHA-256 і видаляє або переносить решту; вікно просить ввести <code>DELETE</code> або <code>MOVE</code>. <a href="files-and-copies.html">Дублікати та копії</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Run a direct raw LBA capacity probe</span><span data-l="ru">Выполнить прямую LBA-проверку ёмкости</span><span data-l="ua">Виконати пряму LBA-перевірку ємності</span></td>
+                <td><span data-l="en">Check - Raw capacity probe</span><span data-l="ru">Проверка - Прямая проверка ёмкости</span><span data-l="ua">Перевірка - Пряма перевірка ємності</span></td>
+                <td><code>filedo E: probe</code></td>
+                <td><span data-l="en">Needs Administrator and confirmation of the drive letter; writes raw sectors and can require <code>recover</code> afterwards. <a href="check-storage.html">Check storage</a></span><span data-l="ru">Требует прав администратора и подтверждения буквы диска; пишет сырые сектора и после запуска может потребовать <code>recover</code>. <a href="check-storage.html">Проверка накопителя</a></span><span data-l="ua">Потребує прав адміністратора та підтвердження літери диска; пише сирі сектори та після запуску може потребувати <code>recover</code>. <a href="check-storage.html">Перевірка сховища</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        en: {
+          title: "Quick-start matrix: GUI and CLI - FileDO",
+          description:
+            "Map common storage tasks to the exact page in the FileDO window and the corresponding filedo.exe command, grouped by data safety.",
+        },
+        ru: {
+          title: "Матрица быстрого старта: окно и консоль - FileDO",
+          description:
+            "Соответствие частых задач страницам окна FileDO и командам filedo.exe с группировкой по безопасности для данных.",
+        },
+        ua: {
+          title: "Матриця швидкого старту: вікно та консоль - FileDO",
+          description:
+            "Відповідність типових завдань сторінкам вікна FileDO та командам filedo.exe із групуванням за безпекою для даних.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
+  </body>
+</html>

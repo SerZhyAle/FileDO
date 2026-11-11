@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-ACTIVATION` |
-| **Version** | 0.13, draft; read 2026-10-21 (SP-0170) |
+| **Version** | 0.13, draft; re-read 2026-10-29 (SP-0174); implemented partial 0.13 - the live checks and a second-launch focus check are open (SP-0192) |
 | **Role** | consumer, focus-only profile (the 2026-10-17 amendment) - GUI shell only |
 | **Home** | shared contracts catalog, folder `app-activation/`, document `README.md` |
 | **Owner** | CyrFlip |

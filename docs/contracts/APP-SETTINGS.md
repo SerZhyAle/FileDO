@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-SETTINGS` |
-| **Version** | 0.7, read 2026-10-21 (SP-0170); implemented partial 0.7; rule 1 is done (SP-0171 W12), rules 2, 3 and 12 are SP-0169's, draft (no wire - a shipped user-facing surface) |
+| **Version** | 0.8, read 2026-10-29 (SP-0174); implemented partial 0.8; rules 1 and 9 hold, rules 2, 3 and 12 are SP-0169's, draft (no wire - a shipped user-facing surface) |
 | **Role** | consumer - the settings page of the shell (`SettingsView.vb`, `SettingsPanel.vb`, `SettingsLayout.vb`) and the Disk Manager's settings dialog that hosts the same panel |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-SETTINGS.md` |
 | **Owner** | CyrFlip. An amendment is proposed in the catalog, not decided here |

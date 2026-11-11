@@ -87,6 +87,17 @@ func CreatePartial(dst string) (*PartialFile, error) {
 	return &PartialFile{File: f, final: dst, partial: partial}, nil
 }
 
+// CreatePartialExclusive reserves a partial name without changing an existing
+// file. Use it when an existing partial cannot safely be assumed to be ours.
+func CreatePartialExclusive(dst string) (*PartialFile, error) {
+	partial := dst + PartialSuffix
+	f, err := os.OpenFile(partial, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	return &PartialFile{File: f, final: dst, partial: partial}, nil
+}
+
 // commit flushes the partial, gives it the source's modification time (and
 // access time), closes it and renames it into place. With replace false an
 // existing destination is never overwritten.

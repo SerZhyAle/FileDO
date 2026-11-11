@@ -267,7 +267,7 @@ func runCapacityFill(kind, targetPath, sizeStr string, autoDelete bool, logger *
 	fmt.Printf("Press Ctrl+C to cancel operation\n\n")
 
 	if st, err := os.Stat(targetPath); err != nil {
-		return fail(fmt.Errorf("%s path is not accessible: %w", strings.ToLower(kind), err))
+		return fail(preRunError(fmt.Errorf("%s path is not accessible: %w", strings.ToLower(kind), err)))
 	} else if !st.IsDir() {
 		return fail(fmt.Errorf("path is not a directory: %s", targetPath))
 	}
@@ -1012,7 +1012,7 @@ func runCapacityClean(targetPath string, assumeYes bool, logger *HistoryLogger) 
 	fmt.Printf("Looking for FileDO's test files (FILL_*.tmp, speedtest_*.txt) - by exact name and content..\n\n")
 
 	if st, err := os.Stat(targetPath); err != nil {
-		return fmt.Errorf("path is not accessible: %w", err)
+		return preRunError(fmt.Errorf("path is not accessible: %w", err))
 	} else if !st.IsDir() {
 		return fmt.Errorf("path is not a directory: %s", targetPath)
 	}
@@ -1054,7 +1054,7 @@ func runCapacityClean(targetPath string, assumeYes bool, logger *HistoryLogger) 
 	} else {
 		answered, yes := cleanConfirm(fmt.Sprintf("\nRemove these %d files? (y/N): ", len(found)))
 		if !answered {
-			return fmt.Errorf("clean needs a confirmation: %d files listed, nothing removed - pass --yes to remove them without a prompt", len(found))
+			return exitClassf(10, "clean needs a confirmation: %d files listed, nothing removed - pass --yes to remove them without a prompt", len(found))
 		}
 		if !yes {
 			fmt.Printf("Nothing removed.\n")

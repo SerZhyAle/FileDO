@@ -66,8 +66,9 @@ func fdsecStartRoot(containerSize int64) (string, error) {
 		return "", err
 	}
 	if free, ferr := fdsecFreeSpaceFor(root); ferr == nil && free < containerSize {
-		return "", fmt.Errorf("not enough free space for the restored copy: %s free at %s, the container is %s and the original cannot be larger",
-			formatBytes(uint64(free)), root, formatBytes(uint64(containerSize)))
+		return "", withReason(fmt.Errorf("not enough free space for the restored copy: %s free at %s, the container is %s and the original cannot be larger",
+			formatBytes(uint64(free)), root, formatBytes(uint64(containerSize))), reasonContainerInsufficientSpace,
+			map[string]interface{}{"freeBytes": free, "neededBytes": containerSize})
 	}
 	return root, nil
 }

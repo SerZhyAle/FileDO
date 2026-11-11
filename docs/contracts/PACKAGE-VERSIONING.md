@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PACKAGE-VERSIONING` |
-| **Version** | 0.5, read 2026-10-21 (SP-0170); implemented 0.5; the installer version read-back runs in the gate (SP-0171 W7), draft |
+| **Version** | 0.6, read 2026-10-29 (SP-0174); implemented 0.6; the installer version read-back runs in the gate, draft |
 | **Role** | consumer - FileDO's release scripts and package builders stamp one release across the desktop channels |
 | **Home** | shared contracts catalog, folder `package-versioning/` |
 | **Owner** | FastMediaSorter Android. 0.2 registers FileDO's `compact` tag rendering in the Windows desktop profile; FileDO's former rendering exception is closed against that profile, while installed upgrade proof remains open |

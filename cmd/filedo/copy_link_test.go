@@ -63,8 +63,8 @@ func TestCopyJunctionSourceRootRefused(t *testing.T) {
 			dst := filepath.Join(wd, "dst"+string(rune('a'+i)))
 			events := filepath.Join(t.TempDir(), "events.jsonl")
 			out, code := run(t, wd, append([]string{"--events", events}, row.args(link, dst)...)...)
-			if code != 2 {
-				t.Errorf("exit %d, want 2\n%s", code, out)
+			if code != 10 {
+				t.Errorf("exit %d, want 10\n%s", code, out)
 			}
 			if exists(dst) {
 				t.Errorf("the target %s was created", dst)

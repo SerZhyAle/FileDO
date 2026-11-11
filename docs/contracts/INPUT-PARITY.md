@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `INPUT-PARITY` |
-| **Version** | 0.4, read 2026-10-21 (SP-0170); implemented partial 0.4; F6 and the keyboard path to the Disk Manager help menu are done (SP-0171 W11), the manual pass is not run, draft; partial adoption |
+| **Version** | 0.5, read 2026-10-29 (SP-0174); implemented partial 0.5; displayed key names (item D) are open (SP-0191), the manual pass is not run, draft; partial adoption |
 | **Role** | consumer - GUI shell and Disk Manager, keyboard and mouse |
 | **Home** | shared contracts catalog, folder `input-controls/`, document `README.md` |
 | **Owner** | shared; keyboard and mouse steward CyrFlip |

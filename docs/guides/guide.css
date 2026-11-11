@@ -301,3 +301,101 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
   font-weight: 500;
   color: var(--text-2);
 }
+/* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
+.cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
+.cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
+/* A guide card's heading links its guide, so each guide has an anchor that names it (SP-0166 F24, F25); it keeps the heading ink. */
+.card-title{color:inherit}
+.card-title:hover,.card-title:focus-visible{color:var(--acc)}
+
+/* SP-0199: Safety grouping for the guides hub and quick-start matrix tables. */
+.safety-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--card);
+}
+.safety-group.danger {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
+  border-left: 3px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 5%, var(--card));
+}
+.safety-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+.safety-group-head h2,
+.safety-group-head h3,
+.safety-group-head strong {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.safety-group-head h2::after {
+  display: none;
+}
+.safety-group-head p {
+  color: var(--text-2);
+  font-size: 0.9rem;
+  margin: 0;
+}
+.pill.danger {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+.matrix-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  margin: 0.9rem 0 1.4rem;
+}
+.matrix-wrap.danger {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
+  border-left: 3px solid var(--danger);
+}
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.92rem;
+}
+.matrix-table th,
+.matrix-table td {
+  padding: 0.75rem 0.95rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.matrix-table th {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg-3) 55%, transparent);
+}
+.matrix-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.matrix-table td code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 0.14rem 0.42rem;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.matrix-table td a {
+  color: var(--acc);
+  font-weight: 600;
+}

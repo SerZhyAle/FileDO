@@ -28,6 +28,20 @@ Module Links
     Public Const Readme As String = "https://github.com/SerZhyAle/FileDO#readme"
     Public Const Portfolio As String = "https://sza.od.ua"
 
+    ' The rest of the About set (SETTINGS-NAVIGATION 2.0 section 3.3, SP-0169 S3): the licence's own
+    ' text, where every version is downloaded and what changed in it, the site's subject index of
+    ' every topic and resource, and the page that says how to get help.
+    Public Const License As String = "https://github.com/SerZhyAle/FileDO/blob/main/LICENSE"
+    Public Const Releases As String = "https://github.com/SerZhyAle/FileDO/releases"
+    Public Const Topics As String = "https://serzhyale.github.io/FileDO/guides/topics.html"
+    Public Const Support As String = "https://serzhyale.github.io/FileDO/guides/support.html"
+
+    ' The related programs, one inventory (section 3.4): the address, the localized name and the
+    ' localized purpose line. The help pages' "Related" list names the same program by the same keys.
+    Public ReadOnly Related As String()() = {
+        New String() {FMSInstall, "help_rel_fms_title", "help_rel_fms_note"}
+    }
+
     ' A link that cannot be opened says so with the address in front of the user and a button that
     ' copies it, because an address they can paste into a browser themselves is the way round a
     ' machine with no default browser or mail program (APP-BEHAVIOUR rule 6: a cause and an action,

@@ -19,8 +19,9 @@
   What it REFUSES (exit 1, nothing written - no file, no folder; WINDOWS-STORE rules 7 and 9 and the
   0.2 amendment): a language the product ships (en ru uk de fr) with no column in the export or no
   msix\listing\<code>.txt; a cell over its cap (counted after CRLF normalisation); more than seven
-  search terms, or a duplicate among them; and more than 21 words across a language's seven search
-  terms (a word is a non-whitespace run). One cell over its cap loses the whole language at import,
+  search terms, or a duplicate among them; more than 21 words across a language's seven search
+  terms (a word is a non-whitespace run); and, in the export's own dialect (WINDOWS-STORE 0.3 item B),
+  a record break that is not the export's, a mixed in-cell break, or an open last quoted cell. One cell over its cap loses the whole language at import,
   so the run stops here instead of producing a file that would. Each problem is named by language,
   field, length and deck file. Missing screenshots, empty required fields and the like stay warnings.
 
@@ -149,6 +150,36 @@ function Format-Csv($rows, [string]$newline, [bool]$trailing, [bool]$alwaysQuote
     }
     return $sb.ToString()
 }
+# WINDOWS-STORE rule 8 as amended 2026-10-29 (0.3, item B): a writer of the export's own dialect refuses a
+# record break that is not the export's, a mixed in-cell break, and an open last quoted cell. Run on the export
+# (a foreign break there would be rewritten silently) and on the text about to be written.
+function Get-DialectProblems([string]$text, [string]$newline, [string]$label) {
+    $problems = New-Object System.Collections.ArrayList
+    $cellBreaks = New-Object System.Collections.Generic.HashSet[string]
+    $inQuotes = $false; $record = 1
+    for ($i = 0; $i -lt $text.Length; $i++) {
+        $ch = $text[$i]
+        if ($ch -eq '"') { $inQuotes = -not $inQuotes; continue }
+        if ($ch -ne "`n") { continue }
+        $br = if ($i -gt 0 -and $text[$i - 1] -eq "`r") { "`r`n" } else { "`n" }
+        if ($inQuotes) { [void]$cellBreaks.Add($br); continue }
+        if ($br -ne $newline) {
+            $name = if ($br -eq "`n") { "LF" } else { "CRLF" }; $want = if ($newline -eq "`n") { "LF" } else { "CRLF" }
+            [void]$problems.Add("${label}: record $record ends with $name, the export's record break is $want")
+        }
+        $record++
+    }
+    if ($inQuotes) { [void]$problems.Add("${label}: the last quoted cell is left open") }
+    if ($cellBreaks.Count -gt 1) { [void]$problems.Add("${label}: in-cell breaks mix LF and CRLF") }
+    return , $problems
+}
+function Stop-OnDialect($problems) {
+    if ($problems.Count) {
+        foreach ($p in $problems) { Write-Host "  refused: $p" -ForegroundColor Red }
+        Write-Host "build-store-listing-csv: $($problems.Count) dialect problem(s); nothing was written." -ForegroundColor Red
+        exit 1
+    }
+}
 
 # --- the export, style and all -----------------------------------------------------------------
 $bytes  = [System.IO.File]::ReadAllBytes($Csv)
@@ -159,6 +190,7 @@ $trailing       = $raw.EndsWith("`n")
 $alwaysQuote    = $raw.StartsWith('"')
 $rows = Read-Csv $raw
 if ($rows.Count -lt 2) { throw "build-store-listing-csv: the export has no data rows: $Csv" }
+Stop-OnDialect (Get-DialectProblems $raw $newline "the export")
 $header   = $rows[0]
 $fieldCol = [array]::IndexOf($header, "Field")
 if ($fieldCol -lt 0) { throw "build-store-listing-csv: no 'Field' column in $Csv" }
@@ -319,8 +351,9 @@ if (-not $FillNothing) {
 
 # --- write, preserving the export's style ----------------------------------------------------------
 # The folder is made only for a real write: the self-test leaves nothing behind, not even an empty one.
-if (-not $FillNothing) { New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Out) | Out-Null }
 $text = Format-Csv $rows $newline $trailing $alwaysQuote
+Stop-OnDialect (Get-DialectProblems $text $newline "the file to write")
+if (-not $FillNothing) { New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Out) | Out-Null }
 # The self-test never leaves a file in the import folder: an unpatched CSV sitting there is one
 # careless upload away from a listing that was never filled.
 $target = if ($FillNothing) { [System.IO.Path]::GetTempFileName() } else { $Out }

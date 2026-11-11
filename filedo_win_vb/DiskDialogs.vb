@@ -182,7 +182,7 @@ Public Class DiskPasswordDialog
         Dim label As New Label With {.Text = T("shell_lbl_password"), .AutoSize = True, .Margin = PPad(0, 2, 0, 2)}
         box = New TextBox With {.Width = P(320), .UseSystemPasswordChar = True, .Margin = PPad(0, 0, 0, 4)}
         box.AccessibleName = T("shell_lbl_password")
-        showCheck = New CheckBox With {.Text = T("shell_cred_show"), .AutoSize = True, .Margin = PPad(0, 0, 0, 4)}
+        showCheck = New BooleanOption With {.Text = T("shell_cred_show"), .AutoSize = True, .Margin = PPad(0, 0, 0, 4)}
         AddHandler showCheck.CheckedChanged, Sub() box.UseSystemPasswordChar = Not showCheck.Checked
         AddHandler box.TextChanged, Sub() SetAcceptable(box.Text <> "")
         AddHandler okBtn.Click, Sub()
@@ -234,7 +234,7 @@ Public Class DiskMountAsDialog
         letterCombo.SelectedIndex = 0
         row.Controls.Add(label)
         row.Controls.Add(letterCombo)
-        roCheck = New CheckBox With {.Text = T("vd_opt_ro"), .AutoSize = True, .Margin = PPad(0, 6, 0, 2)}
+        roCheck = New BooleanOption With {.Text = T("vd_opt_ro"), .AutoSize = True, .Margin = PPad(0, 6, 0, 2)}
         AddContent(row)
         AddContent(roCheck)
         Finish()

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
 <title>Hilfe - FileDO - Datenträgerverwaltung</title>
 <script>
 (function () {
@@ -31,22 +32,23 @@
 
   <figure class="shot">
     <div class="frame">
-      <img class="on-dark" src="../img/disk-manager.de.dark.png" width="974" height="708" alt="FileDO - Datenträgerverwaltung: das Fenster mit seinen nummerierten Teilen">
-      <img class="on-light" src="../img/disk-manager.de.light.png" width="974" height="708" alt="">
-      <a class="pin" style="--x:1.7%;--y:1.7%" href="#e-new" aria-label="1, Neuer Datenträger..">1</a>
-      <a class="pin" style="--x:25.6%;--y:1.7%" href="#e-add" aria-label="2, Hinzufügen..">2</a>
-      <a class="pin" style="--x:45.4%;--y:1.7%" href="#e-mount" aria-label="3, Einbinden">3</a>
-      <a class="pin" style="--x:61.4%;--y:1.7%" href="#e-unmount" aria-label="4, Trennen">4</a>
-      <a class="pin" style="--x:76.0%;--y:1.7%" href="#e-open" aria-label="5, Öffnen">5</a>
-      <a class="pin" style="--x:1.7%;--y:8.5%" href="#e-save" aria-label="6, Speichern">6</a>
-      <a class="pin" style="--x:19.4%;--y:8.5%" href="#e-more" aria-label="7, Weitere Aktionen">7</a>
-      <a class="pin" style="--x:42.8%;--y:8.5%" href="#e-refresh" aria-label="8, Aktualisieren">8</a>
-      <a class="pin" style="--x:48.2%;--y:8.5%" href="#e-settings" aria-label="9, Einstellungen">9</a>
-      <a class="pin" style="--x:55.2%;--y:8.5%" href="#e-main" aria-label="10, FileDO-Operationen">10</a>
-      <a class="pin" style="--x:80.2%;--y:8.5%" href="#e-help" aria-label="11, Hilfe">11</a>
-      <a class="pin" style="--x:7.8%;--y:17.2%" href="#e-filter" aria-label="12, Datenträger filtern">12</a>
-      <a class="pin" style="--x:0.2%;--y:23.9%" href="#e-list" aria-label="13, Die Liste der Datenträger">13</a>
-      <a class="pin" style="--x:0.2%;--y:51.8%" href="#e-detail" aria-label="14, Einzelheiten">14</a>
+      <img class="on-dark" src="../img/disk-manager.de.dark.png" width="2041" height="1266" alt="FileDO - Datenträgerverwaltung: das Fenster mit seinen nummerierten Teilen">
+      <img class="on-light" src="../img/disk-manager.de.light.png" width="2041" height="1266" alt="">
+      <a class="pin" style="--x:1.2%;--y:1.4%" href="#e-new" aria-label="1, Neuer Datenträger..">1</a>
+      <a class="pin" style="--x:17.0%;--y:1.4%" href="#e-add" aria-label="2, Hinzufügen..">2</a>
+      <a class="pin" style="--x:30.2%;--y:1.4%" href="#e-mount" aria-label="3, Einbinden">3</a>
+      <a class="pin" style="--x:40.9%;--y:1.4%" href="#e-unmount" aria-label="4, Trennen">4</a>
+      <a class="pin" style="--x:50.6%;--y:1.4%" href="#e-open" aria-label="5, Öffnen">5</a>
+      <a class="pin" style="--x:59.7%;--y:1.4%" href="#e-save" aria-label="6, Speichern">6</a>
+      <a class="pin" style="--x:71.6%;--y:1.4%" href="#e-more" aria-label="7, Weitere Aktionen">7</a>
+      <a class="pin" style="--x:87.3%;--y:1.4%" href="#e-refresh" aria-label="8, Aktualisieren">8</a>
+      <a class="pin" style="--x:90.8%;--y:1.4%" href="#e-settings" aria-label="9, Einstellungen">9</a>
+      <a class="pin" style="--x:1.2%;--y:7.1%" href="#e-main" aria-label="10, FileDO-Operationen">10</a>
+      <a class="pin" style="--x:17.9%;--y:7.1%" href="#e-help" aria-label="11, Hilfe">11</a>
+      <a class="pin" style="--x:5.3%;--y:13.9%" href="#e-filter" aria-label="12, Datenträger filtern">12</a>
+      <a class="pin" style="--x:0.2%;--y:19.2%" href="#e-list" aria-label="13, Die Liste der Datenträger">13</a>
+      <a class="pin" style="--x:0.2%;--y:64.9%" href="#e-detail" aria-label="14, Einzelheiten">14</a>
+      <a class="pin" style="--x:0.2%;--y:95.3%" href="#e-strip" aria-label="15, Statuszeile">15</a>
     </div>
     <figcaption>Beispieldaten. Wählen Sie eine Nummer, um mehr über diesen Teil des Fensters zu lesen.</figcaption>
   </figure>
@@ -213,7 +215,6 @@
       <summary><span class="mk">15</span><span><span class="name">Statuszeile</span><span class="one">Was läuft und was wartet.</span></span></summary>
       <div class="full">
         <p>Die erste Zeile sagt, wie viele Datenträger eingebunden sind und wie aktuell die Angaben sind. Die zweite zeigt die laufende Operation oder wie die letzte endete. Anhalten beendet die laufende Operation sauber, und Warteschlange leeren verwirft die wartenden.</p>
-        <p class="one"><small>Nicht im Bild: erscheint nur, wenn das Fenster es braucht.</small></p>
       </div>
     </details>
     <details class="el" id="e-keyboard">
@@ -233,7 +234,7 @@
           <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Infos</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Prüfen</dd>
           <dt><kbd>Enter</kbd></dt><dd>Einen ruhenden Datenträger einbinden oder das Laufwerk eines eingebundenen öffnen</dd>
-          <dt><kbd>Del</kbd></dt><dd>Aus der Liste entfernen</dd>
+          <dt><kbd>Delete</kbd></dt><dd>Aus der Liste entfernen</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Pfad kopieren</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Alle Datenträger der Liste wählen</dd>
           <dt><kbd>Menu</kbd></dt><dd>Das Menü des gewählten Datenträgers öffnen, bei fokussierter Hilfe-Schaltfläche deren Menü</dd>
@@ -261,7 +262,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Aufgenommen mit FileDO dev (2610211338), 2026-10-21.</span>
+    <span>Aufgenommen mit FileDO 2611110217, 2026-11-11.</span>
     <a href="index.html">Hilfe-Übersicht</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Eine Frage stellen oder ein Problem melden</a>
   </footer>

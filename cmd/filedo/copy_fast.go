@@ -743,7 +743,7 @@ func (e *copyEngine) printTotals() {
 func runCopyEngine(verb, sourcePath, targetPath string, config FastCopyConfig, damaged *DamagedDiskHandler, handler *InterruptHandler) (*copyRunStats, error) {
 	info, err := os.Stat(sourcePath)
 	if err != nil {
-		return nil, fmt.Errorf("source path error: %v", err)
+		return nil, fmt.Errorf("source path error: %w", err)
 	}
 	e := newCopyEngine(verb, config, damaged, handler)
 	defer e.close()

@@ -93,11 +93,13 @@
     <Compile Include="ArgQuotingTests.vb" />
     <Compile Include="EventStream.vb" />
     <Compile Include="Runner.vb" />
+    <Compile Include="RunExplanation.vb" />
     <Compile Include="JobCatalogue.vb" />
     <Compile Include="SelfTest.vb" />
     <Compile Include="SelfTestStateFill.vb" />
     <Compile Include="SelfTestSettingsFollow.vb" />
     <Compile Include="SelfTestResultNumbers.vb" />
+    <Compile Include="SelfTestRunExplanation.vb" />
     <Compile Include="DiagnosticText.vb" />
     <Compile Include="CheckOptions.vb">
       <SubType>UserControl</SubType>
@@ -118,6 +120,8 @@
     </Compile>
     <Compile Include="DiskGlyphs.vb" />
     <Compile Include="GlyphButton.vb" />
+    <Compile Include="BooleanOption.vb" />
+    <Compile Include="BackupOptions.vb" />
     <Compile Include="DiskHelp.vb" />
     <Compile Include="PaneCycle.vb" />
     <Compile Include="AppHost.vb" />

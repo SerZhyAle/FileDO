@@ -100,9 +100,10 @@ GLOBAL OPTIONS, handed to filedo.exe unchanged:
   --events <file>  --stop-file <file>  --pause  --no-history  --no-ui  nohist
   -y  --yes  --force
 
-EXIT CODES (filedo.exe's): 0 done, 1 a defect was found, 2 could not verify.
-filedo_fill.exe itself exits 2 on a usage error and when filedo.exe is not in
-its folder.
+EXIT CODES: 0 passed or done; 1 defect found; 2 unclassified failure;
+10 usage; 11 target unavailable; 12 permission; 13 insufficient resources;
+14 hardware I/O; 15 network failure; 16 stopped by the caller. This launcher
+returns 10 for its own usage errors and 2 if filedo.exe cannot be started.
 
 `, version)
 }

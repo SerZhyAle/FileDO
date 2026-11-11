@@ -74,7 +74,7 @@
     <Property Id="ARPCONTACT" Value="https://github.com/SerZhyAle" />
     <!-- The line Apps and features shows under the entry. The only place a
          person meets this program again is that list, months later. -->
-    <Property Id="ARPCOMMENTS" Value="Storage speed and fake-capacity testing, readability checks, duplicate management, secure wipe, password-protected .fd-sec containers and .fdd virtual disks. Nothing sent over the internet, no telemetry." />
+    <Property Id="ARPCOMMENTS" Value="Storage speed and fake-capacity testing, readability checks, duplicate management, free-space overwrite that makes recovery harder, password-protected .fd-sec containers and .fdd virtual disks. Nothing sent over the internet, no telemetry." />
     <!-- Change and Repair are deliberately NOT suppressed: the features above
          are the reason. Turning the Explorer integration on or off later is
          "Change" in Apps and Features, and a repair is what puts the registry

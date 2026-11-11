@@ -1356,7 +1356,7 @@ func vdPartServe(e vdRegEntry, o vdPartServeOpts, batch bool) error {
 	}
 	fmt.Printf("Mounted %s%s at %s. Unmount with: filedo vd unmount %s\n", e.Name, roText, res.MountPath, e.Name)
 	EmitFindingEvent("info", "Disk mounted", map[string]interface{}{"vdMount": map[string]interface{}{"containerId": info.ContainerID, "mountPath": res.MountPath, "volumeGuid": res.VolumeGUID, "letter": res.Letter, "readOnly": ro, "carrier": "partition"}})
-	vdLogf("mount %s (%s) at %s", e.Name, e.Path, res.MountPath)
+	vdLogf("mount %s (%s) at %s%s", e.Name, e.Path, res.MountPath, vdConsentTag())
 	vdTouchRegistry(info.ContainerID)
 	return nil
 }

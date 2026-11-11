@@ -112,10 +112,10 @@ func parseSize(sizeStr string) (int, error) {
 func parseSizeMB(sizeStr string, minMB, maxMB int) (int, error) {
 	n, err := parseSize(sizeStr)
 	if err != nil {
-		return 0, fmt.Errorf("invalid size: %v (a number of megabytes, or a size with k, m, g or t, from %d MB to %d MB)", err, minMB, maxMB)
+		return 0, exitClassf(10, "invalid size: %v (a number of megabytes, or a size with k, m, g or t, from %d MB to %d MB)", err, minMB, maxMB)
 	}
 	if n < minMB || n > maxMB {
-		return 0, fmt.Errorf("size %q is out of range: %d MB, allowed %d MB to %d MB", sizeStr, n, minMB, maxMB)
+		return 0, exitClassf(10, "size %q is out of range: %d MB, allowed %d MB to %d MB", sizeStr, n, minMB, maxMB)
 	}
 	return n, nil
 }

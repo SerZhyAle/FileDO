@@ -1,6 +1,7 @@
 # The help baseline (CONTEXT-HELP rule 19, CHECK-BASELINE): debt that is accepted for now and may only fall.
 # page <help id> - the page of a surface is not written yet (the surface answers with its fallback page).
 # ask <surface id> - the surface has help in the map but its F1 key and help button are not wired yet.
+# absent <lang> <page id> <anchor> - an element the picture of a page does not show in that language (its bounds are empty; CONTEXT-HELP 0.2 section 7 item C).
 # A line whose debt is paid is stale and fails the gate: delete it in the same edit that pays the debt.
 # A set baseline (CHECK-BASELINE rule 3): one identifier per line, the page lines first and then the ask lines, each group in ordinal order. check-help.ps1 fails a file that is out of order.
 page disk-adopt

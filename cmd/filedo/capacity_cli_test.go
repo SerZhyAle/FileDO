@@ -24,8 +24,8 @@ func TestFillRejectsUnknownSizeToken(t *testing.T) {
 			dir := t.TempDir()
 			events := filepath.Join(t.TempDir(), "events.jsonl")
 			out, code := run(t, t.TempDir(), append([]string{"--events", events, dir}, args...)...)
-			if code != 2 {
-				t.Fatalf("exit %d, want 2\n%s", code, out)
+			if code != 10 {
+				t.Fatalf("exit %d, want 10\n%s", code, out)
 			}
 			if got := lastResult(t, events)["verdict"]; got != "Not proven" {
 				t.Errorf("verdict %q, want Not proven", got)
@@ -78,7 +78,7 @@ func TestCleanNeedsConfirmationOffATerminal(t *testing.T) {
 	}
 
 	out, code := run(t, t.TempDir(), dir, "clean")
-	if code != 2 || !exists(ours) {
+	if code != 10 || !exists(ours) {
 		t.Fatalf("clean without --yes: exit %d, file kept %v\n%s", code, exists(ours), out)
 	}
 	out, code = run(t, t.TempDir(), dir, "clean", "--yes")
@@ -124,8 +124,8 @@ func readOnlyDir(t *testing.T) string {
 	return dir
 }
 
-// CAP-04: a folder this user cannot write is "could not verify" (exit 2),
-// never "fake capacity".
+// CAP-04: a folder this user cannot write is "could not verify" (exit 12,
+// permission refused), never "fake capacity".
 func TestReadOnlyFolderTestIsNotProven(t *testing.T) {
 	dir := readOnlyDir(t)
 	// A safety net under the refused write: were the lock not to hold, the
@@ -133,8 +133,8 @@ func TestReadOnlyFolderTestIsNotProven(t *testing.T) {
 	t.Setenv(testFreeBytesEnv, "209715200")
 	events := filepath.Join(t.TempDir(), "events.jsonl")
 	out, code := run(t, t.TempDir(), "--events", events, dir, "test", "3")
-	if code != 2 {
-		t.Fatalf("exit %d, want 2\n%s", code, out)
+	if code != 12 {
+		t.Fatalf("exit %d, want 12\n%s", code, out)
 	}
 	if got := lastResult(t, events)["verdict"]; got != "Not proven" {
 		t.Errorf("verdict %q, want Not proven", got)

@@ -114,10 +114,17 @@ func TestSurfaces_EveryReadmeLocaleCarriesTheClaims(t *testing.T) {
 // translated (CLI-EVENT-STREAM rule 11 / SP-0012 T8).
 func TestSurfaces_EveryReadmeLocaleCarriesTheExitVocabulary(t *testing.T) {
 	root := repoRoot(t)
+	// The English words are the contract's own; the other locales translate
+	// them (SP-0195), so what must not drift there is the set of codes, in
+	// order, in one bold block: 0, 1, 2 and 10-16.
 	const block = "0 passed or done, 1 ran and found a defect, 2 could not be verified"
+	if !strings.Contains(readSurface(t, root, "README.md"), block) {
+		t.Errorf("README.md does not carry the CLI exit-code vocabulary %q", block)
+	}
+	codes := regexp.MustCompile(`\*\*0 [^*]+, 1 [^*]+, 2 [^*]+, 10 [^*]+, 11 [^*]+, 12 [^*]+, 13 [^*]+, 14 [^*]+, 15 [^*]+, 16 [^*]+\.\*\*`)
 	for _, rel := range []string{"README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"} {
-		if !strings.Contains(readSurface(t, root, rel), block) {
-			t.Errorf("%s does not carry the CLI exit-code vocabulary", rel)
+		if !codes.MatchString(readSurface(t, root, rel)) {
+			t.Errorf("%s does not carry the CLI exit codes 0, 1, 2 and 10-16 in one block", rel)
 		}
 	}
 }
@@ -435,7 +442,7 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 	// name StreamsPlayer.
 	cards := []struct{ name, kind string }{
 		{"Fast Media Sorter &amp; Organizer", "Android media sorter"},
-		{"Fast Media Sorter for Windows", "Windows media sorter"},
+		{"Fast Media Sorter &amp; Sharing for Windows", "Windows media and file manager"},
 		{"CyrFlip", "Windows layout fixer"},
 		{"doc-html-translate", "Windows ebook converter"},
 		{"STREAMS Player", "Windows stream player"},
@@ -647,7 +654,7 @@ func TestSurfaces_TheVendoredKitIsHeldByteForByte(t *testing.T) {
 }
 
 // sitePages lists every site page under docs as a slash path relative to docs, leaving out
-// what is not a site page: the one-line redirects (ru, ua), the kit, the assets and the
+// what is not a site page: the one-line redirect (ua), the kit, the assets and the
 // generated in-app help (CONTEXT-HELP).
 func sitePages(t *testing.T, root string) []string {
 	t.Helper()
@@ -661,7 +668,7 @@ func sitePages(t *testing.T, root string) []string {
 		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
 			switch rel {
-			case "ru", "ua", "kit", "assets", "help", "contracts":
+			case "ua", "kit", "assets", "help", "contracts":
 				return filepath.SkipDir
 			}
 			return nil
@@ -709,10 +716,16 @@ func TestSurfaces_TheThemeControlIsLabelledWithItsGlyph(t *testing.T) {
 		}
 		langs := []string{"ru", "en", "ua"}
 		switch {
+		case rel == "index.html":
+			langs = []string{"en"}
 		case strings.HasPrefix(rel, "de/"):
 			langs = []string{"de"}
 		case strings.HasPrefix(rel, "fr/"):
 			langs = []string{"fr"}
+		case strings.HasPrefix(rel, "ru/"):
+			langs = []string{"ru"}
+		case strings.HasPrefix(rel, "uk/"):
+			langs = []string{"uk"}
 		}
 		for _, l := range langs {
 			if !strings.Contains(button, `<span data-l="`+l+`">`) {
@@ -728,6 +741,50 @@ func TestSurfaces_TheThemeControlIsLabelledWithItsGlyph(t *testing.T) {
 	}
 	if strings.Contains(js, "Switch to dark theme") || strings.Contains(js, "Switch to light theme") {
 		t.Error("docs/guides/guide.js still renames the theme control in English after a click")
+	}
+}
+
+// SITE-EXPERIENCE 0.5 rule 6 at the guide tier (SP-0186), ICON-SET section 2 rule 8: a site
+// page that names a shell control shows the glyph the shell draws for it beside the name. Each
+// mention is a decorative <use> of the page's own sprite, and each sprite symbol is the
+// drawing of assets/glyphs/<id>.svg - the copy the shell embeds - as
+// packaging/sync-guide-glyphs.ps1 writes it.
+func TestSurfaces_TheSiteShowsTheGlyphOfEveryControlItNames(t *testing.T) {
+	root := repoRoot(t)
+	mention := regexp.MustCompile(`<svg class="cg" aria-hidden="true" focusable="false"><use href="#g-([a-z0-9.-]+)"/></svg>`)
+	anyCg := regexp.MustCompile(`<svg\b[^>]*\bclass="cg"[^>]*>`)
+	glyphFile := regexp.MustCompile(`(?s)<svg\b[^>]*\bviewBox="([^"]+)"[^>]*>(.*)</svg>`)
+	between := regexp.MustCompile(`>\s+<`)
+	total := 0
+	for _, rel := range sitePages(t, root) {
+		body := readSurface(t, root, filepath.Join("docs", filepath.FromSlash(rel)))
+		if a, m := len(anyCg.FindAllString(body, -1)), len(mention.FindAllString(body, -1)); a != m {
+			t.Errorf("%s: %d control glyph(s) are not a decorative <use> of the sprite", rel, a-m)
+		}
+		seen := map[string]bool{}
+		for _, m := range mention.FindAllStringSubmatch(body, -1) {
+			total++
+			if seen[m[1]] {
+				continue
+			}
+			seen[m[1]] = true
+			svg, err := os.ReadFile(filepath.Join(root, "assets", "glyphs", m[1]+".svg"))
+			if err != nil {
+				t.Errorf("%s names g-%s, which has no assets/glyphs file", rel, m[1])
+				continue
+			}
+			g := glyphFile.FindStringSubmatch(string(svg))
+			if g == nil {
+				t.Fatalf("assets/glyphs/%s.svg has no <svg viewBox> element", m[1])
+			}
+			want := `<symbol id="g-` + m[1] + `" viewBox="` + g[1] + `">` + between.ReplaceAllString(strings.TrimSpace(g[2]), "><") + `</symbol>`
+			if !strings.Contains(body, want) {
+				t.Errorf("%s: the sprite symbol g-%s is missing or differs from assets/glyphs (run packaging/sync-guide-glyphs.ps1)", rel, m[1])
+			}
+		}
+	}
+	if total < 100 {
+		t.Errorf("only %d control glyphs on the site - the pages name their controls without them", total)
 	}
 }
 
@@ -868,6 +925,7 @@ func TestSurfaces_ThePagesUseTheFullWidth(t *testing.T) {
 		"index.html", "privacy.html",
 		filepath.Join("de", "index.html"), filepath.Join("de", "privacy.html"),
 		filepath.Join("fr", "index.html"), filepath.Join("fr", "privacy.html"),
+		filepath.Join("ru", "index.html"), filepath.Join("uk", "index.html"),
 	} {
 		body := readSurface(t, root, filepath.Join("docs", rel))
 		if !strings.Contains(body, "use the available width") || !strings.Contains(body, ".container,.site-header") {
@@ -899,6 +957,7 @@ func TestSurfaces_TheChromeKeeps44pxTargetsAndLightContrast(t *testing.T) {
 		"index.html", "privacy.html",
 		filepath.Join("de", "index.html"), filepath.Join("de", "privacy.html"),
 		filepath.Join("fr", "index.html"), filepath.Join("fr", "privacy.html"),
+		filepath.Join("ru", "index.html"), filepath.Join("uk", "index.html"),
 	} {
 		body := readSurface(t, root, filepath.Join("docs", rel))
 		for _, w := range want {
@@ -916,7 +975,7 @@ func TestSurfaces_TheChromeKeeps44pxTargetsAndLightContrast(t *testing.T) {
 // had been hidden by a compacting rule, so the test reads the style block too.
 func TestSurfaces_TheFrontPageCarriesItsIdentity(t *testing.T) {
 	root := repoRoot(t)
-	for _, rel := range []string{"index.html", filepath.Join("de", "index.html"), filepath.Join("fr", "index.html")} {
+	for _, rel := range []string{"index.html", filepath.Join("de", "index.html"), filepath.Join("fr", "index.html"), filepath.Join("ru", "index.html"), filepath.Join("uk", "index.html")} {
 		body := readSurface(t, root, filepath.Join("docs", rel))
 		header := body[strings.Index(body, `<header class="site-header">`):]
 		header = header[:strings.Index(header, `</header>`)]
@@ -924,7 +983,7 @@ func TestSurfaces_TheFrontPageCarriesItsIdentity(t *testing.T) {
 			`assets/filedo.svg" width="46" height="46" alt="FileDO"`,
 			`<small>Advanced File &amp; Storage Operations Tool</small>`,
 			`<nav class="header-nav" aria-labelledby="mainNavTitle">`,
-			`<a href="guides/">`,
+			`guides/">`,
 			`https://github.com/SerZhyAle/FileDO#readme`,
 			`<nav class="lang-row"`,
 		} {
@@ -988,9 +1047,9 @@ func TestSurfaces_EveryPageHasASkipLinkAndLabelledLandmarks(t *testing.T) {
 		rel, _ := filepath.Rel(docs, path)
 		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
-			// ru/ and ua/ hold one-line redirects to the shared pages.
+			// ua/ holds the one-line redirect stub.
 			switch rel {
-			case "ru", "ua", "kit", "assets", "help": // help/ is the generated in-app help, not site pages (CONTEXT-HELP)
+			case "ua", "kit", "assets", "help": // help/ is the generated in-app help, not site pages (CONTEXT-HELP)
 				return filepath.SkipDir
 			}
 			return nil
@@ -1011,18 +1070,23 @@ func TestSurfaces_EveryPageHasASkipLinkAndLabelledLandmarks(t *testing.T) {
 			if m := mainRe.FindStringSubmatch(body); m == nil || m[1] != skip[1] {
 				t.Errorf("%s: the skip link targets #%s but main does not carry that id", rel, skip[1])
 			}
-			lang := "ru"
+			langs := []string{"ru", "en", "ua"}
 			switch {
+			case rel == "index.html":
+				langs = []string{"en"}
 			case strings.HasPrefix(rel, "de/"):
-				lang = "de"
+				langs = []string{"de"}
 			case strings.HasPrefix(rel, "fr/"):
-				lang = "fr"
+				langs = []string{"fr"}
+			case strings.HasPrefix(rel, "ru/"):
+				langs = []string{"ru"}
+			case strings.HasPrefix(rel, "uk/"):
+				langs = []string{"uk"}
 			}
-			if !strings.Contains(skip[2], `data-l="`+lang+`"`) {
-				t.Errorf("%s: the skip link has no %s text", rel, lang)
-			}
-			if lang == "ru" && (!strings.Contains(skip[2], `data-l="en"`) || !strings.Contains(skip[2], `data-l="ua"`)) {
-				t.Errorf("%s: the skip link is missing its en or ua text", rel)
+			for _, l := range langs {
+				if !strings.Contains(skip[2], `data-l="`+l+`"`) {
+					t.Errorf("%s: the skip link has no %s text", rel, l)
+				}
 			}
 		}
 

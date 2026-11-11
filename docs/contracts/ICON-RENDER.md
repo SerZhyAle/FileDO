@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-RENDER` |
-| **Version** | 0.24, read 2026-10-21 (SP-0170); implemented 0.17; the button components are SP-0169's draft (no wire carrier - a picture, not a payload) |
+| **Version** | 0.24, read 2026-10-29 (SP-0174); implemented partial 0.24; non-button surfaces hold, the button components are SP-0169's, draft (no wire carrier - a picture, not a payload) |
 | **Role** | consumer - the shell draws glyphs, the site draws one, the MSIX and MSI carry the product mark |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

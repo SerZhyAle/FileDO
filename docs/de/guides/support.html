@@ -142,7 +142,7 @@
               <span data-l="de">Aus dem Programm</span>
             </h3>
             <p>
-              <span data-l="de">Die Seite „Über“ des FileDO-Fensters enthält den Link „Ein Problem melden“, die Adresse des Autors und die Schaltfläche „Logs an den Autor senden“ (Abschnitt 3).</span>
+              <span data-l="de">Die Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>„Über“ des FileDO-Fensters enthält den Link „Ein Problem melden“, die Adresse des Autors und die Schaltfläche <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>„Logs an den Autor senden“ (Abschnitt 3).</span>
             </p>
           </article>
         </div>
@@ -157,16 +157,16 @@
         </p>
         <ol class="steps">
           <li>
-            <span data-l="de"><b>Die FileDO-Version.</b> Öffnen Sie im FileDO-Fenster die Seite „Über“ und lesen Sie die Zeile „GUI-Build“. Führen Sie in einem Terminal <code>filedo --no-ui</code> aus: Oben in der Ausgabe stehen das Datum, die Adresse des Autors und die Version, eine zehnstellige Zahl. Nennen Sie diese Zahl und nicht die aus der Liste der installierten Apps von Windows, die anders geschrieben sein kann.</span>
+            <span data-l="de"><b>Die FileDO-Version.</b> Öffnen Sie im FileDO-Fenster die Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>„Über“ und lesen Sie die Zeile „GUI-Build“. Führen Sie in einem Terminal <code>filedo --no-ui</code> aus: Oben in der Ausgabe stehen das Datum, die Adresse des Autors und die Version, eine zehnstellige Zahl. Nennen Sie diese Zahl und nicht die aus der Liste der installierten Apps von Windows, die anders geschrieben sein kann.</span>
           </li>
           <li>
             <span data-l="de"><b>Wie Sie es installiert haben und welches Windows Sie nutzen.</b> Setup-EXE, MSI, ZIP, winget oder Microsoft Store: Die Builds unterscheiden sich darin, was sie können. Nennen Sie die, die Sie haben, und Ihre Windows-Version (<code>winver</code> zeigt sie an).</span>
           </li>
           <li>
-            <span data-l="de"><b>Was Sie genau getan haben.</b> Der Befehl, so wie Sie ihn eingegeben haben (die Seite „Befehl“ im Fenster zeigt ihn an und kann ihn kopieren), oder die Seite und die Schaltflächen, die Sie benutzt haben. Lassen Sie jedes Passwort weg.</span>
+            <span data-l="de"><b>Was Sie genau getan haben.</b> Der Befehl, so wie Sie ihn eingegeben haben (die Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>„Befehl“ im Fenster zeigt ihn an und kann ihn kopieren), oder die Seite und die Schaltflächen, die Sie benutzt haben. Lassen Sie jedes Passwort weg.</span>
           </li>
           <li>
-            <span data-l="de"><b>Was passiert ist und was Sie erwartet haben.</b> Geben Sie Meldungen wörtlich wieder. Nennen Sie den Exit-Code: Nach dem Ende eines Befehls zeigt ihn <code>echo %ERRORLEVEL%</code> in der Eingabeaufforderung oder <code>$LASTEXITCODE</code> in PowerShell. 0 heißt bestanden oder erledigt, 1 heißt Defekt gefunden, 2 heißt nicht prüfbar. Die Container-Befehle (<code>secure</code>, <code>unsecure</code>, <code>reveal</code>, <code>vd</code>) verwenden einen größeren Satz von Codes, der in der <a href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">README</a> steht.</span>
+            <span data-l="de"><b>Was passiert ist und was Sie erwartet haben.</b> Geben Sie Meldungen wörtlich wieder. Nennen Sie den Exit-Code: Nach dem Ende eines Befehls zeigt ihn <code>echo %ERRORLEVEL%</code> in der Eingabeaufforderung oder <code>$LASTEXITCODE</code> in PowerShell. 0 heißt bestanden oder erledigt, 1 heißt Defekt gefunden, 2 heißt nicht prüfbar, und 10 bis 16 nennen den Grund (10 Aufruf falsch, 11 Ziel nicht gefunden oder nicht bereit, 12 Zugriff verweigert, 13 zu wenig Platz, 14 Hardware- oder E/A-Fehler, 15 Netzwerkfehler, 16 gestoppt). Die Container-Befehle (<code>secure</code>, <code>unsecure</code>, <code>reveal</code>, <code>vd</code>) verwenden einen größeren Satz von Codes, der in der <a href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">README</a> steht.</span>
           </li>
           <li>
             <span data-l="de"><b>Logs, wenn möglich.</b> Abschnitt 3 zeigt, wie Sie sie bekommen, ohne nach Dateien zu suchen.</span>
@@ -179,7 +179,7 @@
           <span data-l="de">3. Logs, wenn Sie sie senden können</span>
         </h2>
         <p class="intro">
-          <span data-l="de">Auf der Seite „Über“ gibt es die Schaltfläche „Logs an den Autor senden“. Sie packt die Text-Logs, die FileDO auf diesem Rechner geschrieben hat, in ein ZIP, öffnet den Ordner mit markiertem ZIP, legt dessen Pfad in die Zwischenablage und öffnet Ihr Mailprogramm mit bereits eingetragener Adresse des Autors. Sie sehen zuerst das ZIP, und nichts wird gesendet, bevor Sie selbst auf Senden drücken.</span>
+          <span data-l="de">Auf der Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>„Über“ gibt es die Schaltfläche <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>„Logs an den Autor senden“. Sie packt die Text-Logs, die FileDO auf diesem Rechner geschrieben hat, in ein ZIP, öffnet den Ordner mit markiertem ZIP, legt dessen Pfad in die Zwischenablage und öffnet Ihr Mailprogramm mit bereits eingetragener Adresse des Autors. Sie sehen zuerst das ZIP, und nichts wird gesendet, bevor Sie selbst auf Senden drücken.</span>
         </p>
         <p class="intro">
           <span data-l="de">Ein Mail-Link kann keinen Anhang tragen, deshalb hängen Sie das ZIP selbst an: Sein Pfad liegt bereits in der Zwischenablage.</span>
@@ -266,6 +266,7 @@
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -280,5 +281,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

@@ -79,8 +79,8 @@ func TestMistypedContainerVerbRedactsCredential(t *testing.T) {
 	const secret = "hunter2-mistyped-verb"
 	events := filepath.Join(dir, "ev.jsonl")
 	out, code := run(t, dir, filepath.Join(dir, "plain.txt"), "secrue", "p:"+secret, "--events", events)
-	if code != 2 {
-		t.Fatalf("the mistyped verb exited %d, want 2\n%s", code, out)
+	if code != 10 {
+		t.Fatalf("the mistyped verb exited %d, want 10\n%s", code, out)
 	}
 	if !exists(events) {
 		t.Fatalf("no events file was written\n%s", out)

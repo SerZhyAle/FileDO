@@ -23,6 +23,7 @@ EFFACER
 
 PROTÉGER
 - Placer un fichier dans un conteneur .fd-sec protégé par mot de passe, récupérer l'original ou ouvrir le contenu dans le programme qui lui correspond sans le décompresser - depuis une copie en lecture seule que seul votre compte peut lire et qui est supprimée dès que vous avez terminé. Un mot de passe vide est accepté et ne signifie qu'une simple dissimulation, pas un secret ; FileDO le dit à l'endroit où vous le saisissez. Le format du conteneur est publié en entier : vos données restent lisibles sans FileDO.
+- Sauvegarder un dossier, un lecteur entier ou un partage réseau dans un seul fichier : un .zip ordinaire que tout outil zip ouvre, ou ce zip scellé dans un conteneur .fd-sec derrière un mot de passe. FileDO examine le contenu pendant 10 secondes au plus et choisit lui-même la densité de compression, puis restaure la sauvegarde à côté de l'archive ou à l'adresse que vous indiquez - un dossier existant n'est jamais complété ni remplacé.
 
 DISQUES VIRTUELS
 - Un conteneur .fdd contient un volume entier dans un seul fichier. Dans cette édition, vous pouvez en créer un, lire ses informations, le relire entièrement à la recherche de dommages, l'exporter en image brute ou en VHD que Windows ouvre lui-même, l'agrandir ou le compacter, le copier, changer son mot de passe ou le supprimer - sans droits d'administrateur. Sans mot de passe, un conteneur est camouflé, pas chiffré : quiconque a le fichier et FileDO peut le lire. Monter un conteneur comme lettre de lecteur n'est pas possible dans cette édition (voir plus bas).
@@ -88,4 +89,4 @@ effacer espace libre
 fichier mot de passe
 
 @@ReleaseNotes
-Nouveau : F1 et le nouveau bouton ? ouvrent la page d'aide de la fenêtre où vous êtes, en cinq langues. Modifié : les boutons et les réponses des boîtes de dialogue ont partout le même aspect, F6 et Maj+F6 passent d'une zone de la fenêtre à l'autre, et un conteneur .fd-sec dont le nom scellé contient un caractère interdit dans les noms de fichiers Windows est maintenant vérifié au lieu d'être jugé endommagé.
+Nouveau : sauvegarde d'un dossier, d'un lecteur ou d'un dossier réseau dans un zip que tout outil zip ouvre, ou scellée derrière un mot de passe, puis restauration - en ligne de commande ou depuis les pages du groupe Protéger. Modifié : une exécution qui ne peut pas aboutir en donne la raison - par son code de sortie et dans la langue de la fenêtre.

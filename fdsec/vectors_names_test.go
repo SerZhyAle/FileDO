@@ -119,6 +119,7 @@ func namesValidList() []struct{ id, desc, name string } {
 		{"lookalike-com10", "COM10 is not a reserved device name", `com10.log`},
 		{"units-255", "255 UTF-16 units, the longest name a Windows file system holds", strings.Repeat("n", 251) + ".txt"},
 		{"units-256", "256 UTF-16 units: valid in the format, one more than a Windows file name holds", strings.Repeat("n", 252) + ".txt"},
+		{"nfc", "a name in NFC with the precomposed letter U+00E9: the twin of the not-nfc case, valid (FDSEC-FORMAT 1.6 section 23)", "é.txt"},
 	}
 }
 
@@ -144,6 +145,7 @@ func namesRefusedList() []struct{ id, desc, name string } {
 		{"four-and-slash", "a valid character beside a separator is still refused", `a|b/c`},
 		{"four-and-colon", "a valid character beside a colon is still refused", `a"b:c`},
 		{"invalid-utf8", "a byte that is not UTF-8 (0xFF between two letters): damaged in every suite, never replaced by U+FFFD (FDSEC-FORMAT 1.5 section 22)", "a\xffb"},
+		{"not-nfc", "a name that is not in NFC (e followed by U+0301 COMBINING ACUTE ACCENT, whose NFC form is U+00E9): damaged in every suite, never normalised (FDSEC-FORMAT 1.6 section 23)", "é.txt"},
 	}
 }
 
@@ -199,6 +201,8 @@ func vecNamesSpecs() []namesSpec {
 			}},
 		namesSpec{id: "s3-valid-longest-root", desc: "the longest root name the format holds (3000 bytes), made of the four characters", suite: 3, expect: "opens",
 			name: strings.Repeat(`"<>|`, MaxNameBytes/4), entries: []namesEntrySpec{{path: "f.txt", content: []byte("four")}}},
+		namesSpec{id: "s3-valid-nfc", desc: "the precomposed U+00E9 in the root, a folder and a file below it: the NFC twin of the not-nfc cases, valid", suite: 3, expect: "opens",
+			name: "é", entries: []namesEntrySpec{{path: "é", dir: true}, {path: "é/é.txt", content: []byte("five")}}},
 	)
 	for _, v := range namesRefusedList() {
 		out = append(out, namesSpec{id: "s3-refused-root-" + v.id, desc: "the root folder's name: " + v.desc, suite: 3, expect: "damaged", refused: "root", name: v.name,
@@ -438,21 +442,20 @@ func TestVectors_Names(t *testing.T) {
 			t.Fatal(err)
 		}
 		vf := &vecNamesFile{
-			Format:    "FDSEC sealed-name boundary vectors - see FDSEC-FORMAT.md sections 20 to 22 (document version 1.5) and FDSEC-BEHAVIOUR.md section 18",
-			Generated: "2026-10-21",
-			Contract:  "FDSEC-FORMAT 1.5 sections 20 to 22",
+			Format:    "FDSEC sealed-name boundary vectors - see FDSEC-FORMAT.md sections 20 to 23 (document version 1.6) and FDSEC-BEHAVIOUR.md section 18",
+			Generated: "2026-11-08",
+			Contract:  "FDSEC-FORMAT 1.6 sections 20 to 23",
 			HowToReplay: []string{
 				"Every container authenticates under the credential in its case. For each case open it with that credential and read it to the end.",
 				"expect \"opens\": the reader must accept the sealed name (suites 1, 2) or the root name and every component (suite 3), return it byte for byte, and return the payload.",
 				"expect \"damaged\": the reader must answer damaged - not wrong-credential-or-tamper, not unsupported - and write nothing. The container is authenticated, so the credential is right; its sealed name breaks a rule of FDSEC-FORMAT section 7.",
 				"The four characters U+0022 U+003C U+003E U+007C are valid in every case that carries them. Whether a destination can create such a name is a restore matter (FDSEC-BEHAVIOUR section 18) and not part of any case here.",
-				"Every \"refused\" case is a rule of section 7 that section 20 leaves unchanged (or, for invalid-utf8, section 22 states). The four-and-* cases show that a valid character beside a refused element does not make the name valid.",
+				"Every \"refused\" case is a rule of section 7 that section 20 leaves unchanged (or, for invalid-utf8, section 22 states, and for not-nfc, section 23). The four-and-* cases show that a valid character beside a refused element does not make the name valid.",
 				"sealed_name_hex (and path_hex) are the authoritative bytes. Where the sealed name is not valid UTF-8 (the invalid-utf8 cases) sealed_name and path show each invalid byte as U+FFFD, because JSON text cannot carry it: compare the hexadecimal field, never the text.",
 			},
 			KDF:    map[string]uint32{"m_kib": profileV1.MemoryKiB, "t": profileV1.Time, "p": uint32(profileV1.Lanes), "threshold": profileV1.Threshold},
 			Suite2: suite2ProfilesV1,
 			NotCovered: []string{
-				"a sealed name that is not in NFC: FDSEC-FORMAT section 22 item 3 leaves it undecided - suites 2 and 3 of the reference reader refuse it, suite 1 reads it as written - so no case pins it",
 				"the destination's own limits (the four characters, 255 UTF-16 units): FDSEC-BEHAVIOUR section 18, a restore matter",
 			},
 		}
@@ -469,10 +472,10 @@ func TestVectors_Names(t *testing.T) {
 			t.Fatal(err)
 		}
 		files[vecJSON] = j.Bytes()
-		prov := "# Sealed-name boundary vectors of FDSEC-FORMAT 1.5 sections 20 to 22, written by the reference writer in the FileDO repository (fdsec/vectors_names_test.go).\n" +
+		prov := "# Sealed-name boundary vectors of FDSEC-FORMAT 1.6 sections 20 to 23, written by the reference writer in the FileDO repository (fdsec/vectors_names_test.go).\n" +
 			"# Generated, never hand-edited: FDSEC_WRITE_VECTORS=1 go test ./fdsec -run TestVectors_Names. The vectors of suites 1, 2 and 3 beside this folder are untouched.\n" +
 			"# Asserted by TestVectors_Names. The shared contracts catalog holds a byte-identical copy (secure-container/vectors/names/); the second reader (FastMediaSorter Lite) has not replayed them.\n" +
-			"contract: FDSEC-FORMAT\nversion: 1.5\ngenerated: 2026-10-21\n"
+			"contract: FDSEC-FORMAT\nversion: 1.6\ngenerated: 2026-11-08\n"
 		for _, n := range sortedKeys(files) {
 			if err := os.WriteFile(filepath.Join(vecNamesDir, n), files[n], 0o644); err != nil {
 				t.Fatal(err)

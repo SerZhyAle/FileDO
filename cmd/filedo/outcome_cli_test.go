@@ -122,19 +122,19 @@ func TestExitCodeVocabulary(t *testing.T) {
 		{
 			name:     "a verb that could not judge - the target is not there",
 			args:     []string{"folder", missing, "info"},
-			wantCode: 2,
+			wantCode: 11,
 			wantVerd: "Not proven",
 		},
 		{
 			name:     "a bare missing folder still closes the stream",
 			args:     []string{missing + "\\"},
-			wantCode: 2,
+			wantCode: 11,
 			wantVerd: "Not proven",
 		},
 		{
 			name:     "an unreadable batch list still closes the stream",
 			args:     []string{"from", filepath.Join(t.TempDir(), "missing.lst")},
-			wantCode: 2,
+			wantCode: 11,
 			wantVerd: "Not proven",
 		},
 		{
@@ -185,7 +185,7 @@ func TestExitCodeVocabulary(t *testing.T) {
 			// DUP-11: it printed an error and exited 0 with no result.
 			name:     "a duplicate list that is not there",
 			args:     []string{"cd", "from", "list", filepath.Join(t.TempDir(), "missing.lst")},
-			wantCode: 2,
+			wantCode: 11,
 			wantVerd: "Not proven",
 		},
 		{
@@ -195,6 +195,34 @@ func TestExitCodeVocabulary(t *testing.T) {
 			args:     []string{"from", emptyBatch(t)},
 			wantCode: 0,
 			wantVerd: "Done",
+		},
+		{
+			// SP-0195: the usage class is 10, whatever the verb that was
+			// misspelt or misused; nothing about the target is claimed.
+			name:     "a verb word nobody knows",
+			args:     []string{"frobnicate"},
+			wantCode: 10,
+			wantVerd: "Not proven",
+		},
+		{
+			name:     "a speed size that is no number",
+			args:     []string{plain, "speed", "bogus"},
+			wantCode: 10,
+			wantVerd: "Not proven",
+		},
+		{
+			name:     "a check read buffer out of range",
+			args:     []string{"check", cmpA, "--buf-kb", "0"},
+			wantCode: 10,
+			wantVerd: "Not proven",
+		},
+		{
+			// A source and a target that are one folder conflict in the
+			// words themselves: usage, and nothing is compared or deleted.
+			name:     "a comparison of a folder with itself",
+			args:     []string{"cmp", cmpA, cmpA},
+			wantCode: 10,
+			wantVerd: "Not proven",
 		},
 		{
 			// SP-0126: a del nobody could answer is the usage class - never

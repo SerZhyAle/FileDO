@@ -26,6 +26,9 @@ Friend Class HelpShot
     Friend Width As Integer
     Friend Height As Integer
     Friend ReadOnly Pins As New List(Of HelpPin)
+    ' The elements this surface does not show in the language of the picture (CONTEXT-HELP 0.2 section 7 item C).
+    ' They are never pinned; the page marks each one, and check-help.ps1 counts them against the baseline.
+    Friend ReadOnly Absent As New List(Of String)
 
     Friend Function PinFor(elementId As String) As HelpPin
         Return Pins.FirstOrDefault(Function(p) p.ElementId = elementId)
@@ -191,6 +194,7 @@ Friend Module HelpPages
         sb.Append("<meta charset=""utf-8"">").Append(vbLf)
         sb.Append("<meta name=""viewport"" content=""width=device-width, initial-scale=1"">").Append(vbLf)
         sb.Append("<meta name=""referrer"" content=""no-referrer"">").Append(vbLf)
+        sb.Append("<meta name=""robots"" content=""noindex"">").Append(vbLf)
         sb.Append("<title>").Append(HtmlText(T(dict, "help_ui_kind_index") & " - " & title)).Append("</title>").Append(vbLf)
         sb.Append(ThemeScript).Append(vbLf)
         sb.Append("<link rel=""stylesheet"" href=""../sza-kit.css"">").Append(vbLf)
@@ -289,7 +293,7 @@ Friend Module HelpPages
         sb.Append("  <h2>").Append(HtmlText(T(dict, "help_ui_elements"))).Append("</h2>").Append(vbLf)
         sb.Append("  <div class=""elements"">").Append(vbLf)
         For i = 0 To page.Elements.Length - 1
-            sb.Append(ElementHtml(page.Elements(i), i + 1, dict, shot.PinFor(page.Elements(i).Id) IsNot Nothing))
+            sb.Append(ElementHtml(page.Elements(i), i + 1, dict, shot.PinFor(page.Elements(i).Id) IsNot Nothing, shot.Absent.Contains(page.Elements(i).Id)))
         Next
         sb.Append("  </div>").Append(vbLf).Append(vbLf)
 
@@ -310,9 +314,9 @@ Friend Module HelpPages
         Return sb.ToString()
     End Function
 
-    Private Function ElementHtml(e As HelpElementDef, number As Integer, dict As Dictionary(Of String, String), pinned As Boolean) As String
+    Private Function ElementHtml(e As HelpElementDef, number As Integer, dict As Dictionary(Of String, String), pinned As Boolean, absent As Boolean) As String
         Dim sb As New StringBuilder()
-        sb.Append("    <details class=""el"" id=""").Append(HelpContent.AnchorOf(e.Id)).Append(""">").Append(vbLf)
+        sb.Append("    <details class=""el"" id=""").Append(HelpContent.AnchorOf(e.Id)).Append("""").Append(If(absent, " data-absent=""1""", "")).Append(">").Append(vbLf)
         sb.Append("      <summary><span class=""mk"">").Append(number.ToString()).Append("</span><span><span class=""name"">").Append(HtmlText(PartName(dict, e)))
         sb.Append("</span><span class=""one"">").Append(HtmlText(T(dict, e.OneKey))).Append("</span></span></summary>").Append(vbLf)
         sb.Append("      <div class=""full"">").Append(vbLf)

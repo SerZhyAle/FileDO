@@ -9,30 +9,32 @@
     <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/" />
     <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/" />
     <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/" />
+    <link rel="alternate" hreflang="ru" href="https://serzhyale.github.io/FileDO/ru/" />
+    <link rel="alternate" hreflang="uk" href="https://serzhyale.github.io/FileDO/uk/" />
     <link rel="icon" type="image/png" href="assets/filedo.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://serzhyale.github.io/FileDO/" />
+        <meta property="og:url" content="https://serzhyale.github.io/FileDO/" />
     <meta
       property="og:image"
       content="https://serzhyale.github.io/FileDO/assets/social-card.png"
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta
+        <meta
       property="og:image:alt"
       content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background"
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <title>FileDO - know your storage before you trust it</title>
-    <meta
+        <title>FileDO - USB flash drive and SD card tester for Windows</title>
+        <meta
       name="description"
       content="Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data."
     />
-    <meta
+        <meta
       property="og:title"
-      content="FileDO - know your storage before you trust it"
+      content="FileDO - USB flash drive and SD card tester for Windows"
     />
-    <meta
+        <meta
       property="og:description"
       content="Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data."
     />
@@ -44,7 +46,7 @@
         "url": "https://serzhyale.github.io/FileDO/",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Windows 10, Windows 11",
-        "inLanguage": ["en", "ru", "uk"],
+        "inLanguage": ["en"],
         "description": "Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data.",
         "downloadUrl": "https://github.com/SerZhyAle/FileDO/releases/latest",
         "softwareHelp": "https://serzhyale.github.io/FileDO/guides/",
@@ -66,19 +68,20 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
-          if (l === "uk") l = "ua";
-          if (l !== "ru" && l !== "en" && l !== "ua") {
-            var n = (navigator.language || "en").toLowerCase();
-            l =
-              n.indexOf("ru") === 0
-                ? "ru"
-                : n.indexOf("uk") === 0
-                  ? "ua"
-                  : "en";
+          // Forward only on an explicit choice (PAGE-STYLE 3.9): a valid locale
+          // query or a stored sza-lang other than en; never on navigator.language.
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
           }
-          document.documentElement.dataset.lang = l;
-          document.documentElement.lang = l === "ua" ? "uk" : l;
+          var params = new URLSearchParams(location.search);
+          var q = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = q || localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
+          if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
+          if (l === "ru" || l === "ua") {
+            location.replace(l === "ru" ? "ru/" : "uk/");
+          }
         } catch (e) {}
       })();
     </script>
@@ -1197,6 +1200,11 @@
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}    /* PAGE-STYLE section 1: use the available width - no centred column. */
 :root{--wide:none}
 .container,.site-header,.hero,.hero-copy,.hero h1,.hero .lead,.band-inner,.get,.get-title p,.section>*,.section .intro,.section-intro .intro,.lang-row{max-width:none}
+      .cap-group-head{grid-column:1/-1;margin:0.2rem 0 0}
+      .cap-group-head h3{margin:0 0 0.15rem;font-size:1.05rem}
+      .cap-group-head p{margin:0;color:var(--text-2);font-size:0.92rem}
+      .cap-group-head.write h3{color:var(--gold)}
+      .cap-coda{grid-column:1/-1}
 .site-header{margin-left:var(--gutter);margin-right:var(--gutter)}    
 /* Front page identity: the mark and the full name once, in the header; every language in one group. */
 .brand-unit{gap:.85rem}
@@ -1225,10 +1233,16 @@ html[data-theme="light"] .pill{color:var(--acc-strong)}
 html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
 /* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
 html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
+/* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
+.cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
+.cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
+/* A guide card's heading links its guide, so each guide has an anchor that names it (SP-0166 F24, F25); it keeps the heading ink. */
+.card-title{color:inherit}
+.card-title:hover,.card-title:focus-visible{color:var(--acc)}
 </style>
   </head>
   <body>
-    <a class="skip-link" href="#top"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#top"><span data-l="en">Skip to content</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -1236,73 +1250,51 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
     </div>
     <header class="site-header">
       <a class="brand-unit" href="#top"><img src="assets/filedo.svg" width="46" height="46" alt="FileDO" /><span class="brand-name"><b>FileDO</b><small>Advanced File &amp; Storage Operations Tool</small></span></a>
-      <nav class="header-nav" aria-labelledby="mainNavTitle"><span class="sr-only" id="mainNavTitle"><span data-l="ru">Основная навигация</span><span data-l="en">Main navigation</span><span data-l="ua">Основна навігація</span></span><a href="guides/"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a><a href="https://github.com/SerZhyAle/FileDO#readme"><span data-l="ru">Документация</span><span data-l="en">Documentation</span><span data-l="ua">Документація</span></a></nav>
-      <div class="seg" role="group" aria-label="Language">
-        <button data-set-lang="ru">RU</button
-        ><button data-set-lang="en">EN</button
-        ><button data-set-lang="ua">UA</button>
-      </div>
-      <nav class="lang-row" aria-label="Languages"><a href="de/" hreflang="de" lang="de">DE</a><a href="fr/" hreflang="fr" lang="fr">FR</a></nav>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <nav class="header-nav" aria-labelledby="mainNavTitle"><span class="sr-only" id="mainNavTitle"><span data-l="en">Main navigation</span></span><a href="guides/"><span data-l="en">Guides</span></a><a href="https://github.com/SerZhyAle/FileDO#readme"><span data-l="en">Documentation</span></a></nav>
+<nav class="lang-row" aria-label="Languages"><a href="ru/" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><span aria-current="page" lang="en">EN</span><a href="uk/" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="de/" hreflang="de" lang="de">DE</a><a href="fr/" hreflang="fr" lang="fr">FR</a></nav>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span></button
       ><a
         class="btn btn-primary btn-sm header-action"
         href="#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span
-        ><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span></a
       >
     </header>
     <main id="top">
       <section class="hero">
         <div class="hero-copy">
             <p class="hero-kicker">
-              <span data-l="ru">Windows CLI и GUI</span>
               <span data-l="en">Windows CLI &amp; GUI</span>
-              <span data-l="ua">Windows CLI та GUI</span>
             </p>
             <h1>
-              <span data-l="ru">Узнайте носитель, прежде чем доверить ему данные</span>
               <span data-l="en">Know your storage before you trust it</span>
-              <span data-l="ua">Дізнайтеся про носій, перш ніж довірити йому дані</span>
             </h1>
             <p class="lead">
-              <span data-l="ru"
-                >Проверка накопителей и операции с файлами для Windows, когда
-                перед данными нужно понять, можно ли доверять USB, SD, HDD или
-                папке.</span
-              >
-              <span data-l="en"
-                >Windows storage checks and file operations when you need to
+              <span data-l="en">Windows storage checks and file operations when you need to
                 know whether a USB drive, SD card, HDD, or folder can be trusted
-                with your data.</span
-              >
-              <span data-l="ua"
-                >Перевірка носіїв і операції з файлами для Windows, коли перед
-                даними треба зрозуміти, чи можна довіряти USB, SD, HDD або
-                теці.</span
-              >
+                with your data.</span>
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#get"
-                ><span data-l="ru">Скачать для Windows</span
-                ><span data-l="en">Download for Windows</span
-                ><span data-l="ua">Завантажити для Windows</span></a
+              <a
+                class="btn btn-primary"
+                id="heroSetupLink"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
+                ><span data-l="en">Download for Windows</span></a
               >
               <a class="btn btn-ghost" href="#why"
-                ><span data-l="ru">Возможности</span
-                ><span data-l="en">Capabilities</span
-                ><span data-l="ua">Можливості</span></a
+                ><span data-l="en">Capabilities</span></a
               >
               <a class="btn btn-ghost" href="guides/"
-                ><span data-l="ru">Выбрать свою задачу</span
-                ><span data-l="en">Choose your task</span
-                ><span data-l="ua">Обрати своє завдання</span></a
+                ><span data-l="en">Choose your task</span></a
               >
             </div>
+            <p class="install-note">
+              <span data-l="en">The installer is not code-signed: <a href="guides/install-trust.html">why, and what to click</a></span>
+            </p>
             <div class="hero-proof" aria-label="Product facts">
               <span
-                ><span data-l="ru">USB · SD · HDD · папки</span
-                ><span data-l="en">USB · SD · HDD · folders</span
-                ><span data-l="ua">USB · SD · HDD · теки</span></span
+                ><span data-l="en">USB · SD · HDD · folders</span></span
               ><span>Windows x64</span><span>CLI + GUI</span>
             </div>
           </div>
@@ -1311,9 +1303,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             <div class="device-top">
               <i></i><i></i><i></i
               ><span
-                ><span data-l="ru">filedo · пример проверки</span
-                ><span data-l="en">filedo · example check</span
-                ><span data-l="ua">filedo · приклад перевірки</span></span
+                ><span data-l="en">filedo · example check</span></span
               >
             </div>
             <div class="drive-head">
@@ -1322,49 +1312,36 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <strong>USB STORAGE</strong><span>exFAT · removable media</span>
               </div>
               <div class="drive-state">
-                <span data-l="ru">проверено</span
-                ><span data-l="en">checked</span
-                ><span data-l="ua">перевірено</span>
+                <span data-l="en">checked</span>
               </div>
             </div>
             <div class="readout">
               <div class="readout-row">
                 <span class="readout-label"
-                  ><span data-l="ru">Ёмкость</span
-                  ><span data-l="en">Capacity</span
-                  ><span data-l="ua">Ємність</span></span
+                  ><span data-l="en">Capacity</span></span
                 ><span class="readout-track"><i class="w94"></i></span
                 ><span class="readout-value">117.2 GB</span>
               </div>
               <div class="readout-row">
                 <span class="readout-label"
-                  ><span data-l="ru">Чтение</span
-                  ><span data-l="en">Read speed</span
-                  ><span data-l="ua">Читання</span></span
+                  ><span data-l="en">Read speed</span></span
                 ><span class="readout-track"><i class="w78"></i></span
                 ><span class="readout-value">92 MB/s</span>
               </div>
               <div class="readout-row">
                 <span class="readout-label"
-                  ><span data-l="ru">Файлы</span><span data-l="en">Files</span
-                  ><span data-l="ua">Файли</span></span
+                  ><span data-l="en">Files</span></span
                 ><span class="readout-track"><i class="w100"></i></span
                 ><span class="readout-value ok"
-                  ><span data-l="ru">читаются</span
-                  ><span data-l="en">readable</span
-                  ><span data-l="ua">читаються</span></span
+                  ><span data-l="en">readable</span></span
                 >
               </div>
               <div class="readout-row">
                 <span class="readout-label"
-                  ><span data-l="ru">Дубликаты</span
-                  ><span data-l="en">Duplicates</span
-                  ><span data-l="ua">Дублікати</span></span
+                  ><span data-l="en">Duplicates</span></span
                 ><span class="readout-track"><i class="w18"></i></span
                 ><span class="readout-value"
-                  ><span data-l="ru">14 групп</span
-                  ><span data-l="en">14 groups</span
-                  ><span data-l="ua">14 груп</span></span
+                  ><span data-l="en">14 groups</span></span
                 >
               </div>
             </div>
@@ -1379,106 +1356,55 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           <div class="section-intro">
             <div>
               <p class="eyebrow">
-                <span data-l="ru">Возможности</span
-                ><span data-l="en">Capabilities</span
-                ><span data-l="ua">Можливості</span>
+                <span data-l="en">Capabilities</span>
               </p>
               <h2>
-                <span data-l="ru">Что проверяет и делает FileDO</span
-                ><span data-l="en">What FileDO checks and does</span
-                ><span data-l="ua">Що перевіряє та робить FileDO</span>
+                <span data-l="en">What FileDO checks and does</span>
               </h2>
             </div>
             <p class="intro">
-              <span data-l="ru"
-                >Операции сгруппированы по задаче. Проверки и отчёты не изменяют
-                данные; удаление и очистка запускаются отдельно.</span
-              ><span data-l="en"
-                >Operations are grouped by task. Checks and reports do not
-                change data; deletion and cleanup are run separately.</span
-              ><span data-l="ua"
-                >Операції згруповані за завданням. Перевірки та звіти не
-                змінюють дані; видалення й очищення запускаються окремо.</span
-              >
+              <span data-l="en">Operations are grouped by task. Checks and reports do not
+                change data; deletion and cleanup are run separately.</span>
             </p>
           </div>
           <div class="outcome-grid">
             <article class="outcome">
               <span class="outcome-num">01</span>
               <h3>
-                <span data-l="ru">Проверить накопитель</span
-                ><span data-l="en">Check storage</span
-                ><span data-l="ua">Перевірити носій</span>
+                <span data-l="en">Check storage</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >Проверить реальную ёмкость USB или SD и измерить скорость
-                  чтения и записи.</span
-                ><span data-l="en"
-                  >Verify USB or SD capacity and measure read and write
-                  speed.</span
-                ><span data-l="ua"
-                  >Перевірити реальну ємність USB або SD та виміряти швидкість
-                  читання й запису.</span
-                >
+                <span data-l="en">Verify USB or SD capacity and measure read and write
+                  speed.</span>
               </p>
             </article>
             <article class="outcome">
               <span class="outcome-num">02</span>
               <h3>
-                <span data-l="ru">Проверить чтение</span
-                ><span data-l="en">Check reading</span
-                ><span data-l="ua">Перевірити читання</span>
+                <span data-l="en">Check reading</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >Найти файлы, которые читаются с ошибками или
-                  задержками.</span
-                ><span data-l="en"
-                  >Find files that read with errors or persistent stalls.</span
-                ><span data-l="ua"
-                  >Знайти файли, що читаються з помилками або затримками.</span
-                >
+                <span data-l="en">Find files that read with errors or persistent stalls.</span>
               </p>
             </article>
             <article class="outcome">
               <span class="outcome-num">03</span>
               <h3>
-                <span data-l="ru">Найти дубликаты</span
-                ><span data-l="en">Find duplicates</span
-                ><span data-l="ua">Знайти дублікати</span>
+                <span data-l="en">Find duplicates</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >Увидеть группы дубликатов и сохранить список до
-                  удаления.</span
-                ><span data-l="en"
-                  >Review duplicate groups and save the list before
-                  deleting.</span
-                ><span data-l="ua"
-                  >Побачити групи дублікатів і зберегти список до
-                  видалення.</span
-                >
+                <span data-l="en">Review duplicate groups and save the list before
+                  deleting.</span>
               </p>
             </article>
             <article class="outcome">
               <span class="outcome-num">04</span>
               <h3>
-                <span data-l="ru">Копировать и сравнить</span
-                ><span data-l="en">Copy and compare</span
-                ><span data-l="ua">Копіювати й порівняти</span>
+                <span data-l="en">Copy and compare</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >Копировать с прогрессом или получить отчёт о различиях
-                  папок.</span
-                ><span data-l="en"
-                  >Copy with progress or get a report of folder
-                  differences.</span
-                ><span data-l="ua"
-                  >Копіювати з прогресом або отримати звіт про відмінності
-                  тек.</span
-                >
+                <span data-l="en">Copy with progress or get a report of folder
+                  differences.</span>
               </p>
             </article>
           </div>
@@ -1488,35 +1414,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="get">
           <div class="get-title">
             <p class="eyebrow">
-              <span data-l="ru">Когда вы уже решили</span
-              ><span data-l="en">When you are ready</span
-              ><span data-l="ua">Коли ви вже вирішили</span>
+              <span data-l="en">When you are ready</span>
             </p>
             <h2>
-              <span data-l="ru">Установка</span
-              ><span data-l="en">Installation</span
-              ><span data-l="ua">Встановлення</span>
+              <span data-l="en">Installation</span>
             </h2>
             <p class="whatfor">
-              <span data-l="ru"
-                >Установщик для Windows x64: скачайте один файл и запустите
-                его. Есть и другие пути - Microsoft Store, winget, Portable ZIP
-                и голый MSI; все
-                ссылки ниже всегда ведут к последнему релизу.
-                <a href="guides/microsoft-store.html">Что умеет и чего не умеет сборка из Microsoft Store</a></span
-              ><span data-l="en"
-                >The Windows x64 installer: download one file and run it. The
+              <span data-l="en">The Windows x64 installer: download one file and run it. The
                 other routes are the Microsoft Store, winget, a portable ZIP
                 and the bare MSI; every
                 link below always leads to the latest release.
-                <a href="guides/microsoft-store.html">What the Microsoft Store build can and cannot do</a></span
-              ><span data-l="ua"
-                >Інсталятор для Windows x64: завантажте один файл і запустіть
-                його. Є й інші шляхи - Microsoft Store, winget, Portable ZIP
-                і голий MSI; усі
-                посилання нижче завжди ведуть до останнього релізу.
-                <a href="guides/microsoft-store.html">Що вміє і чого не вміє збірка з Microsoft Store</a></span
-              >
+                <a href="guides/microsoft-store.html">What the Microsoft Store build can and cannot do</a></span>
             </p>
           </div>
           <div class="install-panel">
@@ -1527,20 +1435,12 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 href="https://github.com/SerZhyAle/FileDO/releases/latest"
                 target="_blank"
                 rel="noopener"
-                ><span data-l="ru">Скачать для Windows (setup.exe)</span
-                ><span data-l="en">Download for Windows (setup.exe)</span
-                ><span data-l="ua">Завантажити для Windows (setup.exe)</span></a
+                ><span data-l="en">Download for Windows (setup.exe)</span></a
               >
               <p class="install-note">
-                <span data-l="ru">Windows 10 и 11, x64 · один файл, без командной строки</span
-                ><span data-l="en"
-                  >Windows 10 and 11, x64 · one file, no command line</span
-                ><span data-l="ua"
-                  >Windows 10 і 11, x64 · один файл, без командного рядка</span
-                ><span id="setupFile" hidden>
+                <span data-l="en">Windows 10 and 11, x64 · one file, no command line</span><span id="setupFile" hidden>
                   · <code id="setupName"></code> · <span id="setupMb"></span>
-                  <span data-l="ru">МБ</span><span data-l="en">MB</span
-                  ><span data-l="ua">МБ</span> ·
+                  <span data-l="en">MB</span> ·
                   <a
                     id="setupHash"
                     href="https://github.com/SerZhyAle/FileDO/releases/latest"
@@ -1551,31 +1451,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 >
               </p>
               <p class="install-note dl-caveat">
-                <span data-l="ru"
-                  >Без цифровой подписи: Windows может показать «Windows
-                  защитила ваш компьютер» и запросить права администратора.
-                  Сверьте SHA256, затем выберите «Подробнее» и «Выполнить в
-                  любом случае».
-                  <a href="guides/install-trust.html">Почему так и что нажать</a></span
-                ><span data-l="en"
-                  >Not code-signed: Windows may show &ldquo;Windows protected
+                <span data-l="en">Not code-signed: Windows may show &ldquo;Windows protected
                   your PC&rdquo; and ask for administrator permission. Check
                   the SHA256, then choose &ldquo;More info&rdquo; and &ldquo;Run
                   anyway&rdquo;.
-                  <a href="guides/install-trust.html">Why, and what to click</a></span
-                ><span data-l="ua"
-                  >Без цифрового підпису: Windows може показати «Windows
-                  захистила ваш ПК» і запросити права адміністратора. Звірте
-                  SHA256, потім виберіть «Докладніше» та «Усе одно запустити».
-                  <a href="guides/install-trust.html">Чому так і що натиснути</a></span
-                >
+                  <a href="guides/install-trust.html">Why, and what to click</a></span>
               </p>
             </div>
             <div class="copybox">
               winget install SerZhyAle.FileDO<button
                 class="copy"
                 data-copy="winget install SerZhyAle.FileDO"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
             <div class="channels">
               <a
@@ -1606,97 +1493,47 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 target="_blank"
                 rel="noopener"
                 >GitHub Releases</a
+              ><a class="btn btn-ghost btn-sm" href="guides/release-notes.html"
+                ><span data-l="en">Release notes</span></a
               ><a
                 class="btn btn-ghost btn-sm"
                 href="https://github.com/SerZhyAle/FileDO"
                 target="_blank"
                 rel="noopener"
-                ><span data-l="ru">Исходный код</span
-                ><span data-l="en">Source code</span
-                ><span data-l="ua">Вихідний код</span></a
+                ><span data-l="en">Source code</span></a
               >
             </div>
             <ol class="quickstart">
               <li>
-                <span data-l="ru"
-                  >Запустите установщик, установите командой winget выше или
-                  распакуйте ZIP из Releases.</span
-                ><span data-l="en"
-                  >Run the installer, install with the winget command above, or
-                  extract the ZIP from Releases.</span
-                ><span data-l="ua"
-                  >Запустіть інсталятор, встановіть командою winget вище або
-                  розпакуйте ZIP з Releases.</span
-                >
+                <span data-l="en">Run the installer, install with the winget command above, or
+                  extract the ZIP from Releases.</span>
               </li>
               <li>
-                <span data-l="ru"
-                  >Откройте PowerShell или cmd и сначала проверьте сведения о
-                  носителе.</span
-                ><span data-l="en"
-                  >Open PowerShell or cmd and inspect the drive first.</span
-                ><span data-l="ua"
-                  >Відкрийте PowerShell або cmd і спочатку перегляньте відомості
-                  про носій.</span
-                >
+                <span data-l="en">Open PowerShell or cmd and inspect the drive first.</span>
               </li>
               <li>
-                <span data-l="ru"
-                  >Только затем выбирайте тест, скорость, копирование или поиск
-                  дубликатов.</span
-                ><span data-l="en"
-                  >Only then choose a test, speed check, copy, or duplicate
-                  scan.</span
-                ><span data-l="ua"
-                  >Лише потім виберіть тест, перевірку швидкості, копіювання або
-                  пошук дублікатів.</span
-                >
+                <span data-l="en">Only then choose a test, speed check, copy, or duplicate
+                  scan.</span>
               </li>
             </ol>
             <div class="copybox install-example">
-              filedo E: info<button class="copy" data-copy="filedo E: info"><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              filedo E: info<button class="copy" data-copy="filedo E: info"><span data-l="en">Copy</span></button>
             </div>
             <div class="note">
               <span class="tag"
-                ><span data-l="ru">Важно</span><span data-l="en">Important</span
-                ><span data-l="ua">Важливо</span></span
+                ><span data-l="en">Important</span></span
               >
               <p>
-                <span data-l="ru"
-                  >Замените <code>E:</code> на нужный путь. Эта команда
-                  показывает сведения и не удаляет файлы.</span
-                ><span data-l="en"
-                  >Replace <code>E:</code> with your target. This command shows
-                  information and does not delete files.</span
-                ><span data-l="ua"
-                  >Замініть <code>E:</code> на потрібний шлях. Ця команда
-                  показує відомості й не видаляє файли.</span
-                >
+                <span data-l="en">Replace <code>E:</code> with your target. This command shows
+                  information and does not delete files.</span>
               </p>
             </div>
             <div class="note">
               <span class="tag"
-                ><span data-l="ru">Установщик</span
-                ><span data-l="en">Installer</span
-                ><span data-l="ua">Інсталятор</span></span
+                ><span data-l="en">Installer</span></span
               >
               <p>
-                <span data-l="ru"
-                  >Файл <code>FileDO-&lt;версия&gt;-setup.exe</code> из Releases
-                  ставит FileDO как обычную программу Windows:
-                  <code>filedo</code> в <code>PATH</code>, пункты в меню «Пуск» (FileDO и
-                  FileDO Disk Manager) и
-                  значок на рабочем столе, а также - отдельным компонентом,
-                  который можно снять, - группу
-                  <code>File DO..</code> в контекстном меню любого
-                  файла и тип документа <code>.fd-sec</code>. winget и ZIP не
-                  регистрируют ничего: пункты добавляет команда
-                  <code>filedo fdsec register</code>.
-                  <a href="guides/install-and-explorer.html"
-                    >Подробное руководство</a
-                  >.</span
-                ><span data-l="en"
-                  >The <code>FileDO-&lt;version&gt;-setup.exe</code> in Releases
+                <span data-l="en">The <code>FileDO-&lt;version&gt;-setup.exe</code> in Releases
                   installs FileDO as an ordinary Windows program: <code>filedo</code> on <code>PATH</code>, two Start
                   menu entries (FileDO and FileDO Disk Manager) and a desktop
                   icon, plus - as a feature you can
@@ -1704,21 +1541,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                   of every file and the <code>.fd-sec</code> document type.
                   winget and the ZIP register nothing;
                   <code>filedo fdsec register</code> adds the same entries.
-                  <a href="guides/install-and-explorer.html">Full guide</a>.</span
-                ><span data-l="ua"
-                  >Файл <code>FileDO-&lt;версія&gt;-setup.exe</code> з Releases
-                  встановлює FileDO як звичайну програму Windows: <code>filedo</code> у <code>PATH</code>, пункти в меню
-                  «Пуск» (FileDO і FileDO Disk Manager) і піктограму на
-                  робочому столі, а також - окремим
-                  компонентом, який можна зняти, - групу
-                  <code>File DO..</code> у контекстному меню будь-якого
-                  файлу і тип документа <code>.fd-sec</code>. winget і ZIP не
-                  реєструють нічого: пункти додає команда
-                  <code>filedo fdsec register</code>.
-                  <a href="guides/install-and-explorer.html"
-                    >Докладний посібник</a
-                  >.</span
-                >
+                  <a href="guides/install-and-explorer.html">Full guide</a>.</span>
               </p>
             </div>
           </div>
@@ -1726,102 +1549,54 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
       </section>
       <section class="section" id="capabilities">
         <h2>
-          <span data-l="ru">Основные возможности</span
-          ><span data-l="en">Main capabilities</span
-          ><span data-l="ua">Основні можливості</span>
+          <span data-l="en">Main capabilities</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >После безопасной проверки используйте одну операцию для одной
-            понятной задачи.</span
-          ><span data-l="en"
-            >After the safe check, use one operation for one clear task.</span
-          ><span data-l="ua"
-            >Після безпечної перевірки використовуйте одну операцію для одного
-            зрозумілого завдання.</span
-          >
+          <span data-l="en">After the safe check, use one operation for one clear task.</span>
         </p>
         <div class="grid feature">
+          <div class="cap-group-head read">
+            <h3><span data-l="en">Read-only checks</span></h3>
+            <p><span data-l="en">They look, measure and report - nothing on your data changes.</span></p>
+          </div>
           <article class="card">
             <h3>Capacity &amp; speed</h3>
             <p>
-              <span data-l="ru"
-                >Тесты ёмкости и производительности для носителей, папок и
-                сетевых путей.</span
-              ><span data-l="en"
-                >Capacity and performance tests for drives, folders, and network
-                paths.</span
-              ><span data-l="ua"
-                >Тести ємності й продуктивності для носіїв, папок і мережевих
-                шляхів.</span
-              >
+              <span data-l="en">Capacity and performance tests for drives, folders, and network
+                paths.</span>
             </p>
           </article>
           <article class="card">
             <h3>Read check</h3>
             <p>
-              <span data-l="ru"
-                >Проверка чтения файлов с отчётами и настройками для медленных
-                HDD/USB. <code>--max-files N</code> читает не более N файлов (0 снимает ограничение); <code>--resume</code> завершается успешно, когда все файлы уже проверены и не изменились.</span
-              ><span data-l="en"
-                >Read checks with reports and controls for slow HDD/USB
-                media. <code>--max-files N</code> reads at most N files (0 means unlimited); <code>--resume</code> succeeds when every file was already checked and remains unchanged.</span
-              ><span data-l="ua"
-                >Перевірка читання файлів зі звітами й налаштуваннями для
-                повільних HDD/USB. <code>--max-files N</code> читає щонайбільше N файлів (0 знімає обмеження); <code>--resume</code> завершується успішно, коли всі файли вже перевірені й не змінилися.</span
-              >
+              <span data-l="en">Read checks with reports and controls for slow HDD/USB
+                media. <code>--max-files N</code> reads at most N files (0 means unlimited); <code>--resume</code> succeeds when every file was already checked and remains unchanged.</span>
             </p>
           </article>
           <article class="card">
             <h3>Duplicates</h3>
             <p>
-              <span data-l="ru"
-                >Поиск совпадений по содержимому с кэшем; список можно
-                сохранить и обработать позже.</span
-              ><span data-l="en"
-                >Matching by content with a cache; save a list and process it
-                later.</span
-              ><span data-l="ua"
-                >Пошук збігів за вмістом з кешем; список можна зберегти й
-                обробити пізніше.</span
-              >
+              <span data-l="en">Matching by content with a cache; save a list and process it
+                later.</span>
             </p>
           </article>
           <article class="card">
             <h3>Copy &amp; compare</h3>
             <p>
-              <span data-l="ru"
-                >Копирование с прогрессом и тайм-аутами, а также отчёт о
-                различиях между папками. <code>compare --strict</code> даёт код 1 при различиях и код 2, если сравнение неполное.</span
-              ><span data-l="en"
-                >Copying with progress and timeouts, plus reports of differences
-                between folders. <code>compare --strict</code> returns exit 1 for differences and exit 2 for an incomplete comparison.</span
-              ><span data-l="ua"
-                >Копіювання з прогресом і тайм-аутами, а також звіт про
-                відмінності між папками. <code>compare --strict</code> дає код 1 за відмінностей і код 2, якщо порівняння неповне.</span
-              >
+              <span data-l="en">Copying with progress and timeouts, plus reports of differences
+                between folders. <code>compare --strict</code> returns exit 1 for differences and exit 2 for an incomplete comparison.</span>
             </p>
           </article>
-          <article class="card">
+                    <div class="cap-group-head write">
+            <h3><span data-l="en">Operations that write or delete</span></h3>
+            <p><span data-l="en">They create, overwrite or delete data. Read the card before you run one; wipe asks you to type WIPE.</span></p>
+          </div>
+<article class="card">
             <h3>
-              <span data-l="ru">Затирание и заполнение</span
-              ><span data-l="en">Wipe &amp; fill</span
-              ><span data-l="ua">Затирання та заповнення</span>
+              <span data-l="en">Wipe &amp; fill</span>
             </h3>
             <p>
-              <span data-l="ru"
-                ><code>wipe</code> удаляет содержимое папки - это обычное
-                удаление, поэтому восстановить данные можно, пока место не
-                занято заново; <code>fill … del</code> заполняет свободное
-                место данными и снова удаляет их, а затирание одного файла
-                сначала перезаписывает его, - и то и другое, чтобы затруднить
-                восстановление.
-                <code>wipe</code> требует ввода <code>WIPE</code>; корни
-                дисков, reparse points и системная TEMP-папка требуют
-                интерактивного подтверждения даже с <code>--force</code>.
-                Отменить это нельзя.</span
-              ><span data-l="en"
-                ><code>wipe</code> deletes the contents of a folder - a plain
+              <span data-l="en"><code>wipe</code> deletes the contents of a folder - a plain
                 delete, so recovery stays possible until the space is reused;
                 <code>fill … del</code> fills the free space with data and
                 deletes it again, and a single-file wipe overwrites the file
@@ -1829,66 +1604,30 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <code>wipe</code> asks you to type <code>WIPE</code>; drive
                 roots, reparse points, and the system TEMP folder need
                 interactive confirmation even with <code>--force</code>. None of
-                these can be undone.</span
-              ><span data-l="ua"
-                ><code>wipe</code> видаляє вміст теки - це звичайне
-                видалення, тому відновити дані можна, доки місце не зайняте
-                знову; <code>fill … del</code> заповнює вільне місце даними й
-                знову видаляє їх, а затирання одного файлу спершу перезаписує
-                його, - і те, і інше, щоб ускладнити відновлення.
-                <code>wipe</code>
-                просить ввести <code>WIPE</code>; корені дисків, reparse points
-                і системна TEMP-папка потребують інтерактивного підтвердження
-                навіть із <code>--force</code>. Скасувати це не можна.</span
-              >
+                these can be undone.</span>
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Секретные файлы</span
-              ><span data-l="en">Secret files</span
-              ><span data-l="ua">Секретні файли</span>
+              <span data-l="en">Secret files</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Один файл уходит в контейнер <code>.fd-sec</code> под паролем и
-                возвращается обратно; двойной клик открывает содержимое в нужной
-                программе из копии, которая потом убирается. Пустой пароль - это
-                только маскировка, и программа говорит об этом прямо.</span
-              ><span data-l="en"
-                >One file goes into a <code>.fd-sec</code> container behind a
+              <span data-l="en">One file goes into a <code>.fd-sec</code> container behind a
                 password and comes back out; a double-click opens what is inside
                 in the program it belongs to, from a copy that is taken away
                 again. An empty password is obfuscation only, and the program
-                says so plainly.</span
-              ><span data-l="ua"
-                >Один файл іде в контейнер <code>.fd-sec</code> під паролем і
-                повертається назад; подвійний клік відкриває вміст у потрібній
-                програмі з копії, яку потім прибирають. Порожній пароль - це
-                лише маскування, і програма каже про це прямо.</span
-              >
+                says so plainly. A folder, a drive or a network share backs up
+                into one file - a plain <code>.zip</code> anyone can open, or
+                sealed into <code>.fd-sec</code> - and restores to its old or a
+                new address.</span>
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Виртуальные диски</span
-              ><span data-l="en">Virtual disks</span
-              ><span data-l="ua">Віртуальні диски</span>
+              <span data-l="en">Virtual disks</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Целый том в одном файле <code>.fdd</code>: подключается буквой
-                диска, а прочитать, проверить и выгрузить его можно и без
-                подключения. Он может жить и в разделе GPT, который FileDO
-                создаёт в свободном месте диска: только диски GPT, размер
-                постоянный, не быстрее файла, и каждое подключение и чтение
-                просит согласия администратора - образ в файл его уже не
-                просит. Окно Диспетчера дисков собирает все диски в одном месте.
-                Без пароля он замаскирован, а не зашифрован. Только
-                Windows; подключение требует прав администратора, а сборка из
-                Microsoft Store не может подключать диски.</span
-              ><span data-l="en"
-                >A whole volume in one <code>.fdd</code> file: it mounts as a
+              <span data-l="en">A whole volume in one <code>.fdd</code> file: it mounts as a
                 drive letter, and it can be read, checked and exported without
                 mounting. It can also live in a GPT partition FileDO creates in
                 free disk space: GPT disks only, a fixed size, no faster than a
@@ -1896,277 +1635,145 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 an image to a file no longer does. The Disk manager window lists every disk in one place.
                 Without a password it is obfuscated, not encrypted.
                 Windows only; mounting needs administrator rights, and the
-                Microsoft Store build cannot mount.</span
-              ><span data-l="ua"
-                >Цілий том в одному файлі <code>.fdd</code>: підключається
-                літерою диска, а прочитати, перевірити й вивантажити його можна
-                і без підключення. Він може жити й у розділі GPT, який FileDO
-                створює у вільному місці диска: лише диски GPT, розмір
-                сталий, не швидше за файл, і кожне підключення й читання
-                просить згоди адміністратора - образ у файл її вже не
-                просить. Вікно Диспетчера дисків збирає всі диски в одному
-                місці. Без пароля він замаскований, а не
-                зашифрований. Лише Windows; підключення потребує прав
-                адміністратора, а збірка з Microsoft Store не може підключати
-                диски.</span
-              >
+                Microsoft Store build cannot mount.</span>
             </p>
           </article>
-          <article class="card">
+          <article class="card cap-coda">
             <h3>
-              <span data-l="ru">Окно FileDO и отчёт для поддержки</span
-              ><span data-l="en">The FileDO window and support report</span
-              ><span data-l="ua">Вікно FileDO та звіт для підтримки</span>
+              <span data-l="en">The FileDO window and support report</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >В ZIP и winget-пакете есть <code>filedo_win</code>: слева
-                список задач, на каждую - своя страница, плюс страница
-                «Команда» для любой операции. Кнопка «О программе» собирает
-                логи в ZIP и открывает ваше почтовое приложение: архив виден
-                вам первым, и ничего не отправляется без вашего действия.</span
-              ><span data-l="en"
-                >The ZIP and winget package include <code>filedo_win</code>: a
-                rail of jobs with one page per job, plus a Command page for any
-                operation. Its About button packages logs in a ZIP and opens
+              <span data-l="en">The ZIP and winget package include <code>filedo_win</code>: a
+                rail of jobs with one page per job, plus a <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page for any
+                operation. Its <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About button packages logs in a ZIP and opens
                 your mail app: you see the archive first, and nothing sends
-                until you act.</span
-              ><span data-l="ua"
-                >ZIP і пакет winget містять <code>filedo_win</code>: ліворуч
-                список завдань, на кожне - своя сторінка, плюс сторінка
-                «Команда» для будь-якої операції. Кнопка «Про програму» збирає
-                логи в ZIP і відкриває вашу поштову програму: архів спершу
-                бачите ви, і нічого не надсилається без вашої дії.</span
-              >
+                until you act.</span>
             </p>
           </article>
         </div>
       </section>
       <section class="section" id="guides">
         <h2>
-          <span data-l="ru">Инструкции и детали</span
-          ><span data-l="en">Guides and details</span
-          ><span data-l="ua">Інструкції та деталі</span>
+          <span data-l="en">Guides and details</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >Полные справочные материалы остаются здесь, чтобы не мешать первому
-            шагу.</span
-          ><span data-l="en"
-            >The full reference stays here so it does not compete with the first
-            step.</span
-          ><span data-l="ua"
-            >Повна довідка залишається тут, щоб не заважати першому кроку.</span
-          >
+          <span data-l="en">The full reference stays here so it does not compete with the first
+            step.</span>
         </p>
         <div class="detail-actions">
           <button class="btn btn-ghost btn-sm" id="expandAll">
-            <span data-l="ru">Раскрыть всё</span
-            ><span data-l="en">Expand all</span
-            ><span data-l="ua">Розгорнути все</span></button
+            <span data-l="en">Expand all</span></button
           ><button class="btn btn-ghost btn-sm" id="collapseAll">
-            <span data-l="ru">Свернуть всё</span
-            ><span data-l="en">Collapse all</span
-            ><span data-l="ua">Згорнути все</span>
+            <span data-l="en">Collapse all</span>
           </button>
         </div>
         <details class="sec" id="first-test">
           <summary>
             <span class="secnum">01</span
-            ><span data-l="ru">Проверка USB/SD и скорости</span
-            ><span data-l="en">Checking a USB/SD card and speed</span
-            ><span data-l="ua">Перевірка USB/SD і швидкості</span>
+            ><span data-l="en">Checking a USB/SD card and speed</span>
           </summary>
           <div class="details-copy">
             <p>
-              <span data-l="ru"
-                >Сначала используйте <code>info</code>. Проверка ёмкости создаёт
-                проверочные файлы; выбирайте правильный носитель и убедитесь,
-                что на нём достаточно свободного места.</span
-              ><span data-l="en"
-                >Use <code>info</code> first. A capacity test creates test
+              <span data-l="en">Use <code>info</code> first. A capacity test creates test
                 files; select the correct drive and make sure it has enough free
-                space.</span
-              ><span data-l="ua"
-                >Спочатку використайте <code>info</code>. Тест ємності створює
-                тестові файли; виберіть правильний носій і переконайтеся, що на
-                ньому достатньо вільного місця.</span
-              >
+                space.</span>
             </p>
             <div class="copybox">
               filedo E: test del<button
                 class="copy"
                 data-copy="filedo E: test del"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
             <div class="copybox">
               filedo E: speed 100<button
                 class="copy"
                 data-copy="filedo E: speed 100"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
           </div>
         </details>
         <details class="sec" id="duplicates">
           <summary>
             <span class="secnum">02</span
-            ><span data-l="ru">Дубликаты, копирование и сравнение</span
-            ><span data-l="en">Duplicates, copying, and comparison</span
-            ><span data-l="ua">Дублікати, копіювання та порівняння</span>
+            ><span data-l="en">Duplicates, copying, and comparison</span>
           </summary>
           <div class="details-copy">
             <p>
-              <span data-l="ru"
-                >Сначала получите список или отчёт. Команды с
-                <code>del</code> удаляют данные; проверьте путь и результат до
-                их запуска.</span
-              ><span data-l="en"
-                >Get a list or report first. Commands with
+              <span data-l="en">Get a list or report first. Commands with
                 <code>del</code> remove data; verify the path and result before
-                running them.</span
-              ><span data-l="ua"
-                >Спочатку отримайте список або звіт. Команди з
-                <code>del</code> видаляють дані; перевірте шлях і результат
-                перед запуском.</span
-              >
+                running them.</span>
             </p>
             <div class="copybox">
               filedo C:\Data check-duplicates<button
                 class="copy"
                 data-copy="filedo C:\Data check-duplicates"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
             <div class="copybox">
               filedo C:\Source copy D:\Backup<button
                 class="copy"
                 data-copy="filedo C:\Source copy D:\Backup"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
             <div class="copybox">
               filedo compare D:\Data E:\Backup<button
                 class="copy"
                 data-copy="filedo compare D:\Data E:\Backup"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
           </div>
         </details>
         <details class="sec" id="safety">
           <summary>
             <span class="secnum">03</span
-            ><span data-l="ru">Операции с риском</span
-            ><span data-l="en">Operations with risk</span
-            ><span data-l="ua">Операції з ризиком</span>
+            ><span data-l="en">Operations with risk</span>
           </summary>
           <div class="details-copy">
             <div class="note danger">
               <span class="tag"
-                ><span data-l="ru">Необратимо</span
-                ><span data-l="en">Irreversible</span
-                ><span data-l="ua">Незворотно</span></span
+                ><span data-l="en">Irreversible</span></span
               >
               <p>
-                <span data-l="ru"
-                  ><code>wipe</code>, <code>fill … del</code> и режимы удаления
-                  в compare/duplicates могут удалить данные. Сначала просмотрите
-                  носитель, список или отчёт и сделайте резервную копию.</span
-                ><span data-l="en"
-                  ><code>wipe</code>, <code>fill … del</code>, and deletion
+                <span data-l="en"><code>wipe</code>, <code>fill … del</code>, and deletion
                   modes in compare/duplicates can remove data. Inspect the
-                  drive, list, or report and back up first.</span
-                ><span data-l="ua"
-                  ><code>wipe</code>, <code>fill … del</code> і режими видалення
-                  в compare/duplicates можуть видалити дані. Спочатку
-                  перегляньте носій, список або звіт і зробіть резервну
-                  копію.</span
-                >
+                  drive, list, or report and back up first.</span>
               </p>
             </div>
             <p>
-              <span data-l="ru"
-                ><code>wipe</code> требует ввода <code>WIPE</code>. Для корней
-                дисков/шар, reparse points и системной TEMP-папки нужно
-                интерактивное подтверждение даже с <code>--force</code>.</span
-              ><span data-l="en"
-                ><code>wipe</code> asks you to type <code>WIPE</code>.
+              <span data-l="en"><code>wipe</code> asks you to type <code>WIPE</code>.
                 Drive/share roots, reparse points, and the system TEMP folder
                 require interactive confirmation even with
-                <code>--force</code>.</span
-              ><span data-l="ua"
-                ><code>wipe</code> просить ввести <code>WIPE</code>. Корені
-                дисків/ресурсів, reparse points і системна TEMP-папка потребують
-                інтерактивного підтвердження навіть із
-                <code>--force</code>.</span
-              >
+                <code>--force</code>.</span>
             </p>
           </div>
         </details>
         <details class="sec" id="compatibility">
           <summary>
             <span class="secnum">04</span
-            ><span data-l="ru">Совместимость, варианты и установка</span
-            ><span data-l="en">Compatibility, editions, and installation</span
-            ><span data-l="ua">Сумісність, варіанти та встановлення</span>
+            ><span data-l="en">Compatibility, editions, and installation</span>
           </summary>
           <div class="details-copy">
             <ul class="plain-list">
               <li>
-                <span data-l="ru"
-                  >Основной дистрибутив: Windows x64, CLI <code>filedo</code> и
-                  сопутствующие утилиты.</span
-                ><span data-l="en"
-                  >Primary distribution: Windows x64, the
-                  <code>filedo</code> CLI, and companion utilities.</span
-                ><span data-l="ua"
-                  >Основний дистрибутив: Windows x64, CLI <code>filedo</code> та
-                  супутні утиліти.</span
-                >
+                <span data-l="en">Primary distribution: Windows x64, the
+                  <code>filedo</code> CLI, and companion utilities.</span>
               </li>
               <li>
-                <span data-l="ru"
-                  >winget и portable ZIP включают <code>filedo</code>,
-                  <code>filedo_check</code>, <code>filedo_fill</code>,
-                  <code>filedo_test</code> и GUI <code>filedo_win</code>.</span
-                ><span data-l="en"
-                  >winget and the portable ZIP include <code>filedo</code>,
+                <span data-l="en">winget and the portable ZIP include <code>filedo</code>,
                   <code>filedo_check</code>, <code>filedo_fill</code>,
                   <code>filedo_test</code>, and the
-                  <code>filedo_win</code> GUI.</span
-                ><span data-l="ua"
-                  >winget і portable ZIP містять <code>filedo</code>,
-                  <code>filedo_check</code>, <code>filedo_fill</code>,
-                  <code>filedo_test</code> та GUI <code>filedo_win</code>.</span
-                >
+                  <code>filedo_win</code> GUI.</span>
               </li>
               <li>
-                <span data-l="ru"
-                  >MSI ставит то же самое в <code>Program Files</code>, плюс
-                  <code>PATH</code>, ярлыки и - по выбору при установке -
-                  интеграцию с Проводником. Компоненты выбираются в окне
-                  установщика или ключом
-                  <code>ADDLOCAL</code> при тихой установке, а «Изменить» в
-                  «Приложения и возможности» переключает их позже.</span
-                ><span data-l="en"
-                  >The MSI installs the same set into
+                <span data-l="en">The MSI installs the same set into
                   <code>Program Files</code>, plus <code>PATH</code>, the
                   shortcuts, and - your choice at install time - the Explorer
                   integration. Features are picked in the installer window or
                   with <code>ADDLOCAL</code> for a silent install, and Change in
-                  Apps &amp; features switches them later.</span
-                ><span data-l="ua"
-                  >MSI встановлює те саме в <code>Program Files</code>, плюс
-                  <code>PATH</code>, ярлики і - за вибором під час
-                  встановлення - інтеграцію з Провідником. Компоненти
-                  вибираються у вікні інсталятора або ключем
-                  <code>ADDLOCAL</code> при тихій інсталяції, а «Змінити» в
-                  «Програми та можливості» перемикає їх пізніше.</span
-                >
+                  Apps &amp; features switches them later.</span>
               </li>
               <li>
-                <span data-l="ru">Сборка из исходников требует Go 1.24+.</span
-                ><span data-l="en">Building from source requires Go 1.24+.</span
-                ><span data-l="ua"
-                  >Збірка з вихідних кодів потребує Go 1.24+.</span
-                >
+                <span data-l="en">Building from source requires Go 1.24+.</span>
               </li>
             </ul>
             <div class="copybox">
@@ -2174,39 +1781,21 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               FileDO &amp;&amp; .\build.ps1<button
                 class="copy"
                 data-copy="git clone https://github.com/SerZhyAle/FileDO.git && cd FileDO && .\build.ps1"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span></button>
             </div>
           </div>
         </details>
         <details class="sec" id="reference">
           <summary>
             <span class="secnum">05</span
-            ><span data-l="ru"
-              >Полная справка, исходный код и история выпусков</span
-            ><span data-l="en"
-              >Full reference, source code, and release history</span
-            ><span data-l="ua"
-              >Повна довідка, вихідний код та історія випусків</span
-            >
+            ><span data-l="en">Full reference, source code, and release history</span>
           </summary>
           <div class="details-copy">
             <p>
-              <span data-l="ru"
-                >README содержит полный каталог команд, параметры проверки
-                чтения, примеры сетевых путей и детали GUI. GitHub Releases
-                содержит установщик setup EXE, ZIP, MSI и SHA256 для каждого
-                выпуска.</span
-              ><span data-l="en"
-                >The README contains the full command catalogue, read-check
+              <span data-l="en">The README contains the full command catalogue, read-check
                 options, network examples, and GUI details. GitHub Releases
                 holds the setup EXE, ZIP, MSI, and SHA256 files for each
-                release.</span
-              ><span data-l="ua"
-                >README містить повний каталог команд, параметри перевірки
-                читання, мережеві приклади та відомості про GUI. GitHub Releases
-                містить інсталятор setup EXE, ZIP, MSI та SHA256 для кожного
-                випуску.</span
-              >
+                release.</span>
             </p>
             <div class="channels">
               <a
@@ -2217,12 +1806,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 >README</a
               ><a
                 class="btn btn-ghost btn-sm"
-                href="https://github.com/SerZhyAle/FileDO/releases"
-                target="_blank"
-                rel="noopener"
-                ><span data-l="ru">История релизов</span
-                ><span data-l="en">Release history</span
-                ><span data-l="ua">Історія випусків</span></a
+                href="guides/release-notes.html"
+                ><span data-l="en">Release history</span></a
               ><a
                 class="btn btn-ghost btn-sm"
                 href="https://github.com/SerZhyAle/FileDO/issues"
@@ -2236,249 +1821,153 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
       </section>
       <section class="section" id="guides-pages">
         <h2>
-          <span data-l="ru">Пошаговые руководства</span
-          ><span data-l="en">Step-by-step guides</span
-          ><span data-l="ua">Покрокові посібники</span>
+          <span data-l="en">Step-by-step guides</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >Подробные маршруты остаются отдельными страницами: так на главной
-            видна задача и применение, а конкретная инструкция не превращается в
-            стену команд.</span
-          ><span data-l="en"
-            >Detailed routes live on separate pages: the front page keeps the
+          <span data-l="en">Detailed routes live on separate pages: the front page keeps the
             job and use case visible, while a specific guide does not become a
-            wall of commands.</span
-          ><span data-l="ua"
-            >Докладні маршрути винесено на окремі сторінки: на головній
-            лишаються видимими завдання та застосування, а конкретний посібник
-            не перетворюється на стіну команд.</span
-          >
+            wall of commands.</span>
         </p>
         <div class="grid feature">
           <article class="card">
             <h3>
-              <span data-l="ru">Проверка носителя</span
-              ><span data-l="en">Check storage</span
-              ><span data-l="ua">Перевірка носія</span>
+              <a class="card-title" href="guides/quick-start.html"><span data-l="en">Quick-start commands</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Сведения, ёмкость, скорость и проверка чтения - с объяснением
-                тестовых файлов и прав администратора.</span
-              ><span data-l="en"
-                >Information, capacity, speed, and read checks-with the test
-                files and administrator requirement explained.</span
-              ><span data-l="ua"
-                >Відомості, ємність, швидкість і перевірка читання - з
-                поясненням тестових файлів і прав адміністратора.</span
-              >
+              <span data-l="en">The common tasks as command lines straight from filedo -?, with what each one changes.</span>
             </p>
             <p class="actions">
-              <a class="btn btn-ghost btn-sm" href="guides/check-storage.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+              <a class="btn btn-ghost btn-sm" href="guides/quick-start.html"
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Дубликаты и копирование</span
-              ><span data-l="en">Duplicates and copies</span
-              ><span data-l="ua">Дублікати та копіювання</span>
+              <a class="card-title" href="guides/check-storage.html"><span data-l="en">Check storage</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Как сначала получить список или отчёт, сделать копию и
-                проверить резервную папку.</span
-              ><span data-l="en"
-                >How to get a list or report first, make a copy, and check the
-                backup folder.</span
-              ><span data-l="ua"
-                >Як спочатку отримати список або звіт, зробити копію та
-                перевірити резервну папку.</span
+              <span data-l="en">Information, capacity, speed, and read checks-with the test
+                files and administrator requirement explained.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="guides/check-storage.html"
+                ><span data-l="en">Open</span></a
               >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <a class="card-title" href="guides/files-and-copies.html"><span data-l="en">Duplicates and copies</span></a>
+            </h3>
+            <p>
+              <span data-l="en">How to get a list or report first, make a copy, and check the
+                backup folder.</span>
             </p>
             <p class="actions">
               <a
                 class="btn btn-ghost btn-sm"
                 href="guides/files-and-copies.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Стирание и затирание</span
-              ><span data-l="en">Erase and wipe</span
-              ><span data-l="ua">Стирання і затирання</span>
+              <a class="card-title" href="guides/erase.html"><span data-l="en">Erase and wipe</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Затереть файл, очистить папку, затереть свободное место - о
-                чём каждый способ спрашивает, что отвергает и чего не может
-                обещать на SSD.</span
-              ><span data-l="en"
-                >Wipe a file, empty a folder, wipe the free space - what each
+              <span data-l="en">Wipe a file, empty a folder, wipe the free space - what each
                 asks first, what it refuses, and what it cannot promise on an
-                SSD.</span
-              ><span data-l="ua"
-                >Затерти файл, очистити теку, затерти вільне місце - про що
-                кожен спосіб питає, що відхиляє і чого не може обіцяти на
-                SSD.</span
-              >
+                SSD.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="guides/erase.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Окно FileDO (GUI)</span
-              ><span data-l="en">The FileDO window (GUI)</span
-              ><span data-l="ua">Вікно FileDO (GUI)</span>
+              <a class="card-title" href="guides/gui-command-builder.html"><span data-l="en">The FileDO window (GUI)</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Как выбрать задачу, пройти её страницу, проверить и выполнить
-                в окне <code>filedo_win</code>; страница «Команда» и секретные
-                файлы.</span
-              ><span data-l="en"
-                >How to pick a job, work through its page, check, and run it in
-                the <code>filedo_win</code> window; the Command page and secret
-                files.</span
-              ><span data-l="ua"
-                >Як вибрати завдання, пройти його сторінку, перевірити та
-                виконати у вікні <code>filedo_win</code>; сторінка «Команда» і
-                секретні файли.</span
-              >
+              <span data-l="en">How to pick a job, work through its page, check, and run it in
+                the <code>filedo_win</code> window; the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page and secret
+                files.</span>
             </p>
             <p class="actions">
               <a
                 class="btn btn-ghost btn-sm"
                 href="guides/gui-command-builder.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Предупреждение Windows</span
-              ><span data-l="en">The Windows warning</span
-              ><span data-l="ua">Попередження Windows</span>
+              <a class="card-title" href="guides/install-trust.html"><span data-l="en">The Windows warning</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Почему появляется «Windows защитила ваш компьютер», что
-                нажать и что программа никогда не делает.</span
-              ><span data-l="en"
-                >Why &ldquo;Windows protected your PC&rdquo; appears, what to
-                click, and what the app never does.</span
-              ><span data-l="ua"
-                >Чому з'являється «Windows захистила ваш ПК», що натиснути і
-                чого програма ніколи не робить.</span
-              >
+              <span data-l="en">Why &ldquo;Windows protected your PC&rdquo; appears, what to
+                click, and what the app never does.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="guides/install-trust.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Установка и Проводник</span
-              ><span data-l="en">Installation and Explorer</span
-              ><span data-l="ua">Встановлення і Провідник</span>
+              <a class="card-title" href="guides/install-and-explorer.html"><span data-l="en">Installation and Explorer</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Что добавляет установщик и как включить или убрать пункты
-                контекстного меню.</span
-              ><span data-l="en"
-                >What the installer adds, and how to turn the context-menu
-                entries on or off.</span
-              ><span data-l="ua"
-                >Що додає інсталятор і як увімкнути чи прибрати пункти
-                контекстного меню.</span
-              >
+              <span data-l="en">What the installer adds, and how to turn the context-menu
+                entries on or off.</span>
             </p>
             <p class="actions">
               <a
                 class="btn btn-ghost btn-sm"
                 href="guides/install-and-explorer.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Секретные файлы</span
-              ><span data-l="en">Secret files</span
-              ><span data-l="ua">Секретні файли</span>
+              <a class="card-title" href="guides/fd-sec-containers.html"><span data-l="en">Secret files</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Контейнеры <code>.fd-sec</code>: упаковать, вернуть, открыть не
-                распаковывая - и что каждый выбор обещает.</span
-              ><span data-l="en"
-                ><code>.fd-sec</code> containers: pack, restore, open without
-                unpacking - and what each choice promises.</span
-              ><span data-l="ua"
-                >Контейнери <code>.fd-sec</code>: запакувати, повернути,
-                відкрити не розпаковуючи - і що кожен вибір обіцяє.</span
-              >
+              <span data-l="en"><code>.fd-sec</code> containers: pack, restore, open without
+                unpacking - and what each choice promises.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="guides/fd-sec-containers.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Виртуальные диски</span
-              ><span data-l="en">Virtual disks</span
-              ><span data-l="ua">Віртуальні диски</span>
+              <a class="card-title" href="guides/virtual-disks.html"><span data-l="en">Virtual disks</span></a>
             </h3>
             <p>
-              <span data-l="ru"
-                >Контейнеры <code>.fdd</code>: создать, подключить, прочитать без
-                подключения - и чем маскировка отличается от шифрования.</span
-              ><span data-l="en"
-                ><code>.fdd</code> containers: create, mount, read without
-                mounting - and how obfuscation differs from encryption.</span
-              ><span data-l="ua"
-                >Контейнери <code>.fdd</code>: створити, підключити, прочитати
-                без підключення - і чим маскування відрізняється від
-                шифрування.</span
-              >
+              <span data-l="en"><code>.fdd</code> containers: create, mount, read without
+                mounting - and how obfuscation differs from encryption.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="guides/virtual-disks.html"
-                ><span data-l="ru">Открыть</span><span data-l="en">Open</span
-                ><span data-l="ua">Відкрити</span></a
+                ><span data-l="en">Open</span></a
               ><a class="btn btn-ghost btn-sm" href="guides/fms-sharing.html"
-                ><span data-l="ru">Общий доступ</span
-                ><span data-l="en">Sharing</span
-                ><span data-l="ua">Спільний доступ</span></a
+                ><span data-l="en">Sharing</span></a
               >
             </p>
           </article>
         </div>
         <p class="actions">
           <a class="btn btn-ghost btn-sm" href="guides/"
-            ><span data-l="ru">Все руководства</span
-            ><span data-l="en">All guides</span
-            ><span data-l="ua">Усі посібники</span></a
+            ><span data-l="en">All guides</span></a
           >
         </p>
       </section>
@@ -2486,15 +1975,13 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
     <footer class="site-footer">
       <div class="container">
         <p class="footer-tools-title" id="footerToolsTitle">
-          <span data-l="ru">Другие инструменты SZA</span
-          ><span data-l="en">More tools by SZA</span
-          ><span data-l="ua">Інші інструменти SZA</span>
+          <span data-l="en">More tools by SZA</span>
         </p>
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
           <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"
             ><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
           ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"
-            ><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a
+            ><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
           ><a href="https://serzhyale.github.io/CyrFlip/"
             ><b>CyrFlip</b><span>Windows layout fixer</span></a
           ><a href="https://serzhyale.github.io/doc-html-translate/"
@@ -2508,19 +1995,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
         </nav>
         <div class="footer-bottom">
-          <span><span data-l="ru">Автор</span><span data-l="en">Author</span><span data-l="ua">Автор</span>: <a href="https://sza.od.ua">Serhii Zhyhunenko</a> · © 2026</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="guides/"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="privacy.html"
-              ><span data-l="ru">Конфиденциальность</span
-              ><span data-l="en">Privacy</span
-              ><span data-l="ua">Конфіденційність</span></a
+          <span><span data-l="en">Author</span>: <a href="https://sza.od.ua">Serhii Zhyhunenko</a> · © 2026</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span></span><a href="guides/"><span data-l="en">Guides</span></a> · <a href="privacy.html"
+              ><span data-l="en">Privacy</span></a
             >
             · <a href="guides/support.html"
-              ><span data-l="ru">Поддержка</span
-              ><span data-l="en">Support</span
-              ><span data-l="ua">Підтримка</span></a
+              ><span data-l="en">Support</span></a
             >
+            · <span data-l="en"><a href="help/en/">Window help</a></span>
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -2528,61 +2013,14 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
     <button class="to-top" id="toTop" aria-label="Scroll to top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11h3v10h2V11h3l-4-4-4 4zM4 3v2h16V3H4z" fill="currentColor"/></svg></button>
     <script>
       (function () {
-        var meta = {
-          ru: {
-            t: "FileDO - узнайте носитель, прежде чем доверить ему данные",
-            d: "Узнайте реальную ёмкость, скорость и читаемость носителя, найдите дубликаты и различия папок до действий с данными.",
-            alt: "Логотип и название FileDO с английским девизом Know your storage before you trust it на тёмно-зелёном фоне",
-          },
-          en: {
-            t: "FileDO - know your storage before you trust it",
-            d: "Know the real capacity, speed, readability, duplicates, and folder differences before trusting a drive with your data.",
-            alt: "FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background",
-          },
-          ua: {
-            t: "FileDO - дізнайтеся про носій, перш ніж довірити йому дані",
-            d: "Дізнайтеся реальну ємність, швидкість і читання носія, знайдіть дублікати та відмінності папок до дій із даними.",
-            alt: "Логотип і назва FileDO з англійським гаслом Know your storage before you trust it на темно-зеленому тлі",
-          },
-        };
-        function lang(l) {
-          if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
-          document.documentElement.dataset.lang = l;
-          document.documentElement.lang = l === "ua" ? "uk" : l;
-          localStorage.setItem("sza-lang", l);
-          document.querySelectorAll("[data-set-lang]").forEach(function (b) {
-            b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
-          });
-          // nav.scroll-top is named with its ICON-SET name in the page language.
-          document
-            .getElementById("toTop")
-            .setAttribute(
-              "aria-label",
-              { ru: "В начало списка", en: "Scroll to top", ua: "На початок списку" }[l],
-            );
-          // app.theme under its qualified ICON-SET label, in the page language.
-          document
-            .getElementById("themeBtn")
-            .setAttribute(
-              "aria-label",
-              { ru: "Сменить тему", en: "Switch theme", ua: "Змінити тему" }[l],
-            );
-          document.title = meta[l].t;
-          document.querySelector('meta[name="description"]').content =
-            meta[l].d;
-          document.querySelector('meta[property="og:title"]').content =
-            meta[l].t;
-          document.querySelector('meta[property="og:description"]').content =
-            meta[l].d;
-          document.querySelector('meta[property="og:image:alt"]').content =
-            meta[l].alt;
-        }
         document.querySelectorAll("[data-set-lang]").forEach(function (b) {
           b.onclick = function () {
-            lang(b.dataset.setLang);
+            try {
+              localStorage.setItem("sza-lang", b.dataset.setLang);
+            } catch (e) {}
+            if (b.dataset.go) location.href = b.dataset.go;
           };
         });
-        lang(document.documentElement.dataset.lang || "en");
         var theme = document.getElementById("themeBtn");
         theme.onclick = function () {
           var n =
@@ -2593,6 +2031,10 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           localStorage.setItem("sza-theme", n);
           document.querySelector('meta[name="theme-color"]').content =
             n === "light" ? "#eef3ea" : "#0a0f0a";
+          theme.setAttribute(
+            "aria-label",
+            n === "light" ? "Switch to the light theme" : "Switch to the dark theme",
+          );
         };
         function fallback(t, done) {
           var a = document.createElement("textarea");
@@ -2609,9 +2051,9 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         // The feedback is a word in the page language, not a plain check mark:
         // that shape is action.confirm in ICON-SET, distinct from status.ok.
         var copyLabel =
-          '<span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span>';
+          '<span data-l="en">Copy</span>';
         var copiedLabel =
-          '<span data-l="ru">Скопировано</span><span data-l="en">Copied</span><span data-l="ua">Скопійовано</span>';
+          '<span data-l="en">Copied</span>';
         document.querySelectorAll(".copy").forEach(function (b) {
           b.onclick = function () {
             function done() {
@@ -2680,6 +2122,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               return /-setup\.exe$/i.test(n);
             });
             point("setupLink", setup);
+            point("heroSetupLink", setup);
             point(
               "zipLink",
               pick(function (n) {
@@ -2712,5 +2155,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           .catch(function () {});
       })();
     </script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

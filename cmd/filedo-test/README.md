@@ -40,10 +40,11 @@ Anything else is refused before `filedo.exe` starts. For a different number of t
 
 ## Exit codes
 
-`filedo.exe`'s own: **0** the test passed, **1** a defect was found (a fake capacity, a write that
-does not read back), **2** could not verify. `filedo_test.exe` adds nothing of its own except
-**2** for a command line it refuses and for a `filedo.exe` that is not in its folder or cannot be
-started.
+`filedo.exe` returns **0** for success, **1** for a proven defect, and **2** for an unclassified
+failure. The specific codes are **10** usage, **11** target unavailable, **12** permission,
+**13** insufficient resources, **14** hardware I/O, **15** network failure, and **16** stopped.
+The launcher forwards these codes. Its own usage errors return **10**; failure to find or start
+`filedo.exe` returns **2**.
 
 Ctrl+C reaches `filedo.exe` directly, because the two share the console; it stops the way it
 always does, and `filedo_test.exe` waits for it and returns its exit code.

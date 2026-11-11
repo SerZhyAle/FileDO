@@ -132,8 +132,8 @@ func TestCheckUnreadableFolderNotProven(t *testing.T) {
 	denyList(t, sub)
 	wd := t.TempDir()
 	out, code := run(t, wd, "check", root)
-	if code != 2 {
-		t.Errorf("a sweep that could not list a folder exited %d, want 2 (CHK-03)\n%s", code, out)
+	if code != 12 {
+		t.Errorf("a sweep that could not list a folder exited %d, want 12 (CHK-03, access denied)\n%s", code, out)
 	}
 }
 
@@ -162,13 +162,13 @@ func TestCheckBufKBOutOfRange(t *testing.T) {
 	wd := t.TempDir()
 	for _, v := range []string{"0", "-5", "70000"} {
 		out, code := run(t, wd, "check", root, "--buf-kb", v)
-		if code != 2 || strings.Contains(out, "panic") {
-			t.Errorf("--buf-kb %s exited %d, want 2 and no panic (CHK-09)\n%s", v, code, out)
+		if code != 10 || strings.Contains(out, "panic") {
+			t.Errorf("--buf-kb %s exited %d, want 10 (usage) and no panic (CHK-09)\n%s", v, code, out)
 		}
 	}
 	out, code := runWithEnv(t, wd, []string{"FILEDO_CHECK_BUF_KB=0"}, "check", root)
-	if code != 2 {
-		t.Errorf("FILEDO_CHECK_BUF_KB=0 exited %d, want 2\n%s", code, out)
+	if code != 10 {
+		t.Errorf("FILEDO_CHECK_BUF_KB=0 exited %d, want 10\n%s", code, out)
 	}
 }
 

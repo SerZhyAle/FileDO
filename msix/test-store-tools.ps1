@@ -19,7 +19,9 @@
             Also the WINDOWS-STORE 0.2 refusals, each with a negative case that must exit 1 and
             write nothing: more than 21 search-term words in a language (and exactly 21 passing),
             a cell over its cap in the unit Partner Center counts, a duplicate term, a shipped
-            language with no column in the export or no source file; and the fixture marked -text.
+            language with no column in the export or no source file; the WINDOWS-STORE 0.3 item B
+            dialect refusals (a foreign record break, a mixed in-cell break, an open last quoted cell);
+            and the fixture marked -text.
 
   Exit code: 0 = every check passed, 1 = a defect was found, 2 = could not verify.
 
@@ -38,7 +40,7 @@ $shots   = Join-Path $msix "screenshots"
 $hostExe = if ($PSVersionTable.PSEdition -eq 'Core') { Join-Path $PSHOME "pwsh.exe" } else { Join-Path $PSHOME "powershell.exe" }
 
 if (-not (Test-Path $builder) -or -not (Test-Path $fixture) -or -not (Test-Path $listing)) {
-    Write-Host "store-tools: COULD NOT VERIFY (required listing source, fixture, or builder is missing)" -ForegroundColor Yellow
+    Write-Host "store-tools: COULD NOT VERIFY (run=0 skipped=0, required listing source, fixture, or builder is missing)" -ForegroundColor Yellow
     exit 2
 }
 
@@ -401,6 +403,32 @@ try {
     [System.IO.File]::Delete((Join-Path $altListing "fr.txt"))
     $r = Run-Builder @('-Csv', $fx, '-Out', (Join-Path $tmp "nodeck\listingData.csv")) $altBuilder
     Check "a shipped language with no source file is refused by name (exit 1) and nothing is written" ($r.Code -eq 1 -and $r.Text -match 'refused: fr: no source file msix\\listing\\fr\.txt' -and -not (Built "nodeck")) $r.Text
+
+    # WINDOWS-STORE 0.3 item B (rule 8): a writer of the export's own dialect refuses a foreign record break,
+    # a mixed in-cell break and an open last quoted cell, before anything is written
+    Reset-Decks
+    $ftext = [System.IO.File]::ReadAllText($fx)
+    $fi = $ftext.IndexOf("`r`n")
+    $foreign = Join-Path $tmp "foreign.csv"
+    [System.IO.File]::WriteAllText($foreign, ($ftext.Substring(0, $fi) + "`n" + $ftext.Substring($fi + 2)), (New-Object System.Text.UTF8Encoding($true)))
+    $r = Run-Builder @('-Csv', $foreign, '-Out', (Join-Path $tmp "foreign\listingData.csv")) $altBuilder
+    Check "a bare LF record break in a CRLF export is refused (exit 1, the record named, nothing written)" ($r.Code -eq 1 -and $r.Text -match 'refused: the export: record 1 ends with LF, the export''s record break is CRLF' -and -not (Built "foreign")) $r.Text
+
+    # an en-us cell that holds a CRLF beside the LF of a patched Description is a mixed in-cell break
+    Reset-Decks
+    $mtext = [System.IO.File]::ReadAllText($fx)
+    $mtext = ([regex]'(?m)^(ShortDescription,\d+,[^,\r\n]*,,),').Replace($mtext, ('${1}"a' + "`r`n" + 'b",'), 1)
+    $mixed = Join-Path $tmp "mixed.csv"
+    [System.IO.File]::WriteAllText($mixed, $mtext, (New-Object System.Text.UTF8Encoding($true)))
+    $r = Run-Builder @('-Csv', $mixed, '-Out', (Join-Path $tmp "mixed\listingData.csv")) $altBuilder
+    Check "in-cell breaks that mix CRLF and LF in the written file are refused (exit 1, nothing written)" ($r.Code -eq 1 -and $r.Text -match 'in-cell breaks mix LF and CRLF' -and -not (Built "mixed")) $r.Text
+
+    Reset-Decks
+    $otext = [System.IO.File]::ReadAllText($fx) + "`r`n" + 'Open,"unclosed'
+    $open = Join-Path $tmp "open.csv"
+    [System.IO.File]::WriteAllText($open, $otext, (New-Object System.Text.UTF8Encoding($true)))
+    $r = Run-Builder @('-Csv', $open, '-Out', (Join-Path $tmp "open\listingData.csv")) $altBuilder
+    Check "an open last quoted cell in the export is refused (exit 1, nothing written)" ($r.Code -eq 1 -and $r.Text -match 'the last quoted cell is left open' -and -not (Built "open")) $r.Text
 }
 finally {
     if (Test-Path $tmp) { [System.IO.Directory]::Delete($tmp, $true) }
@@ -420,6 +448,8 @@ Check 'an empty report cannot pass' (-not (Get-WackVerdict ([xml]"<REPORT OVERAL
 Check 'optional-only reports cannot pass' (-not (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$optionalFailure</REPORT>"))).Passed)
 Check 'a missing optional result cannot pass' (-not (Get-WackVerdict ([xml]("<REPORT OVERALL_RESULT='WARNING'>$requiredPass<TEST OPTIONAL='TRUE'/></REPORT>"))).Passed)
 Write-Host ""
-if ($script:fail -eq 0) { Write-Host "store-tools: PASS ($script:pass checks)" -ForegroundColor Green; exit 0 }
-Write-Host "store-tools: FAIL ($script:fail checks)" -ForegroundColor Red
+# CHECK-VERDICT 0.14 item A: a self-check of its own assertions ends in a test verdict line.
+$ran = $script:pass + $script:fail
+if ($script:fail -eq 0) { Write-Host "store-tools: PASS (run=$ran skipped=0)" -ForegroundColor Green; exit 0 }
+Write-Host "store-tools: FAIL (run=$ran skipped=0 failed=$script:fail)" -ForegroundColor Red
 exit 1

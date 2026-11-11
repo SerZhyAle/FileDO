@@ -4,7 +4,7 @@
 | --- | --- |
 | **Id** | `BOOLEAN-OPTION` |
 | **Version** | 2.0 (no wire - observable boolean option layout and interaction) |
-| **Role** | consumer - every boolean option of the GUI shell (36 `CheckBox` sites); migration ticket SP-0169 |
+| **Role** | consumer - every boolean option of the GUI shell and the Disk Manager (`BooleanOption`); migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `boolean-option/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
 
@@ -16,7 +16,12 @@ one named checkbox whose description is the explanation; short hover/focus help 
 authored source (the SP-0168 `help_*` keys); a disabled option says why. Stored values, keys and defaults do not
 change.
 
-**Gates.** None yet: the component has not been built.
+**Gates.** `--selftest` group `ui-contracts`: `option:*` (tokens, anatomy, heading, no empty row, wrap, activation,
+right to left, disabled path and reason, accessibility, contrast in both palettes, no native check box left in the
+shell or the Disk Manager, every Settings option explained) and `windows-ui:boolean-leading:*`.
 
-**Status: not implemented - nothing claimed (SP-0169 slice S2, target 2026-11-04).** The shell's boolean options
-are native check boxes (a 28 px floor from `Ui.HitTargetFloor`), with an explanation only on the Settings page.
+**Status: not conformant - migration in progress (SP-0169, deadline 2026-12-31).** Slice S2 (2026-10-29) built the
+shared `BooleanOption` component and put it on every boolean option of the shell and the Disk Manager; the Settings
+rows carry their description as the explanation and the sealed-disk sharing option says why it is locked. Owed:
+local option help (hover summary and activated text from one source), the showcase with captures (S4), and a
+measured run of the gate rows above.

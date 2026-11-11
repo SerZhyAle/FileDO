@@ -25,8 +25,8 @@ func TestUnknownOperationWordIsUsageError(t *testing.T) {
 		events := filepath.Join(dir, "ev.jsonl")
 		os.Remove(events)
 		out, code := run(t, dir, append([]string{"--events", events}, args...)...)
-		if code != 2 {
-			t.Fatalf("filedo %q exited %d, want 2\n%s", args, code, out)
+		if code != 10 {
+			t.Fatalf("filedo %q exited %d, want 10\n%s", args, code, out)
 		}
 		if v := lastResult(t, events)["verdict"]; v != "Not proven" {
 			t.Fatalf("filedo %q ended %v, want Not proven\n%s", args, v, out)

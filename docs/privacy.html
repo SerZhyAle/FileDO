@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
@@ -23,27 +23,27 @@
       content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background"
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <title>FileDO privacy - no network, no telemetry, no accounts</title>
+    <title>FileDO privacy - local-only processing without analytics</title>
     <meta
       name="description"
-      content="FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
+      content="FileDO processes data locally on your device without analytics or tracking. What it reads, what it writes locally, and how to control it."
     />
     <meta
       property="og:title"
-      content="FileDO privacy - no network, no telemetry, no accounts"
+      content="FileDO privacy - local-only processing without analytics"
     />
     <meta
       property="og:description"
-      content="FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it."
+      content="FileDO processes data locally on your device without analytics or tracking. What it reads, what it writes locally, and how to control it."
     />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "PrivacyPolicy",
+        "@type": "WebPage",
         "name": "FileDO Privacy Policy",
         "url": "https://serzhyale.github.io/FileDO/privacy.html",
-        "inLanguage": ["en", "ru", "uk"],
-        "dateModified": "2026-10-09",
+        "isPartOf": "https://serzhyale.github.io/FileDO/",
+        "inLanguage": ["en"],
         "publisher": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
@@ -67,7 +67,13 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
           if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
@@ -294,10 +300,13 @@ html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
 /* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
 html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
 .pills.spaced{margin-top:.9rem}
+    /* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
+    .cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
+    .cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
     </style>
   </head>
   <body>
-    <a class="skip-link" href="#top"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#top"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -312,12 +321,12 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
       ><a
         class="btn btn-primary btn-sm header-action"
         href="./#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span
-        ><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
       >
     </header>
     <nav class="lang-row" aria-label="Languages"><a href="de/privacy.html" hreflang="de" lang="de">DE</a><a href="fr/privacy.html" hreflang="fr" lang="fr">FR</a></nav>
@@ -326,29 +335,29 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
       <section class="hero">
         <div class="container">
           <p class="hero-kicker">
-            <span data-l="ru">Политика конфиденциальности</span>
             <span data-l="en">Privacy policy</span>
+            <span data-l="ru">Политика конфиденциальности</span>
             <span data-l="ua">Політика конфіденційності</span>
           </p>
           <h1>
+            <span data-l="en">FileDO runs only on your computer</span>
             <span data-l="ru"
               >FileDO работает только на вашем компьютере</span
             >
-            <span data-l="en">FileDO runs only on your computer</span>
             <span data-l="ua">FileDO працює лише на вашому комп'ютері</span>
           </h1>
           <p class="lead">
-            <span data-l="ru"
-              >FileDO не отправляет никуда ничего. Программа не выходит в
-              интернет, и в ней нет телеметрии, аналитики, рекламы, аккаунтов и
-              проверки обновлений. Всё, что она читает и пишет, остаётся на вашем
-              диске.</span
-            >
             <span data-l="en"
               >FileDO sends nothing anywhere. It never connects to the internet,
               and it has no telemetry, no analytics, no ads, no accounts and no
               update check.
               Everything it reads and writes stays on your own disk.</span
+            >
+            <span data-l="ru"
+              >FileDO не отправляет никуда ничего. Программа не выходит в
+              интернет, и в ней нет телеметрии, аналитики, рекламы, аккаунтов и
+              проверки обновлений. Всё, что она читает и пишет, остаётся на вашем
+              диске.</span
             >
             <span data-l="ua"
               >FileDO нікуди нічого не надсилає. Програма не виходить в
@@ -359,47 +368,47 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </p>
           <div class="pills spaced">
             <span class="pill"
-              ><span data-l="ru">Без сети</span
               ><span data-l="en">No network</span
+              ><span data-l="ru">Без сети</span
               ><span data-l="ua">Без мережі</span></span
             >
             <span class="pill"
-              ><span data-l="ru">Без телеметрии</span
               ><span data-l="en">No telemetry</span
+              ><span data-l="ru">Без телеметрии</span
               ><span data-l="ua">Без телеметрії</span></span
             >
             <span class="pill"
-              ><span data-l="ru">Без аккаунтов</span
               ><span data-l="en">No accounts</span
+              ><span data-l="ru">Без аккаунтов</span
               ><span data-l="ua">Без акаунтів</span></span
             >
             <span class="pill gold"
-              ><span data-l="ru">Открытый код</span
               ><span data-l="en">Open source</span
+              ><span data-l="ru">Открытый код</span
               ><span data-l="ua">Відкритий код</span></span
             >
           </div>
           <div class="stamp">
             <span
               ><b
-                ><span data-l="ru">Дата вступления в силу:</span
                 ><span data-l="en">Effective date:</span
+                ><span data-l="ru">Дата вступления в силу:</span
                 ><span data-l="ua">Дата набрання чинності:</span></b
               >
               2026-07-30</span
             >
             <span
               ><b
-                ><span data-l="ru">Относится к:</span
                 ><span data-l="en">Applies to:</span
+                ><span data-l="ru">Относится к:</span
                 ><span data-l="ua">Стосується:</span></b
               >
-              <span data-l="ru"
-                >FileDO CLI и FileDO GUI для Windows - во всех каналах поставки
-                (GitHub, winget, Microsoft Store)</span
-              ><span data-l="en"
+              <span data-l="en"
                 >FileDO CLI and FileDO GUI for Windows - in every distribution
                 channel (GitHub, winget, Microsoft Store)</span
+              ><span data-l="ru"
+                >FileDO CLI и FileDO GUI для Windows - во всех каналах поставки
+                (GitHub, winget, Microsoft Store)</span
               ><span data-l="ua"
                 >FileDO CLI та FileDO GUI для Windows - в усіх каналах постачання
                 (GitHub, winget, Microsoft Store)</span
@@ -413,28 +422,28 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">01</span>
-            <span data-l="ru">Коротко</span
-            ><span data-l="en">In short</span
+            <span data-l="en">In short</span
+            ><span data-l="ru">Коротко</span
             ><span data-l="ua">Коротко</span>
           </h2>
           <div class="grid">
             <div class="card">
               <h3>
-                <span data-l="ru">Мы не собираем ничего</span
-                ><span data-l="en">We collect nothing</span
+                <span data-l="en">We collect nothing</span
+                ><span data-l="ru">Мы не собираем ничего</span
                 ><span data-l="ua">Ми не збираємо нічого</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >У автора нет серверов, нет базы данных и нет способа узнать,
-                  что вы делаете в программе. Персональные данные не собираются,
-                  не хранятся и не передаются - ни нам, ни третьим лицам.</span
-                >
                 <span data-l="en"
                   >The author runs no servers, keeps no database and has no way
                   of learning what you do in the app. No personal data is
                   collected, stored or shared - not with us, not with anyone
                   else.</span
+                >
+                <span data-l="ru"
+                  >У автора нет серверов, нет базы данных и нет способа узнать,
+                  что вы делаете в программе. Персональные данные не собираются,
+                  не хранятся и не передаются - ни нам, ни третьим лицам.</span
                 >
                 <span data-l="ua"
                   >Автор не має серверів, бази даних і жодного способу дізнатися,
@@ -445,38 +454,41 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             </div>
             <div class="card">
               <h3>
-                <span data-l="ru">Программа не выходит в сеть</span
-                ><span data-l="en">The app never goes online</span
+                <span data-l="en">The app never goes online</span
+                ><span data-l="ru">Программа не выходит в сеть</span
                 ><span data-l="ua">Програма не виходить у мережу</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >FileDO не подключается ни к интернету, ни к другим
-                  компьютерам. Единственный сокет, который он открывает, отдаёт
-                  подключённый виртуальный диск <code>.fdd</code> инициатору
-                  iSCSI самой Windows и слушает только адрес 127.0.0.1: ничего
-                  не уходит с этого компьютера, и контейнер никогда не попадает
-                  ни в какую сеть. Пакет для
-                  Microsoft Store не объявляет разрешения на доступ в интернет,
-                  поэтому Windows его и не даст.</span
-                >
                 <span data-l="en"
                   >FileDO connects neither to the internet nor to any other
                   computer. The one socket it opens serves a mounted
                   <code>.fdd</code> virtual disk to the iSCSI initiator of
                   Windows itself and listens on 127.0.0.1 only: nothing leaves
-                  this computer, and the container never goes to any network.
-                  The Microsoft
+                  this computer on FileDO's own initiative, and the container
+                  goes to a network only if you choose to share its disk (see
+                  the card below). The Microsoft
                   Store package declares no internet capability, so Windows
                   would not grant one anyway.</span
+                >
+                <span data-l="ru"
+                  >FileDO не подключается ни к интернету, ни к другим
+                  компьютерам. Единственный сокет, который он открывает, отдаёт
+                  подключённый виртуальный диск <code>.fdd</code> инициатору
+                  iSCSI самой Windows и слушает только адрес 127.0.0.1: ничего
+                  не уходит с этого компьютера по инициативе FileDO, и контейнер
+                  попадает в сеть только если вы сами откроете общий доступ к его
+                  диску (см. карточку ниже). Пакет для
+                  Microsoft Store не объявляет разрешения на доступ в интернет,
+                  поэтому Windows его и не даст.</span
                 >
                 <span data-l="ua"
                   >FileDO не під'єднується ні до інтернету, ні до інших
                   комп'ютерів. Єдиний сокет, який він відкриває, віддає
                   підключений віртуальний диск <code>.fdd</code> ініціатору
                   iSCSI самої Windows і слухає лише адресу 127.0.0.1: ніщо не
-                  залишає цей комп'ютер, і контейнер ніколи не потрапляє в жодну
-                  мережу. Пакет для
+                  залишає цей комп'ютер з ініціативи FileDO, і контейнер потрапляє
+                  в мережу лише тоді, коли ви самі відкриваєте спільний доступ до
+                  його диска (див. картку нижче). Пакет для
                   Microsoft Store не оголошує дозволу на доступ до інтернету,
                   тож Windows його й не надасть.</span
                 >
@@ -484,16 +496,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             </div>
             <div class="card">
               <h3>
-                <span data-l="ru">Диск, к которому вы сами открываете общий доступ</span
-                ><span data-l="en">A disk you choose to share</span
+                <span data-l="en">A disk you choose to share</span
+                ><span data-l="ru">Диск, к которому вы сами открываете общий доступ</span
                 ><span data-l="ua">Диск, до якого ви самі відкриваєте спільний доступ</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >Если вы установите Fast Media Sorter for Windows и откроете в ней общий доступ к диску (<code>vd share</code>), файлы открытого диска по сети отдаёт та программа, а не FileDO - устройствам, которые вы с ней связали. Сам FileDO для этого не открывает сетевых соединений: он говорит с той программой по локальному каналу на этом компьютере, а общий доступ выключен, пока вы не включите его, диск за диском. Пока общий диск открыт, каждое связанное устройство может читать его файлы, даже если контейнер зашифрован; закрытие диска или остановка компьютера это прекращают. Зашифрованный диск разблокируется только на этом компьютере, никогда с телефона. Если вы включите автозапуск для зашифрованного общего диска, его пароль хранится на этом компьютере, защищённым для той программы, чтобы диск открывался снова после перезапуска без ввода пароля; он удаляется, когда вы выключите автозапуск, прекратите доступ или смените пароль. Список общих дисков (путь, имя, отметка автозапуска - но не пароль) FileDO записывает в свою папку состояния. Как это включается, выключается и восстанавливается после ошибки - в руководстве <a href="guides/fms-sharing.html">общего доступа через Fast Media Sorter &amp; Sharing</a>.</span
-                >
                 <span data-l="en"
                   >If you install Fast Media Sorter for Windows and share a disk with it (<code>vd share</code>), that program - not FileDO - serves the files of the open disk over the network to the devices you paired with it. FileDO itself opens no network connection for this: it talks to that program over a local pipe on this computer, and sharing is off until you turn it on, disk by disk. While a shared disk is open, every paired device can read its files, even when the container is encrypted; closing the disk, or stopping the computer, ends that. An encrypted disk is unlocked on this computer only, never from the phone. If you turn on autostart for an encrypted shared disk, its password is kept on this computer, protected for that program, so the disk opens again after a restart without anyone typing it; it is removed when you turn autostart off, stop sharing or change the password. FileDO writes the list of shared disks (path, name, autostart mark - never a password) in its state folder. How to turn it on, off and recover after a failed step is in the <a href="guides/fms-sharing.html">sharing through Fast Media Sorter &amp; Sharing</a> guide.</span
+                >
+                <span data-l="ru"
+                  >Если вы установите Fast Media Sorter for Windows и откроете в ней общий доступ к диску (<code>vd share</code>), файлы открытого диска по сети отдаёт та программа, а не FileDO - устройствам, которые вы с ней связали. Сам FileDO для этого не открывает сетевых соединений: он говорит с той программой по локальному каналу на этом компьютере, а общий доступ выключен, пока вы не включите его, диск за диском. Пока общий диск открыт, каждое связанное устройство может читать его файлы, даже если контейнер зашифрован; закрытие диска или остановка компьютера это прекращают. Зашифрованный диск разблокируется только на этом компьютере, никогда с телефона. Если вы включите автозапуск для зашифрованного общего диска, его пароль хранится на этом компьютере, защищённым для той программы, чтобы диск открывался снова после перезапуска без ввода пароля; он удаляется, когда вы выключите автозапуск, прекратите доступ или смените пароль. Список общих дисков (путь, имя, отметка автозапуска - но не пароль) FileDO записывает в свою папку состояния. Как это включается, выключается и восстанавливается после ошибки - в руководстве <a href="guides/fms-sharing.html">общего доступа через Fast Media Sorter &amp; Sharing</a>.</span
                 >
                 <span data-l="ua"
                   >Якщо ви встановите Fast Media Sorter for Windows і відкриєте в ній спільний доступ до диска (<code>vd share</code>), файли відкритого диска мережею віддає та програма, а не FileDO - пристроям, які ви з нею зв'язали. Сам FileDO для цього не відкриває мережевих з'єднань: він говорить із тією програмою через локальний канал на цьому комп'ютері, а спільний доступ вимкнено, доки ви не ввімкнете його, диск за диском. Поки спільний диск відкритий, кожен зв'язаний пристрій може читати його файли, навіть коли контейнер зашифровано; закриття диска або вимкнення комп'ютера це припиняє. Зашифрований диск розблоковується лише на цьому комп'ютері, ніколи з телефона. Якщо ви ввімкнете автозапуск для зашифрованого спільного диска, його пароль зберігається на цьому комп'ютері, захищеним для тієї програми, щоб диск відкривався знову після перезапуску без введення пароля; його видаляють, коли ви вимкнете автозапуск, припините доступ або змінете пароль. Список спільних дисків (шлях, ім'я, позначка автозапуску - але не пароль) FileDO записує у свою теку стану. Як це вмикається, вимикається та відновлюється після помилки - у посібнику <a href="guides/fms-sharing.html">спільного доступу через Fast Media Sorter &amp; Sharing</a>.</span
@@ -501,20 +513,20 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               </p>
             </div>            <div class="card">
               <h3>
-                <span data-l="ru">Вы можете проверить это сами</span
-                ><span data-l="en">You can verify this yourself</span
+                <span data-l="en">You can verify this yourself</span
+                ><span data-l="ru">Вы можете проверить это сами</span
                 ><span data-l="ua">Ви можете перевірити це самі</span>
               </h3>
               <p>
-                <span data-l="ru"
-                  >FileDO распространяется с открытым исходным кодом под
-                  лицензией MIT. Обещания на этой странице проверяются чтением
-                  кода, а не доверием к нам.</span
-                >
                 <span data-l="en"
                   >FileDO ships as open source under the MIT license. Every
                   promise on this page can be checked by reading the code rather
                   than by trusting us.</span
+                >
+                <span data-l="ru"
+                  >FileDO распространяется с открытым исходным кодом под
+                  лицензией MIT. Обещания на этой странице проверяются чтением
+                  кода, а не доверием к нам.</span
                 >
                 <span data-l="ua"
                   >FileDO поширюється з відкритим вихідним кодом за ліцензією
@@ -531,18 +543,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">02</span>
-            <span data-l="ru">Что FileDO читает на вашей машине</span
-            ><span data-l="en">What FileDO reads on your machine</span
+            <span data-l="en">What FileDO reads on your machine</span
+            ><span data-l="ru">Что FileDO читает на вашей машине</span
             ><span data-l="ua">Що FileDO читає на вашій машині</span>
           </h2>
           <p>
-            <span data-l="ru"
-              >Только то, на что вы его направили командой, и только пока
-              команда выполняется:</span
-            >
             <span data-l="en"
               >Only what you point it at with a command, and only while that
               command runs:</span
+            >
+            <span data-l="ru"
+              >Только то, на что вы его направили командой, и только пока
+              команда выполняется:</span
             >
             <span data-l="ua"
               >Лише те, на що ви його спрямували командою, і лише поки команда
@@ -551,19 +563,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </p>
           <ul>
             <li>
-              <span data-l="ru"
-                ><b>Файлы и папки, которые вы указали.</b> Содержимое читается
-                для проверки скорости, поиска повреждений, сравнения папок и
-                вычисления хешей SHA-256 при поиске дубликатов. FileDO не обходит
-                диск самостоятельно и не открывает ничего за пределами
-                указанного вами пути.</span
-              >
               <span data-l="en"
                 ><b>The files and folders you named.</b> Their contents are read
                 to measure speed, check for corruption, compare trees and
                 compute SHA-256 hashes when looking for duplicates. FileDO never
                 walks your disk on its own and opens nothing outside the path
                 you gave it.</span
+              >
+              <span data-l="ru"
+                ><b>Файлы и папки, которые вы указали.</b> Содержимое читается
+                для проверки скорости, поиска повреждений, сравнения папок и
+                вычисления хешей SHA-256 при поиске дубликатов. FileDO не обходит
+                диск самостоятельно и не открывает ничего за пределами
+                указанного вами пути.</span
               >
               <span data-l="ua"
                 ><b>Файли та теки, які ви вказали.</b> Вміст читається для
@@ -574,15 +586,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Технические данные о накопителе.</b> Для команды
-                <code>info</code> FileDO запрашивает у Windows через WMI модель,
-                серийный номер и тип интерфейса физического диска, а также
-                размер и свободное место. Эти сведения выводятся на экран, чтобы
-                вы видели, с каким устройством работаете. Они
-                <b>не записываются</b> в журнал операций и никуда не
-                передаются.</span
-              >
               <span data-l="en"
                 ><b>Technical facts about the drive.</b> For the
                 <code>info</code> command FileDO asks Windows through WMI for
@@ -591,6 +594,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 you can see which device you are working with. They are
                 <b>not written</b> to the operation log and are not sent
                 anywhere.</span
+              >
+              <span data-l="ru"
+                ><b>Технические данные о накопителе.</b> Для команды
+                <code>info</code> FileDO запрашивает у Windows через WMI модель,
+                серийный номер и тип интерфейса физического диска, а также
+                размер и свободное место. Эти сведения выводятся на экран, чтобы
+                вы видели, с каким устройством работаете. Они
+                <b>не записываются</b> в журнал операций и никуда не
+                передаются.</span
               >
               <span data-l="ua"
                 ><b>Технічні дані про носій.</b> Для команди
@@ -602,19 +614,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Сетевые папки - это папки SMB, а не интернет.</b> Когда
-                FileDO работает с адресом вида <code>\\server\share</code>, он
-                обращается к нему как к обычному пути файловой системы средствами
-                Windows. Собственных соединений с другими компьютерами программа не
-                открывает.</span
-              >
               <span data-l="en"
                 ><b>"Network" here means an SMB share, not the internet.</b>
                 When FileDO works with a path like
                 <code>\\server\share</code> it treats it as an ordinary
                 filesystem path through Windows. The app opens no connection of
                 its own to any other computer.</span
+              >
+              <span data-l="ru"
+                ><b>Сетевые папки - это папки SMB, а не интернет.</b> Когда
+                FileDO работает с адресом вида <code>\\server\share</code>, он
+                обращается к нему как к обычному пути файловой системы средствами
+                Windows. Собственных соединений с другими компьютерами программа не
+                открывает.</span
               >
               <span data-l="ua"
                 ><b>«Мережеві» теки - це теки SMB, а не інтернет.</b> Коли
@@ -632,20 +644,20 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">03</span>
-            <span data-l="ru">Что FileDO пишет - и куда</span
-            ><span data-l="en">What FileDO writes - and where</span
+            <span data-l="en">What FileDO writes - and where</span
+            ><span data-l="ru">Что FileDO пишет - и куда</span
             ><span data-l="ua">Що FileDO пише - і куди</span>
           </h2>
           <p>
-            <span data-l="ru"
-              >Служебные файлы и, по вашей команде, тестовые данные. Всё это
-              обычные файлы на вашем диске: вы можете их прочитать, удалить или
-              вовсе не создавать.</span
-            >
             <span data-l="en"
               >Housekeeping files, plus test data when you ask for it. All of
               them are ordinary files on your own disk: you can read them, delete
               them, or never create them at all.</span
+            >
+            <span data-l="ru"
+              >Служебные файлы и, по вашей команде, тестовые данные. Всё это
+              обычные файлы на вашем диске: вы можете их прочитать, удалить или
+              вовсе не создавать.</span
             >
             <span data-l="ua"
               >Службові файли і, за вашою командою, тестові дані. Усе це
@@ -658,17 +670,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <thead>
                 <tr>
                   <th>
-                    <span data-l="ru">Файл</span><span data-l="en">File</span
-                    ><span data-l="ua">Файл</span>
+                    <span data-l="en">File</span
+                    ><span data-l="ru">Файл</span><span data-l="ua">Файл</span>
                   </th>
                   <th>
-                    <span data-l="ru">Где создаётся</span
-                    ><span data-l="en">Where it lands</span
+                    <span data-l="en">Where it lands</span
+                    ><span data-l="ru">Где создаётся</span
                     ><span data-l="ua">Де створюється</span>
                   </th>
                   <th>
-                    <span data-l="ru">Что внутри</span
-                    ><span data-l="en">What is inside</span
+                    <span data-l="en">What is inside</span
+                    ><span data-l="ru">Что внутри</span
                     ><span data-l="ua">Що всередині</span>
                   </th>
                 </tr>
@@ -677,16 +689,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <tr>
                   <td><code>history.json</code></td>
                   <td>
-                    <span data-l="ru"
-                      >В личной папке FileDO,
-                      <code>%LOCALAPPDATA%\FileDO\state\</code>, откуда бы ни
-                      запускалась команда. В версии из Microsoft Store Windows
-                      держит эту папку в личном хранилище пакета в
-                      <code>%LOCALAPPDATA%\Packages\</code>. Файл, оставленный
-                      прежней версией в текущем каталоге, копируется туда один раз
-                      и остаётся на месте. Справка и просмотр истории ничего не
-                      записывают.</span
-                    >
                     <span data-l="en"
                       >In your own FileDO folder,
                       <code>%LOCALAPPDATA%\FileDO\state\</code>, wherever the
@@ -696,6 +698,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                       earlier version left in the current directory is copied
                       there once and left where it was. Showing help or the
                       history writes nothing.</span
+                    >
+                    <span data-l="ru"
+                      >В личной папке FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code>, откуда бы ни
+                      запускалась команда. В версии из Microsoft Store Windows
+                      держит эту папку в личном хранилище пакета в
+                      <code>%LOCALAPPDATA%\Packages\</code>. Файл, оставленный
+                      прежней версией в текущем каталоге, копируется туда один раз
+                      и остаётся на месте. Справка и просмотр истории ничего не
+                      записывают.</span
                     >
                     <span data-l="ua"
                       >В особистій теці FileDO,
@@ -709,17 +721,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                     >
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Журнал операций: время, имя команды, путь, к которому вы
-                      её применили, полная строка запуска, параметры, результаты
-                      (скорость, число файлов), длительность и текст ошибки, если
-                      она была. Хранятся последние 1000 записей, старые
-                      вытесняются. Пароль в этот файл не попадает - он
-                      вымарывается до записи строки, - как и запечатанное
-                      настоящее имя внутри контейнера <code>.fd-sec</code>:
-                      открытие контейнера записывает папку, куда легла копия, и
-                      ничего о том, как назывался файл.</span
-                    >
                     <span data-l="en"
                       >An operation log: time, command name, the path you applied
                       it to, the full command line, parameters, results (speed,
@@ -730,6 +731,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                       inside a <code>.fd-sec</code> container: opening one
                       records the folder the copy went to, and nothing about what
                       the file was called.</span
+                    >
+                    <span data-l="ru"
+                      >Журнал операций: время, имя команды, путь, к которому вы
+                      её применили, полная строка запуска, параметры, результаты
+                      (скорость, число файлов), длительность и текст ошибки, если
+                      она была. Хранятся последние 1000 записей, старые
+                      вытесняются. Пароль в этот файл не попадает - он
+                      вымарывается до записи строки, - как и запечатанное
+                      настоящее имя внутри контейнера <code>.fd-sec</code>:
+                      открытие контейнера записывает папку, куда легла копия, и
+                      ничего о том, как назывался файл.</span
                     >
                     <span data-l="ua"
                       >Журнал операцій: час, назва команди, шлях, до якого ви її
@@ -747,19 +759,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <tr>
                   <td><code>hash_cache.json</code></td>
                   <td>
-                    <span data-l="ru"
-                      >В той же личной папке FileDO,
-                      <code>%LOCALAPPDATA%\FileDO\state\</code> (в версии из
-                      Microsoft Store - в личном хранилище пакета). Кеш, лежавший
-                      рядом с исполняемым файлом у прежних версий, копируется туда
-                      один раз.</span
-                    >
                     <span data-l="en"
                       >In the same FileDO folder,
                       <code>%LOCALAPPDATA%\FileDO\state\</code> (in the Microsoft
                       Store build, in the package's own per-user storage). A cache
                       an earlier version kept next to the executable is copied
                       there once.</span
+                    >
+                    <span data-l="ru"
+                      >В той же личной папке FileDO,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code> (в версии из
+                      Microsoft Store - в личном хранилище пакета). Кеш, лежавший
+                      рядом с исполняемым файлом у прежних версий, копируется туда
+                      один раз.</span
                     >
                     <span data-l="ua"
                       >У тій самій особистій теці FileDO,
@@ -770,17 +782,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                     >
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Кеш для ускорения повторного поиска дубликатов: путь к
-                      файлу, размер, дата изменения, идентификатор файла на томе
-                      и вычисленные хеши SHA-256. Содержимого файлов в кеше
-                      нет.</span
-                    >
                     <span data-l="en"
                       >A cache that makes a repeat duplicate scan faster: file
                       path, size, modification time, the file's ID on its volume
                       and the computed SHA-256 hashes. No file contents are
                       stored in it.</span
+                    >
+                    <span data-l="ru"
+                      >Кеш для ускорения повторного поиска дубликатов: путь к
+                      файлу, размер, дата изменения, идентификатор файла на томе
+                      и вычисленные хеши SHA-256. Содержимого файлов в кеше
+                      нет.</span
                     >
                     <span data-l="ua"
                       >Кеш для пришвидшення повторного пошуку дублікатів: шлях до
@@ -795,18 +807,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                     <code>check_files.list</code>
                   </td>
                   <td>
+                    <span data-l="en"
+                      >In the same FileDO folder,
+                      <code>%LOCALAPPDATA%\FileDO\state\</code> - never in the
+                      folder a command was started from. A list an earlier version
+                      left there is copied once and left where it was.</span
+                    >
                     <span data-l="ru"
                       >В той же личной папке FileDO,
                       <code>%LOCALAPPDATA%\FileDO\state\</code>, - никогда в
                       папке, откуда запущена команда. Список, оставленный там
                       прежней версией, копируется один раз и остаётся на
                       месте.</span
-                    >
-                    <span data-l="en"
-                      >In the same FileDO folder,
-                      <code>%LOCALAPPDATA%\FileDO\state\</code> - never in the
-                      folder a command was started from. A list an earlier version
-                      left there is copied once and left where it was.</span
                     >
                     <span data-l="ua"
                       >У тій самій особистій теці FileDO,
@@ -816,14 +828,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                     >
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Пути, размеры и даты изменения файлов, серийный номер тома
-                      и номер файла на томе (чтобы запись относилась только к тому
-                      носителю, на котором сделана): те, что копирование
-                      пропускает как повреждённые; те, что проверка признала
-                      повреждёнными; и те, что проверка уже прочитала без ошибок
-                      (для <code>--resume</code>). Содержимого файлов нет.</span
-                    >
                     <span data-l="en"
                       >File paths, sizes and modification times, the volume serial
                       number and the file's ID on that volume (so an entry applies
@@ -831,6 +835,14 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                       skips as damaged, the files a check found damaged, and the
                       files a check has already read cleanly (for
                       <code>--resume</code>). No file contents.</span
+                    >
+                    <span data-l="ru"
+                      >Пути, размеры и даты изменения файлов, серийный номер тома
+                      и номер файла на томе (чтобы запись относилась только к тому
+                      носителю, на котором сделана): те, что копирование
+                      пропускает как повреждённые; те, что проверка признала
+                      повреждёнными; и те, что проверка уже прочитала без ошибок
+                      (для <code>--resume</code>). Содержимого файлов нет.</span
                     >
                     <span data-l="ua"
                       >Шляхи, розміри й дати зміни файлів, серійний номер тому й
@@ -844,19 +856,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 </tr>
                 <tr>
                   <td>
-                    <span data-l="ru">Тестовые файлы</span
-                    ><span data-l="en">Test files</span
+                    <span data-l="en">Test files</span
+                    ><span data-l="ru">Тестовые файлы</span
                     ><span data-l="ua">Тестові файли</span>
                   </td>
                   <td>
+                    <span data-l="en"
+                      >In the target you gave to the <code>speed</code>,
+                      <code>test</code> or <code>fill</code> commands.</span
+                    >
                     <span data-l="ru"
                       >В том месте, которое вы указали командам
                       <code>speed</code>, <code>test</code> или
                       <code>fill</code>.</span
-                    >
-                    <span data-l="en"
-                      >In the target you gave to the <code>speed</code>,
-                      <code>test</code> or <code>fill</code> commands.</span
                     >
                     <span data-l="ua"
                       >У тому місці, яке ви вказали командам
@@ -865,15 +877,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                     >
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Сгенерированные данные для измерения скорости и проверки
-                      реальной ёмкости. Удаляются командой
-                      <code>clean</code>.</span
-                    >
                     <span data-l="en"
                       >Generated data used to measure speed and to check the real
                       capacity. Removed with the <code>clean</code>
                       command.</span
+                    >
+                    <span data-l="ru"
+                      >Сгенерированные данные для измерения скорости и проверки
+                      реальной ёмкости. Удаляются командой
+                      <code>clean</code>.</span
                     >
                     <span data-l="ua"
                       >Згенеровані дані для вимірювання швидкості та перевірки
@@ -884,11 +896,20 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 </tr>
                 <tr>
                   <td>
-                    <span data-l="ru">Раскрытая копия, копия от «Unsecure and start»</span
-                    ><span data-l="en">A revealed copy, and an "Unsecure and start" copy</span
-                    ><span data-l="ua">Розкрита копія, копія від «Unsecure and start»</span>
+                    <span data-l="en">A revealed copy, and an <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>"Unsecure and start" copy</span
+                    ><span data-l="ru">Раскрытая копия, копия от <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>«Unsecure and start»</span
+                    ><span data-l="ua">Розкрита копія, копія від <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>«Unsecure and start»</span>
                   </td>
                   <td>
+                    <span data-l="en"
+                      >In <code>%LOCALAPPDATA%\FileDO\reveal\</code>, in its own
+                      directory with a random name. Its access list names this
+                      account and the system only, and the copy itself is
+                      read-only. The copy <code>unsecure start</code> writes -
+                      the double-click on a container - sits in the same folder
+                      under the same access list, but stays an ordinary file:
+                      it is your own file, just unpacked.</span
+                    >
                     <span data-l="ru"
                       >В <code>%LOCALAPPDATA%\FileDO\reveal\</code>, в отдельной
                       папке со случайным именем. Права доступа выставлены так,
@@ -898,15 +919,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                       контейнеру), лежит в той же папке и с теми же правами, но
                       остаётся обычным файлом: это ваш файл, который вы только
                       что распаковали.</span
-                    >
-                    <span data-l="en"
-                      >In <code>%LOCALAPPDATA%\FileDO\reveal\</code>, in its own
-                      directory with a random name. Its access list names this
-                      account and the system only, and the copy itself is
-                      read-only. The copy <code>unsecure start</code> writes -
-                      the double-click on a container - sits in the same folder
-                      under the same access list, but stays an ordinary file:
-                      it is your own file, just unpacked.</span
                     >
                     <span data-l="ua"
                       >У <code>%LOCALAPPDATA%\FileDO\reveal\</code>, в окремій
@@ -920,6 +932,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                     >
                   </td>
                   <td>
+                    <span data-l="en"
+                      >The contents of the <code>.fd-sec</code> container you
+                      opened, in the clear, for as long as it is open. The copy
+                      goes when you say so, or when the program that opened it
+                      lets go; after a power loss it stays until the next FileDO
+                      start, which sweeps it. An <code>unsecure start</code> copy
+                      goes when the console window closes, or - if the program
+                      still has it open then - at the next FileDO start. Nothing
+                      of it leaves the machine.</span
+                    >
                     <span data-l="ru"
                       >Содержимое контейнера <code>.fd-sec</code>, который вы
                       открыли - в открытом виде, столько, сколько он открыт. Копия
@@ -930,16 +952,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                       окно консоли, а если программа всё ещё держит её открытой -
                       при следующем запуске FileDO. Наружу ничего не
                       уходит.</span
-                    >
-                    <span data-l="en"
-                      >The contents of the <code>.fd-sec</code> container you
-                      opened, in the clear, for as long as it is open. The copy
-                      goes when you say so, or when the program that opened it
-                      lets go; after a power loss it stays until the next FileDO
-                      start, which sweeps it. An <code>unsecure start</code> copy
-                      goes when the console window closes, or - if the program
-                      still has it open then - at the next FileDO start. Nothing
-                      of it leaves the machine.</span
                     >
                     <span data-l="ua"
                       >Вміст контейнера <code>.fd-sec</code>, який ви відкрили -
@@ -956,16 +968,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <tr>
                   <td><code>%LOCALAPPDATA%\FileDO\runs</code></td>
                   <td>
-                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
                     <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
                     <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\runs\</code>.</span>
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Временные файлы потока событий для текущих операций в графическом интерфейсе. Хранятся 7 дней, удаляются при запуске программы.</span
-                    >
                     <span data-l="en"
                       >Temporary event stream files for tracking active operations in the GUI. Kept for 7 days, swept on startup.</span
+                    >
+                    <span data-l="ru"
+                      >Временные файлы потока событий для текущих операций в графическом интерфейсе. Хранятся 7 дней, удаляются при запуске программы.</span
                     >
                     <span data-l="ua"
                       >Тимчасові файли потоку подій для відстеження поточних операцій у графічному інтерфейсі. Зберігаються 7 днів, видаляються під час запуску програми.</span
@@ -975,16 +987,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <tr>
                   <td><code>%LOCALAPPDATA%\FileDO\reports</code></td>
                   <td>
-                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
                     <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
                     <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\reports\</code>.</span>
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Структурированные JSON-отчёты о завершённых операциях и вердиктах. Хранятся 30 дней, удаляются при запуске программы.</span
-                    >
                     <span data-l="en"
                       >Structured JSON run reports of completed operations and verdicts. Kept for 30 days, swept on startup.</span
+                    >
+                    <span data-l="ru"
+                      >Структурированные JSON-отчёты о завершённых операциях и вердиктах. Хранятся 30 дней, удаляются при запуске программы.</span
                     >
                     <span data-l="ua"
                       >Структуровані JSON-звіти про завершені операції та вердикти. Зберігаються 30 днів, видаляються під час запуску програми.</span
@@ -994,16 +1006,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <tr>
                   <td><code>vdisk-state.json</code>, <code>vdisk.log</code></td>
                   <td>
-                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
                     <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
                     <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Виртуальные диски <code>.fdd</code>: короткие имена, которые вы дали контейнерам (<code>vd add</code>), их пути, что подключено сейчас, и журнал подключений и отключений; пока диск подключён, рядом лежат его служебные файлы. Пароль контейнера сюда никогда не пишется. Блочный сервер подключённого диска слушает только адрес 127.0.0.1: содержимое передаётся по сети только при отдельно включённом шаринге через Fast Media Sorter &amp; Sharing.</span
-                    >
                     <span data-l="en"
                       >Virtual disks (<code>.fdd</code>): the short names you gave containers (<code>vd add</code>), their paths, what is mounted now, and a log of mounts and unmounts; while a disk is mounted, its working files sit beside them. A container's password is never written here. The block server of a mounted disk listens on 127.0.0.1 only: file contents are served over the network only when you separately enable sharing through Fast Media Sorter &amp; Sharing.</span
+                    >
+                    <span data-l="ru"
+                      >Виртуальные диски <code>.fdd</code>: короткие имена, которые вы дали контейнерам (<code>vd add</code>), их пути, что подключено сейчас, и журнал подключений и отключений; пока диск подключён, рядом лежат его служебные файлы. Пароль контейнера сюда никогда не пишется. Блочный сервер подключённого диска слушает только адрес 127.0.0.1: содержимое передаётся по сети только при отдельно включённом шаринге через Fast Media Sorter &amp; Sharing.</span
                     >
                     <span data-l="ua"
                       >Віртуальні диски <code>.fdd</code>: короткі імена, які ви дали контейнерам (<code>vd add</code>), їхні шляхи, що підключено зараз, і журнал підключень та відключень; поки диск підключений, поруч лежать його службові файли. Пароль контейнера сюди ніколи не пишеться. Блоковий сервер підключеного диска слухає лише адресу 127.0.0.1: вміст передається мережею лише при окремо ввімкненому доступі через Fast Media Sorter &amp; Sharing.</span
@@ -1013,16 +1025,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <tr>
                   <td><code>vdisk-shared.json</code></td>
                   <td>
-                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
                     <span data-l="en">In <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
+                    <span data-l="ru">В <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
                     <span data-l="ua">У <code>%LOCALAPPDATA%\FileDO\state\</code>.</span>
                   </td>
                   <td>
-                    <span data-l="ru"
-                      >Диски, к которым вы открыли общий доступ через Fast Media Sorter for Windows: путь к контейнеру, имя папки, под которым он доступен, отметки «только чтение» и «автозапуск». Пароль сюда никогда не пишется.</span
-                    >
                     <span data-l="en"
                       >Disks you shared with Fast Media Sorter for Windows: the container's path, the folder name it is shared under, the read-only and autostart marks. A password is never written here.</span
+                    >
+                    <span data-l="ru"
+                      >Диски, к которым вы открыли общий доступ через Fast Media Sorter for Windows: путь к контейнеру, имя папки, под которым он доступен, отметки «только чтение» и «автозапуск». Пароль сюда никогда не пишется.</span
                     >
                     <span data-l="ua"
                       >Диски, до яких ви відкрили спільний доступ через Fast Media Sorter for Windows: шлях до контейнера, ім'я теки, під яким він доступний, позначки «лише читання» й «автозапуск». Пароль сюди ніколи не пишеться.</span
@@ -1033,24 +1045,24 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </div>
           <div class="note">
             <span class="tag"
-              ><span data-l="ru">Как выключить журнал</span
               ><span data-l="en">Turning the log off</span
+              ><span data-l="ru">Как выключить журнал</span
               ><span data-l="ua">Як вимкнути журнал</span></span
             >
             <p>
-              <span data-l="ru"
-                >Добавьте к команде <code>nohist</code> (или
-                <code>no_history</code>) - и запуск не будет записан в
-                <code>history.json</code> вообще. Если файл недоступен для
-                записи, FileDO просто не ведёт журнал и продолжает работу. Сам
-                файл можно удалить в любой момент.</span
-              >
               <span data-l="en"
                 >Add <code>nohist</code> (or <code>no_history</code>) to the
                 command and the run is not recorded in
                 <code>history.json</code> at all. If the file cannot be written,
                 FileDO simply keeps no log and carries on. You can delete the
                 file at any time.</span
+              >
+              <span data-l="ru"
+                >Добавьте к команде <code>nohist</code> (или
+                <code>no_history</code>) - и запуск не будет записан в
+                <code>history.json</code> вообще. Если файл недоступен для
+                записи, FileDO просто не ведёт журнал и продолжает работу. Сам
+                файл можно удалить в любой момент.</span
               >
               <span data-l="ua"
                 >Додайте до команди <code>nohist</code> (або
@@ -1068,25 +1080,25 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">04</span>
-            <span data-l="ru">Если вы сами отправляете логи автору</span
-            ><span data-l="en">If you choose to send the logs to the author</span
+            <span data-l="en">If you choose to send the logs to the author</span
+            ><span data-l="ru">Если вы сами отправляете логи автору</span
             ><span data-l="ua">Якщо ви самі надсилаєте логи автору</span>
           </h2>
           <p>
-            <span data-l="ru"
-              >В окне «О программе» есть кнопка «Отправить логи автору». Это
-              единственное место в программе, откуда данные могут покинуть вашу
-              машину - и только вашими руками. Автоматически, по таймеру или при
-              ошибке она не срабатывает никогда.</span
-            >
             <span data-l="en"
-              >The About window carries a Send logs to the author button. It is
+              >The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About window carries a <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Send logs to the author button. It is
               the only place in the program from which data can leave your
               machine - and only by your own hand. It never fires automatically,
               on a timer, or on a failure.</span
             >
+            <span data-l="ru"
+              >В окне <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«О программе» есть кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>«Отправить логи автору». Это
+              единственное место в программе, откуда данные могут покинуть вашу
+              машину - и только вашими руками. Автоматически, по таймеру или при
+              ошибке она не срабатывает никогда.</span
+            >
             <span data-l="ua"
-              >У вікні «Про програму» є кнопка «Надіслати логи автору». Це єдине
+              >У вікні <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Про програму» є кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>«Надіслати логи автору». Це єдине
               місце в програмі, звідки дані можуть покинути вашу машину - і лише
               вашими руками. Автоматично, за таймером або під час помилки вона не
               спрацьовує ніколи.</span
@@ -1094,29 +1106,29 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </p>
           <ul>
             <li>
-              <span data-l="ru"><b>Что собирается.</b> Очищенные текстовые журналы и отчёты FileDO из папки программы и <code>%LOCALAPPDATA%\FileDO</code>, включая папку <code>state</code>. История операций, JSON-отчёты и списки файлов не включаются. <code>environment.txt</code> содержит сведения о сборке, Windows, языке и числе журналов; <code>filedo-report.txt</code> перечисляет нейтральные имена файлов в архиве. Архивы старше семи дней удаляются при следующей отправке.</span>
               <span data-l="en"><b>What is collected.</b> Sanitized FileDO text logs and reports from the program folder and <code>%LOCALAPPDATA%\FileDO</code>, including its <code>state</code> folder. Operation history, JSON reports and file lists are excluded. <code>environment.txt</code> holds build, Windows, language and log-count facts; <code>filedo-report.txt</code> lists neutral archive entry names. Archives older than seven days are removed at the next export.</span>
+              <span data-l="ru"><b>Что собирается.</b> Очищенные текстовые журналы и отчёты FileDO из папки программы и <code>%LOCALAPPDATA%\FileDO</code>, включая папку <code>state</code>. История операций, JSON-отчёты и списки файлов не включаются. <code>environment.txt</code> содержит сведения о сборке, Windows, языке и числе журналов; <code>filedo-report.txt</code> перечисляет нейтральные имена файлов в архиве. Архивы старше семи дней удаляются при следующей отправке.</span>
               <span data-l="ua"><b>Що збирається.</b> Очищені текстові журнали та звіти FileDO з теки програми та <code>%LOCALAPPDATA%\FileDO</code>, включно з текою <code>state</code>. Історія операцій, JSON-звіти та списки файлів не включаються. <code>environment.txt</code> містить відомості про збірку, Windows, мову та кількість журналів; <code>filedo-report.txt</code> перелічує нейтральні імена файлів в архіві. Архіви, старші за сім днів, видаляються під час наступного експорту.</span>
             </li>
             <li>
-              <span data-l="ru"><b>Очистка перед упаковкой.</b> Строки с учётными данными, URL и абсолютными путями заменяются на <code>[REDACTED]</code>; блоки приватных ключей удаляются целиком. Исходные журналы на диске не изменяются. Произвольный текст может содержать личные сведения, поэтому проверьте архив перед отправкой.</span>
               <span data-l="en"><b>Sanitization before packing.</b> Lines containing credentials, URLs and absolute paths become <code>[REDACTED]</code>; private-key blocks are removed in full. Original logs on disk stay unchanged. Free text can contain personal details, so review the archive before sending it.</span>
+              <span data-l="ru"><b>Очистка перед упаковкой.</b> Строки с учётными данными, URL и абсолютными путями заменяются на <code>[REDACTED]</code>; блоки приватных ключей удаляются целиком. Исходные журналы на диске не изменяются. Произвольный текст может содержать личные сведения, поэтому проверьте архив перед отправкой.</span>
               <span data-l="ua"><b>Очищення перед пакуванням.</b> Рядки з обліковими даними, URL та абсолютними шляхами замінюються на <code>[REDACTED]</code>; блоки приватних ключів видаляються цілком. Початкові журнали на диску не змінюються. Довільний текст може містити особисті відомості, тому перевірте архів перед надсиланням.</span>
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Вы видите архив первым.</b> Zip складывается в
-                <code>%TEMP%\FileDO_Logs\</code>, папка открывается с выделенным
-                файлом, а полный путь копируется в буфер обмена. Откройте его,
-                уберите всё лишнее или просто удалите - на этом всё и
-                закончится.</span
-              >
               <span data-l="en"
                 ><b>You see the archive first.</b> The zip is written to
                 <code>%TEMP%\FileDO_Logs\</code>, the folder opens with the file
                 selected, and the full path goes to your clipboard. Open it,
                 strip anything you would rather not share, or simply delete it -
                 and that is the end of it.</span
+              >
+              <span data-l="ru"
+                ><b>Вы видите архив первым.</b> Zip складывается в
+                <code>%TEMP%\FileDO_Logs\</code>, папка открывается с выделенным
+                файлом, а полный путь копируется в буфер обмена. Откройте его,
+                уберите всё лишнее или просто удалите - на этом всё и
+                закончится.</span
               >
               <span data-l="ua"
                 ><b>Ви бачите архів першим.</b> Zip складається в
@@ -1127,19 +1139,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Отправляете вы, а не программа.</b> FileDO открывает вашу
-                почтовую программу с адресом автора, темой и заготовкой письма.
-                Архив вы прикладываете сами, письмо отправляете сами и своей
-                учётной записью. У FileDO нет ни сервера, ни собственной
-                отправки почты, ни сетевых запросов - и здесь тоже.</span
-              >
               <span data-l="en"
                 ><b>You send it, not the program.</b> FileDO opens your own mail
                 program with the author's address, a subject and a draft body.
                 You attach the archive yourself and send the mail yourself, from
                 your own account. FileDO has no server, no mail sending of its
                 own and no network requests - here as everywhere else.</span
+              >
+              <span data-l="ru"
+                ><b>Отправляете вы, а не программа.</b> FileDO открывает вашу
+                почтовую программу с адресом автора, темой и заготовкой письма.
+                Архив вы прикладываете сами, письмо отправляете сами и своей
+                учётной записью. У FileDO нет ни сервера, ни собственной
+                отправки почты, ни сетевых запросов - и здесь тоже.</span
               >
               <span data-l="ua"
                 ><b>Надсилаєте ви, а не програма.</b> FileDO відкриває вашу
@@ -1150,16 +1162,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Что происходит с присланным.</b> Письмо приходит на личную
-                почту автора и используется только для разбора вашей проблемы. Ни
-                в какую базу, аналитику или третьи руки оно не попадает.</span
-              >
               <span data-l="en"
                 ><b>What happens to what you send.</b> The mail arrives in the
                 author's personal mailbox and is used only to work out your
                 problem. It goes into no database, no analytics and no third
                 party's hands.</span
+              >
+              <span data-l="ru"
+                ><b>Что происходит с присланным.</b> Письмо приходит на личную
+                почту автора и используется только для разбора вашей проблемы. Ни
+                в какую базу, аналитику или третьи руки оно не попадает.</span
               >
               <span data-l="ua"
                 ><b>Що відбувається з надісланим.</b> Лист надходить на особисту
@@ -1175,13 +1187,20 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">05</span>
-            <span data-l="ru">Права, удаление данных и внешние программы</span
-            ><span data-l="en"
+            <span data-l="en"
               >Permissions, data destruction and external programs</span
+            ><span data-l="ru">Права, удаление данных и внешние программы</span
             ><span data-l="ua">Права, видалення даних і зовнішні програми</span>
           </h2>
           <ul>
             <li>
+              <span data-l="en"
+                ><b>FileDO never elevates silently.</b> It runs with whatever
+                rights you already have. Two drive-repair jobs in the window
+                ask Windows for administrator rights for that one run, and you
+                see the prompt. Terminal operations that require elevated rights
+                are started as an administrator by you deliberately.</span
+              >
               <span data-l="ru"
                 ><b>FileDO никогда не повышает права молча.</b> Программа
                 работает с теми правами, которые есть у вас. Два задания
@@ -1190,13 +1209,6 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 стандартный запрос UAC. Запустить терминал от имени
                 администратора для операций в командной строке вы можете
                 сами.</span
-              >
-              <span data-l="en"
-                ><b>FileDO never elevates silently.</b> It runs with whatever
-                rights you already have. Two drive-repair jobs in the window
-                ask Windows for administrator rights for that one run, and you
-                see the prompt. Terminal operations that require elevated rights
-                are started as an administrator by you deliberately.</span
               >
               <span data-l="ua"
                 ><b>FileDO ніколи не підвищує права мовчки.</b> Програма
@@ -1208,19 +1220,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Полный доступ к рабочему столу (runFullTrust).</b> Версия из
-                Microsoft Store объявляет это разрешение - оно нужно, чтобы
-                обращаться к диску напрямую и измерять реальную скорость и
-                ёмкость. Другие разрешения, включая доступ в интернет, пакет не
-                объявляет.</span
-              >
               <span data-l="en"
                 ><b>Full-trust desktop access (runFullTrust).</b> The Microsoft
                 Store build declares this one capability, because reading and
                 writing the drive directly is what speed and capacity testing
                 are. The package declares no other capability - internet access
                 included.</span
+              >
+              <span data-l="ru"
+                ><b>Полный доступ к рабочему столу (runFullTrust).</b> Версия из
+                Microsoft Store объявляет это разрешение - оно нужно, чтобы
+                обращаться к диску напрямую и измерять реальную скорость и
+                ёмкость. Другие разрешения, включая доступ в интернет, пакет не
+                объявляет.</span
               >
               <span data-l="ua"
                 ><b>Повний доступ до робочого столу (runFullTrust).</b> Версія з
@@ -1231,16 +1243,32 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Команды <code>wipe</code> и <code>fill</code> уничтожают
-                  данные - в этом их смысл.</b>
-                Они всегда спрашивают подтверждение и никогда не выполняются
-                молча над корнем диска, точками соединения (junction, symlink) и
-                системной папкой TEMP. Записи на диск <code>C:</code> по
-                умолчанию перенаправляются в
-                <code>%TEMP%\FileDO_Operations</code> - тоже с вашим
-                подтверждением.</span
+              <span data-l="en"
+                ><b>Disk sharing and autostart keys.</b> Sharing is off by
+                default. When you share a disk through Fast Media Sorter, the
+                devices paired with it can read the disk while it stays open.
+                The autostart password of an encrypted disk is kept on this
+                computer, protected for that program, only if you turn autostart
+                on.</span
               >
+              <span data-l="ru"
+                ><b>Общий доступ к дискам и ключи автозапуска.</b> Общий доступ
+                выключен по умолчанию. Когда вы открываете диск через Fast Media
+                Sorter, связанные с ней устройства могут читать его, пока он
+                открыт. Пароль автозапуска зашифрованного диска хранится на этом
+                компьютере только если вы включили автозапуск, и защищён для той
+                программы.</span
+              >
+              <span data-l="ua"
+                ><b>Спільний доступ до дисків і ключі автозапуску.</b> Спільний
+                доступ вимкнено за замовчуванням. Коли ви відкриваєте диск через
+                Fast Media Sorter, пов'язані з нею пристрої можуть читати його,
+                поки він відкритий. Пароль автозапуску зашифрованого диска
+                зберігається на цьому комп'ютері, захищений для тієї програми,
+                лише якщо ви ввімкнули автозапуск.</span
+              >
+            </li>
+            <li>
               <span data-l="en"
                 ><b
                   >The <code>wipe</code> and <code>fill</code> commands destroy
@@ -1251,6 +1279,16 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 TEMP folder. Writes aimed at <code>C:</code> are by default
                 redirected into <code>%TEMP%\FileDO_Operations</code> - again,
                 only after you confirm.</span
+              >
+              <span data-l="ru"
+                ><b>Команды <code>wipe</code> и <code>fill</code> уничтожают
+                  данные - в этом их смысл.</b>
+                Они всегда спрашивают подтверждение и никогда не выполняются
+                молча над корнем диска, точками соединения (junction, symlink) и
+                системной папкой TEMP. Записи на диск <code>C:</code> по
+                умолчанию перенаправляются в
+                <code>%TEMP%\FileDO_Operations</code> - тоже с вашим
+                подтверждением.</span
               >
               <span data-l="ua"
                 ><b
@@ -1265,6 +1303,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
+              <span data-l="en"
+                ><b>FileDO sometimes launches built-in Windows programs.</b>
+                While recovering a drive (<code>probe</code>) it may call
+                <code>chkdsk</code>, <code>format</code> or PowerShell's
+                <code>Format-Volume</code> against the drive you named. And if
+                you hand the <code>from</code> command a file listing commands,
+                FileDO runs those lines - including lines that start other
+                programs. What runs is exactly what you wrote. In the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About window
+                the links open in your browser, and the send-logs button opens
+                Explorer and your mail program - only once you have pressed
+                it.</span
+              >
               <span data-l="ru"
                 ><b>Иногда FileDO запускает системные программы Windows.</b> При
                 восстановлении носителя (<code>probe</code>) он может вызвать
@@ -1273,21 +1323,9 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 вы передаёте команде <code>from</code> файл со списком команд,
                 FileDO выполнит строки из него - в том числе строки, которые
                 запускают другие программы. Запускается ровно то, что вы
-                написали. В окне «О программе» ссылки открываются вашим браузером,
+                написали. В окне <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«О программе» ссылки открываются вашим браузером,
                 а кнопка отправки логов открывает Проводник и вашу почтовую
                 программу - и только когда вы её нажали.</span
-              >
-              <span data-l="en"
-                ><b>FileDO sometimes launches built-in Windows programs.</b>
-                While recovering a drive (<code>probe</code>) it may call
-                <code>chkdsk</code>, <code>format</code> or PowerShell's
-                <code>Format-Volume</code> against the drive you named. And if
-                you hand the <code>from</code> command a file listing commands,
-                FileDO runs those lines - including lines that start other
-                programs. What runs is exactly what you wrote. In the About window
-                the links open in your browser, and the send-logs button opens
-                Explorer and your mail program - only once you have pressed
-                it.</span
               >
               <span data-l="ua"
                 ><b>Іноді FileDO запускає системні програми Windows.</b> Під час
@@ -1296,7 +1334,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <code>Format-Volume</code> для диска, який ви назвали. А якщо ви
                 передаєте команді <code>from</code> файл зі списком команд,
                 FileDO виконає рядки з нього - зокрема рядки, що запускають інші
-                програми. Запускається саме те, що ви написали. У вікні «Про
+                програми. Запускається саме те, що ви написали. У вікні <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Про
                 програму» посилання відкриваються вашим браузером, а кнопка
                 надсилання логів відкриває Проводник і вашу поштову програму - і
                 тільки коли ви її натиснули.</span
@@ -1310,22 +1348,22 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">06</span>
-            <span data-l="ru">Этот сайт</span
-            ><span data-l="en">This website</span
+            <span data-l="en">This website</span
+            ><span data-l="ru">Этот сайт</span
             ><span data-l="ua">Цей сайт</span>
           </h2>
           <p>
-            <span data-l="ru"
-              >Сказанное выше относится к программе. Сайт - это отдельная
-              история, и честно будет назвать её тоже. Сайт не ставит счётчиков,
-              не показывает рекламы и не использует cookie, но при открытии
-              страницы ваш браузер обращается к трём внешним адресам:</span
-            >
             <span data-l="en"
               >Everything above describes the app. The website is a separate
               matter, and it is only fair to name it too. The site sets no
               analytics, shows no ads and uses no cookies, but opening a page
               does make your browser reach three outside addresses:</span
+            >
+            <span data-l="ru"
+              >Сказанное выше относится к программе. Сайт - это отдельная
+              история, и честно будет назвать её тоже. Сайт не ставит счётчиков,
+              не показывает рекламы и не использует cookie, но при открытии
+              страницы ваш браузер обращается к трём внешним адресам:</span
             >
             <span data-l="ua"
               >Сказане вище стосується програми. Сайт - це окрема історія, і
@@ -1336,15 +1374,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </p>
           <ul>
             <li>
-              <span data-l="ru"
-                ><b>GitHub Pages</b> - здесь размещён сам сайт. GitHub, как любой
-                веб-хостинг, видит обращения к страницам; это регулируется
-                политикой конфиденциальности GitHub.</span
-              >
               <span data-l="en"
                 ><b>GitHub Pages</b> - the site is hosted there. GitHub, like any
                 web host, sees the requests for these pages; that is governed by
                 GitHub's own privacy statement.</span
+              >
+              <span data-l="ru"
+                ><b>GitHub Pages</b> - здесь размещён сам сайт. GitHub, как любой
+                веб-хостинг, видит обращения к страницам; это регулируется
+                политикой конфиденциальности GitHub.</span
               >
               <span data-l="ua"
                 ><b>GitHub Pages</b> - тут розміщено сам сайт. GitHub, як і
@@ -1353,14 +1391,14 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>Google Fonts</b> - страница подгружает шрифты с
-                <code>fonts.googleapis.com</code> и
-                <code>fonts.gstatic.com</code>.</span
-              >
               <span data-l="en"
                 ><b>Google Fonts</b> - the page loads its typefaces from
                 <code>fonts.googleapis.com</code> and
+                <code>fonts.gstatic.com</code>.</span
+              >
+              <span data-l="ru"
+                ><b>Google Fonts</b> - страница подгружает шрифты с
+                <code>fonts.googleapis.com</code> и
                 <code>fonts.gstatic.com</code>.</span
               >
               <span data-l="ua"
@@ -1370,15 +1408,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru"
-                ><b>GitHub API</b> - главная страница запрашивает у
-                <code>api.github.com</code> адрес последнего релиза, чтобы
-                кнопка загрузки вела на свежую версию.</span
-              >
               <span data-l="en"
                 ><b>GitHub API</b> - the landing page asks
                 <code>api.github.com</code> for the latest release so that the
                 download button points at the current version.</span
+              >
+              <span data-l="ru"
+                ><b>GitHub API</b> - главная страница запрашивает у
+                <code>api.github.com</code> адрес последнего релиза, чтобы
+                кнопка загрузки вела на свежую версию.</span
               >
               <span data-l="ua"
                 ><b>GitHub API</b> - головна сторінка запитує в
@@ -1388,17 +1426,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             </li>
           </ul>
           <p>
-            <span data-l="ru"
-              >Как и при любом запросе в интернете, этим сервисам виден ваш
-              IP-адрес и данные браузера. Выбор языка и темы оформления
-              сохраняются локально в вашем браузере и никуда не отправляются.
-              Установленная программа ничего из этого не делает.</span
-            >
             <span data-l="en"
               >As with any request on the internet, those services see your IP
               address and browser details. Your language and theme choices are
               stored locally in your browser and are never sent anywhere. The
               installed app does none of this.</span
+            >
+            <span data-l="ru"
+              >Как и при любом запросе в интернете, этим сервисам виден ваш
+              IP-адрес и данные браузера. Выбор языка и темы оформления
+              сохраняются локально в вашем браузере и никуда не отправляются.
+              Установленная программа ничего из этого не делает.</span
             >
             <span data-l="ua"
               >Як і за будь-якого запиту в інтернеті, цим сервісам видно вашу
@@ -1414,18 +1452,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="container">
           <h2>
             <span class="secnum">07</span>
-            <span data-l="ru">Дети, изменения и связь с автором</span
-            ><span data-l="en">Children, changes and contact</span
+            <span data-l="en">Children, changes and contact</span
+            ><span data-l="ru">Дети, изменения и связь с автором</span
             ><span data-l="ua">Діти, зміни та зв'язок з автором</span>
           </h2>
           <p>
-            <span data-l="ru"
-              >FileDO - инструмент для работы с накопителями, он не предназначен
-              для детей и не собирает данные ни о ком, включая детей.</span
-            >
             <span data-l="en"
               >FileDO is a storage tool. It is not directed at children, and it
               collects no data about anyone, children included.</span
+            >
+            <span data-l="ru"
+              >FileDO - инструмент для работы с накопителями, он не предназначен
+              для детей и не собирает данные ни о ком, включая детей.</span
             >
             <span data-l="ua"
               >FileDO - інструмент для роботи з носіями, він не призначений для
@@ -1433,15 +1471,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             >
           </p>
           <p>
-            <span data-l="ru"
-              >Если эта политика изменится, обновлённая версия появится на этой
-              же странице с новой датой вступления в силу. История правок
-              открыта в репозитории.</span
-            >
             <span data-l="en"
               >If this policy changes, the new version appears on this same page
               with a new effective date. The full edit history is public in the
               repository.</span
+            >
+            <span data-l="ru"
+              >Если эта политика изменится, обновлённая версия появится на этой
+              же странице с новой датой вступления в силу. История правок
+              открыта в репозитории.</span
             >
             <span data-l="ua"
               >Якщо ця політика зміниться, оновлена версія з'явиться на цій самій
@@ -1450,19 +1488,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             >
           </p>
           <p>
-            <span data-l="ru">Вопросы о конфиденциальности - автору напрямую:</span
-            ><span data-l="en">Privacy questions go straight to the author:</span
+            <span data-l="en">Privacy questions go straight to the author:</span
+            ><span data-l="ru">Вопросы о конфиденциальности - автору напрямую:</span
             ><span data-l="ua">Питання щодо конфіденційності - автору напряму:</span>
           </p>
           <ul>
             <li>
-              <span data-l="ru">Почта:</span><span data-l="en">Email:</span
-              ><span data-l="ua">Пошта:</span>
+              <span data-l="en">Email:</span
+              ><span data-l="ru">Почта:</span><span data-l="ua">Пошта:</span>
               <a href="mailto:sza@ukr.net">sza@ukr.net</a>
             </li>
             <li>
-              <span data-l="ru">Issues в репозитории:</span
-              ><span data-l="en">Repository issues:</span
+              <span data-l="en">Repository issues:</span
+              ><span data-l="ru">Issues в репозитории:</span
               ><span data-l="ua">Issues у репозиторії:</span>
               <a
                 href="https://github.com/SerZhyAle/FileDO/issues"
@@ -1472,8 +1510,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               >
             </li>
             <li>
-              <span data-l="ru">Исходный код и лицензия MIT:</span
-              ><span data-l="en">Source code and the MIT license:</span
+              <span data-l="en">Source code and the MIT license:</span
+              ><span data-l="ru">Исходный код и лицензия MIT:</span
               ><span data-l="ua">Вихідний код і ліцензія MIT:</span>
               <a
                 href="https://github.com/SerZhyAle/FileDO"
@@ -1490,13 +1528,13 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
     <footer class="site-footer">
       <div class="container">
         <p class="footer-tools-title" id="footerToolsTitle">
-          <span data-l="ru">Другие инструменты SZA</span
-          ><span data-l="en">More tools by SZA</span
+          <span data-l="en">More tools by SZA</span
+          ><span data-l="ru">Другие инструменты SZA</span
           ><span data-l="ua">Інші інструменти SZA</span>
         </p>
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
           <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
-          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
           ><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a
           ><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
           ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>STREAMS Player</b><span>Windows stream player</span></a
@@ -1506,13 +1544,14 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         </nav>
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="./"
-              ><span data-l="ru">FileDO</span><span data-l="en">FileDO</span
-              ><span data-l="ua">FileDO</span></a
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="./"
+              ><span data-l="en">FileDO</span
+              ><span data-l="ru">FileDO</span><span data-l="ua">FileDO</span></a
             >
-            · <a href="guides/support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a>
+            · <a href="guides/support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a>
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -1527,8 +1566,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             alt: "Логотип и название FileDO с английским девизом Know your storage before you trust it на тёмно-зелёном фоне",
           },
           en: {
-            t: "FileDO privacy - no network, no telemetry, no accounts",
-            d: "FileDO runs entirely on your device: nothing sent anywhere, no telemetry, no accounts. What it reads, what it writes locally, and how to control it.",
+            t: "FileDO privacy - local-only processing without analytics",
+            d: "FileDO processes data locally on your device without analytics or tracking. What it reads, what it writes locally, and how to control it.",
             alt: "FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background",
           },
           ua: {
@@ -1541,7 +1580,17 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           if (l !== "ru" && l !== "en" && l !== "ua") l = "en";
           document.documentElement.dataset.lang = l;
           document.documentElement.lang = l === "ua" ? "uk" : l;
-          localStorage.setItem("sza-lang", l);
+          try {
+            localStorage.setItem("sza-lang", l);
+            if (window.history && history.replaceState) {
+              var u = new URL(location.href);
+              var code = l === "ua" ? "uk" : l;
+              if (u.searchParams.get("lang") !== code) {
+                u.searchParams.set("lang", code);
+                history.replaceState(null, "", u.toString());
+              }
+            }
+          } catch (e) {}
           document.querySelectorAll("[data-set-lang]").forEach(function (b) {
             b.setAttribute("aria-pressed", String(b.dataset.setLang === l));
           });
@@ -1595,5 +1644,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         };
       })();
     </script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

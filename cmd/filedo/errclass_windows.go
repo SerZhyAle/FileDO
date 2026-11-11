@@ -52,6 +52,7 @@ const (
 	errFileNotFound          syscall.Errno = 2
 	errPathNotFound          syscall.Errno = 3
 	errAccessDenied          syscall.Errno = 5
+	errInvalidDrive          syscall.Errno = 15
 	errWriteProtect          syscall.Errno = 19
 	errNotReady              syscall.Errno = 21
 	errCRC                   syscall.Errno = 23
@@ -99,7 +100,7 @@ var deviceErrnos = map[syscall.Errno]bool{
 
 var environmentErrnos = map[syscall.Errno]bool{
 	errFileNotFound: true, errPathNotFound: true, errAccessDenied: true,
-	errWriteProtect: true, errNotReady: true, errSharingViolation: true,
+	errInvalidDrive: true, errWriteProtect: true, errNotReady: true, errSharingViolation: true,
 	errLockViolation: true, errHandleDiskFull: true, errBadNetPath: true,
 	errNetworkBusy: true, errDevNotExist: true, errUnexpNetErr: true,
 	errNetnameDeleted: true, errNetworkAccessDenied: true, errBadNetName: true,
@@ -156,6 +157,21 @@ func isDiskFullError(err error) bool {
 	var errno syscall.Errno
 	return errors.As(err, &errno) && (errno == errDiskFull || errno == errHandleDiskFull)
 }
+
+// fileInUseErrno is the sharing or lock violation in err's chain, or 0: a file
+// the run needed is open in another program (CLI-EVENT-STREAM rule 17,
+// file-in-use). The errno is returned alone, so a caller can wrap it without
+// the path that the failing call's error carries.
+func fileInUseErrno(err error) syscall.Errno {
+	var errno syscall.Errno
+	if errors.As(err, &errno) && (errno == errSharingViolation || errno == errLockViolation) {
+		return errno
+	}
+	return 0
+}
+
+// isFileInUseError: see fileInUseErrno.
+func isFileInUseError(err error) bool { return fileInUseErrno(err) != 0 }
 
 // errRunStopped is the typed "the user asked to stop" an operation returns
 // when it noticed the stop itself rather than through a context.

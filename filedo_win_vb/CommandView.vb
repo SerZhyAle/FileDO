@@ -65,6 +65,9 @@ Public Class CommandView
     Private flagsFlow As FlowLayoutPanel
     Private flagCheckShort As CheckBox
     Private flagCheckDel As CheckBox
+    ' `del` was ticked by choosing `fill`, not by the user (SP-0194): it is taken back when another
+    ' operation is chosen, so a verb whose `del` means something else never inherits it.
+    Private delTickedByFill As Boolean = False
     Private flagCheckNoDel As CheckBox
     Private flagCheckMax As CheckBox
     Private flagCheckVerify As CheckBox
@@ -336,6 +339,7 @@ Public Class CommandView
         }
         flagCheckShort = NewFlag("short", "fl_short")
         flagCheckDel = NewFlag("del", "fl_del")
+        AddHandler flagCheckDel.Click, Sub() delTickedByFill = False
         flagCheckNoDel = NewFlag("nodel", "fl_nodel")
         flagCheckMax = NewFlag("max", "fl_max")
         flagCheckVerify = NewFlag("verify", "fl_verify")
@@ -397,7 +401,7 @@ Public Class CommandView
     End Sub
 
     Private Function NewFlag(text As String, helpKey As String) As CheckBox
-        Dim c As New CheckBox With {.Text = text, .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 16, 2), .Visible = False}
+        Dim c As New BooleanOption With {.Text = text, .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 16, 2), .Visible = False}
         c.AccessibleName = text
         tips.SetToolTip(c, L(helpKey))
         AddHandler c.CheckedChanged, Sub() BuildCommandLine()
@@ -453,7 +457,7 @@ Public Class CommandView
         dupListBox.AccessibleName = L("ui_list")
         AddHandler dupListBox.TextChanged, Sub() BuildCommandLine()
 
-        dupQuietCheck = New CheckBox With {.Text = "quiet", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 16, 2)}
+        dupQuietCheck = New BooleanOption With {.Text = "quiet", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 16, 2)}
         tips.SetToolTip(dupQuietCheck, L("shell_dup_quiet"))
         AddHandler dupQuietCheck.CheckedChanged, Sub() BuildCommandLine()
 
@@ -500,7 +504,7 @@ Public Class CommandView
         AddHandler credBox.TextChanged, Sub() CredentialChanged()
         credRow.Controls.Add(credBox, 0, 1)
 
-        credShowCheck = New CheckBox With {.Text = L("shell_cred_show"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 4)}
+        credShowCheck = New BooleanOption With {.Text = L("shell_cred_show"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 4)}
         AddHandler credShowCheck.CheckedChanged,
             Sub()
                 credBox.UseSystemPasswordChar = Not credShowCheck.Checked
@@ -538,7 +542,7 @@ Public Class CommandView
     Private Sub UpdateFdsecNotice()
         Dim op = CredentialVerb(LineArgs())
         If op = "" Then op = CurrentOp()
-        If Not IsFdsecOp(op) Then
+        If Not TakesCredential(op) Then
             fdsecNoticeLabel.Visible = False
             Return
         End If
@@ -557,7 +561,7 @@ Public Class CommandView
         ' A wipe or a delete of the original is confirmed on a console, and a run started from
         ' this window has none: without -y the CLI keeps the original and says so. That is the
         ' safe outcome, not a broken one - but it must not be a surprise.
-        Dim unanswerable = (op = "secure") AndAlso (flagCheckWipe.Checked OrElse flagCheckDel.Checked) AndAlso Not flagCheckForce.Checked
+        Dim unanswerable = (op = "secure") AndAlso Not IsBackupOp(CurrentOp()) AndAlso (flagCheckWipe.Checked OrElse flagCheckDel.Checked) AndAlso Not flagCheckForce.Checked
         If unanswerable Then
             fdsecNoticeLabel.Text = L("shell_cmd_fdsec_needs_y")
             fdsecNoticeLabel.Visible = True
@@ -815,6 +819,11 @@ Public Class CommandView
                 Case "secure", "sec" : Return "secure"
                 Case "unsecure", "uns", "unsec" : Return "unsecure"
                 Case "reveal", "rev" : Return "reveal"
+                Case "restore", "-restore"
+                    ' A restore opens a container only when its archive is one (SP-0198); a
+                    ' sealed backup line reads as `sec`, the word that seals it, further on.
+                    If args.Any(Function(a) a.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)) Then Return "unsecure"
+                    Return ""
                 Case "fdsec", "fds"
                     If i + 1 < args.Count Then
                         Select Case args(i + 1).ToLowerInvariant()
@@ -873,6 +882,11 @@ Public Class CommandView
 
     Friend Sub ShowVerdictForTest(verdict As String)
         ShowVerdict(New Runner.RunResult With {.Verdict = verdict, .ExitCode = 1, .Duration = TimeSpan.Zero})
+    End Sub
+
+    ' A finished run, as the runner would hand it back, drawn on the verdict line.
+    Friend Sub ShowRunResultForTest(res As Runner.RunResult)
+        ShowVerdict(res)
     End Sub
 
     Friend ReadOnly Property VerdictLabelForTest As Label
@@ -1007,6 +1021,7 @@ Public Class CommandView
         AddHandler runBtn.EnabledChanged, Sub() StyleRunButton()
 
         stopBtn = Ui.GlyphCommandButton(L("shell_btn_stop"), GlyphRef.Vocabulary("action.cancel"), Ui.PxPad(Me, 0, 0, 8, 0))
+        stopBtn.ReservedCaptionKeys = New String() {"shell_btn_remove_copy", "shell_btn_end_run_now"}
         stopBtn.Enabled = False
         ' A red button that cannot be pressed is the loudest thing on a page where nothing is
         ' running. Stop looks like Stop while there is something to stop, and like any other
@@ -1091,6 +1106,7 @@ Public Class CommandView
         "cd", "compare", "check",
         "copy", "fastcopy", "synccopy", "balanced", "maxcopy", "smartcopy", "safecopy",
         "wipe", "secure", "unsecure", "reveal", "fdsec info", "fdsec verify",
+        "backup", "backup sec", "restore",
         "from", "hist", "fdsec register", "fdsec unregister", "help"
     }
 
@@ -1100,6 +1116,18 @@ Public Class CommandView
     Private Shared Function IsFdsecOp(op As String) As Boolean
         Return Array.IndexOf(New String() {"secure", "unsecure", "reveal",
                                            "fdsec info", "fdsec verify"}, op) >= 0
+    End Function
+
+    ' The backup pair (SP-0198): "backup" writes a plain zip, "backup sec" the same zip sealed
+    ' into one .fd-sec, "restore" takes either back. Verb-first, like the CLI.
+    Private Shared Function IsBackupOp(op As String) As Boolean
+        Return op = "backup" OrElse op = "backup sec" OrElse op = "restore"
+    End Function
+
+    ' The operations that show the password block: the secret-file verbs, a sealed backup, and a
+    ' restore, whose archive may be a sealed one.
+    Private Shared Function TakesCredential(op As String) As Boolean
+        Return IsFdsecOp(op) OrElse op = "backup sec" OrElse op = "restore"
     End Function
 
     ' The verbs written "<target> <verb>"; everything else in Operations is verb-first.
@@ -1135,7 +1163,7 @@ Public Class CommandView
     Private Shared Function TakesFile(op As String) As Boolean
         ' `from` takes a list file, and every copy strategy copies a single file just as happily
         ' as a folder - so the file picker is offered wherever the CLI accepts one.
-        Return Array.IndexOf(New String() {"info", "check", "from",
+        Return Array.IndexOf(New String() {"info", "check", "from", "restore",
                                            "copy", "fastcopy", "synccopy", "balanced",
                                            "maxcopy", "smartcopy", "safecopy"}, op) >= 0 OrElse
                IsFdsecOp(op)
@@ -1190,6 +1218,8 @@ Public Class CommandView
                 targetLabel.Text = L("shell_lbl_target")
             Case "from"
                 targetLabel.Text = L("ui_list")
+            Case "restore"
+                targetLabel.Text = L("shell_lbl_file")
             Case Else
                 If IsCopyOp(op) Then
                     targetLabel.Text = L("ui_source")
@@ -1210,8 +1240,9 @@ Public Class CommandView
             Case Else
                 If IsCopyOp(op) Then
                     paramLabel.Text = L("ui_dest")
-                ElseIf op = "secure" OrElse op = "unsecure" Then
-                    ' The box becomes the CLI's `to <dest>` for the two verbs that write a file.
+                ElseIf op = "secure" OrElse op = "unsecure" OrElse IsBackupOp(op) Then
+                    ' The box becomes the CLI's `to <dest>` for the verbs that write a file or a
+                    ' folder of their own.
                     paramLabel.Text = L("shell_fdsec_dest")
                 Else
                     paramLabel.Text = L("shell_lbl_params")
@@ -1229,11 +1260,23 @@ Public Class CommandView
     ' Which flags and which rule pickers this operation actually has. The page shows the ones the
     ' CLI would accept and hides the rest, rather than offering four flags to twenty-three verbs.
     Private Sub ApplyFlagShape(op As String)
+        ' A fill cleans up after itself unless the user opts out (SP-0194); `test` keeps its files on a
+        ' defect, so choosing it never ticks `del`. On `secure` the same word deletes the original, which
+        ' is why the default is taken back the moment the operation changes.
+        If op = "fill" Then
+            If Not flagCheckDel.Checked Then
+                flagCheckDel.Checked = True
+                delTickedByFill = True
+            End If
+        ElseIf delTickedByFill Then
+            delTickedByFill = False
+            flagCheckDel.Checked = False
+        End If
         flagCheckShort.Visible = Array.IndexOf(New String() {"info", "speed", "cd"}, op) >= 0
         ' `del` is two options with one name: the test files of a speed/test/fill run, and the
         ' original (or the container) of a secret-file run.
         flagCheckDel.Visible = Array.IndexOf(New String() {"speed", "test", "fill",
-                                                           "secure", "unsecure"}, op) >= 0
+                                                           "secure", "unsecure", "restore"}, op) >= 0
         flagCheckNoDel.Visible = (op = "speed")
         flagCheckMax.Visible = (op = "speed")
         flagCheckVerify.Visible = (op = "fill")
@@ -1250,16 +1293,16 @@ Public Class CommandView
         ' overwrite go through without a console to confirm it on - and to the duplicate scan, whose
         ' del and move run in batch mode only by it (SP-0028 DUP-03): without it, from this window,
         ' filedo.exe stops before touching anything.
-        flagCheckForce.Visible = (op = "wipe") OrElse (op = "secure") OrElse (op = "unsecure") OrElse (op = "cd")
+        flagCheckForce.Visible = (op = "wipe") OrElse (op = "secure") OrElse (op = "unsecure") OrElse (op = "cd") OrElse IsBackupOp(op)
         flagCheckNoHist.Visible = (op <> "help")
         flagsLabel.Visible = AnyFlagVisible()
 
         ' The password block: shown for the five verbs that need one, and the second box only for
         ' the one whose typo cannot be found out until the day the file is wanted back.
-        Dim fdsec = IsFdsecOp(op)
+        Dim fdsec = TakesCredential(op)
         credRow.Visible = fdsec
-        credConfirmLabel.Visible = (op = "secure")
-        credConfirmBox.Visible = (op = "secure")
+        credConfirmLabel.Visible = (op = "secure" OrElse op = "backup sec")
+        credConfirmBox.Visible = (op = "secure" OrElse op = "backup sec")
         If Not fdsec Then
             credBox.Text = ""
             credConfirmBox.Text = ""
@@ -1346,6 +1389,11 @@ Public Class CommandView
         credConfirmBox.Text = value
     End Sub
 
+    ' For SelfTest.vb: a restore names the password's variable for a sealed archive only.
+    Friend Sub SetTargetForTest(value As String)
+        targetCombo.Text = value
+    End Sub
+
     ' The CLI has two argument orders, not one: the target verbs read "<target> <op>", while the
     ' copy family, compare, check and the batch runner are verb-first. The page used to write the
     ' first shape for all of them, so the expert page produced a command the CLI would refuse for
@@ -1358,6 +1406,10 @@ Public Class CommandView
         Dim args As New List(Of String)()
         If IsFdsecOp(op) Then
             cmdLineBox.Text = "filedo.exe " & ArgQuoting.JoinArgs(FdsecArgs(op, target, param))
+            Return
+        End If
+        If IsBackupOp(op) Then
+            cmdLineBox.Text = "filedo.exe " & ArgQuoting.JoinArgs(BackupArgs(op, target, param))
             Return
         End If
 
@@ -1380,7 +1432,8 @@ Public Class CommandView
 
         If flagCheckVerify.Visible AndAlso flagCheckVerify.Checked Then args.Add("verify")
         If flagCheckMax.Visible AndAlso flagCheckMax.Checked Then args.Add("max")
-        If flagCheckDel.Visible AndAlso flagCheckDel.Checked Then args.Add("del")
+        ' `fill verify` checks what an earlier fill wrote and deletes nothing, like the job page.
+        If flagCheckDel.Visible AndAlso flagCheckDel.Checked AndAlso Not (op = "fill" AndAlso flagCheckVerify.Checked) Then args.Add("del")
         If flagCheckNoDel.Visible AndAlso flagCheckNoDel.Checked Then args.Add("nodel")
         If flagCheckShort.Visible AndAlso flagCheckShort.Checked Then args.Add("short")
         If flagCheckYes.Visible AndAlso flagCheckYes.Checked Then args.Add("yes")
@@ -1435,6 +1488,26 @@ Public Class CommandView
 
         If flagCheckForce.Visible AndAlso flagCheckForce.Checked Then args.Add("-y")
         args.Add("pe:" & CredentialEnvName)
+        If flagCheckNoHist.Checked Then args.Add("nohist")
+        Return args
+    End Function
+
+    ' A backup or restore line (SP-0198): the verb, the source or the archive, `to` from the
+    ' destination box, and the window's variable where a container is written or opened - a
+    ' sealed backup, or a restore of a .fd-sec. A plain zip takes no password, and the CLI refuses
+    ' one, so none is named for it.
+    Private Function BackupArgs(op As String, target As String, param As String) As List(Of String)
+        Dim args As New List(Of String) From {If(op = "restore", "restore", "backup")}
+        If target <> "" Then args.Add(target)
+        If param <> "" Then
+            args.Add("to")
+            args.Add(param)
+        End If
+        If op = "backup sec" Then args.Add("sec")
+        If flagCheckDel.Visible AndAlso flagCheckDel.Checked Then args.Add("del")
+        If flagCheckForce.Visible AndAlso flagCheckForce.Checked Then args.Add("y")
+        Dim sealedArchive = op = "restore" AndAlso target.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)
+        If op = "backup sec" OrElse sealedArchive Then args.Add("pe:" & CredentialEnvName)
         If flagCheckNoHist.Checked Then args.Add("nohist")
         Return args
     End Function
@@ -1556,6 +1629,10 @@ Public Class CommandView
         Dim line = word & " - " &
                    Localization.Format(L("shell_result_summary_fmt"), Ui.FormatDuration(res.Duration), res.ExitCode)
         If Not String.IsNullOrEmpty(res.Reason) Then line &= Environment.NewLine & L(res.Reason)
+        ' SP-0196 / CLI-EVENT-STREAM rule 17: a Not proven run says why in the window's language; its own
+        ' reason above already did when it has one, and RunExplanation then adds nothing.
+        Dim why = RunExplanation.SentenceFor(res)
+        If why <> "" Then line &= Environment.NewLine & why
 
         verdictGlyph.Glyph = Theme.VerdictGlyph(res.Verdict)
         verdictLabel.Text = line

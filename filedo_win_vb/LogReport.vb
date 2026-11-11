@@ -187,7 +187,7 @@ Module LogReport
 
         Using fs As New FileStream(zipPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)
             Using zip As New ZipArchive(fs, ZipArchiveMode.Create)
-                Dim remaining As Long = MaxTotalBytes
+                Dim remaining As Long = If(BudgetForTest > 0, BudgetForTest, MaxTotalBytes)
                 Dim sequence As Integer = 0
                 For Each c As Candidate In items
                     If c.Skip <> "" Then Continue For
@@ -195,7 +195,7 @@ Module LogReport
                         sequence += 1
                         c.EntryName = "logs/log-" & sequence.ToString("D2") & ".txt"
                         remaining -= AddFile(zip, c, remaining)
-                        fileCount += 1
+                        If c.Skip = "" Then fileCount += 1
                     Catch ex As Exception
                         ' The archive's own manifest, read by the author - never the screen.
                         c.Skip = "left out: could not be read (" & ex.GetType().Name & ")"
@@ -269,12 +269,14 @@ Module LogReport
             End While
             Dim text = DiagnosticText.Sanitize(Encoding.UTF8.GetString(bytes, 0, used))
             Dim encoded = Encoding.UTF8.GetBytes(text)
-            If encoded.LongLength > Math.Min(MaxFileBytes, remaining) Then
-                ' Redaction can expand a very short line. Omit rather than split an opaque value.
-                text = "[Diag] LOG OMITTED | sanitized payload exceeds archive budget" & Environment.NewLine
+            If encoded.LongLength > remaining Then
+                ' Redaction can expand a short log past what the budget has left. The whole log is
+                ' left out, with the archive_cap marker in its place (DIAGNOSTIC-REPORT 0.15 item 1).
+                c.Skip = "left out: archive budget reached"
+                text = "[Diag] LOG OMITTED | reason=archive_cap | source_bytes=" &
+                    used.ToString(System.Globalization.CultureInfo.InvariantCulture) & Environment.NewLine
                 encoded = Encoding.UTF8.GetBytes(text)
             End If
-            If encoded.LongLength > remaining Then Throw New IOException("Archive budget exhausted")
             Using dst As New StreamWriter(entry.Open(), New UTF8Encoding(False))
                 dst.Write(text)
             End Using
@@ -360,6 +362,9 @@ Module LogReport
     ' The self-test points the search at folders of its own - {the program folder, the data folder} -
     ' so a row never reads, or packs, the machine's real logs.
     Friend RootsForTest As String() = Nothing
+
+    ' The self-test lowers the archive budget to reach the archive_cap path without writing 20 MB. Zero is the real budget.
+    Friend BudgetForTest As Long = 0
 
     Friend Function ArchiveCollectedForTest(destination As String, ByRef fileCount As Integer) As String
         fileCount = 0

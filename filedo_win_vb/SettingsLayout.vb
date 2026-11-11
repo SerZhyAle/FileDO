@@ -24,6 +24,10 @@ Friend Class SettingRow
         words.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
         Caption = New Label With {.AutoSize = True, .Text = title, .Margin = Ui.PxPad(Me, 0, 0, 8, 4)}
         Hint = New Label With {.AutoSize = True, .Text = description, .UseMnemonic = False, .Margin = Ui.PxPad(Me, If(booleanRow, 22, 0), 0, 8, 0)}
+        ' A boolean option carries its explanation under its own heading (BOOLEAN-OPTION 2.0 section 2.3),
+        ' so the row's hint label stays out of the layout.
+        Dim boolOption = TryCast(value, BooleanOption)
+        If boolOption IsNot Nothing Then boolOption.Explanation = description
         If booleanRow Then
             value.Text = title
             value.Dock = DockStyle.Top
@@ -36,7 +40,7 @@ Friend Class SettingRow
         End If
         value.AccessibleName = title
         value.AccessibleDescription = description
-        words.Controls.Add(Hint, 0, 1)
+        If boolOption Is Nothing Then words.Controls.Add(Hint, 0, 1)
         Controls.Add(words, 0, 0)
         If Not booleanRow Then Controls.Add(value, 1, 0)
         AddHandler SizeChanged, Sub() FitColumns()
@@ -48,6 +52,7 @@ Friend Class SettingRow
         Dim width = Math.Max(1, words.ClientSize.Width)
         Caption.MaximumSize = New Size(Math.Max(1, width - Caption.Margin.Horizontal), 0)
         Hint.MaximumSize = New Size(Math.Max(1, width - Hint.Margin.Horizontal), 0)
+        If TypeOf Editor Is BooleanOption Then Editor.MaximumSize = New Size(Math.Max(1, width - Editor.Margin.Horizontal), 0)
     End Sub
 
     Friend Sub FitColumns()

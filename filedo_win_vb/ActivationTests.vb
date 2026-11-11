@@ -46,6 +46,7 @@ Partial Module SelfTest
     End Class
 
     Private Declare Auto Function PostStandInMessage Lib "user32" Alias "PostMessage" (hWnd As IntPtr, msg As Integer, wParam As IntPtr, lParam As IntPtr) As Boolean
+    Private Declare Function GetForegroundWindow Lib "user32" () As IntPtr
 
     Private Sub CheckSecondStart()
         ' What a start is handed over for: a plain second start only. A file is what a start on a file
@@ -88,6 +89,11 @@ Partial Module SelfTest
             Check("activation:answering-receiver", AppHost.AskWindow(hwnd, StandInWindow.AnswerMsg, 1000), "")
             Check("activation:signal-is-payload-less", StandInWindow.LastWParam = IntPtr.Zero AndAlso StandInWindow.LastLParam = IntPtr.Zero,
                   StandInWindow.LastWParam.ToString() & "/" & StandInWindow.LastLParam.ToString())
+
+            ' A claim is made only when the window is the foreground window afterwards. The row holds whether or
+            ' not this run was granted focus: the claim and the system's foreground state must agree.
+            Dim focused = Program.FocusWindow(hwnd)
+            Check("activation:claim-means-foreground", focused = (GetForegroundWindow() = hwnd), "claimed=" & focused.ToString())
 
             Dim hungSince = Stopwatch.StartNew()
             PostStandInMessage(hwnd, StandInWindow.HangMsg, IntPtr.Zero, IntPtr.Zero)

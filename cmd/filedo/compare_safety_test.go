@@ -59,15 +59,15 @@ func TestCompareDeleteSameFolderRefused(t *testing.T) {
 	}
 	for _, args := range rows {
 		out, code := run(t, wd, args...)
-		if code != 2 {
-			t.Errorf("%v exited %d, want 2 (CHK-01)\n%s", args, code, out)
+		if code != 10 {
+			t.Errorf("%v exited %d, want 10 (CHK-01, conflicting words)\n%s", args, code, out)
 		}
 		assertTreeIntact(t, x)
 	}
 	lst := filepath.Join(wd, "cmp.lst")
 	writeFile(t, lst, []byte("cmp "+x+" "+strings.ToLower(x)+" del source --yes\r\n"))
-	if out, code := run(t, wd, "from", lst); code != 2 {
-		t.Errorf("batch self-compare exited %d, want 2\n%s", code, out)
+	if out, code := run(t, wd, "from", lst); code != 10 {
+		t.Errorf("batch self-compare exited %d, want 10\n%s", code, out)
 	}
 	assertTreeIntact(t, x)
 }
@@ -127,8 +127,8 @@ func TestCompareWalkErrorNotProven(t *testing.T) {
 	compareTree(t, dst)
 	denyList(t, filepath.Join(src, "sub"))
 	out, code := run(t, wd, "cmp", src, dst)
-	if code != 2 {
-		t.Errorf("a compare that could not read a folder exited %d, want 2 (CHK-06)\n%s", code, out)
+	if code != 12 {
+		t.Errorf("a compare that could not read a folder exited %d, want 12 (CHK-06, access denied)\n%s", code, out)
 	}
 }
 
@@ -190,10 +190,11 @@ func TestCompareDeleteAsksFirst(t *testing.T) {
 	compareTree(t, dst)
 
 	// A closed stdin is no answer: nothing is deleted and the run is Not
-	// proven, exit 2 - on the command line and from a batch file.
+	// proven, exit 10 (the words lack --yes) - on the command line and from a
+	// batch file.
 	out, code := run(t, wd, "compare", src, dst, "del", "source")
-	if code != 2 {
-		t.Errorf("an unanswered delete exited %d, want 2 (AUD-16-F1)\n%s", code, out)
+	if code != 10 {
+		t.Errorf("an unanswered delete exited %d, want 10 (AUD-16-F1)\n%s", code, out)
 	}
 	if !strings.Contains(out, "3 files") || !strings.Contains(out, "SOURCE mode") {
 		t.Errorf("the question does not name the count and the mode\n%s", out)
@@ -203,8 +204,8 @@ func TestCompareDeleteAsksFirst(t *testing.T) {
 
 	lst := filepath.Join(wd, "cmp.lst")
 	writeFile(t, lst, []byte("cmp "+src+" "+dst+" del old target\r\n"+"cmp "+src+" "+dst+" del source\r\n"))
-	if out, code := run(t, wd, "from", lst); code != 2 {
-		t.Errorf("an unanswered delete in a batch exited %d, want 2\n%s", code, out)
+	if out, code := run(t, wd, "from", lst); code != 10 {
+		t.Errorf("an unanswered delete in a batch exited %d, want 10\n%s", code, out)
 	}
 	assertTreeIntact(t, src)
 	assertTreeIntact(t, dst)
@@ -497,8 +498,8 @@ func TestCompareStrictVerdictTable(t *testing.T) {
 	// now in the judging mode too).
 	denyList(t, filepath.Join(src, "sub"))
 	ev, code, out = compareOne("--strict")
-	if code != 2 {
-		t.Fatalf("a comparison that could not read a folder exited %d, want 2\n%s", code, out)
+	if code != 12 {
+		t.Fatalf("a comparison that could not read a folder exited %d, want 12\n%s", code, out)
 	}
 	if got := lastResult(t, ev)["verdict"]; got != "Not proven" {
 		t.Fatalf("an unreadable folder is %q, want Not proven\n%s", got, out)
@@ -506,7 +507,7 @@ func TestCompareStrictVerdictTable(t *testing.T) {
 
 	// The judging mode does not mix with the delete phase.
 	out, code = run(t, wd, "cmp", src, dst, "--strict", "del", "source", "--yes")
-	if code != 2 || !strings.Contains(out, "cannot be combined") {
-		t.Errorf("--strict with a delete phase exited %d, want 2 with a refusal\n%s", code, out)
+	if code != 10 || !strings.Contains(out, "cannot be combined") {
+		t.Errorf("--strict with a delete phase exited %d, want 10 with a refusal\n%s", code, out)
 	}
 }

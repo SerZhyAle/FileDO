@@ -64,7 +64,7 @@ func openForWipe(path string) (*os.File, error) {
 	h, err := windows.CreateFile(p, windows.GENERIC_READ|windows.GENERIC_WRITE, 0, nil,
 		windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
 	if err == windows.ERROR_SHARING_VIOLATION || err == windows.ERROR_LOCK_VIOLATION {
-		return nil, fmt.Errorf("%s is open in another program (a mounted disk container is), nothing was overwritten - close it or unmount it first: %w", path, err)
+		return nil, fmt.Errorf("%s is open in another program, nothing was overwritten - run the command again when the file is free (a mounted disk container is freed by unmounting it): %w", path, err)
 	}
 	if err != nil {
 		return nil, &os.PathError{Op: "open", Path: path, Err: err}

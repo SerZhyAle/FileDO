@@ -39,11 +39,11 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "PrivacyPolicy",
+        "@type": "WebPage",
         "name": "Confidentialité FileDO - sans réseau, sans télémétrie",
         "url": "https://serzhyale.github.io/FileDO/fr/privacy.html",
+        "isPartOf": "https://serzhyale.github.io/FileDO/",
         "inLanguage": ["fr"],
-        "dateModified": "2026-10-09",
         "publisher": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
@@ -281,6 +281,9 @@ html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
 /* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
 html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
 .pills.spaced{margin-top:.9rem}
+    /* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
+    .cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
+    .cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
     </style>
   </head>
   <body>
@@ -371,7 +374,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <span data-l="fr">L’application ne se connecte jamais</span>
               </h3>
               <p>
-                <span data-l="fr">FileDO ne se connecte ni à Internet ni à aucun autre ordinateur. L’unique socket qu’il ouvre sert un disque virtuel <code>.fdd</code> monté à l’initiateur iSCSI de Windows lui-même et n’écoute que sur 127.0.0.1 : rien ne quitte cet ordinateur, et le conteneur ne passe jamais par un réseau. Le paquet du Microsoft Store ne déclare aucune capacité Internet, si bien que Windows n’en accorderait de toute façon aucune.</span>
+                <span data-l="fr">FileDO ne se connecte ni à Internet ni à aucun autre ordinateur. L’unique socket qu’il ouvre sert un disque virtuel <code>.fdd</code> monté à l’initiateur iSCSI de Windows lui-même et n’écoute que sur 127.0.0.1 : FileDO n’envoie rien de cet ordinateur de sa propre initiative, et le conteneur ne passe par un réseau que si vous choisissez de partager son disque (voir la carte ci-dessous). Le paquet du Microsoft Store ne déclare aucune capacité Internet, si bien que Windows n’en accorderait de toute façon aucune.</span>
               </p>
             </div>
             <div class="card">
@@ -484,7 +487,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 </tr>
                 <tr>
                   <td>
-                    <span data-l="fr">Une copie ouverte sans extraction et une copie « Unsecure and start »</span>
+                    <span data-l="fr">Une copie ouverte sans extraction et une copie <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>« Unsecure and start »</span>
                   </td>
                   <td>
                     <span data-l="fr">Dans <code>%LOCALAPPDATA%\FileDO\reveal\</code>, dans son propre répertoire au nom aléatoire. Sa liste d’accès ne nomme que ce compte et le système, et la copie elle-même est en lecture seule. La copie qu’écrit <code>unsecure start</code> - le double-clic sur un conteneur - se trouve dans le même dossier sous la même liste d’accès, mais reste un fichier ordinaire : c’est votre propre fichier, simplement déballé.</span>
@@ -549,7 +552,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             <span data-l="fr">Si vous choisissez d’envoyer les logs à l’auteur</span>
           </h2>
           <p>
-            <span data-l="fr">La fenêtre À propos contient un bouton Envoyer les logs à l’auteur. C’est le seul endroit du programme d’où des données peuvent quitter votre machine - et uniquement de votre propre main. Il ne se déclenche jamais automatiquement, ni sur minuterie, ni en cas d’échec.</span>
+            <span data-l="fr">La fenêtre <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>À propos contient un bouton <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Envoyer les logs à l’auteur. C’est le seul endroit du programme d’où des données peuvent quitter votre machine - et uniquement de votre propre main. Il ne se déclenche jamais automatiquement, ni sur minuterie, ni en cas d’échec.</span>
           </p>
           <ul>
             <li>
@@ -585,10 +588,13 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="fr"><b>Accès de bureau en confiance totale (runFullTrust).</b> La version du Microsoft Store déclare cette unique capacité, car lire et écrire directement sur le disque est précisément ce que sont les tests de vitesse et de capacité. Le paquet ne déclare aucune autre capacité - accès Internet compris.</span>
             </li>
             <li>
+              <span data-l="fr"><b>Partage de disques et clés de démarrage automatique.</b> Le partage est désactivé par défaut. Lorsque vous partagez un disque via Fast Media Sorter, les appareils qui y sont appairés peuvent le lire tant qu’il reste ouvert. Le mot de passe de démarrage automatique d’un disque chiffré n’est conservé sur cet ordinateur que si vous activez ce démarrage ; il est protégé pour ce programme.</span>
+            </li>
+            <li>
               <span data-l="fr"><b >Les commandes <code>wipe</code> et <code>fill</code> détruisent des données - c’est leur rôle.</b > Elles demandent toujours confirmation et ne s’exécutent jamais en silence sur la racine d’un lecteur, un point d’analyse (jonction, lien symbolique) ou le dossier TEMP du système. Les écritures visant <code>C:</code> sont par défaut redirigées vers <code>%TEMP%\FileDO_Operations</code> - là encore, seulement après votre confirmation.</span>
             </li>
             <li>
-              <span data-l="fr"><b>FileDO lance parfois des programmes Windows intégrés.</b> Lors de la récupération d’un disque (<code>probe</code>), il peut appeler <code>chkdsk</code>, <code>format</code> ou <code>Format-Volume</code> de PowerShell sur le disque que vous avez nommé. Et si vous donnez à la commande <code>from</code> un fichier listant des commandes, FileDO exécute ces lignes - y compris celles qui démarrent d’autres programmes. Ce qui s’exécute est exactement ce que vous avez écrit. Dans la fenêtre À propos, les liens s’ouvrent dans votre navigateur, et le bouton d’envoi des logs ouvre l’Explorateur et votre programme de messagerie - seulement une fois que vous l’avez pressé.</span>
+              <span data-l="fr"><b>FileDO lance parfois des programmes Windows intégrés.</b> Lors de la récupération d’un disque (<code>probe</code>), il peut appeler <code>chkdsk</code>, <code>format</code> ou <code>Format-Volume</code> de PowerShell sur le disque que vous avez nommé. Et si vous donnez à la commande <code>from</code> un fichier listant des commandes, FileDO exécute ces lignes - y compris celles qui démarrent d’autres programmes. Ce qui s’exécute est exactement ce que vous avez écrit. Dans la fenêtre <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>À propos, les liens s’ouvrent dans votre navigateur, et le bouton d’envoi des logs ouvre l’Explorateur et votre programme de messagerie - seulement une fois que vous l’avez pressé.</span>
             </li>
           </ul>
         </div>
@@ -669,11 +675,11 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           <span data-l="fr">Autres outils de SZA</span>
         </p>
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
-          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
-          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a
-          ><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a
-          ><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
-          ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>STREAMS Player</b><span>Windows stream player</span></a
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/index-fr.html"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/lang/fr/"><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
+          ><a href="https://serzhyale.github.io/CyrFlip/fr/"><b>CyrFlip</b><span>Windows layout fixer</span></a
+          ><a href="https://serzhyale.github.io/doc-html-translate/fr/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
+          ><a href="https://serzhyale.github.io/StreamsPlayer/fr/"><b>STREAMS Player</b><span>Windows stream player</span></a
           ><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a
           ><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
           ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
@@ -686,6 +692,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             · <a href="guides/support.html"><span data-l="fr">Assistance</span></a>
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -725,5 +732,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         };
       })();
     </script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

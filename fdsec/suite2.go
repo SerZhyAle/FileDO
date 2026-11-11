@@ -190,7 +190,7 @@ func parseSuite2BodyHead(b []byte) (suite2Body, error) {
 		return sb, fmt.Errorf("%w: suite-2 name block has no name", ErrDamaged)
 	}
 	name := string(nameBlock[:end])
-	if err := ValidateName(name); err != nil || norm.NFC.String(name) != name {
+	if err := ValidateName(name); err != nil {
 		return sb, fmt.Errorf("%w: sealed name is not a valid file name", ErrDamaged)
 	}
 	sb.Name = name

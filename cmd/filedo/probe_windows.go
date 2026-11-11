@@ -49,7 +49,7 @@ func runDeviceProbe(devicePath string) error {
 	)
 	if err != nil {
 		if errors.Is(err, syscall.ERROR_ACCESS_DENIED) {
-			return fmt.Errorf("access denied - run as Administrator to use probe\n"+
+			return exitClassf(12, "access denied - run as Administrator to use probe\n"+
 				"  Right-click cmd/PowerShell → \"Run as administrator\", then retry:\n"+
 				"  filedo %s probe", devicePath)
 		}
@@ -316,7 +316,7 @@ func runDeviceProbeCheck(devicePath string, assumeYes bool, autoRepair bool) err
 				"Re-run this command from an elevated shell:\n"+
 				"  Right-click PowerShell / cmd → \"Run as administrator\"\n"+
 				"  filedo %s probe\n", devicePath)
-		return fmt.Errorf("not running as administrator")
+		return exitClassf(12, "not running as administrator")
 	}
 
 	driveLetter, err := probeExtractDriveLetter(devicePath)
@@ -348,7 +348,7 @@ func probeDriveFlow(devicePath string, driveLetter rune, assumeYes bool, autoRep
 		// here and `yes` has nothing to skip: the run could not verify anything
 		// (AUD-02-F3). `recover` is the repair verb, and it asks for the drive
 		// letter before it does anything.
-		return fmt.Errorf("drive %c: cannot be read before the probe (%v); nothing was probed and nothing was changed. If the drive needs repair, run 'filedo %c: recover' - it asks you to type the drive letter first", driveLetter, err, driveLetter)
+		return fmt.Errorf("drive %c: cannot be read before the probe (%w); nothing was probed and nothing was changed. If the drive needs repair, run 'filedo %c: recover' - it asks you to type the drive letter first", driveLetter, err, driveLetter)
 	}
 
 	if !assumeYes {
@@ -398,7 +398,7 @@ func runDeviceRecoverCheck(devicePath string, assumeYes bool, forceFormat bool) 
 				"Re-run this command from an elevated shell:\n"+
 				"  Right-click PowerShell / cmd → \"Run as administrator\"\n"+
 				"  filedo %s recover\n", devicePath)
-		return fmt.Errorf("not running as administrator")
+		return exitClassf(12, "not running as administrator")
 	}
 
 	driveLetter, err := probeExtractDriveLetter(devicePath)

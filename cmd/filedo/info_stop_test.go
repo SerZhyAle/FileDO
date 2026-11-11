@@ -32,7 +32,7 @@ func infoTree(t *testing.T) string {
 
 // TestInfoWalksObserveStopFile is AUD-10-F1: the folder and network `info`
 // walks observe the stop file. A stop requested before the walk ends the run
-// Stopped (exit 0, rule 15) and prints no totals - a partial count printed as
+// Stopped (exit 16, rule 15) and prints no totals - a partial count printed as
 // the tree's size is a result nobody measured.
 func TestInfoWalksObserveStopFile(t *testing.T) {
 	dir := infoTree(t)
@@ -48,8 +48,8 @@ func TestInfoWalksObserveStopFile(t *testing.T) {
 	} {
 		events := filepath.Join(wd, c.name+".ev.jsonl")
 		out, code := run(t, wd, "--events", events, "--stop-file", stop, c.verb, c.target, c.op)
-		if code != 0 {
-			t.Errorf("%s: a stopped run exits 0, got %d\n%s", c.name, code, out)
+		if code != 16 {
+			t.Errorf("%s: a stopped run exits 16, got %d\n%s", c.name, code, out)
 		}
 		if strings.Contains(out, "Contains:") {
 			t.Errorf("%s: a stopped info printed totals\n%s", c.name, out)
@@ -134,7 +134,7 @@ func TestWalkInfoTreeCompletedAndStopped(t *testing.T) {
 
 // TestDeviceInfoObservesStopFile is SP-0128: `device <X:> info` prints quick
 // facts first, stops gracefully within two seconds on --stop-file, prints
-// partial totals labelled "Full Contains (partial):", and ends Stopped exit 0.
+// partial totals labelled "Full Contains (partial):", and ends Stopped exit 16.
 func TestDeviceInfoObservesStopFile(t *testing.T) {
 	wd := t.TempDir()
 	stop := filepath.Join(wd, "run.stop")
@@ -144,8 +144,8 @@ func TestDeviceInfoObservesStopFile(t *testing.T) {
 
 	events := filepath.Join(wd, "devinfo.ev.jsonl")
 	out, code := run(t, wd, "--events", events, "--stop-file", stop, "device", "C:", "info")
-	if code != 0 {
-		t.Fatalf("stopped device info exited %d, want 0\n%s", code, out)
+	if code != 16 {
+		t.Fatalf("stopped device info exited %d, want 16\n%s", code, out)
 	}
 	if !strings.Contains(out, "Information for device: C:") {
 		t.Errorf("quick facts not printed before stop\n%s", out)

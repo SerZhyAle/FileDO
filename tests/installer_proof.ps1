@@ -24,6 +24,8 @@
   the first installed product had (a script that starts on a machine with no FileDO leaves none).
   The Modify wizard itself (the feature tree page) is a window: installer_modify_ui.ps1 drives and
   photographs it.
+  Exit code: 0 every check passed, 1 a check failed (the restore included), 2 not elevated, no check ran,
+  or the run stopped with no check failed.
 #>
 [CmdletBinding()]
 param(
@@ -37,12 +39,12 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $id = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'run this elevated' }
+if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'installer-proof: COULD NOT VERIFY (run=0 skipped=0, run this elevated)'; exit 2 }
 New-Item -ItemType Directory -Force -Path (Split-Path $Log -Parent) | Out-Null
 $msiLogs = Join-Path (Split-Path $Log -Parent) 'msi-logs'
 New-Item -ItemType Directory -Force -Path $msiLogs | Out-Null
 "" | Set-Content $Log
-$script:pass = 0; $script:fail = 0
+$script:pass = 0; $script:fail = 0; $script:stopped = ''
 function Say([string]$t) { $t | Add-Content $Log; Write-Host $t }
 function Check([string]$name, [bool]$ok, [string]$detail = '') {
     if ($ok) { $script:pass++; Say "PASS $name $detail" } else { $script:fail++; Say "FAIL $name $detail" }
@@ -229,6 +231,10 @@ try {
     $m = Start-Process $exe -ArgumentList '/uninstall','/quiet','/norestart' -Wait -PassThru
     Assert-Clean 'setup'
 }
+catch {
+    $script:stopped = "$_"
+    Say "STOPPED: $_"
+}
 finally {
     # ---- put the machine back ---------------------------------------------------------------------
     Say ''; Say '== restore =='
@@ -241,7 +247,15 @@ finally {
             Say "restored A $($p.Version) with $($baseLocal -join ',') exit $rc; $(Format-Shell (Get-Shell))"
             Check 'restore-matches-baseline-shell' ((Get-Shell).Verbs -eq $baseShell.Verbs -and (Get-Shell).Desktop -eq $baseShell.Desktop) ''
         } else { Say 'nothing to restore (no FileDO at the start)' }
-    } catch { Say "RESTORE FAILED: $_" }
+    } catch { Check 'restore' $false "$_" }
     Say ''
-    Say "RESULT pass=$($script:pass) fail=$($script:fail)"
 }
+# CHECK-VERDICT 0.14 item A: one test verdict line, last, and the exit code that goes with its word. A
+# failed check outranks a run that stopped early; a stop with no failure proved nothing about the rest.
+$ran = $script:pass + $script:fail
+if ($script:fail) { $code = 1; $line = "installer-proof: FAIL (run=$ran skipped=0 failed=$($script:fail))" }
+elseif ($script:stopped) { $code = 2; $line = "installer-proof: COULD NOT VERIFY (run=$ran skipped=0, stopped: $($script:stopped))" }
+elseif ($ran -eq 0) { $code = 2; $line = "installer-proof: COULD NOT VERIFY (run=0 skipped=0, no check ran)" }
+else { $code = 0; $line = "installer-proof: PASS (run=$ran skipped=0)" }
+Say $line
+exit $code

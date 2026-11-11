@@ -50,6 +50,10 @@ func TestClassifyIOError(t *testing.T) {
 		}
 	}
 
+	if !isFileInUseError(wrap(errSharingViolation)) || !isFileInUseError(wrap(errLockViolation)) ||
+		isFileInUseError(wrap(errDiskFull)) || fileInUseErrno(wrap(errSharingViolation)) != errSharingViolation {
+		t.Error("isFileInUseError misclassifies")
+	}
 	if !isDiskFullError(wrap(errDiskFull)) || isDiskFullError(wrap(errIODevice)) {
 		t.Error("isDiskFullError misclassifies")
 	}

@@ -261,6 +261,59 @@ func TestNames_Suite3_FourCharactersAndRefusals(t *testing.T) {
 	}
 }
 
+// namesNotNFC pairs a name that is not in NFC with its NFC twin: a combining
+// mark, a singleton NFC replaces and conjoining Hangul jamo. They stay out of
+// namesRefused because the writer normalises before it seals - packing the
+// first form succeeds and seals the twin, which is the writer's half of the
+// rule (FDSEC-FORMAT 1.6 section 23).
+var namesNotNFC = []struct{ form, twin string }{
+	{"é.txt", "é.txt"},
+	{"Å", "Å"},
+	{"가.md", "가.md"},
+}
+
+// A sealed name that is not in NFC is damage in every suite - the suite-1
+// name, the suite-2 name block, the suite-3 root and a manifest component -
+// and its twin opens; the reader never normalises to open a container.
+func TestNames_NotNFCIsDamageInEverySuite(t *testing.T) {
+	raw, _, _, _ := tampered(t)
+	cred := NewCredential("pw123")
+	damaged := func(err error) bool { return errors.Is(err, ErrDamaged) && !errors.Is(err, ErrCredentialOrTamper) }
+	good := packTreeBytes(t, memTree("root", map[string][]byte{"f": []byte("x")}, []string{"f"}), cred, fastParams())
+	for _, c := range namesNotNFC {
+		if err := ValidateName(c.form); err == nil {
+			t.Errorf("ValidateName(%q) accepted a name that is not in NFC", c.form)
+		}
+		if err := ValidateName(c.twin); err != nil {
+			t.Errorf("ValidateName(%q) refused the NFC twin: %v", c.twin, err)
+		}
+		if _, _, err := unpackContainer(forgeSuite1Name(t, raw, cred, c.form, nil), cred); !damaged(err) {
+			t.Errorf("suite 1, forged name %q: got %v, want damaged", c.form, err)
+		}
+		if _, m, err := unpackContainer(forgeSuite1Name(t, raw, cred, c.twin, nil), cred); err != nil || m.Name != c.twin {
+			t.Errorf("suite 1, forged twin %q: %q, %v", c.twin, m.Name, err)
+		}
+		meta := fixedTimes
+		meta.Name = c.form
+		if _, m, err := unpackContainer(packBytes(t, []byte("x"), meta, cred, fastParams()), cred); err != nil || m.Name != c.twin {
+			t.Errorf("suite 1, the writer given %q sealed %q, %v; want the twin", c.form, m.Name, err)
+		}
+		if _, _, err := unpackSuite2Bytes(t, forgeSuite2(t, validBody(t, c.form, []byte("abc"), s2TailMin), cred), cred); !damaged(err) {
+			t.Errorf("suite 2, forged name %q: got %v, want damaged", c.form, err)
+		}
+		if _, _, _, err := unpackTreeBytes(forgeSuite3Root(t, good, cred, c.form, nil), cred); !damaged(err) {
+			t.Errorf("suite 3, forged root %q: got %v, want damaged", c.form, err)
+		}
+		if _, tm, _, err := unpackTreeBytes(forgeSuite3Root(t, good, cred, c.twin, nil), cred); err != nil || tm.Name != c.twin {
+			t.Errorf("suite 3, forged twin root %q: %q, %v", c.twin, tm.Name, err)
+		}
+		b := hostilePack(t, []TreeEntry{{Path: c.form, Kind: KindFile, Size: 1}}, map[string][]byte{c.form: []byte("x")}, cred)
+		if _, _, _, err := unpackTreeBytes(b, cred); !damaged(err) {
+			t.Errorf("suite 3, forged component %q: got %v, want damaged", c.form, err)
+		}
+	}
+}
+
 // errNotHere is what a caller's check returns in these tests: a stand-in for
 // the CLI's destination-name error. It must reach the caller unchanged.
 var errNotHere = errors.New("this destination cannot create that name")

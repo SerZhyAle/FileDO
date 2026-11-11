@@ -19,8 +19,10 @@
                target page; a link between languages never occurs (a page stays in its own).
     pictures   each page has its dark and light picture in its own language (the picture's language is the
                page's, rule 14); the kit beside the pages is byte-identical to docs\kit\sza-kit.css.
-    baseline   help-baseline.txt holds only `page <id>` and `ask <surface>` lines (CHECK-BASELINE); the
-               `ask` lines are checked against the surfaces by the self-test, which knows the code.
+    baseline   help-baseline.txt holds only `page <id>`, `ask <surface>` and `absent <lang> <page> <anchor>` lines
+               (CHECK-BASELINE); the `ask` lines are checked against the surfaces by the self-test, which knows the code.
+    absent     an element a shipped language does not show is recorded in its page (data-absent) and counted here
+               (CONTEXT-HELP 0.2 section 7 item C): it needs its baseline line, and a line whose element is shown again is stale.
 
   With -Exe <filedo_win.exe> the set is also regenerated into a scratch folder and compared with the
   committed one (rung 2, freshness): every .html byte for byte (the capture date aside), every picture by
@@ -82,6 +84,7 @@ if ($map.schemaVersion -ne 1) { Fail "map: schemaVersion is $($map.schemaVersion
 $baselineFile = Join-Path $Help 'help-baseline.txt'
 $owedPages = @()
 $owedAsks = @()
+$owedAbsent = @()
 $baselineKinds = [System.Collections.Generic.List[string]]::new()
 if (Test-Path $baselineFile) {
     foreach ($ln in Get-Content $baselineFile) {
@@ -92,13 +95,14 @@ if (Test-Path $baselineFile) {
             $owedAsks += $Matches[1]; $baselineKinds.Add('ask')
             if (-not $ids.ContainsKey($Matches[1])) { Fail "baseline: 'ask $($Matches[1])' names no surface" }
         }
+        elseif ($t -match '^absent (\S+) (\S+) (\S+)$') { $owedAbsent += "$($Matches[1]) $($Matches[2]) $($Matches[3])"; $baselineKinds.Add('absent') }
         else { Fail "baseline: unknown line '$t'" }
     }
 }
 # CHECK-BASELINE rule 3: a set baseline holds one identifier per line, sorted. The page lines come first and then
-# the ask lines (as the file's own header says), each group in ordinal order - a hand edit that lands a line in the
-# wrong place fails here instead of turning the diff of the next edit into noise.
-foreach ($group in @(@{ Kind = 'page'; Owed = $owedPages }, @{ Kind = 'ask'; Owed = $owedAsks })) {
+# the ask lines and then the absent lines (as the file's own header says), each group in ordinal order - a hand edit
+# that lands a line in the wrong place fails here instead of turning the diff of the next edit into noise.
+foreach ($group in @(@{ Kind = 'page'; Owed = $owedPages }, @{ Kind = 'ask'; Owed = $owedAsks }, @{ Kind = 'absent'; Owed = $owedAbsent })) {
     $have = [string[]]@($group.Owed)
     $want = [string[]]@($group.Owed)
     [Array]::Sort($want, [StringComparer]::Ordinal)
@@ -107,11 +111,32 @@ foreach ($group in @(@{ Kind = 'page'; Owed = $owedPages }, @{ Kind = 'ask'; Owe
     }
 }
 if ($baselineKinds.Contains('ask') -and $baselineKinds.LastIndexOf('page') -gt $baselineKinds.IndexOf('ask')) { Fail 'baseline: a page line follows an ask line (the page lines come first)' }
+if ($baselineKinds.Contains('absent') -and ($baselineKinds.LastIndexOf('page') -gt $baselineKinds.IndexOf('absent') -or $baselineKinds.LastIndexOf('ask') -gt $baselineKinds.IndexOf('absent'))) { Fail 'baseline: a page or ask line follows an absent line (the absent lines come last)' }
+
+# CHECK-BASELINE rule 4: the committed copy is the snapshot. A line the working file holds and HEAD does not is a rise -
+# left alone it would absorb its page or surface in silence - so it fails by name. The update path is a committed edit
+# with its reason; once committed, the next run passes.
+if (Test-Path $baselineFile) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Stop-Unverified 'git is not on PATH, so help-baseline.txt cannot be compared with its committed copy' }
+    $null = & git -C $root rev-parse --verify -q HEAD 2>$null
+    if ($LASTEXITCODE -ne 0) { Stop-Unverified 'no HEAD commit, so help-baseline.txt cannot be compared with its committed copy' }
+    $committed = [System.Collections.Generic.HashSet[string]]::new()
+    $null = & git -C $root cat-file -e 'HEAD:docs/help/help-baseline.txt' 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        foreach ($ln in @(& git -C $root show 'HEAD:docs/help/help-baseline.txt')) { [void]$committed.Add($ln.Trim()) }
+    }
+    foreach ($ln in Get-Content $baselineFile) {
+        $t = $ln.Trim()
+        if ($t -eq '' -or $t.StartsWith('#') -or $committed.Contains($t)) { continue }
+        Fail "baseline: '$t' is not in the committed help-baseline.txt - accept it by a committed edit with its reason (CHECK-BASELINE rule 4)"
+    }
+}
 
 # ---- pages --------------------------------------------------------------------------------------
 $wanted = @($surfaces | Where-Object { $_.PSObject.Properties.Name -contains 'help' -and $_.help } | ForEach-Object { $_.help }) + @($surfaces | Where-Object { $_.PSObject.Properties.Name -contains 'fallback' -and $_.fallback } | ForEach-Object { $_.fallback }) | Sort-Object -Unique
 $expected = @($wanted | Where-Object { $_ -notin $owedPages }) + @($map.index)
 $pageCount = 0
+$seenAbsent = [System.Collections.Generic.List[string]]::new()
 foreach ($p in $owedPages) {
     foreach ($l in $langs) { if (Test-Path (Join-Path $Help "$l\$p.html")) { Fail "baseline: page $p exists in $l - delete its line" } }
 }
@@ -123,6 +148,12 @@ if (Test-Path $kit) {
 }
 if (-not (Test-Path (Join-Path $Help 'help.css'))) { Fail 'pictures: help.css is not beside the pages' }
 
+# CONTEXT-HELP 0.2 section 7 item G (SP-0183): a help page carries noindex. The generator source is checked here;
+# the committed pages are checked against a fresh build with -Exe, and they carry the tag only after a release regenerates them.
+if ((Get-Content (Join-Path $root 'filedo_win_vb\HelpPages.vb') -Raw) -notmatch [regex]::Escape('<meta name=""robots"" content=""noindex"">')) {
+    Fail 'robots: filedo_win_vb\HelpPages.vb does not write <meta name="robots" content="noindex"> (CONTEXT-HELP 0.2 section 7 item G)'
+}
+
 foreach ($l in $langs) {
     foreach ($id in $expected) {
         $file = Join-Path $Help "$l\$id.html"
@@ -131,6 +162,12 @@ foreach ($l in $langs) {
         $raw = Get-Content $file -Raw
         $html = [regex]::Replace($raw, '<script>.*?</script>', '', 'Singleline')
         $where = "$l\$id.html"
+
+        foreach ($m4 in [regex]::Matches($html, '<details class="el" id="([^"]+)" data-absent="1">')) {
+            $key = "$l $id $($m4.Groups[1].Value)"
+            $seenAbsent.Add($key)
+            if ($key -notin $owedAbsent) { Fail "absent: $where does not show $($m4.Groups[1].Value) in this language (CONTEXT-HELP 0.2 section 7 item C) - fix the layout, or accept 'absent $key' on the baseline with its reason" }
+        }
 
         if ($html -notmatch ('<html lang="' + $l + '" dir="ltr">')) { Fail "anatomy: $where has the wrong lang or dir" }
         if ($html -notmatch '<meta name="referrer" content="no-referrer">') { Fail "requests: $where does not withhold the referrer" }
@@ -174,6 +211,10 @@ foreach ($l in $langs) {
     }
 }
 
+foreach ($a in $owedAbsent) {
+    if ($a -notin $seenAbsent) { Fail "baseline: 'absent $a' is stale - the element is shown in that language now; delete its line" }
+}
+
 # ---- freshness (rung 2) -------------------------------------------------------------------------
 $fresh = ''
 if ($Exe) {
@@ -207,7 +248,7 @@ if ($Exe) {
 }
 
 foreach ($f in $failures) { Write-Host "  FAIL  $f" }
-$summary = "$pageCount page files in $($langs.Count) languages, $(@($surfaces).Count) surfaces, $(@($owedPages).Count) pages on the baseline$fresh"
+$summary = "$pageCount page files in $($langs.Count) languages, $(@($surfaces).Count) surfaces, $(@($owedPages).Count) pages on the baseline, $($seenAbsent.Count) absent element(s)$fresh"
 if ($failures.Count -gt 0) {
     Write-Host "help: FAIL ($($failures.Count) problem(s); $summary)"
     exit 1

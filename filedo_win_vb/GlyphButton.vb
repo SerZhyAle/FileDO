@@ -229,6 +229,33 @@ Public Class GlyphButton
         Return TextRenderer.MeasureText(Text, Font, New Size(limit, Integer.MaxValue), CaptionFlags)
     End Function
 
+    ' BUTTONS 2.0 section 3 rule 3: a button whose caption changes with its state reserves the width of
+    ' its widest known state, so a state change does not resize it or move its row. The states are named
+    ' by their localization keys and resolved at measure time, so the reservation follows a language switch.
+    Private reservedKeysValue As String() = New String() {}
+
+    Public Property ReservedCaptionKeys As String()
+        Get
+            Return reservedKeysValue
+        End Get
+        Set(value As String())
+            reservedKeysValue = If(value, New String() {})
+            Relayout()
+        End Set
+    End Property
+
+    ' The caption block the preferred size is made for: the current caption, widened to the widest
+    ' reserved state.
+    Private Function ReservedCaptionSize(limit As Integer) As Size
+        Dim cap = CaptionSize(limit)
+        If iconOnlyValue Then Return cap
+        For Each key In reservedKeysValue
+            Dim alt = TextRenderer.MeasureText(Localization.T(key), Font, New Size(limit, Integer.MaxValue), CaptionFlags)
+            cap = New Size(Math.Max(cap.Width, alt.Width), Math.Max(cap.Height, alt.Height))
+        Next
+        Return cap
+    End Function
+
     ' The smallest this button is allowed to be on either axis for its kind.
     Private Function TargetPx() As Integer
         Return Ui.Px(Me, UiTokens.Target())
@@ -236,7 +263,7 @@ Public Class GlyphButton
 
     Public Overrides Function GetPreferredSize(proposedSize As Size) As Size
         Dim gp = GlyphPx()
-        Dim cap = CaptionSize(CaptionLimit())
+        Dim cap = ReservedCaptionSize(CaptionLimit())
         ' UI-SIZING rule 4 and BUTTONS section 3: the ordinary pointer target is 32 logical units and the
         ' height of a single-line button. The padding rounds down at some scalings, so the floor is
         ' stated here rather than left to the rounding. A multiline caption grows the height past it.

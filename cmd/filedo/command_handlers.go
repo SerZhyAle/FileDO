@@ -9,21 +9,6 @@ import (
 	"strings"
 )
 
-// isPathAccessible checks if a path exists and is accessible
-func isPathAccessible(path string) bool {
-	// Check for network paths specially
-	if len(path) > 2 && (path[0:2] == `\\` || path[0:2] == "//") {
-		// For network paths, we need to check if they are accessible
-		// If it's a UNC path, just check if we can stat it
-		_, err := os.Stat(path)
-		return err == nil
-	}
-
-	// For local paths
-	_, err := os.Stat(path)
-	return err == nil
-}
-
 // handleErrorWithUserMessage handles errors with user-friendly messages
 // and returns true if the error was handled
 func handleErrorWithUserMessage(err error, path string, historyLogger *HistoryLogger) bool {
@@ -309,7 +294,7 @@ func (h FolderHandler) Test(path string, autoDelete bool, maxFiles int) error {
 }
 
 func (h FolderHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
-	return fmt.Errorf("probe requires a drive letter, not a folder path")
+	return exitClassf(10, "probe requires a drive letter, not a folder path")
 }
 
 func (h FolderHandler) CheckDuplicates(path string, args []string) error {
@@ -357,7 +342,7 @@ func (h NetworkHandler) Test(path string, autoDelete bool, maxFiles int) error {
 }
 
 func (h NetworkHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
-	return fmt.Errorf("probe is only supported for local drive letters (e.g. D:)")
+	return exitClassf(10, "probe is only supported for local drive letters (e.g. D:)")
 }
 
 func (h NetworkHandler) CheckDuplicates(path string, args []string) error {
@@ -385,31 +370,31 @@ func (h FileHandler) Info(path string, fullScan bool) (string, error) {
 }
 
 func (h FileHandler) SpeedTest(path, size string, noDelete, shortFormat bool) error {
-	return fmt.Errorf("speed test is not supported for files")
+	return exitClassf(10, "speed test is not supported for files")
 }
 
 func (h FileHandler) Fill(path, size string, autoDelete bool) error {
-	return fmt.Errorf("fill operation is not supported for files")
+	return exitClassf(10, "fill operation is not supported for files")
 }
 
 func (h FileHandler) FillClean(path string, assumeYes bool) error {
-	return fmt.Errorf("fill clean operation is not supported for files")
+	return exitClassf(10, "fill clean operation is not supported for files")
 }
 
 func (h FileHandler) FillVerify(path string) error {
-	return fmt.Errorf("fill verify operation is not supported for files")
+	return exitClassf(10, "fill verify operation is not supported for files")
 }
 
 func (h FileHandler) Test(path string, autoDelete bool, maxFiles int) error {
-	return fmt.Errorf("test operation is not supported for files")
+	return exitClassf(10, "test operation is not supported for files")
 }
 
 func (h FileHandler) Probe(path string, assumeYes bool, autoRepair bool) error {
-	return fmt.Errorf("probe is only supported for local drive letters (e.g. D:)")
+	return exitClassf(10, "probe is only supported for local drive letters (e.g. D:)")
 }
 
 func (h FileHandler) CheckDuplicates(path string, args []string) error {
-	return fmt.Errorf("check-duplicates operation is not supported for individual files")
+	return exitClassf(10, "check-duplicates operation is not supported for individual files")
 }
 
 func (h FileHandler) Copy(sourcePath, targetPath string) error {
@@ -448,7 +433,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	cmd.Parse(append([]string{"--"}, args...))
 	if cmd.NArg() < 1 {
 		beginRun(runActs, cmd.Name(), "", args)
-		runFailure(fmt.Errorf("'%s' command requires a path argument", cmd.Name()))
+		runFailure(exitClassf(10, "'%s' command requires a path argument", cmd.Name()))
 		fmt.Fprintf(os.Stderr, "Error: '%s' command requires a path argument.\n", cmd.Name())
 		return
 	}
@@ -462,7 +447,11 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 	beginRun(kind, operation, path, cmd.Args())
 
 	// First check if the path exists (for folders, files and network paths)
-	if cmdType != CommandDevice && !isPathAccessible(path) {
+	var statErr error
+	if cmdType != CommandDevice {
+		_, statErr = os.Stat(path)
+	}
+	if statErr != nil {
 		resourceType := "Path"
 		if cmdType == CommandFolder {
 			resourceType = "Folder"
@@ -474,14 +463,14 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		fmt.Printf("Info: %s \"%s\" does not exist or is not accessible.\n", resourceType, path)
 		// Nothing was measured, so nothing is claimed: an unreachable target
 		// is *Not proven* and exit 2, never the zero it used to be.
-		runFailure(fmt.Errorf("%s %q does not exist or is not accessible", strings.ToLower(resourceType), path))
+		runFailure(preRunError(fmt.Errorf("%s %q does not exist or is not accessible: %w", strings.ToLower(resourceType), path, statErr)))
 		return
 	}
 
 	// A word that is no operation is a usage error, the same one an unknown
 	// first word gets, and nothing about the target is printed or recorded.
 	if cmd.NArg() >= 2 && !isOperationWord(cmd.Arg(1)) {
-		err := fmt.Errorf("Unknown command %q", cmd.Arg(1))
+		err := exitClassf(10, "Unknown command %q", cmd.Arg(1))
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		runFailure(err)
 		return
@@ -528,7 +517,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 				case "--yes", "-y", "yes", "y", "--force", "/y":
 					assumeYes = true
 				default:
-					reportOpError(fmt.Errorf("unknown option %q for clean - the only option is --yes", cmd.Arg(i)), path, historyLogger)
+					reportOpError(exitClassf(10, "unknown option %q for clean - the only option is --yes", cmd.Arg(i)), path, historyLogger)
 					return
 				}
 			}
@@ -597,7 +586,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			case !sizeSet:
 				sizeParam, sizeSet = cmd.Arg(i), true
 			default:
-				reportOpError(fmt.Errorf("unexpected argument %q - usage: speed [size|max] [nodel] [short]", cmd.Arg(i)), path, historyLogger)
+				reportOpError(exitClassf(10, "unexpected argument %q - usage: speed [size|max] [nodel] [short]", cmd.Arg(i)), path, historyLogger)
 				return
 			}
 		}
@@ -659,7 +648,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			case !sizeSet:
 				sizeParam, sizeSet = cmd.Arg(i), true
 			default:
-				reportOpError(fmt.Errorf("unexpected argument %q - usage: fill [size] [del], or fill verify", cmd.Arg(i)), path, historyLogger)
+				reportOpError(exitClassf(10, "unexpected argument %q - usage: fill [size] [del], or fill verify", cmd.Arg(i)), path, historyLogger)
 				return
 			}
 		}
@@ -670,7 +659,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 		}
 		if _, err := parseSizeMB(sizeParam, 1, 10240); err != nil {
 			if w := strings.ToLower(sizeParam); w == "clean" || w == "cln" || w == "c" {
-				err = fmt.Errorf("%v - to remove FileDO's test files, run: %s", err, cleanupHint(path))
+				err = fmt.Errorf("%w - to remove FileDO's test files, run: %s", err, cleanupHint(path))
 			}
 			reportOpError(err, path, historyLogger)
 			return
@@ -716,7 +705,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			}
 			n, err := strconv.Atoi(arg)
 			if countSet || err != nil || n < 1 || n > maxTestFiles {
-				reportOpError(fmt.Errorf("unexpected argument %q - usage: test [number of files, 1..%d] [del]", cmd.Arg(i), maxTestFiles), path, historyLogger)
+				reportOpError(exitClassf(10, "unexpected argument %q - usage: test [number of files, 1..%d] [del]", cmd.Arg(i), maxTestFiles), path, historyLogger)
 				return
 			}
 			maxFiles, countSet = n, true
@@ -789,7 +778,7 @@ func runGenericCommand(cmd *flag.FlagSet, cmdType CommandType, args []string, hi
 			runStep("recover", path)
 
 			if cmdTypeName != "device" {
-				reportOpError(fmt.Errorf("recover command is only supported for local drive letters (e.g. D:)"), path, historyLogger)
+				reportOpError(exitClassf(10, "recover command is only supported for local drive letters (e.g. D:)"), path, historyLogger)
 				return
 			}
 

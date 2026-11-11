@@ -6,12 +6,14 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610211540-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611110217-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Fake-Capacity Check • Speed Test • Duplicate Finder • Folder Compare • Wipe Free Space • Password-Protected Files • Virtual Disks**
 
 *Test USB sticks and SD cards for fake capacity, check drive speed, find duplicate files and wipe free space to make recovery harder - on Windows, with a window and a command line. For anyone who bought a stick or card and wants to know it is real.*
+
+![The FileDO window on the capacity test page](msix/screenshots/capacity-en-us.png)
 
 </div>
 
@@ -373,6 +375,61 @@ report and no history file. A double-click on a `.fd-sec` does not open that win
 
 ---
 
+## Backup and Restore
+
+A folder, a whole drive or a network share goes into one file - a plain `.zip` that any zip tool opens on
+any computer, or that zip sealed into a `.fd-sec` container behind a password - and comes back to its old
+address or a new one. Before packing, FileDO reads a sample of the content for at most 10 seconds and
+picks the compression density itself: photos and videos are stored as they are, text and documents are
+packed tighter; the chosen level and the probe time are printed, and `level <0-9>` names the density
+instead.
+
+```bash
+# D:\Photos-<yyMMddHHmm>.zip beside the folder; any zip tool opens it
+filedo backup D:\Photos
+
+# Somewhere else, at a density you name
+filedo backup D:\Photos to E:\Bak level 9
+
+# Sealed into Photos-<yyMMddHHmm>.fd-sec (password asked twice); keep-zip keeps the plain zip too
+filedo backup D:\Photos sec
+
+# A network folder the same way; a whole drive needs the word root and your yes after the size estimate
+filedo backup \\nas\share\Docs
+filedo backup E:\ root
+
+# Rebuild the folder beside the archive, or under another address
+filedo restore Photos-2611101530.zip
+filedo restore Photos-2611101530.fd-sec to D:\
+```
+
+- **The zip records the folder's name, never its path**, so a plain backup handed to someone else does
+  not show how your disk is organised. `restore` rebuilds the folder beside the archive; `to <dir>`
+  names any other address, the original one included.
+- **Nothing is merged or replaced.** A folder that already exists at the destination is left as it is:
+  `restore` asks to write beside it as `<name>-1`, and `suffix` answers yes in a batch. An existing
+  archive name is never overwritten either.
+- **An archive whose entry names would leave the destination** - `..`, an absolute path, a drive
+  letter, a device name such as `CON` - is refused whole, before anything is written.
+- **The Windows drive itself is refused**; on another whole drive the page file, the hibernation file and
+  `System Volume Information` are skipped, and the run says so. The archive is never written inside the
+  folder it packs.
+- **A junction or symbolic link in the source refuses the backup** and names the entry; `skip-links`
+  leaves the links out and lists every one of them, so an incomplete copy is never silent.
+- **What is carried**: the files, the empty folders and each file's modification time. Permissions,
+  alternate data streams and links are not.
+- **A stopped run (Ctrl+C) leaves no archive behind** - only finished files ever get their final name.
+  A sealed restore with a wrong password, a file that is not a container and a damaged container end in
+  the same answer, as they do for `unsecure`; `del` removes the archive after a successful restore.
+- **A backup is one whole copy, made when you run it** - there is no schedule, no history of earlier
+  backups and no incremental layer. A single file goes into a container with `secure` instead.
+
+In the window, the **Protect** group carries both operations as pages - **Back up a folder** and
+**Restore from a backup** - and the **Command** page builds them too (`backup`, `backup sec`, `restore`).
+The password is typed out of sight (twice for a sealed backup) and reaches no command line.
+
+---
+
 ## Virtual Disks (`.fdd`)
 
 A container is one ordinary `.fdd` file that holds a whole volume. Mounted, it is a drive letter like any
@@ -660,11 +717,11 @@ with nothing changed.
 - **Every operation** on the Command page, in one dropdown: info, speed, test, fill, clean, cd (duplicates), the full copy family (copy / fastcopy / synccopy / balanced / maxcopy / smartcopy / safecopy), wipe, compare, check, probe, recover, from, hist
 - **Source + destination** fields for copy and compare
 - **Context-aware flags** (max, del, nodel, short, hist, `--force` for wipe) and duplicate/compare delete rules
-- **A page per job** in the default window - capacity, speed, info, damaged-files check, raw probe, recover, duplicates, compare, clean, copy, fill, wipe and the three secret-file jobs - each carrying every option the CLI takes for it, including all twenty-nine `check` flags
+- **A page per job** in the default window - capacity, speed, info, damaged-files check, raw probe, recover, duplicates, compare, clean, copy, fill, wipe, the three secret-file jobs and the backup pair (back up, restore) - each carrying every option the CLI takes for it, including all twenty-nine `check` flags
 - **Live command preview** in an editable box on the Command page - tweak by hand for anything the builder doesn't cover
 - **Browse** buttons for paths, **Copy command** to clipboard, and **RUN** in a console window
 - Finds `filedo.exe` next to itself or on `PATH` (works under the Store package and portable zip alike)
-- **About page**: build stamp, author, and links to the site, the source, the issue tracker, the privacy page and the author's other tools
+- **About page**: what FileDO is for, build stamp, author, and links to the help, the index of all topics, the site, every version with its downloads and updates, the source, the support page, the issue tracker, the privacy page, the license text and the author's other tools, plus the related program Fast Media Sorter and Sharing with what it is for. The Disk manager's own settings window has the same Settings and About pages, one click apart
 - **Send logs to the author** - the one button on that page packs the FileDO logs found on this machine into a single zip, opens the folder with it selected, puts its path on the clipboard, and opens your default mail program already addressed and titled. You see the zip first, and nothing is sent until you press Send yourself
 
 ```powershell
@@ -692,7 +749,7 @@ folder C:\temp clean
 
 Run: `filedo from commands.txt`
 
-Exit codes (all non-container verbs): **0 passed or done, 1 ran and found a defect, 2 could not be verified.**
+Exit codes (all non-container verbs): **0 passed or done, 1 ran and found a defect, 2 could not be verified (no more specific class), 10 usage error, 11 target not found or not ready, 12 permission or elevation refused, 13 not enough space or resources, 14 hardware or low-level I/O failure, 15 network or share failure, 16 stopped before the end.** A defect found before a stop stays 1, and a script that tests for exactly 2 should test for 2 or higher. The container verbs and `vd` keep their own classes, listed with them.
 
 ### History Tracking
 ```bash
@@ -770,14 +827,14 @@ filedo \\server\backup speed 500
 <summary><b>Wiping</b></summary>
 
 ```bash
-# Fill 5GB, then delete the test files
+# Fill the free space with 5000 MB test files, then delete them
 filedo C: fill 5000 del
 
 # Clean existing test files
 filedo D: clean
 
-# Before disposing drive
-filedo E: fill max del
+# Before disposing drive: overwrite all free space with 1000 MB files, then delete them
+filedo E: fill 1000 del
 ```
 </details>
 
@@ -852,7 +909,16 @@ FileDO/
 
 ## Version History
 
-**v2610211540** (Current)
+**v2611110217** (Current)
+- **Backup and restore**: `filedo backup` packs a folder, a drive or a network folder into one zip that any zip tool opens - FileDO picks the compression density after a look of at most 10 seconds at the files, or `level 0-9` names it - and `sec` seals the zip into a `.fd-sec` container behind a password; `filedo restore` rebuilds the folder beside the backup or wherever `to` names, and never merges into or replaces a folder; in the window, the **Protect** group has the pages *Back up a folder* and *Restore from a backup*
+- **Exit codes**: a run that cannot finish says why in its exit code: 10 a usage error, 11 a target that is missing or not ready, 12 missing permissions, 13 not enough space, 14 an I/O failure, 15 a network failure, 16 stopped by you; 0, 1 and 2 keep their meaning
+- **Reasons**: when a run cannot finish, the result card says why in the language of the window - a full drive, a file another program has open - instead of an exit code alone, and the Disk manager does the same; a copy that runs out of room says the drive is full; a file held open by another program is named with the program that holds it, and the run can simply be repeated once the file is free
+- **Fill**: the Fill page deletes its test files after the run unless you untick it, and leftover test files from an earlier run are offered for cleanup when the window starts
+- **Window**: the **?** button opens its help page at the top; starting FileDO a second time brings the open window to the front; checkboxes are drawn in the colours of the theme and their long captions wrap; the icons of the left rail are drawn in the colour of their group
+- **Disks**: a disk whose sharing record names a holder or a state this version cannot read is not mounted; a mount made at logon is logged as made under its setting
+- **Site and privacy**: the privacy page names disk sharing and the stored auto-mount password; the start page has its own Russian and Ukrainian addresses, shows the setup file's size and SHA-256 directly, and separates the checks that only read from the operations that write; the in-app help pages are kept out of search engines
+
+**v2610211540** (Previous)
 - **Help**: **F1** or the new **?** button opens the help page of the window you are in, in your browser - the job pages, Command, Settings, About, History and the Disk manager, in English, Russian, Ukrainian, German and French, with numbered markers over a picture of the window; the tray menu has a *Help* entry, and the first link of About opens the help index
 - **Look**: all buttons share one height and rounded corners, and a long caption wraps instead of being cut off with an ellipsis; dialog answers have one neutral face, with Cancel first and the acting answer last; the groups in Settings open and close from a header with a state triangle
 - **Keyboard**: **F6** and **Shift+F6** move the focus to the next or the previous area of the window, in the main window and in the Disk manager; the Disk manager's help menu (keyboard map, welcome tour, links) opens from the keyboard too - **Menu** or **Shift+F10** on the **?** button - and is listed in its *More actions* menu
@@ -862,7 +928,7 @@ FileDO/
 - **Fixes**: a job event with an empty value among its numbers no longer makes the window throw an error
 - **Docs**: new site guides on erasing data and on the Microsoft Store build, in five languages; the footers and the theme control of the site pages are aligned; the specifications of the `.fdd` container format and behaviour are version 1.0
 
-**v2610102316** (Previous)
+**v2610102316**
 - **Virtual disks**: `mount noscan` is retired - FileDO no longer changes Microsoft Defender settings; the word is still accepted and ignored, the mount window has no antivirus box any more, and a container file can be excluded by hand in Windows Security
 - **Security software**: the disk steps no longer run PowerShell as an encoded command or with an execution-policy override - both are signs that security software weighs against a program
 
@@ -936,7 +1002,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610211540** - Advanced File & Storage Operations Tool
+**FileDO v2611110217** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

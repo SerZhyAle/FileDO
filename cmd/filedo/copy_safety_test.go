@@ -156,8 +156,8 @@ func TestSingleFileCopyOntoItselfRefused(t *testing.T) {
 	}
 	for _, args := range rows {
 		out, code := run(t, wd, args...)
-		if code != 2 {
-			t.Errorf("%v exited %d, want 2 (usage refusal)\n%s", args, code, out)
+		if code != 10 {
+			t.Errorf("%v exited %d, want 10 (usage refusal)\n%s", args, code, out)
 		}
 		if got := mustRead(t, p); !bytes.Equal(got, body) {
 			t.Fatalf("%v changed the source: %d bytes, want %d\n%s", args, len(got), len(body), out)
@@ -166,8 +166,8 @@ func TestSingleFileCopyOntoItselfRefused(t *testing.T) {
 	// From a batch file too: the same refusal on the other dispatch.
 	lst := filepath.Join(wd, "self.lst")
 	writeFile(t, lst, []byte("copy "+p+" "+strings.ToUpper(p)+"\r\n"))
-	if out, code := run(t, wd, "from", lst); code != 2 {
-		t.Errorf("batch self-copy exited %d, want 2\n%s", code, out)
+	if out, code := run(t, wd, "from", lst); code != 10 {
+		t.Errorf("batch self-copy exited %d, want 10\n%s", code, out)
 	}
 	if got := mustRead(t, p); !bytes.Equal(got, body) {
 		t.Fatalf("the batch self-copy changed the source")
@@ -343,8 +343,8 @@ func TestFastCopyStopEndsQuickly(t *testing.T) {
 	if took > 10*time.Second {
 		t.Errorf("the stop took %v to end the copy", took)
 	}
-	if code != 0 {
-		t.Errorf("a stopped copy exited %d, want 0\n%s", code, output())
+	if code != 16 {
+		t.Errorf("a stopped copy exited %d, want 16\n%s", code, output())
 	}
 	if v := lastResult(t, events)["verdict"]; v != "Stopped" {
 		t.Errorf("verdict %q, want Stopped\n%s", v, output())
@@ -404,8 +404,8 @@ func TestFolderCopyStopLeavesNoEmptyFiles(t *testing.T) {
 	}
 	writeFile(t, stop, []byte("stop"))
 	code := waitExit(t, cmd, 60*time.Second, output)
-	if code != 0 {
-		t.Errorf("a stopped copy exited %d, want 0\n%s", code, output())
+	if code != 16 {
+		t.Errorf("a stopped copy exited %d, want 16\n%s", code, output())
 	}
 	if v := lastResult(t, events)["verdict"]; v != "Stopped" {
 		t.Errorf("verdict %q, want Stopped", v)
@@ -1100,8 +1100,8 @@ func TestCopyIntoOwnSubfolderRefused(t *testing.T) {
 	}
 	for _, args := range rows {
 		out, code := run(t, wd, args...)
-		if code != 2 {
-			t.Errorf("%v exited %d, want 2\n%s", args, code, out)
+		if code != 10 {
+			t.Errorf("%v exited %d, want 10\n%s", args, code, out)
 		}
 		if exists(backup) {
 			t.Fatalf("%v created %s", args, backup)
@@ -1109,7 +1109,89 @@ func TestCopyIntoOwnSubfolderRefused(t *testing.T) {
 	}
 	lst := filepath.Join(wd, "nest.lst")
 	writeFile(t, lst, []byte("folder "+src+" copy "+backup+"\r\nfastcopy "+src+" "+backup+"\r\n"))
-	if out, code := run(t, wd, "from", lst); code != 2 || exists(backup) {
-		t.Errorf("batch nested copy exited %d (want 2), backup exists=%v\n%s", code, exists(backup), out)
+	if out, code := run(t, wd, "from", lst); code != 10 || exists(backup) {
+		t.Errorf("batch nested copy exited %d (want 10), backup exists=%v\n%s", code, exists(backup), out)
+	}
+}
+
+// A copy whose destination fills up keeps the disk-full errno in the error it
+// ends with: the run exits 13 (insufficient storage) and carries the volume-full
+// token, not an untyped 2 (CLI-EVENT-STREAM rule 17 and the 2026-11-10 amendment).
+func TestCopyFinishKeepsDiskFullErrno(t *testing.T) {
+	stats := newCopyRunStats("copy")
+	stats.recordFailure(`D:\out\a.bin`, &os.PathError{Op: "write", Path: `D:\out\a.bin`, Err: errDiskFull})
+	stats.recordFailure(`D:\out\b.bin`, &os.PathError{Op: "write", Path: `D:\out\b.bin`, Err: errDiskFull})
+	err := stats.finish()
+	if err == nil {
+		t.Fatal("finish: a run with failed files returned nil")
+	}
+	if got := failureExitCode(err); got != 13 {
+		t.Errorf("exit code: expected 13, got %d (%v)", got, err)
+	}
+	if got := failureDetails(err)["reason"]; got != reasonVolumeFull {
+		t.Errorf("reason token: expected %q, got %v", reasonVolumeFull, got)
+	}
+	if strings.Contains(err.Error(), `D:\out`) {
+		t.Errorf("the final message names a target path: %v", err)
+	}
+}
+
+// A copy that stops on a file another program holds open ends as before - exit
+// 2 - with the token file-in-use, and the final message names no target path.
+func TestCopyFinishKeepsSharingViolationErrno(t *testing.T) {
+	stats := newCopyRunStats("copy")
+	stats.recordFailure(`D:\out\a.bin`, &os.PathError{Op: "open", Path: `D:\out\a.bin`, Err: errSharingViolation})
+	err := stats.finish()
+	if err == nil {
+		t.Fatal("finish: a run with failed files returned nil")
+	}
+	if got := failureExitCode(err); got != 2 {
+		t.Errorf("exit code: expected 2, got %d (%v)", got, err)
+	}
+	if got := failureDetails(err)["reason"]; got != reasonFileInUse {
+		t.Errorf("reason token: expected %q, got %v", reasonFileInUse, got)
+	}
+	if strings.Contains(err.Error(), `D:\out`) {
+		t.Errorf("the final message names a target path: %v", err)
+	}
+}
+
+// SP-0195: the failed files end in one summary, and its exit class is the first
+// specific one among their errors - a file held open (class 2) gives way to a
+// device error (14), which a later full disk (13) does not displace. The token
+// that names a cause stays on the error whatever the class.
+func TestCopyFinishCarriesTheClassOfItsFirstSpecificCause(t *testing.T) {
+	stats := newCopyRunStats("copy")
+	stats.recordFailure(`D:\out\a.bin`, &os.PathError{Op: "read", Path: `D:\src\a.bin`, Err: errSharingViolation})
+	stats.recordFailure(`D:\out\b.bin`, &os.PathError{Op: "read", Path: `D:\src\b.bin`, Err: errIODevice})
+	stats.recordFailure(`D:\out\c.bin`, &os.PathError{Op: "write", Path: `D:\out\c.bin`, Err: errDiskFull})
+	err := stats.finish()
+	if err == nil {
+		t.Fatal("finish: a run with failed files returned nil")
+	}
+	if got := failureExitCode(err); got != 14 {
+		t.Errorf("exit code: expected 14, got %d (%v)", got, err)
+	}
+	if got := failureDetails(err)["reason"]; got != reasonVolumeFull {
+		t.Errorf("reason token: expected %q, got %v", reasonVolumeFull, got)
+	}
+	if strings.Contains(err.Error(), `D:\`) {
+		t.Errorf("the final message names a path: %v", err)
+	}
+}
+
+// A copy that fails for any other reason ends as before: exit 2, no token.
+func TestCopyFinishKeepsPlainFailureUntyped(t *testing.T) {
+	stats := newCopyRunStats("copy")
+	stats.recordFailure(`D:\out\a.bin`, errors.New("cannot read the source"))
+	err := stats.finish()
+	if err == nil {
+		t.Fatal("finish: a run with failed files returned nil")
+	}
+	if got := failureExitCode(err); got != 2 {
+		t.Errorf("exit code: expected 2, got %d (%v)", got, err)
+	}
+	if details := failureDetails(err); details != nil {
+		t.Errorf("reason token: expected none, got %v", details)
 	}
 }

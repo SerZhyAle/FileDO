@@ -351,8 +351,8 @@ func TestBatchCountsTargetFailures(t *testing.T) {
 	if !strings.Contains(out, "0/1 commands succeeded") {
 		t.Fatalf("a failed target counted as a success\n%s", out)
 	}
-	if code != 2 {
-		t.Fatalf("exit %d, want 2", code)
+	if code != 11 {
+		t.Fatalf("exit %d, want 11", code)
 	}
 }
 
@@ -379,8 +379,8 @@ func TestBatchUnknownWordIsUsageError(t *testing.T) {
 	if exists(marker) {
 		t.Fatalf("a batch line started an external program\n%s", out)
 	}
-	if code != 2 {
-		t.Fatalf("exit %d, want 2\n%s", code, out)
+	if code != 10 {
+		t.Fatalf("exit %d, want 10\n%s", code, out)
 	}
 }
 
@@ -442,8 +442,8 @@ func TestBatchSelfIncludeRefused(t *testing.T) {
 	dir := t.TempDir()
 	writeLst(t, dir, "self.lst", "from self.lst\n")
 	out, code := run(t, dir, "from", "self.lst")
-	if code != 2 {
-		t.Fatalf("exit %d, want 2\n%s", code, out)
+	if code != 10 {
+		t.Fatalf("exit %d, want 10\n%s", code, out)
 	}
 	if strings.Count(out, "Executing") > 2 {
 		t.Fatalf("the self-include recursed\n%s", out)

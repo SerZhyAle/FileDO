@@ -63,6 +63,7 @@ type folderScan struct {
 	total      int64
 	errors     []string        // entries that could not be read (CHK-06)
 	collisions map[string]bool // keys two names fold onto (CHK-07)
+	causes     causeKeeper     // the errors behind the problems, for the exit class (SP-0195)
 }
 
 // compareOptions are the flags a compare's delete phase takes.
@@ -109,11 +110,15 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 	dst := filepath.Clean(targetPath)
 
 	// Validate
-	if info, err := os.Stat(src); err != nil || !info.IsDir() {
-		return fmt.Errorf("source is not a directory: %s", sourcePath)
+	if info, err := os.Stat(src); err != nil {
+		return preRunError(fmt.Errorf("source is not accessible: %s: %w", sourcePath, err))
+	} else if !info.IsDir() {
+		return exitClassf(10, "source is not a directory: %s", sourcePath)
 	}
-	if info, err := os.Stat(dst); err != nil || !info.IsDir() {
-		return fmt.Errorf("target is not a directory: %s", targetPath)
+	if info, err := os.Stat(dst); err != nil {
+		return preRunError(fmt.Errorf("target is not accessible: %s: %w", targetPath, err))
+	} else if !info.IsDir() {
+		return exitClassf(10, "target is not a directory: %s", targetPath)
 	}
 
 	// One folder under two spellings - `X` and `x\`, a junction, subst,
@@ -121,7 +126,7 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 	// match itself and `del source` deleted all of them (CHK-01).
 	overlap, err := pathsOverlap(src, dst)
 	if err != nil {
-		return fmt.Errorf("compare: cannot resolve %q and %q: %v", sourcePath, targetPath, err)
+		return fmt.Errorf("compare: cannot resolve %q and %q: %w", sourcePath, targetPath, err)
 	}
 	if overlap {
 		return overlapError("compare", sourcePath, targetPath)
@@ -133,16 +138,16 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 		op := strings.ToLower(extra[0])
 		if op == "delete" || op == "del" {
 			if len(extra) < 2 {
-				return fmt.Errorf("DELETE requires a mode: source|target|old|new|small|big")
+				return exitClassf(10, "DELETE requires a mode: source|target|old|new|small|big")
 			}
 			deleteMode = strings.ToLower(extra[1])
 			if !compareDeleteModes[deleteMode] {
-				return fmt.Errorf("invalid delete mode: %s (allowed: source|target|old|new|small|big)", deleteMode)
+				return exitClassf(10, "invalid delete mode: %s (allowed: source|target|old|new|small|big)", deleteMode)
 			}
 			if len(extra) >= 3 {
 				s := strings.ToLower(extra[2])
 				if s != "source" && s != "target" {
-					return fmt.Errorf("invalid side qualifier: %s (allowed: source|target)", s)
+					return exitClassf(10, "invalid side qualifier: %s (allowed: source|target)", s)
 				}
 				sideOnly = s
 			}
@@ -153,7 +158,7 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 	// a verdict about a snapshot that is about to change is not an answer
 	// anyone asked for (SP-0130 R3: the delete phase keeps its own rules).
 	if opts.strict && deleteMode != "" {
-		return fmt.Errorf("compare: --strict judges the comparison and cannot be combined with a delete phase")
+		return exitClassf(10, "compare: --strict judges the comparison and cannot be combined with a delete phase")
 	}
 
 	start := time.Now()
@@ -223,7 +228,12 @@ func handleCompareCommand(sourcePath, targetPath string, extraArgs ...string) er
 	}
 
 	if len(problems) > 0 && !runStopRequested() {
-		return fmt.Errorf("compare could not verify everything: %s", strings.Join(problems, "; "))
+		// The class comes from the errors behind the problems, not from the
+		// sentence: an unreadable folder is 11 or 12, an unanswered delete 10.
+		var causes causeKeeper
+		causes.keep(srcScan.causes.get())
+		causes.keep(dstScan.causes.get())
+		return causes.classify(fmt.Errorf("compare could not verify everything: %s", strings.Join(problems, "; ")))
 	}
 	// SP-0130: with --strict the comparison itself is the verdict. The
 	// scans' unreadable entries have already ended the run Not proven
@@ -375,6 +385,7 @@ func scanFiles(root string) *folderScan {
 		}
 		if err != nil {
 			s.errors = append(s.errors, fmt.Sprintf("%s: %v", path, err))
+			s.causes.keep(err)
 			return nil
 		}
 		if d.IsDir() {
@@ -383,6 +394,7 @@ func scanFiles(root string) *folderScan {
 		info, ierr := d.Info()
 		if ierr != nil {
 			s.errors = append(s.errors, fmt.Sprintf("%s: %v", path, ierr))
+			s.causes.keep(ierr)
 			return nil
 		}
 		rel, rerr := filepath.Rel(root, path)
@@ -401,6 +413,7 @@ func scanFiles(root string) *folderScan {
 	})
 	if err != nil {
 		s.errors = append(s.errors, fmt.Sprintf("%s: %v", root, err))
+		s.causes.keep(err)
 	}
 	return s
 }
@@ -748,6 +761,9 @@ func performDelete(srcRoot, dstRoot, mode string, sideOnly string, opts compareO
 	} else {
 		answered, yes := compareConfirm(fmt.Sprintf("\nDelete these %d files (%s)? (y/N): ", len(tasks), modeText))
 		if !answered {
+			// Nobody could answer: the words of the command line are what
+			// is missing (--yes), so the run ends as a usage refusal (10).
+			srcScan.causes.keep(exitClassf(10, "the delete needs a confirmation"))
 			return append(problems, fmt.Sprintf("the delete needs a confirmation: %d files listed (%s), nothing deleted - pass --yes to delete them without a prompt", len(tasks), modeText))
 		}
 		if !yes {

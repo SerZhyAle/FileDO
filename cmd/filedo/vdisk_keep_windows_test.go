@@ -227,7 +227,7 @@ func TestVD_KeepWord(t *testing.T) {
 // before keep existed is replaced by switching auto off and on.
 func TestVD_AutoTaskKeeps(t *testing.T) {
 	x := vdTaskXML("work", `C:\a\work.fdd`, `C:\Program Files\FileDO\filedo.exe`, "S-1-5-21-1-2-3-1001")
-	for _, want := range []string{"--no-history vd mount work keep", "<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>",
+	for _, want := range []string{"--no-history vd mount work keep --logon-task", "<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>",
 		"<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>"} {
 		if !strings.Contains(x, want) {
 			t.Errorf("the mount task XML lacks %q", want)

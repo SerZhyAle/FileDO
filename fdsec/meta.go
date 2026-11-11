@@ -51,9 +51,11 @@ var reservedStems = map[string]bool{
 }
 
 // ValidateName screens the sealed true name against bytes that are not UTF-8,
-// path separators, reserved device names (by stem), control characters and
-// trailing dots or spaces (FDSEC-FORMAT.md section 7 and section 22,
-// FDSEC-BEHAVIOUR.md section 4.3). The error does not echo the name.
+// a name that is not in NFC, path separators, reserved device names (by
+// stem), control characters and trailing dots or spaces (FDSEC-FORMAT.md
+// section 7 and sections 22 and 23, FDSEC-BEHAVIOUR.md section 4.3). The error
+// does not echo the name. A writer normalises before it calls this; a reader
+// never does, so a name that is not in NFC is damage in every suite.
 //
 // This is the format's portable validity, and nothing platform-specific. The
 // four characters U+0022, U+003C, U+003E and U+007C are valid in an
@@ -67,6 +69,9 @@ func ValidateName(name string) error {
 	}
 	if !utf8.ValidString(name) {
 		return fmt.Errorf("name is not valid UTF-8")
+	}
+	if !norm.NFC.IsNormalString(name) {
+		return fmt.Errorf("name is not in NFC")
 	}
 	if name == "." || name == ".." {
 		return fmt.Errorf("name is a relative directory reference")

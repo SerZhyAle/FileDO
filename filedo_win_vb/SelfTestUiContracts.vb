@@ -5,15 +5,20 @@ Imports System.Reflection
 ' real controls built (not shown) in this process. What a person must still look at - the showcase
 ' captures at the sizes and in the languages the contracts list - is slice S4, not here.
 '
-' Rows are named `ui-sizing:`, `buttons:`, `group:` and `dialog:answer-order:`; the group filter
+' Rows are named `ui-sizing:`, `buttons:`, `group:`, `dialog:answer-order:`, `option:` (BOOLEAN-OPTION
+' 2.0), `settings-nav:` and `about:` (SETTINGS-NAVIGATION 2.0); the group filter
 ' FILEDO_SELFTEST_ONLY=ui-contracts runs just these.
 Partial Public Module SelfTest
 
     Private Sub CheckUiContracts()
         CheckUiSizing()
         CheckButtonsContract()
+        CheckButtonStateWidth()
         CheckGroupContract()
         CheckDialogAnswerOrder()
+        CheckBooleanOptionContract()
+        CheckOptionsAdopted()
+        CheckSettingsNavigation()
     End Sub
 
     ' ---- UI-SIZING -------------------------------------------------------------------------------
@@ -172,6 +177,41 @@ Partial Public Module SelfTest
         Next
     End Sub
 
+    ' BUTTONS section 3 rule 3: a stateful button is as wide in every state as in its widest, and no
+    ' narrower than a plain button showing that widest caption.
+    Private Sub CheckButtonStateWidth()
+        Using host As New Form
+            Dim wasDpi = Theme.CurrentDpi
+            Theme.CurrentDpi = Ui.DpiFor(host)
+            Try
+                host.Font = Theme.FontBody()
+                Dim states = New String() {"shell_btn_stop", "shell_btn_remove_copy", "shell_btn_end_run_now"}
+                Dim stateful As New GlyphButton With {.Text = Localization.T(states(0)), .Tier = 16}
+                stateful.Glyph = GlyphRef.Vocabulary("action.cancel")
+                host.Controls.Add(stateful)
+                stateful.ReservedCaptionKeys = New String() {states(1), states(2)}
+                Dim widths As New List(Of Integer)
+                Dim widest = 0
+                For Each key In states
+                    stateful.Text = Localization.T(key)
+                    widths.Add(stateful.GetPreferredSize(Size.Empty).Width)
+                    Dim plain As New GlyphButton With {.Text = Localization.T(key), .Tier = 16}
+                    plain.Glyph = GlyphRef.Vocabulary("action.cancel")
+                    host.Controls.Add(plain)
+                    widest = Math.Max(widest, plain.GetPreferredSize(Size.Empty).Width)
+                    host.Controls.Remove(plain)
+                    plain.Dispose()
+                Next
+                Check("buttons:state-width", widths.Distinct().Count() = 1 AndAlso widths(0) = widest,
+                      String.Join(",", widths.Select(Function(w) w.ToString()).ToArray()) & " of widest " & widest.ToString())
+                host.Controls.Remove(stateful)
+                stateful.Dispose()
+            Finally
+                Theme.CurrentDpi = wasDpi
+            End Try
+        End Using
+    End Sub
+
     ' ---- COLLAPSIBLE-GROUP -----------------------------------------------------------------------
 
     Private Sub CheckGroupContract()
@@ -281,5 +321,327 @@ Partial Public Module SelfTest
             Next
         Next
         Check("dialog:answer-order:destructive", bad.Count = 0, If(bad.Count = 0, total.ToString() & " dialogs: Cancel first, the acting answer last", String.Join(", ", bad.Take(6).ToArray())))
+    End Sub
+
+    ' ---- BOOLEAN-OPTION --------------------------------------------------------------------------
+
+    Private Sub CheckBooleanOptionContract()
+        Using host As New Form
+            Dim wasDpi = Theme.CurrentDpi
+            Theme.CurrentDpi = Ui.DpiFor(host)
+            Try
+                host.Font = Theme.FontBody()
+                Dim o As New BooleanOption With {.Text = "Keep history", .Font = Theme.FontBody()}
+                o.Explanation = "Records every run on this PC so it can be opened again from the History page."
+                host.Controls.Add(o)
+                Dim lay = o.LayoutFor(Integer.MaxValue)
+                Dim boxPx = Ui.Px(o, UiTokens.OptionBox())
+                Dim cellGap = Ui.Px(o, UiTokens.OptionCellGap())
+                Dim headBottom = Math.Max(lay.Box.Bottom, lay.Caption.Bottom)
+
+                ' 2.4: the box is at least 20, 8 from the cell; the explanation is 4 under the heading.
+                Check("option:tokens",
+                      lay.Box.Width = boxPx AndAlso lay.Box.Height = boxPx AndAlso boxPx >= Ui.Px(o, 20) AndAlso
+                      lay.Caption.Left - lay.Box.Right = cellGap AndAlso lay.Note.Top - headBottom = Ui.Px(o, UiTokens.OptionExplanationGap()),
+                      "box " & boxPx.ToString() & ", cell gap " & (lay.Caption.Left - lay.Box.Right).ToString() & ", note gap " & (lay.Note.Top - headBottom).ToString())
+
+                ' 2.1: the box at the reading start, on the first heading line - also when the explanation is long.
+                Dim lineH = TextRenderer.MeasureText("Ag", o.Font).Height
+                Dim boxMid = lay.Box.Top + lay.Box.Height \ 2
+                Dim narrow = o.LayoutFor(Ui.Px(o, 200))
+                Check("option:anatomy",
+                      lay.Box.Left = 0 AndAlso lay.Note.Left = lay.Caption.Left AndAlso lay.Note.Top >= lay.Caption.Bottom AndAlso
+                      boxMid >= lay.Caption.Top AndAlso boxMid <= lay.Caption.Top + lineH AndAlso
+                      narrow.Note.Height > lay.Note.Height AndAlso narrow.Box.Top = lay.Box.Top,
+                      "box " & lay.Box.ToString() & ", caption " & lay.Caption.ToString() & ", narrow note " & narrow.Note.Height.ToString())
+
+                ' 2.2: the glyph stands before the name, 8 from the box and 8 from the caption, at tier 16.
+                o.Glyph = GlyphRef.Vocabulary("action.verify")
+                Dim withGlyph = o.LayoutFor(Integer.MaxValue)
+                Check("option:heading",
+                      withGlyph.GlyphSquare.Width = Ui.Px(o, UiTokens.CaptionGlyph()) AndAlso
+                      withGlyph.GlyphSquare.Left - withGlyph.Box.Right = cellGap AndAlso
+                      withGlyph.Caption.Left - withGlyph.GlyphSquare.Right = cellGap AndAlso withGlyph.Note.Left = withGlyph.GlyphSquare.Left,
+                      "glyph " & withGlyph.GlyphSquare.ToString() & ", caption " & withGlyph.Caption.ToString())
+                o.Glyph = Nothing
+
+                ' 2.3 and 2.6: an obvious option reserves no second row and is one ordinary target high.
+                Dim bare As New BooleanOption With {.Text = "Quiet", .Font = Theme.FontBody()}
+                host.Controls.Add(bare)
+                Check("option:no-empty-row", bare.LayoutFor(Integer.MaxValue).Note.Height = 0 AndAlso
+                      bare.GetPreferredSize(Size.Empty).Height = Ui.Px(bare, UiTokens.Target()),
+                      bare.GetPreferredSize(Size.Empty).ToString())
+
+                ' 2.5: long text wraps in the width a layout gives and grows the row; nothing is cut.
+                Dim wide = o.GetPreferredSize(Size.Empty)
+                o.MaximumSize = New Size(Ui.Px(o, 200), 0)
+                Dim wrapped = o.GetPreferredSize(Size.Empty)
+                Check("option:wrap-before-clip", wrapped.Width <= Ui.Px(o, 200) AndAlso wrapped.Height > wide.Height,
+                      "one line " & wide.ToString() & ", wrapped " & wrapped.ToString())
+                o.MaximumSize = Size.Empty
+                o.Size = o.GetPreferredSize(Size.Empty)
+                lay = o.LayoutFor(o.Width)
+
+                ' 3.1: the box and the caption toggle once each; the explanation and the space after the
+                ' caption do not.
+                o.Checked = False
+                Dim boxPoint As New Point(lay.Box.Left + lay.Box.Width \ 2, lay.Box.Top + lay.Box.Height \ 2)
+                Dim capPoint As New Point(lay.Caption.Left + lay.Caption.Width \ 2, lay.Caption.Top + lay.Caption.Height \ 2)
+                Dim notePoint As New Point(lay.Note.Left + lay.Note.Width \ 2, lay.Note.Top + lay.Note.Height \ 2)
+                Dim afterCaption As New Point(Math.Min(o.Width - 1, lay.Caption.Right + cellGap), capPoint.Y)
+                o.ClickAtForTest(boxPoint)
+                Dim byBox = o.Checked
+                o.ClickAtForTest(capPoint)
+                Dim byCaption = Not o.Checked
+                o.ClickAtForTest(notePoint)
+                Dim noteInert = Not o.Checked
+                o.ClickAtForTest(afterCaption)
+                Dim afterInert = Not o.Checked OrElse afterCaption.X < lay.Caption.Right
+                Check("option:activation", byBox AndAlso byCaption AndAlso noteInert AndAlso afterInert,
+                      "box " & byBox.ToString() & ", caption " & byCaption.ToString() & ", explanation inert " & noteInert.ToString() & ", after caption inert " & afterInert.ToString())
+
+                ' Right to left: the box is mirrored to the right edge and toggles there; the left edge does not.
+                o.RightToLeft = RightToLeft.Yes
+                o.Checked = False
+                o.ClickAtForTest(New Point(o.Width - 1 - boxPoint.X, boxPoint.Y))
+                Dim rtlBox = o.Checked
+                o.ClickAtForTest(boxPoint)
+                Dim rtlLeftInert = o.Checked
+                o.RightToLeft = RightToLeft.No
+                Check("option:rtl", rtlBox AndAlso rtlLeftInert, "mirrored box " & rtlBox.ToString() & ", left edge inert " & rtlLeftInert.ToString())
+
+                ' 3.5: a disabled option toggles from no path and shows why under its heading.
+                o.Checked = False
+                o.DisabledReason = "Locked by the sealed copy."
+                o.Enabled = False
+                o.ClickAtForTest(boxPoint)
+                o.ClickAtForTest(capPoint)
+                Check("option:disabled", Not o.Checked AndAlso o.ShownNote().Contains("Locked by the sealed copy.") AndAlso
+                      o.ColoursFor(Theme.Current).Caption.ToArgb() = Theme.Current.TextDisabled.ToArgb(),
+                      "checked " & o.Checked.ToString() & ", note " & o.ShownNote())
+                o.Enabled = True
+                Check("option:disabled-reason-hidden-when-enabled", o.ShownNote() = o.Explanation, o.ShownNote())
+
+                ' 3.3: one named checkbox, the caption its name and the explanation its description.
+                Dim handleForAccessibility = o.Handle
+                Dim acc = o.AccessibilityObject
+                Check("option:a11y", acc.Role = AccessibleRole.CheckButton AndAlso acc.Name = o.Text AndAlso acc.Description = o.Explanation,
+                      acc.Role.ToString() & " '" & acc.Name & "' / '" & acc.Description & "'")
+
+                ' 3.5: the outline and the check reach 3:1 on the surface, caption and explanation 4.5:1.
+                For Each dark In New Boolean() {False, True}
+                    Dim p = Theme.PaletteFor(dark)
+                    Dim t = If(dark, "dark", "light")
+                    o.ForeColor = p.Text
+                    Dim c = o.ColoursFor(p)
+                    ContrastPair("option:contrast:" & t & ":outline", c.Outline, p.Surface, 3.0)
+                    ContrastPair("option:contrast:" & t & ":checked-box", c.Fill, p.Surface, 3.0)
+                    ContrastPair("option:contrast:" & t & ":mark", c.Mark, c.Fill, 3.0)
+                    ContrastPair("option:contrast:" & t & ":caption", c.Caption, p.Surface, 4.5)
+                    ContrastPair("option:contrast:" & t & ":explanation", c.Note, p.Surface, 4.5)
+                Next
+
+                host.Controls.Remove(o)
+                host.Controls.Remove(bare)
+                o.Dispose()
+                bare.Dispose()
+            Finally
+                Theme.CurrentDpi = wasDpi
+            End Try
+        End Using
+    End Sub
+
+    ' Every boolean option the shell and the Disk Manager build is the shared component (no native
+    ' check box is left), and the Settings rows carry their explanation in it. In one flow of glyph
+    ' buttons with uncapped captions every button asks for the same height (BUTTONS 3.4).
+    Private Sub CheckOptionsAdopted()
+        Dim shell As ShellForm = Nothing
+        Try
+            shell = New ShellForm()
+            Dim native = AllControls(shell).Where(Function(c) TypeOf c Is CheckBox AndAlso Not TypeOf c Is BooleanOption).
+                Select(Function(c) c.Name & " '" & c.Text & "'").ToList()
+            Check("option:adopted:shell", native.Count = 0, If(native.Count = 0, "no native check box", String.Join("; ", native.Take(8).ToArray())))
+            Dim uneven As New List(Of String)
+            For Each flow In AllControls(shell).OfType(Of FlowLayoutPanel)()
+                Dim heights = flow.Controls.OfType(Of GlyphButton)().
+                    Where(Function(b) Not b.IconOnly AndAlso b.MaximumSize.Width <= 0).
+                    Select(Function(b) b.GetPreferredSize(Size.Empty).Height).Distinct().ToList()
+                If heights.Count > 1 Then uneven.Add(flow.Name & " " & String.Join("/", heights.Select(Function(h) h.ToString()).ToArray()))
+            Next
+            Check("buttons:page-row-heights", uneven.Count = 0, If(uneven.Count = 0, "every flow of buttons asks for one height", String.Join("; ", uneven.Take(6).ToArray())))
+        Catch ex As Exception
+            Check("option:adopted:shell", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If shell IsNot Nothing Then shell.Dispose()
+        End Try
+
+        Dim m As DiskManagerForm = Nothing
+        Try
+            m = New DiskManagerForm()
+            Dim native = AllControls(m).Where(Function(c) TypeOf c Is CheckBox AndAlso Not TypeOf c Is BooleanOption).
+                Select(Function(c) c.Name & " '" & c.Text & "'").ToList()
+            Check("option:adopted:disk-manager", native.Count = 0, If(native.Count = 0, "no native check box", String.Join("; ", native.Take(8).ToArray())))
+        Catch ex As Exception
+            Check("option:adopted:disk-manager", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If m IsNot Nothing Then m.Dispose()
+        End Try
+
+        Dim page As SettingsView = Nothing
+        Try
+            page = New SettingsView()
+            Dim rows = page.Panel.Groups.SelectMany(Function(g) g.Body.Controls.OfType(Of SettingRow)()).
+                Where(Function(r) TypeOf r.Editor Is CheckBox).ToList()
+            Dim bad = rows.Where(Function(r) Not TypeOf r.Editor Is BooleanOption OrElse DirectCast(r.Editor, BooleanOption).Explanation = "").
+                Select(Function(r) r.Name).ToList()
+            Check("option:settings-explained", rows.Count > 0 AndAlso bad.Count = 0,
+                  rows.Count.ToString() & " options" & If(bad.Count = 0, "", ", unexplained: " & String.Join(", ", bad.ToArray())))
+        Catch ex As Exception
+            Check("option:settings-explained", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If page IsNot Nothing Then page.Dispose()
+        End Try
+    End Sub
+
+    ' ---- SETTINGS-NAVIGATION ---------------------------------------------------------------------
+
+    Private Sub CheckSettingsNavigation()
+        ' Section 2.5 (decision D4): a 32 row, a 16 glyph, 8 from glyph to caption; section 2.4: a child
+        ' stands in by one shared token, 12, together with its glyph, so its glyph-to-caption gap holds.
+        Dim unit = ShellForm.RailTargetHeight
+        Using lone As New RailEntry With {.RowUnit = unit, .Size = New Size(240, unit), .Text = "x"},
+              child As New RailEntry With {.RowUnit = unit, .Size = New Size(240, unit), .Text = "x", .IsChild = True}
+            Dim g = lone.GlyphSquare(lone.Height)
+            Dim gap = lone.LabelBounds(lone.Width, lone.Height).Left - g.Right
+            Dim indent = child.GlyphSquare(child.Height).Left - g.Left
+            Dim labelShift = child.LabelBounds(child.Width, child.Height).Left - lone.LabelBounds(lone.Width, lone.Height).Left
+            Check("settings-nav:tokens", unit = 32 AndAlso g.Width = 16 AndAlso g.Height = 16 AndAlso gap = 8 AndAlso
+                  indent = RailEntry.ChildIndentDesign AndAlso labelShift = indent,
+                  "row " & unit.ToString() & ", glyph " & g.Width.ToString() & ", gap " & gap.ToString() &
+                  ", child indent " & indent.ToString() & ", child label shift " & labelShift.ToString())
+        End Using
+
+        ' Section 2.3 (decision D3): one glyph treatment for the whole rail, identity-coloured - every row
+        ' names a hue, and a row inside a group names its group's (the rail-hue rows hold each one).
+        Dim mono = RailRow.All.Where(Function(r) r.Hue = "").Select(Function(r) r.Key).ToList()
+        Check("settings-nav:ink", mono.Count = 0,
+              If(mono.Count = 0, "identity-coloured: " & RailRow.All.Length.ToString() & " rows", "mono: " & String.Join(", ", mono.ToArray())))
+
+        CheckAboutSet()
+        CheckSettingsDialogNavigation()
+        CheckNarrowNavigation()
+    End Sub
+
+    ' Section 2.6 (decision D2): below the documented breakpoint the rail becomes a navigation view of
+    ' its own - the Pages button opens it, Escape or a chosen row brings back the page - and the design
+    ' minimum never reaches the breakpoint. Driven through the shell's width seam, not a shown window.
+    Private Sub CheckNarrowNavigation()
+        Check("settings-nav:breakpoint", ShellForm.RailWidth + ShellForm.NarrowContentWidth < ShellForm.MinDesignWidth - 20,
+              "narrow below a client width of " & (ShellForm.RailWidth + ShellForm.NarrowContentWidth).ToString() &
+              ", design minimum " & ShellForm.MinDesignWidth.ToString() & " outer")
+        Dim shell As ShellForm = Nothing
+        Try
+            shell = New ShellForm()
+            shell.SetClientWidthForTest(Ui.Px(shell, 600))
+            Dim narrowPage = shell.NarrowStateForTest
+            shell.OpenNavigationForTest()
+            Dim list = shell.NarrowStateForTest
+            shell.HandleKeyForTest(Keys.Escape)
+            Dim escaped = shell.NarrowStateForTest
+            shell.OpenNavigationForTest()
+            Dim row = shell.RailEntriesForTest().First(Function(e) e.Key = "rail_job_history")
+            row.PerformClick()
+            Dim chosen = shell.NarrowStateForTest
+            Dim chosenPage = shell.CurrentRailKey()
+            shell.SetClientWidthForTest(Ui.Px(shell, 1000))
+            Dim wide = shell.NarrowStateForTest
+            Dim ok = narrowPage = "narrow/page/rail Absolute 0/pages shown" AndAlso
+                     list = "narrow/list/rail Percent 100/pages hidden" AndAlso
+                     escaped = narrowPage AndAlso chosen = narrowPage AndAlso chosenPage = "rail_job_history" AndAlso
+                     wide = "wide/page/rail Absolute " & Ui.Px(shell, ShellForm.RailWidth).ToString() & "/pages hidden"
+            Check("settings-nav:narrow", ok, narrowPage & " | " & list & " | " & escaped & " | " & chosen & " " & chosenPage & " | " & wide)
+        Catch ex As Exception
+            Check("settings-nav:narrow", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If shell IsNot Nothing Then shell.Dispose()
+        End Try
+    End Sub
+
+    ' Section 2.1 / 2.4 (decision D5): the standalone Disk manager's settings window keeps page
+    ' navigation - Settings first, About last, the shell's own rows - and section 4.3: switching pages
+    ' keeps the window's size and the values on the Settings page, and selection is not colour alone.
+    Private Sub CheckSettingsDialogNavigation()
+        Dim dlg As DiskSettingsDialog = Nothing
+        Try
+            dlg = New DiskSettingsDialog()
+            Dim rows = dlg.NavRowsForTest
+            Dim order = String.Join(",", rows.Select(Function(r) r.Key).ToArray())
+            Dim sizeBefore = dlg.Size
+            Dim startupBefore = dlg.Panel.StartupCombo.SelectedIndex
+            dlg.ShowPage("rail_job_about")
+            Dim onAbout = dlg.CurrentPage = "rail_job_about" AndAlso dlg.AboutForTest IsNot Nothing AndAlso
+                          rows.Single(Function(r) r.Selected).Key = "rail_job_about"
+            dlg.ShowPage("rail_job_settings")
+            Dim back = dlg.CurrentPage = "rail_job_settings" AndAlso rows.Single(Function(r) r.Selected).Key = "rail_job_settings"
+            Dim kept = dlg.Size = sizeBefore AndAlso dlg.Panel.StartupCombo.SelectedIndex = startupBefore
+            Dim sameRows = rows.All(Function(r) r.Glyph IsNot Nothing AndAlso r.Hue <> "" AndAlso
+                                                r.Hue = RailRow.All.First(Function(x) x.Key = r.Key).Hue)
+            Check("settings-nav:dialog", order = "rail_job_settings,rail_job_about" AndAlso onAbout AndAlso back AndAlso kept AndAlso sameRows,
+                  "rows " & order & ", about " & onAbout.ToString() & ", back " & back.ToString() &
+                  ", size and values kept " & kept.ToString() & ", shell rows " & sameRows.ToString())
+        Catch ex As Exception
+            Check("settings-nav:dialog", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If dlg IsNot Nothing Then dlg.Dispose()
+        End Try
+    End Sub
+
+    ' Section 3.3: About carries the complete set - description, running version, licence and privacy,
+    ' help, the site, support, the diagnostic export, download/update information, the repository and
+    ' the resource index - and section 3.4: the related programs from the one inventory, each name and
+    ' purpose in every language. Built, not shown; opening it contacts nothing (the links are clicks).
+    Private Sub CheckAboutSet()
+        Dim view As AboutView = Nothing
+        Try
+            view = New AboutView()
+            Dim all = AllControls(view).ToList()
+            Dim urls = all.OfType(Of LinkLabel)().Select(Function(l) CStr(l.Tag)).ToList()
+            Dim required As New Dictionary(Of String, String) From {
+                {"site", Links.Site}, {"releases", Links.Releases}, {"repository", Links.GitHub},
+                {"support", Links.Support}, {"issues", Links.Issues}, {"privacy", Links.Privacy},
+                {"license", Links.License}, {"index", Links.Topics}}
+            Dim missing = required.Where(Function(r) Not urls.Contains(r.Value)).Select(Function(r) r.Key).ToList()
+            Dim description = Localization.T("about_description")
+            If Not all.OfType(Of Label)().Any(Function(l) l.Text = description AndAlso description <> "about_description") Then missing.Add("description")
+            If Not urls.Contains("") Then missing.Add("help")
+            If Not all.Any(Function(c) c.Name = "help:build") Then missing.Add("version")
+            If Not all.Any(Function(c) c.Name = "help:logs") Then missing.Add("diagnostic export")
+            Check("about:resources", missing.Count = 0,
+                  If(missing.Count = 0, required.Count.ToString() & " addresses, help, version, description, diagnostic export",
+                     "missing: " & String.Join(", ", missing.ToArray())))
+
+            Dim relatedFlow = all.FirstOrDefault(Function(c) c.Name = "about:related")
+            Dim shown = If(relatedFlow Is Nothing, New List(Of String),
+                           relatedFlow.Controls.OfType(Of LinkLabel)().Select(Function(l) CStr(l.Tag)).ToList())
+            Dim untranslated As New List(Of String)
+            For Each lang In Localization.Languages
+                Dim dict = Localization.GetDict(lang)
+                For Each product In Links.Related
+                    For Each key In New String() {product(1), product(2)}
+                        Dim v As String = Nothing
+                        If Not dict.TryGetValue(key, v) OrElse v = "" Then untranslated.Add(lang & ":" & key)
+                    Next
+                Next
+            Next
+            Dim absent = Links.Related.Where(Function(p) Not shown.Contains(p(0))).Select(Function(p) p(0)).ToList()
+            Check("about:related", Links.Related.Length > 0 AndAlso absent.Count = 0 AndAlso untranslated.Count = 0,
+                  Links.Related.Length.ToString() & " related" &
+                  If(absent.Count = 0, "", ", not shown: " & String.Join(", ", absent.ToArray())) &
+                  If(untranslated.Count = 0, "", ", untranslated: " & String.Join(", ", untranslated.ToArray())))
+        Catch ex As Exception
+            Check("about:resources", False, ex.GetType().Name & ": " & ex.Message)
+        Finally
+            If view IsNot Nothing Then view.Dispose()
+        End Try
     End Sub
 End Module

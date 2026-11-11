@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 )
 
 // refuseCopyPaths is the check every copy verb makes before a byte moves
@@ -15,13 +17,13 @@ import (
 // and `d:\A`, a `\\?\` or `\\localhost\D$` spelling, a hard link - used to
 // truncate the source to nothing; a target inside the source folder used to
 // re-enter itself level after level until the disk or the path limit gave
-// out. Both are refused as usage errors: nothing was measured, exit 2.
+// out. Both are refused as usage errors: nothing was measured, exit 10.
 //
 // It is called at the top of every copy entry point, so the interactive and
 // the batch dispatch reach the same check.
 func refuseCopyPaths(verb, source, target string) error {
 	if strings.TrimSpace(source) == "" || strings.TrimSpace(target) == "" {
-		return fmt.Errorf("%s: a source and a target are required", verb)
+		return exitClassf(10, "%s: a source and a target are required", verb)
 	}
 	info, err := os.Stat(source)
 	if err != nil {
@@ -30,10 +32,10 @@ func refuseCopyPaths(verb, source, target string) error {
 	}
 	same, err := sameFilePaths(source, target)
 	if err != nil {
-		return fmt.Errorf("%s: cannot tell whether %q and %q are the same file: %v", verb, source, target, err)
+		return fmt.Errorf("%s: cannot tell whether %q and %q are the same file: %w", verb, source, target, err)
 	}
 	if same {
-		return fmt.Errorf("%s: source %q and target %q are the same file; refusing - a copy onto itself would empty it", verb, source, target)
+		return exitClassf(10, "%s: source %q and target %q are the same file; refusing - a copy onto itself would empty it", verb, source, target)
 	}
 	if info.IsDir() {
 		if err := refuseLinkedSourceRoot(verb, source); err != nil {
@@ -41,7 +43,7 @@ func refuseCopyPaths(verb, source, target string) error {
 		}
 		inside, err := pathWithin(target, source)
 		if err != nil {
-			return fmt.Errorf("%s: cannot resolve %q against %q: %v", verb, target, source, err)
+			return fmt.Errorf("%s: cannot resolve %q against %q: %w", verb, target, source, err)
 		}
 		if inside {
 			return overlapError(verb, source, target)
@@ -65,12 +67,12 @@ func refuseLinkedSourceRoot(verb, source string) error {
 	}
 	id, err := pathIdentityOf(source)
 	if err != nil || id.Final == "" {
-		return fmt.Errorf(`%s: source "%s" is %s whose target cannot be resolved; links are not followed - give the folder it points to as the source instead`,
+		return exitClassf(10, `%s: source "%s" is %s whose target cannot be resolved; links are not followed - give the folder it points to as the source instead`,
 			verb, source, kind)
 	}
 	// Paths are quoted plainly, not with %q: a doubled backslash is not a
 	// path the user can paste back.
-	return fmt.Errorf(`%s: source "%s" is %s to "%s"; links are not followed - give the target folder "%s" as the source instead`,
+	return exitClassf(10, `%s: source "%s" is %s to "%s"; links are not followed - give the target folder "%s" as the source instead`,
 		verb, source, kind, id.Final, id.Final)
 }
 
@@ -120,6 +122,22 @@ type copyRunStats struct {
 
 	mu    sync.Mutex
 	notes []string
+
+	// diskFull is the disk-full errno of the first failed file that reported
+	// one, written under mu; 0 when none did. finish returns it, so the refusal
+	// says the drive is full (CLI-EVENT-STREAM rule 17, volume-full).
+	diskFull syscall.Errno
+
+	// inUse is the sharing or lock violation of the first failed file that
+	// reported one, written under mu; 0 when none did. finish returns it when no
+	// disk-full errno was kept, so the refusal says a file is open in another
+	// program (CLI-EVENT-STREAM rule 17, file-in-use).
+	inUse syscall.Errno
+
+	// causes keeps the first failed file's error that has a specific exit class
+	// (SP-0195), so a summary that counts files still exits with the class of
+	// what went wrong: a device error is 14, a refused write 12.
+	causes causeKeeper
 }
 
 // maxCopyNotes is how many problems the summary repeats.
@@ -148,7 +166,40 @@ func (s *copyRunStats) recordFailure(path string, err error) {
 	if isCopyStall(err) || isDeviceIOError(err) {
 		s.retryable.Add(1)
 	}
+	s.keepDiskFull(err)
+	s.keepInUse(err)
+	s.causes.keep(err)
 	s.note(fmt.Sprintf("FAILED: %s: %v", path, err))
+}
+
+// keepDiskFull remembers the disk-full errno of the first failed file that
+// reports one. A count does not carry the errno, and without it a full
+// destination ends as an untyped refusal.
+func (s *copyRunStats) keepDiskFull(err error) {
+	var errno syscall.Errno
+	if !errors.As(err, &errno) || !isDiskFullError(err) {
+		return
+	}
+	s.mu.Lock()
+	if s.diskFull == 0 {
+		s.diskFull = errno
+	}
+	s.mu.Unlock()
+}
+
+// keepInUse remembers the sharing or lock violation of the first failed file
+// that reports one, for the same reason keepDiskFull keeps its errno: a count
+// does not carry it, and without it a file held open ends as an untyped refusal.
+func (s *copyRunStats) keepInUse(err error) {
+	errno := fileInUseErrno(err)
+	if errno == 0 {
+		return
+	}
+	s.mu.Lock()
+	if s.inUse == 0 {
+		s.inUse = errno
+	}
+	s.mu.Unlock()
 }
 
 // recordCopied counts a finished file.
@@ -247,6 +298,8 @@ func (s *copyRunStats) finish() error {
 	}
 	s.mu.Lock()
 	notes := append([]string(nil), s.notes...)
+	diskFull := s.diskFull
+	inUse := s.inUse
 	s.mu.Unlock()
 	if len(notes) > 0 {
 		fmt.Printf("Files that are not at the target:\n")
@@ -257,7 +310,22 @@ func (s *copyRunStats) finish() error {
 			fmt.Printf("  .. and %d more\n", s.incomplete()-int64(len(notes)))
 		}
 	}
-	return fmt.Errorf("%s incomplete: %s", s.verb, strings.Join(parts, ", "))
+	summary := fmt.Sprintf("%s incomplete: %s", s.verb, strings.Join(parts, ", "))
+	err := errors.New(summary)
+	switch {
+	case diskFull != 0:
+		// The errno itself, not the write error: a write error names the target
+		// path, and this message reaches the event stream. The errno also gives
+		// the exit class 13 (insufficient storage) and the token volume-full.
+		err = fmt.Errorf("%s: %w", summary, diskFull)
+	case inUse != 0:
+		// The errno alone, as above: it gives the token file-in-use, and the
+		// path stays out of it.
+		err = fmt.Errorf("%s: %w", summary, inUse)
+	}
+	// The class of the first specific cause wins over a plain summary, so a
+	// device error among the failed files ends 14 and the token, if any, stays.
+	return s.causes.classify(err)
 }
 
 func (s *copyRunStats) problemParts() []string {

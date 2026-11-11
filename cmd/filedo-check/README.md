@@ -62,9 +62,11 @@ Handed to `filedo.exe` unchanged: `--events <file>`, `--stop-file <file>`, `--pa
 
 ## Exit codes
 
-`filedo.exe`'s own: **0** passed, **1** damaged files were found, **2** could not verify.
-`filedo_check.exe` adds nothing of its own except **2** for a command line it refuses and for a
-`filedo.exe` that is not in its folder or cannot be started.
+`filedo.exe` returns **0** for success, **1** for a proven defect, and **2** for an unclassified
+failure. The specific codes are **10** usage, **11** target unavailable, **12** permission,
+**13** insufficient resources, **14** hardware I/O, **15** network failure, and **16** stopped.
+The launcher forwards these codes. Its own usage errors return **10**; failure to find or start
+`filedo.exe` returns **2**.
 
 Ctrl+C reaches `filedo.exe` directly, because the two share the console; it stops the way it
 always does, and `filedo_check.exe` waits for it and returns its exit code.

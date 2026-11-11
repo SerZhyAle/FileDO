@@ -16,14 +16,14 @@ filedo_check.exe /?
 echo exit code %errorlevel%
 
 echo.
-echo 2. A usage error is refused before filedo.exe starts (exit 2)
+echo 2. A usage error is refused before filedo.exe starts (exit 10)
 filedo_check.exe "%CD%" --resume
-if %errorlevel%==2 (echo [OK] exit 2) else (echo [FAIL] exit %errorlevel%, want 2)
+if %errorlevel%==10 (echo [OK] exit 10) else (echo [FAIL] exit %errorlevel%, want 10)
 
 echo.
-echo 3. A path that does not exist cannot be verified (exit 2)
+echo 3. A path that does not exist cannot be verified (exit 11)
 filedo_check.exe Z:\nonexistent
-if %errorlevel%==2 (echo [OK] exit 2) else (echo [FAIL] exit %errorlevel%, want 2)
+if %errorlevel%==11 (echo [OK] exit 11) else (echo [FAIL] exit %errorlevel%, want 11)
 
 echo.
 echo 4. Quick check of the current folder, at most 5 files

@@ -176,8 +176,10 @@ func TestUnconfirmedDeleteInABatch(t *testing.T) {
 	}
 	events := filepath.Join(dir, "events.jsonl")
 	out, code := run(t, dir, "--events", events, "from", "work.lst")
-	if code != 2 {
-		t.Fatalf("the batch exited %d, want 2 (Not proven)\n%s", code, out)
+	// Not proven is exit 2 or one of the specific classes 10-15 (SP-0195);
+	// the refused del is a usage refusal, class 10.
+	if code != 2 && (code < 10 || code > 15) {
+		t.Fatalf("the batch exited %d, want 2 or 10-15 (Not proven)\n%s", code, out)
 	}
 	if got := lastResult(t, events)["verdict"]; got != "Not proven" {
 		t.Errorf("verdict %q, want Not proven\n%s", got, out)

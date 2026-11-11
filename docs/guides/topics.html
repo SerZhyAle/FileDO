@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
@@ -26,11 +26,7 @@
         "name": "FileDO subject index - where each topic is",
         "description": "FileDO subject index: every subject the guides cover - storage checks, duplicates, copying, secret files, install, Explorer, privacy - and its page.",
         "url": "https://serzhyale.github.io/FileDO/guides/topics.html",
-        "inLanguage": [
-          "en",
-          "ru",
-          "uk"
-        ],
+        "inLanguage": ["en"],
         "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
         "isPartOf": {
           "@type": "WebSite",
@@ -63,7 +59,13 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
           if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
@@ -89,7 +91,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -106,33 +108,33 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span
-        ><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
       >
     </header>
     <nav class="lang-row" aria-label="Languages"><a href="../de/guides/topics.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/topics.html" hreflang="fr" lang="fr">FR</a></nav>
     <main id="main" class="container">
       <section class="hero">
         <p class="kicker">
-          <span data-l="ru">FileDO · предметный указатель</span
-          ><span data-l="en">FileDO · subject index</span
+          <span data-l="en">FileDO · subject index</span
+          ><span data-l="ru">FileDO · предметный указатель</span
           ><span data-l="ua">FileDO · предметний покажчик</span>
         </p>
         <h1>
-          <span data-l="ru">Где что описано.</span
-          ><span data-l="en">Where each subject is covered.</span
+          <span data-l="en">Where each subject is covered.</span
+          ><span data-l="ru">Где что описано.</span
           ><span data-l="ua">Де що описано.</span>
         </h1>
         <p class="lead">
-          <span data-l="ru"
+          <span data-l="en"
+            >A subject, and the page that covers it. Words with an exact
+            meaning are collected in the <a href="glossary.html">glossary</a>.</span
+          ><span data-l="ru"
             >Предмет - и страница, на которой он разобран. Слова, у которых
             есть точное значение, собраны в
             <a href="glossary.html">глоссарии</a>.</span
-          ><span data-l="en"
-            >A subject, and the page that covers it. Words with an exact
-            meaning are collected in the <a href="glossary.html">glossary</a>.</span
           ><span data-l="ua"
             >Предмет - і сторінка, на якій його розібрано. Слова з точним
             значенням зібрано в <a href="glossary.html">глосарії</a>.</span
@@ -142,363 +144,374 @@
       <section class="section">
         <ul class="subject-index">
           <li>
-            <span data-l="ru">Права администратора</span
-            ><span data-l="en">Administrator rights</span
+            <span data-l="en">Administrator rights</span
+            ><span data-l="ru">Права администратора</span
             ><span data-l="ua">Права адміністратора</span>
             <a href="check-storage.html"
-              ><span data-l="ru">проверка носителя</span
               ><span data-l="en">checking storage</span
+              ><span data-l="ru">проверка носителя</span
               ><span data-l="ua">перевірка носія</span></a
             >
             <a href="install-trust.html#what-to-click"
-              ><span data-l="ru">предупреждение Windows</span
               ><span data-l="en">the Windows warning</span
+              ><span data-l="ru">предупреждение Windows</span
               ><span data-l="ua">попередження Windows</span></a
             >
             <a href="virtual-disks.html#platform"
-              ><span data-l="ru">виртуальные диски</span
               ><span data-l="en">virtual disks</span
+              ><span data-l="ru">виртуальные диски</span
               ><span data-l="ua">віртуальні диски</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Тест ёмкости, поддельные накопители</span
-            ><span data-l="en">Capacity test, fake drives</span
+            <span data-l="en">Capacity test, fake drives</span
+            ><span data-l="ru">Тест ёмкости, поддельные накопители</span
             ><span data-l="ua">Тест ємності, підроблені накопичувачі</span>
             <a href="check-storage.html"
-              ><span data-l="ru">проверка носителя</span
               ><span data-l="en">checking storage</span
+              ><span data-l="ru">проверка носителя</span
               ><span data-l="ua">перевірка носія</span></a
             >
             <a href="glossary.html#term-capacity-test"
-              ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
+              ><span data-l="ru">глоссарий</span
               ><span data-l="ua">глосарій</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Страница «Команда» в окне</span
-            ><span data-l="en">Command page in the window</span
-            ><span data-l="ua">Сторінка «Команда» у вікні</span>
+            <span data-l="en"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page in the window</span
+            ><span data-l="ru">Страница <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда» в окне</span
+            ><span data-l="ua">Сторінка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда» у вікні</span>
             <a href="gui-command-builder.html"
-              ><span data-l="ru">окно FileDO</span
               ><span data-l="en">the FileDO window</span
+              ><span data-l="ru">окно FileDO</span
               ><span data-l="ua">вікно FileDO</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Сравнение двух папок</span
-            ><span data-l="en">Comparing two folders</span
+            <span data-l="en">Quick-start matrix: window pages and CLI commands</span
+            ><span data-l="ru">Матрица быстрого старта: страницы окна и команды CLI</span
+            ><span data-l="ua">Матриця швидкого старту: сторінки вікна та команди CLI</span>
+            <a href="quick-start.html"
+              ><span data-l="en">quick-start matrix</span
+              ><span data-l="ru">быстрый старт</span
+              ><span data-l="ua">швидкий старт</span></a
+            >
+          </li>
+          <li>
+            <span data-l="en">Comparing two folders</span
+            ><span data-l="ru">Сравнение двух папок</span
             ><span data-l="ua">Порівняння двох тек</span>
             <a href="files-and-copies.html"
-              ><span data-l="ru">дубликаты и копии</span
               ><span data-l="en">duplicates and copies</span
+              ><span data-l="ru">дубликаты и копии</span
               ><span data-l="ua">дублікати й копії</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Копирование с видимым ходом</span
-            ><span data-l="en">Copying with progress</span
+            <span data-l="en">Copying with progress</span
+            ><span data-l="ru">Копирование с видимым ходом</span
             ><span data-l="ua">Копіювання з видимим ходом</span>
             <a href="files-and-copies.html"
-              ><span data-l="ru">дубликаты и копии</span
               ><span data-l="en">duplicates and copies</span
+              ><span data-l="ru">дубликаты и копии</span
               ><span data-l="ua">дублікати й копії</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Дубликаты файлов</span
-            ><span data-l="en">Duplicate files</span
+            <span data-l="en">Duplicate files</span
+            ><span data-l="ru">Дубликаты файлов</span
             ><span data-l="ua">Дублікати файлів</span>
             <a href="files-and-copies.html"
-              ><span data-l="ru">дубликаты и копии</span
               ><span data-l="en">duplicates and copies</span
+              ><span data-l="ru">дубликаты и копии</span
               ><span data-l="ua">дублікати й копії</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Пункты Проводника «File DO..»</span
-            ><span data-l="en">Explorer entries, "File DO.."</span
+            <span data-l="en">Explorer entries, "File DO.."</span
+            ><span data-l="ru">Пункты Проводника «File DO..»</span
             ><span data-l="ua">Пункти Провідника «File DO..»</span>
             <a href="install-and-explorer.html"
-              ><span data-l="ru">установка и Проводник</span
               ><span data-l="en">install and Explorer</span
+              ><span data-l="ru">установка и Проводник</span
               ><span data-l="ua">встановлення і Провідник</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Контейнеры <code>.fd-sec</code>: secure, unsecure, reveal</span
-            ><span data-l="en"><code>.fd-sec</code> containers: secure, unsecure, reveal</span
+            <span data-l="en"><code>.fd-sec</code> containers: secure, unsecure, reveal</span
+            ><span data-l="ru">Контейнеры <code>.fd-sec</code>: secure, unsecure, reveal</span
             ><span data-l="ua">Контейнери <code>.fd-sec</code>: secure, unsecure, reveal</span>
             <a href="fd-sec-containers.html"
-              ><span data-l="ru">секретные файлы</span
               ><span data-l="en">secret files</span
+              ><span data-l="ru">секретные файлы</span
               ><span data-l="ua">секретні файли</span></a
             >
             <a href="glossary.html#term-container"
-              ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
+              ><span data-l="ru">глоссарий</span
               ><span data-l="ua">глосарій</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Заполнение свободного места</span
-            ><span data-l="en">Filling the free space</span
+            <span data-l="en">Filling the free space</span
+            ><span data-l="ru">Заполнение свободного места</span
             ><span data-l="ua">Заповнення вільного місця</span>
             <a href="erase.html"
-              ><span data-l="ru">стирание и затирание</span
               ><span data-l="en">erase and wipe</span
+              ><span data-l="ru">стирание и затирание</span
               ><span data-l="ua">стирання і затирання</span></a
             >
             <a href="glossary.html#term-fill"
-              ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
+              ><span data-l="ru">глоссарий</span
               ><span data-l="ua">глосарій</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Установка: setup EXE, MSI, winget, Store, ZIP</span
-            ><span data-l="en">Installing: setup EXE, MSI, winget, Store, ZIP</span
+            <span data-l="en">Installing: setup EXE, MSI, winget, Store, ZIP</span
+            ><span data-l="ru">Установка: setup EXE, MSI, winget, Store, ZIP</span
             ><span data-l="ua">Встановлення: setup EXE, MSI, winget, Store, ZIP</span>
             <a href="install-and-explorer.html"
-              ><span data-l="ru">установка и Проводник</span
               ><span data-l="en">install and Explorer</span
+              ><span data-l="ru">установка и Проводник</span
               ><span data-l="ua">встановлення і Провідник</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Сборка из Microsoft Store: что она умеет и чего в ней нет</span
-            ><span data-l="en">The Microsoft Store build: what it can and cannot do</span
+            <span data-l="en">The Microsoft Store build: what it can and cannot do</span
+            ><span data-l="ru">Сборка из Microsoft Store: что она умеет и чего в ней нет</span
             ><span data-l="ua">Збірка з Microsoft Store: що вона вміє й чого в ній немає</span>
             <a href="microsoft-store.html"
-              ><span data-l="ru">сборка из Microsoft Store</span
               ><span data-l="en">the Microsoft Store build</span
+              ><span data-l="ru">сборка из Microsoft Store</span
               ><span data-l="ua">збірка з Microsoft Store</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Маскировка и шифрование: чем они отличаются</span
-            ><span data-l="en">Obfuscation and encryption: how they differ</span
+            <span data-l="en">Obfuscation and encryption: how they differ</span
+            ><span data-l="ru">Маскировка и шифрование: чем они отличаются</span
             ><span data-l="ua">Маскування і шифрування: чим вони відрізняються</span>
             <a href="virtual-disks.html#protection"
-              ><span data-l="ru">виртуальные диски</span
               ><span data-l="en">virtual disks</span
+              ><span data-l="ru">виртуальные диски</span
               ><span data-l="ua">віртуальні диски</span></a
             >
             <a href="glossary.html#term-obfuscation"
-              ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
+              ><span data-l="ru">глоссарий</span
               ><span data-l="ua">глосарій</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Приватность: что FileDO читает и пишет</span
-            ><span data-l="en">Privacy: what FileDO reads and writes</span
+            <span data-l="en">Privacy: what FileDO reads and writes</span
+            ><span data-l="ru">Приватность: что FileDO читает и пишет</span
             ><span data-l="ua">Приватність: що FileDO читає й пише</span>
             <a href="../privacy.html"
-              ><span data-l="ru">политика конфиденциальности</span
               ><span data-l="en">privacy policy</span
+              ><span data-l="ru">политика конфиденциальности</span
               ><span data-l="ua">політика конфіденційності</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Отправить логи автору</span
-            ><span data-l="en">Send logs to the author</span
-            ><span data-l="ua">Надіслати логи автору</span>
+            <span data-l="en"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Send logs to the author</span
+            ><span data-l="ru"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Отправить логи автору</span
+            ><span data-l="ua"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Надіслати логи автору</span>
             <a href="gui-command-builder.html"
-              ><span data-l="ru">окно FileDO</span
               ><span data-l="en">the FileDO window</span
+              ><span data-l="ru">окно FileDO</span
               ><span data-l="ua">вікно FileDO</span></a
             >
             <a href="support.html#logs"
-              ><span data-l="ru">отправка логов (раздел 3 страницы поддержки)</span
               ><span data-l="en">sending logs (section 3 of the support page)</span
+              ><span data-l="ru">отправка логов (раздел 3 страницы поддержки)</span
               ><span data-l="ua">надсилання логів (розділ 3 сторінки підтримки)</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Помощь, сообщение о проблеме</span
-            ><span data-l="en">Getting help, reporting a problem</span
+            <span data-l="en">Getting help, reporting a problem</span
+            ><span data-l="ru">Помощь, сообщение о проблеме</span
             ><span data-l="ua">Допомога, повідомлення про проблему</span>
             <a href="support.html"
-              ><span data-l="ru">поддержка</span
               ><span data-l="en">support</span
+              ><span data-l="ru">поддержка</span
               ><span data-l="ua">підтримка</span></a
             >
             <a href="support.html#include"
-              ><span data-l="ru">что указать в сообщении</span
               ><span data-l="en">what to include in a report</span
+              ><span data-l="ru">что указать в сообщении</span
               ><span data-l="ua">що вказати в повідомленні</span></a
             >
           </li>
           <li>
-            <span data-l="ru">SmartScreen: «Windows защитила ваш компьютер»</span
-            ><span data-l="en">SmartScreen: "Windows protected your PC"</span
+            <span data-l="en">SmartScreen: "Windows protected your PC"</span
+            ><span data-l="ru">SmartScreen: «Windows защитила ваш компьютер»</span
             ><span data-l="ua">SmartScreen: «Windows захистила ваш ПК»</span>
             <a href="install-trust.html"
-              ><span data-l="ru">предупреждение Windows</span
               ><span data-l="en">the Windows warning</span
+              ><span data-l="ru">предупреждение Windows</span
               ><span data-l="ua">попередження Windows</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Тест скорости</span
-            ><span data-l="en">Speed test</span
+            <span data-l="en">Speed test</span
+            ><span data-l="ru">Тест скорости</span
             ><span data-l="ua">Тест швидкості</span>
             <a href="check-storage.html"
-              ><span data-l="ru">проверка носителя</span
               ><span data-l="en">checking storage</span
+              ><span data-l="ru">проверка носителя</span
               ><span data-l="ua">перевірка носія</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Удаление программы и пунктов Проводника</span
-            ><span data-l="en">Uninstalling, removing the Explorer entries</span
+            <span data-l="en">Uninstalling, removing the Explorer entries</span
+            ><span data-l="ru">Удаление программы и пунктов Проводника</span
             ><span data-l="ua">Видалення програми й пунктів Провідника</span>
             <a href="install-and-explorer.html"
-              ><span data-l="ru">установка и Проводник</span
               ><span data-l="en">install and Explorer</span
+              ><span data-l="ru">установка и Проводник</span
               ><span data-l="ua">встановлення і Провідник</span></a
             >
             <a href="install-trust.html#never"
-              ><span data-l="ru">чего программа не делает</span
               ><span data-l="en">what the app never does</span
+              ><span data-l="ru">чего программа не делает</span
               ><span data-l="ua">чого програма не робить</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Виртуальные диски <code>.fdd</code>: подключить, выгрузить, прочитать</span
-            ><span data-l="en">Virtual disks, <code>.fdd</code>: mount, export, verify</span
+            <span data-l="en">Virtual disks, <code>.fdd</code>: mount, export, verify</span
+            ><span data-l="ru">Виртуальные диски <code>.fdd</code>: подключить, выгрузить, прочитать</span
             ><span data-l="ua">Віртуальні диски <code>.fdd</code>: підключити, вивантажити, прочитати</span>
             <a href="virtual-disks.html"
-              ><span data-l="ru">виртуальные диски</span
               ><span data-l="en">virtual disks</span
+              ><span data-l="ru">виртуальные диски</span
               ><span data-l="ua">віртуальні диски</span></a
             >
             <a href="glossary.html#term-virtual-disk"
-              ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
+              ><span data-l="ru">глоссарий</span
               ><span data-l="ua">глосарій</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Диспетчер дисков: окно виртуальных дисков</span
-            ><span data-l="en">Disk manager: the virtual disks window</span
+            <span data-l="en">Disk manager: the virtual disks window</span
+            ><span data-l="ru">Диспетчер дисков: окно виртуальных дисков</span
             ><span data-l="ua">Диспетчер дисків: вікно віртуальних дисків</span>
             <a href="virtual-disks.html#manager"
-              ><span data-l="ru">виртуальные диски</span
               ><span data-l="en">virtual disks</span
+              ><span data-l="ru">виртуальные диски</span
               ><span data-l="ua">віртуальні диски</span></a
             >
             <a href="virtual-disks.html#manager-keys"
-              ><span data-l="ru">клавиатура диспетчера</span
               ><span data-l="en">Disk manager keyboard</span
+              ><span data-l="ru">клавиатура диспетчера</span
               ><span data-l="ua">клавіатура диспетчера</span></a
             >
             <a href="virtual-disks.html#manager-start"
-              ><span data-l="ru">как открыть, справка, первый запуск</span
               ><span data-l="en">opening it, help, first run</span
+              ><span data-l="ru">как открыть, справка, первый запуск</span
               ><span data-l="ua">як відкрити, довідка, перший запуск</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Диски-разделы: виртуальный диск в свободном месте диска</span
-            ><span data-l="en">Partition disks: a virtual disk in free disk space</span
+            <span data-l="en">Partition disks: a virtual disk in free disk space</span
+            ><span data-l="ru">Диски-разделы: виртуальный диск в свободном месте диска</span
             ><span data-l="ua">Диски-розділи: віртуальний диск у вільному місці диска</span>
             <a href="virtual-disks.html#partition"
-              ><span data-l="ru">виртуальные диски</span
               ><span data-l="en">virtual disks</span
+              ><span data-l="ru">виртуальные диски</span
               ><span data-l="ua">віртуальні диски</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Затирание файлов и папок</span
-            ><span data-l="en">Wiping files and folders</span
+            <span data-l="en">Wiping files and folders</span
+            ><span data-l="ru">Затирание файлов и папок</span
             ><span data-l="ua">Затирання файлів і тек</span>
             <a href="erase.html"
-              ><span data-l="ru">стирание и затирание</span
               ><span data-l="en">erase and wipe</span
+              ><span data-l="ru">стирание и затирание</span
               ><span data-l="ua">стирання і затирання</span></a
             >
             <a href="glossary.html#term-wipe"
-              ><span data-l="ru">глоссарий</span
               ><span data-l="en">glossary</span
+              ><span data-l="ru">глоссарий</span
               ><span data-l="ua">глосарій</span></a
             >
             <a href="install-and-explorer.html"
-              ><span data-l="ru">пункты Проводника</span
               ><span data-l="en">Explorer entries</span
+              ><span data-l="ru">пункты Проводника</span
               ><span data-l="ua">пункти Провідника</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Вопрос WIPE и отказы защиты при затирании</span
-            ><span data-l="en">The WIPE question and what a wipe refuses</span
+            <span data-l="en">The WIPE question and what a wipe refuses</span
+            ><span data-l="ru">Вопрос WIPE и отказы защиты при затирании</span
             ><span data-l="ua">Запитання WIPE і відмови захисту при затиранні</span>
             <a href="erase.html#confirm"
-              ><span data-l="ru">подтверждение</span
               ><span data-l="en">confirmation</span
+              ><span data-l="ru">подтверждение</span
               ><span data-l="ua">підтвердження</span></a
             >
             <a href="erase.html#refusals"
-              ><span data-l="ru">отказы</span
               ><span data-l="en">refusals</span
+              ><span data-l="ru">отказы</span
               ><span data-l="ua">відмови</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Что затирание не обещает: SSD, копирование при записи, копии в других местах</span
-            ><span data-l="en">What a wipe does not promise: SSDs, copy-on-write, copies elsewhere</span
+            <span data-l="en">What a wipe does not promise: SSDs, copy-on-write, copies elsewhere</span
+            ><span data-l="ru">Что затирание не обещает: SSD, копирование при записи, копии в других местах</span
             ><span data-l="ua">Що затирання не обіцяє: SSD, копіювання під час запису, копії в інших місцях</span>
             <a href="erase.html#limits"
-              ><span data-l="ru">пределы затирания</span
               ><span data-l="en">limits of a wipe</span
+              ><span data-l="ru">пределы затирания</span
               ><span data-l="ua">межі затирання</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Окно FileDO (GUI)</span
-            ><span data-l="en">FileDO window (GUI)</span
+            <span data-l="en">FileDO window (GUI)</span
+            ><span data-l="ru">Окно FileDO (GUI)</span
             ><span data-l="ua">Вікно FileDO (GUI)</span>
             <a href="gui-command-builder.html"
-              ><span data-l="ru">окно FileDO</span
               ><span data-l="en">the FileDO window</span
+              ><span data-l="ru">окно FileDO</span
               ><span data-l="ua">вікно FileDO</span></a
             >
           </li>
           <li>
-            <span data-l="ru">Что изменилось в версии</span
-            ><span data-l="en">What changed in a release</span
+            <span data-l="en">What changed in a release</span
+            ><span data-l="ru">Что изменилось в версии</span
             ><span data-l="ua">Що змінилося у версії</span>
             <a href="release-notes.html"
-              ><span data-l="ru">что нового</span
               ><span data-l="en">release notes</span
+              ><span data-l="ru">что нового</span
               ><span data-l="ua">що нового</span></a
             >
           </li>
         </ul>
       </section>
       <section class="section">
-        <nav aria-labelledby="relatedPagesTitle"><span class="sr-only" id="relatedPagesTitle"><span data-l="ru">Связанные страницы</span><span data-l="en">Related pages</span><span data-l="ua">Суміжні сторінки</span></span><p class="actions">
+        <nav aria-labelledby="relatedPagesTitle"><span class="sr-only" id="relatedPagesTitle"><span data-l="en">Related pages</span><span data-l="ru">Связанные страницы</span><span data-l="ua">Суміжні сторінки</span></span><p class="actions">
           <a class="btn btn-ghost btn-sm" href="glossary.html"
-            ><span data-l="ru">Глоссарий</span
             ><span data-l="en">Glossary</span
+            ><span data-l="ru">Глоссарий</span
             ><span data-l="ua">Глосарій</span></a
           ><a class="btn btn-ghost btn-sm" href="./"
-            ><span data-l="ru">Все руководства</span
             ><span data-l="en">All guides</span
+            ><span data-l="ru">Все руководства</span
             ><span data-l="ua">Усі посібники</span></a
           >
         </p></nav>
       </section>
-    <p><span data-l="ru">Шаринг диска по SFTP через Fast Media Sorter &amp; Sharing: регистрация из Диспетчера дисков, установка программы, пароли и восстановление после ошибки.</span><span data-l="en">Disk sharing over SFTP through Fast Media Sorter &amp; Sharing: Disk Manager registration, installation, passwords and recovery after a failed step.</span><span data-l="ua">Спільний доступ до диска через SFTP у Fast Media Sorter &amp; Sharing: реєстрація з Диспетчера дисків, встановлення, паролі та відновлення після помилки.</span> <a href="fms-sharing.html"><span data-l="ru">Инструкция</span><span data-l="en">Instructions</span><span data-l="ua">Інструкція</span></a></p>
+    <p><span data-l="en">Disk sharing over SFTP through Fast Media Sorter &amp; Sharing: Disk Manager registration, installation, passwords and recovery after a failed step.</span><span data-l="ru">Шаринг диска по SFTP через Fast Media Sorter &amp; Sharing: регистрация из Диспетчера дисков, установка программы, пароли и восстановление после ошибки.</span><span data-l="ua">Спільний доступ до диска через SFTP у Fast Media Sorter &amp; Sharing: реєстрація з Диспетчера дисків, встановлення, паролі та відновлення після помилки.</span> <a href="fms-sharing.html"><span data-l="en">Instructions</span><span data-l="ru">Инструкция</span><span data-l="ua">Інструкція</span></a></p>
 </main>
     <footer class="site-footer">
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -523,5 +536,8 @@
       };
     </script>
     <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

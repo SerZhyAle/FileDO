@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
@@ -27,11 +27,7 @@
         "headline": "Use the FileDO window (GUI)",
         "description": "A guide to the FileDO window: a rail of jobs with one page each, the Command page for any operation, and the Protect pages for secret files.",
         "url": "https://serzhyale.github.io/FileDO/guides/gui-command-builder.html",
-        "inLanguage": [
-          "en",
-          "ru",
-          "uk"
-        ],
+        "inLanguage": ["en"],
         "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
         "isPartOf": {
           "@type": "WebSite",
@@ -64,7 +60,13 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
           if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
@@ -90,7 +92,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -107,46 +109,46 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span
-        ><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
       >
     </header>
     <nav class="lang-row" aria-label="Languages"><a href="../de/guides/gui-command-builder.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/gui-command-builder.html" hreflang="fr" lang="fr">FR</a></nav>
     <main id="main" class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
-          <span data-l="ru">Руководство · FileDO GUI</span
-          ><span data-l="en">Guide · FileDO GUI</span
+          <span data-l="en">Guide · FileDO GUI</span
+          ><span data-l="ru">Руководство · FileDO GUI</span
           ><span data-l="ua">Посібник · FileDO GUI</span>
         </p>
         <h1>
-          <span data-l="ru"
+          <span data-l="en"
+            >Pick the job, work through its page, check, then run.</span
+          ><span data-l="ru"
             >Выберите задачу, пройдите её страницу, проверьте и только потом
             запустите.</span
-          ><span data-l="en"
-            >Pick the job, work through its page, check, then run.</span
           ><span data-l="ua"
             >Виберіть завдання, пройдіть його сторінку, перевірте та лише потім
             запустіть.</span
           >
         </h1>
         <p class="lead">
-          <span data-l="ru"
-            >FileDO GUI - это окно Windows для тех же команд FileDO. По
-            умолчанию открывается оболочка: слева список задач, а на каждую
-            задачу - своя пронумерованная страница: над чем работать, какие
-            параметры, затем проверка и запуск. Окно не меняет правила
-            безопасности: оно делает цель, операцию и команду видимыми до
-            запуска.</span
-          ><span data-l="en"
+          <span data-l="en"
             >FileDO GUI is the Windows window for the same FileDO commands. It
             opens on a shell: a rail of jobs down the left side and one
             numbered page per job - what to work on, which parameters, then
             check and run. It does not change safety rules: it makes the
             target, the operation, and the command visible before
             execution.</span
+          ><span data-l="ru"
+            >FileDO GUI - это окно Windows для тех же команд FileDO. По
+            умолчанию открывается оболочка: слева список задач, а на каждую
+            задачу - своя пронумерованная страница: над чем работать, какие
+            параметры, затем проверка и запуск. Окно не меняет правила
+            безопасности: оно делает цель, операцию и команду видимыми до
+            запуска.</span
           ><span data-l="ua"
             >FileDO GUI - це вікно Windows для тих самих команд FileDO. За
             замовчуванням відкривається оболонка: ліворуч список завдань, а на
@@ -156,42 +158,48 @@
             запуском.</span
           >
         </p>
+        <p>
+          <span data-l="en">In the window, F1 opens the help of the window you are in; the same help is on this site: <a href="../help/en/">window help</a>.</span
+          ><span data-l="ru">В окне F1 открывает справку того окна, в котором вы находитесь; та же справка есть на сайте: <a href="../help/ru/">справка окна</a>.</span
+          ><span data-l="ua">У вікні F1 відкриває довідку того вікна, у якому ви перебуваєте; та сама довідка є на сайті: <a href="../help/uk/">довідка вікна</a>.</span
+          >
+        </p>
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Когда выбрать GUI</span
-          ><span data-l="en">When to choose the GUI</span
+          <span data-l="en">When to choose the GUI</span
+          ><span data-l="ru">Когда выбрать GUI</span
           ><span data-l="ua">Коли вибрати GUI</span>
         </h2>
         <p>
-          <span data-l="ru">Настройки доступны в главном окне и по кнопке «Настройки» в Диспетчере дисков. Тема применяется сразу, язык - при повторном открытии окна. Выберите запуск при входе в Windows: выключено, FileDO, Диспетчер дисков или только трей. Запуск не требует прав администратора; запись остаётся после удаления программы. В версии Store автозапуск включается в параметрах Windows, «Приложения - Автозагрузка», или Диспетчере задач. Обычный запуск всегда показывает окно. Переключатель «Сворачивать в трей» действует на оба окна; щелчок по значку открывает FileDO. Меню открывает Диспетчер дисков и настройки, останавливает задание, отключает все подключённые диски и завершает программу. При выходе во время задания программа спрашивает, что делать. Уведомление о завершении можно выключить; сброс положения окон действует при следующем открытии.</span>
-          <span data-l="en">Settings are available in the main window and from the Disk Manager's Settings button. Theme changes apply immediately; language changes apply on reopening. Choose startup at Windows logon: Off, FileDO, Disk Manager or only the tray icon. Startup needs no admin rights; its entry remains after uninstalling. In the Store build, use Windows Settings, Apps - Startup, or Task Manager. A manual launch always shows a window. Minimize to the tray applies to both windows; clicking the icon opens FileDO. Its menu opens the manager and settings, stops a job, unmounts all mounted disks and exits. Exit during a job asks what to do. Finish notifications can be turned off; resetting window positions applies on the next opening.</span>
-          <span data-l="ua">Налаштування доступні в головному вікні та за кнопкою «Налаштування» в Диспетчері дисків. Тема застосовується одразу, мова - під час повторного відкриття вікна. Виберіть запуск під час входу у Windows: вимкнено, FileDO, Диспетчер дисків або лише трей. Запуск не потребує прав адміністратора; запис залишається після видалення програми. У версії Store автозапуск вмикається в параметрах Windows, «Програми - Автозавантаження», або Диспетчері завдань. Звичайний запуск завжди показує вікно. Перемикач «Згортати в трей» діє на обидва вікна; натискання піктограми відкриває FileDO. Меню відкриває Диспетчер дисків і налаштування, зупиняє завдання, відключає всі підключені диски та завершує програму. Під час виходу із завданням програма запитує, що робити. Сповіщення про завершення можна вимкнути; скидання положення вікон діє під час наступного відкриття.</span>
+          <span data-l="en">Settings are available in the main window and from the Disk Manager's <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings button. Theme changes apply immediately; language changes apply on reopening. Choose startup at Windows logon: Off, FileDO, Disk Manager or only the tray icon. Startup needs no admin rights; its entry remains after uninstalling. In the Store build, use Windows Settings, Apps - Startup, or Task Manager. A manual launch always shows a window. Minimize to the tray applies to both windows; clicking the icon opens FileDO. Its menu opens the manager and settings, stops a job, unmounts all mounted disks and exits. Exit during a job asks what to do. Finish notifications can be turned off; resetting window positions applies on the next opening.</span>
+          <span data-l="ru">Настройки доступны в главном окне и по кнопке <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Настройки» в Диспетчере дисков. Тема применяется сразу, язык - при повторном открытии окна. Выберите запуск при входе в Windows: выключено, FileDO, Диспетчер дисков или только трей. Запуск не требует прав администратора; запись остаётся после удаления программы. В версии Store автозапуск включается в параметрах Windows, «Приложения - Автозагрузка», или Диспетчере задач. Обычный запуск всегда показывает окно. Переключатель «Сворачивать в трей» действует на оба окна; щелчок по значку открывает FileDO. Меню открывает Диспетчер дисков и настройки, останавливает задание, отключает все подключённые диски и завершает программу. При выходе во время задания программа спрашивает, что делать. Уведомление о завершении можно выключить; сброс положения окон действует при следующем открытии.</span>
+          <span data-l="ua">Налаштування доступні в головному вікні та за кнопкою <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Налаштування» в Диспетчері дисків. Тема застосовується одразу, мова - під час повторного відкриття вікна. Виберіть запуск під час входу у Windows: вимкнено, FileDO, Диспетчер дисків або лише трей. Запуск не потребує прав адміністратора; запис залишається після видалення програми. У версії Store автозапуск вмикається в параметрах Windows, «Програми - Автозавантаження», або Диспетчері завдань. Звичайний запуск завжди показує вікно. Перемикач «Згортати в трей» діє на обидва вікна; натискання піктограми відкриває FileDO. Меню відкриває Диспетчер дисків і налаштування, зупиняє завдання, відключає всі підключені диски та завершує програму. Під час виходу із завданням програма запитує, що робити. Сповіщення про завершення можна вимкнути; скидання положення вікон діє під час наступного відкриття.</span>
         </p>
         <figure class="shot">
-          <span data-l="ru"><img src="../assets/guides/gui-settings-ru.png" width="2041" height="1266" loading="lazy" alt="Страница настроек главного окна FileDO" /></span>
           <span data-l="en"><img src="../assets/guides/gui-settings-en.png" width="2041" height="1266" loading="lazy" alt="The Settings page in the FileDO main window" /></span>
+          <span data-l="ru"><img src="../assets/guides/gui-settings-ru.png" width="2041" height="1266" loading="lazy" alt="Страница настроек главного окна FileDO" /></span>
           <span data-l="ua"><img src="../assets/guides/gui-settings-ua.png" width="2041" height="1266" loading="lazy" alt="Сторінка налаштувань головного вікна FileDO" /></span>
         </figure>
         <figure class="shot">
-          <span data-l="ru"><img src="../assets/guides/gui-disk-settings-ru.png" width="1061" height="1004" loading="lazy" alt="Общие настройки FileDO в окне Диспетчера дисков" /></span>
           <span data-l="en"><img src="../assets/guides/gui-disk-settings-en.png" width="1061" height="1004" loading="lazy" alt="Shared FileDO settings in the Disk Manager dialog" /></span>
+          <span data-l="ru"><img src="../assets/guides/gui-disk-settings-ru.png" width="1061" height="1004" loading="lazy" alt="Общие настройки FileDO в окне Диспетчера дисков" /></span>
           <span data-l="ua"><img src="../assets/guides/gui-disk-settings-ua.png" width="1061" height="1004" loading="lazy" alt="Спільні налаштування FileDO у вікні Диспетчера дисків" /></span>
         </figure>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Удобнее выбрать задачу</span
-              ><span data-l="en">You prefer to pick a job</span
+              <span data-l="en">You prefer to pick a job</span
+              ><span data-l="ru">Удобнее выбрать задачу</span
               ><span data-l="ua">Зручніше вибрати завдання</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Выберите задачу в списке слева и заполните её страницу вместо
-                ручного ввода всех аргументов.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >Choose the job in the rail and fill in its page instead of
                 typing every argument.</span
+              ><span data-l="ru"
+                >Выберите задачу в списке слева и заполните её страницу вместо
+                ручного ввода всех аргументов.</span
               ><span data-l="ua"
                 >Виберіть завдання у списку ліворуч і заповніть його сторінку
                 замість ручного введення всіх аргументів.</span
@@ -200,18 +208,18 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Нужно проверить путь</span
-              ><span data-l="en">You need to verify a path</span
+              <span data-l="en">You need to verify a path</span
+              ><span data-l="ru">Нужно проверить путь</span
               ><span data-l="ua">Треба перевірити шлях</span>
             </h3>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >Every page starts with what to work on and ends with a check,
+                so the target is in front of you before you run.</span
+              ><span data-l="ru"
                 >Каждая страница начинается с того, над чем работать, и
                 заканчивается проверкой - цель у вас перед глазами до
                 запуска.</span
-              ><span data-l="en"
-                >Every page starts with what to work on and ends with a check,
-                so the target is in front of you before you run.</span
               ><span data-l="ua"
                 >Кожна сторінка починається з того, над чим працювати, і
                 закінчується перевіркою - ціль перед очима до запуску.</span
@@ -220,49 +228,49 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Нужна команда для инструкции</span
-              ><span data-l="en">You need a command for an instruction</span
+              <span data-l="en">You need a command for an instruction</span
+              ><span data-l="ru">Нужна команда для инструкции</span
               ><span data-l="ua">Потрібна команда для інструкції</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Страница «Команда» показывает командную строку: её можно
-                отредактировать, скопировать в буфер или запустить.</span
-              ><span data-l="en"
-                >The Command page shows the command line: it can be edited,
+              <span data-l="en"
+                >The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page shows the command line: it can be edited,
                 copied, or run.</span
+              ><span data-l="ru"
+                >Страница <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда» показывает командную строку: её можно
+                отредактировать, скопировать в буфер или запустить.</span
               ><span data-l="ua"
-                >Сторінка «Команда» показує командний рядок: його можна
+                >Сторінка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда» показує командний рядок: його можна
                 відредагувати, скопіювати або запустити.</span
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Что-то работает не так</span
-              ><span data-l="en">Something behaves wrongly</span
+              <span data-l="en">Something behaves wrongly</span
+              ><span data-l="ru">Что-то работает не так</span
               ><span data-l="ua">Щось працює не так</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Страница «О программе» показывает версию, ссылки и кнопку
-                «Отправить логи автору» (в старом окне это кнопка «О программе»
-                справа сверху): логи собираются в
-                один zip, папка с ним открывается, путь копируется в буфер
-                обмена, а ваша почтовая программа открывается с адресом автора и
-                темой. Приложить архив и отправить письмо - ваш шаг: сам FileDO
-                ничего никуда не передаёт.</span
-              ><span data-l="en"
-                >The About page shows the build, the links, and a Send logs to
+              <span data-l="en"
+                >The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About page shows the build, the links, and a <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Send logs to
                 the author button (in the older window, the About button in the
                 top right): the logs are
                 packed into one zip, the folder opens with it selected, the path
                 goes to the clipboard, and your mail program opens with the
                 author's address and a subject. Attaching the archive and sending
                 the mail is your step - FileDO itself transmits nothing.</span
+              ><span data-l="ru"
+                >Страница <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«О программе» показывает версию, ссылки и кнопку
+                <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>«Отправить логи автору» (в старом окне это кнопка «О программе»
+                справа сверху): логи собираются в
+                один zip, папка с ним открывается, путь копируется в буфер
+                обмена, а ваша почтовая программа открывается с адресом автора и
+                темой. Приложить архив и отправить письмо - ваш шаг: сам FileDO
+                ничего никуда не передаёт.</span
               ><span data-l="ua"
-                >Сторінка «Про програму» показує версію, посилання та кнопку
-                «Надіслати логи автору» (у старому вікні це кнопка «Про
+                >Сторінка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Про програму» показує версію, посилання та кнопку
+                <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>«Надіслати логи автору» (у старому вікні це кнопка «Про
                 програму» праворуч угорі): логи збираються в
                 один zip, тека з ним відкривається, шлях копіюється в буфер
                 обміну, а ваша поштова програма відкривається з адресою автора та
@@ -275,21 +283,21 @@
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Первый безопасный запуск</span
-          ><span data-l="en">First safe run</span
+          <span data-l="en">First safe run</span
+          ><span data-l="ru">Первый безопасный запуск</span
           ><span data-l="ua">Перший безпечний запуск</span>
         </h2>
         <ol class="steps">
           <li>
-            <span data-l="ru"
-              >Запустите <code>filedo_win</code> из winget/Store-пакета либо
-              <code>filedo_win.exe</code> рядом с <code>filedo.exe</code> в
-              portable ZIP. Откроется оболочка со списком задач слева.</span
-            ><span data-l="en"
+            <span data-l="en"
               >Start <code>filedo_win</code> from the winget/Store package, or
               <code>filedo_win.exe</code> beside <code>filedo.exe</code> in the
               portable ZIP. The shell opens with the rail of jobs on the
               left.</span
+            ><span data-l="ru"
+              >Запустите <code>filedo_win</code> из winget/Store-пакета либо
+              <code>filedo_win.exe</code> рядом с <code>filedo.exe</code> в
+              portable ZIP. Откроется оболочка со списком задач слева.</span
             ><span data-l="ua"
               >Запустіть <code>filedo_win</code> із пакета winget/Store або
               <code>filedo_win.exe</code> поруч із <code>filedo.exe</code> у
@@ -298,49 +306,49 @@
             >
           </li>
           <li>
-            <span data-l="ru"
-              >Для первой проверки выберите «Информация о цели» и укажите, над
-              чем работать.</span
-            ><span data-l="en"
-              >For a first check, choose Target info and set what to work
+            <span data-l="en"
+              >For a first check, choose <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Target info and set what to work
               on.</span
+            ><span data-l="ru"
+              >Для первой проверки выберите <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Информация о цели» и укажите, над
+              чем работать.</span
             ><span data-l="ua"
-              >Для першої перевірки виберіть «Інформація про ціль» і вкажіть,
+              >Для першої перевірки виберіть <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Інформація про ціль» і вкажіть,
               над чим працювати.</span
             >
           </li>
           <li>
-            <span data-l="ru"
-              >Прочитайте шаг «Проверить и запустить», затем запустите. Задача
-              «Информация о цели» только показывает сведения.</span
-            ><span data-l="en"
-              >Read the Check and run step, then run it. Target info only shows
+            <span data-l="en"
+              >Read the Check and run step, then run it. <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Target info only shows
               information.</span
+            ><span data-l="ru"
+              >Прочитайте шаг «Проверить и запустить», затем запустите. Задача
+              <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Информация о цели» только показывает сведения.</span
             ><span data-l="ua"
               >Прочитайте крок «Перевірити та запустити», потім запустіть.
-              Завдання «Інформація про ціль» лише показує відомості.</span
+              Завдання <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Інформація про ціль» лише показує відомості.</span
             >
           </li>
         </ol>
         <div class="copybox">
-          filedo_win<button class="copy" data-copy="filedo_win"><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          filedo_win<button class="copy" data-copy="filedo_win"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <figure class="shot">
-          <span data-l="ru"
-            ><img
-              src="../assets/guides/gui-target-info-ru.png"
-              width="2041"
-              height="1266"
-              loading="lazy"
-              alt="Окно FileDO: слева список задач, выбрана «Информация о цели»; справа шаги 1-4 с целью C:\ и командой filedo.exe C:\ info"
-          /></span
-          ><span data-l="en"
+          <span data-l="en"
             ><img
               src="../assets/guides/gui-target-info-en.png"
               width="2041"
               height="1266"
               loading="lazy"
               alt="The FileDO window: the rail of jobs on the left with Target info selected; steps 1-4 on the right with the target C:\ and the command filedo.exe C:\ info"
+          /></span
+          ><span data-l="ru"
+            ><img
+              src="../assets/guides/gui-target-info-ru.png"
+              width="2041"
+              height="1266"
+              loading="lazy"
+              alt="Окно FileDO: слева список задач, выбрана «Информация о цели»; справа шаги 1-4 с целью C:\ и командой filedo.exe C:\ info"
           /></span
           ><span data-l="ua"
             ><img
@@ -351,14 +359,14 @@
               alt="Вікно FileDO: ліворуч список завдань, вибрано «Інформація про ціль»; праворуч кроки 1-4 з ціллю C:\ і командою filedo.exe C:\ info"
           /></span>
           <figcaption>
-            <span data-l="ru"
-              >«Информация о цели»: шаг 4 показывает цель и точную команду до
-              запуска.</span
-            ><span data-l="en"
-              >Target info: step 4 shows the target and the exact command before
+            <span data-l="en"
+              ><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Target info: step 4 shows the target and the exact command before
               anything runs.</span
+            ><span data-l="ru"
+              ><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Информация о цели»: шаг 4 показывает цель и точную команду до
+              запуска.</span
             ><span data-l="ua"
-              >«Інформація про ціль»: крок 4 показує ціль і точну команду до
+              ><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Інформація про ціль»: крок 4 показує ціль і точну команду до
               запуску.</span
             >
           </figcaption>
@@ -366,31 +374,31 @@
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Что показывает окно</span
-          ><span data-l="en">What the window exposes</span
+          <span data-l="en">What the window exposes</span
+          ><span data-l="ru">Что показывает окно</span
           ><span data-l="ua">Що показує вікно</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
+          <span data-l="en"
+            >The rail lists the jobs, and each job opens one numbered page: what
+            to work on, which parameters, then check and run. There are pages
+            for a capacity test, a speed test, target info, a damaged-files
+            check, a raw capacity probe, recovering a drive, duplicate files,
+            comparing two folders, filling the free space, copying files, and
+            wiping a folder; the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Protect pages, the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Disks pages, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.history"/></svg>History, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings,
+            and <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About sit
+            beside them. Every option the CLI takes for a job is on its
+            page.</span
+          ><span data-l="ru"
             >Список слева перечисляет задачи, и каждая задача открывает одну
             пронумерованную страницу: над чем работать, какие параметры, затем
             проверка и запуск. Есть страницы для теста ёмкости, теста
             скорости, сведений о цели, проверки повреждённых файлов, прямой
             проверки ёмкости, восстановления накопителя, дубликатов, сравнения
             двух папок, заполнения свободного места, копирования файлов и
-            затирания папки; рядом - страницы защиты, страницы дисков, «История», «Настройки» и
-            «О программе». Все параметры, которые CLI принимает для задачи,
+            затирания папки; рядом - страницы <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>защиты, страницы <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>дисков, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.history"/></svg>«История», <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Настройки» и
+            <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«О программе». Все параметры, которые CLI принимает для задачи,
             есть на её странице.</span
-          ><span data-l="en"
-            >The rail lists the jobs, and each job opens one numbered page: what
-            to work on, which parameters, then check and run. There are pages
-            for a capacity test, a speed test, target info, a damaged-files
-            check, a raw capacity probe, recovering a drive, duplicate files,
-            comparing two folders, filling the free space, copying files, and
-            wiping a folder; the Protect pages, the Disks pages, History, Settings,
-            and About sit
-            beside them. Every option the CLI takes for a job is on its
-            page.</span
           ><span data-l="ua"
             >Список ліворуч перелічує завдання, і кожне завдання відкриває одну
             пронумеровану сторінку: над чим працювати, які параметри, потім
@@ -398,27 +406,27 @@
             відомостей про ціль, перевірки пошкоджених файлів, прямої перевірки
             ємності, відновлення накопичувача, дублікатів, порівняння двох тек,
             заповнення вільного місця, копіювання файлів і затирання теки;
-            поруч - сторінки захисту, сторінки дисків, «Історія», «Налаштування» та «Про
+            поруч - сторінки <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>захисту, сторінки <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>дисків, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.history"/></svg>«Історія», <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Налаштування» та <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>«Про
             програму». Усі параметри, які CLI приймає для завдання, є на його
             сторінці.</span
           >
         </p>
         <figure class="shot">
-          <span data-l="ru"
-            ><img
-              src="../assets/guides/gui-command-ru.png"
-              width="1457"
-              height="903"
-              loading="lazy"
-              alt="Страница «Команда»: операция info, цель, флаги short и nohist и редактируемая строка filedo.exe C: info над кнопкой «Выполнить команду»"
-          /></span
-          ><span data-l="en"
+          <span data-l="en"
             ><img
               src="../assets/guides/gui-command-en.png"
               width="1457"
               height="903"
               loading="lazy"
               alt="The Command page: the info operation, the target, the short and nohist flags, and the editable line filedo.exe C: info above the Run command button"
+          /></span
+          ><span data-l="ru"
+            ><img
+              src="../assets/guides/gui-command-ru.png"
+              width="1457"
+              height="903"
+              loading="lazy"
+              alt="Страница «Команда»: операция info, цель, флаги short и nohist и редактируемая строка filedo.exe C: info над кнопкой «Выполнить команду»"
           /></span
           ><span data-l="ua"
             ><img
@@ -429,14 +437,14 @@
               alt="Сторінка «Команда»: операція info, ціль, прапорці short і nohist та редагований рядок filedo.exe C: info над кнопкою запуску"
           /></span>
           <figcaption>
-            <span data-l="ru"
-              >Страница «Команда»: операция, цель, флаги и сама командная строка,
-              которую можно править.</span
-            ><span data-l="en"
-              >The Command page: operation, target, flags, and the command line
+            <span data-l="en"
+              >The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page: operation, target, flags, and the command line
               itself, editable.</span
+            ><span data-l="ru"
+              >Страница <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда»: операция, цель, флаги и сама командная строка,
+              которую можно править.</span
             ><span data-l="ua"
-              >Сторінка «Команда»: операція, ціль, прапорці й сам командний
+              >Сторінка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда»: операція, ціль, прапорці й сам командний
               рядок, який можна редагувати.</span
             >
           </figcaption>
@@ -444,22 +452,22 @@
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Страница «Команда»</span
-              ><span data-l="en">The Command page</span
-              ><span data-l="ua">Сторінка «Команда»</span>
+              <span data-l="en">The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page</span
+              ><span data-l="ru">Страница <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда»</span
+              ><span data-l="ua">Сторінка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда»</span>
             </h3>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >The expert builder: every operation <code>filedo.exe</code>
+                takes, with the flags and rule pickers that belong to the one
+                you choose, and the command line itself editable underneath.
+                Read it, edit it by hand, copy it, or run it.</span
+              ><span data-l="ru"
                 >Экспертный конструктор: все операции, которые принимает
                 <code>filedo.exe</code>, с флагами и выбором правил, относящимися
                 к выбранной операции, и самой командной строкой, которую можно
                 править внизу. Прочитайте её, отредактируйте вручную, скопируйте
                 или запустите.</span
-              ><span data-l="en"
-                >The expert builder: every operation <code>filedo.exe</code>
-                takes, with the flags and rule pickers that belong to the one
-                you choose, and the command line itself editable underneath.
-                Read it, edit it by hand, copy it, or run it.</span
               ><span data-l="ua"
                 >Експертний конструктор: усі операції, які приймає
                 <code>filedo.exe</code>, із прапорцями та вибором правил, що
@@ -469,22 +477,22 @@
               >
             </p>
             <p>
-              <span data-l="ru"
-                >Кнопка «Создать ярлык» сохраняет эту строку на рабочем столе.
-                Двойной щелчок запускает её в консоли; флажок по умолчанию
-                оставляет окно открытым, чтобы прочитать результат. Ярлык хранит
-                аргументы, поэтому строку с паролем <code>p:</code> или
-                <code>pe:FILEDO_SHELL_CRED</code> сохранить нельзя: уберите
-                такой аргумент и введите пароль в консоли.</span
-              ><span data-l="en"
-                >Create shortcut saves this line on your desktop. Double-click
+              <span data-l="en"
+                ><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-shortcut"/></svg>Create shortcut saves this line on your desktop. Double-click
                 it to run the command in a console; the default checkbox keeps
                 the window open so you can read the result. A shortcut stores
                 its arguments, so a line containing a <code>p:</code> password
                 or <code>pe:FILEDO_SHELL_CRED</code> cannot be saved. Remove
                 that argument and enter the password in the console.</span
+              ><span data-l="ru"
+                >Кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-shortcut"/></svg>«Создать ярлык» сохраняет эту строку на рабочем столе.
+                Двойной щелчок запускает её в консоли; флажок по умолчанию
+                оставляет окно открытым, чтобы прочитать результат. Ярлык хранит
+                аргументы, поэтому строку с паролем <code>p:</code> или
+                <code>pe:FILEDO_SHELL_CRED</code> сохранить нельзя: уберите
+                такой аргумент и введите пароль в консоли.</span
               ><span data-l="ua"
-                >Кнопка «Створити ярлик» зберігає цей рядок на робочому столі.
+                >Кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-shortcut"/></svg>«Створити ярлик» зберігає цей рядок на робочому столі.
                 Подвійне клацання запускає команду в консолі; позначений за
                 замовчуванням прапорець залишає вікно відкритим для читання
                 результату. Ярлик зберігає аргументи, тому рядок із паролем
@@ -493,7 +501,15 @@
               >
             </p>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >Operations that need a password get a masked field of their own
+                here, and <code>secure</code> asks twice. The password never
+                enters the command line: the line carries only
+                <code>pe:FILEDO_SHELL_CRED</code>, the name of the variable that
+                passes it to the run. A <code>secure</code> that deletes or
+                overwrites the original also needs <code>-y</code> from here;
+                without it the original is kept and the run says so.</span
+              ><span data-l="ru"
                 >Операции, которым нужен пароль, получают здесь отдельное
                 скрытое поле, а <code>secure</code> спрашивает его дважды.
                 Пароль не попадает в командную строку: в ней только
@@ -502,14 +518,6 @@
                 удаляет или перезаписывает оригинал, отсюда требует ещё и
                 <code>-y</code>; без него оригинал сохраняется, и запуск об этом
                 сообщает.</span
-              ><span data-l="en"
-                >Operations that need a password get a masked field of their own
-                here, and <code>secure</code> asks twice. The password never
-                enters the command line: the line carries only
-                <code>pe:FILEDO_SHELL_CRED</code>, the name of the variable that
-                passes it to the run. A <code>secure</code> that deletes or
-                overwrites the original also needs <code>-y</code> from here;
-                without it the original is kept and the run says so.</span
               ><span data-l="ua"
                 >Операції, яким потрібен пароль, отримують тут окреме приховане
                 поле, а <code>secure</code> питає його двічі. Пароль не потрапляє
@@ -523,21 +531,21 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Страницы «Защита»</span
-              ><span data-l="en">The Protect pages</span
-              ><span data-l="ua">Сторінки «Захист»</span>
+              <span data-l="en">The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Protect pages</span
+              ><span data-l="ru">Страницы <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>«Защита»</span
+              ><span data-l="ua">Сторінки <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>«Захист»</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Три страницы: сделать файл секретным, вернуть оригинал и
-                открыть секретный файл, не распаковывая его. Пароль скрыт и при
-                упаковке вводится дважды; пустой пароль принимается и означает
-                лишь маскировку, без секретности.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >Three pages make a file secret, get the original back, and open
                 a secret file without unpacking it. The password is masked and
                 typed twice when packing; an empty password is accepted and
                 means obfuscation only, with no secrecy.</span
+              ><span data-l="ru"
+                >Три страницы: сделать файл секретным, вернуть оригинал и
+                открыть секретный файл, не распаковывая его. Пароль скрыт и при
+                упаковке вводится дважды; пустой пароль принимается и означает
+                лишь маскировку, без секретности.</span
               ><span data-l="ua"
                 >Три сторінки: зробити файл секретним, повернути оригінал і
                 відкрити секретний файл, не розпаковуючи його. Пароль приховано,
@@ -546,37 +554,37 @@
               >
             </p>
             <p>
-              <span data-l="ru"
-                >Что будет с оригиналом, выбирается до запуска: оставить (по
-                умолчанию), удалить или перезаписать и удалить. Только последний
-                вариант требует набрать <code>WIPE</code>. Открытие контейнера
-                запускает работу, которая длится ровно столько, сколько
-                существует открытая копия; кнопка «Убрать копию сейчас» её
-                завершает.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >What happens to the original is chosen before anything runs:
                 keep (the default), delete, or overwrite then delete. Only the
                 last one asks you to type <code>WIPE</code>. Opening a container
                 starts a run that lasts exactly as long as the plaintext copy
-                exists; the Remove the copy now button ends it.</span
+                exists; the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.cancel"/></svg>Remove the copy now button ends it.</span
+              ><span data-l="ru"
+                >Что будет с оригиналом, выбирается до запуска: оставить (по
+                умолчанию), удалить или перезаписать и удалить. Только последний
+                вариант требует набрать <code>WIPE</code>. Открытие контейнера
+                запускает работу, которая длится ровно столько, сколько
+                существует открытая копия; кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.cancel"/></svg>«Убрать копию сейчас» её
+                завершает.</span
               ><span data-l="ua"
                 >Що буде з оригіналом, вибирається до запуску: залишити (за
                 замовчуванням), видалити або перезаписати й видалити. Лише
                 останній варіант вимагає набрати <code>WIPE</code>. Відкриття
                 контейнера запускає роботу, яка триває рівно стільки, скільки
-                існує відкрита копія; кнопка «Прибрати копію зараз» її
+                існує відкрита копія; кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.cancel"/></svg>«Прибрати копію зараз» її
                 завершує.</span
               >
             </p>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >The format, and what it does and does not protect, are in the
+                <a href="fd-sec-containers.html">secret files guide</a>.</span
+              ><span data-l="ru"
                 >Формат и то, что он защищает и не защищает, описаны в
                 <a href="fd-sec-containers.html"
                   >руководстве по секретным файлам</a
                 >.</span
-              ><span data-l="en"
-                >The format, and what it does and does not protect, are in the
-                <a href="fd-sec-containers.html">secret files guide</a>.</span
               ><span data-l="ua"
                 >Формат і те, що він захищає та чого не захищає, описано в
                 <a href="fd-sec-containers.html">посібнику із секретних файлів</a
@@ -586,12 +594,22 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Страницы «Диски»</span
-              ><span data-l="en">The Disks pages</span
-              ><span data-l="ua">Сторінки «Диски»</span>
+              <span data-l="en">The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Disks pages</span
+              ><span data-l="ru">Страницы <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>«Диски»</span
+              ><span data-l="ua">Сторінки <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>«Диски»</span>
             </h3>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >Seventeen pages for the <code>.fdd</code> virtual disks: the list
+                of what is mounted, create, mount, unmount, info, verify, export
+                an image and the other operations. Each page says whether the
+                container is obfuscated or encrypted before anything runs; the
+                password is masked and never reaches a command line. A mounted
+                disk stays mounted when the window closes. The first row of the group
+                opens the Disk manager, a second window that lists every disk in
+                one place.
+                <a href="virtual-disks.html">The virtual disks guide</a>.</span
+              ><span data-l="ru"
                 >Семнадцать страниц для виртуальных дисков <code>.fdd</code>:
                 список подключённого, создать, подключить, отключить, сведения,
                 прочитать целиком, выгрузить образ и остальные операции.
@@ -602,16 +620,6 @@
                 показывает все диски одним списком.
                 <a href="virtual-disks.html">Руководство по виртуальным
                 дискам</a>.</span
-              ><span data-l="en"
-                >Seventeen pages for the <code>.fdd</code> virtual disks: the list
-                of what is mounted, create, mount, unmount, info, verify, export
-                an image and the other operations. Each page says whether the
-                container is obfuscated or encrypted before anything runs; the
-                password is masked and never reaches a command line. A mounted
-                disk stays mounted when the window closes. The first row of the group
-                opens the Disk manager, a second window that lists every disk in
-                one place.
-                <a href="virtual-disks.html">The virtual disks guide</a>.</span
               ><span data-l="ua"
                 >Сімнадцять сторінок для віртуальних дисків <code>.fdd</code>:
                 список підключеного, створити, підключити, відключити,
@@ -629,33 +637,33 @@
         </div>
         <div class="note danger">
           <span class="tag"
-            ><span data-l="ru">Та же ответственность</span
             ><span data-l="en">Same responsibility</span
+            ><span data-l="ru">Та же ответственность</span
             ><span data-l="ua">Та сама відповідальність</span></span
           >
           <p>
-            <span data-l="ru"
+            <span data-l="en"
+              >The GUI does not make <code>wipe</code>, <code>fill … del</code>,
+              or deletion modes reversible. Check the target and the command
+              before you run; back up before irreversible actions. <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-feature.raw-probe"/></svg>Raw capacity
+              probe and <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.recover-drive"/></svg>Recover a drive are marked destructive and ask for
+              Administrator; <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>Wipe a folder still needs <code>WIPE</code> typed
+              out and <code>-y</code> ticked, and sends a drive root, a share or TEMP to the
+              console.</span
+            ><span data-l="ru"
               >GUI не делает <code>wipe</code>, <code>fill … del</code> или
               режимы удаления обратимыми. Перед запуском проверьте цель и
               команду; для необратимых действий сделайте резервную копию.
-              «Прямая проверка ёмкости» и «Восстановить накопитель» помечены
-              как разрушающие и просят права администратора; «Очистить папку»
+              <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-feature.raw-probe"/></svg>«Прямая проверка ёмкости» и <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.recover-drive"/></svg>«Восстановить накопитель» помечены
+              как разрушающие и просят права администратора; <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>«Очистить папку»
               по-прежнему требует набрать <code>WIPE</code> и отметить <code>-y</code>, а
               корень диска, общую папку или TEMP отправляет в консоль.</span
-            ><span data-l="en"
-              >The GUI does not make <code>wipe</code>, <code>fill … del</code>,
-              or deletion modes reversible. Check the target and the command
-              before you run; back up before irreversible actions. Raw capacity
-              probe and Recover a drive are marked destructive and ask for
-              Administrator; Wipe a folder still needs <code>WIPE</code> typed
-              out and <code>-y</code> ticked, and sends a drive root, a share or TEMP to the
-              console.</span
             ><span data-l="ua"
               >GUI не робить <code>wipe</code>, <code>fill … del</code> або
               режими видалення зворотними. Перед запуском перевірте ціль і
-              команду; перед незворотними діями зробіть резервну копію. «Пряма
-              перевірка ємності» та «Відновити накопичувач» позначені як
-              руйнівні й просять права адміністратора; «Очистити теку»
+              команду; перед незворотними діями зробіть резервну копію. <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-feature.raw-probe"/></svg>«Пряма
+              перевірка ємності» та <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.recover-drive"/></svg>«Відновити накопичувач» позначені як
+              руйнівні й просять права адміністратора; <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>«Очистити теку»
               як і раніше вимагає набрати <code>WIPE</code> і позначити <code>-y</code>, а
               корінь диска, спільну теку чи TEMP відправляє в консоль.</span
             >
@@ -664,28 +672,28 @@
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Как запустить окно</span
-          ><span data-l="en">Ways to start the window</span
+          <span data-l="en">Ways to start the window</span
+          ><span data-l="ru">Как запустить окно</span
           ><span data-l="ua">Як запустити вікно</span>
         </h2>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">На файле</span
-              ><span data-l="en">On a file</span
+              <span data-l="en">On a file</span
+              ><span data-l="ru">На файле</span
               ><span data-l="ua">На файлі</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Двойной щелчок по файлу <code>.fd-sec</code> открывает окно
-                прямо на этом контейнере. Из командной строки то же самое даёт
-                <code>filedo_win.exe C:\a\secret.fd-sec</code>. Каждый
-                контейнер получает своё окно.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >A double-click on a <code>.fd-sec</code> file opens the window
                 on that container. From a command line, the same thing is
                 <code>filedo_win.exe C:\a\secret.fd-sec</code>. Each container
                 gets its own window.</span
+              ><span data-l="ru"
+                >Двойной щелчок по файлу <code>.fd-sec</code> открывает окно
+                прямо на этом контейнере. Из командной строки то же самое даёт
+                <code>filedo_win.exe C:\a\secret.fd-sec</code>. Каждый
+                контейнер получает своё окно.</span
               ><span data-l="ua"
                 >Подвійний клік по файлу <code>.fd-sec</code> відкриває вікно
                 прямо на цьому контейнері. З командного рядка те саме дає
@@ -696,25 +704,25 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">С журналом отладки</span
-              ><span data-l="en">With a debug log</span
+              <span data-l="en">With a debug log</span
+              ><span data-l="ru">С журналом отладки</span
               ><span data-l="ua">Із журналом налагодження</span>
             </h3>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >The window always writes its errors to
+                <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - that file goes into the zip that the
+                <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>Send logs to the author button builds. The <code>-debug</code> switch
+                adds detailed lines to it.</span
+              ><span data-l="ru"
                 >Окно всегда записывает свои ошибки в
                 <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - этот файл
-                и уходит автору по кнопке «Отправить логи». Переключатель
+                входит в архив, который собирает кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>«Отправить логи автору». Переключатель
                 <code>-debug</code> добавляет туда подробные строки.</span
-              ><span data-l="en"
-                >The window always writes its errors to
-                <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - the file
-                Send logs passes to the author. The <code>-debug</code> switch
-                adds detailed lines to it.</span
               ><span data-l="ua"
                 >Вікно завжди записує свої помилки в
                 <code>%LOCALAPPDATA%\FileDO\filedo_win.session-*.log</code> - саме цей
-                файл іде авторові за кнопкою «Надіслати логи». Перемикач
+                файл потрапляє в архів, який збирає кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>«Надіслати логи автору». Перемикач
                 <code>-debug</code> додає туди докладні рядки.</span
               >
             </p>
@@ -722,7 +730,7 @@
               filedo_win.exe -debug<button
                 class="copy"
                 data-copy="filedo_win.exe -debug"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
         </div>
@@ -732,7 +740,8 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -754,5 +763,8 @@
       };
     </script>
     <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.cancel" viewBox="0 0 24 24"><path d="M12,2C6.47,2 2,6.47 2,12s4.47,10 10,10 10,-4.47 10,-10S17.53,2 12,2zM17,15.59L15.59,17 12,13.41 8.41,17 7,15.59 10.59,12 7,8.41 8.41,7 12,10.59 15.59,7 17,8.41 13.41,12 17,15.59z" fill="currentColor"/></symbol><symbol id="g-action.create-shortcut" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM6.8 19.6V14.7H12.8V16.3H8.4V19.6zM12.8 12.8 16.5 15.5 12.8 18.2z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-action.recover-drive" viewBox="0 0 24 24"><path d="M17.73 12.02l3.98-3.98c.39-.39.39-1.02 0-1.41l-4.34-4.34c-.39-.39-1.02-.39-1.41 0l-3.98 3.98L8 2.29C7.8 2.1 7.55 2 7.29 2c-.25 0-.51.1-.7.29L2.25 6.63c-.39.39-.39 1.02 0 1.41l3.98 3.98L2.25 16c-.39.39-.39 1.02 0 1.41l4.34 4.34c.39.39 1.02.39 1.41 0l3.98-3.98 3.98 3.98c.2.2.45.29.71.29.26 0 .51-.1.71-.29l4.34-4.34c.39-.39.39-1.02 0-1.41l-3.99-3.98zM12 9c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-4.71 1.96L3.66 7.34l3.63-3.63 3.62 3.62-3.62 3.63zM10 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2 2c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2.66 9.34l-3.63-3.62 3.63-3.63 3.62 3.62-3.62 3.63z" fill="currentColor"/></symbol><symbol id="g-action.secure" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9V6zM16 16h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z" fill="currentColor"/></symbol><symbol id="g-action.wipe" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm2.46-7.12l1.41-1.41L12 12.59l2.12-2.12 1.41 1.41L13.41 14l2.12 2.12-1.41 1.41L12 15.41l-2.12 2.12-1.41-1.41L10.59 14l-2.13-2.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></symbol><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol><symbol id="g-app.settings" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></symbol><symbol id="g-content.history" viewBox="0 0 24 24"><path d="M13,3c-4.97,0 -9,4.03 -9,9H1l3.89,3.89 0.07,0.14L9,12H6c0,-3.87 3.13,-7 7,-7s7,3.13 7,7 -3.13,7 -7,7c-1.93,0 -3.68,-0.79 -4.94,-2.06l-1.42,1.42C8.27,19.99 10.51,21 13,21c4.97,0 9,-4.03 9,-9s-4.03,-9 -9,-9zm-1,5v5l4.28,2.54 0.72,-1.21 -3.5,-2.08V8H12z" fill="currentColor"/></symbol><symbol id="g-feature.raw-probe" viewBox="0 0 24 24"><path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z" fill="currentColor"/></symbol><symbol id="g-system.storage" viewBox="0 0 24 24"><path d="M2,20h20v-4H2V20zM4,17h2v2H4V17zM2,4v4h20V4H2zM6,7H4V5h2V7zM2,14h20v-4H2V14zM4,11h2v2H4V11z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

@@ -102,11 +102,34 @@ $script:Work = $Work
 $script:OutDir = $OutDir
 $script:Sha = [Security.Cryptography.SHA256]::Create()
 
+# CHECK-VERDICT 0.14 item A: an operations proof ends in a test verdict line, each step a test. A FAIL's
+# reason goes above the line; a COULD NOT VERIFY names what could not be checked after the tokens.
 function Done([int]$code, [string]$verdict, [string]$why = '') {
     $color = switch ($code) { 0 { 'Green' } 1 { 'Red' } default { 'Yellow' } }
     $stamp = if ($Version) { $Version } else { 'unknown' }
-    Write-Host ("operations-run ${stamp}: $verdict" + $(if ($why) { " ($why)" } else { '' })) -ForegroundColor $color
+    $counts = 'run={0} skipped={1} seconds={2}' -f $script:Rows.Count, (Get-SkippedStepCount), [int]((Get-Date) - $script:Started).TotalSeconds
+    if ($code -eq 1 -and $why) { Write-Host "  $why" -ForegroundColor $color }
+    Write-Host ("operations-run ${stamp}: $verdict ($counts" + $(if ($code -eq 2 -and $why) { ", $why" } else { '' }) + ')') -ForegroundColor $color
     exit $code
+}
+
+# The steps selected and not run: the newest passing run's steps of a tier this run did not reach or of a
+# section it skipped. Where no baseline names them, a skipped section still counts once.
+function Get-SkippedStepCount {
+    $n = 0
+    if ($script:base -and $script:base.LatestByTier) {
+        $have = @{}; foreach ($row in $script:Rows) { $have[$row.Name] = $true }
+        $ran = @($script:Rows | ForEach-Object Tier | Select-Object -Unique)
+        foreach ($t in @($script:base.LatestByTier.Keys)) {
+            foreach ($s in @($script:base.LatestByTier[$t].steps)) {
+                if ([string]$s.tier -ne $t -or $have.ContainsKey([string]$s.name)) { continue }
+                $hit = $ran -notcontains $t
+                foreach ($p in $script:SkippedPrefix) { if ([string]$s.name -like "$p*") { $hit = $true } }
+                if ($hit) { $n++ }
+            }
+        }
+    }
+    [math]::Max($n, $script:Skipped.Count)
 }
 
 # ---- plumbing ---------------------------------------------------------------------------------
@@ -376,21 +399,21 @@ function Invoke-Tier1 {
     $nReadable = @($want.Values | Where-Object { $_.Size -gt 0 }).Count
     Write-Host ("  source tree: {0} files, {1:N1} MiB" -f $nFiles, ($nBytes / $MiB))
 
-    # -- help and the ways a command line is wrong: they must say so and exit 2
+    # -- help and the ways a command line is wrong: they must say so and exit 10
     [void](Op 'help: help is the detailed screen' @('help') -NoEvents -Verify {
         param($r) if ($r.Text -notmatch 'DEVICE OPERATIONS' -or $r.Text -notmatch 'VIRTUAL DISKS') { 'the detailed help lacks its device or virtual-disk sections' }
     })
     [void](Op 'help: -? lists the main operations' @('-?') -NoEvents -Verify {
         param($r) if ($r.Text -notmatch 'MAIN OPERATIONS') { 'the short help does not list the main operations' }
     })
-    [void](Op 'usage: an unknown command' @('bogusverb') -Code @(2) -Verdict @('Not proven') -Verify {
+    [void](Op 'usage: an unknown command' @('bogusverb') -Code @(10) -Verdict @('Not proven') -Verify {
         param($r) if ($r.Text -notmatch 'Unknown command') { 'no "Unknown command" message' }
     })
-    [void](Op 'usage: copy without a target' @('copy', $src) -Code @(2) -Verdict @('Not proven') -Verify {
+    [void](Op 'usage: copy without a target' @('copy', $src) -Code @(10) -Verdict @('Not proven') -Verify {
         param($r) if ($r.Text -notmatch 'requires source and target') { 'no "requires source and target" message' }
     })
-    [void](Op 'usage: compare with one path' @('compare', $src) -Code @(2) -Verdict @('Not proven'))
-    [void](Op 'usage: info of a path that is not there' @((Join-Path $Work 'no-such-folder'), 'info') -Code @(2) -Verdict @('Not proven') -Verify {
+    [void](Op 'usage: compare with one path' @('compare', $src) -Code @(10) -Verdict @('Not proven'))
+    [void](Op 'usage: info of a path that is not there' @((Join-Path $Work 'no-such-folder'), 'info') -Code @(11) -Verdict @('Not proven') -Verify {
         param($r) if ($r.Text -notmatch 'does not exist') { 'no "does not exist" message' }
     })
 
@@ -441,11 +464,11 @@ function Invoke-Tier1 {
         Compare-Manifest $want (Get-Manifest $dstPre)
     })
     Remove-Scratch $dstPre
-    # A stop that was asked for before the start ends the run Stopped (exit 0), and what is under a final
+    # A stop that was asked for before the start ends the run Stopped (exit 16), and what is under a final
     # name is whole: copy writes through a temporary name, so nothing half-written may be left.
     $stopFlag = Join-Path $Work 'stop.flag'; Set-Content -LiteralPath $stopFlag -Value 'stop'
     $dstStop = Join-Path $Work 'dst-stop'
-    [void](Op 'copy: --stop-file asked before the start' @('copy', $src, $dstStop, '--stop-file', $stopFlag) -Verdict @('Stopped') -Verify {
+    [void](Op 'copy: --stop-file asked before the start' @('copy', $src, $dstStop, '--stop-file', $stopFlag) -Code @(16) -Verdict @('Stopped') -Verify {
         param($r)
         if (Test-Path -LiteralPath $dstStop) {
             $got = Get-Manifest $dstStop
@@ -680,6 +703,48 @@ function Invoke-Tier1 {
         if (-not (Test-Path -LiteralPath $wipeDir)) { 'the folder itself is gone (it must stay)' }
     })
 
+    # -- backup and restore (SP-0198): a plain zip, a sealed one, a wrong password, a taken name
+    $bakDir = Join-Path $Work 'bak'; New-Item -ItemType Directory -Path $bakDir -Force | Out-Null
+    [void](Op 'backup: plain zip' @('backup', $src, 'to', $bakDir) -Bytes $nBytes -Verify {
+        param($r)
+        $z = @(Get-ChildItem -LiteralPath $bakDir -Filter '*.zip' -File)
+        if ($z.Count -ne 1) { "want one zip in the destination, found $($z.Count)" }
+        elseif ($r.Text -notmatch 'density: level [0-9]') { 'the density line is missing' }
+    })
+    $bakZip = @(Get-ChildItem -LiteralPath $bakDir -Filter '*.zip' -File)
+    $bakBack = Join-Path $Work 'bak-back'
+    if ($bakZip.Count -eq 1) {
+        [void](Op 'restore: plain zip' @('restore', $bakZip[0].FullName, 'to', $bakBack) -Bytes $nBytes -Verify {
+            param($r) Compare-Manifest $want (Get-Manifest $bakBack)
+        })
+        $takenParent = Join-Path $Work 'bak-taken'
+        $takenFolder = Join-Path $takenParent (Split-Path $src -Leaf)
+        New-Item -ItemType Directory -Path $takenFolder -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $takenFolder 'keep.txt') -Value 'preserve'
+        [void](Op 'restore: a taken name, nobody to ask' @('restore', $bakZip[0].FullName, 'to', $takenParent) -Code @(10) -Verdict @('Not proven') -Verify {
+            param($r) if (-not (Test-Path -LiteralPath (Join-Path $takenFolder 'keep.txt'))) { 'the existing destination changed' }
+        })
+        Remove-Scratch $takenParent
+    }
+    Remove-Scratch $bakBack
+    [void](Op 'backup: sealed' @('backup', $src, 'to', $bakDir, 'sec', 'level', '1', $pw) -Bytes $nBytes -Verify {
+        param($r)
+        $c = @(Get-ChildItem -LiteralPath $bakDir -Filter '*.fd-sec' -File)
+        if ($c.Count -ne 1) { "want one container in the destination, found $($c.Count)" }
+        if (@(Get-ChildItem -LiteralPath $bakDir -File).Count -ne 2) { 'the sealed backup left a file beside the container' }
+    })
+    $bakSec = @(Get-ChildItem -LiteralPath $bakDir -Filter '*.fd-sec' -File)
+    if ($bakSec.Count -eq 1) {
+        $badBack = Join-Path $Work 'bak-bad'
+        [void](Op 'restore: sealed, wrong password refused' @('restore', $bakSec[0].FullName, 'to', $badBack, 'p:not-the-password') -Code @(3) -Verdict @('Failed') -Verify {
+            param($r) if (Test-Path -LiteralPath $badBack) { 'a folder was written for a wrong password' }
+        })
+        [void](Op 'restore: sealed' @('restore', $bakSec[0].FullName, 'to', $bakBack, $pw) -Bytes $nBytes -Verify {
+            param($r) Compare-Manifest $want (Get-Manifest $bakBack)
+        })
+    }
+    Remove-Scratch $bakBack
+    Remove-Scratch $bakDir
     # -- a batch run: the same dispatch with its own tokenizer and stop rule
     $dstBatch = Join-Path $Work 'dst-batch'
     $list = Join-Path $Work 'ops.lst'
@@ -1075,7 +1140,7 @@ function Invoke-Tier2 {
         if (-not $letter) { return }
         Check 'the data survived the unmount (byte for byte)' @(Compare-Manifest $want (Get-Manifest "$letter\data"))
         $denied = "$letter\denied"
-        [void](Op 'write to a read-only disk is refused' @('copy', (Join-Path $src 'dups'), $denied) -Code @(1, 2, 5) -Verdict @('Not proven', 'Failed') -Verify {
+        [void](Op 'write to a read-only disk is refused' @('copy', (Join-Path $src 'dups'), $denied) -Code @(1, 2, 5, 12) -Verdict @('Not proven', 'Failed') -Verify {
             param($r) if (Test-Path -LiteralPath $denied) { 'a folder was created on a read-only mount' }
         })
         Dismount-Own $letter $fdd 'read-only'
@@ -1179,6 +1244,7 @@ $Inventory = @(
     E 'copy' '^copy: copy$'; E 'fastcopy' '^copy: fastcopy$'; E 'balanced' '^copy: balanced$'; E 'maxcopy' '^copy: maxcopy$'
     E 'smartcopy' '^copy: smartcopy$'; E 'safecopy' '^copy: safecopy$'; E 'synccopy' '^copy: synccopy$'
     E 'wipe' '^wipe: '; E 'secure' '^secure: '; E 'unsecure' '^unsecure: '; E 'reveal' '^reveal: '
+    E 'backup' '^backup: '; E 'restore' '^restore: '
     E 'from' '^batch: '; E 'hist' '^history: hist'; E 'help' '^help: '
     E 'probe' '^probe: yes' -tier 2; E 'recover' '^recover: ' -tier 2
     E 'network' '^network: ' -optional
@@ -1215,7 +1281,7 @@ $Inventory = @(
 function Get-HelpVerbs([string]$helpText) {
     $keys = [System.Collections.Generic.List[string]]::new()
     $block = { param($title) if ($helpText -match "(?s)$title\r?\n(.*?)\r?\n\s*\r?\n") { $Matches[1] -split "`r?`n" } else { @() } }
-    foreach ($line in (& $block 'MAIN OPERATIONS:')) { if ($line -match '^\s{2}([a-z][a-z-]*)\s{2,}\S') { if ($Matches[1] -ne 'vd') { $keys.Add($Matches[1]) } } }
+    foreach ($line in (& $block 'MAIN OPERATIONS:')) { if ($line -match '^\s{2}([a-z][a-z-]*)\s+\S') { if ($Matches[1] -ne 'vd') { $keys.Add($Matches[1]) } } }
     foreach ($line in (& $block 'COPY MODES:')) { if ($line -match '^\s{2}([a-z]+)\s{2,}\S') { $keys.Add($Matches[1]) } }
     if ($helpText -match '(?s)Virtual disks:.*?\((new,.*?)\)') { foreach ($v in ($Matches[1] -split '[,\s]+' | Where-Object { $_ })) { $keys.Add("vd:$v") } }
     $keys | Select-Object -Unique
@@ -1367,11 +1433,12 @@ try {
             $second = @{}; foreach ($row in $script:Rows) { $second[$row.Name] = $row }
             $merged = foreach ($row in $first) {
                 $again = $second[$row.Name]
+                if (-not $again) { $row.Pass = $false; $row.Problems = @($row.Problems) + 'the step is absent from the second pass' }
                 if ($again) {
                     $row.Note = ((@($row.Note, ('best of 2: {0} / {1} ms' -f $row.Ms, $again.Ms)) | Where-Object { $_ }) -join '  ')
                     $row.Ms = [math]::Min($row.Ms, $again.Ms)
                     if (-not $again.Pass) { $row.Pass = $false; $row.Problems = @($row.Problems) + @($again.Problems | ForEach-Object { "second pass: $_" }) }
-                    if ($again.Sig -ne $row.Sig -and $again.Sig) { $row.Pass = $false; $row.Problems = @($row.Problems) + "the two passes disagree: [$($row.Sig)] against [$($again.Sig)]" }
+                    if ($again.Sig -ne $row.Sig) { $row.Pass = $false; $row.Problems = @($row.Problems) + "the two passes disagree: [$($row.Sig)] against [$($again.Sig)]" }
                 }
                 $row
             }
@@ -1501,4 +1568,4 @@ if ($failed.Count) { Done 1 'FAIL' "$($failed.Count) of $($script:Rows.Count) st
 if ($coverageFailed) { Done 1 'FAIL' "coverage: $($coverageProblems.Count) verb(s) without a step - a new verb needs one (or a reasoned exemption) in the inventory of tests\prove-operations.ps1" }
 if ($compareFailed) { Done 1 'FAIL' "against the baseline: $($compareProblems.Count) finding(s) - fix them, or accept an intended change with -Rebaseline" }
 if ($script:Unverified.Count) { Done 2 'COULD NOT VERIFY' ($script:Unverified -join '; ') }
-Done 0 'PASS' ("$($script:Rows.Count) steps in $([int]((Get-Date) - $script:Started).TotalSeconds) s" + $(if ($script:Skipped.Count) { ", $($script:Skipped.Count) skipped" } else { '' }))
+Done 0 'PASS'

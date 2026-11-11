@@ -177,7 +177,8 @@ The builder **refuses** (exit 1, no file and no folder written) whatever would l
 shipped language with no column in the export or no `listing\<code>.txt` (the export retained from 2026-09-22 has
 no `de` or `fr` column, so it refuses that file until a fresh export has them), a cell over its cap counted
 after CRLF normalisation, a repeated search term, and more than **21 words** across a language's seven search
-terms (WINDOWS-STORE 0.2; 22 was never measured). Each refusal names the language, the field, the length and the
+terms (WINDOWS-STORE 0.2; 22 was never measured), and in the export's own dialect a record break that is not
+the export's, a mixed in-cell break, or an open last quoted cell (WINDOWS-STORE 0.3, item B). Each refusal names the language, the field, the length and the
 deck file: fix the deck, never the console.
 
 4. **Import** `msix\out\store-import\` - the folder, in the console's own folder picker. The CSV and the

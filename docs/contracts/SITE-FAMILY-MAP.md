@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-FAMILY-MAP` |
-| **Version** | 1.5, read 2026-10-21 (SP-0170); implemented 1.5 (SP-0171 W14) |
+| **Version** | 1.10, read 2026-10-29 (SP-0174); implemented partial 1.10; the Windows card name and type of 1.9 and 1.10 are open (SP-0185) |
 | **Role** | consumer - product-site footer family grid |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `SITE-FAMILY-MAP.md` |
 | **Owner** | sza.od.ua hub |

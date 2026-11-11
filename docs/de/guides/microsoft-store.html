@@ -160,7 +160,7 @@
               <span data-l="de">Das FileDO-Fenster</span>
             </h3>
             <p>
-              <span data-l="de">Eine Seite für jede Aufgabe und eine Seite „Befehl“, die jeden beliebigen Befehl zusammenstellt und ausführt. Starten Sie es über das Startmenü.</span>
+              <span data-l="de">Eine Seite für jede Aufgabe und eine Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>„Befehl“, die jeden beliebigen Befehl zusammenstellt und ausführt. Starten Sie es über das Startmenü.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
@@ -218,7 +218,7 @@
               <span data-l="de">Keine Partitionsdatenträger</span>
             </h3>
             <p>
-              <span data-l="de">Ein virtueller Datenträger kann in dieser Version nur in einer Datei liegen. <code>vd disks</code> sagt das, jeder Partitionsbefehl endet mit Exit-Code 6, und „Neuer Datenträger..“ in der Datenträgerverwaltung bietet nur die Datei an.</span>
+              <span data-l="de">Ein virtueller Datenträger kann in dieser Version nur in einer Datei liegen. <code>vd disks</code> sagt das, jeder Partitionsbefehl endet mit Exit-Code 6, und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>„Neuer Datenträger..“ in der Datenträgerverwaltung bietet nur die Datei an.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="virtual-disks.html#partition"
@@ -257,7 +257,7 @@
               <span data-l="de">Windows-Einstellungen bleiben in Windows</span>
             </h3>
             <p>
-              <span data-l="de">Auf der Seite „Einstellungen“ öffnet „Beim Windows-Start ausführen“ die Windows-Einstellungen unter „Apps - Autostart“: Der Eintrag ist aus, bis Sie ihn dort einschalten, und auch der Task-Manager kann ihn verwalten. Die Schaltfläche „Automatische Wiedergabe von Windows deaktivieren“ wird nicht angeboten; stattdessen öffnet „Windows-Einstellungen zur automatischen Wiedergabe..“ die Windows-Seite.</span>
+              <span data-l="de">Auf der Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>„Einstellungen“ öffnet <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Beim Windows-Start ausführen“ die Windows-Einstellungen unter „Apps - Autostart“: Der Eintrag ist aus, bis Sie ihn dort einschalten, und auch der Task-Manager kann ihn verwalten. Die Schaltfläche <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.autoplay-disable"/></svg>„Automatische Wiedergabe von Windows deaktivieren“ wird nicht angeboten; stattdessen öffnet <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Windows-Einstellungen zur automatischen Wiedergabe..“ die Windows-Seite.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
@@ -281,7 +281,7 @@
               <span data-l="de"><code>.fd-sec</code>-Container</span>
             </h3>
             <p>
-              <span data-l="de">Doppelklicken Sie eine <code>.fd-sec</code>-Datei: Das FileDO-Fenster öffnet sich auf der Seite „Geheime Datei öffnen“ mit bereits gewähltem Container, und dort wird nach dem Passwort gefragt.</span>
+              <span data-l="de">Doppelklicken Sie eine <code>.fd-sec</code>-Datei: Das FileDO-Fenster öffnet sich auf der Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Geheime Datei öffnen“ mit bereits gewähltem Container, und dort wird nach dem Passwort gefragt.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="fd-sec-containers.html"
@@ -361,6 +361,7 @@
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -375,5 +376,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.autoplay-disable" viewBox="0 0 24 24"><path d="M8 5.19V5l11 7-2.55 1.63L8 5.19zm12 14.54l-5.11-5.11L8 7.73 4.27 4 3 5.27l5 5V19l5.33-3.4 5.4 5.4L20 19.73z" fill="currentColor"/></symbol><symbol id="g-action.create-disk" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM8.25 5h1.5v2.25H12v1.5H9.75V11h-1.5V8.75H6v-1.5h2.25z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol><symbol id="g-app.settings" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></symbol><symbol id="g-nav.open-external" viewBox="0 0 24 24"><path d="M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

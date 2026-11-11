@@ -67,12 +67,12 @@ Friend Class DiskShareDialog
         root = New TextBox With {.Text = r.BaseName, .Dock = DockStyle.Top, .MaxLength = 64, .Margin = PPad(0, 0, 0, 8)}
         root.AccessibleName = T("vd_share_root")
         AddContent(root)
-        ro = New CheckBox With {.Text = T("vd_share_read_only"), .Checked = r.Profile = "sealed", .Enabled = r.Profile <> "sealed", .AutoSize = True}
+        ro = New BooleanOption With {.Text = T("vd_share_read_only"), .Checked = r.Profile = "sealed", .Enabled = r.Profile <> "sealed", .DisabledReason = T("vd_note_seal"), .AutoSize = True, .MaximumSize = New Size(P(460), 0)}
         AddContent(ro)
-        openIt = New CheckBox With {.Text = T("vd_share_open_now"), .Checked = False, .AutoSize = True}
+        openIt = New BooleanOption With {.Text = T("vd_share_open_now"), .Checked = False, .AutoSize = True, .MaximumSize = New Size(P(460), 0)}
         AddContent(openIt)
         If r.IsMounted Then AddContent(NewNote(Localization.Format(T("vd_share_transfer_fmt"), r.Letter)))
-        disableAuto = New CheckBox With {.Text = T("vd_share_disable_auto"), .Checked = False, .Visible = r.AutoMount, .AutoSize = True}
+        disableAuto = New BooleanOption With {.Text = T("vd_share_disable_auto"), .Checked = False, .Visible = r.AutoMount, .AutoSize = True, .MaximumSize = New Size(P(460), 0)}
         AddContent(disableAuto)
         AddContent(NewNote(T("vd_share_policy")))
         AddHandler root.TextChanged, Sub() ValidateChoices()

@@ -236,8 +236,8 @@ func TestHelpPrintsTheStampAndExitsZero(t *testing.T) {
 func TestNoArgumentsShowsUsageAndExitsTwo(t *testing.T) {
 	_, launcher := install(t, true)
 	res := runLauncher(t, launcher, nil, runOptions{})
-	if res.code != exitCouldNotVerify {
-		t.Errorf("exit %d, want %d", res.code, exitCouldNotVerify)
+	if res.code != exitUsage {
+		t.Errorf("exit %d, want %d", res.code, exitUsage)
 	}
 	if !strings.Contains(res.stdout, "USAGE") {
 		t.Errorf("no usage text:\n%s", res.stdout)
@@ -249,7 +249,7 @@ func TestNoArgumentsShowsUsageAndExitsTwo(t *testing.T) {
 
 func TestForwardsArgvAndExitCode(t *testing.T) {
 	_, launcher := install(t, true)
-	for _, code := range []int{0, 1, 2, 5} {
+	for _, code := range []int{0, 1, 2, 5, 10, 11, 12, 13, 14, 15, 16} {
 		res := runLauncher(t, launcher, sampleArgs, runOptions{env: []string{fmt.Sprintf("FILEDO_STUB_EXIT=%d", code)}})
 		if res.code != code {
 			t.Errorf("filedo.exe exited %d, the launcher %d\n%s", code, res.code, res.stderr)
@@ -280,8 +280,8 @@ func TestUsageErrorExitsTwoWithoutRunningMain(t *testing.T) {
 	_, launcher := install(t, true)
 	for _, args := range badArgs {
 		res := runLauncher(t, launcher, args, runOptions{})
-		if res.code != exitCouldNotVerify {
-			t.Errorf("%q: exit %d, want %d", args, res.code, exitCouldNotVerify)
+		if res.code != exitUsage {
+			t.Errorf("%q: exit %d, want %d", args, res.code, exitUsage)
 		}
 		if !strings.Contains(res.stderr, "Error:") {
 			t.Errorf("%q: no error message on stderr:\n%s", args, res.stderr)

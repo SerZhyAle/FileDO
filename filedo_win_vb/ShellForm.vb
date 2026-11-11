@@ -7,9 +7,15 @@
 Public Class ShellForm
     Inherits Form
 
-    ' ICON-RENDER's Windows target size. The value is in design pixels and is passed through
-    ' Ui.Px at every layout site, so it scales with the rest of the window at higher DPI.
-    Friend Const RailTargetHeight As Integer = 44
+    ' The rail's one-line row: the ordinary navigation row of the shared token resolver, 32 for the
+    ' pointer profile (SETTINGS-NAVIGATION 2.0 section 2.5, SP-0169 decision D4; it was ICON-RENDER's
+    ' 44). The value is in design pixels and is passed through Ui.Px at every layout site, so it
+    ' scales with the rest of the window at higher DPI.
+    Friend Shared ReadOnly Property RailTargetHeight As Integer
+        Get
+            Return UiTokens.NavRow()
+        End Get
+    End Property
 
     ' The rail's column, in design pixels (it was 268). The labels wrap inside it and a row grows to
     ' hold them (APP-BEHAVIOUR rule 2), so a narrower rail costs height, not text - but a single word
@@ -23,6 +29,22 @@ Public Class ShellForm
     ' fact, so the real minimum is WindowPlacement.MinimumFor, never more than the working area.
     Friend Const MinDesignWidth As Integer = 760
     Friend Const MinDesignHeight As Integer = 520
+
+    ' The narrow-layout breakpoint (SETTINGS-NAVIGATION 2.0 section 2.6, SP-0169 decision D2): below a
+    ' client width of the rail plus this much content, the two panes no longer fit side by side
+    ' without squeezing the page, so the rail becomes a navigation view of its own - the same rows,
+    ' opened by the Pages button above the header and left by choosing a row or Escape, which brings
+    ' back the page as it was. The design minimum (760 outer) never reaches it; a screen whose working
+    ' area is narrower than that at its scaling does (WindowPlacement.MinimumFor).
+    Friend Const NarrowContentWidth As Integer = 480
+
+    ' The Pages button's picture: nav.menu, a proposed ICON-SET meaning ("open the list of this
+    ' window's pages") not vendored yet, so a Segoe stand-in under that id (ICON-EXTERNAL rule 5).
+    Friend Shared ReadOnly PagesGlyph As GlyphRef = GlyphRef.Waiting("nav.menu", &HE700, "GlobalNavigationButton")
+
+    Private pagesBtn As GlyphButton
+    Private narrowLayout As Boolean = False
+    Private navigationOpen As Boolean = False
 
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly entries As New List(Of RailEntry)
@@ -65,6 +87,7 @@ Public Class ShellForm
     ' Closing while a run is active (APP-BEHAVIOUR rule 3, SP-0006 section 14): the user chose Stop
     ' and close, the stop file is written, and the window closes itself when the run has ended.
     Private closeWhenIdle As Boolean = False
+    Private leftoverOfferPending As Boolean = False
     Private stopAskedAt As DateTime = DateTime.MinValue
 
     Public Sub New()
@@ -139,6 +162,40 @@ Public Class ShellForm
             diskStart.AutoRun = False
             jobView.RunFromShell()
         End If
+        If leftoverOfferPending Then
+            leftoverOfferPending = False
+            OfferLeftoverCleanup()
+        End If
+    End Sub
+
+    ' The start the user made asks, once, about test files an earlier run left behind (SP-0194). Only
+    ' the program's own plain start sets it: a window opened for a file, a self-test or a capture
+    ' never meets a question about the temp folder.
+    Friend Property OffersLeftoverCleanup As Boolean
+        Get
+            Return leftoverOfferPending
+        End Get
+        Set(value As Boolean)
+            leftoverOfferPending = value
+        End Set
+    End Property
+
+    ' The temp folder is read from a worker, so a slow or offline TEMP never holds up the window. The
+    ' answer is a page, not a deletion: Review and delete opens Clean on the system drive, which is
+    ' the redirect folder, with its plan card, and Run there still asks its own question. Keep them,
+    ' Escape and the close box change nothing.
+    Private Async Sub OfferLeftoverCleanup()
+        Dim found As Boolean
+        Try
+            found = Await System.Threading.Tasks.Task.Run(Function() TargetPath.HasOperationsFiles())
+        Catch ex As Exception
+            ShellLog.Write("look for leftover test files", ex)
+            Return
+        End Try
+        If Not found OrElse IsDisposed OrElse Not Visible OrElse JobViewRunning() Then Return
+        Dim pick = ShellDialog.Ask(Me, DestructiveDialogs.LeftoverTestFiles(dict, TargetPath.OperationsFolder()))
+        ShellLog.Info("leftover test files: " & If(pick = 0, "opened Clean", "kept"))
+        If pick = 0 Then OpenCleanOn(TargetPath.SystemDriveToken())
     End Sub
 
     ' For SelfTest.vb: the page a start opened.
@@ -248,23 +305,35 @@ Public Class ShellForm
         rightSide = New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .ColumnCount = 1,
-            .RowCount = 2,
+            .RowCount = 3,
             .Margin = New Padding(0),
             .Padding = New Padding(0)
         }
         rightSide.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        rightSide.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         rightSide.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         rightSide.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
 
         BuildHeader()
         BuildPageHost()
 
-        rightSide.Controls.Add(header, 0, 0)
-        rightSide.Controls.Add(pageHost, 0, 1)
+        ' A narrow window shows the page list as a view of its own (UpdateNarrowLayout); the button that
+        ' opens it stands above the header and takes no height while the rail is on screen.
+        pagesBtn = Ui.GlyphCommandButton(L("shell_btn_pages"), PagesGlyph, Ui.PxPad(Me, 24, 12, 0, 0))
+        pagesBtn.Name = "shell:pages"
+        pagesBtn.Anchor = AnchorStyles.Left Or AnchorStyles.Top
+        pagesBtn.Visible = False
+        AddHandler pagesBtn.Click, Sub() OpenNavigation()
+        tips.SetToolTip(pagesBtn, L("shell_btn_pages_tip"))
+
+        rightSide.Controls.Add(pagesBtn, 0, 0)
+        rightSide.Controls.Add(header, 0, 1)
+        rightSide.Controls.Add(pageHost, 0, 2)
 
         root.Controls.Add(railHost, 0, 0)
         root.Controls.Add(rightSide, 1, 0)
         Controls.Add(root)
+        AddHandler root.SizeChanged, Sub() UpdateNarrowLayout(root.ClientSize.Width)
 
         ResumeLayout(True)
         LayoutRail()
@@ -334,7 +403,7 @@ Public Class ShellForm
         ' the system caption, so the corner is the trailing end of this row, and nothing that was in
         ' it moves - the title stack keeps the first column and only gives up the width of the button.
         helpBtn = Help.NewButton()
-        AddHandler helpBtn.Click, Sub() OpenHelp()
+        AddHandler helpBtn.Click, Sub() Help.Open(Me, Help.ShellSurfaceId(CurrentRailKey()))
         tips.SetToolTip(helpBtn, Help.ButtonTip())
 
         headerRow = New TableLayoutPanel With {
@@ -363,6 +432,10 @@ Public Class ShellForm
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If keyData = Keys.F1 Then
             OpenHelp()
+            Return True
+        End If
+        If keyData = Keys.Escape AndAlso navigationOpen Then
+            CloseNavigation()
             Return True
         End If
         If keyData = Keys.Escape AndAlso settingsView IsNot Nothing AndAlso settingsView.Visible Then
@@ -461,7 +534,7 @@ Public Class ShellForm
                 currentGroupKey = Nothing
                 AddEntry(row.Key, row.Glyph, row.Hue, block Mod 2)
             Else
-                AddEntry(row.Key, row.Glyph, "", block Mod 2, row.IsChild)
+                AddEntry(row.Key, row.Glyph, row.Hue, block Mod 2, row.IsChild)
             End If
         Next
     End Sub
@@ -675,6 +748,90 @@ Public Class ShellForm
         End Try
     End Sub
 
+    ' ---- the narrow layout (SETTINGS-NAVIGATION 2.0 section 2.6) ------------
+
+    ' Enters or leaves the narrow layout when the client width crosses the breakpoint. Entering shows
+    ' the page on screen, not the list; leaving shows both panes again, whatever was open.
+    Private Sub UpdateNarrowLayout(clientWidth As Integer)
+        If root Is Nothing OrElse clientWidth <= 0 Then Return
+        Dim isNarrow = clientWidth < Ui.Px(Me, RailWidth + NarrowContentWidth)
+        If isNarrow = narrowLayout Then Return
+        narrowLayout = isNarrow
+        navigationOpen = False
+        ApplyNavigationLayout()
+    End Sub
+
+    ' The Pages button: the rail takes the whole client area, on the row of the page on screen.
+    Private Sub OpenNavigation()
+        If Not narrowLayout OrElse navigationOpen Then Return
+        navigationOpen = True
+        ApplyNavigationLayout()
+        Dim current = entries.FirstOrDefault(Function(e) e.Selected AndAlso e.Visible)
+        If current IsNot Nothing Then
+            current.Focus()
+        ElseIf rail.Controls.Count > 0 Then
+            rail.Controls(0).Focus()
+        End If
+    End Sub
+
+    ' A chosen row or Escape: the page comes back as it was left, with the Pages button focused.
+    Private Sub CloseNavigation()
+        If Not navigationOpen Then Return
+        navigationOpen = False
+        ApplyNavigationLayout()
+        pagesBtn.Focus()
+    End Sub
+
+    ' One layout pass for the state: both panes (wide), the list alone, or the page alone (narrow).
+    ' Nothing is rebuilt - the page keeps its values, its run and its scroll position.
+    Private Sub ApplyNavigationLayout()
+        root.SuspendLayout()
+        Try
+            Dim railColumn = root.ColumnStyles(0)
+            Dim pageColumn = root.ColumnStyles(1)
+            If Not narrowLayout Then
+                railColumn.SizeType = SizeType.Absolute
+                railColumn.Width = Ui.Px(Me, RailWidth)
+                pageColumn.SizeType = SizeType.Percent
+                pageColumn.Width = 100.0F
+            ElseIf navigationOpen Then
+                railColumn.SizeType = SizeType.Percent
+                railColumn.Width = 100.0F
+                pageColumn.SizeType = SizeType.Absolute
+                pageColumn.Width = 0
+            Else
+                railColumn.SizeType = SizeType.Absolute
+                railColumn.Width = 0
+                pageColumn.SizeType = SizeType.Percent
+                pageColumn.Width = 100.0F
+            End If
+            railHost.Visible = Not narrowLayout OrElse navigationOpen
+            rightSide.Visible = Not narrowLayout OrElse Not navigationOpen
+            pagesBtn.Visible = narrowLayout AndAlso Not navigationOpen
+        Finally
+            root.ResumeLayout(True)
+        End Try
+        LayoutRail()
+    End Sub
+
+    ' For SelfTest.vb: the layout a client width gives, and the state of the two panes.
+    Friend Sub SetClientWidthForTest(clientWidth As Integer)
+        UpdateNarrowLayout(clientWidth)
+    End Sub
+
+    Friend Sub OpenNavigationForTest()
+        OpenNavigation()
+    End Sub
+
+    Friend ReadOnly Property NarrowStateForTest As String
+        Get
+            Dim railColumn = root.ColumnStyles(0)
+            Return If(narrowLayout, "narrow", "wide") & "/" & If(navigationOpen, "list", "page") & "/rail " &
+                   railColumn.SizeType.ToString() & " " & CInt(railColumn.Width).ToString() & "/pages " &
+                   If(narrowLayout AndAlso Not navigationOpen, "shown", "hidden")
+        End Get
+    End Property
+
     ' Every row as wide as the rail and as tall as its label needs: one unit, or more where the label
     ' wraps (APP-BEHAVIOUR rule 2).
     Private Sub LayoutRail()
@@ -801,6 +958,9 @@ Public Class ShellForm
             AppHost.OpenDiskManager()
             Return
         End If
+
+        ' In the narrow layout a chosen row also leaves the page list for the page it opens.
+        CloseNavigation()
 
         ' A job is running on the job page. Another job's row would reset that page - hiding its run
         ' strip and its Stop button while the run carries on - so it is refused: the running job's
@@ -1074,6 +1234,7 @@ Public Class ShellForm
         ThemeRailScrollBar()
 
         rightSide.BackColor = p.Background
+        pagesBtn.Font = Theme.FontBody()
         header.BackColor = p.Background
         headerRow.BackColor = p.Background
         pageHost.BackColor = p.Surface

@@ -11,8 +11,9 @@ tree are named under "Supporting files" below.
 
 | Page | What it is |
 | --- | --- |
-| [`index.html`](index.html) | Product landing page. Switches language at runtime from `sza-lang`. Its download buttons resolve from the `releases/latest` API by asset-name suffix (`-setup.exe`, `-windows-x64.zip`, `-windows-x64.msi`), so a release needs no edit here - see `RELEASE.md`. |
+| [`index.html`](index.html) | Product landing page (English, primary locale). Forwards to [`ru/`](ru/index.html) or [`uk/`](uk/index.html) when a stored `sza-lang` or query parameter names that locale. Its download buttons resolve from the `releases/latest` API by asset-name suffix (`-setup.exe`, `-windows-x64.zip`, `-windows-x64.msi`), so a release needs no edit here - see `RELEASE.md`. |
 | [`guides/index.html`](guides/index.html) | Guide hub - the safe starting point chooser. |
+| [`guides/quick-start.html`](guides/quick-start.html) | Quick-start matrix - maps common tasks to the exact GUI page and CLI command (`filedo -?`), grouped into read-only checks, temporary test files/copies/containers, and destructive operations. |
 | [`guides/check-storage.html`](guides/check-storage.html) | Verifying real capacity and speed of a drive. |
 | [`guides/files-and-copies.html`](guides/files-and-copies.html) | Duplicates, copies and folder differences. |
 | [`guides/erase.html`](guides/erase.html) | Erasing: what a file wipe, a folder wipe, a free-space wipe and a plain delete each do, the typed `WIPE` confirmation and what `--yes` skips, what is refused, and what a wipe cannot promise on an SSD. It is the guide behind the `erase` pillar of `packaging/positioning-source.json`. |
@@ -38,9 +39,7 @@ share images `social-card.png` (1200x630) and `social-preview.png` (1280x640) ar
 the IndexNow key file `ac596e568e538e6f5b1d5a60660ae226.txt` (its name is the key; keep it),
 [`kit/sza-kit.css`](kit/sza-kit.css), `_config.yml`, `.nojekyll`.
 
-`ru/`, `ua/`, `de/` and `fr/` hold **redirect stubs only**. Each sets `sza-lang` and bounces to the site
-root, which is where the translated text actually lives - so they carry a canonical link to the root and
-are deliberately absent from `sitemap.xml`.
+`ru/` ([`ru/index.html`](ru/index.html)) and `uk/` ([`uk/index.html`](uk/index.html)) hold **standalone landing pages** in Russian and Ukrainian (`PAGE-STYLE` 3.9, SP-0199), each with its own canonical link, localized Open Graph/JSON-LD metadata, and `hreflang` cluster, and both are listed in `sitemap.xml`. `ua/` ([`ua/index.html`](ua/index.html)) is a **redirect stub** that sets `sza-lang` to `ua` and forwards to `../uk/`. `de/` and `fr/` are **standalone pages** (SP-0154): the landing, the privacy page and the guides in German and French, each with its own canonical link and listed in `sitemap.xml`.
 
 ## Not part of the site
 

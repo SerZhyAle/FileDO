@@ -101,7 +101,7 @@ Friend Module DiskShortcuts
         If (chord And Keys.Alt) <> 0 Then parts.Add("Alt")
         Dim k = chord And Keys.KeyCode
         Select Case k
-            Case Keys.Delete : parts.Add("Del")
+            Case Keys.Delete : parts.Add("Delete")
             Case Keys.Escape : parts.Add("Esc")
             Case Keys.Return : parts.Add("Enter")
             Case Keys.Apps : parts.Add("Menu")

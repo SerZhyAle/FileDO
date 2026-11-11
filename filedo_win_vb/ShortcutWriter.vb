@@ -264,7 +264,7 @@ Friend Class ShortcutDialog
         nameBox = New TextBox With {.Text = ShortcutWriter.DefaultName(args), .Width = Ui.Px(Me, 440),
             .AccessibleName = L("shortcut_name")}
         root.Controls.Add(nameBox)
-        pauseBox = New CheckBox With {.Text = L("shortcut_pause"), .Checked = True,
+        pauseBox = New BooleanOption With {.Text = L("shortcut_pause"), .Checked = True,
             .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 12, 0, 8)}
         root.Controls.Add(pauseBox)
         preview = New Label With {.AutoSize = True, .MaximumSize = New Size(Ui.Px(Me, 500), 0)}

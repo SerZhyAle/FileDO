@@ -79,7 +79,7 @@ func (p capacityPlan) Target() int64 { return int64(p.Files) * p.FileSize }
 func planCapacityTest(free int64, maxFiles int, v volumeFacts) (capacityPlan, error) {
 	var p capacityPlan
 	if maxFiles < 1 {
-		return p, fmt.Errorf("the number of test files must be at least 1, got %d", maxFiles)
+		return p, exitClassf(10, "the number of test files must be at least 1, got %d", maxFiles)
 	}
 	budget := free / 100 * 95
 	if v.SystemVolume {
@@ -92,11 +92,17 @@ func planCapacityTest(free int64, maxFiles int, v volumeFacts) (capacityPlan, er
 			gbOf(p.Reserve), gbOf(maxInt64(budget, 0))))
 	}
 	if budget < capacityMinTestBytes {
-		if v.SystemVolume {
-			return p, fmt.Errorf("insufficient free space: at least 100 MB beyond the %.1f GB kept free on the system volume is required, but only %d MB is free",
-				gbOf(p.Reserve), free/capMiB)
+		numbers := map[string]interface{}{
+			"requiredBytes":  int64(capacityMinTestBytes),
+			"availableBytes": maxInt64(budget, 0),
+			"freeBytes":      free,
+			"reserveBytes":   p.Reserve,
 		}
-		return p, fmt.Errorf("insufficient free space: at least 100 MB required, but only %d MB available", free/capMiB)
+		if v.SystemVolume {
+			return p, withReason(exitClassf(13, "insufficient free space: at least 100 MB beyond the %.1f GB kept free on the system volume is required, but only %d MB is free",
+				gbOf(p.Reserve), free/capMiB), reasonTestInsufficientSpace, numbers)
+		}
+		return p, withReason(exitClassf(13, "insufficient free space: at least 100 MB required, but only %d MB available", free/capMiB), reasonTestInsufficientSpace, numbers)
 	}
 	p.Budget = budget
 
@@ -163,8 +169,12 @@ func planFill(free int64, sizeMB int, v volumeFacts) (fillPlan, error) {
 	}
 	p.MaxFiles = (free - p.Reserve) / p.FileSize
 	if p.MaxFiles <= 0 {
-		return p, fmt.Errorf("insufficient space to create even one file of %d MB (%.2f GB free, %.2f GB kept free)",
-			p.FileSize/capMiB, gbOf(free), gbOf(p.Reserve))
+		return p, withReason(exitClassf(13, "insufficient space to create even one file of %d MB (%.2f GB free, %.2f GB kept free)",
+			p.FileSize/capMiB, gbOf(free), gbOf(p.Reserve)), reasonFillInsufficientSpace, map[string]interface{}{
+			"fileBytes":    p.FileSize,
+			"freeBytes":    free,
+			"reserveBytes": p.Reserve,
+		})
 	}
 	if fsNeedsSubdir(v.FileSystem) {
 		p.SubDir = fatSubdirName

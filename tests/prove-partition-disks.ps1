@@ -35,6 +35,17 @@ $sectorList = @($Sectors -split '[,\s]+' | Where-Object { $_ } | ForEach-Object 
 
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
+
+# CHECK-VERDICT 0.14 item A: the run ends in one test verdict line, with no timestamp before the subject.
+function Verdict([int]$code, [string]$why = '') {
+  $ran = if ($results) { $results.Count } else { 0 }
+  $failedN = if ($results) { @($results | Where-Object { -not $_.Pass }).Count } else { 0 }
+  $word = switch ($code) { 0 { 'PASS' } 1 { 'FAIL' } default { 'COULD NOT VERIFY' } }
+  $line = "partition-disks: $word (run=$ran skipped=0$(if ($code -eq 1) { " failed=$failedN" })$(if ($code -eq 2 -and $why) { ", $why" }))"
+  Write-Host $line
+  if ($log) { Add-Content $log $line -ErrorAction SilentlyContinue }
+  exit $code
+}
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) {
   # One consent prompt: the same script, elevated, in a window of its own; its exit code is this one's.
@@ -44,7 +55,7 @@ if (-not $admin) {
   $p = Start-Process -FilePath $pwsh -ArgumentList $a -Verb RunAs -PassThru -Wait
   exit $p.ExitCode
 }
-if (-not (Get-Command New-VHD -ErrorAction SilentlyContinue)) { Write-Host 'New-VHD (the Hyper-V module) is needed to make the disposable disks.'; exit 2 }
+if (-not (Get-Command New-VHD -ErrorAction SilentlyContinue)) { Write-Host 'New-VHD (the Hyper-V module) is needed to make the disposable disks.'; Verdict 2 'no Hyper-V module' }
 
 $run = 'partdisks-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
 $out = Join-Path $root "temp\evidence\$run"
@@ -140,7 +151,7 @@ try {
   $old = $env:GOARCH; $env:GOARCH = 'amd64'
   & go build -o $exe ./cmd/filedo 2>&1 | Tee-Object -Append $log
   $env:GOARCH = $old
-  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $exe)) { Say 'build failed'; exit 2 }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $exe)) { Verdict 2 'the build failed' }
 } finally { Pop-Location }
 Say "built $exe"
 
@@ -287,8 +298,7 @@ try {
 }
 
 $failed = @($results | Where-Object { -not $_.Pass })
-if ($results.Count -eq 0) { Say 'COULD NOT VERIFY: no step ran'; exit 2 }
+if ($results.Count -eq 0) { Verdict 2 'no step ran' }
 $results | Format-Table -AutoSize | Out-String | Tee-Object -Append $log | Write-Host
-if ($failed.Count) { Say "FAIL: $($failed.Count) of $($results.Count) steps"; exit 1 }
-Say "PASS: $($results.Count) steps"
-exit 0
+if ($failed.Count) { Verdict 1 }
+Verdict 0

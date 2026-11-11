@@ -42,8 +42,8 @@ func TestCopyIntoOwnSubfolderThroughAShareRefused(t *testing.T) {
 		{"folder", shareSrc, "copy", filepath.Join(src, "backup")},
 	} {
 		out, code := run(t, wd, args...)
-		if code != 2 {
-			t.Errorf("%v exited %d, want 2 (a copy into itself under another spelling)\n%s", args, code, out)
+		if code != 10 {
+			t.Errorf("%v exited %d, want 10 (a copy into itself under another spelling)\n%s", args, code, out)
 		}
 		if exists(filepath.Join(src, "backup")) || exists(filepath.Join(src, "sub", "deeper")) {
 			t.Fatalf("%v created a folder inside the source", args)
@@ -62,8 +62,8 @@ func TestCompareDeleteNestedThroughAShareRefused(t *testing.T) {
 		{"cmp", shareSub, x, "del", "target", "--yes"},
 	} {
 		out, code := run(t, wd, args...)
-		if code != 2 {
-			t.Errorf("%v exited %d, want 2 (CHK-01 under another spelling)\n%s", args, code, out)
+		if code != 10 {
+			t.Errorf("%v exited %d, want 10 (CHK-01 under another spelling)\n%s", args, code, out)
 		}
 		assertTreeIntact(t, x)
 	}

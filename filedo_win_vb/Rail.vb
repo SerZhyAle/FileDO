@@ -47,7 +47,8 @@
 '
 '   - A group header carries the vocabulary's glyph of what the group is about, in the colour look of
 '     ICON-RENDER section 10 (Hue names the FileDO tone in Theme.vb), and the chevron moves to the
-'     right edge. Its rows keep the mono look: they are actions, and the header says the kind.
+'     right edge. Its rows draw in the same hue (SETTINGS-NAVIGATION 2.0 section 2.3, SP-0169 D3: one
+'     glyph treatment for the whole rail, identity-coloured; colour by level is forbidden).
 '   - A group with one job is no group: the job stands in the rail by itself (RailRow.Alone), in the
 '     hue the group would have had, and a section with one row has no header to fold.
 '   - The rail is a checker of bands: each block (a header with its rows, or a lone job) is one
@@ -58,8 +59,8 @@ Public Class RailRow
     Public ReadOnly Glyph As GlyphRef
     Public ReadOnly IsGroup As Boolean
 
-    ' The Theme.GroupTone key the row's glyph is drawn in - a header's, or a lone job's. Empty for a
-    ' row inside a group, which draws in the text colour.
+    ' The Theme.GroupTone key the row's glyph is drawn in - a header's, a lone job's, or, for a row
+    ' inside a group, its group's (InheritGroupInk).
     Public ReadOnly Hue As String
 
     ' A job that stands at the level of the headers because its group would have held only it.
@@ -97,10 +98,14 @@ Public Class RailRow
     ' meaning, as the list does (D8: no new catalog record).
     Public Const DiskManagerKey As String = "rail_job_vd_manager"
 
+    ' The Protect group's Backup and Restore rows (SP-0198) draw the catalog's action.archive and its
+    ' reverse, action.unarchive - drawn by FileDO to the catalog's style and proposed under ICON-SET
+    ' section 15 (assets\sync-icon-glyphs.ps1, provisional ids).
+    '
     ' Every row leads somewhere today. A row for a job that is still being written is not listed as
     ' "coming later": a rail is navigation, not a roadmap, and a row that answers nothing when it
     ' is clicked costs the reader more than the announcement is worth.
-    Public Shared ReadOnly All As RailRow() = {
+    Public Shared ReadOnly All As RailRow() = InheritGroupInk({
         RailRow.Group("rail_group_check", GlyphRef.Vocabulary("action.verify"), "program.check"),
         RailRow.Job("rail_job_capacity", GlyphRef.Vocabulary("feature.capacity-test")),
         RailRow.Job("rail_job_speed", GlyphRef.Vocabulary("feature.speed-test")),
@@ -120,6 +125,8 @@ Public Class RailRow
         RailRow.Job("rail_job_secure", GlyphRef.Vocabulary("action.secure")),
         RailRow.Job("rail_job_unsecure", GlyphRef.Vocabulary("action.unsecure")),
         RailRow.Job("rail_job_reveal", GlyphRef.Vocabulary("nav.open-external")),
+        RailRow.Job("rail_job_backup", GlyphRef.Vocabulary("action.archive")),
+        RailRow.Job("rail_job_restore", GlyphRef.Vocabulary("action.unarchive")),
         RailRow.Group("rail_group_disks", GlyphRef.Vocabulary("system.storage"), "program.disks"),
         RailRow.Job(DiskManagerKey, DiskGlyphs.DiskContainer),
         RailRow.Job("rail_job_vd_list", DiskGlyphs.DiskContainer),
@@ -143,7 +150,27 @@ Public Class RailRow
         RailRow.Alone("rail_job_command", GlyphRef.Vocabulary("app.command-line"), "program.command"),
         RailRow.Alone("rail_job_settings", GlyphRef.Vocabulary("app.settings"), "program.app"),
         RailRow.Alone("rail_job_about", GlyphRef.Vocabulary("app.info"), "program.app")
-    }
+    })
+
+    ' One glyph treatment for the whole rail (SETTINGS-NAVIGATION 2.0 section 2.3, SP-0169 decision D3):
+    ' identity-coloured, so a row inside a group draws in its group's hue instead of the text colour.
+    ' The table names a hue once per group; this hands it to the group's rows.
+    Private Shared Function InheritGroupInk(rows As RailRow()) As RailRow()
+        Dim groupHue = ""
+        Dim result As New List(Of RailRow)(rows.Length)
+        For Each r In rows
+            If r.IsGroup Then
+                groupHue = r.Hue
+                result.Add(r)
+            ElseIf r.IsAlone Then
+                groupHue = ""
+                result.Add(r)
+            Else
+                result.Add(New RailRow(r.Key, r.Glyph, False, groupHue, False))
+            End If
+        Next
+        Return result.ToArray()
+    End Function
 End Class
 
 ' One row of the rail. A group header is a RailEntry too, drawn differently - and, since the groups
@@ -163,7 +190,8 @@ Public Class RailEntry
     ' bar and the selection fill stay on the row's own left edge.
     Public Property IsChild As Boolean = False
 
-    ' The Theme.GroupTone key the glyph is drawn in (the colour look), or "" for the text colour.
+    ' The Theme.GroupTone key the glyph is drawn in (the colour look), or "" for the text colour (a row
+    ' built outside RailRow.All, such as a self-test fixture).
     Public Property Hue As String = ""
 
     ' Which of the rail's two bands the row sits on: 0 the rail's own surface, 1 the step beside it.
@@ -174,7 +202,7 @@ Public Class RailEntry
     ' The height of a one-line row at the current DPI (ShellForm.RailTargetHeight through Ui.Px).
     ' The glyph column and the label's left edge are measured from it rather than from Height, so a
     ' row that has grown to hold a wrapped label keeps its glyph where every other row has it.
-    Public Property RowUnit As Integer = 44
+    Public Property RowUnit As Integer = 32
 
     ' The verb of the row's default action, in the window's language ("Open", "Expand").
     Public Property DefaultActionText As String = ""
@@ -210,17 +238,25 @@ Public Class RailEntry
         Return f
     End Function
 
-    ' The font a label is drawn in. A row is measured in its bold face whether or not it is
-    ' selected, so choosing a row never makes it grow a line. A header is always the bold caption:
-    ' it names a kind of job and has to stay a heading among the rows it holds.
+    ' The font a label is drawn in. A row is drawn in the one body face whether or not it is
+    ' selected - the accent bar and the fill say which row is chosen - so choosing a row never makes
+    ' it grow a line, and a row is exactly as tall as the label it shows. A header is always the bold
+    ' caption: it names a kind of job and has to stay a heading among the rows it holds. The
+    ' `selected` face (bold body) stays for the callers that ask for it by name.
     Friend Shared Function LabelFont(isHeader As Boolean, selected As Boolean, dpi As Integer) As Font
         Dim f = FontsFor(dpi)
         If isHeader Then Return f.Caption
         Return If(selected, f.Strong, f.Body)
     End Function
 
+    ' The face a row is measured in is the face it is drawn in (RailLabelFont), so a row never
+    ' reserves height for a wrap that its painted label does not make.
     Friend Shared Function MeasureFont(isHeader As Boolean, dpi As Integer) As Font
-        Return LabelFont(isHeader, True, dpi)
+        Return RailLabelFont(isHeader, dpi)
+    End Function
+
+    Friend Shared Function RailLabelFont(isHeader As Boolean, dpi As Integer) As Font
+        Return LabelFont(isHeader, False, dpi)
     End Function
 
     Private Const LabelFlags As TextFormatFlags =
@@ -281,39 +317,47 @@ Public Class RailEntry
         ' A header's icon sits in the column a lone job's glyph has, so its label starts where that
         ' one does; a row of a group starts one indent further in. The chevron takes the right edge,
         ' which the header's label keeps clear of.
-        Dim left = CInt(RowUnit * 0.2) + CInt(RowUnit * 1.1) + ChildIndent()
-        Dim right = If(IsGroupHeader, ChevronColumn(), 4)
+        Dim left = RowPx(UiTokens.Scaled(GlyphInset)) + GlyphPixels() + RowPx(UiTokens.GlyphGap()) + ChildIndent()
+        Dim right = If(IsGroupHeader, ChevronColumn(), RowPx(UiTokens.Scaled(4)))
         Return New Rectangle(left, 0, Math.Max(1, width - left - right), height)
     End Function
 
-    ' How far a row of a group stands in from the header's columns: a quarter of a rail unit, 11 px
-    ' at 100 %, scaled with the row. The glyph and the label move together, so the gap between them
-    ' is the same on every row.
-    Friend Const ChildIndentUnits As Double = 0.25
+    ' SETTINGS-NAVIGATION 2.0 section 2.5 (SP-0169 decision D4): the rail's geometry is the shared
+    ' tokens - a 32 row (RowUnit at this DPI), a 16 glyph, 8 from glyph to caption - read from UiTokens
+    ' (so they carry the interface scale) and turned into device pixels by the ratio the row itself
+    ' was scaled by, so a row on a display at another scaling keeps its proportions.
+    Private Function RowPx(designPixels As Integer) As Integer
+        Return Math.Max(1, CInt(Math.Round(RowUnit * designPixels / CDbl(ShellForm.RailTargetHeight))))
+    End Function
+
+    ' The glyph column's distance from the row's start edge, clear of the accent bar.
+    Private Const GlyphInset As Integer = 12
+
+    ' How far a row of a group stands in from the header's columns: one shared spacing token, 12
+    ' (section 2.4: 8 or 12). The glyph and the label move together, so the gap between them is the
+    ' same on every row.
+    Friend Const ChildIndentDesign As Integer = 12
 
     Friend Function ChildIndent() As Integer
-        Return If(IsChild, CInt(RowUnit * ChildIndentUnits), 0)
+        Return If(IsChild, RowPx(UiTokens.Scaled(ChildIndentDesign)), 0)
     End Function
 
-    ' The width the chevron of a header takes at the right edge: its glyph and a margin each side.
+    ' The width the chevron of a header takes at the right edge: its glyph and a gap each side.
     Private Function ChevronColumn() As Integer
-        Return GlyphPixels() + CInt(RowUnit * 0.4)
+        Return GlyphPixels() + 2 * RowPx(UiTokens.GlyphGap())
     End Function
 
-    ' The glyph tier of a rail row and of a group's chevron: 20, the dense-row tier of ICON-RENDER
-    ' rule 5 (section 10 item E), in the same units as RowUnit - so a 44 px target holds a 20 px
-    ' glyph at every DPI.
-    Friend Const GlyphTier As Integer = 20
-
+    ' The glyph tier of a rail row and of a group's chevron: the navigation glyph token (16 pointer),
+    ' in the same units as RowUnit - so a 32 px target holds a 16 px glyph at every DPI.
     Private Function GlyphPixels() As Integer
-        Return Math.Max(8, CInt(Math.Round(RowUnit * GlyphTier / CDbl(ShellForm.RailTargetHeight))))
+        Return Math.Max(8, RowPx(UiTokens.NavGlyph()))
     End Function
 
     ' The square a glyph is drawn into: the row's glyph column (or the header's chevron column),
     ' centred on the row's height as the label is.
     Friend Function GlyphSquare(height As Integer) As Rectangle
         Dim px = GlyphPixels()
-        Return New Rectangle(CInt(RowUnit * 0.3) + ChildIndent(), Math.Max(0, (height - px) \ 2), px, px)
+        Return New Rectangle(RowPx(UiTokens.Scaled(GlyphInset)) + ChildIndent(), Math.Max(0, (height - px) \ 2), px, px)
     End Function
 
     ' A header's chevron: the same tier, in the column at the right edge.
@@ -324,7 +368,7 @@ Public Class RailEntry
 
     ' The vertical breathing room above and below a label that has wrapped.
     Private Function VerticalPad() As Integer
-        Return Math.Max(2, CInt(RowUnit * 0.18))
+        Return Math.Max(2, RowPx(UiTokens.Scaled(6)))
     End Function
 
     ' The height this row needs at this width: one rail unit, or more when the label wraps.
@@ -486,7 +530,7 @@ Public Class RailEntry
             Glyphs.Draw(g, Glyph, GlyphSquare(Height), Theme.GroupTone(Hue, p))
             Glyphs.Draw(g, Theme.ChevronGlyph(Collapsed), ChevronSquare(Width, Height), p.MutedText)
 
-            DrawLabel(g, p.Text, LabelFont(True, False, Ui.DpiFor(Me)))
+            DrawLabel(g, p.Text, RailLabelFont(True, Ui.DpiFor(Me)))
             DrawFocus(g, p)
             Return
         End If
@@ -517,7 +561,7 @@ Public Class RailEntry
             Glyphs.Draw(g, Glyph, GlyphSquare(Height), If(Hue <> "", Theme.GroupTone(Hue, p), p.Text))
         End If
 
-        DrawLabel(g, p.Text, LabelFont(False, Selected, Ui.DpiFor(Me)))
+        DrawLabel(g, p.Text, RailLabelFont(False, Ui.DpiFor(Me)))
         DrawFocus(g, p)
     End Sub
 

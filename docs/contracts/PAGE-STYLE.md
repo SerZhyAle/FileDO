@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PAGE-STYLE` |
-| **Version** | 3.1, read 2026-10-21 (SP-0170); implemented partial 3.1; kit e438fef2 vendored (SP-0171 W14), one kit defect worked around |
+| **Version** | 3.9, read 2026-11-11 (SP-0199); implemented partial 3.9 (standalone per-locale landing pages `docs/index.html`, `docs/ru/index.html`, `docs/uk/index.html`, `docs/de/index.html`, `docs/fr/index.html` with `docs/ua/index.html` as a forwarder stub to `uk/`); kit e438fef2 served, the kit re-vendor is SP-0169 S6 |
 | **Role** | consumer - `docs/kit/sza-kit.css` and site styling |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `PAGE-STYLE.md` |
 | **Owner** | sza.od.ua hub. Reference kit maintained in catalog |

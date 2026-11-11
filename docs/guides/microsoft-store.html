@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
@@ -26,11 +26,7 @@
         "name": "FileDO Microsoft Store build: what it can and cannot do",
         "description": "The Microsoft Store build of FileDO in one place: what it does, what it leaves out (mounting, Explorer entries), how it is signed and where to get it.",
         "url": "https://serzhyale.github.io/FileDO/guides/microsoft-store.html",
-        "inLanguage": [
-          "en",
-          "ru",
-          "uk"
-        ],
+        "inLanguage": ["en"],
         "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
         "isPartOf": {
           "@type": "WebSite",
@@ -63,7 +59,13 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
           if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
@@ -89,7 +91,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -106,58 +108,58 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
       >
     </header>
     <nav class="lang-row" aria-label="Languages"><a href="../de/guides/microsoft-store.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/microsoft-store.html" hreflang="fr" lang="fr">FR</a></nav>
     <main id="main" class="container">
       <section class="hero">
         <p class="kicker">
-          <span data-l="ru">Руководство · Microsoft Store</span><span data-l="en">Guide · Microsoft Store</span><span data-l="ua">Посібник · Microsoft Store</span>
+          <span data-l="en">Guide · Microsoft Store</span><span data-l="ru">Руководство · Microsoft Store</span><span data-l="ua">Посібник · Microsoft Store</span>
         </p>
         <h1>
-          <span data-l="ru">Пользуйтесь FileDO из Microsoft Store и знайте, чего в этой сборке нет.</span><span data-l="en">Use FileDO from the Microsoft Store, and know what that build cannot do.</span><span data-l="ua">Користуйтеся FileDO з Microsoft Store і знайте, чого в цій збірці немає.</span>
+          <span data-l="en">Use FileDO from the Microsoft Store, and know what that build cannot do.</span><span data-l="ru">Пользуйтесь FileDO из Microsoft Store и знайте, чего в этой сборке нет.</span><span data-l="ua">Користуйтеся FileDO з Microsoft Store і знайте, чого в цій збірці немає.</span>
         </h1>
         <p class="lead">
-          <span data-l="ru">Сборка из Microsoft Store - тот же FileDO, который устанавливает и обновляет Store: окно FileDO и команда <code>filedo</code>. Это упакованное приложение, а упакованное приложение не может ни настроить инициатор iSCSI в Windows, ни запросить права администратора, поэтому подключать виртуальные диски оно не умеет. Большинство ограничений описано и в руководстве по той возможности, которой они касаются; здесь они собраны в одном месте.</span><span data-l="en">The Microsoft Store build is the same FileDO, installed and updated by the Store: the FileDO window and the <code>filedo</code> command. It is a packaged app, and a packaged app can neither configure the iSCSI initiator of Windows nor ask for administrator rights, so it cannot mount virtual disks. Most of the limits are also stated in the guide of the function they touch; this page gathers them in one place.</span><span data-l="ua">Збірка з Microsoft Store - це той самий FileDO, який встановлює й оновлює Store: вікно FileDO і команда <code>filedo</code>. Це запакований застосунок, а запакований застосунок не може ні налаштувати ініціатор iSCSI у Windows, ні попросити права адміністратора, тому підключати віртуальні диски він не вміє. Більшість обмежень описано й у посібнику з тієї можливості, якої вони стосуються; тут їх зібрано в одному місці.</span>
+          <span data-l="en">The Microsoft Store build is the same FileDO, installed and updated by the Store: the FileDO window and the <code>filedo</code> command. It is a packaged app, and a packaged app can neither configure the iSCSI initiator of Windows nor ask for administrator rights, so it cannot mount virtual disks. Most of the limits are also stated in the guide of the function they touch; this page gathers them in one place.</span><span data-l="ru">Сборка из Microsoft Store - тот же FileDO, который устанавливает и обновляет Store: окно FileDO и команда <code>filedo</code>. Это упакованное приложение, а упакованное приложение не может ни настроить инициатор iSCSI в Windows, ни запросить права администратора, поэтому подключать виртуальные диски оно не умеет. Большинство ограничений описано и в руководстве по той возможности, которой они касаются; здесь они собраны в одном месте.</span><span data-l="ua">Збірка з Microsoft Store - це той самий FileDO, який встановлює й оновлює Store: вікно FileDO і команда <code>filedo</code>. Це запакований застосунок, а запакований застосунок не може ні налаштувати ініціатор iSCSI у Windows, ні попросити права адміністратора, тому підключати віртуальні диски він не вміє. Більшість обмежень описано й у посібнику з тієї можливості, якої вони стосуються; тут їх зібрано в одному місці.</span>
         </p>
       </section>
 
       <section class="section" id="get">
         <h2>
-          <span data-l="ru">1. Получить</span><span data-l="en">1. Get it</span><span data-l="ua">1. Отримати</span>
+          <span data-l="en">1. Get it</span><span data-l="ru">1. Получить</span><span data-l="ua">1. Отримати</span>
         </h2>
         <p class="intro">
-          <span data-l="ru">Установите FileDO со страницы в Microsoft Store: дальше пакет обновляет сам Store.</span><span data-l="en">Install FileDO from its Microsoft Store page; after that the Store keeps the package up to date.</span><span data-l="ua">Встановіть FileDO зі сторінки в Microsoft Store: далі пакет оновлює сам Store.</span>
+          <span data-l="en">Install FileDO from its Microsoft Store page; after that the Store keeps the package up to date.</span><span data-l="ru">Установите FileDO со страницы в Microsoft Store: дальше пакет обновляет сам Store.</span><span data-l="ua">Встановіть FileDO зі сторінки в Microsoft Store: далі пакет оновлює сам Store.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Microsoft Store</span><span data-l="en">Microsoft Store</span><span data-l="ua">Microsoft Store</span>
+              <span data-l="en">Microsoft Store</span><span data-l="ru">Microsoft Store</span><span data-l="ua">Microsoft Store</span>
             </h3>
             <p>
-              <span data-l="ru">Устанавливается и обновляется через Store, при сертификации подписывается Microsoft. Эта сборка не подключает виртуальные диски и не добавляет пунктов в меню Проводника; что ещё в ней отсутствует, перечислено в разделе 3.</span><span data-l="en">Installed and updated by the Store, and signed by Microsoft at certification. This build cannot mount virtual disks and has no Explorer menu entries; section 3 lists what else it leaves out.</span><span data-l="ua">Встановлюється й оновлюється через Store, під час сертифікації підписується Microsoft. Ця збірка не підключає віртуальні диски й не додає пунктів до меню Провідника; що ще в ній відсутнє, перелічено в розділі 3.</span>
+              <span data-l="en">Installed and updated by the Store, and signed by Microsoft at certification. This build cannot mount virtual disks and has no Explorer menu entries; section 3 lists what else it leaves out.</span><span data-l="ru">Устанавливается и обновляется через Store, при сертификации подписывается Microsoft. Эта сборка не подключает виртуальные диски и не добавляет пунктов в меню Проводника; что ещё в ней отсутствует, перечислено в разделе 3.</span><span data-l="ua">Встановлюється й оновлюється через Store, під час сертифікації підписується Microsoft. Ця збірка не підключає віртуальні диски й не додає пунктів до меню Провідника; що ще в ній відсутнє, перелічено в розділі 3.</span>
             </p>
             <p class="actions">
               <a class="btn btn-primary btn-sm" href="https://apps.microsoft.com/detail/9PH1LPCMRG83" target="_blank" rel="noopener"
-                ><span data-l="ru">Получить в Microsoft Store</span><span data-l="en">Get it from the Microsoft Store</span><span data-l="ua">Отримати в Microsoft Store</span></a
+                ><span data-l="en">Get it from the Microsoft Store</span><span data-l="ru">Получить в Microsoft Store</span><span data-l="ua">Отримати в Microsoft Store</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Setup EXE, MSI, ZIP и winget</span><span data-l="en">Setup EXE, MSI, ZIP and winget</span><span data-l="ua">Setup EXE, MSI, ZIP і winget</span>
+              <span data-l="en">Setup EXE, MSI, ZIP and winget</span><span data-l="ru">Setup EXE, MSI, ZIP и winget</span><span data-l="ua">Setup EXE, MSI, ZIP і winget</span>
             </h3>
             <p>
-              <span data-l="ru">Остальные сборки умеют подключать виртуальные диски. Setup EXE, MSI и ZIP с GitHub не подписаны цифровым сертификатом, поэтому при первом запуске Windows может выдать предупреждение.</span><span data-l="en">The other builds can mount virtual disks. The setup EXE, the MSI and the ZIP from GitHub are not code-signed, so Windows may warn you the first time you run them.</span><span data-l="ua">Решта збірок уміють підключати віртуальні диски. Setup EXE, MSI і ZIP з GitHub не підписані цифровим сертифікатом, тому під час першого запуску Windows може показати попередження.</span>
+              <span data-l="en">The other builds can mount virtual disks. The setup EXE, the MSI and the ZIP from GitHub are not code-signed, so Windows may warn you the first time you run them.</span><span data-l="ru">Остальные сборки умеют подключать виртуальные диски. Setup EXE, MSI и ZIP с GitHub не подписаны цифровым сертификатом, поэтому при первом запуске Windows может выдать предупреждение.</span><span data-l="ua">Решта збірок уміють підключати віртуальні диски. Setup EXE, MSI і ZIP з GitHub не підписані цифровим сертифікатом, тому під час першого запуску Windows може показати попередження.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="../#get"
-                ><span data-l="ru">Все способы установки</span><span data-l="en">All ways to install</span><span data-l="ua">Усі способи встановлення</span></a
+                ><span data-l="en">All ways to install</span><span data-l="ru">Все способы установки</span><span data-l="ua">Усі способи встановлення</span></a
               ><a class="btn btn-ghost btn-sm" href="install-trust.html"
-                ><span data-l="ru">Windows предупредила о FileDO</span><span data-l="en">Windows warned you about FileDO</span><span data-l="ua">Windows попередила про FileDO</span></a
+                ><span data-l="en">Windows warned you about FileDO</span><span data-l="ru">Windows предупредила о FileDO</span><span data-l="ua">Windows попередила про FileDO</span></a
               >
             </p>
           </article>
@@ -166,43 +168,43 @@
 
       <section class="section" id="same">
         <h2>
-          <span data-l="ru">2. Что вы получаете</span><span data-l="en">2. What you get</span><span data-l="ua">2. Що ви отримуєте</span>
+          <span data-l="en">2. What you get</span><span data-l="ru">2. Что вы получаете</span><span data-l="ua">2. Що ви отримуєте</span>
         </h2>
         <p class="intro">
-          <span data-l="ru">Один пакет, две точки входа: окно FileDO и команда <code>filedo</code>.</span><span data-l="en">One package, two entries: the FileDO window and the <code>filedo</code> command.</span><span data-l="ua">Один пакет, дві точки входу: вікно FileDO і команда <code>filedo</code>.</span>
+          <span data-l="en">One package, two entries: the FileDO window and the <code>filedo</code> command.</span><span data-l="ru">Один пакет, две точки входа: окно FileDO и команда <code>filedo</code>.</span><span data-l="ua">Один пакет, дві точки входу: вікно FileDO і команда <code>filedo</code>.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Окно FileDO</span><span data-l="en">The FileDO window</span><span data-l="ua">Вікно FileDO</span>
+              <span data-l="en">The FileDO window</span><span data-l="ru">Окно FileDO</span><span data-l="ua">Вікно FileDO</span>
             </h3>
             <p>
-              <span data-l="ru">Страница на каждую задачу и страница «Команда», которая собирает и запускает любую команду. Запускается из меню «Пуск».</span><span data-l="en">A page for each job, and a Command page that builds and runs any command. Start it from the Start menu.</span><span data-l="ua">Сторінка на кожне завдання і сторінка «Команда», яка збирає й запускає будь-яку команду. Запускається з меню «Пуск».</span>
+              <span data-l="en">A page for each job, and a <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command page that builds and runs any command. Start it from the Start menu.</span><span data-l="ru">Страница на каждую задачу и страница <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда», которая собирает и запускает любую команду. Запускается из меню «Пуск».</span><span data-l="ua">Сторінка на кожне завдання і сторінка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Команда», яка збирає й запускає будь-яку команду. Запускається з меню «Пуск».</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
-                ><span data-l="ru">Работать через окно</span><span data-l="en">Work through a window</span><span data-l="ua">Працювати через вікно</span></a
+                ><span data-l="en">Work through a window</span><span data-l="ru">Работать через окно</span><span data-l="ua">Працювати через вікно</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Команда <code>filedo</code></span><span data-l="en">The <code>filedo</code> command</span><span data-l="ua">Команда <code>filedo</code></span>
+              <span data-l="en">The <code>filedo</code> command</span><span data-l="ru">Команда <code>filedo</code></span><span data-l="ua">Команда <code>filedo</code></span>
             </h3>
             <p>
-              <span data-l="ru">Наберите <code>filedo</code> в любом терминале. Окно и команда работают на одном и том же движке.</span><span data-l="en">Type <code>filedo</code> in any terminal. The same engine runs behind the window and the command.</span><span data-l="ua">Наберіть <code>filedo</code> у будь-якому терміналі. Вікно й команда працюють на одному й тому самому рушії.</span>
+              <span data-l="en">Type <code>filedo</code> in any terminal. The same engine runs behind the window and the command.</span><span data-l="ru">Наберите <code>filedo</code> в любом терминале. Окно и команда работают на одном и том же движке.</span><span data-l="ua">Наберіть <code>filedo</code> у будь-якому терміналі. Вікно й команда працюють на одному й тому самому рушії.</span>
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Те же инструменты</span><span data-l="en">The same tools</span><span data-l="ua">Ті самі інструменти</span>
+              <span data-l="en">The same tools</span><span data-l="ru">Те же инструменты</span><span data-l="ua">Ті самі інструменти</span>
             </h3>
             <p>
-              <span data-l="ru">Тест ёмкости, тест скорости, поиск дубликатов, сравнение и копирование папок, заполнение и затирание, секретные файлы - всё это есть и в этой сборке, как в остальных.</span><span data-l="en">The capacity test, the speed test, the duplicate finder, folder compare and copy, fill and wipe, and secret files are in this build as in the others.</span><span data-l="ua">Тест ємності, тест швидкості, пошук дублікатів, порівняння й копіювання тек, заповнення та затирання, секретні файли - усе це є і в цій збірці, як в інших.</span>
+              <span data-l="en">The capacity test, the speed test, the duplicate finder, folder compare and copy, fill and wipe, and secret files are in this build as in the others.</span><span data-l="ru">Тест ёмкости, тест скорости, поиск дубликатов, сравнение и копирование папок, заполнение и затирание, секретные файлы - всё это есть и в этой сборке, как в остальных.</span><span data-l="ua">Тест ємності, тест швидкості, пошук дублікатів, порівняння й копіювання тек, заповнення та затирання, секретні файли - усе це є і в цій збірці, як в інших.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="index.html"
-                ><span data-l="ru">Все руководства</span><span data-l="en">All guides</span><span data-l="ua">Усі посібники</span></a
+                ><span data-l="en">All guides</span><span data-l="ru">Все руководства</span><span data-l="ua">Усі посібники</span></a
               >
             </p>
           </article>
@@ -211,74 +213,74 @@
 
       <section class="section" id="limits">
         <h2>
-          <span data-l="ru">3. Чего эта сборка не делает</span><span data-l="en">3. What this build does not do</span><span data-l="ua">3. Чого ця збірка не робить</span>
+          <span data-l="en">3. What this build does not do</span><span data-l="ru">3. Чего эта сборка не делает</span><span data-l="ua">3. Чого ця збірка не робить</span>
         </h2>
         <p class="intro">
-          <span data-l="ru">Если элемент управления в этой сборке никогда не заработает, окно его не показывает, а не делает серым: например, в Диспетчере дисков нет элементов подключения. Большинство этих ограничений описано и в руководстве по той возможности, которой они касаются.</span><span data-l="en">Where a control could never work in this build, the window leaves it out instead of greying it out: the Disk manager, for example, shows no mount controls. Most of these limits are also stated in the guide of the function they touch.</span><span data-l="ua">Якщо елемент керування в цій збірці ніколи не запрацює, вікно його не показує, а не робить сірим: наприклад, у Диспетчері дисків немає елементів підключення. Більшість цих обмежень описано й у посібнику з тієї можливості, якої вони стосуються.</span>
+          <span data-l="en">Where a control could never work in this build, the window leaves it out instead of greying it out: the Disk manager, for example, shows no mount controls. Most of these limits are also stated in the guide of the function they touch.</span><span data-l="ru">Если элемент управления в этой сборке никогда не заработает, окно его не показывает, а не делает серым: например, в Диспетчере дисков нет элементов подключения. Большинство этих ограничений описано и в руководстве по той возможности, которой они касаются.</span><span data-l="ua">Якщо елемент керування в цій збірці ніколи не запрацює, вікно його не показує, а не робить сірим: наприклад, у Диспетчері дисків немає елементів підключення. Більшість цих обмежень описано й у посібнику з тієї можливості, якої вони стосуються.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Нет подключения виртуальных дисков</span><span data-l="en">No mounting of virtual disks</span><span data-l="ua">Немає підключення віртуальних дисків</span>
+              <span data-l="en">No mounting of virtual disks</span><span data-l="ru">Нет подключения виртуальных дисков</span><span data-l="ua">Немає підключення віртуальних дисків</span>
             </h3>
             <p>
-              <span data-l="ru">Упакованное приложение не может ни настроить инициатор iSCSI в Windows, ни запросить права администратора, поэтому эта сборка не может подключить виртуальный диск буквой диска. Команды, которым нужно подключение, заканчиваются кодом 6 (не поддерживается).</span><span data-l="en">A packaged app can neither configure the iSCSI initiator of Windows nor ask for administrator rights, so this build cannot mount a virtual disk as a drive. The commands that need a mount end with exit code 6 (unsupported).</span><span data-l="ua">Запакований застосунок не може ні налаштувати ініціатор iSCSI у Windows, ні попросити права адміністратора, тому ця збірка не може підключити віртуальний диск літерою диска. Команди, яким потрібне підключення, закінчуються кодом 6 (не підтримується).</span>
+              <span data-l="en">A packaged app can neither configure the iSCSI initiator of Windows nor ask for administrator rights, so this build cannot mount a virtual disk as a drive. The commands that need a mount end with exit code 6 (unsupported).</span><span data-l="ru">Упакованное приложение не может ни настроить инициатор iSCSI в Windows, ни запросить права администратора, поэтому эта сборка не может подключить виртуальный диск буквой диска. Команды, которым нужно подключение, заканчиваются кодом 6 (не поддерживается).</span><span data-l="ua">Запакований застосунок не може ні налаштувати ініціатор iSCSI у Windows, ні попросити права адміністратора, тому ця збірка не може підключити віртуальний диск літерою диска. Команди, яким потрібне підключення, закінчуються кодом 6 (не підтримується).</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="virtual-disks.html#platform"
-                ><span data-l="ru">Что нужно от Windows</span><span data-l="en">What Windows has to provide</span><span data-l="ua">Що потрібно від Windows</span></a
+                ><span data-l="en">What Windows has to provide</span><span data-l="ru">Что нужно от Windows</span><span data-l="ua">Що потрібно від Windows</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Нет дисков-разделов</span><span data-l="en">No partition disks</span><span data-l="ua">Немає дисків-розділів</span>
+              <span data-l="en">No partition disks</span><span data-l="ru">Нет дисков-разделов</span><span data-l="ua">Немає дисків-розділів</span>
             </h3>
             <p>
-              <span data-l="ru">В этой сборке виртуальный диск может жить только в файле. <code>vd disks</code> говорит об этом, каждая команда для разделов заканчивается кодом 6, а «Новый диск..» в Диспетчере дисков предлагает только файл.</span><span data-l="en">In this build a virtual disk can only live in a file. <code>vd disks</code> says so, every partition command ends with exit code 6, and &ldquo;New disk..&rdquo; in the Disk manager offers the file only.</span><span data-l="ua">У цій збірці віртуальний диск може жити лише у файлі. <code>vd disks</code> каже про це, кожна команда для розділів закінчується кодом 6, а «Новий диск..» у Диспетчері дисків пропонує лише файл.</span>
+              <span data-l="en">In this build a virtual disk can only live in a file. <code>vd disks</code> says so, every partition command ends with exit code 6, and <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>&ldquo;New disk..&rdquo; in the Disk manager offers the file only.</span><span data-l="ru">В этой сборке виртуальный диск может жить только в файле. <code>vd disks</code> говорит об этом, каждая команда для разделов заканчивается кодом 6, а <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>«Новый диск..» в Диспетчере дисков предлагает только файл.</span><span data-l="ua">У цій збірці віртуальний диск може жити лише у файлі. <code>vd disks</code> каже про це, кожна команда для розділів закінчується кодом 6, а <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>«Новий диск..» у Диспетчері дисків пропонує лише файл.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="virtual-disks.html#partition"
-                ><span data-l="ru">Диски-разделы</span><span data-l="en">Partition disks</span><span data-l="ua">Диски-розділи</span></a
+                ><span data-l="en">Partition disks</span><span data-l="ru">Диски-разделы</span><span data-l="ua">Диски-розділи</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Нет общего доступа через Fast Media Sorter &amp; Sharing</span><span data-l="en">No sharing with Fast Media Sorter &amp; Sharing</span><span data-l="ua">Немає спільного доступу через Fast Media Sorter &amp; Sharing</span>
+              <span data-l="en">No sharing with Fast Media Sorter &amp; Sharing</span><span data-l="ru">Нет общего доступа через Fast Media Sorter &amp; Sharing</span><span data-l="ua">Немає спільного доступу через Fast Media Sorter &amp; Sharing</span>
             </h3>
             <p>
-              <span data-l="ru">Общий доступ к диску через Fast Media Sorter &amp; Sharing в этой сборке закрыт, а в Диспетчере дисков нет действий общего доступа. Для него используйте одну из остальных сборок.</span><span data-l="en">Sharing a disk with Fast Media Sorter &amp; Sharing is closed in this build, and the Disk manager shows no sharing actions. Use one of the other builds for it.</span><span data-l="ua">Спільний доступ до диска через Fast Media Sorter &amp; Sharing у цій збірці закритий, а в Диспетчері дисків немає дій спільного доступу. Для нього використовуйте одну з решти збірок.</span>
+              <span data-l="en">Sharing a disk with Fast Media Sorter &amp; Sharing is closed in this build, and the Disk manager shows no sharing actions. Use one of the other builds for it.</span><span data-l="ru">Общий доступ к диску через Fast Media Sorter &amp; Sharing в этой сборке закрыт, а в Диспетчере дисков нет действий общего доступа. Для него используйте одну из остальных сборок.</span><span data-l="ua">Спільний доступ до диска через Fast Media Sorter &amp; Sharing у цій збірці закритий, а в Диспетчері дисків немає дій спільного доступу. Для нього використовуйте одну з решти збірок.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="fms-sharing.html#need"
-                ><span data-l="ru">Что нужно до начала</span><span data-l="en">What you need first</span><span data-l="ua">Що потрібно до початку</span></a
+                ><span data-l="en">What you need first</span><span data-l="ru">Что нужно до начала</span><span data-l="ua">Що потрібно до початку</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Нет пунктов в меню Проводника</span><span data-l="en">No Explorer menu entries</span><span data-l="ua">Немає пунктів у меню Провідника</span>
+              <span data-l="en">No Explorer menu entries</span><span data-l="ru">Нет пунктов в меню Проводника</span><span data-l="ua">Немає пунктів у меню Провідника</span>
             </h3>
             <p>
-              <span data-l="ru">Группы «File DO..» в контекстном меню в этой сборке нет: упакованная сборка может получить её только через подписанный обработчик оболочки, а в этой сборке его нет. Группу добавляют Setup EXE и MSI.</span><span data-l="en">The &ldquo;File DO..&rdquo; group of the right-click menu is not part of this build: a packaged build can only get it through a signed shell handler, and this build does not include one. The setup EXE and the MSI add it.</span><span data-l="ua">Групи «File DO..» у контекстному меню в цій збірці немає: запакована збірка може отримати її лише через підписаний обробник оболонки, а в цій збірці його немає. Групу додають Setup EXE і MSI.</span>
+              <span data-l="en">The &ldquo;File DO..&rdquo; group of the right-click menu is not part of this build: a packaged build can only get it through a signed shell handler, and this build does not include one. The setup EXE and the MSI add it.</span><span data-l="ru">Группы «File DO..» в контекстном меню в этой сборке нет: упакованная сборка может получить её только через подписанный обработчик оболочки, а в этой сборке его нет. Группу добавляют Setup EXE и MSI.</span><span data-l="ua">Групи «File DO..» у контекстному меню в цій збірці немає: запакована збірка може отримати її лише через підписаний обробник оболонки, а в цій збірці його немає. Групу додають Setup EXE і MSI.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="install-and-explorer.html"
-                ><span data-l="ru">Установка и пункты Проводника</span><span data-l="en">Installation and the Explorer menu</span><span data-l="ua">Встановлення і пункти Провідника</span></a
+                ><span data-l="en">Installation and the Explorer menu</span><span data-l="ru">Установка и пункты Проводника</span><span data-l="ua">Встановлення і пункти Провідника</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Настройки Windows остаются в Windows</span><span data-l="en">Windows settings stay in Windows</span><span data-l="ua">Налаштування Windows лишаються у Windows</span>
+              <span data-l="en">Windows settings stay in Windows</span><span data-l="ru">Настройки Windows остаются в Windows</span><span data-l="ua">Налаштування Windows лишаються у Windows</span>
             </h3>
             <p>
-              <span data-l="ru">На странице «Настройки» пункт «Запускать при входе в Windows» открывает параметры Windows, раздел «Приложения - Автозагрузка»: запись выключена, пока вы сами её там не включите, а управлять ею можно и в Диспетчере задач. Кнопки «Отключить автозапуск носителей Windows» в этой сборке нет; вместо неё «Настройки автозапуска Windows..» открывает страницу самой Windows.</span><span data-l="en">On the Settings page, &ldquo;Run at Windows startup&rdquo; opens Windows Settings, Apps, Startup: the entry is off until you switch it on there, and Task Manager can manage it too. The &ldquo;Disable Windows AutoPlay&rdquo; button is not offered; &ldquo;Windows AutoPlay settings..&rdquo; opens the Windows page instead.</span><span data-l="ua">На сторінці «Налаштування» пункт «Запускати під час входу у Windows» відкриває параметри Windows, розділ «Програми - Автозавантаження»: запис вимкнений, доки ви самі його там не ввімкнете, а керувати ним можна й у Диспетчері завдань. Кнопки «Вимкнути автовідтворення Windows» у цій збірці немає; натомість «Налаштування автовідтворення Windows..» відкриває сторінку самої Windows.</span>
+              <span data-l="en">On the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings page, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>&ldquo;Run at Windows startup&rdquo; opens Windows Settings, Apps, Startup: the entry is off until you switch it on there, and Task Manager can manage it too. The <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.autoplay-disable"/></svg>&ldquo;Disable Windows AutoPlay&rdquo; button is not offered; <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>&ldquo;Windows AutoPlay settings..&rdquo; opens the Windows page instead.</span><span data-l="ru">На странице <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Настройки» пункт <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Запускать при входе в Windows» открывает параметры Windows, раздел «Приложения - Автозагрузка»: запись выключена, пока вы сами её там не включите, а управлять ею можно и в Диспетчере задач. Кнопки <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.autoplay-disable"/></svg>«Отключить автозапуск носителей Windows» в этой сборке нет; вместо неё <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Настройки автозапуска Windows..» открывает страницу самой Windows.</span><span data-l="ua">На сторінці <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Налаштування» пункт <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Запускати під час входу у Windows» відкриває параметри Windows, розділ «Програми - Автозавантаження»: запис вимкнений, доки ви самі його там не ввімкнете, а керувати ним можна й у Диспетчері завдань. Кнопки <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.autoplay-disable"/></svg>«Вимкнути автовідтворення Windows» у цій збірці немає; натомість <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Налаштування автовідтворення Windows..» відкриває сторінку самої Windows.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
-                ><span data-l="ru">Работать через окно</span><span data-l="en">Work through a window</span><span data-l="ua">Працювати через вікно</span></a
+                ><span data-l="en">Work through a window</span><span data-l="ru">Работать через окно</span><span data-l="ua">Працювати через вікно</span></a
               >
             </p>
           </article>
@@ -287,35 +289,35 @@
 
       <section class="section" id="containers">
         <h2>
-          <span data-l="ru">4. Что с контейнерами работает по-прежнему</span><span data-l="en">4. What still works with containers</span><span data-l="ua">4. Що з контейнерами працює як і раніше</span>
+          <span data-l="en">4. What still works with containers</span><span data-l="ru">4. Что с контейнерами работает по-прежнему</span><span data-l="ua">4. Що з контейнерами працює як і раніше</span>
         </h2>
         <p class="intro">
-          <span data-l="ru">Чтение и изменение контейнера обходятся без подключения, поэтому здесь работают.</span><span data-l="en">Reading and changing a container needs no mount, so it works here.</span><span data-l="ua">Читання й зміна контейнера обходяться без підключення, тому тут працюють.</span>
+          <span data-l="en">Reading and changing a container needs no mount, so it works here.</span><span data-l="ru">Чтение и изменение контейнера обходятся без подключения, поэтому здесь работают.</span><span data-l="ua">Читання й зміна контейнера обходяться без підключення, тому тут працюють.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Контейнеры <code>.fd-sec</code></span><span data-l="en"><code>.fd-sec</code> containers</span><span data-l="ua">Контейнери <code>.fd-sec</code></span>
+              <span data-l="en"><code>.fd-sec</code> containers</span><span data-l="ru">Контейнеры <code>.fd-sec</code></span><span data-l="ua">Контейнери <code>.fd-sec</code></span>
             </h3>
             <p>
-              <span data-l="ru">Дважды щёлкните файл <code>.fd-sec</code>: окно FileDO откроется на странице «Открыть секретный файл» с уже выбранным контейнером, и пароль спросят там.</span><span data-l="en">Double-click a <code>.fd-sec</code> file: the FileDO window opens on the &ldquo;Open a secret file&rdquo; page with that container already chosen, and the password is asked there.</span><span data-l="ua">Двічі клацніть файл <code>.fd-sec</code>: вікно FileDO відкриється на сторінці «Відкрити секретний файл» з уже вибраним контейнером, і пароль запитають там.</span>
+              <span data-l="en">Double-click a <code>.fd-sec</code> file: the FileDO window opens on the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>&ldquo;Open a secret file&rdquo; page with that container already chosen, and the password is asked there.</span><span data-l="ru">Дважды щёлкните файл <code>.fd-sec</code>: окно FileDO откроется на странице <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Открыть секретный файл» с уже выбранным контейнером, и пароль спросят там.</span><span data-l="ua">Двічі клацніть файл <code>.fd-sec</code>: вікно FileDO відкриється на сторінці <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Відкрити секретний файл» з уже вибраним контейнером, і пароль запитають там.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="fd-sec-containers.html"
-                ><span data-l="ru">Секретные файлы</span><span data-l="en">Secret files</span><span data-l="ua">Секретні файли</span></a
+                ><span data-l="en">Secret files</span><span data-l="ru">Секретные файлы</span><span data-l="ua">Секретні файли</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Виртуальные диски <code>.fdd</code></span><span data-l="en"><code>.fdd</code> virtual disks</span><span data-l="ua">Віртуальні диски <code>.fdd</code></span>
+              <span data-l="en"><code>.fdd</code> virtual disks</span><span data-l="ru">Виртуальные диски <code>.fdd</code></span><span data-l="ua">Віртуальні диски <code>.fdd</code></span>
             </h3>
             <p>
-              <span data-l="ru">Дважды щёлкните файл <code>.fdd</code>: окно FileDO откроется на этом контейнере и прямо скажет, что эта сборка подключать не умеет. Создать контейнер, прочитать его сведения, проверить, выгрузить, увеличить, сжать, скопировать, сменить пароль или удалить контейнер по-прежнему можно, без прав администратора.</span><span data-l="en">Double-click a <code>.fdd</code> file: the FileDO window opens on that container and says plainly that this build cannot mount. You can still create a container, read its facts, verify it, export it, grow it, compact it, copy it, change its password or remove it, without administrator rights.</span><span data-l="ua">Двічі клацніть файл <code>.fdd</code>: вікно FileDO відкриється на цьому контейнері й прямо скаже, що ця збірка підключати не вміє. Створити контейнер, прочитати його відомості, перевірити, вивантажити, збільшити, стиснути, скопіювати, змінити пароль або видалити контейнер, як і раніше, можна без прав адміністратора.</span>
+              <span data-l="en">Double-click a <code>.fdd</code> file: the FileDO window opens on that container and says plainly that this build cannot mount. You can still create a container, read its facts, verify it, export it, grow it, compact it, copy it, change its password or remove it, without administrator rights.</span><span data-l="ru">Дважды щёлкните файл <code>.fdd</code>: окно FileDO откроется на этом контейнере и прямо скажет, что эта сборка подключать не умеет. Создать контейнер, прочитать его сведения, проверить, выгрузить, увеличить, сжать, скопировать, сменить пароль или удалить контейнер по-прежнему можно, без прав администратора.</span><span data-l="ua">Двічі клацніть файл <code>.fdd</code>: вікно FileDO відкриється на цьому контейнері й прямо скаже, що ця збірка підключати не вміє. Створити контейнер, прочитати його відомості, перевірити, вивантажити, збільшити, стиснути, скопіювати, змінити пароль або видалити контейнер, як і раніше, можна без прав адміністратора.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="virtual-disks.html#read"
-                ><span data-l="ru">Прочитать, не подключая</span><span data-l="en">Read without mounting</span><span data-l="ua">Прочитати, не підключаючи</span></a
+                ><span data-l="en">Read without mounting</span><span data-l="ru">Прочитать, не подключая</span><span data-l="ua">Прочитати, не підключаючи</span></a
               >
             </p>
           </article>
@@ -324,35 +326,35 @@
 
       <section class="section" id="trust">
         <h2>
-          <span data-l="ru">5. Подпись, разрешения и данные</span><span data-l="en">5. Signing, permissions and data</span><span data-l="ua">5. Підпис, дозволи й дані</span>
+          <span data-l="en">5. Signing, permissions and data</span><span data-l="ru">5. Подпись, разрешения и данные</span><span data-l="ua">5. Підпис, дозволи й дані</span>
         </h2>
         <p class="intro">
-          <span data-l="ru">Здесь сказано то же, что на странице о предупреждении Windows и на странице приватности.</span><span data-l="en">This section says the same as the install-warning page and the privacy page.</span><span data-l="ua">Тут сказано те саме, що на сторінці про попередження Windows і на сторінці приватності.</span>
+          <span data-l="en">This section says the same as the install-warning page and the privacy page.</span><span data-l="ru">Здесь сказано то же, что на странице о предупреждении Windows и на странице приватности.</span><span data-l="ua">Тут сказано те саме, що на сторінці про попередження Windows і на сторінці приватності.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Подписано Microsoft</span><span data-l="en">Signed by Microsoft</span><span data-l="ua">Підписано Microsoft</span>
+              <span data-l="en">Signed by Microsoft</span><span data-l="ru">Подписано Microsoft</span><span data-l="ua">Підписано Microsoft</span>
             </h3>
             <p>
-              <span data-l="ru">Microsoft подписывает пакет при сертификации, поэтому эта сборка не показывает предупреждений Windows, которые могут появиться у Setup EXE, MSI и ZIP с GitHub: те не подписаны цифровым сертификатом.</span><span data-l="en">Microsoft signs the package at certification, so this build shows none of the Windows warnings that the setup EXE, the MSI and the ZIP from GitHub can show: those are not code-signed.</span><span data-l="ua">Microsoft підписує пакет під час сертифікації, тому ця збірка не показує попереджень Windows, які можуть з'явитися у Setup EXE, MSI і ZIP з GitHub: ті не підписані цифровим сертифікатом.</span>
+              <span data-l="en">Microsoft signs the package at certification, so this build shows none of the Windows warnings that the setup EXE, the MSI and the ZIP from GitHub can show: those are not code-signed.</span><span data-l="ru">Microsoft подписывает пакет при сертификации, поэтому эта сборка не показывает предупреждений Windows, которые могут появиться у Setup EXE, MSI и ZIP с GitHub: те не подписаны цифровым сертификатом.</span><span data-l="ua">Microsoft підписує пакет під час сертифікації, тому ця збірка не показує попереджень Windows, які можуть з'явитися у Setup EXE, MSI і ZIP з GitHub: ті не підписані цифровим сертифікатом.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="install-trust.html"
-                ><span data-l="ru">Windows предупредила о FileDO</span><span data-l="en">Windows warned you about FileDO</span><span data-l="ua">Windows попередила про FileDO</span></a
+                ><span data-l="en">Windows warned you about FileDO</span><span data-l="ru">Windows предупредила о FileDO</span><span data-l="ua">Windows попередила про FileDO</span></a
               >
             </p>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Одно разрешение, никакой сети</span><span data-l="en">One permission, no network</span><span data-l="ua">Один дозвіл, жодної мережі</span>
+              <span data-l="en">One permission, no network</span><span data-l="ru">Одно разрешение, никакой сети</span><span data-l="ua">Один дозвіл, жодної мережі</span>
             </h3>
             <p>
-              <span data-l="ru">Пакет объявляет одну возможность, <code>runFullTrust</code>, которая даёт прямой доступ к диску, и не объявляет доступа в интернет. FileDO ничего не собирает: ни телеметрии, ни аналитики, ни рекламы, ни учётных записей.</span><span data-l="en">The package declares one capability, <code>runFullTrust</code>, which allows direct access to the disk, and no internet capability. FileDO collects nothing: no telemetry, no analytics, no ads, no accounts.</span><span data-l="ua">Пакет оголошує одну можливість, <code>runFullTrust</code>, яка дає прямий доступ до диска, і не оголошує доступу до інтернету. FileDO нічого не збирає: ні телеметрії, ні аналітики, ні реклами, ні облікових записів.</span>
+              <span data-l="en">The package declares one capability, <code>runFullTrust</code>, which allows direct access to the disk, and no internet capability. FileDO collects nothing: no telemetry, no analytics, no ads, no accounts.</span><span data-l="ru">Пакет объявляет одну возможность, <code>runFullTrust</code>, которая даёт прямой доступ к диску, и не объявляет доступа в интернет. FileDO ничего не собирает: ни телеметрии, ни аналитики, ни рекламы, ни учётных записей.</span><span data-l="ua">Пакет оголошує одну можливість, <code>runFullTrust</code>, яка дає прямий доступ до диска, і не оголошує доступу до інтернету. FileDO нічого не збирає: ні телеметрії, ні аналітики, ні реклами, ні облікових записів.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="../privacy.html"
-                ><span data-l="ru">Открыть страницу приватности</span><span data-l="en">Open the privacy page</span><span data-l="ua">Відкрити сторінку приватності</span></a
+                ><span data-l="en">Open the privacy page</span><span data-l="ru">Открыть страницу приватности</span><span data-l="ua">Відкрити сторінку приватності</span></a
               >
             </p>
           </article>
@@ -361,14 +363,14 @@
 
       <section class="section" id="report">
         <h2>
-          <span data-l="ru">6. Если чего-то нет или что-то не работает</span><span data-l="en">6. If something is missing or does not work</span><span data-l="ua">6. Якщо чогось немає або щось не працює</span>
+          <span data-l="en">6. If something is missing or does not work</span><span data-l="ru">6. Если чего-то нет или что-то не работает</span><span data-l="ua">6. Якщо чогось немає або щось не працює</span>
         </h2>
         <p class="intro">
-          <span data-l="ru">Прежде чем сообщать об отсутствующей возможности, сверьтесь с ограничениями выше. Когда сообщаете, укажите, что вы пользуетесь сборкой из Microsoft Store: сборки различаются возможностями, а автор спрашивает, как вы установили FileDO.</span><span data-l="en">Check the limits above before you report a missing feature. When you do report, say that you use the Microsoft Store build: the builds differ in what they can do, and the author asks how you installed FileDO.</span><span data-l="ua">Перш ніж повідомляти про відсутню можливість, звірте її з обмеженнями вище. Коли повідомляєте, вкажіть, що ви користуєтеся збіркою з Microsoft Store: збірки різняться можливостями, а автор питає, як ви встановили FileDO.</span>
+          <span data-l="en">Check the limits above before you report a missing feature. When you do report, say that you use the Microsoft Store build: the builds differ in what they can do, and the author asks how you installed FileDO.</span><span data-l="ru">Прежде чем сообщать об отсутствующей возможности, сверьтесь с ограничениями выше. Когда сообщаете, укажите, что вы пользуетесь сборкой из Microsoft Store: сборки различаются возможностями, а автор спрашивает, как вы установили FileDO.</span><span data-l="ua">Перш ніж повідомляти про відсутню можливість, звірте її з обмеженнями вище. Коли повідомляєте, вкажіть, що ви користуєтеся збіркою з Microsoft Store: збірки різняться можливостями, а автор питає, як ви встановили FileDO.</span>
         </p>
         <p class="actions">
           <a class="btn btn-ghost btn-sm" href="support.html"
-            ><span data-l="ru">Открыть страницу поддержки</span><span data-l="en">Open the support page</span><span data-l="ua">Відкрити сторінку підтримки</span></a
+            ><span data-l="en">Open the support page</span><span data-l="ru">Открыть страницу поддержки</span><span data-l="ua">Відкрити сторінку підтримки</span></a
           >
         </p>
       </section>
@@ -377,7 +379,8 @@
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -402,5 +405,8 @@
       };
     </script>
     <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.autoplay-disable" viewBox="0 0 24 24"><path d="M8 5.19V5l11 7-2.55 1.63L8 5.19zm12 14.54l-5.11-5.11L8 7.73 4.27 4 3 5.27l5 5V19l5.33-3.4 5.4 5.4L20 19.73z" fill="currentColor"/></symbol><symbol id="g-action.create-disk" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM8.25 5h1.5v2.25H12v1.5H9.75V11h-1.5V8.75H6v-1.5h2.25z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol><symbol id="g-app.settings" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></symbol><symbol id="g-nav.open-external" viewBox="0 0 24 24"><path d="M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

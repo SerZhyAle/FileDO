@@ -21,7 +21,19 @@
     document.documentElement.dataset.lang = l;
     document.documentElement.lang = l === "ua" ? "uk" : l;
     nameTheme(l);
-    if (!own) localStorage.setItem("sza-lang", l);
+    if (!own) {
+      try {
+        localStorage.setItem("sza-lang", l);
+        if (window.history && history.replaceState) {
+          var u = new URL(location.href);
+          var code = l === "ua" ? "uk" : l;
+          if (u.searchParams.get("lang") !== code) {
+            u.searchParams.set("lang", code);
+            history.replaceState(null, "", u.toString());
+          }
+        }
+      } catch (e) {}
+    }
     document.querySelectorAll("[data-set-lang]").forEach(function (b) {
       b.setAttribute("aria-pressed", String(!own && b.dataset.setLang === l));
     });
@@ -32,13 +44,26 @@
       if (d) d.content = data.description;
     }
   }
+  // On a de or fr page the footer grid links a sibling's page in that language where the sibling
+  // has one (its own hreflang target, each answered 200 on 2026-11-08); the others keep their root.
+  var siblingPages = {
+    de: { FastMediaSorter_mob_v2: "index-de.html", FastMediaSorter_Lite: "lang/de/", CyrFlip: "de/", "doc-html-translate": "de/", StreamsPlayer: "de/" },
+    fr: { FastMediaSorter_mob_v2: "index-fr.html", FastMediaSorter_Lite: "lang/fr/", CyrFlip: "fr/", "doc-html-translate": "fr/", StreamsPlayer: "fr/" },
+  };
   document
     .querySelectorAll(".site-footer .container")
     .forEach(function (container) {
       container.insertAdjacentHTML(
         "afterbegin",
-        '<p class="footer-tools-title" id="footerToolsTitle"><span data-l="ru">Другие инструменты SZA</span><span data-l="en">More tools by SZA</span><span data-l="ua">Інші інструменти SZA</span><span data-l="de">Weitere Tools von SZA</span><span data-l="fr">Autres outils de SZA</span></p><nav class="tools-grid" aria-labelledby="footerToolsTitle"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a><a href="https://serzhyale.github.io/StreamsPlayer/"><b>STREAMS Player</b><span>Windows stream player</span></a><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a></nav>',
+        '<p class="footer-tools-title" id="footerToolsTitle"><span data-l="en">More tools by SZA</span><span data-l="ru">Другие инструменты SZA</span><span data-l="ua">Інші інструменти SZA</span><span data-l="de">Weitere Tools von SZA</span><span data-l="fr">Autres outils de SZA</span></p><nav class="tools-grid" aria-labelledby="footerToolsTitle"><a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a><a href="https://serzhyale.github.io/StreamsPlayer/"><b>STREAMS Player</b><span>Windows stream player</span></a><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a></nav>',
       );
+      var pages = siblingPages[own];
+      if (pages) {
+        container.querySelectorAll(".tools-grid a").forEach(function (a) {
+          var m = a.getAttribute("href").match(/^https:\/\/serzhyale\.github\.io\/([^/]+)\/$/);
+          if (m && pages[m[1]]) a.href = a.getAttribute("href") + pages[m[1]];
+        });
+      }
     });
   document.querySelectorAll("[data-set-lang]").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -50,7 +75,10 @@
       if (b.dataset.go) location.href = b.dataset.go;
     });
   });
-  setLang(document.documentElement.dataset.lang || "en");
+  var q = new URLSearchParams(location.search).get("lang");
+  if (q === "uk") q = "ua";
+  var initial = (!own && (q === "ru" || q === "en" || q === "ua")) ? q : (document.documentElement.dataset.lang || "en");
+  setLang(initial);
   var theme = document.getElementById("themeBtn");
   theme.addEventListener("click", function () {
     var next =
@@ -64,9 +92,9 @@
   // The feedback is a word in the page language, not a plain check mark: that
   // shape is action.confirm in ICON-SET, distinct from status.ok.
   var copyLabel =
-    '<span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span><span data-l="de">Kopieren</span><span data-l="fr">Copier</span>';
+    '<span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span><span data-l="de">Kopieren</span><span data-l="fr">Copier</span>';
   var copiedLabel =
-    '<span data-l="ru">Скопировано</span><span data-l="en">Copied</span><span data-l="ua">Скопійовано</span><span data-l="de">Kopiert</span><span data-l="fr">Copié</span>';
+    '<span data-l="en">Copied</span><span data-l="ru">Скопировано</span><span data-l="ua">Скопійовано</span><span data-l="de">Kopiert</span><span data-l="fr">Copié</span>';
   function copied(button) {
     button.innerHTML = copiedLabel;
     button.classList.add("done");

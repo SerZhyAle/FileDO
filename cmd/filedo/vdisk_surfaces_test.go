@@ -208,7 +208,7 @@ func vdReadmeSection(t *testing.T, body, rel string) string {
 // vdSpanText gathers the text of a hand-authored page per site language (data-l="ru|en|ua"), tags
 // removed and entities decoded, so a claim reads as the visitor reads it.
 var (
-	vdSpanRe = regexp.MustCompile(`(?s)<span data-l="(ru|en|ua)"\s*>(.*?)</span\s*>`)
+	vdSpanRe = regexp.MustCompile(`(?s)<span data-l="(ru|en|ua|uk)"\s*>(.*?)</span\s*>`)
 	vdTagRe  = regexp.MustCompile(`(?s)<[^>]*>`)
 )
 
@@ -340,14 +340,22 @@ func TestVD_Surfaces_TheGuideTellsTheTruthInEveryAuthoredLocale(t *testing.T) {
 // The landing page's card: short, but it states the obfuscation sentence and the three limits.
 func TestVD_Surfaces_TheLandingPageCardStatesTheLimits(t *testing.T) {
 	root := repoRoot(t)
-	text := vdSpanText(readSurface(t, root, filepath.Join("docs", "index.html")))
-	for _, code := range []string{"ru", "en", "ua"} {
+	// Since SP-0199 each language of the landing page is a page of its own: English at the root,
+	// Russian under ru/, Ukrainian under uk/ (its spans are marked uk; docs/ua/ only redirects).
+	pages := []struct{ code, rel, span string }{
+		{"en", filepath.Join("docs", "index.html"), "en"},
+		{"ru", filepath.Join("docs", "ru", "index.html"), "ru"},
+		{"ua", filepath.Join("docs", "uk", "index.html"), "uk"},
+	}
+	for _, pg := range pages {
+		code := pg.code
+		text := map[string]string{code: vdSpanText(readSurface(t, root, pg.rel))[pg.span]}
 		l := vdSurfaceLangs[code]
-		vdCheckProse(t, "docs/index.html", l, text[code], false)
+		vdCheckProse(t, filepath.ToSlash(pg.rel), l, text[code], false)
 		low := strings.ToLower(strings.Join(strings.Fields(text[code]), " "))
 		for _, phrase := range []string{l.windowsOnly, l.administrator, l.storeCannot} {
 			if !strings.Contains(low, phrase) {
-				t.Errorf("docs/index.html (%s) does not state the limit %q", code, phrase)
+				t.Errorf("%s (%s) does not state the limit %q", filepath.ToSlash(pg.rel), code, phrase)
 			}
 		}
 	}

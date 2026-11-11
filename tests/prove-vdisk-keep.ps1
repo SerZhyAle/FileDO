@@ -17,7 +17,8 @@
     5. `unmount` ends the watcher, and nothing remounts the disk
 
   Evidence (log, watcher output, built exe) goes to temp\evidence\<run-id>\ (git-ignored, private).
-  Exit code: 0 all steps passed, 1 a step failed, 2 could not run (not elevated, build failed).
+  Exit code: 0 all steps passed, 1 a step failed, 2 could not run (not elevated, build failed, no step
+  ran, or the run stopped with no step failed).
 #>
 param(
   [string]$RealName = 'fddtest',
@@ -34,6 +35,17 @@ $exe = Join-Path $out 'filedo.exe'
 $scratch = Join-Path $out 'scratch.fdd'
 $stateDir = Join-Path $env:LOCALAPPDATA 'FileDO\state'
 $results = [System.Collections.Generic.List[object]]::new()
+$stopped = ''
+
+# CHECK-VERDICT 0.14 item A: the run ends in one test verdict line, with no timestamp before the subject.
+function Verdict([int]$code, [string]$why = '') {
+  $failedN = @($results | Where-Object { -not $_.Pass }).Count
+  $word = switch ($code) { 0 { 'PASS' } 1 { 'FAIL' } default { 'COULD NOT VERIFY' } }
+  $line = "keep-proof: $word (run=$($results.Count) skipped=0$(if ($code -eq 1) { " failed=$failedN" })$(if ($code -eq 2 -and $why) { ", $why" }))"
+  Write-Host $line
+  Add-Content $log $line -ErrorAction SilentlyContinue
+  exit $code
+}
 
 function Say([string]$m) { $l = '{0:HH:mm:ss} {1}' -f (Get-Date), $m; Write-Host $l; Add-Content $log $l }
 function Step([string]$name, [bool]$ok, [string]$detail = '') {
@@ -57,7 +69,7 @@ function WaitFor([scriptblock]$cond, [int]$sec) {
 }
 
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $admin) { Write-Host 'Run this from an elevated PowerShell.'; exit 2 }
+if (-not $admin) { Write-Host 'Run this from an elevated PowerShell.'; Verdict 2 'not elevated' }
 
 Say "run $run, evidence in $out"
 Push-Location $root
@@ -66,7 +78,7 @@ try {
   $env:GOARCH = 'amd64'
   & go build -o $exe ./cmd/filedo 2>&1 | Tee-Object -Append $log
   $env:GOARCH = $oldArch
-  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $exe)) { Say 'build failed'; exit 2 }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $exe)) { Verdict 2 'the build failed' }
 } finally { Pop-Location }
 Say "built $exe"
 
@@ -117,7 +129,7 @@ try {
   $stayed = -not (RowOf $scratch)
   Step 'B5 unmount ends the watcher and nothing remounts' ($r.Code -eq 0 -and $ended -and $stayed) "unmount exit $($r.Code), watcher ended=$ended, no row=$stayed"
 }
-catch { Say "stopped: $_" }
+catch { $stopped = "$_"; Say "stopped: $_" }
 finally {
   if ($watcher -and -not $watcher.HasExited) { Stop-Process -Id $watcher.Id -Force -ErrorAction SilentlyContinue }
   if (RowOf $scratch) { Filedo @('vd', 'unmount', $scratch, 'force') | Out-Null }
@@ -125,6 +137,9 @@ finally {
 }
 
 $failed = @($results | Where-Object { -not $_.Pass }).Count
-Say ('keep-proof {0}: {1} steps, {2} failed' -f $(if ($failed -eq 0 -and $results.Count -gt 0) { 'PASS' } else { 'FAIL' }), $results.Count, $failed)
 Say "evidence: $out"
-if ($failed -eq 0 -and $results.Count -gt 0) { exit 0 } else { exit 1 }
+# A failed step outranks a run that stopped early; a stop with no failure proved nothing about the rest.
+if ($failed) { Verdict 1 }
+if ($stopped) { Verdict 2 "stopped: $stopped" }
+if ($results.Count -eq 0) { Verdict 2 'no step ran' }
+Verdict 0

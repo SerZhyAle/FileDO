@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"syscall"
+
+	"filedo/fileduplicates"
 )
 
 // The run outcome: the one place where what a verb found becomes a verdict, a
@@ -12,9 +15,8 @@ import (
 //
 // Two contracts meet here and they must not be confused with each other.
 // CLI-EVENT-STREAM rule 10 says the verdict is the `result` event and never
-// the exit code alone, and rule 11 fixes the supervisor vocabulary at three
-// digits - 0 the operation ran and passed, 1 it ran and found a defect, 2 it
-// could not be verified. FDSEC-BEHAVIOUR section 7.1 gives the container verbs
+// the exit code alone, and rule 11 defines the supervisor vocabulary: 0 passed or done, 1 a defect,
+// and 2 or 10-16 the reason a run did not finish cleanly. FDSEC-BEHAVIOUR section 7.1 gives the container verbs
 // their own classes, where 2 means a usage error and not "unverified"; rule 12
 // is what bridges the seam, and it bridges it through the `result` event,
 // which is why those verbs carry one and keep their own digits.
@@ -74,12 +76,15 @@ const (
 )
 
 type runOutcome struct {
-	mu        sync.Mutex
-	begun     bool
-	finished  bool
-	kind      runKind
-	defects   int
-	notProven bool
+	mu               sync.Mutex
+	begun            bool
+	finished         bool
+	kind             runKind
+	defects          int
+	notProven        bool
+	failureCode      int
+	revealClosed     bool
+	containerStopped bool
 	// failures counts every runFailure; a batch compares it before and after
 	// a line to know whether that line failed (CLI-12).
 	failures int
@@ -177,7 +182,7 @@ func runDefect(findingType, message string, details map[string]interface{}) {
 
 // runFailure records an error. A defect-marked error is a judgement and goes to
 // runDefect; anything else means the run could not judge, which is `Not proven`
-// and exit 2 - never a silent zero.
+// and an informative exit class, falling back to 2.
 func runFailure(err error) {
 	if err == nil {
 		return
@@ -195,16 +200,121 @@ func runFailure(err error) {
 	ensureRunForFinding()
 	currentRun.mu.Lock()
 	currentRun.notProven = true
+	code := failureExitCode(err)
+	if currentRun.failureCode == 0 || (currentRun.failureCode == 2 && code != 2) {
+		currentRun.failureCode = code
+	}
 	currentRun.failures++
 	currentRun.mu.Unlock()
-	// A destination-name refusal says why in a closed token (CLI-EVENT-STREAM
+	// A refusal the user can act on says why in a closed token (CLI-EVENT-STREAM
 	// rule 17), so a window with no console can show a sentence of its own.
 	var details map[string]interface{}
 	var dest *fdsecDestinationNameError
 	if errors.As(err, &dest) {
 		details = map[string]interface{}{"reason": fdsecReasonDestinationName}
+	} else {
+		details = failureDetails(err)
 	}
 	EmitFindingEvent("error", eventSafeErrorMessage(err), details)
+}
+
+// failureExitCode classifies typed errors, never the wording of a message.
+// An unknown error stays at the conservative fallback.
+func failureExitCode(err error) int {
+	var marked *exitClassError
+	if errors.As(err, &marked) {
+		return marked.code
+	}
+	if errors.Is(err, errFdsecUsage) || fileduplicates.IsUsageError(err) {
+		return 10
+	}
+	var n syscall.Errno
+	if errors.As(err, &n) {
+		switch n {
+		case errBadNetPath, errNetworkBusy, errDevNotExist, errUnexpNetErr, errNetnameDeleted, errNetworkAccessDenied, errBadNetName, errNetworkUnreachable, errHostUnreachable, errConnectionAborted:
+			return 15
+		case errAccessDenied, errWriteProtect:
+			return 12
+		case errDiskFull, errHandleDiskFull, errNotEnoughQuota:
+			return 13
+		case errDeviceNotConnected, errCRC, errSeek, errSectorNotFound, errWriteFault, errReadFault, errGenFailure, errDeviceHardwareError, errIODevice, errDiskOperationFailed:
+			return 14
+		case errFileNotFound, errPathNotFound, errInvalidDrive, errNotReady, errNoMediaInDrive, errCantAccessFile:
+			return 11
+		}
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return 11
+	}
+	if errors.Is(err, os.ErrPermission) {
+		return 12
+	}
+	return 2
+}
+
+// preRunError marks an error met while looking for the target, before the verb
+// began its work. The target could not be reached, so a device-level errno such
+// as "not connected" or "not ready" is the target being absent, class 11, where
+// the same errno in the middle of an I/O is class 14 (hardware). Access (12),
+// storage (13) and network (15) classes are kept, and so is a class an error
+// already carries.
+func preRunError(err error) error {
+	if err == nil {
+		return nil
+	}
+	code := failureExitCode(err)
+	if code == 14 || code == 2 {
+		code = 11
+	}
+	return &exitClassError{code: code, err: err}
+}
+
+// causeKeeper remembers the error behind the first problem of a sweep that has a
+// specific exit class, or the first error at all when none has (SP-0195). A
+// sweep ends in one summary sentence, and its class must come from the types the
+// errors had, never from the sentence.
+type causeKeeper struct {
+	mu    sync.Mutex
+	cause error
+}
+
+func (k *causeKeeper) keep(err error) {
+	if err == nil {
+		return
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	if k.cause == nil || (failureExitCode(k.cause) == 2 && failureExitCode(err) != 2) {
+		k.cause = err
+	}
+}
+
+func (k *causeKeeper) get() error {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	return k.cause
+}
+
+// classify returns summary carrying the exit class of the kept cause, when that
+// has one. The cause itself stays out of the message: it names a path.
+func (k *causeKeeper) classify(summary error) error {
+	if cause := k.get(); cause != nil {
+		if code := failureExitCode(cause); code != 2 {
+			return &exitClassError{code: code, err: summary}
+		}
+	}
+	return summary
+}
+
+type exitClassError struct {
+	code int
+	err  error
+}
+
+func (e *exitClassError) Error() string { return e.err.Error() }
+func (e *exitClassError) Unwrap() error { return e.err }
+func exitClassf(code int, format string, args ...interface{}) error {
+	return &exitClassError{code: code, err: fmt.Errorf(format, args...)}
 }
 
 // runProblemCount is how many defects and failures the run has recorded so
@@ -321,22 +431,17 @@ func verdictForFdsecExit(code int) Verdict {
 	}
 }
 
-// exitCodeFor is the supervisor vocabulary of rule 11, written once.
-//
-// `Stopped` exits 0, not 2. Rule 15 is explicit that a stop is not a failure,
-// and the digit would be telling the one caller who already knows: whoever
-// created the stop file asked for this ending. It is also the difference
-// between a stop and an abort in this program - the reveal's "remove the copy
-// now" is a stop, and it is the reveal finishing, not failing. What a
-// supervisor reads is the `Stopped` verdict in the result event, which rule 15
-// makes authoritative over the code anyway.
+// exitCodeFor maps verdicts into CLI-EVENT-STREAM rule 11. Specific
+// unverified classes are selected from recorded errors by finishRun.
 func exitCodeFor(v Verdict) int {
 	switch v {
 	case VerdictFailed:
 		return 1
 	case VerdictNotProven:
 		return 2
-	default: // Passed, Done, Stopped
+	case VerdictStopped:
+		return 16
+	default: // Passed, Done
 		return 0
 	}
 }
@@ -350,7 +455,7 @@ var globalExitCode int
 // unproven run (2), because "we looked and it is broken" says more than "we
 // could not look".
 func setExitCode(code int) {
-	if globalExitCode == 0 || (globalExitCode == 2 && code == 1) {
+	if globalExitCode == 0 || (globalExitCode != 1 && code == 1) {
 		globalExitCode = code
 	}
 }
@@ -370,6 +475,8 @@ func finishRun() {
 	currentRun.finished = true
 	v := currentRun.verdict()
 	containerDigits := currentRun.containerDigits()
+	failureCode := currentRun.failureCode
+	revealClosed := currentRun.revealClosed || (currentRun.containerStopped && currentRun.batchLines <= 1)
 	numbers := currentRun.numbers
 	filesLeft := currentRun.filesLeft
 	reports := currentRun.reports
@@ -378,11 +485,18 @@ func finishRun() {
 	EmitResultEvent(string(v), numbers, filesLeft, reports)
 
 	// One container command keeps its own classes; everything else - a batch
-	// of several lines included - gets the three digits of rule 11.
+	// of several lines included - gets the vocabulary of rule 11.
 	if containerDigits {
 		return
 	}
-	setExitCode(exitCodeFor(v))
+	code := exitCodeFor(v)
+	if v == VerdictNotProven && failureCode != 0 {
+		code = failureCode
+	}
+	if v == VerdictStopped && revealClosed {
+		code = 0
+	}
+	setExitCode(code)
 }
 
 // finishForcedRun is the second-Ctrl+C path.  os.Exit skips normal defers, so
@@ -422,12 +536,12 @@ func runStopRequested() bool {
 }
 
 // usageFailure ends a run that never started work. The words were wrong, so
-// nothing was measured and nothing is claimed: *Not proven*, exit 2. It opens
+// nothing was measured and nothing is claimed: *Not proven*, exit 10. It opens
 // the run first, because a stream with no `result` on the end of it is a run
 // that said nothing at all (rule 10), and "you typed it wrong" is something.
 func usageFailure(command string, args []string, format string, a ...interface{}) {
 	beginRun(runActs, command, "", args)
-	err := fmt.Errorf(format, a...)
+	err := exitClassf(10, format, a...)
 	runFailure(err)
 	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 }

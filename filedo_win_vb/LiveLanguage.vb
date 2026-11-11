@@ -65,6 +65,12 @@ Friend Module LiveLanguage
         End If
         control.AccessibleName = Translate(control.AccessibleName, byText, target)
         control.AccessibleDescription = Translate(control.AccessibleDescription, byText, target)
+        ' A boolean option's explanation and disabled reason are drawn text, not a child control's Text.
+        Dim boolOption = TryCast(control, BooleanOption)
+        If boolOption IsNot Nothing Then
+            boolOption.Explanation = Translate(boolOption.Explanation, byText, target)
+            boolOption.DisabledReason = Translate(boolOption.DisabledReason, byText, target)
+        End If
         Dim combo = TryCast(control, ComboBox)
         If combo IsNot Nothing AndAlso combo.DropDownStyle = ComboBoxStyle.DropDownList Then
             For i = 0 To combo.Items.Count - 1

@@ -53,8 +53,8 @@ func TestStopWithoutDefectStaysStopped(t *testing.T) {
 	if got := lastResult(t, events)["verdict"]; got != string(VerdictStopped) {
 		t.Fatalf("stop with no defect: verdict %q, want Stopped", got)
 	}
-	if globalExitCode != 0 {
-		t.Fatalf("stop with no defect: exit %d, want 0", globalExitCode)
+	if globalExitCode != 16 {
+		t.Fatalf("stop with no defect: exit %d, want 16", globalExitCode)
 	}
 }
 

@@ -48,6 +48,8 @@ func verbOf(word string) string {
 		{"vd", list_of_flags_for_vd},
 		{"ui", list_of_flags_for_ui},
 		{"dm", list_of_flags_for_dm},
+		{"backup", list_of_flags_for_backup},
+		{"restore", list_of_flags_for_restore},
 	} {
 		if contains(v.aliases, w) {
 			return v.name
@@ -90,7 +92,7 @@ func classifyTarget(word string) (kind, target string, err error) {
 		if strings.HasPrefix(word, `\\?\`) && hasPrefixFold(rest, `Volume{`) {
 			return statKind(word)
 		}
-		return "", word, fmt.Errorf("%s names a raw device or a device object; FileDO works on drive letters, folders, files and shares", word)
+		return "", word, exitClassf(10, "%s names a raw device or a device object; FileDO works on drive letters, folders, files and shares", word)
 	case strings.HasPrefix(word, `\\`) || strings.HasPrefix(word, "//"):
 		return "network", word, nil
 	case isASCIILetter(word):
@@ -102,7 +104,8 @@ func classifyTarget(word string) (kind, target string, err error) {
 }
 
 func statKind(word string) (string, string, error) {
-	if info, err := os.Stat(word); err == nil {
+	info, statErr := os.Stat(word)
+	if statErr == nil {
 		if info.IsDir() {
 			return "folder", word, nil
 		}
@@ -110,9 +113,9 @@ func statKind(word string) (string, string, error) {
 	}
 	switch {
 	case strings.HasSuffix(word, "/") || strings.HasSuffix(word, `\`):
-		return "", word, fmt.Errorf("the folder %q does not exist", word)
+		return "", word, preRunError(fmt.Errorf("the folder %q does not exist: %w", word, statErr))
 	case strings.ContainsAny(word, `.:\/`):
-		return "", word, fmt.Errorf("the path %q does not exist", word)
+		return "", word, preRunError(fmt.Errorf("the path %q does not exist: %w", word, statErr))
 	}
 	return "", word, errUnknownCommand
 }
@@ -280,6 +283,14 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 		}
 		hl.SetSuccess()
 		return nil
+
+	case "backup":
+		// A restorable copy of a folder, a drive or a share (SP-0198); the
+		// verbs record through outcome.go like every other.
+		return finishVerb(handleBackupCommand(rest, hl), hl)
+
+	case "restore":
+		return finishVerb(handleRestoreCommand(rest, hl), hl)
 
 	case "check":
 		if len(rest) < 1 {

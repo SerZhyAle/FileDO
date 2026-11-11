@@ -1,0 +1,21 @@
+{
+  "$comment": "Project profile for the canon-shipped harness (tools/harness in the sza plugin), written 2026-10-29 when the project joined the task-flow ledger (owner order: every project in the ledger, worked by the portfolio runner). Only what differs from the canon defaults is here. Ticket files are PLAN/<id>_<slug>.md; a file written there without a ledger row is registered by the portfolio queue sync (TASK-FLOW rule 65).",
+  "version": "1",
+  "projectName": "FileDo",
+  "envPrefix": "SZA",
+  "paths": {
+    "specsDir": "PLAN",
+    "specArchiveDir": "PLAN/done",
+    "releaseQueue": "PLAN/PQ_QUEUE.md",
+    "releaseReady": "PLAN/PQ_READY.md",
+    "releaseQueueDone": "PLAN/PQ_DONE.md"
+  },
+  "grammar": {
+    "ticketIdPattern": "^SP-\\d{4}$",
+    "specFilePattern": "^PLAN/(done/)?SP-\\d{4}_(?!spec_)",
+    "specFileTemplate": "PLAN/{0}_{1}.md"
+  },
+  "probes": {
+    "enabled": false
+  }
+}

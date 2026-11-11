@@ -12,7 +12,7 @@
   The disposable VHDX is made and removed by two short elevated phases of this same script
   (-Phase setup / -Phase teardown), which also hash the sentinel partitions before and after. Nothing else
   on the machine is touched. Evidence goes to temp\evidence\<run-id>\ (git-ignored, private).
-  Exit code: 0 every step passed, 1 a step failed, 2 could not run.
+  Exit code: 0 every step passed, 1 a step failed, 2 could not run (or no step ran).
 #>
 param(
   [ValidateSet('run', 'setup', 'teardown')][string]$Phase = 'run',
@@ -22,6 +22,17 @@ param(
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
 $FileDOType = '{6afb315b-8976-4841-84ec-d30afa89a33d}'
+
+# CHECK-VERDICT 0.14 item A: the run ends in one test verdict line, with no timestamp before the subject.
+function Verdict([int]$code, [string]$why = '') {
+  $ran = if ($results) { $results.Count } else { 0 }
+  $failedN = if ($results) { @($results | Where-Object { -not $_.Pass }).Count } else { 0 }
+  $word = switch ($code) { 0 { 'PASS' } 1 { 'FAIL' } default { 'COULD NOT VERIFY' } }
+  $line = "partition-broker: $word (run=$ran skipped=0$(if ($code -eq 1) { " failed=$failedN" })$(if ($code -eq 2 -and $why) { ", $why" }))"
+  Write-Host $line
+  if ($log) { Add-Content $log $line -ErrorAction SilentlyContinue }
+  exit $code
+}
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 Add-Type -TypeDefinition @'
@@ -91,7 +102,7 @@ if ($Phase -eq 'teardown') {
 }
 
 # ---------------------------------------------------------------- the unelevated run
-if ($admin) { Write-Host 'Run this from an ordinary, NOT elevated PowerShell: it proves the unelevated path.'; exit 2 }
+if ($admin) { Write-Host 'Run this from an ordinary, NOT elevated PowerShell: it proves the unelevated path.'; Verdict 2 'elevated console' }
 $run = 'partbroker-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
 $Out = Join-Path $root "temp\evidence\$run"
 New-Item -ItemType Directory -Force $Out | Out-Null
@@ -124,12 +135,12 @@ try {
   $old = $env:GOARCH; $env:GOARCH = 'amd64'
   & go build -o $exe ./cmd/filedo 2>&1 | Tee-Object -Append $log
   $env:GOARCH = $old
-  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $exe)) { Say 'build failed'; exit 2 }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $exe)) { Verdict 2 'the build failed' }
 } finally { Pop-Location }
 
 [void](Elevated 'setup')
 $setup = try { Get-Content (Join-Path $Out 'setup.json') -Raw | ConvertFrom-Json } catch { $null }
-if (-not $setup -or -not $setup.ok) { Say "setup failed: $($setup.error)"; exit 2 }
+if (-not $setup -or -not $setup.ok) { Verdict 2 "setup failed: $($setup.error)" }
 $guid = $setup.guid
 Say "disposable disk $($setup.disk) {$guid}"
 try {
@@ -177,6 +188,6 @@ $td = try { Get-Content (Join-Path $Out 'teardown.json') -Raw | ConvertFrom-Json
 Step 'no FileDO partition left, sentinels unchanged' ([bool]($td -and $td.fileDOLeft -eq 0 -and $td.sentinelsUnchanged)) ($td | ConvertTo-Json -Compress)
 $failed = @($results | Where-Object { -not $_.Pass })
 $results | Format-Table -AutoSize | Out-String | Tee-Object -Append $log | Write-Host
-if ($failed.Count) { Say "FAIL: $($failed.Count) of $($results.Count) steps"; exit 1 }
-Say "PASS: $($results.Count) steps"
-exit 0
+if ($failed.Count) { Verdict 1 }
+if ($results.Count -eq 0) { Verdict 2 'no step ran' }
+Verdict 0

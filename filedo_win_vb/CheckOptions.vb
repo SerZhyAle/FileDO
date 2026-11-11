@@ -142,7 +142,7 @@ Public Class CheckOptionsPanel
     End Sub
 
     Private Function MakeBool(name As String) As Control
-        Dim c As New CheckBox With {
+        Dim c As New BooleanOption With {
             .Text = "--" & name,
             .AutoSize = True,
             .Margin = Ui.PxPad(Me, 0, 2, 18, 2)

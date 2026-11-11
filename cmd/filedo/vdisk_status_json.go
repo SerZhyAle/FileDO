@@ -242,7 +242,7 @@ func vdMachineOutput(argv []string) bool {
 		case (a == "--events" || a == "--stop-file") && i+1 < len(argv):
 			i++
 		case strings.HasPrefix(a, "--events="), strings.HasPrefix(a, "--stop-file="),
-			a == "--no-ui", a == "--pause", a == "-pause", a == "/pause", a == "--no-history":
+			a == "--no-ui", a == "--pause", a == "-pause", a == "/pause", a == "--no-history", a == "--logon-task":
 		default:
 			words = append(words, a)
 		}

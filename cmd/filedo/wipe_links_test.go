@@ -121,6 +121,14 @@ func TestFileWipeRefusesAFileAnotherProgramHoldsOpen(t *testing.T) {
 	}
 	defer held.Close()
 
+	// The refusal names another program and never a program to close (SP-0203).
+	path := filepath.Join(dir, "plain.txt")
+	_, err = openForWipe(path)
+	if err == nil || !strings.Contains(err.Error(), "open in another program") ||
+		strings.Contains(strings.ToLower(strings.ReplaceAll(err.Error(), path, "")), "close") {
+		t.Fatalf("openForWipe of a file held open returned %v, want the another-program sentence and no program to close", err)
+	}
+
 	out, code := run(t, dir, "file", "plain.txt", "wipe", "--force")
 	if code == 0 {
 		t.Fatalf("file wipe --force of a file held open exited 0\n%s", out)

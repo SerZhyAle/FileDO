@@ -155,6 +155,10 @@ Public Class JobView
     Private diskFactsGeneration As Integer = 0
     Private diskFactsPath As String = ""
 
+    ' The Backup and Restore pages (SP-0198): step 3 is one panel; the password is the credential
+    ' block below, shown for a sealed backup and for a restore of a .fd-sec.
+    Private backupPanel As BackupOptionsPanel
+
     ' What step 3 holds for the job on screen. These are fields rather than the controls' own
     ' Visible property for the reason UpdateParamsVisibility already documents: a control reports
     ' Visible = False while any parent of it is hidden, and this page is built before it is shown.
@@ -406,7 +410,11 @@ Public Class JobView
         diskFactsPath = ""
         diskPanel.Reset()
         diskResult.Clear()
+        backupPanel.Reset()
         ApplyJobShape()
+        ' Fill cleans up after itself unless the user opts out (SP-0194). It is the Fill page's default
+        ' alone: a capacity test keeps its files when it finds a defect, so Test stays unchecked.
+        If job IsNot Nothing AndAlso job.DefaultVerb = "fill" Then optionsCheckAutoDel.Checked = True
 
         outputPane.Clear()
         progressBar.Value = 0
@@ -460,6 +468,9 @@ Public Class JobView
             targetBrowseBtn.Text = L("shell_btn_browse_file")
             targetBrowseBtn.Glyph = ChooseFileGlyph
         End If
+        ' A backup names a folder, a drive or a network folder; a restore names the backup file.
+        If job.DefaultVerb = "backup" Then targetLabel.Text = L("shell_lbl_backup_source")
+        If job.DefaultVerb = "restore" Then targetLabel.Text = L("shell_lbl_backup_file")
         targetCombo.AccessibleName = targetLabel.Text
 
         ' "Open in Command" hands over one password; `pass` needs two, so its line is not offered
@@ -485,6 +496,7 @@ Public Class JobView
 
         ApplyOptionShape()
         ApplyFdsecShape()
+        ApplyBackupShape()
         UpdateParamsVisibility()
     End Sub
 
@@ -497,6 +509,8 @@ Public Class JobView
         Dim verb = If(IsDisk(), "", job.DefaultVerb)
         diskPanel.Visible = IsDisk()
         If IsDisk() Then diskPanel.Configure(job.DefaultVerb)
+        backupPanel.Visible = IsBackup()
+        If IsBackup() Then backupPanel.Configure(job.DefaultVerb)
 
         ' `speed` deletes its file unless told `nodel` and takes no `del` (AUD-26-F1).
         optionsCheckAutoDel.Visible = (verb = "test" OrElse verb = "fill")
@@ -654,10 +668,56 @@ Public Class JobView
         End Select
     End Function
 
+    ' The backup pair (SP-0198).
+    Private Function IsBackup() As Boolean
+        If job Is Nothing Then Return False
+        Return job.DefaultVerb = "backup" OrElse job.DefaultVerb = "restore"
+    End Function
+
+    ' A sealed backup writes a container and a restore of a .fd-sec opens one: both need the password.
+    ' A plain zip takes none, and the CLI refuses one given to it.
+    Private Function BackupWantsPassword() As Boolean
+        If Not IsBackup() Then Return False
+        If job.DefaultVerb = "backup" Then Return backupPanel.Sealed
+        Return GetRawTarget().EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Function BackupIsDestructiveNow() As Boolean
+        Return IsBackup() AndAlso backupPanel.IsDestructiveNow()
+    End Function
+
+    ' The backup pages borrow two blocks of the secret-file pages: the destination row of step 2
+    ' (`to`) and the credential block. Of the dispositions block only its last line applies - the
+    ' password is handed over out of sight - so it alone is shown.
+    Private Sub ApplyBackupShape()
+        If Not IsBackup() Then Return
+        Dim wantsPw = BackupWantsPassword()
+        Dim sealing = backupPanel.Sealed
+        credRow.Visible = wantsPw
+        credConfirmLabel.Visible = sealing
+        credConfirmBox.Visible = sealing
+        fdsecRow.Visible = wantsPw
+        For Each c As Control In fdsecRow.Controls
+            c.Visible = (c Is credHintLabel)
+        Next
+        ' A password typed for a seal that was then switched off is not kept for a later run.
+        If Not wantsPw AndAlso (credBox.Text <> "" OrElse credConfirmBox.Text <> "") Then
+            credBox.Text = ""
+            credConfirmBox.Text = ""
+        End If
+        secondTargetRow.Visible = True
+        secondTargetLabel.Visible = True
+        secondTargetLabel.Text = If(job.DefaultVerb = "backup", L("shell_bk_dest"), L("shell_rs_dest"))
+        UpdateCredentialNotice()
+    End Sub
+
     Private Sub ApplyFdsecShape()
         Dim fdsec = IsFdsec()
         credRow.Visible = fdsec
         fdsecRow.Visible = fdsec
+        ' A backup page hides these two; every secret-file page shows them.
+        fdsecNoticeLabel.Visible = True
+        credHintLabel.Visible = True
         If Not fdsec Then
             ' Both labels are shared with the jobs that had them first, so a
             ' page left without restoring them would relabel the next one.
@@ -742,7 +802,8 @@ Public Class JobView
             credNoticeLabel.Text = L("shell_cred_empty")
         ElseIf pwd.Length < 12 Then
             credNoticeLabel.Text = L("shell_cred_short")
-        ElseIf job IsNot Nothing AndAlso job.DefaultVerb = "secure" AndAlso credConfirmBox.Text <> pwd Then
+        ElseIf job IsNot Nothing AndAlso (job.DefaultVerb = "secure" OrElse (IsBackup() AndAlso backupPanel.Sealed)) AndAlso
+               credConfirmBox.Text <> pwd Then
             credNoticeLabel.Text = L("shell_cred_mismatch")
         Else
             credNoticeLabel.Text = L("shell_cred_ok")
@@ -795,7 +856,7 @@ Public Class JobView
         ' still asked rather than assumed: a job added later with no parameters gets no empty card.
         Dim any = showsPresets OrElse showsSize OrElse showsDup OrElse showsCompare OrElse
                   showsCopy OrElse showsCheck OrElse job.IsDestructive OrElse IsFdsec() OrElse
-                  optionChecksShown OrElse IsDisk()
+                  optionChecksShown OrElse IsDisk() OrElse IsBackup()
         paramsCard.Visible = any
         planHeader.Text = If(any, L("shell_step4"), L("shell_step3_check"))
         paramsHeader.Text = L("shell_step3")
@@ -847,7 +908,7 @@ Public Class JobView
     Private Sub ApplyDestructiveAccent()
         Dim p = Theme.Current
         Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse
-                          CmpIsDestructiveNow() OrElse DiskIsDestructiveNow()
+                          CmpIsDestructiveNow() OrElse DiskIsDestructiveNow() OrElse BackupIsDestructiveNow()
         If paramsCard.Accented <> destructive Then
             paramsCard.Accented = destructive
             paramsCard.AccentColour = p.Danger
@@ -1082,10 +1143,10 @@ Public Class JobView
             .WrapContents = False,
             .Margin = Ui.PxPad(Me, 0, 6, 0, 4)
         }
-        optionsCheckAutoDel = New CheckBox With {.Text = L("shell_opt_autodel"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
+        optionsCheckAutoDel = New BooleanOption With {.Text = L("shell_opt_autodel"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
         AddHandler optionsCheckAutoDel.CheckedChanged, Sub() OptionChanged()
 
-        optionsCheckForce = New CheckBox With {.Text = L("shell_opt_force"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
+        optionsCheckForce = New BooleanOption With {.Text = L("shell_opt_force"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
         AddHandler optionsCheckForce.CheckedChanged, Sub() UpdatePlanCard()
 
         optionsCheckNoDel = NewOption("shell_opt_nodel")
@@ -1157,10 +1218,11 @@ Public Class JobView
         Ui.Wrap(credHintLabel, paramsCard, Ui.Px(Me, 36))
         Ui.Wrap(fdsecNoticeLabel, paramsCard, Ui.Px(Me, 36))
         diskPanel.WrapIn(paramsCard, Ui.Px(Me, 36))
+        backupPanel.WrapIn(paramsCard, Ui.Px(Me, 36))
     End Sub
 
     Private Function NewOption(key As String) As CheckBox
-        Dim c As New CheckBox With {.Text = L(key), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2), .Visible = False}
+        Dim c As New BooleanOption With {.Text = L(key), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2), .Visible = False}
         AddHandler c.CheckedChanged, Sub() OptionChanged()
         Return c
     End Function
@@ -1197,11 +1259,22 @@ Public Class JobView
                 UpdatePlanCard()
             End Sub
 
+        backupPanel = New BackupOptionsPanel()
+        ' An answer here can bring the password block in or take it away (a sealed backup), move
+        ' the danger accent (delete the archive after a restore) and always rewrites the plan.
+        AddHandler backupPanel.Changed,
+            Sub()
+                ApplyBackupShape()
+                ApplyTheme()
+                UpdatePlanCard()
+            End Sub
+
         extrasFlow.Controls.Add(dupRow)
         extrasFlow.Controls.Add(cmpRow)
         extrasFlow.Controls.Add(copyRow)
         extrasFlow.Controls.Add(checkOptions)
         extrasFlow.Controls.Add(diskPanel)
+        extrasFlow.Controls.Add(backupPanel)
     End Sub
 
     ' The duplicate scan asks two separate questions - which copy is the original, and what
@@ -1262,7 +1335,7 @@ Public Class JobView
 
         ' `list <file>` writes the duplicate groups to a file the CLI can be handed back later
         ' (`cd from list <file>`), which is the whole point of scanning a slow drive once.
-        dupListCheck = New CheckBox With {.Text = L("shell_dup_list"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
+        dupListCheck = New BooleanOption With {.Text = L("shell_dup_list"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
         AddHandler dupListCheck.CheckedChanged, Sub() OptionChanged()
 
         Dim listHost As New FlowLayoutPanel With {
@@ -1277,7 +1350,7 @@ Public Class JobView
         AddHandler dupListBox.TextChanged, Sub() UpdatePlanCard()
         listHost.Controls.Add(dupListBox)
 
-        dupQuietCheck = New CheckBox With {.Text = L("shell_dup_quiet"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 2)}
+        dupQuietCheck = New BooleanOption With {.Text = L("shell_dup_quiet"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 2)}
         AddHandler dupQuietCheck.CheckedChanged, Sub() OptionChanged()
 
         dupRow.Controls.Add(dupRuleLabel)
@@ -1372,7 +1445,7 @@ Public Class JobView
         AddHandler credBox.TextChanged, Sub() CredentialChanged()
         credRow.Controls.Add(credBox, 0, 1)
 
-        credShowCheck = New CheckBox With {.Text = L("shell_cred_show"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 4)}
+        credShowCheck = New BooleanOption With {.Text = L("shell_cred_show"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 4)}
         AddHandler credShowCheck.CheckedChanged,
             Sub()
                 credBox.UseSystemPasswordChar = Not credShowCheck.Checked
@@ -1417,16 +1490,16 @@ Public Class JobView
             AddHandler r.CheckedChanged, Sub() FdsecOptionChanged()
         Next
 
-        fdsecRenameCheck = New CheckBox With {.Text = L("shell_fdsec_rename"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
+        fdsecRenameCheck = New BooleanOption With {.Text = L("shell_fdsec_rename"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
         AddHandler fdsecRenameCheck.CheckedChanged, Sub() FdsecOptionChanged()
 
-        fdsecDelContainerCheck = New CheckBox With {.Text = L("shell_fdsec_del_container"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
+        fdsecDelContainerCheck = New BooleanOption With {.Text = L("shell_fdsec_del_container"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
         AddHandler fdsecDelContainerCheck.CheckedChanged, Sub() FdsecOptionChanged()
 
-        fdsecKeepCopyCheck = New CheckBox With {.Text = L("shell_fdsec_keep_copy"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
+        fdsecKeepCopyCheck = New BooleanOption With {.Text = L("shell_fdsec_keep_copy"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
         AddHandler fdsecKeepCopyCheck.CheckedChanged, Sub() FdsecOptionChanged()
 
-        fdsecRwCheck = New CheckBox With {.Text = L("shell_fdsec_rw"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
+        fdsecRwCheck = New BooleanOption With {.Text = L("shell_fdsec_rw"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
         AddHandler fdsecRwCheck.CheckedChanged, Sub() FdsecOptionChanged()
 
         fdsecNoticeLabel = New Label With {.Text = L("shell_fdsec_reveal_where"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 8, 0, 2)}
@@ -1560,6 +1633,7 @@ Public Class JobView
         progressBar.AccessibleName = L("shell_state_running")
 
         stopBtn = Ui.GlyphCommandButton(L("shell_btn_stop"), GlyphRef.Vocabulary("action.cancel"), Ui.PxPad(Me, 0, 0, 0, 6))
+        stopBtn.ReservedCaptionKeys = New String() {"shell_btn_remove_copy", "shell_btn_end_run_now"}
         stopBtn.Face = GlyphButtonFace.DangerFill
         AddHandler stopBtn.Click, AddressOf StopBtn_Click
 
@@ -1576,6 +1650,7 @@ Public Class JobView
         metaRow.Controls.Add(timeLabel)
 
         toggleOutputBtn = Ui.GlyphCommandButton(L("shell_btn_show_output"), GlyphRef.Vocabulary("nav.expand"), New Padding(0))
+        toggleOutputBtn.ReservedCaptionKeys = New String() {"shell_btn_hide_output"}
         AddHandler toggleOutputBtn.Click, AddressOf ToggleOutputBtn_Click
         secondaryButtons.Add(toggleOutputBtn)
 
@@ -1818,6 +1893,26 @@ Public Class JobView
         wipeConfirmBox.Text = typed
     End Sub
 
+    ' The Backup and Restore pages (SP-0198): the destination box and step 3, as the user would set them.
+    Friend Sub SetBackupForTest(dest As String, sealed As Boolean, keepZip As Boolean, level As String, root As Boolean,
+                                skipLinks As Boolean, suffix As Boolean, del As Boolean)
+        secondTargetBox.Text = dest
+        backupPanel.SetForTest(sealed, keepZip, level, root, skipLinks, suffix, del)
+        UpdatePlanCard()
+    End Sub
+
+    Friend ReadOnly Property PasswordShownForTest As Boolean
+        Get
+            Return BackupWantsPassword() OrElse IsFdsec()
+        End Get
+    End Property
+
+    ' The credential pair, as the two boxes would hold it.
+    Friend Sub SetCredentialPairForTest(first As String, second As String)
+        credBox.Text = first
+        credConfirmBox.Text = second
+    End Sub
+
     Friend ReadOnly Property DestructiveBadgeShownForTest As Boolean
         Get
             Return destructiveBadge.Visible
@@ -2036,7 +2131,7 @@ Public Class JobView
 
     Private Function SecondPathsRefused() As Boolean
         Dim wantsDest = job IsNot Nothing AndAlso
-                        (job.TargetKind = JobDefinition.TargetType.SourceAndTarget OrElse
+                        (job.TargetKind = JobDefinition.TargetType.SourceAndTarget OrElse IsBackup() OrElse
                          (IsFdsec() AndAlso (job.DefaultVerb = "secure" OrElse job.DefaultVerb = "unsecure")))
         If wantsDest AndAlso secondTargetBox.Enabled AndAlso secondTargetBox.Text.Trim() <> "" AndAlso
            TargetPath.Resolve(secondTargetBox.Text) Is Nothing Then Return True
@@ -2047,6 +2142,11 @@ Public Class JobView
 
     Private Sub TargetChanged()
         If diskPanel IsNot Nothing AndAlso IsDisk() Then diskPanel.ForgetConfirmation()
+        ' A root asks its own question on a Backup page; a .fd-sec asks for the password on Restore.
+        If backupPanel IsNot Nothing AndAlso IsBackup() Then
+            backupPanel.SetTarget(GetRawTarget())
+            ApplyBackupShape()
+        End If
         ScheduleDiskFacts()
         UpdatePlanCard()
         UpdateBlastRadius()
@@ -2324,10 +2424,12 @@ Public Class JobView
         If CmpIsDestructiveNow() Then reversibility = "permanent"
         ' An unmount without its final save loses what was not saved yet (SP-0004 5.2).
         If IsDisk() Then reversibility = diskPanel.ReversibilityNow(reversibility)
+        ' The restored folder can be packed again; the deleted archive is a normal delete.
+        If BackupIsDestructiveNow() Then reversibility = "partly reversible"
         reversibilityBadge.Text = L("shell_rev_" & reversibility.Replace(" ", "_"))
 
         destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse CmpIsDestructiveNow() OrElse
-                                   DiskIsDestructiveNow()
+                                   DiskIsDestructiveNow() OrElse BackupIsDestructiveNow()
         destructiveBadge.Text = L("shell_badge_destructive")
         elevationBadge.Visible = job.NeedsElevation
         elevationBadge.Text = L("shell_badge_elevation")
@@ -2406,6 +2508,26 @@ Public Class JobView
         ' than a minute later in the output box.
         If Not ParametersComplete() Then
             startBtn.Enabled = False
+            Return
+        End If
+
+        ' The backup pair: what the CLI would refuse after the start - the system drive, a root not
+        ' confirmed, a root with nowhere named to write, a restore of something that is no backup -
+        ' refused here with the reason, and a sealed backup whose two passwords differ.
+        If IsBackup() Then
+            Dim key = backupPanel.BlockReasonKey(target, ResolvedOrRaw(secondTargetBox.Text))
+            If key <> "" Then
+                startBtn.Enabled = False
+                ShowRunBlocked(L(key))
+                tips.SetToolTip(startBtn, runBlockedLabel.Text)
+                Return
+            End If
+            If backupPanel.Sealed AndAlso credConfirmBox.Text <> credBox.Text Then
+                startBtn.Enabled = False
+                tips.SetToolTip(startBtn, L("shell_cred_mismatch"))
+                Return
+            End If
+            startBtn.Enabled = True
             Return
         End If
 
@@ -2662,6 +2784,22 @@ Public Class JobView
                 Else
                     args.Add("pe:" & CredentialEnvName)
                 End If
+
+            Case "backup", "restore"
+                ' The verb leads (cmd\filedo\backup_cmd.go): the first word that is not an option
+                ' is the source or the archive, and `to` names where the result goes.
+                args.Add(job.DefaultVerb)
+                If hasTarget Then args.Add(target)
+                Dim dest = ResolvedOrRaw(secondTargetBox.Text)
+                If dest <> "" Then
+                    args.Add("to")
+                    args.Add(dest)
+                End If
+                args.AddRange(backupPanel.ToArgs())
+                ' The password by name, as on the Protect pages; an empty one as the visible p:.
+                If BackupWantsPassword() Then
+                    args.Add(If(String.IsNullOrEmpty(credBox.Text), "p:", "pe:" & CredentialEnvName))
+                End If
         End Select
 
         ' `nohist` is read wherever it appears in the line (main.go), and it is the one option
@@ -2781,6 +2919,15 @@ Public Class JobView
             Return
         End If
 
+        If job IsNot Nothing AndAlso job.DefaultVerb = "restore" Then
+            Using dlg As New OpenFileDialog()
+                dlg.Title = L("shell_dlg_select_backup")
+                dlg.Filter = DiskCommands.FileFilter(L("shell_filter_backup"), "*.zip;*.fd-sec", L("vd_filter_all"))
+                If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.FileName
+            End Using
+            Return
+        End If
+
         If job IsNot Nothing AndAlso job.TargetKind = JobDefinition.TargetType.File Then
             Using dlg As New OpenFileDialog()
                 dlg.Title = L("shell_dlg_select_file")
@@ -2821,7 +2968,7 @@ Public Class JobView
     End Function
 
     Private Sub OpenInCmdBtn_Click(sender As Object, e As EventArgs)
-        RaiseEvent OpenInCommandRequested(commandBox.Text, If(IsFdsec(), credBox.Text, If(IsDisk(), diskPanel.Credential, "")))
+        RaiseEvent OpenInCommandRequested(commandBox.Text, If(IsFdsec() OrElse BackupWantsPassword(), credBox.Text, If(IsDisk(), diskPanel.Credential, "")))
     End Sub
 
     Private Async Sub StartBtn_Click(sender As Object, e As EventArgs)
@@ -2862,7 +3009,7 @@ Public Class JobView
 
         Dim args = BuildCommandArgs()
         Dim env As Dictionary(Of String, String) = Nothing
-        If IsFdsec() Then
+        If IsFdsec() OrElse BackupWantsPassword() Then
             env = New Dictionary(Of String, String) From {{CredentialEnvName, credBox.Text}}
         ElseIf IsDisk() Then
             ' FILEDO_SHELL_CRED and, for `pass`, FILEDO_SHELL_CRED_NEW - on the child alone.
@@ -2973,6 +3120,18 @@ Public Class JobView
             End If
         End If
 
+        ' SP-0196 / CLI-EVENT-STREAM rule 17: a run that could not finish says why in the language of the
+        ' window - the token the CLI named, or one plain sentence that points at the output - instead of a
+        ' bare exit code. A page that has a table of its own for the run (a container, a disk) keeps it.
+        If Not PageSaysWhy(res) Then
+            Dim why = RunExplanation.SentenceFor(res)
+            If why <> "" Then
+                verdictReasonLabel.Text = If(verdictReasonLabel.Visible AndAlso verdictReasonLabel.Text <> "",
+                                             verdictReasonLabel.Text & Environment.NewLine & why, why)
+                verdictReasonLabel.Visible = True
+            End If
+        End If
+
         Dim numStr = Localization.Format(L("shell_result_summary_fmt"), Ui.FormatDuration(res.Duration), res.ExitCode)
         If res.ResultInfo IsNot Nothing Then
             For Each line In ResultNumberLines(res.ResultInfo.Numbers)
@@ -3014,6 +3173,15 @@ Public Class JobView
             actionOpenReportBtn.Visible = False
         End If
     End Sub
+
+    ' True when this page's own table already holds a sentence for the run: the container's destination
+    ' name (FdsecResults) or a disk verb's exit class (DiskCommands). Two sentences about one cause would
+    ' read as two problems.
+    Private Function PageSaysWhy(res As Runner.RunResult) As Boolean
+        If IsFdsec() AndAlso FdsecResults.ExitKeyFor(job.DefaultVerb, res.ExitCode, res.Output) <> "" Then Return True
+        If IsDisk() AndAlso DiskCommands.ExitKeyFor(job.DefaultVerb, res.ExitCode, res.Output) <> "" Then Return True
+        Return False
+    End Function
 
     ' T6.22, the elevation split (spec 7.2 item 3): a Disks run is never started elevated by this
     ' window. `runas` cannot carry the child-only variable the password travels in, so the password
@@ -3117,7 +3285,7 @@ Public Class JobView
         ' The Erase group is visually distinct, and by more than a colour: it keeps an accent bar
         ' on the card's edge (section 8 item 3).
         Dim destructive = (job IsNot Nothing AndAlso job.IsDestructive) OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse
-                          CmpIsDestructiveNow() OrElse DiskIsDestructiveNow()
+                          CmpIsDestructiveNow() OrElse DiskIsDestructiveNow() OrElse BackupIsDestructiveNow()
         paramsCard.Accented = destructive
         paramsCard.AccentColour = p.Danger
         planCard.Accented = destructive
@@ -3197,6 +3365,7 @@ Public Class JobView
         checkOptions.ApplyTheme()
         diskPanel.ApplyTheme()
         diskResult.ApplyTheme()
+        backupPanel.ApplyTheme()
 
         ' The secret-file fields. The notice under the password is the one
         ' label on this page whose colour carries meaning: it warns while the

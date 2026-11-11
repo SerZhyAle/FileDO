@@ -25,6 +25,7 @@ ERASE
 
 PROTECT
 - Pack one file into a password-protected .fd-sec container, get the original back, or open the contents in the program they belong to without unpacking - from a read-only copy that only your account can read and that is removed when you are done with it. An empty password is accepted and means obfuscation only, not secrecy; FileDO says so where you type it. The container format is published in full, so your data can be read without FileDO.
+- Back up a folder, a drive or a network share into one file: a plain .zip that any zip tool opens, or that zip sealed into a .fd-sec container behind a password. FileDO looks at the content for at most 10 seconds and picks the compression density itself, and restores the backup beside the archive or at the address you name - an existing folder is never merged into or replaced.
 
 VIRTUAL DISKS
 - A .fdd container holds a whole volume in one file. In this edition you can create one, read its facts, read it through for damage, export it as a raw image or a VHD that Windows opens by itself, grow or compact it, copy it, change its password or remove it - no administrator rights needed. Without a password a container is obfuscated, not encrypted: anyone with the file and FileDO can read it. Mounting a container as a drive letter is not available in this edition (see below).
@@ -90,4 +91,4 @@ wipe free space
 password protect file
 
 @@ReleaseNotes
-New: F1 and a new ? button open the help page of the window you are in, in five languages. Changed: buttons and dialog answers look the same everywhere, F6 and Shift+F6 move between the areas of a window, and a .fd-sec container whose sealed name holds a character that Windows refuses in a file name now verifies instead of counting as damaged.
+New: back up a folder, a drive or a network folder into one zip that any zip tool opens, or seal it behind a password, and restore it later - from the command line or from the Protect pages. Changed: a run that cannot finish says why - in its exit code and in the language of the window.

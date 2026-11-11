@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/quick-start.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/quick-start.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/quick-start.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/quick-start.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/quick-start.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/quick-start.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO-Logo und Name mit dem englischen Leitsatz Know your storage before you trust it auf dunkelgrünem Grund" />
+    <meta property="og:title" content="Schnellstart-Matrix: Fenster und CLI - FileDO" />
+    <meta property="og:description" content="Ordnen Sie typische Speicheraufgaben der passenden Seite im FileDO-Fenster und dem Befehl von filedo.exe zu, gruppiert nach Datensicherheit." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Schnellstart-Matrix: Fenster und CLI - FileDO",
+        "headline": "Schnellstart-Matrix: Fenster und CLI - FileDO",
+        "description": "Ordnen Sie typische Speicheraufgaben der passenden Seite im FileDO-Fenster und dem Befehl von filedo.exe zu, gruppiert nach Datensicherheit.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/quick-start.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Schnellstart-Matrix: Fenster und CLI - FileDO</title>
+    <meta
+      name="description"
+      content="Ordnen Sie typische Speicheraufgaben der passenden Seite im FileDO-Fenster und dem Befehl von filedo.exe zu, gruppiert nach Datensicherheit."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/quick-start.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/quick-start.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/quick-start.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="de">Design</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installieren</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/quick-start.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/quick-start.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/quick-start.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/quick-start.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · Schnellstart-Matrix</span>
+        </p>
+        <h1>
+          <span data-l="de">Ordnen Sie Ihre Aufgabe der passenden Fensterseite oder der Befehlszeile zu.</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">FileDO liefert eine gemeinsame Engine mit zwei Oberflächen: dem Windows-Fenster (<code>filedo_win.exe</code>) und der Befehlszeile (<code>filedo.exe</code>). Diese drei Tabellen gruppieren typische Aufgaben danach, was sie mit Ihren Daten tun: zuerst reine Leseprüfungen, danach Operationen, die Testdateien oder Kopien schreiben, und zuletzt zerstörerische Operationen.</span>
+        </p>
+      </section>
+
+      <section class="section" id="read-only">
+        <h2>
+          <span data-l="de">1. Reine Leseprüfungen und Untersuchung</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Diese Operationen lesen Laufwerks-Header, Ordnerbäume oder Dateibytes, ohne Dateien auf dem Ziel zu ändern, anzulegen oder zu löschen.</span>
+        </p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="de">Was ich tun möchte</span></th>
+                <th><span data-l="de">Im Fenster (filedo_win.exe)</span></th>
+                <th><span data-l="de">Befehlszeile (filedo.exe)</span></th>
+                <th><span data-l="de">Wirkung auf Daten &amp; Anleitung</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="de">Größe, Dateisystem und freien Speicherplatz eines Laufwerks oder Ordners prüfen</span></td>
+                <td><span data-l="de">Prüfen - Ziel-Info</span></td>
+                <td><code>filedo E: info</code></td>
+                <td><span data-l="de">Nur lesen; ändert nichts. <a href="check-storage.html">Speicher prüfen</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Beschädigte, unlesbare oder langsam lesbare Dateien finden</span></td>
+                <td><span data-l="de">Prüfen - Prüfung auf beschädigte Dateien</span></td>
+                <td><code>filedo check F:\Photos</code></td>
+                <td><span data-l="de">Nur lesen; liest Dateien und meldet Lesefehler oder Verzögerungen. <a href="check-storage.html">Speicher prüfen</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Doppelte Dateien finden (nur Bericht)</span></td>
+                <td><span data-l="de">Aufräumen - Doppelte Dateien</span></td>
+                <td><code>filedo D:\Archive cd</code></td>
+                <td><span data-l="de">Nur lesen ohne <code>del</code> oder <code>move</code>; listet Dublettengruppen nach SHA-256 auf. <a href="files-and-copies.html">Dubletten &amp; Kopien</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Zwei Ordner vergleichen (nur Bericht)</span></td>
+                <td><span data-l="de">Aufräumen - Zwei Ordner vergleichen</span></td>
+                <td><code>filedo compare D:\A E:\B</code></td>
+                <td><span data-l="de">Nur lesen ohne Löschregel; meldet Unterschiede. <a href="files-and-copies.html">Dubletten &amp; Kopien</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Einen virtuellen .fdd-Datenträger prüfen oder eingebundene Datenträger auflisten</span></td>
+                <td><span data-l="de">Datenträger - Datenträgerverwaltung / Datenträger-Info</span></td>
+                <td><code>filedo vd status</code></td>
+                <td><span data-l="de">Nur lesen; liest Container-Zustand oder Header ohne Einbinden. <a href="virtual-disks.html">Virtuelle Datenträger</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="tests-and-copies">
+        <h2>
+          <span data-l="de">2. Temporäre Testdateien, Kopien, Sicherungen und Container</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Diese Operationen schreiben temporäre Testdateien in den freien Speicherplatz oder legen neue Zieldateien, Container oder virtuelle Datenträger an. Vorhandene Benutzerdateien bleiben erhalten, sofern Sie nicht ausdrücklich eine Löschoption wählen.</span>
+        </p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="de">Was ich tun möchte</span></th>
+                <th><span data-l="de">Im Fenster (filedo_win.exe)</span></th>
+                <th><span data-l="de">Befehlszeile (filedo.exe)</span></th>
+                <th><span data-l="de">Wirkung auf Daten &amp; Anleitung</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="de">USB-Stick oder SD-Karte auf gefälschte Kapazität testen</span></td>
+                <td><span data-l="de">Prüfen - Kapazitätstest (gefälschte Laufwerke)</span></td>
+                <td><code>filedo E: test del</code></td>
+                <td><span data-l="de">Schreibt und prüft Testdateien im freien Speicherplatz; <code>del</code> entfernt sie bei Erfolg (behält sie bei Defekt als Beleg). <a href="check-storage.html">Speicher prüfen</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Echte Lese- und Schreibgeschwindigkeit messen</span></td>
+                <td><span data-l="de">Prüfen - Geschwindigkeitstest</span></td>
+                <td><code>filedo E: speed 100</code></td>
+                <td><span data-l="de">Schreibt eine temporäre Testdatei und entfernt sie danach (<code>nodel</code> behält sie). <a href="check-storage.html">Speicher prüfen</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Einen Ordner kopieren oder lesbare Dateien von einem fehlerhaften Laufwerk retten</span></td>
+                <td><span data-l="de">Verschieben - Dateien kopieren</span></td>
+                <td><code>filedo D:\Src copy E:\Dst</code></td>
+                <td><span data-l="de">Schreibt ins Ziel; die Quelle bleibt unverändert. Nutzen Sie <code>safecopy</code>, um unlesbare Dateien zu überspringen und zu protokollieren. <a href="files-and-copies.html">Dubletten &amp; Kopien</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Eine Datei oder einen Ordner in einen .fd-sec-Container versiegeln oder öffnen</span></td>
+                <td><span data-l="de">Schützen - Datei sichern / Geheime Datei öffnen</span></td>
+                <td><code>filedo C:\doc.pdf secure</code></td>
+                <td><span data-l="de">Erstellt und prüft den Container; behält standardmäßig das Original. <a href="fd-sec-containers.html">Geheime Dateien</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Einen virtuellen .fdd-Datenträger anlegen oder einbinden</span></td>
+                <td><span data-l="de">Datenträger - Datenträger anlegen / Einbinden</span></td>
+                <td><code>filedo vd new work.fdd 20G vault</code></td>
+                <td><span data-l="de">Legt eine neue <code>.fdd</code>-Datei an (überschreibt nie eine bestehende Datei) oder bindet sie als Laufwerksbuchstaben ein. <a href="virtual-disks.html">Virtuelle Datenträger</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="destructive">
+        <h2>
+          <span data-l="de">3. Operationen, die Daten löschen oder überschreiben</span>
+        </h2>
+        <div class="note danger">
+          <span class="tag"><span data-l="de">Löscht oder überschreibt Daten</span></span>
+          <p>
+            <span data-l="de">Diese Befehle löschen Dateien, überschreiben freien Speicherplatz oder schreiben direkte Sektoren. Prüfen Sie vor dem Start den Laufwerksbuchstaben oder Ordnerpfad und bewahren Sie eine Sicherung aller wichtigen Daten auf.</span>
+          </p>
+        </div>
+        <div class="matrix-wrap danger">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="de">Was ich tun möchte</span></th>
+                <th><span data-l="de">Im Fenster (filedo_win.exe)</span></th>
+                <th><span data-l="de">Befehlszeile (filedo.exe)</span></th>
+                <th><span data-l="de">Schutz &amp; Anleitung</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="de">Eine einzelne Datei überschreiben und löschen</span></td>
+                <td><span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Befehl (oder Explorer-Menü File DO..)</span></td>
+                <td><code>filedo C:\old.doc wipe</code></td>
+                <td><span data-l="de">Überschreibt die Bytes der Datei, leert die Puffer und löscht sie. Verlangt die Eingabe von <code>WIPE</code>. <a href="erase.html">Löschen &amp; Überschreiben</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Einen Ordner schnell leeren (ohne Überschreiben)</span></td>
+                <td><span data-l="de">Löschen - Ordner leeren</span></td>
+                <td><code>filedo D:\Scratch wipe</code></td>
+                <td><span data-l="de">Löscht den gesamten Inhalt des Ordners; verlangt die Eingabe von <code>WIPE</code> und verweigert Laufwerks- und Freigabewurzeln, Analysepunkte und das System-TEMP. <a href="erase.html">Löschen &amp; Überschreiben</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Freien Speicherplatz auf einem Laufwerk überschreiben</span></td>
+                <td><span data-l="de">Löschen - Freien Speicherplatz füllen (mit Auto-Löschen)</span></td>
+                <td><code>filedo E: fill del</code></td>
+                <td><span data-l="de">Füllt den freien Speicherplatz mit <code>FILL_*</code>-Dateien und löscht sie anschließend, um früher gelöschte Daten zu überschreiben. <a href="erase.html">Löschen &amp; Überschreiben</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Doppelte Dateien löschen oder verschieben</span></td>
+                <td><span data-l="de">Aufräumen - Doppelte Dateien</span></td>
+                <td><code>filedo D:\Archive cd old del</code></td>
+                <td><span data-l="de">Behält eine Kopie pro SHA-256-Gruppe und löscht oder verschiebt den Rest; das Fenster verlangt die Eingabe von <code>DELETE</code> oder <code>MOVE</code>. <a href="files-and-copies.html">Dubletten &amp; Kopien</a></span></td>
+              </tr>
+              <tr>
+                <td><span data-l="de">Direkte LBA-Kapazitätsprüfung ausführen</span></td>
+                <td><span data-l="de">Prüfen - Direkte Kapazitätsprüfung</span></td>
+                <td><code>filedo E: probe</code></td>
+                <td><span data-l="de">Verlangt Administratorrechte und die Bestätigung des Laufwerksbuchstabens; schreibt Rohsektoren und kann danach <code>recover</code> erfordern. <a href="check-storage.html">Speicher prüfen</a></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "Schnellstart-Matrix: Fenster und CLI - FileDO",
+          description:
+            "Ordnen Sie typische Speicheraufgaben der passenden Seite im FileDO-Fenster und dem Befehl von filedo.exe zu, gruppiert nach Datensicherheit.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
+  </body>
+</html>

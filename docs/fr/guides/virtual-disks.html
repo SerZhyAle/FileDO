@@ -287,7 +287,7 @@
             <span data-l="fr"><b>La version du Microsoft Store ne peut pas monter.</b> Une application empaquetée ne peut ni configurer l’initiateur iSCSI ni demander des droits d’administrateur ; <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code>, <code>vd auto</code>, <code>vd guard</code> et <code>vd register</code> s’y terminent donc avec le code de sortie 6 (non pris en charge). <code>info</code>, <code>verify</code>, <code>export</code>, <code>compact</code>, <code>grow</code>, <code>seal</code>, <code>clone</code>, <code>pass</code>, <code>destroy</code>, <code>vd new</code>, <code>vd list</code>, <code>vd status</code>, <code>vd add</code> et <code>vd forget</code> y fonctionnent aussi. Pour monter, installez le setup ou la version portable depuis GitHub.</span>
           </li>
           <li>
-            <span data-l="fr"><b>Un montage survit à la fenêtre.</b> Si vous fermez la fenêtre FileDO alors qu’un disque est monté, le lecteur et son serveur restent ; une nouvelle fenêtre les liste de nouveau. Démontez dans le Gestionnaire de disques, sur les pages du groupe Disques, ou avec <code>filedo X: unmount</code>.</span>
+            <span data-l="fr"><b>Un montage survit à la fenêtre.</b> Si vous fermez la fenêtre FileDO alors qu’un disque est monté, le lecteur et son serveur restent ; une nouvelle fenêtre les liste de nouveau. Démontez dans le Gestionnaire de disques, sur les pages du groupe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Disques, ou avec <code>filedo X: unmount</code>.</span>
           </li>
         </ol>
       </section>
@@ -379,7 +379,7 @@
           </article>
         </div>
         <p class="intro">
-          <span data-l="fr">Un disque sur partition se désigne par son nom ou par son localisateur <code>fdpart:{GUID}</code>, jamais par un chemin : <code>filedo vd mount data</code>. <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code>, <code>vd auto</code> et le gardien d’arrêt fonctionnent comme pour un fichier ; <code>compact</code> et <code>grow</code> non (sa taille est fixe), et le partager via Fast Media Sorter est refusé pour l’instant. <code>vd adopt fdpart:{GUID} as data</code> enregistre une partition FileDO que ce PC ne connaît pas (un disque venu d’un autre PC) ; <code>vd forget</code> retire le nom et laisse la partition sur son disque. Un disque refusé se termine avec le code de sortie 6, un accord refusé avec le code de sortie 7, et une disposition modifiée depuis son affichage dans la liste avec le code de sortie 5 - sans que rien ne soit modifié.</span>
+          <span data-l="fr">Un disque sur partition se désigne par son nom ou par son localisateur <code>fdpart:{GUID}</code>, jamais par un chemin : <code>filedo vd mount data</code>. <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code>, <code>vd auto</code> et le gardien d’arrêt fonctionnent comme pour un fichier ; <code>compact</code> et <code>grow</code> non (sa taille est fixe), et le partager via Fast Media Sorter est refusé. <code>vd adopt fdpart:{GUID} as data</code> enregistre une partition FileDO que ce PC ne connaît pas (un disque venu d’un autre PC) ; <code>vd forget</code> retire le nom et laisse la partition sur son disque. Un disque refusé se termine avec le code de sortie 6, un accord refusé avec le code de sortie 7, et une disposition modifiée depuis son affichage dans la liste avec le code de sortie 5 - sans que rien ne soit modifié.</span>
         </p>
         <ol class="steps">
           <li>
@@ -404,7 +404,7 @@
           <span data-l="fr">Le double-clic, l’Explorateur et la fenêtre</span>
         </h2>
         <p class="intro">
-          <span data-l="fr">Le programme d’installation propose le type <code>.fdd</code> comme fonctionnalité à part, « Disk container files (.fdd) », que vous pouvez décocher (<code>DiskContainerIntegration</code> dans <code>ADDLOCAL</code>). Sans le programme d’installation, <code>filedo vd register</code> écrit la même chose - pour cet utilisateur, ou avec <code>-all-users</code> pour toute la machine - et <code>filedo vd unregister</code> la retire. Les trois entrées ouvrent la fenêtre FileDO. Un double-clic monte : un conteneur camouflé fermé proprement tout de suite ; un conteneur chiffré demande son mot de passe dans la fenêtre, jamais sur une ligne de commande ; un conteneur qui n’a pas été fermé proprement le dit d’abord, avec l’heure de son dernier enregistrement complet, et attend ; un conteneur déjà monté ouvre son lecteur. Le menu contextuel ajoute « Mount read-only » et « Unmount » ; sous Windows 11, ils se trouvent sous « Afficher d’autres options ». Dans la fenêtre, le groupe Disques a une page par opération, et <a href="#manager">le Gestionnaire de disques</a> liste tous les disques au même endroit. La version du Microsoft Store n’a aucune entrée de menu, mais un double-clic sur un <code>.fdd</code> ouvre la fenêtre FileDO sur ce conteneur, et la fenêtre dit clairement que cette version ne peut pas monter.</span>
+          <span data-l="fr">Le programme d’installation propose le type <code>.fdd</code> comme fonctionnalité à part, « Disk container files (.fdd) », que vous pouvez décocher (<code>DiskContainerIntegration</code> dans <code>ADDLOCAL</code>). Sans le programme d’installation, <code>filedo vd register</code> écrit la même chose - pour cet utilisateur, ou avec <code>-all-users</code> pour toute la machine - et <code>filedo vd unregister</code> la retire. Les trois entrées ouvrent la fenêtre FileDO. Un double-clic monte : un conteneur camouflé fermé proprement tout de suite ; un conteneur chiffré demande son mot de passe dans la fenêtre, jamais sur une ligne de commande ; un conteneur qui n’a pas été fermé proprement le dit d’abord, avec l’heure de son dernier enregistrement complet, et attend ; un conteneur déjà monté ouvre son lecteur. Le menu contextuel ajoute « Mount read-only » et « Unmount » ; sous Windows 11, ils se trouvent sous « Afficher d’autres options ». Dans la fenêtre, le groupe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Disques a une page par opération, et <a href="#manager">le Gestionnaire de disques</a> liste tous les disques au même endroit. La version du Microsoft Store n’a aucune entrée de menu, mais un double-clic sur un <code>.fdd</code> ouvre la fenêtre FileDO sur ce conteneur, et la fenêtre dit clairement que cette version ne peut pas monter.</span>
         </p>
         <div class="copybox">
           filedo vd register<button
@@ -421,7 +421,7 @@
           <span data-l="fr">La fenêtre FileDO a une seconde fenêtre pour les disques virtuels : le Gestionnaire de disques. C’est l’interface graphique de <code>filedo.exe</code>, pas un nouveau programme - <code>filedo_win.exe</code> ne fait qu’ouvrir une autre fenêtre. Il réunit tous les disques virtuels au même endroit, une ligne par disque : les disques de votre liste, ceux qui sont montés maintenant et les images disque (VHD, VHDX, ISO) que FileDO a montées. Il se tient à jour sans actualisation manuelle - un montage fait ailleurs apparaît en quelques secondes.</span>
         </p>
         <figure class="shot">
-          <span data-l="fr"><img src="../../assets/guides/gui-disk-manager-fr.png" width="1901" height="1056" loading="lazy" alt="La fenêtre du Gestionnaire de disques : une barre d’outils avec Nouveau disque.., Ajouter.., Monter, Démonter, Ouvrir, Enregistrer, Autres actions, Actualiser, Aide et Fenêtre principale ; une ligne de filtre ; une liste avec les colonnes Nom, Lecteur, État, Profil, Protection, Taille et Auto, où chaque ligne dit son état en toutes lettres à côté d’une icône ; et sous la liste le volet de détails du disque choisi, secrets, monté en lecture seule" /></span>
+          <span data-l="fr"><img src="../../assets/guides/gui-disk-manager-fr.png" width="1901" height="1056" loading="lazy" alt="La fenêtre du Gestionnaire de disques : une barre d’outils avec Nouveau disque.., Ajouter.., Monter, Démonter, Ouvrir, Enregistrer, Autres actions, Actualiser, Aide et Opérations FileDO ; une ligne de filtre ; une liste avec les colonnes Nom, Lecteur, État, Profil, Protection, Taille et Auto, où chaque ligne dit son état en toutes lettres à côté d’une icône ; et sous la liste le volet de détails du disque choisi, secrets, monté en lecture seule" /></span>
           <figcaption>
             <span data-l="fr">Le Gestionnaire de disques sur une liste d’exemple : une ligne par disque, son état en toutes lettres, et le volet de détails du disque choisi.</span>
           </figcaption>
@@ -432,7 +432,7 @@
               <span data-l="fr">Une ligne, un disque</span>
             </h3>
             <p>
-              <span data-l="fr">L’état est écrit en toutes lettres, à côté d’une icône : « Monté » ; « Monté, lecture seule » ; « Monté, 180 MiB non enregistrés » (un disque <code>ram</code> - la quantité pas encore dans le fichier) ; « Serveur disparu - volume hors ligne » ; « Image montée » ; « Fichier absent » ; « Un autre conteneur se trouve à ce chemin » ; « Illisible » ; « Mal fermé » ; « Non monté ». Pour un disque qui n’a pas été fermé proprement, le menu de la ligne propose « Vérifier le volume » (lecture seule) et « Réparer le volume » - soit <code>chkdsk</code> et <code>chkdsk /f</code> ; la réparation demande d’abord, et la ligne de fin dit ce que chkdsk a trouvé. Un disque partagé dans Fast Media Sorter l’indique dans le même mot : « Ouvert dans FMS » (FMS l’a ouvert pour d’autres, et FileDO ne le monte pas) ou une mention comme « partagé dans FMS, fermé ».</span>
+              <span data-l="fr">L’état est écrit en toutes lettres, à côté d’une icône : « Monté » ; « Monté, lecture seule » ; « Monté, 180 MiB non enregistrés » (un disque <code>ram</code> - la quantité pas encore dans le fichier) ; « Serveur disparu - volume hors ligne » ; « Image montée » ; « Fichier absent » ; « Un autre conteneur se trouve à ce chemin » ; « Illisible » ; « Mal fermé » ; « Non monté ». Pour un disque qui n’a pas été fermé proprement, le menu de la ligne propose <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>« Vérifier le volume » et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.recover-drive"/></svg>« Réparer le volume » - soit <code>chkdsk</code> (lecture seule) et <code>chkdsk /f</code> ; la réparation demande d’abord, et la ligne de fin dit ce que chkdsk a trouvé. Un disque partagé dans Fast Media Sorter l’indique dans le même mot : « Ouvert dans FMS » (FMS l’a ouvert pour d’autres, et FileDO ne le monte pas) ou une mention comme « partagé dans FMS, fermé ».</span>
             </p>
           </article>
           <article class="card">
@@ -440,7 +440,7 @@
               <span data-l="fr">Barre d’outils, filtre, détails</span>
             </h3>
             <p>
-              <span data-l="fr">Chaque bouton de la barre d’outils porte une icône : Nouveau disque.., Ajouter.., Monter, Démonter, Ouvrir (dans l’Explorateur), Enregistrer (écrit tout de suite un disque <code>ram</code> dans son fichier), Autres actions, Actualiser, Aide et Fenêtre principale. Une ligne de filtre se trouve dessous : une étiquette, un champ et une croix qui l’efface. Sous la liste, un volet de détails décrit le disque choisi en phrases, avec les boutons qui s’y appliquent ; il se ferme par une croix à son bord droit et revient depuis une fine barre « Afficher les détails » ou depuis le menu Autres actions. Un bouton inutilisable est grisé, et son info-bulle ainsi que le volet de détails disent pourquoi. La version du Microsoft Store ne peut jamais monter : elle masque donc les commandes de montage au lieu de les griser.</span>
+              <span data-l="fr">Chaque bouton de la barre d’outils porte une icône : <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>Nouveau disque.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remember-name"/></svg>Ajouter.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Monter, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unmount-disk"/></svg>Démonter, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>Ouvrir (dans l’Explorateur), <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.save"/></svg>Enregistrer (écrit tout de suite un disque <code>ram</code> dans son fichier), <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>Autres actions, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.refresh"/></svg>Actualiser, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>Aide et Opérations FileDO. Une ligne de filtre se trouve dessous : une étiquette, un champ et une croix qui l’efface. Sous la liste, un volet de détails décrit le disque choisi en phrases, avec les boutons qui s’y appliquent ; il se ferme par une croix à son bord droit et revient depuis une fine barre <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.expand"/></svg>« Afficher les détails » ou depuis le menu <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>Autres actions. Un bouton inutilisable est grisé, et son info-bulle ainsi que le volet de détails disent pourquoi. La version du Microsoft Store ne peut jamais monter : elle masque donc les commandes de montage au lieu de les griser.</span>
             </p>
           </article>
           <article class="card">
@@ -448,7 +448,7 @@
               <span data-l="fr">Un seul geste</span>
             </h3>
             <p>
-              <span data-l="fr">Un double-clic ou <kbd>Entrée</kbd> monte un disque au repos et ouvre le lecteur d’un disque monté - il ne démonte jamais. Un clic droit sur une ligne ouvre son menu : les actions rapides d’abord, celles confiées à une page de tâche sous un séparateur, Formater et Détruire en dernier et dans la couleur de danger. Faites glisser des fichiers <code>.fdd</code> sur la liste pour les ajouter ; faites glisser un <code>.vhd</code>, <code>.vhdx</code> ou <code>.iso</code> pour monter l’image après une confirmation. Un clic avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> sélectionne plusieurs disques.</span>
+              <span data-l="fr">Un double-clic ou <kbd>Entrée</kbd> monte un disque au repos et ouvre le lecteur d’un disque monté - il ne démonte jamais. Un clic droit sur une ligne ouvre son menu : les actions rapides d’abord, celles confiées à une page de tâche sous un séparateur, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formater et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Détruire en dernier et dans la couleur de danger. Faites glisser des fichiers <code>.fdd</code> sur la liste pour les ajouter ; faites glisser un <code>.vhd</code>, <code>.vhdx</code> ou <code>.iso</code> pour monter l’image après une confirmation. Un clic avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> sélectionne plusieurs disques.</span>
             </p>
           </article>
           <article class="card">
@@ -456,7 +456,7 @@
               <span data-l="fr">Opérations à paramètres</span>
             </h3>
             <p>
-              <span data-l="fr">Une opération avec des paramètres, ou sans retour possible - Nouveau disque, Exporter, Compacter, Agrandir, Copie scellée, Cloner, Changer le mot de passe, Formater, Détruire - ouvre sa propre page de tâche dans la fenêtre principale, le conteneur étant déjà choisi. Le gestionnaire ne construit jamais lui-même ces lignes de commande, et Formater et Détruire gardent sur la page de tâche la confirmation à saisir.</span>
+              <span data-l="fr">Une opération avec des paramètres, ou sans retour possible - <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>Nouveau disque.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.export"/></svg>Exporter.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.compact"/></svg>Compacter.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.grow"/></svg>Agrandir.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.seal"/></svg>Copie scellée.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.copy"/></svg>Cloner.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.change-password"/></svg>Changer le mot de passe.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formater.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Détruire.. - ouvre sa propre page de tâche dans la fenêtre principale, le conteneur étant déjà choisi. Le gestionnaire ne construit jamais lui-même ces lignes de commande, et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formater.. et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Détruire.. gardent sur la page de tâche la confirmation à saisir.</span>
             </p>
           </article>
         </div>
@@ -466,7 +466,7 @@
           <span data-l="fr">Démarrage automatique : à l’ouverture de session et à l’arrêt</span>
         </h2>
         <p class="intro">
-          <span data-l="fr">Le démarrage automatique a deux moitiés, réunies dans un seul dialogue : Démarrage automatique.. dans le Gestionnaire de disques (Autres actions, le menu d’un disque ou son volet de détails). La première moitié se joue à l’ouverture de session : chaque conteneur enregistré a un interrupteur qui crée ou supprime une tâche planifiée le montant à l’ouverture de votre session (<code>vd auto</code>). La seconde se joue à l’arrêt : le gardien d’arrêt (<code>vd guard</code>), une tâche par compte, qui à la fin de la session enregistre les disques <code>ram</code> modifiés et démonte chaque conteneur monté, de sorte que chacun est fermé proprement et que l’ouverture de session suivante ne dit pas « Mal fermé ».</span>
+          <span data-l="fr">Le démarrage automatique a deux moitiés, réunies dans un seul dialogue : Démarrage automatique.. dans le Gestionnaire de disques (<svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>Autres actions, le menu d’un disque ou son volet de détails). La première moitié se joue à l’ouverture de session : chaque conteneur enregistré a un interrupteur qui crée ou supprime une tâche planifiée le montant à l’ouverture de votre session (<code>vd auto</code>). La seconde se joue à l’arrêt : le gardien d’arrêt (<code>vd guard</code>), une tâche par compte, qui à la fin de la session enregistre les disques <code>ram</code> modifiés et démonte chaque conteneur monté, de sorte que chacun est fermé proprement et que l’ouverture de session suivante ne dit pas « Mal fermé ».</span>
         </p>
         <figure class="shot">
           <span data-l="fr"><img src="../../assets/guides/gui-disk-autostart-fr.png" width="684" height="1836" loading="lazy" alt="Le dialogue Démarrage automatique : sous À l’ouverture de session, quatre conteneurs enregistrés, chacun avec son état en toutes lettres et un interrupteur - scratch et work ne se montent pas à l’ouverture de session, archive si, et le conteneur chiffré secrets a son interrupteur désactivé avec la raison dessous ; sous À l’arrêt, le gardien Activé et en cours, un bouton Couper, et le dernier passage, qui a fermé proprement deux conteneurs ; puis Bon à savoir" /></span>
@@ -509,7 +509,7 @@
           <span data-l="fr">Clavier du Gestionnaire de disques</span>
         </h2>
         <p class="intro">
-          <span data-l="fr">Les mêmes touches figurent dans l’aide du gestionnaire lui-même, que <kbd>F1</kbd> ouvre.</span>
+          <span data-l="fr">Les mêmes touches figurent dans l’aide du gestionnaire lui-même, que <kbd>F1</kbd> ouvre ; elle se trouve aussi sur ce site : <a href="../../help/fr/disk-manager.html">aide du Gestionnaire de disques</a>.</span>
         </p>
         <div class="tablewrap">
           <table class="keytable">
@@ -527,61 +527,61 @@
               <tr>
                 <td><kbd>Ctrl+N</kbd></td>
                 <td>
-                  <span data-l="fr">Nouveau disque..</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>Nouveau disque..</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+Shift+O</kbd></td>
                 <td>
-                  <span data-l="fr">Fenêtre principale</span>
+                  <span data-l="fr">Opérations FileDO</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+O</kbd></td>
                 <td>
-                  <span data-l="fr">Ajouter..</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remember-name"/></svg>Ajouter..</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+M</kbd></td>
                 <td>
-                  <span data-l="fr">Monter</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Monter</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+Shift+M</kbd></td>
                 <td>
-                  <span data-l="fr">Monter en lecture seule</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Monter en lecture seule</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+U</kbd></td>
                 <td>
-                  <span data-l="fr">Démonter</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unmount-disk"/></svg>Démonter</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+E</kbd></td>
                 <td>
-                  <span data-l="fr">Ouvrir dans l’Explorateur</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>Ouvrir dans l’Explorateur</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+S</kbd></td>
                 <td>
-                  <span data-l="fr">Enregistrer maintenant</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.save"/></svg>Enregistrer maintenant</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+I</kbd></td>
                 <td>
-                  <span data-l="fr">Infos</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Infos</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+Shift+V</kbd></td>
                 <td>
-                  <span data-l="fr">Vérifier</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Vérifier</span>
                 </td>
               </tr>
               <tr>
@@ -593,13 +593,13 @@
               <tr>
                 <td><kbd>Del</kbd></td>
                 <td>
-                  <span data-l="fr">Retirer de la liste (jamais Détruire)</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remove"/></svg>Retirer de la liste (jamais <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Détruire)</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+C</kbd></td>
                 <td>
-                  <span data-l="fr">Copier le chemin</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.copy"/></svg>Copier le chemin</span>
                 </td>
               </tr>
               <tr>
@@ -617,7 +617,7 @@
               <tr>
                 <td><kbd>F5</kbd></td>
                 <td>
-                  <span data-l="fr">Actualiser</span>
+                  <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.refresh"/></svg>Actualiser</span>
                 </td>
               </tr>
               <tr>
@@ -659,7 +659,7 @@
             <span data-l="fr"><b>Le menu Démarrer.</b> Le programme d’installation ajoute une entrée à part, <b>FileDO Disk Manager</b>, dans le cadre de la fonctionnalité principale, elle est donc toujours là. Elle lance <code>filedo_win.exe --disks</code> et ouvre directement le gestionnaire, sans fenêtre principale.</span>
           </li>
           <li>
-            <span data-l="fr"><b>La fenêtre principale.</b> Le bouton « Gestionnaire de disques » dans son en-tête, en haut à droite, et la première ligne du groupe Disques dans sa colonne de gauche ; <kbd>Ctrl+Shift+D</kbd> fait la même chose.</span>
+            <span data-l="fr"><b>La fenêtre principale.</b> La ligne <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.disk-container"/></svg>« Gestionnaire de disques », la première du groupe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Disques dans sa colonne de gauche ; <kbd>Ctrl+Shift+D</kbd> fait la même chose.</span>
           </li>
           <li>
             <span data-l="fr"><b>La ligne de commande.</b> Le commutateur <code>--disks</code>.</span>
@@ -672,7 +672,7 @@
           ><span data-l="fr">Copier</span></button>
         </div>
         <p class="intro">
-          <span data-l="fr">Les deux fenêtres se renvoient l’une à l’autre. Le bouton « Fenêtre principale » du gestionnaire, avec la marque FileDO, ramène la fenêtre principale de FileDO au premier plan - et l’ouvre si le gestionnaire a été lancé seul. Le bouton « Gestionnaire de disques » de la fenêtre principale ouvre le gestionnaire, ou le ramène au premier plan.</span>
+          <span data-l="fr">Les deux fenêtres se renvoient l’une à l’autre. Le bouton « Opérations FileDO » du gestionnaire, avec la marque FileDO, ramène la fenêtre principale de FileDO au premier plan - et l’ouvre si le gestionnaire a été lancé seul. La ligne <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.disk-container"/></svg>« Gestionnaire de disques » de la fenêtre principale ouvre le gestionnaire, ou le ramène au premier plan.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
@@ -680,7 +680,7 @@
               <span data-l="fr">Aide</span>
             </h3>
             <p>
-              <span data-l="fr"><kbd>F1</kbd> ouvre la fenêtre d’aide : ce que dit une ligne, le tableau des touches, quelques points bons à savoir et des liens. Le bouton Aide ouvre un menu : « Aide et raccourcis clavier », « Visite guidée », et des liens vers « Guide : disques virtuels », « Tous les guides », « Site de FileDO », « Documentation et code source » sur GitHub et « Signaler un problème ». Un lien n’est suivi que si vous cliquez dessus ; rien n’est récupéré de lui-même.</span>
+              <span data-l="fr"><kbd>F1</kbd> ouvre la fenêtre d’aide : ce que dit une ligne, le tableau des touches, quelques points bons à savoir et des liens. Le bouton <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>Aide ouvre un menu : <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>« Aide et raccourcis clavier », <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.tour"/></svg>« Visite guidée », et des liens vers <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>« Guide : disques virtuels (site) », <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>« Tous les guides (site) », <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>« Site de FileDO », <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>« Documentation et code source (GitHub) » et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>« Signaler un problème (GitHub) ». Un lien n’est suivi que si vous cliquez dessus ; rien n’est récupéré de lui-même.</span>
             </p>
           </article>
           <article class="card">
@@ -688,7 +688,7 @@
               <span data-l="fr">Première ouverture</span>
             </h3>
             <p>
-              <span data-l="fr">La première fois que le Gestionnaire de disques s’ouvre, il affiche une seule fois « Bienvenue dans le Gestionnaire de disques ». Il dit ce qu’est un disque virtuel et sépare les deux promesses : « Camouflé, pas chiffré : quiconque a ce fichier et FileDO peut le lire. Il s’ouvre sans mot de passe. » « Chiffré : il ne s’ouvre qu’avec son mot de passe. » Il dit que Windows demande l’accord d’un administrateur à chaque montage ou démontage d’un disque, et que vos disques restent montés quand la fenêtre se ferme. Il propose quatre réponses : « Créer mon premier disque.. », « Ajouter un fichier .fdd que j’ai déjà.. », « Lire le guide sur le site » et « Pas maintenant » - une vraie réponse, qui laisse une fenêtre utilisable. Il se rouvre depuis Aide, Visite guidée, et une liste vide montre les mêmes façons de commencer.</span>
+              <span data-l="fr">La première fois que le Gestionnaire de disques s’ouvre, il affiche une seule fois « Bienvenue dans le Gestionnaire de disques ». Il dit ce qu’est un disque virtuel et sépare les deux promesses : « Camouflé, pas chiffré : quiconque a ce fichier et FileDO peut le lire. Il s’ouvre sans mot de passe. » « Chiffré : il ne s’ouvre qu’avec son mot de passe. » Il dit que Windows demande l’accord d’un administrateur à chaque montage ou démontage d’un disque, et que vos disques restent montés quand la fenêtre se ferme. Il propose quatre réponses : <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>« Créer mon premier disque.. », <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remember-name"/></svg>« Ajouter un fichier .fdd que j’ai déjà.. », <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>« Lire le guide sur le site » et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.close"/></svg>« Pas maintenant » - une vraie réponse, qui laisse une fenêtre utilisable. Il se rouvre depuis <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>Aide, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.tour"/></svg>Visite guidée, et une liste vide montre les mêmes façons de commencer.</span>
             </p>
           </article>
         </div>
@@ -701,7 +701,7 @@
         <figure class="shot narrow">
           <span data-l="fr"><img src="../../assets/guides/gui-disk-welcome-fr.png" width="594" height="1033" loading="lazy" alt="La fenêtre de première ouverture, Bienvenue dans le Gestionnaire de disques : une courte explication, les mots sur camouflé et chiffré, la note sur l’accord administrateur, et les boutons Créer mon premier disque.., Ajouter un fichier .fdd que j’ai déjà.., Lire le guide sur le site et Pas maintenant" /></span>
           <figcaption>
-            <span data-l="fr">La fenêtre de première ouverture : trois façons de commencer, et « Pas maintenant » comme vraie réponse.</span>
+            <span data-l="fr">La fenêtre de première ouverture : trois façons de commencer, et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.close"/></svg>« Pas maintenant » comme vraie réponse.</span>
           </figcaption>
         </figure>
         <div class="note">
@@ -709,7 +709,7 @@
             ><span data-l="fr">Rien d’autre ne change</span></span
           >
           <p>
-            <span data-l="fr">Le format et les règles de sécurité sont ceux décrits plus haut. Un montage survit à la fenêtre, et fermer la fenêtre ne démonte jamais. Formater et Détruire gardent sur la page de tâche la confirmation à saisir. Les deux mots gardent leur sens : sans mot de passe, un conteneur est camouflé, pas chiffré ; avec un mot de passe, il est chiffré.</span>
+            <span data-l="fr">Le format et les règles de sécurité sont ceux décrits plus haut. Un montage survit à la fenêtre, et fermer la fenêtre ne démonte jamais. <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formater et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Détruire gardent sur la page de tâche la confirmation à saisir. Les deux mots gardent leur sens : sans mot de passe, un conteneur est camouflé, pas chiffré ; avec un mot de passe, il est chiffré.</span>
           </p>
         </div>
       </section>
@@ -722,6 +722,7 @@
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html"><span data-l="fr">Guides</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="fr">Assistance</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -736,5 +737,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.change-password" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill="currentColor"/></symbol><symbol id="g-action.compact" viewBox="0 0 24 24"><path d="M8 19h3v3h2v-3h3l-4-4-4 4zm8-15h-3V1h-2v3H8l4 4 4-4zM4 9v2h16V9H4zm0 3h16v2H4z" fill="currentColor"/></symbol><symbol id="g-action.copy" viewBox="0 0 24 24"><path d="M16,1L4,1C2.9,1 2,1.9 2,3L2,17L4,17L4,3L16,3L16,1ZM19,5L8,5C6.9,5 6,5.9 6,7L6,21C6,22.1 6.9,23 8,23L19,23C20.1,23 21,22.1 21,21L21,7C21,5.9 20.1,5 19,5ZM19,21L8,21L8,7L19,7L19,21Z" fill="currentColor"/></symbol><symbol id="g-action.create-disk" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM8.25 5h1.5v2.25H12v1.5H9.75V11h-1.5V8.75H6v-1.5h2.25z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.delete" viewBox="0 0 24 24"><path d="M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2L18,7H6v12ZM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4Z" fill="currentColor"/></symbol><symbol id="g-action.export" viewBox="0 0 24 24"><path d="M9,16h6v-6h4l-7,-7 -7,7h4zM5,18h14v2H5z" fill="currentColor"/></symbol><symbol id="g-action.format" viewBox="0 0 24 24"><path d="M16 11h-1V3c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v8H8c-2.76 0-5 2.24-5 5v7h18v-7c0-2.76-2.24-5-5-5zm3 10h-2v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-2v-3c0-.55-.45-1-1-1s-1 .45-1 1v3H9v-3c0-.55-.45-1-1-1s-1 .45-1 1v3H5v-5c0-1.65 1.35-3 3-3h8c1.65 0 3 1.35 3 3v5z" fill="currentColor"/></symbol><symbol id="g-action.grow" viewBox="0 0 24 24"><path d="M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10z" fill="currentColor"/></symbol><symbol id="g-action.mount-disk" viewBox="0 0 24 24"><path d="M11 2h2v6.17l2.59-2.58L17 7l-5 5-5-5 1.41-1.41L11 8.17V2zM4 14h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1zm11.5 2.5a1 1 0 1 0 0 2a1 1 0 1 0 0-2z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.recover-drive" viewBox="0 0 24 24"><path d="M17.73 12.02l3.98-3.98c.39-.39.39-1.02 0-1.41l-4.34-4.34c-.39-.39-1.02-.39-1.41 0l-3.98 3.98L8 2.29C7.8 2.1 7.55 2 7.29 2c-.25 0-.51.1-.7.29L2.25 6.63c-.39.39-.39 1.02 0 1.41l3.98 3.98L2.25 16c-.39.39-.39 1.02 0 1.41l4.34 4.34c.39.39 1.02.39 1.41 0l3.98-3.98 3.98 3.98c.2.2.45.29.71.29.26 0 .51-.1.71-.29l4.34-4.34c.39-.39.39-1.02 0-1.41l-3.99-3.98zM12 9c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-4.71 1.96L3.66 7.34l3.63-3.63 3.62 3.62-3.62 3.63zM10 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2 2c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2.66 9.34l-3.63-3.62 3.63-3.63 3.62 3.62-3.62 3.63z" fill="currentColor"/></symbol><symbol id="g-action.refresh" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" fill="currentColor"/></symbol><symbol id="g-action.remember-name" viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z" fill="currentColor"/></symbol><symbol id="g-action.remove" viewBox="0 0 24 24"><path d="M7,11v2h10v-2H7zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8z" fill="currentColor"/></symbol><symbol id="g-action.save" viewBox="0 0 24 24"><path d="M17,3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2V7l-4,-4zM12,19c-1.66,0 -3,-1.34 -3,-3s1.34,-3 3,-3 3,1.34 3,3 -1.34,3 -3,3zM15,9H5V5h10v4z" fill="currentColor"/></symbol><symbol id="g-action.seal" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83zM2.3 3.7L3.7 2.3l18 18-1.4 1.4z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.unmount-disk" viewBox="0 0 24 24"><path d="M5 17h14v2H5zm7-12L5.33 15h13.34z" fill="currentColor"/></symbol><symbol id="g-action.verify" viewBox="0 0 24 24"><path d="M20,3H4C2.9,3,2,3.9,2,5v14c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V5C22,3.9,21.1,3,20,3z M10,17H5v-2h5V17z M10,13H5v-2h5V13z M10,9H5V7h5V9z M14.82,15L12,12.16l1.41-1.41l1.41,1.42L17.99,9l1.42,1.42L14.82,15z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-app.help" viewBox="0 0 24 24"><path d="M11,18h2v-2h-2v2zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8zM12,6c-2.21,0 -4,1.79 -4,4h2c0,-1.1 0.9,-2 2,-2s2,0.9 2,2c0,2 -3,1.75 -3,5h2c0,-2.25 3,-2.5 3,-5 0,-2.21 -1.79,-4 -4,-4z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol><symbol id="g-app.tour" viewBox="0 0 24 24"><path d="M21 4h-7l-1-2H4v21h2v-9h6l1 2h8V4zm-6 7h-2V9h2v2z" fill="currentColor"/></symbol><symbol id="g-content.disk-container" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-nav.close" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z" fill="currentColor"/></symbol><symbol id="g-nav.expand" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" fill="currentColor"/></symbol><symbol id="g-nav.more" viewBox="0 0 24 24"><path d="M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" fill="currentColor"/></symbol><symbol id="g-nav.open-external" viewBox="0 0 24 24"><path d="M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z" fill="currentColor"/></symbol><symbol id="g-system.storage" viewBox="0 0 24 24"><path d="M2,20h20v-4H2V20zM4,17h2v2H4V17zM2,4v4h20V4H2zM6,7H4V5h2V7zM2,14h20v-4H2V14zM4,11h2v2H4V11z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

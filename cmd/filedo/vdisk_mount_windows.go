@@ -1661,7 +1661,7 @@ func vdMount(args []string, batch bool) error {
 	}
 	fmt.Printf("Mounted%s at %s. Unmount with: filedo %s unmount\n", roText, res.MountPath, path)
 	EmitFindingEvent("info", "Disk mounted", map[string]interface{}{"vdMount": map[string]interface{}{"containerId": info.ContainerID, "mountPath": res.MountPath, "volumeGuid": res.VolumeGUID, "letter": res.Letter, "readOnly": ro}})
-	vdLogf("mount %s at %s", path, res.MountPath)
+	vdLogf("mount %s at %s%s", path, res.MountPath, vdConsentTag())
 	vdTouchRegistry(info.ContainerID)
 	return nil
 }

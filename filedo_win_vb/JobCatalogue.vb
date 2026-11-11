@@ -208,6 +208,31 @@ Public Module JobCatalogue
             .Reversibility = "reversible"
         })
 
+        ' The backup pair (SP-0198) - a restorable copy of a folder, a drive or a network folder, in the
+        ' Protect group beside the secret files it can be sealed into. Neither is destructive: a backup
+        ' only reads its source and writes a new file under a name that is never taken, and a restore
+        ' writes a new folder and never merges into or replaces one. Deleting the archive after a
+        ' restore is an answer on the page, and the page turns the badge and the accent on for it.
+        Register(New JobDefinition With {
+            .Id = "rail_job_backup",
+            .GroupKey = "rail_group_protect",
+            .LabelKey = "rail_job_backup",
+            .PurposeKey = "purpose_job_backup",
+            .TargetKind = JobDefinition.TargetType.Folder,
+            .DefaultVerb = "backup",
+            .Reversibility = "reversible"
+        })
+
+        Register(New JobDefinition With {
+            .Id = "rail_job_restore",
+            .GroupKey = "rail_group_protect",
+            .LabelKey = "rail_job_restore",
+            .PurposeKey = "purpose_job_restore",
+            .TargetKind = JobDefinition.TargetType.File,
+            .DefaultVerb = "restore",
+            .Reversibility = "reversible"
+        })
+
         ' Disks group - the .fdd containers of SP-0004 (P6, spec 7.1), one job per verb that makes
         ' sense in a window. The verb is the console's (the P6 brief's grammar); DiskCommands writes
         ' the line. Elevation is the badge of the verbs that attach or detach a disk or create a

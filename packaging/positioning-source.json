@@ -14,7 +14,7 @@
     { "id": "check",   "title": "Check",             "says": "The real capacity (fake-capacity detection), the speed and the readability of a drive, folder or network share." },
     { "id": "tidy",    "title": "Tidy and move",     "says": "Find duplicates, compare two folders, copy large trees with progress and care for slow or damaged disks." },
     { "id": "erase",   "title": "Erase",             "says": "Wipe free space and single files by overwriting them, to make recovery harder, and empty folders (a plain delete) - a file or folder wipe asks for a typed confirmation unless you pass --yes." },
-    { "id": "protect", "title": "Protect",           "says": "Pack a file or a folder into a password-protected .fd-sec container and open it again." },
+    { "id": "protect", "title": "Protect",           "says": "Pack a file or a folder into a password-protected .fd-sec container and open it again; one-file backup, plain or sealed: a folder, a drive or a network share into one .zip any zip tool opens, or sealed into .fd-sec, restored beside the archive or at a new address." },
     { "id": "virtual", "title": "Virtual disks",     "says": "A whole volume in one .fdd file, mounted as a drive letter or read without mounting." }
   ],
   "tagDenyList": {
@@ -175,6 +175,54 @@
         "erase": "Wipe &amp; fill",
         "protect": "Secret files",
         "virtual": "Virtual disks"
+      }
+    },
+    {
+      "file": "docs/ru/index.html", "names": 2,
+      "why": "meta description",
+      "scopes": ["(?s)name=\"description\"\\s+content=\"[^\"]*\""],
+      "anchors": { "check": "ёмкость", "tidy": "дубликаты" }
+    },
+    {
+      "file": "docs/ru/index.html", "names": 2,
+      "why": "landing, what FileDO checks and does",
+      "scopes": ["(?s)id=\"why\".*?id=\"get\""],
+      "anchors": { "check": "Проверить накопитель|Проверить чтение", "tidy": "Найти дубликаты|Копировать и сравнить" }
+    },
+    {
+      "file": "docs/ru/index.html", "names": 5,
+      "why": "landing, main capabilities",
+      "scopes": ["(?s)id=\"capabilities\".*?id=\"guides\""],
+      "anchors": {
+        "check": "Ёмкость и скорость|Проверка чтения",
+        "tidy": "<h3>Дубликаты</h3>|Копирование и сравнение",
+        "erase": "Затирание и заполнение",
+        "protect": "Секретные файлы",
+        "virtual": "Виртуальные диски"
+      }
+    },
+    {
+      "file": "docs/uk/index.html", "names": 2,
+      "why": "meta description",
+      "scopes": ["(?s)name=\"description\"\\s+content=\"[^\"]*\""],
+      "anchors": { "check": "ємність", "tidy": "дублікати" }
+    },
+    {
+      "file": "docs/uk/index.html", "names": 2,
+      "why": "landing, what FileDO checks and does",
+      "scopes": ["(?s)id=\"why\".*?id=\"get\""],
+      "anchors": { "check": "Перевірити носій|Перевірити читання", "tidy": "Знайти дублікати|Копіювати й порівняти" }
+    },
+    {
+      "file": "docs/uk/index.html", "names": 5,
+      "why": "landing, main capabilities",
+      "scopes": ["(?s)id=\"capabilities\".*?id=\"guides\""],
+      "anchors": {
+        "check": "Ємність і швидкість|Перевірка читання",
+        "tidy": "<h3>Дублікати</h3>|Копіювання та порівняння",
+        "erase": "Затирання та заповнення",
+        "protect": "Секретні файли",
+        "virtual": "Віртуальні диски"
       }
     },
     {

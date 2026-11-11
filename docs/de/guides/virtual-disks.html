@@ -287,7 +287,7 @@
             <span data-l="de"><b>Die Microsoft-Store-Version kann nicht einbinden.</b> Eine paketierte App kann den iSCSI-Initiator weder konfigurieren noch Administratorrechte anfordern, deshalb enden dort <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>format</code>, <code>chkdsk</code>, <code>vd auto</code>, <code>vd guard</code> und <code>vd register</code> mit Exit-Code 6 (nicht unterstützt). <code>info</code>, <code>verify</code>, <code>export</code>, <code>compact</code>, <code>grow</code>, <code>seal</code>, <code>clone</code>, <code>pass</code>, <code>destroy</code>, <code>vd new</code>, <code>vd list</code>, <code>vd status</code>, <code>vd add</code> und <code>vd forget</code> funktionieren auch dort. Zum Einbinden nehmen Sie das Setup oder die portable Version von GitHub.</span>
           </li>
           <li>
-            <span data-l="de"><b>Eine Einbindung überdauert das Fenster.</b> Schließen Sie das FileDO-Fenster bei eingebundenem Datenträger, bleiben Laufwerk und Server bestehen; ein neues Fenster listet sie wieder auf. Trennen Sie in der Datenträgerverwaltung, auf den Seiten der Gruppe Datenträger oder mit <code>filedo X: unmount</code>.</span>
+            <span data-l="de"><b>Eine Einbindung überdauert das Fenster.</b> Schließen Sie das FileDO-Fenster bei eingebundenem Datenträger, bleiben Laufwerk und Server bestehen; ein neues Fenster listet sie wieder auf. Trennen Sie in der Datenträgerverwaltung, auf den Seiten der Gruppe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Datenträger oder mit <code>filedo X: unmount</code>.</span>
           </li>
         </ol>
       </section>
@@ -379,7 +379,7 @@
           </article>
         </div>
         <p class="intro">
-          <span data-l="de">Ein Partitionsdatenträger wird über seinen Namen oder seinen Locator <code>fdpart:{GUID}</code> angesprochen, nie über einen Pfad: <code>filedo vd mount data</code>. <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code>, <code>vd auto</code> und die Abschaltwache arbeiten wie bei einer Datei; <code>compact</code> und <code>grow</code> nicht (seine Größe ist fest), und die Freigabe über Fast Media Sorter wird vorerst abgelehnt. <code>vd adopt fdpart:{GUID} as data</code> registriert eine FileDO-Partition, die dieser PC nicht kennt (ein Datenträger von einem anderen PC); <code>vd forget</code> entfernt den Namen und lässt die Partition auf ihrem Datenträger. Ein abgelehnter Datenträger endet mit Exit-Code 6, eine verweigerte Zustimmung mit Exit-Code 7 und ein seit der Auflistung geändertes Layout mit Exit-Code 5 - und nichts wurde verändert.</span>
+          <span data-l="de">Ein Partitionsdatenträger wird über seinen Namen oder seinen Locator <code>fdpart:{GUID}</code> angesprochen, nie über einen Pfad: <code>filedo vd mount data</code>. <code>mount</code>, <code>unmount</code>, <code>save</code>, <code>info</code>, <code>verify</code>, <code>export</code>, <code>pass</code>, <code>seal</code>, <code>clone</code>, <code>vd auto</code> und die Abschaltwache arbeiten wie bei einer Datei; <code>compact</code> und <code>grow</code> nicht (seine Größe ist fest), und die Freigabe über Fast Media Sorter wird abgelehnt. <code>vd adopt fdpart:{GUID} as data</code> registriert eine FileDO-Partition, die dieser PC nicht kennt (ein Datenträger von einem anderen PC); <code>vd forget</code> entfernt den Namen und lässt die Partition auf ihrem Datenträger. Ein abgelehnter Datenträger endet mit Exit-Code 6, eine verweigerte Zustimmung mit Exit-Code 7 und ein seit der Auflistung geändertes Layout mit Exit-Code 5 - und nichts wurde verändert.</span>
         </p>
         <ol class="steps">
           <li>
@@ -404,7 +404,7 @@
           <span data-l="de">Doppelklick, Explorer und das Fenster</span>
         </h2>
         <p class="intro">
-          <span data-l="de">Das Setup bietet den Typ <code>.fdd</code> als eigenes Feature an, „Disk container files (.fdd)“, das Sie abwählen können (<code>DiskContainerIntegration</code> in <code>ADDLOCAL</code>). Ohne das Setup schreibt <code>filedo vd register</code> dasselbe - für diesen Benutzer, oder mit <code>-all-users</code> für den ganzen Rechner -, und <code>filedo vd unregister</code> nimmt es zurück. Alle drei Einträge öffnen das FileDO-Fenster. Ein Doppelklick bindet ein: einen sauber geschlossenen verschleierten Container sofort; ein verschlüsselter fragt im Fenster nach seinem Passwort, nie auf einer Befehlszeile; einer, der nicht sauber geschlossen wurde, sagt das zuerst, mit der Zeit seiner letzten vollständigen Sicherung, und wartet auf Sie; ein bereits eingebundener öffnet sein Laufwerk. Das Kontextmenü ergänzt „Mount read-only“ und „Unmount“; unter Windows 11 stehen sie unter „Weitere Optionen anzeigen“. Im Fenster hat die Gruppe Datenträger eine Seite je Operation, und <a href="#manager">die Datenträgerverwaltung</a> listet jeden Datenträger an einem Ort. Die Microsoft-Store-Version hat keine Menüeinträge, aber ein Doppelklick auf eine <code>.fdd</code> öffnet das FileDO-Fenster mit diesem Container, und das Fenster sagt klar, dass dieser Build nicht einbinden kann.</span>
+          <span data-l="de">Das Setup bietet den Typ <code>.fdd</code> als eigenes Feature an, „Disk container files (.fdd)“, das Sie abwählen können (<code>DiskContainerIntegration</code> in <code>ADDLOCAL</code>). Ohne das Setup schreibt <code>filedo vd register</code> dasselbe - für diesen Benutzer, oder mit <code>-all-users</code> für den ganzen Rechner -, und <code>filedo vd unregister</code> nimmt es zurück. Alle drei Einträge öffnen das FileDO-Fenster. Ein Doppelklick bindet ein: einen sauber geschlossenen verschleierten Container sofort; ein verschlüsselter fragt im Fenster nach seinem Passwort, nie auf einer Befehlszeile; einer, der nicht sauber geschlossen wurde, sagt das zuerst, mit der Zeit seiner letzten vollständigen Sicherung, und wartet auf Sie; ein bereits eingebundener öffnet sein Laufwerk. Das Kontextmenü ergänzt „Mount read-only“ und „Unmount“; unter Windows 11 stehen sie unter „Weitere Optionen anzeigen“. Im Fenster hat die Gruppe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Datenträger eine Seite je Operation, und <a href="#manager">die Datenträgerverwaltung</a> listet jeden Datenträger an einem Ort. Die Microsoft-Store-Version hat keine Menüeinträge, aber ein Doppelklick auf eine <code>.fdd</code> öffnet das FileDO-Fenster mit diesem Container, und das Fenster sagt klar, dass dieser Build nicht einbinden kann.</span>
         </p>
         <div class="copybox">
           filedo vd register<button
@@ -421,7 +421,7 @@
           <span data-l="de">Das FileDO-Fenster hat ein zweites Fenster für virtuelle Datenträger: die Datenträgerverwaltung. Sie ist die grafische Oberfläche von <code>filedo.exe</code>, kein neues Programm - <code>filedo_win.exe</code> öffnet nur ein weiteres Fenster. Sie führt jeden virtuellen Datenträger an einem Ort zusammen, eine Zeile je Datenträger: die Datenträger Ihrer Liste, die jetzt eingebundenen und die Datenträgerabbilder (VHD, VHDX, ISO), die FileDO eingebunden hat. Sie hält sich ohne manuelles Aktualisieren aktuell - eine anderswo ausgeführte Einbindung erscheint binnen Sekunden.</span>
         </p>
         <figure class="shot">
-          <span data-l="de"><img src="../../assets/guides/gui-disk-manager-de.png" width="1901" height="1056" loading="lazy" alt="Das Fenster der Datenträgerverwaltung: eine Werkzeugleiste mit Neuer Datenträger.., Hinzufügen.., Einbinden, Trennen, Öffnen, Speichern, Weitere Aktionen, Aktualisieren, Hilfe und Hauptfenster; eine Filterzeile; eine Liste mit den Spalten Name, Laufwerk, Zustand, Profil, Schutz, Größe und Auto, in der jede Zeile ihren Zustand in Worten neben einem Symbol zeigt; und unter der Liste der Detailbereich des gewählten Datenträgers, secrets, schreibgeschützt eingebunden" /></span>
+          <span data-l="de"><img src="../../assets/guides/gui-disk-manager-de.png" width="1901" height="1056" loading="lazy" alt="Das Fenster der Datenträgerverwaltung: eine Werkzeugleiste mit Neuer Datenträger.., Hinzufügen.., Einbinden, Trennen, Öffnen, Speichern, Weitere Aktionen, Aktualisieren, Hilfe und FileDO-Operationen; eine Filterzeile; eine Liste mit den Spalten Name, Laufwerk, Zustand, Profil, Schutz, Größe und Auto, in der jede Zeile ihren Zustand in Worten neben einem Symbol zeigt; und unter der Liste der Detailbereich des gewählten Datenträgers, secrets, schreibgeschützt eingebunden" /></span>
           <figcaption>
             <span data-l="de">Die Datenträgerverwaltung mit einer Beispielliste: eine Zeile je Datenträger, ihr Zustand in Worten und der Detailbereich des gewählten Datenträgers.</span>
           </figcaption>
@@ -432,7 +432,7 @@
               <span data-l="de">Eine Zeile, ein Datenträger</span>
             </h3>
             <p>
-              <span data-l="de">Der Zustand steht in Worten neben einem Symbol: „Eingebunden“; „Eingebunden, schreibgeschützt“; „Eingebunden, 180 MiB nicht gespeichert“ (ein <code>ram</code>-Datenträger - die Menge, die noch nicht in der Datei ist); „Server weg - Volume offline“; „Abbild eingebunden“; „Datei fehlt“; „Unter diesem Pfad liegt ein anderer Container“; „Nicht lesbar“; „Nicht sauber geschlossen“; „Nicht eingebunden“. Für einen nicht sauber geschlossenen Datenträger bietet das Zeilenmenü „Volume prüfen“ (nur Lesen) und „Volume reparieren“ - das sind <code>chkdsk</code> und <code>chkdsk /f</code>; die Reparatur fragt vorher, und die Abschlusszeile sagt, was chkdsk gefunden hat. Ein in Fast Media Sorter freigegebener Datenträger zeigt das im selben Wort: „In FMS geöffnet“ (FMS hat ihn für andere geöffnet, und FileDO bindet ihn nicht ein) oder einen Zusatz wie „in FMS freigegeben, geschlossen“.</span>
+              <span data-l="de">Der Zustand steht in Worten neben einem Symbol: „Eingebunden“; „Eingebunden, schreibgeschützt“; „Eingebunden, 180 MiB nicht gespeichert“ (ein <code>ram</code>-Datenträger - die Menge, die noch nicht in der Datei ist); „Server weg - Volume offline“; „Abbild eingebunden“; „Datei fehlt“; „Unter diesem Pfad liegt ein anderer Container“; „Nicht lesbar“; „Nicht sauber geschlossen“; „Nicht eingebunden“. Für einen nicht sauber geschlossenen Datenträger bietet das Zeilenmenü <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>„Volume prüfen“ und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.recover-drive"/></svg>„Volume reparieren“ - das sind <code>chkdsk</code> (nur Lesen) und <code>chkdsk /f</code>; die Reparatur fragt vorher, und die Abschlusszeile sagt, was chkdsk gefunden hat. Ein in Fast Media Sorter freigegebener Datenträger zeigt das im selben Wort: „In FMS geöffnet“ (FMS hat ihn für andere geöffnet, und FileDO bindet ihn nicht ein) oder einen Zusatz wie „in FMS freigegeben, geschlossen“.</span>
             </p>
           </article>
           <article class="card">
@@ -440,7 +440,7 @@
               <span data-l="de">Werkzeugleiste, Filter, Details</span>
             </h3>
             <p>
-              <span data-l="de">Jede Schaltfläche der Werkzeugleiste trägt ein Symbol: Neuer Datenträger.., Hinzufügen.., Einbinden, Trennen, Öffnen (im Explorer), Speichern (schreibt einen <code>ram</code>-Datenträger jetzt in seine Datei zurück), Weitere Aktionen, Aktualisieren, Hilfe und Hauptfenster. Darunter liegt eine Filterzeile: eine Beschriftung, ein Feld und ein Kreuz, das es leert. Unter der Liste beschreibt ein Detailbereich den gewählten Datenträger in Sätzen, mit den Schaltflächen, die für ihn gelten; er schließt mit einem Kreuz an seinem rechten Rand und kehrt über eine schmale Leiste „Details einblenden“ oder über das Menü Weitere Aktionen zurück. Eine Schaltfläche, die gerade nicht benutzbar ist, ist grau, und ihr Tooltip und der Detailbereich sagen, warum. Die Microsoft-Store-Version kann nie einbinden und blendet die Einbinde-Elemente deshalb aus, statt sie auszugrauen.</span>
+              <span data-l="de">Jede Schaltfläche der Werkzeugleiste trägt ein Symbol: <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>Neuer Datenträger.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remember-name"/></svg>Hinzufügen.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Einbinden, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unmount-disk"/></svg>Trennen, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>Öffnen (im Explorer), <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.save"/></svg>Speichern (schreibt einen <code>ram</code>-Datenträger jetzt in seine Datei zurück), <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>Weitere Aktionen, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.refresh"/></svg>Aktualisieren, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>Hilfe und FileDO-Operationen. Darunter liegt eine Filterzeile: eine Beschriftung, ein Feld und ein Kreuz, das es leert. Unter der Liste beschreibt ein Detailbereich den gewählten Datenträger in Sätzen, mit den Schaltflächen, die für ihn gelten; er schließt mit einem Kreuz an seinem rechten Rand und kehrt über eine schmale Leiste <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.expand"/></svg>„Details einblenden“ oder über das Menü <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>Weitere Aktionen zurück. Eine Schaltfläche, die gerade nicht benutzbar ist, ist grau, und ihr Tooltip und der Detailbereich sagen, warum. Die Microsoft-Store-Version kann nie einbinden und blendet die Einbinde-Elemente deshalb aus, statt sie auszugrauen.</span>
             </p>
           </article>
           <article class="card">
@@ -448,7 +448,7 @@
               <span data-l="de">Eine Geste</span>
             </h3>
             <p>
-              <span data-l="de">Ein Doppelklick oder <kbd>Enter</kbd> bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie. Ein Rechtsklick auf eine Zeile öffnet ihr Menü: zuerst die schnellen Aktionen, unter einem Trennstrich die, die an eine Aufgabenseite übergeben werden, Formatieren und Vernichten zuletzt und in der Gefahrenfarbe. Ziehen Sie <code>.fdd</code>-Dateien auf die Liste, um sie hinzuzufügen; ziehen Sie eine <code>.vhd</code>, <code>.vhdx</code> oder <code>.iso</code>, um das Abbild nach einer Bestätigung einzubinden. Ein Klick mit <kbd>Ctrl</kbd> oder <kbd>Shift</kbd> wählt mehrere Datenträger.</span>
+              <span data-l="de">Ein Doppelklick oder <kbd>Enter</kbd> bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie. Ein Rechtsklick auf eine Zeile öffnet ihr Menü: zuerst die schnellen Aktionen, unter einem Trennstrich die, die an eine Aufgabenseite übergeben werden, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formatieren und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Vernichten zuletzt und in der Gefahrenfarbe. Ziehen Sie <code>.fdd</code>-Dateien auf die Liste, um sie hinzuzufügen; ziehen Sie eine <code>.vhd</code>, <code>.vhdx</code> oder <code>.iso</code>, um das Abbild nach einer Bestätigung einzubinden. Ein Klick mit <kbd>Ctrl</kbd> oder <kbd>Shift</kbd> wählt mehrere Datenträger.</span>
             </p>
           </article>
           <article class="card">
@@ -456,7 +456,7 @@
               <span data-l="de">Vorgänge mit Parametern</span>
             </h3>
             <p>
-              <span data-l="de">Ein Vorgang mit Parametern oder ohne Weg zurück - Neuer Datenträger, Exportieren, Verkleinern, Vergrößern, Versiegelte Kopie, Klonen, Passwort ändern, Formatieren, Vernichten - öffnet im Hauptfenster seine eigene Aufgabenseite mit bereits gewähltem Container. Die Verwaltung selbst baut diese Befehlszeilen nie, und Formatieren und Vernichten behalten die einzutippende Bestätigung auf der Aufgabenseite.</span>
+              <span data-l="de">Ein Vorgang mit Parametern oder ohne Weg zurück - <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>Neuer Datenträger.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.export"/></svg>Exportieren.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.compact"/></svg>Verkleinern.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.grow"/></svg>Vergrößern.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.seal"/></svg>Versiegelte Kopie.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.copy"/></svg>Klonen.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.change-password"/></svg>Passwort ändern.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formatieren.., <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Vernichten.. - öffnet im Hauptfenster seine eigene Aufgabenseite mit bereits gewähltem Container. Die Verwaltung selbst baut diese Befehlszeilen nie, und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formatieren.. und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Vernichten.. behalten die einzutippende Bestätigung auf der Aufgabenseite.</span>
             </p>
           </article>
         </div>
@@ -466,7 +466,7 @@
           <span data-l="de">Autostart: bei der Anmeldung und beim Herunterfahren</span>
         </h2>
         <p class="intro">
-          <span data-l="de">Autostart hat zwei Hälften, und beide treffen sich in einem Dialog: Autostart.. in der Datenträgerverwaltung (Weitere Aktionen, das Menü eines Datenträgers oder sein Detailbereich). Die erste Hälfte gilt bei der Anmeldung: Jeder registrierte Container hat einen Schalter, der eine geplante Aufgabe anlegt oder entfernt, die ihn bei Ihrer Anmeldung einbindet (<code>vd auto</code>). Die zweite gilt beim Herunterfahren: die Abschaltwache (<code>vd guard</code>), eine Aufgabe je Konto, die am Ende der Sitzung veränderte <code>ram</code>-Datenträger speichert und jeden eingebundenen Container trennt, sodass jeder sauber geschlossen wird und die nächste Anmeldung nicht „Nicht sauber geschlossen“ meldet.</span>
+          <span data-l="de">Autostart hat zwei Hälften, und beide treffen sich in einem Dialog: Autostart.. in der Datenträgerverwaltung (<svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>Weitere Aktionen, das Menü eines Datenträgers oder sein Detailbereich). Die erste Hälfte gilt bei der Anmeldung: Jeder registrierte Container hat einen Schalter, der eine geplante Aufgabe anlegt oder entfernt, die ihn bei Ihrer Anmeldung einbindet (<code>vd auto</code>). Die zweite gilt beim Herunterfahren: die Abschaltwache (<code>vd guard</code>), eine Aufgabe je Konto, die am Ende der Sitzung veränderte <code>ram</code>-Datenträger speichert und jeden eingebundenen Container trennt, sodass jeder sauber geschlossen wird und die nächste Anmeldung nicht „Nicht sauber geschlossen“ meldet.</span>
         </p>
         <figure class="shot">
           <span data-l="de"><img src="../../assets/guides/gui-disk-autostart-de.png" width="684" height="1836" loading="lazy" alt="Der Autostart-Dialog: unter Bei der Anmeldung vier registrierte Container, jeder mit seinem Zustand in Worten und einem Schalter - scratch und work binden sich bei der Anmeldung nicht ein, archive schon, und beim verschlüsselten secrets ist der Schalter deaktiviert, mit der Begründung darunter; unter Beim Herunterfahren die Wache Eingeschaltet und aktiv, eine Schaltfläche Abschalten und der letzte Lauf, der zwei Container sauber geschlossen hat; darunter Gut zu wissen" /></span>
@@ -509,7 +509,7 @@
           <span data-l="de">Tastatur der Datenträgerverwaltung</span>
         </h2>
         <p class="intro">
-          <span data-l="de">Dieselben Tasten stehen in der Hilfe der Verwaltung selbst, die <kbd>F1</kbd> öffnet.</span>
+          <span data-l="de">Dieselben Tasten stehen in der Hilfe der Verwaltung selbst, die <kbd>F1</kbd> öffnet; sie steht auch auf dieser Website: <a href="../../help/de/disk-manager.html">Hilfe zur Datenträgerverwaltung</a>.</span>
         </p>
         <div class="tablewrap">
           <table class="keytable">
@@ -527,61 +527,61 @@
               <tr>
                 <td><kbd>Ctrl+N</kbd></td>
                 <td>
-                  <span data-l="de">Neuer Datenträger..</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>Neuer Datenträger..</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+Shift+O</kbd></td>
                 <td>
-                  <span data-l="de">Hauptfenster</span>
+                  <span data-l="de">FileDO-Operationen</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+O</kbd></td>
                 <td>
-                  <span data-l="de">Hinzufügen..</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remember-name"/></svg>Hinzufügen..</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+M</kbd></td>
                 <td>
-                  <span data-l="de">Einbinden</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Einbinden</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+Shift+M</kbd></td>
                 <td>
-                  <span data-l="de">Schreibgeschützt einbinden</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Schreibgeschützt einbinden</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+U</kbd></td>
                 <td>
-                  <span data-l="de">Trennen</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unmount-disk"/></svg>Trennen</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+E</kbd></td>
                 <td>
-                  <span data-l="de">Im Explorer öffnen</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>Im Explorer öffnen</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+S</kbd></td>
                 <td>
-                  <span data-l="de">Jetzt speichern</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.save"/></svg>Jetzt speichern</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+I</kbd></td>
                 <td>
-                  <span data-l="de">Infos</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Infos</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+Shift+V</kbd></td>
                 <td>
-                  <span data-l="de">Prüfen</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Prüfen</span>
                 </td>
               </tr>
               <tr>
@@ -593,13 +593,13 @@
               <tr>
                 <td><kbd>Del</kbd></td>
                 <td>
-                  <span data-l="de">Aus der Liste entfernen (nie Vernichten)</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remove"/></svg>Aus der Liste entfernen (nie <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Vernichten)</span>
                 </td>
               </tr>
               <tr>
                 <td><kbd>Ctrl+C</kbd></td>
                 <td>
-                  <span data-l="de">Pfad kopieren</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.copy"/></svg>Pfad kopieren</span>
                 </td>
               </tr>
               <tr>
@@ -617,7 +617,7 @@
               <tr>
                 <td><kbd>F5</kbd></td>
                 <td>
-                  <span data-l="de">Aktualisieren</span>
+                  <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.refresh"/></svg>Aktualisieren</span>
                 </td>
               </tr>
               <tr>
@@ -659,7 +659,7 @@
             <span data-l="de"><b>Das Startmenü.</b> Das Setup legt einen eigenen Eintrag an, <b>FileDO Disk Manager</b>, als Teil des Hauptfeatures, er ist also immer da. Er startet <code>filedo_win.exe --disks</code> und öffnet die Verwaltung direkt, ohne Hauptfenster.</span>
           </li>
           <li>
-            <span data-l="de"><b>Das Hauptfenster.</b> Die Schaltfläche „Datenträgerverwaltung“ in seiner Kopfzeile oben rechts und die erste Zeile der Gruppe Datenträger in seiner linken Leiste; <kbd>Ctrl+Shift+D</kbd> tut dasselbe.</span>
+            <span data-l="de"><b>Das Hauptfenster.</b> Die Zeile <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.disk-container"/></svg>„Disk-Manager“, die erste der Gruppe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-system.storage"/></svg>Datenträger in seiner linken Leiste; <kbd>Ctrl+Shift+D</kbd> tut dasselbe.</span>
           </li>
           <li>
             <span data-l="de"><b>Die Befehlszeile.</b> Der Schalter <code>--disks</code>.</span>
@@ -672,7 +672,7 @@
           ><span data-l="de">Kopieren</span></button>
         </div>
         <p class="intro">
-          <span data-l="de">Die beiden Fenster verweisen aufeinander. Die Schaltfläche „Hauptfenster“ der Verwaltung, mit dem FileDO-Zeichen, holt das FileDO-Hauptfenster nach vorn - und öffnet es, wenn die Verwaltung allein gestartet wurde. Die Schaltfläche „Datenträgerverwaltung“ des Hauptfensters öffnet die Verwaltung oder holt sie nach vorn.</span>
+          <span data-l="de">Die beiden Fenster verweisen aufeinander. Die Schaltfläche „FileDO-Operationen“ der Verwaltung, mit dem FileDO-Zeichen, holt das FileDO-Hauptfenster nach vorn - und öffnet es, wenn die Verwaltung allein gestartet wurde. Die Zeile <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.disk-container"/></svg>„Disk-Manager“ des Hauptfensters öffnet die Verwaltung oder holt sie nach vorn.</span>
         </p>
         <div class="grid guide-grid">
           <article class="card">
@@ -680,7 +680,7 @@
               <span data-l="de">Hilfe</span>
             </h3>
             <p>
-              <span data-l="de"><kbd>F1</kbd> öffnet das Hilfefenster: was eine Zeile sagt, die Tastentabelle, ein paar gute Hinweise und Links. Die Schaltfläche Hilfe öffnet ein Menü: „Hilfe und Tastenkürzel“, „Einführung“ und Links zu „Anleitung: virtuelle Datenträger“, „Alle Anleitungen“, „FileDO-Website“, „Dokumentation und Quellcode“ auf GitHub und „Ein Problem melden“. Ein Link wird nur verfolgt, wenn Sie ihn anklicken; nichts wird von selbst abgerufen.</span>
+              <span data-l="de"><kbd>F1</kbd> öffnet das Hilfefenster: was eine Zeile sagt, die Tastentabelle, ein paar gute Hinweise und Links. Die Schaltfläche <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>Hilfe öffnet ein Menü: <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>„Hilfe und Tastenkürzel“, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.tour"/></svg>„Einführung“ und Links zu <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Anleitung: virtuelle Datenträger (Website)“, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Alle Anleitungen (Website)“, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„FileDO-Website“, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Dokumentation und Quellcode (GitHub)“ und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Ein Problem melden (GitHub)“. Ein Link wird nur verfolgt, wenn Sie ihn anklicken; nichts wird von selbst abgerufen.</span>
             </p>
           </article>
           <article class="card">
@@ -688,7 +688,7 @@
               <span data-l="de">Erster Start</span>
             </h3>
             <p>
-              <span data-l="de">Beim ersten Öffnen der Datenträgerverwaltung erscheint einmal „Willkommen in der Datenträgerverwaltung“. Das Fenster erklärt, was ein virtueller Datenträger ist, und hält die beiden Versprechen auseinander: „Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.“ „Verschlüsselt: Er öffnet sich nur mit seinem Passwort.“ Es sagt, dass Windows bei jedem Einbinden und Trennen eines Datenträgers die Zustimmung eines Administrators verlangt und dass Ihre Datenträger eingebunden bleiben, wenn das Fenster geschlossen wird. Es bietet vier Antworten an: „Meinen ersten Datenträger anlegen..“, „Eine vorhandene .fdd-Datei hinzufügen..“, „Die Anleitung auf der Website lesen“ und „Jetzt nicht“ - eine echte Antwort, die ein funktionierendes Fenster hinterlässt. Es öffnet sich erneut über Hilfe, Einführung, und eine leere Liste zeigt dieselben Wege zum Einstieg.</span>
+              <span data-l="de">Beim ersten Öffnen der Datenträgerverwaltung erscheint einmal „Willkommen in der Datenträgerverwaltung“. Das Fenster erklärt, was ein virtueller Datenträger ist, und hält die beiden Versprechen auseinander: „Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.“ „Verschlüsselt: Er öffnet sich nur mit seinem Passwort.“ Es sagt, dass Windows bei jedem Einbinden und Trennen eines Datenträgers die Zustimmung eines Administrators verlangt und dass Ihre Datenträger eingebunden bleiben, wenn das Fenster geschlossen wird. Es bietet vier Antworten an: <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-disk"/></svg>„Meinen ersten Datenträger anlegen..“, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remember-name"/></svg>„Eine vorhandene .fdd-Datei hinzufügen..“, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>„Die Anleitung auf der Website lesen“ und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.close"/></svg>„Jetzt nicht“ - eine echte Antwort, die ein funktionierendes Fenster hinterlässt. Es öffnet sich erneut über <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.help"/></svg>Hilfe, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.tour"/></svg>Einführung, und eine leere Liste zeigt dieselben Wege zum Einstieg.</span>
             </p>
           </article>
         </div>
@@ -701,7 +701,7 @@
         <figure class="shot narrow">
           <span data-l="de"><img src="../../assets/guides/gui-disk-welcome-de.png" width="594" height="1097" loading="lazy" alt="Das Fenster beim ersten Start, Willkommen in der Datenträgerverwaltung: eine kurze Erklärung, die Worte zu verschleiert und verschlüsselt, der Hinweis auf die Zustimmung eines Administrators und die Schaltflächen Meinen ersten Datenträger anlegen.., Eine vorhandene .fdd-Datei hinzufügen.., Die Anleitung auf der Website lesen und Jetzt nicht" /></span>
           <figcaption>
-            <span data-l="de">Das Fenster beim ersten Start: drei Wege zum Einstieg und „Jetzt nicht“ als echte Antwort.</span>
+            <span data-l="de">Das Fenster beim ersten Start: drei Wege zum Einstieg und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.close"/></svg>„Jetzt nicht“ als echte Antwort.</span>
           </figcaption>
         </figure>
         <div class="note">
@@ -709,7 +709,7 @@
             ><span data-l="de">Sonst ändert sich nichts</span></span
           >
           <p>
-            <span data-l="de">Das Format und die Sicherheitsregeln sind die oben genannten. Eine Einbindung überdauert das Fenster, und das Schließen des Fensters trennt nie. Formatieren und Vernichten behalten die einzutippende Bestätigung auf der Aufgabenseite. Die beiden Wörter behalten ihre Bedeutung: Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt; mit Passwort ist er verschlüsselt.</span>
+            <span data-l="de">Das Format und die Sicherheitsregeln sind die oben genannten. Eine Einbindung überdauert das Fenster, und das Schließen des Fensters trennt nie. <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.format"/></svg>Formatieren und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.delete"/></svg>Vernichten behalten die einzutippende Bestätigung auf der Aufgabenseite. Die beiden Wörter behalten ihre Bedeutung: Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt; mit Passwort ist er verschlüsselt.</span>
           </p>
         </div>
       </section>
@@ -722,6 +722,7 @@
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -736,5 +737,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.change-password" viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill="currentColor"/></symbol><symbol id="g-action.compact" viewBox="0 0 24 24"><path d="M8 19h3v3h2v-3h3l-4-4-4 4zm8-15h-3V1h-2v3H8l4 4 4-4zM4 9v2h16V9H4zm0 3h16v2H4z" fill="currentColor"/></symbol><symbol id="g-action.copy" viewBox="0 0 24 24"><path d="M16,1L4,1C2.9,1 2,1.9 2,3L2,17L4,17L4,3L16,3L16,1ZM19,5L8,5C6.9,5 6,5.9 6,7L6,21C6,22.1 6.9,23 8,23L19,23C20.1,23 21,22.1 21,21L21,7C21,5.9 20.1,5 19,5ZM19,21L8,21L8,7L19,7L19,21Z" fill="currentColor"/></symbol><symbol id="g-action.create-disk" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM8.25 5h1.5v2.25H12v1.5H9.75V11h-1.5V8.75H6v-1.5h2.25z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.delete" viewBox="0 0 24 24"><path d="M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2L18,7H6v12ZM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4Z" fill="currentColor"/></symbol><symbol id="g-action.export" viewBox="0 0 24 24"><path d="M9,16h6v-6h4l-7,-7 -7,7h4zM5,18h14v2H5z" fill="currentColor"/></symbol><symbol id="g-action.format" viewBox="0 0 24 24"><path d="M16 11h-1V3c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v8H8c-2.76 0-5 2.24-5 5v7h18v-7c0-2.76-2.24-5-5-5zm3 10h-2v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-2v-3c0-.55-.45-1-1-1s-1 .45-1 1v3H9v-3c0-.55-.45-1-1-1s-1 .45-1 1v3H5v-5c0-1.65 1.35-3 3-3h8c1.65 0 3 1.35 3 3v5z" fill="currentColor"/></symbol><symbol id="g-action.grow" viewBox="0 0 24 24"><path d="M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10z" fill="currentColor"/></symbol><symbol id="g-action.mount-disk" viewBox="0 0 24 24"><path d="M11 2h2v6.17l2.59-2.58L17 7l-5 5-5-5 1.41-1.41L11 8.17V2zM4 14h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1zm11.5 2.5a1 1 0 1 0 0 2a1 1 0 1 0 0-2z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.recover-drive" viewBox="0 0 24 24"><path d="M17.73 12.02l3.98-3.98c.39-.39.39-1.02 0-1.41l-4.34-4.34c-.39-.39-1.02-.39-1.41 0l-3.98 3.98L8 2.29C7.8 2.1 7.55 2 7.29 2c-.25 0-.51.1-.7.29L2.25 6.63c-.39.39-.39 1.02 0 1.41l3.98 3.98L2.25 16c-.39.39-.39 1.02 0 1.41l4.34 4.34c.39.39 1.02.39 1.41 0l3.98-3.98 3.98 3.98c.2.2.45.29.71.29.26 0 .51-.1.71-.29l4.34-4.34c.39-.39.39-1.02 0-1.41l-3.99-3.98zM12 9c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-4.71 1.96L3.66 7.34l3.63-3.63 3.62 3.62-3.62 3.63zM10 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2 2c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2.66 9.34l-3.63-3.62 3.63-3.63 3.62 3.62-3.62 3.63z" fill="currentColor"/></symbol><symbol id="g-action.refresh" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" fill="currentColor"/></symbol><symbol id="g-action.remember-name" viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z" fill="currentColor"/></symbol><symbol id="g-action.remove" viewBox="0 0 24 24"><path d="M7,11v2h10v-2H7zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8z" fill="currentColor"/></symbol><symbol id="g-action.save" viewBox="0 0 24 24"><path d="M17,3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2V7l-4,-4zM12,19c-1.66,0 -3,-1.34 -3,-3s1.34,-3 3,-3 3,1.34 3,3 -1.34,3 -3,3zM15,9H5V5h10v4z" fill="currentColor"/></symbol><symbol id="g-action.seal" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83zM2.3 3.7L3.7 2.3l18 18-1.4 1.4z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.unmount-disk" viewBox="0 0 24 24"><path d="M5 17h14v2H5zm7-12L5.33 15h13.34z" fill="currentColor"/></symbol><symbol id="g-action.verify" viewBox="0 0 24 24"><path d="M20,3H4C2.9,3,2,3.9,2,5v14c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V5C22,3.9,21.1,3,20,3z M10,17H5v-2h5V17z M10,13H5v-2h5V13z M10,9H5V7h5V9z M14.82,15L12,12.16l1.41-1.41l1.41,1.42L17.99,9l1.42,1.42L14.82,15z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-app.help" viewBox="0 0 24 24"><path d="M11,18h2v-2h-2v2zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8zM12,6c-2.21,0 -4,1.79 -4,4h2c0,-1.1 0.9,-2 2,-2s2,0.9 2,2c0,2 -3,1.75 -3,5h2c0,-2.25 3,-2.5 3,-5 0,-2.21 -1.79,-4 -4,-4z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol><symbol id="g-app.tour" viewBox="0 0 24 24"><path d="M21 4h-7l-1-2H4v21h2v-9h6l1 2h8V4zm-6 7h-2V9h2v2z" fill="currentColor"/></symbol><symbol id="g-content.disk-container" viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-nav.close" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z" fill="currentColor"/></symbol><symbol id="g-nav.expand" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" fill="currentColor"/></symbol><symbol id="g-nav.more" viewBox="0 0 24 24"><path d="M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" fill="currentColor"/></symbol><symbol id="g-nav.open-external" viewBox="0 0 24 24"><path d="M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z" fill="currentColor"/></symbol><symbol id="g-system.storage" viewBox="0 0 24 24"><path d="M2,20h20v-4H2V20zM4,17h2v2H4V17zM2,4v4h20V4H2zM6,7H4V5h2V7zM2,14h20v-4H2V14zM4,11h2v2H4V11z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

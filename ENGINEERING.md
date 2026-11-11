@@ -163,9 +163,14 @@ and never emits a `result`: it *records* - `beginRun` when it starts, `runStep` 
 when it judges its target and finds it wanting, `runFailure` when it could not judge at all, `runNumber`
 for a measurement. `finishRun`, deferred once in `main()` ahead of the history flush, turns what was
 recorded into exactly one `result` event and exactly one code: **0** passed or done, **1** ran and found a
-defect, **2** could not be verified (CLI-EVENT-STREAM rule 11). The container verbs keep the separate
+defect, **2** unclassified failure, **10** usage, **11** unavailable target, **12** permission, **13** insufficient resources, **14** hardware I/O, **15** network failure, **16** caller stop (CLI-EVENT-STREAM rule 11). The container verbs keep the separate
 classes of `FDSEC-BEHAVIOUR` 7.1 - `finishRun` leaves `fdsecExitCode` alone and only maps it to a verdict,
-which is the seam rule 12 bridges. Two consequences bind an edit here: an error that is a *judgement*
+which is the seam rule 12 bridges. The class of a failure is read from the error's **type** (`failureExitCode`:
+errno, `os.ErrNotExist`, `fileduplicates.UsageError`, `errFdsecUsage`) and never from its wording; where no type
+says it, the producer marks it - `exitClassf(10, ..)` for the words of the command line, `preRunError` for the
+look for the target (a device-level errno met there is 11, the same errno inside an I/O stays 14), and
+`causeKeeper` for a sweep that ends in one summary sentence (`check`, `compare`, the copy stats): the first
+specific class of the errors behind it wins over a plain 2. Two consequences bind an edit here: an error that is a *judgement*
 about the target must be wrapped with `defectf` or it reports as "could not judge", and a branch that
 prints an error and returns must reach `reportOpError`/`reportRunError` or the run silently exits 0 -
 which is exactly what every branch did before SP-0010.
@@ -250,15 +255,14 @@ code. Three things there are load-bearing and each has a test that fails loudly 
   live reveal holds `<sandbox>.lock` open exclusively and is stepped around. The lock is taken *before*
   the sandbox directory exists, or a concurrently starting FileDO would delete a reveal about to be used.
 - **The sealed true name is never trusted and never logged, and two questions about it stay apart**
-  (FDSEC-FORMAT 1.5 sections 20 and 22, FDSEC-BEHAVIOUR 1.7 sections 18 and 19). *Does the format accept it?*
+  (FDSEC-FORMAT 1.6 sections 20, 22 and 23, FDSEC-BEHAVIOUR 1.8 sections 18 to 20). *Does the format accept it?*
   `fdsec.ValidateName`, called by every reader of every suite and again by `fdsecSandboxName`: bytes that
-  are not UTF-8 (the reader never turns one into U+FFFD and creates a file), a path
+  are not UTF-8 (the reader never turns one into U+FFFD and creates a file), a name that is not in NFC (the
+  writers normalise before they seal, a reader never does), a path
   separator, a colon, a wildcard, a control character, a reserved device name (by its stem, so `nul.txt`
   too), or a trailing dot or space
   is damage - that last one because Windows drops it, so `invoice.exe ` would land as `invoice.exe` while
-  the extension check saw something that is on no list. Refused, never sanitised. A name that is not in NFC
-  is **not** decided (section 22 item 3): suites 2 and 3 refuse it, suite 1 reads it as written, and
-  `ValidateName` does not check it. *Can this destination
+  the extension check saw something that is on no list. Refused, never sanitised. *Can this destination
   create it?* The four characters `"` `<` `>` `|` are **valid** in an authenticated name - in no suite
   are they damage - and Windows cannot create them, nor a name over 255 UTF-16 units. That is a destination
   failure, decided where the name becomes a file name: `fdsecDestinationNameCheck`, reached before the
@@ -363,7 +367,9 @@ before launch; `run.bat` keeps the console open on failure.
 - **`.\build.ps1`** = BUILD ("сборка"): compile all five exes into `exe_to_download/` **and build both
   installer artifacts into `dist/`** (git-ignored) - a plain run needs no switch to produce what is
   distributable. It optionally tests (`-Test`) and commits (`-Commit`), and contains **no `git tag` call
-  at all** - that is the enforcement, not a convention. The switches only subtract or demand:
+  at all** - that is the enforcement, not a convention. **`-Fast`** builds nothing and runs only the gate
+  steps of 5 s or less - the check between releases (SP-0173; the measured list is in `AGENTS.md`
+  "Testing"); `-Test` is the release tier. The other switches only subtract or demand:
   **`-SkipInstaller`** drops the installer for a fast loop, **`-Msi`** turns a missing WiX from a skip
   into exit 2 (what `release.ps1` wants before it tags), **`-Install`** implies `-Msi` and then runs the
   setup EXE here. Missing WiX on a plain run is a **printed skip, not a failure**: a packaging tool that
@@ -434,7 +440,7 @@ before launch; `run.bat` keeps the console open on failure.
   "MSBuild\**\Bin\MSBuild.exe"`); `.\build.ps1 -SkipGui` drops it when VS Build Tools are absent.
 
 Both are PowerShell and both must be invoked through the PowerShell tool, or from Bash as
-`pwsh -NoProfile -File ./build.ps1 -Test`. Prefer the in-repo skills `/build` and `/release`;
+`pwsh -NoProfile -File ./build.ps1 -Test` (between releases `-Fast` instead). Prefer the in-repo skills `/build` and `/release`;
 [`RELEASE.md`](RELEASE.md) is the long-form manual for both flows.
 
 ## Store channel (`msix/`)
@@ -476,6 +482,9 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 ## Testing - the gate in full
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
   known-red is tracked on purpose so a real regression is not masked.
+- Between releases only `build.ps1 -Fast` runs - `check-placement`, `internal-docs`, `build-inputs` and
+  `help-pages`, the steps measured at 5 s or less, with nothing built (`fast-gate: PASS|FAIL|COULD NOT VERIFY`,
+  exit 0/1/2). Everything below is the release tier, run whole by `release.ps1`.
 - The real gate is `build.ps1 -Test`, in twelve recorded steps - the `Record-GateStep` names, in the order they run:
   `smoke`, `compile-test-module`, `fdsec`, `vdisk`, `filedo-cli-and-vet`, `gui-selftest`, `third-party-notices`,
   `release-pins`, `internal-docs`, `external-docs`, `build-inputs` and `help-pages` (a green run prints
@@ -486,7 +495,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `packaging/check-placement.jsonl` and run `packaging/check-gated-packages.ps1` (a Go package with tests that
   no gate runs fails it unless it is exempt there with a reason) - the step always runs all of them and names every
   failure, none hides another; `go test ./fdsec/ -count=1 -short`;
-  `go test ./vdisk/ -count=1` and `go test ./fmsworker/ -count=1` (the FMS worker client linked into `filedo.exe`); `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt` (FileDO holds two set baselines, both shrink-only: this one and `docs/help/help-baseline.txt`, which `help-pages` reads);
+  `go test ./vdisk/ -count=1` and `go test ./fmsworker/ -count=1` (the FMS worker client linked into `filedo.exe`) and `go test ./backupzip/ -count=1` (the archive half of `backup` and `restore`); `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt` (FileDO holds two set baselines, both shrink-only: this one and `docs/help/help-baseline.txt`, which `help-pages` reads);
   `filedo_win.exe --selftest` (skipped only with `-SkipGui`; its old log is deleted first, and a missing log
   is exit 2); `packaging/check-third-party-notices.ps1`; `release.yml`'s Go pin against `go.mod`'s; and
   `packaging/check-internal-docs.ps1` - every document declared in `docs/DOCUMENT_REGISTRY.jsonl` (a new
@@ -564,8 +573,9 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `rail-accordion:` and `rail-band:` (the group icons' hues, no group of one job, one group open, the checker of
   bands), `glyph:` (the verdicts),
   `state-tone:` (the shared `state.*` tones), `contrast:` (every glyph against its surface), `state-fill:` (the APP-STYLE 0.13 status fill roles and their one ink: the ink against every fill at 4.5:1, every fill against the card, window and rail at 3:1, the verdict badge read back as drawn - light, dark and the high-contrast mapping), `settings-follow:` (APP-SETTINGS 0.7 rule 1: the pure choice of the monitor to bring the settings window to, over invented screens), `result-numbers:` (CLI-EVENT-STREAM: a null in a result's `numbers` is absent and the card still draws) and `hit-target:` (the 28 logical px floor of ICON-RENDER rule 5 under a mouse or a pen, on the glyph buttons at every tier, the Disk Manager's list rows, the check boxes after `Ui.HitTargetFloor` and the plain dialog buttons). Its palette switch goes through
-  `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe
-  and exits 0, 1, or 2 (the last means its log could not be written). It is a GUI-subsystem process, so from PowerShell it needs
+  `Theme.UsePaletteForTest`, never through HKCU. It writes `filedo_win_selftest.log` beside the exe,
+  ends it with a test verdict line (`selftest: PASS (run=N skipped=0)`, CHECK-VERDICT 0.14), and exits 0, 1, or 2
+  (the last means its log could not be written, or a `FILEDO_SELFTEST_ONLY` subset ran: `COULD NOT VERIFY (.., only <groups>)`). It is a GUI-subsystem process, so from PowerShell it needs
   `Start-Process .\filedo_win.exe --selftest -Wait -PassThru` to have an exit code at all.
 - A change to a companion's command line is tested in that companion's `main_test.go`; the companions
   cannot reach the main CLI's code, so a fill, test or check behaviour is tested in `cmd/filedo`. Note
@@ -768,12 +778,44 @@ keep, each held by the `ui-contracts` group of `--selftest`:
   caution; Cancel and Close mono); only an irreversible confirmation's acting button is danger-filled.
   `ShellDialog.AnswerOrder` lays the answers out Cancel first and the acting answer last and sets the Tab order; the
   indices callers pass are unchanged, so the Go sweep over `ShellDialog.Ask` still reads them positionally.
+  A button whose caption changes with its state (Stop / Remove copy / End run now, Show / Hide output) names its
+  other states in `ReservedCaptionKeys` and is always as wide as the widest; the keys are resolved at measure
+  time, so the reservation follows a language switch.
+- **Boolean options.** Every boolean option is a `BooleanOption` (`BooleanOption.vb`), never a native `CheckBox`:
+  it is a `CheckBox` subclass, so `Checked`, `CheckedChanged`, Space and the one named checkbox are unchanged, and
+  it draws the rest itself - a vector box (20 units) at the reading start on the first heading line, the optional
+  glyph, the name, and under them `Explanation` in the caption role, wrapping in `MaximumSize.Width` (or the width a
+  dock layout proposes), never cut. Only the heading band - box, glyph, name - toggles a pointer click; the
+  explanation and the background do not, and a disabled option toggles from no path and shows `DisabledReason`.
+  A Settings row hands its description to the option as the explanation. A caller may still colour the caption
+  through `ForeColor` (a destructive option that is on).
 - **Groups.** A settings group's header is a `GroupHeader`: a filled state triangle at the reading start, a face that
   differs from the body, a bold caption, 32-unit height, the whole header toggling once. The shell rail's job groups
   are navigation parents and stay `RailEntry` rows.
-- **Not built yet:** the boolean option component, the button-row helper on every page, one ink policy and the
-  32/16 row tokens for the rail, the complete About set, complete-frame timings, the component showcase and the
-  site's page layer. The registry migration entry carries the milestones and the final deadline (2026-12-31).
+- **The rail (settings navigation).** A rail row is the navigation token set: a 32 row, a 16 glyph, 8 from glyph to
+  caption, a child row standing in 12 together with its glyph (`ShellForm.RailTargetHeight` reads
+  `UiTokens.NavRow`; `RailEntry` turns every token into device pixels by the row's own scale). One glyph treatment
+  for the whole rail, identity-coloured: a row inside a group draws in its group's hue (`RailRow.InheritGroupInk`),
+  so no row is mono by its level. A group header is a parent with its own disclosure (the chevron at the trailing
+  edge), never a destination; one child level. The settings surface is the shell rail with its Settings and About
+  destinations; the job rows are tasks, not settings pages, so Settings keeps its place near the end of the rail
+  with theme and language as its first group.
+- **The narrow layout.** Below a client width of rail plus 480 (`ShellForm.NarrowContentWidth`, 720 design pixels)
+  the rail becomes a navigation view of its own: the page fills the window, a Pages button above the header opens
+  the list in its place, and a chosen row or Escape brings back the page as it was left - nothing is rebuilt, a run
+  goes on. The design minimum (760 outer) never reaches the breakpoint; only a screen whose working area is
+  narrower than that at its scaling does. The button's picture is a stand-in under the proposed `nav.menu` meaning.
+- **The Disk manager's settings window** (`DiskSettingsDialog`) keeps page navigation too: the shell's own Settings
+  and About rows on the start side, the shared settings panel or the About page beside them. A page switch never
+  resizes the window or commits a value; About is built on its first visit.
+- **About** carries the complete set: the product description (the store listing's lead sentence), the running
+  build, the help index, the site's subject index, the site, every version with its downloads and updates (GitHub
+  Releases), the source, the support page, the issue tracker, the privacy page, the licence text, the author's
+  other tools and mail address, the related programs from the one inventory `Links.Related` (name and purpose line,
+  two keys each, so a live language switch translates both), and the log export. Opening it contacts nothing.
+- **Not built yet:** local option help (the `?` beside an option's name), a command id per command and the
+  secondary-command overflow policy, complete-frame timings, the component showcase and the site's page layer. The
+  registry migration entry carries the milestones and the final deadline (2026-12-31).
 
 **Windows AutoPlay is separate from disk automounting.** The shared settings panel in the shell and
 Disk Manager has a *Disable Windows AutoPlay* button. Only its click writes the current user's

@@ -10,8 +10,9 @@ Imports System.Text
 ' The run builds every job page the catalogue knows, reads back the command each one would run,
 ' and checks the shape against what the CLI parses (cmd\filedo\main.go, command_handlers.go).
 ' It writes a line per check to filedo_win_selftest.log next to the exe, ends the log with a
-' `selftest: PASS (n)` or `selftest: FAIL (n): names` line, and exits 0 or 1 - or 2 when the log
-' cannot be written, because a verdict nobody can read proves nothing.
+' `selftest: PASS (run=n skipped=0)` or `selftest: FAIL (run=n skipped=0 failed=m)` line, and exits 0
+' or 1 - or 2 when the log cannot be written, because a verdict nobody can read proves nothing, and
+' after a subset run (`COULD NOT VERIFY (.., only <groups>)`).
 Partial Public Module SelfTest
 
     Private ReadOnly report As New StringBuilder()
@@ -202,6 +203,8 @@ Partial Public Module SelfTest
         ' SP-0171 W13 / CLI-EVENT-STREAM rules 6, 7, 16: a null inside `numbers` (or a step's fields) is an
         ' absent value, and the result card still draws.
         Guard("result-numbers", AddressOf CheckResultNumbers)
+        ' SP-0196 / CLI-EVENT-STREAM rule 17: a Not proven run says why, in the window's language.
+        Guard("why", AddressOf CheckRunExplanation)
         Guard("fdsec", AddressOf CheckFdsecReportRedaction)
 
         ' SP-0014: the shared desktop contracts APP-BEHAVIOUR and APP-STYLE, rung by rung.
@@ -233,6 +236,7 @@ Partial Public Module SelfTest
 
         ' SP-0029: the shell's robustness remediation, ticket by ticket.
         Guard("target", AddressOf CheckTargetRules)
+        Guard("backup-page", AddressOf CheckBackupPages)
         Guard("dup", AddressOf CheckDuplicatesPage)
         Guard("cmp", AddressOf CheckComparePage)
         Guard("command-cred", AddressOf CheckCommandCredential)
@@ -244,6 +248,8 @@ Partial Public Module SelfTest
         Guard("history", AddressOf CheckHistory)
         Guard("output", AddressOf CheckOutputBounds)
         Guard("params", AddressOf CheckParameters)
+        Guard("fill-default", AddressOf CheckFillDefaults)
+        Guard("leftover", AddressOf CheckLeftoverTestFiles)
         Guard("check-options", AddressOf CheckCheckOptions)
         Guard("clean", AddressOf CheckCleanCarriesTarget)
         Guard("cause", AddressOf CheckCauses)
@@ -294,7 +300,7 @@ Partial Public Module SelfTest
 
     ' FILEDO_SELFTEST_ONLY=page,expert runs just the groups whose names start with one of the words
     ' (a developer's loop; the full run takes minutes). Such a run is never a pass: the verdict says
-    ' PARTIAL and the exit code is 2, "could not verify", so a gate cannot mistake it for one.
+    ' COULD NOT VERIFY (.., only <groups>) and the exit code is 2, so a gate cannot mistake it for one.
     Private ReadOnly onlyGroups As String() =
         If(Environment.GetEnvironmentVariable("FILEDO_SELFTEST_ONLY"), "").
             Split(New Char() {","c, ";"c, " "c}, StringSplitOptions.RemoveEmptyEntries)
@@ -358,16 +364,19 @@ Partial Public Module SelfTest
 
     Private Function WriteLog() As Integer
         Dim logFile = LogFilePath()
+        ' CHECK-VERDICT 0.14 item A: a test verdict line. A subset run selected its groups, so nothing it
+        ' selected was skipped; it names the groups that ran and proves nothing about the rest.
+        Dim counts = "run=" & CountChecks().ToString() & " skipped=0"
         Dim verdict As String = If(failures = 0,
                                    If(onlyGroups.Length > 0,
-                                      "selftest: PARTIAL (" & CountChecks().ToString() & ", only " & String.Join(",", onlyGroups) & ")",
-                                      "selftest: PASS (" & CountChecks().ToString() & ")"),
-                                   "selftest: FAIL (" & failures.ToString() & "): " & FailureNames())
+                                      "selftest: COULD NOT VERIFY (" & counts & ", only " & String.Join(",", onlyGroups) & ")",
+                                      "selftest: PASS (" & counts & ")"),
+                                   "selftest: FAIL (" & counts & " failed=" & failures.ToString() & ")")
         report.AppendLine(verdict)
         Try
             File.WriteAllText(logFile, report.ToString())
         Catch ex As Exception
-            Console.Error.WriteLine("selftest: COULD NOT VERIFY (cannot write " & logFile & ": " & ex.Message & ")")
+            Console.Error.WriteLine("selftest: COULD NOT VERIFY (" & counts & ", cannot write " & logFile & ": " & ex.Message & ")")
             Return 2
         End Try
 
@@ -394,14 +403,6 @@ Partial Public Module SelfTest
     Private Function CountChecks() As Integer
         Return report.ToString().Split(New String() {vbCrLf, vbLf}, StringSplitOptions.RemoveEmptyEntries).
             Count(Function(line) line.StartsWith("PASS ") OrElse line.StartsWith("FAIL "))
-    End Function
-
-    Private Function FailureNames() As String
-        Dim names As New List(Of String)()
-        For Each line In report.ToString().Split(New String() {vbCrLf, vbLf}, StringSplitOptions.RemoveEmptyEntries)
-            If line.StartsWith("FAIL ") Then names.Add(line.Substring(5).Split(" "c)(0))
-        Next
-        Return String.Join(", ", names.ToArray())
     End Function
 
     ' Every rail row that leads to a job page must have a catalogue entry, and every catalogue
@@ -449,7 +450,9 @@ Partial Public Module SelfTest
                 ' SP-0025 FDSEC-19: filedo.exe refuses a pe: variable that is empty, so an
                 ' empty password - the page's documented obfuscation-only choice - travels as
                 ' the visible p:, and a real one by variable name.
-                If job.DefaultVerb = "secure" OrElse job.DefaultVerb = "unsecure" OrElse job.DefaultVerb = "reveal" Then
+                ' A restore of a .fd-sec (the sample target) asks for the password by the same rule.
+                If job.DefaultVerb = "secure" OrElse job.DefaultVerb = "unsecure" OrElse job.DefaultVerb = "reveal" OrElse
+                   job.DefaultVerb = "restore" Then
                     view.SetCredentialForTest("")
                     Dim emptyCmd = view.CurrentCommand()
                     Check("page:" & job.Id & ":empty-cred-is-p", emptyCmd.EndsWith(" p:") AndAlso Not emptyCmd.Contains("pe:"), emptyCmd)
@@ -492,6 +495,18 @@ Partial Public Module SelfTest
                 If IsCredentialOp(op) Then
                     Check("expert:" & op & ":by-variable", cmd.Contains("pe:FILEDO_SHELL_CRED"), cmd)
                 End If
+
+                ' SP-0198: a restore names the variable for a sealed archive and nothing for a
+                ' plain zip, which filedo.exe refuses a password for.
+                If op = "restore" Then
+                    view.SetTargetForTest("C:\Backups\Photos-2611101530.fd-sec")
+                    Dim sealedCmd = view.CurrentCommandLine()
+                    Check("expert:restore:sealed-by-variable", sealedCmd.Contains("pe:FILEDO_SHELL_CRED") AndAlso Not sealedCmd.Contains(secret), sealedCmd)
+                    view.SetTargetForTest("C:\Backups\Photos-2611101530.zip")
+                    Dim plainCmd = view.CurrentCommandLine()
+                    Check("expert:restore:plain-no-password", Not plainCmd.Contains("pe:"), plainCmd)
+                    view.SetTargetForTest("")
+                End If
             Next
         Catch ex As Exception
             Check("expert", False, ex.GetType().Name & ": " & ex.Message)
@@ -530,10 +545,13 @@ Partial Public Module SelfTest
         End Try
     End Sub
 
-    ' SP-0016 T4: both the group headers and the selectable rows use the Windows 44 px target.
+    ' SP-0016 T4, amended by SP-0169 S3 (SETTINGS-NAVIGATION 2.0 section 2.5, decision D4): the group
+    ' headers and the selectable rows use the ordinary navigation row of the token resolver - 32 for
+    ' the pointer profile, never below the declared smallest target. It was ICON-RENDER's 44.
     ' ShellForm applies this design-pixel value through Ui.Px, so it scales together with the form.
     Private Sub CheckRailTargets()
-        Check("rail:target-height", ShellForm.RailTargetHeight >= 44, ShellForm.RailTargetHeight.ToString())
+        Check("rail:target-height", ShellForm.RailTargetHeight = UiTokens.NavRow() AndAlso
+              ShellForm.RailTargetHeight >= UiTokens.CompactFloor, ShellForm.RailTargetHeight.ToString())
     End Sub
     ' SP-0122: the hit-target floor of ICON-RENDER rule 5 (0.15) - a control the user works with under
     ' a mouse or a pen is at least 28 logical px. GlyphButton carries the floor itself, the Disk
@@ -624,7 +642,7 @@ Partial Public Module SelfTest
     Private Sub CheckVerdictTable()
         Dim words = New String() {"Passed", "Failed", "Done", "Stopped", "Not proven"}
         For Each word In words
-            For Each code In New Integer() {0, 1, 2}
+            For Each code In New Integer() {0, 1, 2, 10, 11, 12, 13, 14, 15, 16}
                 For Each stopped In New Boolean() {False, True}
                     CheckVerdictCase(word & "/" & code.ToString() & "/stop=" & stopped.ToString(), code, word, stopped, 0)
                 Next
@@ -655,17 +673,16 @@ Partial Public Module SelfTest
         If String.IsNullOrEmpty(word) Then Return If(stopped, "Stopped", "Not proven")
         ' Rule 15 (0.11): the stop file overrides every result but Failed - a
         ' defect recorded before the stop outranks it.
-        If stopped AndAlso word <> "Failed" Then Return "Stopped"
-        Dim expected As Integer
+        If stopped AndAlso word <> "Stopped" AndAlso word <> "Failed" Then Return "Stopped"
+        If word <> "Passed" AndAlso word <> "Done" AndAlso word <> "Failed" AndAlso word <> "Not proven" AndAlso word <> "Stopped" Then Return "Not proven"
+        If code < 0 OrElse (code >= 3 AndAlso code <= 9) OrElse code > 16 Then Return word
         Select Case word
-            Case "Passed", "Done" : expected = 0
-            Case "Failed" : expected = 1
-            Case "Not proven" : expected = 2
-            Case "Stopped" : Return "Stopped"
+            Case "Passed", "Done" : Return If(code = 0, word, "Not proven")
+            Case "Failed" : Return If(code = 1, word, "Not proven")
+            Case "Not proven" : Return If(code = 2 OrElse (code >= 10 AndAlso code <= 15), word, "Not proven")
+            Case "Stopped" : Return If(code = 0 OrElse code = 16, word, "Not proven")
             Case Else : Return "Not proven"
         End Select
-        If code < 0 OrElse code > 2 Then Return word
-        Return If(code = expected, word, "Not proven")
     End Function
 
     Private Sub CheckVerdictCase(label As String, code As Integer, word As String, stopped As Boolean, refusedVersion As Integer)
@@ -844,14 +861,18 @@ Partial Public Module SelfTest
         Dim hues As New HashSet(Of String)(Theme.GroupHueKeys, StringComparer.Ordinal)
         Dim rowsOfGroup As New Dictionary(Of String, Integer)(StringComparer.Ordinal)
         Dim currentGroup As String = Nothing
+        Dim currentGroupHue = ""
         For Each row In RailRow.All
             Dim glyph = row.Glyph
-            ' A header and a lone job show the colour look, so each names a hue Theme knows; a row
-            ' inside a group is mono and names none.
+            ' One glyph treatment for the whole rail (SETTINGS-NAVIGATION 2.0 section 2.3, SP-0169 D3):
+            ' every row shows the colour look, so each names a hue Theme knows, and a row inside a group
+            ' names its group's - colour by parent/child level is forbidden.
             If row.IsGroup OrElse row.IsAlone Then
                 Check("rail-hue:" & row.Key, hues.Contains(row.Hue), row.Hue)
+                currentGroupHue = If(row.IsGroup, row.Hue, "")
             Else
-                Check("rail-hue:" & row.Key, row.Hue = "", "a row inside a group draws in the text colour")
+                Check("rail-hue:" & row.Key, hues.Contains(row.Hue) AndAlso row.Hue = currentGroupHue,
+                      row.Hue & " in a group drawn in " & currentGroupHue)
             End If
             ' A group of one job is no group: the job stands by itself (RailRow.Alone).
             If row.IsGroup Then
@@ -1482,8 +1503,8 @@ Partial Public Module SelfTest
                                 .IsGroupHeader = row.IsGroup,
                                 .IsChild = row.IsChild,
                                 .Text = text,
-                                .RowUnit = 44,
-                                .Size = New Size(250, 44)
+                                .RowUnit = ShellForm.RailTargetHeight,
+                                .Size = New Size(250, ShellForm.RailTargetHeight)
                             }
                                 If stateName = "selected" Then e.Selected = True
                                 If stateName = "collapsed-holding" Then
@@ -2198,7 +2219,7 @@ Partial Public Module SelfTest
                           "default=" & shown & ", escape=" & escape & ", danger=" & spec.DangerAt.ToString())
                 Next
             Next
-            Check("dialog:destructive-default-safe:covered", ids.Count = 10, ids.Count.ToString() & " definitions")
+            Check("dialog:destructive-default-safe:covered", ids.Count = 11, ids.Count.ToString() & " definitions")
         Catch ex As Exception
             Check("dialog-destructive", False, ex.GetType().Name & ": " & ex.Message)
         End Try
@@ -2347,7 +2368,8 @@ Partial Public Module SelfTest
                 If TypeOf row.Editor Is CheckBox Then
                     booleans += 1
                     Check("windows-ui:boolean-leading:" & row.Name,
-                          row.Editor.Text <> "" AndAlso row.Hint.Text <> "" AndAlso
+                          row.Editor.Text <> "" AndAlso TypeOf row.Editor Is BooleanOption AndAlso
+                          DirectCast(row.Editor, BooleanOption).Explanation = row.Hint.Text AndAlso row.Hint.Text <> "" AndAlso
                           Not row.Controls.Cast(Of Control)().Any(Function(c) c Is row.Editor), "")
                 Else
                     others += 1
@@ -2385,8 +2407,15 @@ Partial Public Module SelfTest
                 probe.Controls.Add(label)
                 probe.Controls.Add(field)
                 probe.Controls.Add(combo)
+                Dim liveOption As New BooleanOption With {.Text = en("shell_settings_history")}
+                liveOption.Explanation = Localization.Multiline(en("shell_settings_history_hint"))
+                probe.Controls.Add(liveOption)
                 LiveLanguage.RebindWindow(probe, "en", "ru")
                 Check("windows-ui:live-text", label.Text = ru("shell_settings_theme"), label.Text)
+                Check("windows-ui:live-option-explanation",
+                      liveOption.Text = ru("shell_settings_history") AndAlso
+                      liveOption.Explanation = Localization.Multiline(ru("shell_settings_history_hint")) AndAlso
+                      liveOption.AccessibleDescription = liveOption.Explanation, liveOption.Explanation)
                 Check("windows-ui:live-combo", CStr(combo.Items(0)) = ru("shell_theme_auto"), CStr(combo.Items(0)))
                 Check("windows-ui:live-data-untouched", field.Text = "C:\my data", field.Text)
                 LiveLanguage.RebindWindow(probe, "ru", "en")
@@ -2445,6 +2474,85 @@ Partial Public Module SelfTest
         For Each c In ArgQuotingTests.NamedCases()
             Check("argquoting:" & c.Key, c.Value)
         Next
+    End Sub
+
+    ' SP-0198: the Backup and Restore pages write the CLI's grammar (cmd\filedo\backup_cmd.go) and refuse,
+    ' with the reason, what the CLI would refuse after the start.
+    Private Sub CheckBackupPages()
+        Dim d = Localization.GetDict(ShellSettings.Language())
+        Dim jv As JobView = Nothing
+        Dim reason As String = ""
+        Const secret As String = "selftest-backup-pw-4e2"
+        Try
+            jv = New JobView()
+
+            jv.SetJob(JobCatalogue.GetJob("rail_job_backup"))
+            jv.SetTarget("C:\sample (1)\x")
+            jv.SetBackupForTest("", False, False, "", False, False, True, False)
+            Dim cmd = jv.CurrentCommand()
+            Dim runs = jv.RunStateForTest(reason)
+            Check("backup-page:plain", runs AndAlso cmd = "filedo.exe backup ""C:\sample (1)\x""" AndAlso Not jv.PasswordShownForTest, cmd & " / " & reason)
+
+            jv.SetBackupForTest("D:\out", False, True, "6", False, True, True, False)
+            cmd = jv.CurrentCommand()
+            Check("backup-page:to-level-links", cmd.Contains(" to D:\out level 6 skip-links") AndAlso Not cmd.Contains("keep-zip"), cmd)
+
+            jv.SetBackupForTest("", True, True, "", False, False, True, False)
+            jv.SetCredentialPairForTest(secret, secret)
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:sealed-by-variable", runs AndAlso cmd.EndsWith(" sec keep-zip pe:FILEDO_SHELL_CRED") AndAlso
+                  Not cmd.Contains(secret) AndAlso jv.PasswordShownForTest, cmd)
+            jv.SetCredentialPairForTest(secret, secret & "x")
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:sealed-mismatch-refused", Not runs, runs.ToString())
+            jv.SetCredentialPairForTest("", "")
+            cmd = jv.CurrentCommand()
+            Check("backup-page:sealed-empty-is-p", cmd.EndsWith(" sec keep-zip p:"), cmd)
+
+            jv.SetTarget("E:\")
+            jv.SetBackupForTest("", False, False, "", False, False, True, False)
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:root-needs-consent", Not runs AndAlso reason = d("shell_bk_need_root"), runs.ToString() & " / " & reason)
+            jv.SetBackupForTest("", False, False, "", True, False, True, False)
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:root-needs-dest", Not runs AndAlso reason = d("shell_bk_root_needs_dest"), runs.ToString() & " / " & reason)
+            jv.SetBackupForTest("D:\out", False, False, "", True, False, True, False)
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:root-confirmed", runs AndAlso cmd.Contains(" to D:\out root y"), cmd & " / " & reason)
+
+            Dim sysRoot = Environment.GetEnvironmentVariable("SystemDrive")
+            If Not String.IsNullOrEmpty(sysRoot) Then
+                jv.SetTarget(sysRoot & "\")
+                jv.SetBackupForTest("D:\out", False, False, "", True, False, True, False)
+                runs = jv.RunStateForTest(reason)
+                Check("backup-page:system-drive-refused", Not runs AndAlso reason = d("shell_bk_system_drive"), runs.ToString() & " / " & reason)
+            End If
+
+            jv.SetTarget("C:\sample (1)\x")
+            jv.SetBackupForTest("", False, False, "", False, False, True, False)
+            cmd = jv.CurrentCommand()
+            Check("backup-page:root-word-follows-target", Not cmd.Contains(" root"), cmd)
+
+            jv.SetJob(JobCatalogue.GetJob("rail_job_restore"))
+            jv.SetTarget("C:\sample (1)\x-2611111200.zip")
+            jv.SetBackupForTest("", False, False, "", False, False, True, False)
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("restore-page:plain-zip", runs AndAlso cmd = "filedo.exe restore ""C:\sample (1)\x-2611111200.zip"" suffix" AndAlso
+                  Not jv.PasswordShownForTest AndAlso Not jv.DestructiveBadgeShownForTest, cmd & " / " & reason)
+
+            jv.SetBackupForTest("D:\back", False, False, "", False, False, False, True)
+            cmd = jv.CurrentCommand()
+            Check("restore-page:del-asks-on-page", cmd.EndsWith(" to D:\back suffix del y") AndAlso jv.DestructiveBadgeShownForTest, cmd)
+
+            jv.SetTarget("C:\sample (1)\notes.txt")
+            runs = jv.RunStateForTest(reason)
+            Check("restore-page:needs-archive", Not runs AndAlso reason = d("shell_rs_need_archive"), runs.ToString() & " / " & reason)
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+        End Try
     End Sub
 
     ' GUI-01 and SHELL-04: what a page does with the text of step 2.
@@ -3007,6 +3115,84 @@ Partial Public Module SelfTest
         Check("params:decimal-invariant", Ui.IsDecimalNumber("2.5") AndAlso Not Ui.IsDecimalNumber("2,5") AndAlso Not Ui.IsWholeNumber("2.5"), "")
     End Sub
 
+    ' SP-0194: Fill deletes its test files unless the user opts out, on the job page and on the Command
+    ' page; Test keeps them (a capacity test leaves its files as evidence), and a verb whose `del` means
+    ' something else - `secure` deletes the original - never inherits the Fill default.
+    Private Sub CheckFillDefaults()
+        Dim jv As JobView = Nothing
+        Dim cv As CommandView = Nothing
+        Try
+            jv = New JobView()
+            jv.SetJob(JobCatalogue.GetJob("rail_job_fill"))
+            jv.SetTarget("E:")
+            Check("fill-default:job-fill-deletes", Array.IndexOf(jv.CurrentCommand().Split(" "c), "del") >= 0, jv.CurrentCommand())
+            jv.SetDeleteOptionsForTest(False, False)
+            Check("fill-default:job-fill-opt-out", Array.IndexOf(jv.CurrentCommand().Split(" "c), "del") < 0, jv.CurrentCommand())
+            jv.SetJob(JobCatalogue.GetJob("rail_job_capacity"))
+            jv.SetTarget("E:")
+            Check("fill-default:job-test-keeps", Array.IndexOf(jv.CurrentCommand().Split(" "c), "del") < 0, jv.CurrentCommand())
+            jv.SetJob(JobCatalogue.GetJob("rail_job_fill"))
+            jv.SetTarget("E:")
+            Check("fill-default:job-fill-again", Array.IndexOf(jv.CurrentCommand().Split(" "c), "del") >= 0, jv.CurrentCommand())
+
+            cv = New CommandView()
+            Dim fillAt = -1
+            Dim testAt = -1
+            Dim secureAt = -1
+            For i = 0 To cv.OperationCount() - 1
+                Select Case cv.SelectOperation(i)
+                    Case "fill" : fillAt = i
+                    Case "test" : testAt = i
+                    Case "secure" : secureAt = i
+                End Select
+            Next
+            Check("fill-default:command-operations-found", fillAt >= 0 AndAlso testAt >= 0 AndAlso secureAt >= 0,
+                  fillAt.ToString() & " " & testAt.ToString() & " " & secureAt.ToString())
+            If fillAt < 0 OrElse testAt < 0 OrElse secureAt < 0 Then Return
+            cv.SelectOperation(fillAt)
+            Check("fill-default:command-fill-deletes", Array.IndexOf(cv.CurrentCommandLine().Split(" "c), "del") >= 0, cv.CurrentCommandLine())
+            cv.SelectOperation(testAt)
+            Check("fill-default:command-test-keeps", Array.IndexOf(cv.CurrentCommandLine().Split(" "c), "del") < 0, cv.CurrentCommandLine())
+            cv.SelectOperation(fillAt)
+            cv.SelectOperation(secureAt)
+            Check("fill-default:command-secure-never-inherits", Array.IndexOf(cv.CurrentCommandLine().Split(" "c), "del") < 0, cv.CurrentCommandLine())
+        Finally
+            If jv IsNot Nothing Then jv.Dispose()
+            If cv IsNot Nothing Then cv.Dispose()
+        End Try
+    End Sub
+
+    ' SP-0194: the folder the start asks about is the one filedo.exe redirects to, a folder with a file
+    ' in it is offered and an empty one is not, and with the redirect switched off nothing is offered.
+    ' %TEMP% and the switch are pointed at a scratch folder for the check and put back after it.
+    Private Sub CheckLeftoverTestFiles()
+        Dim scratch = Path.Combine(Path.GetTempPath(), "filedo-selftest-leftover-" & Guid.NewGuid().ToString("N"))
+        Dim oldTemp = Environment.GetEnvironmentVariable("TEMP")
+        Dim oldSwitch = Environment.GetEnvironmentVariable("FILEDO_DISABLE_REDIRECT")
+        Try
+            Dim folder = Path.Combine(scratch, "FileDO_Operations")
+            Directory.CreateDirectory(folder)
+            Environment.SetEnvironmentVariable("TEMP", scratch)
+            Environment.SetEnvironmentVariable("FILEDO_DISABLE_REDIRECT", Nothing)
+            Check("leftover:folder", TargetPath.OperationsFolder() = folder, TargetPath.OperationsFolder())
+            Check("leftover:empty-offers-nothing", Not TargetPath.HasOperationsFiles(), "")
+            File.WriteAllText(Path.Combine(folder, "FILL_000001.tmp"), "x")
+            Check("leftover:a-file-is-offered", TargetPath.HasOperationsFiles(), "")
+            Environment.SetEnvironmentVariable("FILEDO_DISABLE_REDIRECT", "1")
+            Check("leftover:redirect-off-offers-nothing", Not TargetPath.HasOperationsFiles(), "")
+            Environment.SetEnvironmentVariable("FILEDO_DISABLE_REDIRECT", Nothing)
+            Check("leftover:system-drive-token", TargetPath.IsSystemVolumeRoot(TargetPath.SystemDriveToken()), TargetPath.SystemDriveToken())
+        Finally
+            Environment.SetEnvironmentVariable("TEMP", oldTemp)
+            Environment.SetEnvironmentVariable("FILEDO_DISABLE_REDIRECT", oldSwitch)
+            Try
+                Directory.Delete(scratch, True)
+            Catch ex As Exception
+                ShellLog.Write("remove the self-test scratch folder", ex)
+            End Try
+        End Try
+    End Sub
+
     ' AUD-28-F3: the check verb reads its Int options with Go's flag package, which parses base 0:
     ' "09" is a parse error after the run has started and "010" is octal 8. A value with a leading
     ' zero is therefore not a number to the panel - it is flagged and left off the line - while "0",
@@ -3189,6 +3375,35 @@ Partial Public Module SelfTest
             Dim marker = "[Diag] LOG OMITTED | reason=oversized_untrusted | source_bytes=" & hugeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
             Check("diagnostic:omitted-marker", hugeEntry IsNot Nothing AndAlso hugeEntry.TrimEnd() = marker, If(hugeEntry, "(no entry)"))
             Check("diagnostic:omitted-no-source", Not hugeAll.ToString().Contains("huge-name-canary") AndAlso Not hugeAll.ToString().Contains("huge-content-canary"), "")
+
+            ' DIAGNOSTIC-REPORT 0.15 item 1: a log whose text does not fit what the archive budget has left is
+            ' omitted whole, with reason=archive_cap in its place - never an empty entry, never a free-text marker.
+            Dim budgetLog = Path.Combine(dir, "budget-canary.log")
+            Dim budgetText = "ordinary line of a log, nothing to redact" & vbCrLf &
+                "ordinary line of a log, nothing to redact" & vbCrLf & "budget-content-canary" & vbCrLf
+            File.WriteAllText(budgetLog, budgetText, New UTF8Encoding(False))
+            Dim budgetMarker = "[Diag] LOG OMITTED | reason=archive_cap | source_bytes=" &
+                Encoding.UTF8.GetByteCount(budgetText).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            Dim budgetEntry As String = Nothing
+            Dim budgetAll As New StringBuilder()
+            LogReport.BudgetForTest = 64
+            Try
+                Using fs As New FileStream(LogReport.ArchiveForTest(budgetLog, dir), FileMode.Open, FileAccess.Read)
+                    Using zip As New System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read)
+                        For Each entry In zip.Entries
+                            Using reader As New StreamReader(entry.Open(), Encoding.UTF8)
+                                Dim text = reader.ReadToEnd()
+                                budgetAll.AppendLine(entry.FullName).AppendLine(text)
+                                If entry.FullName = "logs/log-01.txt" Then budgetEntry = text
+                            End Using
+                        Next
+                    End Using
+                End Using
+            Finally
+                LogReport.BudgetForTest = 0
+            End Try
+            Check("diagnostic:archive-cap-marker", budgetEntry IsNot Nothing AndAlso budgetEntry.TrimEnd() = budgetMarker, If(budgetEntry, "(no entry)"))
+            Check("diagnostic:archive-cap-no-source", Not budgetAll.ToString().Contains("budget-content-canary"), "")
         Finally
             If Directory.Exists(dir) Then Directory.Delete(dir, True)
         End Try
@@ -3253,7 +3468,7 @@ Partial Public Module SelfTest
 
     Private Function IsCredentialOp(op As String) As Boolean
         Return Array.IndexOf(New String() {"secure", "unsecure", "reveal",
-                                           "fdsec info", "fdsec verify"}, op) >= 0
+                                           "fdsec info", "fdsec verify", "backup sec"}, op) >= 0
     End Function
 
     ' `info` is written as `short` when the brief report is asked for, and copy is written as
@@ -4744,9 +4959,9 @@ Partial Public Module SelfTest
               DiskShortcuts.All.All(Function(s) Not (s.Command = DiskCommand.Perform AndAlso s.Action.HasValue AndAlso
                                                      (s.Action.Value = DiskAction.Destroy OrElse s.Action.Value = DiskAction.Format))), "")
         Check("disk-ui:key:text", DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.M) = "Ctrl+Shift+M" AndAlso
-                                  DiskShortcuts.KeyText(Keys.Delete) = "Del" AndAlso DiskShortcuts.KeyText(Keys.F1) = "F1" AndAlso
+                                  DiskShortcuts.KeyText(Keys.Delete) = "Delete" AndAlso DiskShortcuts.KeyText(Keys.F1) = "F1" AndAlso
                                   DiskShortcuts.KeyText(Keys.Escape) = "Esc" AndAlso DiskShortcuts.KeyText(Keys.Return) = "Enter", "")
-        For Each want In New String() {"Ctrl+M", "Ctrl+U", "Ctrl+E", "Ctrl+S", "Ctrl+N", "Del", "F5", "Ctrl+F", "Esc", "Enter", "F1", "Ctrl+O"}
+        For Each want In New String() {"Ctrl+M", "Ctrl+U", "Ctrl+E", "Ctrl+S", "Ctrl+N", "Delete", "F5", "Ctrl+F", "Esc", "Enter", "F1", "Ctrl+O"}
             Check("disk-ui:key:spec:" & want, DiskShortcuts.All.Any(Function(s) DiskShortcuts.KeyText(s.Chord) = want), want)
         Next
         Dim labels = DiskShortcuts.All.Select(Function(s) s.LabelKey).Distinct().Count()

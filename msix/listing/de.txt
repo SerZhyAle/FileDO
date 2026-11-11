@@ -23,6 +23,7 @@ LÖSCHEN
 
 SCHÜTZEN
 - Eine Datei mit Passwort in einen .fd-sec-Container packen, das Original zurückholen oder den Inhalt im zugehörigen Programm öffnen, ohne ihn zu entpacken - aus einer schreibgeschützten Kopie, die nur Ihr Konto lesen kann und die entfernt wird, sobald Sie fertig sind. Ein leeres Passwort ist erlaubt und bedeutet nur Verschleierung, keine Geheimhaltung; FileDO sagt das dort, wo Sie es eingeben. Das Containerformat ist vollständig veröffentlicht, Ihre Daten lassen sich also auch ohne FileDO lesen.
+- Einen Ordner, ein ganzes Laufwerk oder eine Netzwerkfreigabe in eine Datei sichern: eine gewöhnliche .zip, die jedes ZIP-Programm öffnet, oder diese ZIP-Datei, hinter einem Passwort in einen .fd-sec-Container versiegelt. FileDO sieht sich den Inhalt höchstens 10 Sekunden lang an und wählt die Kompressionsdichte selbst, und es stellt die Sicherung neben dem Archiv oder an der Adresse wieder her, die Sie nennen - ein vorhandener Ordner wird nie ergänzt oder ersetzt.
 
 VIRTUELLE DATENTRÄGER
 - Ein .fdd-Container enthält ein ganzes Volume in einer Datei. In dieser Edition können Sie ihn anlegen, seine Eckdaten lesen, ihn vollständig auf Schäden lesen, ihn als Rohabbild oder als VHD exportieren, die Windows selbst öffnet, ihn vergrößern oder verkleinern, kopieren, sein Passwort ändern oder ihn entfernen - ohne Administratorrechte. Ohne Passwort ist ein Container verschleiert, nicht verschlüsselt: Jeder mit der Datei und FileDO kann ihn lesen. Einen Container als Laufwerksbuchstaben einbinden kann diese Edition nicht (siehe unten).
@@ -88,4 +89,4 @@ speicherplatz überschreiben
 dateien mit passwort schützen
 
 @@ReleaseNotes
-Neu: F1 und die neue Schaltfläche ? öffnen die Hilfeseite des Fensters, in dem Sie sich befinden, in fünf Sprachen. Geändert: Schaltflächen und Dialogantworten sehen überall gleich aus, F6 und Umschalt+F6 wechseln zwischen den Bereichen eines Fensters, und ein .fd-sec-Container, dessen versiegelter Name ein unter Windows verbotenes Dateinamenzeichen enthält, wird jetzt geprüft, statt als beschädigt zu gelten.
+Neu: Sicherung eines Ordners, eines Laufwerks oder eines Netzwerkordners in eine ZIP-Datei, die jedes ZIP-Programm öffnet, oder versiegelt hinter einem Passwort, und Wiederherstellung daraus - in der Befehlszeile oder auf den Seiten der Gruppe Schützen. Geändert: ein Lauf, der nicht zu Ende kommt, nennt den Grund - im Exit-Code und in der Sprache des Fensters.

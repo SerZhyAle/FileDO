@@ -795,6 +795,16 @@ func vdLogf(format string, args ...interface{}) {
 	f.WriteString(line)
 }
 
+// vdConsentTag names the logon-mount standing consent in a log line when the
+// run came from the logon task, and is empty otherwise: a hand-typed mount is
+// the owner's own act, not a use of that setting (APP-BEHAVIOUR 0.13 rule 4).
+func vdConsentTag() string {
+	if logonTaskFlag {
+		return " (standing consent: logon mount)"
+	}
+	return ""
+}
+
 // vdIQN is the target name of a container: one target per container, named
 // from its id (plan S3 open question 2).
 func vdIQN(containerID string) string {

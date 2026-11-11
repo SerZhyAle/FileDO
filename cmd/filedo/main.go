@@ -35,6 +35,11 @@ var machineStopChannel bool
 // noHistoryFlag is --no-history: no history.json for this run.
 var noHistoryFlag bool
 
+// logonTaskFlag is --logon-task, the marker the automatic logon mount's task
+// carries (vdisk_auto_windows.go). A run it marks uses the logon-mount standing
+// consent (APP-BEHAVIOUR 0.13 rule 4), so its log lines name that setting.
+var logonTaskFlag bool
+
 func extractGlobalFlags(args []string) (filtered []string, eventsPath string, stopFilePath string, noUI bool, pause bool) {
 	filtered = make([]string, 0, len(args))
 	for i := 0; i < len(args); i++ {
@@ -55,6 +60,8 @@ func extractGlobalFlags(args []string) (filtered []string, eventsPath string, st
 			pause = true
 		} else if arg == "--no-history" {
 			noHistoryFlag = true
+		} else if arg == "--logon-task" {
+			logonTaskFlag = true
 		} else {
 			filtered = append(filtered, arg)
 		}
@@ -428,6 +435,8 @@ MAIN OPERATIONS:
   secure   → Pack a file into a .fd-sec container behind a password
   unsecure → Restore the original from a .fd-sec container
   reveal   → Open a container in its app, in a sandbox that is swept after
+  backup   → Pack a folder, drive or share into a zip (optionally sealed .fd-sec)
+  restore  → Unpack a backup zip or sealed backup into a folder
   vd       → Virtual disks: .fdd containers mounted as drive letters
              (new, mount, unmount, info, verify, export, save, compact, grow,
              format, seal, clone, pass, destroy, list, status, add, forget,
@@ -453,6 +462,7 @@ EXAMPLES:
   filedo.exe copy C:\src D:\dst   → Smart copy with optimization
   filedo.exe C:\temp wipe         → Fast wipe folder
   filedo.exe secret.txt secure    → Pack into secret.fd-sec
+  filedo.exe backup D:\Photos     → D:\Photos-<yyMMddHHmm>.zip, density probed
   filedo.exe vd new work.fdd 20G  → Create a 20 GB virtual disk (obfuscated)
   filedo.exe work.fdd mount       → Mount it as a drive letter
 
@@ -472,8 +482,10 @@ OPTIONS:
   --stop-file <path> → Stop gracefully when the named file appears
   --precount → copy: count the tree first, for exact totals and ETA (otherwise copying starts at the first file)
 
-EXIT CODES (all non-container verbs):
-  0 passed or done, 1 ran and found a defect, 2 could not be verified
+EXIT CODES (non-container verbs; vd has its own classes):
+  0 passed or done; 1 defect found; 2 could not verify (unclassified)
+  10 usage; 11 target unavailable; 12 permission; 13 insufficient resources
+  14 hardware I/O; 15 network failure; 16 stopped by the caller
 
 MORE INFO:
   filedo.exe help                 → Show detailed help
@@ -520,7 +532,7 @@ Capacity & Integrity Testing:
   
 Space Management:
   filedo.exe C: fill 500           → Fill device with 500MB files until full
-  filedo.exe device D: fill 1000 del → Fill and auto-delete (secure wipe)
+  filedo.exe device D: fill 1000 del → Fill, then delete the test files (wipes the free space)
   filedo.exe device E: fill verify → Read back what fill wrote (fake capacity check)
   filedo.exe device E: clean       → Delete FileDO's test files (lists them, asks; --yes skips)
 
@@ -564,7 +576,7 @@ Capacity Testing:
 
 Space Management:
   filedo.exe C:\Temp fill 1000     → Fill folder with test files
-  filedo.exe folder D:\Data fill 500 del → Fill and secure delete
+  filedo.exe folder D:\Data fill 500 del → Fill, then delete the test files
   filedo.exe folder C:\Temp clean  → Clean all test files
 
 File Organization:
@@ -583,6 +595,37 @@ File Analysis:
   filedo.exe file data.zip info    → Show detailed file information
   filedo.exe file document.pdf short → Show brief file summary
 
+═══════════════════════════════════════════════════════════════════════════════
+BACKUP AND RESTORE (a restorable copy in one file)
+
+  filedo.exe backup D:\Photos            → D:\Photos-<yyMMddHHmm>.zip beside the
+                                           folder; any zip tool opens it
+  filedo.exe backup D:\Photos to E:\Bak  → The zip goes into E:\Bak
+  filedo.exe backup D:\Photos level 9    → Name the density (0 = store .. 9);
+                                           otherwise a probe of at most 10 s
+                                           reads a sample and chooses
+  filedo.exe backup D:\Photos sec        → Seal the zip into Photos-<stamp>.fd-sec
+                                           (password asked twice; keep-zip
+                                           keeps the plain zip as well)
+  filedo.exe backup \\nas\share\Docs     → A network folder, the same way
+  filedo.exe backup E:\ root             → A whole drive or share: the size is
+                                           shown and confirmed first; the
+                                           Windows drive itself is refused
+  filedo.exe backup D:\Data skip-links   → Leave junctions and symbolic links
+                                           out and list them (without the
+                                           word, a link refuses the backup)
+  filedo.exe restore Photos-2611101530.zip
+                                         → Rebuild the folder beside the archive
+  filedo.exe restore Photos-2611101530.fd-sec to D:\
+                                         → Open the sealed backup (password)
+                                           and rebuild D:\Photos
+  The zip records the folder's name, never its path. An existing folder is
+  never merged into or replaced: restore asks to write beside it as
+  <name>-1 (suffix answers yes in a batch). An archive whose names would
+  leave the destination - .., a drive letter, a device name - is refused
+  whole, before anything is written. del removes the archive afterwards;
+  y answers the questions, never the checks. No schedule, no history of
+  backups: each one is whole and runs when you run it.
 ═══════════════════════════════════════════════════════════════════════════════
 SECRET FILES (.fd-sec containers)
 
@@ -1010,8 +1053,10 @@ Output Control:
   --events <path> → Write the opt-in JSON Lines event stream for a supervisor
   --stop-file <path> → Stop gracefully when the named file appears
 
-Exit codes (all non-container verbs):
-  0 passed or done, 1 ran and found a defect, 2 could not be verified
+Exit codes (non-container verbs; vd has its own classes):
+  0 passed or done; 1 defect found; 2 could not verify (unclassified)
+  10 usage; 11 target unavailable; 12 permission; 13 insufficient resources
+  14 hardware I/O; 15 network failure; 16 stopped by the caller
 
 File Management:
   del, delete, d  → Auto-delete test files after successful operation
@@ -1039,8 +1084,8 @@ Network Speed Test:
 Process Saved Duplicate List:
   filedo.exe cd from list my_dups.lst del new -y → Delete the newer copies of every listed group, without asking
 
-Secure Space Wiping:
-  filedo.exe C: fill 5000 del      → Fill 5GB then secure delete (data recovery prevention)
+Free Space Wiping:
+  filedo.exe C: fill 5000 del      → Fill the free space with 5000MB files, then delete them (makes recovery harder)
 
 Fast Backup & Cleanup:
   filedo.exe folder C:\ImportantData copy D:\Backup → Copy folder with progress tracking
@@ -1079,8 +1124,9 @@ IMPORTANT NOTES
   a verdict. Exit 1 means the data did not read back; exit 2 means the target
   could not be tested (write-protected, full, gone) - nothing was proven.
 
-• Secure Wiping: Use 'fill <size> del' to overwrite free space and prevent
-  recovery of previously deleted files.
+• Free Space Wiping: 'fill <size> del' overwrites the free space with test
+  files of <size> MB each, then deletes them. It makes recovery of previously
+  deleted files harder; on an SSD it promises nothing.
 
 • Automatic Hardware Protection: copy, fastcopy, balanced and maxcopy retry
   the files that stalled or hit device I/O errors in SAFE RESCUE mode.
@@ -1143,10 +1189,12 @@ var list_of_flags_for_wipe = []string{"wipe", "w"}
 var list_of_flags_for_fdsec = []string{"fdsec", "fds"}
 var list_of_flags_for_ui = []string{"ui", "gui", "-ui"}
 var list_of_flags_for_dm = []string{"dm", "-dm"}
+var list_of_flags_for_backup = []string{"backup", "-backup"}
+var list_of_flags_for_restore = []string{"restore", "-restore"}
 var list_fo_flags_for_help = []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
 var list_fo_flags_for_short_help = []string{"?", "/?", "-?", "--help"}
 var list_fo_flags_for_full_help = []string{"help", "h", "/help"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_dm...), list_of_flags_for_vd...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_dm...), list_of_flags_for_vd...), list_of_flags_for_backup...), list_of_flags_for_restore...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {

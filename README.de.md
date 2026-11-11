@@ -4,10 +4,12 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610211540-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611110217-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
+
+![Das FileDO-Fenster auf der Seite des Kapazitätstests](msix/screenshots/capacity-de.png)
 
 </div>
 
@@ -244,6 +246,66 @@ verdeckt, wird beim Einpacken zweimal getippt und `filedo.exe` unsichtbar überg
 Befehlszeile, keinen Laufbericht und keine Verlaufsdatei. Ein Doppelklick auf eine `.fd-sec` öffnet dieses
 Fenster nicht - er führt **Unsecure and start** in der Konsole aus, genau wie der gleichnamige
 Explorer-Menüeintrag.
+
+---
+
+## Sicherung und Wiederherstellung
+
+Ein Ordner, ein ganzes Laufwerk oder eine Netzwerkfreigabe wandert in eine Datei - eine gewöhnliche
+`.zip`, die jedes ZIP-Programm auf jedem Computer öffnet, oder diese ZIP-Datei, hinter einem Passwort in
+einen `.fd-sec`-Container versiegelt - und kommt an ihre alte oder an eine neue Adresse zurück. Vor dem
+Einpacken liest FileDO höchstens 10 Sekunden lang eine Stichprobe des Inhalts und wählt die
+Kompressionsdichte selbst: Fotos und Videos werden unverändert abgelegt, Texte und Dokumente dichter
+gepackt; die gewählte Stufe und die Dauer der Probe werden ausgegeben, und `level <0-9>` nennt die Dichte
+stattdessen.
+
+```bash
+# D:\Photos-<yyMMddHHmm>.zip neben dem Ordner; jedes ZIP-Programm öffnet sie
+filedo backup D:\Photos
+
+# An einen anderen Ort, mit einer Dichte, die Sie nennen
+filedo backup D:\Photos to E:\Bak level 9
+
+# In Photos-<yyMMddHHmm>.fd-sec versiegelt (Passwort zweimal abgefragt); keep-zip behält die ZIP-Datei auch
+filedo backup D:\Photos sec
+
+# Ein Netzwerkordner genauso; ein ganzes Laufwerk braucht das Wort root und Ihr Ja nach der Größenschätzung
+filedo backup \\nas\share\Docs
+filedo backup E:\ root
+
+# Den Ordner neben dem Archiv oder unter einer anderen Adresse wiederherstellen
+filedo restore Photos-2611101530.zip
+filedo restore Photos-2611101530.fd-sec to D:\
+```
+
+- **Die ZIP-Datei speichert den Namen des Ordners, nie seinen Pfad**, sodass eine gewöhnliche Sicherung,
+  die Sie weitergeben, nicht zeigt, wie Ihr Datenträger aufgebaut ist. `restore` stellt den Ordner neben
+  dem Archiv wieder her; `to <Ordner>` nennt jede andere Adresse, auch die ursprüngliche.
+- **Nichts wird ergänzt oder ersetzt.** Ein Ordner, der am Ziel schon existiert, bleibt, wie er ist:
+  `restore` bietet an, daneben als `<Name>-1` zu schreiben, und `suffix` antwortet in einem Stapellauf mit
+  Ja. Auch ein vorhandener Archivname wird nie überschrieben.
+- **Ein Archiv, dessen Eintragsnamen das Ziel verlassen würden** - `..`, ein absoluter Pfad, ein
+  Laufwerksbuchstabe, ein Gerätename wie `CON` - wird als Ganzes abgelehnt, bevor etwas geschrieben wird.
+- **Das Windows-Laufwerk selbst wird abgelehnt**; auf einem anderen ganzen Laufwerk werden die
+  Auslagerungsdatei, die Ruhezustandsdatei und `System Volume Information` übersprungen, und der Lauf
+  sagt das. Das Archiv wird nie in den Ordner geschrieben, den es einpackt.
+- **Eine Verzweigung oder ein symbolischer Link in der Quelle lehnt die Sicherung ab** und nennt den
+  Eintrag; `skip-links` lässt die Links weg und listet jeden einzelnen auf, sodass eine unvollständige
+  Kopie nie unbemerkt bleibt.
+- **Was mitkommt**: die Dateien, die leeren Ordner und die Änderungszeit jeder Datei. Berechtigungen,
+  alternative Datenströme und Links nicht.
+- **Ein angehaltener Lauf (Strg+C) hinterlässt kein Archiv** - nur fertige Dateien bekommen ihren
+  endgültigen Namen. Eine versiegelte Sicherung mit falschem Passwort, eine Datei, die kein Container ist,
+  und ein beschädigter Container enden in derselben Antwort, wie bei `unsecure`; `del` entfernt das Archiv
+  nach einer gelungenen Wiederherstellung.
+- **Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten** - es gibt keinen Zeitplan, keine
+  Liste früherer Sicherungen und keine inkrementellen Schichten. Eine einzelne Datei kommt stattdessen mit
+  `secure` in einen Container.
+
+Im Fenster trägt die Gruppe **«Schützen»** beide Operationen als Seiten - **«Ordner sichern»** und **«Aus
+Sicherung wiederherstellen»** -, und die Seite **«Befehl»** baut sie ebenfalls (`backup`, `backup sec`,
+`restore`). Das Passwort wird verdeckt getippt (für eine versiegelte Sicherung zweimal) und erreicht keine
+Befehlszeile.
 
 ---
 
@@ -502,13 +564,13 @@ und nichts wurde verändert.
 
 - **Visuelle Zielauswahl** mit Optionsfeldern (Gerät/Ordner/Netzwerk/Datei)
 - **Operationen-Dropdown** auf der Seite «Befehl» (Info, Geschwindigkeit, Füllen, Test, Bereinigen, Duplikat-Prüfung)
-- **Eine Seite je Aufgabe** im Standardfenster - Kapazität, Geschwindigkeit, Info, Prüfung auf beschädigte Dateien, direkte Kapazitätsprüfung, Wiederherstellung, Duplikate, Vergleich, Bereinigen, Kopieren, Füllen, Löschen und die drei Aufgaben für geheime Dateien - jede mit allen Optionen, die die CLI dafür annimmt, einschließlich aller neunundzwanzig `check`-Schalter
+- **Eine Seite je Aufgabe** im Standardfenster - Kapazität, Geschwindigkeit, Info, Prüfung auf beschädigte Dateien, direkte Kapazitätsprüfung, Wiederherstellung, Duplikate, Vergleich, Bereinigen, Kopieren, Füllen, Löschen, die drei Aufgaben für geheime Dateien und das Sicherungspaar (sichern, wiederherstellen) - jede mit allen Optionen, die die CLI dafür annimmt, einschließlich aller neunundzwanzig `check`-Schalter
 - **Parameter-Eingabe** mit Validierung
 - **Echtzeit-Befehlsvorschau** auf der Seite «Befehl» zeigt äquivalenten CLI-Befehl
 - **Durchsuchen-Button** für einfache Pfad-Auswahl
 - **Fortschrittsverfolgung** mit Echtzeit-Ausgabe
 - **Ein-Klick-Ausführung** mit Ausgabe-Anzeige
-- **Seite «Über»**: Build, Autor und Links zur Website, zum Quellcode, zum Issue-Tracker, zur Datenschutzseite und zu den weiteren Programmen des Autors
+- **Seite «Über»**: wofür FileDO da ist, Build, Autor und Links zur Hilfe, zum Verzeichnis aller Themen, zur Website, zu allen Versionen mit Downloads und Updates, zum Quellcode, zur Support-Seite, zum Issue-Tracker, zur Datenschutzseite, zum Lizenztext und zu den weiteren Programmen des Autors, dazu das verwandte Programm Fast Media Sorter and Sharing und wofür es da ist. Das eigene Einstellungsfenster der Datenträgerverwaltung hat dieselben Seiten «Einstellungen» und «Über», einen Klick voneinander entfernt
 - **Logs an den Autor senden** - die eine Schaltfläche auf dieser Seite packt die auf diesem Rechner gefundenen FileDO-Logs in ein Zip, öffnet den Ordner mit markierter Datei, legt den Pfad in die Zwischenablage und öffnet Ihr Mailprogramm mit ausgefüllter Adresse und Betreff. Das Zip sehen Sie zuerst selbst, und gesendet wird nichts, bevor Sie die Mail selbst abschicken
 
 ```bash
@@ -567,7 +629,7 @@ folder C:\temp clean
 
 Ausführen: `filedo from commands.txt`
 
-Exit-Codes (alle Nicht-Container-Befehle): **0 passed or done, 1 ran and found a defect, 2 could not be verified.**
+Exit-Codes (alle Nicht-Container-Befehle): **0 bestanden oder erledigt, 1 Defekt gefunden, 2 nicht prüfbar (keine genauere Klasse), 10 Aufruf falsch, 11 Ziel nicht gefunden oder nicht bereit, 12 Zugriff oder Administratorrechte verweigert, 13 zu wenig Platz oder Ressourcen, 14 Hardware- oder E/A-Fehler, 15 Netzwerk- oder Freigabefehler, 16 vor dem Ende gestoppt.** Ein vor dem Stopp gefundener Defekt bleibt 1; ein Skript, das genau auf 2 prüft, sollte auf 2 oder höher prüfen. Die Container-Befehle und `vd` behalten ihre eigenen Klassen, die bei ihnen aufgeführt sind.
 
 ### Historien-Verfolgung
 ```bash
@@ -643,14 +705,14 @@ filedo \\server\backup speed 500
 <summary><b>Überschreiben</b></summary>
 
 ```bash
-# 5GB füllen, dann die Testdateien löschen
+# Freien Speicher mit Testdateien zu je 5000 MB füllen, dann löschen
 filedo C: fill 5000 del
 
 # Vorhandene Testdateien bereinigen
 filedo D: clean
 
-# Vor Festplatten-Entsorgung
-filedo E: fill max del
+# Vor Festplatten-Entsorgung: den ganzen freien Speicher mit Dateien zu je 1000 MB überschreiben, dann löschen
+filedo E: fill 1000 del
 ```
 </details>
 
@@ -727,7 +789,16 @@ FileDO/
 
 ## Versionshistorie
 
-**v2610211540** (Aktuell)
+**v2611110217** (Aktuell)
+- **Sicherung**: `filedo backup` packt einen Ordner, ein Laufwerk oder einen Netzwerkordner in eine ZIP-Datei, die jedes ZIP-Programm öffnet - die Kompressionsdichte wählt FileDO nach einem Blick von höchstens 10 Sekunden auf die Dateien, oder `level 0-9` legt sie fest -, und `sec` versiegelt die ZIP-Datei in einen `.fd-sec`-Container hinter einem Passwort; `filedo restore` baut den Ordner neben der Sicherung oder dort, wohin `to` zeigt, neu auf und führt nie mit einem Ordner zusammen oder ersetzt ihn; im Fenster hat die Gruppe **Schützen** die Seiten *Ordner sichern* und *Aus Sicherung wiederherstellen*
+- **Exit-Codes**: ein Lauf, der nicht zu Ende kommt, nennt den Grund im Exit-Code: 10 ein Fehler im Befehl, 11 ein fehlendes oder nicht bereites Ziel, 12 fehlende Rechte, 13 zu wenig Platz, 14 ein E/A-Fehler, 15 ein Netzwerkfehler, 16 von Ihnen angehalten; 0, 1 und 2 behalten ihre Bedeutung
+- **Gründe**: wenn ein Lauf nicht zu Ende kommt, nennt die Ergebniskarte den Grund in der Sprache des Fensters - ein volles Laufwerk, eine Datei, die ein anderes Programm geöffnet hat - statt nur eines Exit-Codes, und die Datenträgerverwaltung tut dasselbe; eine Kopie, der der Platz ausgeht, sagt, dass das Laufwerk voll ist; eine von einem anderen Programm geöffnete Datei wird mit diesem Programm genannt, und der Lauf lässt sich einfach wiederholen, sobald die Datei frei ist
+- **Füllen**: die Seite Füllen löscht ihre Testdateien nach dem Lauf, solange das Häkchen gesetzt bleibt, und übrig gebliebene Testdateien eines früheren Laufs bietet das Fenster beim Start zum Aufräumen an
+- **Fenster**: die Schaltfläche **?** öffnet ihre Hilfeseite am Anfang; ein zweiter Start von FileDO holt das offene Fenster nach vorn; Kontrollkästchen werden in den Farben des Designs gezeichnet, und ihre langen Beschriftungen werden umbrochen; die Symbole der linken Leiste erscheinen in der Farbe ihrer Gruppe
+- **Datenträger**: ein Datenträger, dessen Freigabeeintrag einen Halter oder einen Zustand nennt, den diese Version nicht lesen kann, wird nicht eingebunden; eine Einbindung bei der Anmeldung wird als unter ihrer Einstellung erfolgt protokolliert
+- **Website und Datenschutz**: die Datenschutzseite nennt die Datenträgerfreigabe und das gespeicherte Passwort der automatischen Einbindung; die Startseite hat eigene russische und ukrainische Adressen, zeigt Größe und SHA-256 der Setup-Datei direkt und trennt die Prüfungen, die nur lesen, von den Operationen, die schreiben; die Seiten der integrierten Hilfe werden von Suchmaschinen nicht indiziert
+
+**v2610211540** (Vorherige)
 - **Hilfe**: **F1** oder die neue Schaltfläche **?** öffnet im Browser die Hilfeseite des Fensters, in dem Sie sich befinden - die Aufgabenseiten, die Befehlsseite, die Einstellungen, Info, den Verlauf und die Datenträgerverwaltung - auf Englisch, Russisch, Ukrainisch, Deutsch und Französisch, mit nummerierten Markierungen auf einem Bild des Fensters; das Menü des Tray-Symbols hat einen Eintrag *Hilfe*, und der erste Link von Info öffnet das Hilfeverzeichnis
 - **Aussehen**: alle Schaltflächen haben dieselbe Höhe und abgerundete Ecken, und eine lange Beschriftung wird umbrochen, statt mit Auslassungspunkten abgeschnitten zu werden; die Antworten in Dialogen haben ein einheitlich neutrales Aussehen, Abbrechen steht zuerst und die ausführende Antwort zuletzt; die Gruppen in den Einstellungen öffnen und schließen sich über eine Kopfzeile mit Zustandsdreieck
 - **Tastatur**: **F6** und **Umschalt+F6** verschieben den Fokus zum nächsten oder vorherigen Bereich des Fensters, im Hauptfenster und in der Datenträgerverwaltung; das Hilfemenü der Datenträgerverwaltung (Tastenübersicht, Einführung, Links) öffnet sich auch per Tastatur - **Menütaste** oder **Umschalt+F10** auf der Schaltfläche **?** - und steht in ihrem Menü *Weitere Aktionen*
@@ -737,7 +808,7 @@ FileDO/
 - **Korrekturen**: ein Aufgabenereignis mit einem leeren Wert unter seinen Zahlen löst im Fenster keinen Fehler mehr aus
 - **Dokumentation**: neue Anleitungen auf der Website zum Löschen von Daten und zum Microsoft-Store-Build, in fünf Sprachen; Fußzeilen und Designschalter der Website-Seiten sind vereinheitlicht; die Spezifikationen für Format und Verhalten der `.fdd`-Container haben Version 1.0
 
-**v2610102316** (Vorherige)
+**v2610102316**
 - **Virtuelle Datenträger**: `mount noscan` ist abgeschafft - FileDO ändert keine Einstellungen von Microsoft Defender mehr; das Wort wird weiter angenommen und ignoriert, das Einbinden-Fenster hat kein Antiviren-Kästchen mehr, und die Containerdatei lässt sich in der Windows-Sicherheit von Hand ausnehmen
 - **Sicherheitssoftware**: die Datenträgerschritte starten PowerShell nicht mehr als codierten Befehl und nicht mit abgeschalteter Ausführungsrichtlinie - beides wertet Sicherheitssoftware gegen ein Programm
 
@@ -811,7 +882,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610211540** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2611110217** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

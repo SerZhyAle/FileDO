@@ -97,6 +97,12 @@ func redactCredentialArgs(args []string) []string {
 			out[i] = "p:***"
 		}
 	}
+	// The backup pair names its verb first; `sec` after it is an option of
+	// backup, not the fdsec verb, so the pair is screened by its own grammar.
+	if at := backupVerbAt(out); at >= 0 {
+		redactBackupArgs(out, at)
+		return out
+	}
 	// The scan starts at 0, not at 1: a batch line is echoed as its own
 	// fields, so the family token can BE the first one (`fdsec verify c p:..`)
 	// where an os.Args slice would carry the executable's path there instead.
@@ -151,6 +157,53 @@ func redactCredentialArgs(args []string) []string {
 		}
 	}
 	return out
+}
+
+// ------------------------------------------------------------ the backup pair
+
+// backupVerbAt is the index of a backup or restore verb that opens a line - the
+// first field of a batch line, or the one after the executable's path - or -1.
+func backupVerbAt(out []string) int {
+	for i := 0; i < len(out) && i < 2; i++ {
+		w := strings.ToLower(out[i])
+		if contains(list_of_flags_for_backup, w) || contains(list_of_flags_for_restore, w) {
+			return i
+		}
+	}
+	return -1
+}
+
+// redactBackupArgs screens a backup or restore line by the parser's own
+// grammar (parseBackupArgs): the source or archive after the verb, the path
+// after `to` and the number after `level` are kept, and so are the option
+// words and the pf:, pe: and k: names; a p: password becomes p:*** and any
+// other word *** - it may be a password typed without its p:.
+func redactBackupArgs(out []string, at int) {
+	haveSource := false
+	for i := at + 1; i < len(out); i++ {
+		t := out[i]
+		lt := strings.ToLower(t)
+		switch {
+		case lt == "to":
+			i++
+		case lt == "level":
+			if i+1 < len(out) {
+				if _, err := strconv.Atoi(out[i+1]); err != nil {
+					out[i+1] = "***"
+				}
+			}
+			i++
+		case backupOptionWords[lt]:
+		case backupCredentialWord(t, !haveSource):
+			if strings.HasPrefix(t, "p:") {
+				out[i] = "p:***"
+			}
+		case !haveSource:
+			haveSource = true
+		default:
+			out[i] = "***"
+		}
+	}
 }
 
 // ---------------------------------------------------------------- the vd family

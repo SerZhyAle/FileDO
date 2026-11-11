@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-BEHAVIOUR` |
-| **Version** | 0.12, draft (no wire - the twelve moments a user of any SZA desktop app meets) |
+| **Version** | 0.14, read 2026-10-29 (SP-0174); implemented 0.14 - the standing-consent log line of a logon mount is implemented and proven live 2026-11-11 (SP-0188), draft (no wire - the twelve moments a user of any SZA desktop app meets) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-BEHAVIOUR.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |
@@ -21,7 +21,7 @@ a window"); its typed-`WIPE` prompts stay the canon's destructive-tool rules.
 3. **Progress, cancel, no second start.** One progress rule for both run pages (`RunProgress`); Stop
    writes the `--stop-file`; a running job's page is not lost to navigation; closing while a run is active
    asks Stop and close / Keep running.
-4. **Network and disk only on request.** No network code; the log zip is built and mailed by the user.
+4. **Network and disk only on request.** Nothing opens the network unasked: the virtual-disk block server listens on 127.0.0.1 only while a mount the user asked for is up (rule 4, since 0.11), a disk reaches paired devices only when the user shares it with FMS, and the log zip is built and mailed by the user.
 5. **Confirm the irreversible, not the empty.** Typed `WIPE` (and `-y`, since the CLI's console question
    cannot be answered from a window); an empty wipe target and an empty log folder are said to be empty,
    never confirmed.
@@ -35,7 +35,7 @@ a window"); its typed-`WIPE` prompts stay the canon's destructive-tool rules.
    action UI Automation can invoke and the name `rail:<key>`.
 10. **Geometry on close, defensive restore.** `WindowPlacement.Place`: onto a screen that exists, title
     strip reachable, scaled by the saved DPI.
-11. **First run asks; nothing is an answer.** Nothing reaches outside the machine on any run.
+11. **First run asks; nothing is an answer.** Nothing reaches outside the machine on any run unless the user has shared a disk with FMS.
 12. **Settings commit on their own button** - held by the letter: the page offers neither Save nor Cancel
     and holds three reversible values.
 

@@ -19,6 +19,11 @@ Public Class Runner
         Public Property Duration As TimeSpan
         Public Property ResultInfo As EventStream.ResultInfo
         Public Property TimedOut As Boolean
+        ' SP-0196: the closed `details.reason` token of the first `error` finding that carried one
+        ' (CLI-EVENT-STREAM rule 17) and that finding's details; "" and Nothing when none did. The
+        ' window turns it into a sentence of its own language (RunExplanation).
+        Public Property ErrorReason As String = ""
+        Public Property ErrorDetails As Dictionary(Of String, Object)
     End Class
 
     Public Event OutputLineReceived(line As String, isError As Boolean)
@@ -52,6 +57,10 @@ Public Class Runner
     Private spool As StreamWriter
     Private spoolBroken As Boolean = False
     Private latestResultInfo As EventStream.ResultInfo
+    ' SP-0196: the first `error` finding of the run that named a closed reason (rule 17) - the first,
+    ' because the run keeps the first specific failure class too (rule 11).
+    Private firstErrorReason As String = ""
+    Private firstErrorDetails As Dictionary(Of String, Object)
     Private disposed As Boolean = False
 
     ' Nonzero once the channel declared a MAJOR this build cannot read. The run
@@ -228,8 +237,10 @@ Public Class Runner
             spoolBroken = False
         End SyncLock
         latestResultInfo = Nothing
+        firstErrorReason = ""
+        firstErrorDetails = Nothing
 
-        Dim runId = DateTime.Now.ToString("yyyyMMdd_HHmmss") & "_" & Guid.NewGuid().ToString("N").Substring(0, 6)
+        Dim runId =DateTime.Now.ToString("yyyyMMdd_HHmmss") & "_" & Guid.NewGuid().ToString("N").Substring(0, 6)
         Dim fullArgs As New List(Of String)()
         Dim spoolPath As String = Nothing
         Dim psi As ProcessStartInfo = Nothing
@@ -255,7 +266,10 @@ Public Class Runner
             AddHandler currentEventStream.UnsupportedVersion, Sub(v) channelRefusedVersion = v
             AddHandler currentEventStream.StepChanged, Sub(n, d) RaiseEvent StepChanged(n, d)
             AddHandler currentEventStream.ProgressReported, Sub(p) RaiseEvent ProgressReported(p)
-            AddHandler currentEventStream.FindingReported, Sub(t, m, d) RaiseEvent FindingReported(t, m, d)
+            AddHandler currentEventStream.FindingReported, Sub(t, m, d)
+                                                               RememberErrorReason(t, d)
+                                                               RaiseEvent FindingReported(t, m, d)
+                                                           End Sub
             AddHandler currentEventStream.NoteReported, Sub(m) RaiseEvent NoteReported(m)
             AddHandler currentEventStream.ResultReceived, Sub(r)
                                                               latestResultInfo = r
@@ -346,7 +360,9 @@ Public Class Runner
                         .Output = OutputText(),
                         .Duration = duration,
                         .ResultInfo = latestResultInfo,
-                        .TimedOut = False
+                        .TimedOut = False,
+                        .ErrorReason = firstErrorReason,
+                        .ErrorDetails = firstErrorDetails
                     }
                 Catch ex As System.ComponentModel.Win32Exception When ex.NativeErrorCode = ERROR_CANCELLED
                     ' A refused UAC prompt is a Stopped result with a plain explanation, not an
@@ -387,6 +403,24 @@ Public Class Runner
                 End Try
             End Function)
     End Function
+
+    ' A closed `details.reason` on an `error` finding (rule 17): a reader that finds none, or a value that
+    ' is not a word, treats the finding as an ordinary error and keeps nothing.
+    Friend Shared Function ReasonOf(findingType As String, details As Dictionary(Of String, Object)) As String
+        If findingType <> "error" OrElse details Is Nothing Then Return ""
+        Dim raw As Object = Nothing
+        If Not details.TryGetValue("reason", raw) Then Return ""
+        Dim token = TryCast(raw, String)
+        Return If(String.IsNullOrWhiteSpace(token), "", token)
+    End Function
+
+    Private Sub RememberErrorReason(findingType As String, details As Dictionary(Of String, Object))
+        If firstErrorReason <> "" Then Return
+        Dim token = ReasonOf(findingType, details)
+        If token = "" Then Return
+        firstErrorReason = token
+        firstErrorDetails = details
+    End Sub
 
     ' One line of the child's output: kept (bounded) for the result, spooled whole for the report,
     ' and handed to the page.
@@ -504,35 +538,29 @@ Public Class Runner
             Return "Stopped"
         End If
 
-        Dim expected As Integer
-        ' Verdict words are contract tokens, not presentation text. Case
-        ' folding or trimming would turn an unknown future word into a result
-        ' this build has no right to claim (CLI-EVENT-STREAM rule 8).
-        Select Case verdict
-            Case "Passed", "Done" : expected = 0
-            Case "Failed" : expected = 1
-            Case "Not proven" : expected = 2
-            Case "Stopped" : Return "Stopped"    ' a stop carries its own ending
-            Case Else
-                ' A word this build does not know is a word whose meaning it
-                ' cannot guess. A future verdict must not become a label on
-                ' screen that looks like an answer (rule 8 applied to the one
-                ' field the whole channel exists to deliver).
-                reason = "shell_verdict_unknown"
-                Return "Not proven"
-        End Select
+        If verdict <> "Passed" AndAlso verdict <> "Done" AndAlso verdict <> "Failed" AndAlso
+           verdict <> "Not proven" AndAlso verdict <> "Stopped" Then
+            reason = "shell_verdict_unknown"
+            Return "Not proven"
+        End If
 
-        ' The exit code is a cross-check only where it speaks this contract's
-        ' vocabulary. A container verb's digits are FDSEC-BEHAVIOUR section
-        ' 7.1 - 3 is a wrong credential, not "the code disagrees" - and rule 12
-        ' says they must never be read through rule 11's three. A code outside
-        ' those three is therefore not a disagreement; the result event is what
-        ' carries the verdict across that seam, and it has already done so.
-        If exitCode > 2 OrElse exitCode < 0 Then
+        ' Codes 3-9 belong to other command contracts (rule 12). The event
+        ' carries their verdict; 10-16 are the rule 11 vocabulary.
+        If exitCode < 0 OrElse (exitCode >= 3 AndAlso exitCode <= 9) OrElse exitCode > 16 Then
             Return verdict
         End If
 
-        If exitCode <> expected Then
+        Dim agrees As Boolean
+        Select Case verdict
+            Case "Passed", "Done" : agrees = (exitCode = 0)
+            Case "Failed" : agrees = (exitCode = 1)
+            Case "Not proven" : agrees = (exitCode = 2 OrElse (exitCode >= 10 AndAlso exitCode <= 15))
+            Case "Stopped" : agrees = (exitCode = 0 OrElse exitCode = 16)
+            Case Else
+                reason = "shell_verdict_unknown"
+                Return "Not proven"
+        End Select
+        If Not agrees Then
             reason = "shell_verdict_mismatch"
             Return "Not proven"
         End If

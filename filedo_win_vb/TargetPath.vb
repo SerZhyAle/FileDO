@@ -108,4 +108,44 @@ Module TargetPath
         Return letter = SystemDriveLetter()
     End Function
 
+    ' The system volume as a target token ("C:"): what a page that opens Clean on the redirect folder
+    ' types into the target box (SP-0194), read from the same letter the rule above uses.
+    Public Function SystemDriveToken() As String
+        Return SystemDriveLetter() & ":"
+    End Function
+
+    ' Where filedo.exe sends the system drive's test writes (sysdrive_windows.go,
+    ' systemDriveRedirectDir): %TEMP%, else %TMP%, else C:\TEMP, then FileDO_Operations.
+    Public Function OperationsFolder() As String
+        Dim temp = Environment.GetEnvironmentVariable("TEMP")
+        If String.IsNullOrEmpty(temp) Then temp = Environment.GetEnvironmentVariable("TMP")
+        If String.IsNullOrEmpty(temp) Then temp = "C:\TEMP"
+        Return Path.Combine(temp, "FileDO_Operations")
+    End Function
+
+    ' True when Clean on the system drive has a folder to look through that holds a file: the
+    ' redirect folder, or the FileDO_Test folder a fill makes inside it on a FAT volume (capacityDirs).
+    ' Clean redirects only while FILEDO_DISABLE_REDIRECT is not 1, so with it set nothing is offered.
+    ' It reads the disk, so a caller on the window's thread asks from a worker. Any file counts: what
+    ' Clean really removes is decided by the CLI, never here (SP-0194 C2).
+    Public Function HasOperationsFiles() As Boolean
+        If Environment.GetEnvironmentVariable("FILEDO_DISABLE_REDIRECT") = "1" Then Return False
+        Try
+            Dim folder = OperationsFolder()
+            ' Loop variables are typed and named apart from VB's Dir function and the System.IO.File
+            ' type: VB names are case-insensitive, so an untyped "dir"/"file" binds to those instead
+            ' of declaring a local (BC30068).
+            For Each lookIn As String In New String() {folder, Path.Combine(folder, "FileDO_Test")}
+                If Not Directory.Exists(lookIn) Then Continue For
+                For Each seen As String In Directory.EnumerateFiles(lookIn)
+                    Return True
+                Next
+            Next
+        Catch ex As Exception
+            ' An unreadable folder offers nothing: the question is only worth asking about files that were seen.
+            ShellLog.Write("look for leftover test files", ex)
+        End Try
+        Return False
+    End Function
+
 End Module

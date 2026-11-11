@@ -153,7 +153,7 @@
             <span data-l="de"><b>Share Manager starten.</b> Fast Media Sorter &amp; Sharing hält den freigegebenen Datenträger, daher muss sein Share Manager laufen, bevor FileDO einen Datenträger anbieten kann. Antwortet sein Worker nicht, bietet FileDO eine erneute Prüfung an - ein nicht erreichbarer Worker beweist nicht, dass das Programm fehlt.</span>
           </li>
           <li>
-            <span data-l="de"><b>Datenträger und Aktion wählen.</b> Wählen Sie in der Datenträgerverwaltung einen registrierten dateibasierten Datenträger und im Detailbereich oder im Menü „Weitere Aktionen“ den Eintrag <strong>Über Fast Media Sorter &amp; Sharing teilen..</strong> (<code>Ctrl+Shift+S</code>).</span>
+            <span data-l="de"><b>Datenträger und Aktion wählen.</b> Wählen Sie in der Datenträgerverwaltung einen registrierten dateibasierten Datenträger und im Detailbereich oder im Menü <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.more"/></svg>„Weitere Aktionen“ den Eintrag <strong><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.share"/></svg>Über Fast Media Sorter &amp; Sharing teilen..</strong> (<code>Ctrl+Shift+S</code>).</span>
           </li>
           <li>
             <span data-l="de"><b>Die Registrierungsoptionen prüfen.</b> Der Ordnername ist das, was gekoppelte Geräte sehen; der Zugriff ist standardmäßig lesend und schreibend, Sie können Nur Lesezugriff ankreuzen, und ein versiegelter Datenträger bleibt schreibgeschützt. Auf Wunsch öffnen Sie den Datenträger gleich. Ist der Datenträger lokal eingebunden, trennt FileDO ihn nach Ihrer Bestätigung sauber; ist das automatische Einbinden durch FileDO eingeschaltet, gehört Ihre Zustimmung zum Abschalten zwingend zur Übergabe.</span>
@@ -162,7 +162,7 @@
             <span data-l="de"><b>Die Bestätigung lesen.</b> Sie fasst zusammen, was gleich geschieht: das lokale Einbinden wird abgeschaltet, und jenes Programm liefert die Dateien des geöffneten Datenträgers über das Netzwerk aus. Ein verschlüsselter Datenträger fragt hier einmal nach seinem Passwort - auf diesem Computer.</span>
           </li>
           <li>
-            <span data-l="de"><b>Später schließen oder beenden.</b> <strong>Freigabe schließen</strong> behält die Registrierung - der Datenträger lässt sich in einem Schritt wieder öffnen. <strong>Freigabe beenden</strong> entfernt die Registrierung und den gespeicherten FMS-Autostart-Schlüssel.</span>
+            <span data-l="de"><b>Später schließen oder beenden.</b> <strong><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unmount-disk"/></svg>Freigabe schließen</strong> behält die Registrierung - der Datenträger lässt sich in einem Schritt wieder öffnen. <strong><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.remove"/></svg>Freigabe beenden</strong> entfernt die Registrierung und den gespeicherten FMS-Autostart-Schlüssel.</span>
           </li>
         </ol>
         <figure class="shot">
@@ -236,7 +236,7 @@
           </article>
         </div>
         <p class="intro">
-          <span data-l="de">Registrierung und Öffnen sind getrennte Schritte: Ist der Datenträger registriert, aber geschlossen, wählen Sie Für Freigabe öffnen. Schlägt ein Schritt einer Abfolge auf halbem Weg fehl, bleibt das Erledigte bestehen: Aktualisieren Sie die Datenträgerliste, wiederholen Sie die verbleibende Aktion oder beenden Sie die Freigabe - und erst danach stellen Sie das lokale Einbinden und seine frühere automatische Richtlinie ausdrücklich wieder her. Stellen Sie das lokale Einbinden nicht wieder her, solange der Halter des Datenträgers unbekannt ist.</span>
+          <span data-l="de">Registrierung und Öffnen sind getrennte Schritte: Ist der Datenträger registriert, aber geschlossen, wählen Sie <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.mount-disk"/></svg>Für Freigabe öffnen. Schlägt ein Schritt einer Abfolge auf halbem Weg fehl, bleibt das Erledigte bestehen: Aktualisieren Sie die Datenträgerliste, wiederholen Sie die verbleibende Aktion oder beenden Sie die Freigabe - und erst danach stellen Sie das lokale Einbinden und seine frühere automatische Richtlinie ausdrücklich wieder her. Stellen Sie das lokale Einbinden nicht wieder her, solange der Halter des Datenträgers unbekannt ist.</span>
         </p>
       </section>
 
@@ -265,6 +265,7 @@
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -279,5 +280,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.mount-disk" viewBox="0 0 24 24"><path d="M11 2h2v6.17l2.59-2.58L17 7l-5 5-5-5 1.41-1.41L11 8.17V2zM4 14h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1zm11.5 2.5a1 1 0 1 0 0 2a1 1 0 1 0 0-2z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.remove" viewBox="0 0 24 24"><path d="M7,11v2h10v-2H7zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8z" fill="currentColor"/></symbol><symbol id="g-action.share" viewBox="0 0 24 24"><path d="M18,16.08c-0.76,0 -1.44,0.3 -1.96,0.77L8.91,12.7c0.05,-0.23 0.09,-0.46 0.09,-0.7s-0.04,-0.47 -0.09,-0.7l7.05,-4.11c0.54,0.5 1.25,0.81 2.04,0.81 1.66,0 3,-1.34 3,-3s-1.34,-3 -3,-3 -3,1.34 -3,3c0,0.24 0.04,0.47 0.09,0.7L8.04,9.81C7.5,9.31 6.79,9 6,9c-1.66,0 -3,1.34 -3,3s1.34,3 3,3c0.79,0 1.5,-0.31 2.04,-0.81l7.12,4.16c-0.05,0.21 -0.08,0.43 -0.08,0.65 0,1.61 1.31,2.92 2.92,2.92 1.61,0 2.92,-1.31 2.92,-2.92s-1.31,-2.92 -2.92,-2.92z" fill="currentColor"/></symbol><symbol id="g-action.unmount-disk" viewBox="0 0 24 24"><path d="M5 17h14v2H5zm7-12L5.33 15h13.34z" fill="currentColor"/></symbol><symbol id="g-nav.more" viewBox="0 0 24 24"><path d="M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

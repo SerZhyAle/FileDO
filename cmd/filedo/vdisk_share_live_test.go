@@ -153,6 +153,8 @@ func TestVDHolderOf_NeverReadsUnknownAsFree(t *testing.T) {
 		{"none", fmsworker.DiskStateOpen, vdisk.HolderUnknown},
 		{"none", fmsworker.DiskStateClosing, vdisk.HolderUnknown},
 		{"somebody-new", fmsworker.DiskStateClosed, vdisk.HolderUnknown},
+		{"none", fmsworker.DiskStateUnknown, vdisk.HolderUnknown},
+		{"", fmsworker.DiskStateUnknown, vdisk.HolderUnknown},
 	} {
 		if got := vdHolderOf(fmsworker.SharedDiskInfo{Holder: tc.holder, State: tc.state}); got != tc.want {
 			t.Errorf("holder %q state %v -> %v, want %v", tc.holder, tc.state, got, tc.want)
@@ -212,6 +214,31 @@ func TestVD_MountRefusedWhileFMSHolds(t *testing.T) {
 		}
 		if !strings.Contains(e.Error(), "MySharedRoot") || !strings.Contains(e.Error(), "FMS for Windows") || !strings.Contains(e.Error(), "share off") {
 			t.Fatalf("%s: the refusal does not name the holder, the root and the way out: %v", holder, e)
+		}
+	}
+}
+
+// WORKER-IPC 0.18 item D: a matched record whose holder or state FileDO cannot read is not free, so the mount
+// is refused with the busy class, and the refusal does not claim that anything holds the disk.
+func TestVD_MountRefusedOnUnknownHolderOrState(t *testing.T) {
+	path, id := liveFixture(t)
+	info, err := vdisk.Inspect(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rec := range []fmsworker.SharedDiskInfo{
+		{ContainerID: id, ContainerPath: path, RootName: "MySharedRoot", State: fmsworker.DiskStateUnknown, Holder: "none"},
+		{ContainerID: id, ContainerPath: path, RootName: "MySharedRoot", State: fmsworker.DiskStateClosed, Holder: "somebody-new"},
+	} {
+		vdShareProbe = func(time.Duration) vdShareLiveResult {
+			return vdShareLiveResult{Disks: []fmsworker.SharedDiskInfo{rec}}
+		}
+		e := vdMountHolderGuard(info, path)
+		if e == nil || vdExitClass(e) != vdisk.ExitBusy {
+			t.Fatalf("holder %q state %v: err = %v, want a busy refusal", rec.Holder, rec.State, e)
+		}
+		if !strings.Contains(e.Error(), "MySharedRoot") || strings.Contains(e.Error(), "is held by") {
+			t.Fatalf("holder %q state %v: the refusal must name the root and must not claim a holder: %v", rec.Holder, rec.State, e)
 		}
 	}
 }

@@ -20,8 +20,9 @@ function Base([hashtable]$m) {
     [pscustomobject]@{ Samples = $s }
 }
 function Row([string]$name, [string]$tier, [int]$ms) { [pscustomobject]@{ Name = $name; Tier = $tier; Ms = $ms } }
-$script:fail = 0
+$script:fail = 0; $script:run = 0
 function Expect([string]$what, $got, $wantValue) {
+    $script:run++
     if ($got -ne $wantValue) { "FAIL $what : got $got, want $wantValue"; $script:fail++ } else { "ok   $what" }
 }
 function Counts($r) { '{0}/{1}' -f $r.Hard.Count, $r.Warn.Count }
@@ -60,5 +61,6 @@ Expect 'median ratio 1.2 is quiet' (Counts (Get-SpeedFindings @($rows) (Base $ma
 # the long/short line moves with the argument
 Expect 'a 2000 ms step is long at the default line' (Counts (Get-SpeedFindings @(Row 'load: edge' 'load' 3200) (Base @{ 'load: edge' = 2000, 2000, 2000 }))) '1/0'
 Expect 'the same step is short when the line is 2500' (Counts (Get-SpeedFindings @(Row 'load: edge' 'load' 3200) (Base @{ 'load: edge' = 2000, 2000, 2000 }) 2500)) '0/1'
-"failures: $script:fail"
+# CHECK-VERDICT 0.14 item A: a self-test of its own assertions ends in a test verdict line.
+if ($script:fail) { "operations-selftest: FAIL (run=$script:run skipped=0 failed=$script:fail)" } else { "operations-selftest: PASS (run=$script:run skipped=0)" }
 exit ([int]($script:fail -gt 0))

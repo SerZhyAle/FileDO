@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
 <title>Aide - FileDO - Gestionnaire de disques</title>
 <script>
 (function () {
@@ -31,22 +32,23 @@
 
   <figure class="shot">
     <div class="frame">
-      <img class="on-dark" src="../img/disk-manager.fr.dark.png" width="974" height="708" alt="FileDO - Gestionnaire de disques : la fenêtre avec ses parties numérotées">
-      <img class="on-light" src="../img/disk-manager.fr.light.png" width="974" height="708" alt="">
-      <a class="pin" style="--x:1.7%;--y:1.7%" href="#e-new" aria-label="1, Nouveau disque..">1</a>
-      <a class="pin" style="--x:23.5%;--y:1.7%" href="#e-add" aria-label="2, Ajouter..">2</a>
-      <a class="pin" style="--x:40.0%;--y:1.7%" href="#e-mount" aria-label="3, Monter">3</a>
-      <a class="pin" style="--x:54.0%;--y:1.7%" href="#e-unmount" aria-label="4, Démonter">4</a>
-      <a class="pin" style="--x:70.1%;--y:1.7%" href="#e-open" aria-label="5, Ouvrir">5</a>
-      <a class="pin" style="--x:1.7%;--y:8.5%" href="#e-save" aria-label="6, Enregistrer">6</a>
-      <a class="pin" style="--x:20.1%;--y:8.5%" href="#e-more" aria-label="7, Autres actions">7</a>
-      <a class="pin" style="--x:41.2%;--y:8.5%" href="#e-refresh" aria-label="8, Actualiser">8</a>
-      <a class="pin" style="--x:46.5%;--y:8.5%" href="#e-settings" aria-label="9, Réglages">9</a>
-      <a class="pin" style="--x:53.6%;--y:8.5%" href="#e-main" aria-label="10, Opérations FileDO">10</a>
-      <a class="pin" style="--x:77.1%;--y:8.5%" href="#e-help" aria-label="11, Aide">11</a>
-      <a class="pin" style="--x:8.3%;--y:17.2%" href="#e-filter" aria-label="12, Filtrer les disques">12</a>
-      <a class="pin" style="--x:0.2%;--y:23.9%" href="#e-list" aria-label="13, La liste des disques">13</a>
-      <a class="pin" style="--x:0.2%;--y:51.8%" href="#e-detail" aria-label="14, Détails">14</a>
+      <img class="on-dark" src="../img/disk-manager.fr.dark.png" width="2041" height="1266" alt="FileDO - Gestionnaire de disques : la fenêtre avec ses parties numérotées">
+      <img class="on-light" src="../img/disk-manager.fr.light.png" width="2041" height="1266" alt="">
+      <a class="pin" style="--x:1.2%;--y:1.4%" href="#e-new" aria-label="1, Nouveau disque..">1</a>
+      <a class="pin" style="--x:15.7%;--y:1.4%" href="#e-add" aria-label="2, Ajouter..">2</a>
+      <a class="pin" style="--x:26.7%;--y:1.4%" href="#e-mount" aria-label="3, Monter">3</a>
+      <a class="pin" style="--x:36.0%;--y:1.4%" href="#e-unmount" aria-label="4, Démonter">4</a>
+      <a class="pin" style="--x:46.7%;--y:1.4%" href="#e-open" aria-label="5, Ouvrir">5</a>
+      <a class="pin" style="--x:55.3%;--y:1.4%" href="#e-save" aria-label="6, Enregistrer">6</a>
+      <a class="pin" style="--x:67.6%;--y:1.4%" href="#e-more" aria-label="7, Autres actions">7</a>
+      <a class="pin" style="--x:81.6%;--y:1.4%" href="#e-refresh" aria-label="8, Actualiser">8</a>
+      <a class="pin" style="--x:85.1%;--y:1.4%" href="#e-settings" aria-label="9, Réglages">9</a>
+      <a class="pin" style="--x:1.2%;--y:7.1%" href="#e-main" aria-label="10, Opérations FileDO">10</a>
+      <a class="pin" style="--x:17.0%;--y:7.1%" href="#e-help" aria-label="11, Aide">11</a>
+      <a class="pin" style="--x:5.6%;--y:13.9%" href="#e-filter" aria-label="12, Filtrer les disques">12</a>
+      <a class="pin" style="--x:0.2%;--y:19.2%" href="#e-list" aria-label="13, La liste des disques">13</a>
+      <a class="pin" style="--x:0.2%;--y:64.9%" href="#e-detail" aria-label="14, Détails">14</a>
+      <a class="pin" style="--x:0.2%;--y:95.3%" href="#e-strip" aria-label="15, Barre d'état">15</a>
     </div>
     <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
   </figure>
@@ -173,7 +175,7 @@
     <details class="el" id="e-filter">
       <summary><span class="mk">12</span><span><span class="name">Filtrer les disques</span><span class="one">Ne montrer que les disques qui correspondent à un nom, une lettre, un chemin ou un état</span></span></summary>
       <div class="full">
-        <p>Saisissez une partie d'un nom, une lettre de lecteur, un chemin ou un état pour n'afficher que les disques correspondants. La croix à côté du champ, ou Échap, efface le filtre.</p>
+        <p>Saisissez une partie d'un nom, une lettre de lecteur, un chemin ou un état pour n'afficher que les disques correspondants. La croix à côté du champ, ou Esc, efface le filtre.</p>
         <dl class="facts">
           <dt>Raccourci</dt><dd><kbd>Ctrl</kbd> + <kbd>F</kbd></dd>
         </dl>
@@ -213,7 +215,6 @@
       <summary><span class="mk">15</span><span><span class="name">Barre d'état</span><span class="one">Ce qui s'exécute et ce qui attend.</span></span></summary>
       <div class="full">
         <p>La première ligne dit combien de disques sont montés et à quel point l'information est récente. La seconde montre l'opération en cours ou comment la dernière s'est terminée. Arrêter termine proprement l'opération en cours, et Vider la file supprime celles qui attendent.</p>
-        <p class="one"><small>Absent de l'image : il n'apparaît que lorsque la fenêtre en a besoin.</small></p>
       </div>
     </details>
     <details class="el" id="e-keyboard">
@@ -233,7 +234,7 @@
           <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Infos</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Vérifier</dd>
           <dt><kbd>Enter</kbd></dt><dd>Monter un disque au repos, ou ouvrir le lecteur d'un disque monté</dd>
-          <dt><kbd>Del</kbd></dt><dd>Retirer de la liste</dd>
+          <dt><kbd>Delete</kbd></dt><dd>Retirer de la liste</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Copier le chemin</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Choisir tous les disques de la liste</dd>
           <dt><kbd>Menu</kbd></dt><dd>Ouvrir le menu du disque choisi ou, si le bouton d'aide a le focus, le sien</dd>
@@ -261,7 +262,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Capturé avec FileDO dev (2610211338), 2026-10-21.</span>
+    <span>Capturé avec FileDO 2611110217, 2026-11-11.</span>
     <a href="index.html">Index de l'aide</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
   </footer>

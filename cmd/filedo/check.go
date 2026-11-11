@@ -273,7 +273,7 @@ func HandleCheckArgs(root string, args []string) error {
 	goodList := fs.String("good-list", "", "Path to good files list (FILEDO_CHECK_GOODLIST)")
 
 	if err := fs.Parse(args); err != nil {
-		return err
+		return &exitClassError{code: 10, err: err}
 	}
 
 	// The flags reach CheckFolder through the process environment. Each value
@@ -311,7 +311,7 @@ func HandleCheckArgs(root string, args []string) error {
 			setenv("FILEDO_CHECK_WORKERS", fmt.Sprintf("%d", *workers))
 		case "buf-kb":
 			if *bufKB < checkMinBufKB || *bufKB > checkMaxBufKB {
-				return fmt.Errorf("check: --buf-kb must be %d..%d, got %d", checkMinBufKB, checkMaxBufKB, *bufKB)
+				return exitClassf(10, "check: --buf-kb must be %d..%d, got %d", checkMinBufKB, checkMaxBufKB, *bufKB)
 			}
 			setenv("FILEDO_CHECK_BUF_KB", fmt.Sprintf("%d", *bufKB))
 		case "mode":
@@ -458,6 +458,7 @@ type checkResult struct {
 	first   time.Duration
 	status  string
 	detail  string
+	cause   error // the error behind a checkUnverified, kept so the run's exit class can be read from its type
 	vol     uint32
 	fid     uint64
 }
@@ -476,7 +477,7 @@ func checkFile(ctx context.Context, job checkJob, cfg *checkConfig, buf []byte, 
 		if isDeviceIOError(err) {
 			return checkResult{outcome: checkDamaged, first: first, status: "read-error", detail: fmt.Sprintf("read error: %v", err), vol: vol, fid: fid}
 		}
-		return checkResult{outcome: checkUnverified, first: first, status: "not-verified", detail: err.Error(), vol: vol, fid: fid}
+		return checkResult{outcome: checkUnverified, first: first, status: "not-verified", detail: err.Error(), cause: err, vol: vol, fid: fid}
 	}
 
 	f, err := os.Open(p)
@@ -602,6 +603,7 @@ type checkNotes struct {
 	mu     sync.Mutex
 	shown  int
 	hidden int
+	causes causeKeeper // the errors behind the problems, for the exit class (SP-0195)
 }
 
 func (n *checkNotes) add(quiet bool, format string, args ...interface{}) {
@@ -646,11 +648,11 @@ func (n *checkNotes) add(quiet bool, format string, args ...interface{}) {
 func CheckFolder(root string) error {
 	info, err := os.Stat(root)
 	if err != nil {
-		return fmt.Errorf("path error: %v", err)
+		return preRunError(fmt.Errorf("path error: %w", err))
 	}
 	singleFile := !info.IsDir()
 	if singleFile && !info.Mode().IsRegular() {
-		return fmt.Errorf("%s is neither a folder nor a regular file", root)
+		return exitClassf(10, "%s is neither a folder nor a regular file", root)
 	}
 	// filepath.Walk Lstats its root: a junction or a volume mounted in a
 	// folder is a reparse point to it, not a directory, so the walk never
@@ -668,7 +670,7 @@ func CheckFolder(root string) error {
 
 	cfg := loadCheckConfig(root)
 	if cfg.bufSize < checkMinBufKB*1024 || cfg.bufSize > checkMaxBufKB*1024 {
-		return fmt.Errorf("check: the read buffer must be %d..%d KB, got %d KB (--buf-kb / FILEDO_CHECK_BUF_KB)",
+		return exitClassf(10, "check: the read buffer must be %d..%d KB, got %d KB (--buf-kb / FILEDO_CHECK_BUF_KB)",
 			checkMinBufKB, checkMaxBufKB, cfg.bufSize/1024)
 	}
 
@@ -763,6 +765,7 @@ func CheckFolder(root string) error {
 			}
 			if err != nil {
 				atomic.AddInt64(&walkErrors, 1)
+				notes.causes.keep(err)
 				notes.add(cfg.quiet, "Could not read %s: %v - not checked", p, err)
 				return nil
 			}
@@ -949,6 +952,7 @@ func CheckFolder(root string) error {
 			}
 		case checkUnverified:
 			atomic.AddInt64(&unverifiedFiles, 1)
+			notes.causes.keep(r.cause)
 			notes.add(cfg.quiet, "Could not read %s (%s) - not judged", job.path, r.detail)
 			if rep != nil {
 				rep.Write(job.path, job.size, r.first, r.status)
@@ -1143,6 +1147,7 @@ func CheckFolder(root string) error {
 
 	if walkErr != nil && !errors.Is(walkErr, errCheckLimit) && !errors.Is(walkErr, errCheckStopped) {
 		atomic.AddInt64(&walkErrors, 1)
+		notes.causes.keep(walkErr)
 		notes.add(cfg.quiet, "The walk ended early: %v", walkErr)
 	}
 
@@ -1226,7 +1231,7 @@ func CheckFolder(root string) error {
 		}
 	}
 	if len(problems) > 0 && !isStopped {
-		return fmt.Errorf("check could not verify everything: %s", strings.Join(problems, "; "))
+		return notes.causes.classify(fmt.Errorf("check could not verify everything: %s", strings.Join(problems, "; ")))
 	}
 	return nil
 }

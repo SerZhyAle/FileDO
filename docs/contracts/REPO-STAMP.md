@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `REPO-STAMP` |
-| **Version** | 0.12, draft (no wire carrier: the stamp has no version field of its own, rule 9) |
+| **Version** | 0.13, read 2026-10-29 (SP-0174), draft (no wire carrier: the stamp has no version field of its own, rule 9; the optional schemaVersion carrier of 0.13 is absent, which reads as wire 1.0) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 2 |
 | **Role** | producer - this repository writes its own stamp, `.sza-canon.json`; nothing here reads it |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |

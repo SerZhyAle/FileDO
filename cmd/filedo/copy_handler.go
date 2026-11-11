@@ -135,7 +135,7 @@ func statWithTimeout(path string, timeout time.Duration) (os.FileInfo, error) {
 // verbs' `copy`: folder, device, network and file).
 func handleCopyCommand(args []string) error {
 	if len(args) < 3 {
-		return fmt.Errorf("copy command requires source and target paths")
+		return exitClassf(10, "copy command requires source and target paths")
 	}
 
 	sourcePath := args[1]
@@ -146,7 +146,7 @@ func handleCopyCommand(args []string) error {
 
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
-		return fmt.Errorf("source path does not exist: %s", sourcePath)
+		return preRunError(fmt.Errorf("source path is not accessible: %s: %w", sourcePath, err))
 	}
 
 	fmt.Printf("Starting copy with damaged disk protection from %s to %s\n", sourcePath, targetPath)
@@ -169,7 +169,7 @@ func handleCopyCommand(args []string) error {
 // handleCopyCommandNoDamage - regular copy without damaged disk protection (for normal operation)
 func handleCopyCommandNoDamage(args []string) error {
 	if len(args) < 3 {
-		return fmt.Errorf("copy command requires source and target paths")
+		return exitClassf(10, "copy command requires source and target paths")
 	}
 
 	sourcePath := args[1]
@@ -180,7 +180,7 @@ func handleCopyCommandNoDamage(args []string) error {
 
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
-		return fmt.Errorf("source path does not exist: %s", sourcePath)
+		return preRunError(fmt.Errorf("source path is not accessible: %s: %w", sourcePath, err))
 	}
 
 	fmt.Printf("Starting regular copy from %s to %s\n", sourcePath, targetPath)
@@ -333,7 +333,7 @@ func copyTree(verb, sourcePath, targetPath string, damaged *DamagedDiskHandler) 
 	if copyPrecount {
 		fmt.Println("Counting files first (--precount)..")
 		if err := countTree(sourcePath, progress); err != nil {
-			return fmt.Errorf("error scanning directory: %v", err)
+			return fmt.Errorf("error scanning directory: %w", err)
 		}
 		progress.TotalsKnown = true
 		fmt.Printf("Found %d files, total size: %.2f MB\n",
@@ -440,7 +440,7 @@ func copyDirectory(sourcePath, targetPath string) error {
 func copyFile(verb, sourcePath, targetPath string, damaged *DamagedDiskHandler) error {
 	sourceInfo, err := statWithTimeout(sourcePath, FileOperationTimeout)
 	if err != nil {
-		return fmt.Errorf("cannot stat source file: %v", err)
+		return fmt.Errorf("cannot stat source file: %w", err)
 	}
 	if targetPath, err = singleFileTarget(verb, sourcePath, targetPath); err != nil {
 		return err
@@ -453,7 +453,7 @@ func copyFile(verb, sourcePath, targetPath string, damaged *DamagedDiskHandler) 
 	run.progress.SetCurrentFile(sourcePath)
 
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-		return fmt.Errorf("error creating target directory: %v", err)
+		return fmt.Errorf("error creating target directory: %w", err)
 	}
 	run.copyOne(sourcePath, targetPath, sourceInfo)
 	fmt.Println()

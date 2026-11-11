@@ -124,7 +124,11 @@ Friend Module HelpCapture
             Dim c = FindByName(form, e.Locator)
             If c Is Nothing OrElse Not c.Visible Then Continue For
             Dim r = Rectangle.Intersect(form.RectangleToClient(c.RectangleToScreen(c.ClientRectangle)), whole)
-            If r.Width < 6 OrElse r.Height < 6 Then Continue For
+            ' Squeezed out of the picture in this language: recorded as absent, never pinned (CONTEXT-HELP 0.2 section 7 item C).
+            If r.Width < 6 OrElse r.Height < 6 Then
+                shot.Absent.Add(e.Id)
+                Continue For
+            End If
             Dim x = r.Left + Ui.Px(form, 2)
             Dim y = Math.Max(r.Top, Ui.Px(form, 8))
             Dim moved = True

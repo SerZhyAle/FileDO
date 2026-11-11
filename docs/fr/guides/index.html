@@ -108,10 +108,30 @@
         </p>
       </section>
       <section class="section">
-        <nav class="grid guide-grid" aria-labelledby="guideListTitle"><span class="sr-only" id="guideListTitle"><span data-l="fr">Guides</span></span>
+        <nav aria-labelledby="guideListTitle"><span class="sr-only" id="guideListTitle"><span data-l="fr">Guides</span></span>
+          <div class="safety-group">
+            <div class="safety-group-head">
+              <span class="pill"><span data-l="fr">Lecture seule et installation</span></span>
+              <strong><span data-l="fr">Inspecter, vérifier, copier et configurer</span></strong>
+              <p><span data-l="fr">Commencez ici pour les diagnostics en lecture seule, les tests de capacité et de vitesse, les rapports de doublons, la fenêtre et l’installation.</span></p>
+            </div>
+            <div class="grid guide-grid">
           <article class="card">
             <h2>
-              <span data-l="fr">Vérifier le stockage</span>
+              <a class="card-title" href="quick-start.html"><span data-l="fr">Matrice de démarrage rapide : fenêtre et CLI</span></a>
+            </h2>
+            <p>
+              <span data-l="fr">Associez votre tâche à la page exacte de la fenêtre FileDO et à la commande <code>filedo.exe</code> correspondante, classées selon ce que chaque opération touche.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="quick-start.html"
+                ><span data-l="fr">Ouvrir le guide</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <a class="card-title" href="check-storage.html"><span data-l="fr">Vérifier le stockage</span></a>
             </h2>
             <p>
               <span data-l="fr">Informations sur le disque, test de capacité, vitesse, contrôles de lecture, et cas où les droits d’administrateur sont nécessaires.</span>
@@ -124,7 +144,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">Doublons, copie et comparaison</span>
+              <a class="card-title" href="files-and-copies.html"><span data-l="fr">Doublons, copie et comparaison</span></a>
             </h2>
             <p>
               <span data-l="fr">Comment obtenir d’abord une liste ou un rapport, copier des données, et n’envisager la suppression qu’ensuite.</span>
@@ -137,33 +157,21 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">Effacer et écraser</span>
+              <a class="card-title" href="gui-command-builder.html"><span data-l="fr">Travailler dans une fenêtre</span></a>
             </h2>
             <p>
-              <span data-l="fr">Ce que font l’écrasement d’un fichier, le vidage d’un dossier et l’écrasement de l’espace libre, ce qu’ils demandent d’abord, ce qu’ils refusent et ce qu’aucun ne peut promettre sur un SSD.</span>
-            </p>
-            <p class="actions">
-              <a class="btn btn-ghost btn-sm" href="erase.html"
-                ><span data-l="fr">Ouvrir le guide</span></a
-              >
-            </p>
-          </article>
-          <article class="card">
-            <h2>
-              <span data-l="fr">Travailler dans une fenêtre</span>
-            </h2>
-            <p>
-              <span data-l="fr">Pour ceux qui préfèrent choisir une tâche, parcourir sa page et la lancer dans la fenêtre FileDO GUI plutôt que de saisir une commande. Il existe aussi une page Commande pour toute opération.</span>
+              <span data-l="fr">Pour ceux qui préfèrent choisir une tâche, parcourir sa page et la lancer dans la fenêtre FileDO GUI plutôt que de saisir une commande. Il existe aussi une page <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Commande pour toute opération.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
                 ><span data-l="fr">Ouvrir le guide</span></a
               >
+              <span data-l="fr"><a class="btn btn-ghost btn-sm" href="../../help/fr/">Aide de la fenêtre</a></span>
             </p>
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">Windows vous a averti au sujet de FileDO</span>
+              <a class="card-title" href="install-trust.html"><span data-l="fr">Windows vous a averti au sujet de FileDO</span></a>
             </h2>
             <p>
               <span data-l="fr">Ce que signifie « Windows a protégé votre ordinateur », pourquoi la boîte de dialogue apparaît, sur quoi cliquer exactement - et ce que l’application ne fait jamais.</span>
@@ -176,7 +184,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">Installation et menu de l’Explorateur</span>
+              <a class="card-title" href="install-and-explorer.html"><span data-l="fr">Installation et menu de l’Explorateur</span></a>
             </h2>
             <p>
               <span data-l="fr">Quelle installation choisir, ce que le programme d’installation ajoute à votre système, et comment activer ou désactiver vous-même les entrées du menu contextuel.</span>
@@ -189,7 +197,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">La version du Microsoft Store</span>
+              <a class="card-title" href="microsoft-store.html"><span data-l="fr">La version du Microsoft Store</span></a>
             </h2>
             <p>
               <span data-l="fr">Ce que fait la version du Microsoft Store, ce qui lui manque (montage, entrées de l’Explorateur, partage) et comment elle est signée.</span>
@@ -200,12 +208,34 @@
               >
             </p>
           </article>
+            </div>
+          </div>
+          <div class="safety-group danger">
+            <div class="safety-group-head">
+              <span class="pill danger"><span data-l="fr">Écrit, efface ou scelle</span></span>
+              <strong><span data-l="fr">Effacer, protéger et gérer les volumes</span></strong>
+              <p><span data-l="fr">Opérations qui suppriment ou écrasent des données, scellent des fichiers derrière un mot de passe, ou créent et partagent des disques virtuels. Lisez les garde-fous et les limites avant de lancer.</span></p>
+            </div>
+            <div class="grid guide-grid">
           <article class="card">
             <h2>
-              <span data-l="fr">Fichiers secrets</span>
+              <a class="card-title" href="erase.html"><span data-l="fr">Effacer et écraser</span></a>
             </h2>
             <p>
-              <span data-l="fr">Empaqueter un fichier dans un conteneur <code>.fd-sec</code> derrière un mot de passe, récupérer l’original, ouvrir le contenu sans le décompresser - et ce que chacun de ces choix garantit réellement.</span>
+              <span data-l="fr">Ce que font l’écrasement d’un fichier, le vidage d’un dossier et l’écrasement de l’espace libre, ce qu’ils demandent d’abord, ce qu’ils refusent et ce qu’aucun ne peut promettre sur un SSD.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="erase.html"
+                ><span data-l="fr">Ouvrir le guide</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <a class="card-title" href="fd-sec-containers.html"><span data-l="fr">Fichiers secrets</span></a>
+            </h2>
+            <p>
+              <span data-l="fr">Empaqueter un fichier dans un conteneur <code>.fd-sec</code> derrière un mot de passe, récupérer l’original, ouvrir le contenu sans le décompresser, sauvegarder un dossier dans un seul zip - ordinaire ou scellé - et ce que chacun de ces choix garantit réellement.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="fd-sec-containers.html"
@@ -215,7 +245,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">Disques virtuels</span>
+              <a class="card-title" href="virtual-disks.html"><span data-l="fr">Disques virtuels</span></a>
             </h2>
             <p>
               <span data-l="fr">Un volume entier dans un seul fichier <code>.fdd</code> : le créer, le monter comme une lettre de lecteur, le lire et l’exporter sans montage - et en quoi un conteneur camouflé diffère d’un conteneur chiffré. La fenêtre Gestionnaire de disques liste tous les disques au même endroit.</span>
@@ -228,7 +258,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="fr">Les disques sur le téléphone</span>
+              <a class="card-title" href="fms-sharing.html"><span data-l="fr">Les disques sur le téléphone</span></a>
             </h2>
             <p>
               <span data-l="fr">Partager un disque <code>.fdd</code> via Fast Media Sorter &amp; Sharing : ce qu’il faut activer dans son programme d’installation, l’enregistrement depuis le Gestionnaire de disques, ce que voient les appareils associés, et que faire quand le partage est indisponible.</span>
@@ -239,6 +269,8 @@
               >
             </p>
           </article>
+            </div>
+          </div>
         </nav>
       </section>
       <section class="section">
@@ -281,6 +313,7 @@
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="../">FileDO</a> · <a href="support.html"><span data-l="fr">Assistance</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -295,5 +328,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

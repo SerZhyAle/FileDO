@@ -62,7 +62,7 @@
     <DisplayName>FileDO</DisplayName>
     <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
-    <Description>Storage speed tests, fake-capacity detection, secure wiping, duplicate management and password-protected secret files - a command-line tool with a graphical shell.</Description>
+    <Description>Storage speed tests, fake-capacity detection, free-space overwrite that makes recovery harder, duplicate management and password-protected secret files - a command-line tool with a graphical shell.</Description>
   </Properties>
 
   <Resources>
@@ -89,7 +89,7 @@
     <Application Id="FileDOGui" Executable="filedo_win.exe" EntryPoint="Windows.FullTrustApplication" desktop4:SupportsMultipleInstances="false">
       <uap:VisualElements
         DisplayName="FileDO"
-        Description="FileDO - storage tests, secure wipe, duplicates and secret files"
+        Description="FileDO - storage tests, free-space overwrite, duplicates and secret files"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

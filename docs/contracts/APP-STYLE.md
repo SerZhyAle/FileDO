@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-STYLE` |
-| **Version** | 0.13, read 2026-10-21 (SP-0170); implemented partial 0.13; the state-fill roles are done (SP-0171 W9), a real high-contrast theme is unverified, draft (no wire - a palette role vocabulary and a theme mechanism) |
+| **Version** | 0.14, read 2026-10-29 (SP-0174); implemented partial 0.14; the verdict badge glyphs of item B are open (SP-0189), a real high-contrast theme is unverified, draft (no wire - a palette role vocabulary and a theme mechanism) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/Theme.vb`, `Chrome.vb`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-STYLE.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |

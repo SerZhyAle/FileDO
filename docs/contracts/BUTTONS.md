@@ -23,10 +23,14 @@
   answer (held by `dialog:destructive-default-safe:*`).
 - **Policy recorded:** a dialog answer carries its verb's glyph (OK/Yes/No-style answers may be text-only); every
   other command carries its ICON-SET meaning where one exists.
+- **Reserved state width** (3.3): a button whose caption changes with its state names the other states in
+  `ReservedCaptionKeys` and is as wide as its widest state in every state.
 
-**Gates.** `--selftest` group `ui-contracts` (`buttons:*`, `dialog:answer-order:*`) and the `contrast:*:answer-*`
-rows on the normal, hover and pressed faces.
+**Gates.** `--selftest` group `ui-contracts` (`buttons:*` including `buttons:state-width` and
+`buttons:page-row-heights`, `dialog:answer-order:*`) and the `contrast:*:answer-*` rows on the normal, hover and
+pressed faces.
 
 **Status: not conformant - migration in progress (SP-0169, deadline 2026-12-31).** Slice S1 (2026-10-21) built the
-token geometry, wrapping, neutral faces and answer order. Owed: reserved state width for Start/Stop (S2), the row
-helper on every page, an overflow policy, a command id per command, and the showcase with captures (S4).
+token geometry, wrapping, neutral faces and answer order; slice S2 (2026-10-29) the reserved state width of Stop and
+the output toggle, and a row-height check over every page flow. Owed: an overflow policy, a command id per command,
+the showcase with captures (S4), and a measured run of the gate rows.

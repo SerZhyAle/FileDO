@@ -115,7 +115,8 @@ func vdProbeReason(err error) string {
 }
 
 // vdHolderOf reads the worker's holder word. A word this build does not know is unknown, never free; an
-// open or opening or closing disk with no holder named is not free either.
+// open, opening or closing disk with no holder named is not free either, and neither is a disk whose state
+// is unknown (WORKER-IPC 0.18 item D).
 func vdHolderOf(d fmsworker.SharedDiskInfo) vdisk.DiskHolder {
 	switch strings.ToLower(d.Holder) {
 	case "service":
@@ -124,7 +125,7 @@ func vdHolderOf(d fmsworker.SharedDiskInfo) vdisk.DiskHolder {
 		return vdisk.HolderFMSSession
 	case "none", "":
 		switch d.State {
-		case fmsworker.DiskStateOpen, fmsworker.DiskStateOpening, fmsworker.DiskStateClosing:
+		case fmsworker.DiskStateOpen, fmsworker.DiskStateOpening, fmsworker.DiskStateClosing, fmsworker.DiskStateUnknown:
 			return vdisk.HolderUnknown
 		}
 		return vdisk.HolderNone
@@ -141,14 +142,15 @@ func vdSharedStateOf(s fmsworker.DiskState) vdisk.DiskState {
 }
 
 // vdHeldByWorker reports a disk the FMS worker holds right now (or is opening or closing), by holder or
-// by state. FileDO must not mount it (DISK-SHARE 17).
+// by state. A holder or a state this build cannot read counts as held too: unknown never authorizes a
+// mount (WORKER-IPC 0.18 item D). FileDO must not mount it (DISK-SHARE 17).
 func vdHeldByWorker(d fmsworker.SharedDiskInfo) bool {
 	switch vdHolderOf(d) {
-	case vdisk.HolderFMSService, vdisk.HolderFMSSession:
+	case vdisk.HolderFMSService, vdisk.HolderFMSSession, vdisk.HolderUnknown:
 		return true
 	}
 	switch d.State {
-	case fmsworker.DiskStateOpen, fmsworker.DiskStateOpening, fmsworker.DiskStateClosing:
+	case fmsworker.DiskStateOpen, fmsworker.DiskStateOpening, fmsworker.DiskStateClosing, fmsworker.DiskStateUnknown:
 		return true
 	}
 	return false
@@ -198,6 +200,10 @@ func vdMountHolderGuard(info vdisk.Info, path string) error {
 			continue
 		}
 		if vdHeldByWorker(d) {
+			if vdHolderOf(d) == vdisk.HolderUnknown {
+				// FMS answered with a holder or a state this build cannot read: say what is not known, not who holds it.
+				return errBusy(fmt.Sprintf("%s is shared as '%s' and FMS for Windows answered in a form FileDO cannot read, so it cannot tell whether the disk is in use; the disk is not mounted", path, d.RootName))
+			}
 			return errBusy(fmt.Sprintf("%s is held by %s and shared as '%s'; close it there, or run: filedo %s share off", path, vdHolderWords(vdHolderOf(d)), d.RootName, vdQuoteArg(path)))
 		}
 		fmt.Printf("Note: %s is shared with FMS for Windows as '%s'. While FileDO has it mounted, FMS cannot open it, and paired devices see it as an unavailable folder.\n", path, d.RootName)

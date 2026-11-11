@@ -6,9 +6,9 @@ Public Class SettingsPanel
     Friend ReadOnly Groups As New List(Of SettingsGroup)
     Private ReadOnly themeCombo As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList}
     Private ReadOnly langCombo As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList}
-    Private ReadOnly historyCheck As New CheckBox With {.AutoSize = True}
-    Private ReadOnly minimizeCheck As New CheckBox With {.AutoSize = True}
-    Private ReadOnly notifyCheck As New CheckBox With {.AutoSize = True}
+    Private ReadOnly historyCheck As New BooleanOption With {.AutoSize = True}
+    Private ReadOnly minimizeCheck As New BooleanOption With {.AutoSize = True}
+    Private ReadOnly notifyCheck As New BooleanOption With {.AutoSize = True}
     Private ReadOnly root As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 1}
     Private ReadOnly autoPlayStatus As New Label With {.AutoSize = True}
     Private suppress As Boolean

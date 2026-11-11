@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <#
 .SYNOPSIS
   Holds the published site and the five READMEs to DOC-EXTERNAL-QUALITY (SP-0062).
@@ -26,7 +26,9 @@
                product name under 60 characters, a description under 160, canonical = its sitemap
                URL, og:type/url/title/description/image, a Twitter card, parseable JSON-LD, and
                hreflang x-default = the runtime page's URL (the locales share one URL - see the
-               proposal) with hreflang en equal to it. The share image is held to its file:
+               proposal) with hreflang en equal to it - except on the landing's five pages
+               (SP-0199), which are one page per locale and list each other under en, de, fr, ru
+               and uk with x-default at the English root. The share image is held to its file:
                og:image:width and og:image:height are integers equal to the pixel size read from
                the IHDR of the PNG that og:image maps to under docs/assets/ (the file must
                exist under that exact spelling - the host is case-sensitive), og:image:alt is present, and a
@@ -38,11 +40,16 @@
                honest outcome - PROMOTION section 3; a version is never retyped into a page).
                The per-locale titles and descriptions the page swaps in at runtime are held to
                the same lengths, and a page whose script swaps og:title per locale swaps
-               og:image:alt too, with the English entry equal to the static tag.
-    locales    rule 3. Every run of sibling data-l spans carries ru, en and ua exactly once (the shared
-               guide script carries de and fr too). The standalone locale pages docs/de/ and docs/fr/
-               (SP-0154) mirror the runtime page of the same path group for group, one language each,
-               and are read against that page's English. Every README translation has the section
+               og:image:alt too, with the English entry equal to the static tag. The page's
+               own-language entry (en on a runtime page) carries the static <title> and meta
+               description verbatim, so the two never drift apart.
+    locales    rule 3. On the runtime pages every run of sibling data-l spans carries ru, en and ua
+               exactly once (the shared guide script carries de and fr too), the en span first, so a
+               reader without script or CSS meets English first. The landing root is the English page
+               of the per-locale split (SP-0199) and carries exactly one en span per group; the
+               standalone locale pages docs/de/, docs/fr/, docs/ru/ and docs/uk/ (SP-0154, SP-0199)
+               mirror the source page of the same path group for group, one language each, and are read
+               against that page's English. Every README translation has the section
                count of README.md. Freshness: the EN text of every span group and every README.md
                section is fingerprinted beside its translations in docs/translation-fingerprints.json.
                EN text whose fingerprint is not recorded fails - naming the locales left untouched as
@@ -90,8 +97,9 @@
                carry one section id="v<stamp>" for every shipped release of the Version History in
                README.md, newest first, and none that README.md does not list. The page is written by
                hand from that history when the release's "What's new" is; this step is what stops the two
-               drifting apart. "Unreleased" is not a release and never appears on the page.
-    analytics  SP-0166 criterion 9, no analytics and no tracker. Every docs/**/*.html and docs/**/*.js outside
+               drifting apart. "Unreleased" is not a release and never appears on the page. Each section's
+               <time datetime> is the date its stamp's YYMMDD names (SITE-EXPERIENCE 0.5 item D, rule 13).
+    analytics SP-0166 criterion 9, no analytics and no tracker. Every docs/**/*.html and docs/**/*.js outside
                docs/contracts/ carries none of the analytics or tag-manager hosts and calls (googletagmanager,
                google-analytics, gtag, plausible, umami), no utm_ parameter, and no <script src> or <iframe src>
                that leaves serzhyale.github.io. Stylesheet links to the disclosed font hosts are not looked at.
@@ -237,13 +245,15 @@ function Get-UrlFor([string]$rel) {
     return $siteBase + $p
 }
 
-# A standalone locale page (SP-0154): docs/de/... and docs/fr/... are written in one language and mirror the
-# runtime-localised page of the same path (PAGE-STYLE 4.2: a further locale is its own page, never an sza-lang value).
+# A standalone locale page (SP-0154, SP-0199): docs/de/..., docs/fr/..., docs/ru/... and docs/uk/... are
+# written in one language and mirror the source page of the same path (PAGE-STYLE 3.9: a product landing
+# publishes one standalone page per served locale; the uk page keys its spans with the ISO code while the
+# stored sza-lang keeps its ua key).
 function Get-PageLocale([string]$rel) {
-    if ($rel -match '^docs/(de|fr)/') { return $Matches[1] }
+    if ($rel -match '^docs/(de|fr|ru|uk)/') { return $Matches[1] }
     return $null
 }
-function Get-SourceRel([string]$rel) { return $rel -replace '^docs/(?:de|fr)/', 'docs/' }
+function Get-SourceRel([string]$rel) { return $rel -replace '^docs/(?:de|fr|ru|uk)/', 'docs/' }
 
 # Replaces every match with blanks of the same length, so indexes and line numbers still hold.
 function Clear-Regions([string]$text, [string]$pattern) {
@@ -333,11 +343,13 @@ foreach ($rel in $pages.Keys) { $groupsByPage[$rel] = Get-SpanGroups $pages[$rel
 $guideJs = 'docs/guides/guide.js'
 $groupsByPage[$guideJs] = Get-SpanGroups (Read-Text $guideJs)
 # The languages one run of sibling spans must carry: a locale page is one language, the shared guide script
-# carries every language (its labels are injected into runtime pages and into locale pages alike).
+# carries every language (its labels are injected into runtime pages and into locale pages alike), and the
+# landing root is the English page of the per-locale split (SP-0199) - one en span per group.
 function Get-RequiredLangs([string]$rel) {
     $loc = Get-PageLocale $rel
     if ($loc) { return @($loc) }
     if ($rel -eq $guideJs) { return $allLangs }
+    if ($rel -eq 'docs/index.html') { return @('en') }
     return $siteLangs
 }
 $sectionsByReadme = [ordered]@{}
@@ -444,7 +456,7 @@ Add-Section 'sitemap' {
     }
     foreach ($url in $want.Keys) { if (-not $seen.Contains($url)) { $failures.Add("$($want[$url]) is a public page absent from docs/sitemap.xml (run packaging/write-sitemap.ps1; it would add <loc>$url</loc>)") } }
     foreach ($s in $stubs) {
-        if ((Read-Text $s) -notmatch "rel=[""']canonical[""'][^>]*href=[""']$([regex]::Escape($siteBase))[""']") { $failures.Add("$s is a redirect stub without a canonical link to the site root") }
+        if ((Read-Text $s) -notmatch "rel=[""']canonical[""'][^>]*href=[""']$([regex]::Escape($siteBase))(?:uk/)?[""']") { $failures.Add("$s is a redirect stub without a canonical link to its target") }
     }
 }
 
@@ -501,9 +513,11 @@ Add-Section 'seo' {
         if (-not $h.Success) { $failures.Add("$rel has no <head>"); continue }
         $head = $h.Value
         $title = [regex]::Match($head, '(?is)<title>(.*?)</title>')
+        $staticTitle = ''
         if (-not $title.Success) { $failures.Add("$rel has no <title>") }
         else {
             $t = [Net.WebUtility]::HtmlDecode($title.Groups[1].Value.Trim())
+            $staticTitle = $t
             if ($t -notmatch 'FileDO') { $failures.Add("$rel <title> '$t' does not name FileDO") }
             if ($t.Length -ge 60) { $failures.Add("$rel <title> is $($t.Length) characters (under 60)") }
         }
@@ -556,7 +570,8 @@ Add-Section 'seo' {
                     }
                 }
             }
-            # A runtime page is its own x-default; a locale page names the runtime page it mirrors. Every page lists en, de and fr.
+            # A runtime page is its own x-default; a locale page names the source page it mirrors. Every page
+            # lists en, de and fr; the landing's five pages (SP-0199) also list each other under ru and uk.
             $loc = Get-PageLocale $rel
             $xdWant = if ($loc) { Get-UrlFor (Get-SourceRel $rel) } else { $url }
             $xd = Get-LinkHref $head '(?i)hreflang\s*=\s*"x-default"'
@@ -564,7 +579,8 @@ Add-Section 'seo' {
             $enAlt = Get-LinkHref $head '(?i)hreflang\s*=\s*"en"'
             if ($enAlt -ne $xdWant) { $failures.Add("$rel hreflang en is '$enAlt', want the runtime page '$xdWant'") }
             $srcForAlt = if ($loc) { Get-SourceRel $rel } else { $rel }
-            foreach ($l in 'de', 'fr') {
+            $altLangs = if ((Get-SourceRel $srcForAlt) -eq 'docs/index.html') { @('de', 'fr', 'ru', 'uk') } else { @('de', 'fr') }
+            foreach ($l in $altLangs) {
                 $wantAlt = (Get-UrlFor $srcForAlt) -replace [regex]::Escape($siteBase), "$siteBase$l/"
                 $alt = Get-LinkHref $head "(?i)hreflang\s*=\s*""$l"""
                 if ($alt -ne $wantAlt) { $failures.Add("$rel hreflang $l is '$alt', want '$wantAlt'") }
@@ -610,7 +626,8 @@ Add-Section 'seo' {
         # keeps only its own entry.
         $loc = Get-PageLocale $rel
         $rt = [regex]::Match($text, '(?s)(?:window\.guideMeta|var meta)\s*=\s*\{(.*?)\n\s*\};')
-        if (-not $rt.Success) { if (-not $loc) { $failures.Add("$rel has no runtime per-locale title and description") }; continue }
+        # The landing root is the static English page of the per-locale split (SP-0199): it swaps nothing.
+        if (-not $rt.Success) { if (-not $loc -and $rel -ne 'docs/index.html') { $failures.Add("$rel has no runtime per-locale title and description") }; continue }
         # A page whose script swaps og:title per locale swaps the share image's alt text with it (the alt is read by the same crawlers).
         $swapsOgTitle = $text -match 'meta\[property=["'']og:title["'']\]'
         if ($swapsOgTitle -and $text -notmatch 'meta\[property=["'']og:image:alt["'']\]') { $failures.Add("$rel swaps og:title per locale at runtime but never swaps og:image:alt") }
@@ -621,7 +638,10 @@ Add-Section 'seo' {
             $rtDesc = [regex]::Match($b.Groups[1].Value, '(?s)\b(?:d|description)\s*:\s*"([^"]*)"')
             if (-not $rtTitle.Success -or $rtTitle.Groups[1].Value -notmatch 'FileDO' -or $rtTitle.Groups[1].Value.Length -ge 60) { $failures.Add("$rel runtime $l title must name FileDO in under 60 characters: '$($rtTitle.Groups[1].Value)'") }
             if (-not $rtDesc.Success -or $rtDesc.Groups[1].Value.Length -lt 50 -or $rtDesc.Groups[1].Value.Length -ge 160) { $failures.Add("$rel runtime $l description must be a summary of 50-159 characters: $($rtDesc.Groups[1].Value.Length)") }
-            if ($l -eq 'en' -and $rtDesc.Success -and $desc -and $rtDesc.Groups[1].Value -ne $desc) { $failures.Add("$rel runtime en description differs from the static meta description") }
+            # The page's own language (en on a runtime page) says in its runtime entry what the static head says.
+            $ownLang = if ($loc) { $loc } else { 'en' }
+            if ($l -eq $ownLang -and $rtDesc.Success -and $desc -and $rtDesc.Groups[1].Value -ne $desc) { $failures.Add("$rel runtime $l description differs from the static meta description") }
+            if ($l -eq $ownLang -and $rtTitle.Success -and $staticTitle -and $rtTitle.Groups[1].Value -ne $staticTitle) { $failures.Add("$rel runtime $l title '$($rtTitle.Groups[1].Value)' differs from the static <title> '$staticTitle'") }
             $rtAlt = [regex]::Match($b.Groups[1].Value, '(?s)\balt\s*:\s*"([^"]*)"')
             if ($swapsOgTitle -and (-not $rtAlt.Success -or -not $rtAlt.Groups[1].Value.Trim())) { $failures.Add("$rel runtime $l has no og:image:alt, but the page swaps og:title per locale") }
             if ($l -eq 'en' -and $rtAlt.Success -and $staticAlt -and $rtAlt.Groups[1].Value -ne $staticAlt) { $failures.Add("$rel runtime en og:image:alt differs from the static og:image:alt") }
@@ -643,10 +663,10 @@ Add-Section 'locales' {
         $need = Get-RequiredLangs $rel
         $byEn = @{}
         $byLang = @{}
-        foreach ($l in $allLangs) { $byLang[$l] = @{} }
+        foreach ($l in ($allLangs + @('uk'))) { $byLang[$l] = @{} }
         foreach ($u in $recorded) {
             if ($u.ContainsKey('en')) { $byEn[$u.en] = $true }
-            foreach ($l in $allLangs) { if ($u.ContainsKey($l)) { $byLang[$l][$u[$l]] = $true } }
+            foreach ($l in $byLang.Keys) { if ($u.ContainsKey($l)) { $byLang[$l][$u[$l]] = $true } }
         }
         $own = @($groupsByPage[$rel])
         $srcGroups = @()
@@ -664,6 +684,9 @@ Add-Section 'locales' {
                 $failures.Add("${rel}:$($g.Line) span group has $((@($g.Langs.Keys)) -join '/'), needs $($need -join '/') exactly once")
                 continue
             }
+            # On a runtime page the en span opens every group, so a reader without script or CSS - a crawler - meets
+            # the page's own language first, never the Russian (PAGE-STYLE section 6: without script the page is English).
+            if (-not $loc -and @($g.Langs.Keys)[0] -ne 'en') { $failures.Add("${rel}:$($g.Line) span group opens with '$(@($g.Langs.Keys)[0])'; on a runtime page the en span comes first") }
             if ($loc) {
                 if ($i -ge $srcGroups.Count -or -not $srcGroups[$i].Langs.Contains('en')) { continue }
                 $en = Get-Fingerprint $srcGroups[$i].Langs['en']
@@ -704,7 +727,10 @@ $prose = @{}
 foreach ($l in 'en', 'ru', 'ua', 'de', 'fr') { $prose[$l] = [System.Collections.Generic.List[object]]::new() }
 foreach ($rel in $groupsByPage.Keys) {
     foreach ($g in $groupsByPage[$rel]) {
-        foreach ($l in $g.Langs.Keys) { if ($prose.ContainsKey($l)) { $prose[$l].Add(@{ Where = "${rel}:$($g.Line)"; Text = (Get-HtmlProse $g.Langs[$l]) }) } }
+        foreach ($l in $g.Langs.Keys) {
+            $pk = if ($l -eq 'uk') { 'ua' } else { $l }
+            if ($prose.ContainsKey($pk)) { $prose[$pk].Add(@{ Where = "${rel}:$($g.Line)"; Text = (Get-HtmlProse $g.Langs[$l]) }) }
+        }
     }
 }
 $prose['en'].Add(@{ Where = 'README.md'; Text = (Get-MarkdownProse $readmes['README.md']) })
@@ -1209,6 +1235,14 @@ Add-Section 'releasenotes' {
         $have = @([regex]::Matches($pages[$rel], '<section class="section" id="(v\d{10})"') | ForEach-Object { $_.Groups[1].Value })
         foreach ($v in $want) { if ($v -notin $have) { $failures.Add("$rel has no section id=""$v"" for the release README.md lists") } }
         foreach ($v in $have) { if ($v -notin $want) { $failures.Add("$rel lists $v, which the README.md Version History does not") } }
+        foreach ($sec in [regex]::Matches($pages[$rel], '(?s)<section class="section" id="(v\d{10})"[^>]*>\s*<h2>.*?</h2>')) {
+            $sid = $sec.Groups[1].Value
+            if ($sid -notin $want) { continue }
+            $stampDate = '20' + $sid.Substring(1, 2) + '-' + $sid.Substring(3, 2) + '-' + $sid.Substring(5, 2)
+            $dt = [regex]::Match($sec.Value, '<time datetime="(\d{4}-\d{2}-\d{2})">')
+            if (-not $dt.Success) { $failures.Add("$rel section id=""$sid"" has no <time datetime> for the release date (the stamp says $stampDate)"); continue }
+            if ($dt.Groups[1].Value -ne $stampDate) { $failures.Add("$rel dates $sid as $($dt.Groups[1].Value), its stamp says $stampDate") }
+        }
         $shared = @($have | Where-Object { $_ -in $want })
         if (($shared -join ',') -ne ((@($want | Where-Object { $_ -in $have })) -join ',')) { $failures.Add("$rel lists the releases in a different order than README.md (newest first)") }
     }

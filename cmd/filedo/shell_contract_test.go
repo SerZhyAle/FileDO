@@ -77,13 +77,15 @@ var catchVar = regexp.MustCompile(`(?i)\bCatch\s+(\w+)\s+As\b`)
 // entry says why: the self-test's own report, and the log archive's manifest,
 // which the author reads and the screen never shows.
 func TestShell_NoExceptionTextReachesTheScreen(t *testing.T) {
-	allowFile := map[string]bool{"SelfTest.vb": true}
+	// The self-test is one Partial Module spread over SelfTest*.vb files; every
+	// one of them writes only the self-test's own report.
+	allowFile := func(name string) bool { return strings.HasPrefix(name, "SelfTest") && strings.HasSuffix(name, ".vb") }
 	allowLine := []struct{ file, contains string }{
 		{"LogReport.vb", `c.Skip = "left out: could not be read (" & ex.Message`},
 		{"LogReport.vb", `Return "filedo.exe found, could not be read (" & ex.Message`},
 	}
 	for name, body := range shellSources(t) {
-		if allowFile[name] {
+		if allowFile(name) {
 			continue
 		}
 		vars := map[string]bool{}

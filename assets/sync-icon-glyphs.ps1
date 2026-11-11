@@ -52,7 +52,7 @@ trap {
 # The catalog remains the source of truth; mapping a new meaning means adding it here as well, and
 # the shell's self-test fails on an id it draws that is not vendored.
 $glyphIds = @(
-    'action.add', 'action.auto-mount', 'action.cancel', 'action.change-password', 'action.choose-file', 'action.choose-folder',
+    'action.add', 'action.archive', 'action.auto-mount', 'action.cancel', 'action.change-password', 'action.choose-file', 'action.choose-folder',
     'action.clear-all', 'action.clear-input', 'action.compact',
     'action.compare', 'action.copy', 'action.confirm', 'action.create-disk',
     'action.delete', 'action.email', 'action.export', 'action.fill-space', 'action.find-duplicates', 'action.format', 'action.grow',
@@ -73,10 +73,13 @@ $dataFiles = @('palette.json')
 # to the catalog's style by FileDO, shipped here, and proposed in the same change - see
 # iconography/PROPOSAL-2026-10-11-filedo-button-meanings.md in the catalog. The master file lives in
 # assets/glyph-sources/ and is copied beside the vendored set; the check pins it to that source, not
-# to the catalog, until the owner folds the record in and the id moves to $glyphIds. None is open since
-# ICON-SET 0.31 recorded action.autoplay-disable, action.create-shortcut and action.skip (SP-0170,
-# 2026-10-21: the catalog files are byte-identical to the former masters, so nothing was redrawn).
-$provisionalIds = @()
+# to the catalog, until the owner folds the record in and the id moves to $glyphIds. ICON-SET 0.31
+# recorded the first three (action.autoplay-disable, action.create-shortcut, action.skip). Open since
+# 2026-11-11 (SP-0198): action.unarchive, the Restore row of the rail - the catalog's action.archive
+# with its arrow turned up, as Material Icons 'unarchive' draws it; proposed in
+# iconography/PROPOSAL-2026-11-11-filedo-backup-meanings.md.
+$provisionalIds = @('action.unarchive')
+$provisionalProposal = 'PROPOSAL-2026-11-11-filedo-backup-meanings.md'
 $provisionalSources = Join-Path $PSScriptRoot 'glyph-sources'
 
 $subject = 'sync-icon-glyphs'
@@ -231,7 +234,7 @@ $provenance.Add("Vocabulary SHA-256: $vocabularyHash")
 $provenance.Add('Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog')
 if ($provisionalIds.Count -gt 0) {
     $provenance.Add('Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as ' +
-        'PROPOSAL-2026-10-11-filedo-button-meanings.md): ' + ($provisionalIds -join ', '))
+        $provisionalProposal + '): ' + ($provisionalIds -join ', '))
 }
 $provenance.Add("Taken: $(Get-Date -Format 'yyyy-MM-dd')")
 $provenance.Add('Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt')

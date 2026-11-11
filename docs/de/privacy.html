@@ -39,11 +39,11 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "PrivacyPolicy",
+        "@type": "WebPage",
         "name": "FileDO-Datenschutz - ohne Netzwerk, Telemetrie, Konten",
         "url": "https://serzhyale.github.io/FileDO/de/privacy.html",
+        "isPartOf": "https://serzhyale.github.io/FileDO/",
         "inLanguage": ["de"],
-        "dateModified": "2026-10-09",
         "publisher": {
           "@type": "Person",
           "name": "Serhii Zhyhunenko",
@@ -281,6 +281,9 @@ html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
 /* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
 html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
 .pills.spaced{margin-top:.9rem}
+    /* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
+    .cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
+    .cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
     </style>
   </head>
   <body>
@@ -371,7 +374,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 <span data-l="de">Die App geht nie online</span>
               </h3>
               <p>
-                <span data-l="de">FileDO verbindet sich weder mit dem Internet noch mit einem anderen Computer. Der einzige Socket, den es öffnet, stellt einen eingebundenen virtuellen <code>.fdd</code>-Datenträger dem iSCSI-Initiator von Windows selbst bereit und lauscht ausschließlich auf 127.0.0.1: Nichts verlässt diesen Computer, und der Container gelangt in kein Netzwerk. Das Microsoft-Store-Paket deklariert keine Internetfunktion, daher würde Windows ohnehin keine gewähren.</span>
+                <span data-l="de">FileDO verbindet sich weder mit dem Internet noch mit einem anderen Computer. Der einzige Socket, den es öffnet, stellt einen eingebundenen virtuellen <code>.fdd</code>-Datenträger dem iSCSI-Initiator von Windows selbst bereit und lauscht ausschließlich auf 127.0.0.1: Aus eigener Initiative verlässt nichts diesen Computer, und der Container gelangt nur dann in ein Netzwerk, wenn Sie den Datenträger selbst freigeben (siehe die Karte unten). Das Microsoft-Store-Paket deklariert keine Internetfunktion, daher würde Windows ohnehin keine gewähren.</span>
               </p>
             </div>
             <div class="card">
@@ -484,7 +487,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 </tr>
                 <tr>
                   <td>
-                    <span data-l="de">Eine Reveal-Kopie und eine Kopie von „Unsecure and start“</span>
+                    <span data-l="de">Eine Reveal-Kopie und eine Kopie von <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>„Unsecure and start“</span>
                   </td>
                   <td>
                     <span data-l="de">In <code>%LOCALAPPDATA%\FileDO\reveal\</code>, in einem eigenen Verzeichnis mit zufälligem Namen. Seine Zugriffsliste nennt nur dieses Konto und das System, und die Kopie selbst ist schreibgeschützt. Die Kopie, die <code>unsecure start</code> schreibt - der Doppelklick auf einen Container -, liegt im selben Ordner unter derselben Zugriffsliste, bleibt aber eine gewöhnliche Datei: Es ist Ihre eigene Datei, nur ausgepackt.</span>
@@ -549,7 +552,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             <span data-l="de">Wenn Sie die Logs an den Autor senden</span>
           </h2>
           <p>
-            <span data-l="de">Das Fenster „Über“ enthält die Schaltfläche „Logs an den Autor senden“. Sie ist die einzige Stelle im Programm, von der aus Daten Ihren Rechner verlassen können - und nur durch Ihre eigene Hand. Sie löst nie automatisch aus, nicht nach einem Zeitplan und nicht bei einem Fehler.</span>
+            <span data-l="de">Das Fenster <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>„Über“ enthält die Schaltfläche <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.email"/></svg>„Logs an den Autor senden“. Sie ist die einzige Stelle im Programm, von der aus Daten Ihren Rechner verlassen können - und nur durch Ihre eigene Hand. Sie löst nie automatisch aus, nicht nach einem Zeitplan und nicht bei einem Fehler.</span>
           </p>
           <ul>
             <li>
@@ -585,10 +588,13 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="de"><b>Vollvertrauenswürdiger Desktop-Zugriff (runFullTrust).</b> Die Microsoft-Store-Version deklariert genau diese eine Funktion, denn das Lesen und Schreiben des Laufwerks direkt ist das, was Geschwindigkeits- und Kapazitätstests ausmacht. Das Paket deklariert keine weitere Funktion - auch keinen Internetzugriff.</span>
             </li>
             <li>
+              <span data-l="de"><b>Freigabe von Datenträgern und Autostart-Schlüssel.</b> Die Freigabe ist standardmäßig aus. Wenn Sie einen Datenträger über Fast Media Sorter freigeben, können die damit gekoppelten Geräte ihn lesen, solange er geöffnet ist. Das Autostart-Passwort eines verschlüsselten Datenträgers wird nur dann auf diesem Computer gespeichert, wenn Sie den Autostart einschalten; es ist für dieses Programm geschützt.</span>
+            </li>
+            <li>
               <span data-l="de"><b >Die Befehle <code>wipe</code> und <code>fill</code> vernichten Daten - das ist ihre Aufgabe.</b > Sie fragen immer nach einer Bestätigung und laufen nie stillschweigend gegen ein Laufwerks-Stammverzeichnis, einen Reparsepunkt (Junction, Symlink) oder den TEMP-Ordner des Systems. Schreibvorgänge, die auf <code>C:</code> zielen, werden standardmäßig nach <code>%TEMP%\FileDO_Operations</code> umgeleitet - auch das erst nach Ihrer Bestätigung.</span>
             </li>
             <li>
-              <span data-l="de"><b>FileDO startet manchmal integrierte Windows-Programme.</b> Bei der Wiederherstellung eines Laufwerks (<code>probe</code>) kann es <code>chkdsk</code>, <code>format</code> oder das <code>Format-Volume</code> von PowerShell gegen das von Ihnen genannte Laufwerk aufrufen. Und wenn Sie dem Befehl <code>from</code> eine Datei mit einer Liste von Befehlen übergeben, führt FileDO diese Zeilen aus - auch Zeilen, die andere Programme starten. Ausgeführt wird genau das, was Sie geschrieben haben. Im Fenster „Über“ öffnen sich die Links in Ihrem Browser, und die Schaltfläche zum Senden der Logs öffnet den Explorer und Ihr Mailprogramm - erst, wenn Sie sie gedrückt haben.</span>
+              <span data-l="de"><b>FileDO startet manchmal integrierte Windows-Programme.</b> Bei der Wiederherstellung eines Laufwerks (<code>probe</code>) kann es <code>chkdsk</code>, <code>format</code> oder das <code>Format-Volume</code> von PowerShell gegen das von Ihnen genannte Laufwerk aufrufen. Und wenn Sie dem Befehl <code>from</code> eine Datei mit einer Liste von Befehlen übergeben, führt FileDO diese Zeilen aus - auch Zeilen, die andere Programme starten. Ausgeführt wird genau das, was Sie geschrieben haben. Im Fenster <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>„Über“ öffnen sich die Links in Ihrem Browser, und die Schaltfläche zum Senden der Logs öffnet den Explorer und Ihr Mailprogramm - erst, wenn Sie sie gedrückt haben.</span>
             </li>
           </ul>
         </div>
@@ -669,11 +675,11 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           <span data-l="de">Weitere Tools von SZA</span>
         </p>
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
-          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
-          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a
-          ><a href="https://serzhyale.github.io/CyrFlip/"><b>CyrFlip</b><span>Windows layout fixer</span></a
-          ><a href="https://serzhyale.github.io/doc-html-translate/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
-          ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>STREAMS Player</b><span>Windows stream player</span></a
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/index-de.html"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/lang/de/"><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
+          ><a href="https://serzhyale.github.io/CyrFlip/de/"><b>CyrFlip</b><span>Windows layout fixer</span></a
+          ><a href="https://serzhyale.github.io/doc-html-translate/de/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
+          ><a href="https://serzhyale.github.io/StreamsPlayer/de/"><b>STREAMS Player</b><span>Windows stream player</span></a
           ><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a
           ><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
           ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
@@ -686,6 +692,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             · <a href="guides/support.html"><span data-l="de">Support</span></a>
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -725,5 +732,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         };
       })();
     </script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

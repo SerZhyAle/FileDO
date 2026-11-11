@@ -13,7 +13,7 @@ var (
 	sampleWant = []string{`D:\My Test Dir\`, "fill", "500", "del", "--events", `C:\ev dir\run.jsonl`, "--pause", "-y"}
 )
 
-// badArgs are command lines filedo_fill refuses with exit 2, before filedo.exe
+// badArgs are command lines filedo_fill refuses with exit 10, before filedo.exe
 // is started.
 var badArgs = [][]string{
 	{"D:", "fast"},

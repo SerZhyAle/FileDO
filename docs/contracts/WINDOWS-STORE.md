@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `WINDOWS-STORE` |
-| **Version** | 0.2, read 2026-10-21 (SP-0170); implemented partial 0.2; search terms at 21 words and the builder refuses over the cap (SP-0171 W4), draft |
+| **Version** | 0.3, read 2026-10-29 (SP-0174); implemented partial 0.3; the export-dialect refusals of item B are open (SP-0184), draft |
 | **Home** | shared contracts catalog, folder `windows-store/` |
 | **Role** | consumer - FileDO ships to Microsoft Store via this contract |
 | **Owner** | StreamsPlayer (as of 2026-10-03 per catalog registry) |

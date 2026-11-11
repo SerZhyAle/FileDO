@@ -102,8 +102,37 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
   the installer is **not code-signed**, which every download surface says.
 
 ## Testing
+- **Between releases nothing slower than 5 s runs** (canon `TESTING_AND_QA` section 2): no full build, no
+  `go test`, no `--selftest`, no gate step above 5 s, unless the owner names that run (`/build`, `run.bat`) or a
+  release runs it. The fast command is **`build.ps1 -Fast`**: it builds nothing and runs the gate steps of
+  5 s or less, ending in `fast-gate: PASS|FAIL|COULD NOT VERIFY` with the exit codes below; add static
+  inspection and a direct call of what changed. The release command is **`release.ps1`**, whose gate is
+  `build.ps1 -Test` (all twelve steps) plus the full fdsec run, `govulncheck` and the operations run. A slower
+  check skipped during a ticket is a `RELEASE` item in its audit naming that command, and the report says
+  "not built, not tested until the release".
+- **The measured list** (one direct call each on 2026-10-29 by SP-0173 unless another record is named; a check
+  with no recorded time is release tier until a release measures it):
+
+  | Check | Seconds | Tier |
+  | --- | --- | --- |
+  | `packaging/check-placement.ps1` | 0.31 | fast (`-Fast`) |
+  | `packaging/check-internal-docs.ps1` | 1.52 | fast (`-Fast`) |
+  | `packaging/check-help.ps1` (static half) | 0.50 | fast (`-Fast`) |
+  | `packaging/check-build-inputs.ps1` | 0.33 | fast (`-Fast`) |
+  | `tests/prove-operations-selftest.ps1` | 0.39 | fast, run directly when the operations-run thresholds change |
+  | `packaging/check-third-party-notices.ps1` | 5.74 | release |
+  | `packaging/check-gated-packages.ps1` | 10.06 | release |
+  | `packaging/check-external-docs.ps1` | 13.41 | release (its `-Record` stays part of an EN edit) |
+  | `go test ./vdisk/` | 16.55 (2026-09-30) | release |
+  | `go test ./fdsec/` | 31-33 (2026-09, amd64) | release |
+  | `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Names$"` (the `names/` generator) | 36.6 (2026-11-08, 386, SP-0171) | release |
+  | `tests/prove-operations.ps1` | 52 (2026-10) | release |
+  | `filedo_win.exe --selftest` | 61-74 (2026-10-21) | release |
+  | `go test ./cmd/filedo/ -vet=off` | 88-268 (2026-09 to 2026-10-09) | release |
+  | build, `smoke`, `release-pins`, `govulncheck`, the installer | not recorded | release |
+
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. The
-  real gate is **`build.ps1 -Test`**, twelve steps (the list is in "Testing - the gate in full"; a green run prints `ran 12`); its last line is
+  full gate - the release tier - is **`build.ps1 -Test`**, twelve steps (the list is in "Testing - the gate in full"; a green run prints `ran 12`); its last line is
   `build-gate <stamp>: PASS`, `FAIL` or `COULD NOT VERIFY`, and its exit codes are **0 = pass**, **1 = a defect was
   found**, **2 = it could not verify** (a missing prerequisite). Exit 2 is "nothing was proven".
 - `go test ./cmd/filedo/` needs **`-vet=off`**: package main carries recorded vet debt
@@ -203,8 +232,8 @@ comply or amend, never deviate in silence) is the canon's `CONTRACTS.md`. Two ru
   this repository and found not to bind it is listed, dated, at the end of the `docs/contracts/README.md`.
 - **The vectors are the arbiter, and they are generated.** `fdsec/testdata/vectors/` is this repository's
   test fixture, produced by `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Suite1|TestVectors_Suite2|TestVectors_Suite3"`
-  (suite 2 in its `suite2/` subfolder, suite 3 in `suite3/`); the sealed-name boundary set of FDSEC-FORMAT 1.5
-  sections 20 to 22 is a fourth folder, `names/`, written by `-run "TestVectors_Names$"` alone so the three older sets are
+  (suite 2 in its `suite2/` subfolder, suite 3 in `suite3/`); the sealed-name boundary set of FDSEC-FORMAT 1.6
+  sections 20 to 23 is a fourth folder, `names/`, written by `-run "TestVectors_Names$"` alone so the three older sets are
   never rewritten by it. The copy in the catalog's `secure-container/vectors/` is what an outside
   implementation checks itself against. Regenerate the fixture, then copy it across - never hand-edit either one.
 

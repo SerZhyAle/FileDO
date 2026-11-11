@@ -78,7 +78,7 @@ func runSpeedTest(kind, targetPath, sizeMBStr string, noDelete, shortFormat bool
 
 	st, err := os.Stat(targetPath)
 	if err != nil {
-		return fail(fmt.Errorf("%s path is not accessible: %w", lower, err))
+		return fail(preRunError(fmt.Errorf("%s path is not accessible: %w", lower, err)))
 	}
 	if !st.IsDir() {
 		return fail(fmt.Errorf("path is not a directory: %s", targetPath))

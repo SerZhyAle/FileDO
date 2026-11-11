@@ -20,6 +20,8 @@
     { "id": "shell.secure", "name": "Secure a file", "nameKey": "rail_job_secure", "form": "page", "help": "job-secure", "rail": "rail_job_secure", "fallback": "job-page" },
     { "id": "shell.unsecure", "name": "Unsecure a file", "nameKey": "rail_job_unsecure", "form": "page", "help": "job-unsecure", "rail": "rail_job_unsecure", "fallback": "job-page" },
     { "id": "shell.reveal", "name": "Open a secret file", "nameKey": "rail_job_reveal", "form": "page", "help": "job-reveal", "rail": "rail_job_reveal", "fallback": "job-page" },
+    { "id": "shell.backup", "name": "Back up a folder", "nameKey": "rail_job_backup", "form": "page", "help": "job-page", "rail": "rail_job_backup", "fallback": "job-page" },
+    { "id": "shell.restore", "name": "Restore from a backup", "nameKey": "rail_job_restore", "form": "page", "help": "job-page", "rail": "rail_job_restore", "fallback": "job-page" },
     { "id": "disk-manager", "name": "FileDO - Disk manager", "nameKey": "vd_mgr_title", "form": "page", "help": "disk-manager", "rail": "rail_job_vd_manager", "class": "DiskManagerForm" },
     { "id": "shell.vd_list", "name": "Disks and mounts", "nameKey": "rail_job_vd_list", "form": "page", "help": "job-vd-list", "rail": "rail_job_vd_list", "fallback": "job-page" },
     { "id": "shell.vd_new", "name": "Create a disk", "nameKey": "rail_job_vd_new", "form": "page", "help": "job-vd-new", "rail": "rail_job_vd_new", "fallback": "job-page" },

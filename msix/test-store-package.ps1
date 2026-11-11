@@ -200,7 +200,10 @@ if ($SkipWack) {
 }
 
 Write-Host ""
-if ($script:fail -gt 0) { Write-Host "store-package: FAIL ($script:fail checks)" -ForegroundColor Red; exit 1 }
-if ($script:unverified.Count -gt 0) { Write-Host "store-package: COULD NOT VERIFY ($($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
-Write-Host "store-package: PASS ($script:pass checks)" -ForegroundColor Green
+# CHECK-VERDICT 0.14 item A: a test verdict line; -SkipWack deselects WACK, so nothing selected was skipped.
+$ran = $script:pass + $script:fail
+if ($script:fail -gt 0) { Write-Host "store-package: FAIL (run=$ran skipped=0 failed=$script:fail)" -ForegroundColor Red; exit 1 }
+if ($script:unverified.Count -gt 0) { Write-Host "store-package: COULD NOT VERIFY (run=$ran skipped=0, $($script:unverified -join '; '))" -ForegroundColor Yellow; exit 2 }
+if ($ran -eq 0) { Write-Host "store-package: COULD NOT VERIFY (run=0 skipped=0, no check ran)" -ForegroundColor Yellow; exit 2 }
+Write-Host "store-package: PASS (run=$ran skipped=0)" -ForegroundColor Green
 exit 0

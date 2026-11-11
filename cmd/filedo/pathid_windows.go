@@ -24,7 +24,10 @@ func pathWithin(child, parent string) (bool, error) { return fsx.Within(child, p
 func pathsOverlap(a, b string) (bool, error) { return fsx.Overlap(a, b) }
 
 // overlapError is the one message for a refused overlapping source and target.
-func overlapError(verb, source, target string) error { return fsx.OverlapError(verb, source, target) }
+// The words of the command line conflict, so it is the usage class (10).
+func overlapError(verb, source, target string) error {
+	return &exitClassError{code: 10, err: fsx.OverlapError(verb, source, target)}
+}
 
 func canonicalWithin(child, parent string) bool { return fsx.CanonicalWithin(child, parent) }
 

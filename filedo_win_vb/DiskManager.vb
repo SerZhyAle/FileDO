@@ -2009,6 +2009,8 @@ Partial Public Class DiskManagerForm
                 why = L(DiskCommands.ExitKeyFor(DiskStates.VerbOf(op.Action), res.ExitCode, res.Output))
             ElseIf Not String.IsNullOrEmpty(res.Reason) Then
                 why = L(res.Reason)
+            ElseIf res.Verdict = "Not proven" Then
+                why = DiskWhy(res, lastReport)
             Else
                 why = L("shell_verdict_" & res.Verdict.ToLowerInvariant().Replace(" ", "_"))
             End If
@@ -2017,6 +2019,17 @@ Partial Public Class DiskManagerForm
         End If
         RefreshView()
     End Sub
+
+    ' SP-0202 / CLI-EVENT-STREAM rule 17: a Disks run that ends Not proven with an exit class this window has no
+    ' sentence for (10 to 15, 13 among them) says why, as the Job and Command pages do. The run's token sentence
+    ' when the token is one the window knows; else a fallback that points only where this window can point - its
+    ' run report link, when a report was kept - and never at a raw-output drawer it does not have.
+    Friend Shared Function DiskWhy(res As Runner.RunResult, reportPath As String) As String
+        Dim culture = Globalization.CultureInfo.GetCultureInfo(ShellSettings.Language())
+        Dim said = RunExplanation.TokenSentence(res.ErrorReason, res.ErrorDetails, Localization.ForShell(), culture)
+        If said <> "" Then Return said
+        Return Localization.T(If(reportPath <> "", "vd_why_report", "vd_why_no_report"))
+    End Function
 
     ' chkdsk's exit code as the run reported it ("chkdsk_exit" among the result's numbers); False when
     ' the run did not say - an older filedo.exe - and the line stays the plain "done".

@@ -27,9 +27,10 @@ const mainExeName = "filedo.exe"
 
 // exitCouldNotVerify is filedo.exe's code 2: nothing was done or checked, so
 // nothing is claimed (CLI-EVENT-STREAM rule 11). A companion ends with it only
-// for its own usage errors and for a filedo.exe it cannot find or start; every
+// when it cannot find or start filedo.exe; usage errors return 10. Every
 // other exit code is filedo.exe's, passed on unchanged.
 const exitCouldNotVerify = 2
+const exitUsage = 10
 
 // usageError is a command line this companion does not accept.
 type usageError struct{ msg string }
@@ -49,7 +50,7 @@ func main() {
 func companionMain(args []string) int {
 	if len(args) == 0 {
 		fmt.Print(usageText())
-		return exitCouldNotVerify
+		return exitUsage
 	}
 	if isHelpRequest(args) {
 		fmt.Print(usageText())
@@ -58,7 +59,7 @@ func companionMain(args []string) int {
 	mainArgs, err := mapArgs(args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\nRun %s -? for the usage.\n", err, selfName)
-		return exitCouldNotVerify
+		return exitUsage
 	}
 	mainPath, err := locateMain()
 	if err != nil {

@@ -73,6 +73,7 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
 | [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; Windows desktop profile, `compact` rendering (registered in 0.2, untouched by 0.3 and 0.4); the former rendering exception is closed |
 | [`WINDOWS-STORE.md`](WINDOWS-STORE.md) | the package and listing a product hands to Microsoft Store | consumer (Store channel) |
+| [`TEST-LAB.md`](TEST-LAB.md) | the test lab: equipment, test practice and the proof a result carries; this repository files one report to the Windows profile (0.1 draft) | reporter only |
 
 ### Read against this repository and found not to bind it
 

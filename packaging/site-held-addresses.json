@@ -40,6 +40,14 @@
       "heldBy": ["filedo_win_vb/Links.vb"]
     },
     {
+      "address": "guides/topics.html",
+      "heldBy": ["filedo_win_vb/Links.vb"]
+    },
+    {
+      "address": "guides/support.html",
+      "heldBy": ["filedo_win_vb/Links.vb"]
+    },
+    {
       "address": "guides/virtual-disks.html#manager",
       "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"]
     }

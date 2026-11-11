@@ -9,6 +9,8 @@
     <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/" />
     <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/" />
     <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/" />
+    <link rel="alternate" hreflang="ru" href="https://serzhyale.github.io/FileDO/ru/" />
+    <link rel="alternate" hreflang="uk" href="https://serzhyale.github.io/FileDO/uk/" />
     <link rel="icon" type="image/png" href="../assets/filedo.png" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/" />
@@ -1184,6 +1186,11 @@
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}    /* PAGE-STYLE section 1: use the available width - no centred column. */
 :root{--wide:none}
 .container,.site-header,.hero,.hero-copy,.hero h1,.hero .lead,.band-inner,.get,.get-title p,.section>*,.section .intro,.section-intro .intro,.lang-row{max-width:none}
+      .cap-group-head{grid-column:1/-1;margin:0.2rem 0 0}
+      .cap-group-head h3{margin:0 0 0.15rem;font-size:1.05rem}
+      .cap-group-head p{margin:0;color:var(--text-2);font-size:0.92rem}
+      .cap-group-head.write h3{color:var(--gold)}
+      .cap-coda{grid-column:1/-1}
 .site-header{margin-left:var(--gutter);margin-right:var(--gutter)}    
 /* Front page identity: the mark and the full name once, in the header; every language in one group. */
 .brand-unit{gap:.85rem}
@@ -1212,6 +1219,12 @@ html[data-theme="light"] .pill{color:var(--acc-strong)}
 html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
 /* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
 html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
+/* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
+.cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
+.cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
+/* A guide card's heading links its guide, so each guide has an anchor that names it (SP-0166 F24, F25); it keeps the heading ink. */
+.card-title{color:inherit}
+.card-title:hover,.card-title:focus-visible{color:var(--acc)}
 </style>
   </head>
   <body>
@@ -1224,12 +1237,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
     <header class="site-header">
       <a class="brand-unit" href="#top"><img src="../assets/filedo.svg" width="46" height="46" alt="FileDO" /><span class="brand-name"><b>FileDO</b><small>Advanced File &amp; Storage Operations Tool</small></span></a>
       <nav class="header-nav" aria-labelledby="mainNavTitle"><span class="sr-only" id="mainNavTitle"><span data-l="fr">Navigation principale</span></span><a href="guides/"><span data-l="fr">Guides</span></a><a href="https://github.com/SerZhyAle/FileDO#readme"><span data-l="fr">Documentation</span></a></nav>
-      <div class="seg seg-dup" role="group" aria-label="Langue">
-        <button data-set-lang="ru" data-go="../">RU</button
-        ><button data-set-lang="en" data-go="../">EN</button
-        ><button data-set-lang="ua" data-go="../">UA</button>
-      </div>
-      <nav class="lang-row" aria-label="Langues"><a href="../" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../de/" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+<nav class="lang-row" aria-label="Langues"><a href="../ru/" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../uk/" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../de/" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
       <button class="theme-btn" id="themeBtn" aria-label="Changer de thème"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="fr">Thème</span></button
       ><a
         class="btn btn-primary btn-sm header-action"
@@ -1250,7 +1258,12 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="fr">Vérifications de stockage et opérations sur les fichiers sous Windows, pour savoir si l’on peut confier ses données à une clé USB, une carte SD, un disque dur ou un dossier.</span>
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#get"
+              <a
+                class="btn btn-primary"
+                id="heroSetupLink"
+                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                target="_blank"
+                rel="noopener"
                 ><span data-l="fr">Télécharger pour Windows</span></a
               >
               <a class="btn btn-ghost" href="#why"
@@ -1260,6 +1273,9 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 ><span data-l="fr">Choisissez votre tâche</span></a
               >
             </div>
+            <p class="install-note">
+              <span data-l="fr">Le programme d’installation n’a pas de signature de code : <a href="guides/install-trust.html">pourquoi, et sur quoi cliquer</a></span>
+            </p>
             <div class="hero-proof" aria-label="Données clés du produit">
               <span
                 ><span data-l="fr">USB · SD · HDD · dossiers</span></span
@@ -1449,6 +1465,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 target="_blank"
                 rel="noopener"
                 >GitHub Releases</a
+              ><a class="btn btn-ghost btn-sm" href="guides/release-notes.html"
+                ><span data-l="fr">Notes de version</span></a
               ><a
                 class="btn btn-ghost btn-sm"
                 href="https://github.com/SerZhyAle/FileDO"
@@ -1498,6 +1516,10 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           <span data-l="fr">Après la vérification sans risque, utilisez une opération pour une tâche précise.</span>
         </p>
         <div class="grid feature">
+          <div class="cap-group-head read">
+            <h3><span data-l="fr">Vérifications en lecture seule</span></h3>
+            <p><span data-l="fr">Elles regardent, mesurent et rapportent - vos données ne changent pas.</span></p>
+          </div>
           <article class="card">
             <h3>Capacité &amp; vitesse</h3>
             <p>
@@ -1522,7 +1544,11 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="fr">Copie avec progression et délais d’attente, plus rapports des différences entre dossiers. <code>compare --strict</code> renvoie le code 1 en cas de différences et le code 2 si la comparaison est incomplète.</span>
             </p>
           </article>
-          <article class="card">
+                    <div class="cap-group-head write">
+            <h3><span data-l="fr">Opérations qui écrivent ou suppriment</span></h3>
+            <p><span data-l="fr">Elles créent, écrasent ou suppriment des données. Lisez d’abord la carte ; wipe demande de saisir WIPE.</span></p>
+          </div>
+<article class="card">
             <h3>
               <span data-l="fr">Effacer &amp; remplir</span>
             </h3>
@@ -1535,7 +1561,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="fr">Fichiers secrets</span>
             </h3>
             <p>
-              <span data-l="fr">Un fichier entre dans un conteneur <code>.fd-sec</code> derrière un mot de passe, puis en ressort ; un double-clic ouvre le contenu dans le programme auquel il appartient, à partir d’une copie qui est ensuite retirée. Un mot de passe vide n’est qu’un camouflage, et le programme le dit clairement.</span>
+              <span data-l="fr">Un fichier entre dans un conteneur <code>.fd-sec</code> derrière un mot de passe, puis en ressort ; un double-clic ouvre le contenu dans le programme auquel il appartient, à partir d’une copie qui est ensuite retirée. Un mot de passe vide n’est qu’un camouflage, et le programme le dit clairement. Un dossier, un lecteur ou un partage réseau se sauvegarde dans un seul fichier - un <code>.zip</code> ordinaire que tout le monde peut ouvrir, ou scellé dans <code>.fd-sec</code> - et se restaure à son ancienne adresse ou à une nouvelle.</span>
             </p>
           </article>
           <article class="card">
@@ -1546,12 +1572,12 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="fr">Un volume entier dans un seul fichier <code>.fdd</code> : il se monte comme une lettre de lecteur, et peut être lu, vérifié et exporté sans montage. Il peut aussi résider dans une partition GPT que FileDO crée dans l’espace disque libre : disques GPT uniquement, taille fixe, pas plus rapide qu’un fichier, et chaque montage et chaque lecture demandent le consentement de l’administrateur - ce que ne fait plus une image vers un fichier. La fenêtre Gestionnaire de disques liste tous les disques au même endroit. Sans mot de passe, il est camouflé, pas chiffré. Windows uniquement ; le montage exige des droits d’administrateur, et la version Microsoft Store ne peut pas monter.</span>
             </p>
           </article>
-          <article class="card">
+          <article class="card cap-coda">
             <h3>
               <span data-l="fr">La fenêtre FileDO et le rapport d’assistance</span>
             </h3>
             <p>
-              <span data-l="fr">Le ZIP et le paquet winget incluent <code>filedo_win</code> : un rail de tâches avec une page par tâche, plus une page Commande pour toute opération. Son bouton À propos regroupe les logs dans un ZIP et ouvre votre application de messagerie : vous voyez d’abord l’archive, et rien n’est envoyé tant que vous n’agissez pas.</span>
+              <span data-l="fr">Le ZIP et le paquet winget incluent <code>filedo_win</code> : un rail de tâches avec une page par tâche, plus une page <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Commande pour toute opération. Son bouton <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>À propos regroupe les logs dans un ZIP et ouvre votre application de messagerie : vous voyez d’abord l’archive, et rien n’est envoyé tant que vous n’agissez pas.</span>
             </p>
           </article>
         </div>
@@ -1688,9 +1714,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 >README</a
               ><a
                 class="btn btn-ghost btn-sm"
-                href="https://github.com/SerZhyAle/FileDO/releases"
-                target="_blank"
-                rel="noopener"
+                href="guides/release-notes.html"
                 ><span data-l="fr">Historique des versions</span></a
               ><a
                 class="btn btn-ghost btn-sm"
@@ -1713,7 +1737,20 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <div class="grid feature">
           <article class="card">
             <h3>
-              <span data-l="fr">Vérifier le stockage</span>
+              <a class="card-title" href="guides/quick-start.html"><span data-l="fr">Commandes du démarrage rapide</span></a>
+            </h3>
+            <p>
+              <span data-l="fr">Les tâches courantes en lignes de commande directement de filedo -?, avec ce que chacune change.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="guides/quick-start.html"
+                ><span data-l="fr">Ouvrir</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <a class="card-title" href="guides/check-storage.html"><span data-l="fr">Vérifier le stockage</span></a>
             </h3>
             <p>
               <span data-l="fr">Informations, capacité, vitesse et contrôles de lecture - avec l’explication des fichiers de test et des droits d’administrateur requis.</span>
@@ -1726,7 +1763,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">Doublons et copies</span>
+              <a class="card-title" href="guides/files-and-copies.html"><span data-l="fr">Doublons et copies</span></a>
             </h3>
             <p>
               <span data-l="fr">Comment obtenir d’abord une liste ou un rapport, faire une copie et vérifier le dossier de sauvegarde.</span>
@@ -1741,7 +1778,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">Effacer et écraser</span>
+              <a class="card-title" href="guides/erase.html"><span data-l="fr">Effacer et écraser</span></a>
             </h3>
             <p>
               <span data-l="fr">Écraser un fichier, vider un dossier, écraser l’espace libre - ce que chacun demande d’abord, ce qu’il refuse et ce qu’il ne peut pas promettre sur un SSD.</span>
@@ -1754,10 +1791,10 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">La fenêtre FileDO (GUI)</span>
+              <a class="card-title" href="guides/gui-command-builder.html"><span data-l="fr">La fenêtre FileDO (GUI)</span></a>
             </h3>
             <p>
-              <span data-l="fr">Comment choisir une tâche, parcourir sa page, vérifier et lancer dans la fenêtre <code>filedo_win</code> ; la page Commande et les fichiers secrets.</span>
+              <span data-l="fr">Comment choisir une tâche, parcourir sa page, vérifier et lancer dans la fenêtre <code>filedo_win</code> ; la page <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Commande et les fichiers secrets.</span>
             </p>
             <p class="actions">
               <a
@@ -1769,7 +1806,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">L’avertissement de Windows</span>
+              <a class="card-title" href="guides/install-trust.html"><span data-l="fr">L’avertissement de Windows</span></a>
             </h3>
             <p>
               <span data-l="fr">Pourquoi « Windows a protégé votre ordinateur » s’affiche, sur quoi cliquer, et ce que l’application ne fait jamais.</span>
@@ -1782,7 +1819,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">Installation et Explorateur</span>
+              <a class="card-title" href="guides/install-and-explorer.html"><span data-l="fr">Installation et Explorateur</span></a>
             </h3>
             <p>
               <span data-l="fr">Ce que le programme d’installation ajoute, et comment activer ou désactiver les entrées du menu contextuel.</span>
@@ -1797,7 +1834,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">Fichiers secrets</span>
+              <a class="card-title" href="guides/fd-sec-containers.html"><span data-l="fr">Fichiers secrets</span></a>
             </h3>
             <p>
               <span data-l="fr">Conteneurs <code>.fd-sec</code> : empaqueter, restaurer, ouvrir sans décompresser - et ce que chaque choix garantit.</span>
@@ -1810,7 +1847,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">Disques virtuels</span>
+              <a class="card-title" href="guides/virtual-disks.html"><span data-l="fr">Disques virtuels</span></a>
             </h3>
             <p>
               <span data-l="fr">Conteneurs <code>.fdd</code> : créer, monter, lire sans monter - et en quoi le camouflage diffère du chiffrement.</span>
@@ -1837,15 +1874,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           <span data-l="fr">Autres outils de SZA</span>
         </p>
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
-          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/"
+          <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/index-fr.html"
             ><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
-          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/"
-            ><b>Fast Media Sorter for Windows</b><span>Windows media sorter</span></a
-          ><a href="https://serzhyale.github.io/CyrFlip/"
+          ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/lang/fr/"
+            ><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
+          ><a href="https://serzhyale.github.io/CyrFlip/fr/"
             ><b>CyrFlip</b><span>Windows layout fixer</span></a
-          ><a href="https://serzhyale.github.io/doc-html-translate/"
+          ><a href="https://serzhyale.github.io/doc-html-translate/fr/"
             ><b>doc-html-translate</b><span>Windows ebook converter</span></a
-          ><a href="https://serzhyale.github.io/StreamsPlayer/"
+          ><a href="https://serzhyale.github.io/StreamsPlayer/fr/"
             ><b>STREAMS Player</b><span>Windows stream player</span></a
           ><a href="https://serzhyale.github.io/universal-agent-kit/"
             ><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
@@ -1861,8 +1898,10 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             · <a href="guides/support.html"
               ><span data-l="fr">Assistance</span></a
             >
+            · <span data-l="fr"><a href="../help/fr/">Aide de la fenêtre</a></span>
             · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -1979,6 +2018,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               return /-setup\.exe$/i.test(n);
             });
             point("setupLink", setup);
+            point("heroSetupLink", setup);
             point(
               "zipLink",
               pick(function (n) {
@@ -2011,5 +2051,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           .catch(function () {});
       })();
     </script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

@@ -400,6 +400,16 @@ Public Module DestructiveDialogs
                                       New GlyphRef() {GlyphRef.Vocabulary("action.delete"), GoCancel})
     End Function
 
+    ' Test files FileDO wrote earlier are still in the redirect folder (SP-0194): the acting answer
+    ' only opens the page that deletes them, where the plan is shown and Run is the second step, and
+    ' Keep them - what Enter, Escape and the close box all give - leaves every file where it is.
+    Public Function LeftoverTestFiles(d As Dictionary(Of String, String), folder As String) As DialogSpec
+        Return DialogSpec.Destructive(T(d, "shell_leftover_title"),
+                                      Localization.Format(T(d, "shell_leftover_fmt"), folder),
+                                      New String() {T(d, "shell_btn_leftover_open"), T(d, "shell_btn_leftover_keep")}, 1, 0,
+                                      New GlyphRef() {GlyphRef.Vocabulary("action.delete"), GoCancel})
+    End Function
+
     ' Closing the shell while a run is active: Stop and close ends the run.
     Public Function StopAndClose(d As Dictionary(Of String, String), runName As String) As DialogSpec
         Return DialogSpec.Destructive(T(d, "shell_close_running_title"),
@@ -477,6 +487,7 @@ Public Module DestructiveDialogs
     Friend Function AllForTest(d As Dictionary(Of String, String)) As List(Of KeyValuePair(Of String, DialogSpec))
         Dim out As New List(Of KeyValuePair(Of String, DialogSpec))
         out.Add(New KeyValuePair(Of String, DialogSpec)("clean", CleanTestFiles(d, "D:\Test")))
+        out.Add(New KeyValuePair(Of String, DialogSpec)("leftover-test-files", LeftoverTestFiles(d, "C:\Temp\FileDO_Operations")))
         out.Add(New KeyValuePair(Of String, DialogSpec)("stop-and-close", StopAndClose(d, "Wipe")))
         out.Add(New KeyValuePair(Of String, DialogSpec)("end-run-now", EndRunNow(d, "Wipe")))
         out.Add(New KeyValuePair(Of String, DialogSpec)("disk-manager-busy", CloseDiskManagerBusy(d, "Mount - Test", True)))

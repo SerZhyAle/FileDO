@@ -60,6 +60,7 @@ No switch is needed for that - the switches below only subtract work, demand
 the installer, or add the test gate.
 
 ```powershell
+.\build.ps1 -Fast                 # between releases: checks of 5 s or less, nothing built
 .\build.ps1                       # exes + installer (the normal case)
 .\build.ps1 -Test                 # ..and run the smoke-run + go test gate
 .\build.ps1 -Test -Commit "msg"   # ..and commit, ONLY if both pass
@@ -97,7 +98,7 @@ unchanged for a `cmd.exe` prompt.
   the three companion modules (`cmd\filedo-test`, `cmd\filedo-check`,
   `cmd\filedo-fill`, each its own module), the placement registry and the
   gated-packages check, all three always run so one run names every failure;
-  `fdsec` - the fdsec short tests; `vdisk` - the vdisk and fmsworker tests;
+  `fdsec` - the fdsec short tests; `vdisk` - the vdisk, fmsworker and backupzip tests;
   `filedo-cli-and-vet` - the fdsec command-surface tests plus its vet baseline;
   `gui-selftest` - the GUI self-test (its log is deleted first, so a missing log
   is `COULD NOT VERIFY`, never the previous run's); `third-party-notices` -
@@ -117,6 +118,13 @@ unchanged for a `cmd.exe` prompt.
   or `COULD NOT VERIFY`; exit codes are 0, 1, and 2 respectively. (Root
   `go test ./...` is known-broken per `AGENTS.md`, so it is intentionally not
   run.)
+- `-Fast` is the check between releases (SP-0173): it builds nothing and runs
+  only the gate steps measured at 5 s or less - `check-placement`,
+  `internal-docs`, `build-inputs` and `help-pages` - ending in
+  `fast-gate: PASS`, `FAIL` or `COULD NOT VERIFY` (exit 0, 1, 2). It refuses
+  `-Test`, `-Commit`, `-Msi` and `-Install` (exit 2). The full build and every
+  slower step stay in `-Test`, which the release gate runs whole; the measured
+  list is in `AGENTS.md` "Testing".
 - `-Commit` implies `-Test` and commits the working tree only after the gate
   passes. It never tags and never pushes.
 - **Deploying is opt-in** - `-DeployTo <folder>`, or the `FILEDO_DEPLOY_DIR`

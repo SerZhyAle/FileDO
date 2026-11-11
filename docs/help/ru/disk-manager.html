@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
 <title>Справка - FileDO - Диспетчер дисков</title>
 <script>
 (function () {
@@ -31,22 +32,23 @@
 
   <figure class="shot">
     <div class="frame">
-      <img class="on-dark" src="../img/disk-manager.ru.dark.png" width="974" height="708" alt="FileDO - Диспетчер дисков: окно с пронумерованными частями">
-      <img class="on-light" src="../img/disk-manager.ru.light.png" width="974" height="708" alt="">
-      <a class="pin" style="--x:1.7%;--y:1.7%" href="#e-new" aria-label="1, Новый диск..">1</a>
-      <a class="pin" style="--x:20.3%;--y:1.7%" href="#e-add" aria-label="2, Добавить..">2</a>
-      <a class="pin" style="--x:38.9%;--y:1.7%" href="#e-mount" aria-label="3, Подключить">3</a>
-      <a class="pin" style="--x:57.2%;--y:1.7%" href="#e-unmount" aria-label="4, Отключить">4</a>
-      <a class="pin" style="--x:74.3%;--y:1.7%" href="#e-open" aria-label="5, Открыть">5</a>
-      <a class="pin" style="--x:1.7%;--y:8.5%" href="#e-save" aria-label="6, Сохранить">6</a>
-      <a class="pin" style="--x:20.3%;--y:8.5%" href="#e-more" aria-label="7, Ещё">7</a>
-      <a class="pin" style="--x:33.6%;--y:8.5%" href="#e-refresh" aria-label="8, Обновить">8</a>
-      <a class="pin" style="--x:38.9%;--y:8.5%" href="#e-settings" aria-label="9, Настройки">9</a>
-      <a class="pin" style="--x:46.0%;--y:8.5%" href="#e-main" aria-label="10, Операции FileDO">10</a>
-      <a class="pin" style="--x:69.2%;--y:8.5%" href="#e-help" aria-label="11, Справка">11</a>
-      <a class="pin" style="--x:9.9%;--y:17.2%" href="#e-filter" aria-label="12, Фильтр дисков">12</a>
-      <a class="pin" style="--x:0.2%;--y:23.9%" href="#e-list" aria-label="13, Список дисков">13</a>
-      <a class="pin" style="--x:0.2%;--y:51.8%" href="#e-detail" aria-label="14, Сведения">14</a>
+      <img class="on-dark" src="../img/disk-manager.ru.dark.png" width="2041" height="1266" alt="FileDO - Диспетчер дисков: окно с пронумерованными частями">
+      <img class="on-light" src="../img/disk-manager.ru.light.png" width="2041" height="1266" alt="">
+      <a class="pin" style="--x:1.2%;--y:1.4%" href="#e-new" aria-label="1, Новый диск..">1</a>
+      <a class="pin" style="--x:13.6%;--y:1.4%" href="#e-add" aria-label="2, Добавить..">2</a>
+      <a class="pin" style="--x:26.0%;--y:1.4%" href="#e-mount" aria-label="3, Подключить">3</a>
+      <a class="pin" style="--x:38.2%;--y:1.4%" href="#e-unmount" aria-label="4, Отключить">4</a>
+      <a class="pin" style="--x:49.7%;--y:1.4%" href="#e-open" aria-label="5, Открыть">5</a>
+      <a class="pin" style="--x:59.7%;--y:1.4%" href="#e-save" aria-label="6, Сохранить">6</a>
+      <a class="pin" style="--x:72.0%;--y:1.4%" href="#e-more" aria-label="7, Ещё">7</a>
+      <a class="pin" style="--x:80.9%;--y:1.4%" href="#e-refresh" aria-label="8, Обновить">8</a>
+      <a class="pin" style="--x:84.4%;--y:1.4%" href="#e-settings" aria-label="9, Настройки">9</a>
+      <a class="pin" style="--x:1.2%;--y:7.1%" href="#e-main" aria-label="10, Операции FileDO">10</a>
+      <a class="pin" style="--x:16.8%;--y:7.1%" href="#e-help" aria-label="11, Справка">11</a>
+      <a class="pin" style="--x:6.6%;--y:13.9%" href="#e-filter" aria-label="12, Фильтр дисков">12</a>
+      <a class="pin" style="--x:0.2%;--y:19.2%" href="#e-list" aria-label="13, Список дисков">13</a>
+      <a class="pin" style="--x:0.2%;--y:59.7%" href="#e-detail" aria-label="14, Сведения">14</a>
+      <a class="pin" style="--x:0.2%;--y:95.3%" href="#e-strip" aria-label="15, Строка состояния">15</a>
     </div>
     <figcaption>Демонстрационные данные. Выберите номер, чтобы прочитать об этой части окна.</figcaption>
   </figure>
@@ -213,7 +215,6 @@
       <summary><span class="mk">15</span><span><span class="name">Строка состояния</span><span class="one">Что выполняется и что ждёт.</span></span></summary>
       <div class="full">
         <p>Первая строка говорит, сколько дисков подключено и насколько свежие сведения. Вторая показывает выполняемую операцию или чем закончилась последняя. «Остановить» прерывает выполняемую операцию аккуратно, а «Очистить очередь» убирает ожидающие.</p>
-        <p class="one"><small>Нет на картинке: показывается только тогда, когда окну это нужно.</small></p>
       </div>
     </details>
     <details class="el" id="e-keyboard">
@@ -233,7 +234,7 @@
           <dt><kbd>Ctrl</kbd> + <kbd>I</kbd></dt><dd>Сведения</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></dt><dd>Проверить</dd>
           <dt><kbd>Enter</kbd></dt><dd>Подключить неподключённый диск или открыть том подключённого</dd>
-          <dt><kbd>Del</kbd></dt><dd>Убрать из списка</dd>
+          <dt><kbd>Delete</kbd></dt><dd>Убрать из списка</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>C</kbd></dt><dd>Копировать путь</dd>
           <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Выбрать все диски в списке</dd>
           <dt><kbd>Menu</kbd></dt><dd>Открыть меню выбранного диска или, если фокус на кнопке справки, её меню</dd>
@@ -261,7 +262,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Снято с FileDO dev (2610211338), 2026-10-21.</span>
+    <span>Снято с FileDO 2611110217, 2026-11-11.</span>
     <a href="index.html">Оглавление справки</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
   </footer>

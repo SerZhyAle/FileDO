@@ -112,6 +112,9 @@ func reportFdsecError(err error, hl *HistoryLogger) {
 	}
 	hl.SetError(err)
 	if fdsecStopped(err) {
+		currentRun.mu.Lock()
+		currentRun.containerStopped = true
+		currentRun.mu.Unlock()
 		fmt.Printf("Stopped: %v\n", err)
 		return
 	}

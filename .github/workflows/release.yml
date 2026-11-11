@@ -172,7 +172,7 @@ jobs:
       # the tagged source, with this toolchain and windows/amd64, BEFORE anything is built,
       # packaged or published; a failing test stops the job. Same packages and flags as
       # build.ps1 step 2-3: the tests of the three companion modules (cmd\filedo-test, cmd\filedo-check,
-      # cmd\filedo-fill - each its own module, SP-0171 W6), fdsec -short, vdisk, fmsworker, and
+      # cmd\filedo-fill - each its own module, SP-0171 W6), fdsec -short, vdisk, fmsworker, backupzip, and
       # cmd\filedo -vet=off with its version resource and FILEDO_FDSEC_REQUIRE_REPO_ROOT=1.
       # Not mirrored: build.ps1's vet baseline, placement check and GUI selftest.
       - name: Go test gate (as build.ps1)
@@ -201,6 +201,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "go test ./vdisk/ failed - nothing is built or published" }
           go test ./fmsworker/ -count=1
           if ($LASTEXITCODE -ne 0) { throw "go test ./fmsworker/ failed - nothing is built or published" }
+          go test ./backupzip/ -count=1
+          if ($LASTEXITCODE -ne 0) { throw "go test ./backupzip/ failed - nothing is built or published" }
           # A package with tests that no gate runs is a regression that ships green (AUD-92-F1).
           & .\packaging\check-gated-packages.ps1
           if ($LASTEXITCODE -ne 0) { throw "packaging\check-gated-packages.ps1 failed - nothing is built or published" }
@@ -222,7 +224,7 @@ jobs:
           } finally {
             Remove-Item cmd\filedo\resource.syso -Force -ErrorAction SilentlyContinue
           }
-          Write-Host "go test gate: PASS (cmd\filedo-test compile, fdsec -short, vdisk, fmsworker, gated-package check, cmd\filedo)"
+          Write-Host "go test gate: PASS (cmd\filedo-test compile, fdsec -short, vdisk, fmsworker, backupzip, gated-package check, cmd\filedo)"
 
       - name: Build binaries
         shell: pwsh

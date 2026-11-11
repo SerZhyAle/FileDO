@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PAGE-CONTENT` |
-| **Version** | 1.5, read 2026-10-21 (SP-0170); implemented partial 1.5 |
+| **Version** | 1.5, re-read 2026-10-29 (SP-0174); implemented partial 1.5 |
 | **Role** | consumer - product website `docs/index.html` and `docs/guides/` |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `PAGE-CONTENT.md` |
 | **Owner** | sza.od.ua hub. Amendments are proposed in the catalog |

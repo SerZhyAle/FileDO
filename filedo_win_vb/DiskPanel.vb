@@ -162,7 +162,7 @@ Public Class DiskOptionsPanel
     End Function
 
     Private Function NewCheck(key As String) As CheckBox
-        Dim c As New CheckBox With {.Text = L(key), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
+        Dim c As New BooleanOption With {.Text = L(key), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
         AddHandler c.CheckedChanged, Sub() OnChanged()
         Return c
     End Function
@@ -307,7 +307,7 @@ Public Class DiskOptionsPanel
 
         credLabel = NewLabel("shell_lbl_password")
         credBox = NewBox("shell_lbl_password", 300, secret:=True)
-        credShowCheck = New CheckBox With {.Text = L("shell_cred_show"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
+        credShowCheck = New BooleanOption With {.Text = L("shell_cred_show"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 2)}
         AddHandler credShowCheck.CheckedChanged,
             Sub()
                 For Each b In New TextBox() {credBox, credConfirmBox, newCredBox, newCredConfirmBox}

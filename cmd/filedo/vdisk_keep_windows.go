@@ -509,7 +509,7 @@ func vdKeep(path string, plain []string, batch bool) error {
 			if vdOwnsConsole() {
 				vdGuardHideConsole()
 			}
-			vdLogf("keep: watching %s (pid %d)", path, os.Getpid())
+			vdLogf("keep: watching %s (pid %d)%s", path, os.Getpid(), vdConsentTag())
 			return true
 		},
 		row:   func() (vdMountRow, bool, error) { return vdKeepRow(id) },

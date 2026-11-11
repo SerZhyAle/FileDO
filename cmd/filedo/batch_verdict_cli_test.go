@@ -74,15 +74,16 @@ func TestBatchContainerAnswerUsesRule11Digit(t *testing.T) {
 		t.Fatalf("exit %d, want 1 (rule 11)\n%s", code, out)
 	}
 
-	// Two container lines that could not judge: Not proven, and the digit is
-	// rule 11's 2, not a container class.
+	// Two container lines that could not judge (no password was given and
+	// stdin is no terminal, the usage class): Not proven, and the digit is
+	// rule 11's 10, not the container class 2 a single line would exit.
 	writeLst(t, dir, "io.lst", "fdsec info \""+filepath.Join(dir, "nosuch1.fd-sec")+"\"\nfdsec info \""+filepath.Join(dir, "nosuch2.fd-sec")+"\"\n")
 	os.Remove(events)
 	out, code = run(t, dir, "--events", events, "from", "io.lst")
 	if v := lastResult(t, events)["verdict"]; v != "Not proven" {
 		t.Fatalf("verdict %v, want Not proven\n%s", v, out)
 	}
-	if code != 2 {
-		t.Fatalf("exit %d, want 2 (rule 11)\n%s", code, out)
+	if code != 10 {
+		t.Fatalf("exit %d, want 10 (rule 11)\n%s", code, out)
 	}
 }

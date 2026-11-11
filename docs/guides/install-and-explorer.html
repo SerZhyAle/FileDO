@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
@@ -27,11 +27,7 @@
         "headline": "Install FileDO and add it to Explorer",
         "description": "Which FileDO install to choose, what the MSI writes to your machine, and how to add or remove the Explorer entries yourself.",
         "url": "https://serzhyale.github.io/FileDO/guides/install-and-explorer.html",
-        "inLanguage": [
-          "en",
-          "ru",
-          "uk"
-        ],
+        "inLanguage": ["en"],
         "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
         "isPartOf": {
           "@type": "WebSite",
@@ -64,7 +60,13 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
           if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
@@ -90,7 +92,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -107,45 +109,45 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span
-        ><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
       >
     </header>
     <nav class="lang-row" aria-label="Languages"><a href="../de/guides/install-and-explorer.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/install-and-explorer.html" hreflang="fr" lang="fr">FR</a></nav>
     <main id="main" class="container" data-ui-steps>
       <section class="hero">
         <p class="kicker">
-          <span data-l="ru">Руководство · Установка</span
-          ><span data-l="en">Guide · Installation</span
+          <span data-l="en">Guide · Installation</span
+          ><span data-l="ru">Руководство · Установка</span
           ><span data-l="ua">Посібник · Встановлення</span>
         </p>
         <h1>
-          <span data-l="ru"
-            >Установите FileDO как программу Windows - и решите, что она
-            добавит в систему.</span
-          ><span data-l="en"
+          <span data-l="en"
             >Install FileDO as a Windows program - and decide what it adds to
             your system.</span
+          ><span data-l="ru"
+            >Установите FileDO как программу Windows - и решите, что она
+            добавит в систему.</span
           ><span data-l="ua"
             >Встановіть FileDO як програму Windows - і вирішіть, що вона додасть
             до системи.</span
           >
         </h1>
         <p class="lead">
-          <span data-l="ru"
-            >У FileDO ядро в командной строке, но ставится он как обычная
-            программа: окно, ярлыки, тип документа <code>.fd-sec</code> и пункты
-            в контекстном меню Проводника. Ничего из этого не появляется
-            молча - установщик спрашивает, а переносимая сборка не регистрирует
-            вообще ничего, пока вы не попросите.</span
-          ><span data-l="en"
+          <span data-l="en"
             >FileDO is a command-line tool at heart, but it installs like an
             ordinary program: a window, shortcuts, the <code>.fd-sec</code>
             document type, and entries in the Explorer context menu. None of it
             appears silently - the installer asks, and the portable build
             registers nothing at all until you ask it to.</span
+          ><span data-l="ru"
+            >У FileDO ядро в командной строке, но ставится он как обычная
+            программа: окно, ярлыки, тип документа <code>.fd-sec</code> и пункты
+            в контекстном меню Проводника. Ничего из этого не появляется
+            молча - установщик спрашивает, а переносимая сборка не регистрирует
+            вообще ничего, пока вы не попросите.</span
           ><span data-l="ua"
             >У FileDO ядро в командному рядку, але встановлюється він як
             звичайна програма: вікно, ярлики, тип документа
@@ -158,28 +160,28 @@
 
       <section class="section">
         <h2>
-          <span data-l="ru">Выберите способ установки</span
-          ><span data-l="en">Choose how to install</span
+          <span data-l="en">Choose how to install</span
+          ><span data-l="ru">Выберите способ установки</span
           ><span data-l="ua">Виберіть спосіб встановлення</span>
         </h2>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Установщик (setup EXE)</span
-              ><span data-l="en">Installer (setup EXE)</span
+              <span data-l="en">Installer (setup EXE)</span
+              ><span data-l="ru">Установщик (setup EXE)</span
               ><span data-l="ua">Інсталятор (setup EXE)</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Полный вариант: файлы в <code>Program Files</code>,
-                <code>filedo</code> в <code>PATH</code>, ярлыки и - по вашему
-                выбору - интеграция с Проводником. Всё это снимается удалением
-                программы.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >The complete option: files in <code>Program Files</code>,
                 <code>filedo</code> on <code>PATH</code>, shortcuts, and - if
                 you keep it ticked - the Explorer integration. Uninstalling
                 takes all of it back.</span
+              ><span data-l="ru"
+                >Полный вариант: файлы в <code>Program Files</code>,
+                <code>filedo</code> в <code>PATH</code>, ярлыки и - по вашему
+                выбору - интеграция с Проводником. Всё это снимается удалением
+                программы.</span
               ><span data-l="ua"
                 >Повний варіант: файли в <code>Program Files</code>,
                 <code>filedo</code> у <code>PATH</code>, ярлики і - за вашим
@@ -193,8 +195,8 @@
                 href="https://github.com/SerZhyAle/FileDO/releases/latest"
                 target="_blank"
                 rel="noopener"
-                ><span data-l="ru">Скачать setup.exe</span
                 ><span data-l="en">Download setup.exe</span
+                ><span data-l="ru">Скачать setup.exe</span
                 ><span data-l="ua">Завантажити setup.exe</span></a
               >
             </p>
@@ -202,17 +204,17 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">winget или ZIP</span
-              ><span data-l="en">winget or ZIP</span
+              <span data-l="en">winget or ZIP</span
+              ><span data-l="ru">winget или ZIP</span
               ><span data-l="ua">winget або ZIP</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Быстро и без установщика. Команды доступны сразу, а пункты
-                Проводника нужно добавить отдельной командой - см. ниже.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >Quick, and no installer runs. The commands work immediately;
                 the Explorer entries are a separate command - see below.</span
+              ><span data-l="ru"
+                >Быстро и без установщика. Команды доступны сразу, а пункты
+                Проводника нужно добавить отдельной командой - см. ниже.</span
               ><span data-l="ua"
                 >Швидко й без інсталятора. Команди доступні одразу, а пункти
                 Провідника треба додати окремою командою - див. нижче.</span
@@ -222,29 +224,28 @@
               winget install SerZhyAle.FileDO<button
                 class="copy"
                 data-copy="winget install SerZhyAle.FileDO"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Microsoft Store</span
-              ><span data-l="en">Microsoft Store</span
+              <span data-l="en">Microsoft Store</span
+              ><span data-l="ru">Microsoft Store</span
               ><span data-l="ua">Microsoft Store</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Плитка FileDO и команда <code>filedo</code> в любом терминале.
-                Пунктов Проводника в этой сборке пока нет: пакету нужен
-                подписанный обработчик оболочки, и это отдельная работа. Что ещё отличается - на <a href="microsoft-store.html">странице сборки из Microsoft Store</a>.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >The FileDO tile plus the <code>filedo</code> command in any
-                terminal. This build has no Explorer entries yet: a package can
-                only get them through a signed shell handler, which is separate
-                work. What else differs is on <a href="microsoft-store.html">the Microsoft Store build page</a>.</span
+                terminal. This build has no Explorer entries: a package gets
+                them only through a signed shell handler. What else differs is on <a href="microsoft-store.html">the Microsoft Store build page</a>.</span
+              ><span data-l="ru"
+                >Плитка FileDO и команда <code>filedo</code> в любом терминале.
+                Пунктов Проводника в этой сборке нет: пакет получает их только
+                через подписанный обработчик оболочки. Что ещё отличается - на <a href="microsoft-store.html">странице сборки из Microsoft Store</a>.</span
               ><span data-l="ua"
                 >Плитка FileDO і команда <code>filedo</code> в будь-якому
-                терміналі. Пунктів Провідника в цій збірці поки немає: пакету
-                потрібен підписаний обробник оболонки, і це окрема робота. Що ще відрізняється - на <a href="microsoft-store.html">сторінці збірки з Microsoft Store</a>.</span
+                терміналі. Пунктів Провідника в цій збірці немає: пакет отримує
+                їх лише через підписаний обробник оболонки. Що ще відрізняється - на <a href="microsoft-store.html">сторінці збірки з Microsoft Store</a>.</span
               >
             </p>
           </article>
@@ -253,33 +254,33 @@
 
       <section class="section" id="first-run">
         <h2>
-          <span data-l="ru">Первый запуск: что скажет Windows</span
-          ><span data-l="en">First run: what Windows will say</span
+          <span data-l="en">First run: what Windows will say</span
+          ><span data-l="ru">Первый запуск: что скажет Windows</span
           ><span data-l="ua">Перший запуск: що скаже Windows</span>
         </h2>
         <ol class="steps">
           <li>
-            <span data-l="ru"
-              >Скачайте <code>FileDO-&lt;версия&gt;-setup.exe</code> из
-              последнего релиза. Рядом лежит файл <code>.sha256</code>.</span
-            ><span data-l="en"
+            <span data-l="en"
               >Take <code>FileDO-&lt;version&gt;-setup.exe</code> from the
               latest release. A <code>.sha256</code> file sits next to
               it.</span
+            ><span data-l="ru"
+              >Скачайте <code>FileDO-&lt;версия&gt;-setup.exe</code> из
+              последнего релиза. Рядом лежит файл <code>.sha256</code>.</span
             ><span data-l="ua"
               >Завантажте <code>FileDO-&lt;версія&gt;-setup.exe</code> з
               останнього релізу. Поруч лежить файл <code>.sha256</code>.</span
             >
           </li>
           <li>
-            <span data-l="ru"
-              >Сверьте хеш: строка, которую напечатает команда ниже, должна
-              совпасть с содержимым <code>.sha256</code>. Так вы убеждаетесь,
-              что файл тот, который опубликован.</span
-            ><span data-l="en"
+            <span data-l="en"
               >Check the hash: the line the command below prints must match the
               contents of the <code>.sha256</code> file. That is how you know
               the file is the one that was published.</span
+            ><span data-l="ru"
+              >Сверьте хеш: строка, которую напечатает команда ниже, должна
+              совпасть с содержимым <code>.sha256</code>. Так вы убеждаетесь,
+              что файл тот, который опубликован.</span
             ><span data-l="ua"
               >Звірте хеш: рядок, який надрукує команда нижче, має збігтися зі
               вмістом <code>.sha256</code>. Так ви переконуєтесь, що файл той,
@@ -287,7 +288,15 @@
             >
           </li>
           <li>
-            <span data-l="ru"
+            <span data-l="en"
+              >Run the file. The installer is not code-signed, so Windows may
+              show "Windows protected your PC". That only means the system does
+              not know the publisher of a new unsigned file - it is not a
+              finding about the content. Choose "More info", then "Run
+              anyway". <a href="install-trust.html"
+                >Why, and what the app never does</a
+              >.</span
+            ><span data-l="ru"
               >Запустите файл. Установщик не подписан цифровой подписью, и
               Windows может показать «Windows защитила ваш компьютер». Это
               значит лишь, что система не знает издателя нового неподписанного
@@ -295,14 +304,6 @@
               «Подробнее», затем «Выполнить в любом случае». <a
                 href="install-trust.html"
                 >Почему так и что программа никогда не делает</a
-              >.</span
-            ><span data-l="en"
-              >Run the file. The installer is not code-signed, so Windows may
-              show "Windows protected your PC". That only means the system does
-              not know the publisher of a new unsigned file - it is not a
-              finding about the content. Choose "More info", then "Run
-              anyway". <a href="install-trust.html"
-                >Why, and what the app never does</a
               >.</span
             ><span data-l="ua"
               >Запустіть файл. Інсталятор не має цифрового підпису, і Windows
@@ -315,14 +316,14 @@
             >
           </li>
           <li>
-            <span data-l="ru"
-              >Затем Windows попросит права администратора: программы ставятся
-              в <code>C:\Program Files\FileDO</code>, а пункты Проводника
-              пишутся в реестр для всей машины.</span
-            ><span data-l="en"
+            <span data-l="en"
               >Windows then asks for administrator permission: the programs go
               to <code>C:\Program Files\FileDO</code> and the Explorer entries
               are written to the machine-wide registry.</span
+            ><span data-l="ru"
+              >Затем Windows попросит права администратора: программы ставятся
+              в <code>C:\Program Files\FileDO</code>, а пункты Проводника
+              пишутся в реестр для всей машины.</span
             ><span data-l="ua"
               >Далі Windows попросить права адміністратора: програми
               ставляться в <code>C:\Program Files\FileDO</code>, а пункти
@@ -334,12 +335,12 @@
           certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
         </div>
         <p class="intro">
-          <span data-l="ru"
-            >Чтобы обновиться, запустите более новый setup EXE: он заменяет
-            установленную копию, а не добавляет вторую.</span
-          ><span data-l="en"
+          <span data-l="en"
             >To update, run the newer setup EXE: it replaces the installed
             copy instead of adding a second one.</span
+          ><span data-l="ru"
+            >Чтобы обновиться, запустите более новый setup EXE: он заменяет
+            установленную копию, а не добавляет вторую.</span
           ><span data-l="ua"
             >Щоб оновитися, запустіть новіший setup EXE: він замінює
             встановлену копію, а не додає другу.</span
@@ -349,19 +350,19 @@
 
       <section class="section">
         <h2>
-          <span data-l="ru">Что делает установщик</span
-          ><span data-l="en">What the installer does</span
+          <span data-l="en">What the installer does</span
+          ><span data-l="ru">Что делает установщик</span
           ><span data-l="ua">Що робить інсталятор</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >На странице «Choose what to install» четыре компонента. Первый обязателен, три
-            других можно снять сразу или переключить позже через
-            «Изменить» в «Приложения и возможности».</span
-          ><span data-l="en"
+          <span data-l="en"
             >The "Choose what to install" page offers four features. The first is required;
             the other three you can untick now, or switch later with Change in
             Apps &amp; features.</span
+          ><span data-l="ru"
+            >На странице «Choose what to install» четыре компонента. Первый обязателен, три
+            других можно снять сразу или переключить позже через
+            «Изменить» в «Приложения и возможности».</span
           ><span data-l="ua"
             >На сторінці «Choose what to install» чотири компоненти. Перший обов'язковий, три
             інші можна зняти одразу або перемкнути пізніше через «Змінити» в
@@ -370,17 +371,17 @@
         </p>
         <ol class="steps">
           <li>
-            <span data-l="ru"
-              ><b>FileDO program</b> - программы в <code>C:\Program Files\FileDO</code>,
-              <code>filedo</code> в системном <code>PATH</code> и два пункта в
-              меню «Пуск»: FileDO и <b>FileDO Disk Manager</b>, который открывает
-              <a href="virtual-disks.html#manager">Диспетчер дисков</a> сразу.</span
-            ><span data-l="en"
+            <span data-l="en"
               ><b>FileDO program</b> - the programs in
               <code>C:\Program Files\FileDO</code>, <code>filedo</code> on the
               system <code>PATH</code>, and two Start menu entries: FileDO, and
               <b>FileDO Disk Manager</b>, which opens the
               <a href="virtual-disks.html#manager">Disk manager</a> straight.</span
+            ><span data-l="ru"
+              ><b>FileDO program</b> - программы в <code>C:\Program Files\FileDO</code>,
+              <code>filedo</code> в системном <code>PATH</code> и два пункта в
+              меню «Пуск»: FileDO и <b>FileDO Disk Manager</b>, который открывает
+              <a href="virtual-disks.html#manager">Диспетчер дисков</a> сразу.</span
             ><span data-l="ua"
               ><b>FileDO program</b> - програми в <code>C:\Program Files\FileDO</code>,
               <code>filedo</code> у системному <code>PATH</code> і два пункти в
@@ -389,14 +390,14 @@
             >
           </li>
           <li>
-            <span data-l="ru"
-              ><b>Explorer right-click menu</b> - группа <code>File DO..</code>
-              в меню любого файла и тип документа <code>.fd-sec</code> со своим
-              значком.</span
-            ><span data-l="en"
+            <span data-l="en"
               ><b>Explorer right-click menu</b> - the <code>File DO..</code> group in
               the menu of every file, and the <code>.fd-sec</code> document type
               with its own icon.</span
+            ><span data-l="ru"
+              ><b>Explorer right-click menu</b> - группа <code>File DO..</code>
+              в меню любого файла и тип документа <code>.fd-sec</code> со своим
+              значком.</span
             ><span data-l="ua"
               ><b>Explorer right-click menu</b> - група
               <code>File DO..</code> у меню будь-якого файлу і тип
@@ -404,18 +405,18 @@
             >
           </li>
           <li>
-            <span data-l="ru"
-              ><b>Disk container files (.fdd)</b> - тип файла <code>.fdd</code>
-              виртуальных дисков со своим значком: двойной клик открывает окно
-              FileDO и подключает контейнер, правый клик добавляет «Mount
-              read-only» и «Unmount».
-              <a href="virtual-disks.html#explorer">Виртуальные диски</a>.</span
-            ><span data-l="en"
+            <span data-l="en"
               ><b>Disk container files (.fdd)</b> - the <code>.fdd</code> file
               type of the virtual disks with its own icon: a double-click opens
               the FileDO window and mounts the container, and the right-click
               menu adds Mount read-only and Unmount.
               <a href="virtual-disks.html#explorer">Virtual disks</a>.</span
+            ><span data-l="ru"
+              ><b>Disk container files (.fdd)</b> - тип файла <code>.fdd</code>
+              виртуальных дисков со своим значком: двойной клик открывает окно
+              FileDO и подключает контейнер, правый клик добавляет «Mount
+              read-only» и «Unmount».
+              <a href="virtual-disks.html#explorer">Виртуальные диски</a>.</span
             ><span data-l="ua"
               ><b>Disk container files (.fdd)</b> - тип файлу <code>.fdd</code>
               віртуальних дисків із власною піктограмою: подвійний клік відкриває
@@ -425,12 +426,12 @@
             >
           </li>
           <li>
-            <span data-l="ru"
-              ><b>Desktop icon</b> - значок на рабочем столе, открывающий то
-              же окно, что и пункт FileDO в меню «Пуск».</span
-            ><span data-l="en"
+            <span data-l="en"
               ><b>Desktop icon</b> - a desktop icon that opens the same
               window as the FileDO Start menu entry.</span
+            ><span data-l="ru"
+              ><b>Desktop icon</b> - значок на рабочем столе, открывающий то
+              же окно, что и пункт FileDO в меню «Пуск».</span
             ><span data-l="ua"
               ><b>Desktop icon</b> - піктограма на робочому столі, що
               відкриває те саме вікно, що й пункт FileDO у меню «Пуск».</span
@@ -446,12 +447,12 @@
             alt="FileDO Setup, page Choose what to install: the feature tree FileDO program with Explorer right-click menu and Desktop icon under it"
           />
           <figcaption>
-            <span data-l="ru"
-              >Установщик на английском на любом языке Windows, поэтому снимок
-              один для всех.</span
-            ><span data-l="en"
+            <span data-l="en"
               >The installer is in English on every Windows language, so one
               picture serves all.</span
+            ><span data-l="ru"
+              >Установщик на английском на любом языке Windows, поэтому снимок
+              один для всех.</span
             ><span data-l="ua"
               >Інсталятор англійською на будь-якій мові Windows, тому знімок
               один для всіх.</span
@@ -459,11 +460,11 @@
           </figcaption>
         </figure>
         <p class="intro">
-          <span data-l="ru"
+          <span data-l="en"
+            >For an unattended rollout the features are chosen by name:</span
+          ><span data-l="ru"
             >Для развёртывания без вопросов компоненты выбираются по
             имени:</span
-          ><span data-l="en"
-            >For an unattended rollout the features are chosen by name:</span
           ><span data-l="ua"
             >Для розгортання без запитань компоненти вибираються за іменем:</span
           >
@@ -472,31 +473,31 @@
           FileDO-&lt;version&gt;-setup.exe /quiet<button
             class="copy"
             data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
             class="copy"
             data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main<button
             class="copy"
             data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <p class="intro">
-          <span data-l="ru"
-            ><code>/quiet</code> ставит всё без вопросов, <code>/uninstall</code>
-            убирает обратно. Голый <code>.msi</code> публикуется рядом - это тот
-            же файл, что лежит внутри setup EXE, - и полезен, когда средству
-            развёртывания нужны имена компонентов.</span
-          ><span data-l="en"
+          <span data-l="en"
             ><code>/quiet</code> installs everything without asking,
             <code>/uninstall</code> takes it back. The bare <code>.msi</code> is
             published next to it - the very file the setup EXE carries - and is
             the one to use when a deployment tool wants the feature names.</span
+          ><span data-l="ru"
+            ><code>/quiet</code> ставит всё без вопросов, <code>/uninstall</code>
+            убирает обратно. Голый <code>.msi</code> публикуется рядом - это тот
+            же файл, что лежит внутри setup EXE, - и полезен, когда средству
+            развёртывания нужны имена компонентов.</span
           ><span data-l="ua"
             ><code>/quiet</code> встановлює все без запитань,
             <code>/uninstall</code> прибирає назад. Голий <code>.msi</code>
@@ -509,20 +510,20 @@
 
       <section class="section">
         <h2>
-          <span data-l="ru">Что в группе «File DO..»</span
-          ><span data-l="en">What is in the "File DO.." group</span
+          <span data-l="en">What is in the "File DO.." group</span
+          ><span data-l="ru">Что в группе «File DO..»</span
           ><span data-l="ua">Що в групі «File DO..»</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
+          <span data-l="en"
+            >Right-click any file, <code>File DO..</code>, and a sub-menu of
+            ten entries opens. Each one opens a console window, asks whatever
+            has to be asked, and stays on screen until you press Enter.</span
+          ><span data-l="ru"
             >Правый клик по любому файлу - <code>File DO..</code> - и
             открывается подменю из десяти пунктов. Каждый открывает окно
             консоли, спрашивает всё, что нужно спросить, и остаётся на экране,
             пока вы не нажмёте Enter.</span
-          ><span data-l="en"
-            >Right-click any file, <code>File DO..</code>, and a sub-menu of
-            ten entries opens. Each one opens a console window, asks whatever
-            has to be asked, and stays on screen until you press Enter.</span
           ><span data-l="ua"
             >Правий клік по будь-якому файлу - <code>File DO..</code> - і
             відкривається підменю з десяти пунктів. Кожен відкриває вікно
@@ -533,43 +534,43 @@
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Запаковать</span
-              ><span data-l="en">Pack</span
+              <span data-l="en">Pack</span
+              ><span data-l="ru">Запаковать</span
               ><span data-l="ua">Запакувати</span>
             </h3>
             <p>
-              <span data-l="ru"
-                ><b>Secure</b> - запаковать файл в контейнер
-                <code>.fd-sec</code> рядом, оригинал остаётся.
-                <b>Secure and delete original</b> - обычное удаление
-                оригинала: сам пункт меню и есть подтверждение, второй раз
-                ничего не спросят. <b>Secure and wipe original</b> - затирание
-                оригинала на месте, и только оно всё ещё просит набрать WIPE:
-                его не отменит ни одна программа восстановления.
-                <b>Secure with a random name</b> - контейнер получает случайное
-                имя без расширения. Оригинал трогают только после того, как
-                контейнер проверен побайтно.</span
-              ><span data-l="en"
-                ><b>Secure</b> packs the file into a <code>.fd-sec</code>
+              <span data-l="en"
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure</b> packs the file into a <code>.fd-sec</code>
                 container beside it and keeps the original.
-                <b>Secure and delete original</b> deletes the original
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure and delete original</b> deletes the original
                 afterwards - an ordinary delete, and the menu entry you picked
                 is the confirmation, so nothing is asked twice.
-                <b>Secure and wipe original</b> overwrites it in place, and
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure and wipe original</b> overwrites it in place, and
                 that one still asks you to type WIPE: no undelete tool walks
-                it back. <b>Secure with a random name</b> gives the
+                it back. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure with a random name</b> gives the
                 container a random name with no extension. The original is
                 touched only after the container has been verified chunk by
                 chunk.</span
+              ><span data-l="ru"
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure</b> - запаковать файл в контейнер
+                <code>.fd-sec</code> рядом, оригинал остаётся.
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure and delete original</b> - обычное удаление
+                оригинала: сам пункт меню и есть подтверждение, второй раз
+                ничего не спросят. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure and wipe original</b> - затирание
+                оригинала на месте, и только оно всё ещё просит набрать WIPE:
+                его не отменит ни одна программа восстановления.
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure with a random name</b> - контейнер получает случайное
+                имя без расширения. Оригинал трогают только после того, как
+                контейнер проверен побайтно.</span
               ><span data-l="ua"
-                ><b>Secure</b> - запакувати файл у контейнер
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure</b> - запакувати файл у контейнер
                 <code>.fd-sec</code> поруч, оригінал лишається.
-                <b>Secure and delete original</b> - звичайне видалення
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure and delete original</b> - звичайне видалення
                 оригіналу: сам пункт меню і є підтвердженням, удруге нічого не
-                спитають. <b>Secure and wipe original</b> - затирання
+                спитають. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure and wipe original</b> - затирання
                 оригіналу на місці, і лише воно досі просить набрати WIPE:
                 його не поверне жодна програма відновлення.
-                <b>Secure with a random name</b> - контейнер отримує випадкову
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure with a random name</b> - контейнер отримує випадкову
                 назву без розширення. Оригінал чіпають лише після того, як
                 контейнер перевірено почанково.</span
               >
@@ -577,29 +578,15 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Распаковать</span
-              ><span data-l="en">Unpack</span
+              <span data-l="en">Unpack</span
+              ><span data-l="ru">Распаковать</span
               ><span data-l="ua">Розпакувати</span>
             </h3>
             <p>
-              <span data-l="ru"
-                ><b>Unsecure</b> - вернуть оригинал из контейнера навсегда, со
-                всеми его датами. <b>Unsecure and delete container</b> - то же
-                самое и удалить контейнер. <b>Unsecure and start</b> - открыть
-                восстановленный файл его обычной программой, не оставляя
-                распакованную копию рядом с контейнером: она пишется в
-                <code>%LOCALAPPDATA%\FileDO\reveal</code>, куда доступ есть
-                только у вас и у системы, и удаляется, когда вы закрываете
-                консоль; двойной клик по <code>.fd-sec</code> - это ровно
-                эта команда, с паролем в открывшейся консоли. Для разового
-                просмотра без постоянной распаковки есть отдельная команда,
-                <code>reveal</code> - она набирается вручную. <a
-                  href="fd-sec-containers.html">Подробности о контейнерах</a
-                >.</span
-              ><span data-l="en"
-                ><b>Unsecure</b> brings the original back out of a container for
-                good, timestamps and all. <b>Unsecure and delete container</b>
-                does the same and removes the container. <b>Unsecure and
+              <span data-l="en"
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure</b> brings the original back out of a container for
+                good, timestamps and all. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure and delete container</b>
+                does the same and removes the container. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure and
                 start</b> opens the restored file with its usual program
                 without leaving an unpacked copy beside the container: it goes
                 into <code>%LOCALAPPDATA%\FileDO\reveal</code>, which only you
@@ -611,10 +598,24 @@
                 - typed by hand. <a href="fd-sec-containers.html"
                   >More about containers</a
                 >.</span
+              ><span data-l="ru"
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure</b> - вернуть оригинал из контейнера навсегда, со
+                всеми его датами. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure and delete container</b> - то же
+                самое и удалить контейнер. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure and start</b> - открыть
+                восстановленный файл его обычной программой, не оставляя
+                распакованную копию рядом с контейнером: она пишется в
+                <code>%LOCALAPPDATA%\FileDO\reveal</code>, куда доступ есть
+                только у вас и у системы, и удаляется, когда вы закрываете
+                консоль; двойной клик по <code>.fd-sec</code> - это ровно
+                эта команда, с паролем в открывшейся консоли. Для разового
+                просмотра без постоянной распаковки есть отдельная команда,
+                <code>reveal</code> - она набирается вручную. <a
+                  href="fd-sec-containers.html">Подробности о контейнерах</a
+                >.</span
               ><span data-l="ua"
-                ><b>Unsecure</b> - повернути оригінал із контейнера назавжди, з
-                усіма його датами. <b>Unsecure and delete container</b> - те
-                саме й видалити контейнер. <b>Unsecure and start</b> - відкрити
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure</b> - повернути оригінал із контейнера назавжди, з
+                усіма його датами. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure and delete container</b> - те
+                саме й видалити контейнер. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure and start</b> - відкрити
                 відновлений файл його звичайною програмою, не лишаючи
                 розпакованої копії поруч із контейнером: вона пишеться в
                 <code>%LOCALAPPDATA%\FileDO\reveal</code>, куди маєте доступ
@@ -630,29 +631,29 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">И без всяких контейнеров</span
-              ><span data-l="en">And with no container at all</span
+              <span data-l="en">And with no container at all</span
+              ><span data-l="ru">И без всяких контейнеров</span
               ><span data-l="ua">І без жодних контейнерів</span>
             </h3>
             <p>
-              <span data-l="ru"
-                ><b>Wipe this file</b> - затереть файл на месте и удалить;
-                консоль требует напечатать <code>WIPE</code> и честно говорит,
-                чего стоит перезапись на SSD. <b>Check this file</b> - прочитать
-                файл и сказать, читается ли он чисто. <b>Info</b> - размер,
-                атрибуты, тип и даты.</span
-              ><span data-l="en"
-                ><b>Wipe this file</b> overwrites the file in place and removes
+              <span data-l="en"
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>Wipe this file</b> overwrites the file in place and removes
                 it; the console asks you to type <code>WIPE</code> and says
                 plainly what an overwrite is worth on an SSD.
-                <b>Check this file</b> reads the file and says whether it reads
-                cleanly. <b>Info</b> shows size, attributes, type and
+                <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Check this file</b> reads the file and says whether it reads
+                cleanly. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Info</b> shows size, attributes, type and
                 dates.</span
+              ><span data-l="ru"
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>Wipe this file</b> - затереть файл на месте и удалить;
+                консоль требует напечатать <code>WIPE</code> и честно говорит,
+                чего стоит перезапись на SSD. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Check this file</b> - прочитать
+                файл и сказать, читается ли он чисто. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Info</b> - размер,
+                атрибуты, тип и даты.</span
               ><span data-l="ua"
-                ><b>Wipe this file</b> - затерти файл на місці й видалити;
+                ><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>Wipe this file</b> - затерти файл на місці й видалити;
                 консоль вимагає надрукувати <code>WIPE</code> і чесно каже, чого
-                варте перезаписування на SSD. <b>Check this file</b> - прочитати
-                файл і сказати, чи читається він чисто. <b>Info</b> - розмір,
+                варте перезаписування на SSD. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Check this file</b> - прочитати
+                файл і сказати, чи читається він чисто. <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Info</b> - розмір,
                 атрибути, тип і дати.</span
               >
             </p>
@@ -662,19 +663,19 @@
 
       <section class="section">
         <h2>
-          <span data-l="ru">Пункты Проводника без установщика</span
-          ><span data-l="en">The Explorer entries without an installer</span
+          <span data-l="en">The Explorer entries without an installer</span
+          ><span data-l="ru">Пункты Проводника без установщика</span
           ><span data-l="ua">Пункти Провідника без інсталятора</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >winget, переносимый архив и <code>go install</code> не запускают
-            установщик и ничего не регистрируют. Попросите сами - и заберите
-            обратно так же:</span
-          ><span data-l="en"
+          <span data-l="en"
             >winget, the portable zip and <code>go install</code> run no
             installer and register nothing. Ask for the entries yourself, and
             take them back the same way:</span
+          ><span data-l="ru"
+            >winget, переносимый архив и <code>go install</code> не запускают
+            установщик и ничего не регистрируют. Попросите сами - и заберите
+            обратно так же:</span
           ><span data-l="ua"
             >winget, переносний архів і <code>go install</code> не запускають
             інсталятор і не реєструють нічого. Попросіть самі - і заберіть назад
@@ -685,36 +686,36 @@
           filedo fdsec register<button
             class="copy"
             data-copy="filedo fdsec register"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           filedo fdsec register -all-users<button
             class="copy"
             data-copy="filedo fdsec register -all-users"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
           filedo fdsec unregister<button
             class="copy"
             data-copy="filedo fdsec unregister"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Для себя или для всей машины</span
-              ><span data-l="en">For you, or for the machine</span
+              <span data-l="en">For you, or for the machine</span
+              ><span data-l="ru">Для себя или для всей машины</span
               ><span data-l="ua">Для себе чи для всієї машини</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Без ключей пункты появляются только у вас и без прав
-                администратора. <code>-all-users</code> пишет для всей машины и
-                требует консоли с правами администратора.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >Without a flag the entries are yours alone and need no
                 administrator. <code>-all-users</code> writes them for the whole
                 machine and needs an elevated console.</span
+              ><span data-l="ru"
+                >Без ключей пункты появляются только у вас и без прав
+                администратора. <code>-all-users</code> пишет для всей машины и
+                требует консоли с правами администратора.</span
               ><span data-l="ua"
                 >Без ключів пункти з'являються лише у вас і без прав
                 адміністратора. <code>-all-users</code> пише для всієї машини та
@@ -724,19 +725,19 @@
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Удаляется ровно записанное</span
-              ><span data-l="en">Only what it wrote is removed</span
+              <span data-l="en">Only what it wrote is removed</span
+              ><span data-l="ru">Удаляется ровно записанное</span
               ><span data-l="ua">Видаляється рівно записане</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >FileDO помечает свои записи и трогает только их. Если
-                <code>.fd-sec</code> раньше принадлежал другой программе, он
-                вернётся ей.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >FileDO marks its own entries and touches nothing else. If
                 <code>.fd-sec</code> belonged to another program before, it goes
                 back to it.</span
+              ><span data-l="ru"
+                >FileDO помечает свои записи и трогает только их. Если
+                <code>.fd-sec</code> раньше принадлежал другой программе, он
+                вернётся ей.</span
               ><span data-l="ua"
                 >FileDO позначає свої записи й чіпає лише їх. Якщо
                 <code>.fd-sec</code> раніше належав іншій програмі, він
@@ -749,24 +750,24 @@
 
       <section class="section">
         <h2>
-          <span data-l="ru">Что важно знать</span
-          ><span data-l="en">What is worth knowing</span
+          <span data-l="en">What is worth knowing</span
+          ><span data-l="ru">Что важно знать</span
           ><span data-l="ua">Що важливо знати</span>
         </h2>
         <div class="note">
           <span class="tag"
-            ><span data-l="ru">Windows 11</span><span data-l="en">Windows 11</span
-            ><span data-l="ua">Windows 11</span></span
+            ><span data-l="en">Windows 11</span
+            ><span data-l="ru">Windows 11</span><span data-l="ua">Windows 11</span></span
           >
           <p>
-            <span data-l="ru"
-              >В Windows 11 пункты FileDO находятся в «Показать дополнительные
-              параметры» - это место, куда система помещает все классические
-              записи меню, а не признак неполной установки.</span
-            ><span data-l="en"
+            <span data-l="en"
               >On Windows 11 the FileDO entries live under "Show more options" -
               that is where the system puts every classic menu entry, not a sign
               of an incomplete install.</span
+            ><span data-l="ru"
+              >В Windows 11 пункты FileDO находятся в «Показать дополнительные
+              параметры» - это место, куда система помещает все классические
+              записи меню, а не признак неполной установки.</span
             ><span data-l="ua"
               >У Windows 11 пункти FileDO розташовані в «Показати додаткові
               параметри» - це місце, куди система складає всі класичні записи
@@ -776,30 +777,13 @@
         </div>
         <div class="note">
           <span class="tag"
-            ><span data-l="ru">Двойной клик</span
             ><span data-l="en">Double-click</span
+            ><span data-l="ru">Двойной клик</span
             ><span data-l="ua">Подвійний клік</span></span
           >
           <p>
-            <span data-l="ru"
-              >Двойной клик по <code>.fd-sec</code> - это ровно пункт меню
-              «Unsecure and start»: открывается окно консоли, которое спрашивает
-              пароль, восстанавливает оригинал под его настоящим именем в
-              <code>%LOCALAPPDATA%\FileDO\reveal</code> - папку, которую можете
-              читать только вы и система, - и сразу открывает его в той
-              программе, которой принадлежит настоящее расширение: запакованный
-              <code>.txt</code> откроется в вашем редакторе текста, видео - в
-              плеере. Копия удаляется, когда вы закрываете это окно консоли;
-              если программа всё ещё держит файл открытым, копию уберёт
-              следующий запуск FileDO. Контейнер никуда не девается. Нужен
-              постоянный файл - <b>Unsecure</b> без start, он возвращает
-              оригинал рядом с контейнером навсегда.
-              Отдельного пункта меню для двойного клика нет и не нужно - по
-              расширению срабатывает ассоциация. Исполняемые файлы и скрипты,
-              восстановленные так, открываются как обычный двойной клик по ним
-              и открыл бы - без отдельного запрета для этого пути.</span
-            ><span data-l="en"
-              >Double-clicking a <code>.fd-sec</code> is exactly the "Unsecure
+            <span data-l="en"
+              >Double-clicking a <code>.fd-sec</code> is exactly the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>"Unsecure
               and start" menu entry: a console window opens, asks for the
               password, restores the original under its true name into
               <code>%LOCALAPPDATA%\FileDO\reveal</code> - a folder only you and
@@ -808,16 +792,33 @@
               text editor, a video in your player. The copy is removed when you
               close that console window; if the program still has the file
               open, the next FileDO start removes it. The container is left in
-              place. When you want the file to stay, use <b>Unsecure</b>
+              place. When you want the file to stay, use <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure</b>
               without start - it brings the original back beside the container
               for good. There is no separate menu
               entry for the double-click and there needs to be none - the
               extension's own association is what runs. An executable or script
               restored this way opens exactly as an ordinary double-click on it
               would - there is no extra refusal on this path.</span
+            ><span data-l="ru"
+              >Двойной клик по <code>.fd-sec</code> - это ровно пункт меню
+              <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>«Unsecure and start»: открывается окно консоли, которое спрашивает
+              пароль, восстанавливает оригинал под его настоящим именем в
+              <code>%LOCALAPPDATA%\FileDO\reveal</code> - папку, которую можете
+              читать только вы и система, - и сразу открывает его в той
+              программе, которой принадлежит настоящее расширение: запакованный
+              <code>.txt</code> откроется в вашем редакторе текста, видео - в
+              плеере. Копия удаляется, когда вы закрываете это окно консоли;
+              если программа всё ещё держит файл открытым, копию уберёт
+              следующий запуск FileDO. Контейнер никуда не девается. Нужен
+              постоянный файл - <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure</b> без start, он возвращает
+              оригинал рядом с контейнером навсегда.
+              Отдельного пункта меню для двойного клика нет и не нужно - по
+              расширению срабатывает ассоциация. Исполняемые файлы и скрипты,
+              восстановленные так, открываются как обычный двойной клик по ним
+              и открыл бы - без отдельного запрета для этого пути.</span
             ><span data-l="ua"
               >Подвійний клік по <code>.fd-sec</code> - це рівно пункт меню
-              «Unsecure and start»: відкривається вікно консолі, яке запитує
+              <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>«Unsecure and start»: відкривається вікно консолі, яке запитує
               пароль, відновлює оригінал під його справжнім ім'ям у
               <code>%LOCALAPPDATA%\FileDO\reveal</code> - теку, яку можете
               читати лише ви та система, - і одразу відкриває його в тій
@@ -826,7 +827,7 @@
               у плеєрі. Копія видаляється, коли ви закриваєте це вікно консолі;
               якщо програма ще тримає файл відкритим, копію прибере наступний
               запуск FileDO. Контейнер нікуди не дівається. Потрібен постійний
-              файл - <b>Unsecure</b> без start, він повертає оригінал поруч із
+              файл - <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure</b> без start, він повертає оригінал поруч із
               контейнером назавжди.
               Окремого пункту меню для подвійного кліку немає й не треба - за
               розширенням спрацьовує асоціація. Виконувані файли та скрипти,
@@ -836,13 +837,14 @@
           </p>
         </div>
       </section>
-    <p><span data-l="ru">Шаринг диска по SFTP через Fast Media Sorter &amp; Sharing: регистрация из Диспетчера дисков, установка программы, пароли и восстановление после ошибки.</span><span data-l="en">Disk sharing over SFTP through Fast Media Sorter &amp; Sharing: Disk Manager registration, installation, passwords and recovery after a failed step.</span><span data-l="ua">Спільний доступ до диска через SFTP у Fast Media Sorter &amp; Sharing: реєстрація з Диспетчера дисків, встановлення, паролі та відновлення після помилки.</span> <a href="fms-sharing.html"><span data-l="ru">Инструкция</span><span data-l="en">Instructions</span><span data-l="ua">Інструкція</span></a></p>
+    <p><span data-l="en">Disk sharing over SFTP through Fast Media Sorter &amp; Sharing: Disk Manager registration, installation, passwords and recovery after a failed step.</span><span data-l="ru">Шаринг диска по SFTP через Fast Media Sorter &amp; Sharing: регистрация из Диспетчера дисков, установка программы, пароли и восстановление после ошибки.</span><span data-l="ua">Спільний доступ до диска через SFTP у Fast Media Sorter &amp; Sharing: реєстрація з Диспетчера дисків, встановлення, паролі та відновлення після помилки.</span> <a href="fms-sharing.html"><span data-l="en">Instructions</span><span data-l="ru">Инструкция</span><span data-l="ua">Інструкція</span></a></p>
 </main>
     <footer class="site-footer">
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -867,5 +869,8 @@
       };
     </script>
     <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.secure" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9V6zM16 16h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-action.verify" viewBox="0 0 24 24"><path d="M20,3H4C2.9,3,2,3.9,2,5v14c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V5C22,3.9,21.1,3,20,3z M10,17H5v-2h5V17z M10,13H5v-2h5V13z M10,9H5V7h5V9z M14.82,15L12,12.16l1.41-1.41l1.41,1.42L17.99,9l1.42,1.42L14.82,15z" fill="currentColor" fill-rule="evenodd"/></symbol><symbol id="g-action.wipe" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm2.46-7.12l1.41-1.41L12 12.59l2.12-2.12 1.41 1.41L13.41 14l2.12 2.12-1.41 1.41L12 15.41l-2.12 2.12-1.41-1.41L10.59 14l-2.13-2.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

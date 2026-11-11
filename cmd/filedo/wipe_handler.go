@@ -57,10 +57,10 @@ func handleFileWipeCommand(path string, args []string) error {
 		return err
 	}
 	if fi.IsDir() {
-		return fmt.Errorf("%s is a folder: `folder %s wipe` empties a folder, this verb erases one file", path, path)
+		return exitClassf(10, "%s is a folder: `folder %s wipe` empties a folder, this verb erases one file", path, path)
 	}
 	if !fi.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", path)
+		return exitClassf(10, "%s is not a regular file", path)
 	}
 	// A reparse point is a name pointing somewhere else. Overwriting through
 	// one writes over whatever it happens to point at today, which is never
@@ -134,7 +134,7 @@ func wipeDisplayPath(p string) string {
 // from encrypting what was written into it next.
 func handleWipeCommand(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("no target specified for wipe operation")
+		return exitClassf(10, "no target specified for wipe operation")
 	}
 
 	// Parse optional automation flags; the first non-flag argument is the target.
@@ -153,7 +153,7 @@ func handleWipeCommand(args []string) error {
 		}
 	}
 	if targetPath == "" {
-		return fmt.Errorf("no target specified for wipe operation")
+		return exitClassf(10, "no target specified for wipe operation")
 	}
 	if os.Getenv("FILEDO_AUTO_CONFIRM") == "1" {
 		force = true
@@ -163,12 +163,12 @@ func handleWipeCommand(args []string) error {
 	info, err := os.Stat(targetPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("target path does not exist: %s", targetPath)
+			return exitClassf(11, "target path does not exist: %s", targetPath)
 		}
-		return fmt.Errorf("error accessing target path: %v", err)
+		return preRunError(fmt.Errorf("error accessing target path: %w", err))
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("target must be a directory: %s", targetPath)
+		return exitClassf(10, "target must be a directory: %s", targetPath)
 	}
 
 	// A reparse point is refused outright, as the file wipe refuses one:
@@ -210,13 +210,16 @@ func wipeContents(targetPath string) error {
 	progress := &WipeProgress{StartTime: time.Now()}
 	entries, err := os.ReadDir(targetPath)
 	if err != nil {
-		return fmt.Errorf("cannot list %s: %v", targetPath, err)
+		return fmt.Errorf("cannot list %s: %w", targetPath, err)
 	}
 	progress.TotalItems = int64(len(entries))
 	fmt.Printf("Deleting %d top-level entries..\n", len(entries))
 
 	failed := 0
 	var firstFailures []string
+	// inUse is the sharing or lock errno of the first entry that another program
+	// holds open - the errno alone, see the return below.
+	var inUse error
 	for _, e := range entries {
 		if runStopRequested() {
 			fmt.Printf("\nStopped: %d of %d entries processed.\n", progress.ProcessedItems, progress.TotalItems)
@@ -232,6 +235,9 @@ func wipeContents(targetPath string) error {
 		// the folder goes, what it points at stays.
 		if err := removeAllClearingReadOnly(p); err != nil {
 			failed++
+			if errno := fileInUseErrno(err); errno != 0 && inUse == nil {
+				inUse = errno
+			}
 			if len(firstFailures) < 10 {
 				firstFailures = append(firstFailures, fmt.Sprintf("%s: %v", p, err))
 			}
@@ -241,6 +247,11 @@ func wipeContents(targetPath string) error {
 		fmt.Printf("\nCould not delete %d of %d entries:\n", failed, len(entries))
 		for _, f := range firstFailures {
 			fmt.Printf("  %s\n", f)
+		}
+		if inUse != nil {
+			// The errno alone: the entry's own error names its path, and this message
+			// reaches the event stream. It gives the token file-in-use.
+			return fmt.Errorf("wipe incomplete: %d of %d entries could not be deleted (in use, locked or access denied): %w", failed, len(entries), inUse)
 		}
 		return fmt.Errorf("wipe incomplete: %d of %d entries could not be deleted (in use, locked or access denied)", failed, len(entries))
 	}

@@ -14,7 +14,7 @@ var (
 	sampleWant = []string{"check", `D:\My Test Dir\`, "--mode", "deep", "--threshold", "5", "--events", `C:\ev dir\run.jsonl`, "--pause"}
 )
 
-// badArgs are command lines filedo_check refuses with exit 2, before
+// badArgs are command lines filedo_check refuses with exit 10, before
 // filedo.exe is started.
 var badArgs = [][]string{
 	{"D:", "fast"},

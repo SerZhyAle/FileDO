@@ -4,10 +4,12 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2610211540-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611110217-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
+
+![La fenêtre de FileDO sur la page du test de capacité](msix/screenshots/capacity-fr.png)
 
 </div>
 
@@ -244,6 +246,66 @@ passe est masqué, saisi deux fois à l'empaquetage, et transmis à `filedo.exe`
 aucune ligne de commande, aucun rapport d'exécution et aucun fichier d'historique. Un double-clic sur un
 `.fd-sec` n'ouvre pas cette fenêtre - il exécute **Unsecure and start** dans la console, exactement comme
 l'entrée du même nom dans le menu de l'Explorateur.
+
+---
+
+## Sauvegarde et restauration
+
+Un dossier, un lecteur entier ou un partage réseau entre dans un seul fichier - un `.zip` ordinaire que
+tout outil zip ouvre sur n'importe quel ordinateur, ou ce zip scellé dans un conteneur `.fd-sec` derrière
+un mot de passe - et revient à son ancienne adresse ou à une nouvelle. Avant l'empaquetage, FileDO lit un
+échantillon du contenu pendant 10 secondes au plus et choisit lui-même la densité de compression : les
+photos et les vidéos sont stockées telles quelles, les textes et les documents sont compressés davantage ;
+le niveau choisi et la durée de la sonde sont affichés, et `level <0-9>` impose la densité à la place.
+
+```bash
+# D:\Photos-<yyMMddHHmm>.zip à côté du dossier ; tout outil zip l'ouvre
+filedo backup D:\Photos
+
+# Ailleurs, à la densité que vous indiquez
+filedo backup D:\Photos to E:\Bak level 9
+
+# Scellé dans Photos-<yyMMddHHmm>.fd-sec (mot de passe demandé deux fois) ; keep-zip garde aussi le zip
+filedo backup D:\Photos sec
+
+# Un dossier réseau de la même façon ; un lecteur entier demande le mot root et votre oui après l'estimation
+filedo backup \\nas\share\Docs
+filedo backup E:\ root
+
+# Reconstruire le dossier à côté de l'archive, ou à une autre adresse
+filedo restore Photos-2611101530.zip
+filedo restore Photos-2611101530.fd-sec to D:\
+```
+
+- **Le zip garde le nom du dossier, jamais son chemin**, si bien qu'une sauvegarde ordinaire confiée à
+  quelqu'un d'autre ne montre pas comment votre disque est organisé. `restore` reconstruit le dossier à
+  côté de l'archive ; `to <dossier>` indique toute autre adresse, l'ancienne comprise.
+- **Rien n'est complété ni remplacé.** Un dossier qui existe déjà à la destination reste tel quel :
+  `restore` propose d'écrire à côté sous le nom `<nom>-1`, et `suffix` répond oui dans un traitement par
+  lots. Un nom d'archive existant n'est jamais écrasé non plus.
+- **Une archive dont les noms d'entrée sortiraient de la destination** - `..`, un chemin absolu, une
+  lettre de lecteur, un nom de périphérique comme `CON` - est refusée en entier, avant que rien ne soit
+  écrit.
+- **Le lecteur de Windows lui-même est refusé** ; sur un autre lecteur entier, le fichier d'échange, le
+  fichier d'hibernation et `System Volume Information` sont ignorés, et l'exécution le dit. L'archive n'est
+  jamais écrite dans le dossier qu'elle emballe.
+- **Une jonction ou un lien symbolique dans la source refuse la sauvegarde** et nomme l'entrée ;
+  `skip-links` laisse les liens de côté et les liste un par un, si bien qu'une copie incomplète n'est
+  jamais silencieuse.
+- **Ce qui est conservé** : les fichiers, les dossiers vides et l'heure de modification de chaque fichier.
+  Les autorisations, les flux de données alternatifs et les liens ne le sont pas.
+- **Une exécution arrêtée (Ctrl+C) ne laisse aucune archive** - seuls les fichiers terminés reçoivent leur
+  nom définitif. Une sauvegarde scellée avec un mauvais mot de passe, un fichier qui n'est pas un conteneur
+  et un conteneur endommagé aboutissent à la même réponse, comme pour `unsecure` ; `del` supprime l'archive
+  après une restauration réussie.
+- **Une sauvegarde est une copie entière, faite quand vous la lancez** - il n'y a ni planification, ni
+  historique des sauvegardes précédentes, ni couche incrémentale. Un fichier seul va dans un conteneur avec
+  `secure`.
+
+Dans la fenêtre, le groupe **«Protéger»** porte les deux opérations sous forme de pages - **«Sauvegarder
+un dossier»** et **«Restaurer une sauvegarde»** - et la page **«Commande»** les construit aussi (`backup`,
+`backup sec`, `restore`). Le mot de passe est saisi hors de vue (deux fois pour une sauvegarde scellée) et
+n'atteint aucune ligne de commande.
 
 ---
 
@@ -499,13 +561,13 @@ code 7, et une disposition modifiée depuis la liste avec le code 5 - sans que r
 
 - **Sélection visuelle de cible** avec boutons radio (Périphérique/Dossier/Réseau/Fichier)
 - **Menu déroulant d'opérations** sur la page «Commande» (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons)
-- **Une page par tâche** dans la fenêtre par défaut - capacité, vitesse, informations, vérification des fichiers endommagés, sondage direct, récupération, doublons, comparaison, nettoyage, copie, remplissage, effacement et les trois tâches des fichiers secrets - chacune portant toutes les options que la CLI accepte pour elle, y compris les vingt-neuf options de `check`
+- **Une page par tâche** dans la fenêtre par défaut - capacité, vitesse, informations, vérification des fichiers endommagés, sondage direct, récupération, doublons, comparaison, nettoyage, copie, remplissage, effacement, les trois tâches des fichiers secrets et la paire de sauvegarde (sauvegarder, restaurer) - chacune portant toutes les options que la CLI accepte pour elle, y compris les vingt-neuf options de `check`
 - **Saisie de paramètres** avec validation
 - **Aperçu de commande en temps réel** sur la page «Commande», montrant la commande CLI équivalente
 - **Bouton parcourir** pour sélection facile du chemin
 - **Suivi du progrès** avec sortie en temps réel
 - **Exécution en un clic** avec affichage de la sortie
-- **Page «À propos»** : version, auteur et liens vers le site, le code source, le suivi des problèmes, la page de confidentialité et les autres outils de l'auteur
+- **Page «À propos»** : à quoi sert FileDO, version, auteur et liens vers l'aide, l'index de tous les sujets, le site, toutes les versions avec leurs téléchargements et mises à jour, le code source, la page d'assistance, le suivi des problèmes, la page de confidentialité, le texte de la licence et les autres outils de l'auteur, ainsi que le programme associé Fast Media Sorter and Sharing et à quoi il sert. La fenêtre de réglages du Gestionnaire de disques a les mêmes pages «Réglages» et «À propos», à un clic l'une de l'autre
 - **Envoyer les logs à l'auteur** - l'unique bouton de cette page regroupe les logs FileDO trouvés sur cette machine dans un seul zip, ouvre le dossier avec le fichier sélectionné, place son chemin dans le presse-papiers et ouvre votre programme de messagerie avec l'adresse et l'objet déjà remplis. Vous voyez d'abord le zip, et rien n'est envoyé avant que vous envoyiez le message vous-même
 
 ```bash
@@ -537,7 +599,7 @@ folder C:\temp clean
 
 Exécutez : `filedo from commands.txt`
 
-Codes de sortie (toutes les commandes hors conteneur) : **0 passed or done, 1 ran and found a defect, 2 could not be verified.**
+Codes de sortie (toutes les commandes hors conteneur) : **0 réussi ou terminé, 1 défaut trouvé, 2 vérification impossible (aucune classe plus précise), 10 appel incorrect, 11 cible introuvable ou non prête, 12 accès ou droits d'administrateur refusés, 13 espace ou ressources insuffisants, 14 panne matérielle ou d'E/S, 15 panne réseau ou de partage, 16 arrêté avant la fin.** Un défaut trouvé avant un arrêt reste 1 ; un script qui teste exactement 2 doit tester 2 ou plus. Les commandes de conteneur et `vd` gardent leurs propres classes, indiquées avec elles.
 
 ### Suivi d'Historique
 ```bash
@@ -639,14 +701,14 @@ filedo \\server\backup speed 500
 <summary><b>Effacement</b></summary>
 
 ```bash
-# Remplir 5GB puis supprimer les fichiers de test
+# Remplir l'espace libre de fichiers de test de 5000 Mo chacun, puis les supprimer
 filedo C: fill 5000 del
 
 # Nettoyer les fichiers de test existants
 filedo D: clean
 
-# Avant mise au rebut du disque
-filedo E: fill max del
+# Avant mise au rebut du disque : écraser tout l'espace libre avec des fichiers de 1000 Mo, puis les supprimer
+filedo E: fill 1000 del
 ```
 </details>
 
@@ -723,7 +785,16 @@ FileDO/
 
 ## Historique des Versions
 
-**v2610211540** (Actuelle)
+**v2611110217** (Actuelle)
+- **Sauvegarde**: `filedo backup` emballe un dossier, un lecteur ou un dossier réseau dans un seul zip que tout outil zip ouvre - FileDO choisit la densité de compression après un coup d'œil d'au plus 10 secondes aux fichiers, ou `level 0-9` la fixe - et `sec` scelle le zip dans un conteneur `.fd-sec` derrière un mot de passe ; `filedo restore` reconstruit le dossier à côté de la sauvegarde ou là où `to` l'indique, sans jamais fusionner avec un dossier ni le remplacer ; dans la fenêtre, le groupe **Protéger** a les pages *Sauvegarder un dossier* et *Restaurer une sauvegarde*
+- **Codes de sortie**: une exécution qui ne peut pas aboutir en donne la raison par son code de sortie : 10 une erreur dans la commande, 11 une cible absente ou pas prête, 12 des droits manquants, 13 trop peu d'espace, 14 une erreur d'E/S, 15 une panne réseau, 16 arrêtée par vous ; 0, 1 et 2 gardent leur sens
+- **Raisons**: quand une exécution ne peut pas aboutir, la carte de résultat en donne la raison dans la langue de la fenêtre - un lecteur plein, un fichier qu'un autre programme a ouvert - au lieu d'un simple code de sortie, et le Gestionnaire de disques fait de même ; une copie à court de place dit que le lecteur est plein ; un fichier tenu ouvert par un autre programme est nommé avec ce programme, et il suffit de relancer une fois le fichier libéré
+- **Remplissage**: la page Remplir supprime ses fichiers de test après l'exécution tant que la case reste cochée, et la fenêtre propose au démarrage de supprimer les fichiers de test laissés par une exécution précédente
+- **Fenêtre**: le bouton **?** ouvre sa page d'aide en haut ; un second lancement de FileDO ramène la fenêtre ouverte au premier plan ; les cases à cocher sont dessinées dans les couleurs du thème et leurs longues légendes passent à la ligne ; les icônes du rail de gauche prennent la couleur de leur groupe
+- **Disques**: un disque dont l'entrée de partage nomme un détenteur ou un état que cette version ne sait pas lire n'est pas monté ; un montage fait à l'ouverture de session est journalisé comme fait sous son réglage
+- **Site et confidentialité**: la page de confidentialité nomme le partage de disques et le mot de passe enregistré du montage automatique ; la page d'accueil a ses propres adresses en russe et en ukrainien, affiche directement la taille et le SHA-256 du programme d'installation et sépare les vérifications qui ne font que lire des opérations qui écrivent ; les pages de l'aide intégrée ne sont pas indexées par les moteurs de recherche
+
+**v2610211540** (Précédente)
 - **Aide**: **F1** ou le nouveau bouton **?** ouvre dans le navigateur la page d'aide de la fenêtre où vous êtes - les pages de tâches, la page des commandes, les paramètres, la page À propos, l'historique et le Gestionnaire de disques - en anglais, russe, ukrainien, allemand et français, avec des repères numérotés sur une image de la fenêtre ; le menu de l'icône de la zone de notification a une entrée *Aide*, et le premier lien de la page À propos ouvre l'index de l'aide
 - **Aspect**: tous les boutons ont la même hauteur et des coins arrondis, et une longue légende passe à la ligne au lieu d'être coupée par des points de suspension ; les réponses des boîtes de dialogue ont un aspect neutre unique, Annuler en premier et la réponse qui agit en dernier ; les groupes des paramètres s'ouvrent et se ferment depuis un en-tête avec un triangle d'état
 - **Clavier**: **F6** et **Maj+F6** déplacent le focus vers la zone suivante ou précédente de la fenêtre, dans la fenêtre principale et dans le Gestionnaire de disques ; le menu d'aide du Gestionnaire de disques (touches, visite guidée, liens) s'ouvre aussi au clavier - touche **Menu** ou **Maj+F10** sur le bouton **?** - et figure dans son menu *Autres actions*
@@ -733,7 +804,7 @@ FileDO/
 - **Corrections**: un événement de tâche avec une valeur vide parmi ses nombres ne fait plus lever d'erreur à la fenêtre
 - **Documentation**: nouveaux guides du site sur l'effacement des données et sur la version du Microsoft Store, en cinq langues ; les pieds de page et le sélecteur de thème des pages du site sont harmonisés ; les spécifications du format et du comportement des conteneurs `.fdd` passent en version 1.0
 
-**v2610102316** (Précédente)
+**v2610102316**
 - **Disques virtuels**: `mount noscan` est retiré - FileDO ne modifie plus les paramètres de Microsoft Defender ; le mot est toujours accepté et ignoré, la fenêtre de montage n'a plus de case antivirus, et le fichier conteneur peut être exclu à la main dans Sécurité Windows
 - **Logiciels de sécurité**: les étapes de disque n'exécutent plus PowerShell en commande encodée ni avec un contournement de la stratégie d'exécution - deux signes que les logiciels de sécurité retiennent contre un programme
 
@@ -807,7 +878,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2610211540** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2611110217** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

@@ -108,10 +108,30 @@
         </p>
       </section>
       <section class="section">
-        <nav class="grid guide-grid" aria-labelledby="guideListTitle"><span class="sr-only" id="guideListTitle"><span data-l="de">Anleitungen</span></span>
+        <nav aria-labelledby="guideListTitle"><span class="sr-only" id="guideListTitle"><span data-l="de">Anleitungen</span></span>
+          <div class="safety-group">
+            <div class="safety-group-head">
+              <span class="pill"><span data-l="de">Nur lesen &amp; Einrichtung</span></span>
+              <strong><span data-l="de">Prüfen, Berichte, Kopieren und Einrichtung</span></strong>
+              <p><span data-l="de">Starten Sie hier für Lese-Diagnosen, Kapazitäts- und Geschwindigkeitstests, Dublettenberichte, das Fenster und die Installation.</span></p>
+            </div>
+            <div class="grid guide-grid">
           <article class="card">
             <h2>
-              <span data-l="de">Speicher prüfen</span>
+              <a class="card-title" href="quick-start.html"><span data-l="de">Schnellstart-Matrix: Fenster und CLI</span></a>
+            </h2>
+            <p>
+              <span data-l="de">Ordnen Sie Ihre Aufgabe der passenden Seite im FileDO-Fenster und dem entsprechenden Befehl von <code>filedo.exe</code> zu, gruppiert nach ihrer Wirkung auf Daten.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="quick-start.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <a class="card-title" href="check-storage.html"><span data-l="de">Speicher prüfen</span></a>
             </h2>
             <p>
               <span data-l="de">Laufwerksinformationen, Kapazitätstest, Tempo, Lese-Checks und wann Administratorrechte nötig sind.</span>
@@ -124,7 +144,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Duplikate, Kopieren und Vergleichen</span>
+              <a class="card-title" href="files-and-copies.html"><span data-l="de">Duplikate, Kopieren und Vergleichen</span></a>
             </h2>
             <p>
               <span data-l="de">Wie Sie zuerst eine Liste oder einen Bericht erstellen, Daten kopieren und erst dann über das Löschen nachdenken.</span>
@@ -137,33 +157,21 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Löschen und Überschreiben</span>
+              <a class="card-title" href="gui-command-builder.html"><span data-l="de">Über ein Fenster arbeiten</span></a>
             </h2>
             <p>
-              <span data-l="de">Was das Überschreiben einer Datei, das Leeren eines Ordners und das Überschreiben des freien Speichers jeweils tun, was sie vorher fragen, was sie abweisen und was keines davon auf einer SSD versprechen kann.</span>
-            </p>
-            <p class="actions">
-              <a class="btn btn-ghost btn-sm" href="erase.html"
-                ><span data-l="de">Anleitung öffnen</span></a
-              >
-            </p>
-          </article>
-          <article class="card">
-            <h2>
-              <span data-l="de">Über ein Fenster arbeiten</span>
-            </h2>
-            <p>
-              <span data-l="de">Für alle, die lieber eine Aufgabe wählen, ihre Seite durcharbeiten und sie im FileDO-Fenster (GUI) ausführen, statt einen Befehl zu tippen. Für jede beliebige Operation gibt es außerdem die Seite „Befehl“.</span>
+              <span data-l="de">Für alle, die lieber eine Aufgabe wählen, ihre Seite durcharbeiten und sie im FileDO-Fenster (GUI) ausführen, statt einen Befehl zu tippen. Für jede beliebige Operation gibt es außerdem die Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>„Befehl“.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="gui-command-builder.html"
                 ><span data-l="de">Anleitung öffnen</span></a
               >
+              <span data-l="de"><a class="btn btn-ghost btn-sm" href="../../help/de/">Hilfe zum Fenster</a></span>
             </p>
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Windows hat vor FileDO gewarnt</span>
+              <a class="card-title" href="install-trust.html"><span data-l="de">Windows hat vor FileDO gewarnt</span></a>
             </h2>
             <p>
               <span data-l="de">Was „Der Computer wurde durch Windows geschützt“ bedeutet, warum der Dialog erscheint, was genau Sie anklicken müssen - und was die App niemals tut.</span>
@@ -176,7 +184,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Installation und das Explorer-Menü</span>
+              <a class="card-title" href="install-and-explorer.html"><span data-l="de">Installation und das Explorer-Menü</span></a>
             </h2>
             <p>
               <span data-l="de">Welche Installation Sie wählen, was das Installationsprogramm Ihrem System hinzufügt und wie Sie die Kontextmenü-Einträge selbst ein- oder ausschalten.</span>
@@ -189,7 +197,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Die Microsoft-Store-Version</span>
+              <a class="card-title" href="microsoft-store.html"><span data-l="de">Die Microsoft-Store-Version</span></a>
             </h2>
             <p>
               <span data-l="de">Was die Version aus dem Microsoft Store kann, was ihr fehlt (Einbinden, Explorer-Einträge, Teilen) und wie sie signiert ist.</span>
@@ -200,12 +208,34 @@
               >
             </p>
           </article>
+            </div>
+          </div>
+          <div class="safety-group danger">
+            <div class="safety-group-head">
+              <span class="pill danger"><span data-l="de">Schreibt, löscht oder versiegelt</span></span>
+              <strong><span data-l="de">Löschen, Schützen und Volumes verwalten</span></strong>
+              <p><span data-l="de">Operationen, die Daten löschen oder überschreiben, Dateien hinter einem Passwort versiegeln oder virtuelle Datenträger anlegen und teilen. Lesen Sie vor dem Start die Schutzregeln und Grenzen.</span></p>
+            </div>
+            <div class="grid guide-grid">
           <article class="card">
             <h2>
-              <span data-l="de">Geheime Dateien</span>
+              <a class="card-title" href="erase.html"><span data-l="de">Löschen und Überschreiben</span></a>
             </h2>
             <p>
-              <span data-l="de">Eine Datei hinter einem Passwort in einen <code>.fd-sec</code>-Container packen, das Original zurückholen, den Inhalt ohne Entpacken öffnen - und was jede dieser Möglichkeiten wirklich verspricht.</span>
+              <span data-l="de">Was das Überschreiben einer Datei, das Leeren eines Ordners und das Überschreiben des freien Speichers jeweils tun, was sie vorher fragen, was sie abweisen und was keines davon auf einer SSD versprechen kann.</span>
+            </p>
+            <p class="actions">
+              <a class="btn btn-ghost btn-sm" href="erase.html"
+                ><span data-l="de">Anleitung öffnen</span></a
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h2>
+              <a class="card-title" href="fd-sec-containers.html"><span data-l="de">Geheime Dateien</span></a>
+            </h2>
+            <p>
+              <span data-l="de">Eine Datei hinter einem Passwort in einen <code>.fd-sec</code>-Container packen, das Original zurückholen, den Inhalt ohne Entpacken öffnen, einen Ordner in eine ZIP-Datei sichern - gewöhnlich oder versiegelt - und was jede dieser Möglichkeiten wirklich verspricht.</span>
             </p>
             <p class="actions">
               <a class="btn btn-ghost btn-sm" href="fd-sec-containers.html"
@@ -215,7 +245,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Virtuelle Datenträger</span>
+              <a class="card-title" href="virtual-disks.html"><span data-l="de">Virtuelle Datenträger</span></a>
             </h2>
             <p>
               <span data-l="de">Ein ganzes Volume in einer <code>.fdd</code>-Datei: anlegen, als Laufwerksbuchstabe einbinden, ohne Einbinden lesen und exportieren - und wie sich ein verschleierter Container von einem verschlüsselten unterscheidet. Die Datenträgerverwaltung listet alle Datenträger an einer Stelle auf.</span>
@@ -228,7 +258,7 @@
           </article>
           <article class="card">
             <h2>
-              <span data-l="de">Datenträger auf dem Telefon</span>
+              <a class="card-title" href="fms-sharing.html"><span data-l="de">Datenträger auf dem Telefon</span></a>
             </h2>
             <p>
               <span data-l="de">Einen <code>.fdd</code>-Datenträger über Fast Media Sorter &amp; Sharing teilen: was im Installationsprogramm zu aktivieren ist, die Registrierung in der Datenträgerverwaltung, was gekoppelte Geräte sehen und was zu tun ist, wenn das Teilen nicht verfügbar ist.</span>
@@ -239,6 +269,8 @@
               >
             </p>
           </article>
+            </div>
+          </div>
         </nav>
       </section>
       <section class="section">
@@ -281,6 +313,7 @@
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
             <a href="https://github.com/SerZhyAle/FileDO">GitHub</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -295,5 +328,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.command-line" viewBox="0 0 24 24"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

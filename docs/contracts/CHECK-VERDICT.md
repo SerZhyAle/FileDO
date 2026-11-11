@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CHECK-VERDICT` |
-| **Version** | 0.13, read 2026-10-21 (SP-0170); implemented partial 0.13; rule 13 is done (SP-0171 W5), rule 11 on about twenty build.ps1 exits stays an exception, draft |
+| **Version** | 0.14, read 2026-10-29 (SP-0174); implemented partial 0.14; the self-test and proof verdict lines (item A) and rule 11 are open (SP-0180), draft |
 | **Role** | producer and consumer - build, gate and test exit codes (`build.ps1`, `release.ps1`, `--selftest`) |
 | **Home** | shared contracts catalog, folder `automated-checks/`, document `README.md` |
 | **Owner** | FastMediaSorter Android |

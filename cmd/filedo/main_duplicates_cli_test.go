@@ -95,8 +95,8 @@ func survivors(paths []string) int {
 	return n
 }
 
-// DUP-03: with stdin on NUL and no -y, a deleting or moving run exits 2 and
-// touches nothing - whatever the order of the words.
+// DUP-03: with stdin on NUL and no -y, a deleting or moving run exits 10 (the
+// usage class) and touches nothing - whatever the order of the words.
 func TestDuplicatesCLI_DeleteNeedsYesWithoutConsole(t *testing.T) {
 	dir, paths := dupCopies(t)
 	target := filepath.Join(t.TempDir(), "moved")
@@ -108,8 +108,8 @@ func TestDuplicatesCLI_DeleteNeedsYesWithoutConsole(t *testing.T) {
 		{"cd", "move", target}, {"cd", "abc", "move", target},
 	} {
 		out, code := runDupCLI(t, nil, append([]string{dir}, words...)...)
-		if code != 2 {
-			t.Errorf("%v: exit %d, want 2\n%s", words, code, out)
+		if code != 10 {
+			t.Errorf("%v: exit %d, want 10\n%s", words, code, out)
 		}
 		if !strings.Contains(out, "-y") {
 			t.Errorf("%v: the refusal does not name -y\n%s", words, out)
@@ -152,7 +152,7 @@ func TestDuplicatesCLI_BatchFile(t *testing.T) {
 	if err := os.WriteFile(lst, []byte(dir+" cd del\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if out, code := runDupCLI(t, nil, "from", lst); code != 2 || survivors(paths) != 3 {
+	if out, code := runDupCLI(t, nil, "from", lst); code != 10 || survivors(paths) != 3 {
 		t.Fatalf("batch without -y: exit %d, %d left\n%s", code, survivors(paths), out)
 	}
 	if err := os.WriteFile(lst, []byte(dir+" cd del -y\n"), 0o644); err != nil {
@@ -205,12 +205,12 @@ func TestDuplicatesCLI_MissingRootExits2(t *testing.T) {
 		t.Skip("no free drive letter to name a missing device")
 	}
 	out, code := runDupCLI(t, nil, "device", letter, "cd")
-	if code != 2 {
-		t.Errorf("device %s cd: exit %d, want 2\n%s", letter, code, out)
+	if code != 11 {
+		t.Errorf("device %s cd: exit %d, want 11\n%s", letter, code, out)
 	}
 	missing := filepath.Join(t.TempDir(), "no-such-folder")
-	if out, code := runDupCLI(t, nil, "folder", missing, "cd"); code != 2 {
-		t.Errorf("missing folder: exit %d, want 2\n%s", code, out)
+	if out, code := runDupCLI(t, nil, "folder", missing, "cd"); code != 11 {
+		t.Errorf("missing folder: exit %d, want 11\n%s", code, out)
 	}
 }
 
@@ -221,8 +221,8 @@ func TestDuplicatesCLI_MissingRootExits2(t *testing.T) {
 func TestDuplicatesCLI_ProtectedRootRefusedEvenWithYes(t *testing.T) {
 	dir, paths := dupCopies(t)
 	out, code := runDupCLI(t, []string{"TEMP=" + dir, "TMP=" + dir}, dir, "cd", "del", "-y")
-	if code != 2 {
-		t.Fatalf("exit %d, want 2\n%s", code, out)
+	if code != 10 {
+		t.Fatalf("exit %d, want 10\n%s", code, out)
 	}
 	if !strings.Contains(out, "TEMP") {
 		t.Errorf("the refusal does not name the place\n%s", out)
@@ -236,7 +236,7 @@ func TestDuplicatesCLI_ProtectedRootRefusedEvenWithYes(t *testing.T) {
 func TestDuplicatesCLI_UnknownWordExits2(t *testing.T) {
 	dir, paths := dupCopies(t)
 	out, code := runDupCLI(t, nil, dir, "cd", "del", "nwe", "-y")
-	if code != 2 || survivors(paths) != 3 {
+	if code != 10 || survivors(paths) != 3 {
 		t.Fatalf("exit %d, %d left\n%s", code, survivors(paths), out)
 	}
 }
@@ -282,8 +282,8 @@ func TestDuplicatesCLI_ListWriteFailureStopsDelete(t *testing.T) {
 		}
 		args = append(args, "-y", "list", list)
 		out, code := runDupCLI(t, nil, args...)
-		if code != 2 {
-			t.Errorf("%s: exit %d, want 2\n%s", verb, code, out)
+		if code != 11 {
+			t.Errorf("%s: exit %d, want 11 (the list's folder is not there)\n%s", verb, code, out)
 		}
 		if survivors(paths) != 3 {
 			t.Errorf("%s: %d of 3 files left after the list could not be written\n%s", verb, survivors(paths), out)

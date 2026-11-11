@@ -814,7 +814,7 @@ Public Class DiskNewPartitionDialog
         unitCombo.Items.Add(T("vd_part_unit_mib"))
         unitCombo.SelectedIndex = 0
         unitCombo.AccessibleName = T("vd_part_lbl_size")
-        maxCheck = New CheckBox With {.Text = T("vd_part_size_max"), .AutoSize = True, .Margin = PPad(0, 4, 0, 2)}
+        maxCheck = New BooleanOption With {.Text = T("vd_part_size_max"), .AutoSize = True, .Margin = PPad(0, 4, 0, 2)}
         sizeRow.Controls.Add(sizeBox)
         sizeRow.Controls.Add(unitCombo)
         sizeRow.Controls.Add(maxCheck)
@@ -857,7 +857,7 @@ Public Class DiskNewPartitionDialog
         credConfirmBox = New TextBox With {.Width = P(300), .UseSystemPasswordChar = True, .Margin = PPad(0, 0, 0, 4)}
         credConfirmBox.AccessibleName = T("shell_cred_confirm")
         AddContent(credConfirmBox)
-        credShow = New CheckBox With {.Text = T("shell_cred_show"), .AutoSize = True, .Margin = PPad(0, 0, 0, 4)}
+        credShow = New BooleanOption With {.Text = T("shell_cred_show"), .AutoSize = True, .Margin = PPad(0, 0, 0, 4)}
         AddHandler credShow.CheckedChanged, Sub()
                                                 credBox.UseSystemPasswordChar = Not credShow.Checked
                                                 credConfirmBox.UseSystemPasswordChar = Not credShow.Checked
@@ -1160,7 +1160,7 @@ Public Class DiskDestroyPartitionDialog
         Dim label As New Label With {.Text = T("vd_part_destroy_lbl"), .AutoSize = True, .Margin = PPad(0, 2, 0, 2)}
         box = New TextBox With {.Width = P(240), .Margin = PPad(0, 0, 0, 4)}
         box.AccessibleName = T("vd_part_destroy_lbl")
-        wipeCheck = New CheckBox With {.Text = T("vd_part_destroy_wipe"), .AutoSize = True, .MaximumSize = New Size(P(460), 0),
+        wipeCheck = New BooleanOption With {.Text = T("vd_part_destroy_wipe"), .AutoSize = True, .MaximumSize = New Size(P(460), 0),
                                        .Margin = PPad(0, 4, 0, 2)}
         AddHandler box.TextChanged, Sub() SetAcceptable(Matches())
         AddContent(label)

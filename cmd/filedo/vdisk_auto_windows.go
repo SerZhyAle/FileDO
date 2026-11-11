@@ -22,8 +22,8 @@ import (
 // the owner creates on purpose, one per registered container, in the \FileDO\
 // folder of the system's own Task Scheduler, removable in one command.
 //
-// The task runs `filedo --no-history vd mount <name> keep` at the owner's
-// logon, with the highest privileges the account has - which is what lets the
+// The task runs `filedo --no-history vd mount <name> keep --logon-task` at the
+// owner's logon, with the highest privileges the account has - which is what lets the
 // initiator step run without a consent prompt nobody would be there to see.
 // The keep word makes the run resident: after the mount it watches the block
 // server for the rest of the session and remounts the disk if it dies
@@ -154,7 +154,7 @@ func vdAuto(args []string, batch bool) error {
 		return err
 	}
 
-	fmt.Printf("This creates the scheduled task %s: at your logon it runs\n  %s --no-history vd mount %s keep\n", vdTaskName(e.Name), exe, e.Name)
+	fmt.Printf("This creates the scheduled task %s: at your logon it runs\n  %s --no-history vd mount %s keep --logon-task\n", vdTaskName(e.Name), exe, e.Name)
 	fmt.Println("with administrator rights and without asking, so the volume is there when you log on, and it stays")
 	fmt.Println("running in the background to mount the volume again if its block server ever stops.")
 	fmt.Println("The container is obfuscated, not encrypted: anyone who has the file reads it, and once mounted the volume is open to every program that runs as you.")
@@ -164,7 +164,7 @@ func vdAuto(args []string, batch bool) error {
 		return err
 	}
 	_ = res
-	vdLogf("auto: created task %s for %s (%s), command %s --no-history vd mount %s keep", vdTaskName(e.Name), e.Name, e.Path, exe, e.Name)
+	vdLogf("auto: created task %s for %s (%s), command %s --no-history vd mount %s keep --logon-task", vdTaskName(e.Name), e.Name, e.Path, exe, e.Name)
 	fmt.Printf("Created. %s will mount at your next logon.\n", e.Name)
 	return nil
 }
@@ -437,7 +437,7 @@ func vdTaskXML(name, path, exe, sid string) string {
   <Actions Context="Author">
     <Exec>
       <Command>` + esc(exe) + `</Command>
-      <Arguments>--no-history vd mount ` + esc(name) + ` keep</Arguments>
+      <Arguments>--no-history vd mount ` + esc(name) + ` keep --logon-task</Arguments>
       <WorkingDirectory>` + esc(dir) + `</WorkingDirectory>
     </Exec>
   </Actions>

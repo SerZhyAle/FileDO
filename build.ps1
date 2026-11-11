@@ -41,8 +41,9 @@
 #  case; the switches below only subtract work or add the test gate.
 #
 #  Usage (from the repo root):
+#    .\build.ps1 -Fast                 # between releases: only the checks of 5 s or less, nothing built
 #    .\build.ps1                       # exes + installer (the normal case)
-#    .\build.ps1 -Test                 # ..and run the smoke-test + go test gate
+#    .\build.ps1 -Test                 # ..and run the smoke-test + go test gate (the release tier)
 #    .\build.ps1 -Test -Commit "msg"   # ..and commit, only if both pass
 #    .\build.ps1 -SkipGui              # Go variants only (no MSBuild needed)
 #    .\build.ps1 -SkipInstaller        # no dist\ artifacts (fast inner loop)
@@ -73,7 +74,11 @@
 #  elevation) and waits for it. It is the only switch here that changes the
 #  machine; everything else is still local, publishes nothing and tags nothing.
 #
-#  Exit codes:
+#  -Fast is the check between releases (SP-0173): it builds nothing and runs only the
+#  gate steps whose recorded time is 5 s or less, ending in `fast-gate: PASS|FAIL|COULD
+#  NOT VERIFY`. The full build and every slower step run in -Test, which release.ps1 runs.
+#
+#  Exit codes (with -Fast, the fast tier's verdict on the same scale):
 #    0  build (and, with -Test, the gate) succeeded
 #    1  a defect was found - a build error, or a gate that failed
 #    2  the gate could not verify: a prerequisite is missing, so nothing was
@@ -82,7 +87,11 @@
 [CmdletBinding()]
 param(
     # Run the local test gate after a successful build (smoke-run + go test).
+    # This is the release tier: every step, whatever it costs.
     [switch]$Test,
+    # Run only the fast tier - the gate steps whose recorded time is 5 s or less - and
+    # build nothing. The check between releases (SP-0173, canon TESTING_AND_QA section 2).
+    [switch]$Fast,
     # Explicit user restriction: do not invoke Git, and report the Git-dependent step as unverified.
     [switch]$NoGit,
     # Use this exact yyMMddHHmm stamp instead of the current time. release.ps1
@@ -126,6 +135,81 @@ Push-Location $root
 $savedGoEnv = @{ GOOS = $env:GOOS; GOARCH = $env:GOARCH; CGO_ENABLED = $env:CGO_ENABLED; GOTOOLCHAIN = $env:GOTOOLCHAIN }
 try {
 
+# CHECK-VERDICT rule 11: an exit that sets a verdict code ends in the verdict line, the early ones too.
+# Under -Fast it is the fast gate's line, under -Test the build gate's, naming the step that stopped the
+# run (FAIL) or what could not be checked (COULD NOT VERIFY). A plain build is a build, not a check, and
+# keeps its prose. The prose reason is printed by the caller, before this.
+function Exit-Gate([int]$Code, [string]$Step) {
+    $subject = if ($Fast) { 'fast-gate' } elseif ($Test) { "build-gate $(if ($version) { $version } else { 'unknown' })" } else { '' }
+    if ($subject -and $Code -eq 1) { Write-Host "${subject}: FAIL (1 step(s): $Step)" -ForegroundColor Red }
+    elseif ($subject) { Write-Host "${subject}: COULD NOT VERIFY ($Step)" -ForegroundColor Yellow }
+    exit $Code
+}
+
+# ---- Fast tier (-Fast) ------------------------------------------------------
+# Between releases nothing that takes more than 5 seconds runs: no build, no go test, no GUI
+# selftest. -Fast runs the gate steps whose recorded time is 5 s or less (the measured list is
+# in AGENTS.md "Testing") with the same scripts -Test calls, and builds nothing. Every step stays
+# in -Test, which release.ps1 runs whole before it tags.
+if ($Fast) {
+    $contradicting = @(
+        if ($Test) { '-Test' }
+        if ($Commit) { '-Commit' }
+        if ($Msi) { '-Msi' }
+        if ($Install) { '-Install' }
+    )
+    if ($contradicting.Count) {
+        Write-Host "-Fast builds nothing, so it cannot be combined with $($contradicting -join ', ')." -ForegroundColor Yellow
+        Exit-Gate 2 "-Fast with $($contradicting -join ', ')"
+    }
+    Write-Host "== Fast tier (nothing is built; the release tier is -Test) =="
+    $fastSteps = [ordered]@{
+        'check-placement' = 'check-placement.ps1'
+        'internal-docs'   = 'check-internal-docs.ps1'
+        'build-inputs'    = 'check-build-inputs.ps1'
+        'help-pages'      = 'check-help.ps1'
+    }
+    $fastFailures = [System.Collections.Generic.List[string]]::new()
+    $fastUnverified = [System.Collections.Generic.List[string]]::new()
+    $fastClock = [System.Diagnostics.Stopwatch]::StartNew()
+    foreach ($name in $fastSteps.Keys) {
+        Write-Host "$name ..." -NoNewline
+        $stepClock = [System.Diagnostics.Stopwatch]::StartNew()
+        if ($NoGit -and $name -in 'internal-docs', 'build-inputs') {
+            $stepOut = "${name}: COULD NOT VERIFY (Git prohibited for this run)"
+            $stepCode = 2
+        } else {
+            $stepOut = & "$root\packaging\$($fastSteps[$name])" *>&1 | Out-String
+            $stepCode = $LASTEXITCODE
+        }
+        $seconds = $stepClock.Elapsed.TotalSeconds
+        if ($stepCode -eq 0) {
+            Write-Host (" OK ({0:N2} s)" -f $seconds)
+        } elseif ($stepCode -eq 2) {
+            $fastUnverified.Add($name)
+            Write-Host (" COULD NOT VERIFY ({0:N2} s): {1}" -f $seconds, ($stepOut.Trim() -split "`r?`n")[-1]) -ForegroundColor Yellow
+        } else {
+            $fastFailures.Add($name)
+            Write-Host (" FAILED ({0:N2} s)" -f $seconds) -ForegroundColor Red
+            Write-Host $stepOut
+        }
+        if ($seconds -gt 5) {
+            Write-Host "  $name took more than 5 s: it belongs to the release tier (AGENTS.md, Testing)." -ForegroundColor Yellow
+        }
+    }
+    $fastSummary = "ran {0} in {1:N2} s" -f $fastSteps.Count, $fastClock.Elapsed.TotalSeconds
+    if ($fastFailures.Count) {
+        Write-Host "fast-gate: FAIL ($($fastFailures.Count) step(s): $($fastFailures -join ', '); $fastSummary)" -ForegroundColor Red
+        exit 1
+    }
+    if ($fastUnverified.Count) {
+        Write-Host "fast-gate: COULD NOT VERIFY ($($fastUnverified -join ', '); $fastSummary)" -ForegroundColor Yellow
+        exit 2
+    }
+    Write-Host "fast-gate: PASS ($fastSummary)" -ForegroundColor Green
+    exit 0
+}
+
 # A commit implies the test gate: we never commit an untested build.
 if ($Commit) { $Test = $true }
 # The installer is part of a normal build. Two switches bend that: -SkipInstaller
@@ -136,7 +220,7 @@ $buildInstaller  = -not $SkipInstaller
 $installerNeeded = $Msi -and -not $SkipInstaller
 if ($Msi -and $SkipInstaller) {
     Write-Host "-Msi and -SkipInstaller contradict each other: one demands the installer, the other drops it." -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 '-Msi with -SkipInstaller'
 }
 
 # Version = current build date/time in yyMMddHHmm format unless a release pins it.
@@ -147,7 +231,7 @@ try {
     $stampDate = [datetime]::ParseExact($version, 'yyMMddHHmm', [Globalization.CultureInfo]::InvariantCulture)
 } catch {
     Write-Host "Cannot verify: version '$version' is not a real yyMMddHHmm date." -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 'version stamp'
 }
 
 # The installer's version (PKG-01). Windows Installer compares only the first three fields
@@ -201,7 +285,7 @@ function Invoke-Checked([string]$Label, [scriptblock]$Block, [int]$FailCode = 1)
     if ($LASTEXITCODE -ne 0) {
         Write-Host "$Label failed (exit $LASTEXITCODE)." -ForegroundColor Red
         if ($nativeOut) { Write-Host ($nativeOut | Out-String) }
-        exit $FailCode
+        Exit-Gate $FailCode $Label
     }
     # No output is no output: emitting $null would make @(...) a one-element array.
     if ($null -ne $nativeOut) { $nativeOut }
@@ -329,7 +413,7 @@ function Get-WorstGateCode([int[]]$codes) {
 # time the gate runs, a missing Go would already have surfaced as build errors.
 if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
     Write-Host "Cannot verify: 'go' is not on PATH - nothing was built or checked." -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 'no go on PATH'
 }
 
 # REL-04: the release ships windows/amd64, so that is what is built and tested here. A host
@@ -339,7 +423,7 @@ $osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
 $runsAmd64 = ($osArch -eq 'X64') -or ($osArch -eq 'Arm64' -and [Environment]::OSVersion.Version.Build -ge 22000)
 if (-not $runsAmd64) {
     Write-Host "Cannot verify: this $osArch Windows cannot run the amd64 executables the release ships." -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 "no amd64 on $osArch"
 }
 
 # CI-03: one toolchain for every channel. go.mod's `toolchain` line is the pin (the `go` line
@@ -348,19 +432,19 @@ if (-not $runsAmd64) {
 $goModText = Get-Content "$root\go.mod" -Raw
 if ($goModText -notmatch '(?m)^toolchain\s+(go\d+\.\d+(?:\.\d+)?)\s*$') {
     Write-Host "go.mod has no 'toolchain goX.Y.Z' line - the release toolchain is not pinned." -ForegroundColor Red
-    exit 1
+    Exit-Gate 1 'toolchain-pin'
 }
 $pinnedToolchain = $Matches[1]
 $localToolchain = (& go env GOVERSION | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Cannot verify: 'go env GOVERSION' failed ($LASTEXITCODE): $localToolchain" -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 'go env GOVERSION failed'
 }
 if ($localToolchain -ne $pinnedToolchain) {
     Write-Host "Cannot verify: the local Go is $localToolchain, the release builds with $pinnedToolchain (go.mod toolchain)." -ForegroundColor Yellow
     Write-Host "  Install $pinnedToolchain, or set GOTOOLCHAIN=$pinnedToolchain so go fetches it, or move the pin" -ForegroundColor Yellow
     Write-Host "  (go.mod 'toolchain' and release.yml 'go-version') to the new version together." -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 "local $localToolchain is not the pinned $pinnedToolchain"
 }
 
 # goversioninfo writes the PE version and links app.manifest (long paths, UTF-8 code page).
@@ -377,7 +461,7 @@ if ($gviVersion -ne $goversioninfoPin) {
     $found = if ($gvi) { "goversioninfo $gviVersion at $($gvi.Source)" } else { "no goversioninfo on PATH" }
     Write-Host "Cannot verify: $found; the release embeds its resources with goversioninfo $goversioninfoPin." -ForegroundColor Yellow
     Write-Host "  go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@$goversioninfoPin" -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 "no goversioninfo $goversioninfoPin"
 }
 
 # From here on every go command in this process - builds, go test, go vet - targets what
@@ -474,11 +558,11 @@ Write-Host ""
 if ($failed.Count -ne 0) {
     # A build error outranks a missing tool: exit 1 even when MSBuild was absent too.
     Write-Host "Failed: $($failed -join ', ')"
-    exit 1
+    Exit-Gate 1 "build: $($failed -join ', ')"
 }
 if ($guiUnverified) {
     Write-Host "Cannot verify: $guiUnverified." -ForegroundColor Yellow
-    exit 2
+    Exit-Gate 2 $guiUnverified
 }
 Write-Host "All builds successful."
 
@@ -616,13 +700,17 @@ if ($Test) {
     # step: its tests were in no gate until AUD-92-F1, and a regression there
     # (a password sent to a foreign pipe server, a drain that forces by itself)
     # would have shipped green.
-    Write-Host "go test ./vdisk/ and ./fmsworker/ ..." -NoNewline
+    # backupzip (SP-0198), the archive half of backup and restore - the hostile-name
+    # screening of restore above all - rides in the same step.
+    Write-Host "go test ./vdisk/, ./fmsworker/ and ./backupzip/ ..." -NoNewline
     $vdiskResult = Invoke-GateGoTest 'go test ./vdisk/' @('./vdisk/', '-count=1')
     $fmsworkerResult = Invoke-GateGoTest 'go test ./fmsworker/' @('./fmsworker/', '-count=1')
-    $vdiskDetails = @(@($vdiskResult, $fmsworkerResult) | Where-Object { $_.Code -ne 0 } | ForEach-Object { $_.Detail })
-    Record-GateStep 'vdisk' (Get-WorstGateCode @($vdiskResult.Code, $fmsworkerResult.Code)) ($vdiskDetails -join "`n")
+    $backupzipResult = Invoke-GateGoTest 'go test ./backupzip/' @('./backupzip/', '-count=1')
+    $vdiskDetails = @(@($vdiskResult, $fmsworkerResult, $backupzipResult) | Where-Object { $_.Code -ne 0 } | ForEach-Object { $_.Detail })
+    Record-GateStep 'vdisk' (Get-WorstGateCode @($vdiskResult.Code, $fmsworkerResult.Code, $backupzipResult.Code)) ($vdiskDetails -join "`n")
     Write-GoTestReport $vdiskResult
     Write-GoTestReport $fmsworkerResult
+    Write-GoTestReport $backupzipResult
 
     # The suite builds its own filedo.exe from this package directory. The version resource
     # is put back for the length of the run, so that exe carries the same app.manifest (UTF-8
@@ -676,14 +764,32 @@ if ($Test) {
         }
         $expected = [System.Collections.Generic.HashSet[string]]::new(
             [string[]]@(Get-Content $baseline | Where-Object { $_ -and -not $_.StartsWith('#') }))
-        if ($vetNativeCode -ne 0 -and $actual.Count -eq 0) {
+        # CHECK-BASELINE rule 4: the committed copy is the snapshot. A line the working file adds and HEAD does not would
+        # absorb its finding in silence, so it is a rise and is named. The update path is a committed edit with its reason.
+        $committedVet = [System.Collections.Generic.HashSet[string]]::new()
+        $headOk = $false
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $null = & git -C $root rev-parse --verify -q HEAD 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                $headOk = $true
+                $null = & git -C $root cat-file -e 'HEAD:cmd/filedo/vet-baseline.txt' 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    foreach ($ln in @(& git -C $root show 'HEAD:cmd/filedo/vet-baseline.txt')) { [void]$committedVet.Add($ln.TrimEnd()) }
+                }
+            }
+        }
+        if (-not $headOk) {
+            $vetCode = 2; $cliDetails.Add("could not verify: no committed copy of cmd\filedo\vet-baseline.txt (git or HEAD unavailable)")
+        } elseif ($vetNativeCode -ne 0 -and $actual.Count -eq 0) {
             $vetCode = 2; $cliDetails.Add("could not verify: go vet exited $vetNativeCode with no findings`n$vetOut")
         } else {
             $new = @($actual | Where-Object { -not $expected.Contains($_) } | Sort-Object)
             $gone = @($expected | Where-Object { -not $actual.Contains($_) } | Sort-Object)
-            if ($new.Count -or $gone.Count) {
+            $risen = @($expected | Where-Object { -not $committedVet.Contains($_) } | Sort-Object)
+            if ($new.Count -or $gone.Count -or $risen.Count) {
                 $vetCode = 1
-                $drift = @($new | ForEach-Object { "new vet finding: $_" }) + @($gone | ForEach-Object { "fixed, remove from the baseline: $_" })
+                $drift = @($new | ForEach-Object { "new vet finding: $_" }) + @($gone | ForEach-Object { "fixed, remove from the baseline: $_" }) +
+                    @($risen | ForEach-Object { "baseline rise, not in the committed vet-baseline.txt: $_ - accept it by a committed edit with its reason" })
                 $cliDetails.Add("vet baseline drift - fix a new finding; delete a fixed one from cmd\filedo\vet-baseline.txt:`n  " + ($drift -join "`n  "))
             }
         }
@@ -844,7 +950,7 @@ if ($buildInstaller -and -not $wixPresent) {
     Write-Host "  dotnet tool install --global wix --version 5.0.2   (the version release.yml pins)"
     # A missing packaging tool is not a defect in the code that was just built
     # - unless the caller asked for the installer by name.
-    if ($installerNeeded) { exit 2 }
+    if ($installerNeeded) { Exit-Gate 2 'installer: no WiX on PATH' }
 }
 
 # A function, not an inline block, for one reason: the steps below can decide
@@ -873,7 +979,7 @@ function Build-FileDOInstaller {
         if ($LASTEXITCODE -ne 0) {
             Write-Host " FAILED"
             Write-Host "No installer this run: $ext/$wixVersion could not be added." -ForegroundColor Yellow
-            if ($installerNeeded) { exit 2 }
+            if ($installerNeeded) { Exit-Gate 2 "installer: $ext/$wixVersion could not be added" }
             return
         }
         Write-Host " OK"
@@ -931,7 +1037,7 @@ function Build-FileDOInstaller {
         Write-Host "No installer this run: the stage is missing $($missing -join ', ')." -ForegroundColor Yellow
         Write-Host "(-SkipGui does not rebuild filedo_win.exe; the stage then carries"
         Write-Host " whatever exe_to_download\ already holds, and here it holds nothing.)"
-        if ($installerNeeded) { exit 2 }
+        if ($installerNeeded) { Exit-Gate 2 "installer: the stage is missing $($missing -join ', ')" }
         return
     }
 
@@ -952,7 +1058,7 @@ function Build-FileDOInstaller {
     if ($LASTEXITCODE -ne 0) {
         Write-Host " FAILED"
         Write-Host $wixOut
-        exit 1
+        Exit-Gate 1 'installer: msi'
     }
     Write-Host " OK"
     Write-Host "  SHA256: $((Get-FileHash -Algorithm SHA256 $msiPath).Hash)"
@@ -976,7 +1082,7 @@ function Build-FileDOInstaller {
     if ($LASTEXITCODE -ne 0) {
         Write-Host " FAILED"
         Write-Host $burnOut
-        exit 1
+        Exit-Gate 1 'installer: setup exe'
     }
     Write-Host " OK"
     Write-Host "  SHA256: $((Get-FileHash -Algorithm SHA256 $setupPath).Hash)"
@@ -1035,7 +1141,7 @@ if ($Install) {
     $setupPath = "$root\dist\FileDO-$version-setup.exe"
     if (-not (Test-Path $setupPath)) {
         Write-Host "Cannot verify: $setupPath was not built." -ForegroundColor Yellow
-        exit 2
+        Exit-Gate 2 'install: no setup EXE'
     }
     Write-Host "Starting $setupPath ..."
     Write-Host "(Windows will ask for elevation; the installer's own window follows.)"
@@ -1046,9 +1152,9 @@ if ($Install) {
         1602  { Write-Host "Cancelled by the user (exit 1602). Nothing was installed." -ForegroundColor Yellow }
         1603  { Write-Host "The installer failed (exit 1603). Run it by hand to see the message:" -ForegroundColor Yellow
                 Write-Host "  `"$setupPath`" /log `"$root\dist\install.log`""
-                exit 1 }
+                Exit-Gate 1 'install: exit 1603' }
         default { Write-Host "The installer ended with exit code $($proc.ExitCode)." -ForegroundColor Yellow
-                  exit 1 }
+                  Exit-Gate 1 "install: exit $($proc.ExitCode)" }
     }
 }
 
@@ -1063,7 +1169,7 @@ if ($Commit) {
         # `git symbolic-ref -q` answers a detached HEAD with exit 1 and no output; the
         # output is what is read here.
         if ($null -eq (git symbolic-ref -q HEAD)) {
-            Write-Host "Refusing to commit: detached HEAD."; exit 1
+            Write-Host "Refusing to commit: detached HEAD."; Exit-Gate 1 'commit: detached HEAD'
         }
         Invoke-Checked 'git add -A' { git add -A } | Out-Null
         $staged = Invoke-Checked 'git diff --cached' { git diff --cached --name-only }
@@ -1112,8 +1218,7 @@ exit 0
     # A terminating error nobody expected proves nothing - exit 2 with the reason, never a
     # stale $LASTEXITCODE that reads as a pass to the caller (release.ps1 runs this in-process).
     Write-Host "Cannot verify: unexpected error at line $($_.InvocationInfo.ScriptLineNumber): $($_.Exception.Message)" -ForegroundColor Yellow
-    if ($Test) { Write-Host "build-gate ${version}: COULD NOT VERIFY (unexpected error: $($_.Exception.Message))" -ForegroundColor Yellow }
-    exit 2
+    Exit-Gate 2 "unexpected error: $($_.Exception.Message)"
 } finally {
     # Every exit above leaves through here: the caller gets back its own directory and
     # Go environment (this script may run inside release.ps1's process).

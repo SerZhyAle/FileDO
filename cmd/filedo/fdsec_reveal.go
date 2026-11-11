@@ -232,8 +232,9 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 	// strict upper bound on it - padding and tags only ever add. The refusal
 	// therefore carries a number that is never too small.
 	if free, ferr := fdsecFreeSpaceFor(root); ferr == nil && free < fi.Size() {
-		return fmt.Errorf("not enough free space for the reveal: %s free at %s, the container is %s and the original cannot be larger",
-			formatBytes(uint64(free)), root, formatBytes(uint64(fi.Size())))
+		return withReason(fmt.Errorf("not enough free space for the reveal: %s free at %s, the container is %s and the original cannot be larger",
+			formatBytes(uint64(free)), root, formatBytes(uint64(fi.Size()))), reasonContainerInsufficientSpace,
+			map[string]interface{}{"freeBytes": free, "neededBytes": fi.Size()})
 	}
 
 	cred, err := resolveFdsecCredential(o, false)
@@ -422,6 +423,11 @@ func fdsecReveal(path string, args []string, hl *HistoryLogger) error {
 	}
 	reason := fdsecAwaitDone(copyPath)
 	fdsecCloseReveal(dir, copyPath)
+	if runStopRequested() {
+		currentRun.mu.Lock()
+		currentRun.revealClosed = true
+		currentRun.mu.Unlock()
+	}
 	fmt.Printf("\nReveal closed (%s).\n", reason)
 	return nil
 }

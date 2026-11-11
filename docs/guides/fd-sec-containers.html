@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
@@ -27,11 +27,7 @@
         "headline": "Secret files with FileDO",
         "description": "A FileDO guide to .fd-sec containers: pack a file behind a password, get it back, open it without unpacking, and what each choice promises.",
         "url": "https://serzhyale.github.io/FileDO/guides/fd-sec-containers.html",
-        "inLanguage": [
-          "en",
-          "ru",
-          "uk"
-        ],
+        "inLanguage": ["en"],
         "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
         "isPartOf": {
           "@type": "WebSite",
@@ -64,7 +60,13 @@
               ? "light"
               : "dark");
           document.documentElement.dataset.theme = t;
-          var l = localStorage.getItem("sza-lang");
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
           if (l === "uk") l = "ua";
           if (l !== "ru" && l !== "en" && l !== "ua") {
             var n = (navigator.language || "en").toLowerCase();
@@ -90,7 +92,7 @@
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main"><span data-l="ru">К содержимому</span><span data-l="en">Skip to content</span><span data-l="ua">До змісту</span></a>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
     <div class="bg-blobs">
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
@@ -107,45 +109,45 @@
         ><button data-set-lang="en">EN</button
         ><button data-set-lang="ua">UA</button>
       </div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="ru">Тема</span><span data-l="en">Theme</span><span data-l="ua">Тема</span></button
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
       ><a class="btn btn-primary btn-sm" href="../#get"
-        ><span data-l="ru">Установить</span><span data-l="en">Install</span
-        ><span data-l="ua">Встановити</span></a
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
       >
     </header>
     <nav class="lang-row" aria-label="Languages"><a href="../de/guides/fd-sec-containers.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/fd-sec-containers.html" hreflang="fr" lang="fr">FR</a></nav>
     <main id="main" class="container">
       <section class="hero">
         <p class="kicker">
-          <span data-l="ru">Руководство · секретные файлы</span
-          ><span data-l="en">Guide · secret files</span
+          <span data-l="en">Guide · secret files</span
+          ><span data-l="ru">Руководство · секретные файлы</span
           ><span data-l="ua">Посібник · секретні файли</span>
         </p>
         <h1>
-          <span data-l="ru"
-            >Один файл или папка, один контейнер, один пароль - и честный рассказ о том,
-            что это даёт.</span
-          ><span data-l="en"
+          <span data-l="en"
             >One file or folder, one container, one password - and a straight account of
             what that buys.</span
+          ><span data-l="ru"
+            >Один файл или папка, один контейнер, один пароль - и честный рассказ о том,
+            что это даёт.</span
           ><span data-l="ua"
             >Один файл чи тека, один контейнер, один пароль - і чесна розповідь про те,
             що це дає.</span
           >
         </h1>
         <p class="lead">
-          <span data-l="ru"
-            >FileDO упаковывает файл - или целую папку - в контейнер <code>.fd-sec</code>, возвращает
-            его обратно и умеет открыть содержимое в нужной программе, не
-            распаковывая. Настоящее имя, размер и отметки времени запечатаны
-            внутри; снаружи видны только размер самого контейнера, его видимое имя
-            и время создания (переименование даёт безымянный блок данных).</span
-          ><span data-l="en"
+          <span data-l="en"
             >FileDO packs a file - or a whole folder - into a <code>.fd-sec</code> container, brings it
             back, and can open what is inside in the program it belongs to
             without unpacking it. The true name, the size and the timestamps are
             sealed inside; from outside only the container's own size, its visible
             name and its timestamps are visible (renaming writes a nameless blob).</span
+          ><span data-l="ru"
+            >FileDO упаковывает файл - или целую папку - в контейнер <code>.fd-sec</code>, возвращает
+            его обратно и умеет открыть содержимое в нужной программе, не
+            распаковывая. Настоящее имя, размер и отметки времени запечатаны
+            внутри; снаружи видны только размер самого контейнера, его видимое имя
+            и время создания (переименование даёт безымянный блок данных).</span
           ><span data-l="ua"
             >FileDO пакує файл - або цілу теку - у контейнер <code>.fd-sec</code>, повертає його
             назад і вміє відкрити вміст у потрібній програмі, не розпаковуючи.
@@ -157,40 +159,40 @@
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Три операции</span
-          ><span data-l="en">Three operations</span
+          <span data-l="en">Three operations</span
+          ><span data-l="ru">Три операции</span
           ><span data-l="ua">Три операції</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >Всё остальное - подробности этих трёх. Они доступны из командной
-            строки, из группы «File DO..» в контекстном меню Проводника и со
-            страниц группы «Защита» в окне программы.</span
-          ><span data-l="en"
+          <span data-l="en"
             >Everything else is detail on these three. Each is available from the
             command line, from the "File DO.." group in the Explorer context
-            menu, and from the Protect pages in the program's window.</span
+            menu, and from the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Protect pages in the program's window.</span
+          ><span data-l="ru"
+            >Всё остальное - подробности этих трёх. Они доступны из командной
+            строки, из группы «File DO..» в контекстном меню Проводника и со
+            страниц группы <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>«Защита» в окне программы.</span
           ><span data-l="ua"
             >Усе інше - подробиці цих трьох. Вони доступні з командного рядка, з
             групи «File DO..» в контекстному меню Провідника та зі сторінок групи
-            «Захист» у вікні програми.</span
+            <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>«Захист» у вікні програми.</span
           >
         </p>
         <div class="grid guide-grid">
           <article class="card">
             <h3>
-              <span data-l="ru">Упаковать</span><span data-l="en">Pack</span
-              ><span data-l="ua">Запакувати</span>
+              <span data-l="en">Pack</span
+              ><span data-l="ru">Упаковать</span><span data-l="ua">Запакувати</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Рядом с файлом появляется <code>report.fd-sec</code>. Пароль
-                спрашивается дважды и не отображается. Оригинал остаётся на
-                месте, пока вы не попросите его убрать.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >A <code>report.fd-sec</code> appears beside the file. The
                 password is asked for twice and never echoed. The original stays
                 where it is until you ask for it to go.</span
+              ><span data-l="ru"
+                >Рядом с файлом появляется <code>report.fd-sec</code>. Пароль
+                спрашивается дважды и не отображается. Оригинал остаётся на
+                месте, пока вы не попросите его убрать.</span
               ><span data-l="ua"
                 >Поруч із файлом з'являється <code>report.fd-sec</code>. Пароль
                 запитується двічі й не відображається. Оригінал залишається на
@@ -201,23 +203,23 @@
               filedo report.docx secure<button
                 class="copy"
                 data-copy="filedo report.docx secure"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Вернуть оригинал</span
-              ><span data-l="en">Unsecure a file</span
+              <span data-l="en">Unsecure a file</span
+              ><span data-l="ru">Вернуть оригинал</span
               ><span data-l="ua">Повернути оригінал</span>
             </h3>
             <p>
-              <span data-l="ru"
+              <span data-l="en"
+                >The file comes back under its sealed name and with its own
+                timestamps. An existing file is never overwritten silently.</span
+              ><span data-l="ru"
                 >Файл возвращается под своим запечатанным именем и со своими
                 отметками времени. Существующий файл никогда не перезаписывается
                 молча.</span
-              ><span data-l="en"
-                >The file comes back under its sealed name and with its own
-                timestamps. An existing file is never overwritten silently.</span
               ><span data-l="ua"
                 >Файл повертається під своїм запечатаним іменем і зі своїми
                 позначками часу. Наявний файл ніколи не перезаписується
@@ -228,26 +230,26 @@
               filedo report.fd-sec unsecure<button
                 class="copy"
                 data-copy="filedo report.fd-sec unsecure"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
           <article class="card">
             <h3>
-              <span data-l="ru">Открыть, не распаковывая</span
-              ><span data-l="en">Open without unpacking</span
+              <span data-l="en">Open without unpacking</span
+              ><span data-l="ru">Открыть, не распаковывая</span
               ><span data-l="ua">Відкрити, не розпаковуючи</span>
             </h3>
             <p>
-              <span data-l="ru"
-                >Содержимое открывается в той программе, которой оно
-                принадлежит - из временной копии, которая потом убирается.
-                Команда набирается вручную; двойной клик по контейнеру делает
-                другое - см. ниже.</span
-              ><span data-l="en"
+              <span data-l="en"
                 >The content opens in the program it belongs to, from a temporary
                 copy that is taken away again. This one is typed by hand; a
                 double-click on the container does something else - see
                 below.</span
+              ><span data-l="ru"
+                >Содержимое открывается в той программе, которой оно
+                принадлежит - из временной копии, которая потом убирается.
+                Команда набирается вручную; двойной клик по контейнеру делает
+                другое - см. ниже.</span
               ><span data-l="ua"
                 >Вміст відкривається в тій програмі, якій він належить - із
                 тимчасової копії, яку потім прибирають. Цю команду набирають
@@ -259,29 +261,18 @@
               filedo report.fd-sec reveal<button
                 class="copy"
                 data-copy="filedo report.fd-sec reveal"
-              ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
         </div>
         <div class="note">
           <span class="tag"
-            ><span data-l="ru">Папка - тоже один файл</span
             ><span data-l="en">A folder is one file too</span
+            ><span data-l="ru">Папка - тоже один файл</span
             ><span data-l="ua">Тека - теж один файл</span></span
           >
           <p>
-            <span data-l="ru"
-              ><code>secure</code> принимает и папку: всё её дерево, вместе с
-              пустыми подпапками, уходит в один <code>.fd-sec</code>, и снаружи
-              его не отличить от контейнера файла. <code>unsecure</code>
-              восстанавливает дерево сначала во временную папку и переносит на
-              место только после проверки каждого файла - никогда внутрь или
-              поверх существующей папки. Папка с junction, символической ссылкой
-              или точкой монтирования отклоняется. <code>del</code> и
-              <code>wipe</code> убирают исходное дерево, только если оно не
-              менялось после упаковки. <code>reveal</code> открывает один файл и
-              контейнер папки не принимает.</span
-            ><span data-l="en"
+            <span data-l="en"
               ><code>secure</code> takes a folder as well: its whole tree, empty
               subfolders included, goes into one <code>.fd-sec</code>, which from
               outside cannot be told from a file's container. <code>unsecure</code>
@@ -292,6 +283,17 @@
               remove the original tree only if it has not changed since it was
               packed. <code>reveal</code> opens one file and does not take a
               folder container.</span
+            ><span data-l="ru"
+              ><code>secure</code> принимает и папку: всё её дерево, вместе с
+              пустыми подпапками, уходит в один <code>.fd-sec</code>, и снаружи
+              его не отличить от контейнера файла. <code>unsecure</code>
+              восстанавливает дерево сначала во временную папку и переносит на
+              место только после проверки каждого файла - никогда внутрь или
+              поверх существующей папки. Папка с junction, символической ссылкой
+              или точкой монтирования отклоняется. <code>del</code> и
+              <code>wipe</code> убирают исходное дерево, только если оно не
+              менялось после упаковки. <code>reveal</code> открывает один файл и
+              контейнер папки не принимает.</span
             ><span data-l="ua"
               ><code>secure</code> приймає й теку: усе її дерево, разом із
               порожніми підтеками, іде в один <code>.fd-sec</code>, і ззовні його
@@ -309,17 +311,31 @@
             filedo "Tax 2025" secure<button
               class="copy"
               data-copy='filedo "Tax 2025" secure'
-            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
           </div>
         </div>
         <div class="note">
           <span class="tag"
-            ><span data-l="ru">Тихий набор: suite2</span
             ><span data-l="en">The quiet suite: suite2</span
+            ><span data-l="ru">Тихий набор: suite2</span
             ><span data-l="ua">Тихий набір: suite2</span></span
           >
           <p>
-            <span data-l="ru"
+            <span data-l="en"
+              ><code>secure suite2</code> seals one file (not a folder) with suite
+              2 instead of the default suite 1: a pepper-folded Argon2id key at
+              256 MiB and XChaCha20-Poly1305 in 64 KiB frames, so the file is
+              noise from its first byte, without even the 512-byte cluster length
+              pattern suite 1 has. The true name, the real size and the time of
+              encryption are kept, but not the original's own timestamps: the
+              restored file gets the current time. Only FileDO from this version
+              on opens it - older FileDO builds report it as damaged or as a wrong
+              password, and FastMediaSorter apps cannot open it, so suite 1 stays
+              the default. <code>unsecure</code>, <code>reveal</code>,
+              <code>fdsec info</code> and <code>fdsec verify</code> find the suite
+              themselves; nothing else changes, and an empty password is still
+              obfuscation only.</span
+            ><span data-l="ru"
               ><code>secure suite2</code> запечатывает один файл (не папку)
               набором 2 вместо набора 1 по умолчанию: ключ Argon2id на 256 МиБ со
               свёрткой через перец и XChaCha20-Poly1305 кадрами по 64 КиБ, так что
@@ -334,20 +350,6 @@
               <code>fdsec info</code> и <code>fdsec verify</code> определяют набор
               сами; больше ничего не меняется, и пустой пароль по-прежнему лишь
               маскировка.</span
-            ><span data-l="en"
-              ><code>secure suite2</code> seals one file (not a folder) with suite
-              2 instead of the default suite 1: a pepper-folded Argon2id key at
-              256 MiB and XChaCha20-Poly1305 in 64 KiB frames, so the file is
-              noise from its first byte, without even the 512-byte cluster length
-              pattern suite 1 has. The true name, the real size and the time of
-              encryption are kept, but not the original's own timestamps: the
-              restored file gets the current time. Only FileDO from this version
-              on opens it - older FileDO builds report it as damaged or as a wrong
-              password, and FastMediaSorter apps cannot open it, so suite 1 stays
-              the default. <code>unsecure</code>, <code>reveal</code>,
-              <code>fdsec info</code> and <code>fdsec verify</code> find the suite
-              themselves; nothing else changes, and an empty password is still
-              obfuscation only.</span
             ><span data-l="ua"
               ><code>secure suite2</code> запечатує один файл (не теку) набором 2
               замість типового набору 1: ключ Argon2id на 256 МіБ зі згорткою
@@ -368,33 +370,33 @@
             filedo report.docx secure suite2<button
               class="copy"
               data-copy="filedo report.docx secure suite2"
-            ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+            ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
           </div>
         </div>
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Что обещано, а что нет</span
-          ><span data-l="en">What is promised, and what is not</span
+          <span data-l="en">What is promised, and what is not</span
+          ><span data-l="ru">Что обещано, а что нет</span
           ><span data-l="ua">Що обіцяно, а що ні</span>
         </h2>
         <div class="note danger">
           <span class="tag"
-            ><span data-l="ru">Пустой пароль</span
             ><span data-l="en">An empty password</span
+            ><span data-l="ru">Пустой пароль</span
             ><span data-l="ua">Порожній пароль</span></span
           >
           <p>
-            <span data-l="ru"
-              >Пустой пароль принимается - и означает только маскировку, без
-              секретности: такой файл откроет любой, кто знает формат. Короткий
-              пароль защищает ненамного лучше. Ключа восстановления нет:
-              забытый пароль - это потерянный файл.</span
-            ><span data-l="en"
+            <span data-l="en"
               >An empty password is accepted, and it means obfuscation only - no
               secrecy: anyone who knows the format opens that file. A short
               password is not much better. There is no recovery key: a forgotten
               password is a lost file.</span
+            ><span data-l="ru"
+              >Пустой пароль принимается - и означает только маскировку, без
+              секретности: такой файл откроет любой, кто знает формат. Короткий
+              пароль защищает ненамного лучше. Ключа восстановления нет:
+              забытый пароль - это потерянный файл.</span
             ><span data-l="ua"
               >Порожній пароль приймається - і означає лише маскування, без
               таємниці: такий файл відкриє будь-хто, хто знає формат. Короткий
@@ -405,25 +407,25 @@
         </div>
         <div class="note danger">
           <span class="tag"
-            ><span data-l="ru">Затирание оригинала</span
             ><span data-l="en">Wiping the original</span
+            ><span data-l="ru">Затирание оригинала</span
             ><span data-l="ua">Затирання оригіналу</span></span
           >
           <p>
-            <span data-l="ru"
-              ><code>secure del</code> убирает оригинал так, что его вернёт любая
-              программа восстановления. <code>secure wipe</code> сначала затирает
-              его - это снижает шансы на восстановление и ничего не обещает на
-              SSD, на файловых системах с копированием при записи и на
-              журналируемых дисках, где перезапись на месте не гарантирует, что
-              старые блоки исчезли. По умолчанию оригинал просто остаётся.</span
-            ><span data-l="en"
+            <span data-l="en"
               ><code>secure del</code> removes the original in a way any undelete
               tool can reverse. <code>secure wipe</code> overwrites it first -
               that lowers the odds of recovery and promises nothing on SSDs, on
               copy-on-write and on journaled file systems, where overwriting in
               place does not guarantee the old blocks are gone. By default the
               original is simply kept.</span
+            ><span data-l="ru"
+              ><code>secure del</code> убирает оригинал так, что его вернёт любая
+              программа восстановления. <code>secure wipe</code> сначала затирает
+              его - это снижает шансы на восстановление и ничего не обещает на
+              SSD, на файловых системах с копированием при записи и на
+              журналируемых дисках, где перезапись на месте не гарантирует, что
+              старые блоки исчезли. По умолчанию оригинал просто остаётся.</span
             ><span data-l="ua"
               ><code>secure del</code> прибирає оригінал так, що його поверне
               будь-яка програма відновлення. <code>secure wipe</code> спершу
@@ -436,33 +438,33 @@
         </div>
         <div class="note">
           <span class="tag"
-            ><span data-l="ru">Где живёт открытая копия</span
             ><span data-l="en">Where a revealed copy lives</span
+            ><span data-l="ru">Где живёт открытая копия</span
             ><span data-l="ua">Де живе відкрита копія</span></span
           >
           <p>
-            <span data-l="ru"
-              >В <code>%LOCALAPPDATA%\FileDO\reveal</code>, только для чтения и
-              только для этой учётной записи. Копия убирается, когда вы скажете -
-              кнопкой «Убрать копию сейчас» в окне или нажатием Enter в
-              консоли, - или когда её отпустит открывшая её программа. Если
-              машина потеряла питание, копия останется до следующего запуска
-              FileDO, который её подметает; больше её не уберёт ничто. Программы
-              и скрипты из контейнера никогда не запускаются: они извлекаются, и
-              показывается их место.</span
-            ><span data-l="en"
+            <span data-l="en"
               >In <code>%LOCALAPPDATA%\FileDO\reveal</code>, read-only and
               readable by this account alone. The copy goes when you say so - the
-              "Remove the copy now" button in the window, or Enter in the
+              <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.cancel"/></svg>"Remove the copy now" button in the window, or Enter in the
               console - or when the program that opened it lets go. If the machine
               loses power, the copy stays until the next FileDO start, which
               sweeps it; nothing else will. Executables and scripts are never
               launched out of a container: they are extracted and their location
               shown.</span
+            ><span data-l="ru"
+              >В <code>%LOCALAPPDATA%\FileDO\reveal</code>, только для чтения и
+              только для этой учётной записи. Копия убирается, когда вы скажете -
+              кнопкой <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.cancel"/></svg>«Убрать копию сейчас» в окне или нажатием Enter в
+              консоли, - или когда её отпустит открывшая её программа. Если
+              машина потеряла питание, копия останется до следующего запуска
+              FileDO, который её подметает; больше её не уберёт ничто. Программы
+              и скрипты из контейнера никогда не запускаются: они извлекаются, и
+              показывается их место.</span
             ><span data-l="ua"
               >У <code>%LOCALAPPDATA%\FileDO\reveal</code>, лише для читання й
               лише для цього облікового запису. Копія зникає, коли ви скажете -
-              кнопкою «Прибрати копію зараз» у вікні або натисканням Enter у
+              кнопкою <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.cancel"/></svg>«Прибрати копію зараз» у вікні або натисканням Enter у
               консолі, - або коли її відпустить програма, що її відкрила. Якщо
               машина втратила живлення, копія залишиться до наступного запуску
               FileDO, який її прибирає; більше її не прибере ніщо. Програми та
@@ -473,20 +475,12 @@
         </div>
         <div class="note">
           <span class="tag"
-            ><span data-l="ru">Пароль и журнал</span
             ><span data-l="en">The password and the log</span
+            ><span data-l="ru">Пароль и журнал</span
             ><span data-l="ua">Пароль і журнал</span></span
           >
           <p>
-            <span data-l="ru"
-              >В окне пароль скрыт и передаётся <code>filedo.exe</code>
-              незаметно: его нет ни в командной строке, ни в отчёте о запуске, ни
-              в <code>history.json</code>. В командной строке форма
-              <code>p:пароль</code> видна в списке процессов - для скриптов есть
-              <code>pf:</code> (файл), <code>pe:</code> (переменная окружения) и
-              <code>k:</code> (файл-ключ). Запечатанное настоящее имя в журнал
-              тоже не пишется.</span
-            ><span data-l="en"
+            <span data-l="en"
               >In the window the password is masked and handed to
               <code>filedo.exe</code> out of sight: it is on no command line, in
               no run report and in no <code>history.json</code>. On the command
@@ -495,6 +489,14 @@
               <code>pe:</code> (an environment variable) and <code>k:</code> (a
               key file). The sealed true name is never written to the log
               either.</span
+            ><span data-l="ru"
+              >В окне пароль скрыт и передаётся <code>filedo.exe</code>
+              незаметно: его нет ни в командной строке, ни в отчёте о запуске, ни
+              в <code>history.json</code>. В командной строке форма
+              <code>p:пароль</code> видна в списке процессов - для скриптов есть
+              <code>pf:</code> (файл), <code>pe:</code> (переменная окружения) и
+              <code>k:</code> (файл-ключ). Запечатанное настоящее имя в журнал
+              тоже не пишется.</span
             ><span data-l="ua"
               >У вікні пароль прихований і передається <code>filedo.exe</code>
               непомітно: його немає ні в командному рядку, ні у звіті про запуск,
@@ -509,33 +511,16 @@
       </section>
       <section class="section">
         <h2>
-          <span data-l="ru">Двойной клик и меню Проводника</span
-          ><span data-l="en">The double-click and the Explorer menu</span
+          <span data-l="en">The double-click and the Explorer menu</span
+          ><span data-l="ru">Двойной клик и меню Проводника</span
           ><span data-l="ua">Подвійний клік і меню Провідника</span>
         </h2>
         <p class="intro">
-          <span data-l="ru"
-            >Установщик предлагает интеграцию с Проводником как отдельный
-            компонент, который можно снять. В сборках без установщика - winget,
-            ZIP, <code>go install</code> - её включают командой. Двойной клик по
-            <code>.fd-sec</code> - это ровно пункт меню «Unsecure and start»:
-            открывается консоль, там спрашивается пароль, файл восстанавливается
-            под своим настоящим именем в папку <code>%LOCALAPPDATA%\FileDO\reveal</code>,
-            которую можете читать только вы и система, и сразу передаётся
-            своей обычной программе - тем же способом, каким это делает
-            обычный двойной клик по любому другому файлу. Копия удаляется,
-            когда вы закрываете это окно консоли; если программа всё ещё
-            держит файл открытым, копию уберёт следующий запуск FileDO.
-            Контейнер при этом остаётся на месте. В Windows 11 группа «File DO..» живёт в «Показать
-            дополнительные параметры». В сборке из Microsoft Store пунктов
-            меню нет, но тип <code>.fd-sec</code> она назначает: двойной клик
-            открывает окно FileDO на странице «Открыть секретный файл» с уже
-            выбранным контейнером, и пароль спрашивается там.</span
-          ><span data-l="en"
+          <span data-l="en"
             >The installer offers the Explorer integration as a component you can
             switch off. In the builds with no installer - winget, ZIP,
             <code>go install</code> - one command turns it on. A double-click on
-            a <code>.fd-sec</code> is exactly the "Unsecure and start" menu
+            a <code>.fd-sec</code> is exactly the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>"Unsecure and start" menu
             entry: a console opens, asks for the password there, the file is
             restored under its true name into
             <code>%LOCALAPPDATA%\FileDO\reveal</code>, where only you and the
@@ -546,14 +531,31 @@
             container itself is left in place. On Windows 11 the "File DO.." group lives under
             "Show more options". The Microsoft Store build has no menu
             entries, but it does claim the <code>.fd-sec</code> type: a
-            double-click opens the FileDO window on its "Open a secret file"
+            double-click opens the FileDO window on its <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>"Open a secret file"
             page with that container already chosen, and the password is
             asked there.</span
+          ><span data-l="ru"
+            >Установщик предлагает интеграцию с Проводником как отдельный
+            компонент, который можно снять. В сборках без установщика - winget,
+            ZIP, <code>go install</code> - её включают командой. Двойной клик по
+            <code>.fd-sec</code> - это ровно пункт меню <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>«Unsecure and start»:
+            открывается консоль, там спрашивается пароль, файл восстанавливается
+            под своим настоящим именем в папку <code>%LOCALAPPDATA%\FileDO\reveal</code>,
+            которую можете читать только вы и система, и сразу передаётся
+            своей обычной программе - тем же способом, каким это делает
+            обычный двойной клик по любому другому файлу. Копия удаляется,
+            когда вы закрываете это окно консоли; если программа всё ещё
+            держит файл открытым, копию уберёт следующий запуск FileDO.
+            Контейнер при этом остаётся на месте. В Windows 11 группа «File DO..» живёт в «Показать
+            дополнительные параметры». В сборке из Microsoft Store пунктов
+            меню нет, но тип <code>.fd-sec</code> она назначает: двойной клик
+            открывает окно FileDO на странице <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Открыть секретный файл» с уже
+            выбранным контейнером, и пароль спрашивается там.</span
           ><span data-l="ua"
             >Інсталятор пропонує інтеграцію з Провідником як окремий компонент,
             який можна зняти. У збірках без інсталятора - winget, ZIP,
             <code>go install</code> - її вмикають командою. Подвійний клік на
-            <code>.fd-sec</code> - це рівно пункт меню «Unsecure and start»:
+            <code>.fd-sec</code> - це рівно пункт меню <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>«Unsecure and start»:
             відкривається консоль, там запитується пароль, файл відновлюється
             під своїм справжнім ім'ям у теку <code>%LOCALAPPDATA%\FileDO\reveal</code>,
             яку можете читати лише ви та система, і одразу передається
@@ -564,7 +566,7 @@
             лишається на місці. У Windows 11 група «File DO..» живе в «Показати додаткові
             параметри». У збірці з Microsoft Store пунктів меню немає, але
             тип <code>.fd-sec</code> вона призначає: подвійний клік відкриває
-            вікно FileDO на сторінці «Відкрити секретний файл» з уже вибраним
+            вікно FileDO на сторінці <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-nav.open-external"/></svg>«Відкрити секретний файл» з уже вибраним
             контейнером, і пароль запитується там.</span
           >
         </p>
@@ -572,15 +574,106 @@
           filedo fdsec register<button
             class="copy"
             data-copy="filedo fdsec register"
-          ><span data-l="ru">Копировать</span><span data-l="en">Copy</span><span data-l="ua">Копіювати</span></button>
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
+      </section>
+      <section class="section" id="backup">
+        <h2>
+          <span data-l="en">A folder in one backup file</span
+          ><span data-l="ru">Папка в одном файле резервной копии</span
+          ><span data-l="ua">Тека в одному файлі резервної копії</span>
+        </h2>
+        <p class="intro">
+          <span data-l="en"
+            ><code>backup</code> packs a folder, a whole drive or a network share
+            into one plain <code>.zip</code> named after the folder and the
+            time - any zip tool opens it on any computer. Before packing, FileDO
+            reads a sample of the content for at most 10 seconds and picks the
+            compression density itself: photos and videos are stored as they
+            are, text is packed tighter, and the chosen level is printed.
+            <code>sec</code> seals that zip into a <code>.fd-sec</code> container
+            behind a password, with the same password rules as above.
+            <code>restore</code> rebuilds the folder beside the archive, or at
+            the address <code>to</code> names.</span
+          ><span data-l="ru"
+            ><code>backup</code> упаковывает папку, целый диск или сетевую папку
+            в один обычный <code>.zip</code>, названный по папке и времени, - его
+            откроет любая программа для zip на любом компьютере. Перед упаковкой
+            FileDO не дольше 10 секунд читает образец содержимого и сам выбирает
+            плотность сжатия: фото и видео сохраняются как есть, текст сжимается
+            сильнее, а выбранный уровень печатается. <code>sec</code>
+            запечатывает этот zip в контейнер <code>.fd-sec</code> под паролем, с
+            теми же правилами пароля, что выше. <code>restore</code>
+            восстанавливает папку рядом с архивом или по адресу, который назван
+            в <code>to</code>.</span
+          ><span data-l="ua"
+            ><code>backup</code> пакує теку, цілий диск або мережеву теку в один
+            звичайний <code>.zip</code>, названий за текою та часом, - його
+            відкриє будь-яка програма для zip на будь-якому комп'ютері. Перед
+            пакуванням FileDO не довше 10 секунд читає зразок вмісту й сам обирає
+            щільність стиснення: фото й відео зберігаються як є, текст
+            стискається сильніше, а обраний рівень друкується. <code>sec</code>
+            запечатує цей zip у контейнер <code>.fd-sec</code> під паролем, з
+            тими самими правилами пароля, що вище. <code>restore</code>
+            відновлює теку поруч з архівом або за адресою, яку названо в
+            <code>to</code>.</span
+          >
+        </p>
+        <div class="copybox">
+          filedo backup D:\Photos sec<button
+            class="copy"
+            data-copy="filedo backup D:\Photos sec"
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <div class="copybox">
+          filedo restore Photos-2611101530.fd-sec to D:\<button
+            class="copy"
+            data-copy="filedo restore Photos-2611101530.fd-sec to D:\"
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <p>
+          <span data-l="en"
+            >The zip records the folder's name, never its path. An existing
+            folder is never merged into or replaced - <code>restore</code> writes
+            beside it as <code>&lt;name&gt;-1</code> - and an archive whose names
+            would leave the destination is refused whole, before anything is
+            written. The Windows drive itself is refused; a junction or symbolic
+            link in the source refuses the backup unless <code>skip-links</code>
+            leaves it out and lists it. Permissions, alternate data streams and
+            links are not carried. A backup is one whole copy, made when you run
+            it: there is no schedule and no history of earlier backups.</span
+          ><span data-l="ru"
+            >Zip хранит имя папки, но никогда не её путь. Существующая папка
+            никогда не дополняется и не заменяется - <code>restore</code> пишет
+            рядом под именем <code>&lt;имя&gt;-1</code>, - а архив, имена внутри
+            которого вывели бы за пределы места назначения, отклоняется целиком,
+            до того как что-либо записано. Диск Windows отклоняется; точка
+            соединения или символическая ссылка в источнике отклоняет копию, если
+            <code>skip-links</code> не оставит её в стороне и не внесёт в список.
+            Права доступа, альтернативные потоки данных и ссылки не переносятся.
+            Резервная копия - одна целая копия, сделанная, когда вы её
+            запускаете: нет расписания и нет истории прежних копий.</span
+          ><span data-l="ua"
+            >Zip зберігає ім'я теки, але ніколи не її шлях. Наявна тека ніколи не
+            доповнюється й не замінюється - <code>restore</code> пише поруч під
+            ім'ям <code>&lt;ім'я&gt;-1</code>, - а архів, імена всередині якого
+            вивели б за межі місця призначення, відхиляється цілком, перш ніж
+            щось записано. Диск Windows відхиляється; точка з'єднання або
+            символічне посилання в джерелі відхиляє копію, якщо
+            <code>skip-links</code> не лишить його осторонь і не внесе до
+            переліку. Права доступу, альтернативні потоки даних і посилання не
+            переносяться. Резервна копія - одна ціла копія, зроблена, коли ви її
+            запускаєте: немає розкладу й немає історії попередніх копій.</span
+          >
+        </p>
       </section>
     </main>
     <footer class="site-footer">
       <div class="container">
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
-          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="ru">Ссылки сайта</span><span data-l="en">Site links</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="ru">Руководства</span><span data-l="en">Guides</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="ru">Поддержка</span><span data-l="en">Support</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -605,5 +698,8 @@
       };
     </script>
     <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.cancel" viewBox="0 0 24 24"><path d="M12,2C6.47,2 2,6.47 2,12s4.47,10 10,10 10,-4.47 10,-10S17.53,2 12,2zM17,15.59L15.59,17 12,13.41 8.41,17 7,15.59 10.59,12 7,8.41 8.41,7 12,10.59 15.59,7 17,8.41 13.41,12 17,15.59z" fill="currentColor"/></symbol><symbol id="g-action.secure" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9V6zM16 16h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-nav.open-external" viewBox="0 0 24 24"><path d="M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

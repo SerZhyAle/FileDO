@@ -214,7 +214,7 @@
         </h3>
         <ul class="steps">
           <li>
-            <span data-l="de"><b>Direkte Kapazitätsprüfung</b> und <b>Laufwerk wiederherstellen</b> im Fenster - fragen bei jedem Lauf nach Administratorrechten. Das Kennzeichen auf der Schaltfläche sagt es vor dem Start; die Rechte gelten für diesen einen Prozess und enden mit ihm. Sie schreiben direkt auf das Volume und sind <b>von Grund auf unumkehrbar</b> (es gibt kein Rückgängigmachen).</span>
+            <span data-l="de"><b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-feature.raw-probe"/></svg>Direkte Kapazitätsprüfung</b> und <b><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.recover-drive"/></svg>Laufwerk wiederherstellen</b> im Fenster - fragen bei jedem Lauf nach Administratorrechten. Das Kennzeichen auf der Schaltfläche sagt es vor dem Start; die Rechte gelten für diesen einen Prozess und enden mit ihm. Sie schreiben direkt auf das Volume und sind <b>von Grund auf unumkehrbar</b> (es gibt kein Rückgängigmachen).</span>
           </li>
           <li>
             <span data-l="de"><b>Rechnerweite Explorer-Registrierung</b>: <code>filedo fdsec register -all-users</code> aus einer erhöhten Konsole schreibt dieselben HKLM-Einträge wie das Installationsprogramm. Rückgängig mit <code>filedo fdsec unregister -all-users</code>.</span>
@@ -264,6 +264,7 @@
         <div class="footer-bottom">
           <span>© 2026 Serhii Zhyhunenko</span
           ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
             <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
         </div>
       </div>
@@ -278,5 +279,8 @@
       };
     </script>
     <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.recover-drive" viewBox="0 0 24 24"><path d="M17.73 12.02l3.98-3.98c.39-.39.39-1.02 0-1.41l-4.34-4.34c-.39-.39-1.02-.39-1.41 0l-3.98 3.98L8 2.29C7.8 2.1 7.55 2 7.29 2c-.25 0-.51.1-.7.29L2.25 6.63c-.39.39-.39 1.02 0 1.41l3.98 3.98L2.25 16c-.39.39-.39 1.02 0 1.41l4.34 4.34c.39.39 1.02.39 1.41 0l3.98-3.98 3.98 3.98c.2.2.45.29.71.29.26 0 .51-.1.71-.29l4.34-4.34c.39-.39.39-1.02 0-1.41l-3.99-3.98zM12 9c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-4.71 1.96L3.66 7.34l3.63-3.63 3.62 3.62-3.62 3.63zM10 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2 2c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2.66 9.34l-3.63-3.62 3.63-3.63 3.62 3.62-3.62 3.63z" fill="currentColor"/></symbol><symbol id="g-feature.raw-probe" viewBox="0 0 24 24"><path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
   </body>
 </html>

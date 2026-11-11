@@ -227,6 +227,7 @@ Partial Public Module SelfTest
             Check("help:element-of:named-parent", Help.ElementOf(field) = "target", Help.ElementOf(field))
             Check("help:element-of:setting-row", Help.ElementOf(inner) = "setting-theme", Help.ElementOf(inner))
             Check("help:element-of:nothing", Help.ElementOf(New Label()) = "", "")
+            Check("help:element-of:help-button", Help.ElementOf(Help.NewButton()) = "", Help.ElementOf(Help.NewButton()))
         End Using
     End Sub
 
@@ -256,6 +257,12 @@ Partial Public Module SelfTest
                 Check("help:key-and-button-agree", handled AndAlso byButton <> "" AndAlso byButton = byKey, byButton & " | " & byKey)
                 Dim expected = Help.Address(Help.Resolve(Help.ShellSurfaceId(shell.CurrentRailKey())))
                 Check("help:key-opens-the-page-on-screen", byKey = expected, byKey)
+                ' When the help button itself has keyboard focus, F1 opens the top of the surface help, not #e-help (SP-0197)
+                shell.ActiveControl = button
+                opened.Clear()
+                Dim handledOnBtn = shell.HandleKeyForTest(Keys.F1)
+                Dim byKeyOnBtn = If(opened.Count = 1, opened(0), "")
+                Check("help:button-focus-opens-top", handledOnBtn AndAlso byKeyOnBtn = expected, byKeyOnBtn)
             End Using
             DiskManagerForm.SuppressWelcome = True
             DiskManagerForm.SuppressReads = True

@@ -208,6 +208,7 @@ Friend Module Help
         While c IsNot Nothing
             Dim n = c.Name
             If n IsNot Nothing Then
+                If n = "help:help" Then Return ""
                 If n.StartsWith("help:", StringComparison.Ordinal) Then Return n.Substring(5)
                 If n.StartsWith("setting:", StringComparison.Ordinal) Then Return "setting-" & n.Substring(8)
                 If n.StartsWith("settings-group:", StringComparison.Ordinal) Then
