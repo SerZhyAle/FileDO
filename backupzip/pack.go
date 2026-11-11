@@ -69,10 +69,16 @@ func Pack(dst string, w Walked, o PackOptions) (PackResult, error) {
 	if o.Level < 0 || o.Level > 9 {
 		return PackResult{}, fmt.Errorf("zip level %d is outside 0-9", o.Level)
 	}
-	if _, err := os.Lstat(dst); err == nil {
-		return PackResult{}, fmt.Errorf("%s already exists; a backup never replaces a file - name another destination: %w", dst, fsx.ErrDestinationExists)
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return PackResult{}, err
+	// Under Keep the zip never takes the name dst - it stays under its partial
+	// name, created exclusively below - so a file already at dst (a plain backup
+	// of the same minute) is no obstacle; the caller checks dst itself when it
+	// will commit the zip there (keep-zip).
+	if !o.Keep {
+		if _, err := os.Lstat(dst); err == nil {
+			return PackResult{}, fmt.Errorf("%s already exists; a backup never replaces a file - name another destination: %w", dst, fsx.ErrDestinationExists)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return PackResult{}, err
+		}
 	}
 	open := o.Open
 	if open == nil {

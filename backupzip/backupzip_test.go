@@ -211,6 +211,30 @@ func TestPackKeepLeavesThePartialName(t *testing.T) {
 	}
 }
 
+// TestPackKeepBesideATakenName: a sealed backup whose intermediate zip would
+// share its name with a plain backup of the same minute still packs, and the
+// plain backup is left exactly as it was (the operations run found this).
+func TestPackKeepBesideATakenName(t *testing.T) {
+	src := t.TempDir()
+	writeTree(t, src, map[string][]byte{"a.txt": []byte("x")})
+	w, _ := Walk(src, WalkOptions{})
+	dst := filepath.Join(t.TempDir(), "src-2611110234.zip")
+	if err := os.WriteFile(dst, []byte("plain backup"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Pack(dst, w, PackOptions{Level: 1, Name: "x", Keep: true})
+	if err != nil {
+		t.Fatalf("Keep refused beside a taken final name: %v", err)
+	}
+	defer os.Remove(res.Path)
+	if got, _ := os.ReadFile(dst); string(got) != "plain backup" {
+		t.Fatal("the plain backup at the final name was changed")
+	}
+	if _, err := Pack(dst, w, PackOptions{Level: 1, Name: "x"}); err == nil {
+		t.Fatal("without Keep a taken final name must still be refused")
+	}
+}
+
 // TestWalkLinks: a link refuses the walk naming it, unless SkipLinks lists it
 // instead (D7).
 func TestWalkLinks(t *testing.T) {
