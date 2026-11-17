@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `DISK-SHARE` |
-| **Version** | 1.6 draft, re-read 2026-10-29 (SP-0174); implemented partial 1.6, see the registry row |
+| **Version** | 1.6 draft, re-read 2026-11-16 (SP-0221); implemented partial 1.6 (SP-0177 & SP-0178 shipped in v2611110217; W16 SP-0171 open), see the registry row |
 | **Home** | shared contracts catalog, folder `disk-sharing/`, document `DISK-SHARE.md` |
 | **Role** | producer and consumer - FileDO and Fast Media Sorter integration |
 | **Owner** | FileDO. Amendments are written in the catalog first and agreed with affected consumers |

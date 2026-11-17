@@ -350,10 +350,7 @@ Module LogReport
         b.AppendLine("ui_language=" & guiLang)
         b.AppendLine("generated_utc=" & DateTime.UtcNow.ToString("o", Globalization.CultureInfo.InvariantCulture))
         b.AppendLine("logs_total=" & logCount.ToString())
-        ' Media-library metrics do not exist in this product. Never package history records.
-        For Each key In New String() {"channels_total", "channels_catalog", "channels_manual", "channels_imported", "channels_pinned", "channels_hidden", "collections", "history_entries"}
-            b.AppendLine(key & "=0")
-        Next
+        ' Media-library metrics do not exist in this product (DIAGNOSTIC-REPORT 0.15 item 3: omit absent families).
         b.AppendLine("volume_metrics_capability=unavailable")
         b.AppendLine("catalog_refreshed_utc=")
         Return DiagnosticText.Sanitize(b.ToString())

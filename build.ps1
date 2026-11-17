@@ -910,7 +910,8 @@ if ($Test) {
     # 11) The in-app help set against CONTEXT-HELP (SP-0168): the map, a page per surface in every shipped
     #     language, the anatomy, no request, every link and picture. The surfaces of the source against
     #     the map are the `help:` rows of step 5; the regenerated-and-compared half (rung 2) is
-    #     `packaging\check-help.ps1 -Exe`, which needs a desktop session and runs before a release.
+    #     `packaging\check-help.ps1 -Exe`, which needs an interactive desktop session and runs before a
+    #     release in `release.ps1` step 2 (SP-0227).
     Write-Host "in-app help pages, map and links ..." -NoNewline
     $helpOut = & "$root\packaging\check-help.ps1" *>&1 | Out-String
     $helpCode = $LASTEXITCODE

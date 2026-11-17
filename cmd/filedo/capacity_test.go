@@ -1176,3 +1176,269 @@ func TestPassWithDelNamesUndeletedFiles(t *testing.T) {
 		t.Errorf("history filesDeleted = %v, want false when a file stayed", got)
 	}
 }
+
+// CLI-EVENT-STREAM 0.17 items B and C: fill given del publishes filesDeleted
+// and filesNotDeleted (0 and 0 when no file completed; absent without del), and
+// any undeleted file of this run records an error finding defect so the run
+// ends Failed (exit 1) on both normal return and forced exit.
+func TestFillDelEventNumbersAndOutcome(t *testing.T) {
+	setup := func(t *testing.T) (string, string) {
+		t.Helper()
+		events := stopRunFixture(t)
+		withCapacityStubs(t, 4<<20, 40<<20) // reserve 2 MB -> 2 files of 1 MB
+		beginRun(runActs, "fill", "", nil)
+		return t.TempDir(), events
+	}
+	stubFillWrite := func(t *testing.T, fn func(ctx context.Context, path string, size int64, progress *atomic.Int64) (bool, error)) {
+		t.Helper()
+		saved := fillWriteFile
+		fillWriteFile = fn
+		t.Cleanup(func() { fillWriteFile = saved })
+	}
+	writeStubFile := func(path string) (bool, error) {
+		if err := os.WriteFile(path, []byte("fill"), 0o644); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	wantNum := func(t *testing.T, nums map[string]interface{}, key string, want int64) {
+		t.Helper()
+		raw, ok := nums[key]
+		if !ok {
+			t.Fatalf("numbers[%q] missing from %v", key, nums)
+		}
+		got, ok := raw.(float64)
+		if !ok || int64(got) != want {
+			t.Fatalf("numbers[%q] = %v (%T), want %d", key, raw, raw, want)
+		}
+	}
+
+	t.Run("without_del_keys_absent", func(t *testing.T) {
+		dir, events := setup(t)
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			return writeStubFile(path)
+		})
+		if err := runCapacityFill("Folder", dir, "1", false, nil); err != nil {
+			t.Fatalf("runCapacityFill: %v", err)
+		}
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictDone) || globalExitCode != 0 {
+			t.Fatalf("verdict=%v exit=%d, want Done/0", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesCreated", 2)
+		wantNum(t, nums, "bytesWritten", 2<<20)
+		if _, ok := nums["filesDeleted"]; ok {
+			t.Fatalf("unexpected filesDeleted without del: %v", nums)
+		}
+		if _, ok := nums["filesNotDeleted"]; ok {
+			t.Fatalf("unexpected filesNotDeleted without del: %v", nums)
+		}
+	})
+
+	t.Run("del_all_removed", func(t *testing.T) {
+		dir, events := setup(t)
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			return writeStubFile(path)
+		})
+		if err := runCapacityFill("Folder", dir, "1", true, nil); err != nil {
+			t.Fatalf("runCapacityFill: %v", err)
+		}
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictDone) || globalExitCode != 0 {
+			t.Fatalf("verdict=%v exit=%d, want Done/0", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesCreated", 2)
+		wantNum(t, nums, "filesDeleted", 2)
+		wantNum(t, nums, "filesNotDeleted", 0)
+	})
+
+	t.Run("del_zero_completed", func(t *testing.T) {
+		dir, events := setup(t)
+		stubFillWrite(t, func(context.Context, string, int64, *atomic.Int64) (bool, error) {
+			globalInterruptHandler.Interrupt()
+			return false, context.Canceled
+		})
+		err := runCapacityFill("Folder", dir, "1", true, nil)
+		if err == nil || errors.Is(err, errDefect) || !errors.Is(err, errRunStopped) {
+			t.Fatalf("err = %v, want stopped without defect", err)
+		}
+		reportOpError(err, dir, nil)
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictStopped) || globalExitCode != 16 {
+			t.Fatalf("verdict=%v exit=%d, want Stopped/16", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesCreated", 0)
+		wantNum(t, nums, "bytesWritten", 0)
+		wantNum(t, nums, "filesDeleted", 0)
+		wantNum(t, nums, "filesNotDeleted", 0)
+	})
+
+	t.Run("del_already_gone_excluded", func(t *testing.T) {
+		dir, events := setup(t)
+		var n atomic.Int64
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			created, err := writeStubFile(path)
+			if err == nil && n.Add(1) == 1 {
+				_ = os.Remove(path)
+			}
+			return created, err
+		})
+		if err := runCapacityFill("Folder", dir, "1", true, nil); err != nil {
+			t.Fatalf("runCapacityFill: %v", err)
+		}
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictDone) || globalExitCode != 0 {
+			t.Fatalf("verdict=%v exit=%d, want Done/0", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesCreated", 2)
+		wantNum(t, nums, "filesDeleted", 1)
+		wantNum(t, nums, "filesNotDeleted", 0)
+	})
+
+	t.Run("del_locked_file_records_defect", func(t *testing.T) {
+		dir, events := setup(t)
+		var n atomic.Int64
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			created, err := writeStubFile(path)
+			if err == nil && n.Add(1) == 1 {
+				f, openErr := os.Open(path)
+				if openErr != nil {
+					return created, openErr
+				}
+				t.Cleanup(func() { _ = f.Close() })
+			}
+			return created, err
+		})
+		err := runCapacityFill("Folder", dir, "1", true, nil)
+		if err == nil || !errors.Is(err, errDefect) {
+			t.Fatalf("err = %v, want errDefect", err)
+		}
+		reportOpError(err, dir, nil)
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictFailed) || globalExitCode != 1 {
+			t.Fatalf("verdict=%v exit=%d, want Failed/1", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesDeleted", 1)
+		wantNum(t, nums, "filesNotDeleted", 1)
+
+		var findings []map[string]interface{}
+		for _, ev := range readEvents(t, events) {
+			if ev["kind"] == "finding" {
+				findings = append(findings, ev["data"].(map[string]interface{}))
+			}
+		}
+		if len(findings) != 1 {
+			t.Fatalf("findings = %d, want 1 (%v)", len(findings), findings)
+		}
+		if findings[0]["type"] != "error" {
+			t.Fatalf("finding type = %v, want error", findings[0]["type"])
+		}
+		if _, hasDetails := findings[0]["details"]; hasDetails {
+			t.Fatalf("finding should carry no details/reason: %v", findings[0])
+		}
+		msg, _ := findings[0]["message"].(string)
+		if !strings.Contains(msg, "1") || strings.Contains(msg, dir) || strings.Contains(msg, "FILL_") {
+			t.Fatalf("unexpected finding message %q", msg)
+		}
+	})
+
+	t.Run("del_stopped_all_removed_stays_stopped", func(t *testing.T) {
+		dir, events := setup(t)
+		var n atomic.Int64
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			if n.Add(1) == 1 {
+				created, err := writeStubFile(path)
+				globalInterruptHandler.Interrupt()
+				return created, err
+			}
+			return false, context.Canceled
+		})
+		err := runCapacityFill("Folder", dir, "1", true, nil)
+		if err == nil || errors.Is(err, errDefect) || !errors.Is(err, errRunStopped) {
+			t.Fatalf("err = %v, want stopped without defect", err)
+		}
+		reportOpError(err, dir, nil)
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictStopped) || globalExitCode != 16 {
+			t.Fatalf("verdict=%v exit=%d, want Stopped/16", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesCreated", 1)
+		wantNum(t, nums, "filesDeleted", 1)
+		wantNum(t, nums, "filesNotDeleted", 0)
+	})
+
+	t.Run("del_stopped_locked_file_ends_failed", func(t *testing.T) {
+		dir, events := setup(t)
+		var n atomic.Int64
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			if n.Add(1) == 1 {
+				created, err := writeStubFile(path)
+				if err == nil {
+					f, openErr := os.Open(path)
+					if openErr != nil {
+						return created, openErr
+					}
+					t.Cleanup(func() { _ = f.Close() })
+				}
+				globalInterruptHandler.Interrupt()
+				return created, err
+			}
+			return false, context.Canceled
+		})
+		err := runCapacityFill("Folder", dir, "1", true, nil)
+		if err == nil || !errors.Is(err, errDefect) {
+			t.Fatalf("err = %v, want errDefect", err)
+		}
+		reportOpError(err, dir, nil)
+		finishRun()
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictFailed) || globalExitCode != 1 {
+			t.Fatalf("verdict=%v exit=%d, want Failed/1", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesCreated", 1)
+		wantNum(t, nums, "filesDeleted", 0)
+		wantNum(t, nums, "filesNotDeleted", 1)
+	})
+
+	t.Run("del_locked_file_forced_exit_stays_failed", func(t *testing.T) {
+		dir, events := setup(t)
+		var n atomic.Int64
+		stubFillWrite(t, func(_ context.Context, path string, _ int64, _ *atomic.Int64) (bool, error) {
+			created, err := writeStubFile(path)
+			if err == nil && n.Add(1) == 1 {
+				f, openErr := os.Open(path)
+				if openErr != nil {
+					return created, openErr
+				}
+				t.Cleanup(func() { _ = f.Close() })
+			}
+			return created, err
+		})
+		err := runCapacityFill("Folder", dir, "1", true, nil)
+		if err == nil || !errors.Is(err, errDefect) {
+			t.Fatalf("err = %v, want errDefect", err)
+		}
+		if got := finishForcedRun(); got != 1 {
+			t.Fatalf("finishForcedRun = %d, want 1", got)
+		}
+		res := lastResult(t, events)
+		if res["verdict"] != string(VerdictFailed) || globalExitCode != 1 {
+			t.Fatalf("verdict=%v exit=%d, want Failed/1", res["verdict"], globalExitCode)
+		}
+		nums := res["numbers"].(map[string]interface{})
+		wantNum(t, nums, "filesNotDeleted", 1)
+	})
+}

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `FDSEC-BEHAVIOUR` |
-| **Version** | 1.9, written 2026-11-10 (SP-0198: section 21, a container as one step of a backup; built in the working tree, not built or tested until the release); 1.8 written and implemented 2026-11-08 (SP-0171; section 18 as section 20 reads it, section 19 the closed token, section 4.3 the reserved stem, valid UTF-8 and NFC) (wire carrier: the exit-code classes of section 7.1) |
+| **Version** | 1.9, written 2026-11-10 (`SP-0198` section 21 backup/restore shipped in `v2611110217`; re-read 2026-11-16, SP-0221); 1.8 written and implemented 2026-11-08 (SP-0171; section 18 as section 20 reads it, section 19 the closed token, section 4.3 the reserved stem, valid UTF-8 and NFC) (wire carrier: the exit-code classes of section 7.1) |
 | **Home** | shared contracts catalog, folder `secure-container/`, document `FD-SEC-CONTRACT.md` |
 | **Role** | producer and consumer - this repository is the reference implementation |
 | **Owner** | FileDO. Amendments are written in the catalog first |

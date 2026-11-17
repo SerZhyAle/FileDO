@@ -105,7 +105,7 @@ unchanged for a `cmd.exe` prompt.
   `THIRD-PARTY-NOTICES.txt` against the Go modules each shipped executable links
   (`packaging\check-third-party-notices.ps1`); `release-pins` - `release.yml`'s
   Go pin against `go.mod`'s; `internal-docs` - the documentation corpus:
-  registry, links and anchors, house style (`packaging\check-internal-docs.ps1`);
+  registry, links and anchors, house style, and `docs\CLI.md` against the command manifest (`packaging\check-internal-docs.ps1`);
   `external-docs` - the published site and READMEs: sitemap, SEO block, locales
   and translation freshness, termbase, screenshots
   (`packaging\check-external-docs.ps1`); `build-inputs` - no build input is
@@ -190,8 +190,14 @@ Full pipeline. Cuts from `main` only, with a clean/committed tree.
 
 What it does, in order:
 
-1. **Preflight** - tools present (`git`, `gh`, `go`, `wingetcreate`), `gh`
-   authenticated, on `main`, and **the tree clean**:
+1. **Preflight** - first runs the shared contract catch-up check (unless
+   `-Resume`): calls the `sza` plugin's `tools/contract-lag.ps1` and
+   `tools/check-contracts.ps1` against the contracts catalog and stops
+   before anything is tagged if any FileDO row is `behind`, `pending`,
+   `unparsed`, `ahead`, `partial` without an active Section 3 dated reason,
+   or carries a FileDO error. Next checks tools present (`git`, `gh`, `go`, `wingetcreate`), `gh`
+   authenticated, an interactive desktop session (required for the pre-release
+   in-app help freshness check unless `-Resume`), on `main`, and **the tree clean**:
    `git status --porcelain --untracked-files=all` may list nothing outside
    `exe_to_download\`, or the release stops (exit 1) - an uncommitted edit or
    an unignored file (a key at the root, a runtime list) never rides into the
@@ -208,7 +214,10 @@ What it does, in order:
    **operations run**, `tests\prove-operations.ps1`: every kind of filedo
    operation on small data with the freshly built `exe_to_download\filedo.exe`,
    each step timed and each result checked, the whole run compared with the last
-   passing runs for a loss of function or of speed (see "The operations run" below).
+   passing runs for a loss of function or of speed (see "The operations run" below),
+   and then **in-app help freshness (rung 2)**, `packaging\check-help.ps1 -Exe`
+   against `exe_to_download\filedo_win.exe` (guarded by an interactive desktop
+   session check, failing closed with exit 2 when non-interactive).
    Fails *before* anything is tagged, and so does a gate that changed any file
    outside `exe_to_download\`.
 3. **Commit** - stages `exe_to_download\` and nothing else, and commits it as
@@ -265,11 +274,18 @@ What it does, in order:
    (AUD-17-F1). That is what keeps the listing's "no Explorer entries" true;
    a Store build with the switch waits for SP-0020's exit criterion, SP-0005
    G3, and a listing/README edit (`msix/README.md` section 7).
-9. **Checklist** - prints what is done, what failed and why, and the one
-   manual step left. A channel that failed after the tag (winget sync, push,
-   submit, or the MSIX) does not stop the ones after it, is shown as `[ ]`
-   with its reason, and makes the script exit 1; `release <stamp>: PASS` is
-   printed only when every channel that ran succeeded.
+9. **Site** - runs `packaging\set-release-manifest.ps1 -Tag v<stamp>` (reads the
+   published release and its `.sha256` sidecars into
+   `packaging\release-manifest.json`), renders all five landing pages
+   (`docs/index.html`, `de`, `fr`, `ru`, `uk`) with
+   `packaging\render-site-release.ps1`, verifies `packaging\check-external-docs.ps1`,
+   commits `Sync site to v<stamp>` and pushes `main`. Runs after Store MSIX so
+   `Get-TagSourceDrift` continues checking exact tag equality outside `winget\`.
+10. **Checklist** - prints what is done, what failed and why, and the one
+    manual step left. A channel that failed after the tag (winget sync, push,
+    submit, the MSIX, or site sync) does not stop the ones after it, is shown
+    as `[ ]` with its reason, and makes the script exit 1;
+    `release <stamp>: PASS` is printed only when every channel that ran succeeded.
 
 ### The operations run
 
@@ -373,14 +389,17 @@ pages and the README disagree on which releases exist or in what order; the tran
 re-recorded with `-Record` after the translations are read.
 ### The one manual step
 
-**Microsoft Store upload.** Partner Center has no publishing CLI, so the last
-leg is manual (Microsoft re-signs the unsigned package during certification -
-no paid cert needed): upload `msix\out\FileDO_<ver>.msix`; write this release's
+**Microsoft Store upload.** The Store has a submission API and the Store
+Developer CLI (`msstore`), but FileDO makes no write call through either, so
+the last leg is manual (Microsoft re-signs the unsigned package during
+certification - no paid cert needed): upload `msix\out\FileDO_<ver>.msix`; write this release's
 "What's new" into `msix\listing\<code>.txt` (`@@ReleaseNotes`), export the
 listing and run `.\msix\build-store-listing-csv.ps1 -Refresh ReleaseNotes`,
 import `msix\out\store-import`; submit. Then update over a **real prior
 install** and check the version and the notes. The full path - identity, build,
-listing, screenshots, click path - is `msix/README.md`.
+listing, screenshots, click path - is `msix/README.md`. The read-only Store preflight
+runs before the tag (`release.ps1`). It checks, read-only, for a pending submission, a version not greater than the live one, a price that is not Free, a missing identity file and no live submission (rules 23 (a), (b), (d), 25). It does not test rule 22, rule 23 (c), (e) and (f), or the credential expiry unless `-StoreCredentialExpiry yyyy-MM-dd` is given. A refusal stops the release before the tag; an unavailable channel prints one manual line and the release goes on. Evidence: `temp\evidence\store-preflight.log`. It never writes to the
+Store.
 
 **Before that upload**, from an **ADMIN** PowerShell:
 

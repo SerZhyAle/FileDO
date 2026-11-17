@@ -461,19 +461,28 @@
                 >The expert builder: every operation <code>filedo.exe</code>
                 takes, with the flags and rule pickers that belong to the one
                 you choose, and the command line itself editable underneath.
-                Read it, edit it by hand, copy it, or run it.</span
+                Read it, edit it by hand, copy it, or run it. Where an operation writes its result somewhere - copy, compare, secure, unsecure, backup, restore - the box for the result has a folder picker beside it. The page remembers what you used between sessions: the folders you picked and ran on, the commands you ran (Recent.. lists the last 12 and puts one back on the command line; Forget recent commands and folders in that menu empties it all) and the operation, target and destination it was left on. A run kept out of history with nohist, a line that carries a password and every run while run history is off are never remembered, and flags never are.</span
               ><span data-l="ru"
                 >Экспертный конструктор: все операции, которые принимает
                 <code>filedo.exe</code>, с флагами и выбором правил, относящимися
                 к выбранной операции, и самой командной строкой, которую можно
                 править внизу. Прочитайте её, отредактируйте вручную, скопируйте
-                или запустите.</span
+                или запустите. Там, где операция пишет результат в другое место - copy, compare, secure, unsecure, backup, restore, - рядом с полем результата есть выбор папки. Страница помнит, чем вы пользовались, от сеанса к сеансу: папки, которые вы выбирали и с которыми работали, команды, которые вы запускали («Недавние..» показывает последние 12 и возвращает выбранную в командную строку, а «Забыть недавние команды и папки» в этом меню очищает всё), и операцию, цель и место результата, на которых страница была оставлена. Запуск с nohist, строка с паролем и любой запуск при выключенной истории запусков не запоминаются никогда, как и флаги.</span
               ><span data-l="ua"
                 >Експертний конструктор: усі операції, які приймає
                 <code>filedo.exe</code>, із прапорцями та вибором правил, що
                 стосуються вибраної операції, і самим командним рядком, який
                 можна редагувати внизу. Прочитайте його, відредагуйте вручну,
-                скопіюйте або запустіть.</span
+                скопіюйте або запустіть. Там, де операція пише результат в інше місце - copy, compare, secure, unsecure, backup, restore, - поруч із полем результату є вибір теки. Сторінка пам'ятає, чим ви користувалися, від сеансу до сеансу: теки, які ви обирали й з якими працювали, команди, які ви запускали («Нещодавні..» показує останні 12 і повертає обрану в командний рядок, а «Забути нещодавні команди й теки» у цьому меню очищає все), і операцію, ціль та місце результату, на яких сторінку було залишено. Запуск з nohist, рядок із паролем і будь-який запуск за вимкненої історії запусків не запам'ятовуються ніколи, як і прапорці.</span
+              >
+            </p>
+            <p>
+              <span data-l="en"
+                ><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Browse commands.. beside the operation list opens a window that lists every operation in six groups - Check, Tidy, Copying, Erase, Protect, Tools and Explorer - with a one-line description of each. Select one and choose Use this command, or double-click it, to set it on this page; Full descriptions opens the About operations page on that operation.</span
+              ><span data-l="ru"
+                >Кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Обзор команд..» рядом со списком операций открывает окно, где все операции собраны в шесть групп - «Проверка», «Порядок», «Копирование», «Стирание», «Защита», «Инструменты и Проводник» - с однострочным описанием каждой. Выберите операцию и нажмите «Использовать команду» или дважды щёлкните по ней, чтобы выбрать её на этой странице; «Полные описания» открывает страницу «Об операциях» на этой операции.</span
+              ><span data-l="ua"
+                >Кнопка <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>«Огляд команд..» поруч зі списком операцій відкриває вікно, де всі операції зібрано в шість груп - «Перевірка», «Порядок», «Копіювання», «Стирання», «Захист», «Інструменти та Провідник» - з однорядковим описом кожної. Виберіть операцію і натисніть «Використати команду» або двічі клацніть по ній, щоб вибрати її на цій сторінці; «Повні описи» відкриває сторінку «Про операції» на цій операції.</span
               >
             </p>
             <p>
@@ -526,6 +535,22 @@
                 передається запуску. <code>secure</code>, що видаляє або
                 перезаписує оригінал, звідси потребує ще й <code>-y</code>; без
                 нього оригінал зберігається, і запуск про це повідомляє.</span
+              >
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="en">The About operations page</span
+              ><span data-l="ru">Страница «Об операциях»</span
+              ><span data-l="ua">Сторінка «Про операції»</span>
+            </h3>
+            <p>
+              <span data-l="en"
+                >Standing beside Command in the rail, the About operations page lists the same six groups. Every operation shows its name and a one-line summary; a click on the name opens the full description in plain words - what it does, when to use it and what it changes - with an example command line, and a click again closes it. The search box on top (Ctrl+F) narrows the list by name or by any word of the descriptions, and Escape empties it. Use this command opens the Command page with that operation chosen. An operation that deletes, overwrites, formats or needs Administrator says so plainly.</span
+              ><span data-l="ru"
+                >Страница «Об операциях» стоит в списке задач рядом с «Команда» и показывает те же шесть групп. У каждой операции видны название и краткая строка; щелчок по названию открывает полное описание простыми словами - что она делает, когда её применять и что она меняет - с примером командной строки, повторный щелчок закрывает его. Поле поиска вверху (Ctrl+F) сужает список по названию или по любому слову из описаний, а Escape очищает его. Кнопка «Использовать команду» открывает страницу «Команда» с выбранной операцией. Операция, которая удаляет, перезаписывает, форматирует или требует прав администратора, говорит об этом прямо.</span
+              ><span data-l="ua"
+                >Сторінка «Про операції» стоїть у списку завдань поруч із «Команда» і показує ті самі шість груп. У кожної операції видно назву й короткий рядок; клацання по назві відкриває повний опис простими словами - що вона робить, коли її застосовувати і що вона змінює - з прикладом командного рядка, повторне клацання закриває його. Поле пошуку вгорі (Ctrl+F) звужує перелік за назвою або за будь-яким словом з описів, а Escape очищає його. Кнопка «Використати команду» відкриває сторінку «Команда» з обраною операцією. Операція, що видаляє, перезаписує, форматує або потребує прав адміністратора, каже про це прямо.</span
               >
             </p>
           </article>

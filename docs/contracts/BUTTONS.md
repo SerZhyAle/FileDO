@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `BUTTONS` |
-| **Version** | 2.0 (no wire - observable button appearance, layout and interaction) |
+| **Version** | 2.3, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - observable button appearance, layout and interaction) |
 | **Role** | consumer - `GlyphButton` and every dialog answer of the GUI shell; migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `buttons/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |

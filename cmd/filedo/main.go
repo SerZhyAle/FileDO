@@ -614,6 +614,30 @@ BACKUP AND RESTORE (a restorable copy in one file)
   filedo.exe backup D:\Data skip-links   → Leave junctions and symbolic links
                                            out and list them (without the
                                            word, a link refuses the backup)
+  filedo.exe backup D:\Photos to E:\Bak gen 7
+                                         → A numbered set of 7 in E:\Bak:
+                                           Photos_001.zip .. Photos_007.zip.
+                                           Each run writes the number after
+                                           the newest (001 after 7); once 7
+                                           stand, the new one replaces the
+                                           oldest
+  filedo.exe backup D:\Photos to E:\Bak gen 7 stem Docs sec
+                                         → The set is named by stem, not by the
+                                           folder; sec seals it: Docs_001.fd-sec
+                                           .. (suite 1; the password comes from
+                                           pe:<VARIABLE> when nobody is there)
+  gen takes 1 to 999, and with it to names a folder; stem is one file-name part
+  (two folders of one name get two stems). The number is read from the folder
+  alone: the newest file of the set - latest modification time - sets it, so a
+  restart or an upgrade cannot fork it, and a deleted number does not stop a
+  run. The new file is built under a partial name and read back first; only
+  then is the old file of that number removed and the new one renamed into
+  place - at most one file per run, and only a whole-name match of
+  <stem>_<NNN>.zip (.fd-sec with sec) with NNN from 001 to the keep-count. A
+  failed or stopped run removes nothing. The folder needs room for one file
+  more than the set holds while the run works. keep-zip does not go with gen.
+  With --events the result carries generation, retiredGeneration (0 = none) and
+  keepCount.
   filedo.exe restore Photos-2611101530.zip
                                          → Rebuild the folder beside the archive
   filedo.exe restore Photos-2611101530.fd-sec to D:\
@@ -625,7 +649,8 @@ BACKUP AND RESTORE (a restorable copy in one file)
   leave the destination - .., a drive letter, a device name - is refused
   whole, before anything is written. del removes the archive afterwards;
   y answers the questions, never the checks. No schedule, no history of
-  backups: each one is whole and runs when you run it.
+  backups: each one is whole and runs when you run it; a numbered set is a
+  bounded rotation, and the schedule is yours.
 ═══════════════════════════════════════════════════════════════════════════════
 SECRET FILES (.fd-sec containers)
 
@@ -1407,6 +1432,14 @@ func main() {
 	// elevated initiator step) are not runs: no banner, no history, no events.
 	if isVdInternal(os.Args) {
 		os.Exit(vdInternalMain(os.Args[2:]))
+	}
+
+	// An app command (APP-COMMANDS 0.1, appcmd.go) decides its role before
+	// anything else loads: the running window program does the work, this
+	// process only carries the command and exits with the answer's code. Its
+	// verbs win over a path probe; every other first word goes on below.
+	if e, rest := appCommandOf(os.Args[1:]); e != nil {
+		os.Exit(appCommandMain(e, rest))
 	}
 
 	// Lifetime mechanism 3 (spec 8.2): every FileDO start reclaims any reveal

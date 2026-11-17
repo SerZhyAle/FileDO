@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `COLLAPSIBLE-GROUP` |
-| **Version** | 1.1 (no wire - observable group structure, disclosure state and flow) |
+| **Version** | 1.3, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - observable group structure, disclosure state and flow) |
 | **Role** | consumer - the Settings page groups (`SettingsLayout.vb`); migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `collapsible-group/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |

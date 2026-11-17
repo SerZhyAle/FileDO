@@ -4,7 +4,7 @@
   Holds the documentation corpus to DOC-INTERNAL-QUALITY: registry, links, style, offline safety.
 
 .DESCRIPTION
-  Three checks over the documents git sees (tracked, or new and not ignored), in one run so that
+  Four checks over the documents git sees (tracked, or new and not ignored), in one run so that
   one run names every defect it found (SP-0061):
 
     registry  docs/DOCUMENT_REGISTRY.jsonl declares every maintained document - path, topic,
@@ -22,8 +22,12 @@
               <link>, <object> or <embed>, no remote image (rules 5-7). Fenced code blocks and
               inline code spans are exempt - a command is quoted, not written in house style.
 
+    generated docs/CLI.md is a render target of docs/cli-commands.json (APP-COMMANDS rule 20): packaging/
+              write-cli-docs.ps1 -Check fails when it is stale, when the manifest and the copy filedo.exe
+              embeds differ, or when a commands guide page (en, de, fr) leaves a command out (SP-0220).
+
   Exit code (CHECK-VERDICT): 0 = pass, 1 = a defect was found, 2 = could not verify (git cannot
-  list the tree, or the registry cannot be read). The last line is the verdict.
+  list the tree, the registry cannot be read, or the manifest does not parse). The last line is the verdict.
 #>
 [CmdletBinding()]
 param(
@@ -254,9 +258,23 @@ foreach ($path in $docs.Keys) {
 }
 $styleFailures = $failures.Count - $registryFailures - $linkFailures
 
+# ---- Generated documents: docs/CLI.md renders from the command manifest (SP-0220) ------
+# packaging/write-cli-docs.ps1 -Check holds the manifest to the copy filedo.exe embeds, docs/CLI.md to what the
+# manifest renders to, and the commands guide pages (en, de, fr) to naming every command; its verdict is this check's.
+$generatedOut = & "$PSScriptRoot\write-cli-docs.ps1" -Check *>&1 | Out-String
+$generatedCode = $LASTEXITCODE
+if ($generatedCode -eq 2) { Stop-Unverified "write-cli-docs.ps1 could not verify: $((($generatedOut.Trim() -split "`r?`n")[-1]))" }
+$beforeGenerated = $failures.Count
+foreach ($gl in ($generatedOut -split "`r?`n")) {
+    if ($gl -match '^\s*FAIL\s+(.+)$') { $failures.Add($Matches[1]) }
+}
+if ($generatedCode -ne 0 -and $failures.Count -eq $beforeGenerated) { $failures.Add("write-cli-docs.ps1 -Check exited $generatedCode with no FAIL line") }
+$generatedFailures = $failures.Count - $beforeGenerated
+
 Write-Host "  registry  $($docs.Count) documents, $($ignores.Count) ignore records - $registryFailures problems"
 Write-Host "  links     $linkCount relative links and anchors - $linkFailures problems"
 Write-Host "  style     $styleScanned internal documents - $styleFailures problems"
+Write-Host "  generated docs/CLI.md and the commands guide against the manifest - $generatedFailures problems"
 if ($failures.Count) {
     $failures | ForEach-Object { Write-Host "  FAIL  $_" -ForegroundColor Red }
     Write-Host "internal-docs: FAIL ($($failures.Count) problems)" -ForegroundColor Red

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-SET` |
-| **Version** | 0.37, read 2026-10-29 (SP-0174); implemented partial 0.37; 68 glyphs vendored from 0.37 (imported 2026-11-11, SP-0198) plus one provisional drawing under section 15 (`action.unarchive`, proposed), action.autostart has no drawing yet, draft (no wire carrier - the vocabulary is read by people, never by a shipped product) |
+| **Version** | 0.41, read 2026-11-16 (SP-0221); implemented partial 0.41; 69 glyphs vendored (`view.table` added in SP-0226, provenance synced to 0.41/0.26/0.12) plus `action.unarchive` (0.39, shipped in v2611110217); `action.autostart` waiting drawing, `nav.menu` mapping, `action.unarchive` provenance fold-in, and theme/disclosure markers remain open, draft (no wire carrier - the vocabulary is read by people, never by a shipped product) |
 | **Role** | consumer - the shell, the site, the READMEs and the Explorer integration show glyphs |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. A new meaning or a new language is proposed in the catalog, not decided here |

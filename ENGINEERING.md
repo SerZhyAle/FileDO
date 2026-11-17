@@ -500,7 +500,9 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   is exit 2); `packaging/check-third-party-notices.ps1`; `release.yml`'s Go pin against `go.mod`'s; and
   `packaging/check-internal-docs.ps1` - every document declared in `docs/DOCUMENT_REGISTRY.jsonl` (a new
   `.md`/`.html` needs a record there, or the gate fails), every relative link and anchor resolving, and
-  the internal corpus in house style with no remote embeds; and packaging/check-external-docs.ps1 - the
+  the internal corpus in house style with no remote embeds, and `docs/CLI.md` against the command manifest
+  (`packaging/write-cli-docs.ps1 -Check`, SP-0220: a stale render, a manifest that differs from the copy
+  `filedo.exe` embeds, a commands guide page that leaves a command out); and packaging/check-external-docs.ps1 - the
   published site and the READMEs against `DOC-EXTERNAL-QUALITY`: glossary and subject index, `sitemap.xml`
   against the page set, the full SEO block, every `data-l` group in ru/en/ua (the standalone `docs/de/` and `docs/fr/` trees mirror the runtime pages group for group, one language each - SP-0154), translation freshness against
   `docs/translation-fingerprints.json`, the `docs/termbase.json` forbidden synonyms, screenshots, the site addresses held outside it
@@ -762,6 +764,35 @@ and on Command), so a picture takes the visible one; VB is case-insensitive, so 
 `pageFile` hides `File`, `Theme` or `PageFile`; and a Friend function in a Module is visible in every file, so
 helper names in the help modules stay Private unless they are an API.
 
+**The command guide (SP-0204).** The Command page's operation list stays a plain `ComboBox`; beside it *Browse
+commands..* opens `OperationPickerDialog` (a `DiskPageDialog`: one radio button per operation under its group
+heading, each with its one-line `op_*` text; *Use this command* sets the list through `CommandView.ChooseOperation`,
+*Full descriptions* hands the word to the shell), and the rail's *About operations* row (`OperationGuideView`, built on
+its first visit; the key stays `rail_job_commands`) lists the same operations: each shows its name - the header of a
+collapsible group (`GroupHeader`) - and its one-line text, a click opens the full `opfull_*` text with a typed example,
+and a search box (Ctrl+F; Escape empties it) narrows the list by the name or any word of the texts. **`OperationGuide.Entries`
+is the one table**: each word of `CommandView.Operations` once, with its group and its example. The `opguide` group of
+`--selftest` fails a word that is in the list and not in the table, a text missing from any of the five languages, a
+full text that is not three paragraphs (what it does, when to use it, what it changes) and a picker without a leave
+path. The full texts live in `OperationStrings.vb`, a second merged string module beside `HelpStrings`; the one-line
+`op_*` texts stay in `Localization.vb` and also feed the hint under the list and the copy-strategy note. A new
+operation needs its word in `CommandView.Operations`, a row in `OperationGuide.Entries`, `op_<word>` in the five
+tables and `opfull_<word>` in `OperationStrings.vb`; the help map has a row for the page (`inherit` from Command) and
+for the dialog (`none`). A backup's result is named `<source>-<yyMMddHHmm>.zip` (`.fd-sec` when sealed; `backup_cmd.go`
+`zipName`), and `opfull_backup`, `opfull_backup_sec`, `op_backup`, `shell_bk_note`, the five READMEs and the site's
+fd-sec guide all say so: a change to the name changes all of them.
+
+**Remembered input (the Command and job pages).** `ShellSettings.vb` keeps, under the same `HKCU\Software\FileDO` key,
+two path lists by role (`Recent_target`, `Recent_dest`), `RecentCommands` (REG_MULTI_SZ, newest first, 12 entries, a
+repeat moves up) and the Command page's `CommandPage_Op`, `_Target` and `_Dest`. `Ui.ChooseFolder` is the one folder
+dialog: it opens on the typed folder, else the newest remembered one for its role (a UNC path or a mapped network drive
+is never probed), and remembers the pick; `JobView` and `CommandView` both use it, so the lists are shared. The rules
+are in `ShellSettings.MayRemember`: nothing is remembered while run history is off, from a run with `nohist` or
+`no_history`, or from a line that carries a literal password (`Runner.IsCredentialToken`); flags, the password and a
+confirmation word are never stored, so a restored page can only ever show a line, never arm one. *Recent..* on the
+Command page lists the commands and puts one back through `SetCommand` (the same path as *Open in Command*); its last
+entry calls `ForgetRemembered`. The `memory` group of `--selftest` holds the lists, the gate and the page round trip.
+
 **The unified UI contracts (SP-0169; `UI-SIZING`, `BUTTONS`, `BOOLEAN-OPTION`, `COLLAPSIBLE-GROUP`,
 `SETTINGS-NAVIGATION`) - migration in progress, not conformant yet.** What is built and what a change here must
 keep, each held by the `ui-contracts` group of `--selftest`:
@@ -826,6 +857,39 @@ cards, including USB drives; FileDO's scheduled mount tasks are unaffected. The 
 running the GUI self-test never change AutoPlay. The Store build offers the Windows settings button
 only, to keep this system preference outside package registry virtualization.
 
+## App commands (`docs/cli-commands.json`, contract `APP-COMMANDS`)
+`filedo <command>` asks the running `filedo_win.exe` to do something and ends with its answer as an exit code
+(SP-0215 research; SP-0216 to SP-0219 build; SP-0220 documents). The pieces, so the next verb is one pass:
+
+- **The manifest is the source.** `docs/cli-commands.json` lists every command with its risk class, cold start,
+  time bound, options, exit codes and examples. `cmd/filedo/cli-commands.json` is its byte copy for `go:embed`
+  and `filedo_win.exe` embeds the docs file itself (`FileDOGUI.vbproj`); case C1 and the `internal-docs` step
+  hold the copies equal. A new command is a manifest row first.
+- **The front is Go** (`appcmd.go`, `appcmd_pipe_windows.go`): `main()` hands the command line to
+  `appCommandMain` before anything loads; the manifest's verbs are reserved first words and win over a path
+  probe, a batch line that carries one is refused (exit 10), every other first word keeps the target-first
+  grammar. `commands`, `version` and the cold start are answered locally; the rest is forwarded with the raw
+  arguments.
+- **The first instance is VB** (`AppCommands.vb` for the parser, the risk gate and the verbs, `CommandListener.vb`
+  for the pipe `FileDO_Commands_<userSid>_<sessionId>`, `RunSnapshot.vb` for the read-only job list,
+  `SelfTestAppCommands.vb` for the self-test group `appcmd`). One command at a time, the current user only, never
+  the network; busy (11) while a modal window is open, the program is closing, or the window thread does not
+  take the command within 800 ms. The pipe name is a frozen anchor once shipped.
+- **The five developer verbs** (`selftest run`, `help-pages build`, `screens capture`, `menu-icons write`,
+  `ui-drive run`) carry `exe: filedo_win.exe` and their old switches as aliases; the window program starts them
+  from its own command line before it claims the first-instance mutex, never through the pipe, and
+  `filedo.exe` neither reserves nor forwards them.
+- **The one setting** (`ShellCommandsRestricted`, Settings, group *Windows and window positions*) is off until the
+  person turns it on and is written by the Settings page only; every verb that goes through the pipe is `safe`,
+  so the gate refuses nothing yet and `status` reports it.
+- **The documents are renders or follow the manifest.** `docs/CLI.md` is written by `packaging/write-cli-docs.ps1`
+  and never by hand. The commands guide (`docs/guides/commands.html` and its de and fr pages), the README
+  section *Commands for Scripts and Agents* in the five languages, the privacy page's commands item and the
+  Store listing's privacy summary are hand-written; `write-cli-docs.ps1 -Check` fails when a guide page leaves
+  a manifest command out, and a new command is a row in each of the three pages and the five READMEs. The
+  in-app help gains a related link on the Command and Settings pages and the Settings element
+  `setting-commands`; the generated `docs/help` pages regenerate with `filedo_win.exe --build-help docs\help`.
+
 ## Site (`docs/`)
 Hand-authored pages, **generated files** - the pages are edited in place and are not render targets;
 `docs/sitemap.xml` is a render target of `packaging/write-sitemap.ps1` (each lastmod is the page file's last
@@ -833,13 +897,20 @@ commit date) and is never edited by hand; the two share images (`docs/assets/soc
 are in [`docs/README.md`](docs/README.md); adding a public page means running `packaging/write-sitemap.ps1`
 in the same commit (the external-docs gate fails until the sitemap lists the page).
 
-**The download buttons are resolved at runtime, and the release asset names are the contract.** The
-landing page (`docs/index.html`, the install band `#get`) starts every link on `releases/latest` and, when
-GitHub's `releases/latest` API answers, upgrades it to the direct file by asset-name suffix:
-`-setup.exe` (the main button, with its name, size and `.sha256` link), `-windows-x64.zip`,
-`-windows-x64.msi`. So a release never needs a site edit - and renaming an asset in `release.yml` silently
-turns a download button back into a plain link to the Releases page. The installer is **not code-signed**,
-and the landing page, the install guide and every README say so next to the download; if that ever
-changes, those lines change in the same edit. The install band is compact by design: CSS hides
+**The download buttons are rendered from the release manifest and refined at runtime (`PAGE-STYLE` 3.10, `SITE-EXPERIENCE` 0.6).**
+`packaging/set-release-manifest.ps1` reads the published GitHub release (`gh release view`, refusing drafts,
+pre-releases, or missing assets) and writes `packaging/release-manifest.json`.
+`packaging/render-site-release.ps1` renders the release version (`#releaseVersion` / `#releaseTagLink`), release
+date (`#releaseDate`), unhidden `#setupFile` (`#setupName`, `#setupMb`, `#setupHash`), and versioned
+`#heroSetupLink`, `#setupLink`, `#zipLink`, and `#msiLink` into all five landing pages (`docs/index.html`,
+`docs/de/index.html`, `docs/fr/index.html`, `docs/ru/index.html`, `docs/uk/index.html`), while `#releaseLink`
+keeps the durable `releases/latest` URL beside them. The browser `api.github.com` fetch stays only as a
+non-destructive runtime refinement (never overwriting `#releaseLink`). `packaging/check-external-docs.ps1`
+(step `releasemanifest`) holds the manifest to `README.md` Version History (newest or previous release) and
+holds all five landing pages to the manifest; `release.ps1` runs the sync and commits `Sync site to v<stamp>`
+after Store MSIX so `Get-TagSourceDrift` keeps verifying exact tag equality. Renaming an asset in
+`release.yml` breaks manifest capture (`-setup.exe`, `-windows-x64.zip`, `-windows-x64.msi`). The installer is
+**not code-signed**, and the landing page, the install guide and every README say so next to the download; if
+that ever changes, those lines change in the same edit. The install band is compact by design: CSS hides
 `.quickstart`, `.install-example` and any `.note` placed directly in `.install-panel`, so a caveat that
 has to be seen goes inside `.download-block`.

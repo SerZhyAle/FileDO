@@ -69,6 +69,12 @@ func checkComponent(c string) error {
 	return nil
 }
 
+// CheckName is checkComponent for a caller outside the package: it says why one
+// file-name part cannot be created as written on Windows, or returns nil. The
+// backup verb checks a caller-chosen stem with it (CLI-EVENT-STREAM 0.17 item
+// D1), so a stem is held to the rules an archive entry is held to.
+func CheckName(c string) error { return checkComponent(c) }
+
 // cleanName turns a stored entry name into a '/'-separated relative path, or
 // refuses it: an absolute path, a drive letter, a UNC prefix and every
 // component checkComponent refuses.

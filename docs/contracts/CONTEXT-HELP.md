@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CONTEXT-HELP` |
-| **Version** | 0.2, read 2026-10-29 (SP-0174); implemented partial 0.2; SP-0168, SP-0183 and SP-0190 own the rest, draft (no wire - a key, a button, a help map file and a page anatomy) |
+| **Version** | 0.5, read 2026-11-16 (SP-0221); implemented partial 0.5 (SP-0183, SP-0190 item C, SP-0197 shipped in v2611110217; rung 2 wired in `release.ps1` by SP-0227, baseline 37 pages & 7 inherit dialogs, rung 3 walk open), draft (no wire - a key, a button, a help map file and a page anatomy) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`), opted in by the portfolio owner's request of 2026-10-16 (SP-0168) |
 | **Home** | shared contracts catalog, folder `in-app-help/`, document `README.md`, with its three reference artifacts |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
@@ -34,14 +34,15 @@
 **Gates.** `filedo_win.exe --selftest` - the `help:` rows (map against surfaces, baseline, content, resolver,
 key and button agreement, anatomy of every page in every language, text style);
 `packaging/check-help.ps1` - the generated set on disk (pages in every language, links, no request,
-baseline); both are steps of `build.ps1 -Test`.
+baseline) in `build.ps1 -Test` and `-Fast`, and `packaging/check-help.ps1 -Exe` (rung 2 freshness
+check, guarded for an interactive desktop session, exit 2 when absent) in `release.ps1` step 2.
 
-**Status: partial 0.1, 2026-10-21 (SP-0168 slice S1).** Rung 1 holds for the main window's Command, History,
+**Status: partial 0.5, 2026-11-16 (SP-0227).** Rung 1 holds for the main window's Command, History,
 Settings and About pages, the shared job page and the Disk Manager window; the other 32 job pages and five
 Disk Manager dialogs have map rows and fall back, and their key and button are not wired (baseline). Rung 2
-(freshness) and rung 3 (the walk of every surface in every language and theme, by a person or UI
-automation) are open. The Disk Manager's `?` is the trailing end of its toolbar and wraps with the toolbar in
-a narrow window; its older menu (first steps, the help dialog, the links) is on the button's right click -
-the owner's decision O3 is open. Proposal `PROPOSAL-2026-11-10-help-button-opens-page-top.md` filed in
-the catalog domain `in-app-help/` (SP-0197): clarifying rules 2 and 3 so that clicking the `?` button or
-pressing F1 on it opens the top of the surface help page rather than `#e-help`.
+(freshness) is wired into `release.ps1` step 2 via `packaging/check-help.ps1 -Exe` with an interactive
+desktop guard (pending first release execution); rung 3 (the walk of every surface in every language and
+theme, by a person or UI automation) remains open. The Disk Manager's `?` is the trailing end of its toolbar
+and wraps with the toolbar in a narrow window; its older menu (first steps, the help dialog, the links) is
+on the button's right click - the owner's decision O3 is open. Proposal
+`PROPOSAL-2026-11-10-help-button-opens-page-top.md` was adopted into 0.3 item K.

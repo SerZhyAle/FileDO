@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="fr" data-lang="fr" data-page-lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/fr/guides/commands.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/commands.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/commands.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/commands.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/commands.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/fr/guides/commands.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logo et nom FileDO avec la devise anglaise Know your storage before you trust it, sur fond vert foncé" />
+    <meta property="og:title" content="Commandes FileDO pour scripts et agents" />
+    <meta property="og:description" content="Ce qu’un script, une tâche planifiée ou un outil de développement peut demander au FileDO en cours : commandes, codes de sortie et réglage qui les limite." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "Commandes FileDO pour scripts et agents",
+        "headline": "Commandes FileDO pour scripts et agents",
+        "description": "Ce qu’un script, une tâche planifiée ou un outil de développement peut demander au FileDO en cours : commandes, codes de sortie et réglage qui les limite.",
+        "url": "https://serzhyale.github.io/FileDO/fr/guides/commands.html",
+        "inLanguage": ["fr"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>Commandes FileDO pour scripts et agents</title>
+    <meta
+      name="description"
+      content="Ce qu’un script, une tâche planifiée ou un outil de développement peut demander au FileDO en cours : commandes, codes de sortie et réglage qui les limite."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="fr">Aller au contenu</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Langue">
+        <button data-set-lang="ru" data-go="../../guides/commands.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/commands.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/commands.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Changer de thème"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="fr">Thème</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="fr">Installer</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Langues"><a href="../../guides/commands.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/commands.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/commands.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><a href="../../de/guides/commands.html" hreflang="de" lang="de">DE</a><span aria-current="page" lang="fr">FR</span></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker"><span data-l="fr">Guide · scripts et agents</span></p>
+        <h1><span data-l="fr">Demandez quelque chose au FileDO déjà lancé et lisez sa réponse.</span></h1>
+        <p class="lead"><span data-l="fr">Un script, une tâche planifiée, un raccourci ou un outil de développement tape <code>filedo &lt;commande&gt;</code>. Le programme à fenêtre FileDO déjà lancé fait le travail et répond par un code de sortie. Aucune seconde copie ne s’ouvre.</span></p>
+      </section>
+      <section class="section">
+        <h2><span data-l="fr">Les commandes</span></h2>
+        <p class="intro"><span data-l="fr">Dix commandes couvrent ce qu’un script attend de FileDO. La plupart vont au programme à fenêtre en cours d’exécution ; <code>commands</code> et <code>version</code> répondent d’elles-mêmes. Chacune affiche sa réponse et se termine par un code de sortie, sur lequel un script peut se brancher. Toutes sont sûres : elles ne modifient que les fenêtres et les exécutions propres de FileDO et ne lisent aucun de vos fichiers.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="fr">Commande</span></th>
+                <th><span data-l="fr">Ce qu’elle fait</span></th>
+                <th><span data-l="fr">Si FileDO ne tourne pas</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>filedo commands</code></td>
+                <td><span data-l="fr">Liste chaque commande que FileDO accepte ; <code>--json</code> affiche le manifeste lui-même.</span></td>
+                <td><span data-l="fr">Fonctionne quand même ; aucune fenêtre ne s’ouvre.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo version</code></td>
+                <td><span data-l="fr">Affiche le nom du produit, sa version et la version du jeu de commandes.</span></td>
+                <td><span data-l="fr">Fonctionne quand même ; aucune fenêtre ne s’ouvre.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo status</code></td>
+                <td><span data-l="fr">Dit si le programme à fenêtre tourne et est prêt ; indique sa version, son identifiant de processus, ses fenêtres ouvertes et le nombre d’exécutions en cours.</span></td>
+                <td><span data-l="fr">Code 11 : rien ne tourne.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo show</code></td>
+                <td><span data-l="fr">Met la fenêtre principale au premier plan et l’ouvre si le programme tourne sans fenêtre.</span></td>
+                <td><span data-l="fr">Démarre FileDO, puis le lui demande.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo quit</code></td>
+                <td><span data-l="fr">Ferme proprement le FileDO en cours. Une exécution en cours fait refuser la commande (code 11), sauf si <code>--stop-jobs</code> arrête d’abord les exécutions.</span></td>
+                <td><span data-l="fr">Rien à fermer : code 0.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo disk-manager show</code></td>
+                <td><span data-l="fr">Met le Gestionnaire de disques au premier plan et l’ouvre seul quand le programme n’a pas de fenêtre.</span></td>
+                <td><span data-l="fr">Démarre FileDO avec le seul Gestionnaire de disques.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo settings show</code></td>
+                <td><span data-l="fr">Ouvre la page <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Réglages de la fenêtre principale.</span></td>
+                <td><span data-l="fr">Démarre FileDO, puis le lui demande.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo tray start</code></td>
+                <td><span data-l="fr">Démarre FileDO masqué, avec son icône de notification et sans fenêtre.</span></td>
+                <td><span data-l="fr">Le démarre ; une copie déjà en cours reste telle quelle.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo job list</code></td>
+                <td><span data-l="fr">Liste les exécutions en cours et les opérations en file d’attente du Gestionnaire de disques : fenêtre, verbe, état, étape et pourcentage. La réponse ne contient aucun nom de fichier.</span></td>
+                <td><span data-l="fr">Code 11 : rien ne tourne.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo job stop</code></td>
+                <td><span data-l="fr">Demande aux exécutions de s’arrêter en douceur, comme le bouton Arrêter, vide la file du Gestionnaire de disques et attend qu’il n’en reste aucune. <code>--where all|shell|manager</code> choisit la fenêtre.</span></td>
+                <td><span data-l="fr">Rien à arrêter : code 0.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="copybox">
+          filedo status<button class="copy" data-copy="filedo status"><span data-l="fr">Copier</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="fr">Ouvrir un fichier conteneur</span></h2>
+        <p class="intro"><span data-l="fr">Pour ouvrir un disque virtuel <code>.fdd</code> ou un conteneur <code>.fd-sec</code> dans sa propre fenêtre FileDO sans passer la main à une copie déjà lancée, utilisez <code>filedo_win.exe open</code>. Si le conteneur <code>.fdd</code> est déjà monté, l’Explorateur ouvre plutôt son lecteur.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="fr">Commande</span></th>
+                <th><span data-l="fr">Ce qu’elle fait</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>filedo_win.exe open --path &lt;file&gt; [--mode mount|mount-ro|unmount]</code></td>
+                <td><span data-l="fr">Ouvre le conteneur dans sa propre fenêtre (ou ouvre le lecteur monté) et quitte avec 0 à la fermeture, 10 en cas d’erreur d’appel ou 11 si le fichier n’existe pas.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe &lt;file&gt;</code>, <code>--mount</code>, <code>--mount-ro</code>, <code>--unmount</code></td>
+                <td><span data-l="fr">Anciennes écritures conservées pour le double-clic et le menu de l’Explorateur ; elles lancent la même ouverture sans contrat de code de sortie.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="copybox">
+          filedo_win.exe open --path C:\v\work.fdd --mode mount-ro<button class="copy" data-copy="filedo_win.exe open --path C:\v\work.fdd --mode mount-ro"><span data-l="fr">Copier</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="fr">Outils de développement</span></h2>
+        <p class="intro"><span data-l="fr">Les cinq commutateurs que les scripts de build appellent sur le programme à fenêtre sont aussi des commandes, écrites <code>filedo_win.exe &lt;mots&gt;</code>. Elles s’exécutent dans leur propre processus, jamais par une fenêtre en cours d’exécution, et les quatre qui écrivent reçoivent le dossier de destination par <code>--out</code>.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="fr">Commande</span></th>
+                <th><span data-l="fr">Ce qu’elle fait</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>filedo_win.exe selftest run</code></td>
+                <td><span data-l="fr">Lance le contrôle propre du programme à fenêtre et se termine par le code 0 quand toutes les lignes passent.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe help-pages build --out &lt;folder&gt;</code></td>
+                <td><span data-l="fr">Écrit les pages d’aide de la fenêtre et leurs images, dans chaque langue et les deux thèmes.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe screens capture --out &lt;folder&gt;</code></td>
+                <td><span data-l="fr">Produit les captures d’écran des guides à partir des vraies fenêtres.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe menu-icons write --out &lt;folder&gt;</code></td>
+                <td><span data-l="fr">Écrit les icônes du menu de l’Explorateur et affiche chaque fichier écrit.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe ui-drive run --out &lt;folder&gt;</code></td>
+                <td><span data-l="fr">Pilote les vraies fenêtres à l’écran pour la recette visuelle et écrit ses preuves ; vos propres réglages sont ensuite rétablis.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span data-l="fr">Le programme à fenêtre n’a pas de console propre ; lisez son code de sortie en l’attendant :</span></p>
+        <div class="copybox">
+          (Start-Process .\filedo_win.exe -ArgumentList 'selftest run' -Wait -PassThru).ExitCode<button class="copy" data-copy="(Start-Process .\filedo_win.exe -ArgumentList 'selftest run' -Wait -PassThru).ExitCode"><span data-l="fr">Copier</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="fr">Lire la réponse</span></h2>
+        <p class="intro"><span data-l="fr">Une commande affiche une phrase pour une personne. Ajoutez <code>--json</code> pour obtenir à la place une ligne JSON avec <code>status</code>, <code>exitCode</code>, <code>reason</code>, <code>message</code> et, quand la commande renvoie quelque chose, <code>data</code>. Un script doit se brancher sur le code de sortie.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="fr">Code de sortie</span></th>
+                <th><span data-l="fr">Signification</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>0</code></td>
+                <td><span data-l="fr">Terminé.</span></td>
+              </tr>
+              <tr>
+                <td><code>1</code></td>
+                <td><span data-l="fr">La commande s’est exécutée mais l’opération a échoué.</span></td>
+              </tr>
+              <tr>
+                <td><code>2</code></td>
+                <td><span data-l="fr">Non prouvé : le délai est écoulé sans réponse. Le FileDO en cours travaille peut-être encore.</span></td>
+              </tr>
+              <tr>
+                <td><code>10</code></td>
+                <td><span data-l="fr">Appel incorrect : commande, option ou valeur inconnue, option manquante ou requête trop grande.</span></td>
+              </tr>
+              <tr>
+                <td><code>11</code></td>
+                <td><span data-l="fr">Pas prêt : FileDO ne tourne pas ou est occupé - une boîte de dialogue est ouverte, il se ferme ou répond à une autre commande.</span></td>
+              </tr>
+              <tr>
+                <td><code>12</code></td>
+                <td><span data-l="fr">Autorisation : la classe de risque de la commande est désactivée dans les réglages, ou le FileDO en cours est élevé et l’appelant ne l’est pas.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span data-l="fr">Chacune des dix commandes ci-dessus attend sa réponse un temps limité - de 2 secondes pour <code>filedo status</code> à 60 secondes pour <code>filedo job stop</code>. Relancer l’une d’elles après le code 2 est sans risque : chacune laisse le même état qu’une seule exécution.</span></p>
+        <div class="copybox">
+          filedo status<button class="copy" data-copy="filedo status"><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="copybox">
+          (filedo job list --json | ConvertFrom-Json).data.jobs.Count<button class="copy" data-copy="(filedo job list --json | ConvertFrom-Json).data.jobs.Count"><span data-l="fr">Copier</span></button>
+        </div>
+        <div class="copybox">
+          filedo quit --stop-jobs<button class="copy" data-copy="filedo quit --stop-jobs"><span data-l="fr">Copier</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="fr">Ce que d’autres programmes peuvent demander</span></h2>
+        <p class="intro"><span data-l="fr">Chaque commande appartient à l’une de quatre classes de risque. <b>Sûre</b> ne modifie que les fenêtres et les exécutions propres de FileDO. <b>Lit vos données</b> place dans une réponse le contenu de l’écran, le presse-papiers, ou le contenu et les noms de fichiers. <b>Écrit vos données</b> crée, modifie ou supprime vos fichiers ou réglages, ou agit dans un autre programme. <b>Quitte la machine</b> envoie quoi que ce soit hors de cet ordinateur.</span></p>
+        <p><span data-l="fr">Les dix commandes ci-dessus, <code>filedo_win.exe open</code> et <code>filedo_win.exe selftest run</code> sont sûres, donc un FileDO en cours les accepte (ou ouvre le conteneur dans son propre processus) sans aucun réglage. Les quatre outils de développement qui écrivent dans un dossier que vous nommez sont dans la classe <b>écrit vos données</b> : ils s’exécutent dans leur propre processus quand vous les lancez vous-même, et aucun autre programme ne peut les atteindre par la fenêtre en cours d’exécution.</span></p>
+        <div class="note">
+          <span class="tag"><span data-l="fr">Le seul réglage</span></span>
+          <p>
+            <span data-l="fr">Une commande de toute classe autre que sûre est refusée avec le code 12 tant que vous n’activez pas, dans <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Réglages, groupe Windows et position des fenêtres, l’option <b>Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau</b>. Elle est désactivée tant que vous ne l’activez pas, vous seul pouvez l’activer, et aucune commande ne la modifie. <code>filedo status</code> indique si elle est activée.</span>
+          </p>
+        </div>
+        <div class="note">
+          <span class="tag"><span data-l="fr">Même utilisateur, jamais le réseau</span></span>
+          <p>
+            <span data-l="fr">Les commandes passent par un canal local que seul votre propre compte Windows, dans votre propre session, peut atteindre. Rien ne passe par le réseau, et un FileDO lancé en administrateur ne répond qu’aux appelants eux aussi lancés en administrateur (code 12).</span>
+          </p>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="fr">Où un script ou un agent trouve la liste</span></h2>
+        <p><span data-l="fr"><code>filedo commands --json</code> affiche tout le manifeste - chaque commande avec ses options, sa réponse, son risque, ses codes de sortie et ses exemples - depuis la copie installée, sans fenêtre. La même liste est écrite dans <a href="https://github.com/SerZhyAle/FileDO/blob/main/docs/CLI.md">docs/CLI.md</a>.</span></p>
+        <p><span data-l="fr">Pour savoir ce que FileDO fait avant d’agir, préférez <code>filedo status</code>, <code>filedo job list</code> et <code>filedo vd status json</code> à une capture d’écran. Les autres verbes de FileDO - <code>filedo E: info</code>, <code>filedo copy</code>, <code>filedo vd mount</code> et tout ce qu’affiche <code>filedo -?</code> - sont des programmes distincts, avec leurs propres classes de sortie ; le <a href="quick-start.html">démarrage rapide</a> les liste.</span></p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="fr">Liens du site</span></span><a href="index.html"><span data-l="fr">Guides</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="fr">Assistance</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        fr: {
+          title: "Commandes FileDO pour scripts et agents",
+          description:
+            "Ce qu’un script, une tâche planifiée ou un outil de développement peut demander au FileDO en cours : commandes, codes de sortie et réglage qui les limite.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.settings" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
+  </body>
+</html>

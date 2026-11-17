@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-BEHAVIOUR` |
-| **Version** | 0.14, read 2026-10-29 (SP-0174); implemented 0.14 - the standing-consent log line of a logon mount is implemented and proven live 2026-11-11 (SP-0188), draft (no wire - the twelve moments a user of any SZA desktop app meets) |
+| **Version** | 0.15, read 2026-11-16 (SP-0221); implemented 0.15 - SP-0188 logon-mount log shipped in v2611110217, draft (no wire - the twelve moments a user of any SZA desktop app meets) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-BEHAVIOUR.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |

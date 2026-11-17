@@ -15,8 +15,9 @@
 #    1. preflight  - tools present, gh authed, on main, tree clean (nothing outside
 #                    exe_to_download\), the stamp a real date newer than every v* tag,
 #                    the MSI version newer than the last published one, winget anchors intact
-#    2. gate       - build.ps1 -Test, the full fdsec run, govulncheck, and the operations run
-#                    (every verb on small data, timed and checked) - fail fast BEFORE tagging
+#    2. gate       - build.ps1 -Test, the full fdsec run, govulncheck, the operations run
+#                    (every verb on small data, timed and checked), and the in-app help
+#                    freshness check (check-help.ps1 -Exe) - fail fast BEFORE tagging
 #    3. commit     - commit exe_to_download\ - and nothing else - if the build changed it
 #    4. push       - push main, then create + push tag v<version>  <-- triggers CI
 #    5. wait       - poll until the GitHub Release + all six assets exist
@@ -24,7 +25,9 @@
 #    7. submit     - wingetcreate submit -> PR to microsoft/winget-pkgs
 #    8. store      - build the MSIX for Microsoft Store (upload stays manual), only from
 #                    sources equal to the tag (HEAD = tag outside winget\, tree clean)
-#    9. checklist  - print what is done, what failed and why, and the manual step left
+#    9. site       - write packaging\release-manifest.json from the published release,
+#                    render the five landing pages, check external-docs, commit, push
+#   10. checklist  - print what is done, what failed and why, and the manual step left
 #
 #  Usage (from the repo root):
 #    .\release.ps1                 # full release with version = now (yyMMddHHmm)
@@ -53,6 +56,12 @@
 #  refuses and says so. The package is pinned to this release's stamp, so the exe inside
 #  prints the tag's version.
 #    .\release.ps1 -StoreIdentityName "..." [-StorePublisher "CN=..."] [-StorePublisherDisplayName "..."]
+#
+#  Store preflight (before the tag; not with -SkipStore or -Resume): one read-only look at the live
+#  submission through the sza plugin's shared Store-Preflight.ps1 (WINDOWS-STORE 0.4 section D). A
+#  refusal stops the release before the tag; an unavailable channel prints one manual line and the
+#  release goes on. -StoreCredentialExpiry yyyy-MM-dd (the owner's expiry list) adds the expiry check.
+#  Not tested there: rule 22, rule 23 (c), (e) and (f). Evidence: temp\evidence\store-preflight.log.
 # ============================================================================
 [CmdletBinding()]
 param(
@@ -71,6 +80,9 @@ param(
     [string]$StoreIdentityName,
     [string]$StorePublisher,
     [string]$StorePublisherDisplayName,
+    # The credential's expiry date from the owner's list (yyyy-MM-dd). Without it the Store
+    # preflight does not check the expiry.
+    [string]$StoreCredentialExpiry,
     # Also install the synced manifest on this machine, run a portable shim and uninstall it
     # (packaging\check-winget-manifests.ps1 -Install). Off by default: it proves the zip layout
     # is real, but it writes into the operator's own profile.
@@ -89,6 +101,7 @@ $repo = "SerZhyAle/FileDO"
 $script:inPreflight = $true
 $storeFailure = $null
 $wingetFailure = $null
+$siteFailure = $null
 if ($Resume -and -not $Version) {
     Write-Host "release-preflight: COULD NOT VERIFY (-Resume needs -Version <stamp> - the tag it resumes)" -ForegroundColor Yellow
     exit 2
@@ -142,6 +155,86 @@ function Get-InstallerVersion([datetime]$when) {
     [version]("{0}.{1}.{2}" -f ($when.Year % 100), $when.Month, (($when.Day - 1) * 1440 + $when.Hour * 60 + $when.Minute))
 }
 
+# Shared sza plugin tool lookup: prefers $env:CLAUDE_PLUGIN_ROOT, then the newest cached sza
+# plugin copy under ~/.claude/plugins/cache. $null when none is installed.
+function Get-SzaPluginTool([string]$relativePath) {
+    if ($env:CLAUDE_PLUGIN_ROOT) {
+        $inEnv = Join-Path $env:CLAUDE_PLUGIN_ROOT $relativePath
+        if (Test-Path -LiteralPath $inEnv) { return $inEnv }
+    }
+    $cache = Join-Path $env:USERPROFILE '.claude\plugins\cache\sza-unified-rules\sza'
+    $newest = Get-ChildItem -LiteralPath $cache -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^\d+(\.\d+)+$' } |
+        Sort-Object { [version]$_.Name } | Select-Object -Last 1
+    if (-not $newest) { return $null }
+    $found = Join-Path $newest.FullName $relativePath
+    if (Test-Path -LiteralPath $found) { return $found }
+    return $null
+}
+
+# Store preflight: the sza plugin's shared read-only check (WINDOWS-STORE 0.4 section D). This finds
+# the newest installed copy and does not duplicate the check. $null when none is installed.
+function Get-StorePreflightScript {
+    return (Get-SzaPluginTool 'tools\Store-Preflight.ps1')
+}
+
+# Contract catch-up preflight (CONTRACTS section 6 item 6): first step of every release (when not
+# -Resume). Fails closed (exit 2) when the sza plugin contract tools or catalog are unreachable, and
+# blocks (exit 1) when any FileDO row is behind, pending, unparsed, ahead, partial without an active
+# Section 3 dated reason/migration row, or flagged with a FileDO error by check-contracts.ps1.
+function Invoke-ContractCatchupPreflight {
+    $lagTool = Get-SzaPluginTool 'tools\contract-lag.ps1'
+    $checkTool = Get-SzaPluginTool 'tools\check-contracts.ps1'
+    if (-not $lagTool -or -not $checkTool) {
+        Fail "contract catch-up preflight could not find tools\contract-lag.ps1 or tools\check-contracts.ps1 in the installed sza plugin - nothing tagged." 2
+    }
+    $lagArgs = @('-NoProfile', '-File', $lagTool, '-Product', 'FileDO', '-Json')
+    if ($env:SZA_CONTRACTS_ROOT) { $lagArgs += @('-CatalogRoot', $env:SZA_CONTRACTS_ROOT) }
+    $lagRaw = (& pwsh @lagArgs 2>&1 | Out-String)
+    if ($LASTEXITCODE -ne 0) {
+        Fail "contract-lag preflight could not read FileDO rows (exit $LASTEXITCODE): $lagRaw" 2
+    }
+    try { $lag = $lagRaw | ConvertFrom-Json } catch {
+        Fail "contract-lag preflight returned invalid JSON: $($_.Exception.Message)" 2
+    }
+    $catalogPath = [string]$lag.catalog
+    if (-not $catalogPath -or -not (Test-Path -LiteralPath (Join-Path $catalogPath '_meta\REGISTRY.md'))) {
+        Fail "contract catch-up preflight could not reach the catalog registry from '$catalogPath' - nothing tagged." 2
+    }
+    $regLines = Get-Content -LiteralPath (Join-Path $catalogPath '_meta\REGISTRY.md')
+    $sec3Idx = ($regLines | Select-String -Pattern '^##\s+3\.\s+' | Select-Object -First 1).LineNumber
+    if (-not $sec3Idx) { $sec3Idx = 900 }
+    $activeSec3 = @($regLines | Select-Object -Skip ($sec3Idx - 1) | Where-Object {
+        $_ -match '^\|' -and $_ -match '\bFileDO\b' -and $_ -notmatch '\|\s*closed\s*\|\s*$' -and $_ -notmatch '\|\s*closed\s*$'
+    })
+    $badLag = @()
+    foreach ($r in @($lag.rows)) {
+        if ($r.state -in @('behind', 'pending', 'unparsed', 'ahead')) {
+            $badLag += "$($r.contract) ($($r.product)): $($r.state) (synced $($r.synced) vs current $($r.current))"
+        } elseif ([string]$r.verified -eq 'pending') {
+            $badLag += "$($r.contract) ($($r.product)): verified=pending"
+        } elseif ($r.state -eq 'partial') {
+            $cPattern = "\b$([regex]::Escape([string]$r.contract))\b"
+            if (-not ($activeSec3 | Where-Object { $_ -match $cPattern })) {
+                $badLag += "$($r.contract) ($($r.product)): partial without an active dated reason in REGISTRY section 3"
+            }
+        }
+    }
+    $checkOut = @(& pwsh -NoProfile -File $checkTool -CatalogRoot $catalogPath 2>&1)
+    $filedoErrors = @($checkOut | Where-Object { "$_" -match '^\s*error\b' -and "$_" -match '\bFileDO\b' } | ForEach-Object { "$_" })
+    if ($badLag.Count -gt 0 -or $filedoErrors.Count -gt 0) {
+        $reasons = @($badLag) + @($filedoErrors)
+        $reasons | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+        Fail "contract catch-up preflight blocked the release ($($reasons.Count) FileDO row issue(s); sync against the catalog first) - nothing tagged." 1
+    }
+    Write-Host "  contracts: PASS ($($lag.rows.Count) FileDO rows; current $($lag.counts.current), partial $($lag.counts.partial) with dated reasons, 0 behind/pending/unparsed/errors)"
+}
+
+# The four-part MSIX version build-msix.ps1 stamps for a release stamp (its storeVer): yy.MMdd.HHmm.0.
+function Get-StoreVersion([datetime]$when) {
+    "{0}.{1}.{2}.0" -f ($when.Year % 100), ($when.Month * 100 + $when.Day), ($when.Hour * 100 + $when.Minute)
+}
+
 # Get-MsiProductVersion: the ProductVersion a published MSI really carries, read from its Property
 # table. Read, not derived: the tags before PKG-01 used another mapping, and the arithmetic is exactly
 # what this comparison must not have to trust. It lives in the one helper build.ps1 also uses to read
@@ -182,7 +275,11 @@ function Get-TagSourceDrift([string]$tagName) {
 # ---------------------------------------------------------------------------
 # 1. Preflight
 # ---------------------------------------------------------------------------
-Step "1/9 Preflight$(if ($Resume) { ' (-Resume)' })"
+Step "1/10 Preflight$(if ($Resume) { ' (-Resume)' })"
+
+if (-not $Resume) {
+    Invoke-ContractCatchupPreflight
+}
 
 foreach ($t in @('git','gh','go')) {
     if (-not (Get-Command $t -ErrorAction SilentlyContinue)) { Fail "$t not found on PATH." 2 }
@@ -192,6 +289,16 @@ if (-not $SkipWinget -and -not (Get-Command wingetcreate -ErrorAction SilentlyCo
 }
 if (-not $Resume -and -not (Get-Command govulncheck -ErrorAction SilentlyContinue)) {
     Fail "govulncheck not found. Install: go install golang.org/x/vuln/cmd/govulncheck@v1.8.0" 2
+}
+
+function Test-InteractiveDesktop {
+    if (-not [Environment]::UserInteractive) { return $false }
+    try { return ((Get-Process -Id $PID).SessionId -ne 0) }
+    catch { return $false }
+}
+
+if (-not $Resume -and -not (Test-InteractiveDesktop)) {
+    Fail "an interactive desktop session is required for the pre-release in-app help freshness check (packaging\check-help.ps1 -Exe). Nothing tagged." 2
 }
 
 gh auth status 2>&1 | Out-Null
@@ -285,6 +392,44 @@ try {
         }
     }
 
+    # Store preflight (WINDOWS-STORE 0.4 section D): one read-only look at the live submission before the
+    # tag. Refused (exit 1) stops the release here with nothing tagged. Channel unavailable (exit 2) prints
+    # one manual line and the release goes on (rule 21). Not tested here: rule 22, rule 23 (c), (e), (f).
+    if (-not $SkipStore -and -not $Resume) {
+        $storeVer = Get-StoreVersion $stampDate
+        $storeIdentityFile = Join-Path $root 'msix\identity.json'
+        $storeScript = Get-StorePreflightScript
+        $storeRecord = [ordered]@{ release = $Version; packageVersion = $storeVer; listingPath = 'csv' }
+        if ($storeScript) {
+            $storeArgs = @('-NoProfile', '-File', $storeScript, '-ProductName', 'FileDO', '-PackageVersion', $storeVer,
+                '-IdentityFile', $storeIdentityFile, '-Json')
+            if ($StoreCredentialExpiry) { $storeArgs += @('-CredentialExpiry', $StoreCredentialExpiry) }
+            $storeOut = @(& pwsh @storeArgs)
+            $storeCode = $LASTEXITCODE
+            $storeJson = @($storeOut | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1
+            if (-not $storeJson) { Fail "the Store preflight printed no evidence (exit $storeCode) - nothing tagged." 1 }
+            if (Test-Path -LiteralPath $storeIdentityFile) {
+                $storeIdentity = Get-Content -LiteralPath $storeIdentityFile -Raw | ConvertFrom-Json
+                if ($storeIdentity.PSObject.Properties['StoreId']) { $storeRecord['storeId'] = [string]$storeIdentity.StoreId }
+            }
+            foreach ($p in ($storeJson | ConvertFrom-Json).PSObject.Properties) { $storeRecord[$p.Name] = $p.Value }
+        } else {
+            $storeCode = 2
+            $storeRecord['mode'] = 'manual'
+            $storeRecord['reason'] = 'the shared Store preflight is not installed'
+        }
+        $storeLogDir = Join-Path $root 'temp\evidence'
+        New-Item -ItemType Directory -Force -Path $storeLogDir | Out-Null
+        Add-Content -LiteralPath (Join-Path $storeLogDir 'store-preflight.log') -Value (ConvertTo-Json $storeRecord -Compress) -Encoding UTF8
+        if ($storeCode -eq 2) {
+            Write-Host "  Store   : manual - the Store channel is unavailable; the Store step is yours (temp\evidence\store-preflight.log). The release goes on." -ForegroundColor Yellow
+        } elseif ($storeCode -ne 0) {
+            Fail "the Store preflight refused this run ($($storeRecord['refusal'])) - nothing tagged. Evidence: temp\evidence\store-preflight.log" 1
+        } else {
+            Write-Host "  Store   : preflight passed (submission $($storeRecord['submission']), pricing $($storeRecord['pricing']))."
+        }
+    }
+
     # The frozen anchors of the winget manifests, read before anything irreversible happens.
     # Step 6 re-runs these against the SYNCED manifests, but a broken PackageIdentifier or a
     # renamed PortableCommandAlias is already broken here, and here there is still no tag.
@@ -298,13 +443,13 @@ try {
     if ($Resume) {
         Write-Host "release-preflight ${Version}: PASS (resume)" -ForegroundColor Green
         $script:inPreflight = $false
-        Step "2-4/9 Gate, commit, push"
+        Step "2-4/10 Gate, commit, push"
         Write-Host "  skipped (-Resume: $tag is already on origin)."
     } else {
     # -----------------------------------------------------------------------
     # 2. Build + test gate (fail BEFORE we tag anything)
     # -----------------------------------------------------------------------
-    Step "2/9 Build + test gate"
+    Step "2/10 Build + test gate"
     # build.ps1 builds the installer on any plain run; -Msi is what makes a
     # missing WiX exit 2 instead of a printed skip. For a release that
     # distinction matters: the installer is what most users actually get, and a
@@ -376,6 +521,19 @@ try {
     $opsCode = $LASTEXITCODE
     if ($opsCode -ne 0) { Fail "the operations run did not pass (a wrong result, or its comparison with the last passing runs; an intended change is accepted with -OpsRebaseline). Nothing tagged." $opsCode }
 
+    # CONTEXT-HELP 0.5 section 7 item D rung 2: regenerate the in-app help set from the freshly built
+    # filedo_win.exe and compare it with docs\help\. Needs an interactive desktop session.
+    if (-not (Test-InteractiveDesktop)) {
+        Fail "in-app help freshness check (packaging\check-help.ps1 -Exe) requires an interactive desktop session. Nothing tagged." 2
+    }
+    $guiExe = Join-Path $root 'exe_to_download\filedo_win.exe'
+    Write-Host "in-app help freshness (packaging\check-help.ps1 -Exe) ..."
+    & pwsh -NoProfile -File "$root\packaging\check-help.ps1" -Exe $guiExe
+    $helpFreshCode = $LASTEXITCODE
+    if ($helpFreshCode -ne 0) {
+        Fail "in-app help freshness check did not pass (regenerate docs\help with filedo_win.exe --build-help if the UI or strings changed). Nothing tagged." $helpFreshCode
+    }
+
     # The gate built from the tree the preflight saw. Anything it changed outside
     # exe_to_download\ would make the tagged commit differ from what was tested.
     $dirtyAfter = @(Get-DirtyOutside @('exe_to_download'))
@@ -389,7 +547,7 @@ try {
     # -----------------------------------------------------------------------
     # 3. Commit refreshed artifacts (binaries are tracked in exe_to_download\)
     # -----------------------------------------------------------------------
-    Step "3/9 Commit"
+    Step "3/10 Commit"
     # REL-01: exe_to_download\ and nothing else. A dry run does not touch the index at all.
     if ($DryRun) {
         $wouldCommit = @(Invoke-Checked 'git status' { git status --porcelain --untracked-files=all -- exe_to_download } 2)
@@ -413,7 +571,7 @@ try {
     # -----------------------------------------------------------------------
     # 4. Push main + tag  (the tag push is what triggers release.yml)
     # -----------------------------------------------------------------------
-    Step "4/9 Push main + tag"
+    Step "4/10 Push main + tag"
     if ($DryRun) {
         Write-Host "  [dry-run] would: git push origin main" -ForegroundColor Yellow
         Write-Host "  [dry-run] would: git tag $tag; git push origin $tag" -ForegroundColor Yellow
@@ -430,7 +588,7 @@ try {
     # -----------------------------------------------------------------------
     # 5. Wait for the Release + assets to appear
     # -----------------------------------------------------------------------
-    Step "5/9 Wait for GitHub Release"
+    Step "5/10 Wait for GitHub Release"
     $zipName = "FileDO-$Version-windows-x64.zip"
     $deadline = (Get-Date).AddMinutes($WaitMinutes)
     $ready = $false
@@ -452,7 +610,7 @@ try {
     Write-Host "  Release $tag is live with all $($assetNames.Count) assets."
     if ($DryRun) {
         # Only a resumed dry run gets here; the release exists, and nothing below is read-only.
-        Write-Host "  [dry-run] would: sync + check winget\, commit, push, wingetcreate submit, build the MSIX" -ForegroundColor Yellow
+        Write-Host "  [dry-run] would: sync + check winget\, commit, push, wingetcreate submit, build the MSIX, sync site release manifest" -ForegroundColor Yellow
         Write-Host "Dry run complete." -ForegroundColor Yellow
         exit 0
     }
@@ -463,7 +621,7 @@ try {
     # From here on the tag is public. A failing channel is recorded and reported, never
     # silently passed over, and never allowed to stop the channels after it (REL-03).
     if (-not $SkipWinget) {
-        Step "6/9 Sync winget manifests"
+        Step "6/10 Sync winget manifests"
         $tmp = Join-Path $env:TEMP "filedo-rel-$Version"
         New-Item -ItemType Directory -Force -Path $tmp | Out-Null
         $wd = Join-Path $root "winget"
@@ -539,7 +697,7 @@ try {
         # -------------------------------------------------------------------
         # 7. Submit PR to microsoft/winget-pkgs
         # -------------------------------------------------------------------
-        Step "7/9 winget submit"
+        Step "7/10 winget submit"
         if ($wingetFailure) {
             Write-Host "  not submitted: $wingetFailure" -ForegroundColor Yellow
         } else {
@@ -575,14 +733,14 @@ try {
         }
         if ($wingetFailure) { Write-Host "  winget FAILED: $wingetFailure" -ForegroundColor Red }
     } else {
-        Step "6-7/9 winget"; Write-Host "  skipped (-SkipWinget)."
+        Step "6-7/10 winget"; Write-Host "  skipped (-SkipWinget)."
     }
 
     # -----------------------------------------------------------------------
-    # 8. Microsoft Store (MSIX build; upload is manual - no Partner Center CLI)
+    # 8. Microsoft Store (MSIX build; the upload and the submission stay manual - no write call through the Store API or msstore)
     # -----------------------------------------------------------------------
     if (-not $SkipStore) {
-        Step "8/9 Store MSIX"
+        Step "8/10 Store MSIX"
         # Pinned to this release's stamp (the tag without the v), so the exe inside the package
         # prints the version the release carries. build-msix.ps1 refuses without a reserved
         # identity; by now the tag is out, so a refusal is recorded and reported, not fatal here.
@@ -609,18 +767,77 @@ try {
             }
         }
     } else {
-        Step "8/9 Store MSIX"; Write-Host "  skipped (-SkipStore)."
+        Step "8/10 Store MSIX"; Write-Host "  skipped (-SkipStore)."
     }
 
     # -----------------------------------------------------------------------
-    # 9. Final checklist
+    # 9. Sync site release manifest + landing pages (PAGE-STYLE 3.10)
     # -----------------------------------------------------------------------
-    Step "9/9 Done"
+    # Runs after Store MSIX so Get-TagSourceDrift keeps verifying exact tag equality
+    # outside winget\. Updates packaging\release-manifest.json and the five landing
+    # pages, verifies external-docs, commits, and pushes main (REL-03 on failure).
+    Step "9/10 Sync site release manifest"
+    $siteFiles = @(
+        'packaging/release-manifest.json',
+        'docs/index.html',
+        'docs/de/index.html',
+        'docs/fr/index.html',
+        'docs/ru/index.html',
+        'docs/uk/index.html'
+    )
+    $manifestCode = Invoke-Native { pwsh -NoProfile -File "$root\packaging\set-release-manifest.ps1" -Tag $tag }
+    if ($manifestCode -ne 0) {
+        $siteFailure = "set-release-manifest.ps1 failed (exit $manifestCode)"
+    }
+    if (-not $siteFailure) {
+        $renderCode = Invoke-Native { pwsh -NoProfile -File "$root\packaging\render-site-release.ps1" }
+        if ($renderCode -ne 0) {
+            $siteFailure = "render-site-release.ps1 failed (exit $renderCode)"
+        }
+    }
+    if (-not $siteFailure) {
+        $extCode = Invoke-Native { pwsh -NoProfile -File "$root\packaging\check-external-docs.ps1" }
+        if ($extCode -ne 0) {
+            $siteFailure = "check-external-docs.ps1 failed after site render (exit $extCode)"
+        }
+    }
+    if (-not $siteFailure) {
+        $addSiteCode = Invoke-Native { git add -- @siteFiles }
+        if ($addSiteCode -ne 0) { $siteFailure = "git add site release files failed (exit $addSiteCode)" }
+    }
+    if (-not $siteFailure) {
+        $stagedSite = @(git diff --cached --name-only -- @siteFiles)
+        if ($LASTEXITCODE -ne 0) {
+            $siteFailure = "git diff --cached failed (exit $LASTEXITCODE)"
+        } elseif ($stagedSite.Count) {
+            $commitSiteCode = Invoke-Native { git commit -m "Sync site to $tag" }
+            if ($commitSiteCode -ne 0) {
+                $siteFailure = "git commit of site release files failed (exit $commitSiteCode)"
+            } else {
+                $pushSiteCode = Invoke-Native { git push origin main }
+                if ($pushSiteCode -ne 0) {
+                    $siteFailure = "git push origin main for site failed (exit $pushSiteCode) - run: git pull --rebase origin main, then push"
+                } else {
+                    Write-Host "  site manifest and landing pages synced and pushed."
+                }
+            }
+        } else {
+            Write-Host "  site manifest and landing pages already carry $tag."
+        }
+    }
+    if ($siteFailure) { Write-Host "  site FAILED: $siteFailure" -ForegroundColor Red }
+
+    # -----------------------------------------------------------------------
+    # 10. Final checklist
+    # -----------------------------------------------------------------------
+    Step "10/10 Done"
     $wTxt = if ($SkipWinget) { "skipped" } elseif ($wingetFailure) { "FAILED - $wingetFailure" } else { "synced + PR submitted" }
     $sTxt = if ($SkipStore) { "skipped" } elseif ($storeFailure) { "NOT BUILT - $storeFailure" } else { "built into msix\out\ (unsigned, stamp $Version)" }
+    $siteTxt = if ($siteFailure) { "FAILED - $siteFailure" } else { "manifest + 5 landing pages synced to $tag" }
     Write-Host "  [x] GitHub Release : https://github.com/$repo/releases/tag/$tag"
     Write-Host "  [$(if ($wingetFailure -or $SkipWinget) { ' ' } else { 'x' })] winget/ : $wTxt"
     Write-Host "  [$(if ($storeFailure -or $SkipStore) { ' ' } else { 'x' })] Store MSIX : $sTxt"
+    Write-Host "  [$(if ($siteFailure) { ' ' } else { 'x' })] site   : $siteTxt"
     Write-Host ""
     if ($wingetFailure) {
         Write-Host "  RECOVER winget (the tag and the GitHub Release stand; do not cut a new version):" -ForegroundColor Yellow
@@ -632,8 +849,11 @@ try {
         Write-Host "    (it refuses unless: git diff --quiet $tag HEAD -- . ':!winget' and no change outside winget\;" -ForegroundColor Yellow
         Write-Host "     if main has moved on: git worktree add ..\FileDO-$tag $tag, and run it there)" -ForegroundColor Yellow
     }
+    if ($siteFailure) {
+        Write-Host "  RECOVER site: .\packaging\set-release-manifest.ps1 -Tag $tag; .\packaging\render-site-release.ps1; .\packaging\check-external-docs.ps1" -ForegroundColor Yellow
+    }
     if (-not $SkipStore -and -not $storeFailure) {
-        Write-Host "  MANUAL (no CLI exists), in this order - msix\README.md sections 4-6:" -ForegroundColor Yellow
+        Write-Host "  MANUAL (the upload and the submission are yours; nothing writes to the Store for you), in this order - msix\README.md sections 4-6:" -ForegroundColor Yellow
         Write-Host "    1. Partner Center > Create new submission > Packages: upload msix\out\FileDO_*.msix" -ForegroundColor Yellow
         Write-Host "    2. Store listings: export, .\msix\build-store-listing-csv.ps1 -Refresh ReleaseNotes, import msix\out\store-import" -ForegroundColor Yellow
         Write-Host "       (ReleaseNotes come from msix\listing\<code>.txt: write this release's notes there first)" -ForegroundColor Yellow
@@ -643,6 +863,7 @@ try {
     $failedChannels = @()
     if ($wingetFailure) { $failedChannels += 'winget' }
     if ($storeFailure)  { $failedChannels += 'Store MSIX' }
+    if ($siteFailure)   { $failedChannels += 'site' }
     if ($failedChannels.Count) {
         Write-Host "release ${Version}: FAIL (published to GitHub; not completed: $($failedChannels -join ', '))" -ForegroundColor Red
         exit 1

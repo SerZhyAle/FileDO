@@ -89,6 +89,9 @@
     <Compile Include="SettingsView.vb">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="OperationStrings.vb" />
+    <Compile Include="OperationGuide.vb" />
+    <Compile Include="OperationGuideView.vb" />
     <Compile Include="WindowsAutoPlay.vb" />
     <Compile Include="ArgQuotingTests.vb" />
     <Compile Include="EventStream.vb" />
@@ -100,6 +103,8 @@
     <Compile Include="SelfTestSettingsFollow.vb" />
     <Compile Include="SelfTestResultNumbers.vb" />
     <Compile Include="SelfTestRunExplanation.vb" />
+    <Compile Include="SelfTestOperationGuide.vb" />
+    <Compile Include="SelfTestInputMemory.vb" />
     <Compile Include="DiagnosticText.vb" />
     <Compile Include="CheckOptions.vb">
       <SubType>UserControl</SubType>
@@ -125,6 +130,10 @@
     <Compile Include="DiskHelp.vb" />
     <Compile Include="PaneCycle.vb" />
     <Compile Include="AppHost.vb" />
+    <Compile Include="AppCommands.vb" />
+    <Compile Include="RunSnapshot.vb" />
+    <Compile Include="CommandListener.vb" />
+    <Compile Include="SelfTestAppCommands.vb" />
     <Compile Include="DiskPanel.vb">
       <SubType>UserControl</SubType>
     </Compile>
@@ -209,6 +218,12 @@
     <EmbeddedResource Include="..\cmd\filedo\testdata\vdstatus\golden.json">
       <Link>testdata\vdstatus\golden.json</Link>
       <LogicalName>FileDOGUI.vdstatus.golden.json</LogicalName>
+    </EmbeddedResource>
+    <!-- The command manifest (APP-COMMANDS rule 18) as it ships: AppCommands.vb reads the verbs, the
+         risk classes and the bounds from it, and filedo.exe embeds the same bytes (case C1). -->
+    <EmbeddedResource Include="..\docs\cli-commands.json">
+      <Link>docs\cli-commands.json</Link>
+      <LogicalName>FileDOGUI.cli-commands.json</LogicalName>
     </EmbeddedResource>
     <!-- The vocabulary glyphs the shell draws and the shared palette its state colours are held to,
          vendored from the iconography catalog by assets\sync-icon-glyphs.ps1 with the SHA-256 of

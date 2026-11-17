@@ -65,7 +65,7 @@ $glyphIds = @(
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
     'nav.close', 'nav.collapse', 'nav.expand', 'nav.go-to', 'nav.more', 'nav.open-external',
     'status.error', 'status.not-proven', 'status.ok', 'status.stopped', 'status.warning',
-    'system.storage'
+    'system.storage', 'view.table'
 )
 $dataFiles = @('palette.json')
 

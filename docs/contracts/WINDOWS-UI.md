@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `WINDOWS-UI` |
-| **Version** | 0.11, read 2026-10-29 (SP-0174); implemented partial 0.11; acceptance is SP-0169's, draft (no wire - observable Windows UI and UX) |
+| **Version** | 0.12, read 2026-11-16 (SP-0221); implemented partial 0.12 (section 17 N/A; 29-flag show cost and SP-0169 section 15 timings open), draft (no wire - observable Windows UI and UX) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`), opted in by the portfolio decision of 2026-10-05 |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `WINDOWS-UI.md` |
 | **Owner** | Fast Media Sorter & Sharing for Windows (portfolio owner decision). An amendment is proposed in the catalog, not decided here |

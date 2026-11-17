@@ -64,6 +64,16 @@ Module ShellSettings
     Public Sub SetMinimizeToTray(value As Boolean)
         WriteValue("ShellMinimizeToTray", If(value, 1, 0))
     End Sub
+    ' APP-COMMANDS rule 13: the one setting that lets other programs ask for commands that work with the
+    ' person's files, screen, clipboard or the network. Off until the person turns it on; the Settings page
+    ' is the only writer, and no command changes it.
+    Public Function AcceptsRestrictedCommands() As Boolean
+        Dim v = ReadValue("ShellCommandsRestricted")
+        Return TypeOf v Is Integer AndAlso CInt(v) = 1
+    End Function
+    Public Sub SetAcceptsRestrictedCommands(value As Boolean)
+        WriteValue("ShellCommandsRestricted", If(value, 1, 0))
+    End Sub
     Public Function FinishNotification() As Boolean
         Dim v = ReadValue("ShellFinishNotification")
         Return Not TypeOf v Is Integer OrElse CInt(v) <> 0
@@ -325,6 +335,98 @@ Module ShellSettings
 
     Public Sub SetDiskManagerWelcomed(shown As Boolean)
         WriteValue("DiskManagerWelcomed", If(shown, 1, 0))
+    End Sub
+
+    ' ---- remembered input (the Command and job pages) --------------------------
+
+    ' What the pages keep between sessions: the folders and files the person picked or ran on (two lists, by
+    ' role), the command lines they ran, and where the Command page was left (operation, target, destination).
+    ' It is the person's own text in their own registry key, never a credential: a line that names a literal
+    ' password is not remembered, nothing is remembered from a run kept out of history (nohist) or while run
+    ' history is off, and Forget recent empties every list. Flags are never remembered - a flag decides what
+    ' a run does to files, so it is chosen again for each run.
+    Friend Const RememberedLimit As Integer = 12
+    Friend Const TargetRole As String = "target"
+    Friend Const DestinationRole As String = "dest"
+
+    Private Function ReadList(name As String) As List(Of String)
+        Dim out As New List(Of String)
+        Dim values = TryCast(ReadValue(name), String())
+        If values Is Nothing Then Return out
+        For Each s In values
+            Dim t = If(s, "").Trim()
+            If t = "" Then Continue For
+            If out.Any(Function(x) String.Equals(x, t, StringComparison.OrdinalIgnoreCase)) Then Continue For
+            out.Add(t)
+            If out.Count >= RememberedLimit Then Exit For
+        Next
+        Return out
+    End Function
+
+    ' The newest entry goes first and a repeat moves up instead of being listed twice. An entry that is empty,
+    ' very long or spans lines is not a path or a command line, and a registry multi-string cannot hold it.
+    Private Sub PushToList(name As String, value As String)
+        Dim v = If(value, "").Trim()
+        If v = "" OrElse v.Length > 2000 Then Return
+        If v.IndexOfAny(New Char() {ControlChars.Cr, ControlChars.Lf, ControlChars.NullChar}) >= 0 Then Return
+        Dim list = ReadList(name)
+        list.RemoveAll(Function(x) String.Equals(x, v, StringComparison.OrdinalIgnoreCase))
+        list.Insert(0, v)
+        If list.Count > RememberedLimit Then list.RemoveRange(RememberedLimit, list.Count - RememberedLimit)
+        WriteValue(name, list.ToArray())
+    End Sub
+
+    ' Whether what a run was given may be remembered: not while run history is off, and not for a line that
+    ' is kept out of history or carries a literal password.
+    Friend Function MayRemember(args As IEnumerable(Of String)) As Boolean
+        If Not HistoryEnabled() Then Return False
+        If args Is Nothing Then Return False
+        For Each a In args
+            If a Is Nothing Then Continue For
+            If Runner.IsCredentialToken(a) Then Return False
+            If String.Equals(a, "nohist", StringComparison.OrdinalIgnoreCase) OrElse
+               String.Equals(a, "no_history", StringComparison.OrdinalIgnoreCase) Then Return False
+        Next
+        Return True
+    End Function
+
+    Public Function RecentPaths(role As String) As List(Of String)
+        Return ReadList("Recent_" & role)
+    End Function
+
+    Public Sub RememberPath(role As String, path As String)
+        If Not HistoryEnabled() Then Return
+        PushToList("Recent_" & role, path)
+    End Sub
+
+    Public Function RecentCommands() As List(Of String)
+        Return ReadList("RecentCommands")
+    End Function
+
+    Public Sub RememberCommand(line As String)
+        PushToList("RecentCommands", line)
+    End Sub
+
+    ' Where the Command page was left: field is "Op", "Target" or "Dest".
+    Public Function CommandPageState(field As String) As String
+        Return If(TryCast(ReadValue("CommandPage_" & field), String), "")
+    End Function
+
+    Public Sub SetCommandPageState(field As String, value As String)
+        Dim v = If(value, "")
+        If v.Length > 2000 Then v = ""
+        If CommandPageState(field) = v Then Return
+        WriteValue("CommandPage_" & field, v)
+    End Sub
+
+    ' Empties everything this section keeps.
+    Public Sub ForgetRemembered()
+        WriteValue("Recent_" & TargetRole, New String() {})
+        WriteValue("Recent_" & DestinationRole, New String() {})
+        WriteValue("RecentCommands", New String() {})
+        WriteValue("CommandPage_Op", "")
+        WriteValue("CommandPage_Target", "")
+        WriteValue("CommandPage_Dest", "")
     End Sub
 
     ' ---- language --------------------------------------------------------

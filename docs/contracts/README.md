@@ -63,12 +63,14 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`REPO-STAMP.md`](REPO-STAMP.md) | canon adoption stamp `.sza-canon.json` | producer |
 | [`REPO-LAYOUT.md`](REPO-LAYOUT.md) | the root and `docs/` names shared tools address | consumer |
 | [`RULE-DELIVERY.md`](RULE-DELIVERY.md) | how the canon arrives, and how staleness is judged | consumer |
+| [`HARNESS-PROFILE.md`](HARNESS-PROFILE.md) | root `.sza-profile.json` schema for the shared canon harness (0.17 draft, adopted 2026-10-29) | consumer |
 | [`CHECK-VERDICT.md`](CHECK-VERDICT.md) | standardized check verdict lines and exit codes | producer and consumer |
 | [`CHECK-BASELINE.md`](CHECK-BASELINE.md) | accepted debt ratchets and baselines | producer |
 | [`CHECK-PLACEMENT.md`](CHECK-PLACEMENT.md) | check runner placement and execution mapping | producer |
 | [`BUILD-EVIDENCE.md`](BUILD-EVIDENCE.md) | build artifact stamping and test evidence | producer |
 | [`DIAGNOSTIC-REPORT.md`](DIAGNOSTIC-REPORT.md) | sanitized diagnostic archive export | producer (`LogReport.vb`) |
-| [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | consumer, focus-only profile (accepted in 0.13, 2026-10-17) |
+| [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | consumer, focus-only profile (accepted in 0.13, 2026-10-17); the command pipe of `APP-COMMANDS` uses its rule 3 transport |
+| [`APP-COMMANDS.md`](APP-COMMANDS.md) | commands from scripts and other programs, handled by the running window program and answered with an exit code | consumer (`filedo.exe` second process, `filedo_win.exe` first instance; 0.3 synced in working tree, unbuilt until release) |
 | [`INPUT-PARITY.md`](INPUT-PARITY.md) | keyboard and pointer action parity | consumer; partial adoption |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
 | [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; Windows desktop profile, `compact` rendering (registered in 0.2, untouched by 0.3 and 0.4); the former rendering exception is closed |
@@ -83,9 +85,11 @@ bind leaves this table for one of the tables above and gets a pointer.
 
 | Contract | Read | Why it does not bind |
 | --- | --- | --- |
-| `CAPTURE-OUTPUT` 0.6 (`capture-output/`) | 2026-10-21 (first read 2026-10-01 at 0.2) | FileDO creates none of its capture kinds - photo, video, screenshot, recording, frame, note, OCR text, translation. Its own files are another contract's (`.fd-sec`, the diagnostic zip), a test payload `clean` finds by name (`FILL_*.tmp`, `speedtest_*.txt`), the shell's state under `%LOCALAPPDATA%\FileDO`, a copy the user asked for, or a site render target (`--capture-screens`). Open: whether a tool's report of its own run (`compare_report_*.log`, `delete_report_*.log`, `check --report`) is in scope - asked of the owner in `PROPOSAL-2026-09-26-filedo-tool-reports.md`; FileDO reads it as outside. Registry row dated 2026-09-26. **Re-read at 0.6 on 2026-10-21 (SP-0170):** section 5 (0.3) names the compare, delete and check reports as outside by name, so that question is closed; `--capture-screens` and the Store screenshots are maintainer render targets for the site and the listing, not captures a user makes - FileDO's reading, put to the owner as a proposal. Still not bound. |
-| `INPUT-CHORD` 0.3 draft (`input-controls/`) | 2026-10-01 | FileDO has fixed in-window shortcuts only, no stored interchange chord, user chord capture or global hook; domain section 1 explicitly excludes in-window shortcuts. `INPUT-PARITY` applies separately. |
-| `HARNESS-PROFILE` 0.9 draft (`rule-adoption/`) | 2026-10-01 | FileDO does not run the shared harness or carry its profile; its own build gate uses `packaging/check-placement.jsonl`. |
+| `CAPTURE-OUTPUT` 0.8 (`capture-output/`) | 2026-11-16 (first read 2026-10-01 at 0.2) | FileDO creates none of its capture kinds - photo, video, screenshot, recording, frame, note, OCR text, translation. Its own files are another contract's (`.fd-sec`, the diagnostic zip), a test payload `clean` finds by name (`FILL_*.tmp`, `speedtest_*.txt`), the shell's state under `%LOCALAPPDATA%\FileDO`, a copy the user asked for, or a site render target (`--capture-screens`). Section 5 (0.3, 0.7, 0.8) places tool reports, `--capture-screens` assets, and caller-named `APP-COMMANDS` paths outside capture kinds; `PROPOSAL-2026-09-26-filedo-tool-reports.md` is closed and 0.8 adds nothing binding FileDO. Still not bound. |
+| `INPUT-CHORD` 0.6 draft (`input-controls/`) | 2026-11-16 (first read 2026-10-01 at 0.3) | FileDO has fixed in-window shortcuts only, no stored interchange chord, user chord capture or global hook; domain section 1 explicitly excludes in-window shortcuts. `INPUT-PARITY` applies separately (note `INPUT-CHORD` rule 5 is referenced through `INPUT-PARITY` 0.5/0.8). |
+| `PORT-LEDGER` 0.1 draft (`port-ledger/`) | 2026-11-16 | FileDO is an original Go + VB.NET product, not extracted from a source product, and carries no port ledger. |
+| `FUNCTION-PARITY` 0.1 draft (`function-parity/`) | 2026-11-16 | FileDO is outside the multi-platform FastMediaSorter product family register (`family-fastmediasorter.md`). |
+| `FILLER-RESERVE` 0.1 draft (`filler-reserve/`) | 2026-11-16 | FileDO is not the Filler Android product and shares no cross-app storage-filler reserve protocol. |
 | `WAVE-PARTICLES` 0.12 (animated-backdrop/) | 2026-10-01 | No waves/particles backdrop is implemented. |
 | `FMSCFG` 2.1 (config-interchange/) | 2026-10-01 | No FMS configuration interchange producer or importer. |
 | `LAN-DISCOVERY` 0.9 (lan-discovery/) | 2026-10-01 | No mDNS/DNS-SD announcement or discovery; the requested loopback disk server is not a LAN service. |

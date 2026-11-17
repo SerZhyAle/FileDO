@@ -272,11 +272,22 @@ filedo backup D:\Photos sec
 filedo backup \\nas\share\Docs
 filedo backup E:\ root
 
+# Un jeu numéroté des 7 dernières dans E:\Bak : Photos_001.zip .. Photos_007.zip ; une fois 7 présentes, la nouvelle remplace la plus ancienne
+filedo backup D:\Photos to E:\Bak gen 7
+
+# Le jeu nommé par stem au lieu du nom du dossier, et scellé : Docs_001.fd-sec ..
+filedo backup D:\Photos to E:\Bak gen 7 stem Docs sec
+
 # Reconstruire le dossier à côté de l'archive, ou à une autre adresse
 filedo restore Photos-2611101530.zip
 filedo restore Photos-2611101530.fd-sec to D:\
 ```
 
+- **Le résultat est un seul fichier nommé `<source>-<yyMMddHHmm>`** : le nom du dossier (ou du lecteur)
+  empaqueté, un tiret, puis l'année, le mois, le jour, l'heure et la minute de la sauvegarde, avec `.zip` -
+  ou `.fd-sec` si elle est scellée. La sauvegarde de `D:\Photos` faite le 17 novembre 2026 à 16 h 52
+  s'appelle `Photos-2611171652.zip`. Sans `to`, le fichier est écrit à côté du dossier (la sauvegarde d'un
+  lecteur, dans le dossier courant) ; `to` indique un autre dossier ou un nouveau nom de fichier.
 - **Le zip garde le nom du dossier, jamais son chemin**, si bien qu'une sauvegarde ordinaire confiée à
   quelqu'un d'autre ne montre pas comment votre disque est organisé. `restore` reconstruit le dossier à
   côté de l'archive ; `to <dossier>` indique toute autre adresse, l'ancienne comprise.
@@ -298,14 +309,28 @@ filedo restore Photos-2611101530.fd-sec to D:\
   nom définitif. Une sauvegarde scellée avec un mauvais mot de passe, un fichier qui n'est pas un conteneur
   et un conteneur endommagé aboutissent à la même réponse, comme pour `unsecure` ; `del` supprime l'archive
   après une restauration réussie.
+- **Un jeu numéroté garde les N dernières sauvegardes.** `gen <1-999>` indique combien en garder et active
+  le jeu ; `to` désigne alors le dossier, et `stem <nom>` nomme le jeu (une seule partie de nom de
+  fichier ; par défaut le nom du dossier, si bien que deux dossiers de même nom reçoivent deux `stem`
+  différents). Les fichiers s'appellent `<stem>_001.zip` .. `<stem>_NNN.zip`, en `.fd-sec` avec `sec`. Le
+  numéro se lit dans le seul dossier - le fichier le plus récent du jeu, selon l'heure de modification,
+  donne le suivant, `001` après le dernier numéro -, si bien qu'un redémarrage ou une mise à jour ne peut
+  pas le dédoubler, et qu'un numéro manquant n'arrête pas l'exécution. Quand le jeu est plein, le nouveau
+  fichier est d'abord construit sous un nom provisoire puis relu ; seulement ensuite le plus ancien est
+  supprimé et le nouveau renommé à sa place - un fichier au plus par exécution, uniquement un nom du jeu,
+  et une exécution échouée ou arrêtée ne supprime rien. Le dossier doit avoir de la place pour un fichier
+  de plus que ce que le jeu contient pendant que l'exécution travaille. `keep-zip` ne va pas avec `gen`.
+  Avec `--events`, le résultat porte `generation`, `retiredGeneration` (0 = aucun) et `keepCount`.
 - **Une sauvegarde est une copie entière, faite quand vous la lancez** - il n'y a ni planification, ni
-  historique des sauvegardes précédentes, ni couche incrémentale. Un fichier seul va dans un conteneur avec
+  historique des sauvegardes précédentes, ni couche incrémentale ; un jeu numéroté n'est qu'une rotation
+  bornée de copies entières, et la planification reste la vôtre. Un fichier seul va dans un conteneur avec
   `secure`.
 
 Dans la fenêtre, le groupe **«Protéger»** porte les deux opérations sous forme de pages - **«Sauvegarder
 un dossier»** et **«Restaurer une sauvegarde»** - et la page **«Commande»** les construit aussi (`backup`,
 `backup sec`, `restore`). Le mot de passe est saisi hors de vue (deux fois pour une sauvegarde scellée) et
-n'atteint aucune ligne de commande.
+n'atteint aucune ligne de commande. À l'étape 3 de la page **«Sauvegarder un dossier»**, on demande aussi
+combien de sauvegardes garder et comment nommer le jeu numéroté.
 
 ---
 
@@ -555,12 +580,41 @@ code 7, et une disposition modifiée depuis la liste avec le code 5 - sans que r
 
 ---
 
+## Commandes pour scripts et agents
+
+Un script, une tâche planifiée, un raccourci ou un outil de développement peut demander quelque chose à la fenêtre FileDO **déjà lancée** avec `filedo <commande>`. La copie qui tourne déjà fait le travail et la commande se termine par sa réponse sous forme de code de sortie - aucune seconde copie ne s’ouvre. La liste complète est dans [`docs/CLI.md`](docs/CLI.md) ; elle est générée à partir du manifeste qu’affiche `filedo commands --json`.
+
+| Commande | Ce qu’elle fait | Si aucune fenêtre ne tourne |
+|----------|---------------------|-----------------------------|
+| `filedo commands [--json]` | Liste toutes les commandes ; `--json` affiche le manifeste lui-même | Fonctionne quand même |
+| `filedo version [--json]` | Nom du produit, version, version du jeu de commandes | Fonctionne quand même |
+| `filedo status [--json]` | La fenêtre tourne-t-elle et est-elle prête : version, identifiant de processus, fenêtres ouvertes, exécutions en cours | Code 11 |
+| `filedo show` | Met la fenêtre principale au premier plan | Démarre FileDO |
+| `filedo quit [--stop-jobs]` | Ferme le FileDO en cours ; une exécution en cours fait refuser la commande (code 11), sauf si `--stop-jobs` arrête d’abord les exécutions | Rien à faire, code 0 |
+| `filedo disk-manager show` | Met le Gestionnaire de disques au premier plan | Démarre FileDO avec le seul Gestionnaire de disques |
+| `filedo settings show` | Ouvre la page des réglages | Démarre FileDO |
+| `filedo tray start` | Démarre FileDO masqué, avec son icône de notification | Le démarre |
+| `filedo job list [--json]` | Exécutions en cours et opérations en file d’attente ; aucun nom de fichier | Code 11 |
+| `filedo job stop [--where all\|shell\|manager]` | Arrête les exécutions en douceur, comme le bouton Arrêter, et attend | Rien à arrêter, code 0 |
+
+Codes de sortie : 0 terminé, 1 la commande s’est exécutée mais l’opération a échoué, 2 non prouvé (le délai est écoulé, la copie en cours travaille peut-être encore), 10 appel incorrect, 11 ne tourne pas ou occupé, 12 autorisation refusée (classe de risque désactivée, ou le FileDO en cours est élevé et l’appelant ne l’est pas).
+
+Chaque commande à laquelle la fenêtre en cours répond est *sûre* : elle ne modifie que les fenêtres et les exécutions propres de FileDO et ne lit aucun de vos fichiers. Une commande de toute autre classe est refusée avec le code 12 tant que vous n’activez pas dans les réglages l’option **Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau** ; elle est désactivée tant que vous ne l’activez pas, et aucune commande ne la modifie. Les commandes passent par un canal local que seul votre propre compte Windows, dans votre propre session, peut atteindre - jamais par le réseau.
+
+Les cinq commutateurs qu’appellent les scripts de build - `filedo_win.exe selftest run`, `help-pages build --out <dossier>`, `screens capture --out <dossier>`, `menu-icons write --out <dossier>` et `ui-drive run --out <dossier>` - sont aussi des commandes et s’exécutent dans leur propre processus.
+
+Les outils et agents de développement peuvent lire `docs/CLI.md` et lancer `filedo commands --json` pour voir ce qu’on peut demander à FileDO ; l’état du produit, sans capture d’écran, vient de `filedo status`, `filedo job list` et `filedo vd status json`. Guide : [commandes pour scripts et agents](https://serzhyale.github.io/FileDO/guides/commands.html).
+
+---
+
 ## Application GUI
 
-**FileDO GUI** (`filedo_win.exe`) - shell Windows Forms VB.NET : à gauche une colonne de tâches, et pour chaque tâche une page numérotée - ce qu'on traite, quels paramètres, puis vérification et exécution - plus une page **«Commande»**, le constructeur expert, qui assemble et exécute n'importe quelle commande FileDO :
+**FileDO GUI** (`filedo_win.exe`) - shell Windows Forms VB.NET : à gauche une colonne de tâches, et pour chaque tâche une page numérotée - ce qu'on traite, quels paramètres, puis vérification et exécution - plus une page **«Commande»**, le constructeur expert, qui assemble et exécute n'importe quelle commande FileDO, et une page **«À propos des opérations»**, qui explique chaque opération en mots simples :
 
 - **Sélection visuelle de cible** avec boutons radio (Périphérique/Dossier/Réseau/Fichier)
-- **Menu déroulant d'opérations** sur la page «Commande» (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons)
+- **Menu déroulant d'opérations** sur la page «Commande» (Info, Vitesse, Remplissage, Test, Nettoyage, Vérification des doublons) ; **«Parcourir les commandes..»** à côté de la liste ouvre une fenêtre qui présente toutes les opérations en six groupes - «Vérifier», «Ranger», «Copie», «Effacer», «Protéger», «Outils et Explorateur» - avec une ligne de description chacune ; **«Utiliser cette commande»**, ou un double-clic, place l'opération dans la liste, et **«Descriptions complètes»** ouvre la page «À propos des opérations» sur cette opération
+- **La fenêtre se souvient de ce que vous avez utilisé**, d'une session à l'autre : les dossiers que vous choisissez et sur lesquels vous travaillez (la cible et l'endroit du résultat, qui a son propre sélecteur de dossier à côté de son champ), les commandes lancées - **«Récents..»** sur la page «Commande» liste les 12 dernières et en remet une sur la ligne de commande - ainsi que l'opération, la cible et l'endroit du résultat où la page «Commande» a été laissée ; **«Oublier les commandes et dossiers récents»** dans ce menu efface tout. Une exécution gardée hors de l'historique avec `nohist`, une ligne qui porte un mot de passe et toute exécution tant que l'historique est désactivé dans les Réglages ne sont jamais retenues, et les options non plus
+- **Page «À propos des opérations»** dans la colonne de tâches, à côté de «Commande» : chaque opération avec son nom et une ligne de description ; un clic sur le nom ouvre le texte complet en mots simples - ce qu'elle fait, quand l'utiliser et ce qu'elle change - avec un exemple de ligne de commande, et le champ de recherche en haut (Ctrl+F) réduit la liste par nom ou par n'importe quel mot des descriptions ; une opération qui supprime, écrase, formate ou demande les droits d'administrateur le dit clairement, et **«Utiliser cette commande»** ouvre la page «Commande» avec cette opération choisie
 - **Une page par tâche** dans la fenêtre par défaut - capacité, vitesse, informations, vérification des fichiers endommagés, sondage direct, récupération, doublons, comparaison, nettoyage, copie, remplissage, effacement, les trois tâches des fichiers secrets et la paire de sauvegarde (sauvegarder, restaurer) - chacune portant toutes les options que la CLI accepte pour elle, y compris les vingt-neuf options de `check`
 - **Saisie de paramètres** avec validation
 - **Aperçu de commande en temps réel** sur la page «Commande», montrant la commande CLI équivalente

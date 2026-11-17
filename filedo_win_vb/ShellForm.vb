@@ -78,6 +78,7 @@ Public Class ShellForm
     Private historyView As HistoryView
     Private commandView As CommandView
     Private aboutView As AboutView
+    Private guideView As OperationGuideView
     Private settingsView As SettingsView
     Private ReadOnly tips As New ToolTip()
 
@@ -478,6 +479,9 @@ Public Class ShellForm
         historyView = New HistoryView() With {.Visible = False}
         commandView = New CommandView() With {.Visible = False}
         AddHandler commandView.RunFinished, AddressOf AnyRunFinished
+        AddHandler commandView.GuideRequested, AddressOf CommandGuideRequested
+        guideView = New OperationGuideView() With {.Visible = False}
+        AddHandler guideView.UseRequested, AddressOf GuideUseRequested
         aboutView = New AboutView() With {.Visible = False}
         settingsView = New SettingsView() With {.Visible = False}
         AddHandler settingsView.ThemeChanged, Sub() ApplyTheme()
@@ -515,6 +519,7 @@ Public Class ShellForm
         pageHost.Controls.Add(historyView)
         pageHost.Controls.Add(commandView)
         pageHost.Controls.Add(aboutView)
+        pageHost.Controls.Add(guideView)
         pageHost.Controls.Add(settingsView)
         pageHost.Controls.Add(emptyCentre)
     End Sub
@@ -998,6 +1003,7 @@ Public Class ShellForm
         historyView.Visible = False
         commandView.Visible = False
         aboutView.Visible = False
+        guideView.Visible = False
         settingsView.Visible = False
         emptyCentre.Visible = False
 
@@ -1013,6 +1019,8 @@ Public Class ShellForm
             front = commandView
         ElseIf chosen.Key = "rail_job_about" Then
             front = aboutView
+        ElseIf chosen.Key = "rail_job_commands" Then
+            front = guideView
         ElseIf chosen.Key = "rail_job_settings" Then
             front = settingsView
         ElseIf jobDef IsNot Nothing Then
@@ -1028,6 +1036,9 @@ Public Class ShellForm
                 commandView.Visible = True
             ElseIf chosen.Key = "rail_job_about" Then
                 aboutView.Visible = True
+            ElseIf chosen.Key = "rail_job_commands" Then
+                guideView.EnsureBuilt()
+                guideView.Visible = True
             ElseIf chosen.Key = "rail_job_settings" Then
                 settingsView.Visible = True
             ElseIf jobDef IsNot Nothing Then
@@ -1047,6 +1058,19 @@ Public Class ShellForm
         Finally
             Ui.ResumeTree(front)
         End Try
+    End Sub
+
+    ' The Command page's operation picker asked for the full description of an operation (SP-0204): the
+    ' Commands page opens on its entry.
+    Private Sub CommandGuideRequested(word As String)
+        SelectJobByKey("rail_job_commands")
+        guideView.ShowOperation(word)
+    End Sub
+
+    ' Use this command on the Commands page: the Command page opens with that operation chosen.
+    Private Sub GuideUseRequested(word As String)
+        SelectJobByKey("rail_job_command")
+        commandView.ChooseOperation(word)
     End Sub
 
     ' GUI-12: "Clean files" after a test opens Clean on the drive that was tested, with Clean's rail
@@ -1112,6 +1136,28 @@ Public Class ShellForm
         If jobViewValue IsNot Nothing Then jobViewValue.RequestStopFromShell()
         commandView.RequestStopFromShell()
     End Sub
+
+    ' SP-0218: the runs of this window for `filedo job list` - the Job page's and the Command page's, each with
+    ' its own Runner. A page that was never built holds none.
+    Friend Function Runs() As List(Of RunInfo)
+        Dim list As New List(Of RunInfo)()
+        If jobViewValue IsNot Nothing Then
+            Dim job = jobViewValue.RunInfoNow()
+            If job IsNot Nothing Then list.Add(job)
+        End If
+        Dim command = commandView.RunInfoNow()
+        If command IsNot Nothing Then list.Add(command)
+        Return list
+    End Function
+
+    ' SP-0218: `filedo job stop` for this window - the Stop button's own request on each page that runs, nothing
+    ' else (no ForceEnd, no kill). The number of runs asked.
+    Friend Function StopRuns() As Integer
+        Dim asked = 0
+        If jobViewValue IsNot Nothing AndAlso jobViewValue.RequestStopFromShell() Then asked += 1
+        If commandView.RequestStopFromShell() Then asked += 1
+        Return asked
+    End Function
     Friend ReadOnly Property ClosePending As Boolean
         Get
             Return closeWhenIdle
@@ -1259,6 +1305,7 @@ Public Class ShellForm
         historyView.ApplyTheme()
         commandView.ApplyTheme()
         aboutView.ApplyTheme()
+        guideView.ApplyTheme()
         settingsView.ApplyTheme()
         Ui.KeepCaptionsReadable(Me)
         Ui.HitTargetFloor(Me)
@@ -1414,6 +1461,8 @@ Public Class ShellForm
 
         Dim b = If(WindowState = FormWindowState.Normal, Bounds, RestoreBounds)
         settingsView.Panel.SaveContext()
+        ' Where the Command page was left (operation, target, destination), for the next session.
+        commandView.RememberState()
         Dim selected = entries.FirstOrDefault(Function(entry) entry.Selected)
         If selected IsNot Nothing Then ShellSettings.SetLastPage(selected.Key)
         ShellSettings.SavePlacement(b.X, b.Y, b.Width, b.Height, SavesMaximized(WindowState, lastShownState), DeviceDpi)

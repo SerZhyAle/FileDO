@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `BOOLEAN-OPTION` |
-| **Version** | 2.0 (no wire - observable boolean option layout and interaction) |
+| **Version** | 2.2, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - observable boolean option layout and interaction) |
 | **Role** | consumer - every boolean option of the GUI shell and the Disk Manager (`BooleanOption`); migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `boolean-option/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |

@@ -33,9 +33,55 @@ Friend Class AppHost
             Return trayHeldValue
         End Get
     End Property
+    ' The runs in progress now, counted from the one list `filedo job list` shows (SP-0218): a queued operation is
+    ' listed there and not counted here.
     Friend ReadOnly Property RunningJobs As Integer
         Get
-            Return If(shell IsNot Nothing AndAlso shell.AnyRunActive(), 1, 0) + If(manager Is Nothing, 0, manager.JobCount)
+            Return RunSnapshot.RunningCount(Runs())
+        End Get
+    End Property
+
+    ' Every run of the program as one list, on the window's thread: the main window's, then the Disk Manager's. A
+    ' window that does not exist holds none.
+    Friend Function Runs() As List(Of RunInfo)
+        Dim list As New List(Of RunInfo)()
+        If ShellOpen Then list.AddRange(shell.Runs())
+        If manager IsNot Nothing AndAlso Not manager.IsDisposed Then list.AddRange(manager.Runs())
+        Return list
+    End Function
+
+    ' How many runs (running or queued) `whereOption` - all, shell or manager - still has.
+    Friend Function RunsLeft(whereOption As String) As Integer
+        Return Runs().Where(Function(r) RunSnapshot.Includes(whereOption, r.Place)).Count()
+    End Function
+
+    ' `filedo job stop`: the Stop button's own request on every run of `whereOption`, and the Disk Manager's queue
+    ' emptied. The number of runs asked; `cleared` is the number of queued operations taken out.
+    Friend Function StopRuns(whereOption As String, ByRef cleared As Integer) As Integer
+        Dim asked = 0
+        cleared = 0
+        If ShellOpen AndAlso RunSnapshot.Includes(whereOption, RunSnapshot.WhereShell) Then asked += shell.StopRuns()
+        If manager IsNot Nothing AndAlso Not manager.IsDisposed AndAlso RunSnapshot.Includes(whereOption, RunSnapshot.WhereManager) Then
+            asked += manager.StopForCommand(cleared)
+        End If
+        Return asked
+    End Function
+    ' What `filedo status` reports (APP-COMMANDS rule 17, AppCommands.StatusData).
+    Friend ReadOnly Property ShellOpen As Boolean
+        Get
+            Return shell IsNot Nothing AndAlso Not shell.IsDisposed
+        End Get
+    End Property
+    Friend ReadOnly Property ManagerOpen As Boolean
+        Get
+            Return manager IsNot Nothing AndAlso Not manager.IsDisposed AndAlso managerShown
+        End Get
+    End Property
+    ' The program is on its way out - an Exit in progress, Windows ending the session, the shell waiting to
+    ' close once its run stops - and takes no command (APP-COMMANDS rule 10, busy).
+    Friend ReadOnly Property IsClosing As Boolean
+        Get
+            Return exiting OrElse (shell IsNot Nothing AndAlso Not shell.IsDisposed AndAlso shell.ClosePending)
         End Get
     End Property
     Friend ReadOnly Property MountedDisks As Integer

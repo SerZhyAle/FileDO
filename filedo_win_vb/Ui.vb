@@ -354,6 +354,53 @@ Module Ui
         End Try
     End Sub
 
+    ' The folder dialog of every page. It opens on the folder already typed in the box when that is a folder,
+    ' otherwise on the one the person picked last time for this role (TargetRole or DestinationRole), and what
+    ' is picked is remembered for the next time. chosen is set only when the answer is OK.
+    Public Function ChooseFolder(owner As IWin32Window, description As String, role As String, current As String, ByRef chosen As String) As Boolean
+        Dim picked As String = ""
+        Using dlg As New FolderBrowserDialog()
+            dlg.Description = description
+            Dim start = StartFolder(role, current)
+            If start <> "" Then dlg.SelectedPath = start
+            If dlg.ShowDialog(owner) <> DialogResult.OK Then Return False
+            picked = dlg.SelectedPath
+        End Using
+        chosen = picked
+        ShellSettings.RememberPath(role, picked)
+        Return True
+    End Function
+
+    ' Where a file or folder dialog should open: the folder of what is typed in the box, else the folder of the
+    ' newest remembered path for the role that still exists, else "" (the dialog's own default).
+    Public Function StartFolder(role As String, current As String) As String
+        Dim found = ExistingFolderOf(current)
+        If found <> "" Then Return found
+        For Each remembered In ShellSettings.RecentPaths(role)
+            found = ExistingFolderOf(remembered)
+            If found <> "" Then Return found
+        Next
+        Return ""
+    End Function
+
+    ' The folder a path names, or the one that holds it, when it is on this computer and exists. A share or a
+    ' mapped network drive is never probed: one that is switched off would hold the dialog for as long as
+    ' Windows waits for it.
+    Private Function ExistingFolderOf(path As String) As String
+        If String.IsNullOrWhiteSpace(path) Then Return ""
+        Try
+            Dim full = path.Trim().Trim(""""c)
+            If full.StartsWith("\\", StringComparison.Ordinal) OrElse Not System.IO.Path.IsPathRooted(full) Then Return ""
+            Dim root = System.IO.Path.GetPathRoot(full)
+            If String.IsNullOrEmpty(root) OrElse New System.IO.DriveInfo(root).DriveType = System.IO.DriveType.Network Then Return ""
+            If System.IO.Directory.Exists(full) Then Return full
+            Dim parent = System.IO.Path.GetDirectoryName(full)
+            If Not String.IsNullOrEmpty(parent) AndAlso System.IO.Directory.Exists(parent) Then Return parent
+        Catch
+        End Try
+        Return ""
+    End Function
+
 End Module
 
 ' How a run's progress is drawn, one rule for every page that runs something (APP-BEHAVIOUR rule 3,
@@ -363,16 +410,23 @@ Module RunProgress
 
     Public Sub Apply(bar As ProgressBar, p As EventStream.ProgressInfo)
         If bar Is Nothing OrElse p Is Nothing Then Return
-        If p.TotalBytes > 0 Then
+        Dim shown = PercentOf(p)
+        If shown >= 0 Then
             bar.Style = ProgressBarStyle.Continuous
-            bar.Value = Percent(p.DoneBytes, p.TotalBytes)
-        ElseIf p.TotalItems > 0 Then
-            bar.Style = ProgressBarStyle.Continuous
-            bar.Value = Percent(p.DoneItems, p.TotalItems)
+            bar.Value = shown
         Else
             bar.Style = ProgressBarStyle.Marquee
         End If
     End Sub
+
+    ' The percent the bar shows for a progress event - bytes first, then items - or -1 when the run has not said how
+    ' much there is to do. `filedo job list` reports the same figure (SP-0218).
+    Public Function PercentOf(p As EventStream.ProgressInfo) As Integer
+        If p Is Nothing Then Return -1
+        If p.TotalBytes > 0 Then Return Percent(p.DoneBytes, p.TotalBytes)
+        If p.TotalItems > 0 Then Return Percent(p.DoneItems, p.TotalItems)
+        Return -1
+    End Function
 
     ' The start of a run, before it has said anything about its size.
     Public Sub Begin(bar As ProgressBar)

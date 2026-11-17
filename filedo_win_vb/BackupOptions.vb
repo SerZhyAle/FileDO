@@ -36,6 +36,11 @@ Public Class BackupOptionsPanel
     Private sealCheck As CheckBox
     Private keepZipCheck As CheckBox
     Private skipLinksCheck As CheckBox
+    Private genLabel As Label
+    Private genBox As TextBox
+    Private stemLabel As Label
+    Private stemBox As TextBox
+    Private genNote As Label
     Private rootCheck As CheckBox
     Private rootNote As Label
     Private suffixCheck As CheckBox
@@ -75,6 +80,19 @@ Public Class BackupOptionsPanel
         keepZipCheck = NewCheck("shell_bk_keep_zip")
         keepZipCheck.Margin = Ui.PxPad(Me, 18, 2, 0, 2)
         skipLinksCheck = NewCheck("shell_bk_skip_links")
+
+        ' The numbered set (SP-0208, SP-0209): `gen <N>` and `stem <name>`. Empty keep-count is the dated
+        ' single file; the stem is read only while a keep-count is given.
+        genLabel = New Label With {.Text = L("shell_bk_gen"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
+        genBox = New TextBox With {.Width = Ui.Px(Me, 90), .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
+        genBox.AccessibleName = L("shell_bk_gen")
+        AddHandler genBox.TextChanged, Sub() Raise()
+        stemLabel = New Label With {.Text = L("shell_bk_stem"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 2)}
+        stemBox = New TextBox With {.Width = Ui.Px(Me, 320), .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
+        stemBox.AccessibleName = L("shell_bk_stem")
+        AddHandler stemBox.TextChanged, Sub() Raise()
+        genNote = New Label With {.Text = L("shell_bk_gen_note"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 4)}
+
         rootCheck = NewCheck("shell_bk_root")
         rootNote = New Label With {.Text = L("shell_bk_root_note"), .AutoSize = True, .Margin = Ui.PxPad(Me, 18, 0, 0, 4)}
 
@@ -87,6 +105,11 @@ Public Class BackupOptionsPanel
         Controls.Add(sealCheck)
         Controls.Add(keepZipCheck)
         Controls.Add(skipLinksCheck)
+        Controls.Add(genLabel)
+        Controls.Add(genBox)
+        Controls.Add(stemLabel)
+        Controls.Add(stemBox)
+        Controls.Add(genNote)
         Controls.Add(rootCheck)
         Controls.Add(rootNote)
         Controls.Add(suffixCheck)
@@ -126,6 +149,10 @@ Public Class BackupOptionsPanel
         sealCheck.Visible = backup
         keepZipCheck.Visible = backup
         skipLinksCheck.Visible = backup
+        genLabel.Visible = backup
+        genBox.Visible = backup
+        stemLabel.Visible = backup
+        stemBox.Visible = backup
         suffixCheck.Visible = Not backup
         delCheck.Visible = Not backup
         ApplyRootShape()
@@ -149,15 +176,21 @@ Public Class BackupOptionsPanel
         rootNote.Visible = rootCheck.Visible
     End Sub
 
-    ' keep-zip needs sec; a delete after the restore needs `y`, which the CLI also reads as "restore
+    ' keep-zip needs sec and does not go with a numbered set (a kept zip would stand outside the set and
+    ' never be retired); a delete after the restore needs `y`, which the CLI also reads as "restore
     ' beside an existing folder" - so the page shows suffix as on while delete is chosen.
     Private Sub ApplyExclusions()
-        keepZipCheck.Enabled = sealCheck.Checked
-        If Not sealCheck.Checked AndAlso keepZipCheck.Checked Then
+        Dim haveSet = SetChosen()
+        keepZipCheck.Enabled = sealCheck.Checked AndAlso Not haveSet
+        If (Not sealCheck.Checked OrElse haveSet) AndAlso keepZipCheck.Checked Then
             suspendEvents = True
             keepZipCheck.Checked = False
             suspendEvents = False
         End If
+        ' The name of the set means something only beside a keep-count; the note says what the set is.
+        stemLabel.Enabled = haveSet
+        stemBox.Enabled = haveSet
+        genNote.Visible = (verb = "backup") AndAlso haveSet
         If delCheck.Checked AndAlso Not suffixCheck.Checked Then
             suspendEvents = True
             suffixCheck.Checked = True
@@ -172,6 +205,8 @@ Public Class BackupOptionsPanel
         sealCheck.Checked = False
         keepZipCheck.Checked = False
         skipLinksCheck.Checked = False
+        genBox.Text = ""
+        stemBox.Text = ""
         rootCheck.Checked = False
         suffixCheck.Checked = True
         delCheck.Checked = False
@@ -180,6 +215,70 @@ Public Class BackupOptionsPanel
         ApplyRootShape()
         ApplyExclusions()
     End Sub
+
+    ' ---- the numbered set (SP-0208 gen and stem, SP-0209) ---------------------
+
+    Private Function SetChosen() As Boolean
+        Return Not String.IsNullOrWhiteSpace(genBox.Text)
+    End Function
+
+    ' The keep-count the page writes: a whole number 1 to 999, or 0 when the field is empty or holds
+    ' anything else (the command line takes digits only, no sign and no space inside).
+    Private Function KeepCount() As Integer
+        Dim n As Integer
+        If Integer.TryParse(genBox.Text.Trim(), Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture, n) AndAlso
+           n >= 1 AndAlso n <= 999 Then Return n
+        Return 0
+    End Function
+
+    Private Function StemText() As String
+        Return stemBox.Text.Trim()
+    End Function
+
+    ' One file-name part Windows creates as written, short enough to carry `_NNN` and the longer
+    ' extension: the rules the command line holds a stem to (backupzip.CheckName, and the 255
+    ' characters of a name). An empty stem is fine - the set is then named after the folder.
+    Friend Shared Function StemUsable(stem As String) As Boolean
+        If String.IsNullOrEmpty(stem) Then Return True
+        If stem = "." OrElse stem = ".." Then Return False
+        If stem.EndsWith("."c) OrElse stem.EndsWith(" "c) Then Return False
+        If stem.IndexOfAny(New Char() {"<"c, ">"c, ":"c, """"c, "|"c, "?"c, "*"c, "\"c, "/"c}) >= 0 Then Return False
+        For Each ch In stem
+            If AscW(ch) < &H20 OrElse AscW(ch) = &H7F Then Return False
+        Next
+        Dim device = stem
+        Dim dot = device.IndexOf("."c)
+        If dot >= 0 Then device = device.Substring(0, dot)
+        If Array.IndexOf(ReservedDeviceNames, device.TrimEnd(" "c).ToUpperInvariant()) >= 0 Then Return False
+        ' <stem>_<NNN>.fd-sec is the longest name this stem can make.
+        Return stem.Length + 4 + 7 <= 255
+    End Function
+
+    Private Shared ReadOnly ReservedDeviceNames As String() = {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
+
+    ' With a set, `to` names a folder: the command line refuses a name that looks like an archive.
+    Private Shared Function LooksLikeArchive(path As String) As Boolean
+        Dim p = path.Trim()
+        Return p.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) OrElse
+               p.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ' True while a valid keep-count is given: the run writes a numbered set, and once the set is full
+    ' it replaces its oldest file - one file per run, after the new one is read back.
+    Public ReadOnly Property NumberedSet As Boolean
+        Get
+            Return verb = "backup" AndAlso KeepCount() > 0
+        End Get
+    End Property
+
+    Friend ReadOnly Property KeepZipOfferedForTest As Boolean
+        Get
+            Return keepZipCheck.Enabled
+        End Get
+    End Property
 
     ' True for a sealed backup: the page shows the password twice.
     Public ReadOnly Property Sealed As Boolean
@@ -202,6 +301,11 @@ Public Class BackupOptionsPanel
             If Not (target.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) OrElse
                     target.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)) Then Return "shell_rs_need_archive"
             Return ""
+        End If
+        If SetChosen() Then
+            If KeepCount() = 0 Then Return "shell_bk_gen_range"
+            If Not StemUsable(StemText()) Then Return "shell_bk_stem_bad"
+            If destination <> "" AndAlso LooksLikeArchive(destination) Then Return "shell_bk_gen_dest"
         End If
         If Not targetIsRoot Then Return ""
         If TargetPath.IsSystemVolumeRoot(target) Then Return "shell_bk_system_drive"
@@ -229,6 +333,17 @@ Public Class BackupOptionsPanel
                 args.Add("y")
             End If
             If skipLinksCheck.Checked Then args.Add("skip-links")
+            ' The numbered set; `stem` is a word of the set and goes only with `gen`.
+            Dim keep = KeepCount()
+            If keep > 0 Then
+                args.Add("gen")
+                args.Add(keep.ToString(Globalization.CultureInfo.InvariantCulture))
+                Dim stem = StemText()
+                If stem <> "" AndAlso StemUsable(stem) Then
+                    args.Add("stem")
+                    args.Add(stem)
+                End If
+            End If
         ElseIf verb = "restore" Then
             If suffixCheck.Checked Then args.Add("suffix")
             If delCheck.Checked Then
@@ -255,13 +370,15 @@ Public Class BackupOptionsPanel
     End Function
 
     Friend Sub SetForTest(sealed As Boolean, keepZip As Boolean, level As String, root As Boolean, skipLinks As Boolean,
-                          suffix As Boolean, del As Boolean)
+                          suffix As Boolean, del As Boolean, Optional keep As String = "", Optional stem As String = "")
         suspendEvents = True
         sealCheck.Checked = sealed
         keepZipCheck.Checked = keepZip
         levelCombo.SelectedIndex = Math.Max(Array.IndexOf(LevelTokens, level), 0)
         rootCheck.Checked = root
         skipLinksCheck.Checked = skipLinks
+        genBox.Text = keep
+        stemBox.Text = stem
         suffixCheck.Checked = suffix
         delCheck.Checked = del
         suspendEvents = False
@@ -271,6 +388,9 @@ Public Class BackupOptionsPanel
     Public Sub WrapIn(card As Control, reserve As Integer)
         Ui.Wrap(noteLabel, card, reserve)
         Ui.Wrap(rootNote, card, reserve)
+        Ui.Wrap(genLabel, card, reserve)
+        Ui.Wrap(stemLabel, card, reserve)
+        Ui.Wrap(genNote, card, reserve)
     End Sub
 
     Public Sub ApplyTheme()
@@ -281,8 +401,22 @@ Public Class BackupOptionsPanel
         noteLabel.ForeColor = p.MutedText
         rootNote.Font = Theme.FontCaption()
         rootNote.ForeColor = p.Warning
+        genNote.Font = Theme.FontCaption()
+        genNote.ForeColor = p.MutedText
         levelLabel.Font = Theme.FontBody()
         levelLabel.ForeColor = p.Text
+        For Each lb As Label In New Label() {genLabel, stemLabel}
+            lb.Font = Theme.FontBody()
+            lb.ForeColor = p.Text
+        Next
+        For Each tb As TextBox In New TextBox() {genBox, stemBox}
+            tb.Font = Theme.FontBody()
+            tb.BackColor = p.Surface
+            tb.BorderStyle = BorderStyle.FixedSingle
+        Next
+        ' A value the command line would refuse is shown as one, as the size box of the check pages does.
+        genBox.ForeColor = If(SetChosen() AndAlso KeepCount() = 0, p.Danger, p.Text)
+        stemBox.ForeColor = If(Not StemUsable(StemText()), p.Danger, p.Text)
         levelCombo.Font = Theme.FontBody()
         levelCombo.BackColor = p.Surface
         levelCombo.ForeColor = p.Text

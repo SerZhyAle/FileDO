@@ -650,18 +650,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </h2>
           <p>
             <span data-l="en"
-              >Housekeeping files, plus test data when you ask for it. All of
-              them are ordinary files on your own disk: you can read them, delete
+              >Housekeeping files and settings, plus test data when you ask for it. All of
+              them are ordinary files or values under your own user key on your own computer: you can read them, delete
               them, or never create them at all.</span
             >
             <span data-l="ru"
-              >Служебные файлы и, по вашей команде, тестовые данные. Всё это
-              обычные файлы на вашем диске: вы можете их прочитать, удалить или
+              >Служебные файлы и настройки и, по вашей команде, тестовые данные. Всё это
+              обычные файлы или значения в вашем пользовательском разделе реестра: вы можете их прочитать, удалить или
               вовсе не создавать.</span
             >
             <span data-l="ua"
-              >Службові файли і, за вашою командою, тестові дані. Усе це
-              звичайні файли на вашому диску: ви можете їх прочитати, видалити
+              >Службові файли й налаштування і, за вашою командою, тестові дані. Усе це
+              звичайні файли або значення у вашому користувацькому розділі реєстру: ви можете їх прочитати, видалити
               або взагалі не створювати.</span
             >
           </p>
@@ -1040,6 +1040,19 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                       >Диски, до яких ви відкрили спільний доступ через Fast Media Sorter for Windows: шлях до контейнера, ім'я теки, під яким він доступний, позначки «лише читання» й «автозапуск». Пароль сюди ніколи не пишеться.</span
                     >
                   </td>
+                </tr>
+                <tr>
+                  <td><code>HKCU\Software\FileDO</code></td>
+                  <td>
+                    <span data-l="en">Not a file: values under your own user key in the Windows registry.</span>
+                    <span data-l="ru">Не файл: значения в вашем пользовательском разделе реестра Windows.</span>
+                    <span data-l="ua">Не файл: значення у вашому користувацькому розділі реєстру Windows.</span>
+                  </td>
+                  <td>
+                    <span data-l="en">Window settings - theme, language, position and size, the last page - and what the window remembers between sessions: the folders you picked and ran on, the last 12 commands you ran on the Command page, and the operation, target and destination that page was left on. A password never reaches it, a run kept out of history with <code>nohist</code> adds nothing, and while run history is off nothing is added. The <b>Recent..</b> menu of the Command page has an entry that forgets all of it.</span>
+                    <span data-l="ru">Настройки окна - тема, язык, положение и размер, последняя страница - и то, что окно помнит от сеанса к сеансу: папки, которые вы выбирали и с которыми работали, последние 12 команд, запущенных на странице «Команда», и операция, цель и место результата, на которых эта страница была оставлена. Пароль сюда не попадает, запуск с <code>nohist</code> ничего не добавляет, а при выключенной истории запусков не добавляется ничего. В меню <b>«Недавние..»</b> страницы «Команда» есть пункт, который забывает всё это.</span>
+                    <span data-l="ua">Налаштування вікна - тема, мова, розташування й розмір, остання сторінка - і те, що вікно пам'ятає від сеансу до сеансу: теки, які ви обирали й з якими працювали, останні 12 команд, запущених на сторінці «Команда», та операція, ціль і місце результату, на яких цю сторінку було залишено. Пароль сюди не потрапляє, запуск з <code>nohist</code> нічого не додає, а за вимкненої історії запусків не додається нічого. У меню <b>«Нещодавні..»</b> сторінки «Команда» є пункт, що забуває все це.</span>
+                  </td>
                 </tr>              </tbody>
             </table>
           </div>
@@ -1267,6 +1280,11 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 зберігається на цьому комп'ютері, захищений для тієї програми,
                 лише якщо ви ввімкнули автозапуск.</span
               >
+            </li>
+            <li>
+              <span data-l="en"><b>Other programs can ask the running FileDO window to do things.</b> A script, a scheduled task or a development tool can type commands such as <code>filedo status</code>, <code>filedo show</code> or <code>filedo job stop</code>; the window program answers over a local pipe that only your own Windows account, in your own session, can reach - never the network. Every command has one risk class: <code>safe</code> changes only FileDO's own windows and runs; <code>reads-user-data</code> puts screen content, the clipboard, or file contents and names into an answer; <code>writes-user-data</code> creates, changes or deletes your files or settings, or acts inside another program; <code>leaves-machine</code> sends anything off this computer. Every command the running window answers is <code>safe</code>. The four developer switches of <code>filedo_win.exe</code> that write a folder you name (<code>help-pages build</code>, <code>screens capture</code>, <code>menu-icons write</code>, <code>ui-drive run</code>) are <code>writes-user-data</code> and run in their own process when you start them. A command of any class other than <code>safe</code> is refused until you turn on one setting in <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings, <b>Let other programs ask FileDO to work with my files, screen, clipboard or the network</b>; it is off until you turn it on, and no command can change it.</span>
+              <span data-l="ru"><b>Другие программы могут просить запущенное окно FileDO что-то сделать.</b> Скрипт, задача планировщика или инструмент разработчика могут вводить команды вроде <code>filedo status</code>, <code>filedo show</code> или <code>filedo job stop</code>; оконная программа отвечает по локальному каналу, до которого может добраться только ваша учётная запись Windows в вашем сеансе, - никогда по сети. У каждой команды один класс риска: <code>safe</code> меняет только окна и запуски самого FileDO; <code>reads-user-data</code> помещает в ответ содержимое экрана, буфер обмена либо содержимое и имена файлов; <code>writes-user-data</code> создаёт, меняет или удаляет ваши файлы либо настройки или действует внутри другой программы; <code>leaves-machine</code> отправляет что-либо с этого компьютера. Каждая команда, на которую отвечает запущенное окно, относится к классу <code>safe</code>. Четыре переключателя разработчика у <code>filedo_win.exe</code>, которые пишут в названную вами папку (<code>help-pages build</code>, <code>screens capture</code>, <code>menu-icons write</code>, <code>ui-drive run</code>), относятся к классу <code>writes-user-data</code> и выполняются в собственном процессе, когда вы их запускаете. Команда любого класса, кроме <code>safe</code>, отклоняется, пока вы не включите на странице <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Настройки» один пункт - <b>Разрешить другим программам просить FileDO работать с моими файлами, экраном, буфером обмена или сетью</b>; он выключен, пока вы его не включите, и никакая команда его не меняет.</span>
+              <span data-l="ua"><b>Інші програми можуть просити запущене вікно FileDO щось зробити.</b> Скрипт, завдання планувальника або інструмент розробника можуть вводити команди на кшталт <code>filedo status</code>, <code>filedo show</code> чи <code>filedo job stop</code>; віконна програма відповідає локальним каналом, до якого може дістатися лише ваш обліковий запис Windows у вашому сеансі, - ніколи мережею. Кожна команда має один клас ризику: <code>safe</code> змінює лише вікна й запуски самого FileDO; <code>reads-user-data</code> поміщає у відповідь вміст екрана, буфер обміну або вміст та імена файлів; <code>writes-user-data</code> створює, змінює чи видаляє ваші файли або налаштування чи діє всередині іншої програми; <code>leaves-machine</code> надсилає щось із цього комп’ютера. Кожна команда, на яку відповідає запущене вікно, належить до класу <code>safe</code>. Чотири перемикачі розробника в <code>filedo_win.exe</code>, що пишуть у названу вами теку (<code>help-pages build</code>, <code>screens capture</code>, <code>menu-icons write</code>, <code>ui-drive run</code>), належать до класу <code>writes-user-data</code> і виконуються у власному процесі, коли ви їх запускаєте. Команда будь-якого класу, крім <code>safe</code>, відхиляється, доки ви не ввімкнете на сторінці <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Налаштування» один пункт - <b>Дозволити іншим програмам просити FileDO працювати з моїми файлами, екраном, буфером обміну або мережею</b>; він вимкнений, доки ви його не ввімкнете, і жодна команда його не змінює.</span>
             </li>
             <li>
               <span data-l="en"
@@ -1540,6 +1558,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           ><a href="https://serzhyale.github.io/StreamsPlayer/"><b>STREAMS Player</b><span>Windows stream player</span></a
           ><a href="https://serzhyale.github.io/OneClickRunner/"><b>OneClickRunner</b><span>Windows tray launcher</span></a
           ><a href="https://serzhyale.github.io/universal-agent-kit/"><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
+          ><a href="https://serzhyale.github.io/DeviceInfo_Android/"><b>DeviceInfo</b><span>Android and Wear OS device information</span></a
+          ><a href="https://serzhyale.github.io/Tourist_Android/"><b>Tourist</b><span data-l="en">Android and Wear OS hiking kit</span><span data-l="ru">Набор для походов на Android и Wear OS</span><span data-l="ua">Набір для походів на Android і Wear OS</span></a
           ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
         </nav>
         <div class="footer-bottom">
@@ -1645,7 +1665,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
       })();
     </script>
     <!-- control-glyphs -->
-    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol></svg>
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-action.email" viewBox="0 0 24 24"><path d="M20,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,8l-8,5 -8,-5V6l8,5 8,-5v2z" fill="currentColor"/></symbol><symbol id="g-action.unsecure" viewBox="0 0 24 24"><path d="M21 21.78L4.22 5 3 6.22l2.04 2.04C4.42 8.6 4 9.25 4 10v10c0 1.1.9 2 2 2h12c.23 0 .45-.05.66-.12L19.78 23 21 21.78zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H9.66L20 18.34V10c0-1.1-.9-2-2-2h-1V6c0-2.76-2.24-5-5-5-2.56 0-4.64 1.93-4.94 4.4L8.9 7.24V6z" fill="currentColor"/></symbol><symbol id="g-app.info" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/></symbol><symbol id="g-app.settings" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></symbol></svg>
     <!-- /control-glyphs -->
   </body>
 </html>

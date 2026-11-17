@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SETTINGS-NAVIGATION` |
-| **Version** | 2.0 (no wire - settings navigation, page composition and presentation behavior) |
+| **Version** | 2.3, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - settings navigation, page composition and presentation behavior) |
 | **Role** | consumer - the shell rail with its Settings and About destinations, and the standalone Disk settings dialog; migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `settings-navigation/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |

@@ -2060,13 +2060,54 @@ Partial Public Class DiskManagerForm
     End Function
 
     Friend Sub StopStoppable()
+        AskStoppable()
+    End Sub
+
+    ' The Stop button's request: the verification is the one operation of this window it stops (the others end by
+    ' themselves within seconds). The number of runs asked.
+    Private Function AskStoppable() As Integer
+        Dim asked = 0
         For Each op In running
             If op.Action = DiskAction.Verify AndAlso op.Run IsNot Nothing Then
                 op.Stopped = True
                 op.Run.RequestStop()
+                asked += 1
             End If
         Next
-    End Sub
+        Return asked
+    End Function
+
+    ' SP-0218: `filedo job stop` for this window - the Stop button's request and the queue emptied, as Stop and close
+    ' empties it. The number of runs asked; `cleared` is the number of queued operations taken out.
+    Friend Function StopForCommand(ByRef cleared As Integer) As Integer
+        Dim asked = AskStoppable()
+        cleared = queue.Count
+        If cleared > 0 Then ClearQueue()
+        Return asked
+    End Function
+
+    ' SP-0218: the operations of this window for `filedo job list` - the running ones, then the queue. The verb is the
+    ' console verb of the action; the row's name and path are not in the entry.
+    Friend Function Runs() As List(Of RunInfo)
+        Dim list As New List(Of RunInfo)()
+        For Each op In running
+            list.Add(RunInfoOf(op, RunSnapshot.StateRunning))
+        Next
+        For Each op In queue
+            list.Add(RunInfoOf(op, RunSnapshot.StateQueued))
+        Next
+        Return list
+    End Function
+
+    Private Shared Function RunInfoOf(op As DiskOp, state As String) As RunInfo
+        Dim started = String.Equals(state, RunSnapshot.StateRunning, StringComparison.Ordinal) AndAlso op.Run IsNot Nothing
+        Return New RunInfo With {
+            .Place = RunSnapshot.WhereManager,
+            .Verb = RunSnapshot.SafeToken(DiskStates.VerbOf(op.Action), "job"),
+            .State = state,
+            .StepName = If(started, RunSnapshot.SafeToken(op.Run.CurrentStep, ""), ""),
+            .Percent = If(started, op.Run.CurrentPercent, -1)}
+    End Function
 
     Private Sub ClearQueue()
         For Each op In queue
@@ -2092,11 +2133,6 @@ Partial Public Class DiskManagerForm
     Friend ReadOnly Property MountedCount As Integer
         Get
             Return If(snapshot Is Nothing, 0, snapshot.Disks.Where(Function(r) r.IsMounted AndAlso Not r.IsImage).Count())
-        End Get
-    End Property
-    Friend ReadOnly Property JobCount As Integer
-        Get
-            Return running.Count
         End Get
     End Property
     Friend ReadOnly Property ClosePending As Boolean
@@ -2189,6 +2225,7 @@ Partial Public Class DiskManagerForm
     ' the destructive ones last and set apart. A disabled item says why in its tooltip.
     Private Sub BuildActionMenu(menu As ContextMenuStrip, sel As List(Of DiskRecord), withGlobals As Boolean)
         menu.Items.Clear()
+        menu.ShowCheckMargin = withGlobals
         Dim groups = New DiskAction()() {
             New DiskAction() {DiskAction.Mount, DiskAction.MountReadOnly, DiskAction.MountAs, DiskAction.Unmount, DiskAction.UnmountImage,
                               DiskAction.OpenDrive, DiskAction.SaveNow, DiskAction.Info, DiskAction.Verify, DiskAction.CheckVolume,
@@ -2216,14 +2253,16 @@ Partial Public Class DiskManagerForm
             ' The shutdown guard belongs to the account, not to a row: reachable with nothing selected
             ' and with no disk registered at all (SP-0080 5).
             If Not DiskStates.HiddenInBuild(DiskAction.Autostart, Context()) Then menu.Items.Add(MenuItem(DiskAction.Autostart, sel))
-            Dim pathCol As New ToolStripMenuItem(L("vd_mgr_show_path_column")) With {.Checked = list.Columns(Col.Path).Width > 0}
+            Dim pathCol As New ToolStripMenuItem(L("vd_mgr_show_path_column")) With {.Checked = list.Columns(Col.Path).Width > 0, .Image = MenuImage(DiskGlyphs.TableColumns, True, False)}
             AddHandler pathCol.Click, Sub() ToggleColumn(Col.Path)
-            Dim sinceCol As New ToolStripMenuItem(L("vd_mgr_show_since_column")) With {.Checked = list.Columns(Col.Since).Width > 0}
+            Dim sinceCol As New ToolStripMenuItem(L("vd_mgr_show_since_column")) With {.Checked = list.Columns(Col.Since).Width > 0, .Image = MenuImage(DiskGlyphs.TableColumns, True, False)}
             AddHandler sinceCol.Click, Sub() ToggleColumn(Col.Since)
             menu.Items.Add(pathCol)
             menu.Items.Add(sinceCol)
             ' The detail pane's way back when it has been hidden, and a way to hide it from here too.
-            Dim detailItem As New ToolStripMenuItem(L(If(detailOpenState, "vd_mgr_detail_hide", "vd_mgr_detail_show")))
+            Dim detailItem As New ToolStripMenuItem(L(If(detailOpenState, "vd_mgr_detail_hide", "vd_mgr_detail_show"))) With {
+                .Image = MenuImage(If(detailOpenState, DiskGlyphs.HideDetails, DiskGlyphs.ShowDetails), True, False)
+            }
             AddHandler detailItem.Click, Sub() ToggleDetail()
             menu.Items.Add(detailItem)
             ' The Help button's menu, as an entry a Tab walk reaches (INPUT-PARITY 3.2 rule 1): the keyboard
@@ -3087,6 +3126,40 @@ Partial Public Class DiskManagerForm
         End Try
     End Function
 
+    ' SP-0218: what `Runs` lists and what `StopForCommand` does with one running verification (the one operation the
+    ' Stop button stops), one running operation it does not stop and two queued ones - without a filedo.exe. The fakes
+    ' are taken out again whatever happens.
+    Friend Function JobsForTest() As Dictionary(Of String, Object)
+        Dim made = Function(action As DiskAction, name As String) New DiskOp With {
+            .Action = action, .Record = New DiskRecord With {.Name = name, .Path = "C:\selftest\" & name & ".fdd"}, .Run = New Runner()}
+        Dim verify = made(DiskAction.Verify, "jobs-verify")
+        Dim mount = made(DiskAction.Mount, "jobs-mount")
+        Dim waitingA = made(DiskAction.Unmount, "jobs-wait-a")
+        Dim waitingB = made(DiskAction.SaveNow, "jobs-wait-b")
+        waitingA.Run = Nothing
+        waitingB.Run = Nothing
+        running.Add(verify)
+        running.Add(mount)
+        queue.Add(waitingA)
+        queue.Add(waitingB)
+        Try
+            Dim result As New Dictionary(Of String, Object)()
+            result("listed") = Runs()
+            Dim cleared As Integer
+            result("asked") = StopForCommand(cleared)
+            result("cleared") = cleared
+            result("queueLeft") = queue.Count
+            result("verifyStopped") = verify.Stopped
+            result("mountStopped") = mount.Stopped
+            result("runningLeft") = running.Count
+            Return result
+        Finally
+            running.Remove(verify)
+            running.Remove(mount)
+            queue.Clear()
+        End Try
+    End Function
+
     Friend Sub ApplySnapshotForTest(s As DiskSnapshot, problem As String)
         ApplyRead(s, problem)
     End Sub
@@ -3389,6 +3462,21 @@ Friend Class MenuColours
             Return Theme.Current.Surface
         End Get
     End Property
+    Public Overrides ReadOnly Property CheckBackground As Color
+        Get
+            Return Theme.Current.SurfaceAlt
+        End Get
+    End Property
+    Public Overrides ReadOnly Property CheckSelectedBackground As Color
+        Get
+            Return Theme.Current.ControlHover
+        End Get
+    End Property
+    Public Overrides ReadOnly Property CheckPressedBackground As Color
+        Get
+            Return Theme.Current.ControlHover
+        End Get
+    End Property
 End Class
 
 ' The menu renderer: the colours above, and a disabled item's caption in the palette's disabled
@@ -3415,5 +3503,35 @@ Friend Class ShellMenuRenderer
     Protected Overrides Sub OnRenderArrow(e As ToolStripArrowRenderEventArgs)
         e.ArrowColor = Theme.Current.Text
         MyBase.OnRenderArrow(e)
+    End Sub
+
+    Protected Overrides Sub OnRenderItemCheck(e As ToolStripItemImageRenderEventArgs)
+        Dim p = Theme.Current
+        Dim r = e.ImageRectangle
+        If r.Width <= 0 OrElse r.Height <= 0 Then Return
+        Dim fill = If(e.Item IsNot Nothing AndAlso e.Item.Selected, p.ControlHover, p.SurfaceAlt)
+        Using back As New SolidBrush(fill)
+            e.Graphics.FillRectangle(back, r)
+        End Using
+        Using border As New Pen(p.Border)
+            e.Graphics.DrawRectangle(border, r.X, r.Y, r.Width - 1, r.Height - 1)
+        End Using
+        Dim prev = e.Graphics.SmoothingMode
+        e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias
+        Try
+            Dim pts = New PointF() {
+                New PointF(r.Left + r.Width * 0.24F, r.Top + r.Height * 0.52F),
+                New PointF(r.Left + r.Width * 0.43F, r.Top + r.Height * 0.72F),
+                New PointF(r.Left + r.Width * 0.78F, r.Top + r.Height * 0.3F)
+            }
+            Using pen As New Pen(p.Text, Math.Max(1.5F, r.Height / 9.0F))
+                pen.StartCap = System.Drawing.Drawing2D.LineCap.Round
+                pen.EndCap = System.Drawing.Drawing2D.LineCap.Round
+                pen.LineJoin = System.Drawing.Drawing2D.LineJoin.Round
+                e.Graphics.DrawLines(pen, pts)
+            End Using
+        Finally
+            e.Graphics.SmoothingMode = prev
+        End Try
     End Sub
 End Class

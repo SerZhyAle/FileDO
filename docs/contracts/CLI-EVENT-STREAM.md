@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CLI-EVENT-STREAM` |
-| **Version** | 0.16, draft; SP-0195 (0.14), SP-0196 (0.15) and SP-0201 (0.16) are built in the working tree, not yet built or tested - the shell reads `details.reason` for the six tokens below (wire carrier: `schemaVersion` 1 on every line) |
+| **Version** | 0.17, draft; read 2026-11-16 (SP-0221, SP-0222); CLI 0.17 in working tree (`fill` `filesCreated`/`bytesWritten` & 0.14-0.16 shipped in v2611110217; `backup` tokens/numbers and `fill del` items B-C in working tree, not built or tested until release); shell 0.17 (wire carrier: `schemaVersion` 1 on every line) |
 | **Home** | shared contracts catalog, folder `cli-event-stream/` |
 | **Role** | producer (`cmd/filedo`) and consumer (`filedo_win_vb`) - both implementations live here |
 | **Owner** | FileDO. Amendments are written in the catalog first |
@@ -34,6 +34,12 @@
   counts its row names, `volume-full` for any error whose chain holds the file system's disk-full errno, and
   `file-in-use` (no numbers) for one whose chain holds a sharing or lock violation errno.
   A token never changes the exit class or the verdict, and a new value needs the catalog first.
+- **`backup` publishes its numbers and two tokens** (rules 16 and 17, amendment 2026-11-12): `files`, `bytes` and
+  `archiveBytes`; with `gen <N>` also `generation`, `retiredGeneration` and `keepCount`, filled only once the
+  artifact is published and never on a run that ends otherwise (`backup_generation.go`); a definition the verb
+  refuses ends in class 10 with `backup-source-refused` or `backup-destination-refused` (`backupSourceRefused`,
+  `backupDestinationRefused`), and a missing destination folder is class 11 with no token. The shell does not read
+  these two tokens yet: it shows the plain sentence for them.
 - **The shell turns a token into a sentence of its own language** (`filedo_win_vb/RunExplanation.vb`): a Not
   proven run shows the sentence of its token on the Job page's card and the Command page's verdict line, one
   plain sentence that points at the output when there is no token or it is unknown, and never the CLI's English

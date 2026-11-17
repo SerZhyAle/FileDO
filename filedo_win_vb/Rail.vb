@@ -148,6 +148,7 @@ Public Class RailRow
         RailRow.Job("rail_job_vd_add", DiskGlyphs.RememberName),
         RailRow.Alone("rail_job_history", GlyphRef.Vocabulary("content.history"), "program.history"),
         RailRow.Alone("rail_job_command", GlyphRef.Vocabulary("app.command-line"), "program.command"),
+        RailRow.Alone("rail_job_commands", GlyphRef.Vocabulary("app.help"), "program.command"),
         RailRow.Alone("rail_job_settings", GlyphRef.Vocabulary("app.settings"), "program.app"),
         RailRow.Alone("rail_job_about", GlyphRef.Vocabulary("app.info"), "program.app")
     })

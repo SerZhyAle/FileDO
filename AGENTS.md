@@ -100,6 +100,12 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
 - **Site** ("Site"): hand-authored pages; the generated files (`docs/sitemap.xml`, written by
   `packaging/write-sitemap.ps1`, and the two share images, drawn by `assets/make-product-icons.ps1 -SocialOnly`) are never edited by hand; release asset names are the download buttons' contract, and
   the installer is **not code-signed**, which every download surface says.
+- **The product's own command line** (`docs/CLI.md`): development agents read `docs/CLI.md` and run
+  `filedo commands --json` to see what FileDO can be asked to do, and prefer `filedo status`, `filedo job list`
+  and `filedo vd status json` to a screenshot when they need the product's state. `docs/CLI.md` is **generated**
+  from `docs/cli-commands.json` by `packaging/write-cli-docs.ps1` and never edited by hand; the `internal-docs`
+  step fails when it is stale, when the manifest and the copy `filedo.exe` embeds differ, or when a commands
+  guide page (en, de, fr) leaves a command out. A new command is a manifest row first (APP-COMMANDS).
 
 ## Testing
 - **Between releases nothing slower than 5 s runs** (canon `TESTING_AND_QA` section 2): no full build, no

@@ -328,19 +328,35 @@ func runCapacityFill(kind, targetPath, sizeStr string, autoDelete bool, logger *
 		fmt.Printf("\n⚠ Some writers had not stopped within %s; the files they were writing may remain.\n", fillJoinBudget)
 	}
 
-	if autoDelete && out.Completed > 0 {
-		fmt.Printf("\nAuto-delete enabled - deleting the %d files this fill created..\n", out.Completed)
-		var paths []string
-		out.eachCompleted(func(i int64) {
-			paths = append(paths, filepath.Join(dir, capacityFileName(i, width, stamp, runID)))
-		})
-		deleted, freed, failed := deleteFiles(paths)
-		fmt.Printf("\nAuto-delete complete: %d files deleted, %.2f GB freed\n", deleted, gbOf(freed))
-		if failed > 0 {
-			fmt.Printf("Warning: %d files could not be deleted\n", failed)
+	var delErr error
+	if autoDelete {
+		var deleted, freed, failed int64
+		if out.Completed > 0 {
+			fmt.Printf("\nAuto-delete enabled - deleting the %d files this fill created..\n", out.Completed)
+			var paths []string
+			out.eachCompleted(func(i int64) {
+				paths = append(paths, filepath.Join(dir, capacityFileName(i, width, stamp, runID)))
+			})
+			deleted, freed, failed = deleteFiles(paths)
+			fmt.Printf("\nAuto-delete complete: %d files deleted, %.2f GB freed\n", deleted, gbOf(freed))
+			if failed > 0 {
+				fmt.Printf("Warning: %d files could not be deleted\n", failed)
+			}
+			if plan.SubDir != "" {
+				os.Remove(dir)
+			}
 		}
-		if plan.SubDir != "" {
-			os.Remove(dir)
+		// CLI-EVENT-STREAM 0.17 rule 16 / items B and C: publish both counts
+		// whenever del was given and the writing phase ended (0 and 0 when no
+		// file completed), and record a defect when any created file remained.
+		runNumber("filesDeleted", deleted)
+		runNumber("filesNotDeleted", failed)
+		if failed > 0 {
+			noun := "files"
+			if failed == 1 {
+				noun = "file"
+			}
+			delErr = recordedDefect("error", fmt.Sprintf("%d fill %s could not be deleted.", failed, noun), nil)
 		}
 	} else if out.Completed > 0 {
 		fmt.Printf("\nCheck the written data with: filedo %s fill verify\n", quoteIfNeeded(targetPath))
@@ -348,6 +364,13 @@ func runCapacityFill(kind, targetPath, sizeStr string, autoDelete bool, logger *
 	}
 
 	endErr := fillEndError(ctx, out, plan)
+	if delErr != nil {
+		if endErr == nil {
+			endErr = delErr
+		} else {
+			endErr = errors.Join(delErr, endErr)
+		}
+	}
 	if logger != nil {
 		logger.SetResult("filesCreated", out.Completed)
 		logger.SetResult("totalGBWritten", gbOf(out.Bytes))

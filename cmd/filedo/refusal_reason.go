@@ -17,6 +17,14 @@ const (
 	// reasonFileInUse is a file the run needed that another program holds open
 	// (a sharing or lock violation): no numbers, the run measured no size.
 	reasonFileInUse = "file-in-use"
+	// reasonBackupSourceRefused and reasonBackupDestinationRefused are the two
+	// definition errors of `backup` (CLI-EVENT-STREAM 0.17 item G): class 10, no
+	// numbers. The first says the source cannot be backed up as named - the
+	// Windows drive, a drive or share root without the word root, a file, a link
+	// without skip-links - the second that the destination cannot take this backup
+	// as named - inside the folder being packed, or a name that already exists.
+	reasonBackupSourceRefused      = "backup-source-refused"
+	reasonBackupDestinationRefused = "backup-destination-refused"
 )
 
 // reasonError carries a closed token and its numbers on an ordinary error, so

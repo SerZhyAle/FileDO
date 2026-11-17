@@ -169,6 +169,14 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 	verb := verbOf(first)
 	var kind, target string
 	rest := args[1:]
+	// The verbs of the command manifest (appcmd.go) are reserved first words:
+	// a folder of that name is not their target. They ask the running window
+	// program and answer with an exit code of their own, so a batch line
+	// cannot carry one.
+	if verb == "" && batch && isAppCommandWord(first) {
+		usageFailure(lower, args, "%s is a command for the running FileDO window program; run filedo %s on its own, not from a batch file", lower, lower)
+		return errLineFailed
+	}
 	if verb == "" {
 		// `wipe` and `w` take their target first. A folder of that name is
 		// its own target; otherwise the word is a mistyped order.

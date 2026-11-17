@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `BUILD-EVIDENCE` |
-| **Version** | 0.11, read 2026-10-29 (SP-0174); implemented 0.11, draft |
+| **Version** | 0.12, read 2026-11-16 (SP-0221); implemented 0.12 (item D N/A), draft |
 | **Role** | producer - build automation evidence |
 | **Home** | shared contracts catalog, folder `automated-checks/`, document `README.md` |
 | **Owner** | FastMediaSorter Android |

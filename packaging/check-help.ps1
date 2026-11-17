@@ -216,35 +216,54 @@ foreach ($a in $owedAbsent) {
 }
 
 # ---- freshness (rung 2) -------------------------------------------------------------------------
+function Test-InteractiveDesktop {
+    if (-not [Environment]::UserInteractive) { return $false }
+    try { return ((Get-Process -Id $PID).SessionId -ne 0) }
+    catch { return $false }
+}
+
 $fresh = ''
 if ($Exe) {
+    if (-not (Test-InteractiveDesktop)) { Stop-Unverified 'check-help.ps1 -Exe requires an interactive desktop session' }
     if (-not (Test-Path $Exe)) { Stop-Unverified "no $Exe" }
     $scratch = Join-Path ([IO.Path]::GetTempPath()) ('filedo_help_fresh_' + [guid]::NewGuid().ToString('N'))
     $out = Join-Path $scratch 'help'
-    New-Item -ItemType Directory -Force -Path $out, (Join-Path $scratch 'kit'), (Join-Path $scratch 'state') | Out-Null
-    Copy-Item $kit (Join-Path $scratch 'kit\sza-kit.css')
-    $copy = Join-Path $scratch 'filedo_win_help.exe'
-    Copy-Item $Exe $copy
-    if (Test-Path "$Exe.config") { Copy-Item "$Exe.config" "$copy.config" }
-    $env:FILEDO_STATE_DIR = Join-Path $scratch 'state'
-    $run = Start-Process $copy -ArgumentList '--build-help', $out -Wait -PassThru -WindowStyle Hidden
-    if ($run.ExitCode -ne 0) { Stop-Unverified "--build-help exited $($run.ExitCode)" }
-    $stale = 0
-    foreach ($f in Get-ChildItem $out -Recurse -File -Filter *.html) {
-        $rel = [IO.Path]::GetRelativePath($out, $f.FullName)
-        $committed = Join-Path $Help $rel
-        $norm = { param($t) [regex]::Replace($t, 'Captured against FileDO [^<]*<', 'Captured<') }
-        if (-not (Test-Path $committed)) { Fail "freshness: $rel is generated but not committed"; $stale++; continue }
-        if ((& $norm (Get-Content $f.FullName -Raw)) -ne (& $norm (Get-Content $committed -Raw))) { Fail "freshness: $rel differs from the build"; $stale++ }
+    $hadStateDir = Test-Path Env:FILEDO_STATE_DIR
+    $savedStateDir = $env:FILEDO_STATE_DIR
+    $unverifiedReason = $null
+    try {
+        New-Item -ItemType Directory -Force -Path $out, (Join-Path $scratch 'kit'), (Join-Path $scratch 'state') | Out-Null
+        if (Test-Path $kit) { Copy-Item $kit (Join-Path $scratch 'kit\sza-kit.css') }
+        $copy = Join-Path $scratch 'filedo_win_help.exe'
+        Copy-Item $Exe $copy
+        if (Test-Path "$Exe.config") { Copy-Item "$Exe.config" "$copy.config" }
+        $env:FILEDO_STATE_DIR = Join-Path $scratch 'state'
+        $run = Start-Process $copy -ArgumentList '--build-help', $out -Wait -PassThru -WindowStyle Hidden
+        if ($run.ExitCode -ne 0) {
+            $unverifiedReason = "--build-help exited $($run.ExitCode)"
+        } else {
+            $stale = 0
+            foreach ($f in Get-ChildItem $out -Recurse -File -Filter *.html) {
+                $rel = [IO.Path]::GetRelativePath($out, $f.FullName)
+                $committed = Join-Path $Help $rel
+                $norm = { param($t) [regex]::Replace($t, 'Captured against FileDO [^<]*<', 'Captured<') }
+                if (-not (Test-Path $committed)) { Fail "freshness: $rel is generated but not committed"; $stale++; continue }
+                if ((& $norm (Get-Content $f.FullName -Raw)) -ne (& $norm (Get-Content $committed -Raw))) { Fail "freshness: $rel differs from the build"; $stale++ }
+            }
+            foreach ($f in Get-ChildItem (Join-Path $out 'img') -File -Filter *.png) {
+                $committed = Join-Path $Help "img\$($f.Name)"
+                if (-not (Test-Path $committed)) { Fail "freshness: img\$($f.Name) is generated but not committed"; continue }
+                $a = [IO.File]::ReadAllBytes($f.FullName); $b = [IO.File]::ReadAllBytes($committed)
+                if ([BitConverter]::ToString($a, 16, 8) -ne [BitConverter]::ToString($b, 16, 8)) { Fail "freshness: img\$($f.Name) has another size" }
+            }
+            $fresh = ', regenerated and compared'
+        }
+    } finally {
+        if ($hadStateDir) { $env:FILEDO_STATE_DIR = $savedStateDir }
+        else { Remove-Item Env:FILEDO_STATE_DIR -ErrorAction SilentlyContinue }
+        Remove-Item $scratch -Recurse -Force -ErrorAction SilentlyContinue
     }
-    foreach ($f in Get-ChildItem (Join-Path $out 'img') -File -Filter *.png) {
-        $committed = Join-Path $Help "img\$($f.Name)"
-        if (-not (Test-Path $committed)) { Fail "freshness: img\$($f.Name) is generated but not committed"; continue }
-        $a = [IO.File]::ReadAllBytes($f.FullName); $b = [IO.File]::ReadAllBytes($committed)
-        if ([BitConverter]::ToString($a, 16, 8) -ne [BitConverter]::ToString($b, 16, 8)) { Fail "freshness: img\$($f.Name) has another size" }
-    }
-    Remove-Item $scratch -Recurse -Force -ErrorAction SilentlyContinue
-    $fresh = ', regenerated and compared'
+    if ($unverifiedReason) { Stop-Unverified $unverifiedReason }
 }
 
 foreach ($f in $failures) { Write-Host "  FAIL  $f" }

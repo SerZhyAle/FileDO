@@ -180,6 +180,18 @@ item below):
   on autostart for one, its password is kept on the device, protected for that program, until you turn
   autostart off, stop sharing or change the password.
 
+Commands from other programs: a script, a scheduled task or a development tool can ask the running
+FileDO window to do things (for example `filedo status` or `filedo job stop`) over a local pipe that
+only your own Windows account, in your own session, can reach - never the network. Every command has
+one risk class: safe (changes only FileDO's own windows and runs), reads-user-data (screen content,
+the clipboard, file contents or names), writes-user-data (creates, changes or deletes your files or
+settings, or acts inside another program) and leaves-machine (sends anything off this computer).
+Every command the running window answers is safe. The four developer switches of filedo_win.exe that
+write a folder you name are writes-user-data and run in their own process when you start them. A
+command of any class other than safe is refused until you turn on one setting in Settings, "Let other
+programs ask FileDO to work with my files, screen, clipboard or the network"; it is off until you turn
+it on, and no command can change it.
+
 Sending logs to the author is entirely yours to start: the About window of the GUI has a
 button that packs those local log files into a zip in your TEMP folder, shows it to you in
 Explorer, and opens your own mail program addressed to the author. The app never uploads

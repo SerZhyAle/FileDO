@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PAGE-CONTENT` |
-| **Version** | 1.5, re-read 2026-10-29 (SP-0174); implemented partial 1.5 |
+| **Version** | 1.5, re-read 2026-11-16 (SP-0221); implemented partial 1.5 (hero identity-block exception stands) |
 | **Role** | consumer - product website `docs/index.html` and `docs/guides/` |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `PAGE-CONTENT.md` |
 | **Owner** | sza.od.ua hub. Amendments are proposed in the catalog |

@@ -398,11 +398,22 @@ filedo backup D:\Photos sec
 filedo backup \\nas\share\Docs
 filedo backup E:\ root
 
+# A numbered set of the last 7 in E:\Bak: Photos_001.zip .. Photos_007.zip; once 7 stand, the new one replaces the oldest
+filedo backup D:\Photos to E:\Bak gen 7
+
+# The set named by stem instead of the folder's name, and sealed: Docs_001.fd-sec ..
+filedo backup D:\Photos to E:\Bak gen 7 stem Docs sec
+
 # Rebuild the folder beside the archive, or under another address
 filedo restore Photos-2611101530.zip
 filedo restore Photos-2611101530.fd-sec to D:\
 ```
 
+- **The result is one file named `<source>-<yyMMddHHmm>`**: the name of the folder (or drive) that was
+  packed, a dash, then the year, month, day, hour and minute of the backup, and `.zip` - or `.fd-sec`
+  when sealed. `D:\Photos` backed up on 17 November 2026 at 16:52 gives `Photos-2611171652.zip`.
+  Without `to` it is written beside the folder (a drive's backup goes to the current folder); `to` names
+  another folder, or a new file name.
 - **The zip records the folder's name, never its path**, so a plain backup handed to someone else does
   not show how your disk is organised. `restore` rebuilds the folder beside the archive; `to <dir>`
   names any other address, the original one included.
@@ -421,12 +432,25 @@ filedo restore Photos-2611101530.fd-sec to D:\
 - **A stopped run (Ctrl+C) leaves no archive behind** - only finished files ever get their final name.
   A sealed restore with a wrong password, a file that is not a container and a damaged container end in
   the same answer, as they do for `unsecure`; `del` removes the archive after a successful restore.
+- **A numbered set keeps the last N backups.** `gen <1-999>` names the keep-count and switches the set on;
+  `to` then names a folder, and `stem <name>` names the set (one file-name part; the folder's name by
+  default, so two folders of one name get two stems). The files are `<stem>_001.zip` .. `<stem>_NNN.zip`,
+  `.fd-sec` with `sec`. The number is read from the folder alone - the newest file of the set, by
+  modification time, gives the one after it, `001` after the keep-count - so a restart or an upgrade cannot
+  fork it, and a deleted number does not stop a run. Once the set is full, the new file is built under a
+  partial name and read back first; only then is the oldest one removed and the new one renamed into its
+  place - at most one file per run, only a name of the set, and a failed or stopped run removes nothing.
+  The folder needs room for one file more than the set holds while the run works. `keep-zip` does not go
+  with `gen`. With `--events` the result carries `generation`, `retiredGeneration` (0 = none) and
+  `keepCount`.
 - **A backup is one whole copy, made when you run it** - there is no schedule, no history of earlier
-  backups and no incremental layer. A single file goes into a container with `secure` instead.
+  backups and no incremental layer; a numbered set is only a bounded rotation of whole copies, and the
+  schedule is yours. A single file goes into a container with `secure` instead.
 
 In the window, the **Protect** group carries both operations as pages - **Back up a folder** and
 **Restore from a backup** - and the **Command** page builds them too (`backup`, `backup sec`, `restore`).
 The password is typed out of sight (twice for a sealed backup) and reaches no command line.
+Step 3 of **Back up a folder** also asks how many backups to keep and what to call the numbered set.
 
 ---
 
@@ -708,13 +732,42 @@ with nothing changed.
 
 ---
 
+## Commands for Scripts and Agents
+
+A script, a scheduled task, a shortcut or a development tool can ask the **already running** FileDO window program to do something with `filedo <command>`. The copy that is already running does the work and the command ends with its answer as an exit code - no second copy opens. [`docs/CLI.md`](docs/CLI.md) is the full list, generated from the manifest that `filedo commands --json` prints.
+
+| Command | What it does | With no window program running |
+|---------|--------------|--------------------------------|
+| `filedo commands [--json]` | List every command; `--json` prints the manifest itself | Works anyway |
+| `filedo version [--json]` | Product name, version, version of the command set | Works anyway |
+| `filedo status [--json]` | Is the window program running and ready: version, process id, open windows, runs in progress | Exit 11 |
+| `filedo show` | Bring the main window forward | Starts FileDO |
+| `filedo quit [--stop-jobs]` | Close the running FileDO; a run in progress makes it refuse (exit 11) unless `--stop-jobs` stops the runs first | Nothing to do, exit 0 |
+| `filedo disk-manager show` | Bring the Disk Manager forward | Starts FileDO with only the Disk Manager |
+| `filedo settings show` | Open the Settings page | Starts FileDO |
+| `filedo tray start` | Start FileDO hidden, with its tray icon | Starts it |
+| `filedo job list [--json]` | Runs in progress and queued operations; no file names | Exit 11 |
+| `filedo job stop [--where all\|shell\|manager]` | Stop the runs gracefully, as the Stop button does, and wait | Nothing to stop, exit 0 |
+
+Exit codes: 0 done, 1 the command ran and the operation failed, 2 not proven (the time bound passed, the running copy may still be working), 10 usage error, 11 not running or busy, 12 permission (the risk class is switched off, or the running FileDO is elevated and the caller is not).
+
+Every command the running window answers is *safe*: it changes only FileDO’s own windows and runs and reads none of your files. A command of any other class is refused with exit 12 until you turn on **Let other programs ask FileDO to work with my files, screen, clipboard or the network** in Settings; it is off until you turn it on and no command can change it. The commands travel over a local pipe that only your own Windows account, in your own session, can reach - never the network.
+
+The five switches the build scripts call - `filedo_win.exe selftest run`, `help-pages build --out <folder>`, `screens capture --out <folder>`, `menu-icons write --out <folder>` and `ui-drive run --out <folder>` - are commands too and run in their own process.
+
+Development tools and agents can read `docs/CLI.md` and run `filedo commands --json` to see what FileDO can be asked to do; `filedo status`, `filedo job list` and `filedo vd status json` give the product’s state without a screenshot. Guide: [commands for scripts and agents](https://serzhyale.github.io/FileDO/guides/commands.html).
+
+---
+
 ## GUI Application
 
-**FileDO GUI** (`filedo_win.exe`) - a VB.NET Windows Forms shell: a rail of jobs on the left and one numbered page per job - what to work on, which parameters, then check and run - plus a **Command** page, the expert builder that can assemble **any** FileDO command and run it. What the window holds:
+**FileDO GUI** (`filedo_win.exe`) - a VB.NET Windows Forms shell: a rail of jobs on the left and one numbered page per job - what to work on, which parameters, then check and run - plus a **Command** page, the expert builder that can assemble **any** FileDO command and run it, and an **About operations** page that explains every operation in plain words. What the window holds:
 
 - **5-language UI** (EN / RU / UA / DE / FR, remembered) with an **inline help panel**: what the selected operation and flags do, the expected result, and an example for the target
 - **Target selection** (device / folder / network / file); for **device** the path becomes a **drive-letter picker**, and choosing the system drive explains the `%TEMP%\FileDO_Operations` redirect
-- **Every operation** on the Command page, in one dropdown: info, speed, test, fill, clean, cd (duplicates), the full copy family (copy / fastcopy / synccopy / balanced / maxcopy / smartcopy / safecopy), wipe, compare, check, probe, recover, from, hist
+- **Every operation** on the Command page, in one dropdown: info, speed, test, fill, clean, cd (duplicates), the full copy family (copy / fastcopy / synccopy / balanced / maxcopy / smartcopy / safecopy), wipe, compare, check, probe, recover, from, hist; **Browse commands..** beside the dropdown opens a dialog that lists every operation in six groups - Check, Tidy, Copying, Erase, Protect, Tools and Explorer - with a one-line description of each; **Use this command**, or a double-click, sets the dropdown, and **Full descriptions** opens the About operations page on that operation
+- **The window remembers what you used** between sessions: the folders you pick and run on (the target, and the place for the result, which has a folder picker of its own beside its box), the commands you ran - **Recent..** on the Command page lists the last 12 and puts one back on the command line - and the operation, target and destination the Command page was left on; **Forget recent commands and folders** in that menu empties it all. A run kept out of history with `nohist`, a line that carries a password, and every run while run history is off in Settings are never remembered, and flags never are
+- **An About operations page** in the rail, beside Command: every operation with its name and a one-line description; a click on the name opens the full text in plain words - what it does, when to use it and what it changes - with an example command line, and the search box on top (Ctrl+F) narrows the list by name or by any word of the descriptions; an operation that deletes, overwrites, formats or needs Administrator says so, and **Use this command** opens the Command page with that operation chosen
 - **Source + destination** fields for copy and compare
 - **Context-aware flags** (max, del, nodel, short, hist, `--force` for wipe) and duplicate/compare delete rules
 - **A page per job** in the default window - capacity, speed, info, damaged-files check, raw probe, recover, duplicates, compare, clean, copy, fill, wipe, the three secret-file jobs and the backup pair (back up, restore) - each carrying every option the CLI takes for it, including all twenty-nine `check` flags

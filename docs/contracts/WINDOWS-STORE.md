@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `WINDOWS-STORE` |
-| **Version** | 0.3, read 2026-10-29 (SP-0174); implemented partial 0.3; the export-dialect refusals of item B are open (SP-0184), draft |
+| **Version** | 0.6, read 2026-11-16 (SP-0221); implemented partial 0.6 (`SP-0184` shipped in `v2611110217`; `SP-0205` BlockNeedUserTest live Store preflight & Partner Center re-export pending), draft |
 | **Home** | shared contracts catalog, folder `windows-store/` |
 | **Role** | consumer - FileDO ships to Microsoft Store via this contract |
 | **Owner** | StreamsPlayer (as of 2026-10-03 per catalog registry) |

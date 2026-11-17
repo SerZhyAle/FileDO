@@ -9,6 +9,9 @@ Public Class SettingsPanel
     Private ReadOnly historyCheck As New BooleanOption With {.AutoSize = True}
     Private ReadOnly minimizeCheck As New BooleanOption With {.AutoSize = True}
     Private ReadOnly notifyCheck As New BooleanOption With {.AutoSize = True}
+    ' APP-COMMANDS rule 13: the person's one switch for commands from other programs that work with files,
+    ' the screen, the clipboard or the network. Nothing but this check box writes it.
+    Private ReadOnly commandsCheck As New BooleanOption With {.AutoSize = True}
     Private ReadOnly root As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 1}
     Private ReadOnly autoPlayStatus As New Label With {.AutoSize = True}
     Private suppress As Boolean
@@ -127,6 +130,10 @@ Public Class SettingsPanel
         Dim autoplayOpen As GlyphButton = Ui.GlyphCommandButton(Localization.T("settings_autoplay_open"), GlyphRef.Vocabulary("nav.open-external"), New Padding(0))
         AddRow(windows, "autoplay-system", "settings_autoplay_open", "settings_autoplay_hint", autoplayOpen)
         AddHandler autoplayOpen.Click, Sub() Links.Open(FindForm(), WindowsAutoPlay.SettingsUri)
+        AddRow(windows, "commands", "settings_commands_restricted", "settings_commands_restricted_hint", commandsCheck)
+        AddHandler commandsCheck.CheckedChanged, Sub()
+                                                   If Not suppress Then ShellSettings.SetAcceptsRestrictedCommands(commandsCheck.Checked)
+                                               End Sub
         Dim reset As GlyphButton = Ui.GlyphCommandButton(Localization.T("settings_reset"), GlyphRef.Vocabulary("action.reset"), New Padding(0))
         AddRow(windows, "reset", "settings_reset", "settings_reset_hint", reset)
         AddHandler reset.Click, Sub() ShellSettings.ResetPlacements()
@@ -145,6 +152,7 @@ Public Class SettingsPanel
             StartupCombo.SelectedIndex = Array.IndexOf(StartupLaunch.Choices, ShellSettings.Autostart())
             minimizeCheck.Checked = ShellSettings.MinimizeToTray()
             notifyCheck.Checked = ShellSettings.FinishNotification()
+            commandsCheck.Checked = ShellSettings.AcceptsRestrictedCommands()
         Finally
             suppress = False
         End Try

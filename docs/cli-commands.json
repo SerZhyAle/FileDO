@@ -1,0 +1,534 @@
+{
+  "$comment": "The command manifest of FileDO (APP-COMMANDS 0.3 rule 18). filedo.exe is the front of every user verb; the running filedo_win.exe (main window, Disk Manager, tray) is the first instance that answers over its command pipe. filedo.exe and filedo_win.exe each embed this exact file and a test holds them equal (APP-COMMANDS case C1). Aliases are objects naming spelling, exe, legacy and (for fire-and-forget start spellings) answers: false. Non-forwarded console grammars (target-first, fdsec, vd) are listed in families[] and keep their own exit and event contracts (APP-COMMANDS rule 11, item B). Verbs with forward: never run in the receiving process without touching the pipe or first instance; developer tooling verbs carry audience: developer and exe: filedo_win.exe.",
+  "schemaVersion": 1,
+  "product": "FileDO",
+  "exe": "filedo.exe",
+  "cliVersion": "1.0",
+  "families": [
+    {
+      "name": "target-first",
+      "summary": "Target-first device, folder, file, share and batch operations (info, speed, test, fill, clean, cd, copy, compare, check, wipe, backup, restore, from, hist).",
+      "exe": "filedo.exe",
+      "help": "filedo help",
+      "exitContract": "CLI-EVENT-STREAM",
+      "eventContract": "CLI-EVENT-STREAM"
+    },
+    {
+      "name": "fdsec",
+      "summary": "Password-protected .fd-sec secure containers (secure, unsecure, reveal).",
+      "exe": "filedo.exe",
+      "help": "filedo help",
+      "exitContract": "FDSEC-BEHAVIOUR",
+      "eventContract": "CLI-EVENT-STREAM"
+    },
+    {
+      "name": "vd",
+      "summary": "Virtual disks (.fdd containers and FileDO GPT partitions, 31 verbs).",
+      "exe": "filedo.exe",
+      "help": "filedo help",
+      "exitContract": "FDD-BEHAVIOUR",
+      "eventContract": "CLI-EVENT-STREAM"
+    }
+  ],
+  "commands": [
+    {
+      "name": "commands",
+      "aliases": [],
+      "summary": "Print the list of commands this product accepts.",
+      "synopsis": "filedo commands [--developer] [--json]",
+      "args": [
+        { "name": "developer", "kind": "bool", "required": false, "default": false, "description": "Include developer tooling verbs in the readable list." },
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the manifest itself as JSON." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 5000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "printed" },
+        { "code": 10, "meaning": "an unknown option" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "filedo commands --json | ConvertFrom-Json", "expect": "exit 0; an object with a commands array; no window opens" },
+        { "shell": "cmd", "line": "filedo commands", "expect": "exit 0; one line per user command with its summary and the console families" },
+        { "shell": "cmd", "line": "filedo commands --developer", "expect": "exit 0; user commands, developer tools and the console families" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "version",
+      "aliases": [],
+      "summary": "Print the product name, its version and the version of its command set.",
+      "synopsis": "filedo version [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the answer as one JSON line." }
+      ],
+      "returns": [
+        { "name": "product", "kind": "string", "description": "FileDO" },
+        { "name": "version", "kind": "string", "description": "the version of this filedo.exe" },
+        { "name": "cliVersion", "kind": "string", "description": "the version of the command set" }
+      ],
+      "risk": "safe",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 5000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "printed" },
+        { "code": 10, "meaning": "an unknown option" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo version", "expect": "exit 0; one line with FileDO, its version and its cliVersion" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "status",
+      "aliases": [],
+      "summary": "Say whether the FileDO window program is running and ready to take commands.",
+      "synopsis": "filedo status [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [
+        { "name": "version", "kind": "string", "description": "the running copy's version" },
+        { "name": "pid", "kind": "int", "description": "its process id" },
+        { "name": "shellOpen", "kind": "bool", "description": "whether the main window exists" },
+        { "name": "managerOpen", "kind": "bool", "description": "whether the Disk Manager window is open" },
+        { "name": "trayHeld", "kind": "bool", "description": "whether the program stays alive for its tray icon with no window shown" },
+        { "name": "runningJobs", "kind": "int", "description": "runs in progress now, in the main window and the Disk Manager together" },
+        { "name": "acceptsRestrictedCommands", "kind": "bool", "description": "whether the Settings switch that lets other programs ask FileDO to work with files, the screen, the clipboard or the network is on" }
+      ],
+      "risk": "safe",
+      "coldStart": "refuse",
+      "wait": "done",
+      "timeoutMs": 2000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "running and ready" },
+        { "code": 2, "meaning": "no answer within the bound" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "not running, or busy" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo status", "expect": "exit 0 while the window program runs and is ready, 11 otherwise" },
+        { "shell": "powershell", "line": "filedo status --json | ConvertFrom-Json", "expect": "exit 0 and an object whose data holds version, pid and runningJobs, or exit 11 and reason not-running" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "show",
+      "aliases": [
+        { "spelling": "ui", "exe": "filedo.exe", "legacy": true, "answers": false },
+        { "spelling": "gui", "exe": "filedo.exe", "legacy": true, "answers": false },
+        { "spelling": "-ui", "exe": "filedo.exe", "legacy": true, "answers": false },
+        { "spelling": "", "exe": "filedo.exe", "legacy": true, "answers": false },
+        { "spelling": "", "exe": "filedo_win.exe", "legacy": true, "answers": false },
+        { "spelling": "--startup", "exe": "filedo_win.exe", "legacy": true, "answers": false },
+        { "spelling": "--legacy-builder", "exe": "filedo_win.exe", "legacy": true, "answers": false }
+      ],
+      "summary": "Bring the main window forward, opening it when the program runs without one.",
+      "synopsis": "filedo show [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "coldStart": "start",
+      "wait": "done",
+      "timeoutMs": 10000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "the main window is forward" },
+        { "code": 2, "meaning": "no answer within the bound" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "busy, or filedo_win.exe is not beside filedo.exe" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo show", "expect": "exit 0; one main window, the same program that was running" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "quit",
+      "aliases": [],
+      "summary": "Close the running window program cleanly; with none running there is nothing to do. A run in progress makes it refuse, unless --stop-jobs stops the runs first.",
+      "synopsis": "filedo quit [--stop-jobs] [--json]",
+      "args": [
+        { "name": "stop-jobs", "kind": "bool", "required": false, "default": false, "description": "Stop the runs in progress gracefully, as the Stop button does, wait for them to end and then close. Without it a run in progress makes quit refuse, because the window's own Exit would ask the person." },
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 30000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "closed, or was not running" },
+        { "code": 1, "meaning": "a window did not close" },
+        { "code": 2, "meaning": "no answer within the bound, or with --stop-jobs a run did not end within it; the program is left open and the runs keep the stop that was asked" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "a run is in progress and --stop-jobs was not given, or the window program is busy" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo quit", "expect": "exit 0 (errorlevel 0) when nothing runs" },
+        { "shell": "powershell", "line": "filedo quit; $LASTEXITCODE", "expect": "0 once the program closed, 11 while a run is in progress" },
+        { "shell": "powershell", "line": "filedo quit --stop-jobs; $LASTEXITCODE", "expect": "0 after the runs stopped and the program closed" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "disk-manager show",
+      "aliases": [
+        { "spelling": "dm", "exe": "filedo.exe", "legacy": true, "answers": false },
+        { "spelling": "-dm", "exe": "filedo.exe", "legacy": true, "answers": false },
+        { "spelling": "--disks", "exe": "filedo_win.exe", "legacy": true, "answers": false },
+        { "spelling": "--startup --disks", "exe": "filedo_win.exe", "legacy": true, "answers": false }
+      ],
+      "summary": "Bring the Disk Manager window forward, opening it (alone, without the main window) when the program has none.",
+      "synopsis": "filedo disk-manager show [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "coldStart": "start",
+      "wait": "done",
+      "timeoutMs": 10000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "the Disk Manager is forward" },
+        { "code": 2, "meaning": "no answer within the bound" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "busy, or filedo_win.exe is not beside filedo.exe" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo disk-manager show", "expect": "exit 0; the Disk Manager is in front; with no program running it is the only window that opens" },
+        { "shell": "powershell", "line": "filedo disk-manager show; $LASTEXITCODE", "expect": "0 once the Disk Manager is forward" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "settings show",
+      "aliases": [],
+      "summary": "Open the Settings page of the main window, on the screen the person is using.",
+      "synopsis": "filedo settings show [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "coldStart": "start",
+      "wait": "done",
+      "timeoutMs": 10000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "the Settings page is forward" },
+        { "code": 2, "meaning": "no answer within the bound" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "busy, or filedo_win.exe is not beside filedo.exe" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo settings show", "expect": "exit 0; the main window shows Settings, also when the program runs only as a tray icon" },
+        { "shell": "powershell", "line": "filedo settings show; $LASTEXITCODE", "expect": "0 once the Settings page is forward" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "tray start",
+      "aliases": [
+        { "spelling": "--startup --tray", "exe": "filedo_win.exe", "legacy": true, "answers": false }
+      ],
+      "summary": "Start the window program hidden, with its tray icon and no window; with a copy already running nothing changes.",
+      "synopsis": "filedo tray start [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "coldStart": "start",
+      "wait": "done",
+      "timeoutMs": 10000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "the program runs with its tray icon; a copy that was already running is left as it is" },
+        { "code": 2, "meaning": "no answer within the bound" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "busy, or filedo_win.exe is not beside filedo.exe" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo tray start", "expect": "exit 0; no window opens; the tray icon is the way back" },
+        { "shell": "powershell", "line": "filedo tray start; $LASTEXITCODE", "expect": "0 with the tray icon present and no window" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "job list",
+      "aliases": [],
+      "summary": "List the runs in progress in the main window and the Disk Manager, and the operations waiting in the Disk Manager's queue.",
+      "synopsis": "filedo job list [--json]",
+      "args": [
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [
+        { "name": "jobs", "kind": "array", "description": "one object per run: where (shell or manager), verb (the console verb of the run), state (running or queued), step (the name of the run's current step, empty when it has not named one) and percent (a whole number, null when the run has not said how much there is to do); no path and no name of the person's files; an empty array when nothing runs" }
+      ],
+      "risk": "safe",
+      "coldStart": "refuse",
+      "wait": "done",
+      "timeoutMs": 3000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "listed (the array may be empty)" },
+        { "code": 2, "meaning": "no answer within the bound" },
+        { "code": 10, "meaning": "an unknown option" },
+        { "code": 11, "meaning": "not running, or busy" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(filedo job list --json | ConvertFrom-Json).data.jobs.Count", "expect": "the number of runs and queued operations; exit 11 when the window program is not running" },
+        { "shell": "cmd", "line": "filedo job list", "expect": "exit 0; one line per run with where, verb, state, step and percent, or a sentence saying nothing runs" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "job stop",
+      "aliases": [],
+      "summary": "Ask the runs in progress to stop gracefully, as the Stop button does, empty the Disk Manager's queue and wait until no run of that window is left.",
+      "synopsis": "filedo job stop [--where <all|shell|manager>] [--json]",
+      "args": [
+        { "name": "where", "kind": "enum", "required": false, "default": "all", "values": [ "all", "shell", "manager" ], "description": "Which window's runs to stop and wait for: shell is the main window (the Job page and the Command page), manager is the Disk Manager." },
+        { "name": "json", "kind": "bool", "required": false, "default": false, "description": "Print the response line itself." }
+      ],
+      "returns": [
+        { "name": "stopped", "kind": "int", "description": "runs that were asked to stop; 0 when nothing ran" },
+        { "name": "cleared", "kind": "int", "description": "queued operations taken out of the Disk Manager's queue; 0 when the queue was empty" }
+      ],
+      "risk": "safe",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 60000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "no run of that window is left, or none was running" },
+        { "code": 2, "meaning": "a run did not end within the bound; the stop it was asked for stays requested and no run is ended by force" },
+        { "code": 10, "meaning": "an unknown option or value" },
+        { "code": 11, "meaning": "the window program is busy" },
+        { "code": 12, "meaning": "the running copy is elevated and this caller is not" }
+      ],
+      "examples": [
+        { "shell": "cmd", "line": "filedo job stop", "expect": "exit 0 once no run is left" },
+        { "shell": "powershell", "line": "(filedo job stop --where manager --json | ConvertFrom-Json).data.stopped", "expect": "the number of runs of the Disk Manager that were asked to stop" }
+      ],
+      "since": "1.0"
+    },
+    {
+      "name": "open",
+      "aliases": [
+        { "spelling": "{path}", "exe": "filedo_win.exe", "maps": { "path": "path" }, "legacy": true, "answers": false },
+        { "spelling": "--mount {path}", "exe": "filedo_win.exe", "maps": { "path": "path" }, "implies": ["--mode=mount"], "legacy": true, "answers": false },
+        { "spelling": "--mount-ro {path}", "exe": "filedo_win.exe", "maps": { "path": "path" }, "implies": ["--mode=mount-ro"], "legacy": true, "answers": false },
+        { "spelling": "--unmount {path}", "exe": "filedo_win.exe", "maps": { "path": "path" }, "implies": ["--mode=unmount"], "legacy": true, "answers": false }
+      ],
+      "summary": "Open a .fdd disk container or .fd-sec secure container in its own FileDO window, or open an already-mounted virtual disk drive in Explorer.",
+      "synopsis": "filedo_win.exe open --path <file> [--mode <mount|mount-ro|unmount>]",
+      "args": [
+        { "name": "path", "kind": "path", "required": true, "description": "The .fdd disk container, .fd-sec secure container, or file to open in its own window." },
+        { "name": "mode", "kind": "enum", "required": false, "default": "mount", "values": [ "mount", "mount-ro", "unmount" ], "description": "For a .fdd virtual disk container: mount normally (or open its drive if already mounted), mount read-only, or unmount." }
+      ],
+      "returns": [],
+      "risk": "safe",
+      "forward": "never",
+      "defaultFor": "filedo_win.exe",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 0,
+      "interactive": false,
+      "idempotent": false,
+      "exitCodes": [
+        { "code": 0, "meaning": "the container window opened and closed, or the already-mounted drive opened in Explorer" },
+        { "code": 10, "meaning": "missing --path, an unknown option or mode, or an extra argument" },
+        { "code": 11, "meaning": "the named file does not exist" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'open --path C:\\v\\work.fdd --mode mount-ro' -Wait -PassThru).ExitCode", "expect": "0 after the read-only mount window closes (or Explorer opens if already mounted); 11 when the file does not exist" },
+        { "shell": "cmd", "line": "filedo_win.exe open --path C:\\a\\secret.fd-sec", "expect": "opens its own window on the Reveal page without handing over to a running FileDO" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    },
+    {
+      "name": "selftest run",
+      "aliases": [
+        { "spelling": "--selftest", "exe": "filedo_win.exe", "legacy": true }
+      ],
+      "summary": "Developer tooling: run the window program's own gate and exit with its verdict, showing no window of its own.",
+      "synopsis": "filedo_win.exe selftest run",
+      "args": [],
+      "returns": [],
+      "risk": "safe",
+      "audience": "developer",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 600000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "every row passed" },
+        { "code": 1, "meaning": "a row failed, or the gate crashed" },
+        { "code": 10, "meaning": "an unknown option" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'selftest run' -Wait -PassThru).ExitCode", "expect": "0 when the gate passes (about 61 to 74 s)" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    },
+    {
+      "name": "help-pages build",
+      "aliases": [
+        { "spelling": "--build-help {out}", "exe": "filedo_win.exe", "maps": { "out": "out" }, "legacy": true }
+      ],
+      "summary": "Developer tooling: write the in-app help pages and their pictures, in every language and both themes, into a folder.",
+      "synopsis": "filedo_win.exe help-pages build --out <folder>",
+      "args": [
+        { "name": "out", "kind": "path", "required": true, "description": "The existing folder to write. The frozen spelling --build-help takes it as the next argument." }
+      ],
+      "returns": [],
+      "risk": "writes-user-data",
+      "audience": "developer",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 300000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "every file was written" },
+        { "code": 1, "meaning": "a file could not be written" },
+        { "code": 10, "meaning": "no folder given, or an unknown option" },
+        { "code": 11, "meaning": "the named folder does not exist" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'help-pages build --out docs\\help' -Wait -PassThru).ExitCode", "expect": "0 and the pages under docs\\help" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    },
+    {
+      "name": "screens capture",
+      "aliases": [
+        { "spelling": "--capture-screens {out}", "exe": "filedo_win.exe", "maps": { "out": "out" }, "legacy": true }
+      ],
+      "summary": "Developer tooling: render the guide screenshots from the real windows into a folder.",
+      "synopsis": "filedo_win.exe screens capture --out <folder>",
+      "args": [
+        { "name": "out", "kind": "path", "required": true, "description": "The existing folder to write. The frozen spelling --capture-screens takes it as the next argument." }
+      ],
+      "returns": [],
+      "risk": "writes-user-data",
+      "audience": "developer",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 300000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "every file was written" },
+        { "code": 1, "meaning": "a file could not be written" },
+        { "code": 10, "meaning": "no folder given, or an unknown option" },
+        { "code": 11, "meaning": "the named folder does not exist" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'screens capture --out temp\\shots' -Wait -PassThru).ExitCode", "expect": "0 and the pictures under temp\\shots" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    },
+    {
+      "name": "menu-icons write",
+      "aliases": [
+        { "spelling": "--write-menu-icons {out}", "exe": "filedo_win.exe", "maps": { "out": "out" }, "legacy": true }
+      ],
+      "summary": "Developer tooling: write the Explorer menu icons into a folder and print each file written.",
+      "synopsis": "filedo_win.exe menu-icons write --out <folder>",
+      "args": [
+        { "name": "out", "kind": "path", "required": true, "description": "The existing folder to write. The frozen spelling --write-menu-icons takes it as the next argument." }
+      ],
+      "returns": [],
+      "risk": "writes-user-data",
+      "audience": "developer",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 60000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "every file was written" },
+        { "code": 1, "meaning": "a file could not be written, or the glyph catalog has a problem" },
+        { "code": 10, "meaning": "no folder given, or an unknown option" },
+        { "code": 11, "meaning": "the named folder does not exist" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'menu-icons write --out assets\\menu-icons' -Wait -PassThru).ExitCode", "expect": "0 and the .ico files under assets\\menu-icons" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    },
+    {
+      "name": "ui-drive run",
+      "aliases": [
+        { "spelling": "--ui-drive {out}", "exe": "filedo_win.exe", "maps": { "out": "out" }, "legacy": true }
+      ],
+      "summary": "Developer tooling: drive the real windows on the screen for the visual acceptance run and write its evidence into a folder; the person's own settings are restored afterwards.",
+      "synopsis": "filedo_win.exe ui-drive run --out <folder>",
+      "args": [
+        { "name": "out", "kind": "path", "required": true, "description": "The existing folder to write. The frozen spelling --ui-drive takes it as the next argument." }
+      ],
+      "returns": [],
+      "risk": "writes-user-data",
+      "audience": "developer",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 600000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "the run passed" },
+        { "code": 1, "meaning": "the run failed" },
+        { "code": 10, "meaning": "no folder given, or an unknown option" },
+        { "code": 11, "meaning": "the named folder does not exist" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'ui-drive run --out temp\\evidence\\run1' -Wait -PassThru).ExitCode", "expect": "0 when the driven run passes; it uses the screen while it runs" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    }
+  ]
+}

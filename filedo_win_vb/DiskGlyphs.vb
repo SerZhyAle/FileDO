@@ -40,6 +40,8 @@ Public Module DiskGlyphs
     Public ReadOnly ClearInput As GlyphRef = GlyphRef.Vocabulary("action.clear-input")
     Public ReadOnly OpenExternal As GlyphRef = GlyphRef.Vocabulary("nav.open-external")
     Public ReadOnly ShowDetails As GlyphRef = GlyphRef.Vocabulary("nav.expand")
+    Public ReadOnly HideDetails As GlyphRef = GlyphRef.Vocabulary("nav.collapse")
+    Public ReadOnly TableColumns As GlyphRef = GlyphRef.Vocabulary("view.table")
     ' Ending a running task is action.cancel (ICON-SET PROPOSAL 2(c): media.stop is playback); emptying
     ' a whole list is action.clear-all.
     Public ReadOnly StopRun As GlyphRef = GlyphRef.Vocabulary("action.cancel")

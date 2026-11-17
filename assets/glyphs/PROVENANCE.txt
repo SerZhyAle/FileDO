@@ -1,10 +1,10 @@
 ICONOGRAPHY VENDORED ARTIFACT
 Do not hand-edit the files in this folder. Regenerate with assets/sync-icon-glyphs.ps1.
-Catalog versions: ICON-SET 0.37; ICON-RENDER 0.24; ICON-EXTERNAL 0.12
-Vocabulary SHA-256: 2824f7dbbdabab458bba1d4a40b8ac45f30594ecca2022a6e4d1c95e1b8b599b
+Catalog versions: ICON-SET 0.41; ICON-RENDER 0.26; ICON-EXTERNAL 0.12
+Vocabulary SHA-256: 920937a2e9a7563a22a0253147a76dbf9cfe4766d441e64469e8bd58a75b3f5c
 Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog
 Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as PROPOSAL-2026-11-11-filedo-backup-meanings.md): action.unarchive
-Taken: 2026-11-11
+Taken: 2026-11-16
 Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt
 
 action.add.svg  98cece8c14e972a3a5b6b440d667a1caff32da7f75c0bee2a896a1d8da5ac011
@@ -75,5 +75,6 @@ status.ok.svg  0a6b564ace7eb684243fa2f85b1581ee7dd22587fb1e378ee25095a741c6ad16
 status.stopped.svg  34ac623ac6f9b971695927f85b4ac1167a95eb7453e84ef34ab730ef42764cca
 status.warning.svg  93a74458a1b340a7780d43ec3090e72d469991449d0627e87a37fe24f63a699e
 system.storage.svg  945b139e7d8ebfedfe8a243f7914028373f693c250ebc451618cca75390c0bd3
+view.table.svg  70e0f8bb93b31b0d9e51ad91c54f14140a62999032079f534d747a1fd8348cf3
 action.unarchive.svg  2c373a6d41dc1c24c41f9f1c077a0112fcc790282b112b953b43914d8c0361cf
 palette.json  88fc71f5b75cea1371727335b9ea793907c143daaf27fbdd53f9b00a091ffb1e

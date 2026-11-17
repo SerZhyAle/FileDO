@@ -62,6 +62,11 @@ Public Class Runner
     Private firstErrorReason As String = ""
     Private firstErrorDetails As Dictionary(Of String, Object)
     Private disposed As Boolean = False
+    ' SP-0218: what `filedo job list` says of the run in progress - the name of its last `step` event and its last
+    ' percent (-1 until the run says how much there is to do). Written on the thread that polls the events, read on the
+    ' window's thread: a reference and an integer are each read whole.
+    Private runStepName As String = ""
+    Private runPercent As Integer = -1
 
     ' Nonzero once the channel declared a MAJOR this build cannot read. The run
     ' is then *Not proven* and the message names the contract and says to
@@ -71,6 +76,20 @@ Public Class Runner
     Public ReadOnly Property IsActive As Boolean
         Get
             Return isRunning
+        End Get
+    End Property
+
+    ' The name of the step the run in progress is in, "" until it names one (its description is not kept).
+    Friend ReadOnly Property CurrentStep As String
+        Get
+            Return runStepName
+        End Get
+    End Property
+
+    ' How far the run in progress is, 0 to 100, or -1 when it has not said how much there is to do.
+    Friend ReadOnly Property CurrentPercent As Integer
+        Get
+            Return runPercent
         End Get
     End Property
 
@@ -239,6 +258,8 @@ Public Class Runner
         latestResultInfo = Nothing
         firstErrorReason = ""
         firstErrorDetails = Nothing
+        runStepName = ""
+        runPercent = -1
 
         Dim runId =DateTime.Now.ToString("yyyyMMdd_HHmmss") & "_" & Guid.NewGuid().ToString("N").Substring(0, 6)
         Dim fullArgs As New List(Of String)()
@@ -264,8 +285,14 @@ Public Class Runner
             currentEventStream = New EventStream(eventPath)
             channelRefusedVersion = 0
             AddHandler currentEventStream.UnsupportedVersion, Sub(v) channelRefusedVersion = v
-            AddHandler currentEventStream.StepChanged, Sub(n, d) RaiseEvent StepChanged(n, d)
-            AddHandler currentEventStream.ProgressReported, Sub(p) RaiseEvent ProgressReported(p)
+            AddHandler currentEventStream.StepChanged, Sub(n, d)
+                                                           runStepName = If(n, "")
+                                                           RaiseEvent StepChanged(n, d)
+                                                       End Sub
+            AddHandler currentEventStream.ProgressReported, Sub(p)
+                                                                runPercent = RunProgress.PercentOf(p)
+                                                                RaiseEvent ProgressReported(p)
+                                                            End Sub
             AddHandler currentEventStream.FindingReported, Sub(t, m, d)
                                                                RememberErrorReason(t, d)
                                                                RaiseEvent FindingReported(t, m, d)

@@ -203,13 +203,24 @@
               <span data-l="de">Die Seite <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>„Befehl“</span>
             </h3>
             <p>
-              <span data-l="de">Der Experten-Baukasten: jede Operation, die <code>filedo.exe</code> kennt, mit den Schaltern und Regelauswahlen, die zur gewählten Operation gehören, und der bearbeitbaren Befehlszeile darunter. Lesen, von Hand bearbeiten, kopieren oder ausführen.</span>
+              <span data-l="de">Der Experten-Baukasten: jede Operation, die <code>filedo.exe</code> kennt, mit den Schaltern und Regelauswahlen, die zur gewählten Operation gehören, und der bearbeitbaren Befehlszeile darunter. Lesen, von Hand bearbeiten, kopieren oder ausführen. Wo eine Operation ihr Ergebnis an einen anderen Ort schreibt - copy, compare, secure, unsecure, backup, restore -, hat das Feld für das Ergebnis eine eigene Ordnerauswahl daneben. Die Seite merkt sich von Sitzung zu Sitzung, was Sie benutzt haben: die Ordner, die Sie gewählt und bearbeitet haben, die ausgeführten Befehle („Zuletzt..“ listet die letzten 12 und setzt einen in die Befehlszeile zurück; „Letzte Befehle und Ordner vergessen“ in diesem Menü leert alles) sowie Operation, Ziel und Ergebnisort, bei denen die Seite verlassen wurde. Ein Lauf mit nohist, eine Zeile mit Passwort und jeder Lauf bei ausgeschaltetem Laufverlauf werden nie gemerkt, Schalter ebenfalls nicht.</span>
+            </p>
+            <p>
+              <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>„Befehle ansehen..“ neben der Operationsliste öffnet ein Fenster, das alle Operationen in sechs Gruppen zeigt - „Prüfen“, „Aufräumen“, „Kopieren“, „Löschen“, „Schützen“, „Werkzeuge und Explorer“ - mit je einer Zeile Beschreibung. Wählen Sie eine Operation und dann „Befehl verwenden“ oder klicken Sie sie doppelt an, um sie auf dieser Seite einzustellen; „Ausführliche Beschreibungen“ öffnet die Seite „Über die Vorgänge“ bei dieser Operation.</span>
             </p>
             <p>
               <span data-l="de"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-shortcut"/></svg>„Verknüpfung erstellen“ speichert diese Zeile auf Ihrem Desktop. Ein Doppelklick führt den Befehl in einer Konsole aus; das Standard-Kontrollkästchen hält das Fenster offen, damit Sie das Ergebnis lesen können. Eine Verknüpfung speichert ihre Argumente, deshalb lässt sich eine Zeile mit einem Passwort <code>p:</code> oder mit <code>pe:FILEDO_SHELL_CRED</code> nicht speichern. Entfernen Sie dieses Argument und geben Sie das Passwort in der Konsole ein.</span>
             </p>
             <p>
               <span data-l="de">Operationen, die ein Passwort brauchen, erhalten hier ein eigenes maskiertes Feld, und <code>secure</code> fragt zweimal. Das Passwort gelangt nie in die Befehlszeile: Die Zeile enthält nur <code>pe:FILEDO_SHELL_CRED</code>, den Namen der Variablen, die es an den Lauf weitergibt. Ein <code>secure</code>, das das Original löscht oder überschreibt, braucht von hier aus außerdem <code>-y</code>; ohne es bleibt das Original erhalten, und der Lauf sagt das.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="de">Die Seite „Über die Vorgänge“</span>
+            </h3>
+            <p>
+              <span data-l="de">Die Seite „Über die Vorgänge“ steht in der Leiste neben „Befehl“ und zeigt dieselben sechs Gruppen. Jede Operation zeigt ihren Namen und eine Zeile Zusammenfassung; ein Klick auf den Namen öffnet die ausführliche Beschreibung in einfachen Worten - was sie tut, wann man sie nutzt und was sie ändert - mit einer Beispiel-Befehlszeile, ein weiterer Klick schließt sie. Das Suchfeld oben (Ctrl+F) schränkt die Liste nach Name oder nach beliebigen Wörtern der Beschreibungen ein, Esc leert es. „Befehl verwenden“ öffnet die Seite „Befehl“ mit dieser Operation. Eine Operation, die löscht, überschreibt, formatiert oder Administratorrechte braucht, sagt das offen.</span>
             </p>
           </article>
           <article class="card">

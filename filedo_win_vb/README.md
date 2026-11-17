@@ -88,13 +88,17 @@ option the CLI takes for a job is on its page:
   TEMP is sent to the console, where FileDO asks twice
 - **Protect** - see below
 - **Disks** - the `.fdd` virtual disks, seventeen pages, and the row that opens the Disk manager; see below
+- **Commands** - the guide to every operation of the Command page's list, with a typed example for each; see below
 - Every job except the three secret-file ones also offers `nohist`
 
-The **Command** page is the expert builder: all twenty-eight operations `filedo.exe` takes -
+The **Command** page is the expert builder: all thirty-one operations `filedo.exe` takes -
 including `probe`, `recover`, the six named copy strategies, `secure`, `unsecure`, `reveal`, the
 two `fdsec` inspections, `from`, `hist` and the two Explorer registrations - with the flags and
 rule pickers that belong to whichever one is chosen, and the command line itself editable
-underneath. A line that holds `wipe` - with `-y` or without - runs only once `WIPE` is typed beside it,
+underneath. **Browse commands..** beside the list opens a dialog that describes every operation under
+its group. *Use this command* sets the list to the one picked, and *Full descriptions* opens the Commands
+page on that operation, which gives the same operations in full, each with a typed example.
+A line that holds `wipe` - with `-y` or without - runs only once `WIPE` is typed beside it,
 and progress is drawn by the same rule as on a job page.
 
 **Create shortcut** beside Copy command saves the edited line as a `.lnk` on your desktop. Give it a
@@ -111,6 +115,17 @@ and the value goes to the child process in that variable, so the line can be cop
 read over a shoulder without giving anything away. A `secure` that deletes or overwrites the
 original also needs `-y` from here - that confirmation is asked on a console, and a run started in
 a window has none; without it the original is kept and the run says so.
+
+The command guide lives in four files. `OperationGuide.vb` holds the one table of operations (an
+`OperationEntry` for each word of the list, with its group and its example) and the picker dialog of
+the Command page; `OperationGuideView.vb` is the About operations page (a search box, and each entry opens its full text on a click); `OperationStrings.vb` holds the full
+descriptions, the group names and the guide's captions in all five languages; `SelfTestOperationGuide.vb`
+holds the `opguide` rows of `--selftest`, which fail when a word of the list has no row or a text is
+missing in a language. The one-line description of each operation stays in `Localization.vb`.
+
+What the window remembers between sessions (the folders picked and run on, the commands run, where the Command
+page was left) is kept by `ShellSettings.vb` and read through `Ui.ChooseFolder` and `CommandView`; its rows are in
+`SelfTestInputMemory.vb` (the `memory` group). Flags, passwords and confirmation words are never remembered.
 
 ## Secret files (the Protect pages)
 

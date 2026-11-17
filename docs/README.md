@@ -11,13 +11,14 @@ tree are named under "Supporting files" below.
 
 | Page | What it is |
 | --- | --- |
-| [`index.html`](index.html) | Product landing page (English, primary locale). Forwards to [`ru/`](ru/index.html) or [`uk/`](uk/index.html) when a stored `sza-lang` or query parameter names that locale. Its download buttons resolve from the `releases/latest` API by asset-name suffix (`-setup.exe`, `-windows-x64.zip`, `-windows-x64.msi`), so a release needs no edit here - see `RELEASE.md`. |
+| [`index.html`](index.html) | Product landing page (English, primary locale). Release version, date, setup filename/size, SHA-256 link, and versioned asset links (`-setup.exe`, `-windows-x64.zip`, `-windows-x64.msi`) are rendered at build/release time from `packaging/release-manifest.json` (`packaging/render-site-release.ps1`), keeping durable `/releases/latest` beside them and `api.github.com` only as runtime refinement (`PAGE-STYLE` 3.10) - see `RELEASE.md`. |
 | [`guides/index.html`](guides/index.html) | Guide hub - the safe starting point chooser. |
 | [`guides/quick-start.html`](guides/quick-start.html) | Quick-start matrix - maps common tasks to the exact GUI page and CLI command (`filedo -?`), grouped into read-only checks, temporary test files/copies/containers, and destructive operations. |
 | [`guides/check-storage.html`](guides/check-storage.html) | Verifying real capacity and speed of a drive. |
 | [`guides/files-and-copies.html`](guides/files-and-copies.html) | Duplicates, copies and folder differences. |
 | [`guides/erase.html`](guides/erase.html) | Erasing: what a file wipe, a folder wipe, a free-space wipe and a plain delete each do, the typed `WIPE` confirmation and what `--yes` skips, what is refused, and what a wipe cannot promise on an SSD. It is the guide behind the `erase` pillar of `packaging/positioning-source.json`. |
 | [`guides/gui-command-builder.html`](guides/gui-command-builder.html) | Building a command in the VB.NET GUI. |
+| [`guides/commands.html`](guides/commands.html) | Commands for scripts and agents - what a script, a scheduled task or a development tool can ask the running FileDO, with exit codes, risk classes and the one setting that gates them. Hand-written; `packaging/write-cli-docs.ps1 -Check` holds it to naming every command of the manifest. |
 | [`guides/install-and-explorer.html`](guides/install-and-explorer.html) | Choosing an install, what the MSI writes, and the Explorer entries. |
 | [`guides/install-trust.html`](guides/install-trust.html) | The `INSTALL-TRUST` page: what the Windows warning is, why it appears, exactly what to click, and what the app never does - in that order. Its fourth section says the same thing as `privacy.html`, the MSIX capability list and the Store data-safety answers, so the four change together. When the build becomes signed the page is **updated, not deleted** - users of older builds still meet the warning. |
 | [`guides/fd-sec-containers.html`](guides/fd-sec-containers.html) | `.fd-sec` containers - packing, restoring, revealing, and what each choice promises. |
@@ -36,6 +37,8 @@ screenshots in `assets/guides/` are produced by `packaging/capture-guide-screens
 share images `social-card.png` (1200x630) and `social-preview.png` (1280x640) are written by
 `assets/make-product-icons.ps1 -SocialOnly`),
 [`termbase.json`](termbase.json), [`translation-fingerprints.json`](translation-fingerprints.json) (a render - see below),
+[`cli-commands.json`](cli-commands.json) (the command manifest, the source) and [`CLI.md`](CLI.md) (a render of it, written by
+`packaging/write-cli-docs.ps1`, never by hand),
 the IndexNow key file `ac596e568e538e6f5b1d5a60660ae226.txt` (its name is the key; keep it),
 [`kit/sza-kit.css`](kit/sza-kit.css), `_config.yml`, `.nojekyll`.
 

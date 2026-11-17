@@ -273,11 +273,22 @@ filedo backup D:\Photos sec
 filedo backup \\nas\share\Docs
 filedo backup E:\ root
 
+# Ein nummerierter Satz der letzten 7 in E:\Bak: Photos_001.zip .. Photos_007.zip; stehen 7, ersetzt die neue die älteste
+filedo backup D:\Photos to E:\Bak gen 7
+
+# Der Satz unter dem Namen aus stem statt dem Ordnernamen, versiegelt: Docs_001.fd-sec ..
+filedo backup D:\Photos to E:\Bak gen 7 stem Docs sec
+
 # Den Ordner neben dem Archiv oder unter einer anderen Adresse wiederherstellen
 filedo restore Photos-2611101530.zip
 filedo restore Photos-2611101530.fd-sec to D:\
 ```
 
+- **Das Ergebnis ist eine Datei namens `<Quelle>-<yyMMddHHmm>`**: der Name des gepackten Ordners (oder
+  Laufwerks), ein Bindestrich, dann Jahr, Monat, Tag, Stunde und Minute der Sicherung und `.zip` - oder
+  `.fd-sec`, wenn sie versiegelt ist. Die Sicherung von `D:\Photos` am 17. November 2026 um 16:52 heißt
+  `Photos-2611171652.zip`. Ohne `to` liegt die Datei neben dem Ordner (die Sicherung eines Laufwerks im
+  aktuellen Ordner); `to` nennt einen anderen Ordner oder einen neuen Dateinamen.
 - **Die ZIP-Datei speichert den Namen des Ordners, nie seinen Pfad**, sodass eine gewöhnliche Sicherung,
   die Sie weitergeben, nicht zeigt, wie Ihr Datenträger aufgebaut ist. `restore` stellt den Ordner neben
   dem Archiv wieder her; `to <Ordner>` nennt jede andere Adresse, auch die ursprüngliche.
@@ -298,14 +309,28 @@ filedo restore Photos-2611101530.fd-sec to D:\
   endgültigen Namen. Eine versiegelte Sicherung mit falschem Passwort, eine Datei, die kein Container ist,
   und ein beschädigter Container enden in derselben Antwort, wie bei `unsecure`; `del` entfernt das Archiv
   nach einer gelungenen Wiederherstellung.
+- **Ein nummerierter Satz behält die letzten N Sicherungen.** `gen <1-999>` nennt die Anzahl und schaltet
+  den Satz ein; `to` nennt dann den Ordner, und `stem <Name>` nennt den Satz (ein einzelner Dateiname;
+  standardmäßig der Name des Ordners, sodass zwei Ordner gleichen Namens zwei verschiedene `stem`
+  bekommen). Die Dateien heißen `<stem>_001.zip` .. `<stem>_NNN.zip`, mit `sec` `.fd-sec`. Die Nummer wird
+  allein aus dem Ordner gelesen - die neueste Datei des Satzes, nach Änderungszeit, gibt die nächste vor,
+  nach der letzten Nummer kommt `001` -, sodass ein Neustart oder ein Update sie nicht verzweigen kann und
+  eine fehlende Nummer den Lauf nicht aufhält. Ist der Satz voll, wird die neue Datei zuerst unter einem
+  vorläufigen Namen gebaut und zurückgelesen; erst dann wird die älteste entfernt und die neue an ihre
+  Stelle umbenannt - höchstens eine Datei pro Lauf, nur ein Name des Satzes, und ein fehlgeschlagener oder
+  angehaltener Lauf entfernt nichts. Der Ordner braucht, solange der Lauf arbeitet, Platz für eine Datei
+  mehr, als der Satz enthält. `keep-zip` passt nicht zu `gen`. Mit `--events` trägt das Ergebnis
+  `generation`, `retiredGeneration` (0 = keine) und `keepCount`.
 - **Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten** - es gibt keinen Zeitplan, keine
-  Liste früherer Sicherungen und keine inkrementellen Schichten. Eine einzelne Datei kommt stattdessen mit
-  `secure` in einen Container.
+  Liste früherer Sicherungen und keine inkrementellen Schichten; ein nummerierter Satz ist nur eine
+  begrenzte Rotation ganzer Kopien, und der Zeitplan bleibt Ihrer. Eine einzelne Datei kommt stattdessen
+  mit `secure` in einen Container.
 
 Im Fenster trägt die Gruppe **«Schützen»** beide Operationen als Seiten - **«Ordner sichern»** und **«Aus
 Sicherung wiederherstellen»** -, und die Seite **«Befehl»** baut sie ebenfalls (`backup`, `backup sec`,
 `restore`). Das Passwort wird verdeckt getippt (für eine versiegelte Sicherung zweimal) und erreicht keine
-Befehlszeile.
+Befehlszeile. In Schritt 3 der Seite **«Ordner sichern»** wird außerdem gefragt, wie viele Sicherungen
+behalten werden und wie der nummerierte Satz heißen soll.
 
 ---
 
@@ -558,12 +583,41 @@ und nichts wurde verändert.
 
 ---
 
+## Befehle für Skripte und Agenten
+
+Ein Skript, eine geplante Aufgabe, eine Verknüpfung oder ein Entwicklerwerkzeug kann das **bereits laufende** FileDO-Fenster mit `filedo <Befehl>` um etwas bitten. Die schon laufende Kopie erledigt die Arbeit, und der Befehl endet mit ihrer Antwort als Exitcode - eine zweite Kopie öffnet sich nicht. Die vollständige Liste steht in [`docs/CLI.md`](docs/CLI.md); sie wird aus dem Manifest erzeugt, das `filedo commands --json` ausgibt.
+
+| Befehl | Was er tut | Wenn kein Fenster läuft |
+|--------|------------|-------------------------|
+| `filedo commands [--json]` | Alle Befehle auflisten; `--json` gibt das Manifest selbst aus | Funktioniert trotzdem |
+| `filedo version [--json]` | Produktname, Version, Version des Befehlssatzes | Funktioniert trotzdem |
+| `filedo status [--json]` | Läuft das Fensterprogramm und ist es bereit: Version, Prozess-ID, offene Fenster, laufende Läufe | Exit 11 |
+| `filedo show` | Das Hauptfenster in den Vordergrund holen | Startet FileDO |
+| `filedo quit [--stop-jobs]` | Das laufende FileDO schließen; ein laufender Lauf führt zur Ablehnung (Exit 11), außer `--stop-jobs` beendet die Läufe vorher | Nichts zu tun, Exit 0 |
+| `filedo disk-manager show` | Die Datenträgerverwaltung in den Vordergrund holen | Startet FileDO nur mit der Datenträgerverwaltung |
+| `filedo settings show` | Die Einstellungsseite öffnen | Startet FileDO |
+| `filedo tray start` | FileDO verborgen mit Symbol im Infobereich starten | Startet es |
+| `filedo job list [--json]` | Laufende Läufe und Vorgänge in der Warteschlange; ohne Dateinamen | Exit 11 |
+| `filedo job stop [--where all\|shell\|manager]` | Die Läufe sanft anhalten, wie die Schaltfläche Stopp, und warten | Nichts anzuhalten, Exit 0 |
+
+Exitcodes: 0 erledigt, 1 der Befehl lief, aber der Vorgang ist fehlgeschlagen, 2 nicht belegt (die Zeitgrenze ist verstrichen, die laufende Kopie arbeitet möglicherweise noch), 10 Aufruf falsch, 11 läuft nicht oder ist beschäftigt, 12 keine Berechtigung (Risikoklasse ausgeschaltet oder das laufende FileDO ist erhöht und der Aufrufer nicht).
+
+Jeder Befehl, den das laufende Fenster beantwortet, ist *sicher*: Er ändert nur die eigenen Fenster und Läufe von FileDO und liest keine Ihrer Dateien. Ein Befehl jeder anderen Klasse wird mit Exit 12 abgelehnt, bis Sie in den Einstellungen **Anderen Programmen erlauben, FileDO um Arbeit mit meinen Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk zu bitten** einschalten; sie ist aus, bis Sie sie einschalten, und kein Befehl ändert sie. Die Befehle laufen über eine lokale Pipe, die nur Ihr eigenes Windows-Konto in Ihrer eigenen Sitzung erreicht - nie über das Netzwerk.
+
+Die fünf Schalter, die die Build-Skripte aufrufen - `filedo_win.exe selftest run`, `help-pages build --out <Ordner>`, `screens capture --out <Ordner>`, `menu-icons write --out <Ordner>` und `ui-drive run --out <Ordner>` - sind ebenfalls Befehle und laufen in einem eigenen Prozess.
+
+Entwicklerwerkzeuge und Agenten können `docs/CLI.md` lesen und `filedo commands --json` ausführen, um zu sehen, worum man FileDO bitten kann; den Zustand des Produkts liefern ohne Screenshot `filedo status`, `filedo job list` und `filedo vd status json`. Anleitung: [Befehle für Skripte und Agenten](https://serzhyale.github.io/FileDO/guides/commands.html).
+
+---
+
 ## GUI-Anwendung
 
-**FileDO GUI** (`filedo_win.exe`) - VB.NET Windows Forms Shell: links eine Leiste mit den Aufgaben, je Aufgabe eine nummerierte Seite - was bearbeitet wird, welche Parameter, dann Prüfen und Ausführen - plus eine Seite **«Befehl»**, der Experten-Baukasten, der jeden FileDO-Befehl zusammenstellt und ausführt:
+**FileDO GUI** (`filedo_win.exe`) - VB.NET Windows Forms Shell: links eine Leiste mit den Aufgaben, je Aufgabe eine nummerierte Seite - was bearbeitet wird, welche Parameter, dann Prüfen und Ausführen - plus eine Seite **«Befehl»**, der Experten-Baukasten, der jeden FileDO-Befehl zusammenstellt und ausführt, und eine Seite **«Über die Vorgänge»**, die jeden Vorgang in einfachen Worten erklärt:
 
 - **Visuelle Zielauswahl** mit Optionsfeldern (Gerät/Ordner/Netzwerk/Datei)
-- **Operationen-Dropdown** auf der Seite «Befehl» (Info, Geschwindigkeit, Füllen, Test, Bereinigen, Duplikat-Prüfung)
+- **Operationen-Dropdown** auf der Seite «Befehl» (Info, Geschwindigkeit, Füllen, Test, Bereinigen, Duplikat-Prüfung); **«Befehle ansehen..»** neben der Liste öffnet ein Fenster, das alle Operationen in sechs Gruppen zeigt - «Prüfen», «Aufräumen», «Kopieren», «Löschen», «Schützen», «Werkzeuge und Explorer» - mit je einer Zeile Beschreibung; **«Befehl verwenden»** oder ein Doppelklick übernimmt die Operation in die Liste, **«Ausführliche Beschreibungen»** öffnet die Seite «Über die Vorgänge» bei dieser Operation
+- **Das Fenster merkt sich, was Sie benutzt haben**, von Sitzung zu Sitzung: die Ordner, die Sie wählen und bearbeiten (das Ziel und der Ort für das Ergebnis, der neben seinem Feld eine eigene Ordnerauswahl hat), die Befehle, die Sie ausgeführt haben - **«Zuletzt..»** auf der Seite «Befehl» listet die letzten 12 und setzt einen in die Befehlszeile zurück - sowie Operation, Ziel und Ergebnisort, bei denen die Seite «Befehl» verlassen wurde; **«Letzte Befehle und Ordner vergessen»** in diesem Menü leert alles. Ein Lauf mit `nohist`, eine Zeile mit Passwort und jeder Lauf bei ausgeschaltetem Laufverlauf in den Einstellungen werden nie gemerkt, Schalter ebenfalls nicht
+- **Seite «Über die Vorgänge»** in der Leiste, neben «Befehl»: jede Operation mit ihrem Namen und einer Zeile Beschreibung; ein Klick auf den Namen öffnet den vollständigen Text in einfachen Worten - was sie tut, wann man sie nutzt und was sie ändert - mit einer Beispiel-Befehlszeile, und das Suchfeld oben (Ctrl+F) schränkt die Liste nach Name oder nach beliebigen Wörtern der Beschreibungen ein; eine Operation, die löscht, überschreibt, formatiert oder Administratorrechte braucht, sagt das offen, und **«Befehl verwenden»** öffnet die Seite «Befehl» mit dieser Operation
 - **Eine Seite je Aufgabe** im Standardfenster - Kapazität, Geschwindigkeit, Info, Prüfung auf beschädigte Dateien, direkte Kapazitätsprüfung, Wiederherstellung, Duplikate, Vergleich, Bereinigen, Kopieren, Füllen, Löschen, die drei Aufgaben für geheime Dateien und das Sicherungspaar (sichern, wiederherstellen) - jede mit allen Optionen, die die CLI dafür annimmt, einschließlich aller neunundzwanzig `check`-Schalter
 - **Parameter-Eingabe** mit Validierung
 - **Echtzeit-Befehlsvorschau** auf der Seite «Befehl» zeigt äquivalenten CLI-Befehl

@@ -203,13 +203,24 @@
               <span data-l="fr">La page <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Commande</span>
             </h3>
             <p>
-              <span data-l="fr">Le constructeur expert : chaque opération que prend <code>filedo.exe</code>, avec les indicateurs et les sélecteurs de règles propres à celle que vous choisissez, et la ligne de commande elle-même modifiable en dessous. Lisez-la, modifiez-la à la main, copiez-la ou lancez-la.</span>
+              <span data-l="fr">Le constructeur expert : chaque opération que prend <code>filedo.exe</code>, avec les indicateurs et les sélecteurs de règles propres à celle que vous choisissez, et la ligne de commande elle-même modifiable en dessous. Lisez-la, modifiez-la à la main, copiez-la ou lancez-la. Là où une opération écrit son résultat ailleurs - copy, compare, secure, unsecure, backup, restore -, le champ du résultat a un sélecteur de dossier à côté. La page se souvient d’une session à l’autre de ce que vous avez utilisé : les dossiers choisis et traités, les commandes lancées (Récents.. liste les 12 dernières et en remet une sur la ligne de commande ; Oublier les commandes et dossiers récents dans ce menu efface tout) et l’opération, la cible et l’endroit du résultat où la page a été laissée. Une exécution gardée hors de l’historique avec nohist, une ligne qui porte un mot de passe et toute exécution tant que l’historique est désactivé ne sont jamais retenues, et les options non plus.</span>
+            </p>
+            <p>
+              <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Parcourir les commandes.. à côté de la liste des opérations ouvre une fenêtre qui présente chaque opération dans six groupes - Vérifier, Ranger, Copie, Effacer, Protéger, Outils et Explorateur - avec une ligne de description. Sélectionnez une opération puis choisissez Utiliser cette commande, ou double-cliquez dessus, pour la placer sur cette page ; Descriptions complètes ouvre la page À propos des opérations sur cette opération.</span>
             </p>
             <p>
               <span data-l="fr"><svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.create-shortcut"/></svg>Créer un raccourci enregistre cette ligne sur votre bureau. Double-cliquez dessus pour lancer la commande dans une console ; la case cochée par défaut garde la fenêtre ouverte pour que vous puissiez lire le résultat. Un raccourci stocke ses arguments, donc une ligne contenant un mot de passe <code>p:</code> ou <code>pe:FILEDO_SHELL_CRED</code> ne peut pas être enregistrée. Retirez cet argument et saisissez le mot de passe dans la console.</span>
             </p>
             <p>
               <span data-l="fr">Les opérations qui exigent un mot de passe disposent ici de leur propre champ masqué, et <code>secure</code> le demande deux fois. Le mot de passe n’entre jamais dans la ligne de commande : la ligne ne contient que <code>pe:FILEDO_SHELL_CRED</code>, le nom de la variable qui le transmet à l’exécution. Un <code>secure</code> qui supprime ou écrase l’original exige aussi <code>-y</code> depuis cette page ; sans lui, l’original est conservé et l’exécution le signale.</span>
+            </p>
+          </article>
+          <article class="card">
+            <h3>
+              <span data-l="fr">La page À propos des opérations</span>
+            </h3>
+            <p>
+              <span data-l="fr">Placée dans le rail à côté de Commande, la page À propos des opérations présente les mêmes six groupes. Chaque opération montre son nom et un résumé d’une ligne ; un clic sur le nom ouvre la description complète en mots simples - ce qu’elle fait, quand l’utiliser et ce qu’elle change - avec un exemple de ligne de commande, et un nouveau clic la referme. Le champ de recherche en haut (Ctrl+F) réduit la liste par nom ou par n’importe quel mot des descriptions, et Échap le vide. Utiliser cette commande ouvre la page Commande avec cette opération choisie. Une opération qui supprime, écrase, formate ou demande les droits d’administrateur le dit clairement.</span>
             </p>
           </article>
           <article class="card">

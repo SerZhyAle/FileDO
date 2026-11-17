@@ -448,6 +448,7 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 		{"STREAMS Player", "Windows stream player"},
 		{"OneClickRunner", "Windows tray launcher"},
 		{"Universal Agent Kit", "AI-dev methodology"},
+		{"DeviceInfo", "Android and Wear OS device information"},
 		{"SZA", "Portfolio"},
 	}
 	urls := []string{
@@ -458,6 +459,7 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 		"https://serzhyale.github.io/StreamsPlayer/",
 		"https://serzhyale.github.io/OneClickRunner/",
 		"https://serzhyale.github.io/universal-agent-kit/",
+		"https://serzhyale.github.io/DeviceInfo_Android/",
 		"https://sza.od.ua",
 	}
 	for _, rel := range sources {

@@ -259,7 +259,16 @@
           ><span data-l="de">Kopieren</span></button>
         </div>
         <p>
-          <span data-l="de">Die ZIP-Datei speichert den Namen des Ordners, nie seinen Pfad. Ein vorhandener Ordner wird nie ergänzt oder ersetzt - <code>restore</code> schreibt daneben als <code>&lt;Name&gt;-1</code> -, und ein Archiv, dessen Namen das Ziel verlassen würden, wird als Ganzes abgelehnt, bevor etwas geschrieben wird. Das Windows-Laufwerk selbst wird abgelehnt; eine Verzweigung oder ein symbolischer Link in der Quelle lehnt die Sicherung ab, es sei denn, <code>skip-links</code> lässt ihn weg und listet ihn auf. Berechtigungen, alternative Datenströme und Links kommen nicht mit. Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten: Es gibt keinen Zeitplan und keine Liste früherer Sicherungen.</span>
+          <span data-l="de"><code>gen</code> legt statt einer neuen Datei mit Datum einen nummerierten Satz an: <code>gen 7</code> nennt die Anzahl der Sicherungen (1 bis 999), und <code>to</code> nennt dann den Ordner, in dem der Satz liegt. Die Dateien heißen <code>Photos_001.zip</code> bis <code>Photos_007.zip</code> - mit <code>sec</code> <code>.fd-sec</code> -, und <code>stem</code> nennt den Satz, wenn zwei Ordner denselben Namen tragen. Jeder Lauf schreibt die Nummer nach der neuesten Datei des Satzes, <code>001</code> nach der letzten Nummer, allein aus dem Ordner gelesen. Ist der Satz voll, wird die neue Datei zuerst unter einem vorläufigen Namen geschrieben und zurückgelesen; erst dann wird die älteste ersetzt - höchstens eine Datei pro Lauf, und ein fehlgeschlagener oder angehaltener Lauf entfernt nichts. Der Ordner braucht, solange der Lauf arbeitet, Platz für eine Datei mehr, als der Satz enthält. <code>keep-zip</code> passt nicht zu <code>gen</code>.</span>
+        </p>
+        <div class="copybox">
+          filedo backup D:\Photos to E:\Bak gen 7<button
+            class="copy"
+            data-copy="filedo backup D:\Photos to E:\Bak gen 7"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+        <p>
+          <span data-l="de">Die ZIP-Datei speichert den Namen des Ordners, nie seinen Pfad. Ein vorhandener Ordner wird nie ergänzt oder ersetzt - <code>restore</code> schreibt daneben als <code>&lt;Name&gt;-1</code> -, und ein Archiv, dessen Namen das Ziel verlassen würden, wird als Ganzes abgelehnt, bevor etwas geschrieben wird. Das Windows-Laufwerk selbst wird abgelehnt; eine Verzweigung oder ein symbolischer Link in der Quelle lehnt die Sicherung ab, es sei denn, <code>skip-links</code> lässt ihn weg und listet ihn auf. Berechtigungen, alternative Datenströme und Links kommen nicht mit. Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten: Es gibt keinen Zeitplan und keine Liste früherer Sicherungen; ein nummerierter Satz ist nur eine begrenzte Rotation ganzer Kopien, und der Zeitplan bleibt Ihrer.</span>
         </p>
       </section>
     </main>

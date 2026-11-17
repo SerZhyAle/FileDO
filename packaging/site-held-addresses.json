@@ -48,6 +48,10 @@
       "heldBy": ["filedo_win_vb/Links.vb"]
     },
     {
+      "address": "guides/commands.html",
+      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"]
+    },
+    {
       "address": "guides/virtual-disks.html#manager",
       "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"]
     }

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `INPUT-PARITY` |
-| **Version** | 0.5, read 2026-10-29 (SP-0174); implemented partial 0.5; displayed key names (item D) are open (SP-0191), the manual pass is not run, draft; partial adoption |
+| **Version** | 0.8, read 2026-11-16 (SP-0221); implemented partial 0.8; `SP-0191` code shipped in v2611110217 (site guides `<kbd>Del</kbd>` and manual keyboard walk open), draft; partial adoption |
 | **Role** | consumer - GUI shell and Disk Manager, keyboard and mouse |
 | **Home** | shared contracts catalog, folder `input-controls/`, document `README.md` |
 | **Owner** | shared; keyboard and mouse steward CyrFlip |

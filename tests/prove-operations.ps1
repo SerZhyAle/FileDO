@@ -16,7 +16,8 @@
     name rules), check (modes, resume, report) and its companion, history (a password never stored),
     secure / unsecure / fdsec info / verify in suites 1, 2 and 3 with the refusals (wrong password, a
     tampered and a truncated container), reveal -rw, wipe (refused without the typed word, then --force),
-    a batch run, the network target (the machine's own admin share, when it is reachable) and the
+    backup / restore (plain, sealed, a wrong password, a taken name, the numbered set of gen 3 with its refusals and a sealed set beside it), a batch run, the network target (the
+    machine's own admin share, when it is reachable, a backup from it included) and the
     virtual-disk verbs that need no elevation (new, info, verify, export, add / list / forget, a vault's
     wrong password, tests\vd_batch.lst).
     Then the load section: the same operations on data sized so each runs for seconds (2400 and 9000 small
@@ -28,7 +29,8 @@
   volume and a folder on the system drive would hand them all of it. It needs administrator rights,
   which the mount does (one UAC prompt for the whole tier when this console is not elevated). A 320 MB
   disk: the size it reports, speed, the capacity test, fill / fill verify / clean, a copy and its
-  manifest, check, cd, compare, probe and recover (the data must survive both), folder wipe, the root
+  manifest, check, cd, compare, a root backup (refused without root, refused unconfirmed, then restored),
+  probe and recover (the data must survive both), folder wipe, the root
   wipe that must be refused, unmount, the container verified, a read-only remount that refuses a write,
   `vd format` (clean) and the size again, destroy. Then an encrypted vault (mount, a wrong password
   refused, the data back under the right one) and a ram disk (save, unmount, remount).
@@ -386,6 +388,34 @@ function Test-CopyNumbers($r, [int]$files, [long]$bytes) {
         if ((N $r $z) -ne 0) { "$z = $(N $r $z), want 0" }
     }
 }
+# SP-0208 (CLI-EVENT-STREAM 0.17 item D): the numbers a generation run publishes, and what its set folder holds.
+function Test-GenNumbers($r, [int]$generation, [int]$retired, [int]$keep = 3) {
+    if ((N $r 'generation') -ne $generation) { "generation = $(N $r 'generation'), want $generation" }
+    if ((N $r 'retiredGeneration') -ne $retired) { "retiredGeneration = $(N $r 'retiredGeneration'), want $retired" }
+    if ((N $r 'keepCount') -ne $keep) { "keepCount = $(N $r 'keepCount'), want $keep" }
+}
+function Test-GenFolder([string]$dir, [string]$stem, [int]$zips, [int]$sealed) {
+    $all = @(Get-ChildItem -LiteralPath $dir -File -Force)
+    $z = @($all | Where-Object { $_.Name -like '*.zip' }).Count
+    $c = @($all | Where-Object { $_.Name -like '*.fd-sec' }).Count
+    if ($z -ne $zips) { "$z zip(s) in the set folder, want $zips" }
+    if ($c -ne $sealed) { "$c sealed container(s) in the set folder, want $sealed" }
+    foreach ($f in $all) { if ($f.Name -notmatch ('^' + [regex]::Escape($stem) + '_\d{3}\.(zip|fd-sec)$')) { "$($f.Name) is not a whole-name member of the $stem set" } }
+    if (@($all | Where-Object { $_.Name -like '*.filedo-partial' }).Count) { 'a .filedo-partial was left in the set folder' }
+}
+# The closed token a refusal carries in details.reason of its error finding ('' when the event stream names none).
+function Get-EventReason($r) {
+    foreach ($line in ((Read-Shared $r.Events) -split "`r?`n")) {
+        if ($line -like '*"reason"*') {
+            try {
+                $o = $line | ConvertFrom-Json
+                if ($o.data.PSObject.Properties['details'] -and $o.data.details.PSObject.Properties['reason']) { return [string]$o.data.details.reason }
+            } catch { }
+        }
+    }
+    ''
+}
+
 # ---- tier 1: a scratch folder, no elevation ------------------------------------------------------
 
 function Invoke-Tier1 {
@@ -745,6 +775,55 @@ function Invoke-Tier1 {
     }
     Remove-Scratch $bakBack
     Remove-Scratch $bakDir
+
+    # -- backup generations (SP-0208, CLI-EVENT-STREAM 0.17 item D): a numbered set of three, a fourth run that retires
+    # 001, the newest generation read back, two refusals that name their reason (rule 17), and a sealed set beside the plain one
+    $genDir = Join-Path $Work 'bak-gen'; New-Item -ItemType Directory -Path $genDir -Force | Out-Null
+    $genStem = Split-Path $src -Leaf
+    [void](Op 'backup: numbered set, run 1 of gen 3' @('backup', $src, 'to', $genDir, 'gen', '3') -Bytes $nBytes -Verdict @('Done') -Verify {
+        param($r) Test-GenNumbers $r 1 0; Test-GenFolder $genDir $genStem 1 0
+    })
+    [void](Op 'backup: numbered set, run 2 of gen 3' @('backup', $src, 'to', $genDir, 'gen', '3') -Bytes $nBytes -Verdict @('Done') -Verify {
+        param($r) Test-GenNumbers $r 2 0; Test-GenFolder $genDir $genStem 2 0
+    })
+    [void](Op 'backup: numbered set, run 3 of gen 3' @('backup', $src, 'to', $genDir, 'gen', '3') -Bytes $nBytes -Verdict @('Done') -Verify {
+        param($r) Test-GenNumbers $r 3 0; Test-GenFolder $genDir $genStem 3 0
+    })
+    [void](Op 'backup: numbered set, run 4 retires 001' @('backup', $src, 'to', $genDir, 'gen', '3') -Bytes $nBytes -Verdict @('Done') -Verify {
+        param($r) Test-GenNumbers $r 1 1; Test-GenFolder $genDir $genStem 3 0
+    })
+    $genBack = Join-Path $Work 'bak-gen-back'
+    [void](Op 'restore: the generation that replaced 001' @('restore', (Join-Path $genDir "${genStem}_001.zip"), 'to', $genBack) -Bytes $nBytes -Verify {
+        param($r) Compare-Manifest $want (Get-Manifest $genBack)
+    })
+    Remove-Scratch $genBack
+    $genFile = Join-Path $Work 'gen-source.txt'; Set-Content -LiteralPath $genFile -Value 'a file, not a folder'
+    $genTo = Join-Path $Work 'gen-to.txt'; Set-Content -LiteralPath $genTo -Value 'a file where a folder belongs'
+    [void](Op 'backup: gen, the source is a file, refused' @('backup', $genFile, 'to', $genDir, 'gen', '3') -Code @(10) -Verdict @('Not proven') -Verify {
+        param($r)
+        if ((Get-EventReason $r) -ne 'backup-source-refused') { "reason '$(Get-EventReason $r)', want backup-source-refused" }
+        Test-GenFolder $genDir $genStem 3 0
+    })
+    [void](Op 'backup: gen, to names a file, refused' @('backup', $src, 'to', $genTo, 'gen', '3') -Code @(10) -Verdict @('Not proven') -Verify {
+        param($r)
+        if ((Get-EventReason $r) -ne 'backup-destination-refused') { "reason '$(Get-EventReason $r)', want backup-destination-refused" }
+        Test-GenFolder $genDir $genStem 3 0
+    })
+    # the password comes from a variable named by pe:, set for this one run only and never on the command line
+    $genSecret = $pw.Substring(2)
+    $env:FILEDO_OPS_GEN_PW = $genSecret
+    try {
+        [void](Op 'backup: gen, sealed beside the plain set' @('backup', $src, 'to', $genDir, 'gen', '3', 'sec', 'level', '1', 'pe:FILEDO_OPS_GEN_PW') -Bytes $nBytes -Verdict @('Done') -Verify {
+            param($r)
+            Test-GenNumbers $r 1 0
+            Test-GenFolder $genDir $genStem 3 1
+            if ((Read-Shared $r.Events) -match [regex]::Escape($genSecret) -or $r.Text -match [regex]::Escape($genSecret)) { 'the password reached the output or the event stream' }
+        })
+    } finally { Remove-Item Env:FILEDO_OPS_GEN_PW -ErrorAction SilentlyContinue }
+    Remove-Scratch $genDir
+    Remove-Scratch $genFile
+    Remove-Scratch $genTo
+
     # -- a batch run: the same dispatch with its own tokenizer and stop rule
     $dstBatch = Join-Path $Work 'dst-batch'
     $list = Join-Path $Work 'ops.lst'
@@ -781,6 +860,20 @@ function Invoke-Tier1 {
         param($r) if ((N $r 'totalTarget') -ne $nFiles) { "totalTarget = $(N $r 'totalTarget'), want $nFiles" }
         })
         Remove-Scratch $dstNet
+        # SP-0198: a network folder backs up through the same command, and its zip restores whole
+        $bakNet = Join-Path $Work 'bak-net'; New-Item -ItemType Directory -Path $bakNet -Force | Out-Null
+        [void](Op 'network: backup from a share' @('backup', $uncSrc, 'to', $bakNet) -Bytes $nBytes -Verify {
+            param($r) if (@(Get-ChildItem -LiteralPath $bakNet -Filter '*.zip' -File).Count -ne 1) { 'want one zip in the destination' }
+        })
+        $bakNetZip = @(Get-ChildItem -LiteralPath $bakNet -Filter '*.zip' -File)
+        if ($bakNetZip.Count -eq 1) {
+            $bakNetBack = Join-Path $Work 'bak-net-back'
+            [void](Op 'network: restore the share backup' @('restore', $bakNetZip[0].FullName, 'to', $bakNetBack) -Bytes $nBytes -Verify {
+                param($r) Compare-Manifest $want (Get-Manifest $bakNetBack)
+            })
+            Remove-Scratch $bakNetBack
+        }
+        Remove-Scratch $bakNet
     } else {
         $script:Skipped.Add("network: the admin share $unc is not reachable by this account - the network target was not exercised")
         $script:SkippedPrefix.Add('network:')
@@ -1097,6 +1190,27 @@ function Invoke-Tier2 {
             if ((N $r 'totalTarget') -ne $want.Count) { "totalTarget = $(N $r 'totalTarget'), want $($want.Count)" }
             if ((N $r 'onlyInSource') -ne 0) { "onlyInSource = $(N $r 'onlyInSource'), want 0" }
         })
+
+        # SP-0198 D6: a drive root backs up only with root, and only after a confirmation
+        $bakRoot = Join-Path $Work 'bak-root'; New-Item -ItemType Directory -Path $bakRoot -Force | Out-Null
+        [void](Op 'backup: a drive root without root is refused' @('backup', "$letter\", 'to', $bakRoot) -Code @(10) -Verdict @('Not proven') -Verify {
+            param($r) if (@(Get-ChildItem -LiteralPath $bakRoot -Force).Count) { 'something was written for a refused root backup' }
+        })
+        [void](Op 'backup: root, nobody to confirm' @('backup', "$letter\", 'root', 'to', $bakRoot) -Code @(10) -Verdict @('Not proven') -Verify {
+            param($r) if (@(Get-ChildItem -LiteralPath $bakRoot -Force).Count) { 'something was written without the confirmation' }
+        })
+        [void](Op 'backup: root, confirmed' @('backup', "$letter\", 'root', 'y', 'to', $bakRoot) -Bytes $nBytes -Verify {
+            param($r) if (@(Get-ChildItem -LiteralPath $bakRoot -Filter '*.zip' -File).Count -ne 1) { 'want one zip in the destination' }
+        })
+        $bakRootZip = @(Get-ChildItem -LiteralPath $bakRoot -Filter '*.zip' -File)
+        if ($bakRootZip.Count -eq 1) {
+            $bakRootBack = Join-Path $Work 'bak-root-back'
+            [void](Op 'restore: the root backup' @('restore', $bakRootZip[0].FullName, 'to', $bakRootBack) -Bytes $nBytes -Verify {
+                param($r) Compare-Manifest $want (Get-Manifest (Join-Path $bakRootBack 'data'))
+            })
+            Remove-Scratch $bakRootBack
+        }
+        Remove-Scratch $bakRoot
 
         # probe writes raw sectors and restores them; recover runs chkdsk. Neither may touch the data.
         [void](Op 'probe: refused without the typed word' @('device', $letter, 'probe') -Code @(2) -Verdict @('Not proven') -Verify {

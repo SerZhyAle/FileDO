@@ -320,10 +320,25 @@ Public Class JobView
     ' The window's "Stop and close": the same request the Stop button makes. A stop already asked
     ' for is not asked again - and never turned into the page's own "End it now" behind the user's
     ' back; the window asks its own question for that.
-    Public Sub RequestStopFromShell()
-        If Not runner.IsActive OrElse endNowOffered Then Return
+    ' True when it asked: a page with no run, or one whose stop was not honoured and is waiting to be ended by the
+    ' person, asks nothing (SP-0218: `filedo job stop` counts what it asked).
+    Public Function RequestStopFromShell() As Boolean
+        If Not runner.IsActive OrElse endNowOffered Then Return False
         StopBtn_Click(Me, EventArgs.Empty)
-    End Sub
+        Return True
+    End Function
+
+    ' SP-0218: what `filedo job list` says of this page's run on the window's thread; Nothing when no run is in progress.
+    ' The verb is the catalogue's word for the job, never the command line or its target.
+    Friend Function RunInfoNow() As RunInfo
+        If Not runner.IsActive Then Return Nothing
+        Return New RunInfo With {
+            .Place = RunSnapshot.WhereShell,
+            .Verb = RunSnapshot.SafeToken(If(job Is Nothing, "", job.DefaultVerb), "job"),
+            .State = RunSnapshot.StateRunning,
+            .StepName = RunSnapshot.SafeToken(runner.CurrentStep, ""),
+            .Percent = runner.CurrentPercent}
+    End Function
 
     ' The last resort of a close whose stop was not honoured: the process is ended outright.
     Public Sub ForceEnd()
@@ -1895,11 +1910,19 @@ Public Class JobView
 
     ' The Backup and Restore pages (SP-0198): the destination box and step 3, as the user would set them.
     Friend Sub SetBackupForTest(dest As String, sealed As Boolean, keepZip As Boolean, level As String, root As Boolean,
-                                skipLinks As Boolean, suffix As Boolean, del As Boolean)
+                                skipLinks As Boolean, suffix As Boolean, del As Boolean,
+                                Optional keep As String = "", Optional stem As String = "")
         secondTargetBox.Text = dest
-        backupPanel.SetForTest(sealed, keepZip, level, root, skipLinks, suffix, del)
+        backupPanel.SetForTest(sealed, keepZip, level, root, skipLinks, suffix, del, keep, stem)
         UpdatePlanCard()
     End Sub
+
+    ' Whether the keep-zip box of the Backup page is clickable, as the user would see it (SP-0209).
+    Friend ReadOnly Property BackupKeepZipOfferedForTest As Boolean
+        Get
+            Return backupPanel.KeepZipOfferedForTest
+        End Get
+    End Property
 
     Friend ReadOnly Property PasswordShownForTest As Boolean
         Get
@@ -2426,6 +2449,9 @@ Public Class JobView
         If IsDisk() Then reversibility = diskPanel.ReversibilityNow(reversibility)
         ' The restored folder can be packed again; the deleted archive is a normal delete.
         If BackupIsDestructiveNow() Then reversibility = "partly reversible"
+        ' A full numbered set loses its oldest file once the new one is written and read back (SP-0208):
+        ' one file per run, by design - the plan says so, and no confirmation is asked on a scheduled run.
+        If IsBackup() AndAlso backupPanel.NumberedSet Then reversibility = "partly reversible"
         reversibilityBadge.Text = L("shell_rev_" & reversibility.Replace(" ", "_"))
 
         destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse CmpIsDestructiveNow() OrElse
@@ -2936,24 +2962,20 @@ Public Class JobView
             Return
         End If
 
-        Using dlg As New FolderBrowserDialog()
-            dlg.Description = L("shell_dlg_select_folder")
-            If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
-        End Using
+        ' The folder dialogs open on the folder last picked for their role and remember the new pick
+        ' (Ui.ChooseFolder), the same lists the Command page keeps.
+        Dim picked As String = ""
+        If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_folder"), ShellSettings.TargetRole, targetCombo.Text, picked) Then targetCombo.Text = picked
     End Sub
 
     Private Sub BrowseTargetFolder_Click(sender As Object, e As EventArgs)
-        Using dlg As New FolderBrowserDialog()
-            dlg.Description = L("shell_dlg_select_folder_secure")
-            If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
-        End Using
+        Dim picked As String = ""
+        If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_folder_secure"), ShellSettings.TargetRole, targetCombo.Text, picked) Then targetCombo.Text = picked
     End Sub
 
     Private Sub BrowseSecondTarget_Click(sender As Object, e As EventArgs)
-        Using dlg As New FolderBrowserDialog()
-            dlg.Description = L("shell_dlg_select_dest")
-            If dlg.ShowDialog(FindForm()) = DialogResult.OK Then secondTargetBox.Text = dlg.SelectedPath
-        End Using
+        Dim picked As String = ""
+        If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_dest"), ShellSettings.DestinationRole, secondTargetBox.Text, picked) Then secondTargetBox.Text = picked
     End Sub
 
     ' The copy is written for cmd.exe, where the Wipe page tells the user to run it: a path holding

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `UI-SIZING` |
-| **Version** | 1.1 (no wire - component size, input profile and scale composition) |
+| **Version** | 1.2, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - component size, input profile and scale composition) |
 | **Role** | consumer - every product-owned control of the GUI shell (`filedo_win_vb/`); migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `ui-sizing/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |

@@ -99,6 +99,11 @@
                hand from that history when the release's "What's new" is; this step is what stops the two
                drifting apart. "Unreleased" is not a release and never appears on the page. Each section's
                <time datetime> is the date its stamp's YYMMDD names (SITE-EXPERIENCE 0.5 item D, rule 13).
+    releasemanifest PAGE-STYLE 3.10 and SITE-EXPERIENCE 0.6 item E (SP-0225). packaging/release-manifest.json
+               records the published release (version, date, asset URLs, size, SHA-256) and names a
+               release recorded by README.md Version History (newest or previous during pre-publish).
+               All five landing pages render those facts with scripts off while keeping /releases/latest
+               on #releaseLink beside them.
     analytics SP-0166 criterion 9, no analytics and no tracker. Every docs/**/*.html and docs/**/*.js outside
                docs/contracts/ carries none of the analytics or tag-manager hosts and calls (googletagmanager,
                google-analytics, gtag, plausible, umami), no utm_ parameter, and no <script src> or <iframe src>
@@ -147,6 +152,7 @@ $termbasePath = Join-Path $root 'docs\termbase.json'
 $printsPath = Join-Path $root 'docs\translation-fingerprints.json'
 $heldPath = Join-Path $root 'packaging\site-held-addresses.json'
 $positioningPath = Join-Path $root 'packaging\positioning-source.json'
+$manifestPath = Join-Path $root 'packaging\release-manifest.json'
 
 function Stop-Unverified([string]$why) {
     Write-Host "external-docs: COULD NOT VERIFY ($why)" -ForegroundColor Yellow
@@ -1247,6 +1253,97 @@ Add-Section 'releasenotes' {
         if (($shared -join ',') -ne ((@($want | Where-Object { $_ -in $have })) -join ',')) { $failures.Add("$rel lists the releases in a different order than README.md (newest first)") }
     }
 }
+
+# ---- release manifest (PAGE-STYLE 3.10 and SITE-EXPERIENCE 0.6 item E, SP-0225) ---------------
+$manifestChecked = 0
+$manifestTag = '(none)'
+Add-Section 'releasemanifest' {
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        $failures.Add('packaging/release-manifest.json is missing (run packaging/set-release-manifest.ps1)')
+        return
+    }
+    $mf = $null
+    try { $mf = [IO.File]::ReadAllText($manifestPath) | ConvertFrom-Json }
+    catch { $failures.Add("packaging/release-manifest.json cannot be parsed: $($_.Exception.Message)"); return }
+    if (-not $mf -or -not $mf.tag -or -not $mf.version -or -not $mf.date -or -not $mf.releaseUrl -or -not $mf.assets) {
+        $failures.Add('packaging/release-manifest.json is missing required fields (tag, version, date, releaseUrl, assets)')
+        return
+    }
+    $mTag = [string]$mf.tag
+    $script:manifestTag = $mTag
+    if ($mTag -cnotmatch '^v(\d{10})$') { $failures.Add("packaging/release-manifest.json tag '$mTag' is not v<yyMMddHHmm>"); return }
+    $mVer = $Matches[1]
+    if ([string]$mf.version -cne $mVer) { $failures.Add("packaging/release-manifest.json version '$($mf.version)' does not match tag '$mTag'") }
+    $expectedDate = '20' + $mVer.Substring(0, 2) + '-' + $mVer.Substring(2, 2) + '-' + $mVer.Substring(4, 2)
+    if ([string]$mf.date -cne $expectedDate) { $failures.Add("packaging/release-manifest.json date '$($mf.date)' disagrees with stamp date '$expectedDate'") }
+    $expectedReleaseUrl = "https://github.com/SerZhyAle/FileDO/releases/tag/$mTag"
+    if ([string]$mf.releaseUrl -cne $expectedReleaseUrl) { $failures.Add("packaging/release-manifest.json releaseUrl '$($mf.releaseUrl)' != '$expectedReleaseUrl'") }
+
+    $allowedNames = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($k in 'setup', 'zip', 'msi') {
+        $a = $mf.assets.$k
+        if (-not $a -or -not $a.name -or [long]$a.size -le 0 -or -not $a.sizeMb -or -not $a.url -or -not $a.sha256Name -or -not $a.sha256Url -or -not $a.sha256) {
+            $failures.Add("packaging/release-manifest.json assets.$k is incomplete")
+            continue
+        }
+        if ([string]$a.name -notmatch [regex]::Escape($mVer)) { $failures.Add("packaging/release-manifest.json assets.$k.name '$($a.name)' does not carry version $mVer") }
+        if ([string]$a.sha256 -notmatch '^[0-9a-fA-F]{64}$') { $failures.Add("packaging/release-manifest.json assets.$k.sha256 is not a 64-hex digest") }
+        [void]$allowedNames.Add([string]$a.name)
+        [void]$allowedNames.Add([string]$a.sha256Name)
+    }
+
+    $vh = [regex]::Match($readmes['README.md'], '(?ms)^## Version History\s*$(.*?)(?=^---\s*$|^## )')
+    if ($vh.Success) {
+        $want = @([regex]::Matches($vh.Groups[1].Value, '(?m)^\*\*(v\d{10})\*\*') | ForEach-Object { $_.Groups[1].Value })
+        $allowedTags = if ($want.Count -ge 2) { @($want[0], $want[1]) } elseif ($want.Count -eq 1) { @($want[0]) } else { @() }
+        if ($mTag -notin $allowedTags) {
+            $failures.Add("packaging/release-manifest.json tag '$mTag' is not the newest or previous release in README.md Version History ($($allowedTags -join ', '))")
+        }
+    }
+
+    if (-not $mf.assets.PSObject.Properties['setup'] -or -not $mf.assets.PSObject.Properties['zip'] -or -not $mf.assets.PSObject.Properties['msi'] -or
+        -not $mf.assets.setup -or -not $mf.assets.zip -or -not $mf.assets.msi) { return }
+    $durableLatest = 'https://github.com/SerZhyAle/FileDO/releases/latest'
+    $landingRels = @('docs/index.html', 'docs/de/index.html', 'docs/fr/index.html', 'docs/ru/index.html', 'docs/uk/index.html')
+    foreach ($rel in $landingRels) {
+        if (-not $pages.Contains($rel)) { $failures.Add("$rel is missing from the site page set"); continue }
+        $script:manifestChecked++
+        $html = $pages[$rel]
+        $sf = [regex]::Match($html, '(?s)<span\s+id="setupFile"([^>]*)>')
+        if (-not $sf.Success) { $failures.Add("$rel has no #setupFile element") }
+        elseif ($sf.Groups[1].Value -match '\bhidden\b') { $failures.Add("$rel keeps #setupFile hidden (PAGE-STYLE 3.10 item 1 requires build-time facts visible with scripts off)") }
+
+        $checks = @(
+            @{ Label = 'heroSetupLink'; Pattern = '(?s)<a\b[^>]*?\bid="heroSetupLink"[^>]*?\bhref="([^"]*)"'; Want = [string]$mf.assets.setup.url },
+            @{ Label = 'setupLink';     Pattern = '(?s)<a\b[^>]*?\bid="setupLink"[^>]*?\bhref="([^"]*)"';     Want = [string]$mf.assets.setup.url },
+            @{ Label = 'setupHash';     Pattern = '(?s)<a\b[^>]*?\bid="setupHash"[^>]*?\bhref="([^"]*)"';     Want = [string]$mf.assets.setup.sha256Url },
+            @{ Label = 'zipLink';       Pattern = '(?s)<a\b[^>]*?\bid="zipLink"[^>]*?\bhref="([^"]*)"';       Want = [string]$mf.assets.zip.url },
+            @{ Label = 'msiLink';       Pattern = '(?s)<a\b[^>]*?\bid="msiLink"[^>]*?\bhref="([^"]*)"';       Want = [string]$mf.assets.msi.url },
+            @{ Label = 'releaseTagLink';Pattern = '(?s)<a\b[^>]*?\bid="releaseTagLink"[^>]*?\bhref="([^"]*)"';PatternGroup = 1; Want = $expectedReleaseUrl },
+            @{ Label = 'releaseLink';   Pattern = '(?s)<a\b[^>]*?\bid="releaseLink"[^>]*?\bhref="([^"]*)"';   Want = $durableLatest },
+            @{ Label = 'releaseVersion';Pattern = '(?s)<code\s+id="releaseVersion">([^<]*)</code>';           Want = $mTag },
+            @{ Label = 'releaseDate@datetime'; Pattern = '(?s)<time\s+id="releaseDate"\s+datetime="([^"]*)">[^<]*</time>'; Want = $expectedDate },
+            @{ Label = 'releaseDate';   Pattern = '(?s)<time\s+id="releaseDate"\s+datetime="[^"]*">([^<]*)</time>'; Want = $expectedDate },
+            @{ Label = 'setupName';     Pattern = '(?s)<code\s+id="setupName">([^<]*)</code>';                Want = [string]$mf.assets.setup.name },
+            @{ Label = 'setupMb';       Pattern = '(?s)<span\s+id="setupMb">([^<]*)</span>';                  Want = [string]$mf.assets.setup.sizeMb }
+        )
+        foreach ($c in $checks) {
+            $cm = [regex]::Match($html, $c.Pattern)
+            if (-not $cm.Success) { $failures.Add("$rel is missing #$($c.Label)") }
+            elseif ($cm.Groups[1].Value -cne $c.Want) { $failures.Add("$rel #$($c.Label) is '$($cm.Groups[1].Value)', manifest has '$($c.Want)'") }
+        }
+        foreach ($dl in [regex]::Matches($html, 'https://github\.com/SerZhyAle/FileDO/releases/download/(v\d{10})/([^"''\s>]+)')) {
+            if ($dl.Groups[1].Value -cne $mTag -or -not $allowedNames.Contains($dl.Groups[2].Value)) {
+                $failures.Add("${rel}:$(Get-LineAt $html $dl.Index) release download link '$($dl.Value)' does not match manifest $mTag")
+            }
+        }
+        foreach ($tl in [regex]::Matches($html, 'https://github\.com/SerZhyAle/FileDO/releases/tag/(v\d{10})')) {
+            if ($tl.Groups[1].Value -cne $mTag) {
+                $failures.Add("${rel}:$(Get-LineAt $html $tl.Index) release tag link '$($tl.Value)' does not match manifest $mTag")
+            }
+        }
+    }
+}
 # ---- analytics (SP-0166 criterion 9: no analytics, no tracker, no redirector) --------------------------
 # The site promises no telemetry. Every docs/**/*.html and docs/**/*.js (docs/contracts/ holds catalogue prose, not
 # served pages) is read for the analytics and tag-manager hosts and calls, for a utm_ tracking parameter, and for a
@@ -1302,6 +1399,7 @@ Write-Host "  tags      $tagFieldCount tags and search terms ($($wingetLocales.C
 Write-Host "  claims    $claimTextCount descriptions held to the banned claims - $($counts['claims']) problems"
 Write-Host "  lead      $leadCount lead and tagline checks (5 README H1, README.md/.ru/.ua italic, winget ShortDescription) - $($counts['lead']) problems"
 Write-Host "  releasenotes $releaseNotesCount releases on 3 pages - $($counts['releasenotes']) problems"
+Write-Host "  releasemanifest $manifestChecked landing pages ($manifestTag) - $($counts['releasemanifest']) problems"
 Write-Host "  analytics $analyticsFiles pages and scripts read for trackers - $($counts['analytics']) problems"
 Write-Host "  hygiene   $($pages.Count + $readmes.Count) documents - $($counts['hygiene']) problems"
 if ($failures.Count) {

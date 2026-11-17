@@ -1,5 +1,6 @@
 {
   "_about": "Termbase of the external corpus (DOC-EXTERNAL-QUALITY rule 4): the site and the five READMEs. 'forms' is the word each locale uses for the concept - a stem, matched from a word start, and it must be in use. 'forbidden' are regular-expression fragments, matched case-insensitively from a word start, that must not appear in that locale's prose (code is not prose). Checked by packaging/check-external-docs.ps1; the glossary page (docs/guides/glossary.html) has one entry per term, id=\"term-<id>\".",
+  "familyTypes": { "Tourist": {"en": "Android and Wear OS hiking kit", "ru": "Набор для походов на Android и Wear OS", "ua": "Набір для походів на Android і Wear OS", "de": "Wanderpaket für Android und Wear OS", "fr": "Kit de randonnée pour Android et Wear OS"} },
   "terms": [
     {
       "id": "container",

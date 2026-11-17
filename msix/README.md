@@ -1,10 +1,11 @@
 # FileDO - Microsoft Store (MSIX) publishing
 
 Everything the Store leg needs, from the reserved name to the submitted listing. Publishing is
-**manual** in the last step (Partner Center has no submission CLI), and the free path needs no
-code-signing certificate: the package is uploaded **unsigned** and Microsoft re-signs it at
-certification. Nothing here tags, uploads or submits anything; that is [`RELEASE.md`](../RELEASE.md)
-and the owner's decision.
+**manual** in the last step (the Store has a submission API and the `msstore` CLI, but FileDO makes
+no write call through either), and the free path needs no code-signing certificate: the package is
+uploaded **unsigned** and Microsoft re-signs it at certification. Nothing here tags, uploads or
+submits anything; that is [`RELEASE.md`](../RELEASE.md) and the owner's decision. A read-only
+preflight runs before the tag (`release.ps1`, see [`RELEASE.md`](../RELEASE.md) "The one manual step"); it never writes to the Store.
 
 | Path | Role |
 | --- | --- |

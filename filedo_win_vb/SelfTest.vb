@@ -205,6 +205,12 @@ Partial Public Module SelfTest
         Guard("result-numbers", AddressOf CheckResultNumbers)
         ' SP-0196 / CLI-EVENT-STREAM rule 17: a Not proven run says why, in the window's language.
         Guard("why", AddressOf CheckRunExplanation)
+        ' SP-0204: the command guide - the picker dialog and the Commands page, held against the list.
+        Guard("opguide", AddressOf CheckOperationGuide)
+        ' What the pages remember between sessions: folders, commands and where the Command page was left.
+        Guard("memory", AddressOf CheckInputMemory)
+        ' SP-0216 / APP-COMMANDS 0.1: the command pipe, its parser, busy, the gate of rule 13, the frozen starts.
+        Guard("appcmd", AddressOf CheckAppCommands)
         Guard("fdsec", AddressOf CheckFdsecReportRedaction)
 
         ' SP-0014: the shared desktop contracts APP-BEHAVIOUR and APP-STYLE, rung by rung.
@@ -777,7 +783,8 @@ Partial Public Module SelfTest
             If g IsNot Nothing Then refs.Add(g)
         Next
         refs.AddRange(New GlyphRef() {DiskGlyphs.Help, DiskGlyphs.More, DiskGlyphs.CloseIt, DiskGlyphs.ClearInput,
-                                      DiskGlyphs.OpenExternal, DiskGlyphs.ShowDetails, DiskGlyphs.StopRun, DiskGlyphs.ClearQueue})
+                                      DiskGlyphs.OpenExternal, DiskGlyphs.ShowDetails, DiskGlyphs.HideDetails,
+                                      DiskGlyphs.TableColumns, DiskGlyphs.StopRun, DiskGlyphs.ClearQueue})
         For Each r In refs
             If r.IsVocabulary Then ids.Add(r.Id)
         Next
@@ -1311,7 +1318,7 @@ Partial Public Module SelfTest
             End Using
             Dim want = New String() {"run", "step", "progress", "finding", "note", "result"}
             Check("sample:all-kinds", kinds.SequenceEqual(want), String.Join(",", kinds.ToArray()))
-            Check("sample:fields", stepName = "write" AndAlso progressItems = 1 AndAlso findingMessage = "An example finding" AndAlso noteMessage = "An example note" AndAlso verdict = "Passed")
+            Check("sample:fields", stepName = "write" AndAlso progressItems = 1 AndAlso findingMessage = "An example finding" AndAlso noteMessage = "An example note" AndAlso verdict = "Done")
         Catch ex As Exception
             Check("sample", False, ex.GetType().Name & ": " & ex.Message)
         Finally
@@ -2535,6 +2542,73 @@ Partial Public Module SelfTest
             cmd = jv.CurrentCommand()
             Check("backup-page:root-word-follows-target", Not cmd.Contains(" root"), cmd)
 
+            ' SP-0209: the numbered set - `gen <N>` and `stem <name>` (cmd\filedo\backup_generation.go).
+            jv.SetBackupForTest("", False, False, "", False, False, True, False)
+            Dim plainRev = jv.ReversibilityForTest
+            jv.SetBackupForTest("D:\out", False, False, "", False, False, True, False, "7")
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:gen-line", runs AndAlso cmd.Contains(" to D:\out gen 7") AndAlso Not cmd.Contains(" stem ") AndAlso
+                  Not cmd.Contains("keep-zip"), cmd & " / " & reason)
+            Check("backup-page:gen-partly-reversible", plainRev = d("shell_rev_reversible") AndAlso
+                  jv.ReversibilityForTest = d("shell_rev_partly_reversible") AndAlso Not jv.DestructiveBadgeShownForTest,
+                  plainRev & " -> " & jv.ReversibilityForTest)
+
+            jv.SetBackupForTest("D:\out", True, False, "", False, False, True, False, "999", "  My Docs ")
+            jv.SetCredentialPairForTest(secret, secret)
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:gen-stem-sealed", runs AndAlso cmd.EndsWith(" to D:\out sec gen 999 stem ""My Docs"" pe:FILEDO_SHELL_CRED") AndAlso
+                  Not cmd.Contains(secret), cmd & " / " & reason)
+            jv.SetCredentialPairForTest("", "")
+
+            Dim rangeFailures As String = ""
+            For Each bad In New String() {"0", "1000", "abc", "-3", "3 4"}
+                jv.SetBackupForTest("", False, False, "", False, False, True, False, bad)
+                runs = jv.RunStateForTest(reason)
+                If runs OrElse reason <> d("shell_bk_gen_range") OrElse jv.CurrentCommand().Contains(" gen ") Then
+                    rangeFailures &= bad & ": " & runs.ToString() & " / " & reason & "; "
+                End If
+            Next
+            Check("backup-page:gen-range-refused", rangeFailures = "", rangeFailures)
+
+            Dim stemFailures As String = ""
+            For Each bad In New String() {"a/b", "CON", "nul.txt", "x.", "a:b", "..", New String("a"c, 245)}
+                jv.SetBackupForTest("", False, False, "", False, False, True, False, "3", bad)
+                runs = jv.RunStateForTest(reason)
+                If runs OrElse reason <> d("shell_bk_stem_bad") OrElse jv.CurrentCommand().Contains(" stem ") Then
+                    stemFailures &= bad & ": " & runs.ToString() & " / " & reason & "; "
+                End If
+            Next
+            For Each good In New String() {"Docs", "My Docs", "a.b", New String("a"c, 244)}
+                jv.SetBackupForTest("", False, False, "", False, False, True, False, "3", good)
+                runs = jv.RunStateForTest(reason)
+                If Not runs OrElse Not jv.CurrentCommand().Contains(" gen 3 stem ") Then
+                    stemFailures &= good & ": refused / " & reason & "; "
+                End If
+            Next
+            Check("backup-page:gen-stem-refused", stemFailures = "", stemFailures)
+
+            jv.SetBackupForTest("D:\out\x.zip", False, False, "", False, False, True, False, "3")
+            runs = jv.RunStateForTest(reason)
+            Dim destRefusedZip = Not runs AndAlso reason = d("shell_bk_gen_dest")
+            jv.SetBackupForTest("D:\out\x.FD-SEC", True, False, "", False, False, True, False, "3")
+            runs = jv.RunStateForTest(reason)
+            Dim destRefusedSealed = Not runs AndAlso reason = d("shell_bk_gen_dest")
+            ' Without a set the same name is an ordinary destination.
+            jv.SetBackupForTest("D:\out\x.zip", False, False, "", False, False, True, False)
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:gen-dest-file-refused", destRefusedZip AndAlso destRefusedSealed AndAlso runs,
+                  destRefusedZip.ToString() & " / " & destRefusedSealed.ToString() & " / " & runs.ToString() & " / " & reason)
+
+            jv.SetBackupForTest("", True, True, "", False, False, True, False)
+            Dim keepZipBefore = jv.BackupKeepZipOfferedForTest
+            jv.SetBackupForTest("", True, True, "", False, False, True, False, "5")
+            cmd = jv.CurrentCommand()
+            Check("backup-page:gen-keepzip-off", keepZipBefore AndAlso Not jv.BackupKeepZipOfferedForTest AndAlso
+                  Not cmd.Contains("keep-zip") AndAlso cmd.Contains(" sec gen 5"), keepZipBefore.ToString() & " / " & cmd)
+            jv.SetBackupForTest("", False, False, "", False, False, True, False)
+
             jv.SetJob(JobCatalogue.GetJob("rail_job_restore"))
             jv.SetTarget("C:\sample (1)\x-2611111200.zip")
             jv.SetBackupForTest("", False, False, "", False, False, True, False)
@@ -3307,13 +3381,16 @@ Partial Public Module SelfTest
             File.WriteAllLines(source, lines, Encoding.UTF8)
             Dim archive = LogReport.ArchiveForTest(source, dir)
             Dim packed As New StringBuilder()
+            Dim envText As String = Nothing
             Using fs As New FileStream(archive, FileMode.Open, FileAccess.Read)
                 Using zip As New System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Read)
                     Check("diagnostic:environment", zip.GetEntry("environment.txt") IsNot Nothing)
                     For Each entry In zip.Entries
                         packed.AppendLine(entry.FullName)
                         Using reader As New StreamReader(entry.Open(), Encoding.UTF8)
-                            packed.AppendLine(reader.ReadToEnd())
+                            Dim entryText = reader.ReadToEnd()
+                            packed.AppendLine(entryText)
+                            If entry.FullName = "environment.txt" Then envText = entryText
                         End Using
                     Next
                 End Using
@@ -3324,6 +3401,11 @@ Partial Public Module SelfTest
             Next
             Check("diagnostic:useful-context", output.Contains("startup-canary") AndAlso output.Contains("tail-canary") AndAlso output.Contains("phase-canary"))
             Check("diagnostic:count-only", output.Contains("volume_metrics_capability=unavailable") AndAlso Not output.Contains("history.json"))
+            Dim absentLeaks As New List(Of String)()
+            For Each key In New String() {"channels_total", "channels_catalog", "channels_manual", "channels_imported", "channels_pinned", "channels_hidden", "collections", "history_entries"}
+                If envText Is Nothing OrElse envText.Contains(key & "=") Then absentLeaks.Add(key)
+            Next
+            Check("diagnostic:absent-families", envText IsNot Nothing AndAlso absentLeaks.Count = 0, String.Join(", ", absentLeaks))
             Check("diagnostic:oversize-line", DiagnosticText.Sanitize(New String("x"c, 65537)).Contains("LINE OMITTED"))
             ' A log held by its writer must still be exportable.
             Using writer As New FileStream(source, FileMode.Open, FileAccess.Write, FileShare.ReadWrite Or FileShare.Delete)
@@ -4934,7 +5016,8 @@ Partial Public Module SelfTest
         Next
         ' The window's own controls draw vocabulary meanings, each named as the catalog names it.
         For Each g In New GlyphRef() {DiskGlyphs.Help, DiskGlyphs.More, DiskGlyphs.CloseIt, DiskGlyphs.ClearInput,
-                                      DiskGlyphs.OpenExternal, DiskGlyphs.ShowDetails, DiskGlyphs.StopRun, DiskGlyphs.ClearQueue}
+                                      DiskGlyphs.OpenExternal, DiskGlyphs.ShowDetails, DiskGlyphs.HideDetails,
+                                      DiskGlyphs.TableColumns, DiskGlyphs.StopRun, DiskGlyphs.ClearQueue}
             Check("disk-ui:glyph-window:" & g.Id, g.IsVocabulary AndAlso Glyphs.IsDrawable(g.Id), g.ToString())
         Next
         Check("disk-ui:glyph-cross-is-shared-declared", DiskGlyphs.CloseIt.Id = "nav.close" AndAlso DiskGlyphs.ClearInput.Id = "action.clear-input",
@@ -5394,6 +5477,21 @@ Partial Public Module SelfTest
                 If mi Is Nothing Then Continue For
                 Check("disk-ui:menu-image:" & mi.Text, mi.Image IsNot Nothing, "")
             Next
+            ' Every popup menu level draws a glyph on every member (ICON-RENDER section 25 rule 1).
+            For Each which In New String() {"row", "more", "space", "help"}
+                Dim items = m.MenuItemsForTest(which)
+                Dim mis = items.OfType(Of ToolStripMenuItem)().ToList()
+                Dim missing = mis.Where(Function(mi) mi.Image Is Nothing).Select(Function(mi) mi.Text).ToList()
+                Check("disk-ui:menu-sibling-glyphs:" & which, mis.Count > 0 AndAlso missing.Count = 0,
+                      If(missing.Count = 0, mis.Count.ToString() & " items with glyphs", "missing: " & String.Join(", ", missing.ToArray())))
+            Next
+            Dim moreMenuStrip = TryCast(m.MenuItemsForTest("more").FirstOrDefault()?.Owner, ContextMenuStrip)
+            Check("disk-ui:more-menu-check-margin", moreMenuStrip IsNot Nothing AndAlso moreMenuStrip.ShowCheckMargin, "")
+            m.ToggleDetailForTest()
+            Dim moreHiddenMissing = m.MenuItemsForTest("more").OfType(Of ToolStripMenuItem)().Where(Function(mi) mi.Image Is Nothing).Select(Function(mi) mi.Text).ToList()
+            Check("disk-ui:menu-sibling-glyphs:more-detail-hidden", moreHiddenMissing.Count = 0,
+                  If(moreHiddenMissing.Count = 0, "all items keep glyphs with detail hidden", String.Join(", ", moreHiddenMissing.ToArray())))
+            m.ToggleDetailForTest()
             Dim help = m.MenuItemsForTest("help")
             ' F1 opens the window's help page now (CONTEXT-HELP rule 3), so the menu's help-window item, which
             ' this menu keeps on the button's right click, no longer shows F1 as its key.

@@ -586,35 +586,47 @@
         <p class="intro">
           <span data-l="en"
             ><code>backup</code> packs a folder, a whole drive or a network share
-            into one plain <code>.zip</code> named after the folder and the
-            time - any zip tool opens it on any computer. Before packing, FileDO
+            into one plain <code>.zip</code> named <code>&lt;source&gt;-&lt;yyMMddHHmm&gt;</code>
+            - the folder's name, then the year, month, day, hour and minute of
+            the backup, so <code>D:\Photos</code> backed up on 17 November 2026
+            at 16:52 becomes <code>Photos-2611171652.zip</code> - and any zip
+            tool opens it on any computer. Before packing, FileDO
             reads a sample of the content for at most 10 seconds and picks the
             compression density itself: photos and videos are stored as they
             are, text is packed tighter, and the chosen level is printed.
             <code>sec</code> seals that zip into a <code>.fd-sec</code> container
-            behind a password, with the same password rules as above.
+            behind a password, with the same password rules as above; the sealed
+            file is named the same way and ends in <code>.fd-sec</code>.
             <code>restore</code> rebuilds the folder beside the archive, or at
             the address <code>to</code> names.</span
           ><span data-l="ru"
             ><code>backup</code> упаковывает папку, целый диск или сетевую папку
-            в один обычный <code>.zip</code>, названный по папке и времени, - его
-            откроет любая программа для zip на любом компьютере. Перед упаковкой
+            в один обычный <code>.zip</code> с именем <code>&lt;источник&gt;-&lt;yyMMddHHmm&gt;</code>
+            - имя папки, затем год, месяц, день, час и минута копии, так что
+            <code>D:\Photos</code>, скопированная 17 ноября 2026 в 16:52, получает имя
+            <code>Photos-2611171652.zip</code> - и его откроет любая программа для zip
+            на любом компьютере. Перед упаковкой
             FileDO не дольше 10 секунд читает образец содержимого и сам выбирает
             плотность сжатия: фото и видео сохраняются как есть, текст сжимается
             сильнее, а выбранный уровень печатается. <code>sec</code>
             запечатывает этот zip в контейнер <code>.fd-sec</code> под паролем, с
-            теми же правилами пароля, что выше. <code>restore</code>
+            теми же правилами пароля, что выше; запечатанный файл называется так
+            же и заканчивается на <code>.fd-sec</code>. <code>restore</code>
             восстанавливает папку рядом с архивом или по адресу, который назван
             в <code>to</code>.</span
           ><span data-l="ua"
             ><code>backup</code> пакує теку, цілий диск або мережеву теку в один
-            звичайний <code>.zip</code>, названий за текою та часом, - його
-            відкриє будь-яка програма для zip на будь-якому комп'ютері. Перед
+            звичайний <code>.zip</code> з назвою <code>&lt;джерело&gt;-&lt;yyMMddHHmm&gt;</code>
+            - ім'я теки, потім рік, місяць, день, година й хвилина копії, тож
+            <code>D:\Photos</code>, скопійована 17 листопада 2026 о 16:52, дістає назву
+            <code>Photos-2611171652.zip</code> - і його відкриє будь-яка програма для zip
+            на будь-якому комп'ютері. Перед
             пакуванням FileDO не довше 10 секунд читає зразок вмісту й сам обирає
             щільність стиснення: фото й відео зберігаються як є, текст
             стискається сильніше, а обраний рівень друкується. <code>sec</code>
             запечатує цей zip у контейнер <code>.fd-sec</code> під паролем, з
-            тими самими правилами пароля, що вище. <code>restore</code>
+            тими самими правилами пароля, що вище; запечатаний файл називається так
+            само й закінчується на <code>.fd-sec</code>. <code>restore</code>
             відновлює теку поруч з архівом або за адресою, яку названо в
             <code>to</code>.</span
           >
@@ -633,6 +645,45 @@
         </div>
         <p>
           <span data-l="en"
+            ><code>gen</code> keeps a numbered set instead of a new dated file: <code>gen 7</code> names the keep-count
+            (1 to 999), and <code>to</code> then names the folder the set lives in. The files are
+            <code>Photos_001.zip</code> to <code>Photos_007.zip</code> - <code>.fd-sec</code> with
+            <code>sec</code> - and <code>stem</code> names the set when two folders share one name. Each run
+            writes the number after the newest file of the set, <code>001</code> after the keep-count, read from
+            the folder alone. Once the set is full, the new file is written under a partial name and read
+            back first; only then is the oldest one replaced - at most one file per run, and a failed or
+            stopped run removes nothing. The folder needs room for one file more than the set holds while the
+            run works. <code>keep-zip</code> does not go with <code>gen</code>.</span
+          ><span data-l="ru"
+            ><code>gen</code> хранит пронумерованный набор вместо нового файла с датой: <code>gen 7</code> задаёт,
+            сколько копий хранить (от 1 до 999), а <code>to</code> тогда называет папку, где лежит набор. Файлы
+            называются от <code>Photos_001.zip</code> до <code>Photos_007.zip</code> - с <code>sec</code> это
+            <code>.fd-sec</code> - а <code>stem</code> называет набор, когда у двух папок одно имя. Каждый запуск
+            пишет номер после самого нового файла набора, <code>001</code> после последнего номера, и читает его
+            из одной только папки. Когда набор полон, новый файл сначала записывается под временным именем и
+            перечитывается; только потом заменяется самый старый - не больше одного файла за запуск, а
+            неудавшийся или остановленный запуск не удаляет ничего. Пока идёт запуск, в папке нужно место ещё
+            под один файл сверх набора. <code>keep-zip</code> с <code>gen</code> не сочетается.</span
+          ><span data-l="ua"
+            ><code>gen</code> зберігає пронумерований набір замість нового файлу з датою: <code>gen 7</code> задає,
+            скільки копій зберігати (від 1 до 999), а <code>to</code> тоді називає теку, де лежить набір. Файли
+            називаються від <code>Photos_001.zip</code> до <code>Photos_007.zip</code> - з <code>sec</code> це
+            <code>.fd-sec</code> - а <code>stem</code> називає набір, коли дві теки мають одне ім'я. Кожен запуск
+            пише номер після найновішого файлу набору, <code>001</code> після останнього номера, і читає його
+            лише з теки. Коли набір повний, новий файл спершу записується під тимчасовим іменем і
+            перечитується; лише потім замінюється найстаріший - не більше одного файлу за запуск, а невдалий чи
+            зупинений запуск не видаляє нічого. Поки триває запуск, у теці потрібне місце ще на один файл понад
+            набір. <code>keep-zip</code> з <code>gen</code> не поєднується.</span
+          >
+        </p>
+        <div class="copybox">
+          filedo backup D:\Photos to E:\Bak gen 7<button
+            class="copy"
+            data-copy="filedo backup D:\Photos to E:\Bak gen 7"
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <p>
+          <span data-l="en"
             >The zip records the folder's name, never its path. An existing
             folder is never merged into or replaced - <code>restore</code> writes
             beside it as <code>&lt;name&gt;-1</code> - and an archive whose names
@@ -641,7 +692,7 @@
             link in the source refuses the backup unless <code>skip-links</code>
             leaves it out and lists it. Permissions, alternate data streams and
             links are not carried. A backup is one whole copy, made when you run
-            it: there is no schedule and no history of earlier backups.</span
+            it: there is no schedule and no history of earlier backups; a numbered set is only a bounded rotation of whole copies, and the schedule is yours.</span
           ><span data-l="ru"
             >Zip хранит имя папки, но никогда не её путь. Существующая папка
             никогда не дополняется и не заменяется - <code>restore</code> пишет
@@ -652,7 +703,7 @@
             <code>skip-links</code> не оставит её в стороне и не внесёт в список.
             Права доступа, альтернативные потоки данных и ссылки не переносятся.
             Резервная копия - одна целая копия, сделанная, когда вы её
-            запускаете: нет расписания и нет истории прежних копий.</span
+            запускаете: нет расписания и нет истории прежних копий; пронумерованный набор - лишь ограниченная ротация целых копий, а расписание ваше.</span
           ><span data-l="ua"
             >Zip зберігає ім'я теки, але ніколи не її шлях. Наявна тека ніколи не
             доповнюється й не замінюється - <code>restore</code> пише поруч під
@@ -663,7 +714,7 @@
             <code>skip-links</code> не лишить його осторонь і не внесе до
             переліку. Права доступу, альтернативні потоки даних і посилання не
             переносяться. Резервна копія - одна ціла копія, зроблена, коли ви її
-            запускаєте: немає розкладу й немає історії попередніх копій.</span
+            запускаєте: немає розкладу й немає історії попередніх копій; пронумерований набір - лише обмежена ротація цілих копій, а розклад ваш.</span
           >
         </p>
       </section>

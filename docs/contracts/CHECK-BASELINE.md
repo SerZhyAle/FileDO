@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CHECK-BASELINE` |
-| **Version** | 0.12, read 2026-10-29 (SP-0174); implemented partial 0.12 - the comparison with the committed copy is open (SP-0179), draft |
+| **Version** | 0.12, read 2026-11-16 (SP-0221); implemented 0.12 (SP-0179 committed-copy comparison shipped in v2611110217), draft |
 | **Role** | producer - quality and baseline tracking |
 | **Home** | shared contracts catalog, folder `automated-checks/`, document `README.md` |
 | **Owner** | FastMediaSorter Android |

@@ -1264,7 +1264,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <a
                 class="btn btn-primary"
                 id="heroSetupLink"
-                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                href="https://github.com/SerZhyAle/FileDO/releases/download/v2611110217/FileDO-2611110217-setup.exe"
                 target="_blank"
                 rel="noopener"
                 ><span data-l="ru">Скачать для Windows</span></a
@@ -1420,18 +1420,18 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <a
                 class="btn btn-primary"
                 id="setupLink"
-                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                href="https://github.com/SerZhyAle/FileDO/releases/download/v2611110217/FileDO-2611110217-setup.exe"
                 target="_blank"
                 rel="noopener"
                 ><span data-l="ru">Скачать для Windows (setup.exe)</span></a
               >
               <p class="install-note">
-                <span data-l="ru">Windows 10 и 11, x64 · один файл, без командной строки</span><span id="setupFile" hidden>
-                  · <code id="setupName"></code> · <span id="setupMb"></span>
+                <span data-l="ru">Windows 10 и 11, x64 · один файл, без командной строки</span><span id="setupFile">
+                  · <a id="releaseTagLink" href="https://github.com/SerZhyAle/FileDO/releases/tag/v2611110217" target="_blank" rel="noopener"><code id="releaseVersion">v2611110217</code></a> · <time id="releaseDate" datetime="2026-11-11">2026-11-11</time> · <code id="setupName">FileDO-2611110217-setup.exe</code> · <span id="setupMb">18.1</span>
                   <span data-l="ru">МБ</span> ·
                   <a
                     id="setupHash"
-                    href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                    href="https://github.com/SerZhyAle/FileDO/releases/download/v2611110217/FileDO-2611110217-setup.exe.sha256"
                     target="_blank"
                     rel="noopener"
                     >SHA256</a
@@ -1463,14 +1463,14 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               ><a
                 class="btn btn-ghost btn-sm"
                 id="zipLink"
-                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                href="https://github.com/SerZhyAle/FileDO/releases/download/v2611110217/FileDO-2611110217-windows-x64.zip"
                 target="_blank"
                 rel="noopener"
                 >Portable ZIP</a
               ><a
                 class="btn btn-ghost btn-sm"
                 id="msiLink"
-                href="https://github.com/SerZhyAle/FileDO/releases/latest"
+                href="https://github.com/SerZhyAle/FileDO/releases/download/v2611110217/FileDO-2611110217-windows-x64.msi"
                 target="_blank"
                 rel="noopener"
                 >MSI</a
@@ -1986,6 +1986,9 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             ><b>Universal Agent Kit</b><span>AI-dev methodology</span></a
           ><a href="https://serzhyale.github.io/OneClickRunner/"
             ><b>OneClickRunner</b><span>Windows tray launcher</span></a
+          ><a href="https://serzhyale.github.io/DeviceInfo_Android/"
+            ><b>DeviceInfo</b><span>Android and Wear OS device information</span></a
+          ><a href="https://serzhyale.github.io/Tourist_Android/"><b>Tourist</b><span data-l="ru">Набор для походов на Android и Wear OS</span></a
           ><a href="https://sza.od.ua"><b>SZA</b><span>Portfolio</span></a>
         </nav>
         <div class="footer-bottom">
@@ -2100,9 +2103,9 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           })
           .then(function (x) {
             if (!x || !x.assets) return;
-            // Every href in the install panel starts on /releases/latest and
-            // is only upgraded to a direct file link when the API answers, so
-            // the page works without it and never hard-codes a version.
+            // Release facts are rendered at build time from packaging/release-manifest.json;
+            // this call only refines them if a newer release is published, while #releaseLink
+            // stays on the durable /releases/latest URL.
             function pick(test) {
               return x.assets.find(function (y) {
                 return test(y.name);
@@ -2129,8 +2132,24 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 return /-windows-x64\.msi$/i.test(n);
               }),
             );
+            if (x.tag_name) {
+              var rv = document.getElementById("releaseVersion");
+              if (rv) rv.textContent = x.tag_name;
+              var m = /^v(\d{2})(\d{2})(\d{2})\d{4}$/.exec(x.tag_name);
+              var iso = m
+                ? "20" + m[1] + "-" + m[2] + "-" + m[3]
+                : x.published_at
+                  ? x.published_at.slice(0, 10)
+                  : "";
+              var rd = document.getElementById("releaseDate");
+              if (rd && iso) {
+                rd.setAttribute("datetime", iso);
+                rd.textContent = iso;
+              }
+            }
             if (x.html_url) {
-              document.getElementById("releaseLink").href = x.html_url;
+              var rtl = document.getElementById("releaseTagLink");
+              if (rtl) rtl.href = x.html_url;
             }
             if (setup) {
               point(

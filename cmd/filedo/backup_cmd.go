@@ -22,13 +22,16 @@ import (
 // The backup pair (SP-0198):
 //
 //	filedo backup <folder|drive|\\server\share\folder> [to <dir-or-file>] [level <0-9>]
+//	             [gen <1-999> [stem <name>]]
 //	             [sec] [keep-zip] [root] [skip-links] [p:<pw>|pf:<file>|pe:<VAR>|k:<keyfile>] [y]
 //	filedo restore <archive.zip|archive.fd-sec> [to <dir>] [suffix] [del]
 //	              [p:<pw>|pf:<file>|pe:<VAR>|k:<keyfile>] [y]
 //
 // backup makes a restorable copy, not a backup product: no schedule, no
 // catalogue, each copy whole (spec 3.2). The result is a plain zip that opens
-// in any zip tool, or - with sec - that zip sealed into one .fd-sec. Both verbs
+// in any zip tool, or - with sec - that zip sealed into one .fd-sec. gen keeps a
+// bounded numbered set instead of a stamped file (backup_generation.go, SP-0208:
+// the schedule is still the caller's, and a rotation is not a catalogue). Both verbs
 // speak the supervisor vocabulary of CLI-EVENT-STREAM rule 11; a container that
 // does not open ends with its own class, 3, 4 or 6, which rule 11 does not use
 // (FDSEC-BEHAVIOUR 1.9 section 21 item 4).
@@ -48,7 +51,9 @@ type backupOpts struct {
 	src       string
 	to        string
 	haveTo    bool
-	level     int // -1: the probe chooses
+	level     int    // -1: the probe chooses
+	gen       int    // the keep-count of a numbered set, 1..999; 0: no set (SP-0208)
+	stem      string // the set's stem, "" for the source folder's name
 	sec       bool
 	keepZip   bool
 	root      bool
@@ -83,6 +88,25 @@ func parseBackupArgs(verb string, args []string) (*backupOpts, error) {
 				return nil, exitClassf(10, "level takes a number from 0 (store, no compression) to 9 (densest)")
 			}
 			o.level = n
+			i++
+		case lt == "gen" && verb == "backup":
+			if i+1 >= len(args) {
+				return nil, exitClassf(10, "gen needs the keep-count, a number from 1 to 999: filedo backup <source> gen 7")
+			}
+			n, err := strconv.Atoi(args[i+1])
+			if err != nil || n < 1 || n > backupGenMax {
+				return nil, exitClassf(10, "gen takes the keep-count, a number from 1 to 999")
+			}
+			o.gen = n
+			i++
+		case lt == "stem" && verb == "backup":
+			if i+1 >= len(args) {
+				return nil, exitClassf(10, "stem needs a name: one file-name part")
+			}
+			if why := backupStemProblem(args[i+1]); why != "" {
+				return nil, exitClassf(10, "the stem is one file-name part, and this one is refused: %s", why)
+			}
+			o.stem = args[i+1]
 			i++
 		case backupOptionWords[lt]:
 			switch lt {
@@ -126,6 +150,10 @@ func parseBackupArgs(verb string, args []string) (*backupOpts, error) {
 			return nil, exitClassf(10, "suffix and del are restore words; backup never changes the source")
 		case o.keepZip && !o.sec:
 			return nil, exitClassf(10, "keep-zip keeps the zip a sealed backup was made from; it needs sec")
+		case o.stem != "" && o.gen == 0:
+			return nil, exitClassf(10, "stem names the set of a numbered backup; it needs gen: filedo backup <source> gen 7 stem <name>")
+		case o.gen > 0 && o.keepZip:
+			return nil, exitClassf(10, "keep-zip is not combined with gen: a kept zip would stand outside the numbered set and never be retired")
 		case o.cred.given() && !o.sec:
 			return nil, exitClassf(10, "a password seals the backup, which needs sec: filedo backup <source> sec pe:<VAR>")
 		}
@@ -224,19 +252,19 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 		return fmt.Errorf("the source %s cannot be read: %w", abs, err)
 	}
 	if !fi.IsDir() {
-		return exitClassf(10, "%s is a file: backup packs a folder, a drive or a network folder; one file is protected with: filedo \"%s\" secure", abs, abs)
+		return backupSourceRefused("%s is a file: backup packs a folder, a drive or a network folder; one file is protected with: filedo \"%s\" secure", abs, abs)
 	}
 	if fdsecRefusedReparse(abs) {
-		return exitClassf(10, "%s is a junction or a symbolic link: back up the folder it points to", abs)
+		return backupSourceRefused("%s is a junction or a symbolic link: back up the folder it points to", abs)
 	}
 	root := backupIsRoot(abs)
 	switch {
 	case root && isSystemVolumeRoot(abs):
-		return exitClassf(10, "%s is the drive Windows runs from: a whole system drive is not backed up (files Windows holds open cannot be copied consistently) - back up the folders you need, such as your user folder", abs)
+		return backupSourceRefused("%s is the drive Windows runs from: a whole system drive is not backed up (files Windows holds open cannot be copied consistently) - back up the folders you need, such as your user folder", abs)
 	case root && !o.root:
-		return exitClassf(10, "%s is the root of a drive or a share: add the word root to back it up whole - the size is shown and confirmed before anything is written", abs)
+		return backupSourceRefused("%s is the root of a drive or a share: add the word root to back it up whole - the size is shown and confirmed before anything is written", abs)
 	case !root && o.root:
-		return exitClassf(10, "root is for the root of a drive or a share; %s is a folder - drop root", abs)
+		return backupSourceRefused("root is for the root of a drive or a share; %s is a folder - drop root", abs)
 	}
 	name := backupSourceName(abs, root)
 
@@ -250,7 +278,15 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 		}
 	}
 	zipPath := filepath.Join(outDir, zipName)
-	if o.haveTo {
+	var gen *backupGen
+	if o.gen > 0 {
+		// A numbered set (SP-0208): the folder is `to`, or the default one; the
+		// name is <stem>_<NNN> and the number comes from the folder alone.
+		if gen, err = backupGenPlan(o, name, outDir); err != nil {
+			return err
+		}
+		zipPath = filepath.Join(gen.dir, backupGenName(gen.stem, gen.number, ".zip"))
+	} else if o.haveTo {
 		to, err := filepath.Abs(o.to)
 		if err != nil {
 			return err
@@ -260,7 +296,7 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 		case serr == nil && st.IsDir():
 			zipPath = filepath.Join(to, zipName)
 		case serr == nil:
-			return exitClassf(10, "%s already exists; a backup never replaces a file - name a folder or a new file", to)
+			return backupDestinationRefused("%s already exists; a backup never replaces a file - name a folder or a new file", to)
 		case errors.Is(serr, os.ErrNotExist):
 			if pst, perr := os.Stat(filepath.Dir(to)); perr != nil || !pst.IsDir() {
 				return exitClassf(11, "the folder %s does not exist; to names an existing folder, or a new file inside one", filepath.Dir(to))
@@ -278,21 +314,23 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	if o.sec {
 		final = containerPath
 	}
-	if !o.sec || o.keepZip {
+	// A numbered set decides this itself: its number is free, or the file in it
+	// is the one the set retires (backupGenPlan).
+	if gen == nil && (!o.sec || o.keepZip) {
 		if _, err := os.Lstat(zipPath); err == nil {
-			return exitClassf(10, "%s already exists; a backup never replaces a file - name another destination with to", zipPath)
+			return backupDestinationRefused("%s already exists; a backup never replaces a file - name another destination with to", zipPath)
 		}
 	}
-	if o.sec {
+	if gen == nil && o.sec {
 		if _, err := os.Lstat(containerPath); err == nil {
-			return exitClassf(10, "%s already exists; a backup never replaces a file - name another destination with to", containerPath)
+			return backupDestinationRefused("%s already exists; a backup never replaces a file - name another destination with to", containerPath)
 		}
 	}
 	// A backup written into the folder it packs would pack itself (spec 3.3).
 	if inside, err := fsx.Within(filepath.Dir(zipPath), abs); err != nil {
 		return err
 	} else if inside {
-		return exitClassf(10, "the backup would be written inside %s, the folder it packs; name a place outside it with to", abs)
+		return backupDestinationRefused("the backup would be written inside %s, the folder it packs; name a place outside it with to", abs)
 	}
 
 	runStep("walk", "Listing the files the backup carries")
@@ -304,7 +342,7 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	}
 	var linkErr *backupzip.LinkError
 	if errors.As(err, &linkErr) {
-		return exitClassf(10, "%v", err)
+		return backupSourceRefused("%v", err)
 	}
 	if err != nil {
 		return err
@@ -362,7 +400,7 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 		fmt.Printf("Back up the whole of %s into %s? (y/N): ", abs, final)
 		line, rerr := readConsoleLine()
 		if rerr != nil {
-			return exitClassf(10, "backing up a whole drive or share needs a confirmation: nobody could answer the question, nothing was written - pass y to go ahead without it")
+			return backupSourceRefused("backing up a whole drive or share needs a confirmation: nobody could answer the question, nothing was written - pass y to go ahead without it")
 		}
 		if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
 			fmt.Println("Cancelled: nothing was written.")
@@ -384,10 +422,30 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 		}
 	}
 
+	// A numbered generation is built under a partial name and published only
+	// after it is verified, so a partial an earlier run left when it died is
+	// cleared first - this run's own names only, never the other set's (SP-0208).
+	if gen != nil {
+		partials := []string{zipPath + fsx.PartialSuffix}
+		if o.sec {
+			partials = append(partials, containerPath+fsx.PartialSuffix)
+		}
+		for _, p := range partials {
+			if err := backupGenClearPartial(p); err != nil {
+				return err
+			}
+		}
+		if o.sec {
+			// The temporary siblings of a seal that died: a file another run still
+			// holds open cannot be removed, so a live run's is never taken.
+			removeFdsecPartials(containerPath + fsx.PartialSuffix)
+		}
+	}
+
 	runStep("pack", "Packing the zip")
 	tracker := NewProgressTracker(w.Files, w.Bytes)
 	res, err := backupzip.Pack(zipPath, w, backupzip.PackOptions{
-		Level: level, Name: name, Stop: runStopRequested, Keep: o.sec,
+		Level: level, Name: name, Stop: runStopRequested, Keep: o.sec || gen != nil,
 		RegisterCleanup: func(cleanup func()) func() {
 			return globalInterruptHandler.AddCleanup(func() {
 				if globalInterruptHandler.IsForceExit() {
@@ -410,13 +468,16 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	runNumber("files", res.Files)
 	runNumber("bytes", res.Bytes)
 	runNumber("level", level)
+	if !o.sec && gen != nil {
+		return backupGenFinishPlain(res, abs, level, gen, hl)
+	}
 	if !o.sec {
 		runNumber("archiveBytes", res.Size)
 		fmt.Printf("OK %s -> %s (level %d, %s files, %s -> %s)\n", abs, res.Path, level, formatCount(res.Files), formatBytes(uint64(res.Bytes)), formatBytes(uint64(res.Size)))
 		hl.SetResult("archive", res.Path)
 		return nil
 	}
-	return backupSeal(res, zipPath, containerPath, cred, o, hl)
+	return backupSeal(res, zipPath, containerPath, cred, o, gen, hl)
 }
 
 // backupZipPath keeps the zip's sealed name usable by restore, including when
@@ -431,7 +492,7 @@ func backupZipPath(path string, sealed bool) (string, error) {
 	case sealed && strings.EqualFold(ext, fdsecExtension):
 		return strings.TrimSuffix(path, ext) + ".zip", nil
 	default:
-		return "", exitClassf(10, "a backup filename must end in .zip%s", map[bool]string{true: " or .fd-sec when sealing", false: ""}[sealed])
+		return "", backupDestinationRefused("a backup filename must end in .zip%s", map[bool]string{true: " or .fd-sec when sealing", false: ""}[sealed])
 	}
 }
 
@@ -439,7 +500,7 @@ func backupZipPath(path string, sealed bool) (string, error) {
 // container goes through a temporary name and the read-back of
 // fdsec.PackFile, and the zip is removed only after that proof, unless
 // keep-zip asked to keep it (FDSEC-BEHAVIOUR 1.9 section 21 item 1).
-func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fdsec.Credential, o *backupOpts, hl *HistoryLogger) error {
+func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fdsec.Credential, o *backupOpts, gen *backupGen, hl *HistoryLogger) error {
 	runStep("seal", "Sealing the zip into a .fd-sec container")
 	dropZip := func() {
 		os.Remove(res.Path)
@@ -452,14 +513,24 @@ func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fd
 	meta := fdsecMetadataFromStat(zfi)
 	// The sealed name is the zip's own, never the partial name it waited under.
 	meta.Name = filepath.Base(zipPath)
+	// A numbered generation is sealed under a partial name of its own: the
+	// container PackFile reads back is never under the final name while the
+	// generation it replaces may still hold it (backupGenCommit moves it there).
+	sealPath := containerPath
+	if gen != nil {
+		sealPath = containerPath + fsx.PartialSuffix
+	}
 	removeCleanup := globalInterruptHandler.AddCleanup(func() {
 		if globalInterruptHandler.IsForceExit() {
-			removeFdsecPartials(containerPath)
+			removeFdsecPartials(sealPath)
+			if gen != nil {
+				os.Remove(sealPath)
+			}
 			os.Remove(res.Path)
 		}
 	})
 	defer removeCleanup()
-	info, err := fdsec.PackFile(containerPath, res.Path, meta, cred, fdsec.Params{}, newFdsecTracker("seal", zfi.Size()), fdsecStreamStop())
+	info, err := fdsec.PackFile(sealPath, res.Path, meta, cred, fdsec.Params{}, newFdsecTracker("seal", zfi.Size()), fdsecStreamStop())
 	if fdsecStopped(err) {
 		dropZip()
 		return backupStopped(fdsecEndProgress() + "no container was written, and the unsealed zip was removed")
@@ -477,11 +548,24 @@ func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fd
 	} else {
 		dropZip()
 	}
+	// The container stands complete under its partial name: it takes its
+	// generation's place now, retiring the old file of that number (D3).
+	retired := false
+	if gen != nil {
+		var cerr error
+		if retired, cerr = backupGenCommit(sealPath, gen, removeCleanup); cerr != nil {
+			return cerr
+		}
+	}
 	secrecy := "encrypted"
 	if len(cred) == 0 {
 		secrecy = "obfuscation only - NO SECRECY (empty password)"
 	}
 	runNumber("archiveBytes", info.TotalLen)
+	if gen != nil {
+		backupGenReport(gen, retired)
+		fmt.Printf("%s%s\n", fdsecEndProgress(), backupGenNote(gen, retired))
+	}
 	fmt.Printf("%sOK -> %s (sealed, suite 1, %s; %s files, %s -> container %s)\n", fdsecEndProgress(), containerPath, secrecy, formatCount(res.Files), formatBytes(uint64(res.Bytes)), formatBytes(uint64(info.TotalLen)))
 	if o.keepZip {
 		fmt.Printf("The zip was kept, as asked: %s - it is NOT protected; anyone who has it can open it.\n", res.Path)

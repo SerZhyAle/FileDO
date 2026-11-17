@@ -26,6 +26,10 @@ Public Class CommandView
     ' Raised on the UI thread when a run has ended (the window's close waits for it).
     Public Event RunFinished()
 
+    ' Raised on the UI thread when the operation picker's Full descriptions was chosen: the shell opens the
+    ' Commands page on that operation (SP-0204).
+    Public Event GuideRequested(word As String)
+
     Private ReadOnly dict As Dictionary(Of String, String)
     Private ReadOnly runner As New Runner()
 
@@ -50,6 +54,8 @@ Public Class CommandView
     Private opHeader As Label
     Private opLabel As Label
     Private opCombo As ComboBox
+    Private opRow As FlowLayoutPanel
+    Private browseOpsBtn As GlyphButton
     Private opHintLabel As Label
 
     Private targetHeader As Label
@@ -61,6 +67,8 @@ Public Class CommandView
     Private paramsHeader As Label
     Private paramLabel As Label
     Private paramBox As TextBox
+    Private paramRow As TableLayoutPanel
+    Private browseDestBtn As Button
     Private flagsLabel As Label
     Private flagsFlow As FlowLayoutPanel
     Private flagCheckShort As CheckBox
@@ -128,6 +136,7 @@ Public Class CommandView
     Private stopBtn As GlyphButton
     Private copyBtn As Button
     Private shortcutBtn As GlyphButton
+    Private recentBtn As GlyphButton
     Private verdictLabel As Label
     Private verdictGlyph As GlyphBox
     Private progressBar As ProgressBar
@@ -260,8 +269,24 @@ Public Class CommandView
         opCombo = New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Width = Ui.Px(Me, 260), .Margin = Ui.PxPad(Me, 0, 2, 0, 4)}
         opCombo.AccessibleName = L("ui_operation")
         AddHandler opCombo.SelectedIndexChanged, Sub() ApplyOperationShape()
-        t.Controls.Add(opCombo, 0, 2)
-        t.SetColumnSpan(opCombo, 3)
+
+        ' The list stays as it is; the button beside it opens the dialog that describes every operation
+        ' (SP-0204), so a person who does not know the words can choose by what they do.
+        browseOpsBtn = Ui.GlyphCommandButton(L("opguide_browse"), GlyphRef.Vocabulary("app.command-line"), Ui.PxPad(Me, 8, 2, 0, 4))
+        AddHandler browseOpsBtn.Click, Sub() BrowseOperations()
+        tips.SetToolTip(browseOpsBtn, L("opguide_browse_tip"))
+        secondaryButtons.Add(browseOpsBtn)
+
+        opRow = New FlowLayoutPanel With {
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .WrapContents = False,
+            .Margin = New Padding(0)
+        }
+        opRow.Controls.Add(opCombo)
+        opRow.Controls.Add(browseOpsBtn)
+        t.Controls.Add(opRow, 0, 2)
+        t.SetColumnSpan(opRow, 3)
 
         opHintLabel = New Label With {.Text = "", .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 10)}
         t.Controls.Add(opHintLabel, 0, 3)
@@ -280,12 +305,12 @@ Public Class CommandView
         targetCombo.AccessibleName = L("shell_lbl_target")
         AddHandler targetCombo.TextChanged, Sub() BuildCommandLine()
 
+        ' Every folder dialog opens on the folder last picked for its role, and what is picked is remembered
+        ' (Ui.ChooseFolder).
         browseFolderBtn = Ui.GlyphCommandButton(L("shell_btn_browse_folder"), GlyphRef.Vocabulary("action.choose-folder"), Ui.PxPad(Me, 0, 2, 8, 6))
         AddHandler browseFolderBtn.Click, Sub()
-                                              Using dlg As New FolderBrowserDialog()
-                                                  dlg.Description = L("shell_dlg_select_folder")
-                                                  If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.SelectedPath
-                                              End Using
+                                              Dim picked As String = ""
+                                              If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_folder"), ShellSettings.TargetRole, targetCombo.Text, picked) Then targetCombo.Text = picked
                                           End Sub
         secondaryButtons.Add(browseFolderBtn)
 
@@ -295,7 +320,12 @@ Public Class CommandView
         AddHandler browseFileBtn.Click, Sub()
                                             Using dlg As New OpenFileDialog()
                                                 dlg.Title = L("shell_dlg_select_file")
-                                                If dlg.ShowDialog(FindForm()) = DialogResult.OK Then targetCombo.Text = dlg.FileName
+                                                Dim start = Ui.StartFolder(ShellSettings.TargetRole, targetCombo.Text)
+                                                If start <> "" Then dlg.InitialDirectory = start
+                                                If dlg.ShowDialog(FindForm()) = DialogResult.OK Then
+                                                    targetCombo.Text = dlg.FileName
+                                                    ShellSettings.RememberPath(ShellSettings.TargetRole, dlg.FileName)
+                                                End If
                                             End Using
                                         End Sub
         secondaryButtons.Add(browseFileBtn)
@@ -324,9 +354,33 @@ Public Class CommandView
         }
         bottom.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
 
-        paramBox = New TextBox With {.Dock = DockStyle.Fill, .Margin = Ui.PxPad(Me, 0, 2, 0, 8)}
+        paramBox = New TextBox With {.Dock = DockStyle.Fill, .Margin = Ui.PxPad(Me, 0, 2, 8, 8)}
         paramBox.AccessibleName = L("shell_lbl_params")
         AddHandler paramBox.TextChanged, Sub() BuildCommandLine()
+
+        ' Where the operation writes its result (copy, compare, secure, unsecure, backup, restore), the box
+        ' has a folder picker beside it, the same as the target above; for the others (a size, a count) the
+        ' button is not there.
+        browseDestBtn = Ui.GlyphCommandButton(L("shell_btn_browse_folder"), GlyphRef.Vocabulary("action.choose-folder"), Ui.PxPad(Me, 0, 2, 0, 8))
+        browseDestBtn.Visible = False
+        AddHandler browseDestBtn.Click, Sub()
+                                            Dim picked As String = ""
+                                            If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_dest"), ShellSettings.DestinationRole, paramBox.Text, picked) Then paramBox.Text = picked
+                                        End Sub
+        secondaryButtons.Add(browseDestBtn)
+
+        paramRow = New TableLayoutPanel With {
+            .Dock = DockStyle.Top,
+            .AutoSize = True,
+            .AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            .ColumnCount = 2,
+            .RowCount = 1,
+            .Margin = New Padding(0)
+        }
+        paramRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        paramRow.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
+        paramRow.Controls.Add(paramBox, 0, 0)
+        paramRow.Controls.Add(browseDestBtn, 1, 0)
 
         flagsLabel = New Label With {.Text = L("ui_flags"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
 
@@ -373,7 +427,7 @@ Public Class CommandView
             End Sub
 
         bottom.RowCount = 7
-        bottom.Controls.Add(paramBox, 0, 0)
+        bottom.Controls.Add(paramRow, 0, 0)
         bottom.Controls.Add(flagsLabel, 0, 1)
         bottom.Controls.Add(flagsFlow, 0, 2)
         bottom.Controls.Add(rulesRow, 0, 3)
@@ -445,10 +499,8 @@ Public Class CommandView
         dupMoveBrowseBtn.Enabled = False
         AddHandler dupMoveBrowseBtn.Click,
             Sub()
-                Using dlg As New FolderBrowserDialog()
-                    dlg.Description = L("shell_dlg_select_dest")
-                    If dlg.ShowDialog(FindForm()) = DialogResult.OK Then dupMoveBox.Text = dlg.SelectedPath
-                End Using
+                Dim picked As String = ""
+                If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_dest"), ShellSettings.DestinationRole, dupMoveBox.Text, picked) Then dupMoveBox.Text = picked
             End Sub
         secondaryButtons.Add(dupMoveBrowseBtn)
 
@@ -909,10 +961,25 @@ Public Class CommandView
         End Get
     End Property
 
-    Public Sub RequestStopFromShell()
-        If Not runner.IsActive OrElse endNowOffered Then Return
+    ' True when it asked (SP-0218: `filedo job stop` counts what it asked); a run whose stop was not honoured and waits
+    ' for the person to end it asks nothing more.
+    Public Function RequestStopFromShell() As Boolean
+        If Not runner.IsActive OrElse endNowOffered Then Return False
         StopRun()
-    End Sub
+        Return True
+    End Function
+
+    ' SP-0218: what `filedo job list` says of this page's run on the window's thread; Nothing when no run is in progress.
+    ' The page takes any command line, whose first word is often the target, so the verb is `command`.
+    Friend Function RunInfoNow() As RunInfo
+        If Not runner.IsActive Then Return Nothing
+        Return New RunInfo With {
+            .Place = RunSnapshot.WhereShell,
+            .Verb = "command",
+            .State = RunSnapshot.StateRunning,
+            .StepName = RunSnapshot.SafeToken(runner.CurrentStep, ""),
+            .Percent = runner.CurrentPercent}
+    End Function
 
     Public Sub ForceEnd()
         If runner.IsActive Then runner.ForceKill()
@@ -1037,10 +1104,17 @@ Public Class CommandView
         AddHandler shortcutBtn.Click, Sub() ShortcutDialog.ShowFor(ShellDialog.OwnerOf(Me), cmdLineBox.Text,
                                                                   LineWipes(LineArgs()))
 
+        ' The commands run on this page before, to put one back on the line (ShowRecentMenu).
+        recentBtn = Ui.GlyphCommandButton(L("shell_mem_recent"), GlyphRef.Vocabulary("content.history"), Ui.PxPad(Me, 8, 0, 0, 0))
+        tips.SetToolTip(recentBtn, L("shell_mem_recent_tip"))
+        AddHandler recentBtn.Click, Sub() ShowRecentMenu()
+        secondaryButtons.Add(recentBtn)
+
         btnFlow.Controls.Add(runBtn)
         btnFlow.Controls.Add(stopBtn)
         btnFlow.Controls.Add(copyBtn)
         btnFlow.Controls.Add(shortcutBtn)
+        btnFlow.Controls.Add(recentBtn)
 
         verdictLabel = New Label With {.Text = "", .AutoSize = True, .Margin = New Padding(0)}
         ' The verdict's state glyph beside its word (Theme.VerdictGlyph, SP-0016 T2). It is decoration:
@@ -1101,7 +1175,7 @@ Public Class CommandView
     ' below is masked and what the command carries is `pe:FILEDO_SHELL_CRED`, the variable the
     ' child process is given. The page is still the one place that must not model less than the
     ' CLI can do, and "this verb exists but not here" was the last place where it did.
-    Private Shared ReadOnly Operations As String() = {
+    Friend Shared ReadOnly Operations As String() = {
         "info", "speed", "test", "fill", "clean", "probe", "recover",
         "cd", "compare", "check",
         "copy", "fastcopy", "synccopy", "balanced", "maxcopy", "smartcopy", "safecopy",
@@ -1146,11 +1220,47 @@ Public Class CommandView
         opCombo.Items.AddRange(Operations.Cast(Of Object)().ToArray())
         opCombo.SelectedIndex = 0
         ApplyOperationShape()
+        RestoreRemembered()
     End Sub
+
+    ' Whether the drive letters stand at the top of the target list (they are listed once per run of drive
+    ' operations; an operation with no drive in its target clears the list).
+    Private drivesListed As Boolean = False
 
     Private Function CurrentOp() As String
         If opCombo.SelectedItem Is Nothing Then Return ""
         Return opCombo.SelectedItem.ToString()
+    End Function
+
+    ' Sets the operation list to a word - from the picker's Use this command and from the Commands page's.
+    ' False when the list has no such word, and then nothing changes.
+    Friend Function ChooseOperation(word As String) As Boolean
+        Dim index = Array.IndexOf(Operations, word)
+        If index < 0 Then Return False
+        opCombo.SelectedIndex = index
+        Return True
+    End Function
+
+    ' Browse commands..: the dialog that describes every operation (SP-0204). Cancel, Escape and the close
+    ' box leave the list as it was; Use this command sets it; Full descriptions hands the word to the shell.
+    Private Sub BrowseOperations()
+        Dim result = OperationPickerResult.None
+        Dim choice = ""
+        Using dlg As New OperationPickerDialog(dict, Me, CurrentOp())
+            dlg.ShowDialog(FindForm())
+            result = dlg.Result
+            choice = dlg.Choice
+        End Using
+        If choice = "" Then Return
+        If result = OperationPickerResult.Use Then
+            ChooseOperation(choice)
+        ElseIf result = OperationPickerResult.Guide Then
+            RaiseEvent GuideRequested(choice)
+        End If
+    End Sub
+
+    Friend Function CurrentOperationForTest() As String
+        Return CurrentOp()
     End Function
 
     ' Which of the three kinds of target the chosen operation actually accepts. The CLI is the
@@ -1177,6 +1287,129 @@ Public Class CommandView
         Return Array.IndexOf(NoTargetOps, op) >= 0
     End Function
 
+    ' The operations whose parameter box names where the result goes - the copy family and compare (the
+    ' destination), secure and unsecure, backup and restore (`to <place>`): the box has a folder picker and
+    ' remembers what was written in it. For the others the box holds a size or a count.
+    Private Shared Function TakesDestination(op As String) As Boolean
+        Return IsCopyOp(op) OrElse op = "compare" OrElse op = "secure" OrElse op = "unsecure" OrElse IsBackupOp(op)
+    End Function
+
+    ' The destinations written before, suggested as the person types in the box. A box that holds a size or a
+    ' count suggests nothing.
+    Private Sub ApplyDestinationHistory(destination As Boolean)
+        Dim recent = If(destination, ShellSettings.RecentPaths(ShellSettings.DestinationRole), New List(Of String)())
+        If recent.Count = 0 Then
+            paramBox.AutoCompleteMode = AutoCompleteMode.None
+            Return
+        End If
+        Dim source As New AutoCompleteStringCollection()
+        source.AddRange(recent.ToArray())
+        paramBox.AutoCompleteCustomSource = source
+        paramBox.AutoCompleteSource = AutoCompleteSource.CustomSource
+        paramBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend
+    End Sub
+
+    ' ---- what the page remembers (ShellSettings, remembered input) -------------
+
+    ' Puts the page back where it was left: the operation, the target and the destination. The flags, the
+    ' password and a confirmation word are never remembered - each run chooses them again.
+    Private Sub RestoreRemembered()
+        Dim op = ShellSettings.CommandPageState("Op")
+        Dim index = If(op = "", -1, Array.IndexOf(Operations, op))
+        If index >= 0 Then opCombo.SelectedIndex = index
+        Dim target = ShellSettings.CommandPageState("Target")
+        If target <> "" AndAlso Not TakesNoTarget(CurrentOp()) Then targetCombo.Text = target
+        Dim destination = ShellSettings.CommandPageState("Dest")
+        If destination <> "" AndAlso TakesDestination(CurrentOp()) Then paramBox.Text = destination
+    End Sub
+
+    ' Called when a run starts and when the window closes. While run history is off the page keeps the operation
+    ' and forgets the paths, like every other remembered list.
+    Friend Sub RememberState()
+        Dim op = CurrentOp()
+        If op = "" Then Return
+        ShellSettings.SetCommandPageState("Op", op)
+        Dim keepPaths = ShellSettings.HistoryEnabled()
+        ShellSettings.SetCommandPageState("Target", If(keepPaths AndAlso Not TakesNoTarget(op), targetCombo.Text.Trim(), ""))
+        ShellSettings.SetCommandPageState("Dest", If(keepPaths AndAlso TakesDestination(op), paramBox.Text.Trim(), ""))
+    End Sub
+
+    ' What a run adds to the lists: the line, the target and the destination - unless the run is kept out of
+    ' history, holds a literal password, or run history is off (ShellSettings.MayRemember).
+    Private Sub RememberRun(shownLine As String, args As IList(Of String))
+        RememberState()
+        If Not ShellSettings.MayRemember(args) Then Return
+        ShellSettings.RememberCommand(shownLine)
+        Dim op = CurrentOp()
+        Dim target = targetCombo.Text.Trim()
+        If target <> "" AndAlso Not TakesNoTarget(op) Then ShellSettings.RememberPath(ShellSettings.TargetRole, target)
+        Dim destination = paramBox.Text.Trim()
+        If destination <> "" AndAlso TakesDestination(op) Then ShellSettings.RememberPath(ShellSettings.DestinationRole, destination)
+    End Sub
+
+    ' The Recent.. menu: the commands run on this page before, newest first. A choice goes on the command line
+    ' like a line handed over from another page (SetCommand); the last entry empties every remembered list.
+    Private Sub ShowRecentMenu()
+        Dim p = Theme.Current
+        Dim menu As New ContextMenuStrip With {.ShowItemToolTips = True}
+        menu.Renderer = New ShellMenuRenderer()
+        menu.BackColor = p.Surface
+        menu.ForeColor = p.Text
+        menu.Font = Theme.FontBody()
+        Dim recent = ShellSettings.RecentCommands()
+        If recent.Count = 0 Then
+            Dim none = menu.Items.Add(L("shell_mem_none"))
+            none.Enabled = False
+        Else
+            For Each recalled In recent
+                Dim line = recalled
+                Dim item = menu.Items.Add(If(line.Length > 100, line.Substring(0, 97) & "..", line))
+                item.ToolTipText = line
+                AddHandler item.Click, Sub() SetCommand(line)
+            Next
+        End If
+        menu.Items.Add(New ToolStripSeparator())
+        Dim forget = menu.Items.Add(L("shell_mem_forget"))
+        AddHandler forget.Click, Sub()
+                                     ShellSettings.ForgetRemembered()
+                                     ' The list of targets is rebuilt without the forgotten ones; what is typed stays.
+                                     Dim typed = targetCombo.Text
+                                     targetCombo.Items.Clear()
+                                     drivesListed = False
+                                     ApplyOperationShape()
+                                     targetCombo.Text = typed
+                                 End Sub
+        AddHandler menu.Closed, Sub()
+                                    If Not IsDisposed Then BeginInvoke(New MethodInvoker(Sub() menu.Dispose()))
+                                End Sub
+        menu.Show(recentBtn, New Point(0, recentBtn.Height))
+    End Sub
+
+    ' For SelfTest.vb: the page's remembered state in and out without a window.
+    Friend Sub RestoreRememberedForTest()
+        RestoreRemembered()
+    End Sub
+
+    Friend Sub RememberRunForTest(line As String)
+        RememberRun(line, ArgQuoting.SplitArgs(line).ToList())
+    End Sub
+
+    Friend ReadOnly Property DestinationPickerShownForTest As Boolean
+        Get
+            Return browseDestBtn.Visible
+        End Get
+    End Property
+
+    Friend Sub SetParameterForTest(value As String)
+        paramBox.Text = value
+    End Sub
+
+    Friend ReadOnly Property TargetChoicesForTest As List(Of String)
+        Get
+            Return targetCombo.Items.Cast(Of Object)().Select(Function(o) o.ToString()).ToList()
+        End Get
+    End Property
+
     ' Step 1 has been answered, so every field below it can now say something true.
     Private Sub ApplyOperationShape()
         Dim op = CurrentOp()
@@ -1188,17 +1421,24 @@ Public Class CommandView
         ' greyed out, it is simply not there - an empty list is an honest answer to "which drive",
         ' and the pickers below take over.
         If TakesDrive(op) Then
-            If targetCombo.Items.Count = 0 Then
+            ' The drives go first in the list, ahead of the targets used before (added below).
+            If Not drivesListed Then
                 Try
+                    Dim at = 0
                     For Each d In DriveInfo.GetDrives()
-                        If d.IsReady Then targetCombo.Items.Add(d.Name.Substring(0, 2))
+                        If d.IsReady Then
+                            targetCombo.Items.Insert(at, d.Name.Substring(0, 2))
+                            at += 1
+                        End If
                     Next
                 Catch
                 End Try
+                drivesListed = True
             End If
             If targetCombo.Text.Trim() = "" AndAlso targetCombo.Items.Count > 0 Then targetCombo.SelectedIndex = 0
         Else
             targetCombo.Items.Clear()
+            drivesListed = False
         End If
 
         ' An operation with no target has no step 2 to answer: history, the full help and the two
@@ -1208,6 +1448,17 @@ Public Class CommandView
         targetCombo.Visible = needsTarget
         browseFolderBtn.Visible = needsTarget
         browseFileBtn.Visible = needsTarget AndAlso TakesFile(op)
+
+        ' What was used before: the targets follow the drives in the list, and the destination box suggests the
+        ' destinations as they are typed. The destination has a folder picker beside it.
+        If needsTarget Then
+            For Each remembered In ShellSettings.RecentPaths(ShellSettings.TargetRole)
+                If Not targetCombo.Items.Contains(remembered) Then targetCombo.Items.Add(remembered)
+            Next
+        End If
+        Dim destination = TakesDestination(op)
+        browseDestBtn.Visible = destination
+        ApplyDestinationHistory(destination)
 
         Select Case op
             Case "compare"
@@ -1585,10 +1836,12 @@ Public Class CommandView
         progressBar.Visible = True
         outputPane.Start()
 
-        Dim cmd = cmdLineBox.Text.Trim()
+        Dim shownLine = cmdLineBox.Text.Trim()
+        Dim cmd = shownLine
         If cmd.StartsWith("filedo.exe ", StringComparison.OrdinalIgnoreCase) Then
             cmd = cmd.Substring("filedo.exe ".Length).Trim()
         End If
+        RememberRun(shownLine, ArgQuoting.SplitArgs(cmd).ToList())
 
         ' A reveal's run lasts exactly as long as the plaintext copy does, so the button that
         ' ends it says what it ends (SP-0005 8.2) - the same wording the Protect page uses.

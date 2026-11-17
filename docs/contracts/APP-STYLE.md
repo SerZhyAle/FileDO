@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `APP-STYLE` |
-| **Version** | 0.14, read 2026-10-29 (SP-0174); implemented partial 0.14; the verdict badge glyphs of item B are open (SP-0189), a real high-contrast theme is unverified, draft (no wire - a palette role vocabulary and a theme mechanism) |
+| **Version** | 0.15, re-read 2026-11-16 (SP-0221); implemented partial 0.15; light-theme palette exception and unverified real high-contrast remain, draft (no wire - a palette role vocabulary and a theme mechanism) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/Theme.vb`, `Chrome.vb`) |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `APP-STYLE.md` |
 | **Owner** | StreamsPlayer. An amendment is proposed in the catalog, not decided here |
@@ -31,7 +31,9 @@ every rail row painted in every state under both palettes without an exception. 
 shell_contract_test.go` - no colour named or mixed outside `Theme.vb`. Rung 3, the light and dark
 screenshot pair, is `msix\make-screenshots.ps1 -Theme light` and `-Theme dark`.
 
-**Status: implemented; 0.11 read and applied 2026-10-02 (SP-0122); 0.12 read and applied 2026-10-05 (SP-0150).**
+**Status: implemented; 0.11 read and applied 2026-10-02 (SP-0122); 0.12 read and applied 2026-10-05 (SP-0150); 0.15 read 2026-11-12 (SP-0189, no code change).**
+
+**0.15 (items F and G, a more specific glyph for a state):** the verdict badge draws `status.stopped` on the warning fill (Stopped) and `status.not-proven` on the unknown fill (Not proven), the word on the badge; under high contrast the unknown fill takes the disabled-text colour. The two glyphs are `proposed` records of `ICON-SET`; their files are vendored under `assets/glyphs/`.
 
 **0.12 (section 10, complete live theme coverage):** every open window and nested child follows a switch through one
 notification (`Theme.Watch`) - the shell, the Disk Manager, every `DiskSmallDialog` / `DiskPageDialog` / `ShellDialog` /

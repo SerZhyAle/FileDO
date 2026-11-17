@@ -194,7 +194,7 @@ func generatedEventSample(t *testing.T) []byte {
 	EmitProgressEvent(1, 2, 512, 1024, 256.5, "Halfway done")
 	EmitFindingEvent("example", "An example finding", map[string]interface{}{"index": 1})
 	EmitNoteEvent("An example note")
-	EmitResultEvent("Passed", map[string]interface{}{"bytes": 1024}, []string{"C:\\sample\\kept.bin"}, []string{"C:\\sample\\report.txt"})
+	EmitResultEvent("Done", map[string]interface{}{"files": 3, "bytes": 1024, "archiveBytes": 512, "generation": 1, "retiredGeneration": 0, "keepCount": 3}, nil, nil)
 	em.Close()
 
 	b, err := os.ReadFile(path)

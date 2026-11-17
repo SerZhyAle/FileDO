@@ -36,67 +36,275 @@ Module Program
     ' How long a start that lost the claim waits for the first copy's window to exist.
     Private Const HandOverWaitMs As Integer = 5000
 
+    ' The developer tooling of this program (APP-COMMANDS rule 2, SP-0219). Five switches have a verb spelling of the
+    ' command manifest beside their frozen spelling, and both reach the same handler: the table below is the one parser
+    ' of them. A verb is read from the first words of the line, its option after them; a frozen spelling is found
+    ' anywhere on the line and its value is the next argument, as the switches were read before SP-0219. Each one runs
+    ' before the single-instance claim and before anything is shown, and none is handed to a running window program.
+    Private NotInheritable Class ToolingSpec
+        Friend ReadOnly Verb As String
+        Friend ReadOnly Legacy As String
+        Friend ReadOnly TakesFolder As Boolean
+        Friend ReadOnly Handler As Func(Of String, Integer)
+
+        Friend Sub New(verb As String, legacy As String, takesFolder As Boolean, handler As Func(Of String, Integer))
+            Me.Verb = verb
+            Me.Legacy = legacy
+            Me.TakesFolder = takesFolder
+            Me.Handler = handler
+        End Sub
+    End Class
+
+    ' What a command line asks of the developer tooling: the spec, the folder (Nothing when none was given), and the
+    ' usage error of a verb spelling that is not well formed (exit 10).
+    Private NotInheritable Class ToolingCall
+        Friend ReadOnly Spec As ToolingSpec
+        Friend ReadOnly Folder As String
+        Friend ReadOnly Problem As String
+        Friend ReadOnly IsVerb As Boolean
+
+        Friend Sub New(spec As ToolingSpec, folder As String, problem As String, Optional isVerb As Boolean = False)
+            Me.Spec = spec
+            Me.Folder = folder
+            Me.Problem = problem
+            Me.IsVerb = isVerb
+        End Sub
+
+        Friend Function Run() As Integer
+            If Problem IsNot Nothing Then
+                Console.Error.WriteLine(Problem)
+                Return 10
+            End If
+            ' APP-COMMANDS 0.3 item V.2: a folder-only verb never creates a missing folder and exits 11 (target-missing).
+            If IsVerb AndAlso Spec.TakesFolder AndAlso Not IO.Directory.Exists(Folder) Then
+                Console.Error.WriteLine(Folder & " does not exist; create it first.")
+                Return 11
+            End If
+            Return Spec.Handler.Invoke(Folder)
+        End Function
+    End Class
+
+    ' The one table. Its order is the order the switches were checked in, so a line that carries two frozen spellings
+    ' keeps the start it always had.
+    Private ReadOnly Tooling As ToolingSpec() = {
+        New ToolingSpec("menu-icons write", "--write-menu-icons", True, AddressOf RunWriteMenuIcons), _
+        New ToolingSpec("ui-drive run", "--ui-drive", True, AddressOf RunUiDrive), _
+        New ToolingSpec("screens capture", "--capture-screens", True, AddressOf RunCaptureScreens), _
+        New ToolingSpec("help-pages build", "--build-help", True, AddressOf RunBuildHelp), _
+        New ToolingSpec("selftest run", "--selftest", False, AddressOf RunSelfTest)}
+
+    ' What the command line asks of the developer tooling, or Nothing when it asks none of it. A verb is matched on the
+    ' first words, without regard to case; a frozen spelling is matched exactly, anywhere on the line.
+    Private Function ToolingCallOf(argv As String()) As ToolingCall
+        For Each spec As ToolingSpec In Tooling
+            Dim words = spec.Verb.Split(" "c)
+            If argv.Length < words.Length + 1 Then Continue For
+            Dim named = True
+            For i = 0 To words.Length - 1
+                If Not String.Equals(argv(i + 1), words(i), StringComparison.OrdinalIgnoreCase) Then named = False
+            Next
+            If named Then Return VerbCall(spec, argv, words.Length + 1)
+        Next
+        For Each spec As ToolingSpec In Tooling
+            Dim legacyAt = Array.IndexOf(argv, spec.Legacy)
+            If legacyAt >= 0 Then
+                Dim folder As String = Nothing
+                If spec.TakesFolder AndAlso legacyAt + 1 < argv.Length Then folder = argv(legacyAt + 1)
+                Return New ToolingCall(spec, folder, Nothing)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    ' The verb spelling: its words, then nothing (a verb without a folder) or `--out <folder>` or `--out=<folder>` (a verb
+    ' that writes one). Anything else is a usage error, said once on standard error.
+    Private Function VerbCall(spec As ToolingSpec, argv As String(), first As Integer) As ToolingCall
+        If Not spec.TakesFolder Then
+            If argv.Length = first Then Return New ToolingCall(spec, Nothing, Nothing, True)
+            Return New ToolingCall(spec, Nothing, spec.Verb & " takes no option; remove " & argv(first), True)
+        End If
+        If argv.Length = first + 2 AndAlso String.Equals(argv(first), "--out", StringComparison.OrdinalIgnoreCase) AndAlso argv(first + 1).Length > 0 Then
+            Return New ToolingCall(spec, argv(first + 1), Nothing, True)
+        End If
+        If argv.Length = first + 1 AndAlso argv(first).StartsWith("--out=", StringComparison.OrdinalIgnoreCase) AndAlso argv(first).Length > 6 Then
+            Return New ToolingCall(spec, argv(first).Substring(6), Nothing, True)
+        End If
+        Return New ToolingCall(spec, Nothing, spec.Verb & " needs --out <folder>", True)
+    End Function
+
+    Friend Function RunToolingForTest(argv As String()) As Integer
+        Dim call_ = ToolingCallOf(argv)
+        If call_ Is Nothing Then Return -1
+        Return call_.Run()
+    End Function
+
+    ' `--write-menu-icons <folder>` and `menu-icons write --out <folder>`: writes the Explorer icons (MenuIcons.vb) and
+    ' prints each file written. 0 when every file was written, 1 otherwise.
+    Private Function RunWriteMenuIcons(folder As String) As Integer
+        Dim code = 1
+        Try
+            If folder IsNot Nothing AndAlso Glyphs.Problems().Count = 0 Then
+                For Each written In MenuIcons.WriteAll(folder)
+                    Console.WriteLine(written)
+                Next
+                code = 0
+            End If
+        Catch ex As Exception
+            ShellLog.Write("write-menu-icons", ex)
+        End Try
+        Return code
+    End Function
+
+    ' `--ui-drive <folder>` and `ui-drive run --out <folder>`: the driven visual acceptance of SP-0150 (UiDrive.vb). Exits
+    ' 0 or 1; it restores the person's own HKCU values afterwards.
+    Private Function RunUiDrive(folder As String) As Integer
+        If folder Is Nothing Then Return 1
+        Return UiDrive.Run(folder)
+    End Function
+
+    ' `--capture-screens <folder>` and `screens capture --out <folder>`: the guide screenshots (Capture.vb). It builds
+    ' windows and writes no setting of the person's.
+    Private Function RunCaptureScreens(folder As String) As Integer
+        If folder Is Nothing Then Return 1
+        Return Capture.Run(folder)
+    End Function
+
+    ' `--build-help <folder>` and `help-pages build --out <folder>`: the help pages and their pictures, in every language
+    ' and both themes (HelpPages.vb).
+    Private Function RunBuildHelp(folder As String) As Integer
+        If folder Is Nothing Then Return 1
+        Return HelpPages.Build(folder)
+    End Function
+
+    ' `--selftest` and `selftest run`: the shell's own gate, which exits with its code. Whatever happens inside, the gate
+    ' ends with a log and a code - a crash is a FAIL, never a process that dies with nothing written (SHELL-15).
+    Private Function RunSelfTest(folder As String) As Integer
+        Try
+            Return SelfTest.Run()
+        Catch ex As Exception
+            Return SelfTest.WriteCrash(ex)
+        End Try
+    End Function
+
+    ' Opening a .fdd or .fd-sec container file in its own window (`filedo_win.exe open --path <file> [--mode <mount|mount-ro|unmount>]`,
+    ' SP-0228 / APP-COMMANDS 0.2 item A & item C). A `forward: never`, `oneshot` verb: strict parsing (exit 10 on usage errors),
+    ' exit 11 when the named file does not exist, and no single-instance claim or handover.
+    Private NotInheritable Class OpenCall
+        Friend ReadOnly TargetPath As String
+        Friend ReadOnly Mode As DiskRoute.StartMode
+        Friend ReadOnly ExitCode As Integer
+        Friend ReadOnly Message As String
+
+        Friend Sub New(targetPath As String, mode As DiskRoute.StartMode, exitCode As Integer, message As String)
+            Me.TargetPath = targetPath
+            Me.Mode = mode
+            Me.ExitCode = exitCode
+            Me.Message = message
+        End Sub
+    End Class
+
+    Private Function OpenCallOf(argv As String()) As OpenCall
+        If argv Is Nothing OrElse argv.Length < 2 Then Return Nothing
+        If Not String.Equals(argv(1), "open", StringComparison.OrdinalIgnoreCase) Then Return Nothing
+
+        Dim pathVal As String = Nothing
+        Dim modeVal As String = Nothing
+        Dim seenPath = False
+        Dim seenMode = False
+        Dim i = 2
+        While i < argv.Length
+            Dim a = If(argv(i), "")
+            If a = "--" Then
+                If i + 1 < argv.Length Then Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "open takes no bare value; use --path <file>")
+                Exit While
+            End If
+            If Not a.StartsWith("--", StringComparison.Ordinal) OrElse a.Length = 2 Then
+                Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "open takes --path <file>; remove " & a)
+            End If
+            Dim body = a.Substring(2)
+            Dim eq = body.IndexOf("="c)
+            Dim name = If(eq >= 0, body.Substring(0, eq), body)
+            Dim hasValue = eq >= 0
+            Dim value = If(hasValue, body.Substring(eq + 1), "")
+            If String.Equals(name, "path", StringComparison.OrdinalIgnoreCase) Then
+                If seenPath Then Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--path is given twice")
+                seenPath = True
+                If Not hasValue Then
+                    If i + 1 >= argv.Length Then Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--path needs a file")
+                    i += 1
+                    value = If(argv(i), "")
+                End If
+                If String.IsNullOrWhiteSpace(value) Then Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--path needs a file")
+                pathVal = value
+            ElseIf String.Equals(name, "mode", StringComparison.OrdinalIgnoreCase) Then
+                If seenMode Then Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--mode is given twice")
+                seenMode = True
+                If Not hasValue Then
+                    If i + 1 >= argv.Length Then Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--mode needs one of mount, mount-ro, unmount")
+                    i += 1
+                    value = If(argv(i), "")
+                End If
+                If value <> "mount" AndAlso value <> "mount-ro" AndAlso value <> "unmount" Then
+                    Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--mode takes one of mount, mount-ro, unmount")
+                End If
+                modeVal = value
+            Else
+                Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "--" & name & " is not an option of open")
+            End If
+            i += 1
+        End While
+
+        If Not seenPath OrElse String.IsNullOrWhiteSpace(pathVal) Then
+            Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "open needs --path <file>")
+        End If
+        Dim fullPath As String
+        Try
+            fullPath = IO.Path.GetFullPath(pathVal)
+        Catch ex As Exception
+            Return New OpenCall(Nothing, DiskRoute.StartMode.None, 10, "open needs a valid file path")
+        End Try
+        If Not IO.File.Exists(fullPath) Then
+            Return New OpenCall(Nothing, DiskRoute.StartMode.None, 11, fullPath & " does not exist.")
+        End If
+        Dim startMode = DiskRoute.StartMode.Mount
+        If modeVal = "mount-ro" Then
+            startMode = DiskRoute.StartMode.MountReadOnly
+        ElseIf modeVal = "unmount" Then
+            startMode = DiskRoute.StartMode.Unmount
+        End If
+        Return New OpenCall(fullPath, startMode, 0, Nothing)
+    End Function
+
+    Friend Function ParseOpenForTest(argv As String(), ByRef target As String, ByRef mode As DiskRoute.StartMode) As Integer
+        target = Nothing
+        mode = DiskRoute.StartMode.None
+        Dim call_ = OpenCallOf(argv)
+        If call_ Is Nothing Then Return -1
+        target = call_.TargetPath
+        mode = call_.Mode
+        Return call_.ExitCode
+    End Function
     <STAThread>
     Public Sub Main()
         Application.EnableVisualStyles()
         Application.SetCompatibleTextRenderingDefault(False)
 
-        ' `--write-menu-icons <folder>` writes the Explorer icons (MenuIcons.vb) and exits: 0 when
-        ' every file was written, 1 otherwise. No window, like --selftest.
         Dim argv = Environment.GetCommandLineArgs()
-        Dim iconsAt = Array.IndexOf(argv, "--write-menu-icons")
-        If iconsAt >= 0 Then
-            Dim code = 1
-            Try
-                If iconsAt + 1 < argv.Length AndAlso Glyphs.Problems().Count = 0 Then
-                    For Each written In MenuIcons.WriteAll(argv(iconsAt + 1))
-                        Console.WriteLine(written)
-                    Next
-                    code = 0
-                End If
-            Catch ex As Exception
-                ShellLog.Write("write-menu-icons", ex)
-            End Try
-            Environment.Exit(code)
+
+        ' The developer tooling (SP-0219, see ToolingCallOf): a verb or a frozen switch runs its handler, and the
+        ' program exits with the handler's code before anything is shown or claimed.
+        Dim tooling = ToolingCallOf(argv)
+        If tooling IsNot Nothing Then
+            Environment.Exit(tooling.Run())
             Return
         End If
 
-        ' `--ui-drive <folder>` runs the driven visual acceptance of SP-0150 (UiDrive.vb): real
-        ' windows on the screen, the real theme cycle, reopening - and the user's own HKCU values
-        ' restored afterwards. Exits 0 or 1.
-        Dim driveAt = Array.IndexOf(argv, "--ui-drive")
-        If driveAt >= 0 Then
-            Environment.Exit(If(driveAt + 1 < argv.Length, UiDrive.Run(argv(driveAt + 1)), 1))
-            Return
-        End If
-
-        ' `--capture-screens <folder>` renders the guide screenshots (Capture.vb) and exits: 0 when
-        ' every file was written, 1 otherwise. It builds windows but writes no setting.
-        Dim captureAt = Array.IndexOf(argv, "--capture-screens")
-        If captureAt >= 0 Then
-            Environment.Exit(If(captureAt + 1 < argv.Length, Capture.Run(argv(captureAt + 1)), 1))
-            Return
-        End If
-
-        ' `--build-help <folder>` writes the help pages (HelpPages.vb) and the pictures they show, in every
-        ' language and both themes, from the real windows, and exits: 0 when every file was written, 1
-        ' otherwise. Like --capture-screens it builds windows and writes no setting of the user's.
-        Dim helpAt = Array.IndexOf(argv, "--build-help")
-        If helpAt >= 0 Then
-            Environment.Exit(If(helpAt + 1 < argv.Length, HelpPages.Build(argv(helpAt + 1)), 1))
-            Return
-        End If
-
-        If Environment.GetCommandLineArgs().Contains("--selftest") Then
-            ' SHELL-15: whatever happens inside, the gate ends with a log and a code - a crash is a
-            ' FAIL, never a process that dies with nothing written.
-            Dim code As Integer
-            Try
-                code = SelfTest.Run()
-            Catch ex As Exception
-                code = SelfTest.WriteCrash(ex)
-            End Try
-            Environment.Exit(code)
+        ' The canonical container-open verb (SP-0228): `filedo_win.exe open --path <file> [--mode <mount|mount-ro|unmount>]`
+        ' runs in its own process with no single-instance claim and no handover (APP-COMMANDS 0.2 item C.1 / C.5).
+        Dim openCall = OpenCallOf(argv)
+        If openCall IsNot Nothing AndAlso openCall.ExitCode <> 0 Then
+            Console.Error.WriteLine(openCall.Message)
+            Environment.Exit(openCall.ExitCode)
             Return
         End If
 
@@ -109,12 +317,12 @@ Module Program
         ' window would drop it. Each double-clicked container therefore gets its own window - which
         ' is also what makes the "remove the copy now" of a reveal belong to one file rather than
         ' to whichever reveal ran last.
-        Dim target = StartupTarget()
+        Dim target = If(openCall IsNot Nothing, openCall.TargetPath, StartupTarget())
         ' `--disks` starts straight into the Disk Manager, with no shell window (SP-0063 4.2); a
         ' second one while this program runs brings the running copy's manager forward (D1).
-        Dim disksOnly = target Is Nothing AndAlso WantsDiskManager(Environment.GetCommandLineArgs())
-        Dim first = ClaimSingleInstance()
-        If WantsHandOver(target, first) Then
+        Dim disksOnly = openCall Is Nothing AndAlso target Is Nothing AndAlso WantsDiskManager(Environment.GetCommandLineArgs())
+        Dim first = If(openCall IsNot Nothing, False, ClaimSingleInstance())
+        If openCall Is Nothing AndAlso WantsHandOver(target, first) Then
             If disksOnly AndAlso AppHost.HandOverDisks() Then Return
             ' A plain start asks the running copy for its shell window - which it opens if the copy was
             ' started as the Disk Manager alone (the Start menu's FileDO entry after its Disk Manager
@@ -128,7 +336,9 @@ Module Program
         ' means by opening it - no window flashes up only to point elsewhere.
         Dim diskDecision As DiskRoute.Decision = Nothing
         If target IsNot Nothing AndAlso DiskRoute.IsContainer(target) Then
-            diskDecision = DiskStartDecision(target, Environment.GetCommandLineArgs())
+            diskDecision = If(openCall IsNot Nothing,
+                              DiskStartDecision(target, openCall.Mode),
+                              DiskStartDecision(target, Environment.GetCommandLineArgs()))
             If diskDecision.Action = DiskRoute.RouteAction.OpenDrive Then
                 Ui.OpenFolder(Nothing, diskDecision.Letter & "\")
                 Return
@@ -165,7 +375,13 @@ Module Program
             ShellDialog.Problem(Nothing, Localization.Format(Localization.T("shell_open_failed"), Problems.Cause(ex)))
             Return
         End Try
+        ' The first copy of the session takes commands from other programs (APP-COMMANDS 0.1,
+        ' CommandListener.vb); a copy that lost the claim - a second window opened on a file - does not. The two
+        ' registered window messages above stay as they are for the focus-only start.
+        If first Then CommandListener.Start()
         Application.Run(host)
+        ' A `quit` ends the message loop from inside its own command: its answer is still on its way.
+        CommandListener.Shutdown(1500)
     End Sub
 
     ' `--disks`, in any case: the Disk Manager on its own.
@@ -226,7 +442,10 @@ Module Program
     ' none for a plain double-click, which mounts) and what the console says about the container -
     ' `filedo.exe <x.fdd> info`, never a reader of this program's own.
     Friend Function DiskStartDecision(path As String, args As String()) As DiskRoute.Decision
-        Dim mode = DiskRoute.ModeFrom(args)
+        Return DiskStartDecision(path, DiskRoute.ModeFrom(args))
+    End Function
+
+    Friend Function DiskStartDecision(path As String, mode As DiskRoute.StartMode) As DiskRoute.Decision
         If mode = DiskRoute.StartMode.None Then mode = DiskRoute.StartMode.Mount
         Return DiskRoute.Decide(path, mode, DiskProbe.Info(path), Packaging.IsPackaged())
     End Function

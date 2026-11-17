@@ -1,0 +1,366 @@
+﻿<!doctype html>
+<html lang="en" data-lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/commands.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/commands.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/commands.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/commands.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/commands.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/commands.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background" />
+    <meta property="og:title" content="FileDO commands for scripts and agents" />
+    <meta property="og:description" content="What a script, a scheduled task or a development tool can ask the running FileDO to do: the commands, their exit codes and the one setting that gates them." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "name": "FileDO commands for scripts and agents",
+        "headline": "FileDO commands for scripts and agents",
+        "description": "What a script, a scheduled task or a development tool can ask the running FileDO to do: the commands, their exit codes and the one setting that gates them.",
+        "url": "https://serzhyale.github.io/FileDO/guides/commands.html",
+        "inLanguage": ["en"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO commands for scripts and agents</title>
+    <meta
+      name="description"
+      content="What a script, a scheduled task or a development tool can ask the running FileDO to do: the commands, their exit codes and the one setting that gates them."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="en">Install</span
+        ><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/commands.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/commands.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker"><span data-l="en">Guide · scripts and agents</span><span data-l="ru">Руководство · скрипты и агенты</span><span data-l="ua">Посібник · скрипти й агенти</span></p>
+        <h1><span data-l="en">Ask the running FileDO to do something, and read the answer.</span><span data-l="ru">Попросите уже запущенный FileDO что-нибудь сделать и прочитайте ответ.</span><span data-l="ua">Попросіть уже запущений FileDO щось зробити й прочитайте відповідь.</span></h1>
+        <p class="lead"><span data-l="en">A script, a scheduled task, a shortcut or a development tool types <code>filedo &lt;command&gt;</code>. The FileDO window program that is already running does the work and answers with an exit code. No second copy opens.</span><span data-l="ru">Скрипт, задача планировщика, ярлык или инструмент разработчика вводят <code>filedo &lt;команда&gt;</code>. Уже запущенное окно FileDO выполняет работу и отвечает кодом завершения. Вторая копия не открывается.</span><span data-l="ua">Скрипт, завдання планувальника, ярлик або інструмент розробника вводять <code>filedo &lt;команда&gt;</code>. Уже запущене вікно FileDO виконує роботу та відповідає кодом завершення. Друга копія не відкривається.</span></p>
+      </section>
+      <section class="section">
+        <h2><span data-l="en">The commands</span><span data-l="ru">Команды</span><span data-l="ua">Команди</span></h2>
+        <p class="intro"><span data-l="en">Ten commands cover what a script needs from FileDO. Most go to the running window program; <code>commands</code> and <code>version</code> answer on their own. Each prints its answer and ends with an exit code, so a script can branch on it. Every one is safe: it changes only FileDO’s own windows and runs and reads none of your files.</span><span data-l="ru">Десять команд покрывают то, что скрипту нужно от FileDO. Большинство идут к запущенному окну; <code>commands</code> и <code>version</code> отвечают сами. Каждая печатает ответ и завершается кодом, по которому скрипт может ветвиться. Все они безопасны: меняют только окна и запуски самого FileDO и не читают ваши файлы.</span><span data-l="ua">Десять команд покривають те, що скрипту потрібно від FileDO. Більшість ідуть до запущеного вікна; <code>commands</code> і <code>version</code> відповідають самі. Кожна друкує відповідь і завершується кодом, за яким скрипт може розгалужуватися. Усі вони безпечні: змінюють лише вікна й запуски самого FileDO та не читають ваших файлів.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">Command</span><span data-l="ru">Команда</span><span data-l="ua">Команда</span></th>
+                <th><span data-l="en">What it does</span><span data-l="ru">Что делает</span><span data-l="ua">Що робить</span></th>
+                <th><span data-l="en">When FileDO is not running</span><span data-l="ru">Если FileDO не запущен</span><span data-l="ua">Якщо FileDO не запущено</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>filedo commands</code></td>
+                <td><span data-l="en">Lists every command FileDO accepts; <code>--json</code> prints the manifest itself.</span><span data-l="ru">Выводит все команды, которые принимает FileDO; <code>--json</code> печатает сам манифест.</span><span data-l="ua">Виводить усі команди, які приймає FileDO; <code>--json</code> друкує сам маніфест.</span></td>
+                <td><span data-l="en">Works anyway; no window opens.</span><span data-l="ru">Работает и так; окно не открывается.</span><span data-l="ua">Працює й так; вікно не відкривається.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo version</code></td>
+                <td><span data-l="en">Prints the product name, its version and the version of the command set.</span><span data-l="ru">Печатает название продукта, его версию и версию набора команд.</span><span data-l="ua">Друкує назву продукту, його версію та версію набору команд.</span></td>
+                <td><span data-l="en">Works anyway; no window opens.</span><span data-l="ru">Работает и так; окно не открывается.</span><span data-l="ua">Працює й так; вікно не відкривається.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo status</code></td>
+                <td><span data-l="en">Says whether the window program is running and ready; reports its version, process id, open windows and the number of runs in progress.</span><span data-l="ru">Сообщает, запущено ли окно и готово ли оно; даёт его версию, идентификатор процесса, открытые окна и число идущих запусков.</span><span data-l="ua">Повідомляє, чи запущено вікно й чи воно готове; дає його версію, ідентифікатор процесу, відкриті вікна та кількість запусків, що йдуть.</span></td>
+                <td><span data-l="en">Exit 11: nothing is running.</span><span data-l="ru">Код 11: ничего не запущено.</span><span data-l="ua">Код 11: нічого не запущено.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo show</code></td>
+                <td><span data-l="en">Brings the main window forward, opening it if the program runs without one.</span><span data-l="ru">Выводит главное окно на передний план, открывая его, если программа работает без окна.</span><span data-l="ua">Виводить головне вікно на передній план, відкриваючи його, якщо програма працює без вікна.</span></td>
+                <td><span data-l="en">Starts FileDO, then asks it.</span><span data-l="ru">Запускает FileDO и затем обращается к нему.</span><span data-l="ua">Запускає FileDO і потім звертається до нього.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo quit</code></td>
+                <td><span data-l="en">Closes the running FileDO cleanly. A run in progress makes it refuse (exit 11) unless <code>--stop-jobs</code> stops the runs first.</span><span data-l="ru">Чисто закрывает запущенный FileDO. Идущий запуск вызывает отказ (код 11), если <code>--stop-jobs</code> не остановил запуски заранее.</span><span data-l="ua">Чисто закриває запущений FileDO. Запуск, що йде, спричиняє відмову (код 11), якщо <code>--stop-jobs</code> не зупинив запуски наперед.</span></td>
+                <td><span data-l="en">Nothing to close: exit 0.</span><span data-l="ru">Закрывать нечего: код 0.</span><span data-l="ua">Закривати нічого: код 0.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo disk-manager show</code></td>
+                <td><span data-l="en">Brings the Disk Manager forward, opening it alone when the program has no window.</span><span data-l="ru">Выводит Диспетчер дисков на передний план, открывая только его, если у программы нет окна.</span><span data-l="ua">Виводить Диспетчер дисків на передній план, відкриваючи лише його, якщо в програми немає вікна.</span></td>
+                <td><span data-l="en">Starts FileDO with only the Disk Manager.</span><span data-l="ru">Запускает FileDO только с Диспетчером дисков.</span><span data-l="ua">Запускає FileDO лише з Диспетчером дисків.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo settings show</code></td>
+                <td><span data-l="en">Opens the <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings page of the main window.</span><span data-l="ru">Открывает страницу <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Настройки» главного окна.</span><span data-l="ua">Відкриває сторінку <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Налаштування» головного вікна.</span></td>
+                <td><span data-l="en">Starts FileDO, then asks it.</span><span data-l="ru">Запускает FileDO и затем обращается к нему.</span><span data-l="ua">Запускає FileDO і потім звертається до нього.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo tray start</code></td>
+                <td><span data-l="en">Starts FileDO hidden, with its tray icon and no window.</span><span data-l="ru">Запускает FileDO скрытно, со значком в трее и без окна.</span><span data-l="ua">Запускає FileDO приховано, зі значком у треї й без вікна.</span></td>
+                <td><span data-l="en">Starts it; a copy that already runs is left as it is.</span><span data-l="ru">Запускает его; уже работающая копия остаётся как есть.</span><span data-l="ua">Запускає його; уже працююча копія лишається як є.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo job list</code></td>
+                <td><span data-l="en">Lists the runs in progress and the operations queued in the Disk Manager: window, verb, state, step and percent. It carries no file names.</span><span data-l="ru">Перечисляет идущие запуски и операции в очереди Диспетчера дисков: окно, команду, состояние, шаг и проценты. Имён файлов в ответе нет.</span><span data-l="ua">Перелічує запуски, що йдуть, і операції в черзі Диспетчера дисків: вікно, команду, стан, крок і відсотки. Імен файлів у відповіді немає.</span></td>
+                <td><span data-l="en">Exit 11: nothing is running.</span><span data-l="ru">Код 11: ничего не запущено.</span><span data-l="ua">Код 11: нічого не запущено.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo job stop</code></td>
+                <td><span data-l="en">Asks the runs to stop gracefully, as the Stop button does, empties the Disk Manager’s queue and waits until no run is left. <code>--where all|shell|manager</code> picks the window.</span><span data-l="ru">Просит запуски остановиться мягко, как кнопка «Стоп», очищает очередь Диспетчера дисков и ждёт, пока не останется ни одного запуска. <code>--where all|shell|manager</code> выбирает окно.</span><span data-l="ua">Просить запуски зупинитися м’яко, як кнопка «Стоп», очищає чергу Диспетчера дисків і чекає, доки не лишиться жодного запуску. <code>--where all|shell|manager</code> обирає вікно.</span></td>
+                <td><span data-l="en">Nothing to stop: exit 0.</span><span data-l="ru">Останавливать нечего: код 0.</span><span data-l="ua">Зупиняти нічого: код 0.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="copybox">
+          filedo status<button class="copy" data-copy="filedo status"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="en">Opening a container file</span><span data-l="ru">Открытие файла контейнера</span><span data-l="ua">Відкриття файлу контейнера</span></h2>
+        <p class="intro"><span data-l="en">To open a <code>.fdd</code> virtual disk container or a <code>.fd-sec</code> container in its own FileDO window without handing over to an already running copy, use <code>filedo_win.exe open</code>. If the <code>.fdd</code> container is already mounted, Explorer opens its drive instead.</span><span data-l="ru">Чтобы открыть виртуальный диск <code>.fdd</code> или контейнер <code>.fd-sec</code> в собственном окне FileDO без передачи управления уже запущенной копии, используйте <code>filedo_win.exe open</code>. Если контейнер <code>.fdd</code> уже подключён, вместо этого откроется его диск в Проводнике.</span><span data-l="ua">Щоб відкрити віртуальний диск <code>.fdd</code> або контейнер <code>.fd-sec</code> у власному вікні FileDO без передавання керування вже запущеній копії, використовуйте <code>filedo_win.exe open</code>. Якщо контейнер <code>.fdd</code> уже підключено, натомість відкриється його диск у Провіднику.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">Command</span><span data-l="ru">Команда</span><span data-l="ua">Команда</span></th>
+                <th><span data-l="en">What it does</span><span data-l="ru">Что делает</span><span data-l="ua">Що робить</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>filedo_win.exe open --path &lt;file&gt; [--mode mount|mount-ro|unmount]</code></td>
+                <td><span data-l="en">Opens the container in its own window (or opens the mounted drive) and exits 0 when closed, 10 on usage error, or 11 if the file does not exist.</span><span data-l="ru">Открывает контейнер в собственном окне (или открывает подключённый диск) и завершается кодом 0 после закрытия, 10 при ошибке вызова или 11, если файл не найден.</span><span data-l="ua">Відкриває контейнер у власному вікні (або відкриває підключений диск) і завершується кодом 0 після закриття, 10 у разі помилки виклику або 11, якщо файл не знайдено.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe &lt;file&gt;</code>, <code>--mount</code>, <code>--mount-ro</code>, <code>--unmount</code></td>
+                <td><span data-l="en">Kept legacy spellings for double-click and Explorer menu entries; they start the same open flow without an exit-code contract.</span><span data-l="ru">Сохранённые прежние записи для двойного щелчка и пунктов меню Проводника; запускают то же открытие без контракта кода завершения.</span><span data-l="ua">Збережені давні записи для подвійного клацання та пунктів меню Провідника; запускають те саме відкриття без контракту коду завершення.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="copybox">
+          filedo_win.exe open --path C:\v\work.fdd --mode mount-ro<button class="copy" data-copy="filedo_win.exe open --path C:\v\work.fdd --mode mount-ro"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="en">Developer tools</span><span data-l="ru">Инструменты разработчика</span><span data-l="ua">Інструменти розробника</span></h2>
+        <p class="intro"><span data-l="en">The five switches that the build scripts call on the window program are commands too, written <code>filedo_win.exe &lt;words&gt;</code>. They run in their own process, never through a running window, and the four that write take the folder to write as <code>--out</code>.</span><span data-l="ru">Пять переключателей, которые сценарии сборки вызывают у оконной программы, тоже являются командами и пишутся <code>filedo_win.exe &lt;слова&gt;</code>. Они выполняются в собственном процессе, никогда через запущенное окно, а четыре из них, пишущие файлы, получают папку для записи через <code>--out</code>.</span><span data-l="ua">П’ять перемикачів, які сценарії збирання викликають у віконної програми, теж є командами й пишуться <code>filedo_win.exe &lt;слова&gt;</code>. Вони виконуються у власному процесі, ніколи через запущене вікно, а чотири з них, що пишуть файли, отримують теку для запису через <code>--out</code>.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">Command</span><span data-l="ru">Команда</span><span data-l="ua">Команда</span></th>
+                <th><span data-l="en">What it does</span><span data-l="ru">Что делает</span><span data-l="ua">Що робить</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>filedo_win.exe selftest run</code></td>
+                <td><span data-l="en">Runs the window program’s own check and exits 0 when every row passes.</span><span data-l="ru">Запускает собственную проверку оконной программы и завершается кодом 0, если все строки пройдены.</span><span data-l="ua">Запускає власну перевірку віконної програми й завершується кодом 0, якщо всі рядки пройдено.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe help-pages build --out &lt;folder&gt;</code></td>
+                <td><span data-l="en">Writes the in-app help pages and their pictures, in every language and both themes.</span><span data-l="ru">Записывает страницы справки окна и их картинки на всех языках и в обеих темах.</span><span data-l="ua">Записує сторінки довідки вікна та їхні картинки всіма мовами й в обох темах.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe screens capture --out &lt;folder&gt;</code></td>
+                <td><span data-l="en">Renders the guide screenshots from the real windows.</span><span data-l="ru">Рисует снимки экрана для руководств с настоящих окон.</span><span data-l="ua">Малює знімки екрана для посібників зі справжніх вікон.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe menu-icons write --out &lt;folder&gt;</code></td>
+                <td><span data-l="en">Writes the Explorer menu icons and prints each file written.</span><span data-l="ru">Записывает значки меню Проводника и печатает каждый записанный файл.</span><span data-l="ua">Записує значки меню Провідника й друкує кожен записаний файл.</span></td>
+              </tr>
+              <tr>
+                <td><code>filedo_win.exe ui-drive run --out &lt;folder&gt;</code></td>
+                <td><span data-l="en">Drives the real windows on the screen for the visual acceptance run and writes its evidence; your own settings are restored afterwards.</span><span data-l="ru">Управляет настоящими окнами на экране для визуальной приёмки и записывает её результаты; ваши настройки потом восстанавливаются.</span><span data-l="ua">Керує справжніми вікнами на екрані для візуальної приймання й записує її результати; ваші налаштування потім відновлюються.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span data-l="en">The window program has no console of its own, so read its exit code by waiting for it:</span><span data-l="ru">У оконной программы нет собственной консоли, поэтому код завершения читают, дожидаясь её:</span><span data-l="ua">У віконної програми немає власної консолі, тому код завершення читають, дочекавшись її:</span></p>
+        <div class="copybox">
+          (Start-Process .\filedo_win.exe -ArgumentList 'selftest run' -Wait -PassThru).ExitCode<button class="copy" data-copy="(Start-Process .\filedo_win.exe -ArgumentList 'selftest run' -Wait -PassThru).ExitCode"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="en">Read the answer</span><span data-l="ru">Прочитайте ответ</span><span data-l="ua">Прочитайте відповідь</span></h2>
+        <p class="intro"><span data-l="en">A command prints one sentence for a person. Add <code>--json</code> to get one JSON line instead, with <code>status</code>, <code>exitCode</code>, <code>reason</code>, <code>message</code> and, where the command returns something, <code>data</code>. A script should branch on the exit code.</span><span data-l="ru">Команда печатает одно предложение для человека. Добавьте <code>--json</code>, чтобы получить вместо него одну строку JSON с полями <code>status</code>, <code>exitCode</code>, <code>reason</code>, <code>message</code> и, если команда что-то возвращает, <code>data</code>. Скрипту стоит ветвиться по коду завершения.</span><span data-l="ua">Команда друкує одне речення для людини. Додайте <code>--json</code>, щоб отримати замість нього один рядок JSON з полями <code>status</code>, <code>exitCode</code>, <code>reason</code>, <code>message</code> і, якщо команда щось повертає, <code>data</code>. Скрипту варто розгалужуватися за кодом завершення.</span></p>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th><span data-l="en">Exit code</span><span data-l="ru">Код завершения</span><span data-l="ua">Код завершення</span></th>
+                <th><span data-l="en">Meaning</span><span data-l="ru">Значение</span><span data-l="ua">Значення</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>0</code></td>
+                <td><span data-l="en">Done.</span><span data-l="ru">Готово.</span><span data-l="ua">Готово.</span></td>
+              </tr>
+              <tr>
+                <td><code>1</code></td>
+                <td><span data-l="en">The command ran and the operation failed.</span><span data-l="ru">Команда выполнялась, но операция не удалась.</span><span data-l="ua">Команда виконувалася, але операція не вдалася.</span></td>
+              </tr>
+              <tr>
+                <td><code>2</code></td>
+                <td><span data-l="en">Not proven: the time bound passed with no answer. The running FileDO may still be working.</span><span data-l="ru">Не доказано: срок вышел, ответа нет. Запущенный FileDO, возможно, ещё работает.</span><span data-l="ua">Не доведено: строк минув, відповіді немає. Запущений FileDO, можливо, ще працює.</span></td>
+              </tr>
+              <tr>
+                <td><code>10</code></td>
+                <td><span data-l="en">Usage: an unknown command, option or value, a missing option, or a request that is too large.</span><span data-l="ru">Ошибка вызова: неизвестная команда, параметр или значение, пропущенный параметр или слишком большой запрос.</span><span data-l="ua">Помилка виклику: невідома команда, параметр чи значення, пропущений параметр або завеликий запит.</span></td>
+              </tr>
+              <tr>
+                <td><code>11</code></td>
+                <td><span data-l="en">Not ready: FileDO is not running, or it is busy - a dialog is open, it is closing, or another command is being answered.</span><span data-l="ru">Не готово: FileDO не запущен или занят - открыт диалог, он закрывается или отвечает на другую команду.</span><span data-l="ua">Не готово: FileDO не запущено або він зайнятий - відкрито діалог, він закривається чи відповідає на іншу команду.</span></td>
+              </tr>
+              <tr>
+                <td><code>12</code></td>
+                <td><span data-l="en">Permission: the command’s risk class is switched off in Settings, or the running FileDO is elevated and the caller is not.</span><span data-l="ru">Нет разрешения: класс риска команды выключен в настройках, или запущенный FileDO работает с повышенными правами, а вызывающий - нет.</span><span data-l="ua">Немає дозволу: клас ризику команди вимкнено в налаштуваннях, або запущений FileDO працює з підвищеними правами, а той, хто викликає, - ні.</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p><span data-l="en">Each of the ten commands above waits for its answer for a fixed time - from 2 seconds for <code>filedo status</code> to 60 seconds for <code>filedo job stop</code>. Running one of them again after exit 2 is safe: each leaves the same state as a single run.</span><span data-l="ru">Каждая из десяти команд выше ждёт ответа ограниченное время - от 2 секунд у <code>filedo status</code> до 60 секунд у <code>filedo job stop</code>. Повторить любую из них после кода 2 безопасно: состояние такое же, как после одного запуска.</span><span data-l="ua">Кожна з десяти команд вище чекає на відповідь обмежений час - від 2 секунд у <code>filedo status</code> до 60 секунд у <code>filedo job stop</code>. Повторити будь-яку з них після коду 2 безпечно: стан такий самий, як після одного запуску.</span></p>
+        <div class="copybox">
+          filedo status<button class="copy" data-copy="filedo status"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <div class="copybox">
+          (filedo job list --json | ConvertFrom-Json).data.jobs.Count<button class="copy" data-copy="(filedo job list --json | ConvertFrom-Json).data.jobs.Count"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <div class="copybox">
+          filedo quit --stop-jobs<button class="copy" data-copy="filedo quit --stop-jobs"><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="en">What other programs may ask</span><span data-l="ru">О чём могут просить другие программы</span><span data-l="ua">Про що можуть просити інші програми</span></h2>
+        <p class="intro"><span data-l="en">Every command belongs to one of four risk classes. <b>Safe</b> changes only FileDO’s own windows and runs. <b>Reads your data</b> puts screen content, the clipboard, or file contents and names into an answer. <b>Writes your data</b> creates, changes or deletes your files or settings, or acts inside another program. <b>Leaves the machine</b> sends anything off this computer.</span><span data-l="ru">Каждая команда относится к одному из четырёх классов риска. <b>Безопасная</b> меняет только окна и запуски самого FileDO. <b>Читает ваши данные</b> помещает в ответ содержимое экрана, буфер обмена либо содержимое и имена файлов. <b>Пишет ваши данные</b> создаёт, меняет или удаляет ваши файлы либо настройки или действует внутри другой программы. <b>Выходит за пределы компьютера</b> отправляет что-либо с этого компьютера.</span><span data-l="ua">Кожна команда належить до одного з чотирьох класів ризику. <b>Безпечна</b> змінює лише вікна й запуски самого FileDO. <b>Читає ваші дані</b> поміщає у відповідь вміст екрана, буфер обміну або вміст та імена файлів. <b>Пише ваші дані</b> створює, змінює чи видаляє ваші файли або налаштування чи діє всередині іншої програми. <b>Виходить за межі комп’ютера</b> надсилає щось із цього комп’ютера.</span></p>
+        <p><span data-l="en">The ten commands above, <code>filedo_win.exe open</code> and <code>filedo_win.exe selftest run</code> are safe, so a running FileDO accepts them (or opens the container in its own process) without any setting. The four developer tools that write a folder you name are in the class <b>writes your data</b>: they run in their own process when you start them yourself, and no other program can reach them through the running window.</span><span data-l="ru">Десять команд выше, <code>filedo_win.exe open</code> и <code>filedo_win.exe selftest run</code> безопасны, поэтому запущенный FileDO принимает их (или открывает контейнер в собственном процессе) без всякой настройки. Четыре инструмента разработчика, пишущие в названную вами папку, относятся к классу <b>пишет ваши данные</b>: они выполняются в собственном процессе, когда вы запускаете их сами, и никакая другая программа не может добраться до них через запущенное окно.</span><span data-l="ua">Десять команд вище, <code>filedo_win.exe open</code> та <code>filedo_win.exe selftest run</code> безпечні, тому запущений FileDO приймає їх (або відкриває контейнер у власному процесі) без жодного налаштування. Чотири інструменти розробника, що пишуть у названу вами теку, належать до класу <b>пише ваші дані</b>: вони виконуються у власному процесі, коли ви запускаєте їх самі, і жодна інша програма не може дістатися до них через запущене вікно.</span></p>
+        <div class="note">
+          <span class="tag"><span data-l="en">The one setting</span><span data-l="ru">Единственная настройка</span><span data-l="ua">Єдине налаштування</span></span>
+          <p>
+            <span data-l="en">A command of any class other than safe is refused with exit 12 until you turn on <b>Let other programs ask FileDO to work with my files, screen, clipboard or the network</b> in <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings, group Windows and window positions. It is off until you turn it on, only you can turn it on, and no command can change it. <code>filedo status</code> reports whether it is on.</span><span data-l="ru">Команда любого класса, кроме безопасного, отклоняется с кодом 12, пока вы не включите на странице <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Настройки», в группе «Windows и положение окон», пункт <b>Разрешить другим программам просить FileDO работать с моими файлами, экраном, буфером обмена или сетью</b>. Он выключен, пока вы его не включите, включить его можете только вы, и никакая команда его не меняет. <code>filedo status</code> сообщает, включён ли он.</span><span data-l="ua">Команда будь-якого класу, крім безпечного, відхиляється з кодом 12, доки ви не ввімкнете на сторінці <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>«Налаштування», у групі «Windows і розташування вікон», пункт <b>Дозволити іншим програмам просити FileDO працювати з моїми файлами, екраном, буфером обміну або мережею</b>. Він вимкнений, доки ви його не ввімкнете, ввімкнути його можете лише ви, і жодна команда його не змінює. <code>filedo status</code> повідомляє, чи він увімкнений.</span>
+          </p>
+        </div>
+        <div class="note">
+          <span class="tag"><span data-l="en">Same user, never the network</span><span data-l="ru">Тот же пользователь, никогда не сеть</span><span data-l="ua">Той самий користувач, ніколи не мережа</span></span>
+          <p>
+            <span data-l="en">The commands travel over a local pipe that only your own Windows account, in your own session, can reach. Nothing goes over the network, and a FileDO running as administrator answers only callers that run as administrator too (exit 12).</span><span data-l="ru">Команды идут по локальному каналу, до которого может добраться только ваша учётная запись Windows в вашем сеансе. Ничего не уходит по сети, а FileDO, запущенный от администратора, отвечает только тем, кто тоже запущен от администратора (код 12).</span><span data-l="ua">Команди йдуть локальним каналом, до якого може дістатися лише ваш обліковий запис Windows у вашому сеансі. Нічого не йде мережею, а FileDO, запущений від адміністратора, відповідає лише тим, хто теж запущений від адміністратора (код 12).</span>
+          </p>
+        </div>
+      </section>
+      <section class="section">
+        <h2><span data-l="en">Where a script or an agent finds the list</span><span data-l="ru">Где скрипту или агенту найти список</span><span data-l="ua">Де скрипту чи агенту знайти список</span></h2>
+        <p><span data-l="en"><code>filedo commands --json</code> prints the whole manifest - every command with its options, answer, risk, exit codes and examples - from the installed copy, with no window. The same list is written out as <a href="https://github.com/SerZhyAle/FileDO/blob/main/docs/CLI.md">docs/CLI.md</a>.</span><span data-l="ru"><code>filedo commands --json</code> печатает весь манифест - каждую команду с параметрами, ответом, риском, кодами завершения и примерами - из установленной копии, без окна. Тот же список записан в файле <a href="https://github.com/SerZhyAle/FileDO/blob/main/docs/CLI.md">docs/CLI.md</a>.</span><span data-l="ua"><code>filedo commands --json</code> друкує весь маніфест - кожну команду з параметрами, відповіддю, ризиком, кодами завершення та прикладами - зі встановленої копії, без вікна. Той самий список записано у файлі <a href="https://github.com/SerZhyAle/FileDO/blob/main/docs/CLI.md">docs/CLI.md</a>.</span></p>
+        <p><span data-l="en">To learn what FileDO is doing before you act, prefer <code>filedo status</code>, <code>filedo job list</code> and <code>filedo vd status json</code> to a screenshot. FileDO’s other verbs - <code>filedo E: info</code>, <code>filedo copy</code>, <code>filedo vd mount</code> and the rest of <code>filedo -?</code> - are separate programs with exit classes of their own; the <a href="quick-start.html">quick start</a> lists them.</span><span data-l="ru">Чтобы узнать, что делает FileDO, прежде чем действовать, лучше <code>filedo status</code>, <code>filedo job list</code> и <code>filedo vd status json</code>, чем снимок экрана. Остальные команды FileDO - <code>filedo E: info</code>, <code>filedo copy</code>, <code>filedo vd mount</code> и всё, что показывает <code>filedo -?</code> - отдельные программы со своими классами кодов завершения; их перечисляет <a href="quick-start.html">быстрый старт</a>.</span><span data-l="ua">Щоб дізнатися, що робить FileDO, перш ніж діяти, краще <code>filedo status</code>, <code>filedo job list</code> і <code>filedo vd status json</code>, ніж знімок екрана. Решта команд FileDO - <code>filedo E: info</code>, <code>filedo copy</code>, <code>filedo vd mount</code> і все, що показує <code>filedo -?</code> - окремі програми зі своїми класами кодів завершення; їх перелічує <a href="quick-start.html">швидкий старт</a>.</span></p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Команды FileDO для скриптов и агентов",
+          description: "Что скрипт, планировщик или инструмент разработчика может попросить у запущенного FileDO: команды, коды завершения и настройка, которая их ограничивает.",
+        },
+        en: {
+          title: "FileDO commands for scripts and agents",
+          description: "What a script, a scheduled task or a development tool can ask the running FileDO to do: the commands, their exit codes and the one setting that gates them.",
+        },
+        ua: {
+          title: "Команди FileDO для скриптів і агентів",
+          description: "Що скрипт, планувальник або інструмент розробника може попросити в запущеного FileDO: команди, коди завершення й налаштування, яке їх обмежує.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+    <!-- control-glyphs -->
+    <svg class="cg-sprite" aria-hidden="true" focusable="false"><symbol id="g-app.settings" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></symbol></svg>
+    <!-- /control-glyphs -->
+  </body>
+</html>

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `DOC-EXTERNAL-QUALITY` |
-| **Version** | 0.13, read 2026-10-29 (SP-0174); implemented partial 0.13; `noindex` on the help pages is open (SP-0183) (no wire carrier - a documentation corpus and its web rendering) |
+| **Version** | 0.14, read 2026-11-16 (SP-0221); implemented 0.14 (SP-0183 `noindex` on help pages & SP-0199 reciprocal `hreflang` landings shipped in v2611110217) (no wire carrier - a documentation corpus and its web rendering) |
 | **Role** | consumer - the published site under `docs/` (landing, privacy, `guides/`) and the five root READMEs |
 | **Home** | shared contracts catalog, folder `documentation-quality/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `PAGE-STYLE` |
-| **Version** | 3.9, read 2026-11-11 (SP-0199); implemented partial 3.9 (standalone per-locale landing pages `docs/index.html`, `docs/ru/index.html`, `docs/uk/index.html`, `docs/de/index.html`, `docs/fr/index.html` with `docs/ua/index.html` as a forwarder stub to `uk/`); kit e438fef2 served, the kit re-vendor is SP-0169 S6 |
+| **Version** | 3.11, read 2026-11-16 (SP-0221); implemented partial 3.11 (3.9/3.11 per-locale landings shipped in v2611110217; 3.10 build-time release manifest `packaging/release-manifest.json` implemented in SP-0225; kit `e438fef2` vs `d490abf3` and SP-0169 S6 open) |
 | **Role** | consumer - `docs/kit/sza-kit.css` and site styling |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `PAGE-STYLE.md` |
 | **Owner** | sza.od.ua hub. Reference kit maintained in catalog |

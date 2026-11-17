@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `WORKER-IPC` |
-| **Version** | 0.18, draft; read 2026-10-29 (SP-0174), disk-control consumer; implemented partial 0.18 - an unknown holder on a matched record is open (SP-0177) |
+| **Version** | 0.19, draft; read 2026-11-16 (SP-0221), disk-control consumer; implemented partial 0.19 (`SP-0177` shipped in `v2611110217`; 0.19 item 7 N/A; catalog exchange vectors & W16 joint live proof remain open) |
 | **Home** | shared contracts catalog, folder `sidecar-control/`, document `worker-ipc.md` |
 | **Role** | consumer - `fmsworker/` is FileDO's control client for the FMS worker; the disk requests only |
 | **Owner** | FMS Companion. FileDO proposes amendments; it does not edit the owner's protocol |
