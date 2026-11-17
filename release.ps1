@@ -13,12 +13,12 @@
 #
 #  Full pipeline (all automatic, per chosen policy):
 #    1. preflight  - tools present, gh authed, on main, tree clean (nothing outside
-#                    exe_to_download\), the stamp a real date newer than every v* tag,
+#                    exe_to_download\ and docs\releases\), the stamp a real date newer than every v* tag,
 #                    the MSI version newer than the last published one, winget anchors intact
 #    2. gate       - build.ps1 -Test, the full fdsec run, govulncheck, the operations run
 #                    (every verb on small data, timed and checked), and the in-app help
 #                    freshness check (check-help.ps1 -Exe) - fail fast BEFORE tagging
-#    3. commit     - commit exe_to_download\ - and nothing else - if the build changed it
+#    3. commit     - commit exe_to_download\ and the ledger docs\releases\ - and nothing else - if the build changed them
 #    4. push       - push main, then create + push tag v<version>  <-- triggers CI
 #    5. wait       - poll until the GitHub Release + all six assets exist
 #    6. winget     - sync winget/*.yaml (version, URL, SHA256, date), CHECK them, commit, push
@@ -28,6 +28,11 @@
 #    9. site       - write packaging\release-manifest.json from the published release,
 #                    render the five landing pages, check external-docs, commit, push
 #   10. checklist  - print what is done, what failed and why, and the manual step left
+#
+#  The release ledger (RELEASE-LEDGER 0.1, docs\releases\): the gate's build records itself as a release
+#  build, and each channel step records its state through packaging\release-ledger.ps1 (GitHub and the
+#  installer live at step 5, winget submitted at step 7, the MSIX pending at step 8); what is written after
+#  the tag is committed apart as "Ledger: v<stamp>" before the site sync. The ledger never fails a release.
 #
 #  Usage (from the repo root):
 #    .\release.ps1                 # full release with version = now (yyMMddHHmm)
@@ -142,6 +147,21 @@ function Invoke-Native([scriptblock]$Block) {
     return $LASTEXITCODE
 }
 
+# RELEASE-LEDGER 0.1 (RELEASE_AND_DISTRIBUTION section 10): each channel step is recorded in docs\releases\history.jsonl
+# through packaging\release-ledger.ps1, at the moment it happens. The ledger never fails a release: a non-zero exit
+# or a throw is one yellow line, and the exit code the caller read before is left as it was.
+function Write-Ledger([string[]]$LedgerArgs) {
+    $savedExit = if (Test-Path variable:global:LASTEXITCODE) { $global:LASTEXITCODE } else { 0 }
+    try {
+        $ledgerOut = @(& pwsh -NoProfile -File (Join-Path $root 'packaging\release-ledger.ps1') @LedgerArgs 2>&1)
+        if ($LASTEXITCODE -eq 0) { Write-Host "  ledger  : $($ledgerOut | Select-Object -Last 1)" }
+        else { Write-Host "  ledger  : not recorded (exit $LASTEXITCODE): $($ledgerOut | Select-Object -Last 1)" -ForegroundColor Yellow }
+    } catch {
+        Write-Host "  ledger  : not recorded ($($_.Exception.Message))" -ForegroundColor Yellow
+    } finally {
+        $global:LASTEXITCODE = $savedExit
+    }
+}
 # REL-05: a stamp is a real date, not ten digits - month 13 must not become a tag.
 function Get-StampDate([string]$stamp) {
     if ($stamp -notmatch '^\d{10}$') { return $null }
@@ -256,19 +276,19 @@ function Get-DirtyOutside([string[]]$allowed) {
 }
 
 # T3-F2: $null when the sources here equal the tag's - HEAD's tree equals the tag's outside
-# winget\ (the one folder a release commits after the tag) and nothing is changed or untracked
-# outside winget\ - otherwise the reason. Never exits: the Store step records it and carries on
+# winget\ and docs\releases\ (the two folders a release commits after the tag: the manifests and the
+# release ledger) and nothing is changed or untracked outside them - otherwise the reason. Never exits: the Store step records it and carries on
 # (REL-03). msix\build-msix.ps1 holds the same rule for a hand run with -Stamp.
 function Get-TagSourceDrift([string]$tagName) {
     $null = git rev-parse -q --verify "refs/tags/$tagName^{commit}" 2>$null
     if ($LASTEXITCODE -ne 0) { return "$tagName is not a local tag (git fetch origin refs/tags/${tagName}:refs/tags/${tagName})" }
-    git diff --quiet $tagName HEAD -- . ':!winget'
+    git diff --quiet $tagName HEAD -- . ':!winget' ':!docs/releases'
     $diffCode = $LASTEXITCODE
-    if ($diffCode -eq 1) { return "HEAD's sources differ from $tagName outside winget\ (git diff --stat $tagName HEAD -- . ':!winget') - the Store package must be built from the tagged sources" }
+    if ($diffCode -eq 1) { return "HEAD's sources differ from $tagName outside winget\ and docs\releases\ (git diff --stat $tagName HEAD -- . ':!winget' ':!docs/releases') - the Store package must be built from the tagged sources" }
     if ($diffCode -ne 0) { return "could not compare HEAD with $tagName (git diff exit $diffCode)" }
-    $status = @(git status --porcelain --untracked-files=all -- . ':!winget')
+    $status = @(git status --porcelain --untracked-files=all -- . ':!winget' ':!docs/releases')
     if ($LASTEXITCODE -ne 0) { return "git status failed (exit $LASTEXITCODE)" }
-    if ($status.Count) { return "the working tree has $($status.Count) change(s) outside winget\ - the Store package must be built from the tagged sources" }
+    if ($status.Count) { return "the working tree has $($status.Count) change(s) outside winget\ and docs\releases\ - the Store package must be built from the tagged sources" }
     return $null
 }
 
@@ -319,8 +339,10 @@ try {
     # binaries the gate rebuilds), so an uncommitted source edit or an unignored file - a
     # signing key at the root, a runtime list - stops the release here instead of riding into
     # the public "Build v<version>" commit. -Resume commits only winget\, which a failed
-    # step 6 may have left rewritten.
-    $allowedDirty = if ($Resume) { @('winget') } else { @('exe_to_download') }
+    # step 6 may have left rewritten. docs\releases\ (the release ledger) is allowed dirty in both: every
+    # build writes builds.json, so a plain build before the release is not a reason to stop, and the ledger
+    # is committed with the build (step 3) or after the tag.
+    $allowedDirty = if ($Resume) { @('winget', 'docs/releases') } else { @('exe_to_download', 'docs/releases') }
     $dirty = @(Get-DirtyOutside $allowedDirty)
     if ($dirty.Count) {
         $dirty | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
@@ -456,6 +478,8 @@ try {
     # wxs that does not compile must surface here and not inside the tagged CI
     # run, after the one irreversible step. On a machine with no WiX the gate
     # still runs - the workflow builds the real artifacts on the runner.
+    # The ledger records this build as a release build (build.ps1 reads FILEDO_BUILD_KIND).
+    $env:FILEDO_BUILD_KIND = 'release'
     if (Get-Command wix -ErrorAction SilentlyContinue) {
         & "$root\build.ps1" -Test -Msi -Version $Version
         $gateCode = $LASTEXITCODE
@@ -467,6 +491,7 @@ try {
         Write-Host "  note: WiX is not installed here, so the MSI was not built locally." -ForegroundColor Yellow
         Write-Host "        dotnet tool install --global wix --version 5.0.2" -ForegroundColor Yellow
     }
+    Remove-Item Env:FILEDO_BUILD_KIND -ErrorAction SilentlyContinue
     # The full round trip, as the architecture that ships (REL-04): build.ps1 puts its own
     # Go environment back when it ends, so this run sets windows/amd64 again.
     Write-Host "go test ./fdsec/ (full release run, windows/amd64) ..." -NoNewline
@@ -535,11 +560,11 @@ try {
     }
 
     # The gate built from the tree the preflight saw. Anything it changed outside
-    # exe_to_download\ would make the tagged commit differ from what was tested.
-    $dirtyAfter = @(Get-DirtyOutside @('exe_to_download'))
+    # exe_to_download\ and the ledger docs\releases\ would make the tagged commit differ from what was tested.
+    $dirtyAfter = @(Get-DirtyOutside @('exe_to_download', 'docs/releases'))
     if ($dirtyAfter.Count) {
         $dirtyAfter | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-        Fail "the gate changed $($dirtyAfter.Count) file(s) outside exe_to_download\ - the tested tree is not the one that would be tagged. Nothing tagged."
+        Fail "the gate changed $($dirtyAfter.Count) file(s) outside exe_to_download\ and docs\releases\ - the tested tree is not the one that would be tagged. Nothing tagged."
     }
     Write-Host "release-preflight ${Version}: PASS" -ForegroundColor Green
     $script:inPreflight = $false
@@ -548,17 +573,17 @@ try {
     # 3. Commit refreshed artifacts (binaries are tracked in exe_to_download\)
     # -----------------------------------------------------------------------
     Step "3/10 Commit"
-    # REL-01: exe_to_download\ and nothing else. A dry run does not touch the index at all.
+    # REL-01: exe_to_download\ and the ledger docs\releases\, nothing else. A dry run does not touch the index at all.
     if ($DryRun) {
-        $wouldCommit = @(Invoke-Checked 'git status' { git status --porcelain --untracked-files=all -- exe_to_download } 2)
+        $wouldCommit = @(Invoke-Checked 'git status' { git status --porcelain --untracked-files=all -- exe_to_download docs/releases } 2)
         if ($wouldCommit.Count) {
-            Write-Host "  [dry-run] would commit (exe_to_download\ only):" -ForegroundColor Yellow
+            Write-Host "  [dry-run] would commit (exe_to_download\ and docs\releases\ only):" -ForegroundColor Yellow
             $wouldCommit | ForEach-Object { Write-Host "      $_" }
         } else {
             Write-Host "  nothing to commit (tree already matches build output)."
         }
     } else {
-        Invoke-Checked 'git add exe_to_download' { git add -- exe_to_download } | Out-Null
+        Invoke-Checked 'git add exe_to_download docs/releases' { git add -- exe_to_download docs/releases } | Out-Null
         $staged = Invoke-Checked 'git diff --cached' { git diff --cached --name-only }
         if ($staged) {
             Invoke-Checked "git commit" { git commit -m "Build $tag" }
@@ -614,6 +639,10 @@ try {
         Write-Host "Dry run complete." -ForegroundColor Yellow
         exit 0
     }
+
+    # RELEASE-LEDGER: the Release is live with all its assets - GitHub, and the setup installer that is one of them.
+    Write-Ledger @('publish', '-Key', 'github', '-Version', $Version, '-State', 'live', '-Ref', $tag, '-Url', "https://github.com/$repo/releases/tag/$tag")
+    Write-Ledger @('publish', '-Key', 'installer', '-Version', $Version, '-State', 'live', '-Ref', $tag, '-Url', "https://github.com/$repo/releases/tag/$tag", '-Note', 'the setup EXE and the MSI are assets of the Release')
 
     # -----------------------------------------------------------------------
     # 6. Sync winget/*.yaml
@@ -718,6 +747,16 @@ try {
                     $wingetFailure = "wingetcreate submit failed (exit $submitCode)"
                 } else {
                     Write-Host "  winget-pkgs PR submitted."
+                    # RELEASE-LEDGER: the pull request is submitted, not live (its merge makes it live, and a probe
+                    # sees that). The number is looked up best-effort; a miss only drops the reference.
+                    $ledgerPr = $null
+                    try {
+                        $ledgerPr = @(& gh pr list --repo microsoft/winget-pkgs --author '@me' --state open --limit 20 --json number,title,url 2>$null | ConvertFrom-Json |
+                            Where-Object { $_.title -match [regex]::Escape("SerZhyAle.FileDO version $Version") }) | Select-Object -First 1
+                    } catch { $ledgerPr = $null }
+                    $ledgerWinget = @('publish', '-Key', 'winget', '-Version', $Version, '-State', 'submitted')
+                    if ($ledgerPr) { $ledgerWinget += @('-Ref', "PR#$($ledgerPr.number)", '-Url', [string]$ledgerPr.url) }
+                    Write-Ledger $ledgerWinget
                     # The PR opens with every template box empty and a blank Description. Fill them
                     # from evidence (CLA status, validate, schema, one manifest, no other PR; the
                     # install box only when -WingetInstallTest just passed). A box left empty is
@@ -731,7 +770,10 @@ try {
                 }
             }
         }
-        if ($wingetFailure) { Write-Host "  winget FAILED: $wingetFailure" -ForegroundColor Red }
+        if ($wingetFailure) {
+            Write-Host "  winget FAILED: $wingetFailure" -ForegroundColor Red
+            Write-Ledger @('publish', '-Key', 'winget', '-Version', $Version, '-State', 'pending', '-Note', "not submitted: $wingetFailure")
+        }
     } else {
         Step "6-7/10 winget"; Write-Host "  skipped (-SkipWinget)."
     }
@@ -765,9 +807,34 @@ try {
                 Write-Host "  MSIX build did NOT produce a Store package:" -ForegroundColor Yellow
                 Write-Host "    $storeFailure" -ForegroundColor Yellow
             }
+            if (-not $storeFailure) {
+                # RELEASE-LEDGER: the package is prepared, not handed to the Store (the upload and the
+                # submission are manual), so the channel step is pending.
+                Write-Ledger @('publish', '-Key', 'msstore', '-Version', (Get-StoreVersion $stampDate), '-State', 'pending', '-Note', 'MSIX built from the tag, unsigned; upload and submission are manual')
+            }
         }
     } else {
         Step "8/10 Store MSIX"; Write-Host "  skipped (-SkipStore)."
+    }
+
+    # RELEASE-LEDGER: what the channel steps and the Store build wrote since the tag is committed apart
+    # ("Ledger: v<stamp>") and pushed before the site sync, which stays tag-equal outside winget\ and
+    # docs\releases\. A failure here is a note, never a stop.
+    $ledgerAddCode = Invoke-Native { git add -- docs/releases }
+    if ($ledgerAddCode -eq 0) {
+        $ledgerStaged = @(git diff --cached --name-only -- docs/releases)
+        if ($LASTEXITCODE -eq 0 -and $ledgerStaged.Count) {
+            $ledgerCommitCode = Invoke-Native { git commit -m "Ledger: $tag" -- docs/releases }
+            if ($ledgerCommitCode -eq 0) {
+                $ledgerPushCode = Invoke-Native { git push origin main }
+                if ($ledgerPushCode -eq 0) { Write-Host "  ledger  : docs\releases committed and pushed (Ledger: $tag)." }
+                else { Write-Host "  ledger  : committed, not pushed (git push origin main failed, exit $ledgerPushCode)." -ForegroundColor Yellow }
+            } else {
+                Write-Host "  ledger  : git commit of docs\releases failed (exit $ledgerCommitCode)." -ForegroundColor Yellow
+            }
+        }
+    } else {
+        Write-Host "  ledger  : git add docs\releases failed (exit $ledgerAddCode)." -ForegroundColor Yellow
     }
 
     # -----------------------------------------------------------------------
@@ -846,7 +913,7 @@ try {
     }
     if ($storeFailure) {
         Write-Host "  RECOVER Store: fix the cause, then .\msix\build-msix.ps1 -Stamp $Version from sources equal to $tag" -ForegroundColor Yellow
-        Write-Host "    (it refuses unless: git diff --quiet $tag HEAD -- . ':!winget' and no change outside winget\;" -ForegroundColor Yellow
+        Write-Host "    (it refuses unless: git diff --quiet $tag HEAD -- . ':!winget' ':!docs/releases' and no change outside winget\ and docs\releases\;" -ForegroundColor Yellow
         Write-Host "     if main has moved on: git worktree add ..\FileDO-$tag $tag, and run it there)" -ForegroundColor Yellow
     }
     if ($siteFailure) {
@@ -860,6 +927,7 @@ try {
         Write-Host "    3. Submit, then update over a real prior install and check the version and the notes." -ForegroundColor Yellow
     }
     Write-Host "  Then verify: winget show SerZhyAle.FileDO   (after the winget-pkgs PR merges)"
+    Write-Host "  Ledger: packaging\release-ledger.ps1 show   (run its probe verb after the winget PR merges or the Store submission is committed)"
     $failedChannels = @()
     if ($wingetFailure) { $failedChannels += 'winget' }
     if ($storeFailure)  { $failedChannels += 'Store MSIX' }

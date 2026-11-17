@@ -185,11 +185,11 @@ func redactBackupArgs(out []string, at int) {
 		lt := strings.ToLower(t)
 		switch {
 		case lt == "to", lt == "stem" && contains(list_of_flags_for_backup, strings.ToLower(out[at])):
-			// A path, or the stem of a numbered set (backup only: restore has no such
+			// A path, or the stem of a set (backup only: restore has no such
 			// word, so a word after it may be a password): a file-name part the
 			// artifact carries in its own name, kept like the path after `to`.
 			i++
-		case lt == "level", lt == "gen":
+		case lt == "level", lt == "gen", lt == "keep-days" && contains(list_of_flags_for_backup, strings.ToLower(out[at])):
 			if i+1 < len(out) {
 				if _, err := strconv.Atoi(out[i+1]); err != nil {
 					out[i+1] = "***"

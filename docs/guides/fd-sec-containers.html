@@ -684,6 +684,45 @@
         </div>
         <p>
           <span data-l="en"
+            ><code>keep-days</code> prunes dated backups instead: <code>keep-days 7</code> retires files of the
+            set <code>&lt;stem&gt;-&lt;yyMMddHHmm&gt;.zip</code> (<code>.fd-sec</code> with <code>sec</code>)
+            older than 7 days by local wall-clock time read solely from the file name - never modification time,
+            so sync folders do not change retention; <code>to</code> names a folder, and <code>stem</code> names
+            the set. Add <code>keep-monthly</code> so the earliest file of each calendar month stays forever. The
+            new file is built under a partial name, read back, renamed into place, and only then are expired
+            files retired (several may retire in one run; a failed or stopped run removes nothing).
+            <code>keep-days</code> does not combine with <code>gen</code> or <code>keep-zip</code>, and
+            <code>keep-monthly</code> needs <code>keep-days</code>.</span
+          ><span data-l="ru"
+            ><code>keep-days</code> вместо этого удаляет старые копии с датой: <code>keep-days 7</code> удаляет
+            файлы набора <code>&lt;stem&gt;-&lt;yyMMddHHmm&gt;.zip</code> (<code>.fd-sec</code> с <code>sec</code>)
+            старше 7 дней по локальному времени только из имени файла - время изменения не читается, так что
+            папки синхронизации не сбивают отбор; <code>to</code> называет папку, а <code>stem</code> - набор.
+            Добавьте <code>keep-monthly</code>, чтобы самый ранний файл каждого календарного месяца оставался
+            навсегда. Новый файл строится под временным именем, перечитывается, переименовывается на место, и
+            лишь потом удаляются устаревшие файлы (за один запуск может уйти несколько; неудавшийся или
+            остановленный запуск ничего не удаляет). <code>keep-days</code> не сочетается с <code>gen</code> и
+            <code>keep-zip</code>, а <code>keep-monthly</code> требует <code>keep-days</code>.</span
+          ><span data-l="ua"
+            ><code>keep-days</code> натомість видаляє старіші копії з датою: <code>keep-days 7</code> видаляє
+            файли набору <code>&lt;stem&gt;-&lt;yyMMddHHmm&gt;.zip</code> (<code>.fd-sec</code> з <code>sec</code>),
+            старіші за 7 днів за локальним часом лише з імені файлу - час зміни не читається, тож теки
+            синхронізації не збивають добір; <code>to</code> називає теку, а <code>stem</code> - набір. Додайте
+            <code>keep-monthly</code>, щоб найраніший файл кожного календарного місяця лишався назавжди. Новий
+            файл будується під тимчасовим іменем, перечитується, перейменовується на місце, і лише потім
+            видаляються застарілі файли (за один запуск може піти кілька; невдалий чи зупинений запуск нічого не
+            видаляє). <code>keep-days</code> не поєднується з <code>gen</code> і <code>keep-zip</code>, а
+            <code>keep-monthly</code> потребує <code>keep-days</code>.</span
+          >
+        </p>
+        <div class="copybox">
+          filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly<button
+            class="copy"
+            data-copy="filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly"
+          ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+        </div>
+        <p>
+          <span data-l="en"
             >The zip records the folder's name, never its path. An existing
             folder is never merged into or replaced - <code>restore</code> writes
             beside it as <code>&lt;name&gt;-1</code> - and an archive whose names
@@ -692,7 +731,7 @@
             link in the source refuses the backup unless <code>skip-links</code>
             leaves it out and lists it. Permissions, alternate data streams and
             links are not carried. A backup is one whole copy, made when you run
-            it: there is no schedule and no history of earlier backups; a numbered set is only a bounded rotation of whole copies, and the schedule is yours.</span
+            it: there is no schedule and no history of earlier backups; a numbered set or dated retention is only a bounded rotation of whole copies, and the schedule is yours.</span
           ><span data-l="ru"
             >Zip хранит имя папки, но никогда не её путь. Существующая папка
             никогда не дополняется и не заменяется - <code>restore</code> пишет
@@ -703,7 +742,7 @@
             <code>skip-links</code> не оставит её в стороне и не внесёт в список.
             Права доступа, альтернативные потоки данных и ссылки не переносятся.
             Резервная копия - одна целая копия, сделанная, когда вы её
-            запускаете: нет расписания и нет истории прежних копий; пронумерованный набор - лишь ограниченная ротация целых копий, а расписание ваше.</span
+            запускаете: нет расписания и нет истории прежних копий; пронумерованный набор или хранение по дням - лишь ограниченная ротация целых копий, а расписание ваше.</span
           ><span data-l="ua"
             >Zip зберігає ім'я теки, але ніколи не її шлях. Наявна тека ніколи не
             доповнюється й не замінюється - <code>restore</code> пише поруч під
@@ -714,7 +753,7 @@
             <code>skip-links</code> не лишить його осторонь і не внесе до
             переліку. Права доступу, альтернативні потоки даних і посилання не
             переносяться. Резервна копія - одна ціла копія, зроблена, коли ви її
-            запускаєте: немає розкладу й немає історії попередніх копій; пронумерований набір - лише обмежена ротація цілих копій, а розклад ваш.</span
+            запускаєте: немає розкладу й немає історії попередніх копій; пронумерований набір або зберігання за днями - лише обмежена ротація цілих копій, а розклад ваш.</span
           >
         </p>
       </section>

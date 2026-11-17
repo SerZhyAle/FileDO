@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `HARNESS-PROFILE` |
-| **Version** | 0.17, draft (wire 1.0 - `.sza-profile.json` schema for the shared canon harness) |
+| **Version** | 0.18, draft (wire 1.0 - `.sza-profile.json` schema for the shared canon harness) |
 | **Role** | consumer - root `.sza-profile.json` read by the `sza` plugin tools (`tools/harness/`) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 3 |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |
@@ -18,3 +18,5 @@
 - Keep `commands.compileCheck` absent/empty while FileDO declares no standalone compile-only command for
   unattended passes (0.15 rule 11), inherit shipped `runner.effortByModel` defaults unless overridden (0.16),
   and omit `extraction` as a non-derived source product (0.17).
+- Leave `paths.releasesDir` undeclared (0.18, read 2026-11-17, SP-0229): `docs/` is this repository's documentation
+  umbrella, so the release ledger of `RELEASE-LEDGER` sits at the default `docs/releases/`.

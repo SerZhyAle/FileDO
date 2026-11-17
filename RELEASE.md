@@ -199,7 +199,7 @@ What it does, in order:
    authenticated, an interactive desktop session (required for the pre-release
    in-app help freshness check unless `-Resume`), on `main`, and **the tree clean**:
    `git status --porcelain --untracked-files=all` may list nothing outside
-   `exe_to_download\`, or the release stops (exit 1) - an uncommitted edit or
+   `exe_to_download\` and `docs\releases\` (the release ledger, below), or the release stops (exit 1) - an uncommitted edit or
    an unignored file (a key at the root, a runtime list) never rides into the
    public commit. The stamp must be a real `yyMMddHHmm` date and newer than
    every `v\d{10}` tag, and its MSI version must be greater than the
@@ -218,11 +218,12 @@ What it does, in order:
    and then **in-app help freshness (rung 2)**, `packaging\check-help.ps1 -Exe`
    against `exe_to_download\filedo_win.exe` (guarded by an interactive desktop
    session check, failing closed with exit 2 when non-interactive).
+   The gate's build records itself in the release ledger as a release build.
    Fails *before* anything is tagged, and so does a gate that changed any file
-   outside `exe_to_download\`.
-3. **Commit** - stages `exe_to_download\` and nothing else, and commits it as
-   `Build v<version>` if the build changed it. A dry run lists what it would
-   commit and does not touch the index.
+   outside `exe_to_download\` and `docs\releases\`.
+3. **Commit** - stages `exe_to_download\` and the ledger `docs\releases\` and
+   nothing else, and commits them as `Build v<version>` if the build changed
+   them. A dry run lists what it would commit and does not touch the index.
 4. **Push** - `git push origin main`, then create + push `v<version>`.
    **This is the point of no return** - it triggers the GitHub release.
 5. **Wait** - polls until the GitHub Release carries all six assets (setup
@@ -258,8 +259,8 @@ What it does, in order:
    release's stamp** (`filedo.exe` prints it; `filedo_win.exe` carries it as
    its PE version and `BuildStamp`), and **only from sources equal to the
    tag** (T3-F2): it refuses, and records the Store channel as failed, unless
-   `git diff --quiet v<stamp> HEAD -- . ':!winget'` succeeds and nothing is
-   changed or untracked outside `winget\`. In the normal flow HEAD is the tag
+   `git diff --quiet v<stamp> HEAD -- . ':!winget' ':!docs/releases'` succeeds and
+   nothing is changed or untracked outside `winget\` and `docs\releases\`. In the normal flow HEAD is the tag
    plus the winget commit; under `-Resume` `main` may have moved on, and a
    package built from that would carry, under the tag's version, code no gate
    judged. `-Resume` fetches the tag from origin for this check, and
@@ -280,7 +281,9 @@ What it does, in order:
    (`docs/index.html`, `de`, `fr`, `ru`, `uk`) with
    `packaging\render-site-release.ps1`, verifies `packaging\check-external-docs.ps1`,
    commits `Sync site to v<stamp>` and pushes `main`. Runs after Store MSIX so
-   `Get-TagSourceDrift` continues checking exact tag equality outside `winget\`.
+   `Get-TagSourceDrift` continues checking exact tag equality outside `winget\`
+   and `docs\releases\`. Just before it, what the channel steps wrote to the
+   release ledger since the tag is committed as `Ledger: v<stamp>` and pushed.
 10. **Checklist** - prints what is done, what failed and why, and the one
     manual step left. A channel that failed after the tag (winget sync, push,
     submit, the MSIX, or site sync) does not stop the ones after it, is shown
@@ -377,6 +380,38 @@ same exit codes as the build gate (0, 1, 2).
 - **Evidence** - per-step output, event streams and `timings.json` - goes to `temp\evidence\ops-<run-id>\`
   (git-ignored, private; the last dozen runs are kept); the scratch data is removed after a pass and kept
   after a failure.
+
+### The release ledger
+
+`docs\releases\` is the repository's record of what was built, what each channel carries and what was published
+before (`RELEASE-LEDGER` 0.1, canon `RELEASE_AND_DISTRIBUTION` section 10): `channels.json` (declared by hand: the
+packages and the channels), `builds.json` (the last build of each package, flavor and kind), `history.jsonl`
+(every publication event, append-only) and `RELEASES.md` (rendered after every write, never edited). There are
+two packages - `filedo` (the zip, the MSI and the setup installer, one `yyMMddHHmm` stamp) and `filedo-msix` (the
+Store package, `yy.MMdd.HHmm.0`) - and four channels: `github`, `winget`, `installer` (the setup EXE, read from
+the latest GitHub Release) and `msstore`. The writer is the canon's, reached through `packaging\release-ledger.ps1`,
+which finds the installed sza plugin's copy:
+
+```powershell
+.\packaging\release-ledger.ps1 show       # the last builds, the live version and what is in flight per channel
+.\packaging\release-ledger.ps1 probe      # read-only: GitHub, winget, the Store; writes only what changed
+.\packaging\release-ledger.ps1 history    # every publication, newest first
+.\packaging\release-ledger.ps1 confirm -Key msstore -Version <yy.MMdd.HHmm.0> -State submitted -Url <the page that shows it>
+```
+
+Who writes what: `build.ps1` and `msix\build-msix.ps1` record the build as their last step (a `test` build, except
+the gate build of `release.ps1` and a Store package built with `-Stamp`, which are `release` builds); `release.ps1`
+records each channel step as it happens (step 5 GitHub and the installer `live`, step 7 winget `submitted` - or
+`pending` when the submit failed - and step 8 the MSIX `pending`) and commits what it wrote after the tag as
+`Ledger: v<stamp>`. A ledger failure is one yellow line and never fails a build or a release. What no script
+sees - the Store submission, a merged winget pull request - is the owner's moment: run `probe` after it, or
+`confirm` it with the page that shows it. Two edges of the writer: its winget probe cannot see an open pull
+request whose version has no dot (a FileDO stamp), so `release.ps1` records the pull request itself (or `publish`
+by hand), and `import` stamps the merged winget versions with the import time.
+
+The three hooks are proven on a scratch repository, in about twelve seconds and with no build, by
+`tests\test-ledger-hooks.ps1` (exit 0 passed, 1 a defect, 2 no writer to try); run it when a hook changes. The first real
+build and the next release that write through them prove the wiring itself.
 
 ### The release notes on the site
 
@@ -588,11 +623,13 @@ overwrite it anyway.
 - **Store step failed** - fix the cause, then `.\msix\build-msix.ps1 -Stamp
   <stamp>` (or `.\release.ps1 -Resume -Version <stamp> -SkipWinget`). Both
   build only from sources equal to `v<stamp>`: HEAD's tree must equal the
-  tag's outside `winget\` and nothing may be changed or untracked outside
-  `winget\`. When `main` has moved on since the tag, build from a worktree of
+  tag's outside `winget\` and `docs\releases\` and nothing may be changed or
+  untracked outside them. When `main` has moved on since the tag, build from a worktree of
   the tag instead: `git worktree add ..\FileDO-v<stamp> v<stamp>`, run
-  `.\msix\build-msix.ps1 -Stamp <stamp>` there, then
-  `git worktree remove ..\FileDO-v<stamp>`.
+  `.\msix\build-msix.ps1 -Stamp <stamp>` there, copy `msix\out\` out, then
+  `git worktree remove ..\FileDO-v<stamp>`. The build records itself in the
+  worktree's copy of the release ledger, which goes with it, so record it from
+  the main tree: `.\packaging\release-ledger.ps1 build -Package filedo-msix -Kind release -Version <yy.MMdd.HHmm.0> -Artifact msix/out/FileDO_<version>.msix`.
 - **A partial release exists** (the run failed mid-upload, so the release
   carries some of the six assets) - the re-dispatch is refused until that
   release is gone. Delete the **release, not the tag**, by hand

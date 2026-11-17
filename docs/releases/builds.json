@@ -1,0 +1,33 @@
+{
+  "schema": "1",
+  "builds": [
+    {
+      "package": "filedo",
+      "flavor": "default",
+      "kind": "release",
+      "version": "2611171800",
+      "builtAt": "2026-11-17T19:03:57+01:00",
+      "artifact": "dist/FileDO-2611171800-setup.exe",
+      "sha256": "b4d4c75500abfbadff1e0164df3d3bbc37b62469cb9187acf7517b59960a0ecc",
+      "note": "recorded after the fact by SP-0229: built by release.ps1 at the gate of this release, before the hooks existed"
+    },
+    {
+      "package": "filedo-msix",
+      "flavor": "default",
+      "kind": "release",
+      "version": "26.1117.1800.0",
+      "builtAt": "2026-11-17T19:56:38+01:00",
+      "artifact": "msix/out/FileDO_26.1117.1800.0.msix",
+      "sha256": "1973735c959d763db4ef421f231e8f1fb198482499f6200c794bbf734b1e2093"
+    },
+    {
+      "package": "filedo-msix",
+      "flavor": "default",
+      "kind": "test",
+      "version": "26.1117.1958.0",
+      "builtAt": "2026-11-17T19:58:16+01:00",
+      "artifact": "msix/out/FileDO_26.1117.1958.0.msix",
+      "sha256": "996a43180aadf8f93defa6c4abaab5a93137d28f83734d1cc6900278f9f685c4"
+    }
+  ]
+}

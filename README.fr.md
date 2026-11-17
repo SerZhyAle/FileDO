@@ -278,6 +278,12 @@ filedo backup D:\Photos to E:\Bak gen 7
 # Le jeu nommé par stem au lieu du nom du dossier, et scellé : Docs_001.fd-sec ..
 filedo backup D:\Photos to E:\Bak gen 7 stem Docs sec
 
+# Rétention par jours dans E:\Bak : retirer les fichiers du jeu de plus de 7 jours après vérification et renommage
+filedo backup D:\Photos to E:\Bak keep-days 7
+
+# Garder la première sauvegarde de chaque mois pour toujours, nommée par stem et scellée
+filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly sec
+
 # Reconstruire le dossier à côté de l'archive, ou à une autre adresse
 filedo restore Photos-2611101530.zip
 filedo restore Photos-2611101530.fd-sec to D:\
@@ -321,16 +327,27 @@ filedo restore Photos-2611101530.fd-sec to D:\
   et une exécution échouée ou arrêtée ne supprime rien. Le dossier doit avoir de la place pour un fichier
   de plus que ce que le jeu contient pendant que l'exécution travaille. `keep-zip` ne va pas avec `gen`.
   Avec `--events`, le résultat porte `generation`, `retiredGeneration` (0 = aucun) et `keepCount`.
+- **La rétention par jours retire les anciennes sauvegardes tout en gardant la première de chaque mois.**
+  `keep-days <1-999>` retire les fichiers du jeu `<stem>-<yyMMddHHmm>.zip` (`.fd-sec` avec `sec`) de plus
+  de N jours selon l'heure locale lue dans le seul nom du fichier - l'heure de modification n'est jamais lue,
+  afin qu'un dossier synchronisé ne fausse pas le tri ; `to` désigne un dossier et `stem <nom>` nomme le jeu.
+  Ajoutez `keep-monthly` pour conserver indéfiniment le fichier le plus ancien de chaque mois civil. Le
+  nouveau fichier est d'abord construit sous un nom provisoire, relu et renommé à sa place ; seulement ensuite
+  les fichiers expirés sont retirés (plusieurs peuvent être retirés en une exécution ; une exécution échouée
+  ou arrêtée ne supprime rien). `keep-days` ne se combine pas avec `gen` ni `keep-zip`, et `keep-monthly`
+  exige `keep-days`. Avec `--events`, le résultat porte `retiredCount`, `keptCount`, `keepDays` et (avec
+  `keep-monthly`) `monthlyKept`.
 - **Une sauvegarde est une copie entière, faite quand vous la lancez** - il n'y a ni planification, ni
-  historique des sauvegardes précédentes, ni couche incrémentale ; un jeu numéroté n'est qu'une rotation
-  bornée de copies entières, et la planification reste la vôtre. Un fichier seul va dans un conteneur avec
-  `secure`.
+  historique des sauvegardes précédentes, ni couche incrémentale ; un jeu numéroté ou la rétention par jours
+  n'est qu'une rotation bornée de copies entières, et la planification reste la vôtre. Un fichier seul va
+  dans un conteneur avec `secure`.
 
 Dans la fenêtre, le groupe **«Protéger»** porte les deux opérations sous forme de pages - **«Sauvegarder
 un dossier»** et **«Restaurer une sauvegarde»** - et la page **«Commande»** les construit aussi (`backup`,
 `backup sec`, `restore`). Le mot de passe est saisi hors de vue (deux fois pour une sauvegarde scellée) et
 n'atteint aucune ligne de commande. À l'étape 3 de la page **«Sauvegarder un dossier»**, on demande aussi
-combien de sauvegardes garder et comment nommer le jeu numéroté.
+combien de sauvegardes garder dans un jeu ou combien de jours conserver les sauvegardes datées (avec le
+choix de garder la première de chaque mois) et comment nommer le jeu.
 
 ---
 

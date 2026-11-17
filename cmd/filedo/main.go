@@ -638,6 +638,27 @@ BACKUP AND RESTORE (a restorable copy in one file)
   more than the set holds while the run works. keep-zip does not go with gen.
   With --events the result carries generation, retiredGeneration (0 = none) and
   keepCount.
+  filedo.exe backup D:\Photos to E:\Bak keep-days 7
+                                         → Dated files Photos-<yyMMddHHmm>.zip
+                                           in E:\Bak; after the new copy is
+                                           verified and renamed into place,
+                                           set files older than 7 days are
+                                           retired (dates come from file names
+                                           in local time, never modtime)
+  filedo.exe backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly sec
+                                         → Dated sealed set Docs-<stamp>.fd-sec;
+                                           every set file older than 7 days is
+                                           retired except the earliest file of
+                                           each calendar month, which stays
+                                           forever
+  keep-days takes 1 to 999 and names a dated retention set; to names a folder,
+  and stem <name> is one file-name part. The new file is built under a partial
+  name, read back first, renamed into place, and only then are expired files of
+  <stem>-<yyMMddHHmm>.zip (.fd-sec with sec) retired - several may retire in
+  one run, and a failed or stopped run removes nothing. keep-monthly requires
+  keep-days; gen and keep-days cannot be combined; keep-zip does not go with
+  keep-days. With --events the result carries retiredCount, keptCount, keepDays
+  and (with keep-monthly) monthlyKept.
   filedo.exe restore Photos-2611101530.zip
                                          → Rebuild the folder beside the archive
   filedo.exe restore Photos-2611101530.fd-sec to D:\

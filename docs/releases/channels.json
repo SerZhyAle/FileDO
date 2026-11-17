@@ -1,0 +1,42 @@
+{
+  "schema": "1",
+  "packages": [
+    {
+      "id": "filedo",
+      "title": "FileDO (the zip, the MSI and the setup installer; one stamp, yyMMddHHmm)"
+    },
+    {
+      "id": "filedo-msix",
+      "title": "FileDO Store package (MSIX; the four-part version yy.MMdd.HHmm.0)"
+    }
+  ],
+  "channels": [
+    {
+      "key": "github",
+      "channel": "github",
+      "package": "filedo",
+      "repo": "SerZhyAle/FileDO"
+    },
+    {
+      "key": "winget",
+      "channel": "winget",
+      "package": "filedo",
+      "id": "SerZhyAle.FileDO"
+    },
+    {
+      "key": "installer",
+      "channel": "url",
+      "package": "filedo",
+      "title": "Setup installer (an asset of the GitHub Release)",
+      "url": "https://api.github.com/repos/SerZhyAle/FileDO/releases/latest",
+      "pattern": "FileDO-(\\d{10})-setup\\.exe"
+    },
+    {
+      "key": "msstore",
+      "channel": "msstore",
+      "package": "filedo-msix",
+      "storeId": "9PH1LPCMRG83",
+      "title": "Microsoft Store"
+    }
+  ]
+}

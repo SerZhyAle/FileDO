@@ -2607,6 +2607,72 @@ Partial Public Module SelfTest
             cmd = jv.CurrentCommand()
             Check("backup-page:gen-keepzip-off", keepZipBefore AndAlso Not jv.BackupKeepZipOfferedForTest AndAlso
                   Not cmd.Contains("keep-zip") AndAlso cmd.Contains(" sec gen 5"), keepZipBefore.ToString() & " / " & cmd)
+
+            ' SP-0230: dated retention - `keep-days <N> [keep-monthly]` and shared `stem <name>`.
+            jv.SetBackupForTest("D:\out", False, False, "", False, False, True, False, "", "", "7", False)
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:keep-days-line", runs AndAlso cmd.Contains(" to D:\out keep-days 7") AndAlso
+                  Not cmd.Contains("keep-monthly") AndAlso Not cmd.Contains(" stem "), cmd & " / " & reason)
+            Check("backup-page:keep-days-partly-reversible",
+                  jv.ReversibilityForTest = d("shell_rev_partly_reversible") AndAlso Not jv.DestructiveBadgeShownForTest,
+                  jv.ReversibilityForTest)
+
+            jv.SetBackupForTest("D:\out", True, False, "", False, False, True, False, "", "  My Docs ", "30", True)
+            jv.SetCredentialPairForTest(secret, secret)
+            cmd = jv.CurrentCommand()
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:keep-days-monthly-sealed", runs AndAlso
+                  cmd.EndsWith(" to D:\out sec keep-days 30 keep-monthly stem ""My Docs"" pe:FILEDO_SHELL_CRED") AndAlso
+                  Not cmd.Contains(secret), cmd & " / " & reason)
+            jv.SetCredentialPairForTest("", "")
+
+            Dim daysRangeFailures As String = ""
+            For Each bad In New String() {"0", "1000", "abc", "-3", "3 4"}
+                jv.SetBackupForTest("", False, False, "", False, False, True, False, "", "", bad, False)
+                runs = jv.RunStateForTest(reason)
+                If runs OrElse reason <> d("shell_bk_keep_days_range") OrElse jv.CurrentCommand().Contains("keep-days") Then
+                    daysRangeFailures &= bad & ": " & runs.ToString() & " / " & reason & "; "
+                End If
+            Next
+            Check("backup-page:keep-days-range-refused", daysRangeFailures = "", daysRangeFailures)
+
+            Dim daysStemFailures As String = ""
+            For Each bad In New String() {"a/b", "CON", New String("a"c, 238)}
+                jv.SetBackupForTest("", False, False, "", False, False, True, False, "", bad, "7", False)
+                runs = jv.RunStateForTest(reason)
+                If runs OrElse reason <> d("shell_bk_stem_bad") OrElse jv.CurrentCommand().Contains(" stem ") Then
+                    daysStemFailures &= bad & ": " & runs.ToString() & " / " & reason & "; "
+                End If
+            Next
+            For Each good In New String() {"Docs", New String("a"c, 237)}
+                jv.SetBackupForTest("", False, False, "", False, False, True, False, "", good, "7", False)
+                runs = jv.RunStateForTest(reason)
+                If Not runs OrElse Not jv.CurrentCommand().Contains(" keep-days 7 stem ") Then
+                    daysStemFailures &= good & ": refused / " & reason & "; "
+                End If
+            Next
+            Check("backup-page:keep-days-stem-refused", daysStemFailures = "", daysStemFailures)
+
+            jv.SetBackupForTest("D:\out\x.zip", False, False, "", False, False, True, False, "", "", "7", False)
+            runs = jv.RunStateForTest(reason)
+            Dim daysDestZip = Not runs AndAlso reason = d("shell_bk_keep_days_dest")
+            jv.SetBackupForTest("D:\out\x.FD-SEC", True, False, "", False, False, True, False, "", "", "7", False)
+            runs = jv.RunStateForTest(reason)
+            Dim daysDestSealed = Not runs AndAlso reason = d("shell_bk_keep_days_dest")
+            Check("backup-page:keep-days-dest-file-refused", daysDestZip AndAlso daysDestSealed,
+                  daysDestZip.ToString() & " / " & daysDestSealed.ToString())
+
+            jv.SetBackupForTest("", True, True, "", False, False, True, False, "", "", "7", False)
+            cmd = jv.CurrentCommand()
+            Check("backup-page:keep-days-keepzip-off", Not jv.BackupKeepZipOfferedForTest AndAlso
+                  Not cmd.Contains("keep-zip") AndAlso cmd.Contains(" sec keep-days 7"), cmd)
+
+            jv.SetBackupForTest("D:\out", False, False, "", False, False, True, False, "5", "", "7", False)
+            runs = jv.RunStateForTest(reason)
+            Check("backup-page:keep-days-gen-conflict", Not runs AndAlso reason = d("shell_bk_retention_conflict"),
+                  runs.ToString() & " / " & reason)
+
             jv.SetBackupForTest("", False, False, "", False, False, True, False)
 
             jv.SetJob(JobCatalogue.GetJob("rail_job_restore"))

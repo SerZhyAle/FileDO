@@ -824,6 +824,42 @@ function Invoke-Tier1 {
     Remove-Scratch $genFile
     Remove-Scratch $genTo
 
+    # -- backup dated retention (SP-0230, CLI-EVENT-STREAM 0.18 items I-K): keep-days 7 + keep-monthly
+    $retDir = Join-Path $Work 'bak-ret'; New-Item -ItemType Directory -Path $retDir -Force | Out-Null
+    $retStem = 'OpsRet'
+    $nowLocal = Get-Date
+    $retM1a = (Get-Date -Year $nowLocal.Year -Month $nowLocal.Month -Day 1 -Hour 13 -Minute 0 -Second 0).AddMonths(-2)
+    $retM1b = $retM1a.AddDays(12)
+    $retM2a = (Get-Date -Year $nowLocal.Year -Month $nowLocal.Month -Day 1 -Hour 13 -Minute 0 -Second 0).AddMonths(-1)
+    $retM2b = $retM2a.AddDays(10)
+    if ($retM2b -ge $nowLocal.AddDays(-8)) {
+        $retM1a = $retM1a.AddMonths(-1); $retM1b = $retM1b.AddMonths(-1)
+        $retM2a = $retM2a.AddMonths(-1); $retM2b = $retM2b.AddMonths(-1)
+    }
+    $retSeed = @(
+        "$retStem-$($retM1a.ToString('yyMMddHHmm')).zip",
+        "$retStem-$($retM1b.ToString('yyMMddHHmm')).zip",
+        "$retStem-$($retM2a.ToString('yyMMddHHmm')).zip",
+        "$retStem-$($retM2b.ToString('yyMMddHHmm')).zip",
+        'foreign.txt'
+    )
+    foreach ($fn in $retSeed) { Set-Content -LiteralPath (Join-Path $retDir $fn) -Value 'seed' }
+    [void](Op 'backup: dated retention with keep-monthly' @('backup', $src, 'to', $retDir, 'stem', $retStem, 'keep-days', '7', 'keep-monthly') -Bytes $nBytes -Verdict @('Done') -Verify {
+        param($r)
+        if ((N $r 'retiredCount') -ne 2) { "retiredCount = $(N $r 'retiredCount'), want 2" }
+        if ((N $r 'keptCount') -ne 3) { "keptCount = $(N $r 'keptCount'), want 3" }
+        if ((N $r 'keepDays') -ne 7) { "keepDays = $(N $r 'keepDays'), want 7" }
+        if ((N $r 'monthlyKept') -ne 2) { "monthlyKept = $(N $r 'monthlyKept'), want 2" }
+        if (-not (Test-Path -LiteralPath (Join-Path $retDir $retSeed[0])) -or -not (Test-Path -LiteralPath (Join-Path $retDir $retSeed[2]))) { 'earliest file of a month was retired' }
+        if ((Test-Path -LiteralPath (Join-Path $retDir $retSeed[1])) -or (Test-Path -LiteralPath (Join-Path $retDir $retSeed[3]))) { 'expired non-monthly file stayed behind' }
+        if (-not (Test-Path -LiteralPath (Join-Path $retDir 'foreign.txt'))) { 'foreign file was touched' }
+    })
+    [void](Op 'backup: gen with keep-days refused' @('backup', $src, 'to', $retDir, 'stem', $retStem, 'gen', '3', 'keep-days', '7') -Code @(10) -Verdict @('Not proven') -Verify {
+        param($r)
+        if (@(Get-ChildItem -LiteralPath $retDir -File).Count -ne 4) { 'a refused combination changed the destination' }
+    })
+    Remove-Scratch $retDir
+
     # -- a batch run: the same dispatch with its own tokenizer and stop rule
     $dstBatch = Join-Path $Work 'dst-batch'
     $list = Join-Path $Work 'ops.lst'

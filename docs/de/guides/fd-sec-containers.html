@@ -268,7 +268,16 @@
           ><span data-l="de">Kopieren</span></button>
         </div>
         <p>
-          <span data-l="de">Die ZIP-Datei speichert den Namen des Ordners, nie seinen Pfad. Ein vorhandener Ordner wird nie ergänzt oder ersetzt - <code>restore</code> schreibt daneben als <code>&lt;Name&gt;-1</code> -, und ein Archiv, dessen Namen das Ziel verlassen würden, wird als Ganzes abgelehnt, bevor etwas geschrieben wird. Das Windows-Laufwerk selbst wird abgelehnt; eine Verzweigung oder ein symbolischer Link in der Quelle lehnt die Sicherung ab, es sei denn, <code>skip-links</code> lässt ihn weg und listet ihn auf. Berechtigungen, alternative Datenströme und Links kommen nicht mit. Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten: Es gibt keinen Zeitplan und keine Liste früherer Sicherungen; ein nummerierter Satz ist nur eine begrenzte Rotation ganzer Kopien, und der Zeitplan bleibt Ihrer.</span>
+          <span data-l="de"><code>keep-days</code> räumt stattdessen datierte Sicherungen auf: <code>keep-days 7</code> entfernt Dateien des Satzes <code>&lt;stem&gt;-&lt;yyMMddHHmm&gt;.zip</code> (mit <code>sec</code> <code>.fd-sec</code>), die nach der Ortszeit allein aus dem Dateinamen älter als 7 Tage sind - die Änderungszeit wird nicht gelesen, sodass Sync-Ordner die Auswahl nicht verschieben; <code>to</code> nennt einen Ordner, und <code>stem</code> nennt den Satz. Mit <code>keep-monthly</code> bleibt die früheste Datei jedes Kalendermonats dauerhaft erhalten. Die neue Datei wird zuerst unter einem vorläufigen Namen gebaut, zurückgelesen und an ihren endgültigen Platz umbenannt; erst dann scheiden abgelaufene Dateien aus (in einem Lauf können mehrere ausscheiden; ein fehlgeschlagener oder angehaltener Lauf entfernt nichts). <code>keep-days</code> lässt sich nicht mit <code>gen</code> oder <code>keep-zip</code> kombinieren, und <code>keep-monthly</code> braucht <code>keep-days</code>.</span>
+        </p>
+        <div class="copybox">
+          filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly<button
+            class="copy"
+            data-copy="filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+        <p>
+          <span data-l="de">Die ZIP-Datei speichert den Namen des Ordners, nie seinen Pfad. Ein vorhandener Ordner wird nie ergänzt oder ersetzt - <code>restore</code> schreibt daneben als <code>&lt;Name&gt;-1</code> -, und ein Archiv, dessen Namen das Ziel verlassen würden, wird als Ganzes abgelehnt, bevor etwas geschrieben wird. Das Windows-Laufwerk selbst wird abgelehnt; eine Verzweigung oder ein symbolischer Link in der Quelle lehnt die Sicherung ab, es sei denn, <code>skip-links</code> lässt ihn weg und listet ihn auf. Berechtigungen, alternative Datenströme und Links kommen nicht mit. Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten: Es gibt keinen Zeitplan und keine Liste früherer Sicherungen; ein nummerierter Satz oder die Aufbewahrung nach Tagen ist nur eine begrenzte Rotation ganzer Kopien, und der Zeitplan bleibt Ihrer.</span>
         </p>
       </section>
     </main>

@@ -38,9 +38,13 @@ Public Class BackupOptionsPanel
     Private skipLinksCheck As CheckBox
     Private genLabel As Label
     Private genBox As TextBox
+    Private keepDaysLabel As Label
+    Private keepDaysBox As TextBox
+    Private keepMonthlyCheck As CheckBox
     Private stemLabel As Label
     Private stemBox As TextBox
     Private genNote As Label
+    Private keepDaysNote As Label
     Private rootCheck As CheckBox
     Private rootNote As Label
     Private suffixCheck As CheckBox
@@ -81,17 +85,24 @@ Public Class BackupOptionsPanel
         keepZipCheck.Margin = Ui.PxPad(Me, 18, 2, 0, 2)
         skipLinksCheck = NewCheck("shell_bk_skip_links")
 
-        ' The numbered set (SP-0208, SP-0209): `gen <N>` and `stem <name>`. Empty keep-count is the dated
-        ' single file; the stem is read only while a keep-count is given.
+        ' The numbered set (SP-0208, SP-0209) and dated retention (SP-0230): `gen <N>` or
+        ' `keep-days <N> [keep-monthly]`, sharing `stem <name>`.
         genLabel = New Label With {.Text = L("shell_bk_gen"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
         genBox = New TextBox With {.Width = Ui.Px(Me, 90), .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
         genBox.AccessibleName = L("shell_bk_gen")
         AddHandler genBox.TextChanged, Sub() Raise()
+        keepDaysLabel = New Label With {.Text = L("shell_bk_keep_days"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 6, 0, 2)}
+        keepDaysBox = New TextBox With {.Width = Ui.Px(Me, 90), .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
+        keepDaysBox.AccessibleName = L("shell_bk_keep_days")
+        AddHandler keepDaysBox.TextChanged, Sub() Raise()
+        keepMonthlyCheck = NewCheck("shell_bk_keep_monthly")
+        keepMonthlyCheck.Margin = Ui.PxPad(Me, 18, 2, 0, 2)
         stemLabel = New Label With {.Text = L("shell_bk_stem"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 4, 0, 2)}
         stemBox = New TextBox With {.Width = Ui.Px(Me, 320), .Margin = Ui.PxPad(Me, 0, 0, 0, 2)}
         stemBox.AccessibleName = L("shell_bk_stem")
         AddHandler stemBox.TextChanged, Sub() Raise()
         genNote = New Label With {.Text = L("shell_bk_gen_note"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 4)}
+        keepDaysNote = New Label With {.Text = L("shell_bk_keep_days_note"), .AutoSize = True, .Margin = Ui.PxPad(Me, 0, 2, 0, 4)}
 
         rootCheck = NewCheck("shell_bk_root")
         rootNote = New Label With {.Text = L("shell_bk_root_note"), .AutoSize = True, .Margin = Ui.PxPad(Me, 18, 0, 0, 4)}
@@ -107,9 +118,13 @@ Public Class BackupOptionsPanel
         Controls.Add(skipLinksCheck)
         Controls.Add(genLabel)
         Controls.Add(genBox)
+        Controls.Add(keepDaysLabel)
+        Controls.Add(keepDaysBox)
+        Controls.Add(keepMonthlyCheck)
         Controls.Add(stemLabel)
         Controls.Add(stemBox)
         Controls.Add(genNote)
+        Controls.Add(keepDaysNote)
         Controls.Add(rootCheck)
         Controls.Add(rootNote)
         Controls.Add(suffixCheck)
@@ -151,6 +166,9 @@ Public Class BackupOptionsPanel
         skipLinksCheck.Visible = backup
         genLabel.Visible = backup
         genBox.Visible = backup
+        keepDaysLabel.Visible = backup
+        keepDaysBox.Visible = backup
+        keepMonthlyCheck.Visible = backup
         stemLabel.Visible = backup
         stemBox.Visible = backup
         suffixCheck.Visible = Not backup
@@ -181,16 +199,29 @@ Public Class BackupOptionsPanel
     ' beside an existing folder" - so the page shows suffix as on while delete is chosen.
     Private Sub ApplyExclusions()
         Dim haveSet = SetChosen()
-        keepZipCheck.Enabled = sealCheck.Checked AndAlso Not haveSet
-        If (Not sealCheck.Checked OrElse haveSet) AndAlso keepZipCheck.Checked Then
+        Dim haveDays = DaysRetentionChosen()
+        Dim haveRetention = haveSet OrElse haveDays
+        genLabel.Enabled = Not haveDays
+        genBox.Enabled = Not haveDays
+        keepDaysLabel.Enabled = Not haveSet
+        keepDaysBox.Enabled = Not haveSet
+        keepMonthlyCheck.Enabled = haveDays
+        If Not haveDays AndAlso keepMonthlyCheck.Checked Then
+            suspendEvents = True
+            keepMonthlyCheck.Checked = False
+            suspendEvents = False
+        End If
+        keepZipCheck.Enabled = sealCheck.Checked AndAlso Not haveRetention
+        If (Not sealCheck.Checked OrElse haveRetention) AndAlso keepZipCheck.Checked Then
             suspendEvents = True
             keepZipCheck.Checked = False
             suspendEvents = False
         End If
-        ' The name of the set means something only beside a keep-count; the note says what the set is.
-        stemLabel.Enabled = haveSet
-        stemBox.Enabled = haveSet
-        genNote.Visible = (verb = "backup") AndAlso haveSet
+        ' The name of the set means something only beside gen or keep-days.
+        stemLabel.Enabled = haveRetention
+        stemBox.Enabled = haveRetention
+        genNote.Visible = (verb = "backup") AndAlso haveSet AndAlso Not haveDays
+        keepDaysNote.Visible = (verb = "backup") AndAlso haveDays AndAlso Not haveSet
         If delCheck.Checked AndAlso Not suffixCheck.Checked Then
             suspendEvents = True
             suffixCheck.Checked = True
@@ -206,6 +237,8 @@ Public Class BackupOptionsPanel
         keepZipCheck.Checked = False
         skipLinksCheck.Checked = False
         genBox.Text = ""
+        keepDaysBox.Text = ""
+        keepMonthlyCheck.Checked = False
         stemBox.Text = ""
         rootCheck.Checked = False
         suffixCheck.Checked = True
@@ -216,29 +249,48 @@ Public Class BackupOptionsPanel
         ApplyExclusions()
     End Sub
 
-    ' ---- the numbered set (SP-0208 gen and stem, SP-0209) ---------------------
+    ' ---- the numbered set (SP-0208) and dated retention (SP-0230) ------------
 
     Private Function SetChosen() As Boolean
         Return Not String.IsNullOrWhiteSpace(genBox.Text)
     End Function
 
+    Private Function DaysRetentionChosen() As Boolean
+        Return Not String.IsNullOrWhiteSpace(keepDaysBox.Text)
+    End Function
+
+    Private Shared Function ParseWhole1To999(text As String) As Integer
+        Dim n As Integer
+        If Integer.TryParse(text.Trim(), Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture, n) AndAlso
+           n >= 1 AndAlso n <= 999 Then Return n
+        Return 0
+    End Function
+
     ' The keep-count the page writes: a whole number 1 to 999, or 0 when the field is empty or holds
     ' anything else (the command line takes digits only, no sign and no space inside).
     Private Function KeepCount() As Integer
-        Dim n As Integer
-        If Integer.TryParse(genBox.Text.Trim(), Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture, n) AndAlso
-           n >= 1 AndAlso n <= 999 Then Return n
-        Return 0
+        Return ParseWhole1To999(genBox.Text)
+    End Function
+
+    Private Function KeepDaysCount() As Integer
+        Return ParseWhole1To999(keepDaysBox.Text)
     End Function
 
     Private Function StemText() As String
         Return stemBox.Text.Trim()
     End Function
 
-    ' One file-name part Windows creates as written, short enough to carry `_NNN` and the longer
-    ' extension: the rules the command line holds a stem to (backupzip.CheckName, and the 255
-    ' characters of a name). An empty stem is fine - the set is then named after the folder.
+    ' One file-name part Windows creates as written, short enough to carry `_NNN.fd-sec` (11 chars)
+    ' for gen or `-yyMMddHHmm.fd-sec` (18 chars) for keep-days.
     Friend Shared Function StemUsable(stem As String) As Boolean
+        Return StemUsableFor(stem, 4 + 7)
+    End Function
+
+    Friend Shared Function StemUsableForDays(stem As String) As Boolean
+        Return StemUsableFor(stem, 11 + 7)
+    End Function
+
+    Private Shared Function StemUsableFor(stem As String, suffixLen As Integer) As Boolean
         If String.IsNullOrEmpty(stem) Then Return True
         If stem = "." OrElse stem = ".." Then Return False
         If stem.EndsWith("."c) OrElse stem.EndsWith(" "c) Then Return False
@@ -250,8 +302,7 @@ Public Class BackupOptionsPanel
         Dim dot = device.IndexOf("."c)
         If dot >= 0 Then device = device.Substring(0, dot)
         If Array.IndexOf(ReservedDeviceNames, device.TrimEnd(" "c).ToUpperInvariant()) >= 0 Then Return False
-        ' <stem>_<NNN>.fd-sec is the longest name this stem can make.
-        Return stem.Length + 4 + 7 <= 255
+        Return stem.Length + suffixLen <= 255
     End Function
 
     Private Shared ReadOnly ReservedDeviceNames As String() = {
@@ -266,11 +317,17 @@ Public Class BackupOptionsPanel
                p.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)
     End Function
 
-    ' True while a valid keep-count is given: the run writes a numbered set, and once the set is full
-    ' it replaces its oldest file - one file per run, after the new one is read back.
+    ' True while a valid keep-count or keep-days is given: the run retires old copies once the
+    ' new one is written and read back.
     Public ReadOnly Property NumberedSet As Boolean
         Get
             Return verb = "backup" AndAlso KeepCount() > 0
+        End Get
+    End Property
+
+    Public ReadOnly Property RetiresBackups As Boolean
+        Get
+            Return verb = "backup" AndAlso (KeepCount() > 0 OrElse KeepDaysCount() > 0)
         End Get
     End Property
 
@@ -302,10 +359,16 @@ Public Class BackupOptionsPanel
                     target.EndsWith(".fd-sec", StringComparison.OrdinalIgnoreCase)) Then Return "shell_rs_need_archive"
             Return ""
         End If
+        If SetChosen() AndAlso DaysRetentionChosen() Then Return "shell_bk_retention_conflict"
         If SetChosen() Then
             If KeepCount() = 0 Then Return "shell_bk_gen_range"
             If Not StemUsable(StemText()) Then Return "shell_bk_stem_bad"
             If destination <> "" AndAlso LooksLikeArchive(destination) Then Return "shell_bk_gen_dest"
+        End If
+        If DaysRetentionChosen() Then
+            If KeepDaysCount() = 0 Then Return "shell_bk_keep_days_range"
+            If Not StemUsableForDays(StemText()) Then Return "shell_bk_stem_bad"
+            If destination <> "" AndAlso LooksLikeArchive(destination) Then Return "shell_bk_keep_days_dest"
         End If
         If Not targetIsRoot Then Return ""
         If TargetPath.IsSystemVolumeRoot(target) Then Return "shell_bk_system_drive"
@@ -333,13 +396,23 @@ Public Class BackupOptionsPanel
                 args.Add("y")
             End If
             If skipLinksCheck.Checked Then args.Add("skip-links")
-            ' The numbered set; `stem` is a word of the set and goes only with `gen`.
+            ' The numbered set or dated retention; `stem` goes with whichever is active.
             Dim keep = KeepCount()
-            If keep > 0 Then
+            Dim days = KeepDaysCount()
+            If keep > 0 AndAlso days = 0 Then
                 args.Add("gen")
                 args.Add(keep.ToString(Globalization.CultureInfo.InvariantCulture))
                 Dim stem = StemText()
                 If stem <> "" AndAlso StemUsable(stem) Then
+                    args.Add("stem")
+                    args.Add(stem)
+                End If
+            ElseIf days > 0 AndAlso keep = 0 Then
+                args.Add("keep-days")
+                args.Add(days.ToString(Globalization.CultureInfo.InvariantCulture))
+                If keepMonthlyCheck.Checked Then args.Add("keep-monthly")
+                Dim stem = StemText()
+                If stem <> "" AndAlso StemUsableForDays(stem) Then
                     args.Add("stem")
                     args.Add(stem)
                 End If
@@ -370,7 +443,8 @@ Public Class BackupOptionsPanel
     End Function
 
     Friend Sub SetForTest(sealed As Boolean, keepZip As Boolean, level As String, root As Boolean, skipLinks As Boolean,
-                          suffix As Boolean, del As Boolean, Optional keep As String = "", Optional stem As String = "")
+                          suffix As Boolean, del As Boolean, Optional keep As String = "", Optional stem As String = "",
+                          Optional keepDays As String = "", Optional keepMonthly As Boolean = False)
         suspendEvents = True
         sealCheck.Checked = sealed
         keepZipCheck.Checked = keepZip
@@ -378,6 +452,8 @@ Public Class BackupOptionsPanel
         rootCheck.Checked = root
         skipLinksCheck.Checked = skipLinks
         genBox.Text = keep
+        keepDaysBox.Text = keepDays
+        keepMonthlyCheck.Checked = keepMonthly
         stemBox.Text = stem
         suffixCheck.Checked = suffix
         delCheck.Checked = del
@@ -389,8 +465,10 @@ Public Class BackupOptionsPanel
         Ui.Wrap(noteLabel, card, reserve)
         Ui.Wrap(rootNote, card, reserve)
         Ui.Wrap(genLabel, card, reserve)
+        Ui.Wrap(keepDaysLabel, card, reserve)
         Ui.Wrap(stemLabel, card, reserve)
         Ui.Wrap(genNote, card, reserve)
+        Ui.Wrap(keepDaysNote, card, reserve)
     End Sub
 
     Public Sub ApplyTheme()
@@ -403,25 +481,28 @@ Public Class BackupOptionsPanel
         rootNote.ForeColor = p.Warning
         genNote.Font = Theme.FontCaption()
         genNote.ForeColor = p.MutedText
+        keepDaysNote.Font = Theme.FontCaption()
+        keepDaysNote.ForeColor = p.MutedText
         levelLabel.Font = Theme.FontBody()
         levelLabel.ForeColor = p.Text
-        For Each lb As Label In New Label() {genLabel, stemLabel}
+        For Each lb As Label In New Label() {genLabel, keepDaysLabel, stemLabel}
             lb.Font = Theme.FontBody()
             lb.ForeColor = p.Text
         Next
-        For Each tb As TextBox In New TextBox() {genBox, stemBox}
+        For Each tb As TextBox In New TextBox() {genBox, keepDaysBox, stemBox}
             tb.Font = Theme.FontBody()
             tb.BackColor = p.Surface
             tb.BorderStyle = BorderStyle.FixedSingle
         Next
         ' A value the command line would refuse is shown as one, as the size box of the check pages does.
         genBox.ForeColor = If(SetChosen() AndAlso KeepCount() = 0, p.Danger, p.Text)
-        stemBox.ForeColor = If(Not StemUsable(StemText()), p.Danger, p.Text)
+        keepDaysBox.ForeColor = If(DaysRetentionChosen() AndAlso KeepDaysCount() = 0, p.Danger, p.Text)
+        stemBox.ForeColor = If((SetChosen() AndAlso Not StemUsable(StemText())) OrElse (DaysRetentionChosen() AndAlso Not StemUsableForDays(StemText())), p.Danger, p.Text)
         levelCombo.Font = Theme.FontBody()
         levelCombo.BackColor = p.Surface
         levelCombo.ForeColor = p.Text
         levelCombo.FlatStyle = FlatStyle.Flat
-        For Each c As CheckBox In New CheckBox() {sealCheck, keepZipCheck, skipLinksCheck, rootCheck, suffixCheck, delCheck}
+        For Each c As CheckBox In New CheckBox() {sealCheck, keepZipCheck, keepMonthlyCheck, skipLinksCheck, rootCheck, suffixCheck, delCheck}
             c.Font = Theme.FontBody()
             c.BackColor = p.Surface
             c.ForeColor = p.Text

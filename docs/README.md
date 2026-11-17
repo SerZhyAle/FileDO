@@ -1,7 +1,7 @@
 # docs/ - index of this tree
 
-This tree is the published site, plus one folder of contract pointers that the site does not serve
-(`contracts/`, below). The working documents that precede a feature - specs, plans, questionnaires,
+This tree is the published site, plus two folders the site does not serve - the contract pointers and the
+release ledger (`contracts/` and `releases/`, below). The working documents that precede a feature - specs, plans, questionnaires,
 research notes - are not here; see "What does not live here" below.
 
 ## The published site (GitHub Pages serves this tree)
@@ -51,6 +51,13 @@ consumes - id, version, the catalog folder it lives in, this repo's role, and wh
 stay conformant. Pointers, never copies: the contracts themselves live outside this repository
 (`AGENTS.md`, "External contracts"). The files are developer documentation, so they are unlinked from
 every page, absent from `sitemap.xml`, and left unrendered by `.nojekyll`.
+
+[`releases/`](releases/RELEASES.md) is the release ledger (`RELEASE-LEDGER`): `channels.json` declares the
+packages and the channels each ships to, `builds.json` keeps the last build of each package, `history.jsonl`
+every publication, and `RELEASES.md` renders the three. The scripts write them (`packaging/release-ledger.ps1`,
+see `RELEASE.md`, "The release ledger"); only `channels.json` is edited by hand. The folder is unlinked from
+every page and absent from `sitemap.xml`, and `.nojekyll` leaves `RELEASES.md` unrendered; the JSON files are
+plain static files and carry public identities only.
 
 [`DOCUMENT_REGISTRY.jsonl`](DOCUMENT_REGISTRY.jsonl) declares every maintained document in the repository -
 this tree, the READMEs, `AGENTS.md`, `RELEASE.md`, the per-folder READMEs and the winget manifests - with

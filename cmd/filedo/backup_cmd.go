@@ -22,7 +22,7 @@ import (
 // The backup pair (SP-0198):
 //
 //	filedo backup <folder|drive|\\server\share\folder> [to <dir-or-file>] [level <0-9>]
-//	             [gen <1-999> [stem <name>]]
+//	             [gen <1-999> [stem <name>] | keep-days <1-999> [keep-monthly] [stem <name>]]
 //	             [sec] [keep-zip] [root] [skip-links] [p:<pw>|pf:<file>|pe:<VAR>|k:<keyfile>] [y]
 //	filedo restore <archive.zip|archive.fd-sec> [to <dir>] [suffix] [del]
 //	              [p:<pw>|pf:<file>|pe:<VAR>|k:<keyfile>] [y]
@@ -30,16 +30,17 @@ import (
 // backup makes a restorable copy, not a backup product: no schedule, no
 // catalogue, each copy whole (spec 3.2). The result is a plain zip that opens
 // in any zip tool, or - with sec - that zip sealed into one .fd-sec. gen keeps a
-// bounded numbered set instead of a stamped file (backup_generation.go, SP-0208:
-// the schedule is still the caller's, and a rotation is not a catalogue). Both verbs
-// speak the supervisor vocabulary of CLI-EVENT-STREAM rule 11; a container that
-// does not open ends with its own class, 3, 4 or 6, which rule 11 does not use
-// (FDSEC-BEHAVIOUR 1.9 section 21 item 4).
+// bounded numbered set instead of a stamped file (backup_generation.go, SP-0208);
+// keep-days and keep-monthly prune dated files older than N days while keeping
+// the earliest file of each calendar month forever (backup_retention.go, SP-0230).
+// Both verbs speak the supervisor vocabulary of CLI-EVENT-STREAM rule 11; a
+// container that does not open ends with its own class, 3, 4 or 6, which rule 11
+// does not use (FDSEC-BEHAVIOUR 1.9 section 21 item 4).
 
 // backupOptionWords are the words the two verbs take as options. The redactor
 // reads the same table, so a word kept in history is one the parser knows.
 var backupOptionWords = map[string]bool{
-	"sec": true, "keep-zip": true, "root": true, "skip-links": true,
+	"sec": true, "keep-zip": true, "keep-monthly": true, "root": true, "skip-links": true,
 	"suffix": true, "del": true, "delete": true,
 	"y": true, "-y": true, "--force": true, "force": true,
 	// Read by the history logger, not by the verb (NewHistoryLogger).
@@ -48,20 +49,22 @@ var backupOptionWords = map[string]bool{
 
 // backupOpts is the parsed command line of either verb.
 type backupOpts struct {
-	src       string
-	to        string
-	haveTo    bool
-	level     int    // -1: the probe chooses
-	gen       int    // the keep-count of a numbered set, 1..999; 0: no set (SP-0208)
-	stem      string // the set's stem, "" for the source folder's name
-	sec       bool
-	keepZip   bool
-	root      bool
-	skipLinks bool
-	suffix    bool
-	del       bool
-	yes       bool
-	cred      credArg
+	src         string
+	to          string
+	haveTo      bool
+	level       int    // -1: the probe chooses
+	gen         int    // the keep-count of a numbered set, 1..999; 0: no set (SP-0208)
+	keepDays    int    // dated retention window in days, 1..999; 0: no dated retention (SP-0230)
+	keepMonthly bool   // keep earliest backup of each calendar month forever (SP-0230)
+	stem        string // the set's stem, "" for the source folder's name
+	sec         bool
+	keepZip     bool
+	root        bool
+	skipLinks   bool
+	suffix      bool
+	del         bool
+	yes         bool
+	cred        credArg
 }
 
 // parseBackupArgs reads the words after the verb. The first word that is not
@@ -99,6 +102,16 @@ func parseBackupArgs(verb string, args []string) (*backupOpts, error) {
 			}
 			o.gen = n
 			i++
+		case lt == "keep-days" && verb == "backup":
+			if i+1 >= len(args) {
+				return nil, exitClassf(10, "keep-days needs the number of days from 1 to 999: filedo backup <source> keep-days 7")
+			}
+			n, err := strconv.Atoi(args[i+1])
+			if err != nil || n < 1 || n > backupGenMax {
+				return nil, exitClassf(10, "keep-days takes a number of days from 1 to 999")
+			}
+			o.keepDays = n
+			i++
 		case lt == "stem" && verb == "backup":
 			if i+1 >= len(args) {
 				return nil, exitClassf(10, "stem needs a name: one file-name part")
@@ -114,6 +127,8 @@ func parseBackupArgs(verb string, args []string) (*backupOpts, error) {
 				o.sec = true
 			case "keep-zip":
 				o.keepZip = true
+			case "keep-monthly":
+				o.keepMonthly = true
 			case "root":
 				o.root = true
 			case "skip-links":
@@ -150,15 +165,19 @@ func parseBackupArgs(verb string, args []string) (*backupOpts, error) {
 			return nil, exitClassf(10, "suffix and del are restore words; backup never changes the source")
 		case o.keepZip && !o.sec:
 			return nil, exitClassf(10, "keep-zip keeps the zip a sealed backup was made from; it needs sec")
-		case o.stem != "" && o.gen == 0:
-			return nil, exitClassf(10, "stem names the set of a numbered backup; it needs gen: filedo backup <source> gen 7 stem <name>")
-		case o.gen > 0 && o.keepZip:
-			return nil, exitClassf(10, "keep-zip is not combined with gen: a kept zip would stand outside the numbered set and never be retired")
+		case o.gen > 0 && o.keepDays > 0:
+			return nil, exitClassf(10, "gen and keep-days cannot be combined: use either a numbered set (gen) or a dated retention set (keep-days)")
+		case o.keepMonthly && o.keepDays == 0:
+			return nil, exitClassf(10, "keep-monthly keeps the first backup of each month when keep-days retires older backups; it needs keep-days: filedo backup <source> keep-days 7 keep-monthly")
+		case o.stem != "" && o.gen == 0 && o.keepDays == 0:
+			return nil, exitClassf(10, "stem names the set of a numbered or dated-retention backup; it needs gen or keep-days: filedo backup <source> gen 7 stem <name>")
+		case (o.gen > 0 || o.keepDays > 0) && o.keepZip:
+			return nil, exitClassf(10, "keep-zip is not combined with gen or keep-days: a kept zip would stand outside the set and never be retired")
 		case o.cred.given() && !o.sec:
 			return nil, exitClassf(10, "a password seals the backup, which needs sec: filedo backup <source> sec pe:<VAR>")
 		}
-	} else if o.sec || o.keepZip || o.root || o.skipLinks {
-		return nil, exitClassf(10, "sec, keep-zip, root and skip-links are backup words; restore finds out by itself whether the archive is sealed")
+	} else if o.sec || o.keepZip || o.keepMonthly || o.root || o.skipLinks {
+		return nil, exitClassf(10, "sec, keep-zip, keep-monthly, root and skip-links are backup words; restore finds out by itself whether the archive is sealed")
 	}
 	return o, nil
 }
@@ -279,6 +298,7 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	}
 	zipPath := filepath.Join(outDir, zipName)
 	var gen *backupGen
+	var keep *backupKeep
 	if o.gen > 0 {
 		// A numbered set (SP-0208): the folder is `to`, or the default one; the
 		// name is <stem>_<NNN> and the number comes from the folder alone.
@@ -286,6 +306,13 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 			return err
 		}
 		zipPath = filepath.Join(gen.dir, backupGenName(gen.stem, gen.number, ".zip"))
+	} else if o.keepDays > 0 {
+		// Dated retention set (SP-0230): the folder is `to`, or the default one;
+		// the name is <stem>-<yyMMddHHmm><ext> in local wall-clock time.
+		if keep, err = backupKeepPlan(o, name, outDir); err != nil {
+			return err
+		}
+		zipPath = keep.zipPath
 	} else if o.haveTo {
 		to, err := filepath.Abs(o.to)
 		if err != nil {
@@ -314,14 +341,14 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	if o.sec {
 		final = containerPath
 	}
-	// A numbered set decides this itself: its number is free, or the file in it
-	// is the one the set retires (backupGenPlan).
-	if gen == nil && (!o.sec || o.keepZip) {
+	// A numbered or dated-retention set decides this itself (backupGenPlan /
+	// backupKeepPlan).
+	if gen == nil && keep == nil && (!o.sec || o.keepZip) {
 		if _, err := os.Lstat(zipPath); err == nil {
 			return backupDestinationRefused("%s already exists; a backup never replaces a file - name another destination with to", zipPath)
 		}
 	}
-	if gen == nil && o.sec {
+	if gen == nil && keep == nil && o.sec {
 		if _, err := os.Lstat(containerPath); err == nil {
 			return backupDestinationRefused("%s already exists; a backup never replaces a file - name another destination with to", containerPath)
 		}
@@ -422,10 +449,10 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 		}
 	}
 
-	// A numbered generation is built under a partial name and published only
-	// after it is verified, so a partial an earlier run left when it died is
-	// cleared first - this run's own names only, never the other set's (SP-0208).
-	if gen != nil {
+	// A numbered or dated-retention backup is built under a partial name and
+	// published only after it is verified, so a partial an earlier run left
+	// when it died is cleared first - this run's own names only (SP-0208, SP-0230).
+	if gen != nil || keep != nil {
 		partials := []string{zipPath + fsx.PartialSuffix}
 		if o.sec {
 			partials = append(partials, containerPath+fsx.PartialSuffix)
@@ -445,7 +472,7 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	runStep("pack", "Packing the zip")
 	tracker := NewProgressTracker(w.Files, w.Bytes)
 	res, err := backupzip.Pack(zipPath, w, backupzip.PackOptions{
-		Level: level, Name: name, Stop: runStopRequested, Keep: o.sec || gen != nil,
+		Level: level, Name: name, Stop: runStopRequested, Keep: o.sec || gen != nil || keep != nil,
 		RegisterCleanup: func(cleanup func()) func() {
 			return globalInterruptHandler.AddCleanup(func() {
 				if globalInterruptHandler.IsForceExit() {
@@ -471,13 +498,16 @@ func runBackup(o *backupOpts, hl *HistoryLogger) error {
 	if !o.sec && gen != nil {
 		return backupGenFinishPlain(res, abs, level, gen, hl)
 	}
+	if !o.sec && keep != nil {
+		return backupKeepFinishPlain(res, abs, level, keep, hl)
+	}
 	if !o.sec {
 		runNumber("archiveBytes", res.Size)
 		fmt.Printf("OK %s -> %s (level %d, %s files, %s -> %s)\n", abs, res.Path, level, formatCount(res.Files), formatBytes(uint64(res.Bytes)), formatBytes(uint64(res.Size)))
 		hl.SetResult("archive", res.Path)
 		return nil
 	}
-	return backupSeal(res, zipPath, containerPath, cred, o, gen, hl)
+	return backupSeal(res, zipPath, containerPath, cred, o, gen, keep, hl)
 }
 
 // backupZipPath keeps the zip's sealed name usable by restore, including when
@@ -500,7 +530,7 @@ func backupZipPath(path string, sealed bool) (string, error) {
 // container goes through a temporary name and the read-back of
 // fdsec.PackFile, and the zip is removed only after that proof, unless
 // keep-zip asked to keep it (FDSEC-BEHAVIOUR 1.9 section 21 item 1).
-func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fdsec.Credential, o *backupOpts, gen *backupGen, hl *HistoryLogger) error {
+func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fdsec.Credential, o *backupOpts, gen *backupGen, keep *backupKeep, hl *HistoryLogger) error {
 	runStep("seal", "Sealing the zip into a .fd-sec container")
 	dropZip := func() {
 		os.Remove(res.Path)
@@ -513,17 +543,16 @@ func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fd
 	meta := fdsecMetadataFromStat(zfi)
 	// The sealed name is the zip's own, never the partial name it waited under.
 	meta.Name = filepath.Base(zipPath)
-	// A numbered generation is sealed under a partial name of its own: the
-	// container PackFile reads back is never under the final name while the
-	// generation it replaces may still hold it (backupGenCommit moves it there).
+	// A numbered generation or dated-retention set is sealed under a partial name
+	// of its own before moving into place (backupGenCommit / backupKeepCommit).
 	sealPath := containerPath
-	if gen != nil {
+	if gen != nil || keep != nil {
 		sealPath = containerPath + fsx.PartialSuffix
 	}
 	removeCleanup := globalInterruptHandler.AddCleanup(func() {
 		if globalInterruptHandler.IsForceExit() {
 			removeFdsecPartials(sealPath)
-			if gen != nil {
+			if gen != nil || keep != nil {
 				os.Remove(sealPath)
 			}
 			os.Remove(res.Path)
@@ -548,12 +577,16 @@ func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fd
 	} else {
 		dropZip()
 	}
-	// The container stands complete under its partial name: it takes its
-	// generation's place now, retiring the old file of that number (D3).
+	// The container stands complete under its partial name: commit and retire.
 	retired := false
 	if gen != nil {
 		var cerr error
 		if retired, cerr = backupGenCommit(sealPath, gen, removeCleanup); cerr != nil {
+			return cerr
+		}
+	}
+	if keep != nil {
+		if cerr := backupKeepCommit(sealPath, keep, removeCleanup); cerr != nil {
 			return cerr
 		}
 	}
@@ -566,6 +599,12 @@ func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fd
 		backupGenReport(gen, retired)
 		fmt.Printf("%s%s\n", fdsecEndProgress(), backupGenNote(gen, retired))
 	}
+	var retireErr error
+	if keep != nil {
+		kRetired, kKept, kMonthly, rerr := backupKeepRetire(keep)
+		retireErr = rerr
+		fmt.Printf("%s%s\n", fdsecEndProgress(), backupKeepNote(keep, kRetired, kKept, kMonthly))
+	}
 	fmt.Printf("%sOK -> %s (sealed, suite 1, %s; %s files, %s -> container %s)\n", fdsecEndProgress(), containerPath, secrecy, formatCount(res.Files), formatBytes(uint64(res.Bytes)), formatBytes(uint64(info.TotalLen)))
 	if o.keepZip {
 		fmt.Printf("The zip was kept, as asked: %s - it is NOT protected; anyone who has it can open it.\n", res.Path)
@@ -573,7 +612,7 @@ func backupSeal(res backupzip.PackResult, zipPath, containerPath string, cred fd
 	}
 	hl.SetResult("archive", containerPath)
 	hl.SetResult("secrecy", secrecy)
-	return nil
+	return retireErr
 }
 
 // errNotBackupZip is a container that opened and holds something other than a

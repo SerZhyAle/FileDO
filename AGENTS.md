@@ -89,6 +89,11 @@ The detail behind each area is in [`ENGINEERING.md`](ENGINEERING.md) (an interna
   thing that tags `v*`. Build output is amd64 exactly as CI builds it; `-Resume` never cuts a new version.
 - **Store channel** ("Store channel"): no package from placeholders, `SZA.FileDO` is frozen, a test build cannot
   pass for a Store build, and nothing in `msix/` publishes.
+- **Release ledger** ("The release ledger" in `RELEASE.md`): `docs/releases/` (contract `RELEASE-LEDGER`, SP-0229) is written only
+  through `packaging/release-ledger.ps1`; `channels.json` is the one file edited by hand, `builds.json` and
+  `history.jsonl` are machine output (the history append-only) and `RELEASES.md` is a render. Every successful build and
+  every release channel step records itself, a ledger failure never fails the caller, and `release.ps1` allows the
+  folder dirty and leaves it out of the tag-equality check, as it does `winget/`.
 - **GUI shell** ("The GUI shell"): `Theme.vb` alone names a colour; no fixed coordinates; every glyph is a
   vendored catalog drawing; both DPI files ship; every string goes through `Localization.vb` in five languages;
   no exception text on screen; every question is a `ShellDialog` whose safe answer is the default.

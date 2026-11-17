@@ -135,8 +135,19 @@ func TestInterruptHandler_StopFile(t *testing.T) {
 // The committed stream is generated, never edited: set FILEDO_WRITE_EVENT_SAMPLE=1
 // to refresh it after deliberately changing the schema.
 func TestEventSample_V1(t *testing.T) {
-	path := filepath.Join("testdata", "events", "sample-v1.jsonl")
-	got := generatedEventSample(t)
+	checkOrWriteEventVector(t, "sample-v1.jsonl", generatedEventSample)
+}
+
+// TestBackupRetentionVector_V1 generates and verifies the CLI-EVENT-STREAM 0.18
+// rung-1 vector for backup dated retention (`keep-days` + `keep-monthly`).
+func TestBackupRetentionVector_V1(t *testing.T) {
+	checkOrWriteEventVector(t, "backup-retention-v1.jsonl", generatedBackupRetentionSample)
+}
+
+func checkOrWriteEventVector(t *testing.T, name string, build func(t *testing.T) []byte) {
+	t.Helper()
+	path := filepath.Join("testdata", "events", name)
+	got := build(t)
 	if os.Getenv("FILEDO_WRITE_EVENT_SAMPLE") == "1" {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -159,20 +170,34 @@ func TestEventSample_V1(t *testing.T) {
 	// must also be that folder's sample byte for byte. Nothing but this test reads the catalog, and only
 	// when asked; the product never does.
 	if catDir := os.Getenv("CLI_EVENT_STREAM_CATALOG_VECTORS"); catDir != "" {
-		cat, err := os.ReadFile(filepath.Join(catDir, "sample-v1.jsonl"))
+		cat, err := os.ReadFile(filepath.Join(catDir, name))
 		if err != nil {
-			t.Fatalf("read the catalog's sample-v1.jsonl: %v", err)
+			t.Fatalf("read the catalog's %s: %v", name, err)
 		}
 		if !bytes.Equal(want, cat) {
-			t.Fatalf("the catalog's sample-v1.jsonl differs from %s", path)
+			t.Fatalf("the catalog's %s differs from %s", name, path)
 		}
 	}
 }
 
 func generatedEventSample(t *testing.T) []byte {
+	return runDeterministicSample(t, "sample", "C:\\sample", []string{"sample", "p:masked"},
+		"write", "Writing a deterministic sample",
+		map[string]interface{}{"files": 3, "bytes": 1024, "archiveBytes": 512, "generation": 1, "retiredGeneration": 0, "keepCount": 3},
+	)
+}
+
+func generatedBackupRetentionSample(t *testing.T) []byte {
+	return runDeterministicSample(t, "backup", "D:\\X", []string{"backup", "D:\\X", "to", "E:\\Bak", "stem", "X", "keep-days", "7", "keep-monthly", "y"},
+		"verify", "Reading the new backup back before older ones are retired",
+		map[string]interface{}{"files": 42, "bytes": 1048576, "archiveBytes": 524288, "retiredCount": 2, "keptCount": 10, "keepDays": 7, "monthlyKept": 3},
+	)
+}
+
+func runDeterministicSample(t *testing.T, command, target string, args []string, stepName, stepDesc string, numbers map[string]interface{}) []byte {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, "sample-v1.jsonl")
+	path := filepath.Join(dir, "sample.jsonl")
 	oldManager, oldNow := globalEventManager, eventNow
 	em, err := InitEventManager(path)
 	if err != nil {
@@ -189,12 +214,12 @@ func generatedEventSample(t *testing.T) []byte {
 		return v
 	}
 
-	EmitRunEvent("2609241200", "sample", "C:\\sample", []string{"sample", "p:masked"})
-	EmitStepEvent("write", "Writing a deterministic sample")
+	EmitRunEvent("2609241200", command, target, args)
+	EmitStepEvent(stepName, stepDesc)
 	EmitProgressEvent(1, 2, 512, 1024, 256.5, "Halfway done")
 	EmitFindingEvent("example", "An example finding", map[string]interface{}{"index": 1})
 	EmitNoteEvent("An example note")
-	EmitResultEvent("Done", map[string]interface{}{"files": 3, "bytes": 1024, "archiveBytes": 512, "generation": 1, "retiredGeneration": 0, "keepCount": 3}, nil, nil)
+	EmitResultEvent("Done", numbers, nil, nil)
 	em.Close()
 
 	b, err := os.ReadFile(path)

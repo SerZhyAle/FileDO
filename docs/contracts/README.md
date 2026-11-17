@@ -71,6 +71,7 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`DIAGNOSTIC-REPORT.md`](DIAGNOSTIC-REPORT.md) | sanitized diagnostic archive export | producer (`LogReport.vb`) |
 | [`APP-ACTIVATION.md`](APP-ACTIVATION.md) | GUI second-start window focus and process invocation | consumer, focus-only profile (accepted in 0.13, 2026-10-17); the command pipe of `APP-COMMANDS` uses its rule 3 transport |
 | [`APP-COMMANDS.md`](APP-COMMANDS.md) | commands from scripts and other programs, handled by the running window program and answered with an exit code | consumer (`filedo.exe` second process, `filedo_win.exe` first instance; 0.3 synced in working tree, unbuilt until release) |
+| [`RELEASE-LEDGER.md`](RELEASE-LEDGER.md) | what was built, what each channel carries and what was published before (0.1 draft, adopted 2026-11-17, SP-0229) | producer of the ledger files (`docs/releases/`) |
 | [`INPUT-PARITY.md`](INPUT-PARITY.md) | keyboard and pointer action parity | consumer; partial adoption |
 | [`CLIPBOARD-GUARD.md`](CLIPBOARD-GUARD.md) | safe clipboard interactions and history protection | consumer |
 | [`PACKAGE-VERSIONING.md`](PACKAGE-VERSIONING.md) | release stamp and package ordering across desktop channels | consumer; Windows desktop profile, `compact` rendering (registered in 0.2, untouched by 0.3 and 0.4); the former rendering exception is closed |

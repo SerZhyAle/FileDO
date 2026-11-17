@@ -277,6 +277,26 @@ function Write-BuildSummary {
     }
 }
 
+# RELEASE-LEDGER 0.1 (RELEASE_AND_DISTRIBUTION section 10): the last step of a successful build records it in
+# docs\releases\builds.json through packaging\release-ledger.ps1. release.ps1 sets FILEDO_BUILD_KIND=release around
+# its gate build; every other build is a test build - nothing a local build makes is published, the release workflow
+# builds what ships. The installer is the artifact when one was built, else the GUI. The ledger never fails a build:
+# a non-zero exit is one yellow line, and the exit code this script is carrying is left as it was.
+function Write-BuildLedger {
+    $kind = if ($env:FILEDO_BUILD_KIND -ceq 'release') { 'release' } else { 'test' }
+    $artifact = "dist/FileDO-$version-setup.exe"
+    if (-not (Test-Path (Join-Path $root $artifact))) { $artifact = 'exe_to_download/filedo_win.exe' }
+    $savedExit = if (Test-Path variable:global:LASTEXITCODE) { $global:LASTEXITCODE } else { 0 }
+    try {
+        $ledgerOut = @(& pwsh -NoProfile -File "$root\packaging\release-ledger.ps1" build -Package filedo -Kind $kind -Version $version -Artifact $artifact 2>&1)
+        if ($LASTEXITCODE -eq 0) { Write-Host "  release ledger: $kind build $version recorded (docs\releases)" }
+        else { Write-Host "  release ledger: not recorded (exit $LASTEXITCODE): $($ledgerOut | Select-Object -Last 1)" -ForegroundColor Yellow }
+    } catch {
+        Write-Host "  release ledger: not recorded ($($_.Exception.Message))" -ForegroundColor Yellow
+    } finally {
+        $global:LASTEXITCODE = $savedExit
+    }
+}
 # REL-16: a native command whose failure means "stop" goes through here, so no exit
 # code is left unread. The calls that judge their own exit code - the gate's go test
 # and go vet runs, wix extension list, git symbolic-ref - read it right after the call.
@@ -1125,6 +1145,9 @@ function Build-FileDOInstaller {
 }
 
 if ($buildInstaller -and $wixPresent) { Build-FileDOInstaller }
+
+# The build is done and its installer is built: record it before -Install and -Commit, so a -Commit carries the ledger.
+Write-BuildLedger
 
 # ---- Optional install (-Install) -------------------------------------------
 # Runs the setup EXE just built. This is the one thing in this script that

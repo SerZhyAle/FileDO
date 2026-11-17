@@ -162,6 +162,33 @@ func backupArchiveName(p string) bool {
 	return strings.EqualFold(ext, ".zip") || strings.EqualFold(ext, fdsecExtension)
 }
 
+// backupResolveSetFolder resolves the destination folder for a backup set
+// (`gen` or `keep-days`): `to` must name an existing folder (class 10
+// backup-destination-refused on a file or archive name; class 11 on a missing
+// folder). Without `to` it returns defaultDir.
+func backupResolveSetFolder(o *backupOpts, stem, defaultDir, option string) (string, error) {
+	if !o.haveTo {
+		return defaultDir, nil
+	}
+	to, err := filepath.Abs(o.to)
+	if err != nil {
+		return "", err
+	}
+	st, serr := os.Stat(to)
+	switch {
+	case serr == nil && st.IsDir():
+		return to, nil
+	case serr == nil:
+		return "", backupDestinationRefused("%s is a file; with %s, to names the folder the backups go into, and a backup never replaces a file", to, option)
+	case errors.Is(serr, os.ErrNotExist) && backupArchiveName(to):
+		return "", backupDestinationRefused("with %s, to names a folder: the files are named by the run for stem %s", option, stem)
+	case errors.Is(serr, os.ErrNotExist):
+		return "", exitClassf(11, "the folder %s does not exist; with %s, to names an existing folder", to, option)
+	default:
+		return "", serr
+	}
+}
+
 // backupGenPlan resolves the set this run writes into and the number it takes,
 // before anything is written. defaultStem and defaultDir are what the run uses
 // when stem and to are not given: the source folder's name, and the folder
@@ -174,25 +201,9 @@ func backupGenPlan(o *backupOpts, defaultStem, defaultDir string) (*backupGen, e
 	if why := backupStemProblem(stem); why != "" {
 		return nil, exitClassf(10, "the stem of a numbered backup is one file-name part, and this one is refused: %s; name another with stem", why)
 	}
-	dir := defaultDir
-	if o.haveTo {
-		to, err := filepath.Abs(o.to)
-		if err != nil {
-			return nil, err
-		}
-		st, serr := os.Stat(to)
-		switch {
-		case serr == nil && st.IsDir():
-			dir = to
-		case serr == nil:
-			return nil, backupDestinationRefused("%s is a file; with gen, to names the folder the numbered backups go into, and a backup never replaces a file", to)
-		case errors.Is(serr, os.ErrNotExist) && backupArchiveName(to):
-			return nil, backupDestinationRefused("with gen, to names a folder: the files are named %s_<NNN>.zip, or .fd-sec with sec, by the run", stem)
-		case errors.Is(serr, os.ErrNotExist):
-			return nil, exitClassf(11, "the folder %s does not exist; with gen, to names an existing folder", to)
-		default:
-			return nil, serr
-		}
+	dir, err := backupResolveSetFolder(o, stem, defaultDir, "gen")
+	if err != nil {
+		return nil, err
 	}
 	ext := ".zip"
 	if o.sec {

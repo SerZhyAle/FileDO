@@ -268,7 +268,16 @@
           ><span data-l="fr">Copier</span></button>
         </div>
         <p>
-          <span data-l="fr">Le zip garde le nom du dossier, jamais son chemin. Un dossier existant n’est jamais complété ni remplacé - <code>restore</code> écrit à côté sous le nom <code>&lt;nom&gt;-1</code> -, et une archive dont les noms sortiraient de la destination est refusée en entier, avant que rien ne soit écrit. Le lecteur de Windows lui-même est refusé ; une jonction ou un lien symbolique dans la source refuse la sauvegarde, sauf si <code>skip-links</code> le laisse de côté et le liste. Les autorisations, les flux de données alternatifs et les liens ne sont pas conservés. Une sauvegarde est une copie entière, faite quand vous la lancez : il n’y a ni planification ni historique des sauvegardes précédentes ; un jeu numéroté n’est qu’une rotation bornée de copies entières, et la planification reste la vôtre.</span>
+          <span data-l="fr"><code>keep-days</code> élague plutôt les sauvegardes datées : <code>keep-days 7</code> retire les fichiers du jeu <code>&lt;stem&gt;-&lt;yyMMddHHmm&gt;.zip</code> (en <code>.fd-sec</code> avec <code>sec</code>) de plus de 7 jours selon l’heure locale lue dans le seul nom du fichier - l’heure de modification n’est jamais lue, afin qu’un dossier synchronisé ne fausse pas le tri ; <code>to</code> désigne un dossier et <code>stem</code> nomme le jeu. Ajoutez <code>keep-monthly</code> pour garder indéfiniment le fichier le plus ancien de chaque mois civil. Le nouveau fichier est d’abord construit sous un nom provisoire, relu puis renommé à sa place ; seulement ensuite les fichiers expirés sont retirés (plusieurs peuvent être retirés en une exécution ; une exécution échouée ou arrêtée ne supprime rien). <code>keep-days</code> ne va pas avec <code>gen</code> ni <code>keep-zip</code>, et <code>keep-monthly</code> exige <code>keep-days</code>.</span>
+        </p>
+        <div class="copybox">
+          filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly<button
+            class="copy"
+            data-copy="filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <p>
+          <span data-l="fr">Le zip garde le nom du dossier, jamais son chemin. Un dossier existant n’est jamais complété ni remplacé - <code>restore</code> écrit à côté sous le nom <code>&lt;nom&gt;-1</code> -, et une archive dont les noms sortiraient de la destination est refusée en entier, avant que rien ne soit écrit. Le lecteur de Windows lui-même est refusé ; une jonction ou un lien symbolique dans la source refuse la sauvegarde, sauf si <code>skip-links</code> le laisse de côté et le liste. Les autorisations, les flux de données alternatifs et les liens ne sont pas conservés. Une sauvegarde est une copie entière, faite quand vous la lancez : il n’y a ni planification ni historique des sauvegardes précédentes ; un jeu numéroté ou la rétention par jours n’est qu’une rotation bornée de copies entières, et la planification reste la vôtre.</span>
         </p>
       </section>
     </main>

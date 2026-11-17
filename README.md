@@ -404,6 +404,12 @@ filedo backup D:\Photos to E:\Bak gen 7
 # The set named by stem instead of the folder's name, and sealed: Docs_001.fd-sec ..
 filedo backup D:\Photos to E:\Bak gen 7 stem Docs sec
 
+# Dated retention in E:\Bak: retire set files older than 7 days after the new copy is verified and renamed
+filedo backup D:\Photos to E:\Bak keep-days 7
+
+# Keep the first backup of each calendar month forever, named by stem and sealed
+filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly sec
+
 # Rebuild the folder beside the archive, or under another address
 filedo restore Photos-2611101530.zip
 filedo restore Photos-2611101530.fd-sec to D:\
@@ -443,14 +449,24 @@ filedo restore Photos-2611101530.fd-sec to D:\
   The folder needs room for one file more than the set holds while the run works. `keep-zip` does not go
   with `gen`. With `--events` the result carries `generation`, `retiredGeneration` (0 = none) and
   `keepCount`.
+- **Dated retention prunes older backups while keeping the first of each month.** `keep-days <1-999>`
+  retires set files `<stem>-<yyMMddHHmm>.zip` (`.fd-sec` with `sec`) older than N days by local wall-clock
+  time read from the file name alone - never modification time, so sync folders do not alter retention; `to`
+  names a folder, and `stem <name>` names the set. Add `keep-monthly` so the earliest file of each calendar
+  month stays forever. The new file is built under a partial name, read back, renamed into place, and only
+  then are expired files retired (several may retire in one run; a failed or stopped run removes nothing).
+  `keep-days` does not combine with `gen` or `keep-zip`, and `keep-monthly` needs `keep-days`. With
+  `--events` the result carries `retiredCount`, `keptCount`, `keepDays`, and (with `keep-monthly`)
+  `monthlyKept`.
 - **A backup is one whole copy, made when you run it** - there is no schedule, no history of earlier
-  backups and no incremental layer; a numbered set is only a bounded rotation of whole copies, and the
-  schedule is yours. A single file goes into a container with `secure` instead.
+  backups and no incremental layer; a numbered set or dated retention is only a bounded rotation of whole
+  copies, and the schedule is yours. A single file goes into a container with `secure` instead.
 
 In the window, the **Protect** group carries both operations as pages - **Back up a folder** and
 **Restore from a backup** - and the **Command** page builds them too (`backup`, `backup sec`, `restore`).
 The password is typed out of sight (twice for a sealed backup) and reaches no command line.
-Step 3 of **Back up a folder** also asks how many backups to keep and what to call the numbered set.
+Step 3 of **Back up a folder** also asks how many backups to keep in a numbered set, or how many days to
+keep dated backups (with the choice to keep the first backup of each month), and what to call the set.
 
 ---
 

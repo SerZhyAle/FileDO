@@ -279,6 +279,12 @@ filedo backup D:\Photos to E:\Bak gen 7
 # Der Satz unter dem Namen aus stem statt dem Ordnernamen, versiegelt: Docs_001.fd-sec ..
 filedo backup D:\Photos to E:\Bak gen 7 stem Docs sec
 
+# Aufbewahrung nach Tagen in E:\Bak: Dateien des Satzes älter als 7 Tage entfernen, sobald die neue Kopie geprüft und umbenannt ist
+filedo backup D:\Photos to E:\Bak keep-days 7
+
+# Erste Sicherung jedes Monats dauerhaft behalten, mit eigenem stem und versiegelt
+filedo backup D:\Photos to E:\Bak stem Docs keep-days 7 keep-monthly sec
+
 # Den Ordner neben dem Archiv oder unter einer anderen Adresse wiederherstellen
 filedo restore Photos-2611101530.zip
 filedo restore Photos-2611101530.fd-sec to D:\
@@ -321,16 +327,26 @@ filedo restore Photos-2611101530.fd-sec to D:\
   angehaltener Lauf entfernt nichts. Der Ordner braucht, solange der Lauf arbeitet, Platz für eine Datei
   mehr, als der Satz enthält. `keep-zip` passt nicht zu `gen`. Mit `--events` trägt das Ergebnis
   `generation`, `retiredGeneration` (0 = keine) und `keepCount`.
+- **Aufbewahrung nach Tagen entfernt ältere Sicherungen und behält die erste jedes Monats.** `keep-days <1-999>`
+  entfernt Dateien des Satzes `<stem>-<yyMMddHHmm>.zip` (`.fd-sec` mit `sec`), die nach der Ortszeit allein aus
+  dem Dateinamen älter als N Tage sind - die Änderungszeit der Datei wird nicht gelesen, sodass Sync-Ordner die
+  Auswahl nicht verschieben; `to` nennt einen Ordner, `stem <Name>` benennt den Satz. Mit `keep-monthly` bleibt
+  die früheste Datei jedes Kalendermonats dauerhaft erhalten. Die neue Datei wird zuerst unter einem vorläufigen
+  Namen gebaut, zurückgelesen und an ihren endgültigen Platz umbenannt; erst dann scheiden abgelaufene Dateien
+  aus (in einem Lauf können mehrere ausscheiden; ein fehlgeschlagener oder angehaltener Lauf entfernt nichts).
+  `keep-days` lässt sich nicht mit `gen` oder `keep-zip` kombinieren, und `keep-monthly` braucht `keep-days`. Mit
+  `--events` trägt das Ergebnis `retiredCount`, `keptCount`, `keepDays` und (mit `keep-monthly`) `monthlyKept`.
 - **Eine Sicherung ist eine ganze Kopie, angelegt, wenn Sie sie starten** - es gibt keinen Zeitplan, keine
-  Liste früherer Sicherungen und keine inkrementellen Schichten; ein nummerierter Satz ist nur eine
-  begrenzte Rotation ganzer Kopien, und der Zeitplan bleibt Ihrer. Eine einzelne Datei kommt stattdessen
-  mit `secure` in einen Container.
+  Liste früherer Sicherungen und keine inkrementellen Schichten; ein nummerierter Satz oder die Aufbewahrung nach
+  Tagen ist nur eine begrenzte Rotation ganzer Kopien, und der Zeitplan bleibt Ihrer. Eine einzelne Datei kommt
+  stattdessen mit `secure` in einen Container.
 
 Im Fenster trägt die Gruppe **«Schützen»** beide Operationen als Seiten - **«Ordner sichern»** und **«Aus
 Sicherung wiederherstellen»** -, und die Seite **«Befehl»** baut sie ebenfalls (`backup`, `backup sec`,
 `restore`). Das Passwort wird verdeckt getippt (für eine versiegelte Sicherung zweimal) und erreicht keine
-Befehlszeile. In Schritt 3 der Seite **«Ordner sichern»** wird außerdem gefragt, wie viele Sicherungen
-behalten werden und wie der nummerierte Satz heißen soll.
+Befehlszeile. In Schritt 3 der Seite **«Ordner sichern»** wird außerdem gefragt, wie viele Sicherungen im Satz
+oder wie viele Tage datierte Sicherungen bleiben sollen (optional mit der ersten jedes Monats) und wie der Satz
+heißen soll.
 
 ---
 

@@ -1911,9 +1911,10 @@ Public Class JobView
     ' The Backup and Restore pages (SP-0198): the destination box and step 3, as the user would set them.
     Friend Sub SetBackupForTest(dest As String, sealed As Boolean, keepZip As Boolean, level As String, root As Boolean,
                                 skipLinks As Boolean, suffix As Boolean, del As Boolean,
-                                Optional keep As String = "", Optional stem As String = "")
+                                Optional keep As String = "", Optional stem As String = "",
+                                Optional keepDays As String = "", Optional keepMonthly As Boolean = False)
         secondTargetBox.Text = dest
-        backupPanel.SetForTest(sealed, keepZip, level, root, skipLinks, suffix, del, keep, stem)
+        backupPanel.SetForTest(sealed, keepZip, level, root, skipLinks, suffix, del, keep, stem, keepDays, keepMonthly)
         UpdatePlanCard()
     End Sub
 
@@ -2449,9 +2450,9 @@ Public Class JobView
         If IsDisk() Then reversibility = diskPanel.ReversibilityNow(reversibility)
         ' The restored folder can be packed again; the deleted archive is a normal delete.
         If BackupIsDestructiveNow() Then reversibility = "partly reversible"
-        ' A full numbered set loses its oldest file once the new one is written and read back (SP-0208):
-        ' one file per run, by design - the plan says so, and no confirmation is asked on a scheduled run.
-        If IsBackup() AndAlso backupPanel.NumberedSet Then reversibility = "partly reversible"
+        ' A full numbered set or dated retention loses older files once the new one is written and read back
+        ' (SP-0208, SP-0230) - the plan says so, and no confirmation is asked on a scheduled run.
+        If IsBackup() AndAlso backupPanel.RetiresBackups Then reversibility = "partly reversible"
         reversibilityBadge.Text = L("shell_rev_" & reversibility.Replace(" ", "_"))
 
         destructiveBadge.Visible = job.IsDestructive OrElse FdsecIsDestructiveNow() OrElse DupIsDestructiveNow() OrElse CmpIsDestructiveNow() OrElse
