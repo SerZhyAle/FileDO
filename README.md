@@ -6,7 +6,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2611110217-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611171800-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Fake-Capacity Check • Speed Test • Duplicate Finder • Folder Compare • Wipe Free Space • Password-Protected Files • Virtual Disks**
@@ -962,7 +962,16 @@ FileDO/
 
 ## Version History
 
-**v2611110217** (Current)
+**v2611171800** (Current)
+- **Commands for scripts and agents**: `filedo status`, `filedo show`, `filedo quit`, `filedo job list`, `filedo job stop`, `filedo disk-manager show`, `filedo settings show` and `filedo tray start` ask the FileDO window program that is already running and end with its answer as an exit code - no second copy opens; `filedo commands [--json]` lists every command and `filedo version [--json]` names the version; `filedo_win.exe open --path <file>` opens a `.fdd` or `.fd-sec` container in its own window, the named form of the start that Explorer makes; a command that would work with your files, the screen, the clipboard or the network is refused until you switch on **Let other programs ask FileDO to work with my files, screen, clipboard or the network** in Settings, which is off until you turn it on; the commands travel over a local pipe that only your own Windows account can reach, never the network
+- **Backup**: the result is one file named `<folder>-<yyMMddHHmm>`, for example `Photos-2611171652.zip`, or `.fd-sec` when sealed; `gen 7` keeps a numbered set of the last 7 backups (`Photos_001.zip` .. `Photos_007.zip`) in the folder that `to` names, and `stem <name>` names the set; the new file is read back before the oldest one is retired, and a failed or stopped run removes nothing; **Back up a folder** also asks how many backups to keep
+- **Command page**: **Browse commands..** lists every operation in six groups with a one-line description, and **Use this command** selects it in the dropdown; the place for the result has a folder picker of its own, and the window remembers the folders you picked, the last 12 commands you ran (**Recent..** puts one back on the command line) and the operation, target and destination the page was left on - a run kept out of history with `nohist`, a line that carries a password and every run while run history is off are never remembered, flags never are, and **Forget recent commands and folders** empties it all
+- **About operations**: a new page in the rail explains every operation - its name and a one-line description, and a click on the name opens the full text in plain words with an example command line; the search box on top (**Ctrl+F**) narrows the list by name or by any word of the descriptions
+- **Fill**: a fill with `del` says how many of its files it deleted and how many it could not, and a file left behind makes the run fail instead of ending as a success
+- **Window**: the *More actions* menu of the Disk manager draws an icon on every item, and the diagnostic archive no longer lists zero counts for media-library figures this product does not have
+- **Docs**: a new site guide on commands for scripts and agents, in five languages, and `docs/CLI.md`, the list of those commands generated from `filedo commands --json`; the privacy page names the window settings kept under your own user key in the registry
+
+**v2611110217** (Previous)
 - **Backup and restore**: `filedo backup` packs a folder, a drive or a network folder into one zip that any zip tool opens - FileDO picks the compression density after a look of at most 10 seconds at the files, or `level 0-9` names it - and `sec` seals the zip into a `.fd-sec` container behind a password; `filedo restore` rebuilds the folder beside the backup or wherever `to` names, and never merges into or replaces a folder; in the window, the **Protect** group has the pages *Back up a folder* and *Restore from a backup*
 - **Exit codes**: a run that cannot finish says why in its exit code: 10 a usage error, 11 a target that is missing or not ready, 12 missing permissions, 13 not enough space, 14 an I/O failure, 15 a network failure, 16 stopped by you; 0, 1 and 2 keep their meaning
 - **Reasons**: when a run cannot finish, the result card says why in the language of the window - a full drive, a file another program has open - instead of an exit code alone, and the Disk manager does the same; a copy that runs out of room says the drive is full; a file held open by another program is named with the program that holds it, and the run can simply be repeated once the file is free
@@ -971,7 +980,7 @@ FileDO/
 - **Disks**: a disk whose sharing record names a holder or a state this version cannot read is not mounted; a mount made at logon is logged as made under its setting
 - **Site and privacy**: the privacy page names disk sharing and the stored auto-mount password; the start page has its own Russian and Ukrainian addresses, shows the setup file's size and SHA-256 directly, and separates the checks that only read from the operations that write; the in-app help pages are kept out of search engines
 
-**v2610211540** (Previous)
+**v2610211540**
 - **Help**: **F1** or the new **?** button opens the help page of the window you are in, in your browser - the job pages, Command, Settings, About, History and the Disk manager, in English, Russian, Ukrainian, German and French, with numbered markers over a picture of the window; the tray menu has a *Help* entry, and the first link of About opens the help index
 - **Look**: all buttons share one height and rounded corners, and a long caption wraps instead of being cut off with an ellipsis; dialog answers have one neutral face, with Cancel first and the acting answer last; the groups in Settings open and close from a header with a state triangle
 - **Keyboard**: **F6** and **Shift+F6** move the focus to the next or the previous area of the window, in the main window and in the Disk manager; the Disk manager's help menu (keyboard map, welcome tour, links) opens from the keyboard too - **Menu** or **Shift+F10** on the **?** button - and is listed in its *More actions* menu
@@ -1055,7 +1064,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2611110217** - Advanced File & Storage Operations Tool
+**FileDO v2611171800** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

@@ -47,8 +47,9 @@
       <a class="pin" style="--x:22.1%;--y:44.7%" href="#e-group-windows" aria-label="11, Windows и положение окон">11</a>
       <a class="pin" style="--x:23.1%;--y:47.4%" href="#e-setting-autoplay" aria-label="12, Отключить автозапуск носителей Windows">12</a>
       <a class="pin" style="--x:23.1%;--y:54.8%" href="#e-setting-autoplay-system" aria-label="13, Настройки автозапуска Windows..">13</a>
-      <a class="pin" style="--x:23.1%;--y:62.1%" href="#e-setting-reset" aria-label="14, Сбросить положение окон">14</a>
-      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="15, Справка">15</a>
+      <a class="pin" style="--x:23.1%;--y:62.1%" href="#e-setting-commands" aria-label="14, Разрешить другим программам просить FileDO работать с моими файлами, экраном, буфером обмена или сетью">14</a>
+      <a class="pin" style="--x:23.1%;--y:67.6%" href="#e-setting-reset" aria-label="15, Сбросить положение окон">15</a>
+      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="16, Справка">16</a>
     </div>
     <figcaption>Демонстрационные данные. Выберите номер, чтобы прочитать об этой части окна.</figcaption>
   </figure>
@@ -165,8 +166,17 @@
         </dl>
       </div>
     </details>
+    <details class="el" id="e-setting-commands">
+      <summary><span class="mk">14</span><span><span class="name">Разрешить другим программам просить FileDO работать с моими файлами, экраном, буфером обмена или сетью</span><span class="one">Скрипты и другие программы всегда могут открыть FileDO, узнать его состояние и закрыть его. Включите, чтобы они могли просить и команды, которые читают или меняют ваши файлы.</span></span></summary>
+      <div class="full">
+        <p>Позволяет скриптам, задачам планировщика и инструментам разработчика просить запущенный FileDO не только открыться, сообщить состояние и закрыться. Пока пункт выключен, FileDO отвечает только на команды, которые ничего вашего не меняют: показать окно, сообщить состояние, остановить собственные запуски и закрыться. Включите, чтобы разрешить и команды, которые читают или меняют ваши файлы, экран, буфер обмена или сеть. Включить пункт можете только вы - никакая команда его не меняет.</p>
+        <dl class="facts">
+          <dt>Можно ли отменить</dt><dd>Выключите его снова в любой момент; команда, которой он нужен, тогда отклоняется сообщением с названием этого пункта.</dd>
+        </dl>
+      </div>
+    </details>
     <details class="el" id="e-setting-reset">
-      <summary><span class="mk">14</span><span><span class="name">Сбросить положение окон</span><span class="one">Положение по умолчанию применяется при следующем открытии каждого окна.</span></span></summary>
+      <summary><span class="mk">15</span><span><span class="name">Сбросить положение окон</span><span class="one">Положение по умолчанию применяется при следующем открытии каждого окна.</span></span></summary>
       <div class="full">
         <p>Забывает, где вы перемещали окна FileDO и какого размера они были. Пригодится, если окно оказалось за пределами экрана или в неудобном месте.</p>
         <dl class="facts">
@@ -176,7 +186,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">15</span><span><span class="name">Справка</span><span class="one">Открывает страницу, которую вы читаете.</span></span></summary>
+      <summary><span class="mk">16</span><span><span class="name">Справка</span><span class="one">Открывает страницу, которую вы читаете.</span></span></summary>
       <div class="full">
         <p>В правом верхнем углу каждого окна FileDO есть эта кнопка. Она открывает справку по тому окну, в котором вы находитесь, - с картинкой и объяснением каждой части, на вашем языке.</p>
         <dl class="facts">
@@ -191,11 +201,12 @@
   <ul class="related">
     <li><a href="about.html"><b>О программе</b><span class="pill">Окно</span><small>Версия, ссылки и поддержка.</small></a></li>
     <li><a href="history.html"><b>История</b><span class="pill">Окно</span><small>Отчёт о каждом завершённом запуске.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/commands.html"><b>Руководство: команды для скриптов и агентов</b><span class="pill gold">Сайт</span><small>О чём скрипт может попросить запущенный FileDO и как читать код завершения.</small></a></li>
     <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Приватность</b><span class="pill gold">Сайт</span><small>Без телеметрии: что остаётся на вашем компьютере.</small></a></li>
   </ul>
 
   <footer class="help-foot">
-    <span>Снято с FileDO 2611110217, 2026-11-11.</span>
+    <span>Снято с FileDO 2611171800, 2026-11-17.</span>
     <a href="index.html">Оглавление справки</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Задать вопрос или сообщить о проблеме</a>
   </footer>

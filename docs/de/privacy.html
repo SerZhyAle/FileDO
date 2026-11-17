@@ -426,7 +426,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             <span data-l="de">Was FileDO schreibt - und wohin</span>
           </h2>
           <p>
-            <span data-l="de">Verwaltungsdateien, dazu Testdaten, wenn Sie danach fragen. Alle sind gewöhnliche Dateien auf Ihrem eigenen Datenträger: Sie können sie lesen, löschen oder gar nicht erst anlegen lassen.</span>
+            <span data-l="de">Verwaltungsdateien und Einstellungen, dazu Testdaten, wenn Sie danach fragen. Alle sind gewöhnliche Dateien oder Werte unter Ihrem eigenen Benutzerschlüssel auf Ihrem eigenen Computer: Sie können sie lesen, löschen oder gar nicht erst anlegen lassen.</span>
           </p>
           <div class="tablewrap">
             <table class="filetable">
@@ -530,6 +530,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                   </td>
                   <td>
                     <span data-l="de">Datenträger, die Sie mit Fast Media Sorter for Windows freigegeben haben: der Pfad des Containers, der Ordnername, unter dem er freigegeben ist, die Markierungen für schreibgeschützt und Autostart. Ein Passwort wird hier nie geschrieben.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>HKCU\Software\FileDO</code></td>
+                  <td>
+                    <span data-l="de">Keine Datei: Werte unter Ihrem eigenen Benutzerschlüssel in der Windows-Registrierung.</span>
+                  </td>
+                  <td>
+                    <span data-l="de">Fenstereinstellungen - Design, Sprache, Position und Größe, die letzte Seite - und was sich das Fenster von einer Sitzung zur nächsten merkt: die Ordner, die Sie gewählt und mit denen Sie gearbeitet haben, die letzten 12 Befehle, die Sie auf der Seite „Befehl“ ausgeführt haben, sowie Vorgang, Ziel und Ergebnisort, bei denen diese Seite verlassen wurde. Ein Passwort gelangt nie hierher, ein mit <code>nohist</code> aus dem Verlauf gehaltener Lauf fügt nichts hinzu, und bei ausgeschaltetem Verlauf wird nichts hinzugefügt. Das Menü <b>Zuletzt..</b> der Seite „Befehl“ hat einen Eintrag, der all das vergisst.</span>
                   </td>
                 </tr>              </tbody>
             </table>
@@ -680,6 +689,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
           <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/index-de.html"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
           ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/lang/de/"><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_WEB/"><b>FastMediaSorter for Web</b><span>Browser media sorter</span></a
           ><a href="https://serzhyale.github.io/CyrFlip/de/"><b>CyrFlip</b><span>Windows layout fixer</span></a
           ><a href="https://serzhyale.github.io/doc-html-translate/de/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
           ><a href="https://serzhyale.github.io/StreamsPlayer/de/"><b>STREAMS Player</b><span>Windows stream player</span></a

@@ -91,4 +91,4 @@ wipe free space
 password protect file
 
 @@ReleaseNotes
-New: back up a folder, a drive or a network folder into one zip that any zip tool opens, or seal it behind a password, and restore it later - from the command line or from the Protect pages. Changed: a run that cannot finish says why - in its exit code and in the language of the window.
+New: scripts and tools can ask the running FileDO window to do things with commands such as filedo status and filedo job list; gen keeps a numbered set of the last backups; Browse commands and an About operations page, with search, explain every operation; the Command page remembers your folders and recent commands. Changed: a fill that cannot delete a file it created now fails instead of ending as a success.

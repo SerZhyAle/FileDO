@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2611110217-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611171800-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
@@ -839,7 +839,16 @@ FileDO/
 
 ## Historique des Versions
 
-**v2611110217** (Actuelle)
+**v2611171800** (Actuelle)
+- **Commandes pour scripts et agents**: `filedo status`, `filedo show`, `filedo quit`, `filedo job list`, `filedo job stop`, `filedo disk-manager show`, `filedo settings show` et `filedo tray start` s'adressent à la fenêtre FileDO déjà ouverte et se terminent par sa réponse sous forme de code de sortie - aucune seconde copie ne s'ouvre ; `filedo commands [--json]` liste toutes les commandes et `filedo version [--json]` donne la version ; `filedo_win.exe open --path <fichier>` ouvre un conteneur `.fdd` ou `.fd-sec` dans sa propre fenêtre, la forme nommée du lancement que fait l'Explorateur ; une commande qui travaillerait avec vos fichiers, l'écran, le presse-papiers ou le réseau est refusée tant que vous n'avez pas activé dans les Réglages **Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau** - c'est désactivé par défaut ; les commandes passent par un canal local que seul votre propre compte Windows peut atteindre, jamais par le réseau
+- **Sauvegarde**: le résultat est un seul fichier nommé `<source>-<yyMMddHHmm>`, par exemple `Photos-2611171652.zip`, ou `.fd-sec` s'il est scellé ; `gen 7` garde un jeu numéroté des 7 dernières sauvegardes (`Photos_001.zip` .. `Photos_007.zip`) dans le dossier que nomme `to`, et `stem <nom>` nomme le jeu ; le nouveau fichier est relu avant que le plus ancien ne soit retiré, et une exécution échouée ou arrêtée ne supprime rien ; la page **Sauvegarder un dossier** demande aussi combien de sauvegardes garder
+- **Page « Commande »**: **Parcourir les commandes..** liste chaque opération en six groupes avec une description d'une ligne, et **Utiliser cette commande** la sélectionne dans la liste ; la place du résultat a son propre sélecteur de dossier, et la fenêtre retient les dossiers choisis, les 12 dernières commandes lancées (**Récents..** en remet une sur la ligne de commande) ainsi que l'opération, la cible et la destination où la page a été laissée - une exécution tenue hors de l'historique avec `nohist`, une ligne qui porte un mot de passe et toute exécution quand l'historique est désactivé ne sont jamais retenues, les options non plus, et **Oublier les commandes et dossiers récents** vide tout
+- **À propos des opérations**: une nouvelle page du rail explique chaque opération - son nom et une description d'une ligne, et un clic sur le nom ouvre le texte complet en mots simples avec une ligne d'exemple ; la zone de recherche en haut (**Ctrl+F**) réduit la liste par nom ou par n'importe quel mot des descriptions
+- **Remplissage**: un remplissage avec `del` dit combien de ses fichiers il a supprimés et combien il n'a pas pu l'être, et un fichier laissé en place fait échouer l'exécution au lieu de la laisser se terminer en succès
+- **Fenêtre**: le menu *Autres actions* du Gestionnaire de disques affiche une icône sur chaque entrée, et l'archive de diagnostic n'énumère plus de compteurs à zéro pour des données de médiathèque que ce produit n'a pas
+- **Docs**: un nouveau guide du site sur les commandes pour scripts et agents, en cinq langues, et `docs/CLI.md`, la liste de ces commandes générée depuis `filedo commands --json` ; la page de confidentialité nomme les réglages de la fenêtre conservés sous votre propre clé utilisateur du registre
+
+**v2611110217** (Précédente)
 - **Sauvegarde**: `filedo backup` emballe un dossier, un lecteur ou un dossier réseau dans un seul zip que tout outil zip ouvre - FileDO choisit la densité de compression après un coup d'œil d'au plus 10 secondes aux fichiers, ou `level 0-9` la fixe - et `sec` scelle le zip dans un conteneur `.fd-sec` derrière un mot de passe ; `filedo restore` reconstruit le dossier à côté de la sauvegarde ou là où `to` l'indique, sans jamais fusionner avec un dossier ni le remplacer ; dans la fenêtre, le groupe **Protéger** a les pages *Sauvegarder un dossier* et *Restaurer une sauvegarde*
 - **Codes de sortie**: une exécution qui ne peut pas aboutir en donne la raison par son code de sortie : 10 une erreur dans la commande, 11 une cible absente ou pas prête, 12 des droits manquants, 13 trop peu d'espace, 14 une erreur d'E/S, 15 une panne réseau, 16 arrêtée par vous ; 0, 1 et 2 gardent leur sens
 - **Raisons**: quand une exécution ne peut pas aboutir, la carte de résultat en donne la raison dans la langue de la fenêtre - un lecteur plein, un fichier qu'un autre programme a ouvert - au lieu d'un simple code de sortie, et le Gestionnaire de disques fait de même ; une copie à court de place dit que le lecteur est plein ; un fichier tenu ouvert par un autre programme est nommé avec ce programme, et il suffit de relancer une fois le fichier libéré
@@ -848,7 +857,7 @@ FileDO/
 - **Disques**: un disque dont l'entrée de partage nomme un détenteur ou un état que cette version ne sait pas lire n'est pas monté ; un montage fait à l'ouverture de session est journalisé comme fait sous son réglage
 - **Site et confidentialité**: la page de confidentialité nomme le partage de disques et le mot de passe enregistré du montage automatique ; la page d'accueil a ses propres adresses en russe et en ukrainien, affiche directement la taille et le SHA-256 du programme d'installation et sépare les vérifications qui ne font que lire des opérations qui écrivent ; les pages de l'aide intégrée ne sont pas indexées par les moteurs de recherche
 
-**v2610211540** (Précédente)
+**v2610211540**
 - **Aide**: **F1** ou le nouveau bouton **?** ouvre dans le navigateur la page d'aide de la fenêtre où vous êtes - les pages de tâches, la page des commandes, les paramètres, la page À propos, l'historique et le Gestionnaire de disques - en anglais, russe, ukrainien, allemand et français, avec des repères numérotés sur une image de la fenêtre ; le menu de l'icône de la zone de notification a une entrée *Aide*, et le premier lien de la page À propos ouvre l'index de l'aide
 - **Aspect**: tous les boutons ont la même hauteur et des coins arrondis, et une longue légende passe à la ligne au lieu d'être coupée par des points de suspension ; les réponses des boîtes de dialogue ont un aspect neutre unique, Annuler en premier et la réponse qui agit en dernier ; les groupes des paramètres s'ouvrent et se ferment depuis un en-tête avec un triangle d'état
 - **Clavier**: **F6** et **Maj+F6** déplacent le focus vers la zone suivante ou précédente de la fenêtre, dans la fenêtre principale et dans le Gestionnaire de disques ; le menu d'aide du Gestionnaire de disques (touches, visite guidée, liens) s'ouvre aussi au clavier - touche **Menu** ou **Maj+F10** sur le bouton **?** - et figure dans son menu *Autres actions*
@@ -932,7 +941,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2611110217** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2611171800** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

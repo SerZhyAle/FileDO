@@ -89,4 +89,4 @@ effacer espace libre
 fichier mot de passe
 
 @@ReleaseNotes
-Nouveau : sauvegarde d'un dossier, d'un lecteur ou d'un dossier réseau dans un zip que tout outil zip ouvre, ou scellée derrière un mot de passe, puis restauration - en ligne de commande ou depuis les pages du groupe Protéger. Modifié : une exécution qui ne peut pas aboutir en donne la raison - par son code de sortie et dans la langue de la fenêtre.
+Nouveau : des scripts et des outils peuvent s'adresser à la fenêtre FileDO ouverte avec des commandes comme filedo status et filedo job list ; gen garde un jeu numéroté des dernières sauvegardes ; « Parcourir les commandes » et la page « À propos des opérations », avec recherche, expliquent chaque opération ; la page « Commande » retient vos dossiers et vos dernières commandes. Modifié : un remplissage qui ne peut pas supprimer un fichier qu'il a créé échoue désormais au lieu de se terminer en succès.

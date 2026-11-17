@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2611110217-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611171800-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
@@ -843,7 +843,16 @@ FileDO/
 
 ## Versionshistorie
 
-**v2611110217** (Aktuell)
+**v2611171800** (Aktuell)
+- **Befehle für Skripte und Agenten**: `filedo status`, `filedo show`, `filedo quit`, `filedo job list`, `filedo job stop`, `filedo disk-manager show`, `filedo settings show` und `filedo tray start` fragen das bereits laufende FileDO-Fenster und enden mit dessen Antwort als Exit-Code - es öffnet sich keine zweite Kopie; `filedo commands [--json]` listet alle Befehle auf und `filedo version [--json]` nennt die Version; `filedo_win.exe open --path <Datei>` öffnet einen `.fdd`- oder `.fd-sec`-Container in einem eigenen Fenster, die benannte Form des Starts, den der Explorer macht; ein Befehl, der mit Ihren Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk arbeiten würde, wird abgelehnt, bis Sie in den Einstellungen **Anderen Programmen erlauben, FileDO um Arbeit mit meinen Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk zu bitten** einschalten - die Option ist von Haus aus aus; die Befehle laufen über eine lokale Pipe, die nur Ihr eigenes Windows-Konto erreicht, nie über das Netzwerk
+- **Sicherung**: das Ergebnis ist eine Datei namens `<Quelle>-<yyMMddHHmm>`, zum Beispiel `Photos-2611171652.zip`, bei einer versiegelten Sicherung `.fd-sec`; `gen 7` hält einen nummerierten Satz der letzten 7 Sicherungen (`Photos_001.zip` .. `Photos_007.zip`) in dem Ordner, den `to` nennt, und `stem <Name>` benennt den Satz; die neue Datei wird zurückgelesen, bevor die älteste ausscheidet, und ein fehlgeschlagener oder angehaltener Lauf löscht nichts; die Seite **«Ordner sichern»** fragt außerdem, wie viele Sicherungen bleiben sollen
+- **Seite «Befehl»**: **Befehle ansehen..** listet jeden Vorgang in sechs Gruppen mit einer einzeiligen Beschreibung, und **Befehl verwenden** wählt ihn in der Auswahlliste aus; für den Ort des Ergebnisses gibt es eine eigene Ordnerauswahl, und das Fenster merkt sich die gewählten Ordner, die letzten 12 ausgeführten Befehle (**Zuletzt..** legt einen davon wieder in die Befehlszeile) sowie Vorgang, Ziel und Ergebnisort, bei denen die Seite verlassen wurde - ein mit `nohist` aus dem Verlauf gehaltener Lauf, eine Zeile mit Passwort und jeder Lauf bei ausgeschaltetem Verlauf werden nie gemerkt, Optionen nie, und **Letzte Befehle und Ordner vergessen** leert alles
+- **Über die Vorgänge**: eine neue Seite in der Leiste erklärt jeden Vorgang - Name und einzeilige Beschreibung, und ein Klick auf den Namen öffnet den vollen Text in einfachen Worten mit einer Beispielzeile; das Suchfeld oben (**Strg+F**) grenzt die Liste nach Name oder nach jedem Wort der Beschreibungen ein
+- **Füllen**: ein Lauf mit `del` nennt, wie viele seiner Dateien er gelöscht hat und wie viele nicht, und eine zurückbleibende Datei lässt den Lauf scheitern, statt ihn als Erfolg enden zu lassen
+- **Fenster**: das Menü *Weitere Aktionen* der Datenträgerverwaltung zeigt an jedem Eintrag ein Symbol, und das Diagnosearchiv führt keine Nullzähler mehr für Medienbibliothek-Werte, die dieses Produkt nicht hat
+- **Doku**: eine neue Anleitung auf der Website zu Befehlen für Skripte und Agenten, in fünf Sprachen, und `docs/CLI.md`, die aus `filedo commands --json` erzeugte Liste dieser Befehle; die Datenschutzseite nennt die Fenstereinstellungen, die unter Ihrem eigenen Benutzerschlüssel in der Registrierung liegen
+
+**v2611110217** (Vorherige)
 - **Sicherung**: `filedo backup` packt einen Ordner, ein Laufwerk oder einen Netzwerkordner in eine ZIP-Datei, die jedes ZIP-Programm öffnet - die Kompressionsdichte wählt FileDO nach einem Blick von höchstens 10 Sekunden auf die Dateien, oder `level 0-9` legt sie fest -, und `sec` versiegelt die ZIP-Datei in einen `.fd-sec`-Container hinter einem Passwort; `filedo restore` baut den Ordner neben der Sicherung oder dort, wohin `to` zeigt, neu auf und führt nie mit einem Ordner zusammen oder ersetzt ihn; im Fenster hat die Gruppe **Schützen** die Seiten *Ordner sichern* und *Aus Sicherung wiederherstellen*
 - **Exit-Codes**: ein Lauf, der nicht zu Ende kommt, nennt den Grund im Exit-Code: 10 ein Fehler im Befehl, 11 ein fehlendes oder nicht bereites Ziel, 12 fehlende Rechte, 13 zu wenig Platz, 14 ein E/A-Fehler, 15 ein Netzwerkfehler, 16 von Ihnen angehalten; 0, 1 und 2 behalten ihre Bedeutung
 - **Gründe**: wenn ein Lauf nicht zu Ende kommt, nennt die Ergebniskarte den Grund in der Sprache des Fensters - ein volles Laufwerk, eine Datei, die ein anderes Programm geöffnet hat - statt nur eines Exit-Codes, und die Datenträgerverwaltung tut dasselbe; eine Kopie, der der Platz ausgeht, sagt, dass das Laufwerk voll ist; eine von einem anderen Programm geöffnete Datei wird mit diesem Programm genannt, und der Lauf lässt sich einfach wiederholen, sobald die Datei frei ist
@@ -852,7 +861,7 @@ FileDO/
 - **Datenträger**: ein Datenträger, dessen Freigabeeintrag einen Halter oder einen Zustand nennt, den diese Version nicht lesen kann, wird nicht eingebunden; eine Einbindung bei der Anmeldung wird als unter ihrer Einstellung erfolgt protokolliert
 - **Website und Datenschutz**: die Datenschutzseite nennt die Datenträgerfreigabe und das gespeicherte Passwort der automatischen Einbindung; die Startseite hat eigene russische und ukrainische Adressen, zeigt Größe und SHA-256 der Setup-Datei direkt und trennt die Prüfungen, die nur lesen, von den Operationen, die schreiben; die Seiten der integrierten Hilfe werden von Suchmaschinen nicht indiziert
 
-**v2610211540** (Vorherige)
+**v2610211540**
 - **Hilfe**: **F1** oder die neue Schaltfläche **?** öffnet im Browser die Hilfeseite des Fensters, in dem Sie sich befinden - die Aufgabenseiten, die Befehlsseite, die Einstellungen, Info, den Verlauf und die Datenträgerverwaltung - auf Englisch, Russisch, Ukrainisch, Deutsch und Französisch, mit nummerierten Markierungen auf einem Bild des Fensters; das Menü des Tray-Symbols hat einen Eintrag *Hilfe*, und der erste Link von Info öffnet das Hilfeverzeichnis
 - **Aussehen**: alle Schaltflächen haben dieselbe Höhe und abgerundete Ecken, und eine lange Beschriftung wird umbrochen, statt mit Auslassungspunkten abgeschnitten zu werden; die Antworten in Dialogen haben ein einheitlich neutrales Aussehen, Abbrechen steht zuerst und die ausführende Antwort zuletzt; die Gruppen in den Einstellungen öffnen und schließen sich über eine Kopfzeile mit Zustandsdreieck
 - **Tastatur**: **F6** und **Umschalt+F6** verschieben den Fokus zum nächsten oder vorherigen Bereich des Fensters, im Hauptfenster und in der Datenträgerverwaltung; das Hilfemenü der Datenträgerverwaltung (Tastenübersicht, Einführung, Links) öffnet sich auch per Tastatur - **Menütaste** oder **Umschalt+F10** auf der Schaltfläche **?** - und steht in ihrem Menü *Weitere Aktionen*
@@ -936,7 +945,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2611110217** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2611171800** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

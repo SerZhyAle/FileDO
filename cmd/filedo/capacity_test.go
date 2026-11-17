@@ -1266,7 +1266,7 @@ func TestFillDelEventNumbersAndOutcome(t *testing.T) {
 		if err == nil || errors.Is(err, errDefect) || !errors.Is(err, errRunStopped) {
 			t.Fatalf("err = %v, want stopped without defect", err)
 		}
-		reportOpError(err, dir, nil)
+		reportOpError(err, dir, NewHistoryLogger([]string{"fill"}))
 		finishRun()
 		res := lastResult(t, events)
 		if res["verdict"] != string(VerdictStopped) || globalExitCode != 16 {
@@ -1321,7 +1321,7 @@ func TestFillDelEventNumbersAndOutcome(t *testing.T) {
 		if err == nil || !errors.Is(err, errDefect) {
 			t.Fatalf("err = %v, want errDefect", err)
 		}
-		reportOpError(err, dir, nil)
+		reportOpError(err, dir, NewHistoryLogger([]string{"fill"}))
 		finishRun()
 		res := lastResult(t, events)
 		if res["verdict"] != string(VerdictFailed) || globalExitCode != 1 {
@@ -1367,7 +1367,7 @@ func TestFillDelEventNumbersAndOutcome(t *testing.T) {
 		if err == nil || errors.Is(err, errDefect) || !errors.Is(err, errRunStopped) {
 			t.Fatalf("err = %v, want stopped without defect", err)
 		}
-		reportOpError(err, dir, nil)
+		reportOpError(err, dir, NewHistoryLogger([]string{"fill"}))
 		finishRun()
 		res := lastResult(t, events)
 		if res["verdict"] != string(VerdictStopped) || globalExitCode != 16 {
@@ -1401,7 +1401,7 @@ func TestFillDelEventNumbersAndOutcome(t *testing.T) {
 		if err == nil || !errors.Is(err, errDefect) {
 			t.Fatalf("err = %v, want errDefect", err)
 		}
-		reportOpError(err, dir, nil)
+		reportOpError(err, dir, NewHistoryLogger([]string{"fill"}))
 		finishRun()
 		res := lastResult(t, events)
 		if res["verdict"] != string(VerdictFailed) || globalExitCode != 1 {

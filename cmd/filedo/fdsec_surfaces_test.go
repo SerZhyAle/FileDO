@@ -443,6 +443,7 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 	cards := []struct{ name, kind string }{
 		{"Fast Media Sorter &amp; Organizer", "Android media sorter"},
 		{"Fast Media Sorter &amp; Sharing for Windows", "Windows media and file manager"},
+		{"FastMediaSorter for Web", "Browser media sorter"},
 		{"CyrFlip", "Windows layout fixer"},
 		{"doc-html-translate", "Windows ebook converter"},
 		{"STREAMS Player", "Windows stream player"},
@@ -454,12 +455,14 @@ func TestSurfaces_TheFooterCarriesTheFamilyMap(t *testing.T) {
 	urls := []string{
 		"https://serzhyale.github.io/FastMediaSorter_mob_v2/",
 		"https://serzhyale.github.io/FastMediaSorter_Lite/",
+		"https://serzhyale.github.io/FastMediaSorter_WEB/",
 		"https://serzhyale.github.io/CyrFlip/",
 		"https://serzhyale.github.io/doc-html-translate/",
 		"https://serzhyale.github.io/StreamsPlayer/",
 		"https://serzhyale.github.io/OneClickRunner/",
 		"https://serzhyale.github.io/universal-agent-kit/",
 		"https://serzhyale.github.io/DeviceInfo_Android/",
+		"https://serzhyale.github.io/Tourist_Android/",
 		"https://sza.od.ua",
 	}
 	for _, rel := range sources {

@@ -47,8 +47,9 @@
       <a class="pin" style="--x:22.1%;--y:42.2%" href="#e-group-windows" aria-label="11, Windows and window positions">11</a>
       <a class="pin" style="--x:23.1%;--y:44.9%" href="#e-setting-autoplay" aria-label="12, Disable Windows AutoPlay">12</a>
       <a class="pin" style="--x:23.1%;--y:51.0%" href="#e-setting-autoplay-system" aria-label="13, Windows AutoPlay settings..">13</a>
-      <a class="pin" style="--x:23.1%;--y:57.1%" href="#e-setting-reset" aria-label="14, Reset window positions">14</a>
-      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="15, Help">15</a>
+      <a class="pin" style="--x:23.1%;--y:57.1%" href="#e-setting-commands" aria-label="14, Let other programs ask FileDO to work with my files, screen, clipboard or the network">14</a>
+      <a class="pin" style="--x:23.1%;--y:61.5%" href="#e-setting-reset" aria-label="15, Reset window positions">15</a>
+      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="16, Help">16</a>
     </div>
     <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
   </figure>
@@ -165,8 +166,17 @@
         </dl>
       </div>
     </details>
+    <details class="el" id="e-setting-commands">
+      <summary><span class="mk">14</span><span><span class="name">Let other programs ask FileDO to work with my files, screen, clipboard or the network</span><span class="one">Scripts and other programs can always open, ask about and close FileDO. Turn this on to let them ask for commands that read or change your files too.</span></span></summary>
+      <div class="full">
+        <p>Lets scripts, scheduled tasks and development tools ask the running FileDO for more than opening, reporting and closing. While this is off, FileDO answers only commands that change nothing of yours: showing a window, telling its state, stopping its own runs and closing. Turn it on to let them ask for commands that read or change your files, screen, clipboard or the network. Only you can turn it on - no command can change it.</p>
+        <dl class="facts">
+          <dt>Undo</dt><dd>Switch it off again at any time; a command that needs it is then refused, with a message that names this setting.</dd>
+        </dl>
+      </div>
+    </details>
     <details class="el" id="e-setting-reset">
-      <summary><span class="mk">14</span><span><span class="name">Reset window positions</span><span class="one">Default positions apply the next time each window opens.</span></span></summary>
+      <summary><span class="mk">15</span><span><span class="name">Reset window positions</span><span class="one">Default positions apply the next time each window opens.</span></span></summary>
       <div class="full">
         <p>Forgets where you moved and resized the FileDO windows. Use it when a window has ended up off the screen or somewhere inconvenient.</p>
         <dl class="facts">
@@ -176,7 +186,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">15</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <summary><span class="mk">16</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
       <div class="full">
         <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
         <dl class="facts">
@@ -191,11 +201,12 @@
   <ul class="related">
     <li><a href="about.html"><b>About</b><span class="pill">Window</span><small>Version, links and support.</small></a></li>
     <li><a href="history.html"><b>History</b><span class="pill">Window</span><small>The report of every finished run.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/commands.html"><b>Guide: commands for scripts and agents</b><span class="pill gold">Site</span><small>What a script can ask the running FileDO to do, and how to read the exit code.</small></a></li>
     <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Privacy</b><span class="pill gold">Site</span><small>No telemetry: what stays on your machine.</small></a></li>
   </ul>
 
   <footer class="help-foot">
-    <span>Captured against FileDO 2611110217, 2026-11-11.</span>
+    <span>Captured against FileDO 2611171800, 2026-11-17.</span>
     <a href="index.html">Help index</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
   </footer>

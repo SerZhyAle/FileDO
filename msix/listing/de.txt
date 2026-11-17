@@ -89,4 +89,4 @@ speicherplatz überschreiben
 dateien mit passwort schützen
 
 @@ReleaseNotes
-Neu: Sicherung eines Ordners, eines Laufwerks oder eines Netzwerkordners in eine ZIP-Datei, die jedes ZIP-Programm öffnet, oder versiegelt hinter einem Passwort, und Wiederherstellung daraus - in der Befehlszeile oder auf den Seiten der Gruppe Schützen. Geändert: ein Lauf, der nicht zu Ende kommt, nennt den Grund - im Exit-Code und in der Sprache des Fensters.
+Neu: Skripte und Werkzeuge können das laufende FileDO-Fenster mit Befehlen wie filedo status und filedo job list ansprechen; gen hält einen nummerierten Satz der letzten Sicherungen; „Befehle ansehen“ und die Seite „Über die Vorgänge“ mit Suche erklären jeden Vorgang; die Seite „Befehl“ merkt sich Ihre Ordner und letzten Befehle. Geändert: ein Füllen, das eine selbst angelegte Datei nicht löschen kann, scheitert jetzt, statt als Erfolg zu enden.

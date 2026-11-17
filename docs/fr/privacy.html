@@ -426,7 +426,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
             <span data-l="fr">Ce que FileDO écrit - et où</span>
           </h2>
           <p>
-            <span data-l="fr">Des fichiers de service, plus des données de test quand vous les demandez. Ce sont tous des fichiers ordinaires sur votre propre disque : vous pouvez les lire, les supprimer ou ne jamais les créer.</span>
+            <span data-l="fr">Des fichiers de service et des réglages, plus des données de test quand vous les demandez. Ce sont tous des fichiers ordinaires ou des valeurs sous votre propre clé utilisateur, sur votre propre ordinateur : vous pouvez les lire, les supprimer ou ne jamais les créer.</span>
           </p>
           <div class="tablewrap">
             <table class="filetable">
@@ -530,6 +530,15 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                   </td>
                   <td>
                     <span data-l="fr">Les disques que vous avez partagés avec Fast Media Sorter pour Windows : le chemin du conteneur, le nom de dossier sous lequel il est partagé, les indicateurs lecture seule et démarrage automatique. Un mot de passe n’est jamais écrit ici.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>HKCU\Software\FileDO</code></td>
+                  <td>
+                    <span data-l="fr">Pas un fichier : des valeurs sous votre propre clé utilisateur du registre Windows.</span>
+                  </td>
+                  <td>
+                    <span data-l="fr">Les réglages de la fenêtre - thème, langue, position et taille, dernière page - et ce que la fenêtre retient d’une session à l’autre : les dossiers que vous avez choisis et sur lesquels vous avez travaillé, les 12 dernières commandes lancées sur la page « Commande », ainsi que l’opération, la cible et la destination où cette page a été laissée. Un mot de passe n’y arrive jamais, une exécution tenue hors de l’historique avec <code>nohist</code> n’y ajoute rien, et tant que l’historique des exécutions est désactivé, rien n’est ajouté. Le menu <b>Récents..</b> de la page « Commande » a une entrée qui oublie tout cela.</span>
                   </td>
                 </tr>              </tbody>
             </table>
@@ -680,6 +689,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
         <nav class="tools-grid" aria-labelledby="footerToolsTitle">
           <a href="https://serzhyale.github.io/FastMediaSorter_mob_v2/index-fr.html"><b>Fast Media Sorter &amp; Organizer</b><span>Android media sorter</span></a
           ><a href="https://serzhyale.github.io/FastMediaSorter_Lite/lang/fr/"><b>Fast Media Sorter &amp; Sharing for Windows</b><span>Windows media and file manager</span></a
+          ><a href="https://serzhyale.github.io/FastMediaSorter_WEB/"><b>FastMediaSorter for Web</b><span>Browser media sorter</span></a
           ><a href="https://serzhyale.github.io/CyrFlip/fr/"><b>CyrFlip</b><span>Windows layout fixer</span></a
           ><a href="https://serzhyale.github.io/doc-html-translate/fr/"><b>doc-html-translate</b><span>Windows ebook converter</span></a
           ><a href="https://serzhyale.github.io/StreamsPlayer/fr/"><b>STREAMS Player</b><span>Windows stream player</span></a

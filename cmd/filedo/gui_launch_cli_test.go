@@ -8,11 +8,11 @@ import (
 	"filedo/statedir"
 )
 
-// TestWindowVerbsLaunchTheRightWindow covers the spellings of the two window
+// TestFrozenWindowVerbsLaunchTheRightWindow covers the spellings of the two window
 // verbs: `ui` and `-ui` hand the GUI no arguments, `dm` and `-dm` hand it
 // --disks, and every spelling is case-insensitive like the rest of the
 // vocabulary. The uiLauncher seam keeps a real window from being started.
-func TestWindowVerbsLaunchTheRightWindow(t *testing.T) {
+func TestFrozenWindowVerbsLaunchTheRightWindow(t *testing.T) {
 	cases := []struct {
 		word string
 		want []string

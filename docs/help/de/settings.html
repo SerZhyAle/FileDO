@@ -47,8 +47,9 @@
       <a class="pin" style="--x:22.1%;--y:44.7%" href="#e-group-windows" aria-label="11, Windows und Fensterpositionen">11</a>
       <a class="pin" style="--x:23.1%;--y:47.4%" href="#e-setting-autoplay" aria-label="12, Automatische Wiedergabe von Windows deaktivieren">12</a>
       <a class="pin" style="--x:23.1%;--y:53.5%" href="#e-setting-autoplay-system" aria-label="13, Windows-Einstellungen zur automatischen Wiedergabe..">13</a>
-      <a class="pin" style="--x:23.1%;--y:59.6%" href="#e-setting-reset" aria-label="14, Fensterpositionen zurücksetzen">14</a>
-      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="15, Hilfe">15</a>
+      <a class="pin" style="--x:23.1%;--y:59.6%" href="#e-setting-commands" aria-label="14, Anderen Programmen erlauben, FileDO um Arbeit mit meinen Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk zu bitten">14</a>
+      <a class="pin" style="--x:23.1%;--y:66.2%" href="#e-setting-reset" aria-label="15, Fensterpositionen zurücksetzen">15</a>
+      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="16, Hilfe">16</a>
     </div>
     <figcaption>Beispieldaten. Wählen Sie eine Nummer, um mehr über diesen Teil des Fensters zu lesen.</figcaption>
   </figure>
@@ -165,8 +166,17 @@
         </dl>
       </div>
     </details>
+    <details class="el" id="e-setting-commands">
+      <summary><span class="mk">14</span><span><span class="name">Anderen Programmen erlauben, FileDO um Arbeit mit meinen Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk zu bitten</span><span class="one">Skripte und andere Programme können FileDO immer öffnen, nach seinem Zustand fragen und schließen. Einschalten, damit sie auch Befehle anfordern können, die Ihre Dateien lesen oder ändern.</span></span></summary>
+      <div class="full">
+        <p>Erlaubt Skripten, geplanten Aufgaben und Entwicklerwerkzeugen, das laufende FileDO um mehr zu bitten als Öffnen, Zustand melden und Schließen. Solange dies aus ist, beantwortet FileDO nur Befehle, die nichts von Ihnen ändern: ein Fenster zeigen, den Zustand melden, die eigenen Läufe stoppen und schließen. Schalten Sie es ein, damit sie auch Befehle anfordern können, die Ihre Dateien, den Bildschirm, die Zwischenablage oder das Netzwerk lesen oder ändern. Nur Sie können es einschalten - kein Befehl ändert es.</p>
+        <dl class="facts">
+          <dt>Rückgängig</dt><dd>Schalten Sie es jederzeit wieder aus; ein Befehl, der es braucht, wird dann mit einer Meldung abgelehnt, die diese Einstellung nennt.</dd>
+        </dl>
+      </div>
+    </details>
     <details class="el" id="e-setting-reset">
-      <summary><span class="mk">14</span><span><span class="name">Fensterpositionen zurücksetzen</span><span class="one">Die Standardposition gilt beim nächsten Öffnen des jeweiligen Fensters.</span></span></summary>
+      <summary><span class="mk">15</span><span><span class="name">Fensterpositionen zurücksetzen</span><span class="one">Die Standardposition gilt beim nächsten Öffnen des jeweiligen Fensters.</span></span></summary>
       <div class="full">
         <p>Vergisst, wohin Sie die FileDO-Fenster verschoben haben und wie groß sie waren. Nützlich, wenn ein Fenster außerhalb des Bildschirms oder an einer unpraktischen Stelle gelandet ist.</p>
         <dl class="facts">
@@ -176,7 +186,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">15</span><span><span class="name">Hilfe</span><span class="one">Öffnet die Seite, die Sie gerade lesen.</span></span></summary>
+      <summary><span class="mk">16</span><span><span class="name">Hilfe</span><span class="one">Öffnet die Seite, die Sie gerade lesen.</span></span></summary>
       <div class="full">
         <p>Jedes FileDO-Fenster hat diese Schaltfläche oben rechts. Sie öffnet die Hilfeseite des Fensters, in dem Sie sich befinden - mit Bild und Erklärung jedes Teils, in Ihrer Sprache.</p>
         <dl class="facts">
@@ -191,11 +201,12 @@
   <ul class="related">
     <li><a href="about.html"><b>Über</b><span class="pill">Fenster</span><small>Version, Links und Support.</small></a></li>
     <li><a href="history.html"><b>Verlauf</b><span class="pill">Fenster</span><small>Der Bericht jedes abgeschlossenen Laufs.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/commands.html"><b>Anleitung: Befehle für Skripte und Agenten</b><span class="pill gold">Website</span><small>Worum ein Skript das laufende FileDO bitten kann und wie man den Exitcode liest.</small></a></li>
     <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Datenschutz</b><span class="pill gold">Website</span><small>Keine Telemetrie: was auf Ihrem Rechner bleibt.</small></a></li>
   </ul>
 
   <footer class="help-foot">
-    <span>Aufgenommen mit FileDO 2611110217, 2026-11-11.</span>
+    <span>Aufgenommen mit FileDO 2611171800, 2026-11-17.</span>
     <a href="index.html">Hilfe-Übersicht</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Eine Frage stellen oder ein Problem melden</a>
   </footer>

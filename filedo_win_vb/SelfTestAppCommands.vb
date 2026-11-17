@@ -188,9 +188,18 @@ Partial Public Module SelfTest
                                     Next
                                     f.BeginInvoke(New MethodInvoker(AddressOf f.Close))
                                 End Sub
-            f.ShowDialog()
+            ShowOwnedModal(f)
         End Using
         Check("appcmd:window-verbs-modal-is-busy", seen.Count = verbs.Length AndAlso seen.All(Function(s) s = "busy"), String.Join(",", seen))
+    End Sub
+
+    ' APP-BEHAVIOUR rule 1: a dialog always has an owner, in the self-test too. An invisible form off the screen
+    ' stands in for the window the dialog would belong to; it is not modal, so it never counts as an open modal.
+    Private Sub ShowOwnedModal(dialog As Form)
+        Using owner As New Form With {.ShowInTaskbar = False, .FormBorderStyle = FormBorderStyle.None, .StartPosition = FormStartPosition.Manual, .Location = New Point(-32000, -32000), .Size = New Size(1, 1), .Opacity = 0}
+            owner.Show()
+            dialog.ShowDialog(owner)
+        End Using
     End Sub
 
     Private Function AppCmdLine(command As String, args As String(), Optional schemaVersion As Integer = 1, Optional id As String = "11111111-2222-4333-8444-555555555555") As String
@@ -326,7 +335,7 @@ Partial Public Module SelfTest
                                     seen = AppCommands.ModalOpen()
                                     f.BeginInvoke(New MethodInvoker(AddressOf f.Close))
                                 End Sub
-            f.ShowDialog()
+            ShowOwnedModal(f)
         End Using
         Check("appcmd:modal-is-busy", seen, "")
         If AppHost.Current Is Nothing Then

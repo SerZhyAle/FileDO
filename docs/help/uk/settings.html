@@ -47,8 +47,9 @@
       <a class="pin" style="--x:22.1%;--y:44.7%" href="#e-group-windows" aria-label="11, Windows і розташування вікон">11</a>
       <a class="pin" style="--x:23.1%;--y:47.4%" href="#e-setting-autoplay" aria-label="12, Вимкнути автовідтворення Windows">12</a>
       <a class="pin" style="--x:23.1%;--y:53.5%" href="#e-setting-autoplay-system" aria-label="13, Налаштування автовідтворення Windows..">13</a>
-      <a class="pin" style="--x:23.1%;--y:59.6%" href="#e-setting-reset" aria-label="14, Скинути положення вікон">14</a>
-      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="15, Довідка">15</a>
+      <a class="pin" style="--x:23.1%;--y:59.6%" href="#e-setting-commands" aria-label="14, Дозволити іншим програмам просити FileDO працювати з моїми файлами, екраном, буфером обміну або мережею">14</a>
+      <a class="pin" style="--x:23.1%;--y:65.1%" href="#e-setting-reset" aria-label="15, Скинути положення вікон">15</a>
+      <a class="pin" style="--x:95.8%;--y:0.8%" href="#e-help" aria-label="16, Довідка">16</a>
     </div>
     <figcaption>Демонстраційні дані. Виберіть номер, щоб прочитати про цю частину вікна.</figcaption>
   </figure>
@@ -165,8 +166,17 @@
         </dl>
       </div>
     </details>
+    <details class="el" id="e-setting-commands">
+      <summary><span class="mk">14</span><span><span class="name">Дозволити іншим програмам просити FileDO працювати з моїми файлами, екраном, буфером обміну або мережею</span><span class="one">Скрипти й інші програми завжди можуть відкрити FileDO, дізнатися його стан і закрити його. Увімкніть, щоб вони могли просити й команди, які читають або змінюють ваші файли.</span></span></summary>
+      <div class="full">
+        <p>Дозволяє скриптам, завданням планувальника та інструментам розробника просити запущений FileDO не лише відкритися, повідомити стан і закритися. Поки пункт вимкнено, FileDO відповідає лише на команди, які нічого вашого не змінюють: показати вікно, повідомити стан, зупинити власні запуски та закритися. Увімкніть, щоб дозволити й команди, які читають або змінюють ваші файли, екран, буфер обміну чи мережу. Увімкнути пункт можете лише ви - жодна команда його не змінює.</p>
+        <dl class="facts">
+          <dt>Чи можна скасувати</dt><dd>Вимкніть його знову будь-коли; команда, якій він потрібен, тоді відхиляється повідомленням із назвою цього пункту.</dd>
+        </dl>
+      </div>
+    </details>
     <details class="el" id="e-setting-reset">
-      <summary><span class="mk">14</span><span><span class="name">Скинути положення вікон</span><span class="one">Типове положення застосовується під час наступного відкриття кожного вікна.</span></span></summary>
+      <summary><span class="mk">15</span><span><span class="name">Скинути положення вікон</span><span class="one">Типове положення застосовується під час наступного відкриття кожного вікна.</span></span></summary>
       <div class="full">
         <p>Забуває, де ви пересували вікна FileDO і якого розміру вони були. Стане в пригоді, якщо вікно опинилося за межами екрана або в незручному місці.</p>
         <dl class="facts">
@@ -176,7 +186,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">15</span><span><span class="name">Довідка</span><span class="one">Відкриває сторінку, яку ви читаєте.</span></span></summary>
+      <summary><span class="mk">16</span><span><span class="name">Довідка</span><span class="one">Відкриває сторінку, яку ви читаєте.</span></span></summary>
       <div class="full">
         <p>У правому верхньому куті кожного вікна FileDO є ця кнопка. Вона відкриває довідку про те вікно, у якому ви перебуваєте, - з картинкою та поясненням кожної частини, вашою мовою.</p>
         <dl class="facts">
@@ -191,11 +201,12 @@
   <ul class="related">
     <li><a href="about.html"><b>Про програму</b><span class="pill">Вікно</span><small>Версія, посилання та підтримка.</small></a></li>
     <li><a href="history.html"><b>Історія</b><span class="pill">Вікно</span><small>Звіт про кожен завершений запуск.</small></a></li>
+    <li><a href="https://serzhyale.github.io/FileDO/guides/commands.html"><b>Посібник: команди для скриптів і агентів</b><span class="pill gold">Сайт</span><small>Про що скрипт може попросити запущений FileDO і як читати код завершення.</small></a></li>
     <li><a href="https://serzhyale.github.io/FileDO/privacy.html"><b>Приватність</b><span class="pill gold">Сайт</span><small>Без телеметрії: що залишається на вашому комп'ютері.</small></a></li>
   </ul>
 
   <footer class="help-foot">
-    <span>Знято з FileDO 2611110217, 2026-11-11.</span>
+    <span>Знято з FileDO 2611171800, 2026-11-17.</span>
     <a href="index.html">Зміст довідки</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Поставити запитання або повідомити про проблему</a>
   </footer>

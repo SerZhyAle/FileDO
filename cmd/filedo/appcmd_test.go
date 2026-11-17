@@ -475,7 +475,7 @@ func TestAppCommands_C10_ColdStartModes(t *testing.T) {
 
 // C13 and the frozen aliases: `ui`, `gui`, `-ui`, `dm`, `-dm` and the empty
 // argument list are not taken by the manifest front, so they keep the start
-// they always made (TestWindowVerbsLaunchTheRightWindow holds what that start is).
+// they always made (TestFrozenWindowVerbsLaunchTheRightWindow holds what that start is).
 func TestAppCommands_C13_FrozenAliasesKeepTheirStart(t *testing.T) {
 	m, _ := loadAppCmdManifest()
 	var show *appCmdEntry

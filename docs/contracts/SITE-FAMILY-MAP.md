@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-FAMILY-MAP` |
-| **Version** | 1.15, read 2026-11-17 (SP-0211); implemented 1.14 (SP-0185 Windows card name/type shipped in v2611110217; the DeviceInfo card of 1.14 landed with SP-0211); the 1.15 Tourist card is owed (SP-0213) |
+| **Version** | 1.17, read and implemented 2026-11-17: every footer carries the DeviceInfo card of 1.14 (SP-0211), the Tourist card of 1.15 (SP-0213) and the FastMediaSorter for Web card of 1.16 (release preparation of v2611171800); 1.13 (a help-index cell) and 1.17 (the exchange-server page addresses are permanent) change no footer |
 | **Role** | consumer - product-site footer family grid |
 | **Home** | shared contracts catalog, folder `product-web-pages/`, document `SITE-FAMILY-MAP.md` |
 | **Owner** | sza.od.ua hub |
