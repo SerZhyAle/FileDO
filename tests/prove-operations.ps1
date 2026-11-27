@@ -1303,8 +1303,14 @@ function Invoke-Tier2 {
         [void](Op 'rehash: mounted data volume root' @('rehash', $letter) -Verdict @('Done') -Verify {
             param($r)
             if ((Get-FileSha256 $rhDiskFile) -eq $rhDiskHash) { 'mounted volume file SHA-256 unchanged' }
+            # The files of a kind rehash does not know stay byte for byte.
+            $now = Get-Manifest "$letter\data"
+            foreach ($k in $want.Keys) { if ($k -like '*.bin' -and $now[$k].Hash -ne $want[$k].Hash) { "rehash changed a file it does not support: $k" } }
         })
         Remove-Item -LiteralPath "$letter\rehash_data" -Recurse -Force
+        # rehash rewrote the supported files of the whole volume (the text one among them), so what must survive
+        # the unmount and chkdsk from here on is the data as rehash left it.
+        $wantKept = Get-Manifest "$letter\data"
 
         $scrap = "$letter\scrap"
         [void](Op 'fastcopy: a small scrap tree' @('fastcopy', (Join-Path $src 'dups'), $scrap))
@@ -1330,7 +1336,7 @@ function Invoke-Tier2 {
         })
         $letter = Mount-Own $fdd 'read-only' @('ro')
         if (-not $letter) { return }
-        Check 'the data survived the unmount (byte for byte)' @(Compare-Manifest $want (Get-Manifest "$letter\data"))
+        Check 'the data survived the unmount (byte for byte)' @(Compare-Manifest $wantKept (Get-Manifest "$letter\data"))
         $denied = "$letter\denied"
         [void](Op 'write to a read-only disk is refused' @('copy', (Join-Path $src 'dups'), $denied) -Code @(1, 2, 5, 12) -Verdict @('Not proven', 'Failed') -Verify {
             param($r) if (Test-Path -LiteralPath $denied) { 'a folder was created on a read-only mount' }
@@ -1348,7 +1354,7 @@ function Invoke-Tier2 {
         })
         $letter = Mount-Own $fdd 'after chkdsk'
         if (-not $letter) { return }
-        Check 'the data survived chkdsk (byte for byte)' @(Compare-Manifest $want (Get-Manifest "$letter\data"))
+        Check 'the data survived chkdsk (byte for byte)' @(Compare-Manifest $wantKept (Get-Manifest "$letter\data"))
         Dismount-Own $letter $fdd 'after chkdsk'
         $letter = $null
 
