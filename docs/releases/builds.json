@@ -23,10 +23,10 @@
       "package": "filedo-msix",
       "flavor": "default",
       "kind": "release",
-      "version": "26.1117.1800.0",
-      "builtAt": "2026-11-17T19:56:38+01:00",
-      "artifact": "msix/out/FileDO_26.1117.1800.0.msix",
-      "sha256": "1973735c959d763db4ef421f231e8f1fb198482499f6200c794bbf734b1e2093"
+      "version": "26.1127.100.0",
+      "builtAt": "2026-11-27T02:14:32+01:00",
+      "artifact": "msix/out/FileDO_26.1127.100.0.msix",
+      "sha256": "590f8b2df43dc487ed8babd8ac791d41424851b7dd49863d79724070192e4c62"
     },
     {
       "package": "filedo-msix",

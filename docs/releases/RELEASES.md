@@ -8,10 +8,10 @@ What each package was built as last, what each channel carries, and every public
 
 | Package | Channel | Kind | Live | Since | In flight | Ref |
 | --- | --- | --- | --- | --- | --- | --- |
-| filedo | github | github | 2611171800 | 2026-11-17 | - | [v2611171800](https://github.com/SerZhyAle/FileDO/releases/tag/v2611171800) |
-| filedo | winget | winget | 2611110217 | 2026-11-17 | 2611171800 submitted (2026-11-17) | [PR#482547](https://github.com/microsoft/winget-pkgs/pull/482547) |
-| filedo | installer (Setup installer (an asset of the GitHub Release)) | url | 2611171800 | 2026-11-17 | - | [link](https://api.github.com/repos/SerZhyAle/FileDO/releases/latest) |
-| filedo-msix | msstore (Microsoft Store) | msstore | - | - | 26.1117.1800.0 blocked (2026-11-17); 26.1111.217.0 submitted (2026-11-17) | - |
+| filedo | github | github | 2611270100 | 2026-11-27 | - | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) |
+| filedo | winget | winget | 2611110217 | 2026-11-17 | 2611270100 pending (2026-11-27); 2611171800 submitted (2026-11-17) | - |
+| filedo | installer (Setup installer (an asset of the GitHub Release)) | url | 2611270100 | 2026-11-27 | - | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) |
+| filedo-msix | msstore (Microsoft Store) | msstore | - | - | 26.1127.100.0 pending (2026-11-27); 26.1117.1800.0 blocked (2026-11-17); 26.1111.217.0 submitted (2026-11-17) | - |
 
 ## Last builds
 
@@ -19,19 +19,17 @@ What each package was built as last, what each channel carries, and every public
 | --- | --- | --- | --- | --- | --- |
 | filedo | default | release | 2611270100 | 2026-11-27 02:03:28+01:00 | dist/FileDO-2611270100-setup.exe |
 | filedo | default | test | 2611270100 | 2026-11-27 01:02:08+01:00 | dist/FileDO-2611270100-setup.exe |
-| filedo-msix | default | release | 26.1117.1800.0 | 2026-11-17 19:56:38+01:00 | msix/out/FileDO_26.1117.1800.0.msix |
+| filedo-msix | default | release | 26.1127.100.0 | 2026-11-27 02:14:32+01:00 | msix/out/FileDO_26.1127.100.0.msix |
 | filedo-msix | default | test | 26.1117.1958.0 | 2026-11-17 19:58:16+01:00 | msix/out/FileDO_26.1117.1958.0.msix |
-
-## Built, not published
-
-| Package | Flavor | Version | Built | Days |
-| --- | --- | --- | --- | --- |
-| filedo | default | 2611270100 | 2026-11-27 | 0 |
 
 ## History
 
 | When | Package | Channel | Version | State | Source | Ref | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-27 02:14:33+01:00 | filedo-msix | msstore | 26.1127.100.0 | pending | release | - | MSIX built from the tag, unsigned; upload and submission are manual |
+| 2026-11-27 02:14:23+01:00 | filedo | winget | 2611270100 | pending | release | - | not submitted: wingetcreate submit failed (exit 1) |
+| 2026-11-27 02:14:03+01:00 | filedo | installer | 2611270100 | live | release | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) | the setup EXE and the MSI are assets of the Release |
+| 2026-11-27 02:14:02+01:00 | filedo | github | 2611270100 | live | release | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) | - |
 | 2026-11-17 18:58:31+01:00 | filedo | winget | 2611171800 | submitted | manual | [PR#482547](https://github.com/microsoft/winget-pkgs/pull/482547) | recorded again: the import stamped the merged versions with the import time, so the first record (the PR time) read as older |
 | 2026-11-17 18:58:20+01:00 | filedo-msix | msstore | 26.1117.1800.0 | blocked | manual | - | MSIX built from the tag, not uploaded: Submission 8 (26.1111.217.0) is still PendingCommit in Partner Center |
 | 2026-11-17 18:57:27+01:00 | filedo-msix | msstore | 26.1111.217.0 | submitted | import | [Submission 8](https://apps.microsoft.com/detail/9PH1LPCMRG83) | Store status PendingCommit |
