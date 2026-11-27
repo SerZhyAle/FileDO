@@ -259,7 +259,14 @@ func TestFillVerifyCatchesMismatchInPartialFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	st, _ := f.Stat()
-	if _, err := f.WriteAt([]byte{'#'}, st.Size()-100); err != nil {
+	// Invert the byte that is there: a fixed value would sometimes equal the random content and damage nothing.
+	b := make([]byte, 1)
+	if _, err := f.ReadAt(b, st.Size()-100); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	b[0] ^= 0xFF
+	if _, err := f.WriteAt(b, st.Size()-100); err != nil {
 		f.Close()
 		t.Fatal(err)
 	}
