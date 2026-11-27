@@ -93,7 +93,8 @@ Friend Class DiskAutostartDialog
     Public Sub New(d As Dictionary(Of String, String), owner As Control,
                    records As Func(Of List(Of DiskRecord)), guard As Func(Of DiskGuardState),
                    perform As Action(Of DiskAction, List(Of DiskRecord)), guardRun As Action(Of Boolean))
-        MyBase.New(d, Tr(d, "vd_auto_title"), owner, 620)
+        ' Wide enough that the longest state word keeps its line beside a switch that draws its glyph.
+        MyBase.New(d, Tr(d, "vd_auto_title"), owner, 660)
         recordsFn = records
         guardFn = guard
         performFn = perform

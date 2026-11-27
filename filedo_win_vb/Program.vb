@@ -90,6 +90,7 @@ Module Program
         New ToolingSpec("menu-icons write", "--write-menu-icons", True, AddressOf RunWriteMenuIcons), _
         New ToolingSpec("ui-drive run", "--ui-drive", True, AddressOf RunUiDrive), _
         New ToolingSpec("screens capture", "--capture-screens", True, AddressOf RunCaptureScreens), _
+        New ToolingSpec("ui-showcase capture", "--capture-ui-showcase", True, AddressOf RunCaptureShowcase), _
         New ToolingSpec("help-pages build", "--build-help", True, AddressOf RunBuildHelp), _
         New ToolingSpec("selftest run", "--selftest", False, AddressOf RunSelfTest)}
 
@@ -169,6 +170,12 @@ Module Program
         Return Capture.Run(folder)
     End Function
 
+    ' `--capture-ui-showcase <folder>` and `ui-showcase capture --out <folder>`: the unified UI showcase of SP-0169 S4
+    ' (Showcase.vb) - pictures and a geometry/contrast CSV. It builds windows and writes no setting of the person's.
+    Private Function RunCaptureShowcase(folder As String) As Integer
+        If folder Is Nothing Then Return 1
+        Return Showcase.Run(folder)
+    End Function
     ' `--build-help <folder>` and `help-pages build --out <folder>`: the help pages and their pictures, in every language
     ' and both themes (HelpPages.vb).
     Private Function RunBuildHelp(folder As String) As Integer

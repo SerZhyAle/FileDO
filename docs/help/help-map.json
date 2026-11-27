@@ -68,7 +68,7 @@
       "reason": "The window's quick reference (the keyboard and what a row says); the page carries the same tables from the same sources." },
     { "id": "disk.welcome", "name": "Welcome to the Disk manager", "nameKey": "vd_welcome_title", "form": "inherit", "parent": "disk-manager", "class": "DiskWelcomeDialog",
       "reason": "The first-steps window of the Disk Manager; the page opens with the same steps." },
-    { "id": "disk.autostart", "name": "Autostart", "nameKey": "vd_auto_title", "form": "page", "help": "disk-autostart", "class": "DiskAutostartDialog", "fallback": "disk-manager" },
+    { "id": "disk.autostart", "name": "Start with Windows", "nameKey": "vd_auto_title", "form": "page", "help": "disk-autostart", "class": "DiskAutostartDialog", "fallback": "disk-manager" },
     { "id": "disk.share", "name": "Share with Fast Media Sorter & Sharing..", "nameKey": "vd_share_register", "form": "page", "help": "disk-share", "class": "DiskShareDialog", "fallback": "disk-manager" },
     { "id": "disk.new-partition", "name": "New partition disk", "nameKey": "vd_part_title", "form": "page", "help": "disk-new-partition", "class": "DiskNewPartitionDialog", "fallback": "disk-manager" },
     { "id": "disk.destroy-partition", "name": "Destroy the partition disk", "nameKey": "vd_part_destroy_title", "form": "page", "help": "disk-destroy-partition", "class": "DiskDestroyPartitionDialog", "fallback": "disk-manager" },

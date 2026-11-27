@@ -7,7 +7,7 @@
   "families": [
     {
       "name": "target-first",
-      "summary": "Target-first device, folder, file, share and batch operations (info, speed, test, fill, clean, cd, copy, compare, check, wipe, backup, restore, from, hist).",
+      "summary": "Target-first device, folder, file, share and batch operations (info, speed, test, fill, clean, cd, copy, compare, check, wipe, backup, restore, rehash, from, hist).",
       "exe": "filedo.exe",
       "help": "filedo help",
       "exitContract": "CLI-EVENT-STREAM",
@@ -526,6 +526,37 @@
       ],
       "examples": [
         { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'ui-drive run --out temp\\evidence\\run1' -Wait -PassThru).ExitCode", "expect": "0 when the driven run passes; it uses the screen while it runs" }
+      ],
+      "since": "1.0",
+      "exe": "filedo_win.exe"
+    },
+    {
+      "name": "ui-showcase capture",
+      "aliases": [
+        { "spelling": "--capture-ui-showcase {out}", "exe": "filedo_win.exe", "maps": { "out": "out" }, "legacy": true }
+      ],
+      "summary": "Developer tooling: render the showcase of the shared buttons, options, groups, navigation rows and a dialog at several sizes, palettes, languages and widths into a folder, with a geometry and contrast table.",
+      "synopsis": "filedo_win.exe ui-showcase capture --out <folder>",
+      "args": [
+        { "name": "out", "kind": "path", "required": true, "description": "The existing folder to write. The frozen spelling --capture-ui-showcase takes it as the next argument." }
+      ],
+      "returns": [],
+      "risk": "writes-user-data",
+      "audience": "developer",
+      "forward": "never",
+      "coldStart": "oneshot",
+      "wait": "done",
+      "timeoutMs": 300000,
+      "interactive": false,
+      "idempotent": true,
+      "exitCodes": [
+        { "code": 0, "meaning": "every file was written and every measurement passed" },
+        { "code": 1, "meaning": "a file could not be written or a measurement failed" },
+        { "code": 10, "meaning": "no folder given, or an unknown option" },
+        { "code": 11, "meaning": "the named folder does not exist" }
+      ],
+      "examples": [
+        { "shell": "powershell", "line": "(Start-Process .\\filedo_win.exe -ArgumentList 'ui-showcase capture --out temp\\evidence\\showcase' -Wait -PassThru).ExitCode", "expect": "0, the pictures, geometry.csv and summary.txt under temp\\evidence\\showcase" }
       ],
       "since": "1.0",
       "exe": "filedo_win.exe"

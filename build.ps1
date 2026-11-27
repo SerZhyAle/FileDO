@@ -50,10 +50,12 @@
 #    .\build.ps1 -Install              # build, then RUN the installer here
 #    .\build.ps1 -DeployTo C:\Tools    # ..and copy the exes there once all passed
 #
-#  Deploying is opt-in: -DeployTo <folder>, or the FILEDO_DEPLOY_DIR environment
-#  variable. It runs last - after the gate and the installer - and copies only
+#  Deploying goes to -DeployTo <folder>, else the FILEDO_DEPLOY_DIR environment
+#  variable, else the tools folder C:\GD\tc\SZA\_APP when it exists (-DeployTo ''
+#  turns it off). It runs last - after the gate and the installer - and copies only
 #  the *.exe, *.bat and *.config files, so a build that failed never overwrites
-#  working tools and no log or history file travels along (REL-07).
+#  working tools and no log or history file travels along (REL-07). A file that is
+#  in use is reported and skipped; it never fails a build that passed.
 #
 #  The installer is built from the same wxs files the release workflow uses and
 #  from the same staged files, so an installer defect is found here rather than
@@ -114,9 +116,10 @@ param(
     # is the only switch that changes the machine it runs on.
     [switch]$Install,
     # Copy the built executables into this folder after everything else passed.
-    # Default: the FILEDO_DEPLOY_DIR environment variable; with neither, nothing
-    # is copied anywhere.
-    [string]$DeployTo = $env:FILEDO_DEPLOY_DIR
+    # Default: the FILEDO_DEPLOY_DIR environment variable, else the owner's tools
+    # folder C:\GD\tc\SZA\_APP when it exists on this machine, else nothing is
+    # copied anywhere. -DeployTo '' switches deployment off (run.ps1 does).
+    [string]$DeployTo = $(if ($env:FILEDO_DEPLOY_DIR) { $env:FILEDO_DEPLOY_DIR } elseif (Test-Path -LiteralPath 'C:\GD\tc\SZA\_APP' -PathType Container) { 'C:\GD\tc\SZA\_APP' } else { '' })
 )
 
 if ($NoGit -and $Commit) { throw '-NoGit cannot be combined with -Commit.' }
@@ -149,7 +152,7 @@ function Exit-Gate([int]$Code, [string]$Step) {
 # ---- Fast tier (-Fast) ------------------------------------------------------
 # Between releases nothing that takes more than 5 seconds runs: no build, no go test, no GUI
 # selftest. -Fast runs the gate steps whose recorded time is 5 s or less (the measured list is
-# in AGENTS.md "Testing") with the same scripts -Test calls, and builds nothing. Every step stays
+# in ENGINEERING.md "The measured list") with the same scripts -Test calls, and builds nothing. Every step stays
 # in -Test, which release.ps1 runs whole before it tags.
 if ($Fast) {
     $contradicting = @(
@@ -721,16 +724,19 @@ if ($Test) {
     # (a password sent to a foreign pipe server, a drain that forces by itself)
     # would have shipped green.
     # backupzip (SP-0198), the archive half of backup and restore - the hostile-name
-    # screening of restore above all - rides in the same step.
-    Write-Host "go test ./vdisk/, ./fmsworker/ and ./backupzip/ ..." -NoNewline
+    # screening of restore above all - rides in the same step, alongside rehash
+    # (FILEDO-0242), the native-format hash-change engine.
+    Write-Host "go test ./vdisk/, ./fmsworker/, ./backupzip/ and ./rehash/ ..." -NoNewline
     $vdiskResult = Invoke-GateGoTest 'go test ./vdisk/' @('./vdisk/', '-count=1')
     $fmsworkerResult = Invoke-GateGoTest 'go test ./fmsworker/' @('./fmsworker/', '-count=1')
     $backupzipResult = Invoke-GateGoTest 'go test ./backupzip/' @('./backupzip/', '-count=1')
-    $vdiskDetails = @(@($vdiskResult, $fmsworkerResult, $backupzipResult) | Where-Object { $_.Code -ne 0 } | ForEach-Object { $_.Detail })
-    Record-GateStep 'vdisk' (Get-WorstGateCode @($vdiskResult.Code, $fmsworkerResult.Code, $backupzipResult.Code)) ($vdiskDetails -join "`n")
+    $rehashResult = Invoke-GateGoTest 'go test ./rehash/' @('./rehash/', '-count=1')
+    $vdiskDetails = @(@($vdiskResult, $fmsworkerResult, $backupzipResult, $rehashResult) | Where-Object { $_.Code -ne 0 } | ForEach-Object { $_.Detail })
+    Record-GateStep 'vdisk' (Get-WorstGateCode @($vdiskResult.Code, $fmsworkerResult.Code, $backupzipResult.Code, $rehashResult.Code)) ($vdiskDetails -join "`n")
     Write-GoTestReport $vdiskResult
     Write-GoTestReport $fmsworkerResult
     Write-GoTestReport $backupzipResult
+    Write-GoTestReport $rehashResult
 
     # The suite builds its own filedo.exe from this package directory. The version resource
     # is put back for the length of the run, so that exe carries the same app.manifest (UTF-8
@@ -1223,8 +1229,17 @@ if ($DeployTo) {
     } else {
         $deployFiles = @(Get-ChildItem $out -File | Where-Object { $_.Extension -in '.exe', '.bat', '.config' })
         Write-Host "Deploying $($deployFiles.Count) files to $DeployTo ..." -NoNewline
-        $deployFiles | Copy-Item -Destination $DeployTo -Force
-        Write-Host " OK"
+        $deployFailed = @()
+        foreach ($deployFile in $deployFiles) {
+            try { Copy-Item -LiteralPath $deployFile.FullName -Destination $DeployTo -Force }
+            catch { $deployFailed += $deployFile.Name }
+        }
+        if ($deployFailed.Count -eq 0) {
+            Write-Host " OK"
+        } else {
+            Write-Host " PARTIAL" -ForegroundColor Yellow
+            Write-Host "  Not copied (in use?): $($deployFailed -join ', ')" -ForegroundColor Yellow
+        }
     }
 }
 

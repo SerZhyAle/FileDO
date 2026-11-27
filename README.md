@@ -6,7 +6,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2611171800-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611270100-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Fake-Capacity Check • Speed Test • Duplicate Finder • Folder Compare • Wipe Free Space • Password-Protected Files • Virtual Disks**
@@ -14,6 +14,10 @@
 *Test USB sticks and SD cards for fake capacity, check drive speed, find duplicate files and wipe free space to make recovery harder - on Windows, with a window and a command line. For anyone who bought a stick or card and wants to know it is real.*
 
 ![The FileDO window on the capacity test page](msix/screenshots/capacity-en-us.png)
+
+![FileDO in action: a speed test of a drive, then a search for duplicate files in a photo folder](docs/assets/demo.gif)
+
+*In the window: a speed test of a drive, then the duplicate files of a photo folder ([MP4](docs/assets/demo.mp4)).*
 
 </div>
 
@@ -168,6 +172,15 @@ winget uninstall SerZhyAle.FileDO
 
 Also available in the [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) - the same tools, installed and updated by the Store.
 
+Or with [Scoop](https://scoop.sh), from the author's own bucket:
+
+```powershell
+scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket
+scoop install serzhyale/filedo
+```
+
+Scoop installs the same tools from the release zip, puts all five on its `PATH` and adds a **FileDO** entry for the window to the Start menu; `scoop update filedo` upgrades it, `scoop uninstall filedo` removes it.
+
 #### Option 2 - Installer (setup EXE)
 
 Download `FileDO-<version>-setup.exe` from [Releases](https://github.com/SerZhyAle/FileDO/releases/latest) and run it. This is the option that makes FileDO an ordinary Windows program rather than a folder of executables:
@@ -213,7 +226,7 @@ One package, two entries: a clickable **FileDO** tile - a GUI with a page per jo
 
 #### Explorer integration without an installer
 
-winget, the portable zip and `go install` never run an installer, so they register nothing at all. Ask for the same group and document type yourself, and take them back the same way:
+winget, Scoop, the portable zip and `go install` never run an installer, so they register nothing at all. Ask for the same group and document type yourself, and take them back the same way:
 
 ```powershell
 filedo fdsec register              # for this user
@@ -255,6 +268,9 @@ go build -o filedo.exe .\cmd\filedo
 <td width="50%">
 
 ### Device Testing
+
+Guide: [Check storage](https://serzhyale.github.io/FileDO/guides/check-storage.html).
+
 ```bash
 # Information
 filedo C: info
@@ -273,6 +289,9 @@ filedo D: speed max
 <td width="50%">
 
 ### File & Folder Operations
+
+Guides: [Duplicates, copy, and compare](https://serzhyale.github.io/FileDO/guides/files-and-copies.html) and [Erase and wipe](https://serzhyale.github.io/FileDO/guides/erase.html).
+
 ```bash
 # Folder analysis
 filedo C:\temp info
@@ -301,6 +320,8 @@ filedo C:\temp clean
 ---
 
 ## Secret Files (`.fd-sec`)
+
+Guide: [Secret files](https://serzhyale.github.io/FileDO/guides/fd-sec-containers.html).
 
 One file - or one folder, its whole tree - goes into one container, behind a password, and comes back
 out - from the command line, from the Explorer menu, or from the **Protect** pages in the window. The
@@ -376,6 +397,8 @@ report and no history file. A double-click on a `.fd-sec` does not open that win
 ---
 
 ## Backup and Restore
+
+Guide: [A folder in one backup file](https://serzhyale.github.io/FileDO/guides/fd-sec-containers.html#backup).
 
 A folder, a whole drive or a network share goes into one file - a plain `.zip` that any zip tool opens on
 any computer, or that zip sealed into a `.fd-sec` container behind a password - and comes back to its old
@@ -471,6 +494,8 @@ keep dated backups (with the choice to keep the first backup of each month), and
 ---
 
 ## Virtual Disks (`.fdd`)
+
+Guide: [Virtual disks](https://serzhyale.github.io/FileDO/guides/virtual-disks.html).
 
 A container is one ordinary `.fdd` file that holds a whole volume. Mounted, it is a drive letter like any
 other; unmounted, it is a file you can copy, back up, or read with FileDO alone, without mounting it. The
@@ -574,6 +599,8 @@ The **Disk manager** is a second window of the same `filedo_win.exe` - not a new
 Open it from the **FileDO Disk Manager** Start menu entry the installer adds (it runs `filedo_win.exe --disks`), from the **Disk manager** button at the top right of the FileDO window or the first row of its Disks group (**Ctrl+Shift+D** too), or with `filedo_win.exe --disks`; its **Main window** button brings the FileDO window forward. **F1** opens its help - what a row says, the keyboard table, links. The first time the manager opens, a welcome explains what a virtual disk is and says: *Obfuscated, not encrypted: anyone with this file and FileDO can read it. It opens without a password.* *Encrypted: it opens only with its password.* It adds that Windows asks for administrator consent at every mount and unmount - and, for a partition disk, at every read too - and it offers *Create my first disk..*, *Add a .fdd file I already have..*, *Read the guide on the website* and *Not now*. The keyboard table and pictures are in the [virtual disks guide](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Closing the manager never unmounts a disk.
 
 ### Partition disks
+
+Guide: [Partition disks](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#partition).
 
 A virtual disk can also live in a partition instead of a file. FileDO creates a new GPT partition in the
 unallocated space of a disk and fills it, whole, with one container; nothing outside that free space is
@@ -712,6 +739,7 @@ with nothing changed.
 | `check-duplicates` | Find duplicate files | `filedo C: check-duplicates` |
 | `cd [mode] [action]` | Check duplicates (short) | `filedo D:\Photos cd old del -y` |
 | `copy <target>` | Copy files with progress | `filedo C: copy D:\backup` |
+| `rehash <path>` | Rewrite files in place with a new SHA-256, repeatable (PNG, JPEG incl. phone photos, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB) | `filedo rehash D:\Photos` |
 | `wipe` | Delete everything inside a folder | `filedo folder C:\temp wipe` |
 | `from <file>` | Execute batch commands | `filedo from script.txt` |
 | `hist` | Show operation history | `filedo hist` |
@@ -769,13 +797,15 @@ Exit codes: 0 done, 1 the command ran and the operation failed, 2 not proven (th
 
 Every command the running window answers is *safe*: it changes only FileDO’s own windows and runs and reads none of your files. A command of any other class is refused with exit 12 until you turn on **Let other programs ask FileDO to work with my files, screen, clipboard or the network** in Settings; it is off until you turn it on and no command can change it. The commands travel over a local pipe that only your own Windows account, in your own session, can reach - never the network.
 
-The five switches the build scripts call - `filedo_win.exe selftest run`, `help-pages build --out <folder>`, `screens capture --out <folder>`, `menu-icons write --out <folder>` and `ui-drive run --out <folder>` - are commands too and run in their own process.
+The six switches the build scripts call - `filedo_win.exe selftest run`, `help-pages build --out <folder>`, `screens capture --out <folder>`, `menu-icons write --out <folder>`, `ui-drive run --out <folder>` and `ui-showcase capture --out <folder>` - are commands too and run in their own process.
 
 Development tools and agents can read `docs/CLI.md` and run `filedo commands --json` to see what FileDO can be asked to do; `filedo status`, `filedo job list` and `filedo vd status json` give the product’s state without a screenshot. Guide: [commands for scripts and agents](https://serzhyale.github.io/FileDO/guides/commands.html).
 
 ---
 
 ## GUI Application
+
+Guide: [Work through a window](https://serzhyale.github.io/FileDO/guides/gui-command-builder.html).
 
 **FileDO GUI** (`filedo_win.exe`) - a VB.NET Windows Forms shell: a rail of jobs on the left and one numbered page per job - what to work on, which parameters, then check and run - plus a **Command** page, the expert builder that can assemble **any** FileDO command and run it, and an **About operations** page that explains every operation in plain words. What the window holds:
 
@@ -978,7 +1008,15 @@ FileDO/
 
 ## Version History
 
-**v2611171800** (Current)
+**v2611270100** (Current)
+- **Rehash**: `filedo rehash <path>` rewrites each supported file in place so that it gets a new SHA-256 and a tiny, format-valid change of size, while its content and metadata stay the same and it still opens in its usual program - PNG, JPEG (phone photos with a gain map or a motion photo included), HEIC and AVIF, WebP, GIF89a, BMP, TIFF and RAW, PDF, ZIP, Office, OpenDocument and EPUB, RTF, text and web files, JSON, XML and SVG, WAV, FLAC, MP3, AIFF, MP4, MOV and 3GP, MKV and WebM, AVI, MPEG-TS and MPG; the original is replaced only after a strict reader has checked the new file, unsupported, damaged, read-only and signed files are skipped with a reason, Windows and Program Files are refused, and the same files can be processed again any number of times
+- **Backup**: `keep-days <1-999>` keeps dated backups and removes those older than that many days, judged by the date in the file name only; `keep-monthly` also keeps the first backup of every month for good; old files are removed only after the new one has been read back, and **Back up a folder** offers both
+- **Guides**: the pages of the main window and the Disk manager link to the site guide of what you are doing, in your language where the site has it and in English otherwise
+- **Window**: a job page keeps the target and options you typed when you look at another page and come back, while password and confirmation fields are still cleared; a slow or disconnected network drive no longer freezes the window while the drives are listed; the long preset captions of the speed test are no longer cut off after a page switch on high-DPI screens; the Disk manager opens on the monitor of the window that asked for it
+- **Look and names**: the program icon, the Store art, the site and the share pictures now draw the same product mark; the **Disk manager** row of the left rail draws a disk icon in the colour of its group, with a mark that it opens its own window; the dialog of what runs by itself is now called **Start with Windows**; the button that opens the rail in a narrow window reads **Menu**
+- **Install and docs**: FileDO can also be installed with Scoop (`scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket`, then `scoop install serzhyale/filedo`); the site gains a command reference and a short demo of the window, and the README in every language carries the same command tables
+
+**v2611171800** (Previous)
 - **Commands for scripts and agents**: `filedo status`, `filedo show`, `filedo quit`, `filedo job list`, `filedo job stop`, `filedo disk-manager show`, `filedo settings show` and `filedo tray start` ask the FileDO window program that is already running and end with its answer as an exit code - no second copy opens; `filedo commands [--json]` lists every command and `filedo version [--json]` names the version; `filedo_win.exe open --path <file>` opens a `.fdd` or `.fd-sec` container in its own window, the named form of the start that Explorer makes; a command that would work with your files, the screen, the clipboard or the network is refused until you switch on **Let other programs ask FileDO to work with my files, screen, clipboard or the network** in Settings, which is off until you turn it on; the commands travel over a local pipe that only your own Windows account can reach, never the network
 - **Backup**: the result is one file named `<folder>-<yyMMddHHmm>`, for example `Photos-2611171652.zip`, or `.fd-sec` when sealed; `gen 7` keeps a numbered set of the last 7 backups (`Photos_001.zip` .. `Photos_007.zip`) in the folder that `to` names, and `stem <name>` names the set; the new file is read back before the oldest one is retired, and a failed or stopped run removes nothing; **Back up a folder** also asks how many backups to keep
 - **Command page**: **Browse commands..** lists every operation in six groups with a one-line description, and **Use this command** selects it in the dropdown; the place for the result has a folder picker of its own, and the window remembers the folders you picked, the last 12 commands you ran (**Recent..** puts one back on the command line) and the operation, target and destination the page was left on - a run kept out of history with `nohist`, a line that carries a password and every run while run history is off are never remembered, flags never are, and **Forget recent commands and folders** empties it all
@@ -987,7 +1025,7 @@ FileDO/
 - **Window**: the *More actions* menu of the Disk manager draws an icon on every item, and the diagnostic archive no longer lists zero counts for media-library figures this product does not have
 - **Docs**: a new site guide on commands for scripts and agents, in five languages, and `docs/CLI.md`, the list of those commands generated from `filedo commands --json`; the privacy page names the window settings kept under your own user key in the registry
 
-**v2611110217** (Previous)
+**v2611110217**
 - **Backup and restore**: `filedo backup` packs a folder, a drive or a network folder into one zip that any zip tool opens - FileDO picks the compression density after a look of at most 10 seconds at the files, or `level 0-9` names it - and `sec` seals the zip into a `.fd-sec` container behind a password; `filedo restore` rebuilds the folder beside the backup or wherever `to` names, and never merges into or replaces a folder; in the window, the **Protect** group has the pages *Back up a folder* and *Restore from a backup*
 - **Exit codes**: a run that cannot finish says why in its exit code: 10 a usage error, 11 a target that is missing or not ready, 12 missing permissions, 13 not enough space, 14 an I/O failure, 15 a network failure, 16 stopped by you; 0, 1 and 2 keep their meaning
 - **Reasons**: when a run cannot finish, the result card says why in the language of the window - a full drive, a file another program has open - instead of an exit code alone, and the Disk manager does the same; a copy that runs out of room says the drive is full; a file held open by another program is named with the program that holds it, and the run can simply be repeated once the file is free
@@ -1025,7 +1063,13 @@ FileDO/
 - **Limits**: Windows only; mounting asks for administrator consent; the Microsoft Store build reads, verifies and exports containers but cannot mount them, use partition disks or share
 - **Docs**: new guides - virtual disks and sharing disks with Fast Media Sorter; the site pages in German and French, and a release notes page
 
+**v2609260512**
+- **Secret files (`.fd-sec`)**: a container that Windows does not let FileDO read is reported as unreadable, not as damaged
+- **Duplicates**: files that cannot be hashed are reported instead of being left out silently; if the list file cannot be written, `del` and `move` stop before touching a file
+- **Capacity test**: the report names the test files it keeps
+
 **v2609241700**
+- **Installer**: the setup EXE - a WiX bundle carrying the MSI - is published beside the bare MSI and the zip
 - **Secret files (`.fd-sec`)**: pack one file into a password-protected container and get it back - `secure`, `unsecure`, `reveal` - from the command line, the Explorer menu or the window's Protect pages; the original's name, size and timestamps are sealed inside
 - **Explorer integration**: the setup EXE adds a `File DO..` right-click group (Secure, Unsecure, Wipe this file, Check this file, Info) and the `.fd-sec` document type; `filedo fdsec register` / `unregister` does the same without an installer
 - **GUI**: a new window - a rail of jobs with one page per job, each carrying every CLI option, plus Command, History, Settings and About pages; the old command-builder window is retired
@@ -1048,13 +1092,23 @@ FileDO/
 - **Copy**: trimmed copy directory walks
 
 **v2605152056**
-- **Installer**: setup EXE (a WiX bundle carrying the MSI) plus the bare MSI; application icon embedded in all EXEs and the installed-programs entry
-- **Store**: Microsoft Store submission spec and social preview image
+- **Release**: the build of v2605152052, published again; nothing changed
+
+**v2605152052**
+- **Icon**: the application icon is embedded in every EXE and in the installed-programs entry of the MSI
+
+**v2605152042**
+- **Installer**: the first MSI - FileDO installs as a Windows program, with the zip beside it
 
 **v2604272228**
-- **Distribution**: first winget release (SerZhyAle.FileDO) and GitHub Actions release workflow
+- **Distribution**: first winget release (SerZhyAle.FileDO)
 - **Binaries**: PE version info and Windows application manifest embedded in all binaries
+
+**v2604271301**
+- **Distribution**: the first release on GitHub - a zip built by the GitHub Actions release workflow
 - **Docs**: GitHub Pages redesigned and simplified
+
+Before the releases on GitHub:
 
 **v2507112115**
 - **Major Refactoring**: Extracted capacity testing logic into dedicated `capacitytest` package
@@ -1080,7 +1134,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2611171800** - Advanced File & Storage Operations Tool
+**FileDO v2611270100** - Advanced File & Storage Operations Tool
 
 Created by **sza@ukr.net** | [MIT License](LICENSE) | [GitHub Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

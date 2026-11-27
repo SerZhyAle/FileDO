@@ -1,7 +1,8 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-  Renders release facts from packaging/release-manifest.json into the five landing pages (PAGE-STYLE 3.10).
+  Renders release facts from packaging/release-manifest.json into the five landing pages (PAGE-STYLE 3.10)
+  and into the copy commands of the install guide (SP-0166 F8).
 
 .DESCRIPTION
   Reads packaging/release-manifest.json and updates (or checks with -Check) the static markup of:
@@ -15,8 +16,14 @@
   #releaseDate, #setupName, #setupMb, #setupHash, #zipLink, and #msiLink while keeping #releaseLink
   on the durable /releases/latest URL. Never touches data-l translation spans.
 
+  The install guide (docs/guides/install-and-explorer.html and its de and fr pages) hands the visitor
+  commands to copy: every release asset name inside a <div class="copybox"> - the visible command and
+  its data-copy value - is rendered as the manifest's asset name (FileDO-<stamp>-setup.exe,
+  -windows-x64.msi, -windows-x64.zip). Prose inside data-l spans keeps the FileDO-<version> pattern: a
+  span is a translation unit, and a release must never change its text.
+
   Exit codes (CHECK-VERDICT):
-    0  rendered (or -Check matched all 5 landing pages)
+    0  rendered (or -Check matched all 5 landing pages and the 3 install guide pages)
     1  defect found (-Check mismatch or missing required element)
     2  could not verify (manifest or page missing/unreadable)
 #>
@@ -70,6 +77,12 @@ foreach ($k in 'setup', 'zip', 'msi') {
 }
 
 $durableUrl = "https://github.com/$($manifest.repo)/releases/latest"
+# Keep a page's byte order mark as it was: the site pages are mixed, and a rewrite must not flip one (FILEDO-0256).
+function Test-Utf8Bom([string]$path) {
+    $b = [IO.File]::ReadAllBytes($path)
+    return ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+}
+
 $landingPages = @(
     'docs/index.html',
     'docs/de/index.html',
@@ -131,8 +144,51 @@ foreach ($rel in $landingPages) {
         if ($Check) {
             $problems.Add("${rel}: landing markup differs from $($manifest.tag) manifest")
         } else {
-            [IO.File]::WriteAllText($full, ($next -replace "`r`n", "`n"), [Text.UTF8Encoding]::new($false))
+            [IO.File]::WriteAllText($full, ($next -replace "`r`n", "`n"), [Text.UTF8Encoding]::new((Test-Utf8Bom $full)))
             $updatedCount++
+        }
+    }
+}
+
+# The install guide's copy commands (SP-0166 F8). Only the copybox regions are rewritten; each page must
+# carry the asset names its commands need, so a copybox that lost its name, or a guide rewritten without
+# copy commands, is a defect rather than a silent no-op.
+$installPages = @(
+    'docs/guides/install-and-explorer.html',
+    'docs/de/guides/install-and-explorer.html',
+    'docs/fr/guides/install-and-explorer.html'
+)
+$assetPatterns = [ordered]@{
+    setup = 'FileDO-(?:&lt;version&gt;|\d{10})-setup\.exe'
+    msi   = 'FileDO-(?:&lt;version&gt;|\d{10})-windows-x64\.msi'
+    zip   = 'FileDO-(?:&lt;version&gt;|\d{10})-windows-x64\.zip'
+}
+$installUpdated = 0
+foreach ($rel in $installPages) {
+    $full = Join-Path $root ($rel -replace '/', '\')
+    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) {
+        Stop-Unverified "$rel is missing"
+    }
+    $orig = [IO.File]::ReadAllText($full)
+    $found = [ordered]@{ setup = 0; msi = 0; zip = 0 }
+    $next = [regex]::Replace($orig, '(?s)<div class="copybox">.*?</div>', {
+        param($box)
+        $v = $box.Value
+        foreach ($k in $assetPatterns.Keys) {
+            $found[$k] += [regex]::Matches($v, $assetPatterns[$k]).Count
+            $v = [regex]::Replace($v, $assetPatterns[$k], [string]$manifest.assets.$k.name)
+        }
+        $v
+    })
+    foreach ($k in 'setup', 'msi') {
+        if ($found[$k] -lt 1) { $problems.Add("${rel}: no copy command names the $k asset (expected FileDO-<stamp>-$(if ($k -eq 'setup') { 'setup.exe' } else { 'windows-x64.msi' }) in a copybox)") }
+    }
+    if ($next -cne $orig) {
+        if ($Check) {
+            $problems.Add("${rel}: copy commands differ from $($manifest.tag) manifest")
+        } else {
+            [IO.File]::WriteAllText($full, ($next -replace "`r`n", "`n"), [Text.UTF8Encoding]::new((Test-Utf8Bom $full)))
+            $installUpdated++
         }
     }
 }
@@ -143,8 +199,8 @@ if ($problems.Count -gt 0) {
 }
 
 if ($Check) {
-    Write-Host "render-site-release: PASS ($($landingPages.Count) landing pages match $($manifest.tag))" -ForegroundColor Green
+    Write-Host "render-site-release: PASS ($($landingPages.Count) landing pages and $($installPages.Count) install guide pages match $($manifest.tag))" -ForegroundColor Green
 } else {
-    Write-Host "render-site-release: PASS ($($manifest.tag) -> $updatedCount of $($landingPages.Count) landing page(s) updated)" -ForegroundColor Green
+    Write-Host "render-site-release: PASS ($($manifest.tag) -> $updatedCount of $($landingPages.Count) landing page(s), $installUpdated of $($installPages.Count) install guide page(s) updated)" -ForegroundColor Green
 }
 exit 0

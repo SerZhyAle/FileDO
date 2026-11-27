@@ -437,6 +437,7 @@ MAIN OPERATIONS:
   reveal   → Open a container in its app, in a sandbox that is swept after
   backup   → Pack a folder, drive or share into a zip (optionally sealed .fd-sec)
   restore  → Unpack a backup zip or sealed backup into a folder
+  rehash   → Rewrite files in place with a new SHA-256 and bounded size delta
   vd       → Virtual disks: .fdd containers mounted as drive letters
              (new, mount, unmount, info, verify, export, save, compact, grow,
              format, seal, clone, pass, destroy, list, status, add, forget,
@@ -463,6 +464,7 @@ EXAMPLES:
   filedo.exe C:\temp wipe         → Fast wipe folder
   filedo.exe secret.txt secure    → Pack into secret.fd-sec
   filedo.exe backup D:\Photos     → D:\Photos-<yyMMddHHmm>.zip, density probed
+  filedo.exe rehash D:\Photos     → New SHA-256 for the files, in place
   filedo.exe vd new work.fdd 20G  → Create a 20 GB virtual disk (obfuscated)
   filedo.exe work.fdd mount       → Mount it as a drive letter
 
@@ -672,6 +674,35 @@ BACKUP AND RESTORE (a restorable copy in one file)
   y answers the questions, never the checks. No schedule, no history of
   backups: each one is whole and runs when you run it; a numbered set is a
   bounded rotation, and the schedule is yours.
+═══════════════════════════════════════════════════════════════════════════════
+REHASH (a new SHA-256 for files, in place)
+
+  filedo.exe rehash photo.png   → Rewrite the file so that it gets a new SHA-256
+  filedo.exe rehash D:\Photos   → The same for every supported file in a tree
+  filedo.exe rehash D:\         → The same for a mounted data volume
+
+  The original file is replaced by the changed one; no copies, backups or
+  record files are kept, and a run can be repeated any number of times. The new
+  bytes are completed under a .filedo-partial name, verified by a strict format
+  reader and checked for a different whole-file SHA-256 and a nonzero size
+  delta within each format's bound, and only then take the original's place
+  with its dates, attributes, permissions and named streams:
+    PNG (.png, +42 B), JPEG (.jpg/.jpeg, +34 B, phone gain maps, motion
+    photos and maker data after the picture kept), GIF89a (.gif, +34 B),
+    ZIP/OOXML/ODF/EPUB (.zip/.docx/.xlsx/.pptx/.odt/.ods/.odp/.epub, +30..31 B),
+    WAV (.wav, +38 B), MP4/MOV/3GP/CR3 (.mp4/.m4a/.m4v/.mov/.3gp/.3g2/.cr3,
+    +38 B), HEIF/AVIF (.heic/.heif/.hif/.avif, +38 B), WebP (.webp, +38..57 B),
+    BMP (.bmp/.dib, +30 B), TIFF/RAW (.tif/.tiff/.dng/.nef/.cr2/.arw/.orf/.rw2,
+    +30 B), PDF (.pdf, incremental update, +100..1024 B), RTF (.rtf, +48 B),
+    text (.txt/.log, +1..4 B), Markdown/HTML (.md/.markdown/.html/.htm,
+    +40..86 B), CSS/JS (.css/.js, +37..80 B), INI (.ini, +33..72 B),
+    FLAC (.flac, +20 B), MP3 (.mp3, +42..52 B), AIFF (.aif/.aiff/.aifc,
+    +42..43 B), Matroska/WebM (.mkv/.mka/.webm, +32 B), AVI (.avi, +38..39 B),
+    MPEG-TS (.ts/.m2ts/.mts, +188..192 B), MPEG-PS (.mpg/.mpeg/.vob,
+    +36..2048 B), JSON (.json, +1 B), XML/SVG (.xml/.svg, +37 B).
+  Unsupported formats, malformed files, digitally signed documents/archives,
+  encrypted PDFs, read-only files and junctions are skipped with a reason.
+  Windows, Program Files and the system drive are refused.
 ═══════════════════════════════════════════════════════════════════════════════
 SECRET FILES (.fd-sec containers)
 
@@ -1237,10 +1268,11 @@ var list_of_flags_for_ui = []string{"ui", "gui", "-ui"}
 var list_of_flags_for_dm = []string{"dm", "-dm"}
 var list_of_flags_for_backup = []string{"backup", "-backup"}
 var list_of_flags_for_restore = []string{"restore", "-restore"}
+var list_of_flags_for_rehash = []string{"rehash", "re-hash"}
 var list_fo_flags_for_help = []string{"?", "/?", "-?", "--help", "help", "h", "/help"}
 var list_fo_flags_for_short_help = []string{"?", "/?", "-?", "--help"}
 var list_fo_flags_for_full_help = []string{"help", "h", "/help"}
-var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_dm...), list_of_flags_for_vd...), list_of_flags_for_backup...), list_of_flags_for_restore...)
+var list_of_flags_for_all = append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(append(list_of_flags_for_device, list_of_flags_for_folder...), list_of_flags_for_file...), list_of_flags_for_network...), list_of_flags_for_from...), list_of_flags_for_hist...), list_of_flags_for_duplicates...), list_of_flags_for_compare...), list_of_flags_for_copy...), list_of_flags_for_fastcopy...), list_of_flags_for_synccopy...), list_of_flags_for_balanced...), list_of_flags_for_maxcopy...), list_of_flags_for_smartcopy...), list_of_flags_for_safecopy...), list_of_flags_for_check...), list_of_flags_for_wipe...), list_of_flags_for_fdsec...), list_of_flags_for_ui...), list_of_flags_for_dm...), list_of_flags_for_vd...), list_of_flags_for_backup...), list_of_flags_for_restore...), list_of_flags_for_rehash...)
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {

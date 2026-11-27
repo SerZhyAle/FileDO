@@ -50,6 +50,7 @@ func verbOf(word string) string {
 		{"dm", list_of_flags_for_dm},
 		{"backup", list_of_flags_for_backup},
 		{"restore", list_of_flags_for_restore},
+		{"rehash", list_of_flags_for_rehash},
 	} {
 		if contains(v.aliases, w) {
 			return v.name
@@ -299,6 +300,9 @@ func dispatchLine(args []string, hl *HistoryLogger, batch bool) error {
 
 	case "restore":
 		return finishVerb(handleRestoreCommand(rest, hl), hl)
+
+	case "rehash":
+		return finishVerb(handleRehashCommand(rest, hl), hl)
 
 	case "check":
 		if len(rest) < 1 {

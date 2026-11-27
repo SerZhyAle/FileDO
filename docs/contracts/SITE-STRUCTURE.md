@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `SITE-STRUCTURE` |
-| **Version** | 0.4, re-read 2026-11-16 (SP-0221); implemented partial 0.4 draft (opted in 2026-10-06; no wire carrier - a page set, a navigation shape and an address scheme) |
+| **Version** | 0.5, read 2026-11-26 (FILEDO-0245); section 10 guide links written 2026-11-26 (FILEDO-0247, not compiled - the release build and gates prove them); implemented partial 0.5 draft (opted in 2026-10-06; no wire carrier - a page set, a navigation shape and an address scheme) |
 | **Role** | consumer - the published site under `docs/`, declared at the **guide** tier |
 | **Home** | shared contracts catalog, folder `product-site/`, document `SITE-STRUCTURE.md` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |
@@ -23,6 +23,16 @@
 - **A language control offers only languages the page exists in**, and no link or control leads to an address
   that does not answer. The declared locale sets per page group are in the registry adoption row: ru, en, ua
   for every group, de and fr declared for every group and published as standalone pages (SP-0154, 2026-10-06).
+- **Every screen of a function a guide covers links that guide** (0.5 section 10, section 8 item E).
+  `Links.GuideByRail` names, per rail page of the shell, the guide page or anchored section that covers
+  its function; the header shows "Guide on the website" under the page's purpose line while one exists.
+  The Disk manager links the virtual-disk and sharing guides from its Help menu, help window, welcome and
+  empty state. `Links.GuideAddress` is the rule 11 resolver: ru and uk open the trilingual page with
+  `?lang=ru|uk`, de and fr their own pages, every other language the English page (`?lang=en`). The
+  five READMEs link the guide of every function section through the same scheme. Each address, anchors
+  and language query included, is in `packaging/site-held-addresses.json`, and step `addresses` checks it
+  answers. A rail page with no row is a place (History, Settings, About) or a function no published
+  guide covers (Recover a drive).
 - **A function ships with its page**: a user-visible capability is covered by a guide section before the
   release that carries it (`docs/guides/`; `TestSurfaces_*` hold the guide completeness).
 - **Gates that already hold part of this**: `packaging/check-external-docs.ps1` (sitemap, locales, SEO, held addresses),

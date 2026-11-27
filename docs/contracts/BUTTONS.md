@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `BUTTONS` |
-| **Version** | 2.3, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - observable button appearance, layout and interaction) |
+| **Version** | 2.4, read 2026-11-26 (FILEDO-0245; section 12 items H-L are allowances not taken); migration SP-0169 in progress (no wire - observable button appearance, layout and interaction) |
 | **Role** | consumer - `GlyphButton` and every dialog answer of the GUI shell; migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `buttons/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
@@ -32,5 +32,8 @@ pressed faces.
 
 **Status: not conformant - migration in progress (SP-0169, deadline 2026-12-31).** Slice S1 (2026-10-21) built the
 token geometry, wrapping, neutral faces and answer order; slice S2 (2026-10-29) the reserved state width of Stop and
-the output toggle, and a row-height check over every page flow. Owed: an overflow policy, a command id per command,
-the showcase with captures (S4), and a measured run of the gate rows.
+the output toggle, and a row-height check over every page flow. Both shipped in `v2611110217` and `v2611171800`,
+whose release gates ran the `buttons:*`, `dialog:answer-order:*` and `contrast:*:answer-*` rows all-or-nothing green
+(no per-row log retained). The panel overflow policy (4.3) is recorded in `ENGINEERING.md` (2026-11-19; its narrow
+and large-text verification is a release item). Owed: a command id per command (S4 enumeration), and the showcase
+with its captures - section 5 requires them before a conformance claim (S4).

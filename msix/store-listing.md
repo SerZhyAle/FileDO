@@ -186,7 +186,7 @@ only your own Windows account, in your own session, can reach - never the networ
 one risk class: safe (changes only FileDO's own windows and runs), reads-user-data (screen content,
 the clipboard, file contents or names), writes-user-data (creates, changes or deletes your files or
 settings, or acts inside another program) and leaves-machine (sends anything off this computer).
-Every command the running window answers is safe. The four developer switches of filedo_win.exe that
+Every command the running window answers is safe. The five developer switches of filedo_win.exe that
 write a folder you name are writes-user-data and run in their own process when you start them. A
 command of any class other than safe is refused until you turn on one setting in Settings, "Let other
 programs ask FileDO to work with my files, screen, clipboard or the network"; it is off until you turn

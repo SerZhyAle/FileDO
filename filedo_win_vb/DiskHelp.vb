@@ -145,15 +145,16 @@ Friend Module DiskShortcuts
 End Module
 
 ' The links the help sends a user to: the guide of this window, the guides, the site, the project's
-' documentation and its issue tracker - all in Links.vb, none opened but by a click.
+' documentation and its issue tracker - all in Links.vb, none opened but by a click. The guides are
+' read through Links.GuideAddress, so they open in the UI language (SITE-STRUCTURE rule 11).
 Friend Module DiskHelpLinks
 
     Friend ReadOnly Property All As KeyValuePair(Of String, String)()
         Get
             Return New KeyValuePair(Of String, String)() {
-                New KeyValuePair(Of String, String)("vd_help_menu_guide", Links.DiskGuide),
-                New KeyValuePair(Of String, String)("vd_help_menu_share_guide", Links.ShareGuide),
-                New KeyValuePair(Of String, String)("vd_help_menu_guides", Links.Guides),
+                New KeyValuePair(Of String, String)("vd_help_menu_guide", Links.GuideAddress(Links.DiskGuide)),
+                New KeyValuePair(Of String, String)("vd_help_menu_share_guide", Links.GuideAddress(Links.ShareGuide)),
+                New KeyValuePair(Of String, String)("vd_help_menu_guides", Links.GuideAddress(Links.Guides)),
                 New KeyValuePair(Of String, String)("vd_help_menu_site", Links.Site),
                 New KeyValuePair(Of String, String)("vd_help_menu_docs", Links.Readme),
                 New KeyValuePair(Of String, String)("vd_help_menu_issues", Links.Issues)

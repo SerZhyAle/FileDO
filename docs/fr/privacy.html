@@ -73,7 +73,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../kit/sza-kit.css" />
@@ -263,23 +263,19 @@
 .site-header{margin-left:var(--gutter);margin-right:var(--gutter)}
 .hero{text-align:left}
 .hero .lead{margin:0 0 1.2rem}
-/* SITE-EXPERIENCE reach (SP-0156): every control that is not an inline link in running text is 44 x 44 px or larger, under any pointer. */
+/* SITE-EXPERIENCE reach as amended 2026-10-29 item A (SP-0169 S6 re-vendor): controls covered by UI-SIZING (buttons, segments, theme, copy) follow the vendored kit's 32/48 profile targets; other controls that are not inline links in running text keep a 44 x 44 px hit target under any pointer. */
 .seg{flex:none}
-.seg button{min-width:44px;min-height:44px}
-.theme-btn{flex:none;min-width:44px;min-height:44px}
-.btn,.copy,.tools-grid a{min-height:44px}
-.copy{min-width:44px}
+.theme-btn{flex:none}
+.tools-grid a{min-height:44px}
 /* SP-0162: the footer text links (author, site links, brand, mail) are separate links in a row, not inline in a sentence, so they get a 44 px target too. */
 .footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}
-.copybox .copy{top:50%;transform:translateY(-50%)}
 .site-header{flex-wrap:wrap;row-gap:.25rem}
 .brand-unit{min-height:44px}
 /* SITE-EXPERIENCE reach (SP-0156): light-theme tokens that reach 4.5 : 1 as text and under white ink; the code box stays dark in both themes. */
 html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}
 html[data-theme="light"] .pill{color:var(--acc-strong)}
 html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
-/* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
-html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
+/* PAGE-STYLE 3.5 item 5: kit 3.13 (8d49a8f0) draws .seg with the --text ink; the mute-ink override the old e438fef2 kit needed is gone with the SP-0169 S6 re-vendor. */
 .pills.spaced{margin-top:.9rem}
     /* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
     .cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
@@ -600,7 +596,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="fr"><b>Partage de disques et clés de démarrage automatique.</b> Le partage est désactivé par défaut. Lorsque vous partagez un disque via Fast Media Sorter, les appareils qui y sont appairés peuvent le lire tant qu’il reste ouvert. Le mot de passe de démarrage automatique d’un disque chiffré n’est conservé sur cet ordinateur que si vous activez ce démarrage ; il est protégé pour ce programme.</span>
             </li>
             <li>
-              <span data-l="fr"><b>D’autres programmes peuvent demander des choses à la fenêtre FileDO en cours.</b> Un script, une tâche planifiée ou un outil de développement peut taper des commandes comme <code>filedo status</code>, <code>filedo show</code> ou <code>filedo job stop</code> ; le programme à fenêtre répond par un canal local que seul votre propre compte Windows, dans votre propre session, peut atteindre - jamais par le réseau. Chaque commande a une classe de risque : <code>safe</code> ne modifie que les fenêtres et les exécutions propres de FileDO ; <code>reads-user-data</code> place dans une réponse le contenu de l’écran, le presse-papiers, ou le contenu et les noms de fichiers ; <code>writes-user-data</code> crée, modifie ou supprime vos fichiers ou réglages, ou agit dans un autre programme ; <code>leaves-machine</code> envoie quoi que ce soit hors de cet ordinateur. Chaque commande à laquelle la fenêtre en cours répond est <code>safe</code>. Les quatre commutateurs de développement de <code>filedo_win.exe</code> qui écrivent dans un dossier que vous nommez (<code>help-pages build</code>, <code>screens capture</code>, <code>menu-icons write</code>, <code>ui-drive run</code>) sont de la classe <code>writes-user-data</code> et s’exécutent dans leur propre processus quand vous les lancez. Une commande de toute classe autre que <code>safe</code> est refusée tant que vous n’activez pas, dans <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Réglages, l’option <b>Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau</b> ; elle est désactivée tant que vous ne l’activez pas, et aucune commande ne la modifie.</span>
+              <span data-l="fr"><b>D’autres programmes peuvent demander des choses à la fenêtre FileDO en cours.</b> Un script, une tâche planifiée ou un outil de développement peut taper des commandes comme <code>filedo status</code>, <code>filedo show</code> ou <code>filedo job stop</code> ; le programme à fenêtre répond par un canal local que seul votre propre compte Windows, dans votre propre session, peut atteindre - jamais par le réseau. Chaque commande a une classe de risque : <code>safe</code> ne modifie que les fenêtres et les exécutions propres de FileDO ; <code>reads-user-data</code> place dans une réponse le contenu de l’écran, le presse-papiers, ou le contenu et les noms de fichiers ; <code>writes-user-data</code> crée, modifie ou supprime vos fichiers ou réglages, ou agit dans un autre programme ; <code>leaves-machine</code> envoie quoi que ce soit hors de cet ordinateur. Chaque commande à laquelle la fenêtre en cours répond est <code>safe</code>. Les cinq commutateurs de développement de <code>filedo_win.exe</code> qui écrivent dans un dossier que vous nommez (<code>help-pages build</code>, <code>screens capture</code>, <code>menu-icons write</code>, <code>ui-drive run</code>, <code>ui-showcase capture</code>) sont de la classe <code>writes-user-data</code> et s’exécutent dans leur propre processus quand vous les lancez. Une commande de toute classe autre que <code>safe</code> est refusée tant que vous n’activez pas, dans <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Réglages, l’option <b>Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau</b> ; elle est désactivée tant que vous ne l’activez pas, et aucune commande ne la modifie.</span>
             </li>
             <li>
               <span data-l="fr"><b >Les commandes <code>wipe</code> et <code>fill</code> détruisent des données - c’est leur rôle.</b > Elles demandent toujours confirmation et ne s’exécutent jamais en silence sur la racine d’un lecteur, un point d’analyse (jonction, lien symbolique) ou le dossier TEMP du système. Les écritures visant <code>C:</code> sont par défaut redirigées vers <code>%TEMP%\FileDO_Operations</code> - là encore, seulement après votre confirmation.</span>

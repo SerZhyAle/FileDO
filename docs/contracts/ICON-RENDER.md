@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `ICON-RENDER` |
-| **Version** | 0.26, read 2026-11-16 (SP-0221); implemented partial 0.26 (`moreMenu` sibling glyphs closed in working tree by SP-0226, awaiting release build and `--selftest`; covered components in SP-0169, warning-tone and 28 px text-metric exceptions remain), draft (no wire carrier - a picture, not a payload) |
+| **Version** | 0.28, read 2026-11-26 (FILEDO-0245; sections 36-37 are allowances not taken); implemented partial 0.28 (`moreMenu` sibling glyphs closed in working tree by SP-0226 and the 0.28 import recorded in `PROVENANCE.txt` by FILEDO-0248, both awaiting release build and `--selftest`; covered components in SP-0169, warning-tone and 28 px text-metric exceptions remain), draft (no wire carrier - a picture, not a payload) |
 | **Role** | consumer - the shell draws glyphs, the site draws one, the MSIX and MSI carry the product mark |
 | **Home** | shared contracts catalog, folder `iconography/` |
 | **Owner** | FastMediaSorter Android. An amendment is proposed in the catalog, not decided here |

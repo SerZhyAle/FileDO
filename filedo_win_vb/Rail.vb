@@ -95,12 +95,13 @@ Public Class RailRow
 
     ' The Disks group's first row opens the Disk Manager, a window of its own (SP-0063 4.2, D1) -
     ' not a page of the shell, so it is no job of the catalogue. It shows the .fdd type's own
-    ' meaning, as the list does (D8: no new catalog record).
+    ' meaning, as the list does (D8: no new catalog record), drawn like every other row; the window's
+    ' plated icon (DiskManagerIcon) stays off the rail (owner decision 2026-11-26, FILEDO-0250).
     Public Const DiskManagerKey As String = "rail_job_vd_manager"
 
     ' The Protect group's Backup and Restore rows (SP-0198) draw the catalog's action.archive and its
-    ' reverse, action.unarchive - drawn by FileDO to the catalog's style and proposed under ICON-SET
-    ' section 15 (assets\sync-icon-glyphs.ps1, provisional ids).
+    ' reverse, action.unarchive - first drawn by FileDO, recorded by the catalog in ICON-SET 0.39 and
+    ' vendored from it since FILEDO-0248.
     '
     ' Every row leads somewhere today. A row for a job that is still being written is not listed as
     ' "coming later": a rail is navigation, not a roadmap, and a row that answers nothing when it
@@ -181,9 +182,18 @@ Public Class RailEntry
     Inherits Control
 
     Public Property Glyph As GlyphRef = Nothing
-    ' A window launcher carries that window's own icon; the shared icon is owned by its module.
-    Public Property ProductIcon As Icon = Nothing
     Public Property Key As String = ""          ' the localization key, kept for a relayout
+
+    ' A row that opens a window of its own instead of a page (SETTINGS-NAVIGATION 2.4 item H, 1):
+    ' it is marked as an action at the trailing edge and is never the selected page.
+    Friend ReadOnly Property IsAction As Boolean
+        Get
+            Return Key = RailRow.DiskManagerKey
+        End Get
+    End Property
+
+    ' The mark of an action row: the vocabulary's "Open in new window".
+    Friend Shared ReadOnly ActionMark As GlyphRef = GlyphRef.Vocabulary("nav.open-external")
     Public Property IsGroupHeader As Boolean = False
 
     ' A row that belongs to a group, so it stands one step to the right of the header's glyph and
@@ -319,7 +329,7 @@ Public Class RailEntry
         ' one does; a row of a group starts one indent further in. The chevron takes the right edge,
         ' which the header's label keeps clear of.
         Dim left = RowPx(UiTokens.Scaled(GlyphInset)) + GlyphPixels() + RowPx(UiTokens.GlyphGap()) + ChildIndent()
-        Dim right = If(IsGroupHeader, ChevronColumn(), RowPx(UiTokens.Scaled(4)))
+        Dim right = If(IsGroupHeader OrElse IsAction, ChevronColumn(), RowPx(UiTokens.Scaled(4)))
         Return New Rectangle(left, 0, Math.Max(1, width - left - right), height)
     End Function
 
@@ -361,7 +371,7 @@ Public Class RailEntry
         Return New Rectangle(RowPx(UiTokens.Scaled(GlyphInset)) + ChildIndent(), Math.Max(0, (height - px) \ 2), px, px)
     End Function
 
-    ' A header's chevron: the same tier, in the column at the right edge.
+    ' A header's chevron, or an action row's mark: the same tier, in the column at the right edge.
     Friend Function ChevronSquare(width As Integer, height As Integer) As Rectangle
         Dim px = GlyphPixels()
         Return New Rectangle(width - ChevronColumn() + (ChevronColumn() - px) \ 2, Math.Max(0, (height - px) \ 2), px, px)
@@ -551,16 +561,13 @@ Public Class RailEntry
         ' does not depend on the fill above.
         If Selected Then DrawAccentBar(g, p)
 
-        ' A lone job stands where a header would, so it shows the colour look; a row inside a group
-        ' is mono.
-        If ProductIcon IsNot Nothing Then
-            Dim square = GlyphSquare(Height)
-            Using sized As New Icon(ProductIcon, square.Size)
-                g.DrawIcon(sized, square)
-            End Using
-        ElseIf Glyph IsNot Nothing Then
+        ' One treatment for every row, the action row included (SETTINGS-NAVIGATION 2.5 item I): the
+        ' vocabulary glyph in the row's hue.
+        If Glyph IsNot Nothing Then
             Glyphs.Draw(g, Glyph, GlyphSquare(Height), If(Hue <> "", Theme.GroupTone(Hue, p), p.Text))
         End If
+
+        If IsAction Then Glyphs.Draw(g, ActionMark, ChevronSquare(Width, Height), p.MutedText)
 
         DrawLabel(g, p.Text, RailLabelFont(False, Ui.DpiFor(Me)))
         DrawFocus(g, p)

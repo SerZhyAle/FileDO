@@ -319,20 +319,24 @@ function New-Logo([string]$src, [string]$dst, [int]$size) {
     } finally { $img.Dispose() }
 }
 Write-Host "Generating logos..." -NoNewline
-$iconSrc = Join-Path $root "assets\icon.png"
-New-Logo $iconSrc (Join-Path $assetsOut "Square44x44Logo.png")   44
-New-Logo $iconSrc (Join-Path $assetsOut "Square71x71Logo.png")   71
-New-Logo $iconSrc (Join-Path $assetsOut "Square150x150Logo.png") 150
-New-Logo $iconSrc (Join-Path $assetsOut "StoreLogo.png")         50
+# The product's logos are renditions of the one mark (PRODUCT-IDENTITY): assets\make-product-icons.ps1
+# writes them into assets\identity\renditions\msix with their SHA-256 in the identity manifest, and the
+# package carries those files byte for byte - nothing here draws or scales the mark, so the tiles cannot
+# drift from the MSI, the exes and the site.
+$logoSrc = Join-Path $root "assets\identity\renditions\msix"
+function Copy-Logo([string]$leaf) {
+    $src = Join-Path $logoSrc $leaf
+    if (-not (Test-Path -LiteralPath $src)) { Fail "assets\identity\renditions\msix\$leaf is missing - run assets\make-product-icons.ps1" }
+    Copy-Item -LiteralPath $src -Destination (Join-Path $assetsOut $leaf) -Force
+}
+foreach ($leaf in "Square44x44Logo.png", "Square71x71Logo.png", "Square150x150Logo.png", "StoreLogo.png") { Copy-Logo $leaf }
 
 # Windows selects target-size and unplated logo variants only when resources.pri indexes them.
-# Keep every derivative mechanically tied to the one FileDO mark rather than maintaining a
-# second set of artwork that can drift from the MSI, EXE and site icon.
 $logoVariants = New-Object System.Collections.Generic.List[string]
 foreach ($size in 16, 24, 32, 48, 256) {
     foreach ($form in '', '_altform-unplated', '_altform-lightunplated') {
         $leaf = "Square44x44Logo.targetsize-$size$form.png"
-        New-Logo $iconSrc (Join-Path $assetsOut $leaf) $size
+        Copy-Logo $leaf
         $logoVariants.Add("Assets\$leaf")
     }
 }

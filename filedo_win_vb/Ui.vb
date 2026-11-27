@@ -85,6 +85,61 @@ Module Ui
         Next
     End Sub
 
+    ' Re-derives the preferred bounds of the controls under root once, so a batch of property
+    ' changes made under SuspendTree leaves nothing at the size an earlier caption, font or wrap
+    ' gave it (FILEDO-0237). Two WinForms behaviours make the batch alone insufficient:
+    ' ResumeTree releases with ResumeLayout(False), which drops the pending pass of a control whose
+    ' Text changed under the suspension, so the control keeps the width of its previous caption and
+    ' clips the new one; and a flow never re-stacks the rows after a control that grew, because the
+    ' flow engine answers only a real size change of a child - and a height that a layout pass
+    ' derives, or a font that first reaches a picker under a suspension, fires no such event, so
+    ' the row after it stays drawn underneath. The settle pass writes every non-docked control's
+    ' own preferred size back to it (a control with no preferred size of its own reports its
+    ' current size, so the write is a no-op there; a docked control's bounds are its parent
+    ' engine's to assign), then gives every child of every flow one real height change and its
+    ' return - the one event the flow engine re-stacks what follows; an AutoSize child clamps the
+    ' write, so for it the pair is a no-op. One layout of the root closes the pass.
+    '
+    ' Only what is on screen is settled. Each of these writes re-lays-out the containers above it, and
+    ' over the hidden pages and the hidden option panels of a page that cost 4-6 s at start and on a
+    ' switch to a job page. A hidden page is settled when it comes to the front.
+    Public Sub Settle(root As Control)
+        If root Is Nothing Then Return
+        Dim shown = ShownControls(root).ToList()
+        For Each c In shown
+            ' The root's own bounds are its owner's: a window given as the root would otherwise be shrunk to
+            ' its preferred size, which the minimum size then clamps.
+            If c Is root OrElse c.IsDisposed OrElse c.Dock <> DockStyle.None Then Continue For
+            Dim want = c.GetPreferredSize(Size.Empty)
+            If want.Width <> c.Width OrElse want.Height <> c.Height Then
+                c.SetBounds(c.Left, c.Top, want.Width, want.Height)
+            End If
+        Next
+        For Each c In shown
+            Dim flow = TryCast(c, FlowLayoutPanel)
+            If flow Is Nothing Then Continue For
+            For Each child As Control In flow.Controls
+                If flow.Visible AndAlso Not child.Visible Then Continue For
+                Dim h = child.Height
+                child.Height = h + 1
+                child.Height = h
+            Next
+        Next
+        root.PerformLayout()
+    End Sub
+
+    ' The controls under root, without the branches hidden inside a parent that is on screen. Under a
+    ' parent that is not on screen every child reads as hidden, so nothing is left out there.
+    Private Iterator Function ShownControls(root As Control) As IEnumerable(Of Control)
+        Yield root
+        For Each child As Control In root.Controls
+            If root.Visible AndAlso Not child.Visible Then Continue For
+            For Each item In ShownControls(child)
+                Yield item
+            Next
+        Next
+    End Function
+
     ' BUTTONS 2.0 section 3 rule 4: every button in one visual row has the height that row's tallest
     ' button needs - a multiline caption included - and separate rows do not inherit another row's
     ' maximum. Which row a button is on is decided by wrapping, so the heights are cleared, the flow is

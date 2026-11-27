@@ -18,11 +18,12 @@
 ' A second kind of icon lives here: the PLATED one, the product's own picture of a window rather
 ' than an Explorer entry's meaning. "app.disk-manager" is the content.disk-container glyph on a
 ' rounded-square plate in the accent, the glyph in the on-plate colour (ICON-RENDER 0.14 section 3
-' rule 6 and section 10 items D and E; owner decision 2026-10-02). It is ONE icon wherever the Disk
-' Manager appears - its window and taskbar button, its launcher in the shell (DiskManagerIcon), and
-' the MSI's Start menu shortcut - and it is written, embedded and self-tested exactly like the mono
-' ones. The generic mono content.disk-container icon stays the .fdd file type's and the Explorer
-' menu's, and the F|D mark (assets\icon.ico) stays the exe's and the installer's.
+' rule 6 and section 10 items D and E; owner decision 2026-10-02). It is ONE icon for the Disk
+' Manager's own surfaces - its window and taskbar button (DiskManagerIcon) and the MSI's Start menu
+' shortcut - and it is written, embedded and self-tested exactly like the mono ones. The shell's rail
+' row that opens the window draws the vocabulary glyph like every rail row (owner decision
+' 2026-11-26, FILEDO-0250). The generic mono content.disk-container icon stays the .fdd file type's
+' and the Explorer menu's, and the F|D mark (assets\icon.ico) stays the exe's and the installer's.
 Imports System.Drawing.Drawing2D
 Imports System.Drawing.Imaging
 Imports System.IO

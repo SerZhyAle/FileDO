@@ -77,6 +77,7 @@ Friend Module OperationGuide
         New OperationEntry("maxcopy", "copy", "filedo.exe maxcopy D:\Source E:\Target"),
         New OperationEntry("smartcopy", "copy", "filedo.exe smartcopy C:\Source D:\Target"),
         New OperationEntry("safecopy", "copy", "filedo.exe safecopy F:\Photos E:\Backup"),
+        New OperationEntry("rehash", "copy", "filedo.exe rehash D:\Photos"),
         New OperationEntry("fill", "erase", "filedo.exe E: fill 1000"),
         New OperationEntry("wipe", "erase", "filedo.exe D:\Temp wipe"),
         New OperationEntry("secure", "protect", "filedo.exe secret.txt secure"),

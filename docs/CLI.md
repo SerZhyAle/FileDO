@@ -2,7 +2,7 @@
 
 > This file is generated from [cli-commands.json](cli-commands.json) by `packaging/write-cli-docs.ps1`. Do not edit it by hand: change the manifest and run the script.
 
-FileDO answers commands from scripts, scheduled tasks, shortcuts and development tools. Type `filedo <command>` in cmd or PowerShell. Command set version **1.0**: 11 user commands (10 on `filedo.exe`, 1 on `filedo_win.exe`), 5 developer tools that `filedo_win.exe` runs in its own process, and 3 non-forwarded console families.
+FileDO answers commands from scripts, scheduled tasks, shortcuts and development tools. Type `filedo <command>` in cmd or PowerShell. Command set version **1.0**: 11 user commands (10 on `filedo.exe`, 1 on `filedo_win.exe`), 6 developer tools that `filedo_win.exe` runs in its own process, and 3 non-forwarded console families.
 
 To see what a FileDO on a machine can be asked, run `filedo commands --json`. It prints the manifest as shipped, starts no window, and is the same list as this file.
 
@@ -510,6 +510,7 @@ Hidden from plain `filedo commands`; pass `filedo commands --developer` or `file
 | `filedo_win.exe screens capture` | Developer tooling: render the guide screenshots from the real windows into a folder. | writes-user-data | does the work on the spot | 300 s |
 | `filedo_win.exe menu-icons write` | Developer tooling: write the Explorer menu icons into a folder and print each file written. | writes-user-data | does the work on the spot | 60 s |
 | `filedo_win.exe ui-drive run` | Developer tooling: drive the real windows on the screen for the visual acceptance run and write its evidence into a folder; the person's own settings are restored afterwards. | writes-user-data | does the work on the spot | 600 s |
+| `filedo_win.exe ui-showcase capture` | Developer tooling: render the showcase of the shared buttons, options, groups, navigation rows and a dialog at several sizes, palettes, languages and widths into a folder, with a geometry and contrast table. | writes-user-data | does the work on the spot | 300 s |
 
 ### `filedo_win.exe selftest run`
 
@@ -676,13 +677,47 @@ Example (powershell):
 
 Expect: 0 when the driven run passes; it uses the screen while it runs.
 
+### `filedo_win.exe ui-showcase capture`
+
+Developer tooling: render the showcase of the shared buttons, options, groups, navigation rows and a dialog at several sizes, palettes, languages and widths into a folder, with a geometry and contrast table.
+
+- **Synopsis:** `filedo_win.exe ui-showcase capture --out <folder>`
+- **Risk:** writes-user-data - creates, changes or deletes your files or settings outside FileDO's own data folder, or acts inside another program
+- **With no window program running:** does the work on the spot
+- **Waits for:** done, at most 300 s
+- **Repeat after exit 2:** safe, a second run leaves the same state as one
+- **Process:** runs in the receiving process (`forward: never`), never through the running window
+- **Audience:** developer (listed by `filedo commands --developer` and `filedo commands --json`)
+- **Run by:** `filedo_win.exe` itself, in its own process and never through the running window; developer tooling
+- **Kept spellings:** `--capture-ui-showcase {out}` (legacy) - older forms that still start the same thing
+- **Since:** command set 1.0
+
+| Option | Kind | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `--out` | path | yes |  | The existing folder to write. The frozen spelling --capture-ui-showcase takes it as the next argument. |
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | every file was written and every measurement passed |
+| 1 | a file could not be written or a measurement failed |
+| 10 | no folder given, or an unknown option |
+| 11 | the named folder does not exist |
+
+Example (powershell):
+
+```powershell
+(Start-Process .\filedo_win.exe -ArgumentList 'ui-showcase capture --out temp\evidence\showcase' -Wait -PassThru).ExitCode
+```
+
+Expect: 0, the pictures, geometry.csv and summary.txt under temp\evidence\showcase.
+
 ## Command families
 
 These grammars are not forwarded through the running window program; each runs in `filedo.exe` and keeps its own usage and exit contract.
 
 ### `target-first`
 
-Target-first device, folder, file, share and batch operations (info, speed, test, fill, clean, cd, copy, compare, check, wipe, backup, restore, from, hist).
+Target-first device, folder, file, share and batch operations (info, speed, test, fill, clean, cd, copy, compare, check, wipe, backup, restore, rehash, from, hist).
 
 - **Executable:** `filedo.exe`
 - **Usage:** `filedo help`
@@ -728,7 +763,7 @@ Every command declares one risk class, and the class decides who may ask.
 | --- | --- | --- |
 | safe | changes only FileDO's own windows and runs and reads nothing of yours | `filedo commands`, `filedo version`, `filedo status`, `filedo show`, `filedo quit`, `filedo disk-manager show`, `filedo settings show`, `filedo tray start`, `filedo job list`, `filedo job stop`, `filedo_win.exe open`, `filedo_win.exe selftest run` |
 | reads-user-data | puts something of yours - screen content, the clipboard, file contents or file names - into its answer or into a file the caller names | none |
-| writes-user-data | creates, changes or deletes your files or settings outside FileDO's own data folder, or acts inside another program | `filedo_win.exe help-pages build`, `filedo_win.exe screens capture`, `filedo_win.exe menu-icons write`, `filedo_win.exe ui-drive run` |
+| writes-user-data | creates, changes or deletes your files or settings outside FileDO's own data folder, or acts inside another program | `filedo_win.exe help-pages build`, `filedo_win.exe screens capture`, `filedo_win.exe menu-icons write`, `filedo_win.exe ui-drive run`, `filedo_win.exe ui-showcase capture` |
 | leaves-machine | sends anything off this computer | none |
 
 A `safe` command is always accepted. A command of any other class that goes through the running window program is refused with exit 12 until the person turns on one setting: **Let other programs ask FileDO to work with my files, screen, clipboard or the network**, in Settings under "Windows and window positions". The setting is off until the person turns it on, and no command can change it. `filedo status` reports whether it is on.

@@ -4,12 +4,16 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2611171800-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611270100-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Test auf gefälschte Kapazität • Geschwindigkeitstest • Duplikate finden • Ordner vergleichen • Freien Speicher löschen • Dateien mit Passwort schützen • Virtuelle Datenträger**
 
 ![Das FileDO-Fenster auf der Seite des Kapazitätstests](msix/screenshots/capacity-de.png)
+
+![FileDO bei der Arbeit: ein Geschwindigkeitstest eines Laufwerks, dann die Suche nach doppelten Dateien in einem Fotoordner](docs/assets/demo.gif)
+
+*Im Fenster: ein Geschwindigkeitstest eines Laufwerks, dann die doppelten Dateien eines Fotoordners ([MP4](docs/assets/demo.mp4)).*
 
 </div>
 
@@ -51,6 +55,64 @@ filedo C: info
 
 `filedo check <Ordner>` liest die Dateien und markiert eine Datei als beschädigt, die langsam (> 2,0 s) oder mit einem Gerätefehler gelesen wird. Die Listen beschädigter und gut gelesener Dateien liegen in `%LOCALAPPDATA%\FileDO\state` und benennen eine Datei über Pfad, Größe, Änderungszeit sowie das Volume und die Datei, auf denen sie erfasst wurde: eine geänderte Datei oder eine Kopie unter demselben Pfad auf einer anderen Karte mit demselben Laufwerksbuchstaben wird erneut gelesen; Einträge älterer Versionen ohne Volume gelten nicht. Eine reine Online-Datei (ein Platzhalter von OneDrive oder einer anderen Cloud, oder eine Offline-Datei) wird nie geöffnet - weder beim Durchlauf noch wenn genau sie geprüft wird -, also wird nichts heruntergeladen. Sie zählt als `not-read(online-only)`, wird nie als beschädigt erfasst und macht den Lauf zu „konnte nicht prüfen“ (Code 2), sofern keine beschädigte Datei gefunden wurde (Code 1).
 
+### CHECK: CLI-Flags (Flags haben Vorrang vor Umgebungsvariablen)
+
+Flags entsprechen den Umgebungsvariablen `FILEDO_CHECK_*` und haben Vorrang. Verwenden Sie sie nach `check <path>`.
+
+- Allgemein
+	- `--threshold <sec>` (FILEDO_CHECK_THRESHOLD_SECONDS)
+	- `--warmup <sec>` (FILEDO_CHECK_WARMUP_SECONDS)
+	- `--warmup-idle <sec>` (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)
+	- `--workers <int>` (FILEDO_CHECK_WORKERS)
+	- `--buf-kb <int>` (FILEDO_CHECK_BUF_KB)
+	- `--mode quick|balanced|deep` (FILEDO_CHECK_MODE)
+	- `--balanced-min-mb <int>` (FILEDO_CHECK_BALANCED_MIN_MB)
+	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)
+	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"` (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)
+- Grenzen
+	- `--max-files <int>` (FILEDO_CHECK_MAX_FILES)
+	- `--max-seconds <float>` (FILEDO_CHECK_MAX_DURATION_SEC)
+	- `--precount` / `--no-precount` (FILEDO_CHECK_PRECOUNT)
+- Verhalten und Ausgabe
+	- `--dry-run` (FILEDO_CHECK_DRYRUN)
+	- `--verbose` (FILEDO_CHECK_VERBOSE)
+	- `--quiet` (FILEDO_CHECK_QUIET)
+	- `--resume` (FILEDO_CHECK_RESUME) - fortsetzen: Dateien überspringen, die ein früherer Lauf bereits fehlerfrei gelesen hat (Liste guter Dateien)
+- Berichte
+	- `--report csv|json` (FILEDO_CHECK_REPORT)
+	- `--report-file <path>` (FILEDO_CHECK_REPORT_FILE)
+- Cache guter Dateien
+	- `--good-list <path>` (FILEDO_CHECK_GOODLIST)
+- HDD-freundliche Ein-/Ausgabe (ein Leser + adaptive Drosselung)
+	- `--single-reader auto|on|off` (FILEDO_CHECK_SINGLE_READER)
+	- `--ewma-alpha <float>` (FILEDO_CHECK_EWMA_ALPHA)
+	- `--ewma-high-frac <float>` (FILEDO_CHECK_EWMA_HIGH_FRAC)
+	- `--ewma-low-frac <float>` (FILEDO_CHECK_EWMA_LOW_FRAC)
+	- `--max-sleep-ms <int>` (FILEDO_CHECK_MAX_SLEEP_MS)
+	- `--sleep-step-ms <int>` (FILEDO_CHECK_SLEEP_STEP_MS)
+	- `--hdd-sleep-ms <int>` (FILEDO_CHECK_HDD_SLEEP_MS) - feste Pause nach jeder Datei und für jeden Leser
+
+Beispiele:
+
+```bash
+# Ausgewogener Modus, Leserzahl und Vorabzählung für die ETA
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Einen Leser und adaptive Drosselung für HDD/USB erzwingen
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Nach Erweiterungen filtern, Dateien begrenzen und CSV-Bericht speichern
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Eigene Liste guter Dateien und stille Ausgabe verwenden
+filedo check D:\Data --good-list D:\check_files.list --quiet
+```
+
+- Einmalige Aufwärmzeit bis zu 10.0 s vor dem ersten Lesevorgang (Anlauf des Laufwerks)
+- Die Listen beschädigter und guter Dateien liegen in `%LOCALAPPDATA%\FileDO\state` (nie neben Ihren Dateien) und benennen jede Datei nach Pfad, Größe und Änderungszeit, sodass eine geänderte Datei erneut gelesen wird; copy hat eine eigene Ausschlussliste
+- Eine Datei auf der Liste beschädigter Dateien wird ohne erneutes Lesen wieder als beschädigt gemeldet (Code 1); eine gesperrte oder unlesbare Datei oder ein Ordner bedeutet „konnte nicht prüfen“ (Code 2), nicht „beschädigt“; parallele Leser und Ctrl+C werden unterstützt
+- Eine reine Online-Datei (OneDrive- oder anderer Cloud-Platzhalter oder eine Offline-Datei) wird nicht geöffnet oder heruntergeladen; `not-read(online-only)` bedeutet „konnte nicht prüfen“ (Code 2), sofern keine beschädigte Datei gefunden wurde (Code 1)
+
 ### Installation
 
 #### Variante 1 - winget
@@ -62,6 +124,15 @@ winget install SerZhyAle.FileDO
 Installiert die Kommandozeilenwerkzeuge (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) und das grafische Fenster `filedo_win` (eine Seite je Aufgabe) und nimmt sie in den `PATH` auf.
 
 Auch im [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) erhältlich - dieselben Werkzeuge, Installation und Updates übernimmt der Store.
+
+Oder mit [Scoop](https://scoop.sh), aus dem eigenen Bucket des Autors:
+
+```powershell
+scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket
+scoop install serzhyale/filedo
+```
+
+Scoop installiert dieselben Werkzeuge aus dem ZIP des Releases, nimmt alle fünf in seinen `PATH` auf und legt für das Fenster einen Startmenü-Eintrag **FileDO** an; `scoop update filedo` aktualisiert, `scoop uninstall filedo` entfernt es.
 
 #### Variante 2 - Installationsprogramm (Setup-EXE)
 
@@ -102,7 +173,7 @@ Ein Paket, zwei Einstiege: die anklickbare Kachel **FileDO** und der Befehl `fil
 
 #### Explorer-Integration ohne Installationsprogramm
 
-winget, das portable Archiv und `go install` führen kein Installationsprogramm aus und registrieren deshalb nichts. Dieselbe Gruppe und derselbe Dokumenttyp lassen sich selbst anfordern - und ebenso zurücknehmen:
+winget, Scoop, das portable Archiv und `go install` führen kein Installationsprogramm aus und registrieren deshalb nichts. Dieselbe Gruppe und derselbe Dokumenttyp lassen sich selbst anfordern - und ebenso zurücknehmen:
 
 ```powershell
 filedo fdsec register              # für diesen Benutzer
@@ -121,6 +192,9 @@ FileDO entfernt nur, was es selbst markiert hat: ein Dokumenttyp, der inzwischen
 <td width="50%">
 
 ### Geräte-Tests
+
+Anleitung: [Speicher prüfen](https://serzhyale.github.io/FileDO/de/guides/check-storage.html).
+
 ```bash
 # Informationen
 filedo C: info
@@ -139,6 +213,9 @@ filedo D: speed max
 <td width="50%">
 
 ### Datei- und Ordner-Operationen
+
+Anleitungen: [Duplikate, Kopieren, Vergleichen](https://serzhyale.github.io/FileDO/de/guides/files-and-copies.html) und [Löschen und Überschreiben](https://serzhyale.github.io/FileDO/de/guides/erase.html).
+
 ```bash
 # Ordner-Analyse
 filedo C:\temp info
@@ -167,6 +244,8 @@ filedo C:\temp clean
 ---
 
 ## Geheime Dateien (`.fd-sec`)
+
+Anleitung: [Geheime Dateien](https://serzhyale.github.io/FileDO/de/guides/fd-sec-containers.html).
 
 Eine Datei - oder ein Ordner, sein ganzer Baum - geht in einen Container, hinter ein Passwort, und kommt
 wieder heraus - von der Befehlszeile, aus dem Explorer-Menü oder von den Seiten der Gruppe **Schützen**
@@ -250,6 +329,8 @@ Explorer-Menüeintrag.
 ---
 
 ## Sicherung und Wiederherstellung
+
+Anleitung: [Ein Ordner in einer Sicherungsdatei](https://serzhyale.github.io/FileDO/de/guides/fd-sec-containers.html#backup).
 
 Ein Ordner, ein ganzes Laufwerk oder eine Netzwerkfreigabe wandert in eine Datei - eine gewöhnliche
 `.zip`, die jedes ZIP-Programm auf jedem Computer öffnet, oder diese ZIP-Datei, hinter einem Passwort in
@@ -352,6 +433,8 @@ heißen soll.
 
 ## Virtuelle Datenträger (`.fdd`)
 
+Anleitung: [Virtuelle Datenträger](https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html).
+
 Ein Container ist eine gewöhnliche `.fdd`-Datei, die ein ganzes Volume enthält. Eingebunden ist er ein
 Laufwerksbuchstabe wie jeder andere; nicht eingebunden ist er eine Datei, die Sie kopieren, sichern oder
 allein mit FileDO lesen können, ohne ihn einzubinden. Das Format ist vollständig als Vertrag `FDD-FORMAT`
@@ -433,7 +516,7 @@ Was die Plattform braucht, offen gesagt:
   Server bestehen, und ein neues Fenster listet sie wieder auf; trennen Sie in der Datenträgerverwaltung, auf den Seiten der Gruppe
   *Datenträger* oder mit `filedo X: unmount`.
 
-Wählen Sie im **Disk Manager** einen registrierten dateibasierten Datenträger und **Über Fast Media Sorter & Sharing teilen..** im Detailbereich oder Mehr-Menü (`Ctrl+Shift+S`). Starten Sie zuerst Share Manager. Ist der Worker nicht erreichbar, bietet der Dialog Wiederholung und die [Installationsseite](https://serzhyale.github.io/FastMediaSorter_Lite/); das beweist keine fehlende Installation. Aktivieren Sie bei Bedarf die optionale FileDO-Komponente. Der Desktop-Installer ist unsigniert. Der Zugriff ist standardmäßig lesend und schreibend, Nur Lesezugriff wird per Kontrollkästchen gewählt; sealed-Datenträger bleiben nur lesend. Wählen Sie den Ordnernamen und optional das Öffnen für gekoppelte Geräte. Ein bereits von FileDO eingebundener Datenträger wird nach Bestätigung sauber getrennt; RAM wird dabei durch das normale Trennen gespeichert. Stimmen Sie dem Abschalten automatischer FileDO-Montage ausdrücklich zu; ein manueller `keep`-Wächter endet beim Trennen. FMS-Autostart ist separat zu aktivieren. **Freigegebenen Datenträger schließen** behält die Registrierung; **Freigabe beenden** entfernt sie und ihren gespeicherten Autostart-Schlüssel. Bei Fehlern bleiben erledigte Schritte bestehen: aktualisieren, verbleibende Aktion wiederholen oder die Freigabe beenden, bevor Sie lokales Einbinden und die vorherige automatische Richtlinie ausdrücklich wiederherstellen. Koppeln Sie Geräte über Share Manager. Dies gibt Dateien über SFTP frei, nicht über Windows-SMB. Der Sitzungsmodus erfordert Anmeldung; ein Dienst arbeitet ohne Anmeldung. Partitionsdatenträger und ungeprüfte externe Steuerung im Store-Build sind hier nicht verfügbar; verwenden Sie den Desktop-Build. Die Schritt-für-Schritt-Seite - Voraussetzungen, jeder Dialog und die Wiederherstellung - ist [FileDO-Datenträger mit Fast Media Sorter freigeben](https://serzhyale.github.io/FileDO/guides/fms-sharing.html).
+Wählen Sie im **Disk Manager** einen registrierten dateibasierten Datenträger und **Über Fast Media Sorter & Sharing teilen..** im Detailbereich oder Mehr-Menü (`Ctrl+Shift+S`). Starten Sie zuerst Share Manager. Ist der Worker nicht erreichbar, bietet der Dialog Wiederholung und die [Installationsseite](https://serzhyale.github.io/FastMediaSorter_Lite/); das beweist keine fehlende Installation. Aktivieren Sie bei Bedarf die optionale FileDO-Komponente. Der Desktop-Installer ist unsigniert. Der Zugriff ist standardmäßig lesend und schreibend, Nur Lesezugriff wird per Kontrollkästchen gewählt; sealed-Datenträger bleiben nur lesend. Wählen Sie den Ordnernamen und optional das Öffnen für gekoppelte Geräte. Ein bereits von FileDO eingebundener Datenträger wird nach Bestätigung sauber getrennt; RAM wird dabei durch das normale Trennen gespeichert. Stimmen Sie dem Abschalten automatischer FileDO-Montage ausdrücklich zu; ein manueller `keep`-Wächter endet beim Trennen. FMS-Autostart ist separat zu aktivieren. **Freigegebenen Datenträger schließen** behält die Registrierung; **Freigabe beenden** entfernt sie und ihren gespeicherten Autostart-Schlüssel. Bei Fehlern bleiben erledigte Schritte bestehen: aktualisieren, verbleibende Aktion wiederholen oder die Freigabe beenden, bevor Sie lokales Einbinden und die vorherige automatische Richtlinie ausdrücklich wiederherstellen. Koppeln Sie Geräte über Share Manager. Dies gibt Dateien über SFTP frei, nicht über Windows-SMB. Der Sitzungsmodus erfordert Anmeldung; ein Dienst arbeitet ohne Anmeldung. Partitionsdatenträger und ungeprüfte externe Steuerung im Store-Build sind hier nicht verfügbar; verwenden Sie den Desktop-Build. Die Schritt-für-Schritt-Seite - Voraussetzungen, jeder Dialog und die Wiederherstellung - ist [FileDO-Datenträger mit Fast Media Sorter freigeben](https://serzhyale.github.io/FileDO/de/guides/fms-sharing.html).
 
 **Freigabe eines Datenträgers über Fast Media Sorter for Windows (optional).** Ist Fast Media Sorter for
 Windows installiert, bietet `vd share work.fdd on` einen Datenträger den Handys und Tablets an, die Sie damit
@@ -463,9 +546,11 @@ je Operation und benennt beide Schutzarten genau wie die Konsole.
 
 Die **Datenträgerverwaltung** (englisch *Disk manager*; nicht zu verwechseln mit der gleichnamigen Windows-Komponente) ist ein zweites Fenster derselben `filedo_win.exe` - kein neues Programm - mit einer Zeile je virtuellem Datenträger: die Datenträger Ihrer Liste, die gerade eingebundenen und die VHD-, VHDX- oder ISO-Abbilder, die FileDO eingebunden hat. Jede Zeile nennt ihren Zustand in Worten neben einem Symbol (*Eingebunden*, *Eingebunden, schreibgeschützt*, *Eingebunden, 180 MiB nicht gespeichert* bei einem `ram`-Datenträger, *Server weg - Volume offline*, *Abbild eingebunden*, *Datei fehlt*, *Unter diesem Pfad liegt ein anderer Container*, *Nicht lesbar*, *Nicht sauber geschlossen*, *Nicht eingebunden*), und die Liste hält sich ohne manuelles Aktualisieren aktuell. Darum herum liegen eine Werkzeugleiste (*Neuer Datenträger..*, *Hinzufügen..*, *Einbinden*, *Trennen*, *Öffnen*, *Speichern*, *Weitere Aktionen*, *Aktualisieren*, *Hilfe*, *Hauptfenster*), eine Filterzeile und ein Detailbereich mit den passenden Schaltflächen; eine nicht verfügbare Schaltfläche sagt in ihrem Tooltip und im Detailbereich, warum, und die Microsoft-Store-Version, die nie einbinden kann, blendet die Einbinde-Elemente aus, statt sie auszugrauen. Ein Doppelklick oder Enter bindet einen ruhenden Datenträger ein und öffnet das Laufwerk eines eingebundenen - er trennt nie; ziehen Sie `.fdd`-Dateien auf die Liste, um sie hinzuzufügen, oder eine `.vhd`, `.vhdx` oder `.iso`, um ein Abbild nach einer Bestätigung einzubinden. *Neuer Datenträger..* fragt zuerst, wo der Datenträger seine Daten ablegt: *Datei auf einem Laufwerk..* öffnet die Seite *Datenträger anlegen* im Hauptfenster, *Partition im freien Speicherplatz..* den eigenen Partitionsdialog der Datenträgerverwaltung - eine Karte des freien Speicherplatzes jedes GPT-Datenträgers, Größe, Profil, Bezeichnung und Name (die Microsoft-Store-Version bietet nur die Datei an). Bei einem Datei-Datenträger öffnen *Exportieren*, *Verkleinern*, *Vergrößern*, *Versiegelte Kopie*, *Klonen*, *Passwort ändern*, *Formatieren* und *Vernichten* ihre Aufgabenseite im Hauptfenster mit dem gewählten Container; *Formatieren* und *Vernichten* behalten dort die einzutippende Bestätigung. Die Zeile eines [Partitionsdatenträgers](#partitionsdatenträger) sagt *Partition nicht verbunden* oder *Partition geändert*, wenn er nicht dort ist, wo er registriert wurde, bietet *Abbild in Datei..* an, um ihn in eine neue `.fdd`-Datei zu kopieren, und gelöscht wird er in der Datenträgerverwaltung selbst: *Vernichten* verlangt seinen eingetippten Namen und kann die Partition vorher überschreiben. *Partition übernehmen..* (unter *Weitere Aktionen* oder per Rechtsklick auf eine leere Stelle) listet die FileDO-Partitionen auf den Datenträgern dieses Computers, die nicht in der Liste stehen, und fügt die gewählte unter einem Namen hinzu; die Store-Version blendet *Abbild in Datei* und *Partition übernehmen* aus.
 
-Geöffnet wird sie über den Startmenü-Eintrag **FileDO Disk Manager** (das Installationsprogramm legt ihn an; er startet `filedo_win.exe --disks`), über die Schaltfläche **«Datenträgerverwaltung»** oben rechts im FileDO-Fenster oder die erste Zeile seiner Gruppe *Datenträger* (auch **Ctrl+Shift+D**) oder mit `filedo_win.exe --disks`; ihre Schaltfläche **«Hauptfenster»** holt das FileDO-Fenster nach vorn. **F1** öffnet die Hilfe - was eine Zeile sagt, die Tastentabelle, Links. Beim ersten Öffnen erklärt ein Willkommensfenster, was ein virtueller Datenträger ist, und sagt: *Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.* *Verschlüsselt: Er öffnet sich nur mit seinem Passwort.* Außerdem steht dort, dass Windows bei jedem Einbinden und Trennen die Zustimmung eines Administrators verlangt - bei einem Partitionsdatenträger auch bei jedem Lesen; es bietet *Meinen ersten Datenträger anlegen..*, *Eine vorhandene .fdd-Datei hinzufügen..*, *Die Anleitung auf der Website lesen* und *Jetzt nicht* an. Tastentabelle und Bilder stehen in der [Anleitung zu virtuellen Datenträgern](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Das Schließen der Datenträgerverwaltung trennt nie einen Datenträger.
+Geöffnet wird sie über den Startmenü-Eintrag **FileDO Disk Manager** (das Installationsprogramm legt ihn an; er startet `filedo_win.exe --disks`), über die Schaltfläche **«Datenträgerverwaltung»** oben rechts im FileDO-Fenster oder die erste Zeile seiner Gruppe *Datenträger* (auch **Ctrl+Shift+D**) oder mit `filedo_win.exe --disks`; ihre Schaltfläche **«Hauptfenster»** holt das FileDO-Fenster nach vorn. **F1** öffnet die Hilfe - was eine Zeile sagt, die Tastentabelle, Links. Beim ersten Öffnen erklärt ein Willkommensfenster, was ein virtueller Datenträger ist, und sagt: *Verschleiert, nicht verschlüsselt: Jeder mit dieser Datei und FileDO kann sie lesen. Sie öffnet sich ohne Passwort.* *Verschlüsselt: Er öffnet sich nur mit seinem Passwort.* Außerdem steht dort, dass Windows bei jedem Einbinden und Trennen die Zustimmung eines Administrators verlangt - bei einem Partitionsdatenträger auch bei jedem Lesen; es bietet *Meinen ersten Datenträger anlegen..*, *Eine vorhandene .fdd-Datei hinzufügen..*, *Die Anleitung auf der Website lesen* und *Jetzt nicht* an. Tastentabelle und Bilder stehen in der [Anleitung zu virtuellen Datenträgern](https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html#manager). Das Schließen der Datenträgerverwaltung trennt nie einen Datenträger.
 
 ### Partitionsdatenträger
+
+Anleitung: [Partitionsdatenträger](https://serzhyale.github.io/FileDO/de/guides/virtual-disks.html#partition).
 
 Ein virtueller Datenträger kann statt in einer Datei auch in einer Partition liegen. FileDO legt im nicht
 zugeordneten Speicherplatz eines Datenträgers eine neue GPT-Partition an und füllt sie ganz mit einem
@@ -581,8 +666,26 @@ und nichts wurde verändert.
 | `clean` | Testdateien löschen | `filedo C: clean` |
 | `check-duplicates` | Datei-Duplikate finden | `filedo C: check-duplicates` |
 | `cd [modus] [aktion]` | Duplikate prüfen (Kurzform) | `filedo D:\Photos cd old del -y` |
+| `copy <target>` | Dateien mit Fortschrittsanzeige kopieren | `filedo C: copy D:\backup` |
+| `rehash <path>` | Dateien an Ort und Stelle mit neuem SHA-256 überschreiben, wiederholbar (PNG, JPEG auch vom Handy, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB) | `filedo rehash D:\Photos` |
+| `wipe` | Den gesamten Inhalt eines Ordners löschen | `filedo folder C:\temp wipe` |
 | `from <datei>` | Stapelbefehle ausführen | `filedo from script.txt` |
 | `hist` | Operationshistorie anzeigen | `filedo hist` |
+
+#### Kurzformen des fill-Befehls
+| Befehl | Entspricht | Zweck |
+|--------|------------|-------|
+| `filedo D: fill` | `filedo D: fill 100` | Standardmäßig 100 MB füllen |
+| `filedo D: f` | `filedo D: fill 100` | Kurzform |
+| `filedo D: f del` | `filedo D: fill 100 del` | Mit automatischem Löschen |
+| `filedo D: f d` | `filedo D: fill 100 delete` | Kurze Form mit automatischem Löschen |
+
+#### Kurzformen für copy und wipe
+| Befehl | Entspricht | Zweck |
+|--------|------------|-------|
+| `filedo copy A B` | `filedo folder A copy B` | Allgemeiner Kopierbefehl |
+| `filedo A cp B` | `filedo A copy B` | Kurze copy-Form |
+| `filedo A w` | `filedo A wipe` | Kurze wipe-Form |
 
 ### Modifikatoren
 | Flag | Zweck | Beispiel |
@@ -620,13 +723,15 @@ Exitcodes: 0 erledigt, 1 der Befehl lief, aber der Vorgang ist fehlgeschlagen, 2
 
 Jeder Befehl, den das laufende Fenster beantwortet, ist *sicher*: Er ändert nur die eigenen Fenster und Läufe von FileDO und liest keine Ihrer Dateien. Ein Befehl jeder anderen Klasse wird mit Exit 12 abgelehnt, bis Sie in den Einstellungen **Anderen Programmen erlauben, FileDO um Arbeit mit meinen Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk zu bitten** einschalten; sie ist aus, bis Sie sie einschalten, und kein Befehl ändert sie. Die Befehle laufen über eine lokale Pipe, die nur Ihr eigenes Windows-Konto in Ihrer eigenen Sitzung erreicht - nie über das Netzwerk.
 
-Die fünf Schalter, die die Build-Skripte aufrufen - `filedo_win.exe selftest run`, `help-pages build --out <Ordner>`, `screens capture --out <Ordner>`, `menu-icons write --out <Ordner>` und `ui-drive run --out <Ordner>` - sind ebenfalls Befehle und laufen in einem eigenen Prozess.
+Die sechs Schalter, die die Build-Skripte aufrufen - `filedo_win.exe selftest run`, `help-pages build --out <Ordner>`, `screens capture --out <Ordner>`, `menu-icons write --out <Ordner>`, `ui-drive run --out <Ordner>` und `ui-showcase capture --out <Ordner>` - sind ebenfalls Befehle und laufen in einem eigenen Prozess.
 
-Entwicklerwerkzeuge und Agenten können `docs/CLI.md` lesen und `filedo commands --json` ausführen, um zu sehen, worum man FileDO bitten kann; den Zustand des Produkts liefern ohne Screenshot `filedo status`, `filedo job list` und `filedo vd status json`. Anleitung: [Befehle für Skripte und Agenten](https://serzhyale.github.io/FileDO/guides/commands.html).
+Entwicklerwerkzeuge und Agenten können `docs/CLI.md` lesen und `filedo commands --json` ausführen, um zu sehen, worum man FileDO bitten kann; den Zustand des Produkts liefern ohne Screenshot `filedo status`, `filedo job list` und `filedo vd status json`. Anleitung: [Befehle für Skripte und Agenten](https://serzhyale.github.io/FileDO/de/guides/commands.html).
 
 ---
 
 ## GUI-Anwendung
+
+Anleitung: [FileDO-Fenster (GUI) verwenden](https://serzhyale.github.io/FileDO/de/guides/gui-command-builder.html).
 
 **FileDO GUI** (`filedo_win.exe`) - VB.NET Windows Forms Shell: links eine Leiste mit den Aufgaben, je Aufgabe eine nummerierte Seite - was bearbeitet wird, welche Parameter, dann Prüfen und Ausführen - plus eine Seite **«Befehl»**, der Experten-Baukasten, der jeden FileDO-Befehl zusammenstellt und ausführt, und eine Seite **«Über die Vorgänge»**, die jeden Vorgang in einfachen Worten erklärt:
 
@@ -859,7 +964,15 @@ FileDO/
 
 ## Versionshistorie
 
-**v2611171800** (Aktuell)
+**v2611270100** (Aktuell)
+- **Neuer Hash**: `filedo rehash <path>` schreibt jede unterstützte Datei an Ort und Stelle neu: Sie erhält einen neuen SHA-256 und eine winzige, formatkonforme Größenänderung, Inhalt und Metadaten bleiben gleich, und sie öffnet sich weiter in ihrem gewohnten Programm - PNG, JPEG (auch Handyfotos mit Gain Map oder Bewegtbild), HEIC und AVIF, WebP, GIF89a, BMP, TIFF und RAW, PDF, ZIP, Office, OpenDocument und EPUB, RTF, Text- und Webdateien, JSON, XML und SVG, WAV, FLAC, MP3, AIFF, MP4, MOV und 3GP, MKV und WebM, AVI, MPEG-TS und MPG; das Original wird erst ersetzt, nachdem ein strenger Leser die neue Datei geprüft hat, nicht unterstützte, beschädigte, schreibgeschützte und signierte Dateien werden mit Grund übersprungen, Windows und Program Files werden abgelehnt, und dieselben Dateien lassen sich beliebig oft bearbeiten
+- **Sicherung**: `keep-days <1-999>` behält datierte Sicherungen und entfernt die, die älter als so viele Tage sind, allein nach dem Datum im Dateinamen; `keep-monthly` behält außerdem die erste Sicherung jedes Monats dauerhaft; alte Dateien werden erst entfernt, nachdem die neue zurückgelesen wurde, und **Ordner sichern** bietet beides an
+- **Anleitungen**: die Seiten des Hauptfensters und die Datenträgerverwaltung verlinken die Anleitung der Website zu dem, was Sie gerade tun, in Ihrer Sprache, wo die Website sie hat, sonst auf Englisch
+- **Fenster**: eine Auftragsseite behält Ziel und Optionen, die Sie eingegeben haben, wenn Sie eine andere Seite ansehen und zurückkehren, während Kennwort- und Bestätigungsfelder weiterhin geleert werden; ein langsames oder getrenntes Netzlaufwerk friert das Fenster beim Auflisten der Laufwerke nicht mehr ein; die langen Beschriftungen der Vorgaben im Geschwindigkeitstest werden auf Bildschirmen mit hoher DPI nach einem Seitenwechsel nicht mehr abgeschnitten; die Datenträgerverwaltung öffnet sich auf dem Monitor des Fensters, das sie aufgerufen hat
+- **Aussehen und Namen**: Programmsymbol, Store-Grafiken, Website und Vorschaubilder zeigen jetzt dasselbe Produktzeichen; die Zeile **Disk-Manager** der linken Leiste zeichnet ein Datenträgersymbol in der Farbe ihrer Gruppe, mit dem Hinweis, dass sie ein eigenes Fenster öffnet; der Dialog für alles, was von selbst startet, heißt jetzt **Mit Windows starten**; die Schaltfläche, die in einem schmalen Fenster die Leiste öffnet, heißt **Menü**
+- **Installation und Doku**: FileDO lässt sich auch mit Scoop installieren (`scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket`, dann `scoop install serzhyale/filedo`); die Website hat eine Befehlsreferenz und eine kurze Demo des Fensters, und das README in jeder Sprache enthält dieselben Befehlstabellen
+
+**v2611171800** (Vorherige)
 - **Befehle für Skripte und Agenten**: `filedo status`, `filedo show`, `filedo quit`, `filedo job list`, `filedo job stop`, `filedo disk-manager show`, `filedo settings show` und `filedo tray start` fragen das bereits laufende FileDO-Fenster und enden mit dessen Antwort als Exit-Code - es öffnet sich keine zweite Kopie; `filedo commands [--json]` listet alle Befehle auf und `filedo version [--json]` nennt die Version; `filedo_win.exe open --path <Datei>` öffnet einen `.fdd`- oder `.fd-sec`-Container in einem eigenen Fenster, die benannte Form des Starts, den der Explorer macht; ein Befehl, der mit Ihren Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk arbeiten würde, wird abgelehnt, bis Sie in den Einstellungen **Anderen Programmen erlauben, FileDO um Arbeit mit meinen Dateien, dem Bildschirm, der Zwischenablage oder dem Netzwerk zu bitten** einschalten - die Option ist von Haus aus aus; die Befehle laufen über eine lokale Pipe, die nur Ihr eigenes Windows-Konto erreicht, nie über das Netzwerk
 - **Sicherung**: das Ergebnis ist eine Datei namens `<Quelle>-<yyMMddHHmm>`, zum Beispiel `Photos-2611171652.zip`, bei einer versiegelten Sicherung `.fd-sec`; `gen 7` hält einen nummerierten Satz der letzten 7 Sicherungen (`Photos_001.zip` .. `Photos_007.zip`) in dem Ordner, den `to` nennt, und `stem <Name>` benennt den Satz; die neue Datei wird zurückgelesen, bevor die älteste ausscheidet, und ein fehlgeschlagener oder angehaltener Lauf löscht nichts; die Seite **«Ordner sichern»** fragt außerdem, wie viele Sicherungen bleiben sollen
 - **Seite «Befehl»**: **Befehle ansehen..** listet jeden Vorgang in sechs Gruppen mit einer einzeiligen Beschreibung, und **Befehl verwenden** wählt ihn in der Auswahlliste aus; für den Ort des Ergebnisses gibt es eine eigene Ordnerauswahl, und das Fenster merkt sich die gewählten Ordner, die letzten 12 ausgeführten Befehle (**Zuletzt..** legt einen davon wieder in die Befehlszeile) sowie Vorgang, Ziel und Ergebnisort, bei denen die Seite verlassen wurde - ein mit `nohist` aus dem Verlauf gehaltener Lauf, eine Zeile mit Passwort und jeder Lauf bei ausgeschaltetem Verlauf werden nie gemerkt, Optionen nie, und **Letzte Befehle und Ordner vergessen** leert alles
@@ -868,7 +981,7 @@ FileDO/
 - **Fenster**: das Menü *Weitere Aktionen* der Datenträgerverwaltung zeigt an jedem Eintrag ein Symbol, und das Diagnosearchiv führt keine Nullzähler mehr für Medienbibliothek-Werte, die dieses Produkt nicht hat
 - **Doku**: eine neue Anleitung auf der Website zu Befehlen für Skripte und Agenten, in fünf Sprachen, und `docs/CLI.md`, die aus `filedo commands --json` erzeugte Liste dieser Befehle; die Datenschutzseite nennt die Fenstereinstellungen, die unter Ihrem eigenen Benutzerschlüssel in der Registrierung liegen
 
-**v2611110217** (Vorherige)
+**v2611110217**
 - **Sicherung**: `filedo backup` packt einen Ordner, ein Laufwerk oder einen Netzwerkordner in eine ZIP-Datei, die jedes ZIP-Programm öffnet - die Kompressionsdichte wählt FileDO nach einem Blick von höchstens 10 Sekunden auf die Dateien, oder `level 0-9` legt sie fest -, und `sec` versiegelt die ZIP-Datei in einen `.fd-sec`-Container hinter einem Passwort; `filedo restore` baut den Ordner neben der Sicherung oder dort, wohin `to` zeigt, neu auf und führt nie mit einem Ordner zusammen oder ersetzt ihn; im Fenster hat die Gruppe **Schützen** die Seiten *Ordner sichern* und *Aus Sicherung wiederherstellen*
 - **Exit-Codes**: ein Lauf, der nicht zu Ende kommt, nennt den Grund im Exit-Code: 10 ein Fehler im Befehl, 11 ein fehlendes oder nicht bereites Ziel, 12 fehlende Rechte, 13 zu wenig Platz, 14 ein E/A-Fehler, 15 ein Netzwerkfehler, 16 von Ihnen angehalten; 0, 1 und 2 behalten ihre Bedeutung
 - **Gründe**: wenn ein Lauf nicht zu Ende kommt, nennt die Ergebniskarte den Grund in der Sprache des Fensters - ein volles Laufwerk, eine Datei, die ein anderes Programm geöffnet hat - statt nur eines Exit-Codes, und die Datenträgerverwaltung tut dasselbe; eine Kopie, der der Platz ausgeht, sagt, dass das Laufwerk voll ist; eine von einem anderen Programm geöffnete Datei wird mit diesem Programm genannt, und der Lauf lässt sich einfach wiederholen, sobald die Datei frei ist
@@ -906,7 +1019,13 @@ FileDO/
 - **Grenzen**: nur Windows; Einbinden fragt nach Administratorzustimmung; die Microsoft-Store-Version liest, prüft und exportiert Container, kann sie aber weder einbinden noch Partitionsdatenträger nutzen noch freigeben
 - **Dokumentation**: neue Anleitungen - virtuelle Datenträger und Freigabe von Datenträgern über Fast Media Sorter; die Seiten der Website auf Deutsch und Französisch sowie eine Seite mit den Neuerungen
 
+**v2609260512**
+- **Geheime Dateien (`.fd-sec`)**: ein Container, den Windows FileDO nicht lesen lässt, wird als nicht lesbar gemeldet, nicht als beschädigt
+- **Duplikate**: Dateien, deren Hash sich nicht berechnen lässt, erscheinen im Bericht, statt stillschweigend zu fehlen; lässt sich die Listendatei nicht schreiben, halten `del` und `move` an, bevor sie eine Datei anfassen
+- **Kapazitätstest**: der Bericht nennt die Testdateien, die er behält
+
 **v2609241700**
+- **Installer**: neben dem blanken MSI und dem Zip erscheint die Setup-EXE - ein WiX-Bundle mit dem MSI darin
 - **Geheime Dateien (`.fd-sec`)**: eine Datei wird in einen passwortgeschützten Container gepackt und wieder herausgeholt - `secure`, `unsecure`, `reveal` - per Kommandozeile, über das Explorer-Menü oder auf den Protect-Seiten des Fensters; Name, Größe und Zeitstempel des Originals sind darin versiegelt
 - **Explorer-Integration**: das Setup fügt die Kontextmenügruppe `File DO..` (Secure, Unsecure, Wipe this file, Check this file, Info) und den Dokumenttyp `.fd-sec` hinzu; `filedo fdsec register` / `unregister` erledigt dasselbe ohne Installer
 - **GUI**: ein neues Fenster - links die Aufgaben, pro Aufgabe eine Seite mit allen CLI-Optionen, dazu die Seiten Command, History, Settings und About; das alte Befehlsbaukasten-Fenster entfällt
@@ -929,13 +1048,23 @@ FileDO/
 - **Kopieren**: Verzeichnisdurchläufe beim Kopieren reduziert
 
 **v2605152056**
-- **Installer**: Setup-EXE (ein WiX-Bundle mit dem MSI darin) und das blanke MSI; App-Symbol in alle EXEs und den Eintrag der installierten Programme eingebettet
-- **Store**: Microsoft-Store-Einreichungsspezifikation und Vorschaubild
+- **Veröffentlichung**: der Build von v2605152052, erneut veröffentlicht; keine Änderungen
+
+**v2605152052**
+- **Symbol**: das App-Symbol ist in alle EXEs und in den Eintrag des MSI in der Liste der installierten Programme eingebettet
+
+**v2605152042**
+- **Installer**: das erste MSI - FileDO installiert sich als Windows-Programm, das Zip bleibt daneben
 
 **v2604272228**
-- **Distribution**: erste winget-Veröffentlichung (SerZhyAle.FileDO) und GitHub-Actions-Release-Pipeline
+- **Distribution**: erste winget-Veröffentlichung (SerZhyAle.FileDO)
 - **Binärdateien**: PE-Versionsinformationen und Windows-Anwendungsmanifest in alle Binärdateien eingebettet
+
+**v2604271301**
+- **Distribution**: die erste Veröffentlichung auf GitHub - ein Zip, gebaut von der GitHub-Actions-Release-Pipeline
 - **Dokumentation**: GitHub-Pages-Seiten neu gestaltet und vereinfacht
+
+Vor den Veröffentlichungen auf GitHub:
 
 **v2507112115**
 - **Große Refaktorierung**: Kapazitätstest-Logik in dediziertes `capacitytest` Package extrahiert
@@ -961,7 +1090,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2611171800** - Erweiterte Datei- und Speicher-Tools
+**FileDO v2611270100** - Erweiterte Datei- und Speicher-Tools
 
 Erstellt von **sza@ukr.net** | [MIT-Lizenz](LICENSE) | [GitHub-Repository](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

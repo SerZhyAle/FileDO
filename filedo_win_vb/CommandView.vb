@@ -1178,7 +1178,7 @@ Public Class CommandView
     Friend Shared ReadOnly Operations As String() = {
         "info", "speed", "test", "fill", "clean", "probe", "recover",
         "cd", "compare", "check",
-        "copy", "fastcopy", "synccopy", "balanced", "maxcopy", "smartcopy", "safecopy",
+        "copy", "fastcopy", "synccopy", "balanced", "maxcopy", "smartcopy", "safecopy", "rehash",
         "wipe", "secure", "unsecure", "reveal", "fdsec info", "fdsec verify",
         "backup", "backup sec", "restore",
         "from", "hist", "fdsec register", "fdsec unregister", "help"
@@ -1267,13 +1267,13 @@ Public Class CommandView
     ' authority for both lists, and the page says only what the CLI will take.
     Private Shared Function TakesDrive(op As String) As Boolean
         Return Array.IndexOf(New String() {"info", "speed", "test", "fill", "clean", "cd",
-                                           "probe", "recover", "wipe"}, op) >= 0
+                                           "probe", "recover", "wipe", "rehash"}, op) >= 0
     End Function
 
     Private Shared Function TakesFile(op As String) As Boolean
         ' `from` takes a list file, and every copy strategy copies a single file just as happily
         ' as a folder - so the file picker is offered wherever the CLI accepts one.
-        Return Array.IndexOf(New String() {"info", "check", "from", "restore",
+        Return Array.IndexOf(New String() {"info", "check", "from", "restore", "rehash",
                                            "copy", "fastcopy", "synccopy", "balanced",
                                            "maxcopy", "smartcopy", "safecopy"}, op) >= 0 OrElse
                IsFdsecOp(op)
@@ -1422,16 +1422,20 @@ Public Class CommandView
         ' and the pickers below take over.
         If TakesDrive(op) Then
             ' The drives go first in the list, ahead of the targets used before (added below).
+            ' The letters come from Windows' own table and no drive is asked whether it is ready: a
+            ' disconnected network drive answers after many seconds, and this runs on the window's
+            ' thread (SETTINGS-NAVIGATION 5.2, FILEDO-0255). A drive with no medium is listed, as on
+            ' the job page; running on it reports that it is not ready.
             If Not drivesListed Then
                 Try
                     Dim at = 0
                     For Each d In DriveInfo.GetDrives()
-                        If d.IsReady Then
-                            targetCombo.Items.Insert(at, d.Name.Substring(0, 2))
-                            at += 1
-                        End If
+                        targetCombo.Items.Insert(at, d.Name.Substring(0, 2))
+                        at += 1
                     Next
-                Catch
+                Catch ex As Exception
+                    ' The box still takes a typed path.
+                    ShellLog.Write("list drives", ex)
                 End Try
                 drivesListed = True
             End If
@@ -1465,7 +1469,7 @@ Public Class CommandView
                 targetLabel.Text = L("ui_source")
             Case "wipe", "cd"
                 targetLabel.Text = L("ui_folder")
-            Case "info", "check"
+            Case "info", "check", "rehash"
                 targetLabel.Text = L("shell_lbl_target")
             Case "from"
                 targetLabel.Text = L("ui_list")

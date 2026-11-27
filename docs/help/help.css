@@ -124,6 +124,15 @@ details.el .full > * + * { margin-block-start:.7rem; }
 
 /* ---- additions of this product, over the reference layer ---------------------------------------------- */
 
+/* CONTEXT-HELP 0.6 item Q: the product's picture on the title's line, between the title's cap height and twice it */
+.help .title-row { display:flex; align-items:center; gap:.6rem; margin-block-end:.5rem; }
+.help .title-row h1 { margin:0; }
+.help .title-row .product-mark { flex:none; width:auto; height:calc(1.15 * clamp(1.6rem, 4vw, 2.2rem)); }
+
+/* CONTEXT-HELP 0.6 item R: the glyph the control draws, before its name, in the text colour, sized to the text */
+details.el .name .glyph { display:inline-block; width:1.15em; height:1.15em; vertical-align:-.2em;
+  margin-inline-end:.4em; fill:currentColor; }
+
 /* the Disk Manager's keyboard map and row states: a name column that is a key, not a caption */
 .facts.keys dt, .facts.states dt { text-transform: none; letter-spacing: 0; font-size: .85rem; color: var(--text); }
 .facts.states { grid-template-columns: minmax(8rem, max-content) 1fr; }

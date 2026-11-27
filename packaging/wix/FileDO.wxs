@@ -85,9 +85,10 @@
          features below rather than from a hand-written dialog. -->
     <ui:WixUI Id="WixUI_FeatureTree" />
     <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
-    <!-- The wizard's own artwork, regenerated from assets\icon.png by
-         packaging\wix\make-art.ps1. Without these two, every page is the WiX
-         default blue-and-white with no sign of what is being installed. -->
+    <!-- The wizard's own artwork, composed from the product's mark by
+         assets\make-product-icons.ps1 (PRODUCT-IDENTITY). Without these two,
+         every page is the WiX default blue-and-white with no sign of what is
+         being installed. -->
     <WixVariable Id="WixUIBannerBmp" Value="$(var.BannerBmp)" />
     <WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)" />
 

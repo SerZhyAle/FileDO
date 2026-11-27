@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `WINDOWS-UI` |
-| **Version** | 0.12, read 2026-11-16 (SP-0221); implemented partial 0.12 (section 17 N/A; 29-flag show cost and SP-0169 section 15 timings open), draft (no wire - observable Windows UI and UX) |
+| **Version** | 0.15, read 2026-11-26 (FILEDO-0245; 0.13-0.15 clarifications); implemented partial 0.15 (section 17 N/A; 29-flag show cost and SP-0169 section 15 timings open), draft (no wire - observable Windows UI and UX) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`), opted in by the portfolio decision of 2026-10-05 |
 | **Home** | shared contracts catalog, folder `desktop-app-ux/`, document `WINDOWS-UI.md` |
 | **Owner** | Fast Media Sorter & Sharing for Windows (portfolio owner decision). An amendment is proposed in the catalog, not decided here |
@@ -54,7 +54,8 @@ the `hit-target:` rows and the `contrast:` rows.
 `filedo_win.exe --ui-drive <folder>` - the driven visual acceptance (SP-0150): real windows on the
 screen, light -> dark -> light on the live window and on an open dialog, keyboard activation of a
 group header, Escape leaving the settings page, the real close path and a fresh reopen restoring the
-page, the groups and the viewport, every step screened by its dominant colour.
+page, the groups and the viewport, every step screened by its dominant colour, and last the complete-frame
+timings of every page (`page-timing:*`, SP-0169 S5, raw samples in `page-timings.csv`).
 
 **Status: implemented 2026-10-05 (SP-0150); read against 0.3 on 2026-10-07 (SP-0165).** Physically unverified and open: the section 9 timings of every page and dialog at the largest supported scale,
 150%/200% and mixed-monitor movement on real displays (P01), a real high-contrast session (the palette

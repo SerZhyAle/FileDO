@@ -37,6 +37,7 @@ keeps them from being rendered. See [`../README.md`](../README.md) for what the 
 | [`ICON-RENDER.md`](ICON-RENDER.md) | how a glyph is drawn: colour role, themes, sizes, system surfaces | consumer |
 | [`ICON-EXTERNAL.md`](ICON-EXTERNAL.md) | third-party marks, other apps' icons, downloaded pictures | consumer |
 | [`CONTEXT-HELP.md`](CONTEXT-HELP.md) | in-app help: F1 and a `?` button on every window, a help page for each (draft; SP-0168, partial) | consumer |
+| [`PRODUCT-IDENTITY.md`](PRODUCT-IDENTITY.md) | one master of the product's picture, every rendition generated from it and listed with its hash, the same picture on every surface (draft; FILEDO-0236, FILEDO-0243, partial 0.6) | consumer |
 | [`UI-SIZING.md`](UI-SIZING.md) | shared size and input profiles: one token resolver, a stable pointer profile, a declared smallest target (SP-0169, migration in progress) | consumer |
 | [`BUTTONS.md`](BUTTONS.md) | one command-button system: content-width, wrapping, neutral answers, reading-order dialog answers (SP-0169, migration in progress) | consumer |
 | [`BOOLEAN-OPTION.md`](BOOLEAN-OPTION.md) | the compact checkbox, heading and explanation row (SP-0169, not implemented) | consumer |

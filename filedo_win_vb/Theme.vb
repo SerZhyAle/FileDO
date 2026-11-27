@@ -242,6 +242,13 @@ Module Theme
         Refresh()
     End Sub
 
+    ' The showcase's seam (SP-0169 S4): the system-colours palette high contrast uses, put in force
+    ' without the system being in high contrast. It writes nothing; UsePaletteForTest(Nothing) undoes it.
+    Friend Sub UseContrastPaletteForTest()
+        testPalette = SystemContrastPalette()
+        Refresh()
+    End Sub
+
     Friend Function PaletteFor(dark As Boolean) As Palette
         Return If(dark, DarkPalette, LightPalette)
     End Function

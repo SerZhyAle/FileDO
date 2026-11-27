@@ -60,6 +60,8 @@ Friend Module LiveLanguage
         Dim rail = TryCast(control, RailEntry)
         If rail IsNot Nothing AndAlso target.ContainsKey(rail.Key) Then
             rail.Text = If(rail.IsGroupHeader, target(rail.Key).ToUpperInvariant(), target(rail.Key))
+            ' The spoken verb of the row ("Open", "Open in new window") follows the language too.
+            rail.DefaultActionText = Translate(rail.DefaultActionText, byText, target)
         ElseIf Not TypeOf control Is TextBoxBase AndAlso Not TypeOf control Is ComboBox Then
             control.Text = Translate(control.Text, byText, target)
         End If

@@ -6,6 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <title>Aide - FileDO - Gestionnaire de disques</title>
+<link rel="icon" type="image/png" href="../favicon.png">
 <script>
 (function () {
   try {
@@ -26,7 +27,7 @@
   </nav>
   <header class="hero">
     <p class="kicker">Aide de la fenêtre</p>
-    <h1>FileDO - Gestionnaire de disques</h1>
+    <div class="title-row"><img class="product-mark" src="../filedo-mark.svg" width="48" height="48" alt=""><h1>FileDO - Gestionnaire de disques</h1></div>
     <p class="lead">Tous vos disques virtuels dans une seule liste : créez un disque, ajoutez-en un que vous avez déjà, montez-le comme lecteur, ouvrez-le, enregistrez-le et démontez-le. Un disque virtuel est un seul fichier .fdd que Windows montre comme un lecteur.</p>
   </header>
 
@@ -65,7 +66,7 @@
   <h2>Les éléments</h2>
   <div class="elements">
     <details class="el" id="e-new">
-      <summary><span class="mk">1</span><span><span class="name">Nouveau disque..</span><span class="one">Créer un nouveau disque virtuel : un fichier .fdd que Windows présente comme un lecteur</span></span></summary>
+      <summary><span class="mk">1</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13zM7.5 13h9v6h-9zM13.5 16a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM8.25 5h1.5v2.25H12v1.5H9.75V11h-1.5V8.75H6v-1.5h2.25z" fill="currentColor" fill-rule="evenodd"/></svg>Nouveau disque..</span><span class="one">Créer un nouveau disque virtuel : un fichier .fdd que Windows présente comme un lecteur</span></span></summary>
       <div class="full">
         <p>Ouvre dans la fenêtre principale la page de création d'un disque, où vous choisissez le fichier, la taille et le type de disque, protection comprise. Le disque rejoint la liste quand il est créé.</p>
         <dl class="facts">
@@ -76,7 +77,7 @@
       </div>
     </details>
     <details class="el" id="e-add">
-      <summary><span class="mk">2</span><span><span class="name">Ajouter..</span><span class="one">Ajouter des conteneurs .fdd à la liste - ou les déposer dessus</span></span></summary>
+      <summary><span class="mk">2</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z" fill="currentColor"/></svg>Ajouter..</span><span class="one">Ajouter des conteneurs .fdd à la liste - ou les déposer dessus</span></span></summary>
       <div class="full">
         <p>Choisissez un ou plusieurs fichiers .fdd, ou déposez-les sur la liste. La liste ne retient que leur emplacement : les fichiers ne sont ni copiés, ni déplacés, ni modifiés.</p>
         <dl class="facts">
@@ -86,7 +87,7 @@
       </div>
     </details>
     <details class="el" id="e-mount">
-      <summary><span class="mk">3</span><span><span class="name">Monter</span><span class="one">Monter les disques choisis comme lecteurs. Windows demande son accord pour chacun</span></span></summary>
+      <summary><span class="mk">3</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 2h2v6.17l2.59-2.58L17 7l-5 5-5-5 1.41-1.41L11 8.17V2zM4 14h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1zm11.5 2.5a1 1 0 1 0 0 2a1 1 0 1 0 0-2z" fill="currentColor" fill-rule="evenodd"/></svg>Monter</span><span class="one">Monter les disques choisis comme lecteurs. Windows demande son accord pour chacun</span></span></summary>
       <div class="full">
         <p>Attache chaque disque choisi comme un lecteur avec sa propre lettre. Windows demande à chaque fois l'accord de l'administrateur, et un disque protégé par mot de passe le demande. Autres actions propose Monter en lecture seule, qui empêche toute modification du disque.</p>
         <dl class="facts">
@@ -97,7 +98,7 @@
       </div>
     </details>
     <details class="el" id="e-unmount">
-      <summary><span class="mk">4</span><span><span class="name">Démonter</span><span class="one">Démonter les lecteurs des disques choisis. Les fichiers gardent tout</span></span></summary>
+      <summary><span class="mk">4</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 17h14v2H5zm7-12L5.33 15h13.34z" fill="currentColor"/></svg>Démonter</span><span class="one">Démonter les lecteurs des disques choisis. Les fichiers gardent tout</span></span></summary>
       <div class="full">
         <p>Détache les lecteurs des disques choisis, et leurs lettres disparaissent. Un disque ram écrit d'abord dans son fichier ce qu'il garde en mémoire.</p>
         <dl class="facts">
@@ -108,7 +109,7 @@
       </div>
     </details>
     <details class="el" id="e-open">
-      <summary><span class="mk">5</span><span><span class="name">Ouvrir</span><span class="one">Ouvrir le lecteur du disque choisi dans l'Explorateur</span></span></summary>
+      <summary><span class="mk">5</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z" fill="currentColor"/></svg>Ouvrir</span><span class="one">Ouvrir le lecteur du disque choisi dans l'Explorateur</span></span></summary>
       <div class="full">
         <p>Ouvre dans l'Explorateur le lecteur du disque monté choisi. Un double-clic sur une ligne montée fait la même chose.</p>
         <dl class="facts">
@@ -117,7 +118,7 @@
       </div>
     </details>
     <details class="el" id="e-save">
-      <summary><span class="mk">6</span><span><span class="name">Enregistrer</span><span class="one">Écrire maintenant dans son fichier ce qu'un disque ram garde en mémoire</span></span></summary>
+      <summary><span class="mk">6</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17,3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2V7l-4,-4zM12,19c-1.66,0 -3,-1.34 -3,-3s1.34,-3 3,-3 3,1.34 3,3 -1.34,3 -3,3zM15,9H5V5h10v4z" fill="currentColor"/></svg>Enregistrer</span><span class="one">Écrire maintenant dans son fichier ce qu'un disque ram garde en mémoire</span></span></summary>
       <div class="full">
         <p>Un disque ram garde ce que vous écrivez dans la mémoire. Enregistrer l'écrit maintenant dans le fichier, pour qu'une coupure de courant coûte moins cher. Démonter enregistre d'abord, donc Enregistrer sert de point de sécurité dans une longue session. Il n'est proposé que pour les disques ram.</p>
         <dl class="facts">
@@ -127,7 +128,7 @@
       </div>
     </details>
     <details class="el" id="e-more">
-      <summary><span class="mk">7</span><span><span class="name">Autres actions</span><span class="one">Toutes les opérations pour les disques choisis, et les colonnes de la liste</span></span></summary>
+      <summary><span class="mk">7</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z" fill="currentColor"/></svg>Autres actions</span><span class="one">Toutes les opérations pour les disques choisis, et les colonnes de la liste</span></span></summary>
       <div class="full">
         <p>Le menu de toutes les opérations pour les disques choisis - vérifier, compacter, agrandir, formater, changer le mot de passe, partager, détruire et d'autres - et le choix des colonnes de la liste. Une opération qui ne convient pas maintenant est indisponible, et les détails disent pourquoi.</p>
         <dl class="facts">
@@ -136,7 +137,7 @@
       </div>
     </details>
     <details class="el" id="e-refresh">
-      <summary><span class="mk">8</span><span><span class="name">Actualiser</span><span class="one">Relire l'état des disques</span></span></summary>
+      <summary><span class="mk">8</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" fill="currentColor"/></svg>Actualiser</span><span class="one">Relire l'état des disques</span></span></summary>
       <div class="full">
         <p>Relit l'état de tous les disques. La liste se rafraîchit aussi toute seule ; utilisez ce bouton après un changement fait hors de FileDO.</p>
         <dl class="facts">
@@ -145,7 +146,7 @@
       </div>
     </details>
     <details class="el" id="e-settings">
-      <summary><span class="mk">9</span><span><span class="name">Réglages</span><span class="one">Ouvre les réglages.</span></span></summary>
+      <summary><span class="mk">9</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z" fill="currentColor"/></svg>Réglages</span><span class="one">Ouvre les réglages.</span></span></summary>
       <div class="full">
         <p>Ouvre les Réglages : le thème, la langue et ce que FileDO fait au démarrage de Windows. Ce sont les mêmes réglages que dans la fenêtre principale.</p>
         <dl class="facts">
@@ -163,7 +164,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">11</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <summary><span class="mk">11</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11,18h2v-2h-2v2zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8zM12,6c-2.21,0 -4,1.79 -4,4h2c0,-1.1 0.9,-2 2,-2s2,0.9 2,2c0,2 -3,1.75 -3,5h2c0,-2.25 3,-2.5 3,-5 0,-2.21 -1.79,-4 -4,-4z" fill="currentColor"/></svg>Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
       <div class="full">
         <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
         <dl class="facts">
@@ -262,7 +263,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Capturé avec FileDO 2611171800, 2026-11-17.</span>
+    <span>Capturé avec FileDO 2611270100, 2026-11-27.</span>
     <a href="index.html">Index de l'aide</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
   </footer>

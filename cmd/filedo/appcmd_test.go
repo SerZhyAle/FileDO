@@ -163,7 +163,7 @@ func TestAppCommands_C1_EmbeddedManifestEqualsDocsFile(t *testing.T) {
 			t.Errorf("%s: developer verb must declare forward: never", c.Name)
 		}
 	}
-	for _, never := range []string{"commands", "version", "open", "selftest run", "help-pages build", "screens capture", "menu-icons write", "ui-drive run"} {
+	for _, never := range []string{"commands", "version", "open", "selftest run", "help-pages build", "screens capture", "menu-icons write", "ui-drive run", "ui-showcase capture"} {
 		e, _ := appCommandOf(strings.Fields(never))
 		for i := range m.Commands {
 			if m.Commands[i].Name == never {
@@ -617,6 +617,7 @@ func TestAppCommands_C13_ReleaseToolingSpellingsAreListed(t *testing.T) {
 		{"screens capture", "--capture-screens", "writes-user-data", true},
 		{"menu-icons write", "--write-menu-icons", "writes-user-data", true},
 		{"ui-drive run", "--ui-drive", "writes-user-data", true},
+		{"ui-showcase capture", "--capture-ui-showcase", "writes-user-data", true},
 	}
 	for _, p := range pairs {
 		var e *appCmdEntry
@@ -668,6 +669,7 @@ func TestAppCommands_ReleaseToolingIsNotFilediosVerbs(t *testing.T) {
 		{"screens", "capture", "--out", "x"},
 		{"menu-icons", "write", "--out", "x"},
 		{"ui-drive", "run", "--out", "x"},
+		{"ui-showcase", "capture", "--out", "x"},
 		{"selftest"},
 		{"screens"},
 	} {
@@ -675,7 +677,7 @@ func TestAppCommands_ReleaseToolingIsNotFilediosVerbs(t *testing.T) {
 			t.Errorf("%v was taken by filedo.exe as %q", line, e.Name)
 		}
 	}
-	for _, word := range []string{"selftest", "help-pages", "screens", "menu-icons", "ui-drive"} {
+	for _, word := range []string{"selftest", "help-pages", "screens", "menu-icons", "ui-drive", "ui-showcase"} {
 		if isAppCommandWord(word) {
 			t.Errorf("%s is a reserved first word of filedo.exe", word)
 		}

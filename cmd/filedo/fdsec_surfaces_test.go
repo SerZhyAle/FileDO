@@ -634,7 +634,7 @@ func TestSurfaces_TheRuntimePagesDefaultToEnglishAndMapUkToUa(t *testing.T) {
 // pointer docs/contracts/PAGE-STYLE.md. The in-app help set carries a second copy
 // (HelpPages.CopyKit), which packaging/check-help.ps1 compares with the first.
 func TestSurfaces_TheVendoredKitIsHeldByteForByte(t *testing.T) {
-	const catalogKitSHA256 = "e438fef279fea8165ba6db46289c3ab35ac2fbcfaa5b2ea50bb009716eddfac9" // reference/sza-kit.css, 2026-10-17
+	const catalogKitSHA256 = "8d49a8f0a36369da62faf56a4dd9f026097f5aeba43b6d8f4f8c0edc56417e42" // reference/sza-kit.css, PAGE-STYLE 3.13 revision, 2026-11-17
 	root := repoRoot(t)
 	for _, rel := range []string{filepath.Join("docs", "kit", "sza-kit.css"), filepath.Join("docs", "help", "sza-kit.css")} {
 		raw, err := os.ReadFile(filepath.Join(root, rel))
@@ -939,23 +939,36 @@ func TestSurfaces_ThePagesUseTheFullWidth(t *testing.T) {
 	}
 }
 
-// SITE-EXPERIENCE rule 17 (SP-0156): the chrome controls are 44 px under any
-// pointer and the light theme carries the tokens that reach 4.5 : 1. The layer
-// lives in guides/guide.css and the trailing block of each standalone page's
-// inline style (the kit stays byte-identical); the measured numbers are in the
-// ticket, this only keeps the layer from being dropped.
-func TestSurfaces_TheChromeKeeps44pxTargetsAndLightContrast(t *testing.T) {
+// SITE-EXPERIENCE rule 17 as amended 2026-10-29 (item A) and the SP-0169 S6 kit
+// re-vendor: controls covered by UI-SIZING (BUTTONS 2.0 buttons, the segment,
+// the theme and copy controls) are sized by the vendored kit's 32/48 profile
+// targets, so the page layer no longer pins them; the covered pin list and the
+// old e438fef2 mute-ink compensation are pinned absent so they do not come back
+// beside a re-vendored kit. Controls outside that scope and inline links keep
+// their 44 px floor under any pointer, and the light theme keeps its measured
+// 4.5 : 1 tokens. The layer lives in guides/guide.css and the trailing block of
+// each standalone page's inline style (the kit stays byte-identical).
+func TestSurfaces_ThePageLayerKeepsUncoveredTargetFloorsAndLightContrast(t *testing.T) {
 	root := repoRoot(t)
 	want := []string{
-		".seg button{min-width:44px;min-height:44px}",
-		// The labelled theme control (PAGE-STYLE 4.3) is a pill that grows with its word, so its floor is a
-		// minimum, not a fixed square.
-		".theme-btn{flex:none;min-width:44px;min-height:44px}",
-		".btn,.copy,.tools-grid a{min-height:44px}",
+		".tools-grid a{min-height:44px}",
 		".footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}",
 		`html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}`,
-		// Kit e438fef2 draws .seg button in the code ink (1.2 : 1 on the light theme); the layer keeps the muted ink.
-		`html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}`,
+	}
+	notWant := []string{
+		// The SP-0156 pins on kit-covered controls went with the re-vendor: the kit's
+		// min-height is the profile target (32 pointer, 48 touch), and a 44 px pin would
+		// override the touch profile down to 44.
+		".seg button{min-width:44px",
+		".theme-btn{flex:none;min-width:44px",
+		".btn,.copy,.tools-grid",
+		".copy{min-width:44px}",
+		// The flex-model copybox of kit 3.13 centers the copy button in flow; the old
+		// absolute-positioned centering transform would shift it.
+		".copybox .copy{top:50%",
+		// Kit 3.13 draws .seg with the --text ink (PAGE-STYLE 3.5 item 5); the mute-ink
+		// overrides compensated only the pre-3.3 kit.
+		`.seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}`,
 	}
 	for _, rel := range []string{
 		filepath.Join("guides", "guide.css"),
@@ -970,14 +983,23 @@ func TestSurfaces_TheChromeKeeps44pxTargetsAndLightContrast(t *testing.T) {
 				t.Errorf("docs/%s lacks the target-size or contrast rule %s", rel, w)
 			}
 		}
+		for _, w := range notWant {
+			if strings.Contains(body, w) {
+				t.Errorf("docs/%s still pins a kit-covered or superseded rule %s beside the re-vendored kit", rel, w)
+			}
+		}
 	}
 }
 
 // The front page (owner brief 2026-10-06, SP-0161) names the product in full
 // and shows its mark once in the header, offers every language in the header
-// group, links the guides and the documentation, keeps the other SZA tools
-// visible in the footer and names and links the author. The footer tools grid
+// group, links the guides and the documentation (the command reference page
+// rendered from the READMEs, SP-0166 F12), keeps the other SZA tools visible
+// in the footer and names and links the author. The footer tools grid
 // had been hidden by a compacting rule, so the test reads the style block too.
+// The mark's alt is empty because the name stands beside it as text
+// (PRODUCT-IDENTITY rule 11); a mark that names the product again beside
+// the name is read twice.
 func TestSurfaces_TheFrontPageCarriesItsIdentity(t *testing.T) {
 	root := repoRoot(t)
 	for _, rel := range []string{"index.html", filepath.Join("de", "index.html"), filepath.Join("fr", "index.html"), filepath.Join("ru", "index.html"), filepath.Join("uk", "index.html")} {
@@ -985,11 +1007,11 @@ func TestSurfaces_TheFrontPageCarriesItsIdentity(t *testing.T) {
 		header := body[strings.Index(body, `<header class="site-header">`):]
 		header = header[:strings.Index(header, `</header>`)]
 		for _, want := range []string{
-			`assets/filedo.svg" width="46" height="46" alt="FileDO"`,
+			`assets/filedo.svg" width="46" height="46" alt=""`,
 			`<small>Advanced File &amp; Storage Operations Tool</small>`,
 			`<nav class="header-nav" aria-labelledby="mainNavTitle">`,
 			`guides/">`,
-			`https://github.com/SerZhyAle/FileDO#readme`,
+			`guides/cli-reference.html">`,
 			`<nav class="lang-row"`,
 		} {
 			if !strings.Contains(header, want) {

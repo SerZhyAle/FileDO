@@ -66,7 +66,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../../kit/sza-kit.css" />
@@ -191,6 +191,23 @@
         </p>
         <p>
           <span data-l="fr">Pour une vérification automatisée, utilisez <code>filedo compare D:\Data E:\Backup --strict</code> : des chemins relatifs, tailles et heures de modification identiques renvoient le code 0 (<code>Passed</code>), une différence renvoie le code 1 (<code>Failed</code>), et une comparaison incomplète renvoie le code 2 (<code>Not proven</code>). Avec <code>--by-hash</code>, les paires de même taille sont comparées par leur contenu plutôt que par l’heure. Un <code>compare</code> simple reste un rapport avec le code 0 (<code>Done</code>) ; <code>--strict</code> ne peut pas se combiner avec la suppression.</span>
+        </p>
+      </section>
+      <section class="section" id="rehash">
+        <h2>
+          <span data-l="fr">Un nouveau hachage pour les fichiers</span>
+        </h2>
+        <p class="intro">
+          <span data-l="fr">Utilisez <code>filedo rehash</code> lorsqu’un fichier, un dossier ou un volume de données monté doit obtenir un nouveau hachage SHA-256 tout en conservant son format et son contenu décodé. L’original est remplacé par le fichier modifié, aucun autre fichier n’est conservé et l’opération peut être relancée autant de fois que voulu.</span>
+        </p>
+        <div class="copybox">
+          filedo rehash D:\Photos<button
+            class="copy"
+            data-copy="filedo rehash D:\Photos"
+          ><span data-l="fr">Copier</span></button>
+        </div>
+        <p>
+          <span data-l="fr">Le nouveau contenu est écrit dans un fichier <code>.filedo-partial</code>, vérifié par un lecteur strict et ne prend la place de l’original qu’ensuite, en conservant ses dates, attributs, droits et flux nommés. Formats vérifiés et écart exact de taille : PNG (<code>+42</code> o), JPEG (<code>+34</code> o), GIF89a (<code>+34</code> o), HEIC/HEIF/AVIF (<code>+38</code> o), WebP (<code>+38..57</code> o), BMP (<code>+30</code> o), TIFF/DNG/RAW (<code>+30</code> o), PDF (<code>+100..1024</code> o), ZIP/DOCX/XLSX/PPTX/ODT/ODS/ODP/EPUB (<code>+30..31</code> o), RTF (<code>+48</code> o), TXT/LOG (<code>+1..4</code> o), Markdown/HTML (<code>+40..86</code> o), CSS/JS (<code>+37..80</code> o), INI (<code>+33..72</code> o), WAV (<code>+38</code> o), FLAC (<code>+20</code> o), MP3 (<code>+42..52</code> o), AIFF (<code>+42..43</code> o), MP4/M4A/M4V/MOV/3GP/CR3 (<code>+38</code> o), MKV/WebM (<code>+32</code> o), AVI (<code>+38..39</code> o), MPEG-TS/M2TS (<code>+188..192</code> o), MPG/VOB (<code>+36..2048</code> o), JSON (<code>+1</code> o) et XML/SVG (<code>+37</code> o). Un JPEG de smartphone garde sa carte de gain, sa vidéo Motion Photo et les données du fabricant après l'image. Les fichiers inconnus, corrompus, en lecture seule, signés numériquement ou les liens sont ignorés avec un motif ; Windows, Program Files et le disque système sont refusés.</span>
         </p>
       </section>
     </main>

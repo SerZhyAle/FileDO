@@ -65,7 +65,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../../kit/sza-kit.css" />
@@ -104,8 +104,19 @@
           <span data-l="fr">Ce qui a changé à chaque version.</span>
         </h1>
         <p class="lead">
-          <span data-l="fr">Chaque version de FileDO, la plus récente en premier, avec sa date. Les fichiers de chaque version et leurs sommes de contrôle sont sur GitHub.</span>
+          <span data-l="fr">Chaque version de FileDO, la plus récente en premier, avec sa date. Les fichiers de chaque version et leurs sommes de contrôle sont sur GitHub ; les trois entrées de 2025 sont antérieures aux publications sur GitHub.</span>
         </p>
+      </section>
+      <section class="section" id="v2611270100">
+        <h2><span>v2611270100</span><time datetime="2026-11-27">2026-11-27</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Nouveau hachage</span></strong>: <span data-l="fr"><code>filedo rehash &lt;path&gt;</code> réécrit chaque fichier pris en charge sur place : il reçoit un nouveau SHA-256 et une infime variation de taille conforme au format, son contenu et ses métadonnées restent les mêmes et il s'ouvre toujours dans son programme habituel - PNG, JPEG (photos de smartphone avec carte de gain ou photo animée comprises), HEIC et AVIF, WebP, GIF89a, BMP, TIFF et RAW, PDF, ZIP, Office, OpenDocument et EPUB, RTF, fichiers texte et web, JSON, XML et SVG, WAV, FLAC, MP3, AIFF, MP4, MOV et 3GP, MKV et WebM, AVI, MPEG-TS et MPG ; l'original n'est remplacé qu'après vérification du nouveau fichier par un lecteur strict, les fichiers non pris en charge, endommagés, en lecture seule ou signés sont ignorés avec un motif, Windows et Program Files sont refusés, et les mêmes fichiers peuvent être retraités autant de fois que voulu</span></li>
+          <li><strong><span data-l="fr">Sauvegarde</span></strong>: <span data-l="fr"><code>keep-days &lt;1-999&gt;</code> garde des sauvegardes datées et supprime celles qui ont plus que ce nombre de jours, d'après la seule date du nom de fichier ; <code>keep-monthly</code> garde en plus pour toujours la première sauvegarde de chaque mois ; les anciens fichiers ne sont supprimés qu'après relecture du nouveau, et <strong>Sauvegarder un dossier</strong> propose les deux</span></li>
+          <li><strong><span data-l="fr">Guides</span></strong>: <span data-l="fr">les pages de la fenêtre principale et le Gestionnaire de disques renvoient au guide du site sur ce que vous faites, dans votre langue lorsque le site la propose, en anglais sinon</span></li>
+          <li><strong><span data-l="fr">Fenêtre</span></strong>: <span data-l="fr">une page de tâche conserve la cible et les options saisies quand vous consultez une autre page puis revenez, les champs de mot de passe et de confirmation restant effacés ; un lecteur réseau lent ou déconnecté ne fige plus la fenêtre pendant la liste des lecteurs ; les longs libellés des préréglages du test de vitesse ne sont plus coupés après un changement de page sur les écrans à haute résolution ; le Gestionnaire de disques s'ouvre sur l'écran de la fenêtre qui l'a demandé</span></li>
+          <li><strong><span data-l="fr">Apparence et noms</span></strong>: <span data-l="fr">l'icône du programme, les visuels du Store, le site et les images de partage dessinent désormais le même signe du produit ; la ligne <strong>Gestionnaire de disques</strong> du rail de gauche affiche une icône de disque à la couleur de son groupe, avec une marque indiquant qu'elle ouvre sa propre fenêtre ; la boîte de dialogue de ce qui démarre tout seul s'appelle désormais <strong>Démarrer avec Windows</strong> ; le bouton qui ouvre le rail dans une fenêtre étroite affiche <strong>Menu</strong></span></li>
+          <li><strong><span data-l="fr">Installation et docs</span></strong>: <span data-l="fr">FileDO s'installe aussi avec Scoop (<code>scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket</code>, puis <code>scoop install serzhyale/filedo</code>) ; le site gagne une référence des commandes et une courte démonstration de la fenêtre, et le README de chaque langue contient les mêmes tableaux de commandes</span></li>
+        </ul>
       </section>
       <section class="section" id="v2611171800">
         <h2><span>v2611171800</span><time datetime="2026-11-17">2026-11-17</time></h2>
@@ -172,9 +183,18 @@
           <li><strong><span data-l="fr">Documentation</span></strong>: <span data-l="fr">nouveaux guides - disques virtuels et partage de disques via Fast Media Sorter; pages du site en allemand et en français, et une page des nouveautés</span></li>
         </ul>
       </section>
+      <section class="section" id="v2609260512">
+        <h2><span>v2609260512</span><time datetime="2026-09-26">2026-09-26</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Fichiers secrets (<code>.fd-sec</code>)</span></strong>&nbsp;: <span data-l="fr">un conteneur que Windows ne laisse pas FileDO lire est signalé comme illisible, et non comme endommagé</span></li>
+          <li><strong><span data-l="fr">Doublons</span></strong>&nbsp;: <span data-l="fr">les fichiers dont le hachage ne peut pas être calculé figurent dans le rapport au lieu d’être omis en silence ; si le fichier de liste ne peut pas être écrit, <code>del</code> et <code>move</code> s’arrêtent avant de toucher un fichier</span></li>
+          <li><strong><span data-l="fr">Test de capacité</span></strong>&nbsp;: <span data-l="fr">le rapport nomme les fichiers de test qu’il conserve</span></li>
+        </ul>
+      </section>
       <section class="section" id="v2609241700">
         <h2><span>v2609241700</span><time datetime="2026-09-24">2026-09-24</time></h2>
         <ul class="release-list">
+          <li><strong><span data-l="fr">Installateur</span></strong>&nbsp;: <span data-l="fr">le setup EXE - un bundle WiX contenant le MSI - est publié à côté du MSI nu et du zip</span></li>
           <li><strong><span data-l="fr">Fichiers secrets (<code>.fd-sec</code>)</span></strong>&nbsp;: <span data-l="fr">un fichier est placé dans un conteneur protégé par mot de passe puis restauré - <code>secure</code>, <code>unsecure</code>, <code>reveal</code> - en ligne de commande, depuis le menu de l’Explorateur ou les pages <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Protect de la fenêtre ; le vrai nom, la taille et les dates de l’original sont scellés à l’intérieur</span></li>
           <li><strong><span data-l="fr">Intégration à l’Explorateur</span></strong>&nbsp;: <span data-l="fr">le setup ajoute le groupe <code>File DO..</code> au menu contextuel (<svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>Wipe this file, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Check this file, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Info) et le type de document <code>.fd-sec</code> ; <code>filedo fdsec register</code> / <code>unregister</code> fait de même sans installateur</span></li>
           <li><strong><span data-l="fr">GUI</span></strong>&nbsp;: <span data-l="fr">une nouvelle fenêtre - la liste des tâches à gauche, une page par tâche avec toutes les options de la CLI, plus les pages <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.history"/></svg>History, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings et <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About ; l’ancienne fenêtre de construction de commandes est retirée</span></li>
@@ -206,15 +226,32 @@
       <section class="section" id="v2605152056">
         <h2><span>v2605152056</span><time datetime="2026-05-15">2026-05-15</time></h2>
         <ul class="release-list">
-          <li><strong><span data-l="fr">Installateur</span></strong>&nbsp;: <span data-l="fr">setup EXE (un bundle WiX contenant le MSI) et le MSI nu ; icône d’application intégrée dans tous les EXE et l’entrée des programmes installés</span></li>
-          <li><strong><span data-l="fr">Store</span></strong>&nbsp;: <span data-l="fr">spécification de publication sur le Microsoft Store et image d’aperçu</span></li>
+          <li><strong><span data-l="fr">Publication</span></strong>&nbsp;: <span data-l="fr">le build de v2605152052, publié à nouveau ; aucun changement</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2605152052">
+        <h2><span>v2605152052</span><time datetime="2026-05-15">2026-05-15</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Icône</span></strong>&nbsp;: <span data-l="fr">l’icône de l’application est intégrée dans tous les EXE et dans l’entrée du MSI parmi les programmes installés</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2605152042">
+        <h2><span>v2605152042</span><time datetime="2026-05-15">2026-05-15</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Installateur</span></strong>&nbsp;: <span data-l="fr">le premier MSI - FileDO s’installe comme un programme Windows, avec le zip à côté</span></li>
         </ul>
       </section>
       <section class="section" id="v2604272228">
         <h2><span>v2604272228</span><time datetime="2026-04-27">2026-04-27</time></h2>
         <ul class="release-list">
-          <li><strong><span data-l="fr">Distribution</span></strong>&nbsp;: <span data-l="fr">première publication sur winget (SerZhyAle.FileDO) et pipeline de release GitHub Actions</span></li>
+          <li><strong><span data-l="fr">Distribution</span></strong>&nbsp;: <span data-l="fr">première publication sur winget (SerZhyAle.FileDO)</span></li>
           <li><strong><span data-l="fr">Binaires</span></strong>&nbsp;: <span data-l="fr">informations de version PE et manifeste d’application Windows intégrés dans tous les binaires</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2604271301">
+        <h2><span>v2604271301</span><time datetime="2026-04-27">2026-04-27</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="fr">Distribution</span></strong>&nbsp;: <span data-l="fr">la première publication sur GitHub - un zip construit par le pipeline de release GitHub Actions</span></li>
           <li><strong><span data-l="fr">Documentation</span></strong>&nbsp;: <span data-l="fr">pages GitHub Pages repensées et simplifiées</span></li>
         </ul>
       </section>

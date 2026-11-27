@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+<!-- FileDO mark, medium form, 33 to 63 px. Written by assets/make-product-icons.ps1 from the drawing in that script (PRODUCT-IDENTITY rule 33): change the script, never this file. -->
+<defs>
+<linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="2.625" y1="2.625" x2="45.375" y2="45.375"><stop offset="0" stop-color="#0F1A12"/><stop offset="1" stop-color="#080E0A"/></linearGradient>
+<linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="11.925" y1="11.925" x2="20.55" y2="36.075"><stop offset="0" stop-color="#A7F3D0"/><stop offset="1" stop-color="#5ED684"/></linearGradient>
+<linearGradient id="g3" gradientUnits="userSpaceOnUse" x1="11.925" y1="11.925" x2="20.55" y2="36.075"><stop offset="0" stop-color="#A7F3D0"/><stop offset="1" stop-color="#5ED684"/></linearGradient>
+<linearGradient id="g4" gradientUnits="userSpaceOnUse" x1="22.275" y1="13.65" x2="35.2125" y2="34.35"><stop offset="0" stop-color="#5ED684"/><stop offset="1" stop-color="#38BDF8"/></linearGradient>
+<linearGradient id="g5" gradientUnits="userSpaceOnUse" x1="27.105" y1="21.93" x2="29.865" y2="26.07"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#A7F3D0"/></linearGradient>
+</defs>
+<path d="M2.625 11.625 A9 9 0 0 1 11.625 2.625 L36.375 2.625 A9 9 0 0 1 45.375 11.625 L45.375 36.375 A9 9 0 0 1 36.375 45.375 L11.625 45.375 A9 9 0 0 1 2.625 36.375 Z" fill="url(#g1)" fill-rule="evenodd"/>
+<path d="M2.625 11.625 A9 9 0 0 1 11.625 2.625 L36.375 2.625 A9 9 0 0 1 45.375 11.625 L45.375 36.375 A9 9 0 0 1 36.375 45.375 L11.625 45.375 A9 9 0 0 1 2.625 36.375 Z" fill="none" stroke="#5ED684" stroke-opacity="0.7059" stroke-width="1"/>
+<path d="M13.305 14.685 A1.035 1.035 0 0 1 14.34 13.65 L15.375 13.65 L17.445 13.65 L17.445 34.35 L14.34 34.35 A1.035 1.035 0 0 1 13.305 33.315 Z" fill="url(#g2)" fill-rule="evenodd"/>
+<path d="M13.305 14.685 A1.035 1.035 0 0 1 14.34 13.65 L25.2075 13.65 A1.035 1.035 0 0 1 26.2425 14.685 L26.2425 17.445 L24.1725 17.445 L13.305 17.445 Z" fill="url(#g3)" fill-rule="evenodd"/>
+<path d="M16.755 22.62 L23.31 22.62 L24.69 24.1725 L23.31 25.725 L16.755 25.725 Z" fill="#00E676" fill-rule="evenodd"/>
+<path d="M28.485 13.65 A6.21 6.21 0 0 1 34.695 19.86 L34.695 21.93 L34.695 34.35 L34.695 28.14 A6.21 6.21 0 0 1 28.485 34.35 L22.275 34.35 L22.275 30.555 L28.485 30.555 A2.415 2.415 0 0 0 30.9 28.14 L30.9 16.065 A2.415 2.415 0 0 0 28.485 13.65 L22.275 17.445 L22.275 13.65 Z" fill="url(#g4)" fill-rule="evenodd"/>
+<path d="M27.45 21.93 L29.106 24 L27.45 26.07 L25.794 24 Z" fill="url(#g5)" fill-rule="evenodd"/>
+</svg>

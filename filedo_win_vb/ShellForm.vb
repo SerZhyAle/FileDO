@@ -38,9 +38,9 @@ Public Class ShellForm
     ' area is narrower than that at its scaling does (WindowPlacement.MinimumFor).
     Friend Const NarrowContentWidth As Integer = 480
 
-    ' The Pages button's picture: nav.menu, a proposed ICON-SET meaning ("open the list of this
-    ' window's pages") not vendored yet, so a Segoe stand-in under that id (ICON-EXTERNAL rule 5).
-    Friend Shared ReadOnly PagesGlyph As GlyphRef = GlyphRef.Waiting("nav.menu", &HE700, "GlobalNavigationButton")
+    ' The Pages button's picture: the vocabulary's nav.menu ("open the list of this window's pages or
+    ' destinations when it does not fit beside the content"); its caption is that meaning's name.
+    Friend Shared ReadOnly PagesGlyph As GlyphRef = GlyphRef.Vocabulary("nav.menu")
 
     Private pagesBtn As GlyphButton
     Private narrowLayout As Boolean = False
@@ -68,6 +68,9 @@ Public Class ShellForm
     Private helpBtn As GlyphButton
     Private subtitleLabel As Label
     Private statusLabel As Label
+    ' The guide of the function on screen (SITE-STRUCTURE 0.5 section 10, FILEDO-0247); hidden on a
+    ' page that has none (Links.GuideByRail).
+    Private guideLink As LinkLabel
     Private emptyTitle As Label
     Private emptyHint As Label
     Private emptyCentre As TableLayoutPanel
@@ -237,7 +240,7 @@ Public Class ShellForm
             End Sub
         AddHandler view.CleanRequested, AddressOf OpenCleanOn
         AddHandler view.DiskJobRequested, AddressOf OpenDiskJobOn
-        AddHandler view.DiskManagerRequested, Sub() AppHost.OpenDiskManager()
+        AddHandler view.DiskManagerRequested, Sub() AppHost.OpenDiskManager(Me)
         AddHandler view.RunFinished, AddressOf AnyRunFinished
         pageHost.Controls.Add(view)
         view.ApplyTheme()
@@ -367,11 +370,12 @@ Public Class ShellForm
         Dim stack As New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .ColumnCount = 1,
-            .RowCount = 3,
+            .RowCount = 4,
             .AutoSize = True,
             .AutoSizeMode = AutoSizeMode.GrowAndShrink,
             .Margin = New Padding(0)
         }
+        stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         stack.RowStyles.Add(New RowStyle(SizeType.AutoSize))
@@ -399,6 +403,17 @@ Public Class ShellForm
         stack.Controls.Add(titleLabel, 0, 0)
         stack.Controls.Add(subtitleLabel, 0, 1)
         stack.Controls.Add(statusLabel, 0, 2)
+
+        ' The guide page or guide section of the function this page sets up and starts, opened in the
+        ' UI language through the site resolver, read at the click so a language change needs nothing.
+        guideLink = New LinkLabel With {
+            .Text = L("shell_guide_link"),
+            .AutoSize = True,
+            .Visible = False,
+            .Margin = New Padding(0, 4, 0, 0)
+        }
+        AddHandler guideLink.LinkClicked, Sub() OpenGuide()
+        stack.Controls.Add(guideLink, 0, 3)
 
         ' The first row of the content ends in the help button (CONTEXT-HELP rule 2): the window keeps
         ' the system caption, so the corner is the trailing end of this row, and nothing that was in
@@ -444,7 +459,7 @@ Public Class ShellForm
             Return True
         End If
         If keyData = (Keys.Control Or Keys.Shift Or Keys.D) Then
-            AppHost.OpenDiskManager()
+            AppHost.OpenDiskManager(Me)
             Return True
         End If
         ' F6 and Shift+F6 go between the rail, the header's Help button and the page on screen
@@ -456,11 +471,12 @@ Public Class ShellForm
     End Function
 
     ' The areas F6 cycles through, in reading order: the rail (landing on the row of the page on screen
-    ' when it is shown), the header with its Help button, and the page. A hidden or empty one is skipped.
+    ' when it is shown), the header (landing on its Help button; the guide link is one Tab away), and the
+    ' page. A hidden or empty one is skipped.
     Private Function Panes() As List(Of Pane)
         Return New List(Of Pane) From {
             New Pane(railHost, Function() entries.FirstOrDefault(Function(e) e.Selected AndAlso e.Visible)),
-            New Pane(header),
+            New Pane(header, Function() helpBtn),
             New Pane(pageHost)}
     End Function
 
@@ -590,8 +606,9 @@ Public Class ShellForm
             .Margin = New Padding(0)
         }
         If key = RailRow.DiskManagerKey Then
-            e.ProductIcon = DiskManagerIcon.DiskManagerIcon()
             e.AccessibleDescription = L("purpose_job_vd_manager")
+            ' An action row says so to assistive technology too: its default action opens a window.
+            e.DefaultActionText = L("shell_acc_open_window")
         End If
         e.AccessibleName = L(key)
         e.AccessibleRole = AccessibleRole.PushButton
@@ -938,10 +955,35 @@ Public Class ShellForm
         Return "rail_job_command"
     End Function
 
+    ' The header's guide link follows the page on screen: shown, with the address as its tip, while a
+    ' published guide covers what the page does, hidden otherwise.
+    Private Sub ShowGuideFor(railKey As String)
+        Dim address As String = Nothing
+        Links.GuideByRail.TryGetValue(railKey, address)
+        guideLink.Visible = (address IsNot Nothing)
+        tips.SetToolTip(guideLink, If(address Is Nothing, "", Links.GuideAddress(address)))
+    End Sub
+
+    Friend Sub OpenGuide()
+        Dim address As String = Nothing
+        If Links.GuideByRail.TryGetValue(CurrentRailKey(), address) Then Links.Open(Me, Links.GuideAddress(address))
+    End Sub
+
+    Friend ReadOnly Property GuideLinkForTest As LinkLabel
+        Get
+            Return guideLink
+        End Get
+    End Property
+
     ' What F1 and the help button both ask: the help of the page on screen, or of the part of it that
     ' has the focus (rule 3). One resolver answers, so no page carries help code of its own.
     Friend Sub OpenHelp()
         Help.Open(Me, Help.ShellSurfaceId(CurrentRailKey()), Help.ElementOf(Help.FocusedControl(Me)))
+    End Sub
+
+    ' The page timings (PageTiming.vb) choose a page through the rail row's own click path.
+    Friend Sub SelectPageForTest(key As String)
+        SelectJobByKey(key)
     End Sub
 
     Private Sub SelectJobByKey(key As String)
@@ -960,7 +1002,7 @@ Public Class ShellForm
         ' The Disk Manager is a window of its own (SP-0063 D1): its row opens it, or brings it
         ' forward, and leaves the page on screen here as it was.
         If chosen.Key = RailRow.DiskManagerKey Then
-            AppHost.OpenDiskManager()
+            AppHost.OpenDiskManager(Me)
             Return
         End If
 
@@ -998,7 +1040,10 @@ Public Class ShellForm
         Dim numbered = (JobCatalogue.GetJob(chosen.Key) IsNot Nothing)
         titleLabel.Text = If(numbered, Localization.Format(L("shell_step1_fmt"), chosen.Text), chosen.Text)
         subtitleLabel.Text = L(PurposeKeyFor(chosen.Key))
+        ShowGuideFor(chosen.Key)
 
+        ' What was typed on the job page in front is kept for its next visit (FILEDO-0249).
+        If jobViewValue IsNot Nothing AndAlso jobViewValue.Visible Then jobViewValue.KeepInput()
         If jobViewValue IsNot Nothing Then jobViewValue.Visible = False
         historyView.Visible = False
         commandView.Visible = False
@@ -1046,7 +1091,7 @@ Public Class ShellForm
                 ' in front, is shown as it stands - choosing its row again must not throw either
                 ' one away.
                 If Not (chosen.Key = jobView.CurrentJobId AndAlso jobView.HoldsRunOrUnseenResult) Then
-                    jobView.SetJob(jobDef)
+                    jobView.ResumeJob(jobDef)
                 End If
                 jobView.Visible = True
                 jobView.MarkResultSeen()
@@ -1058,6 +1103,15 @@ Public Class ShellForm
         Finally
             Ui.ResumeTree(front)
         End Try
+
+        ' The suspended batch above leaves a control whose caption changed at the width of its
+        ' previous caption, and a row that grew with its font never pushes the rows after it down
+        ' (Ui.Settle says why). The page that just came to the front is settled once, unsuspended:
+        ' a preset caption that grew with the job is not clipped, and the rule hint is not drawn
+        ' under its picker (FILEDO-0237).
+        If Visible Then Ui.Settle(front)
+        ' jobViewValue, not jobView: the property builds the job page, and asking about it must not.
+        If jobViewValue IsNot Nothing AndAlso front Is jobViewValue Then jobViewValue.ApplyKeptScroll()
     End Sub
 
     ' The Command page's operation picker asked for the full description of an operation (SP-0204): the
@@ -1076,6 +1130,7 @@ Public Class ShellForm
     ' GUI-12: "Clean files" after a test opens Clean on the drive that was tested, with Clean's rail
     ' row selected - not on whichever drive happens to be listed first.
     Private Sub OpenCleanOn(target As String)
+        jobView.ForgetInput("rail_job_clean")
         SelectJobByKey("rail_job_clean")
         If jobView.CurrentJobId = "rail_job_clean" AndAlso Not String.IsNullOrEmpty(target) Then
             jobView.SetTarget(target)
@@ -1102,6 +1157,7 @@ Public Class ShellForm
     ' The Disks list's next steps (SP-0004 P6): Unmount or Turn off auto-mount open their own page
     ' on the row's container, with the rail row selected, and wait for Run there.
     Private Sub OpenDiskJobOn(key As String, target As String, preset As String)
+        jobView.ForgetInput(key)
         SelectJobByKey(key)
         If jobView.CurrentJobId <> key Then Return
         If Not String.IsNullOrEmpty(target) Then jobView.SetTarget(target)
@@ -1174,40 +1230,10 @@ Public Class ShellForm
         settingsView.Panel.Reveal("theme")
     End Sub
 
-    ' Brings this window to `target`, centred on its working area - unless most of it is on that screen
-    ' already, where it stays exactly as the user left it. A maximized window leaves maximized, on the
-    ' new screen. Moving across screens of another scaling makes WinForms re-scale the window, so the
-    ' rectangle is put right once that has happened. True when the window moved.
+    ' Brings this window to `target` (WindowPlacement.BringTo). True when the window moved.
     Friend Function MoveToScreen(target As WindowPlacement.ScreenArea) As Boolean
-        If target Is Nothing OrElse WindowState = FormWindowState.Minimized Then Return False
-        Try
-            Dim own = WindowPlacement.ScreenToFollow(Bounds, Nothing, WindowPlacement.LiveScreens())
-            If own Is Nothing OrElse own.Area = target.Area Then Return False
-            Dim wasMaximized = (WindowState = FormWindowState.Maximized)
-            Dim current = If(wasMaximized, RestoreBounds.Size, Size)
-            If wasMaximized Then WindowState = FormWindowState.Normal
-            Location = WindowPlacement.CentreOn(current, target.Area).Location
-            If IsHandleCreated Then
-                BeginInvoke(New MethodInvoker(Sub() SettleOnScreen(target, wasMaximized)))
-            Else
-                SettleOnScreen(target, wasMaximized)
-            End If
-            Return True
-        Catch ex As Exception
-            ShellLog.Write("bring the window to the user's monitor", ex)
-            Return False
-        End Try
+        Return WindowPlacement.BringTo(Me, target)
     End Function
-
-    Private Sub SettleOnScreen(target As WindowPlacement.ScreenArea, wasMaximized As Boolean)
-        If IsDisposed Then Return
-        Try
-            Bounds = WindowPlacement.CentreOn(Size, target.Area)
-            If wasMaximized Then WindowState = FormWindowState.Maximized
-        Catch ex As Exception
-            ShellLog.Write("settle the window on the user's monitor", ex)
-        End Try
-    End Sub
 
     ' The name of what is running, for the close question.
     Private Function RunningName() As String
@@ -1268,6 +1294,11 @@ Public Class ShellForm
         Finally
             Ui.ResumeTree(Me)
         End Try
+        ' A theme or DPI change re-states every font under the suspension: the sizes that moved are
+        ' settled once here, or a taller picker leaves the row after it drawn underneath
+        ' (Ui.Settle says why; FILEDO-0237). Not before the window is shown: Theme.Watch applies the
+        ' theme again on Shown, and a pass over a window not yet on screen cannot tell what is hidden.
+        If Visible Then Ui.Settle(Me)
     End Sub
 
     Private Sub ApplyThemeCore()
@@ -1291,6 +1322,10 @@ Public Class ShellForm
         subtitleLabel.ForeColor = p.MutedText
         statusLabel.Font = Theme.FontBodyStrong()
         statusLabel.ForeColor = p.Warning
+        guideLink.Font = Theme.FontBody()
+        guideLink.LinkColor = p.Link
+        guideLink.ActiveLinkColor = p.Text
+        guideLink.VisitedLinkColor = p.Link
 
         emptyTitle.Font = Theme.FontSubtitle()
         emptyTitle.ForeColor = p.Text

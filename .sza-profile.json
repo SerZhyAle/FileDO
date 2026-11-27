@@ -6,14 +6,17 @@
   "paths": {
     "specsDir": "PLAN",
     "specArchiveDir": "PLAN/done",
-    "releaseQueue": "PLAN/PQ_QUEUE.md",
+    "releaseQueue": "PLAN/release-queue.md",
     "releaseReady": "PLAN/PQ_READY.md",
     "releaseQueueDone": "PLAN/PQ_DONE.md"
   },
   "grammar": {
-    "ticketIdPattern": "^SP-\\d{4}$",
-    "specFilePattern": "^PLAN/(done/)?SP-\\d{4}_(?!spec_)",
-    "specFileTemplate": "PLAN/{0}_{1}.md"
+    "ticketIdPattern": "^FILEDO-\\d{4}$",
+    "specFilePattern": "^PLAN/(done/)?(?:FILEDO-\\d{4}|SP-\\d{4})_(?!spec_)",
+    "specFileTemplate": "PLAN/{0}_{1}.md",
+    "legacyTicketIdPatterns": [
+      "^SP-\\d{4}$"
+    ]
   },
   "probes": {
     "enabled": false

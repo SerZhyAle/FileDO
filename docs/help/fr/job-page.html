@@ -6,6 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <title>Aide - La page d'une tâche</title>
+<link rel="icon" type="image/png" href="../favicon.png">
 <script>
 (function () {
   try {
@@ -26,7 +27,7 @@
   </nav>
   <header class="hero">
     <p class="kicker">Aide de la fenêtre</p>
-    <h1>La page d'une tâche</h1>
+    <div class="title-row"><img class="product-mark" src="../filedo-mark.svg" width="48" height="48" alt="FileDO"><h1>La page d'une tâche</h1></div>
     <p class="lead">Chaque tâche de la liste à gauche - vérifier un support, copier des fichiers, vider un dossier, protéger un fichier, gérer des disques virtuels - ouvre la même page. Vous choisissez ce sur quoi travailler, réglez les paramètres, lisez ce qui va se passer, puis appuyez sur Exécuter.</p>
   </header>
 
@@ -35,13 +36,13 @@
       <img class="on-dark" src="../img/job-page.fr.dark.png" width="2041" height="1266" alt="La page d'une tâche : la fenêtre avec ses parties numérotées">
       <img class="on-light" src="../img/job-page.fr.light.png" width="2041" height="1266" alt="">
       <a class="pin" style="--x:0.3%;--y:1.1%" href="#e-rail" aria-label="1, La liste des tâches">1</a>
-      <a class="pin" style="--x:22.1%;--y:10.1%" href="#e-target" aria-label="2, 2 - Sur quoi">2</a>
-      <a class="pin" style="--x:22.1%;--y:31.9%" href="#e-options" aria-label="3, 3 - Paramètres">3</a>
-      <a class="pin" style="--x:22.1%;--y:54.0%" href="#e-plan" aria-label="4, 4 - Vérifier et lancer">4</a>
-      <a class="pin" style="--x:23.7%;--y:74.1%" href="#e-command" aria-label="5, Ligne de commande">5</a>
-      <a class="pin" style="--x:44.4%;--y:82.1%" href="#e-copy" aria-label="6, Copier la commande">6</a>
-      <a class="pin" style="--x:60.9%;--y:82.1%" href="#e-open" aria-label="7, Ouvrir dans Command">7</a>
-      <a class="pin" style="--x:23.7%;--y:82.1%" href="#e-run" aria-label="8, Exécuter">8</a>
+      <a class="pin" style="--x:22.1%;--y:13.0%" href="#e-target" aria-label="2, 2 - Sur quoi">2</a>
+      <a class="pin" style="--x:22.1%;--y:34.8%" href="#e-options" aria-label="3, 3 - Paramètres">3</a>
+      <a class="pin" style="--x:22.1%;--y:56.9%" href="#e-plan" aria-label="4, 4 - Vérifier et lancer">4</a>
+      <a class="pin" style="--x:23.7%;--y:76.9%" href="#e-command" aria-label="5, Ligne de commande">5</a>
+      <a class="pin" style="--x:44.4%;--y:84.9%" href="#e-copy" aria-label="6, Copier la commande">6</a>
+      <a class="pin" style="--x:60.9%;--y:84.9%" href="#e-open" aria-label="7, Ouvrir dans Command">7</a>
+      <a class="pin" style="--x:23.7%;--y:84.9%" href="#e-run" aria-label="8, Exécuter">8</a>
       <a class="pin" style="--x:95.8%;--y:1.7%" href="#e-help" aria-label="13, Aide">13</a>
     </div>
     <figcaption>Contenu de démonstration. Choisissez un numéro pour lire ce qui concerne cette partie de la fenêtre.</figcaption>
@@ -110,13 +111,13 @@
       </div>
     </details>
     <details class="el" id="e-copy">
-      <summary><span class="mk">6</span><span><span class="name">Copier la commande</span><span class="one">Place la commande dans le presse-papiers.</span></span></summary>
+      <summary><span class="mk">6</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16,1L4,1C2.9,1 2,1.9 2,3L2,17L4,17L4,3L16,3L16,1ZM19,5L8,5C6.9,5 6,5.9 6,7L6,21C6,22.1 6.9,23 8,23L19,23C20.1,23 21,22.1 21,21L21,7C21,5.9 20.1,5 19,5ZM19,21L8,21L8,7L19,7L19,21Z" fill="currentColor"/></svg>Copier la commande</span><span class="one">Place la commande dans le presse-papiers.</span></span></summary>
       <div class="full">
         <p>Copie la ligne de commande ci-dessus pour que vous la colliez dans un terminal, un script ou un message. Rien ne s'exécute.</p>
       </div>
     </details>
     <details class="el" id="e-open">
-      <summary><span class="mk">7</span><span><span class="name">Ouvrir dans Command</span><span class="one">Envoie la commande à la page Commande.</span></span></summary>
+      <summary><span class="mk">7</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></svg>Ouvrir dans Command</span><span class="one">Envoie la commande à la page Commande.</span></span></summary>
       <div class="full">
         <p>Ouvre la page Commande avec cette commande déjà saisie, prête à être modifiée à la main et exécutée là-bas.</p>
         <dl class="facts">
@@ -125,7 +126,7 @@
       </div>
     </details>
     <details class="el" id="e-run">
-      <summary><span class="mk">8</span><span><span class="name">Exécuter</span><span class="one">Démarre la tâche.</span></span></summary>
+      <summary><span class="mk">8</span><span><span class="name"><svg class="glyph" viewBox="0 0 24.0 24.0" aria-hidden="true" focusable="false"><path d="M8,5v14l11,-7z" fill="currentColor"/></svg>Exécuter</span><span class="one">Démarre la tâche.</span></span></summary>
       <div class="full">
         <p>Le seul bouton de cette page qui fait le travail. Une tâche qui peut détruire des données, comme Effacer un dossier, demande d'abord de saisir un mot de confirmation. Tant que la tâche s'exécute, on ne peut pas passer à une autre : un clic malheureux ne fait donc jamais perdre une exécution.</p>
         <dl class="facts">
@@ -142,7 +143,7 @@
       </div>
     </details>
     <details class="el" id="e-stop">
-      <summary><span class="mk">10</span><span><span class="name">Arrêter</span><span class="one">Demande à la tâche de se terminer proprement.</span></span></summary>
+      <summary><span class="mk">10</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12,2C6.47,2 2,6.47 2,12s4.47,10 10,10 10,-4.47 10,-10S17.53,2 12,2zM17,15.59L15.59,17 12,13.41 8.41,17 7,15.59 10.59,12 7,8.41 8.41,7 12,10.59 15.59,7 17,8.41 13.41,12 17,15.59z" fill="currentColor"/></svg>Arrêter</span><span class="one">Demande à la tâche de se terminer proprement.</span></span></summary>
       <div class="full">
         <p>La tâche termine la partie en cours, nettoie derrière elle et s'arrête. Si elle ne s'arrête pas, un second appui propose de la terminer tout de suite - sans son propre nettoyage, si bien que des fichiers de test peuvent rester jusqu'à la prochaine exécution.</p>
         <dl class="facts">
@@ -171,7 +172,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">13</span><span><span class="name">Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
+      <summary><span class="mk">13</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11,18h2v-2h-2v2zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8zM12,6c-2.21,0 -4,1.79 -4,4h2c0,-1.1 0.9,-2 2,-2s2,0.9 2,2c0,2 -3,1.75 -3,5h2c0,-2.25 3,-2.5 3,-5 0,-2.21 -1.79,-4 -4,-4z" fill="currentColor"/></svg>Aide</span><span class="one">Ouvre la page que vous lisez.</span></span></summary>
       <div class="full">
         <p>Chaque fenêtre de FileDO a ce bouton en haut à droite. Il ouvre l'aide de la fenêtre où vous êtes, avec une image et chaque partie expliquée, dans votre langue.</p>
         <dl class="facts">
@@ -193,7 +194,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Capturé avec FileDO 2611171800, 2026-11-17.</span>
+    <span>Capturé avec FileDO 2611270100, 2026-11-27.</span>
     <a href="index.html">Index de l'aide</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Poser une question ou signaler un problème</a>
   </footer>

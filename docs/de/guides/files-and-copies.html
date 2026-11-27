@@ -66,7 +66,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../../kit/sza-kit.css" />
@@ -191,6 +191,23 @@
         </p>
         <p>
           <span data-l="de">Für eine automatisierte Prüfung nutzen Sie <code>filedo compare D:\Data E:\Backup --strict</code>: Übereinstimmende relative Pfade, Größen und Änderungszeiten ergeben Exit 0 (<code>Passed</code>), ein Unterschied ergibt Exit 1 (<code>Failed</code>), und ein unvollständiger Vergleich ergibt Exit 2 (<code>Not proven</code>). Mit <code>--by-hash</code> werden gleich große Paare nach Inhalt statt nach Zeit verglichen. Ein einfaches <code>compare</code> bleibt ein Bericht mit Exit 0 (<code>Done</code>); <code>--strict</code> lässt sich nicht mit dem Löschen kombinieren.</span>
+        </p>
+      </section>
+      <section class="section" id="rehash">
+        <h2>
+          <span data-l="de">Dateien mit neuem Datei-Hash</span>
+        </h2>
+        <p class="intro">
+          <span data-l="de">Nutzen Sie <code>filedo rehash</code>, wenn eine Datei, ein Ordnerbaum oder ein eingebundenes Datenlaufwerk einen anderen SHA-256-Hash braucht, Format und Inhalt aber unverändert bleiben sollen. Das Original wird durch die geänderte Datei ersetzt, weitere Dateien bleiben nicht zurück, und der Lauf ist beliebig oft wiederholbar.</span>
+        </p>
+        <div class="copybox">
+          filedo rehash D:\Photos<button
+            class="copy"
+            data-copy="filedo rehash D:\Photos"
+          ><span data-l="de">Kopieren</span></button>
+        </div>
+        <p>
+          <span data-l="de">Der neue Inhalt wird in eine <code>.filedo-partial</code>-Datei geschrieben, streng auf Formatgültigkeit geprüft und tritt erst dann an die Stelle des Originals, wobei Zeitstempel, Attribute, Berechtigungen und benannte Datenströme erhalten bleiben. Geprüfte Formate und genauer Zuwachs: PNG (<code>+42</code> B), JPEG (<code>+34</code> B), GIF89a (<code>+34</code> B), HEIC/HEIF/AVIF (<code>+38</code> B), WebP (<code>+38..57</code> B), BMP (<code>+30</code> B), TIFF/DNG/RAW (<code>+30</code> B), PDF (<code>+100..1024</code> B), ZIP/DOCX/XLSX/PPTX/ODT/ODS/ODP/EPUB (<code>+30..31</code> B), RTF (<code>+48</code> B), TXT/LOG (<code>+1..4</code> B), Markdown/HTML (<code>+40..86</code> B), CSS/JS (<code>+37..80</code> B), INI (<code>+33..72</code> B), WAV (<code>+38</code> B), FLAC (<code>+20</code> B), MP3 (<code>+42..52</code> B), AIFF (<code>+42..43</code> B), MP4/M4A/M4V/MOV/3GP/CR3 (<code>+38</code> B), MKV/WebM (<code>+32</code> B), AVI (<code>+38..39</code> B), MPEG-TS/M2TS (<code>+188..192</code> B), MPG/VOB (<code>+36..2048</code> B), JSON (<code>+1</code> B) und XML/SVG (<code>+37</code> B). Ein Handy-JPEG behält seine Gain-Map, das Motion-Photo-Video und die Herstellerdaten nach dem Bild. Unbekannte, beschädigte, schreibgeschützte, digital signierte Dateien und Verknüpfungen werden mit Begründung übersprungen; Windows, Program Files und das Systemlaufwerk werden abgelehnt.</span>
         </p>
       </section>
     </main>

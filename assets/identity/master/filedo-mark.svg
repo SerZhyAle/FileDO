@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<!-- FileDO mark, full form, 64 px and up (the master). Written by assets/make-product-icons.ps1 from the drawing in that script (PRODUCT-IDENTITY rule 33): change the script, never this file. -->
+<defs>
+<linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="14" y1="14" x2="242" y2="242"><stop offset="0" stop-color="#0F1A12"/><stop offset="1" stop-color="#080E0A"/></linearGradient>
+<linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="63.6" y1="63.6" x2="109.6" y2="192.4"><stop offset="0" stop-color="#A7F3D0"/><stop offset="1" stop-color="#5ED684"/></linearGradient>
+<linearGradient id="g3" gradientUnits="userSpaceOnUse" x1="63.6" y1="63.6" x2="109.6" y2="192.4"><stop offset="0" stop-color="#A7F3D0"/><stop offset="1" stop-color="#5ED684"/></linearGradient>
+<linearGradient id="g4" gradientUnits="userSpaceOnUse" x1="118.8" y1="72.8" x2="187.8" y2="183.2"><stop offset="0" stop-color="#5ED684"/><stop offset="1" stop-color="#38BDF8"/></linearGradient>
+<linearGradient id="g5" gradientUnits="userSpaceOnUse" x1="144.56" y1="116.96" x2="159.28" y2="139.04"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#A7F3D0"/></linearGradient>
+</defs>
+<path d="M14 62 A48 48 0 0 1 62 14 L194 14 A48 48 0 0 1 242 62 L242 194 A48 48 0 0 1 194 242 L62 242 A48 48 0 0 1 14 194 Z" fill="url(#g1)" fill-rule="evenodd"/>
+<path d="M34 54 L74 54" fill="none" stroke="#5ED684" stroke-opacity="0.098" stroke-width="1.5"/>
+<path d="M74 54 L94 74" fill="none" stroke="#5ED684" stroke-opacity="0.098" stroke-width="1.5"/>
+<path d="M182 202 L222 202" fill="none" stroke="#5ED684" stroke-opacity="0.098" stroke-width="1.5"/>
+<path d="M14 62 A48 48 0 0 1 62 14 L194 14 A48 48 0 0 1 242 62 L242 194 A48 48 0 0 1 194 242 L62 242 A48 48 0 0 1 14 194 Z" fill="none" stroke="#5ED684" stroke-opacity="0.7059" stroke-width="2.5"/>
+<path d="M70.96 78.32 A5.52 5.52 0 0 1 76.48 72.8 L82 72.8 L93.04 72.8 L93.04 183.2 L76.48 183.2 A5.52 5.52 0 0 1 70.96 177.68 Z" fill="url(#g2)" fill-rule="evenodd"/>
+<path d="M70.96 78.32 A5.52 5.52 0 0 1 76.48 72.8 L134.44 72.8 A5.52 5.52 0 0 1 139.96 78.32 L139.96 93.04 L128.92 93.04 L70.96 93.04 Z" fill="url(#g3)" fill-rule="evenodd"/>
+<path d="M89.36 120.64 L124.32 120.64 L131.68 128.92 L124.32 137.2 L89.36 137.2 Z" fill="#00E676" fill-rule="evenodd"/>
+<path d="M151.92 72.8 A33.12 33.12 0 0 1 185.04 105.92 L185.04 116.96 L185.04 183.2 L185.04 150.08 A33.12 33.12 0 0 1 151.92 183.2 L118.8 183.2 L118.8 162.96 L151.92 162.96 A12.88 12.88 0 0 0 164.8 150.08 L164.8 85.68 A12.88 12.88 0 0 0 151.92 72.8 L118.8 93.04 L118.8 72.8 Z" fill="url(#g4)" fill-rule="evenodd"/>
+<path d="M146.4 116.96 L155.232 128 L146.4 139.04 L137.568 128 Z" fill="url(#g5)" fill-rule="evenodd"/>
+</svg>

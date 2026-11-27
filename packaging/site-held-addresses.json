@@ -17,43 +17,417 @@
   "addresses": [
     {
       "address": "",
-      "heldBy": ["filedo_win_vb/Links.vb", "msix/store-listing.md", "winget/SerZhyAle.FileDO.locale.en-US.yaml"]
+      "heldBy": [
+        "filedo_win_vb/Links.vb",
+        "msix/store-listing.md",
+        "winget/SerZhyAle.FileDO.locale.en-US.yaml"
+      ]
     },
     {
       "address": "privacy.html",
-      "heldBy": ["filedo_win_vb/Links.vb", "msix/store-listing.md", "msix/test-store-package.ps1"]
+      "heldBy": [
+        "filedo_win_vb/Links.vb",
+        "msix/store-listing.md",
+        "msix/test-store-package.ps1"
+      ]
     },
     {
       "address": "guides/",
-      "heldBy": ["filedo_win_vb/Links.vb"]
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
     },
     {
       "address": "guides/install-trust.html",
-      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md", ".github/workflows/release.yml"]
+      "heldBy": [
+        "README.md",
+        "README.ru.md",
+        "README.ua.md",
+        "README.de.md",
+        "README.fr.md",
+        ".github/workflows/release.yml"
+      ]
     },
     {
       "address": "guides/fms-sharing.html",
-      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md", "filedo_win_vb/Links.vb"]
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
     },
     {
       "address": "guides/virtual-disks.html",
-      "heldBy": ["filedo_win_vb/Links.vb"]
+      "heldBy": [
+        "filedo_win_vb/Links.vb",
+        "README.md"
+      ]
     },
     {
       "address": "guides/topics.html",
-      "heldBy": ["filedo_win_vb/Links.vb"]
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
     },
     {
       "address": "guides/support.html",
-      "heldBy": ["filedo_win_vb/Links.vb"]
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
     },
     {
       "address": "guides/commands.html",
-      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"]
+      "heldBy": [
+        "README.md"
+      ]
     },
     {
       "address": "guides/virtual-disks.html#manager",
-      "heldBy": ["README.md", "README.ru.md", "README.ua.md", "README.de.md", "README.fr.md"]
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/check-storage.html",
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/files-and-copies.html",
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/erase.html",
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/fd-sec-containers.html",
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/fd-sec-containers.html#backup",
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html#partition",
+      "heldBy": [
+        "README.md"
+      ]
+    },
+    {
+      "address": "guides/gui-command-builder.html",
+      "heldBy": [
+        "README.md",
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/check-storage.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/files-and-copies.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/erase.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/fd-sec-containers.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/fd-sec-containers.html?lang=ru#backup",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/fms-sharing.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html?lang=ru#manager",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html?lang=ru#partition",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/commands.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/gui-command-builder.html?lang=ru",
+      "heldBy": [
+        "README.ru.md"
+      ]
+    },
+    {
+      "address": "guides/check-storage.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/files-and-copies.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/erase.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/fd-sec-containers.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/fd-sec-containers.html?lang=uk#backup",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/fms-sharing.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html?lang=uk#manager",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html?lang=uk#partition",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/commands.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "guides/gui-command-builder.html?lang=uk",
+      "heldBy": [
+        "README.ua.md"
+      ]
+    },
+    {
+      "address": "de/guides/check-storage.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/files-and-copies.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/erase.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/fd-sec-containers.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/fd-sec-containers.html#backup",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/virtual-disks.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/fms-sharing.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/virtual-disks.html#manager",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/virtual-disks.html#partition",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/commands.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "de/guides/gui-command-builder.html",
+      "heldBy": [
+        "README.de.md"
+      ]
+    },
+    {
+      "address": "fr/guides/check-storage.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/files-and-copies.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/erase.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/fd-sec-containers.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/fd-sec-containers.html#backup",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/virtual-disks.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/fms-sharing.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/virtual-disks.html#manager",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/virtual-disks.html#partition",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/commands.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "fr/guides/gui-command-builder.html",
+      "heldBy": [
+        "README.fr.md"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html#create",
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html#read",
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html#change",
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html#protection",
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
+    },
+    {
+      "address": "guides/virtual-disks.html#autostart",
+      "heldBy": [
+        "filedo_win_vb/Links.vb"
+      ]
     }
   ]
 }

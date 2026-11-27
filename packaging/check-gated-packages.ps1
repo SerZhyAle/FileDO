@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 
 # Every package build.ps1 and the release workflow run.
-$gated = @('cmd/filedo', 'fdsec', 'vdisk', 'fmsworker', 'backupzip')
+$gated = @('cmd/filedo', 'fdsec', 'vdisk', 'fmsworker', 'backupzip', 'rehash')
 
 # Not per-build gates, each with its reason. A package leaves this list by being gated, never by being
 # deleted from it.

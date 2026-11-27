@@ -91,4 +91,4 @@ wipe free space
 password protect file
 
 @@ReleaseNotes
-New: scripts and tools can ask the running FileDO window to do things with commands such as filedo status and filedo job list; gen keeps a numbered set of the last backups; Browse commands and an About operations page, with search, explain every operation; the Command page remembers your folders and recent commands. Changed: a fill that cannot delete a file it created now fails instead of ending as a success.
+New: filedo rehash gives photos, documents, music and video a new SHA-256 while they still open as before; backups can be kept for a number of days, with the first of each month kept for good; the window links to the matching guide. Changed: job pages keep what you typed, a slow network drive no longer freezes the window, and the Disk manager's autostart dialog is now called Start with Windows.

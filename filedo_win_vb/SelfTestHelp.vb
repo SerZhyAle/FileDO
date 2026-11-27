@@ -295,19 +295,44 @@ Partial Public Module SelfTest
                 For Each e In p.Elements.Where(Function(x) x.Locator <> "" AndAlso x.Extra = "")
                     shot.Pins.Add(New HelpPin With {.ElementId = e.Id, .X = 10, .Y = 10})
                 Next
+                ' CONTEXT-HELP 0.6 item R: the help button's entry carries the glyph its control draws, and no
+                ' other entry carries one the shot does not record.
+                shot.Glyphs.Clear()
+                If Glyphs.IsDrawable("app.help") AndAlso p.ElementById("help") IsNot Nothing Then shot.Glyphs("help") = "app.help"
                 Dim html = HelpPages.RenderPage(p, lang, dict, shot, "2610211200")
-                Dim problems = HelpPageProblems(p, lang, dict, html)
+                Dim problems = HelpPageProblems(p, lang, dict, html, shot.Glyphs.Count)
                 Check("help:page:" & p.Id & ":" & lang, problems.Count = 0, Few(problems))
             Next
             Dim index = HelpPages.RenderIndex(lang, dict, "2610211200")
             Dim missingLinks = HelpContent.Pages.Where(Function(p) Not index.Contains("href=""" & p.Id & ".html""")).Select(Function(p) p.Id)
-            Check("help:index:" & lang, index.Contains("lang=""" & lang & """") AndAlso Not missingLinks.Any(), Few(missingLinks))
+            Check("help:index:" & lang, index.Contains("lang=""" & lang & """") AndAlso Not missingLinks.Any() AndAlso ProductPictureProblems(index).Count = 0,
+                  Few(missingLinks.Concat(ProductPictureProblems(index))))
         Next
     End Sub
 
     ' What a page must be (rules 8, 10, 12, 13), read off the text a page is written as.
-    Private Function HelpPageProblems(p As HelpPageDef, lang As String, dict As Dictionary(Of String, String), whole As String) As List(Of String)
+    ' CONTEXT-HELP 0.6 item Q: the product's picture stands before the title on its line and the page's icon is the
+    ' product's favicon - both files beside the pages, so nothing is asked of another folder. The picture's alt is
+    ' empty beside a heading that names FileDO and "FileDO" beside one that names only the page (0.7 section 12).
+    Private Function ProductPictureProblems(html As String) As List(Of String)
         Dim bad As New List(Of String)
+        Dim row = html.IndexOf("<div class=""title-row""><img class=""product-mark"" src=""../" & HelpPages.HeadPicture & """", StringComparison.Ordinal)
+        If row < 0 OrElse html.IndexOf("<h1>", StringComparison.Ordinal) < row Then bad.Add("product picture before the title")
+        Dim img = html.IndexOf("<img class=""product-mark""", StringComparison.Ordinal)
+        Dim heading = Regex.Match(html, "<h1>(.*?)</h1>", RegexOptions.Singleline).Groups(1).Value
+        Dim alt = If(heading.IndexOf("FileDO", StringComparison.Ordinal) >= 0, "", "FileDO")
+        If img >= 0 AndAlso Not Regex.IsMatch(html.Substring(img), "^<img[^>]*\balt=""" & alt & """") Then bad.Add("product picture alt")
+        If Not html.Contains("<link rel=""icon"" type=""image/png"" href=""../" & HelpPages.PageIcon & """>") Then bad.Add("page icon")
+        Return bad
+    End Function
+
+    Private Function HelpPageProblems(p As HelpPageDef, lang As String, dict As Dictionary(Of String, String), whole As String,
+                                      glyphCount As Integer) As List(Of String)
+        Dim bad As New List(Of String)
+        bad.AddRange(ProductPictureProblems(whole))
+        ' CONTEXT-HELP 0.6 item R: one inline glyph per recorded element, before its name, hidden from a screen reader.
+        Dim glyphs = Regex.Matches(whole, "<span class=""name""><svg class=""glyph"" viewBox=""[^""]+"" aria-hidden=""true"" focusable=""false"">")
+        If glyphs.Count <> glyphCount Then bad.Add("glyphs " & glyphs.Count.ToString() & " of " & glyphCount.ToString())
         ' The two scripts are progressive enhancement and carry selectors that look like links.
         Dim html = Regex.Replace(whole, "<script>.*?</script>", "", RegexOptions.Singleline)
         If Not html.Contains("<html lang=""" & lang & """ dir=""ltr"">") Then bad.Add("lang/dir")

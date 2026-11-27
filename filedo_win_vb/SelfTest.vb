@@ -29,10 +29,13 @@ Partial Public Module SelfTest
         ShellSettings.ValuesForTest = New Dictionary(Of String, Object)()
         ' A Disks page reads its container through filedo.exe; the self-test never starts filedo.exe.
         DiskProbe.Enabled = False
+        ' A drive page reads its drives on threads of their own; the self-test hands it the facts.
+        JobView.DriveReadsEnabled = False
         Try
             RunAll()
         Finally
             DiskProbe.Enabled = True
+            JobView.DriveReadsEnabled = True
             ShellSettings.ValuesForTest = Nothing
             Packaging.OverrideForTest = Nothing
             ShellLog.PathForTest = Nothing
@@ -2715,13 +2718,7 @@ Partial Public Module SelfTest
             cmd = jv.CurrentCommand()
             Check("page:reveal:paren", cmd.Contains("""C:\taxes (1).pdf.fd-sec"""), cmd)
 
-            ' A drive row the page listed itself is still read as its letter.
-            jv.SetJob(JobCatalogue.GetJob("rail_job_capacity"))
-            Dim row = jv.TargetTextForTest
-            cmd = jv.CurrentCommand()
-            Check("page:drive-row-is-a-letter", row = "" OrElse Not row.Contains("(") OrElse
-                                                (Not cmd.Contains("(") AndAlso cmd.Contains(" " & row.Substring(0, 2) & " ")),
-                  row & " -> " & cmd)
+            CheckDriveRows(jv)
 
             ' SHELL-04: relative and drive-relative targets are refused with the reason.
             jv.SetJob(JobCatalogue.GetJob("rail_job_wipe"))
@@ -2791,6 +2788,60 @@ Partial Public Module SelfTest
             Check(pair(0), key = "shell_wipe_danger_system", pair(1) & " -> " & key)
         Next
         Check("wipe-safety:drive-token-is-root", WipeSafety.DangerKey("E:") = "shell_wipe_danger_root", WipeSafety.DangerKey("E:"))
+    End Sub
+
+    ' FILEDO-0253: the letters are listed at once and each row gains its facts when they arrive; a row
+    ' the page listed itself is still read as its letter (GUI-01), and no other text is rewritten.
+    Private Sub CheckDriveRows(jv As JobView)
+        Dim capacity = JobCatalogue.GetJob("rail_job_capacity")
+        jv.SetJob(capacity)
+        Dim bare = jv.DriveRowsForTest
+        Check("page:drive-letters-listed-first", bare.Length > 0 AndAlso bare.All(Function(r) r.Length = 3) AndAlso
+                                                 jv.TargetTextForTest = bare(0), String.Join(" ", bare))
+        If bare.Length = 0 Then Return
+        Dim at = bare.Length - 1
+        Dim letter = bare(at).Substring(0, 2)
+        Dim facts As New JobView.DriveFacts With {.Ready = True, .Label = "Sample", .FileSystem = "NTFS", .SizeGb = 100, .FreeGb = 50}
+
+        jv.ShowDriveFactsForTest(jv.DriveListGenerationForTest, 0, facts)
+        Dim row = jv.TargetTextForTest
+        Dim cmd = jv.CurrentCommand()
+        Check("page:drive-row-is-a-letter", row.Contains("(Sample, NTFS") AndAlso Not cmd.Contains("(") AndAlso
+              cmd.Contains(" " & bare(0).Substring(0, 2) & " "), row & " -> " & cmd)
+
+        ' A typed or outside target stays as it is when the facts of any row arrive - the bare root too.
+        For Each outside In New String() {"D:\typed (1)", bare(0)}
+            jv.SetJob(capacity)
+            jv.SetTarget(outside)
+            cmd = jv.CurrentCommand()
+            jv.ShowDriveFactsForTest(jv.DriveListGenerationForTest, 0, facts)
+            Check("page:drive-facts-keep-target:" & outside, jv.TargetTextForTest = outside AndAlso jv.CurrentCommand() = cmd AndAlso
+                  jv.DriveRowsForTest(0).Contains("(Sample"), jv.TargetTextForTest & " -> " & jv.CurrentCommand())
+        Next
+
+        ' An answer for the list of an earlier page is dropped.
+        jv.SetJob(capacity)
+        Dim earlier = jv.DriveListGenerationForTest
+        jv.SetJob(JobCatalogue.GetJob("rail_job_speed"))
+        jv.ShowDriveFactsForTest(earlier, 0, facts)
+        Check("page:drive-facts-of-an-earlier-page", jv.DriveRowsForTest(0) = bare(0), jv.DriveRowsForTest(0))
+
+        ' A kept row comes back as its drive, with no old facts, and follows the new ones.
+        jv.SetJob(capacity)
+        jv.PickDriveRowForTest(at)
+        jv.ShowDriveFactsForTest(jv.DriveListGenerationForTest, at, facts)
+        jv.KeepInput()
+        jv.SetJob(JobCatalogue.GetJob("rail_job_speed"))
+        jv.ResumeJob(capacity)
+        Dim back = jv.TargetTextForTest
+        cmd = jv.CurrentCommand()
+        Check("page:drive-row-kept", back = bare(at) AndAlso cmd.Contains(" " & letter & " "), back & " -> " & cmd)
+        facts.FreeGb = 40
+        jv.ShowDriveFactsForTest(jv.DriveListGenerationForTest, at, facts)
+        cmd = jv.CurrentCommand()
+        Check("page:drive-row-kept-follows-facts", jv.TargetTextForTest = jv.DriveRowsForTest(at) AndAlso
+              jv.TargetTextForTest.Contains("(Sample") AndAlso cmd.Contains(" " & letter & " "),
+              jv.TargetTextForTest & " -> " & cmd)
     End Sub
 
     ' GUI-03: Delete and Move are destructive on the page, and pass -y only behind a typed word.
@@ -5217,6 +5268,24 @@ Partial Public Module SelfTest
         Check("disk-ui:link:guide-page", Links.DiskGuide.StartsWith(Links.Site, StringComparison.Ordinal) AndAlso Links.DiskGuide.EndsWith("/virtual-disks.html", StringComparison.Ordinal) AndAlso
                                          Links.Guides.StartsWith(Links.Site, StringComparison.Ordinal), Links.DiskGuide)
         Check("disk-ui:link:share-guide", Links.ShareGuide.StartsWith(Links.Site, StringComparison.Ordinal) AndAlso Links.ShareGuide.EndsWith("/fms-sharing.html", StringComparison.Ordinal), Links.ShareGuide)
+        ' SITE-STRUCTURE 0.5 section 10 (FILEDO-0247): each guide row names a rail page and a guide of the
+        ' site, and the resolver gives the page of the UI language, English for one the site lacks.
+        Dim railKeys = RailRow.All.Where(Function(r) Not r.IsGroup).Select(Function(r) r.Key).ToList()
+        Dim badRows = Links.GuideByRail.Where(Function(kv) Not railKeys.Contains(kv.Key) OrElse
+                                                  Not kv.Value.StartsWith(Links.Site & "guides/", StringComparison.Ordinal) OrElse
+                                                  kv.Value.EndsWith("/guides/", StringComparison.Ordinal) OrElse
+                                                  kv.Value.Contains("/topics.html") OrElse kv.Value.Contains("/index.html")).Select(Function(kv) kv.Key).ToList()
+        Check("guide-link:rows", badRows.Count = 0, String.Join(", ", badRows))
+        Dim sample = Links.Site & "guides/virtual-disks.html#create"
+        Dim resolved = String.Join(" ", New String() {"en", "ru", "uk", "de", "fr", "es"}.Select(Function(l) Links.GuideAddress(sample, l)))
+        Check("guide-link:resolver",
+              Links.GuideAddress(sample, "en") = Links.Site & "guides/virtual-disks.html?lang=en#create" AndAlso
+              Links.GuideAddress(sample, "ru") = Links.Site & "guides/virtual-disks.html?lang=ru#create" AndAlso
+              Links.GuideAddress(sample, "uk") = Links.Site & "guides/virtual-disks.html?lang=uk#create" AndAlso
+              Links.GuideAddress(sample, "de") = Links.Site & "de/guides/virtual-disks.html#create" AndAlso
+              Links.GuideAddress(sample, "fr") = Links.Site & "fr/guides/virtual-disks.html#create" AndAlso
+              Links.GuideAddress(sample, "es") = Links.GuideAddress(sample, "en") AndAlso
+              Links.GuideAddress(Links.Readme, "de") = Links.Readme, resolved)
         For Each lang In Localization.Languages
             Dim d = Localization.GetDict(lang)
             For Each packaged In New Boolean() {False, True}
@@ -5499,8 +5568,8 @@ Partial Public Module SelfTest
             Check("disk-ui:filter-esc-clears", m.RunShortcut(DiskShortcuts.Find(Keys.Escape, False)) AndAlso m.FilterTextForTest = "" AndAlso Not m.FilterClearForTest.Enabled, m.FilterTextForTest)
             Check("disk-ui:filter-esc-on-empty-passes", Not m.RunShortcut(DiskShortcuts.Find(Keys.Escape, False)), "")
 
-            ' Each window opens the other with its destination's program icon:
-            ' FileDO operations here, and Disk manager inside the shell's Disks group.
+            ' The manager's button to the shell shows the destination's program icon (FileDO
+            ' operations); the shell's rail row back is drawn like every rail row (checked below).
             Dim mainButton = buttons.FirstOrDefault(Function(b) b.Text = ui("vd_mgr_btn_main"))
             Check("disk-ui:main-window-button", mainButton IsNot Nothing AndAlso mainButton.Picture IsNot Nothing AndAlso mainButton.Glyph Is Nothing AndAlso
                                                 m.TipForTest(mainButton).Contains(DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.O)), "")
@@ -5523,11 +5592,22 @@ Partial Public Module SelfTest
             m.RunShortcut(DiskShortcuts.Find(Keys.Control Or Keys.Shift Or Keys.O, False))
             Check("disk-ui:main-window-key-raises", raised = 1, raised.ToString())
             Check("disk-ui:one-picture-button", m.GlyphButtonsForTest.Where(Function(b) b.Picture IsNot Nothing).Count() = 1, "the product mark is on exactly one button")
+            ' The manager is brought to the monitor that asked for it (SETTINGS-NAVIGATION 2.4 item H, 3);
+            ' the other screen is invented, as in the settings-follow rows.
+            Dim home = m.Location
+            Dim work = Screen.PrimaryScreen.WorkingArea
+            Dim elsewhere As New WindowPlacement.ScreenArea(New Rectangle(work.Right + 100, work.Top, 1600, 1000), 96)
+            Dim wanted = WindowPlacement.CentreOn(m.Size, elsewhere.Area)
+            Check("disk-ui:manager-follows-requester", m.MoveToScreen(elsewhere) AndAlso m.Location = wanted.Location,
+                  m.Bounds.ToString() & " want " & wanted.ToString())
+            m.Location = home
             Using shell As New ShellForm()
                 Dim opener = shell.DiskManagerButtonForTest
                 Dim managerIndex = Array.FindIndex(RailRow.All, Function(r) r.Key = RailRow.DiskManagerKey)
                 Check("disk-ui:manager-in-disks-group", managerIndex > 0 AndAlso RailRow.All(managerIndex - 1).Key = "rail_group_disks", "")
-                Check("disk-ui:shell-opens-manager-button", opener IsNot Nothing AndAlso opener.ProductIcon Is DiskManagerIcon.DiskManagerIcon() AndAlso
+                ' The row takes the rail's one treatment (SETTINGS-NAVIGATION 2.5 item I, FILEDO-0250).
+                Check("disk-ui:shell-opens-manager-button", opener IsNot Nothing AndAlso opener.Glyph IsNot Nothing AndAlso
+                                                            opener.Glyph.Id = "content.disk-container" AndAlso opener.Hue = "program.disks" AndAlso
                                                             opener.Text = ui(RailRow.DiskManagerKey) AndAlso opener.AccessibleName = opener.Text AndAlso
                                                             shell.TipForTest(opener).Contains(DiskShortcuts.KeyText(Keys.Control Or Keys.Shift Or Keys.D)), "")
             End Using

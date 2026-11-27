@@ -1,23 +1,25 @@
-﻿<#
+<#
 .SYNOPSIS
-  Render the Store logo set for the Partner Center "Store logos" section from assets\icon.svg.
+  Render the Store logo set for the Partner Center "Store logos" section from the product's master SVG.
 
 .DESCRIPTION
   The listing page takes optional logo images next to the ones in the package:
     9:16 Poster art       720x1080 or 1440x2160   (highly recommended; the main logo on Windows 10/11)
     1:1  Box art          1080x1080 or 2160x2160  (recommended; other Store layouts)
     1:1  App tile icon    300x300, 150x150, 71x71 (Store display images, Windows 10/11)
-  The package's own logos are cut from the 270 px assets\icon.png; that is too small to blow up to
-  the poster, so this script renders the vector mark (assets\icon.svg) at the exact pixel size.
+  The package's own logos are cut from the 256 px assets\icon.png; that is too small to blow up to
+  the poster, so this script renders the master SVG (assets\identity\master\filedo-mark.svg, which
+  assets\make-product-icons.ps1 writes from the drawing every other picture of FileDO is cut from)
+  at the exact pixel size (PRODUCT-IDENTITY rules 4 and 6).
 
   Rendering is headless Microsoft Edge (installed with Windows): the SVG and the wordmark are laid
   out as HTML and screenshotted at the target size. Nothing is drawn by hand twice - the mark is
-  the same file the MSI, the EXE and the site use, so it cannot drift from them.
+  the same drawing the MSI, the EXE and the site show, so it cannot drift from them. The run records
+  the SHA-256 of the SVG it read in store-logos\master-sha256.txt; the identity manifest lists the set
+  with that hash and names a set rendered from another drawing.
 
-  The poster and the box art carry words, so they exist once per listing language. The tagline is
-  the site's headline (docs\index.html) and the strip words are the listing's own section names
-  (msix\listing\<code>.txt), so the picture says what the page says. The tiles carry no words and
-  are identical in every language. To add a language, add a row to $locales below.
+  The poster and box art compose the master and canonical product name on the master's
+  declared background. The tiles carry no words and are identical in every language.
 
   Output, one folder per Partner Center locale code (the same codes msix\screenshots uses), each
   holding the complete set so it can be uploaded from one place:
@@ -32,6 +34,10 @@
 .PARAMETER Locale
   Partner Center locale codes to render (comma separated). Default: en-us, ru, uk.
 
+.PARAMETER Svg
+  The mark to render. Default: assets\identity\master\filedo-mark.svg (assets\make-product-icons.ps1
+  -StoreLogos passes the one it has just written).
+
 .EXAMPLE
   .\msix\make-store-logos.ps1
 .EXAMPLE
@@ -42,7 +48,9 @@ param(
     [string]$Locale = 'en-us,ru,uk',
     [string]$OutDir,
     # Path to msedge.exe. Default: the standard Windows install locations.
-    [string]$Edge
+    [string]$Edge,
+    [string]$Svg,
+    [string]$Background
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,31 +58,19 @@ Add-Type -AssemblyName System.Drawing
 
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $OutDir) { $OutDir = Join-Path $PSScriptRoot 'store-logos' }
-$svgPath = Join-Path $root 'assets\icon.svg'
-if (-not (Test-Path $svgPath)) { throw "the mark is missing: $svgPath" }
+if (-not $Svg) { $Svg = Join-Path $root 'assets\identity\master\filedo-mark.svg' }
+$svgPath = $Svg
+if (-not (Test-Path $svgPath)) { throw "the mark is missing: $svgPath (run assets\make-product-icons.ps1)" }
 
-# Words per language. Tag: the site's headline, written as HTML (&nbsp; keeps a fixed phrase such
-# as "прежде чем" on one line). Strip: section names from the listing source, four on the poster,
-# five on the box art (which is wider).
-$locales = [ordered]@{
-    'en-us' = @{
-        Lang  = 'en'
-        Tag   = 'Know your storage before you trust it'
-        Strip = @('Speed', 'Capacity', 'Vault', 'Wipe', 'Duplicates')
-    }
-    'ru'    = @{
-        Lang  = 'ru'
-        Tag   = 'Узнайте носитель, прежде&nbsp;чем доверить ему данные'
-        Strip = @('Скорость', 'Ёмкость', 'Защита', 'Стирание', 'Дубликаты')
-    }
-    'uk'    = @{
-        Lang  = 'uk'
-        Tag   = 'Дізнайтеся про носій, перш&nbsp;ніж довірити йому дані'
-        Strip = @('Швидкість', 'Ємність', 'Захист', 'Стирання', 'Дублікати')
-    }
+# Use the manifest background for a direct call; the master generator passes its current colour.
+if (-not $Background) {
+    $identity = Get-Content -Raw (Join-Path $root 'assets\identity\identity-manifest.json') | ConvertFrom-Json
+    $Background = $identity.master.background
 }
+if ($Background -notmatch '^#[0-9A-Fa-f]{6}$') { throw 'The master background must be #RRGGBB.' }
+$locales = @('en-us', 'ru', 'uk')
 $wanted = @($Locale -split '[,\s]+' | Where-Object { $_ })
-foreach ($c in $wanted) { if (-not $locales.Contains($c)) { throw "unknown locale '$c'; known: $($locales.Keys -join ', ')." } }
+foreach ($c in $wanted) { if ($c -notin $locales) { throw "unknown locale '$c'; known: $($locales -join ', ')." } }
 
 if (-not $Edge) {
     $Edge = @(
@@ -92,30 +88,23 @@ New-Item -ItemType Directory -Force $work | Out-Null
 $svgText = [IO.File]::ReadAllText($svgPath)
 function Get-Mark([string]$viewBox) {
     $m = [regex]::Replace($svgText, '<svg\b[^>]*>', "<svg xmlns=`"http://www.w3.org/2000/svg`" viewBox=`"$viewBox`" style=`"display:block;width:100%;height:100%`">", 1)
-    if ($m -eq $svgText) { throw "icon.svg has no root <svg> element." }
+    if ($m -eq $svgText) { throw "$svgPath has no root <svg> element." }
     return $m
 }
 
 $fonts = "'Segoe UI Variable Display','Segoe UI',system-ui,sans-serif"
 
-function Get-ArtHtml([string]$lang, [string]$tag, [string]$strip, [int]$w, [int]$h, [string]$markPx, [string]$wordPx, [string]$tagPx, [string]$padTop, [string]$gap) {
+function Get-ArtHtml([int]$w, [int]$h, [string]$markPx, [string]$wordPx, [string]$padTop, [string]$gap) {
     $mark = Get-Mark '0 0 256 256'
     @"
-<!doctype html><html lang="$lang"><head><meta charset="utf-8"><style>
-html,body{margin:0;width:${w}px;height:${h}px;overflow:hidden;background:#070C09}
-body{position:relative;font-family:$fonts;color:#fff;
-  background:radial-gradient(circle at 50% 36%,#143324 0,#0C1710 38%,#060A07 78%)}
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:${w}px;height:${h}px;overflow:hidden;background:$Background}
+body{position:relative;font-family:$fonts;color:#fff}
 .col{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding-top:$padTop;text-align:center}
-.mark{width:$markPx;height:$markPx;filter:drop-shadow(0 12px 40px rgba(0,0,0,.55))}
+.mark{width:$markPx;height:$markPx}
 .name{margin-top:$gap;font-size:$wordPx;font-weight:700;letter-spacing:-0.02em;line-height:1}
-.tag{margin-top:calc($gap * .55);font-size:$tagPx;font-weight:600;color:#A7F3D0;line-height:1.25;max-width:84%;text-wrap:balance}
-.strip{position:absolute;left:0;right:0;bottom:calc(${h}px * .055);text-align:center;font-size:calc($tagPx * .62);
-  letter-spacing:.14em;text-transform:uppercase;color:#7FA38C;font-weight:600}
 </style></head><body>
-<div class="col"><div class="mark">$mark</div>
-<div class="name">FileDO</div>
-<div class="tag">$tag</div></div>
-<div class="strip">$strip</div>
+<div class="col"><div class="mark">$mark</div><div class="name">FileDO</div></div>
 </body></html>
 "@
 }
@@ -169,15 +158,12 @@ try {
 
     $count = 0
     foreach ($code in $wanted) {
-        $l = $locales[$code]
         $dir = Join-Path $OutDir $code
         New-Item -ItemType Directory -Force $dir | Out-Null
         Write-Host "[$code]"
 
-        $strip4 = ($l.Strip[0..3]) -join ' &middot; '
-        $strip5 = ($l.Strip[0..4]) -join ' &middot; '
-        $poster = Get-ArtHtml $l.Lang $l.Tag $strip4 720 1080 '460px' '118px' '38px' '150px' '56px'
-        $box    = Get-ArtHtml $l.Lang $l.Tag $strip5 1080 1080 '470px' '128px' '40px' '130px' '58px'
+        $poster = Get-ArtHtml 720 1080 '460px' '118px' '150px' '56px'
+        $box    = Get-ArtHtml 1080 1080 '470px' '128px' '130px' '58px'
         $art = @(
             @{ File = 'poster-720x1080.png';  W = 720;  H = 1080; Scale = 1; Html = $poster }
             @{ File = 'poster-1440x2160.png'; W = 720;  H = 1080; Scale = 2; Html = $poster }
@@ -198,4 +184,7 @@ try {
 } finally {
     Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 }
-Write-Host "OK - $count files in $OutDir"
+# The drawing this set was rendered from, for the identity manifest (renderedFrom).
+$svgSha = (Get-FileHash -LiteralPath $svgPath -Algorithm SHA256).Hash.ToLowerInvariant()
+[System.IO.File]::WriteAllText((Join-Path $OutDir 'master-sha256.txt'), "$svgSha  assets/identity/master/filedo-mark.svg`n", (New-Object Text.UTF8Encoding($false)))
+Write-Host "OK - $count files in $OutDir (rendered from $($svgSha.Substring(0, 12)))"

@@ -241,16 +241,17 @@ func TestBackupKeep_TempFolderRun(t *testing.T) {
 		body  string
 		mtime time.Time
 	}{
-		backupKeepName("X", m1First, ".zip"):     {"m1-first", now},              // mtime is NOW, name is old -> MUST STAY (monthly)
-		backupKeepName("X", m1Second, ".zip"):    {"m1-second", now},             // mtime is NOW, name is old -> MUST RETIRE
-		backupKeepName("X", m2First, ".zip"):     {"m2-first", now},              // mtime is NOW, name is old -> MUST STAY (monthly)
-		backupKeepName("X", m2Second, ".zip"):    {"m2-second", now},             // mtime is NOW, name is old -> MUST RETIRE
-		backupKeepName("X", recent, ".zip"):      {"recent", m1First},            // mtime is OLD, name is 2d ago -> MUST STAY (within 7d)
-		"Other-2001011300.zip":                   {"other stem", m1First},        // foreign stem -> MUST STAY
-		backupKeepName("X", m1Second, ".fd-sec"): {"sealed set", m1First},        // other extension -> MUST STAY
-		"X-2602291300.zip":                       {"invalid leap date", m1First}, // invalid date -> MUST STAY
-		"notes.txt":                              {"foreign", m1First},           // non-set -> MUST STAY
-		"X-2501011300.zip.filedo-partial":        {"foreign partial", m1First},   // partial -> MUST STAY
+		backupKeepName("X", m1First, ".zip"):                      {"m1-first", now},              // mtime is NOW, name is old -> MUST STAY (monthly)
+		backupKeepName("X", m1Second, ".zip"):                     {"m1-second", now},             // mtime is NOW, name is old -> MUST RETIRE
+		backupKeepName("X", m2First, ".zip"):                      {"m2-first", now},              // mtime is NOW, name is old -> MUST STAY (monthly)
+		backupKeepName("X", m2Second, ".zip"):                     {"m2-second", now},             // mtime is NOW, name is old -> MUST RETIRE
+		backupKeepName("X", recent, ".zip"):                       {"recent", m1First},            // mtime is OLD, name is 2d ago -> MUST STAY (within 7d)
+		"Other-2001011300.zip":                                    {"other stem", m1First},        // foreign stem -> MUST STAY
+		backupKeepName("X", m1Second, ".fd-sec"):                  {"sealed set", m1First},        // other extension -> untouched by the plain run; earliest sealed file of its month -> MUST STAY (monthly)
+		backupKeepName("X", m1Second.AddDate(0, 0, 1), ".fd-sec"): {"sealed later", m1First},      // other extension -> untouched by the plain run; later in the same month -> MUST RETIRE in the sealed run
+		"X-2602291300.zip":                                        {"invalid leap date", m1First}, // invalid date -> MUST STAY
+		"notes.txt":                                               {"foreign", m1First},           // non-set -> MUST STAY
+		"X-2501011300.zip.filedo-partial":                         {"foreign partial", m1First},   // partial -> MUST STAY
 	}
 	for n, info := range seed {
 		p := filepath.Join(e.dest, n)
@@ -298,7 +299,7 @@ func TestBackupKeep_TempFolderRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sealed run: %v", err)
 	}
-	for k, want := range map[string]int{"retiredCount": 1, "keptCount": 1, "keepDays": 7, "monthlyKept": 0} {
+	for k, want := range map[string]int{"retiredCount": 1, "keptCount": 2, "keepDays": 7, "monthlyKept": 1} {
 		if v, ok := sNums[k]; !ok || v != want {
 			t.Errorf("sealed numbers[%q] = %v (ok=%v), want %d", k, v, ok, want)
 		}
@@ -313,9 +314,9 @@ func TestBackupKeep_TempFolderRun(t *testing.T) {
 		gotNames = append(gotNames, ent.Name())
 	}
 	sort.Strings(gotNames)
-	// Expect: 2 monthly zips + 1 recent zip + 1 new zip + 1 new .fd-sec + 4 foreign files.
-	if len(gotNames) != 9 {
-		t.Errorf("destination has %d files %q, want 9", len(gotNames), gotNames)
+	// Expect: 2 monthly zips + 1 recent zip + 1 new zip + 1 monthly .fd-sec + 1 new .fd-sec + 4 foreign files.
+	if len(gotNames) != 10 {
+		t.Errorf("destination has %d files %q, want 10", len(gotNames), gotNames)
 	}
 	if _, err := os.Stat(filepath.Join(e.dest, backupKeepName("X", m1Second, ".zip"))); !os.IsNotExist(err) {
 		t.Error("m1Second zip should have been retired")
@@ -323,7 +324,10 @@ func TestBackupKeep_TempFolderRun(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(e.dest, backupKeepName("X", m2Second, ".zip"))); !os.IsNotExist(err) {
 		t.Error("m2Second zip should have been retired")
 	}
-	if _, err := os.Stat(filepath.Join(e.dest, backupKeepName("X", m1Second, ".fd-sec"))); !os.IsNotExist(err) {
-		t.Error("m1Second .fd-sec should have been retired by sealed run")
+	if _, err := os.Stat(filepath.Join(e.dest, backupKeepName("X", m1Second, ".fd-sec"))); err != nil {
+		t.Errorf("m1Second .fd-sec is the earliest sealed file of its month and should have stayed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(e.dest, backupKeepName("X", m1Second.AddDate(0, 0, 1), ".fd-sec"))); !os.IsNotExist(err) {
+		t.Error("the later sealed file of m1Second's month should have been retired by sealed run")
 	}
 }

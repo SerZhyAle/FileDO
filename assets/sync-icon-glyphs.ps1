@@ -52,34 +52,34 @@ trap {
 # The catalog remains the source of truth; mapping a new meaning means adding it here as well, and
 # the shell's self-test fails on an id it draws that is not vendored.
 $glyphIds = @(
-    'action.add', 'action.archive', 'action.auto-mount', 'action.cancel', 'action.change-password', 'action.choose-file', 'action.choose-folder',
+    'action.add', 'action.archive', 'action.auto-mount', 'action.autostart', 'action.cancel', 'action.change-password', 'action.choose-file',
+    'action.choose-folder',
     'action.clear-all', 'action.clear-input', 'action.compact',
     'action.compare', 'action.copy', 'action.confirm', 'action.create-disk',
     'action.delete', 'action.email', 'action.export', 'action.fill-space', 'action.find-duplicates', 'action.format', 'action.grow',
     'action.image-to-file', 'action.install', 'action.mount-disk', 'action.recover-drive', 'action.refresh', 'action.remember-name',
     'action.remove', 'action.reset', 'action.run', 'action.save',
-    'action.seal', 'action.secure', 'action.share', 'action.sort', 'action.unmount-disk', 'action.unsecure', 'action.verify', 'action.wipe',
+    'action.seal', 'action.secure', 'action.share', 'action.sort', 'action.unarchive', 'action.unmount-disk', 'action.unsecure', 'action.verify',
+    'action.wipe',
     'action.autoplay-disable', 'action.create-shortcut', 'action.retry', 'action.skip',
     'app.command-line', 'app.help', 'app.info', 'app.settings', 'app.tour', 'content.disk-container', 'content.folder',
     'content.history', 'content.partition-disk', 'content.secret-file',
     'feature.capacity-test', 'feature.raw-probe', 'feature.speed-test',
-    'nav.close', 'nav.collapse', 'nav.expand', 'nav.go-to', 'nav.more', 'nav.open-external',
+    'nav.close', 'nav.collapse', 'nav.expand', 'nav.go-to', 'nav.menu', 'nav.more', 'nav.open-external',
     'status.error', 'status.not-proven', 'status.ok', 'status.stopped', 'status.warning',
     'system.storage', 'view.table'
 )
 $dataFiles = @('palette.json')
 
 # Provisional drawings (ICON-SET 0.30 section 15): meanings the vocabulary had no record for, drawn
-# to the catalog's style by FileDO, shipped here, and proposed in the same change - see
-# iconography/PROPOSAL-2026-10-11-filedo-button-meanings.md in the catalog. The master file lives in
-# assets/glyph-sources/ and is copied beside the vendored set; the check pins it to that source, not
-# to the catalog, until the owner folds the record in and the id moves to $glyphIds. ICON-SET 0.31
-# recorded the first three (action.autoplay-disable, action.create-shortcut, action.skip). Open since
-# 2026-11-11 (SP-0198): action.unarchive, the Restore row of the rail - the catalog's action.archive
-# with its arrow turned up, as Material Icons 'unarchive' draws it; proposed in
-# iconography/PROPOSAL-2026-11-11-filedo-backup-meanings.md.
-$provisionalIds = @('action.unarchive')
-$provisionalProposal = 'PROPOSAL-2026-11-11-filedo-backup-meanings.md'
+# to the catalog's style by FileDO, shipped here, and proposed in the same change. The master file
+# lives in assets/glyph-sources/ and is copied beside the vendored set; the check pins it to that
+# source, not to the catalog, until the owner folds the record in and the id moves to $glyphIds.
+# None is open: ICON-SET 0.31 recorded the first three (action.autoplay-disable,
+# action.create-shortcut, action.skip) and 0.39 recorded action.unarchive (FILEDO-0248). A new one
+# adds its id here and names its proposal file below.
+$provisionalIds = @()
+$provisionalProposal = ''
 $provisionalSources = Join-Path $PSScriptRoot 'glyph-sources'
 
 $subject = 'sync-icon-glyphs'

@@ -19,7 +19,8 @@
     Releases        asset download_count of every release, the .sha256 files excluded, and the total
     winget          the versions in microsoft/winget-pkgs manifests/s/SerZhyAle/FileDO, and the state
                     (open, merged, closed) of the pull request(s) for the newest tag
-    Channels        the HTTP status of the Microsoft Store page, Chocolatey, Scoop Main and Extras,
+    Channels        the HTTP status of the Microsoft Store page, Chocolatey, Scoop Main and Extras, the own
+                    Scoop bucket SerZhyAle/scoop-bucket (with the version its manifest serves),
                     SourceForge and AlternativeTo. A 200 shows that a page exists, not that it is ours
     Site            the Pages config, the served status of the landing page, sitemap.xml and the
                     project robots.txt, and of the host-root robots.txt (crawlers read only that one)
@@ -27,8 +28,9 @@
   Counters no script can read (Store acquisitions and ratings, winget installs, Search Console and Bing
   data) are written as "unknown" with the owner-held source named.
 
-  The delta against the previous file in -OutDir (the newest <date>*.md dated on or before -Date, other
-  than the file being written) is printed and appended to the new file as its last section. Traffic
+  The delta against the previous file in -OutDir (the newest <date>.md or <date>-baseline.md dated on or
+  before -Date, other than the file being written; other notes kept there, such as <date>-search-console.md,
+  are not checkpoints and are skipped) is printed and appended to the new file as its last section. Traffic
   counters are rolling fourteen-day windows: a difference between two windows is not a count of new events.
   Writing a second checkpoint for the same date replaces that day's file.
 
@@ -204,7 +206,7 @@ function Read-Checkpoint {
         description = $null; homepage = $null; topics = $null; ogImage = $null
         views = $null; viewsUnique = $null; clones = $null; clonesUnique = $null
         total = $null; releases = @{}; versions = $null; prs = @{}
-        channels = @{}; sitemapLocs = $null; pages = $null
+        channels = @{}; sitemapLocs = $null; pages = $null; scoopVersion = $null
     }
     foreach ($line in [IO.File]::ReadAllLines($Path)) {
         if ($line -match '^## Change since') { break }
@@ -257,6 +259,11 @@ function Read-Checkpoint {
             }
             '^Scoop Main'                 { $s.channels['scoopMain'] = ([regex]::Match($v1, '(?<![\d.])[1-5]\d\d(?![\d.])')).Value; continue }
             '^Scoop Extras'               { $s.channels['scoopExtras'] = ([regex]::Match($v1, '(?<![\d.])[1-5]\d\d(?![\d.])')).Value; continue }
+            '^own Scoop bucket'           {
+                $s.channels['scoopOwn'] = ([regex]::Match($v1, '(?<![\d.])[1-5]\d\d(?![\d.])')).Value
+                if ($v1 -match 'version (\d{10})') { $s.scoopVersion = $Matches[1] }
+                continue
+            }
             '^SourceForge'                { $s.channels['sourceforge'] = ([regex]::Match($v1, '(?<![\d.])[1-5]\d\d(?![\d.])')).Value; continue }
             '^AlternativeTo'              { $s.channels['alternativeto'] = ([regex]::Match($v1, '(?<![\d.])[1-5]\d\d(?![\d.])')).Value; continue }
             '^Landing$'                   { $s.channels['landing'] = ([regex]::Match($v1, '(?<![\d.])[1-5]\d\d(?![\d.])')).Value; continue }
@@ -418,14 +425,20 @@ $channelDefs = @(
        Present = 'manifest answers {0}'; Absent = '{0} (no such manifest in the bucket)' }
     @{ Key = 'scoopExtras';   Label = 'Scoop Extras `filedo.json`'; Url = 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/filedo.json'
        Present = 'manifest answers {0}'; Absent = '{0} (no such manifest in the bucket)' }
-    @{ Key = 'sourceforge';   Label = 'SourceForge `filedo`'; Url = 'https://sourceforge.net/projects/filedo/'
+    @{ Key = 'scoopOwn';      Label = 'own Scoop bucket `SerZhyAle/scoop-bucket`'; Url = 'https://raw.githubusercontent.com/SerZhyAle/scoop-bucket/master/bucket/filedo.json'
+       Present = 'manifest answers {0}'; Absent = '{0} (no such manifest in the bucket)' }
+    @{ Key = 'sourceforge';  Label = 'SourceForge `filedo`'; Url = 'https://sourceforge.net/projects/filedo/'
        Present = 'page answers {0}'; Absent = 'page answers {0} (not listed)' }
     @{ Key = 'alternativeto'; Label = 'AlternativeTo `filedo`'; Url = 'https://alternativeto.net/software/filedo/'
        Present = 'page answers {0}'; Absent = 'page answers {0} (not listed)' }
 )
+$scoopOwnVersion = $null
 $channelRows = foreach ($c in $channelDefs) {
     $st = Get-HttpState $c.Url
     $text = Get-PageText $st $c.Present $c.Absent
+    if ($c.Key -eq 'scoopOwn' -and $st.Code -ge 200 -and $st.Code -lt 300 -and $st.Body -match '"version"\s*:\s*"(\d{10})"') {
+        $scoopOwnVersion = $Matches[1]; $text += ", version $scoopOwnVersion"
+    }
     if ($text -like 'unknown*') { Add-Unknown $c.Label $text }
     [pscustomobject]@{ Key = $c.Key; Label = $c.Label; Text = $text; Source = '`GET ' + $c.Url + '`'; Code = $st.Code }
 }
@@ -481,7 +494,7 @@ $now = @{
     ogImage = if ($null -ne $ogImage) { ([bool]$ogImage).ToString().ToLowerInvariant() } else { $null }
     views = $views.Count; viewsUnique = $views.Uniques; clones = $clones.Count; clonesUnique = $clones.Uniques
     total = $totalDownloads; releases = @{}; versions = $wingetVersions; prs = @{}
-    channels = @{}; sitemapLocs = $sitemapLocs; pages = $pagesText
+    channels = @{}; sitemapLocs = $sitemapLocs; pages = $pagesText; scoopVersion = $scoopOwnVersion
 }
 foreach ($x in $releaseRows) { $now.releases[$x.Tag] = $x.Downloads }
 if ($prs) { foreach ($p in $prs) { $now.prs["$($p.Number)"] = @{ version = $newestVersion; state = $p.State } } }
@@ -496,7 +509,7 @@ $outFile = Join-Path $OutDir "$Date.md"
 $previous = $null
 if (Test-Path -LiteralPath $OutDir -PathType Container) {
     $previous = Get-ChildItem -LiteralPath $OutDir -Filter '*.md' -File |
-        Where-Object { $_.Name -match '^(\d{4}-\d{2}-\d{2})' -and $Matches[1] -le $Date -and $_.Name -ne "$Date.md" } |
+        Where-Object { $_.Name -match '^(\d{4}-\d{2}-\d{2})(?:-baseline)?\.md$' -and $Matches[1] -le $Date -and $_.Name -ne "$Date.md" } |
         Sort-Object -Property @{ Expression = { $_.Name.Substring(0, 10) }; Descending = $true }, @{ Expression = { $_.LastWriteTimeUtc }; Descending = $true } |
         Select-Object -First 1
 }
@@ -535,13 +548,16 @@ if ($previous) {
     }
     $pageNames = @{
         store = 'Microsoft Store page'; choco = 'Chocolatey page'; scoopMain = 'Scoop Main manifest'; scoopExtras = 'Scoop Extras manifest'
-        sourceforge = 'SourceForge page'; alternativeto = 'AlternativeTo page'; landing = 'landing page'; sitemap = 'sitemap.xml'
+        scoopOwn = 'own Scoop bucket manifest'; sourceforge = 'SourceForge page'; alternativeto = 'AlternativeTo page'; landing = 'landing page'; sitemap = 'sitemap.xml'
         robotsProject = 'project robots.txt'; robotsHost = 'host-root robots.txt'
     }
     foreach ($k in ($now.channels.Keys | Sort-Object)) {
         if ($then.channels.ContainsKey($k) -and $then.channels[$k] -and $then.channels[$k] -ne $now.channels[$k]) {
             Add-Change "HTTP status of the $($pageNames[$k])" $then.channels[$k] $now.channels[$k]
         }
+    }
+    if ($now.scoopVersion -and $then.scoopVersion -ne $now.scoopVersion) {
+        Add-Change 'own Scoop bucket version' $(if ($then.scoopVersion) { $then.scoopVersion } else { '(not read)' }) $now.scoopVersion
     }
     if ($null -ne $then.sitemapLocs -and $null -ne $now.sitemapLocs -and $then.sitemapLocs -ne $now.sitemapLocs) {
         Add-Change 'sitemap.xml entries' "$($then.sitemapLocs)" "$($now.sitemapLocs)"

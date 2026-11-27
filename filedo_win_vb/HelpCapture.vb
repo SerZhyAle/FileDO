@@ -111,6 +111,31 @@ Friend Module HelpCapture
         Return Nothing
     End Function
 
+    ' The vocabulary glyph the element's control draws (CONTEXT-HELP 0.6 item R), read off the window so the page
+    ' cannot name another: the glyph button on screen, or - for a control that is not on screen now, a Stop while
+    ' nothing runs - the one glyph every control of that name draws. A control that draws no vocabulary glyph (a
+    ' list, a card, a text box, the product's mark) gives "", and so does a name two glyphs share.
+    Private Function GlyphDrawnBy(root As Control, shown As Control, name As String) As String
+        Dim candidates As New List(Of Control)
+        If shown IsNot Nothing Then
+            candidates.Add(shown)
+        Else
+            CollectByName(root, name, candidates)
+        End If
+        Dim ids = candidates.Select(Function(c) TryCast(c, GlyphButton)).
+                             Select(Function(b) If(b IsNot Nothing AndAlso b.Glyph IsNot Nothing AndAlso b.Glyph.IsVocabulary, b.Glyph.Id, "")).
+                             Distinct().ToList()
+        If ids.Count <> 1 OrElse ids(0) = "" OrElse Not Glyphs.IsDrawable(ids(0)) Then Return ""
+        Return ids(0)
+    End Function
+
+    Private Sub CollectByName(root As Control, name As String, found As List(Of Control))
+        If root.Name = name Then found.Add(root)
+        For Each c As Control In root.Controls
+            CollectByName(c, name, found)
+        Next
+    End Sub
+
     ' A marker stands on the top-left corner of its element, where it hides the least of it and where an
     ' eye looks for it. An element that is not on
     ' screen - a Stop button while nothing runs - has no marker, and its entry says so.
@@ -122,6 +147,8 @@ Friend Module HelpCapture
         For Each e In page.Elements
             If e.Locator = "" Then Continue For
             Dim c = FindByName(form, e.Locator)
+            Dim glyph = GlyphDrawnBy(form, c, e.Locator)
+            If glyph <> "" Then shot.Glyphs(e.Id) = glyph
             If c Is Nothing OrElse Not c.Visible Then Continue For
             Dim r = Rectangle.Intersect(form.RectangleToClient(c.RectangleToScreen(c.ClientRectangle)), whole)
             ' Squeezed out of the picture in this language: recorded as absent, never pinned (CONTEXT-HELP 0.2 section 7 item C).

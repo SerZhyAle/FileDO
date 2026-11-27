@@ -1,7 +1,8 @@
-' The Disk Manager specific icon for window, shortcut, tray, and button use: the plated
-' content.disk-container icon (MenuIcons.vb, "app.disk-manager"), one picture wherever the
-' window appears. It is read from the copy of assets\menu-icons\app.disk-manager.ico this exe
-' embeds, so the window, the button and the MSI's shortcut (which names the same file) cannot differ.
+' The Disk Manager specific icon for window, taskbar button and shortcut use: the plated
+' content.disk-container icon (MenuIcons.vb, "app.disk-manager"). It is read from the copy of
+' assets\menu-icons\app.disk-manager.ico this exe embeds, so the window and the MSI's shortcut
+' (which names the same file) cannot differ. The shell's rail row that opens the window does not
+' draw it: a rail has one glyph treatment (owner decision 2026-11-26, FILEDO-0250).
 '
 Module DiskManagerIcon
 

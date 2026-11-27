@@ -4,12 +4,16 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/SerZhyAle/FileDO)](https://goreportcard.com/report/github.com/SerZhyAle/FileDO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-v2611171800-blue.svg)](https://github.com/SerZhyAle/FileDO)
+[![Version](https://img.shields.io/badge/Version-v2611270100-blue.svg)](https://github.com/SerZhyAle/FileDO)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/SerZhyAle/FileDO)
 
 **Détection de fausse capacité • Test de vitesse • Recherche de doublons • Comparaison de dossiers • Effacement de l'espace libre • Fichiers protégés par mot de passe • Disques virtuels**
 
 ![La fenêtre de FileDO sur la page du test de capacité](msix/screenshots/capacity-fr.png)
+
+![FileDO au travail: un test de vitesse d'un lecteur, puis la recherche de fichiers en double dans un dossier de photos](docs/assets/demo.gif)
+
+*Dans la fenêtre: un test de vitesse d'un lecteur, puis les fichiers en double d'un dossier de photos ([MP4](docs/assets/demo.mp4)).*
 
 </div>
 
@@ -51,6 +55,64 @@ filedo C: info
 
 `filedo check <dossier>` lit les fichiers et marque comme endommagé celui qui se lit lentement (> 2,0 s) ou avec une erreur du périphérique. Les listes des fichiers endommagés et bien lus se trouvent dans `%LOCALAPPDATA%\FileDO\state` et désignent un fichier par son chemin, sa taille, son heure de modification ainsi que le volume et le fichier sur lesquels il a été enregistré : un fichier modifié, ou une copie au même chemin sur une autre carte sous la même lettre de lecteur, est relu ; les entrées des anciennes versions sans volume ne sont pas prises pour acquises. Un fichier uniquement en ligne (un espace réservé de OneDrive ou d'un autre cloud, ou un fichier hors ligne) n'est jamais ouvert - ni pendant un parcours, ni quand c'est justement lui qu'on vérifie -, donc rien n'est téléchargé. Il est compté comme `not-read(online-only)`, n'est jamais enregistré comme endommagé et rend l'exécution « vérification impossible » (code 2), sauf si un fichier endommagé a été trouvé (code 1).
 
+### CHECK : options CLI (les options priment sur les variables d'environnement)
+
+Les options reprennent les variables d'environnement `FILEDO_CHECK_*` et sont prioritaires. Ajoutez-les après `check <path>`.
+
+- Général
+	- `--threshold <sec>` (FILEDO_CHECK_THRESHOLD_SECONDS)
+	- `--warmup <sec>` (FILEDO_CHECK_WARMUP_SECONDS)
+	- `--warmup-idle <sec>` (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)
+	- `--workers <int>` (FILEDO_CHECK_WORKERS)
+	- `--buf-kb <int>` (FILEDO_CHECK_BUF_KB)
+	- `--mode quick|balanced|deep` (FILEDO_CHECK_MODE)
+	- `--balanced-min-mb <int>` (FILEDO_CHECK_BALANCED_MIN_MB)
+	- `--min-mb <float>` / `--max-mb <float>` (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)
+	- `--include-ext ".jpg,.png"` / `--exclude-ext ".bak,.tmp"` (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)
+- Limites
+	- `--max-files <int>` (FILEDO_CHECK_MAX_FILES)
+	- `--max-seconds <float>` (FILEDO_CHECK_MAX_DURATION_SEC)
+	- `--precount` / `--no-precount` (FILEDO_CHECK_PRECOUNT)
+- Comportement et sortie
+	- `--dry-run` (FILEDO_CHECK_DRYRUN)
+	- `--verbose` (FILEDO_CHECK_VERBOSE)
+	- `--quiet` (FILEDO_CHECK_QUIET)
+	- `--resume` (FILEDO_CHECK_RESUME) - reprendre : ignorer les fichiers déjà lus sans erreur lors d'une exécution précédente (liste des fichiers sains)
+- Rapports
+	- `--report csv|json` (FILEDO_CHECK_REPORT)
+	- `--report-file <path>` (FILEDO_CHECK_REPORT_FILE)
+- Cache des fichiers sains
+	- `--good-list <path>` (FILEDO_CHECK_GOODLIST)
+- E/S adaptée aux disques durs (un lecteur + régulation adaptative)
+	- `--single-reader auto|on|off` (FILEDO_CHECK_SINGLE_READER)
+	- `--ewma-alpha <float>` (FILEDO_CHECK_EWMA_ALPHA)
+	- `--ewma-high-frac <float>` (FILEDO_CHECK_EWMA_HIGH_FRAC)
+	- `--ewma-low-frac <float>` (FILEDO_CHECK_EWMA_LOW_FRAC)
+	- `--max-sleep-ms <int>` (FILEDO_CHECK_MAX_SLEEP_MS)
+	- `--sleep-step-ms <int>` (FILEDO_CHECK_SLEEP_STEP_MS)
+	- `--hdd-sleep-ms <int>` (FILEDO_CHECK_HDD_SLEEP_MS) - pause fixe après chaque fichier pour chaque lecteur
+
+Exemples :
+
+```bash
+# Mode équilibré, nombre de lecteurs et comptage préalable pour l'ETA
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Forcer un seul lecteur avec régulation adaptative pour HDD/USB
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Filtrer par extensions, limiter le nombre de fichiers et enregistrer un rapport CSV
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Utiliser une liste de fichiers sains et une sortie discrète
+filedo check D:\Data --good-list D:\check_files.list --quiet
+```
+
+- Temps de chauffe unique jusqu'à 10.0 s avant la première lecture (démarrage du disque)
+- Les listes de fichiers endommagés et sains se trouvent dans `%LOCALAPPDATA%\FileDO\state` (jamais à côté de vos fichiers) et identifient chaque fichier par son chemin, sa taille et son heure de modification ; un fichier modifié est donc relu ; copy possède sa propre liste d'exclusion
+- Un fichier déjà dans la liste des fichiers endommagés est signalé de nouveau sans être relu (code 1) ; un fichier ou dossier verrouillé ou illisible signifie « vérification impossible » (code 2), pas « endommagé » ; les lecteurs parallèles et Ctrl+C sont pris en charge
+- Un fichier uniquement en ligne (espace réservé OneDrive ou d'un autre cloud, ou fichier hors ligne) n'est ni ouvert ni téléchargé ; `not-read(online-only)` signifie « vérification impossible » (code 2), sauf si un fichier endommagé a été trouvé (code 1)
+
 ### Installation
 
 #### Option 1 - winget
@@ -62,6 +124,15 @@ winget install SerZhyAle.FileDO
 Installe les outils en ligne de commande (`filedo`, `filedo_check`, `filedo_fill`, `filedo_test`) et la fenêtre graphique `filedo_win` (une page par tâche), et les ajoute au `PATH`.
 
 Également disponible dans le [Microsoft Store](https://apps.microsoft.com/detail/9PH1LPCMRG83) - les mêmes outils, installés et mis à jour par le Store.
+
+Ou avec [Scoop](https://scoop.sh), depuis le bucket de l'auteur:
+
+```powershell
+scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket
+scoop install serzhyale/filedo
+```
+
+Scoop installe les mêmes outils depuis le zip de la release, les ajoute tous les cinq à son `PATH` et crée dans le menu Démarrer une entrée **FileDO** pour la fenêtre; `scoop update filedo` le met à jour, `scoop uninstall filedo` le supprime.
 
 #### Option 2 - Programme d'installation (setup EXE)
 
@@ -102,7 +173,7 @@ Un paquet, deux entrées: la tuile **FileDO** et la commande `filedo` dans le `P
 
 #### Intégration à l'Explorateur sans programme d'installation
 
-winget, l'archive portable et `go install` ne lancent aucun programme d'installation et n'enregistrent donc rien. Le même groupe et le même type de document se demandent soi-même - et se reprennent de la même façon:
+winget, Scoop, l'archive portable et `go install` ne lancent aucun programme d'installation et n'enregistrent donc rien. Le même groupe et le même type de document se demandent soi-même - et se reprennent de la même façon:
 
 ```powershell
 filedo fdsec register              # pour cet utilisateur
@@ -121,6 +192,9 @@ FileDO ne retire que ce qu'il a marqué comme sien: un type de document qui appa
 <td width="50%">
 
 ### Test de Périphériques
+
+Guide : [Vérifier un stockage](https://serzhyale.github.io/FileDO/fr/guides/check-storage.html).
+
 ```bash
 # Informations
 filedo C: info
@@ -139,6 +213,9 @@ filedo D: speed max
 <td width="50%">
 
 ### Opérations Fichiers et Dossiers
+
+Guides : [Doublons, copie et comparaison](https://serzhyale.github.io/FileDO/fr/guides/files-and-copies.html) et [Effacer et écraser](https://serzhyale.github.io/FileDO/fr/guides/erase.html).
+
 ```bash
 # Analyse de dossier
 filedo C:\temp info
@@ -167,6 +244,8 @@ filedo C:\temp clean
 ---
 
 ## Fichiers secrets (`.fd-sec`)
+
+Guide : [Fichiers secrets](https://serzhyale.github.io/FileDO/fr/guides/fd-sec-containers.html).
 
 Un fichier - ou un dossier, toute son arborescence - entre dans un conteneur, derrière un mot de passe, et
 en ressort - depuis la ligne de commande, depuis le menu de l'Explorateur, ou depuis les pages du groupe
@@ -250,6 +329,8 @@ l'entrée du même nom dans le menu de l'Explorateur.
 ---
 
 ## Sauvegarde et restauration
+
+Guide : [Un dossier dans un seul fichier de sauvegarde](https://serzhyale.github.io/FileDO/fr/guides/fd-sec-containers.html#backup).
 
 Un dossier, un lecteur entier ou un partage réseau entre dans un seul fichier - un `.zip` ordinaire que
 tout outil zip ouvre sur n'importe quel ordinateur, ou ce zip scellé dans un conteneur `.fd-sec` derrière
@@ -353,6 +434,8 @@ choix de garder la première de chaque mois) et comment nommer le jeu.
 
 ## Disques virtuels (`.fdd`)
 
+Guide : [Disques virtuels](https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html).
+
 Un conteneur est un fichier `.fdd` ordinaire qui contient un volume entier. Monté, c'est une lettre de
 lecteur comme une autre; démonté, c'est un fichier que l'on peut copier, sauvegarder ou lire avec FileDO
 seul, sans le monter. Le format est publié en entier comme contrat `FDD-FORMAT`, et ce que doit faire un
@@ -433,7 +516,7 @@ Ce qu'il faut à la plateforme, dit franchement:
   et une nouvelle fenêtre les liste de nouveau; démontez dans le Gestionnaire de disques, sur les pages du groupe *Disques* ou avec
   `filedo X: unmount`.
 
-Dans le **Gestionnaire de disques**, sélectionnez un disque sur fichier enregistré et **Partager via Fast Media Sorter & Sharing..** dans les détails ou le menu Plus (`Ctrl+Shift+S`). Démarrez d’abord Share Manager. Si le worker est inaccessible, le dialogue propose une nouvelle vérification et la [page d’installation](https://serzhyale.github.io/FastMediaSorter_Lite/) ; cela ne prouve pas une installation absente. Activez si nécessaire le composant FileDO facultatif. L’installateur de bureau n’est pas signé. Lecture et écriture par défaut, la lecture seule se coche ; les disques sealed restent en lecture seule. Choisissez le nom du dossier et éventuellement son ouverture aux appareils associés. Un disque monté par FileDO est déconnecté proprement après confirmation ; la RAM est enregistrée par la déconnexion normale. Acceptez explicitement de désactiver le montage automatique FileDO ; un mode `keep` manuel s’arrête à la déconnexion. Le démarrage FMS s’active séparément. **Fermer le disque partagé** conserve l’enregistrement ; **Arrêter le partage** le supprime avec sa clé de démarrage enregistrée. En cas d’échec, les étapes terminées restent appliquées : actualisez, réessayez l’action restante ou arrêtez le partage avant de rétablir explicitement le montage local et la politique automatique antérieure. Associez les appareils via Share Manager. Les fichiers sont publiés via SFTP, sans partage SMB Windows. Le mode session exige une connexion ; un service fonctionne sans connexion. Disques sur partition et contrôles externes Store non vérifiés sont indisponibles ici ; utilisez la version de bureau. La page pas a pas - preconditions, chaque dialogue et le retablissement - est [Partager les disques FileDO avec Fast Media Sorter](https://serzhyale.github.io/FileDO/guides/fms-sharing.html).
+Dans le **Gestionnaire de disques**, sélectionnez un disque sur fichier enregistré et **Partager via Fast Media Sorter & Sharing..** dans les détails ou le menu Plus (`Ctrl+Shift+S`). Démarrez d’abord Share Manager. Si le worker est inaccessible, le dialogue propose une nouvelle vérification et la [page d’installation](https://serzhyale.github.io/FastMediaSorter_Lite/) ; cela ne prouve pas une installation absente. Activez si nécessaire le composant FileDO facultatif. L’installateur de bureau n’est pas signé. Lecture et écriture par défaut, la lecture seule se coche ; les disques sealed restent en lecture seule. Choisissez le nom du dossier et éventuellement son ouverture aux appareils associés. Un disque monté par FileDO est déconnecté proprement après confirmation ; la RAM est enregistrée par la déconnexion normale. Acceptez explicitement de désactiver le montage automatique FileDO ; un mode `keep` manuel s’arrête à la déconnexion. Le démarrage FMS s’active séparément. **Fermer le disque partagé** conserve l’enregistrement ; **Arrêter le partage** le supprime avec sa clé de démarrage enregistrée. En cas d’échec, les étapes terminées restent appliquées : actualisez, réessayez l’action restante ou arrêtez le partage avant de rétablir explicitement le montage local et la politique automatique antérieure. Associez les appareils via Share Manager. Les fichiers sont publiés via SFTP, sans partage SMB Windows. Le mode session exige une connexion ; un service fonctionne sans connexion. Disques sur partition et contrôles externes Store non vérifiés sont indisponibles ici ; utilisez la version de bureau. La page pas a pas - preconditions, chaque dialogue et le retablissement - est [Partager les disques FileDO avec Fast Media Sorter](https://serzhyale.github.io/FileDO/fr/guides/fms-sharing.html).
 
 **Partage d'un disque via Fast Media Sorter for Windows (facultatif).** Si Fast Media Sorter for Windows est
 installé, `vd share work.fdd on` propose un disque aux téléphones et tablettes que vous lui avez associés,
@@ -462,9 +545,11 @@ les deux protections exactement comme la console.
 
 Le **Gestionnaire de disques** (en anglais *Disk manager*) est une seconde fenêtre du même `filedo_win.exe` - pas un nouveau programme - avec une ligne par disque virtuel: les disques de votre liste, ceux qui sont montés maintenant et les images VHD, VHDX ou ISO que FileDO a montées. Chaque ligne dit son état en toutes lettres à côté d'une icône (*Monté*, *Monté, lecture seule*, *Monté, 180 MiB non enregistrés* pour un disque `ram`, *Serveur disparu - volume hors ligne*, *Image montée*, *Fichier absent*, *Un autre conteneur se trouve à ce chemin*, *Illisible*, *Mal fermé*, *Non monté*), et la liste se tient à jour sans actualisation manuelle. Autour d'elle: une barre d'outils (*Nouveau disque..*, *Ajouter..*, *Monter*, *Démonter*, *Ouvrir*, *Enregistrer*, *Autres actions*, *Actualiser*, *Aide*, *Fenêtre principale*), une ligne de filtre et un volet de détails avec les boutons qui s'appliquent; un bouton inutilisable dit pourquoi dans son info-bulle et dans le volet, et la version du Microsoft Store, qui ne peut jamais monter, masque les commandes de montage au lieu de les griser. Un double-clic ou Entrée monte un disque au repos et ouvre le lecteur d'un disque monté - il ne démonte jamais; faites glisser des fichiers `.fdd` sur la liste pour les ajouter, ou un `.vhd`, `.vhdx` ou `.iso` pour monter une image après une confirmation. *Nouveau disque..* demande d'abord où le disque garde ses données: *Fichier sur un lecteur..* ouvre la page *Créer un disque* dans la fenêtre principale, *Partition dans l'espace libre..* la boîte de dialogue de partition du gestionnaire lui-même - une carte de l'espace libre de chaque disque GPT, la taille, le profil, l'étiquette et le nom (la version du Microsoft Store ne propose que le fichier). Pour un disque dans un fichier, *Exporter*, *Compacter*, *Agrandir*, *Copie scellée*, *Cloner*, *Changer le mot de passe*, *Formater* et *Détruire* ouvrent leur page de tâche dans la fenêtre principale avec le conteneur choisi; *Formater* et *Détruire* y gardent la confirmation à saisir. La ligne d'un [disque sur partition](#disques-sur-partition) dit *Partition non connectée* ou *Partition modifiée* quand il n'est plus là où il a été enregistré, propose *Image vers un fichier..* pour le copier dans un nouveau fichier `.fdd`, et il se supprime dans le gestionnaire lui-même: *Détruire* demande de saisir son nom et peut d'abord écraser la partition. *Adopter une partition..* (sous *Autres actions*, ou par un clic droit sur un espace vide) liste les partitions FileDO des disques de cet ordinateur qui ne sont pas dans la liste et ajoute celle qui est choisie sous un nom; la version du Store masque *Image vers un fichier* et *Adopter une partition*.
 
-On l'ouvre par l'entrée **FileDO Disk Manager** du menu Démarrer (le programme d'installation l'ajoute; elle lance `filedo_win.exe --disks`), par le bouton **«Gestionnaire de disques»** en haut à droite de la fenêtre FileDO ou la première ligne de son groupe *Disques* (aussi **Ctrl+Shift+D**), ou avec `filedo_win.exe --disks`; son bouton **«Fenêtre principale»** ramène la fenêtre FileDO au premier plan. **F1** ouvre l'aide - ce que dit une ligne, le tableau des touches, des liens. À la première ouverture, une fenêtre de bienvenue explique ce qu'est un disque virtuel et dit: *Camouflé, pas chiffré: quiconque a ce fichier et FileDO peut le lire. Il s'ouvre sans mot de passe.* *Chiffré: il ne s'ouvre qu'avec son mot de passe.* Elle précise aussi que Windows demande l'accord d'un administrateur à chaque montage et démontage - et, pour un disque sur partition, aussi à chaque lecture; elle propose *Créer mon premier disque..*, *Ajouter un fichier .fdd que j'ai déjà..*, *Lire le guide sur le site* et *Pas maintenant*. Le tableau des touches et les images sont dans le [guide des disques virtuels](https://serzhyale.github.io/FileDO/guides/virtual-disks.html#manager). Fermer le gestionnaire ne démonte jamais un disque.
+On l'ouvre par l'entrée **FileDO Disk Manager** du menu Démarrer (le programme d'installation l'ajoute; elle lance `filedo_win.exe --disks`), par le bouton **«Gestionnaire de disques»** en haut à droite de la fenêtre FileDO ou la première ligne de son groupe *Disques* (aussi **Ctrl+Shift+D**), ou avec `filedo_win.exe --disks`; son bouton **«Fenêtre principale»** ramène la fenêtre FileDO au premier plan. **F1** ouvre l'aide - ce que dit une ligne, le tableau des touches, des liens. À la première ouverture, une fenêtre de bienvenue explique ce qu'est un disque virtuel et dit: *Camouflé, pas chiffré: quiconque a ce fichier et FileDO peut le lire. Il s'ouvre sans mot de passe.* *Chiffré: il ne s'ouvre qu'avec son mot de passe.* Elle précise aussi que Windows demande l'accord d'un administrateur à chaque montage et démontage - et, pour un disque sur partition, aussi à chaque lecture; elle propose *Créer mon premier disque..*, *Ajouter un fichier .fdd que j'ai déjà..*, *Lire le guide sur le site* et *Pas maintenant*. Le tableau des touches et les images sont dans le [guide des disques virtuels](https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html#manager). Fermer le gestionnaire ne démonte jamais un disque.
 
 ### Disques sur partition
+
+Guide : [Disques sur partition](https://serzhyale.github.io/FileDO/fr/guides/virtual-disks.html#partition).
 
 Un disque virtuel peut aussi vivre dans une partition plutôt que dans un fichier. FileDO crée une nouvelle
 partition GPT dans l'espace non alloué d'un disque et la remplit, entière, d'un seul conteneur; rien n'est
@@ -579,8 +664,26 @@ code 7, et une disposition modifiée depuis la liste avec le code 5 - sans que r
 | `clean` | Supprimer fichiers de test | `filedo C: clean` |
 | `check-duplicates` | Trouver doublons de fichiers | `filedo C: check-duplicates` |
 | `cd [mode] [action]` | Vérifier doublons (forme courte) | `filedo D:\Photos cd old del -y` |
+| `copy <target>` | Copier les fichiers avec une indication de progression | `filedo C: copy D:\backup` |
+| `rehash <path>` | Réécrit les fichiers sur place avec un nouveau SHA-256, relançable (PNG, JPEG de smartphone inclus, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB) | `filedo rehash D:\Photos` |
+| `wipe` | Supprimer tout le contenu d'un dossier | `filedo folder C:\temp wipe` |
 | `from <fichier>` | Exécuter commandes par lots | `filedo from script.txt` |
 | `hist` | Afficher historique des opérations | `filedo hist` |
+
+#### Raccourcis de la commande fill
+| Commande | Équivalent | Objectif |
+|----------|------------|----------|
+| `filedo D: fill` | `filedo D: fill 100` | Remplir 100 Mo par défaut |
+| `filedo D: f` | `filedo D: fill 100` | Forme courte |
+| `filedo D: f del` | `filedo D: fill 100 del` | Avec suppression automatique |
+| `filedo D: f d` | `filedo D: fill 100 delete` | Forme courte avec suppression automatique |
+
+#### Raccourcis copy et wipe
+| Commande | Équivalent | Objectif |
+|----------|------------|----------|
+| `filedo copy A B` | `filedo folder A copy B` | Commande générale de copie |
+| `filedo A cp B` | `filedo A copy B` | Forme courte de copy |
+| `filedo A w` | `filedo A wipe` | Forme courte de wipe |
 
 ### Modificateurs
 | Drapeau | Objectif | Exemple |
@@ -618,13 +721,15 @@ Codes de sortie : 0 terminé, 1 la commande s’est exécutée mais l’opérati
 
 Chaque commande à laquelle la fenêtre en cours répond est *sûre* : elle ne modifie que les fenêtres et les exécutions propres de FileDO et ne lit aucun de vos fichiers. Une commande de toute autre classe est refusée avec le code 12 tant que vous n’activez pas dans les réglages l’option **Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau** ; elle est désactivée tant que vous ne l’activez pas, et aucune commande ne la modifie. Les commandes passent par un canal local que seul votre propre compte Windows, dans votre propre session, peut atteindre - jamais par le réseau.
 
-Les cinq commutateurs qu’appellent les scripts de build - `filedo_win.exe selftest run`, `help-pages build --out <dossier>`, `screens capture --out <dossier>`, `menu-icons write --out <dossier>` et `ui-drive run --out <dossier>` - sont aussi des commandes et s’exécutent dans leur propre processus.
+Les six commutateurs qu’appellent les scripts de build - `filedo_win.exe selftest run`, `help-pages build --out <dossier>`, `screens capture --out <dossier>`, `menu-icons write --out <dossier>`, `ui-drive run --out <dossier>` et `ui-showcase capture --out <dossier>` - sont aussi des commandes et s’exécutent dans leur propre processus.
 
-Les outils et agents de développement peuvent lire `docs/CLI.md` et lancer `filedo commands --json` pour voir ce qu’on peut demander à FileDO ; l’état du produit, sans capture d’écran, vient de `filedo status`, `filedo job list` et `filedo vd status json`. Guide : [commandes pour scripts et agents](https://serzhyale.github.io/FileDO/guides/commands.html).
+Les outils et agents de développement peuvent lire `docs/CLI.md` et lancer `filedo commands --json` pour voir ce qu’on peut demander à FileDO ; l’état du produit, sans capture d’écran, vient de `filedo status`, `filedo job list` et `filedo vd status json`. Guide : [commandes pour scripts et agents](https://serzhyale.github.io/FileDO/fr/guides/commands.html).
 
 ---
 
 ## Application GUI
+
+Guide : [Utiliser la fenêtre FileDO (GUI)](https://serzhyale.github.io/FileDO/fr/guides/gui-command-builder.html).
 
 **FileDO GUI** (`filedo_win.exe`) - shell Windows Forms VB.NET : à gauche une colonne de tâches, et pour chaque tâche une page numérotée - ce qu'on traite, quels paramètres, puis vérification et exécution - plus une page **«Commande»**, le constructeur expert, qui assemble et exécute n'importe quelle commande FileDO, et une page **«À propos des opérations»**, qui explique chaque opération en mots simples :
 
@@ -856,7 +961,15 @@ FileDO/
 
 ## Historique des Versions
 
-**v2611171800** (Actuelle)
+**v2611270100** (Actuelle)
+- **Nouveau hachage**: `filedo rehash <path>` réécrit chaque fichier pris en charge sur place : il reçoit un nouveau SHA-256 et une infime variation de taille conforme au format, son contenu et ses métadonnées restent les mêmes et il s'ouvre toujours dans son programme habituel - PNG, JPEG (photos de smartphone avec carte de gain ou photo animée comprises), HEIC et AVIF, WebP, GIF89a, BMP, TIFF et RAW, PDF, ZIP, Office, OpenDocument et EPUB, RTF, fichiers texte et web, JSON, XML et SVG, WAV, FLAC, MP3, AIFF, MP4, MOV et 3GP, MKV et WebM, AVI, MPEG-TS et MPG ; l'original n'est remplacé qu'après vérification du nouveau fichier par un lecteur strict, les fichiers non pris en charge, endommagés, en lecture seule ou signés sont ignorés avec un motif, Windows et Program Files sont refusés, et les mêmes fichiers peuvent être retraités autant de fois que voulu
+- **Sauvegarde**: `keep-days <1-999>` garde des sauvegardes datées et supprime celles qui ont plus que ce nombre de jours, d'après la seule date du nom de fichier ; `keep-monthly` garde en plus pour toujours la première sauvegarde de chaque mois ; les anciens fichiers ne sont supprimés qu'après relecture du nouveau, et **Sauvegarder un dossier** propose les deux
+- **Guides**: les pages de la fenêtre principale et le Gestionnaire de disques renvoient au guide du site sur ce que vous faites, dans votre langue lorsque le site la propose, en anglais sinon
+- **Fenêtre**: une page de tâche conserve la cible et les options saisies quand vous consultez une autre page puis revenez, les champs de mot de passe et de confirmation restant effacés ; un lecteur réseau lent ou déconnecté ne fige plus la fenêtre pendant la liste des lecteurs ; les longs libellés des préréglages du test de vitesse ne sont plus coupés après un changement de page sur les écrans à haute résolution ; le Gestionnaire de disques s'ouvre sur l'écran de la fenêtre qui l'a demandé
+- **Apparence et noms**: l'icône du programme, les visuels du Store, le site et les images de partage dessinent désormais le même signe du produit ; la ligne **Gestionnaire de disques** du rail de gauche affiche une icône de disque à la couleur de son groupe, avec une marque indiquant qu'elle ouvre sa propre fenêtre ; la boîte de dialogue de ce qui démarre tout seul s'appelle désormais **Démarrer avec Windows** ; le bouton qui ouvre le rail dans une fenêtre étroite affiche **Menu**
+- **Installation et docs**: FileDO s'installe aussi avec Scoop (`scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket`, puis `scoop install serzhyale/filedo`) ; le site gagne une référence des commandes et une courte démonstration de la fenêtre, et le README de chaque langue contient les mêmes tableaux de commandes
+
+**v2611171800** (Précédente)
 - **Commandes pour scripts et agents**: `filedo status`, `filedo show`, `filedo quit`, `filedo job list`, `filedo job stop`, `filedo disk-manager show`, `filedo settings show` et `filedo tray start` s'adressent à la fenêtre FileDO déjà ouverte et se terminent par sa réponse sous forme de code de sortie - aucune seconde copie ne s'ouvre ; `filedo commands [--json]` liste toutes les commandes et `filedo version [--json]` donne la version ; `filedo_win.exe open --path <fichier>` ouvre un conteneur `.fdd` ou `.fd-sec` dans sa propre fenêtre, la forme nommée du lancement que fait l'Explorateur ; une commande qui travaillerait avec vos fichiers, l'écran, le presse-papiers ou le réseau est refusée tant que vous n'avez pas activé dans les Réglages **Permettre à d’autres programmes de demander à FileDO de travailler avec mes fichiers, l’écran, le presse-papiers ou le réseau** - c'est désactivé par défaut ; les commandes passent par un canal local que seul votre propre compte Windows peut atteindre, jamais par le réseau
 - **Sauvegarde**: le résultat est un seul fichier nommé `<source>-<yyMMddHHmm>`, par exemple `Photos-2611171652.zip`, ou `.fd-sec` s'il est scellé ; `gen 7` garde un jeu numéroté des 7 dernières sauvegardes (`Photos_001.zip` .. `Photos_007.zip`) dans le dossier que nomme `to`, et `stem <nom>` nomme le jeu ; le nouveau fichier est relu avant que le plus ancien ne soit retiré, et une exécution échouée ou arrêtée ne supprime rien ; la page **Sauvegarder un dossier** demande aussi combien de sauvegardes garder
 - **Page « Commande »**: **Parcourir les commandes..** liste chaque opération en six groupes avec une description d'une ligne, et **Utiliser cette commande** la sélectionne dans la liste ; la place du résultat a son propre sélecteur de dossier, et la fenêtre retient les dossiers choisis, les 12 dernières commandes lancées (**Récents..** en remet une sur la ligne de commande) ainsi que l'opération, la cible et la destination où la page a été laissée - une exécution tenue hors de l'historique avec `nohist`, une ligne qui porte un mot de passe et toute exécution quand l'historique est désactivé ne sont jamais retenues, les options non plus, et **Oublier les commandes et dossiers récents** vide tout
@@ -865,7 +978,7 @@ FileDO/
 - **Fenêtre**: le menu *Autres actions* du Gestionnaire de disques affiche une icône sur chaque entrée, et l'archive de diagnostic n'énumère plus de compteurs à zéro pour des données de médiathèque que ce produit n'a pas
 - **Docs**: un nouveau guide du site sur les commandes pour scripts et agents, en cinq langues, et `docs/CLI.md`, la liste de ces commandes générée depuis `filedo commands --json` ; la page de confidentialité nomme les réglages de la fenêtre conservés sous votre propre clé utilisateur du registre
 
-**v2611110217** (Précédente)
+**v2611110217**
 - **Sauvegarde**: `filedo backup` emballe un dossier, un lecteur ou un dossier réseau dans un seul zip que tout outil zip ouvre - FileDO choisit la densité de compression après un coup d'œil d'au plus 10 secondes aux fichiers, ou `level 0-9` la fixe - et `sec` scelle le zip dans un conteneur `.fd-sec` derrière un mot de passe ; `filedo restore` reconstruit le dossier à côté de la sauvegarde ou là où `to` l'indique, sans jamais fusionner avec un dossier ni le remplacer ; dans la fenêtre, le groupe **Protéger** a les pages *Sauvegarder un dossier* et *Restaurer une sauvegarde*
 - **Codes de sortie**: une exécution qui ne peut pas aboutir en donne la raison par son code de sortie : 10 une erreur dans la commande, 11 une cible absente ou pas prête, 12 des droits manquants, 13 trop peu d'espace, 14 une erreur d'E/S, 15 une panne réseau, 16 arrêtée par vous ; 0, 1 et 2 gardent leur sens
 - **Raisons**: quand une exécution ne peut pas aboutir, la carte de résultat en donne la raison dans la langue de la fenêtre - un lecteur plein, un fichier qu'un autre programme a ouvert - au lieu d'un simple code de sortie, et le Gestionnaire de disques fait de même ; une copie à court de place dit que le lecteur est plein ; un fichier tenu ouvert par un autre programme est nommé avec ce programme, et il suffit de relancer une fois le fichier libéré
@@ -903,7 +1016,13 @@ FileDO/
 - **Limites**: Windows uniquement; monter demande l'accord d'un administrateur; la version du Microsoft Store lit, vérifie et exporte les conteneurs mais ne peut ni les monter, ni utiliser les disques sur partition, ni les partager
 - **Documentation**: nouveaux guides - disques virtuels et partage de disques via Fast Media Sorter; pages du site en allemand et en français, et une page des nouveautés
 
+**v2609260512**
+- **Fichiers secrets (`.fd-sec`)** : un conteneur que Windows ne laisse pas FileDO lire est signalé comme illisible, et non comme endommagé
+- **Doublons** : les fichiers dont le hachage ne peut pas être calculé figurent dans le rapport au lieu d'être omis en silence ; si le fichier de liste ne peut pas être écrit, `del` et `move` s'arrêtent avant de toucher un fichier
+- **Test de capacité** : le rapport nomme les fichiers de test qu'il conserve
+
 **v2609241700**
+- **Installateur** : le setup EXE - un bundle WiX contenant le MSI - est publié à côté du MSI nu et du zip
 - **Fichiers secrets (`.fd-sec`)** : un fichier est placé dans un conteneur protégé par mot de passe puis restauré - `secure`, `unsecure`, `reveal` - en ligne de commande, depuis le menu de l'Explorateur ou les pages Protect de la fenêtre ; le vrai nom, la taille et les dates de l'original sont scellés à l'intérieur
 - **Intégration à l'Explorateur** : le setup ajoute le groupe `File DO..` au menu contextuel (Secure, Unsecure, Wipe this file, Check this file, Info) et le type de document `.fd-sec` ; `filedo fdsec register` / `unregister` fait de même sans installateur
 - **GUI** : une nouvelle fenêtre - la liste des tâches à gauche, une page par tâche avec toutes les options de la CLI, plus les pages Command, History, Settings et About ; l'ancienne fenêtre de construction de commandes est retirée
@@ -926,13 +1045,23 @@ FileDO/
 - **Copie** : parcours de répertoires allégés lors de la copie
 
 **v2605152056**
-- **Installateur** : setup EXE (un bundle WiX contenant le MSI) et le MSI nu ; icône d'application intégrée dans tous les EXE et l'entrée des programmes installés
-- **Store** : spécification de publication sur le Microsoft Store et image d'aperçu
+- **Publication** : le build de v2605152052, publié à nouveau ; aucun changement
+
+**v2605152052**
+- **Icône** : l'icône de l'application est intégrée dans tous les EXE et dans l'entrée du MSI parmi les programmes installés
+
+**v2605152042**
+- **Installateur** : le premier MSI - FileDO s'installe comme un programme Windows, avec le zip à côté
 
 **v2604272228**
-- **Distribution** : première publication sur winget (SerZhyAle.FileDO) et pipeline de release GitHub Actions
+- **Distribution** : première publication sur winget (SerZhyAle.FileDO)
 - **Binaires** : informations de version PE et manifeste d'application Windows intégrés dans tous les binaires
+
+**v2604271301**
+- **Distribution** : la première publication sur GitHub - un zip construit par le pipeline de release GitHub Actions
 - **Documentation** : pages GitHub Pages repensées et simplifiées
+
+Avant les publications sur GitHub :
 
 **v2507112115**
 - **Refactorisation majeure** : Logique de test de capacité extraite dans un package `capacitytest` dédié
@@ -958,7 +1087,7 @@ FileDO/
 
 <div align="center">
 
-**FileDO v2611171800** - Outil Avancé pour Fichiers et Stockage
+**FileDO v2611270100** - Outil Avancé pour Fichiers et Stockage
 
 Créé par **sza@ukr.net** | [Licence MIT](LICENSE) | [Dépôt GitHub](https://github.com/SerZhyAle/FileDO) | [Universal Agent Kit](https://serzhyale.github.io/universal-agent-kit/)
 

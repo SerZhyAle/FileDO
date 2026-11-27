@@ -25,5 +25,7 @@
 weight and contrast, activation, accessibility state, collapsed body) and the existing `windows-ui:*`,
 `rail-groups:*` rows.
 
-**Status: header implemented, flow evidence owed (SP-0169 slice S1, 2026-10-21).** Owed: the per-job flag groups of
-the Damaged page, scroll-anchoring evidence and the showcase captures (S2, S4).
+**Status: header and flow rows built, captures owed (SP-0169; slice S1 2026-10-21).** The `group:*` rows of the
+release gates of `v2611110217` and `v2611171800` ran all-or-nothing green on the built Settings groups (no per-row
+log retained). The Damaged page's 29 flags stay titled label groups, the packing decision recorded with the S5
+timing (G29). Owed: scroll-anchoring evidence and the showcase captures (S4).

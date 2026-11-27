@@ -527,6 +527,23 @@ Partial Public Module SelfTest
         Check("settings-nav:ink", mono.Count = 0,
               If(mono.Count = 0, "identity-coloured: " & RailRow.All.Length.ToString() & " rows", "mono: " & String.Join(", ", mono.ToArray())))
 
+        ' 2.4 item H, 1: a row that opens a window is marked as an action, its label clear of the mark;
+        ' no page row is.
+        Using act As New RailEntry With {.Key = RailRow.DiskManagerKey, .RowUnit = unit, .Size = New Size(240, unit),
+                                         .Text = "x", .IsChild = True}
+            Dim labelRight = act.LabelBounds(act.Width, act.Height).Right
+            Dim markLeft = act.ChevronSquare(act.Width, act.Height).Left
+            Dim actions = RailRow.All.Where(Function(r) Not r.IsGroup).Count(
+                Function(r)
+                    Using e As New RailEntry With {.Key = r.Key}
+                        Return e.IsAction
+                    End Using
+                End Function)
+            Check("settings-nav:action-row", act.IsAction AndAlso actions = 1 AndAlso labelRight <= markLeft AndAlso
+                  Glyphs.IsDrawable(RailEntry.ActionMark.Id),
+                  "label ends " & labelRight.ToString() & ", mark starts " & markLeft.ToString() & ", action rows " & actions.ToString())
+        End Using
+
         CheckAboutSet()
         CheckSettingsDialogNavigation()
         CheckNarrowNavigation()

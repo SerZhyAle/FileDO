@@ -23,11 +23,18 @@
 #    5. wait       - poll until the GitHub Release + all six assets exist
 #    6. winget     - sync winget/*.yaml (version, URL, SHA256, date), CHECK them, commit, push
 #    7. submit     - wingetcreate submit -> PR to microsoft/winget-pkgs
+#   7b. scoop      - bring bucket/filedo.json in the own Scoop bucket (SerZhyAle/scoop-bucket) to this
+#                    release: SHA256 from the .sha256 file and GitHub's digest, one commit, read back
+#                    (packaging\update-scoop-bucket.ps1)
 #    8. store      - build the MSIX for Microsoft Store (upload stays manual), only from
 #                    sources equal to the tag (HEAD = tag outside winget\, tree clean)
 #    9. site       - write packaging\release-manifest.json from the published release,
 #                    render the five landing pages, check external-docs, commit, push
 #   10. checklist  - print what is done, what failed and why, and the manual step left
+#
+#  After step 9 the SP-0167 dynamic audit stand fixes the tagged build (-LockBuild) and runs its self-test and control run
+#  (PLAN\SP-0167 dynamic-audit-five-properties\dynaudit.ps1 -SelfTest, -Control); the checklist
+#  reports both verdicts for the owner to read. It never fails a release; -SkipDynamicAudit skips it.
 #
 #  The release ledger (RELEASE-LEDGER 0.1, docs\releases\): the gate's build records itself as a release
 #  build, and each channel step records its state through packaging\release-ledger.ps1 (GitHub and the
@@ -40,10 +47,12 @@
 #    .\release.ps1 -DryRun         # do everything EXCEPT push tag / submit / Store
 #    .\release.ps1 -SkipStore      # skip the MSIX build (CLI + winget only)
 #    .\release.ps1 -SkipWinget     # skip winget sync + submit
+#    .\release.ps1 -SkipScoop      # skip the Scoop bucket update (step 7b)
 #    .\release.ps1 -SkipOpsMount   # operations run without its mounted-disk tier (no UAC prompt)
 #    .\release.ps1 -OpsRebaseline  # accept this operations run as the new baseline (an intended
 #                                  # change of behaviour or speed that its comparison would fail)
 #    .\release.ps1 -WingetInstallTest   # also install the synced manifest here, then uninstall
+#    .\release.ps1 -SkipDynamicAudit    # leave out the SP-0167 audit stand's self-test and control run
 #    .\release.ps1 -Resume -Version 2606271600 [-SkipStore]
 #                                  # the tag is already on origin: skip steps 1-4 and carry
 #                                  # on from the wait (after a failed winget or Store step, a
@@ -77,6 +86,8 @@ param(
     [switch]$Resume,
     [switch]$SkipStore,
     [switch]$SkipWinget,
+    # Leave the own Scoop bucket (SerZhyAle/scoop-bucket) at the release it carries (step 7b).
+    [switch]$SkipScoop,
     # Leave the mounted-virtual-disk tier out of the operations run (it needs administrator rights).
     [switch]$SkipOpsMount,
     # The operations run compares itself with the last passing runs (function and speed); this
@@ -92,6 +103,8 @@ param(
     # (packaging\check-winget-manifests.ps1 -Install). Off by default: it proves the zip layout
     # is real, but it writes into the operator's own profile.
     [switch]$WingetInstallTest,
+    # Leave out the SP-0167 dynamic audit stand (its self-test and control run after the site step).
+    [switch]$SkipDynamicAudit,
     # How long to wait for the GitHub Release to appear after pushing the tag.
     [int]$WaitMinutes = 25
 )
@@ -106,6 +119,7 @@ $repo = "SerZhyAle/FileDO"
 $script:inPreflight = $true
 $storeFailure = $null
 $wingetFailure = $null
+$scoopFailure = $null
 $siteFailure = $null
 if ($Resume -and -not $Version) {
     Write-Host "release-preflight: COULD NOT VERIFY (-Resume needs -Version <stamp> - the tag it resumes)" -ForegroundColor Yellow
@@ -200,7 +214,8 @@ function Get-StorePreflightScript {
 
 # Contract catch-up preflight (CONTRACTS section 6 item 6): first step of every release (when not
 # -Resume). Fails closed (exit 2) when the sza plugin contract tools or catalog are unreachable, and
-# blocks (exit 1) when any FileDO row is behind, pending, unparsed, ahead, partial without an active
+# blocks (exit 1) when any row of the repository key `filedo` (REGISTRY section 2: the Product cell starts
+# with the key, a surface in parentheses) is behind, pending, unparsed, ahead, partial without an active
 # Section 3 dated reason/migration row, or flagged with a FileDO error by check-contracts.ps1.
 function Invoke-ContractCatchupPreflight {
     $lagTool = Get-SzaPluginTool 'tools\contract-lag.ps1'
@@ -208,7 +223,7 @@ function Invoke-ContractCatchupPreflight {
     if (-not $lagTool -or -not $checkTool) {
         Fail "contract catch-up preflight could not find tools\contract-lag.ps1 or tools\check-contracts.ps1 in the installed sza plugin - nothing tagged." 2
     }
-    $lagArgs = @('-NoProfile', '-File', $lagTool, '-Product', 'FileDO', '-Json')
+    $lagArgs = @('-NoProfile', '-File', $lagTool, '-Product', 'filedo', '-Json')
     if ($env:SZA_CONTRACTS_ROOT) { $lagArgs += @('-CatalogRoot', $env:SZA_CONTRACTS_ROOT) }
     $lagRaw = (& pwsh @lagArgs 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0) {
@@ -224,8 +239,12 @@ function Invoke-ContractCatchupPreflight {
     $regLines = Get-Content -LiteralPath (Join-Path $catalogPath '_meta\REGISTRY.md')
     $sec3Idx = ($regLines | Select-String -Pattern '^##\s+3\.\s+' | Select-Object -First 1).LineNumber
     if (-not $sec3Idx) { $sec3Idx = 900 }
+    # A Section 3 row is ours when its Product cell starts with the key, matched case-sensitively as
+    # contract-lag.ps1 matches it, so another product's row that only mentions FileDO in its text is not.
     $activeSec3 = @($regLines | Select-Object -Skip ($sec3Idx - 1) | Where-Object {
-        $_ -match '^\|' -and $_ -match '\bFileDO\b' -and $_ -notmatch '\|\s*closed\s*\|\s*$' -and $_ -notmatch '\|\s*closed\s*$'
+        $cells = $_ -split '\|'
+        $_ -match '^\|' -and $cells.Count -gt 2 -and $cells[2].Trim() -cmatch '^filedo(\s|\(|$)' -and
+            $_ -notmatch '\|\s*closed\s*\|\s*$' -and $_ -notmatch '\|\s*closed\s*$'
     })
     $badLag = @()
     foreach ($r in @($lag.rows)) {
@@ -248,6 +267,21 @@ function Invoke-ContractCatchupPreflight {
         Fail "contract catch-up preflight blocked the release ($($reasons.Count) FileDO row issue(s); sync against the catalog first) - nothing tagged." 1
     }
     Write-Host "  contracts: PASS ($($lag.rows.Count) FileDO rows; current $($lag.counts.current), partial $($lag.counts.partial) with dated reasons, 0 behind/pending/unparsed/errors)"
+
+    # PRODUCT-IDENTITY 0.4 section 6 rung 2 / rule 10 (FILEDO-0243): -Release turns a rendition row whose
+    # renderedFrom differs from master.sha256 (such as the 21 Store logo files before assets\make-product-icons.ps1
+    # -StoreLogos runs) from a between-releases NOTE into a pre-flight finding, stopping the release before the tag.
+    $identityChecker = Join-Path $catalogPath 'product-identity\reference\Test-ProductIdentity.ps1'
+    if (-not (Test-Path -LiteralPath $identityChecker -PathType Leaf)) {
+        Fail "product-identity preflight could not find '$identityChecker' in the catalog - nothing tagged." 2
+    }
+    $identityOut = @(& pwsh -NoProfile -File $identityChecker -RepoRoot $root -Release 2>&1)
+    $identityCode = $LASTEXITCODE
+    if ($identityCode -ne 0) {
+        $identityOut | ForEach-Object { Write-Host "    $_" -ForegroundColor $(if ($identityCode -eq 2) { 'Yellow' } else { 'Red' }) }
+        Fail "product-identity preflight (-Release) did not pass (run assets\make-product-icons.ps1 -StoreLogos if Store logos are rendered from an earlier master) - nothing tagged." $(if ($identityCode -eq 2) { 2 } else { 1 })
+    }
+    Write-Host "  identity : $(($identityOut | Select-Object -Last 1))"
 }
 
 # The four-part MSIX version build-msix.ps1 stamps for a release stamp (its storeVer): yy.MMdd.HHmm.0.
@@ -779,6 +813,22 @@ try {
     }
 
     # -----------------------------------------------------------------------
+    # 7b. Own Scoop bucket: bucket/filedo.json in SerZhyAle/scoop-bucket to this release
+    # -----------------------------------------------------------------------
+    # The template's Excavator schedule does not keep the bucket current (GitHub never registered it), so the
+    # release does: one commit through the contents API, read back. Idempotent, so -Resume repeats it safely.
+    if (-not $SkipScoop) {
+        Step "7b/10 Scoop bucket"
+        $scoopCode = Invoke-Native { pwsh -NoProfile -File "$root\packaging\update-scoop-bucket.ps1" -Version $Version }
+        if ($scoopCode -ne 0) {
+            $scoopFailure = "update-scoop-bucket.ps1 exited $scoopCode - SerZhyAle/scoop-bucket still serves an older release"
+            Write-Host "  Scoop FAILED: $scoopFailure" -ForegroundColor Red
+        }
+    } else {
+        Step "7b/10 Scoop bucket"; Write-Host "  skipped (-SkipScoop)."
+    }
+
+    # -----------------------------------------------------------------------
     # 8. Microsoft Store (MSIX build; the upload and the submission stay manual - no write call through the Store API or msstore)
     # -----------------------------------------------------------------------
     if (-not $SkipStore) {
@@ -894,22 +944,54 @@ try {
     }
     if ($siteFailure) { Write-Host "  site FAILED: $siteFailure" -ForegroundColor Red }
 
+    # Dynamic audit stand (SP-0167, release tier by the owner's 2026-10-30 and 2026-11-18 decisions): its
+    # build lock, self-test and control run go here, after every channel, so they never delay or shape what is
+    # published. Neither starts the product. The verdicts are reported for the owner to read, and like the
+    # ledger the stand never fails a release; -SkipDynamicAudit leaves it out.
+    $dynAuditTxt = 'skipped (-SkipDynamicAudit)'
+    if (-not $SkipDynamicAudit) {
+        Write-Host ""
+        Write-Host "dynamic audit stand (SP-0167: dynaudit.ps1 -LockBuild -Tag $tag, -SelfTest, -Control) ..."
+        $dynAudit = Join-Path $root 'PLAN\SP-0167 dynamic-audit-five-properties\dynaudit.ps1'
+        if (-not (Test-Path -LiteralPath $dynAudit)) {
+            $dynAuditTxt = 'not run - the stand is missing (PLAN\SP-0167 dynamic-audit-five-properties\dynaudit.ps1)'
+        } else {
+            $dynVerdicts = @()
+            foreach ($dynArgs in @(@('-LockBuild', '-Tag', $tag), @('-SelfTest'), @('-Control'))) {
+                $dynVerb = $dynArgs[0]
+                $dynOut = @(& pwsh -NoProfile -File $dynAudit @dynArgs 2>&1 | ForEach-Object { "$_" })
+                $dynCode = $LASTEXITCODE
+                $dynOut | ForEach-Object { Write-Host "    $_" }
+                $dynLast = @($dynOut | Where-Object { $_ -match '^dynaudit' } | Select-Object -Last 1)
+                $dynVerdicts += "$dynVerb exit $dynCode$(if ($dynLast.Count) { ' (' + $dynLast[0] + ')' })"
+            }
+            $global:LASTEXITCODE = 0
+            $dynAuditTxt = ($dynVerdicts -join '; ') + ' - evidence in temp\evidence\dyn-*; the owner reads it (exit 2 = stand not complete yet)'
+        }
+    }
+
     # -----------------------------------------------------------------------
     # 10. Final checklist
     # -----------------------------------------------------------------------
     Step "10/10 Done"
     $wTxt = if ($SkipWinget) { "skipped" } elseif ($wingetFailure) { "FAILED - $wingetFailure" } else { "synced + PR submitted" }
+    $scoopTxt = if ($SkipScoop) { "skipped" } elseif ($scoopFailure) { "FAILED - $scoopFailure" } else { "SerZhyAle/scoop-bucket serves $Version" }
     $sTxt = if ($SkipStore) { "skipped" } elseif ($storeFailure) { "NOT BUILT - $storeFailure" } else { "built into msix\out\ (unsigned, stamp $Version)" }
     $siteTxt = if ($siteFailure) { "FAILED - $siteFailure" } else { "manifest + 5 landing pages synced to $tag" }
     Write-Host "  [x] GitHub Release : https://github.com/$repo/releases/tag/$tag"
     Write-Host "  [$(if ($wingetFailure -or $SkipWinget) { ' ' } else { 'x' })] winget/ : $wTxt"
+    Write-Host "  [$(if ($scoopFailure -or $SkipScoop) { ' ' } else { 'x' })] Scoop  : $scoopTxt"
     Write-Host "  [$(if ($storeFailure -or $SkipStore) { ' ' } else { 'x' })] Store MSIX : $sTxt"
     Write-Host "  [$(if ($siteFailure) { ' ' } else { 'x' })] site   : $siteTxt"
+    Write-Host "  [i] audit  : $dynAuditTxt"
     Write-Host ""
     if ($wingetFailure) {
         Write-Host "  RECOVER winget (the tag and the GitHub Release stand; do not cut a new version):" -ForegroundColor Yellow
         Write-Host "    .\release.ps1 -Resume -Version $Version -SkipStore" -ForegroundColor Yellow
         Write-Host "  or by hand - RELEASE.md, 'If something fails mid-release'." -ForegroundColor Yellow
+    }
+    if ($scoopFailure) {
+        Write-Host "  RECOVER Scoop: pwsh -NoProfile -File .\packaging\update-scoop-bucket.ps1 -Version $Version   (or .\release.ps1 -Resume -Version $Version -SkipWinget -SkipStore)" -ForegroundColor Yellow
     }
     if ($storeFailure) {
         Write-Host "  RECOVER Store: fix the cause, then .\msix\build-msix.ps1 -Stamp $Version from sources equal to $tag" -ForegroundColor Yellow
@@ -930,6 +1012,7 @@ try {
     Write-Host "  Ledger: packaging\release-ledger.ps1 show   (run its probe verb after the winget PR merges or the Store submission is committed)"
     $failedChannels = @()
     if ($wingetFailure) { $failedChannels += 'winget' }
+    if ($scoopFailure)  { $failedChannels += 'Scoop bucket' }
     if ($storeFailure)  { $failedChannels += 'Store MSIX' }
     if ($siteFailure)   { $failedChannels += 'site' }
     if ($failedChannels.Count) {

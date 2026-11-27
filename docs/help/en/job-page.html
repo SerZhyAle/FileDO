@@ -6,6 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <title>Help - The job page</title>
+<link rel="icon" type="image/png" href="../favicon.png">
 <script>
 (function () {
   try {
@@ -26,7 +27,7 @@
   </nav>
   <header class="hero">
     <p class="kicker">Window help</p>
-    <h1>The job page</h1>
+    <div class="title-row"><img class="product-mark" src="../filedo-mark.svg" width="48" height="48" alt="FileDO"><h1>The job page</h1></div>
     <p class="lead">Every job in the list on the left - checking a drive, copying files, wiping a folder, protecting a file, managing virtual disks - opens the same page. You choose what to work on, set the options, read what will happen, and press Run.</p>
   </header>
 
@@ -35,13 +36,13 @@
       <img class="on-dark" src="../img/job-page.en.dark.png" width="2041" height="1266" alt="The job page: the window with its numbered parts">
       <img class="on-light" src="../img/job-page.en.light.png" width="2041" height="1266" alt="">
       <a class="pin" style="--x:0.3%;--y:1.1%" href="#e-rail" aria-label="1, The list of jobs">1</a>
-      <a class="pin" style="--x:22.1%;--y:10.1%" href="#e-target" aria-label="2, 2 - What to work on">2</a>
-      <a class="pin" style="--x:22.1%;--y:31.9%" href="#e-options" aria-label="3, 3 - Parameters">3</a>
-      <a class="pin" style="--x:22.1%;--y:54.0%" href="#e-plan" aria-label="4, 4 - Check and run">4</a>
-      <a class="pin" style="--x:23.7%;--y:74.1%" href="#e-command" aria-label="5, Command line">5</a>
-      <a class="pin" style="--x:38.3%;--y:82.1%" href="#e-copy" aria-label="6, Copy command">6</a>
-      <a class="pin" style="--x:52.2%;--y:82.1%" href="#e-open" aria-label="7, Open in Command">7</a>
-      <a class="pin" style="--x:23.7%;--y:82.1%" href="#e-run" aria-label="8, Run">8</a>
+      <a class="pin" style="--x:22.1%;--y:13.0%" href="#e-target" aria-label="2, 2 - What to work on">2</a>
+      <a class="pin" style="--x:22.1%;--y:34.8%" href="#e-options" aria-label="3, 3 - Parameters">3</a>
+      <a class="pin" style="--x:22.1%;--y:56.9%" href="#e-plan" aria-label="4, 4 - Check and run">4</a>
+      <a class="pin" style="--x:23.7%;--y:76.9%" href="#e-command" aria-label="5, Command line">5</a>
+      <a class="pin" style="--x:38.3%;--y:84.9%" href="#e-copy" aria-label="6, Copy command">6</a>
+      <a class="pin" style="--x:52.2%;--y:84.9%" href="#e-open" aria-label="7, Open in Command">7</a>
+      <a class="pin" style="--x:23.7%;--y:84.9%" href="#e-run" aria-label="8, Run">8</a>
       <a class="pin" style="--x:95.8%;--y:1.7%" href="#e-help" aria-label="13, Help">13</a>
     </div>
     <figcaption>Demo content. Select a number to read about that part of the window.</figcaption>
@@ -110,13 +111,13 @@
       </div>
     </details>
     <details class="el" id="e-copy">
-      <summary><span class="mk">6</span><span><span class="name">Copy command</span><span class="one">Puts the command on the clipboard.</span></span></summary>
+      <summary><span class="mk">6</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16,1L4,1C2.9,1 2,1.9 2,3L2,17L4,17L4,3L16,3L16,1ZM19,5L8,5C6.9,5 6,5.9 6,7L6,21C6,22.1 6.9,23 8,23L19,23C20.1,23 21,22.1 21,21L21,7C21,5.9 20.1,5 19,5ZM19,21L8,21L8,7L19,7L19,21Z" fill="currentColor"/></svg>Copy command</span><span class="one">Puts the command on the clipboard.</span></span></summary>
       <div class="full">
         <p>Copies the command line above so you can paste it into a terminal, a script or a message. Nothing runs.</p>
       </div>
     </details>
     <details class="el" id="e-open">
-      <summary><span class="mk">7</span><span><span class="name">Open in Command</span><span class="one">Moves the command to the Command page.</span></span></summary>
+      <summary><span class="mk">7</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20,4H4C2.89,4,2,4.9,2,6v12c0,1.1,0.89,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.11,4,20,4z M20,18H4V8h16V18z M18,17h-6v-2h6V17z M7.5,17l-1.41-1.41L8.67,13l-2.59-2.59L7.5,9l4,4L7.5,17z" fill="currentColor"/></svg>Open in Command</span><span class="one">Moves the command to the Command page.</span></span></summary>
       <div class="full">
         <p>Opens the Command page with this command already filled in, ready to be changed by hand and run there.</p>
         <dl class="facts">
@@ -125,7 +126,7 @@
       </div>
     </details>
     <details class="el" id="e-run">
-      <summary><span class="mk">8</span><span><span class="name">Run</span><span class="one">Starts the job.</span></span></summary>
+      <summary><span class="mk">8</span><span><span class="name"><svg class="glyph" viewBox="0 0 24.0 24.0" aria-hidden="true" focusable="false"><path d="M8,5v14l11,-7z" fill="currentColor"/></svg>Run</span><span class="one">Starts the job.</span></span></summary>
       <div class="full">
         <p>The only button on this page that does the work. A job that can destroy data, such as Wipe a folder, asks you to type a confirmation word first. While the job runs, the page cannot be switched to another job, so a run is never lost by a stray click.</p>
         <dl class="facts">
@@ -142,7 +143,7 @@
       </div>
     </details>
     <details class="el" id="e-stop">
-      <summary><span class="mk">10</span><span><span class="name">Stop</span><span class="one">Asks the job to end cleanly.</span></span></summary>
+      <summary><span class="mk">10</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12,2C6.47,2 2,6.47 2,12s4.47,10 10,10 10,-4.47 10,-10S17.53,2 12,2zM17,15.59L15.59,17 12,13.41 8.41,17 7,15.59 10.59,12 7,8.41 8.41,7 12,10.59 15.59,7 17,8.41 13.41,12 17,15.59z" fill="currentColor"/></svg>Stop</span><span class="one">Asks the job to end cleanly.</span></span></summary>
       <div class="full">
         <p>The job finishes the piece it is doing, cleans up after itself and stops. If it does not stop, a second press offers to end it at once - which skips its own clean-up, so test files may stay until the next run.</p>
         <dl class="facts">
@@ -171,7 +172,7 @@
       </div>
     </details>
     <details class="el" id="e-help">
-      <summary><span class="mk">13</span><span><span class="name">Help</span><span class="one">Opens the page you are reading.</span></span></summary>
+      <summary><span class="mk">13</span><span><span class="name"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11,18h2v-2h-2v2zM12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,20c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8zM12,6c-2.21,0 -4,1.79 -4,4h2c0,-1.1 0.9,-2 2,-2s2,0.9 2,2c0,2 -3,1.75 -3,5h2c0,-2.25 3,-2.5 3,-5 0,-2.21 -1.79,-4 -4,-4z" fill="currentColor"/></svg>Help</span><span class="one">Opens the page you are reading.</span></span></summary>
       <div class="full">
         <p>Every FileDO window has this button in its top-right corner. It opens the help page of the window you are in, with a picture and every part explained, in your language.</p>
         <dl class="facts">
@@ -193,7 +194,7 @@
   </ul>
 
   <footer class="help-foot">
-    <span>Captured against FileDO 2611171800, 2026-11-17.</span>
+    <span>Captured against FileDO 2611270100, 2026-11-27.</span>
     <a href="index.html">Help index</a>
     <a href="https://serzhyale.github.io/FileDO/guides/support.html">Ask a question or report a problem</a>
   </footer>

@@ -511,7 +511,7 @@ Partial Public Class DiskManagerForm
         AddHandler emptyAdd.Click, Sub() BrowseAndAdd()
         emptyLearn = New LinkLabel With {.Text = L("vd_mgr_learn_more"), .AutoSize = True, .Margin = Ui.PxPad(Me, 8, 6, 0, 0)}
         emptyLearn.AccessibleName = L("vd_mgr_learn_more")
-        AddHandler emptyLearn.LinkClicked, Sub() Links.Open(Me, Links.DiskGuide)
+        AddHandler emptyLearn.LinkClicked, Sub() Links.Open(Me, Links.GuideAddress(Links.DiskGuide))
         emptyActions.Controls.Add(emptyNew)
         emptyActions.Controls.Add(emptyAdd)
         emptyActions.Controls.Add(emptyLearn)
@@ -749,7 +749,7 @@ Partial Public Class DiskManagerForm
         Select Case answer
             Case DiskWelcomeAnswer.CreateDisk : Perform(DiskAction.NewDisk)
             Case DiskWelcomeAnswer.AddExisting : BrowseAndAdd()
-            Case DiskWelcomeAnswer.OpenGuide : Links.Open(Me, Links.DiskGuide)
+            Case DiskWelcomeAnswer.OpenGuide : Links.Open(Me, Links.GuideAddress(Links.DiskGuide))
         End Select
     End Sub
 
@@ -2687,6 +2687,14 @@ Partial Public Class DiskManagerForm
             ShellLog.Write("finish the disk manager's placement", ex)
         End Try
     End Sub
+
+    ' SETTINGS-NAVIGATION 2.4 item H, 3: a window the shell asks for comes to the monitor the request
+    ' came from. A remembered placement still on its way is finished first, or it would be applied
+    ' after the move and take the window back.
+    Friend Function MoveToScreen(target As WindowPlacement.ScreenArea) As Boolean
+        FinishPendingPlacement()
+        Return WindowPlacement.BringTo(Me, target)
+    End Function
 
     ' The widths are kept in design pixels, so a list saved at one scaling opens right at another. A
     ' first opening widens each shown column to its own heading in this language (APP-BEHAVIOUR

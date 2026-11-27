@@ -214,8 +214,8 @@ Things worth knowing before reading the code:
   that shows a shortcut and the help window's table all read it, and `--selftest` walks it.
 - **The first run** shows the welcome window once (`DiskWelcomeDialog`); Help, Welcome tour (the `app.tour` meaning) opens it again. Neither
   the help nor the welcome makes a network call: a link is followed only when it is clicked.
-- **Autostart, in one dialog** (`DiskAutostartDialog.vb`, SP-0080): the per-container logon mounts and the shutdown
-  guard together, opened by *Autostart..* under More actions - with or without a selection, since the guard
+- **Start with Windows, in one dialog** (`DiskAutostartDialog.vb`, SP-0080): the per-container logon mounts and the shutdown
+  guard together, opened by *Start with Windows..* under More actions - with or without a selection, since the guard
   belongs to the account and not to a disk - or from a registered disk's menu or detail pane. The dialog learns state
   only through delegates over the snapshot the manager has already read, and acts only through the manager's own
   flows - a logon switch is exactly the row's `vd auto` action, and the guard's switch is one

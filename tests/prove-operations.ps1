@@ -860,6 +860,38 @@ function Invoke-Tier1 {
     })
     Remove-Scratch $retDir
 
+    # -- rehash (FILEDO-0242): a new SHA-256 in place, repeatable, nothing else left behind
+    $rhSrc = Join-Path $Work 'rehash-src'
+    $rhNested = Join-Path $rhSrc 'sub\deep'
+    New-Item -ItemType Directory -Path $rhNested -Force | Out-Null
+    $rhJson = Join-Path $rhSrc 'item.json'
+    $rhXml = Join-Path $rhNested 'doc.xml'
+    $rhBin = Join-Path $rhNested 'opaque.bin'
+    [IO.File]::WriteAllText($rhJson, '{"ticket":"FILEDO-0242","ok":true}', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($rhXml, '<root><v>1</v></root>', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllBytes($rhBin, [byte[]]@(0, 1, 2, 3, 4))
+    $rhJsonHash = Get-FileSha256 $rhJson
+    $rhJsonSize = (Get-Item -LiteralPath $rhJson).Length
+    $rhBinHash = Get-FileSha256 $rhBin
+    [void](Op 'rehash: single file' @('rehash', $rhJson) -Verdict @('Done') -Verify {
+        param($r)
+        if ((N $r 'processedFiles') -ne 1) { "processedFiles = $(N $r 'processedFiles'), want 1" }
+        if ((Get-FileSha256 $rhJson) -eq $rhJsonHash) { 'SHA-256 unchanged' }
+        if (((Get-Item -LiteralPath $rhJson).Length - $rhJsonSize) -ne 1) { 'JSON size delta != +1' }
+    })
+    $rhJsonHash = Get-FileSha256 $rhJson
+    $rhXmlHash = Get-FileSha256 $rhXml
+    [void](Op 'rehash: nested tree again, skips unknown' @('rehash', $rhSrc) -Verdict @('Done') -Verify {
+        param($r)
+        if ((N $r 'processedFiles') -ne 2) { "processedFiles = $(N $r 'processedFiles'), want 2" }
+        if ((N $r 'skippedUnsupported') -ne 1) { "skippedUnsupported = $(N $r 'skippedUnsupported'), want 1" }
+        if ((Get-FileSha256 $rhJson) -eq $rhJsonHash) { 'json SHA-256 unchanged on the second run' }
+        if ((Get-FileSha256 $rhXml) -eq $rhXmlHash) { 'nested xml SHA-256 unchanged' }
+        if ((Get-FileSha256 $rhBin) -ne $rhBinHash) { 'unsupported binary was modified' }
+        if (@(Get-ChildItem -LiteralPath $rhSrc -Recurse -File -Force).Count -ne 3) { 'the run left extra files' }
+    })
+    Remove-Scratch $rhSrc
+
     # -- a batch run: the same dispatch with its own tokenizer and stop rule
     $dstBatch = Join-Path $Work 'dst-batch'
     $list = Join-Path $Work 'ops.lst'
@@ -1264,6 +1296,16 @@ function Invoke-Tier2 {
             if (-not ([IO.DriveInfo]::new($letter)).IsReady) { "$letter is not ready after chkdsk" } else { Compare-Manifest $want (Get-Manifest $data) }
         })
 
+        $rhDiskFile = "$letter\rehash_data\nested\vol.json"
+        New-Item -ItemType Directory -Path (Split-Path $rhDiskFile -Parent) -Force | Out-Null
+        [IO.File]::WriteAllText($rhDiskFile, '{"volume":true}', [Text.UTF8Encoding]::new($false))
+        $rhDiskHash = Get-FileSha256 $rhDiskFile
+        [void](Op 'rehash: mounted data volume root' @('rehash', $letter) -Verdict @('Done') -Verify {
+            param($r)
+            if ((Get-FileSha256 $rhDiskFile) -eq $rhDiskHash) { 'mounted volume file SHA-256 unchanged' }
+        })
+        Remove-Item -LiteralPath "$letter\rehash_data" -Recurse -Force
+
         $scrap = "$letter\scrap"
         [void](Op 'fastcopy: a small scrap tree' @('fastcopy', (Join-Path $src 'dups'), $scrap))
         [void](Op 'wipe: folder on the disk, --force' @('folder', $scrap, 'wipe', '--force') -Verify {
@@ -1394,7 +1436,7 @@ $Inventory = @(
     E 'copy' '^copy: copy$'; E 'fastcopy' '^copy: fastcopy$'; E 'balanced' '^copy: balanced$'; E 'maxcopy' '^copy: maxcopy$'
     E 'smartcopy' '^copy: smartcopy$'; E 'safecopy' '^copy: safecopy$'; E 'synccopy' '^copy: synccopy$'
     E 'wipe' '^wipe: '; E 'secure' '^secure: '; E 'unsecure' '^unsecure: '; E 'reveal' '^reveal: '
-    E 'backup' '^backup: '; E 'restore' '^restore: '
+    E 'backup' '^backup: '; E 'restore' '^restore: '; E 'rehash' '^rehash: '
     E 'from' '^batch: '; E 'hist' '^history: hist'; E 'help' '^help: '
     E 'probe' '^probe: yes' -tier 2; E 'recover' '^recover: ' -tier 2
     E 'network' '^network: ' -optional

@@ -74,7 +74,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../kit/sza-kit.css" />
@@ -225,10 +225,6 @@
         .brand-unit img {
           width: 24px;
           height: 24px;
-        }
-        .site-header .btn {
-          display: inline-flex;
-          padding: 0.5rem 0.7rem;
         }
       }
 
@@ -857,10 +853,6 @@
         .hero h1 {
           font-size: clamp(2.45rem, 12vw, 3.35rem);
         }
-        .hero-actions .btn {
-          width: 100%;
-          justify-content: center;
-        }
         .outcome-grid {
           grid-template-columns: 1fr;
         }
@@ -1116,10 +1108,6 @@
         margin-bottom: 1rem;
         font-size: 0.9rem;
       }
-      details.sec > summary {
-        padding: 0.85rem 0;
-        font-size: 0.95rem;
-      }
       .site-footer {
         margin-top: 1rem;
       }
@@ -1148,9 +1136,6 @@
         }
         .hero h1 {
           font-size: 1.8rem;
-        }
-        .hero-actions .btn {
-          width: auto;
         }
         .outcome-grid {
           grid-template-columns: 1fr;
@@ -1192,6 +1177,8 @@
       .cap-group-head.write h3{color:var(--gold)}
       .cap-coda{grid-column:1/-1}
 .site-header{margin-left:var(--gutter);margin-right:var(--gutter)}    
+/* The demo recording (msix/make-demo.ps1): as wide as the page allows, never past its own 1280 px. */
+.demo-video{display:block;width:100%;max-width:1280px;height:auto;border-radius:var(--radius-sm);background:#0b0f0b}
 /* Front page identity: the mark and the full name once, in the header; every language in one group. */
 .brand-unit{gap:.85rem}
 .brand-unit img{width:46px;height:46px;border-radius:11px;box-shadow:none}
@@ -1203,22 +1190,18 @@
 .site-header .seg.seg-dup{display:none}
 @media (max-width:820px){.header-nav{display:none}.brand-name small{display:none}}
 @media (max-width:640px){.site-header{flex-wrap:wrap;row-gap:0}}
-/* SITE-EXPERIENCE reach (SP-0156): every control that is not an inline link in running text is 44 x 44 px or larger, under any pointer. */
+/* SITE-EXPERIENCE reach as amended 2026-10-29 item A (SP-0169 S6 re-vendor): controls covered by UI-SIZING (buttons, segments, theme, copy) follow the vendored kit's 32/48 profile targets; other controls that are not inline links in running text keep a 44 x 44 px hit target under any pointer. */
 .seg{flex:none}
-.seg button{min-width:44px;min-height:44px}
-.theme-btn{flex:none;min-width:44px;min-height:44px}
-.btn,.copy,.tools-grid a{min-height:44px}
-.copy{min-width:44px}
+.theme-btn{flex:none}
+.tools-grid a{min-height:44px}
 /* SP-0162: the footer text links (author, site links, brand, mail) are separate links in a row, not inline in a sentence, so they get a 44 px target too. */
 .footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}
-.copybox .copy{top:50%;transform:translateY(-50%)}
 .brand-unit{min-height:44px}
 /* SITE-EXPERIENCE reach (SP-0156): light-theme tokens that reach 4.5 : 1 as text and under white ink; the code box stays dark in both themes. */
 html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}
 html[data-theme="light"] .pill{color:var(--acc-strong)}
 html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
-/* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
-html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
+/* PAGE-STYLE 3.5 item 5: kit 3.13 (8d49a8f0) draws .seg with the --text ink; the mute-ink override the old e438fef2 kit needed is gone with the SP-0169 S6 re-vendor. */
 /* SITE-EXPERIENCE rule 6 (SP-0186): a shell control named in the text carries the glyph the shell draws for it, drawn from the page's sprite (packaging/sync-guide-glyphs.ps1). */
 .cg{display:inline-block;width:1.15em;height:1.15em;margin-inline-end:.25em;vertical-align:-.2em;fill:currentColor}
 .cg-sprite{position:absolute;width:0;height:0;overflow:hidden}
@@ -1235,8 +1218,8 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
       <div class="blob blob-3"></div>
     </div>
     <header class="site-header">
-      <a class="brand-unit" href="#top"><img src="../assets/filedo.svg" width="46" height="46" alt="FileDO" /><span class="brand-name"><b>FileDO</b><small>Advanced File &amp; Storage Operations Tool</small></span></a>
-      <nav class="header-nav" aria-labelledby="mainNavTitle"><span class="sr-only" id="mainNavTitle"><span data-l="de">Hauptnavigation</span></span><a href="guides/"><span data-l="de">Anleitungen</span></a><a href="https://github.com/SerZhyAle/FileDO#readme"><span data-l="de">Dokumentation</span></a></nav>
+      <a class="brand-unit" href="#top"><img src="../assets/filedo.svg" width="46" height="46" alt="" /><span class="brand-name"><b>FileDO</b><small>Advanced File &amp; Storage Operations Tool</small></span></a>
+      <nav class="header-nav" aria-labelledby="mainNavTitle"><span class="sr-only" id="mainNavTitle"><span data-l="de">Hauptnavigation</span></span><a href="guides/"><span data-l="de">Anleitungen</span></a><a href="guides/cli-reference.html"><span data-l="de">Dokumentation</span></a></nav>
 <nav class="lang-row" aria-label="Sprachen"><a href="../ru/" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../uk/" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../fr/" hreflang="fr" lang="fr">FR</a></nav>
       <button class="theme-btn" id="themeBtn" aria-label="Design wechseln"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="de">Design</span></button
       ><a
@@ -1252,10 +1235,10 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="de">Windows CLI &amp; GUI</span>
             </p>
             <h1>
-              <span data-l="de">Prüfen Sie Ihren Speicher, bevor Sie ihm vertrauen</span>
+              <span data-l="de">USB-Sticks und SD-Karten auf gefälschte Kapazität prüfen</span>
             </h1>
             <p class="lead">
-              <span data-l="de">Speicherprüfungen und Dateioperationen für Windows, wenn Sie wissen müssen, ob Sie einem USB-Stick, einer SD-Karte, einer Festplatte oder einem Ordner Ihre Daten anvertrauen können.</span>
+              <span data-l="de">Prüfen Sie Ihren Speicher, bevor Sie ihm vertrauen. Speicherprüfungen und Dateioperationen für Windows, wenn Sie wissen müssen, ob Sie einem USB-Stick, einer SD-Karte, einer Festplatte oder einem Ordner Ihre Daten anvertrauen können.</span>
             </p>
             <div class="hero-actions">
               <a
@@ -1335,6 +1318,11 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
           </div>
         </div>
       </section>
+      <section class="section demo">
+        <video class="demo-video" controls muted loop playsinline preload="none" poster="../assets/demo-poster.jpg" width="1280" height="798" aria-label="FileDO bei der Arbeit - ein Geschwindigkeitstest eines Laufwerks, dann die Suche nach doppelten Dateien in einem Fotoordner">
+          <source src="../assets/demo.mp4" type="video/mp4" />
+        </video>
+      </section>
       <section class="page-band outcomes" id="why">
         <div class="band-inner">
           <div class="section-intro">
@@ -1400,7 +1388,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
               <span data-l="de">Installation</span>
             </h2>
             <p class="whatfor">
-              <span data-l="de">Das Windows-x64-Installationsprogramm: eine Datei herunterladen und ausführen. Die anderen Wege sind der Microsoft Store, winget, ein portables ZIP und die blanke MSI; jeder Link unten führt immer zum neuesten Release. <a href="guides/microsoft-store.html">Was die Microsoft-Store-Version kann und was nicht</a></span>
+              <span data-l="de">Das Windows-x64-Installationsprogramm: eine Datei herunterladen und ausführen. Die anderen Wege sind der Microsoft Store, winget, Scoop, ein portables ZIP und die blanke MSI; jeder Link unten führt immer zum neuesten Release. <a href="guides/microsoft-store.html">Was die Microsoft-Store-Version kann und was nicht</a></span>
             </p>
           </div>
           <div class="install-panel">
@@ -1502,7 +1490,7 @@ html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:v
                 ><span data-l="de">Installationsprogramm</span></span
               >
               <p>
-                <span data-l="de">Die <code>FileDO-&lt;version&gt;-setup.exe</code> aus den Releases installiert FileDO als gewöhnliches Windows-Programm: <code>filedo</code> im <code>PATH</code>, zwei Startmenü-Einträge (FileDO und FileDO Disk Manager) und ein Desktop-Symbol, dazu - als abwählbares Feature - die Gruppe <code>File DO..</code> im Kontextmenü jeder Datei und den Dokumenttyp <code>.fd-sec</code>. winget und das ZIP registrieren nichts; <code>filedo fdsec register</code> legt dieselben Einträge an. <a href="guides/install-and-explorer.html">Ganze Anleitung</a>.</span>
+                <span data-l="de">Die <code>FileDO-&lt;version&gt;-setup.exe</code> aus den Releases installiert FileDO als gewöhnliches Windows-Programm: <code>filedo</code> im <code>PATH</code>, zwei Startmenü-Einträge (FileDO und FileDO Disk Manager) und ein Desktop-Symbol, dazu - als abwählbares Feature - die Gruppe <code>File DO..</code> im Kontextmenü jeder Datei und den Dokumenttyp <code>.fd-sec</code>. winget, Scoop und das ZIP registrieren nichts; <code>filedo fdsec register</code> legt dieselben Einträge an. <a href="guides/install-and-explorer.html">Ganze Anleitung</a>.</span>
               </p>
             </div>
           </div>

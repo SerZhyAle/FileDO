@@ -89,4 +89,4 @@ effacer espace libre
 fichier mot de passe
 
 @@ReleaseNotes
-Nouveau : des scripts et des outils peuvent s'adresser à la fenêtre FileDO ouverte avec des commandes comme filedo status et filedo job list ; gen garde un jeu numéroté des dernières sauvegardes ; « Parcourir les commandes » et la page « À propos des opérations », avec recherche, expliquent chaque opération ; la page « Commande » retient vos dossiers et vos dernières commandes. Modifié : un remplissage qui ne peut pas supprimer un fichier qu'il a créé échoue désormais au lieu de se terminer en succès.
+Nouveau : filedo rehash donne aux photos, documents, musiques et vidéos un nouveau SHA-256 tout en les laissant s'ouvrir comme avant ; les sauvegardes peuvent être gardées un nombre de jours, la première de chaque mois étant conservée pour toujours ; la fenêtre renvoie au guide correspondant. Modifié : les pages de tâche gardent votre saisie, un lecteur réseau lent ne fige plus la fenêtre, et la boîte de démarrage automatique du Gestionnaire de disques s'appelle « Démarrer avec Windows ».

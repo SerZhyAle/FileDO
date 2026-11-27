@@ -17,8 +17,10 @@ preflight runs before the tag (`release.ps1`, see [`RELEASE.md`](../RELEASE.md) 
 | `listing/<code>.txt` | The listing copy per language (`en ru uk de fr`) + `shared.txt`. **The single source**; the console is a render target. |
 | `build-store-listing-csv.ps1` | Patches a fresh Partner Center export with `listing/*.txt`, keeping the export's own style. |
 | `make-screenshots.ps1` | Captures the window per page and language into `screenshots/`. |
+| `make-demo.ps1` | Records the demo for the site and the READMEs - a speed test of a drive, then duplicate files in a photo folder - into `docs/assets/demo.mp4`, `demo.gif` and `demo-poster.jpg` (section 5a). |
 | `screenshots/` | `<page>-<locale>.png`, 1920x1200, dark theme. Order = `DesktopScreenshot1..5`. |
-| `make-store-logos.ps1` | Renders the optional Partner Center "Store logos" set from the vector mark `assets/icon.svg` (headless Edge) into `store-logos/<locale>/`, reading every size and corner alpha back. Writes files only. The tagline is the site's headline and the strip words are the listing's section names; a new language is one row in the script's `$locales`. |
+| `make-store-logos.ps1` | Renders the optional Partner Center "Store logos" set from the product's master SVG `assets/identity/master/filedo-mark.svg` (headless Edge) into `store-logos/<locale>/`, reading every size and corner alpha back, and records the hash of the drawing it read in `store-logos/master-sha256.txt` (the identity manifest's `renderedFrom`). Writes files only. Run it through `assets/make-product-icons.ps1 -StoreLogos` at a release. The poster and box art compose the master and the canonical product name `FileDO` on `master.background` (`#0A100C`, `PRODUCT-IDENTITY` rule 6); a new language is one code in the script's `$locales`. |
+| `../assets/identity/renditions/msix/` | The 19 package logos (`Square44x44Logo` with its target-size and unplated forms, `Square71x71Logo`, `Square150x150Logo`, `StoreLogo`), written by `assets/make-product-icons.ps1` and listed with their SHA-256 in `assets/identity/identity-manifest.json` (PRODUCT-IDENTITY). `build-msix.ps1` copies them into the package byte for byte and draws none. |
 | `store-logos/<locale>/` | One complete set per listing language (`en-us ru uk`): `poster-720x1080/1440x2160` (9:16), `box-1080x1080/2160x2160` (1:1), `tile-300x300/150x150/71x71`. The tiles carry no words and are identical everywhere. Upload by hand in the listing's Store logos section: the larger of each pair. |
 | `store-listing.md` | What the CSV does **not** carry: the `runFullTrust` justification, the export-compliance answer, the privacy declaration. |
 | `test-store-tools.ps1`, `testdata/` | Self-test of the listing sources, the manifest template (including the default-off Explorer command) and the CSV builder, with a negative case for each refusal (no Partner Center session, no build). |
@@ -254,6 +256,28 @@ root, so the volume label of the machine that takes the shot never reaches the l
 `-Live` grabs the real screen instead of `PrintWindow`, to
 tell a real defect from an artefact. Store rule: PNG, 1366x768 up to 3840x2160.
 
+## 5a. Demo recording
+
+```powershell
+.\msix\make-demo.ps1                                  # the installed program, primary display, about a minute
+.\msix\make-demo.ps1 -Exe <folder>\filedo_win.exe     # a release zip extracted to a folder
+```
+
+The demo is one silent run through the window: the speed test of a drive, then the duplicate files of a photo
+folder, about half a minute. Unlike the screenshots it needs neither an idle machine nor the foreground: rows
+and buttons are pressed through their accessible default action, paths are typed as `WM_CHAR` messages to the
+box's edit control (so the page updates its target and its command line as for real typing), the page is
+scrolled with wheel messages, and the frames are the window's own `PrintWindow` image, so nothing else on the
+screen is recorded. The mouse pointer and the click rings are drawn onto the frames afterwards from the log of
+what was pressed where; ffmpeg (on `PATH`) writes the H.264 MP4 without an audio track and the GIF, and the
+poster is the frame before the speed test starts.
+
+The demo drive is a `subst` letter (`-Drive`, default `T:`) over generated files, so no real disk or folder
+name appears; `HKCU\Software\FileDO` is snapshotted and restored, the state directory is a scratch one, run
+reports are off for the run (with them on, the result names a folder inside the user's profile), the target
+box's volume label is rewritten to the bare root before the first frame, and the session log and the event
+files the window writes during the run are deleted afterwards. Record on the primary display: on a display
+whose scaling differs from the system's the window draws its boxes with a smaller font.
 ## 6. Submission click path (manual)
 
 **First submission**: Apps and games > FileDO >

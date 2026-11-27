@@ -21,6 +21,9 @@
                page's, rule 14); the kit beside the pages is byte-identical to docs\kit\sza-kit.css.
     baseline   help-baseline.txt holds only `page <id>`, `ask <surface>` and `absent <lang> <page> <anchor>` lines
                (CHECK-BASELINE); the `ask` lines are checked against the surfaces by the self-test, which knows the code.
+    identity   the generator writes the product's picture before every title, the product's favicon and each
+               element's glyph before its name (CONTEXT-HELP 0.6 items Q and R), and the two files the pages name
+               stand beside them as byte copies of their PRODUCT-IDENTITY renditions (FILEDO-0236).
     absent     an element a shipped language does not show is recorded in its page (data-absent) and counted here
                (CONTEXT-HELP 0.2 section 7 item C): it needs its baseline line, and a line whose element is shown again is stale.
 
@@ -152,6 +155,32 @@ if (-not (Test-Path (Join-Path $Help 'help.css'))) { Fail 'pictures: help.css is
 # the committed pages are checked against a fresh build with -Exe, and they carry the tag only after a release regenerates them.
 if ((Get-Content (Join-Path $root 'filedo_win_vb\HelpPages.vb') -Raw) -notmatch [regex]::Escape('<meta name=""robots"" content=""noindex"">')) {
     Fail 'robots: filedo_win_vb\HelpPages.vb does not write <meta name="robots" content="noindex"> (CONTEXT-HELP 0.2 section 7 item G)'
+}
+
+# CONTEXT-HELP 0.6 section 11 items Q and R (FILEDO-0236): the generator writes the product's picture before every
+# title and the product's favicon, and an element entry's glyph inline before its name. The picture's alt is empty
+# where the heading names the product and the product's name where it names only the page (CONTEXT-HELP 0.7 section
+# 12, FILEDO-0245). The source is checked here, with the two files the pages name beside them (renditions of
+# PRODUCT-IDENTITY, byte copies the identity manifest lists); the committed pages carry both only after a release
+# regenerates them.
+$pagesSource = Get-Content (Join-Path $root 'filedo_win_vb\HelpPages.vb') -Raw
+foreach ($q in @(
+        @{ Text = 'Friend Const HeadPicture As String = "filedo-mark.svg"'; What = 'Q: the title picture is not docs\help\filedo-mark.svg' }
+        @{ Text = '<div class=""title-row""><img class=""product-mark"" src=""../" & HeadPicture & """ width=""48"" height=""48"" alt=""" & HtmlText(alt) & """>"'; What = 'Q: the title row with the product picture is not written' }
+        @{ Text = 'Dim alt As String = If(title.IndexOf(MarkName, StringComparison.Ordinal) >= 0, "", MarkName)'; What = 'Q: the title picture''s alt is not empty beside a heading that names FileDO and FileDO beside one that does not (0.7 section 12)' }
+        @{ Text = 'Friend Const PageIcon As String = "favicon.png"'; What = 'Q: the page icon is not docs\help\favicon.png' }
+        @{ Text = '<link rel=""icon"" type=""image/png"" href=""../").Append(PageIcon)'; What = 'Q: the favicon link is not written' }
+        @{ Text = '.Append(InlineGlyph(glyphId)).Append(HtmlText(PartName(dict, e)))'; What = 'R: an element entry does not write its glyph before its name' })) {
+    if (-not $pagesSource.Contains($q.Text)) { Fail "identity: filedo_win_vb\HelpPages.vb - $($q.What) (CONTEXT-HELP 0.6 section 11)" }
+}
+$pagesSource = $null
+foreach ($pair in @(@('filedo-mark.svg', 'assets\identity\master\filedo-mark-medium.svg'), @('favicon.png', 'docs\assets\filedo.png'))) {
+    $beside = Join-Path $Help $pair[0]
+    $source = Join-Path $root $pair[1]
+    if (-not (Test-Path -LiteralPath $beside)) { Fail "identity: $($pair[0]) is not beside the pages - run assets\make-product-icons.ps1"; continue }
+    if ((Test-Path -LiteralPath $source) -and (Get-FileHash -LiteralPath $beside).Hash -ne (Get-FileHash -LiteralPath $source).Hash) {
+        Fail "identity: $($pair[0]) beside the pages differs from $($pair[1]) - run assets\make-product-icons.ps1"
+    }
 }
 
 foreach ($l in $langs) {

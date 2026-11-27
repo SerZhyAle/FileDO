@@ -292,6 +292,111 @@ Public Class JobView
         ApplyTheme()
     End Sub
 
+    ' ---- what a job page keeps across a page change (FILEDO-0249) ----------
+
+    ' SETTINGS-NAVIGATION 4.3: a target or an option typed on a job page survives a visit to another
+    ' page. Credentials, confirmation words and the fd-sec Keep/Wipe choice are never kept - ResetView
+    ' clears them on every change - and a delegated open drops what was kept (ForgetInput).
+    Private NotInheritable Class KeptInput
+        Public Target As String
+        ' "E:" when the target was a row of the drive list: the row is chosen again by its drive, so
+        ' its facts are read anew and an old label never describes another disk.
+        Public TargetDrive As String
+        Public SecondTarget As String
+        Public Size As String
+        Public Checks As Boolean()
+        Public DupRule As Integer
+        Public CmpRule As Integer
+        Public CopyStrategy As Integer
+        Public DupMove As Boolean
+        Public DupMovePath As String
+        Public DupListPath As String
+        Public Scroll As Point
+    End Class
+
+    Private ReadOnly keptInputs As New Dictionary(Of String, KeptInput)(StringComparer.Ordinal)
+
+    Private Function KeptChecks() As CheckBox()
+        Return New CheckBox() {
+            optionsCheckAutoDel, optionsCheckNoDel, optionsCheckShort, optionsCheckVerify,
+            optionsCheckHere, optionsCheckProbeFix, optionsCheckForceFormat, optionsCheckForce,
+            optionsCheckNoHist, dupListCheck, dupQuietCheck}
+    End Function
+
+    ' Called by the window before another page comes to the front.
+    Friend Sub KeepInput()
+        If job Is Nothing OrElse runner.IsActive Then Return
+        Dim checks = KeptChecks()
+        Dim states(checks.Length - 1) As Boolean
+        For i = 0 To checks.Length - 1
+            states(i) = checks(i).Checked
+        Next
+        Dim scroll = AutoScrollPosition
+        keptInputs(job.Id) = New KeptInput With {
+            .Target = targetCombo.Text,
+            .TargetDrive = ListedDriveInBox(),
+            .SecondTarget = secondTargetBox.Text,
+            .Size = sizeBox.Text,
+            .Checks = states,
+            .DupRule = dupRuleCombo.SelectedIndex,
+            .CmpRule = cmpRuleCombo.SelectedIndex,
+            .CopyStrategy = copyStrategyCombo.SelectedIndex,
+            .DupMove = dupActionMove.Checked,
+            .DupMovePath = dupMoveBox.Text,
+            .DupListPath = dupListBox.Text,
+            .Scroll = New Point(-scroll.X, -scroll.Y)}
+    End Sub
+
+    ' A delegated open (Clean after a test, a Disks next step) starts on a fresh page.
+    Friend Sub ForgetInput(jobId As String)
+        If jobId IsNot Nothing Then keptInputs.Remove(jobId)
+    End Sub
+
+    ' The window's rail choice: the job's page as it was left, credentials excepted.
+    Friend Sub ResumeJob(jobDef As JobDefinition)
+        If runner.IsActive Then Return
+        SetJob(jobDef)
+        If jobDef Is Nothing Then Return
+        Dim kept As KeptInput = Nothing
+        If Not keptInputs.TryGetValue(jobDef.Id, kept) Then Return
+        keptInputs.Remove(jobDef.Id)
+        Dim checks = KeptChecks()
+        For i = 0 To Math.Min(checks.Length, kept.Checks.Length) - 1
+            If checks(i).Enabled Then checks(i).Checked = kept.Checks(i)
+        Next
+        If sizeBox.Enabled Then sizeBox.Text = kept.Size
+        RestoreIndex(dupRuleCombo, kept.DupRule)
+        RestoreIndex(cmpRuleCombo, kept.CmpRule)
+        RestoreIndex(copyStrategyCombo, kept.CopyStrategy)
+        If kept.DupMove Then dupActionMove.Checked = True
+        dupMoveBox.Text = kept.DupMovePath
+        dupListBox.Text = kept.DupListPath
+        If secondTargetBox.Enabled Then secondTargetBox.Text = kept.SecondTarget
+        If kept.TargetDrive IsNot Nothing Then
+            ' A drive that is gone since keeps its letter.
+            If Not SelectDriveRow(kept.TargetDrive) Then SetTarget(kept.TargetDrive)
+            UpdatePlanCard()
+        ElseIf targetCombo.Text <> kept.Target OrElse jobDef.TargetKind = JobDefinition.TargetType.Drive Then
+            SetTarget(kept.Target)
+        Else
+            UpdatePlanCard()
+        End If
+        pendingScroll = kept.Scroll
+    End Sub
+
+    Private pendingScroll As Point? = Nothing
+
+    ' The scroll anchor is put back once the page is laid out and shown; the window calls this after it settles the page.
+    Friend Sub ApplyKeptScroll()
+        If Not pendingScroll.HasValue Then Return
+        AutoScrollPosition = pendingScroll.Value
+        pendingScroll = Nothing
+    End Sub
+
+    Private Shared Sub RestoreIndex(combo As ComboBox, index As Integer)
+        If index >= 0 AndAlso index < combo.Items.Count Then combo.SelectedIndex = index
+    End Sub
+
     ' ---- the run, as the window sees it -----------------------------------
 
     Public ReadOnly Property IsRunning As Boolean
@@ -844,6 +949,7 @@ Public Class JobView
 
     ' Step 2, answered from outside: a double-clicked container (SP-0005 9.4).
     Public Sub SetTarget(path As String)
+        targetFromOutside = True
         targetCombo.Text = path
         TargetChanged()
     End Sub
@@ -1030,6 +1136,13 @@ Public Class JobView
         targetCombo.AccessibleName = L("shell_lbl_target")
         AddHandler targetCombo.TextChanged, Sub() TargetChanged()
         AddHandler targetCombo.SelectedIndexChanged, Sub() TargetChanged()
+        ' Whose text the box holds: the person's typing, or a row picked from the list. Windows does not
+        ' promise the pick's order against the change events, so the pick redraws the plan itself.
+        AddHandler targetCombo.TextUpdate, Sub() targetFromOutside = True
+        AddHandler targetCombo.SelectionChangeCommitted, Sub()
+                                                             targetFromOutside = False
+                                                             UpdatePlanCard()
+                                                         End Sub
 
         targetBrowseBtn = Ui.GlyphCommandButton(L("shell_btn_browse"), ChooseFolderGlyph, Ui.PxPad(Me, 0, 2, 0, 4))
         AddHandler targetBrowseBtn.Click, AddressOf BrowseTarget_Click
@@ -2079,43 +2192,12 @@ Public Class JobView
     End Property
 
     ' ---- step 2 - the target ---------------------------------------------
-
-    ' Drives carry their label, file system, size and free space on the row, because a letter alone
-    ' is not enough to tell two external disks apart - and picking the wrong one is the whole risk
-    ' the Erase group is about (SP-0006 section 5.3).
-    Private Sub PopulateTargets()
-        targetCombo.Items.Clear()
-        If job Is Nothing Then Return
-        If job.TargetKind <> JobDefinition.TargetType.Drive Then
-            targetCombo.Text = ""
-            Return
-        End If
-
-        Try
-            For Each d In DriveInfo.GetDrives()
-                If d.IsReady Then
-                    Dim sizeGb = d.TotalSize / (1024.0 * 1024.0 * 1024.0)
-                    Dim freeGb = d.TotalFreeSpace / (1024.0 * 1024.0 * 1024.0)
-                    Dim label = If(String.IsNullOrEmpty(d.VolumeLabel), d.DriveType.ToString(), d.VolumeLabel)
-                    targetCombo.Items.Add(Localization.Format(L("shell_drive_row_fmt"),
-                                                              d.Name, label, d.DriveFormat, sizeGb, freeGb))
-                Else
-                    targetCombo.Items.Add(d.Name)
-                End If
-            Next
-        Catch ex As Exception
-            ' A drive that vanishes while it is listed; the list keeps what it had, and the box
-            ' still takes a typed path.
-            ShellLog.Write("list drives", ex)
-        End Try
-
-        If targetCombo.Items.Count > 0 Then targetCombo.SelectedIndex = 0
-    End Sub
+    ' The drive list itself is in JobViewDrives.vb.
 
     ' The text of step 2 with a drive row read as its letter (GUI-01).
     '
-    ' A drive row reads "E:\ (label, NTFS, ..)" and the command wants "E:" - but only a row this page
-    ' put in the list is one. A typed, dropped or double-clicked path that happens to hold a "(" -
+    ' A drive row reads "E:\ (label, NTFS, ..)" - or "E:\" until its facts arrive - and the command
+    ' wants "E:" - but only a row this page put in the list is one. A typed, dropped or double-clicked path that happens to hold a "(" -
     ' D:\Photos (2019), taxes (1).pdf.fd-sec - is a path, and reading it as a drive row once turned a
     ' Duplicates Delete on one folder into a run over the whole drive.
     Private Function TargetText() As String
@@ -2125,6 +2207,9 @@ Public Class JobView
             Dim row = TryCast(item, String)
             If row IsNot Nothing AndAlso row.Length >= 2 AndAlso row(1) = ":"c AndAlso
                String.Equals(row.Trim(), text, StringComparison.Ordinal) Then
+                ' "E:\" typed or set from outside stays that path, whether or not its row has its
+                ' facts yet (FILEDO-0253).
+                If targetFromOutside AndAlso row.Length <= 3 Then Exit For
                 Return row.Substring(0, 2)
             End If
         Next
@@ -2165,6 +2250,8 @@ Public Class JobView
     End Function
 
     Private Sub TargetChanged()
+        ' A row gaining its facts is not a new target (ApplyDriveFacts).
+        If rewritingDriveRow Then Return
         If diskPanel IsNot Nothing AndAlso IsDisk() Then diskPanel.ForgetConfirmation()
         ' A root asks its own question on a Backup page; a .fd-sec asks for the password on Restore.
         If backupPanel IsNot Nothing AndAlso IsBackup() Then
@@ -2301,7 +2388,7 @@ Public Class JobView
         Try
             Dim paths = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
             If paths Is Nothing OrElse paths.Length = 0 Then Return
-            targetCombo.Text = paths(0)
+            SetTarget(paths(0))
             If paths.Length > 1 AndAlso secondTargetRow.Visible Then secondTargetBox.Text = paths(1)
         Catch
         End Try
@@ -2966,7 +3053,7 @@ Public Class JobView
         ' The folder dialogs open on the folder last picked for their role and remember the new pick
         ' (Ui.ChooseFolder), the same lists the Command page keeps.
         Dim picked As String = ""
-        If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_folder"), ShellSettings.TargetRole, targetCombo.Text, picked) Then targetCombo.Text = picked
+        If Ui.ChooseFolder(FindForm(), L("shell_dlg_select_folder"), ShellSettings.TargetRole, targetCombo.Text, picked) Then SetTarget(picked)
     End Sub
 
     Private Sub BrowseTargetFolder_Click(sender As Object, e As EventArgs)
@@ -3326,9 +3413,15 @@ Public Class JobView
         dropHintLabel.Font = Theme.FontCaption()
         dropHintLabel.ForeColor = p.MutedText
 
+        ' The editable target box and its kin carry the body font like every other editor on the
+        ' page: one left to the form's ambient font drew at the system's size on a display whose
+        ' scaling differs, in a thinner box than the labels beside it (FILEDO-0237). The Command
+        ' page themes its own; this page had missed these four.
+        targetCombo.Font = Theme.FontBody()
         targetCombo.BackColor = p.Surface
         targetCombo.ForeColor = p.Text
         targetCombo.FlatStyle = FlatStyle.Flat
+        secondTargetBox.Font = Theme.FontBody()
         secondTargetBox.BackColor = p.Surface
         secondTargetBox.ForeColor = p.Text
         secondTargetBox.BorderStyle = BorderStyle.FixedSingle
@@ -3398,6 +3491,7 @@ Public Class JobView
             lb.ForeColor = p.Text
         Next
         For Each tb As TextBox In New TextBox() {credBox, credConfirmBox}
+            tb.Font = Theme.FontBody()
             tb.BackColor = p.Surface
             tb.ForeColor = p.Text
             tb.BorderStyle = BorderStyle.FixedSingle

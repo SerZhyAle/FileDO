@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="de" data-lang="de" data-page-lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/de/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/cli-reference.html" />
+    <link rel="icon" type="image/png" href="../../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/de/guides/cli-reference.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO-Logo und Name mit dem englischen Leitsatz Know your storage before you trust it auf dunkelgrünem Grund" />
+    <meta property="og:title" content="FileDO-Befehlsreferenz für die Befehlszeile" />
+    <meta property="og:description" content="Die FileDO-Befehlszeile auf einer Seite: Zieltypen, Operationen und Kurzformen, Modifikatoren, Lese-Check, Stapeldateien, Verlauf und Netzwerkpfade." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "FileDO-Befehlsreferenz für die Befehlszeile",
+        "description": "Die FileDO-Befehlszeile auf einer Seite: Zieltypen, Operationen und Kurzformen, Modifikatoren, Lese-Check, Stapeldateien, Verlauf und Netzwerkpfade.",
+        "url": "https://serzhyale.github.io/FileDO/de/guides/cli-reference.html",
+        "inLanguage": ["de"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO-Befehlsreferenz für die Befehlszeile</title>
+    <meta
+      name="description"
+      content="Die FileDO-Befehlszeile auf einer Seite: Zieltypen, Operationen und Kurzformen, Modifikatoren, Lese-Check, Stapeldateien, Verlauf und Netzwerkpfade."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../kit/sza-kit.css" />
+    <link rel="stylesheet" href="../../guides/guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="de">Zum Inhalt springen</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Sprache">
+        <button data-set-lang="ru" data-go="../../guides/cli-reference.html">RU</button
+        ><button data-set-lang="en" data-go="../../guides/cli-reference.html">EN</button
+        ><button data-set-lang="ua" data-go="../../guides/cli-reference.html">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Design wechseln"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="de">Design</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="de">Installation</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Sprachen"><a href="../../guides/cli-reference.html" data-set-lang="ru" hreflang="ru" lang="ru">RU</a><a href="../../guides/cli-reference.html" data-set-lang="en" hreflang="en" lang="en">EN</a><a href="../../guides/cli-reference.html" data-set-lang="ua" hreflang="uk" lang="uk">UA</a><span aria-current="page" lang="de">DE</span><a href="../../fr/guides/cli-reference.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="de">Anleitung · Befehlszeile</span>
+        </p>
+        <h1>
+          <span data-l="de">Die FileDO-Befehlszeile: Ziele, Operationen, Modifikatoren</span>
+        </h1>
+        <p class="lead">
+          <span data-l="de">Die Befehlsreferenz der FileDO-README auf einer Seite: was FileDO als Ziel annimmt, jede Operation mit ihren Kurzformen, die Modifikatoren, der Lese-Check, Stapeldateien und Exit-Codes, Verlauf und Netzwerkpfade. Geheime Dateien, Sicherungen und virtuelle Datenträger haben eigene Befehle, beschrieben in ihren <a href="index.html">Anleitungen</a>; die vollständige README steht auf <a href="https://github.com/SerZhyAle/FileDO/blob/main/README.de.md" target="_blank" rel="noopener">GitHub</a>.</span>
+        </p>
+      </section>
+
+      <!-- cli-reference:begin - written by packaging/write-cli-reference.ps1 from the Command Reference, the read check of the Quick Start and the Advanced Features of README.md and its translations; never edit by hand -->
+      <section class="section" id="reference">
+        <div class="readme-render" data-l="de">
+          <h2>Befehlsreferenz</h2>
+          <h3>Zieltypen (Automatische Erkennung)</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Muster</th><th>Typ</th><th>Beispiel</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>C:</code>, <code>D:</code></td><td>Gerät</td><td><code>filedo C: test</code></td></tr>
+                <tr><td><code>C:\folder</code></td><td>Ordner</td><td><code>filedo C:\temp speed 100</code></td></tr>
+                <tr><td><code>\\server\share</code></td><td>Netzwerk</td><td><code>filedo \\nas\backup test</code></td></tr>
+                <tr><td><code>file.txt</code></td><td>Datei</td><td><code>filedo document.pdf info</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Operationen</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Befehl</th><th>Zweck</th><th>Beispiel</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>info</code></td><td>Detaillierte Informationen anzeigen</td><td><code>filedo C: info</code></td></tr>
+                <tr><td><code>short</code></td><td>Kurze Zusammenfassung</td><td><code>filedo D: short</code></td></tr>
+                <tr><td><code>test</code></td><td>Fake-Kapazität-Erkennung</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>test N</code></td><td>Test mit N Dateien (Standard 100)</td><td><code>filedo D: test 1000</code></td></tr>
+                <tr><td><code>probe</code></td><td>Schnelles Raw-I/O-Probe (~1 Min, Admin erforderlich)</td><td><code>filedo D: probe</code></td></tr>
+                <tr><td><code>speed &lt;größe&gt;</code></td><td>Leistungstest</td><td><code>filedo C: speed 500</code></td></tr>
+                <tr><td><code>fill [größe]</code></td><td>Mit Testdaten füllen</td><td><code>filedo D: fill 1000</code></td></tr>
+                <tr><td><code>clean</code></td><td>Testdateien löschen</td><td><code>filedo C: clean</code></td></tr>
+                <tr><td><code>check-duplicates</code></td><td>Datei-Duplikate finden</td><td><code>filedo C: check-duplicates</code></td></tr>
+                <tr><td><code>cd [modus] [aktion]</code></td><td>Duplikate prüfen (Kurzform)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+                <tr><td><code>copy &lt;target&gt;</code></td><td>Dateien mit Fortschrittsanzeige kopieren</td><td><code>filedo C: copy D:\backup</code></td></tr>
+                <tr><td><code>rehash &lt;path&gt;</code></td><td>Dateien an Ort und Stelle mit neuem SHA-256 überschreiben, wiederholbar (PNG, JPEG auch vom Handy, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB)</td><td><code>filedo rehash D:\Photos</code></td></tr>
+                <tr><td><code>wipe</code></td><td>Den gesamten Inhalt eines Ordners löschen</td><td><code>filedo folder C:\temp wipe</code></td></tr>
+                <tr><td><code>from &lt;datei&gt;</code></td><td>Stapelbefehle ausführen</td><td><code>filedo from script.txt</code></td></tr>
+                <tr><td><code>hist</code></td><td>Operationshistorie anzeigen</td><td><code>filedo hist</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Kurzformen des fill-Befehls</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Befehl</th><th>Entspricht</th><th>Zweck</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo D: fill</code></td><td><code>filedo D: fill 100</code></td><td>Standardmäßig 100 MB füllen</td></tr>
+                <tr><td><code>filedo D: f</code></td><td><code>filedo D: fill 100</code></td><td>Kurzform</td></tr>
+                <tr><td><code>filedo D: f del</code></td><td><code>filedo D: fill 100 del</code></td><td>Mit automatischem Löschen</td></tr>
+                <tr><td><code>filedo D: f d</code></td><td><code>filedo D: fill 100 delete</code></td><td>Kurze Form mit automatischem Löschen</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Kurzformen für copy und wipe</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Befehl</th><th>Entspricht</th><th>Zweck</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo copy A B</code></td><td><code>filedo folder A copy B</code></td><td>Allgemeiner Kopierbefehl</td></tr>
+                <tr><td><code>filedo A cp B</code></td><td><code>filedo A copy B</code></td><td>Kurze copy-Form</td></tr>
+                <tr><td><code>filedo A w</code></td><td><code>filedo A wipe</code></td><td>Kurze wipe-Form</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Modifikatoren</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Flag</th><th>Zweck</th><th>Beispiel</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>del</code></td><td>Automatisches Löschen nach Operation</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>nodel</code></td><td>Testdateien behalten</td><td><code>filedo C: speed 100 nodel</code></td></tr>
+                <tr><td><code>short</code></td><td>Nur kurze Ausgabe</td><td><code>filedo D: speed 100 short</code></td></tr>
+                <tr><td><code>max</code></td><td>Maximale Größe (10GB)</td><td><code>filedo C: speed max</code></td></tr>
+                <tr><td><code>old</code></td><td>Neueste als Original behalten (für cd)</td><td><code>filedo D:\Photos cd old del</code></td></tr>
+                <tr><td><code>new</code></td><td>Älteste als Original behalten (für cd)</td><td><code>filedo E:\Photos cd new move F:\Dups</code></td></tr>
+                <tr><td><code>abc</code></td><td>Alphabetisch letztes behalten (für cd)</td><td><code>filedo C: cd abc</code></td></tr>
+                <tr><td><code>xyz</code></td><td>Alphabetisch erstes behalten (für cd)</td><td><code>filedo C: cd xyz list dups.lst</code></td></tr>
+                <tr><td><code>-y</code>, <code>--yes</code></td><td>Duplikate ohne Einzelabfrage löschen/verschieben (für cd; ohne Konsole erforderlich)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section class="section" id="read-check">
+        <div class="readme-render" data-l="de">
+          <h2>Lese-Check (check)</h2>
+          <p><code>filedo check &lt;Ordner&gt;</code> liest die Dateien und markiert eine Datei als beschädigt, die langsam (&gt; 2,0 s) oder mit einem Gerätefehler gelesen wird. Die Listen beschädigter und gut gelesener Dateien liegen in <code>%LOCALAPPDATA%\FileDO\state</code> und benennen eine Datei über Pfad, Größe, Änderungszeit sowie das Volume und die Datei, auf denen sie erfasst wurde: eine geänderte Datei oder eine Kopie unter demselben Pfad auf einer anderen Karte mit demselben Laufwerksbuchstaben wird erneut gelesen; Einträge älterer Versionen ohne Volume gelten nicht. Eine reine Online-Datei (ein Platzhalter von OneDrive oder einer anderen Cloud, oder eine Offline-Datei) wird nie geöffnet - weder beim Durchlauf noch wenn genau sie geprüft wird -, also wird nichts heruntergeladen. Sie zählt als <code>not-read(online-only)</code>, wird nie als beschädigt erfasst und macht den Lauf zu „konnte nicht prüfen“ (Code 2), sofern keine beschädigte Datei gefunden wurde (Code 1).</p>
+          <h2>CHECK: CLI-Flags (Flags haben Vorrang vor Umgebungsvariablen)</h2>
+          <p>Flags entsprechen den Umgebungsvariablen <code>FILEDO_CHECK_*</code> und haben Vorrang. Verwenden Sie sie nach <code>check &lt;path&gt;</code>.</p>
+          <ul>
+            <li>Allgemein
+              <ul>
+                <li><code>--threshold &lt;sec&gt;</code> (FILEDO_CHECK_THRESHOLD_SECONDS)</li>
+                <li><code>--warmup &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_SECONDS)</li>
+                <li><code>--warmup-idle &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)</li>
+                <li><code>--workers &lt;int&gt;</code> (FILEDO_CHECK_WORKERS)</li>
+                <li><code>--buf-kb &lt;int&gt;</code> (FILEDO_CHECK_BUF_KB)</li>
+                <li><code>--mode quick|balanced|deep</code> (FILEDO_CHECK_MODE)</li>
+                <li><code>--balanced-min-mb &lt;int&gt;</code> (FILEDO_CHECK_BALANCED_MIN_MB)</li>
+                <li><code>--min-mb &lt;float&gt;</code> / <code>--max-mb &lt;float&gt;</code> (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)</li>
+                <li><code>--include-ext ".jpg,.png"</code> / <code>--exclude-ext ".bak,.tmp"</code> (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)</li>
+              </ul>
+            </li>
+            <li>Grenzen
+              <ul>
+                <li><code>--max-files &lt;int&gt;</code> (FILEDO_CHECK_MAX_FILES)</li>
+                <li><code>--max-seconds &lt;float&gt;</code> (FILEDO_CHECK_MAX_DURATION_SEC)</li>
+                <li><code>--precount</code> / <code>--no-precount</code> (FILEDO_CHECK_PRECOUNT)</li>
+              </ul>
+            </li>
+            <li>Verhalten und Ausgabe
+              <ul>
+                <li><code>--dry-run</code> (FILEDO_CHECK_DRYRUN)</li>
+                <li><code>--verbose</code> (FILEDO_CHECK_VERBOSE)</li>
+                <li><code>--quiet</code> (FILEDO_CHECK_QUIET)</li>
+                <li><code>--resume</code> (FILEDO_CHECK_RESUME) - fortsetzen: Dateien überspringen, die ein früherer Lauf bereits fehlerfrei gelesen hat (Liste guter Dateien)</li>
+              </ul>
+            </li>
+            <li>Berichte
+              <ul>
+                <li><code>--report csv|json</code> (FILEDO_CHECK_REPORT)</li>
+                <li><code>--report-file &lt;path&gt;</code> (FILEDO_CHECK_REPORT_FILE)</li>
+              </ul>
+            </li>
+            <li>Cache guter Dateien
+              <ul>
+                <li><code>--good-list &lt;path&gt;</code> (FILEDO_CHECK_GOODLIST)</li>
+              </ul>
+            </li>
+            <li>HDD-freundliche Ein-/Ausgabe (ein Leser + adaptive Drosselung)
+              <ul>
+                <li><code>--single-reader auto|on|off</code> (FILEDO_CHECK_SINGLE_READER)</li>
+                <li><code>--ewma-alpha &lt;float&gt;</code> (FILEDO_CHECK_EWMA_ALPHA)</li>
+                <li><code>--ewma-high-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_HIGH_FRAC)</li>
+                <li><code>--ewma-low-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_LOW_FRAC)</li>
+                <li><code>--max-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_MAX_SLEEP_MS)</li>
+                <li><code>--sleep-step-ms &lt;int&gt;</code> (FILEDO_CHECK_SLEEP_STEP_MS)</li>
+                <li><code>--hdd-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_HDD_SLEEP_MS) - feste Pause nach jeder Datei und für jeden Leser</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Beispiele:</p>
+          <pre><code># Ausgewogener Modus, Leserzahl und Vorabzählung für die ETA
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Einen Leser und adaptive Drosselung für HDD/USB erzwingen
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Nach Erweiterungen filtern, Dateien begrenzen und CSV-Bericht speichern
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Eigene Liste guter Dateien und stille Ausgabe verwenden
+filedo check D:\Data --good-list D:\check_files.list --quiet</code></pre>
+          <ul>
+            <li>Einmalige Aufwärmzeit bis zu 10.0 s vor dem ersten Lesevorgang (Anlauf des Laufwerks)</li>
+            <li>Die Listen beschädigter und guter Dateien liegen in <code>%LOCALAPPDATA%\FileDO\state</code> (nie neben Ihren Dateien) und benennen jede Datei nach Pfad, Größe und Änderungszeit, sodass eine geänderte Datei erneut gelesen wird; copy hat eine eigene Ausschlussliste</li>
+            <li>Eine Datei auf der Liste beschädigter Dateien wird ohne erneutes Lesen wieder als beschädigt gemeldet (Code 1); eine gesperrte oder unlesbare Datei oder ein Ordner bedeutet „konnte nicht prüfen“ (Code 2), nicht „beschädigt“; parallele Leser und Ctrl+C werden unterstützt</li>
+            <li>Eine reine Online-Datei (OneDrive- oder anderer Cloud-Platzhalter oder eine Offline-Datei) wird nicht geöffnet oder heruntergeladen; <code>not-read(online-only)</code> bedeutet „konnte nicht prüfen“ (Code 2), sofern keine beschädigte Datei gefunden wurde (Code 1)</li>
+          </ul>
+        </div>
+      </section>
+      <section class="section" id="advanced">
+        <div class="readme-render" data-l="de">
+          <h2>Erweiterte Funktionen</h2>
+          <h3>Ordnervergleich &amp; Bereinigung</h3>
+          <p><code>compare &lt;source&gt; &lt;target&gt; --strict</code> prüft die Übereinstimmung der Verzeichnisbäume: gleiche relative Pfade, Größen und Änderungszeiten ergeben <code>Passed</code> (Code 0); ein Unterschied ergibt <code>Failed</code> (Code 1); ein unvollständiger Vergleich ergibt <code>Not proven</code> (Code 2). Mit <code>--by-hash</code> werden gleich große Dateipaare nach Inhalt statt nach Zeit verglichen. Einfaches <code>compare</code> meldet Unterschiede weiterhin mit <code>Done</code> (Code 0); <code>--strict</code> lässt sich nicht mit Löschen verbinden. Beide Modi liefern <code>onlyInSource</code>, <code>onlyInTarget</code>, <code>differentFiles</code>, <code>sameFiles</code>, <code>totalSource</code> und <code>totalTarget</code> im Ergebnis von <code>--events</code>. Bei <code>check</code> liest <code>--max-files N</code> höchstens N Dateien (0 bedeutet unbegrenzt); <code>--resume</code> endet mit <code>Passed</code> (Code 0), wenn jede passende Datei einen unveränderten Eintrag in der Liste gut gelesener Dateien hat: <code>checkedFiles = 0</code>, und <code>skippedGoodFiles</code> zählt die früher geprüften Dateien.</p>
+          <pre><code># Zwei Ordner vergleichen und Bericht speichern
+filedo compare D:\Data E:\Backup
+
+# Vergleichen und löschen (permanent, ohne Rückfrage)
+filedo cmp D:\Data E:\Backup del source  # in Source löschen, wenn in Target vorhanden
+filedo cmp D:\Data E:\Backup del target  # in Target löschen, wenn in Source vorhanden
+filedo cmp D:\Data E:\Backup del old     # ältere Seite löschen (mtime), Gleichheit: überspringen
+filedo cmp D:\Data E:\Backup del new     # neuere Seite löschen (mtime), Gleichheit: überspringen
+filedo cmp D:\Data E:\Backup del small   # kleinere Seite löschen, Gleichheit: überspringen
+filedo cmp D:\Data E:\Backup del big     # größere Seite löschen, Gleichheit: überspringen
+
+# Optionale Seiten-Einschränkung
+filedo cmp D:\Data E:\Backup del small source  # nur wenn kleiner auf Source
+filedo cmp D:\Data E:\Backup del big target    # nur wenn größer auf Target
+filedo cmp D:\Data E:\Backup del old target    # nur wenn älter auf Target
+filedo cmp D:\Data E:\Backup del new source    # nur wenn neuer auf Source
+filedo cmp D:\Data E:\Backup del source --yes  # ohne Frage (Skripte); die Prüfungen bleiben</code></pre>
+          <p>Hinweise: Abgleich per relativem Pfad; <code>del source</code> und <code>del target</code> löschen ein Paar nur, wenn Größe und Änderungszeit übereinstimmen (<code>--by-hash</code>: gleicher Inhalt; <code>--allow-mismatch</code>: jedes Paar) - ein abweichendes Paar wird gemeldet und bleibt; zwei Schreibweisen desselben Ordners oder ein Ordner im anderen werden abgelehnt; jede Löschregel nennt zuerst die Anzahl der Dateien und den Modus und fragt <code>(y/N)</code> - <code>--yes</code> (oder <code>-y</code>) überspringt die Frage, nie eine Prüfung, und ohne Antwort (geschlossenes stdin, ein Skript) wird nichts gelöscht und der Lauf endet mit Exit-Code 2; mtime für old/new; Windows ohne Groß-/Kleinschreibung, gelöscht wird unter dem echten Dateinamen; was nicht gelesen oder gelöscht werden konnte, endet mit Exit-Code 2; Logs: compare_report_*.log, delete_report_&lt;mode&gt;_*.log.</p>
+          <h3>Stapelverarbeitung</h3>
+          <p><code>commands.txt</code> erstellen:</p>
+          <pre><code># Mehrere Geräte prüfen
+device C: info
+device D: test del
+device E: speed 100
+folder C:\temp clean</code></pre>
+          <p>Ausführen: <code>filedo from commands.txt</code></p>
+          <p>Exit-Codes (alle Nicht-Container-Befehle): <strong>0 bestanden oder erledigt, 1 Defekt gefunden, 2 nicht prüfbar (keine genauere Klasse), 10 Aufruf falsch, 11 Ziel nicht gefunden oder nicht bereit, 12 Zugriff oder Administratorrechte verweigert, 13 zu wenig Platz oder Ressourcen, 14 Hardware- oder E/A-Fehler, 15 Netzwerk- oder Freigabefehler, 16 vor dem Ende gestoppt.</strong> Ein vor dem Stopp gefundener Defekt bleibt 1; ein Skript, das genau auf 2 prüft, sollte auf 2 oder höher prüfen. Die Container-Befehle und <code>vd</code> behalten ihre eigenen Klassen, die bei ihnen aufgeführt sind.</p>
+          <h3>Historien-Verfolgung</h3>
+          <pre><code>filedo hist              # Letzte 10 Operationen anzeigen
+filedo history           # Befehlshistorie anzeigen
+# Historie wird automatisch für alle Operationen geführt</code></pre>
+          <h3>Unterbrechungsunterstützung</h3>
+          <pre><code># Alle langen Operationen unterstützen Ctrl+C Unterbrechung
+# Eleganter Abbruch mit Bereinigung
+# Kontextabhängige Unterbrechung an optimalen Punkten</code></pre>
+          <h3>Netzwerk-Operationen</h3>
+          <pre><code># SMB-Freigaben und Netzwerklaufwerke
+filedo \\server\backup speed 100
+filedo \\nas\storage test del
+filedo network \\pc\share info</code></pre>
+        </div>
+      </section>
+      <!-- cli-reference:end -->
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="de">Website-Links</span></span><a href="index.html"><span data-l="de">Anleitungen</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="de">Support</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        de: {
+          title: "FileDO-Befehlsreferenz für die Befehlszeile",
+          description:
+            "Die FileDO-Befehlszeile auf einer Seite: Zieltypen, Operationen und Kurzformen, Modifikatoren, Lese-Check, Stapeldateien, Verlauf und Netzwerkpfade.",
+        },
+      };
+    </script>
+    <script src="../../guides/guide.js"></script>
+  </body>
+</html>

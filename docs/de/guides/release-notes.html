@@ -65,7 +65,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../../kit/sza-kit.css" />
@@ -104,8 +104,19 @@
           <span data-l="de">Was sich in jeder Version geändert hat.</span>
         </h1>
         <p class="lead">
-          <span data-l="de">Jede FileDO-Version, die neueste zuerst, mit ihrem Datum. Die Dateien jeder Version und ihre Prüfsummen liegen auf GitHub.</span>
+          <span data-l="de">Jede FileDO-Version, die neueste zuerst, mit ihrem Datum. Die Dateien jeder Version und ihre Prüfsummen liegen auf GitHub; die drei Einträge von 2025 stammen aus der Zeit vor den Veröffentlichungen dort.</span>
         </p>
+      </section>
+      <section class="section" id="v2611270100">
+        <h2><span>v2611270100</span><time datetime="2026-11-27">2026-11-27</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="de">Neuer Hash</span></strong>: <span data-l="de"><code>filedo rehash &lt;path&gt;</code> schreibt jede unterstützte Datei an Ort und Stelle neu: Sie erhält einen neuen SHA-256 und eine winzige, formatkonforme Größenänderung, Inhalt und Metadaten bleiben gleich, und sie öffnet sich weiter in ihrem gewohnten Programm - PNG, JPEG (auch Handyfotos mit Gain Map oder Bewegtbild), HEIC und AVIF, WebP, GIF89a, BMP, TIFF und RAW, PDF, ZIP, Office, OpenDocument und EPUB, RTF, Text- und Webdateien, JSON, XML und SVG, WAV, FLAC, MP3, AIFF, MP4, MOV und 3GP, MKV und WebM, AVI, MPEG-TS und MPG; das Original wird erst ersetzt, nachdem ein strenger Leser die neue Datei geprüft hat, nicht unterstützte, beschädigte, schreibgeschützte und signierte Dateien werden mit Grund übersprungen, Windows und Program Files werden abgelehnt, und dieselben Dateien lassen sich beliebig oft bearbeiten</span></li>
+          <li><strong><span data-l="de">Sicherung</span></strong>: <span data-l="de"><code>keep-days &lt;1-999&gt;</code> behält datierte Sicherungen und entfernt die, die älter als so viele Tage sind, allein nach dem Datum im Dateinamen; <code>keep-monthly</code> behält außerdem die erste Sicherung jedes Monats dauerhaft; alte Dateien werden erst entfernt, nachdem die neue zurückgelesen wurde, und <strong>Ordner sichern</strong> bietet beides an</span></li>
+          <li><strong><span data-l="de">Anleitungen</span></strong>: <span data-l="de">die Seiten des Hauptfensters und die Datenträgerverwaltung verlinken die Anleitung der Website zu dem, was Sie gerade tun, in Ihrer Sprache, wo die Website sie hat, sonst auf Englisch</span></li>
+          <li><strong><span data-l="de">Fenster</span></strong>: <span data-l="de">eine Auftragsseite behält Ziel und Optionen, die Sie eingegeben haben, wenn Sie eine andere Seite ansehen und zurückkehren, während Kennwort- und Bestätigungsfelder weiterhin geleert werden; ein langsames oder getrenntes Netzlaufwerk friert das Fenster beim Auflisten der Laufwerke nicht mehr ein; die langen Beschriftungen der Vorgaben im Geschwindigkeitstest werden auf Bildschirmen mit hoher DPI nach einem Seitenwechsel nicht mehr abgeschnitten; die Datenträgerverwaltung öffnet sich auf dem Monitor des Fensters, das sie aufgerufen hat</span></li>
+          <li><strong><span data-l="de">Aussehen und Namen</span></strong>: <span data-l="de">Programmsymbol, Store-Grafiken, Website und Vorschaubilder zeigen jetzt dasselbe Produktzeichen; die Zeile <strong>Disk-Manager</strong> der linken Leiste zeichnet ein Datenträgersymbol in der Farbe ihrer Gruppe, mit dem Hinweis, dass sie ein eigenes Fenster öffnet; der Dialog für alles, was von selbst startet, heißt jetzt <strong>Mit Windows starten</strong>; die Schaltfläche, die in einem schmalen Fenster die Leiste öffnet, heißt <strong>Menü</strong></span></li>
+          <li><strong><span data-l="de">Installation und Doku</span></strong>: <span data-l="de">FileDO lässt sich auch mit Scoop installieren (<code>scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket</code>, dann <code>scoop install serzhyale/filedo</code>); die Website hat eine Befehlsreferenz und eine kurze Demo des Fensters, und das README in jeder Sprache enthält dieselben Befehlstabellen</span></li>
+        </ul>
       </section>
       <section class="section" id="v2611171800">
         <h2><span>v2611171800</span><time datetime="2026-11-17">2026-11-17</time></h2>
@@ -172,9 +183,18 @@
           <li><strong><span data-l="de">Dokumentation</span></strong>: <span data-l="de">neue Anleitungen - virtuelle Datenträger und Freigabe von Datenträgern über Fast Media Sorter; die Seiten der Website auf Deutsch und Französisch sowie eine Seite mit den Neuerungen</span></li>
         </ul>
       </section>
+      <section class="section" id="v2609260512">
+        <h2><span>v2609260512</span><time datetime="2026-09-26">2026-09-26</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="de">Geheime Dateien (<code>.fd-sec</code>)</span></strong>: <span data-l="de">ein Container, den Windows FileDO nicht lesen lässt, wird als nicht lesbar gemeldet, nicht als beschädigt</span></li>
+          <li><strong><span data-l="de">Duplikate</span></strong>: <span data-l="de">Dateien, deren Hash sich nicht berechnen lässt, erscheinen im Bericht, statt stillschweigend zu fehlen; lässt sich die Listendatei nicht schreiben, halten <code>del</code> und <code>move</code> an, bevor sie eine Datei anfassen</span></li>
+          <li><strong><span data-l="de">Kapazitätstest</span></strong>: <span data-l="de">der Bericht nennt die Testdateien, die er behält</span></li>
+        </ul>
+      </section>
       <section class="section" id="v2609241700">
         <h2><span>v2609241700</span><time datetime="2026-09-24">2026-09-24</time></h2>
         <ul class="release-list">
+          <li><strong><span data-l="de">Installationsprogramm</span></strong>: <span data-l="de">neben dem einzelnen MSI und dem Zip erscheint die Setup-EXE - ein WiX-Bundle mit dem MSI darin</span></li>
           <li><strong><span data-l="de">Geheime Dateien (<code>.fd-sec</code>)</span></strong>: <span data-l="de">eine Datei wird in einen passwortgeschützten Container gepackt und wieder zurückgeholt - <code>secure</code>, <code>unsecure</code>, <code>reveal</code> - über die Befehlszeile, das Explorer-Menü oder die Seiten der Gruppe <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Protect im Fenster; der echte Name, die Größe und die Zeitstempel des Originals sind darin versiegelt</span></li>
           <li><strong><span data-l="de">Explorer-Integration</span></strong>: <span data-l="de">das Setup fügt dem Kontextmenü die Gruppe <code>File DO..</code> hinzu (<svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.secure"/></svg>Secure, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.unsecure"/></svg>Unsecure, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.wipe"/></svg>Wipe this file, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-action.verify"/></svg>Check this file, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>Info) sowie den Dokumenttyp <code>.fd-sec</code>; <code>filedo fdsec register</code> / <code>unregister</code> tut dasselbe ohne Installationsprogramm</span></li>
           <li><strong><span data-l="de">GUI</span></strong>: <span data-l="de">ein neues Fenster - links eine Liste der Aufgaben, pro Aufgabe eine Seite mit allen CLI-Optionen, dazu die Seiten <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.command-line"/></svg>Command, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-content.history"/></svg>History, <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.settings"/></svg>Settings und <svg class="cg" aria-hidden="true" focusable="false"><use href="#g-app.info"/></svg>About; das alte Fenster zum Zusammenstellen von Befehlen entfällt</span></li>
@@ -206,15 +226,32 @@
       <section class="section" id="v2605152056">
         <h2><span>v2605152056</span><time datetime="2026-05-15">2026-05-15</time></h2>
         <ul class="release-list">
-          <li><strong><span data-l="de">Installationsprogramm</span></strong>: <span data-l="de">Setup-EXE (ein WiX-Bundle mit dem MSI) und das einzelne MSI; App-Symbol in allen EXE-Dateien und im Eintrag der installierten Programme</span></li>
-          <li><strong><span data-l="de">Store</span></strong>: <span data-l="de">Spezifikation für die Microsoft-Store-Einreichung und Vorschaubild</span></li>
+          <li><strong><span data-l="de">Veröffentlichung</span></strong>: <span data-l="de">der Build von v2605152052, erneut veröffentlicht; keine Änderungen</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2605152052">
+        <h2><span>v2605152052</span><time datetime="2026-05-15">2026-05-15</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="de">Symbol</span></strong>: <span data-l="de">das App-Symbol ist in alle EXE-Dateien und in den Eintrag des MSI in der Liste der installierten Programme eingebettet</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2605152042">
+        <h2><span>v2605152042</span><time datetime="2026-05-15">2026-05-15</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="de">Installationsprogramm</span></strong>: <span data-l="de">das erste MSI - FileDO installiert sich als Windows-Programm, das Zip bleibt daneben</span></li>
         </ul>
       </section>
       <section class="section" id="v2604272228">
         <h2><span>v2604272228</span><time datetime="2026-04-27">2026-04-27</time></h2>
         <ul class="release-list">
-          <li><strong><span data-l="de">Verbreitung</span></strong>: <span data-l="de">erste winget-Veröffentlichung (SerZhyAle.FileDO) und GitHub-Actions-Release-Workflow</span></li>
+          <li><strong><span data-l="de">Verbreitung</span></strong>: <span data-l="de">erste winget-Veröffentlichung (SerZhyAle.FileDO)</span></li>
           <li><strong><span data-l="de">Programmdateien</span></strong>: <span data-l="de">PE-Versionsinfo und Windows-Anwendungsmanifest in allen Programmdateien eingebettet</span></li>
+        </ul>
+      </section>
+      <section class="section" id="v2604271301">
+        <h2><span>v2604271301</span><time datetime="2026-04-27">2026-04-27</time></h2>
+        <ul class="release-list">
+          <li><strong><span data-l="de">Verbreitung</span></strong>: <span data-l="de">die erste Veröffentlichung auf GitHub - ein Zip, gebaut vom GitHub-Actions-Release-Workflow</span></li>
           <li><strong><span data-l="de">Dokumentation</span></strong>: <span data-l="de">GitHub Pages überarbeitet und vereinfacht</span></li>
         </ul>
       </section>

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `RELEASE-LEDGER` |
-| **Version** | 0.1 draft, read and adopted 2026-11-17 (SP-0229); the build and release hooks are written and proven on a scratch repository, the first real build and release that write through them are still to come |
+| **Version** | 0.2 draft, read 2026-11-26 (FILEDO-0245; rule 12 is about Play channels, and FileDO has none), adopted at 0.1 on 2026-11-17 (SP-0229); the build and release hooks are written and proven on a scratch repository, the first real build and release that write through them are still to come |
 | **Role** | producer of the ledger files in `docs/releases/`, written only through the canon's one writer |
 | **Home** | shared contracts catalog, folder `release-ledger/`, document `README.md` |
 | **Owner** | sza-unified-rules |

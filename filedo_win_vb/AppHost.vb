@@ -253,8 +253,15 @@ Friend Class AppHost
 
     ' ---- what the shell tells the host --------------------------------------
 
-    Friend Shared Sub OpenDiskManager()
-        If Current IsNot Nothing Then Current.ShowManager()
+    ' The rail's action row, its shortcut and a page's button: the manager opens, or comes forward, on
+    ' the monitor of the shell window that asked (SETTINGS-NAVIGATION 2.4 item H, 3). `from` is read
+    ' first, while it is still the window the user is in.
+    Friend Shared Sub OpenDiskManager(from As Form)
+        If Current Is Nothing Then Return
+        Dim follow = ScreenOfUser(from)
+        Current.ShowManager()
+        Dim m = Current.manager
+        If follow IsNot Nothing AndAlso m IsNot Nothing AndAlso Not m.IsDisposed Then m.MoveToScreen(follow)
     End Sub
 
     ' A run on the shell ended: what it changed is read (spec 7.3, "when that run ends, the manager

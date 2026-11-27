@@ -226,6 +226,10 @@ Partial Public Module SelfTest
             shell.Bounds = New Rectangle(-32000, -32000, shell.MinimumSize.Width + Ui.Px(shell, 200), shell.MinimumSize.Height + Ui.Px(shell, 200))
             shell.ShowPageForCapture("rail_job_command", "")
             Settle()
+            ' A settle pass is about the controls inside the window; the window keeps its bounds (FILEDO-0237).
+            Dim before = shell.Bounds
+            Ui.Settle(shell)
+            Check("input:shell:settle-keeps-the-window", shell.Bounds = before, before.ToString() & " -> " & shell.Bounds.ToString())
             Dim row = shell.RailEntriesForTest().FirstOrDefault(Function(r) r.Selected)
             Check("input:shell:page-row-selected", row IsNot Nothing, "")
             If row Is Nothing Then Return

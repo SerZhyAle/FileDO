@@ -29,9 +29,17 @@ Friend Class HelpShot
     ' The elements this surface does not show in the language of the picture (CONTEXT-HELP 0.2 section 7 item C).
     ' They are never pinned; the page marks each one, and check-help.ps1 counts them against the baseline.
     Friend ReadOnly Absent As New List(Of String)
+    ' The vocabulary glyph each element's control draws, read off the window (CONTEXT-HELP 0.6 item R): element
+    ' id to ICON-SET id. An element whose control draws none is not here, and its entry shows no glyph.
+    Friend ReadOnly Glyphs As New Dictionary(Of String, String)(StringComparer.Ordinal)
 
     Friend Function PinFor(elementId As String) As HelpPin
         Return Pins.FirstOrDefault(Function(p) p.ElementId = elementId)
+    End Function
+
+    Friend Function GlyphOf(elementId As String) As String
+        Dim id As String = Nothing
+        Return If(Glyphs.TryGetValue(elementId, id), id, "")
     End Function
 End Class
 
@@ -39,6 +47,12 @@ Friend Module HelpPages
     ' The languages the pages are written in and the folder each one lives in.
     Friend ReadOnly HelpLanguages As String() = Localization.Languages
     Friend ReadOnly HelpThemes As String() = {"dark", "light"}
+
+    ' The product's picture beside every title and the page icon (CONTEXT-HELP 0.6 item Q): the help.head and
+    ' web.favicon-png renditions of PRODUCT-IDENTITY, which assets\make-product-icons.ps1 writes beside the pages
+    ' as byte copies, so a page names nothing outside its folder.
+    Friend Const HeadPicture As String = "filedo-mark.svg"
+    Friend Const PageIcon As String = "favicon.png"
 
     ' ---- the whole set -----------------------------------------------------------
 
@@ -196,6 +210,7 @@ Friend Module HelpPages
         sb.Append("<meta name=""referrer"" content=""no-referrer"">").Append(vbLf)
         sb.Append("<meta name=""robots"" content=""noindex"">").Append(vbLf)
         sb.Append("<title>").Append(HtmlText(T(dict, "help_ui_kind_index") & " - " & title)).Append("</title>").Append(vbLf)
+        sb.Append("<link rel=""icon"" type=""image/png"" href=""../").Append(PageIcon).Append(""">").Append(vbLf)
         sb.Append(ThemeScript).Append(vbLf)
         sb.Append("<link rel=""stylesheet"" href=""../sza-kit.css"">").Append(vbLf)
         sb.Append("<link rel=""stylesheet"" href=""../help.css"">").Append(vbLf)
@@ -211,6 +226,45 @@ Friend Module HelpPages
         sb.Append("    <a href=""").Append(HtmlText(Links.Site & "guides/support.html")).Append(""">").Append(HtmlText(T(dict, "help_ui_support"))).Append("</a>").Append(vbLf)
         sb.Append("  </footer>").Append(vbLf)
         Return sb.ToString()
+    End Function
+
+    ' The title with the product's picture before it on the same line (CONTEXT-HELP 0.6 item Q); help.css renders it
+    ' at 1.15 of the title, between its cap height and twice that (CONTEXT-HELP 0.7). The alt is empty where the
+    ' heading already names the product and carries the product's full name where the heading names only the page,
+    ' since the name then stands only in the footer (CONTEXT-HELP 0.7, PRODUCT-IDENTITY rule 11).
+    Private Const MarkName As String = "FileDO"
+
+    Private Function TitleRow(title As String) As String
+        ' .NET Framework has no String.Contains(String, StringComparison); the call binds to LINQ's Contains(Of Char).
+        Dim alt As String = If(title.IndexOf(MarkName, StringComparison.Ordinal) >= 0, "", MarkName)
+        Return "    <div class=""title-row""><img class=""product-mark"" src=""../" & HeadPicture & """ width=""48"" height=""48"" alt=""" & HtmlText(alt) & """>" &
+               "<h1>" & HtmlText(title) & "</h1></div>" & vbLf
+    End Function
+
+    ' The glyph an element's control draws, as the product ships it (CONTEXT-HELP 0.6 item R): the vendored ICON-SET
+    ' SVG inlined so it takes the page's text colour (its paths fill with currentColor, ICON-RENDER rule 2) and
+    ' sized to the text by help.css. Hidden from assistive technology - the name beside it says the same. An
+    ' element with no glyph, or one whose file did not verify, shows none: never a stand-in.
+    Friend Function InlineGlyph(glyphId As String) As String
+        If String.IsNullOrEmpty(glyphId) Then Return ""
+        Dim svg = Glyphs.VerifiedSvg(glyphId)
+        If svg Is Nothing Then Return ""
+        Dim open = svg.IndexOf("<svg", StringComparison.Ordinal)
+        If open < 0 Then Return ""
+        Dim openEnd = svg.IndexOf(">"c, open)
+        Dim close = svg.LastIndexOf("</svg>", StringComparison.Ordinal)
+        If openEnd < 0 OrElse close <= openEnd Then Return ""
+        Dim rootTag = svg.Substring(open, openEnd - open)
+        Dim viewBox = "0 0 24 24"
+        Dim at = rootTag.IndexOf("viewBox=""", StringComparison.Ordinal)
+        If at >= 0 Then
+            Dim valueEnd = rootTag.IndexOf(""""c, at + 9)
+            If valueEnd > at + 9 Then viewBox = rootTag.Substring(at + 9, valueEnd - at - 9)
+        End If
+        Dim inner = String.Join("", svg.Substring(openEnd + 1, close - openEnd - 1).Split({vbCr, vbLf}, StringSplitOptions.RemoveEmptyEntries).Select(Function(l) l.Trim()))
+        ' A page makes no request and imports nothing (rule 12): a drawing that references anything is not shown.
+        If inner.Contains("url(") OrElse inner.Contains("href") Then Return ""
+        Return "<svg class=""glyph"" viewBox=""" & HtmlText(viewBox) & """ aria-hidden=""true"" focusable=""false"">" & inner & "</svg>"
     End Function
 
     ' A step names a part as [element-id]; it becomes the part's number, linked to its entry.
@@ -253,7 +307,7 @@ Friend Module HelpPages
         sb.Append("  </nav>").Append(vbLf)
         sb.Append("  <header class=""hero"">").Append(vbLf)
         sb.Append("    <p class=""kicker"">").Append(HtmlText(T(dict, "help_ui_kind_window"))).Append("</p>").Append(vbLf)
-        sb.Append("    <h1>").Append(HtmlText(title)).Append("</h1>").Append(vbLf)
+        sb.Append(TitleRow(title))
         ' 2. what this is for
         sb.Append("    <p class=""lead"">").Append(HtmlText(T(dict, page.ForKey))).Append("</p>").Append(vbLf)
         sb.Append("  </header>").Append(vbLf).Append(vbLf)
@@ -293,7 +347,8 @@ Friend Module HelpPages
         sb.Append("  <h2>").Append(HtmlText(T(dict, "help_ui_elements"))).Append("</h2>").Append(vbLf)
         sb.Append("  <div class=""elements"">").Append(vbLf)
         For i = 0 To page.Elements.Length - 1
-            sb.Append(ElementHtml(page.Elements(i), i + 1, dict, shot.PinFor(page.Elements(i).Id) IsNot Nothing, shot.Absent.Contains(page.Elements(i).Id)))
+            Dim e = page.Elements(i)
+            sb.Append(ElementHtml(e, i + 1, dict, shot.PinFor(e.Id) IsNot Nothing, shot.Absent.Contains(e.Id), shot.GlyphOf(e.Id)))
         Next
         sb.Append("  </div>").Append(vbLf).Append(vbLf)
 
@@ -314,10 +369,11 @@ Friend Module HelpPages
         Return sb.ToString()
     End Function
 
-    Private Function ElementHtml(e As HelpElementDef, number As Integer, dict As Dictionary(Of String, String), pinned As Boolean, absent As Boolean) As String
+    Private Function ElementHtml(e As HelpElementDef, number As Integer, dict As Dictionary(Of String, String), pinned As Boolean, absent As Boolean,
+                                 glyphId As String) As String
         Dim sb As New StringBuilder()
         sb.Append("    <details class=""el"" id=""").Append(HelpContent.AnchorOf(e.Id)).Append("""").Append(If(absent, " data-absent=""1""", "")).Append(">").Append(vbLf)
-        sb.Append("      <summary><span class=""mk"">").Append(number.ToString()).Append("</span><span><span class=""name"">").Append(HtmlText(PartName(dict, e)))
+        sb.Append("      <summary><span class=""mk"">").Append(number.ToString()).Append("</span><span><span class=""name"">").Append(InlineGlyph(glyphId)).Append(HtmlText(PartName(dict, e)))
         sb.Append("</span><span class=""one"">").Append(HtmlText(T(dict, e.OneKey))).Append("</span></span></summary>").Append(vbLf)
         sb.Append("      <div class=""full"">").Append(vbLf)
         sb.Append("        <p>").Append(HtmlText(T(dict, e.FullKey))).Append("</p>").Append(vbLf)
@@ -390,7 +446,7 @@ Friend Module HelpPages
         sb.Append("<main class=""container"">").Append(vbLf).Append(vbLf)
         sb.Append("  <header class=""hero"">").Append(vbLf)
         sb.Append("    <p class=""kicker"">").Append(HtmlText(T(dict, "help_ui_kind_index"))).Append("</p>").Append(vbLf)
-        sb.Append("    <h1>").Append(HtmlText(title)).Append("</h1>").Append(vbLf)
+        sb.Append(TitleRow(title))
         sb.Append("    <p class=""lead"">").Append(HtmlText(T(dict, "help_ix_lead"))).Append("</p>").Append(vbLf)
         sb.Append("  </header>").Append(vbLf).Append(vbLf)
 

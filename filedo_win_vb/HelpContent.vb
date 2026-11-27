@@ -171,7 +171,7 @@ Friend Module HelpContent
              Site("guides/gui-command-builder.html", "help_rel_guide_gui_title", "help_rel_guide_gui_note"),
              Site("guides/commands.html", "help_rel_guide_commands_title", "help_rel_guide_commands_note"),
              Site("guides/glossary.html", "help_rel_glossary_title", "help_rel_glossary_note")},
-            "shell|rail_job_command|"),
+            "shell|rail_job_command||1180x880"),
         New HelpPageDef("settings", "st", "shell.settings", "rail_job_settings", "help_st_for", {}, "help_st_noorder",
             {E("st", "group-appearance", "settings_appearance", oneKey:="help_st_group_appearance_one", locator:="settings-group:appearance:header"),
              E("st", "setting-theme", "shell_settings_theme", "nu", "settings_theme_hint", locator:="setting:theme"),

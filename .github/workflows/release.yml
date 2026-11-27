@@ -203,6 +203,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "go test ./fmsworker/ failed - nothing is built or published" }
           go test ./backupzip/ -count=1
           if ($LASTEXITCODE -ne 0) { throw "go test ./backupzip/ failed - nothing is built or published" }
+          go test ./rehash/ -count=1
+          if ($LASTEXITCODE -ne 0) { throw "go test ./rehash/ failed - nothing is built or published" }
           # A package with tests that no gate runs is a regression that ships green (AUD-92-F1).
           & .\packaging\check-gated-packages.ps1
           if ($LASTEXITCODE -ne 0) { throw "packaging\check-gated-packages.ps1 failed - nothing is built or published" }

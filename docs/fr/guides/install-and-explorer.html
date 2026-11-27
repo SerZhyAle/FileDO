@@ -66,7 +66,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../../kit/sza-kit.css" />
@@ -130,19 +130,29 @@
                 ><span data-l="fr">Télécharger setup.exe</span></a
               >
             </p>
-            <div class="copybox">FileDO-&lt;version&gt;-setup.exe</div>
+            <div class="copybox">FileDO-2611171800-setup.exe</div>
           </article>
           <article class="card">
             <h3>
-              <span data-l="fr">winget ou ZIP</span>
+              <span data-l="fr">winget, Scoop ou ZIP</span>
             </h3>
             <p>
-              <span data-l="fr">Rapide, et aucun programme d’installation ne s’exécute. Les commandes fonctionnent aussitôt ; les entrées de l’Explorateur relèvent d’une commande distincte - voir plus bas.</span>
+              <span data-l="fr">Rapide, et aucun programme d’installation ne s’exécute. Les commandes fonctionnent aussitôt ; les entrées de l’Explorateur relèvent d’une commande distincte - voir plus bas. Scoop installe les mêmes outils depuis le bucket de l’auteur, les ajoute à son <code>PATH</code> et crée dans le menu Démarrer une entrée pour la fenêtre ; <code>scoop update filedo</code> le met à jour.</span>
             </p>
             <div class="copybox">
               winget install SerZhyAle.FileDO<button
                 class="copy"
                 data-copy="winget install SerZhyAle.FileDO"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+            <div class="copybox">
+              scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket<button class="copy" data-copy="scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket"
+              ><span data-l="fr">Copier</span></button>
+            </div>
+            <div class="copybox">
+              scoop install serzhyale/filedo<button
+                class="copy"
+                data-copy="scoop install serzhyale/filedo"
               ><span data-l="fr">Copier</span></button>
             </div>
           </article>
@@ -155,6 +165,91 @@
             </p>
           </article>
         </div>
+        <!-- install-matrix:begin - written by packaging/write-install-matrix.ps1 from packaging/wix/FileDO.wxs, msix/AppxManifest.xml and the winget installer manifest; never edit by hand -->
+        <p class="intro matrix-intro">
+          <span data-l="fr">Ce qu’apporte chaque mode d’installation :</span>
+        </p>
+        <div class="tablewrap">
+          <table class="keytable">
+            <thead>
+              <tr>
+                <th><span data-l="fr">Composant</span></th>
+                <th>Setup EXE</th>
+                <th>MSI</th>
+                <th>winget</th>
+                <th>ZIP</th>
+                <th>Microsoft Store</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="fr">Fenêtre et ligne de commande</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr"><code>filedo</code> dans n’importe quel terminal</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Depuis le dossier décompressé</span></td>
+                <td><span data-l="fr">Oui</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr">Menu contextuel de l’Explorateur</span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Avec <code>filedo fdsec register</code></span></td>
+                <td><span data-l="fr">Avec <code>filedo fdsec register</code></span></td>
+                <td><span data-l="fr">Non</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr">Type de fichier <code>.fd-sec</code></span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Avec <code>filedo fdsec register</code></span></td>
+                <td><span data-l="fr">Avec <code>filedo fdsec register</code></span></td>
+                <td><span data-l="fr">Oui</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr">Type de fichier <code>.fdd</code></span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Avec <code>filedo vd register</code></span></td>
+                <td><span data-l="fr">Avec <code>filedo vd register</code></span></td>
+                <td><span data-l="fr">Oui, sans montage</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr">Icône sur le bureau</span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Oui, décochable</span></td>
+                <td><span data-l="fr">Non</span></td>
+                <td><span data-l="fr">Non</span></td>
+                <td><span data-l="fr">Non</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr">Montage des disques virtuels</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Non</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="fr">Partage des disques via Fast Media Sorter &amp; Sharing</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Oui</span></td>
+                <td><span data-l="fr">Non</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- install-matrix:end -->
       </section>
 
       <section class="section" id="first-run">
@@ -176,7 +271,7 @@
           </li>
         </ol>
         <div class="copybox">
-          certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
+          certutil -hashfile FileDO-2611171800-setup.exe SHA256
         </div>
         <p class="intro">
           <span data-l="fr">Pour mettre à jour, lancez le setup EXE plus récent : il remplace la copie installée au lieu d’en ajouter une seconde.</span>
@@ -220,21 +315,21 @@
           <span data-l="fr">Pour un déploiement sans surveillance, les fonctionnalités se choisissent par leur nom :</span>
         </p>
         <div class="copybox">
-          FileDO-&lt;version&gt;-setup.exe /quiet<button
+          FileDO-2611171800-setup.exe /quiet<button
             class="copy"
-            data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
+            data-copy="FileDO-2611171800-setup.exe /quiet"
           ><span data-l="fr">Copier</span></button>
         </div>
         <div class="copybox">
-          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
+          msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
             class="copy"
-            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
+            data-copy="msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
           ><span data-l="fr">Copier</span></button>
         </div>
         <div class="copybox">
-          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main<button
+          msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main<button
             class="copy"
-            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main"
+            data-copy="msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main"
           ><span data-l="fr">Copier</span></button>
         </div>
         <p class="intro">
@@ -282,7 +377,7 @@
           <span data-l="fr">Les entrées de l’Explorateur sans programme d’installation</span>
         </h2>
         <p class="intro">
-          <span data-l="fr">winget, l’archive zip portable et <code>go install</code> ne lancent aucun programme d’installation et n’enregistrent rien. Demandez vous-même les entrées, et reprenez-les de la même façon :</span>
+          <span data-l="fr">winget, Scoop, l’archive zip portable et <code>go install</code> ne lancent aucun programme d’installation et n’enregistrent rien. Demandez vous-même les entrées, et reprenez-les de la même façon :</span>
         </p>
         <div class="copybox">
           filedo fdsec register<button

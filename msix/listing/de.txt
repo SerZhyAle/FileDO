@@ -89,4 +89,4 @@ speicherplatz überschreiben
 dateien mit passwort schützen
 
 @@ReleaseNotes
-Neu: Skripte und Werkzeuge können das laufende FileDO-Fenster mit Befehlen wie filedo status und filedo job list ansprechen; gen hält einen nummerierten Satz der letzten Sicherungen; „Befehle ansehen“ und die Seite „Über die Vorgänge“ mit Suche erklären jeden Vorgang; die Seite „Befehl“ merkt sich Ihre Ordner und letzten Befehle. Geändert: ein Füllen, das eine selbst angelegte Datei nicht löschen kann, scheitert jetzt, statt als Erfolg zu enden.
+Neu: filedo rehash gibt Fotos, Dokumenten, Musik und Videos einen neuen SHA-256, und sie öffnen sich wie bisher; Sicherungen lassen sich eine Anzahl von Tagen aufbewahren, wobei die erste jedes Monats dauerhaft bleibt; das Fenster verlinkt die passende Anleitung. Geändert: Auftragsseiten behalten Ihre Eingaben, ein langsames Netzlaufwerk friert das Fenster nicht mehr ein, und der Autostart-Dialog der Datenträgerverwaltung heißt jetzt „Mit Windows starten“.

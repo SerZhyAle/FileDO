@@ -224,6 +224,41 @@ Module WindowPlacement
         Return New Rectangle(area.Left + (area.Width - w) \ 2, area.Top + (area.Height - h) \ 2, w, h)
     End Function
 
+    ' Brings a window to `target`, centred on its working area - unless most of it is on that screen
+    ' already, where it stays exactly as the user left it. A maximized window leaves maximized, on the
+    ' new screen. Moving across screens of another scaling makes WinForms re-scale the window, so the
+    ' rectangle is put right once that has happened. True when the window moved.
+    Public Function BringTo(form As Form, target As ScreenArea) As Boolean
+        If target Is Nothing OrElse form.WindowState = FormWindowState.Minimized Then Return False
+        Try
+            Dim own = ScreenToFollow(form.Bounds, Nothing, LiveScreens())
+            If own Is Nothing OrElse own.Area = target.Area Then Return False
+            Dim wasMaximized = (form.WindowState = FormWindowState.Maximized)
+            Dim current = If(wasMaximized, form.RestoreBounds.Size, form.Size)
+            If wasMaximized Then form.WindowState = FormWindowState.Normal
+            form.Location = CentreOn(current, target.Area).Location
+            If form.IsHandleCreated Then
+                form.BeginInvoke(New MethodInvoker(Sub() SettleOn(form, target, wasMaximized)))
+            Else
+                SettleOn(form, target, wasMaximized)
+            End If
+            Return True
+        Catch ex As Exception
+            ShellLog.Write("bring the window to the user's monitor", ex)
+            Return False
+        End Try
+    End Function
+
+    Private Sub SettleOn(form As Form, target As ScreenArea, wasMaximized As Boolean)
+        If form.IsDisposed Then Return
+        Try
+            form.Bounds = CentreOn(form.Size, target.Area)
+            If wasMaximized Then form.WindowState = FormWindowState.Maximized
+        Catch ex As Exception
+            ShellLog.Write("settle the window on the user's monitor", ex)
+        End Try
+    End Sub
+
     ' The screens as they are now, working areas and scalings.
     Public Function LiveScreens() As List(Of ScreenArea)
         Dim screens As New List(Of ScreenArea)()

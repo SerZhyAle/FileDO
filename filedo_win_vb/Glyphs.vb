@@ -82,6 +82,8 @@ Public Module Glyphs
     Private loaded As Boolean = False
     Private ReadOnly shapes As New Dictionary(Of String, List(Of SvgPath.Shape))(StringComparer.Ordinal)
     Private ReadOnly verifiedTexts As New Dictionary(Of String, String)(StringComparer.Ordinal)
+    ' The vendored SVG of each drawable glyph, as embedded - what a help page shows beside an element's name.
+    Private ReadOnly svgTexts As New Dictionary(Of String, String)(StringComparer.Ordinal)
     Private ReadOnly problemList As New List(Of String)()
     Private catalogVersionsValue As String = ""
     Private recordedFiles As Integer = 0
@@ -98,6 +100,7 @@ Public Module Glyphs
             problemList.Add("the vendored glyphs could not be read: " & ex.GetType().Name)
             shapes.Clear()
             verifiedTexts.Clear()
+            svgTexts.Clear()
         End Try
     End Sub
 
@@ -162,6 +165,7 @@ Public Module Glyphs
                         problemList.Add(kv.Key & " has no path to draw")
                     Else
                         shapes(id) = parts
+                        svgTexts(id) = text
                     End If
                 Catch ex As Exception
                     ShellLog.Write("glyphs: reading " & kv.Key, ex)
@@ -220,6 +224,15 @@ Public Module Glyphs
     Public Function IsDrawable(id As String) As Boolean
         EnsureLoaded()
         Return id IsNot Nothing AndAlso shapes.ContainsKey(id)
+    End Function
+
+    ' The vendored SVG of a drawable glyph, byte for byte as embedded and verified; Nothing otherwise. The help
+    ' pages show it beside the name of the control that draws it (CONTEXT-HELP 0.6 item R).
+    Public Function VerifiedSvg(id As String) As String
+        EnsureLoaded()
+        Dim text As String = Nothing
+        If id Is Nothing Then Return Nothing
+        Return If(svgTexts.TryGetValue(id, text), text, Nothing)
     End Function
 
     ' A vendored data file (palette.json), only once its hash verified; Nothing otherwise.

@@ -25,8 +25,9 @@ default that building them is.
 
 **What the wizard says lives in two files, not in the wxs.** `packaging/wix/FileDO.en-us.wxl` replaces
 WixUI's stock sentences (which describe nothing) with text that says what FileDO is and what the install
-does; `packaging/wix/banner.bmp` and `dialog.bmp` are its artwork, regenerated from `assets/icon.png` by
-`packaging/wix/make-art.ps1` and committed. Both the local build and the release workflow must pass
+does; `packaging/wix/banner.bmp` and `dialog.bmp` are its artwork, composed from the product's mark by
+`assets/make-product-icons.ps1` with every other picture of FileDO (PRODUCT-IDENTITY; "The product's pictures"
+below) and committed. Both the local build and the release workflow must pass
 `-loc` and the two `-d ...Bmp` defines - a build that forgets them still succeeds and quietly ships the
 stock blue dialogs. A wrong string id in the wxl is silent in the same way: the stock sentence simply
 stays, so a change there is checked by reading the built MSI's `Control` table, never by trusting the
@@ -41,9 +42,9 @@ held to it by `TestRegistryParity_TheMSIAndVdRegisterWriteTheSameDiskContainerTy
 Main also carries a second Start menu entry, **FileDO Disk Manager** (`filedo_win.exe --disks`): a component
 of its own with its own GUID, always installed with Main and never tied to `DiskContainerIntegration`, its icon
 the Disk Manager's plated one, `icons\app.disk-manager.ico` - the `content.disk-container` glyph on an accent plate,
-the same picture the window, its taskbar button and its launcher in the shell's Disks group show - embedded in the MSI
+the same picture the window and its taskbar button show - embedded in the MSI
 (`TestMSIDiskManagerShortcut_HoldsItsContract` pins it; the generic mono `content.disk-container.ico` stays the
-`.fdd` type's).
+`.fdd` type's). The shell rail's row that opens the window draws the plain vocabulary glyph, like every rail row.
 The checkboxes come from `WixUI_FeatureTree`, so there is no
 hand-written dialog to maintain; silent installs pick with `ADDLOCAL`. `MigrateFeatures="yes"` is what
 keeps a user's choice across an upgrade, and `ARPNOMODIFY`/`ARPNOREPAIR` are deliberately *gone* - Change
@@ -109,6 +110,12 @@ menu. Four rules that are not style:
 Only the MSIX ships the DLL (SP-0020 D2). The MSI, winget and the zip keep the classic registration, which on
 Windows 11 lives under "Show more options" - say that plainly rather than implying parity. Building the MSIX
 therefore needs the Visual Studio C++ x64 tools (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`).
+
+### The installer rule in short (moved from `AGENTS.md`)
+- **Installer and Explorer menu** ("What the installer does"): the `File DO..` menu has **three writers** -
+  `packaging/wix/FileDO.wxs`, `cmd/filedo/fdsec_register*.go`, `shellext/FileDOShell.cpp` - and they change in
+  one commit; `registry_parity_test.go` and `shellext_contract_test.go` hold them together. Component GUIDs,
+  the CLSID, the bundle `UpgradeCode`, `FileDO.RegisteredBy`-marked removal and HKLM-wins are anchors.
 
 ## Code map (`cmd/filedo`)
 The main CLI has **two dispatch layers**, and they are the thing that costs an hour to rediscover.
@@ -352,6 +359,22 @@ its own folder - its path resolved through symlinks for winget's `Links`, never 
 lands in `cmd/filedo` only. What the three share is `launcher.go` and its two test files, identical in
 every module and held together by `TestSharedFilesMatchTheOtherCompanions`.
 
+### The code rules in short (moved from `AGENTS.md`)
+- **Two dispatch layers** ("Code map"): `dispatchLine` is the one verb switch; `runGenericCommand` handles
+  the four target verbs only and probes with `os.Stat` first, so a mask target goes through
+  `fdsecDispatchTarget` ahead of it.
+- **One verdict and one exit code** ("Code map"): `outcome.go` alone; a verb records, never exits. A judgement
+  about the target must be wrapped with `defectf`, or it reports as "could not judge".
+- **Shared mechanisms** ("Code map"): stop (`interrupt.go`), path identity (`fsx`), atomic no-replace writes,
+  environmental errors are "could not verify", runtime state in `statedir`. Build on them, never beside them.
+- **The fake-capacity engine exists once** (`main_types.go`, `capacity_*.go`); a defect keeps its test files as
+  evidence; a speed anomaly alone is never a verdict.
+- **`fdsec` containers carry no marker**, so "wrong password", "not a container" and "damaged head" are one
+  outcome; the reveal sandbox, the sealed-name screening and the password-by-environment rules are in "Code map".
+  Never spell a path `secret` (`.gitignore` swallows it silently); use `fdsec` or `fd-sec`.
+- **Companions are thin launchers** over `filedo.exe`; a fill, test or check fix lands in `cmd/filedo` only.
+  Shared packages are main-module only, so the launcher files are copied and held by a test.
+
 ## Build / release (which script is which)
 <!-- canon-ok: the canon owns "a build is not a release"; what is repo-specific is which of the two
      scripts holds the tag, and that is the fact an agent has to get right here. -->
@@ -368,8 +391,8 @@ before launch; `run.bat` keeps the console open on failure.
   installer artifacts into `dist/`** (git-ignored) - a plain run needs no switch to produce what is
   distributable. It optionally tests (`-Test`) and commits (`-Commit`), and contains **no `git tag` call
   at all** - that is the enforcement, not a convention. **`-Fast`** builds nothing and runs only the gate
-  steps of 5 s or less - the check between releases (SP-0173; the measured list is in `AGENTS.md`
-  "Testing"); `-Test` is the release tier. The other switches only subtract or demand:
+  steps of 5 s or less - the check between releases (SP-0173; the measured list is "The measured list" under
+  "Testing - the gate in full"); `-Test` is the release tier. The other switches only subtract or demand:
   **`-SkipInstaller`** drops the installer for a fast loop, **`-Msi`** turns a missing WiX from a skip
   into exit 2 (what `release.ps1` wants before it tags), **`-Install`** implies `-Msi` and then runs the
   setup EXE here. Missing WiX on a plain run is a **printed skip, not a failure**: a packaging tool that
@@ -383,9 +406,11 @@ before launch; `run.bat` keeps the console open on failure.
   `windows/amd64`, CGO off, the pinned toolchain, `goversioninfo -64` (PE version + `app.manifest`),
   `-trimpath` - and the gate's `go test` runs as amd64 too. So `exe_to_download/` holds **amd64** exes
   (they were 386 before), and a host that cannot run amd64, a different local Go, or a goversioninfo other
-  than `v1.4.1` is exit 2 before anything is built. It works from any directory. **Deploying is opt-in**:
-  `-DeployTo <folder>` or `FILEDO_DEPLOY_DIR`, run last, after the gate and the installer, copying only
-  `*.exe`, `*.bat` and `*.config` - a plain run writes nowhere outside the repository.
+  than `v1.4.1` is exit 2 before anything is built. It works from any directory. **Deploying goes to the owner's tools folder**:
+  `-DeployTo <folder>`, else `FILEDO_DEPLOY_DIR`, else `C:\GD\tc\SZA\_APP` when that folder exists
+  (`-DeployTo ''` turns it off; `run.ps1` does). It runs last, after the gate and the installer, copying
+  only `*.exe`, `*.bat` and `*.config`; a file in use is reported and skipped, never a failed build. On a
+  machine without that folder a plain run writes nowhere outside the repository.
 - **`.\release.ps1`** = RELEASE ("релиз"): the **only** thing that tags `v*` and triggers GitHub CI, then
   fans out to winget (`wingetcreate submit`) and an MSIX build; the Microsoft Store step is a manual
   Partner Center upload. Its preflight refuses a tree with anything uncommitted or untracked outside
@@ -443,6 +468,15 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
 `pwsh -NoProfile -File ./build.ps1 -Test` (between releases `-Fast` instead). Prefer the in-repo skills `/build` and `/release`;
 [`RELEASE.md`](RELEASE.md) is the long-form manual for both flows.
 
+### The build, release and ledger rules in short (moved from `AGENTS.md`)
+- **Build is not release** ("Build / release"): `build.ps1` contains no `git tag`; `release.ps1` is the only
+  thing that tags `v*`. Build output is amd64 exactly as CI builds it; `-Resume` never cuts a new version.
+- **Release ledger** ("The release ledger" in `RELEASE.md`): `docs/releases/` (contract `RELEASE-LEDGER`, SP-0229) is written only
+  through `packaging/release-ledger.ps1`; `channels.json` is the one file edited by hand, `builds.json` and
+  `history.jsonl` are machine output (the history append-only) and `RELEASES.md` is a render. Every successful build and
+  every release channel step records itself, a ledger failure never fails the caller, and `release.ps1` allows the
+  folder dirty and leaves it out of the tag-equality check, as it does `winget/`.
+
 ## Store channel (`msix/`)
 [`msix/README.md`](msix/README.md) is the runbook; this section keeps only what must not be got wrong.
 - **No Store package is ever built from placeholders.** `msix/build-msix.ps1` refuses without a reserved
@@ -477,7 +511,16 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   it first folds every group but the page's own), captures either theme
   (`-Theme light|dark`), and refuses to save a shot in which a control painted as a WinForms red-cross
   placeholder rather than ship it.
+- **`msix/make-demo.ps1` leaves the foreground alone**: it presses rows and buttons through their default
+  action, types into a box with `WM_CHAR` to its edit control and scrolls with wheel messages, and records only
+  the window's own `PrintWindow` image, so it runs beside other work. It restores `HKCU\Software\FileDO` and
+  deletes what the run wrote under `%LOCALAPPDATA%\FileDO`; record on the primary display (section 5a of
+  `msix/README.md`).
 - **Nothing in `msix/` publishes.** The upload, the listing import and the submission are the owner's.
+
+### The Store rule in short (moved from `AGENTS.md`)
+- **Store channel** ("Store channel"): no package from placeholders, `SZA.FileDO` is frozen, a test build cannot
+  pass for a Store build, and nothing in `msix/` publishes.
 
 ## Testing - the gate in full
 - Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. This
@@ -495,7 +538,7 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   `packaging/check-placement.jsonl` and run `packaging/check-gated-packages.ps1` (a Go package with tests that
   no gate runs fails it unless it is exempt there with a reason) - the step always runs all of them and names every
   failure, none hides another; `go test ./fdsec/ -count=1 -short`;
-  `go test ./vdisk/ -count=1` and `go test ./fmsworker/ -count=1` (the FMS worker client linked into `filedo.exe`) and `go test ./backupzip/ -count=1` (the archive half of `backup` and `restore`); `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt` (FileDO holds two set baselines, both shrink-only: this one and `docs/help/help-baseline.txt`, which `help-pages` reads);
+  `go test ./vdisk/ -count=1` and `go test ./fmsworker/ -count=1` (the FMS worker client linked into `filedo.exe`), `go test ./backupzip/ -count=1` (the archive half of `backup` and `restore`) and `go test ./rehash/ -count=1` (in-place native-format hash change, FILEDO-0242); `go test ./cmd/filedo/ -count=1 -vet=off` plus the shrink-only `cmd/filedo/vet-baseline.txt` (FileDO holds two set baselines, both shrink-only: this one and `docs/help/help-baseline.txt`, which `help-pages` reads);
   `filedo_win.exe --selftest` (skipped only with `-SkipGui`; its old log is deleted first, and a missing log
   is exit 2); `packaging/check-third-party-notices.ps1`; `release.yml`'s Go pin against `go.mod`'s; and
   `packaging/check-internal-docs.ps1` - every document declared in `docs/DOCUMENT_REGISTRY.jsonl` (a new
@@ -596,6 +639,65 @@ Both are PowerShell and both must be invoked through the PowerShell tool, or fro
   checks on drive/share roots, reparse points, and system TEMP; writes at `C:` redirect to
   `%TEMP%\FileDO_Operations`. The duplicate-finder hash cache must key on path + size + **modtime** (size
   alone once let an edited file be deleted as a false duplicate - now a permanent invariant).
+
+### Testing between releases (moved from `AGENTS.md`)
+- **Between releases nothing slower than 5 s runs** (canon `TESTING_AND_QA` section 2): no full build, no
+  `go test`, no `--selftest`, no gate step above 5 s, unless the owner names that run (`/build`, `run.bat`) or a
+  release runs it. The fast command is **`build.ps1 -Fast`**: it builds nothing and runs the gate steps of
+  5 s or less, ending in `fast-gate: PASS|FAIL|COULD NOT VERIFY` with the exit codes below; add static
+  inspection and a direct call of what changed. The release command is **`release.ps1`**, whose gate is
+  `build.ps1 -Test` (all twelve steps) plus the full fdsec run, `govulncheck` and the operations run. A slower
+  check skipped during a ticket is a `RELEASE` item in its audit naming that command, and the report says
+  "not built, not tested until the release".
+
+### The measured list
+- **The measured list** (one direct call each on 2026-10-29 by SP-0173 unless another record is named; a check
+  with no recorded time is release tier until a release measures it):
+
+  | Check | Seconds | Tier |
+  | --- | --- | --- |
+  | `packaging/check-placement.ps1` | 0.31 | fast (`-Fast`) |
+  | `packaging/check-internal-docs.ps1` | 2.59 (2026-11-20, FILEDO-0236: with `assets/make-product-icons.ps1 -Check`, about 1 s) | fast (`-Fast`) |
+  | `packaging/check-help.ps1` (static half) | 0.50 | fast (`-Fast`) |
+  | `packaging/check-build-inputs.ps1` | 0.33 | fast (`-Fast`) |
+  | `tests/prove-operations-selftest.ps1` | 0.39 | fast, run directly when the operations-run thresholds change |
+  | `packaging/check-third-party-notices.ps1` | 5.74 | release |
+  | `packaging/check-gated-packages.ps1` | 10.06 | release |
+  | `packaging/check-external-docs.ps1` | 13.41 | release (its `-Record` stays part of an EN edit) |
+  | `go test ./vdisk/` | 16.55 (2026-09-30) | release |
+  | `go test ./fdsec/` | 31-33 (2026-09, amd64) | release |
+  | `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Names$"` (the `names/` generator) | 36.6 (2026-11-08, 386, SP-0171) | release |
+  | `tests/prove-operations.ps1` | 52 (2026-10) | release |
+  | `filedo_win.exe --selftest` | 61-74 (2026-10-21) | release |
+  | `go test ./cmd/filedo/ -vet=off` | 88-268 (2026-09 to 2026-10-09) | release |
+  | build, `smoke`, `release-pins`, `govulncheck`, the installer | not recorded | release |
+
+### Further testing rules (moved from `AGENTS.md`)
+- Root **`go test ./...` is known-broken** (existing `fmt`/vet debt) - do **not** treat it as the gate. The
+  full gate - the release tier - is **`build.ps1 -Test`**, twelve steps (the list is in "Testing - the gate in full"; a green run prints `ran 12`); its last line is
+  `build-gate <stamp>: PASS`, `FAIL` or `COULD NOT VERIFY`, and its exit codes are **0 = pass**, **1 = a defect was
+  found**, **2 = it could not verify** (a missing prerequisite). Exit 2 is "nothing was proven".
+- `go test ./cmd/filedo/` needs **`-vet=off`**: package main carries recorded vet debt
+  (`cmd/filedo/vet-baseline.txt`, shrink-only). `cmd/filedo-test` is its own module - run its tests from
+  inside it. `go test ./fdsec/` and `./vdisk/` are vet-clean and run plainly.
+- **Every operation, run on small data, is the other pre-release step**: `tests\prove-operations.ps1`
+  (called by `release.ps1` before the tag; "The operations run" in `RELEASE.md`). Its mounted-disk tier needs
+  elevation (one UAC prompt, or `release.ps1 -SkipOpsMount`). It compares itself with the last passing runs
+  (a vanished step or a changed result fails; a confirmed loss of speed in its load section fails;
+  `release.ps1 -OpsRebaseline` accepts an intended change) and fails on a verb in `filedo -?` that its
+  inventory does not know: a new verb or result number is added to it with the change.
+- **The shell has its own gate**: `filedo_win.exe --selftest` (rows named in "The GUI shell"), run with
+  `Start-Process .\filedo_win.exe --selftest -Wait -PassThru` because it is a GUI-subsystem process.
+- **An EN edit on the site or in `README.md` fails `packaging/check-external-docs.ps1`** until the translations
+  are updated and `-Record` re-records the fingerprints; a new `.md`/`.html` needs a record in
+  `docs/DOCUMENT_REGISTRY.jsonl` or the internal-docs step fails.
+- A verb's acceptance test is still a batch run (`.lst`): the batch adds its own tokenizer and stop rule.
+  List-driven scenarios (`tests\*.lst`) name placeholders and run only through `tests\run-test-list.ps1`;
+  never point them at a real data volume.
+- **Destructive-tool safety is the pass/fail line, not friction.** `wipe` must demand typing `WIPE`;
+  `--force` / `-y` skips only the *prompt*, never the safety checks on drive or share roots, reparse points and
+  system TEMP; writes at `C:` redirect to `%TEMP%\FileDO_Operations`. The duplicate-finder hash cache keys on
+  path + size + **modtime**.
 
 ## The GUI shell (`filedo_win_vb/`)
 The VB.NET project holds one window, `ShellForm` - the shell built under SP-0006 - and `Program.Main` is
@@ -724,8 +826,8 @@ Four rules a change here must not break:
   and never by hand; `--selftest` redraws each and fails on a stale one. The MSI, `fdsec register` and the
   packaged `FileDOShell.dll` all name them as `icons\<id>.ico` beside the exe. The same folder holds one
   **plated** icon, `app.disk-manager.ico` (the `content.disk-container` glyph, white on a rounded accent plate,
-  colours `Theme.AppIconPlate` / `AppIconInk`): the Disk Manager window's, its launcher in the shell's Disks group and its
-  Start menu shortcut's one picture (`DiskManagerIcon.vb` reads the embedded copy), told apart from the
+  colours `Theme.AppIconPlate` / `AppIconInk`): the Disk Manager window's and its Start menu shortcut's one picture
+  (`DiskManagerIcon.vb` reads the embedded copy; the shell's rail row draws the plain glyph instead), told apart from the
   generic mono icon of the `.fdd` type by `--selftest` (`menu-icon:app.disk-manager:*`) and
   `TestMenuIcons_TheDiskManagerIconIsAPlateNotTheGenericGlyph`; `MenuIcons.AllIds` is the
   set that is written, embedded and counted (`msix/build-msix.ps1` asserts 8).
@@ -793,6 +895,13 @@ confirmation word are never stored, so a restored page can only ever show a line
 Command page lists the commands and puts one back through `SetCommand` (the same path as *Open in Command*); its last
 entry calls `ForgetRemembered`. The `memory` group of `--selftest` holds the lists, the gate and the page round trip.
 
+**The drive list of a job page (`JobViewDrives.vb`).** Choosing a drive job lists the letters at once and reads each
+drive's label, file system and sizes on a thread of its own (`SETTINGS-NAVIGATION` section 5 rule 2), at most one read
+per drive at a time. A row gains its facts when its drive answers; the target box follows only while it shows a row
+the page listed or the person picked, never a typed, dropped, browsed or delegated text. A kept row is restored by its
+letter. Never read a drive on the window's thread here. The self-test turns the reads off
+(`JobView.DriveReadsEnabled`) and hands the page the facts; the `page:drive-*` rows hold the rules.
+
 **The unified UI contracts (SP-0169; `UI-SIZING`, `BUTTONS`, `BOOLEAN-OPTION`, `COLLAPSIBLE-GROUP`,
 `SETTINGS-NAVIGATION`) - migration in progress, not conformant yet.** What is built and what a change here must
 keep, each held by the `ui-contracts` group of `--selftest`:
@@ -828,14 +937,19 @@ keep, each held by the `ui-contracts` group of `--selftest`:
   `UiTokens.NavRow`; `RailEntry` turns every token into device pixels by the row's own scale). One glyph treatment
   for the whole rail, identity-coloured: a row inside a group draws in its group's hue (`RailRow.InheritGroupInk`),
   so no row is mono by its level. A group header is a parent with its own disclosure (the chevron at the trailing
-  edge), never a destination; one child level. The settings surface is the shell rail with its Settings and About
-  destinations; the job rows are tasks, not settings pages, so Settings keeps its place near the end of the rail
-  with theme and language as its first group.
+  edge), never a destination; one child level. The shell rail is a work window's rail (SETTINGS-NAVIGATION 2.5 item
+  J): its work pages are bound by sections 2, 4 and 5 too, the product's own settings are the Settings destination
+  (theme and language its first group), About stays last, and a work page never holds an editor of a Settings value.
+  The Disk manager row opens a window, so it is an **action row** (`RailEntry.IsAction`): the `nav.open-external`
+  mark at the trailing edge, "Open in new window" as its spoken verb, never the selected page. The row, its shortcut
+  and the pages' buttons open or raise the manager on the monitor of the shell window that asked
+  (`AppHost.OpenDiskManager`, `WindowPlacement.BringTo`): a remembered placement on another screen gives way,
+  keeping its size; one already on that screen stays as it was.
 - **The narrow layout.** Below a client width of rail plus 480 (`ShellForm.NarrowContentWidth`, 720 design pixels)
-  the rail becomes a navigation view of its own: the page fills the window, a Pages button above the header opens
-  the list in its place, and a chosen row or Escape brings back the page as it was left - nothing is rebuilt, a run
-  goes on. The design minimum (760 outer) never reaches the breakpoint; only a screen whose working area is
-  narrower than that at its scaling does. The button's picture is a stand-in under the proposed `nav.menu` meaning.
+  the rail becomes a navigation view of its own: the page fills the window, a button above the header (captioned
+  Menu, the `nav.menu` meaning's name and drawing; `shell:pages`) opens the list in its place, and a chosen row or
+  Escape brings back the page as it was left - nothing is rebuilt, a run goes on. The design minimum (760 outer)
+  never reaches the breakpoint; only a screen whose working area is narrower than that at its scaling does.
 - **The Disk manager's settings window** (`DiskSettingsDialog`) keeps page navigation too: the shell's own Settings
   and About rows on the start side, the shared settings panel or the About page beside them. A page switch never
   resizes the window or commits a value; About is built on its first visit.
@@ -844,9 +958,42 @@ keep, each held by the `ui-contracts` group of `--selftest`:
   Releases), the source, the support page, the issue tracker, the privacy page, the licence text, the author's
   other tools and mail address, the related programs from the one inventory `Links.Related` (name and purpose line,
   two keys each, so a live language switch translates both), and the log export. Opening it contacts nothing.
-- **Not built yet:** local option help (the `?` beside an option's name), a command id per command and the
-  secondary-command overflow policy, complete-frame timings, the component showcase and the site's page layer. The
-  registry migration entry carries the milestones and the final deadline (2026-12-31).
+- **Overflow policy (BUTTONS 4.3).** The shell's pages (every job page, Command, Settings, About, the Disk panel)
+  have no More menu: every command stays on the page, and a command row is a wrapping flow that moves whole buttons
+  to the next line. The flows that never wrap are not command rows but small units that must not come apart - a
+  field with its own Browse button, the duplicate-move and list-file fields, the operation picker with its Browse
+  commands button, the verdict glyph with its word, the Disk Manager's filter with its clear cross, the one-button
+  bar that brings the detail pane back; each must fit the narrowest content width, which the narrow and
+  large-text captures check. The Disk Manager's toolbar is the one panel with a More menu: New, Add, Mount, Unmount,
+  Open, Save, More, Refresh, Settings, the FileDO window and Help stay visible and wrap, and More lists every action
+  the selection allows in four groups - use, maintenance, sharing, destructive last - plus the window-wide items
+  (mount an image, adopt, the shutdown guard, the Path and Since columns, the detail pane). The selection's actions
+  are the row's context menu too, and the window-wide items have no other place than More, which never leaves the
+  toolbar. Dialog answers are never in a More menu.
+- **Not built yet:** local option help (the `?` beside an option's name), a command id per command.
+- **Complete-frame page timings** (slice S5, the last step of `filedo_win.exe ui-drive run --out <folder>`,
+  `PageTiming.vb`): on the real screen, one sample per page change from the rail row's own click path to the frame
+  the compositor presented (posted work run, pending paints painted, `DwmFlush`), with the handler's return kept
+  beside it. First visits come from 20 fresh windows per page (each opened on About, pages in a rotated order, and
+  20 more opened on Command for About), the window's own opening is a sample too, and warm visits are 20 rounds
+  through every page in one window. `page-timings.csv` holds every raw sample, `page-timings.txt` the machine,
+  system, runtime, build, language, DPI and scale and per page the count, nearest-rank p95, median and maximum. A
+  page fails at warm p95 of 150 ms or more, first-visit p95 of 500 ms or more, two or more samples over its budget,
+  a sample that never settled, or window objects growing across the warm rounds. Settings stay in process.
+- **The component showcase** (slice S4, `filedo_win.exe ui-showcase capture --out <folder>`, `Showcase.vb`) builds the
+  shared buttons (every rank and state, a stateful one, a capped caption), the boolean option's shapes, an open and a
+  shut group, the rail's row kinds and a destructive dialog in 18 combinations - every language at the ordinary size,
+  light, dark and the high-contrast system colours, interface scale 0.875 to 2, text enlargement 1.5 on its own, the
+  narrow width, and risky mixes (German at 2 with enlarged text in the narrow width) - and writes one picture per
+  page and dialog, `geometry.csv` (targets, clipping, overlap, row heights, column width, dialog answers inside the
+  dialog, contrast) and `summary.txt`; it exits 1 on any failed row. The interface scale is the resolver's and the
+  monitor's DPI stays what it is; nothing is written to HKCU. Fonts do not follow the interface scale in the shell
+  itself (D1, no size selector), so the showcase sets each component's font at scale times enlargement. The
+  site's page layer took slice S6's kit re-vendor route instead of a local adapter (2026-11-17, working tree,
+  uncommitted; recorded on the `PAGE-STYLE` registry row). Slices S1-S3 are shipped (`v2611110217`, `v2611171800`);
+  both release gates ran their `ui-contracts` selftest rows all-or-nothing green, so the written gate rows are
+  measured on the release builds. The registry migration entry carries the milestones and the final deadline
+  (2026-12-31).
 
 **Windows AutoPlay is separate from disk automounting.** The shared settings panel in the shell and
 Disk Manager has a *Disable Windows AutoPlay* button. Only its click writes the current user's
@@ -856,6 +1003,16 @@ cards, including USB drives; FileDO's scheduled mount tasks are unaffected. The 
 `ms-settings:autoplay` so the user can inspect or reverse the Windows setting. Opening the panel and
 running the GUI self-test never change AutoPlay. The Store build offers the Windows settings button
 only, to keep this system preference outside package registry virtualization.
+
+### The shell and help rules in short (moved from `AGENTS.md`)
+- **GUI shell** ("The GUI shell"): `Theme.vb` alone names a colour; no fixed coordinates; every glyph is a
+  vendored catalog drawing; both DPI files ship; every string goes through `Localization.vb` in five languages;
+  no exception text on screen; every question is a `ShellDialog` whose safe answer is the default.
+- **In-app help** ("The GUI shell"): the help map is **`docs/help/help-map.json`** (contract `CONTEXT-HELP`,
+  SP-0168). F1 and the `?` button go through `Help.vb` only; `docs/help/<language>/*.html` and `img/` are
+  **generated** by `filedo_win.exe --build-help docs\help` - edit `HelpContent.vb` or the `help_*` strings, never a
+  page; a new window or rail destination needs a map row, and unwritten pages live in
+  `docs/help/help-baseline.txt`, which only falls.
 
 ## App commands (`docs/cli-commands.json`, contract `APP-COMMANDS`)
 `filedo <command>` asks the running `filedo_win.exe` to do something and ends with its answer as an exit code
@@ -875,8 +1032,8 @@ only, to keep this system preference outside package registry virtualization.
   `SelfTestAppCommands.vb` for the self-test group `appcmd`). One command at a time, the current user only, never
   the network; busy (11) while a modal window is open, the program is closing, or the window thread does not
   take the command within 800 ms. The pipe name is a frozen anchor once shipped.
-- **The five developer verbs** (`selftest run`, `help-pages build`, `screens capture`, `menu-icons write`,
-  `ui-drive run`) carry `exe: filedo_win.exe` and their old switches as aliases; the window program starts them
+- **The six developer verbs** (`selftest run`, `help-pages build`, `screens capture`, `menu-icons write`,
+  `ui-drive run`, `ui-showcase capture`) carry `exe: filedo_win.exe` and their old switches as aliases; the window program starts them
   from its own command line before it claims the first-instance mutex, never through the pipe, and
   `filedo.exe` neither reserves nor forwards them.
 - **The one setting** (`ShellCommandsRestricted`, Settings, group *Windows and window positions*) is off until the
@@ -890,10 +1047,56 @@ only, to keep this system preference outside package registry virtualization.
   in-app help gains a related link on the Command and Settings pages and the Settings element
   `setting-commands`; the generated `docs/help` pages regenerate with `filedo_win.exe --build-help docs\help`.
 
+### The command-line rule in short (moved from `AGENTS.md`)
+- **The product's own command line** (`docs/CLI.md`): development agents read `docs/CLI.md` and run
+  `filedo commands --json` to see what FileDO can be asked to do, and prefer `filedo status`, `filedo job list`
+  and `filedo vd status json` to a screenshot when they need the product's state. `docs/CLI.md` is **generated**
+  from `docs/cli-commands.json` by `packaging/write-cli-docs.ps1` and never edited by hand; the `internal-docs`
+  step fails when it is stale, when the manifest and the copy `filedo.exe` embeds differ, or when a commands
+  guide page (en, de, fr) leaves a command out. A new command is a manifest row first (APP-COMMANDS).
+
+## The product's pictures (`assets/identity/`, contract `PRODUCT-IDENTITY`)
+FileDO's mark - the dark rounded plate, the "F", the speed bar and the squared "D" - is drawn once, as data, in
+`assets/make-product-icons.ps1` (`Get-MarkShapes`). That drawing is the master (PRODUCT-IDENTITY rule 33): one run
+replays it through GDI+ for every raster and writes it, path for path, as SVG in its three declared forms -
+`assets/identity/master/filedo-mark.svg` (full, 64 px and up), `filedo-mark-medium.svg` (33-63 px, no track
+accents) and `filedo-mark-small.svg` (32 px and below, the plate fills the square). Change the shapes, never an
+output: every file below is a render target.
+
+- **Renditions**, each listed with its SHA-256 in `assets/identity/identity-manifest.json` (written by the same
+  run): `assets/icon.ico` (the exes, installer, window, taskbar, tray, Start menu, Explorer entry as `FileDO.ico`),
+  `assets/icon.png` (README head), `docs/assets/filedo.png` (site favicon, guide header, hub card),
+  `docs/assets/filedo.svg` and `docs/help/filedo-mark.svg` (byte copies of the medium form: the landing header and
+  the help pages' title picture), `docs/help/favicon.png` (the help pages' icon), the two share images,
+  `assets/identity/renditions/msix/` (the 19 package logos `msix/build-msix.ps1` copies) and
+  `packaging/wix/banner.bmp` and `dialog.bmp` (the installer wizard's art).
+- **The Store logo set** (`msix/store-logos/`) is rendered from the master SVG by `msix/make-store-logos.ps1`
+  (headless Edge, about a minute: `assets/make-product-icons.ps1 -StoreLogos`, a release step); the manifest lists
+  it with the hash of the drawing it was rendered from, and a set rendered from another drawing is a `NOTE`.
+- **The checks:** `assets/make-product-icons.ps1 -Check` (about 1 s) writes nothing, redraws everything into a
+  scratch folder and fails on a file that differs or on a retired second drawing (`assets/icon.svg`,
+  `assets/icon-branded-512.png`, `packaging/wix/make-art.ps1`); `check-internal-docs.ps1` runs it, so the fast gate
+  fails on a hand-edited or stale picture. The `PRODUCT-IDENTITY` checker in the catalog,
+  `product-identity/reference/Test-ProductIdentity.ps1 -RepoRoot .`, holds the manifest (rung 2, run with
+  `-Release` by `release.ps1` in the pre-flight so a stale `renderedFrom` row blocks a release before the tag);
+  `-Sheet <file>.html` lays every rendition out side by side.
+- **Help pages** (CONTEXT-HELP 0.6 items Q and R): `HelpPages.vb` writes the product picture before every page and
+  index title and the favicon link; an element entry whose control is a `GlyphButton` with a vocabulary glyph shows
+  that glyph's vendored SVG inline before its name (`HelpCapture.vb` reads the glyph off the window).
+- **Not the product mark:** the Disk Manager's picture (`app.disk-manager`), the file-type icons and the menu icons
+  are ICON-SET meanings, governed by ICON-SET and ICON-RENDER. The screenshots and the demo are captured from the
+  real build by their own scripts. No diagram is drawn as a picture; the READMEs' layout tree is text.
+
+### The picture rule in short (moved from `AGENTS.md`)
+- **The product's pictures** ("The product's pictures"; contract `PRODUCT-IDENTITY`): the mark is drawn once, as data,
+  in `assets/make-product-icons.ps1`; one run writes the master SVGs, every rendition (ICO, PNGs, site and help
+  copies, share images, MSIX logos, installer art) and `assets/identity/identity-manifest.json`. Never edit or add a
+  picture of the product by hand - change the drawing and rerun; `-Check` fails the fast gate on a stale or hand-made one.
+
 ## Site (`docs/`)
 Hand-authored pages, **generated files** - the pages are edited in place and are not render targets;
 `docs/sitemap.xml` is a render target of `packaging/write-sitemap.ps1` (each lastmod is the page file's last
-commit date) and is never edited by hand; the two share images (`docs/assets/social-card.png`, 1200x630, and `social-preview.png`, 1280x640) are render targets of `assets/make-product-icons.ps1 -SocialOnly`. `packaging/write-promo-checkpoint.ps1 -OutDir <folder>` writes the free-promotion metrics checkpoint by hand (at most fourteen days apart while outreach is active); no gate runs it. The tree index, the canonical page list and the redirect-stub rule
+commit date) and is never edited by hand; the two share images (`docs/assets/social-card.png`, 1200x630, and `social-preview.png`, 1280x640) are render targets of `assets/make-product-icons.ps1` ("The product's pictures" above). The component and channel table under "Choose how to install" in `docs/guides/install-and-explorer.html` and its de and fr pages (between the `install-matrix` markers) is a render target of `packaging/write-install-matrix.ps1`: each cell is read from `packaging/wix/FileDO.wxs` (setup EXE and MSI - the bundle shows the MSI's own feature tree), the winget installer manifest (winget and the ZIP) and `msix/AppxManifest.xml` as `New-FileDOManifest` stages the default Store build, and its row and cell words are in the script in five languages; `check-internal-docs.ps1` runs its `-Check`, so a packaging change fails the fast gate until the table is re-rendered. The command reference `docs/guides/cli-reference.html` and its de and fr pages show, between the `cli-reference` markers, three parts of each language's README rendered from Markdown by `packaging/write-cli-reference.ps1` - the Command Reference, the read check subsections of the Quick Start and the Advanced Features, found in `README.md` by heading and paired with each translation by index (the English page carries the en, ru and ua blocks); their head, hero and footer are hand-written, and `check-internal-docs.ps1` runs its `-Check`, so a README edit in one of those parts fails the fast gate until the pages are re-rendered. `packaging/write-promo-checkpoint.ps1 -OutDir <folder>` writes the free-promotion metrics checkpoint by hand (at most fourteen days apart while outreach is active); no gate runs it. The tree index, the canonical page list and the redirect-stub rule
 are in [`docs/README.md`](docs/README.md); adding a public page means running `packaging/write-sitemap.ps1`
 in the same commit (the external-docs gate fails until the sitemap lists the page).
 
@@ -904,13 +1107,145 @@ pre-releases, or missing assets) and writes `packaging/release-manifest.json`.
 date (`#releaseDate`), unhidden `#setupFile` (`#setupName`, `#setupMb`, `#setupHash`), and versioned
 `#heroSetupLink`, `#setupLink`, `#zipLink`, and `#msiLink` into all five landing pages (`docs/index.html`,
 `docs/de/index.html`, `docs/fr/index.html`, `docs/ru/index.html`, `docs/uk/index.html`), while `#releaseLink`
-keeps the durable `releases/latest` URL beside them. The browser `api.github.com` fetch stays only as a
-non-destructive runtime refinement (never overwriting `#releaseLink`). `packaging/check-external-docs.ps1`
-(step `releasemanifest`) holds the manifest to `README.md` Version History (newest or previous release) and
-holds all five landing pages to the manifest; `release.ps1` runs the sync and commits `Sync site to v<stamp>`
+keeps the durable `releases/latest` URL beside them. The same run renders the asset names in the copy commands
+of the install guide (every `FileDO-<stamp>-setup.exe` and `-windows-x64.msi` inside a `<div class="copybox">` of
+`docs/guides/install-and-explorer.html` and its de and fr pages, SP-0166 F8); the prose in `data-l` spans keeps
+the `FileDO-<version>` pattern, because a span is a translation unit a release must not change. The browser
+`api.github.com` fetch stays only as a non-destructive runtime refinement (never overwriting `#releaseLink`).
+`packaging/check-external-docs.ps1` (step `releasemanifest`) holds the manifest to `README.md` Version History
+(newest or previous release) and holds all five landing pages and those copy commands to the manifest;
+`release.ps1` runs the sync and commits `Sync site to v<stamp>`
 after Store MSIX so `Get-TagSourceDrift` keeps verifying exact tag equality. Renaming an asset in
 `release.yml` breaks manifest capture (`-setup.exe`, `-windows-x64.zip`, `-windows-x64.msi`). The installer is
 **not code-signed**, and the landing page, the install guide and every README say so next to the download; if
 that ever changes, those lines change in the same edit. The install band is compact by design: CSS hides
 `.quickstart`, `.install-example` and any `.note` placed directly in `.install-panel`, so a caveat that
 has to be seen goes inside `.download-block`.
+
+### The site rules in short (moved from `AGENTS.md`)
+- **Site** ("Site"): hand-authored pages; the generated files (`docs/sitemap.xml`, written by
+  `packaging/write-sitemap.ps1`, the two share images, drawn by `assets/make-product-icons.ps1`, and the
+  install guide's component and channel table, written by `packaging/write-install-matrix.ps1` from the packaging files,
+  and the command reference pages' rendered README parts, written by `packaging/write-cli-reference.ps1` from the five
+  READMEs - re-run it after editing a README's Command Reference, read check or Advanced Features) are never edited by hand; release asset names are the download buttons' contract, and
+  the installer is **not code-signed**, which every download surface says.
+- **Every site page uses the full device width - never a centred column** (owner rule, `PAGE-STYLE` section 1
+  "Use the available width"; the kit stays byte-identical, the override lives in `guides/guide.css` and the
+  trailing block of each inline `<style>`; no px `max-width` caps on hero, lead, intro or sections). The
+  landing's header carries the mark, the full name, Guides/Documentation, one language group; its footer the
+  author and the other SZA tools. Pinned by `TestSurfaces_ThePagesUseTheFullWidth` and
+  `TestSurfaces_TheFrontPageCarriesItsIdentity`; read the contract before touching page CSS.
+- **A site address written outside the site** (README, Store listing source, workflow, `Links.vb`) goes in
+  `packaging/site-held-addresses.json` too, or `check-external-docs.ps1` fails; a page that moves leaves a forwarder.
+- **What the product is for is written once, in order**: `packaging/positioning-source.json` (check, tidy and move,
+  erase, protect, virtual disks). The landing and its de/fr pages, the guides hub, the five READMEs, the Store listing
+  source and the winget manifest list those pillars in that order or name the first ones; `check-external-docs.ps1`
+  (step `positioning`) fails on a surface out of order. Change the order in the source first, then in every surface.
+  The tag deny-list, the claim deny-list and the lead and tagline live in the same file (steps `tags`, `claims`, `lead`);
+  add a word there in the same edit that introduces a channel's tag or description.
+
+## Project shape and frozen anchors (full text)
+Windows-first Go **CLI** (storage speed test, fake-capacity/counterfeit-flash detection, secure wipe,
+fill, duplicate management) plus a co-shipped **VB.NET GUI** (`filedo_win_vb/`, `filedo_win.exe`) - one
+release, one tag, a companion binary, *not* a separate edition. Distributed on the desktop channels
+(GitHub Release + winget + Microsoft Store) plus a direct-download setup EXE (and its bare MSI), and the own Scoop bucket `SerZhyAle/scoop-bucket`, whose `bucket/filedo.json` release step 7b brings to each release (`packaging/update-scoop-bucket.ps1`).
+
+- **Source root.** Four `cmd/<binary>/` mains (`filedo`, `filedo-check`, `filedo-fill`, `filedo-test`) +
+  shared top-level packages `fileduplicates/`, `helpers/`, `fsx/`, `statedir/`. **Multi-module**: 4
+  separate `go.mod`/`go.sum`, mixed `go` language lines (1.25.0 / 1.21) but **one toolchain**: the root
+  `go.mod`'s `toolchain go1.26.8` is what every channel builds with - `release.yml` installs it,
+  `build.ps1` and `msix/build-msix.ps1` refuse any other local Go. Module path `filedo` (a frozen anchor).
+- **Version shape.** Separator-less `yyMMddHHmm` (e.g. `2606120121`) - a sortable 10-digit integer. Git
+  tag `v<stamp>`, validated by `release.ps1` as a real date newer than every `v\d{10}` tag before it
+  prefixes the `v`, and stamped into the binaries via `-ldflags "-X main.version="`. Remapped
+  mechanically for the PE `VS_VERSIONINFO` (`yy.M.d.HHmm`), the MSI and setup EXE
+  (`yy.M.<minute of the month>` - Windows Installer compares three fields) and MSIX only; the table is
+  in [`RELEASE.md`](RELEASE.md) "Version scheme".
+- **Release-mechanics** are top-level channel siblings (no `publishing/` umbrella): `winget/`, `msix/`,
+  `packaging/wix/`, committed `exe_to_download/`. `winget/` holds the three manifests and **nothing else**:
+  `winget validate` is pointed at the directory and parses every file in it as YAML, which is why the
+  manifest checker lives in `packaging/` (below) and not beside what it checks.
+- **Frozen anchors** (reserve once; changing orphans installs): winget `PackageIdentifier
+  SerZhyAle.FileDO`; WiX MSI `UpgradeCode 4d6b3b1f-7c8e-4a25-9f1d-8e3b2c5a7d91` (+ `HKLM\Software\FileDO`);
+  the MSIX Identity `Name` **`SZA.FileDO`** and `Publisher` **`CN=F98ACEDB-1E22-4C39-AF63-F9FCFE807DCD`**
+  (Store ID `9PH1LPCMRG83`, family `SZA.FileDO_fdk7e19xt9z9j`; reserved in Partner Center and recorded in
+  `msix/identity.json`, live in the Store since 2026-09-23); Go module `filedo`; the 5 winget `PortableCommandAlias` names; the
+  document type id **`FileDO.SecureContainer`**; the disk container's extension **`.fdd`**, its ProgId
+  **`FileDO.DiskContainer`** and its MSI feature id **`DiskContainerIntegration`** (SP-0004 spec 6.2: an
+  association in users' registries outlives any rename, and a renamed feature drops the user's choice
+  across an upgrade); the **FileDO GPT partition type GUID `6AFB315B-8976-4841-84EC-D30AFA89A33D`**
+  ("FileDO disk container", FDD-FORMAT section 3.1: every partition carrier on a user's disk carries it, so a
+  changed value would orphan them); and the fixed component GUIDs in `FileDO.wxs` (an MSI
+  component keeps its GUID for the product's life, or an upgrade leaves the old copy installed); the
+  **bundle `UpgradeCode 033d2348-b26c-477f-8885-c68d9cfff47f`** in `FileDO-bundle.wxs` - a separate
+  identity from the MSI's, and what lets a setup EXE replace the previously installed one instead of
+  adding a second entry to Apps and features.
+
+## Canon hooks and recorded divergences (full text)
+The plugin also **ships the enforcement hooks** described in canon `GITHUB_INTERACTION.md` section 6 and
+`AI_USAGE.md` section 5 - the `find` guard, the `.ps1`- and cmdlet-in-Bash command-head guards, the
+missing-interpreter and slash-argument checks, and the fire-and-forget guard. This repo registers **no
+hooks of its own** (`.claude/settings.json` carries a permission entry only), so there is nothing here to
+disarm and nothing to duplicate. Do not hand-wire a local copy of a canon hook.
+
+**Recorded divergences** (canon `AI_USAGE.md`):
+- The only agent-rules file with content is **`AGENTS.md`**; `CLAUDE.md` exists but is a bare pointer to
+  this file and must never grow guidance of its own.
+- The in-repo skills under `.claude/skills/{build,release}/` are **git-ignored** (`.gitignore` carries
+  `.claude/` under its "Claude Code local config" comment) - local-only, never team-shared through git. An edit to
+  a skill therefore cannot be committed; say so rather than reporting it as landed.
+
+## Private verification artifacts (full text)
+Screenshots of this machine, desktop or Explorer captures, raw test logs, dumps, recordings and
+one-off capture scripts are local working material. Store them in this project's git-ignored
+`temp/evidence/<run-id>/` directory (a dated, unique run id), relative to the repository root.
+Never create or accumulate them in `tests/evidence/`,
+`tests/`, the repository root, or another tracked directory. `tests/` is for reusable tests,
+fixtures and checklists. Pass the project's temporary output directory explicitly to capture tools;
+for example, `msix/make-screenshots.ps1 -Live -OutDir temp/evidence/<run-id>` for manual proof.
+
+Raw evidence stays private: never stage it, force-add an ignored artifact, attach it to a PR/issue,
+or upload it as a release asset. A tracked verification summary may record the build, commands,
+exit codes, findings and a run id, after removing personal data; do not link to local evidence
+from tracked documents or register it in `docs/DOCUMENT_REGISTRY.jsonl`. Before publishing any
+image, inspect it for personal paths, filenames, account/device names, other windows and credentials.
+Only deliberate product assets for the site or Store, captured with synthetic data and checked
+for privacy, belong in their established asset directories. Do not use those directories for
+manual verification output. `.gitignore` excludes `temp/`, plus `tests/evidence/` and `tmp/` as fallbacks;
+ignore rules do not remove files already tracked by Git or erase prior commits.
+
+## Working documents (`PLAN/`) (full text)
+Specs, implementation plans, questionnaires and research notes live in `PLAN/` at the repository root,
+which `.gitignore` keeps out of git. What the repository carries is documentation of the finished
+product, written for an experienced user - the site, the READMEs, the listing sources. Never
+`git add -f` a working document, and never link to one from a tracked file (this section included):
+`PLAN/` is local to this machine, so whoever clones the repository does not have it.
+
+**The id scheme** - this repo's answer to "ticket system and id scheme". A top-level specification is
+`PLAN/FILEDO-XXXX_name.md`; everything downstream of it - work plan, tactical documents, questionnaires,
+research and measurement output - lives in `PLAN/FILEDO-XXXX_name/`; an implemented and proven specification
+moves, with its folder and its id, to `PLAN/done/`. Ids are `FILEDO-` plus four digits, assigned once, never
+reused and never renumbered - the next one is one past the highest number anywhere under `PLAN/`, `done/`
+included. The prefix was `SP-` until 2026-11-19 (names then had a space after the id): a ticket closed before
+that day keeps its `SP-####` id, an open one kept its number under the new prefix, and the old id stays a name
+of it (ledger field `formerIds`).
+State is the `Status:` line inside each specification plus which of the two folders it sits in: the index
+at `PLAN/README.md` carries ids, titles and links and deliberately no status. Material with no
+specification behind it goes to `PLAN/notes/` and gets no id.
+
+## External contracts: pointers and vectors (full text)
+What this repository produces or consumes - each contract's id, version, role and what we owe it - is the
+table in [`docs/contracts/README.md`](docs/contracts/README.md), one pointer file per contract beside it;
+the versions live in the pointers and nowhere else. The universal law (the contract changes before the code,
+comply or amend, never deviate in silence) is the canon's `CONTRACTS.md`. Two rules are this repository's:
+
+- **Cite by id, point in one place.** The comments in `fdsec/*.go` say "(FDSEC-FORMAT.md section 8)" and
+  nothing more; elsewhere it is "(CLI-EVENT-STREAM rule 10)". Tracked files may cite a contract; they must not
+  link to it or name its path - whoever clones this repository does not have that drive. A contract read against
+  this repository and found not to bind it is listed, dated, at the end of the `docs/contracts/README.md`.
+- **The vectors are the arbiter, and they are generated.** `fdsec/testdata/vectors/` is this repository's
+  test fixture, produced by `FDSEC_WRITE_VECTORS=1 go test ./fdsec -run "TestVectors_Suite1|TestVectors_Suite2|TestVectors_Suite3"`
+  (suite 2 in its `suite2/` subfolder, suite 3 in `suite3/`); the sealed-name boundary set of FDSEC-FORMAT 1.6
+  sections 20 to 23 is a fourth folder, `names/`, written by `-run "TestVectors_Names$"` alone so the three older sets are
+  never rewritten by it. The copy in the catalog's `secure-container/vectors/` is what an outside
+  implementation checks itself against. Regenerate the fixture, then copy it across - never hand-edit either one.

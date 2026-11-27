@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `BOOLEAN-OPTION` |
-| **Version** | 2.2, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - observable boolean option layout and interaction) |
+| **Version** | 2.3, read 2026-11-26 (FILEDO-0245; the section 9 compact-range allowance is not taken); migration SP-0169 in progress (no wire - observable boolean option layout and interaction) |
 | **Role** | consumer - every boolean option of the GUI shell and the Disk Manager (`BooleanOption`); migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `boolean-option/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
@@ -22,6 +22,7 @@ shell or the Disk Manager, every Settings option explained) and `windows-ui:bool
 
 **Status: not conformant - migration in progress (SP-0169, deadline 2026-12-31).** Slice S2 (2026-10-29) built the
 shared `BooleanOption` component and put it on every boolean option of the shell and the Disk Manager; the Settings
-rows carry their description as the explanation and the sealed-disk sharing option says why it is locked. Owed:
-local option help (hover summary and activated text from one source), the showcase with captures (S4), and a
-measured run of the gate rows above.
+rows carry their description as the explanation and the sealed-disk sharing option says why it is locked. Shipped in
+`v2611110217` and `v2611171800`, whose release gates ran the `option:*` and `windows-ui:boolean-leading:*` rows
+all-or-nothing green (no per-row log retained). Owed: local option help (hover summary and activated text from one
+source; under D6 no option qualifies from the SP-0168 map today) and the showcase with captures (S4).

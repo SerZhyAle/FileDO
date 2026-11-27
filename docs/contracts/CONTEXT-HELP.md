@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `CONTEXT-HELP` |
-| **Version** | 0.5, read 2026-11-16 (SP-0221); implemented partial 0.5 (SP-0183, SP-0190 item C, SP-0197 shipped in v2611110217; rung 2 wired in `release.ps1` by SP-0227, baseline 37 pages & 7 inherit dialogs, rung 3 walk open), draft (no wire - a key, a button, a help map file and a page anatomy) |
+| **Version** | 0.7, read 2026-11-26 (FILEDO-0245; section 12 help-head alt and size written in `HelpPages.vb`, not compiled), 0.6 section 11 items Q and R read 2026-11-20 (FILEDO-0236); implemented partial 0.7 (SP-0183, SP-0190 item C, SP-0197 shipped in v2611110217; rung 2 wired in `release.ps1` by SP-0227, baseline 37 pages & 7 inherit dialogs, rung 3 walk open), draft (no wire - a key, a button, a help map file and a page anatomy) |
 | **Role** | consumer - the GUI shell of `filedo_win.exe` (`filedo_win_vb/`), opted in by the portfolio owner's request of 2026-10-16 (SP-0168) |
 | **Home** | shared contracts catalog, folder `in-app-help/`, document `README.md`, with its three reference artifacts |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
@@ -46,3 +46,13 @@ theme, by a person or UI automation) remains open. The Disk Manager's `?` is the
 and wraps with the toolbar in a narrow window; its older menu (first steps, the help dialog, the links) is
 on the button's right click - the owner's decision O3 is open. Proposal
 `PROPOSAL-2026-11-10-help-button-opens-page-top.md` was adopted into 0.3 item K.
+
+**0.6 section 11 items Q and R, read 2026-11-20 (FILEDO-0236; only these two items).** Q: `HelpPages.vb` writes
+the product's picture (`docs/help/filedo-mark.svg`, the `help.head` rendition of `PRODUCT-IDENTITY`, empty `alt`)
+before every page and index title and links `docs/help/favicon.png` as the page icon; both are byte copies that
+`assets/make-product-icons.ps1` writes beside the pages. R: an element entry whose control is a `GlyphButton` with a
+drawable vocabulary glyph shows that glyph's vendored SVG inline before its name, in the text colour and hidden from
+a screen reader; `HelpCapture.vb` reads the glyph off the window, so an entry whose control draws none shows none.
+Held by the `help:page:*` and `help:index:*` self-test rows and the static half of `packaging/check-help.ps1`
+(the generator source and the two files). The committed pages carry both after the release regenerates them
+(`filedo_win.exe --build-help docs\help`); until then the row stays partial 0.5 for these items.

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `RULE-DELIVERY` |
-| **Version** | 0.12, draft (wire carrier: the `sza` plugin version, derived from `CANON_VERSION`) |
+| **Version** | 0.13, read 2026-11-26 (FILEDO-0245; item D changes the reader only), draft (wire carrier: the `sza` plugin version, derived from `CANON_VERSION`) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 5 |
 | **Role** | consumer - this repository receives the canon through the `sza` plugin |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |

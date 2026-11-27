@@ -85,7 +85,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../kit/sza-kit.css" />
@@ -200,30 +200,50 @@
                 ><span data-l="ua">Завантажити setup.exe</span></a
               >
             </p>
-            <div class="copybox">FileDO-&lt;version&gt;-setup.exe</div>
+            <div class="copybox">FileDO-2611171800-setup.exe</div>
           </article>
           <article class="card">
             <h3>
-              <span data-l="en">winget or ZIP</span
-              ><span data-l="ru">winget или ZIP</span
-              ><span data-l="ua">winget або ZIP</span>
+              <span data-l="en">winget, Scoop or ZIP</span
+              ><span data-l="ru">winget, Scoop или ZIP</span
+              ><span data-l="ua">winget, Scoop або ZIP</span>
             </h3>
             <p>
               <span data-l="en"
                 >Quick, and no installer runs. The commands work immediately;
-                the Explorer entries are a separate command - see below.</span
+                the Explorer entries are a separate command - see below. Scoop
+                serves the same tools from the author's own bucket, puts them
+                on its <code>PATH</code> and adds a Start-menu entry for the
+                window; <code>scoop update filedo</code> upgrades it.</span
               ><span data-l="ru"
                 >Быстро и без установщика. Команды доступны сразу, а пункты
-                Проводника нужно добавить отдельной командой - см. ниже.</span
+                Проводника нужно добавить отдельной командой - см. ниже. Scoop
+                ставит те же инструменты из собственного бакета (bucket)
+                автора, кладёт их в свой <code>PATH</code> и добавляет в меню
+                «Пуск» пункт для окна; <code>scoop update filedo</code>
+                обновляет.</span
               ><span data-l="ua"
                 >Швидко й без інсталятора. Команди доступні одразу, а пункти
-                Провідника треба додати окремою командою - див. нижче.</span
+                Провідника треба додати окремою командою - див. нижче. Scoop
+                ставить ті самі інструменти з власного бакета (bucket) автора,
+                кладе їх у свій <code>PATH</code> і додає в меню «Пуск» пункт
+                для вікна; <code>scoop update filedo</code> оновлює.</span
               >
             </p>
             <div class="copybox">
               winget install SerZhyAle.FileDO<button
                 class="copy"
                 data-copy="winget install SerZhyAle.FileDO"
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+            </div>
+            <div class="copybox">
+              scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket<button class="copy" data-copy="scoop bucket add serzhyale https://github.com/SerZhyAle/scoop-bucket"
+              ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
+            </div>
+            <div class="copybox">
+              scoop install serzhyale/filedo<button
+                class="copy"
+                data-copy="scoop install serzhyale/filedo"
               ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
             </div>
           </article>
@@ -250,6 +270,191 @@
             </p>
           </article>
         </div>
+        <!-- install-matrix:begin - written by packaging/write-install-matrix.ps1 from packaging/wix/FileDO.wxs, msix/AppxManifest.xml and the winget installer manifest; never edit by hand -->
+        <p class="intro matrix-intro">
+          <span data-l="en">What each way of installing gives you:</span
+          ><span data-l="ru">Что даёт каждый способ установки:</span
+          ><span data-l="ua">Що дає кожен спосіб установлення:</span>
+        </p>
+        <div class="tablewrap">
+          <table class="keytable">
+            <thead>
+              <tr>
+                <th><span data-l="en">Component</span
+                ><span data-l="ru">Компонент</span
+                ><span data-l="ua">Компонент</span></th>
+                <th>Setup EXE</th>
+                <th>MSI</th>
+                <th>winget</th>
+                <th>ZIP</th>
+                <th>Microsoft Store</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-l="en">Window and command line</span
+                ><span data-l="ru">Окно и командная строка</span
+                ><span data-l="ua">Вікно і командний рядок</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en"><code>filedo</code> in any terminal</span
+                ><span data-l="ru"><code>filedo</code> в любом терминале</span
+                ><span data-l="ua"><code>filedo</code> у будь-якому терміналі</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">From the unpacked folder</span
+                ><span data-l="ru">Из распакованной папки</span
+                ><span data-l="ua">З розпакованої теки</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Explorer right-click menu</span
+                ><span data-l="ru">Контекстное меню Проводника</span
+                ><span data-l="ua">Контекстне меню Провідника</span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">With <code>filedo fdsec register</code></span
+                ><span data-l="ru">Командой <code>filedo fdsec register</code></span
+                ><span data-l="ua">Командою <code>filedo fdsec register</code></span></td>
+                <td><span data-l="en">With <code>filedo fdsec register</code></span
+                ><span data-l="ru">Командой <code>filedo fdsec register</code></span
+                ><span data-l="ua">Командою <code>filedo fdsec register</code></span></td>
+                <td><span data-l="en">No</span
+                ><span data-l="ru">Нет</span
+                ><span data-l="ua">Ні</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en"><code>.fd-sec</code> file type</span
+                ><span data-l="ru">Тип файлов <code>.fd-sec</code></span
+                ><span data-l="ua">Тип файлів <code>.fd-sec</code></span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">With <code>filedo fdsec register</code></span
+                ><span data-l="ru">Командой <code>filedo fdsec register</code></span
+                ><span data-l="ua">Командою <code>filedo fdsec register</code></span></td>
+                <td><span data-l="en">With <code>filedo fdsec register</code></span
+                ><span data-l="ru">Командой <code>filedo fdsec register</code></span
+                ><span data-l="ua">Командою <code>filedo fdsec register</code></span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en"><code>.fdd</code> file type</span
+                ><span data-l="ru">Тип файлов <code>.fdd</code></span
+                ><span data-l="ua">Тип файлів <code>.fdd</code></span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">With <code>filedo vd register</code></span
+                ><span data-l="ru">Командой <code>filedo vd register</code></span
+                ><span data-l="ua">Командою <code>filedo vd register</code></span></td>
+                <td><span data-l="en">With <code>filedo vd register</code></span
+                ><span data-l="ru">Командой <code>filedo vd register</code></span
+                ><span data-l="ua">Командою <code>filedo vd register</code></span></td>
+                <td><span data-l="en">Yes, without mounting</span
+                ><span data-l="ru">Да, без подключения</span
+                ><span data-l="ua">Так, без підключення</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Desktop icon</span
+                ><span data-l="ru">Значок на рабочем столе</span
+                ><span data-l="ua">Піктограма на робочому столі</span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">Yes, can be unticked</span
+                ><span data-l="ru">Да, можно снять</span
+                ><span data-l="ua">Так, можна зняти</span></td>
+                <td><span data-l="en">No</span
+                ><span data-l="ru">Нет</span
+                ><span data-l="ua">Ні</span></td>
+                <td><span data-l="en">No</span
+                ><span data-l="ru">Нет</span
+                ><span data-l="ua">Ні</span></td>
+                <td><span data-l="en">No</span
+                ><span data-l="ru">Нет</span
+                ><span data-l="ua">Ні</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Mounting virtual disks</span
+                ><span data-l="ru">Подключение виртуальных дисков</span
+                ><span data-l="ua">Підключення віртуальних дисків</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">No</span
+                ><span data-l="ru">Нет</span
+                ><span data-l="ua">Ні</span></td>
+              </tr>
+              <tr>
+                <td><span data-l="en">Disk sharing through Fast Media Sorter &amp; Sharing</span
+                ><span data-l="ru">Общий доступ к дискам через Fast Media Sorter &amp; Sharing</span
+                ><span data-l="ua">Спільний доступ до дисків через Fast Media Sorter &amp; Sharing</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">Yes</span
+                ><span data-l="ru">Да</span
+                ><span data-l="ua">Так</span></td>
+                <td><span data-l="en">No</span
+                ><span data-l="ru">Нет</span
+                ><span data-l="ua">Ні</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- install-matrix:end -->
       </section>
 
       <section class="section" id="first-run">
@@ -332,7 +537,7 @@
           </li>
         </ol>
         <div class="copybox">
-          certutil -hashfile FileDO-&lt;version&gt;-setup.exe SHA256
+          certutil -hashfile FileDO-2611171800-setup.exe SHA256
         </div>
         <p class="intro">
           <span data-l="en"
@@ -470,21 +675,21 @@
           >
         </p>
         <div class="copybox">
-          FileDO-&lt;version&gt;-setup.exe /quiet<button
+          FileDO-2611171800-setup.exe /quiet<button
             class="copy"
-            data-copy="FileDO-&lt;version&gt;-setup.exe /quiet"
+            data-copy="FileDO-2611171800-setup.exe /quiet"
           ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
-          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
+          msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut<button
             class="copy"
-            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
+            data-copy="msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main,ExplorerIntegration,DiskContainerIntegration,DesktopShortcut"
           ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <div class="copybox">
-          msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main<button
+          msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main<button
             class="copy"
-            data-copy="msiexec /i FileDO-&lt;version&gt;-windows-x64.msi /qn ADDLOCAL=Main"
+            data-copy="msiexec /i FileDO-2611171800-windows-x64.msi /qn ADDLOCAL=Main"
           ><span data-l="en">Copy</span><span data-l="ru">Копировать</span><span data-l="ua">Копіювати</span></button>
         </div>
         <p class="intro">
@@ -669,15 +874,15 @@
         </h2>
         <p class="intro">
           <span data-l="en"
-            >winget, the portable zip and <code>go install</code> run no
-            installer and register nothing. Ask for the entries yourself, and
+            >winget, Scoop, the portable zip and <code>go install</code> run
+            no installer and register nothing. Ask for the entries yourself, and
             take them back the same way:</span
           ><span data-l="ru"
-            >winget, переносимый архив и <code>go install</code> не запускают
+            >winget, Scoop, переносимый архив и <code>go install</code> не запускают
             установщик и ничего не регистрируют. Попросите сами - и заберите
             обратно так же:</span
           ><span data-l="ua"
-            >winget, переносний архів і <code>go install</code> не запускають
+            >winget, Scoop, переносний архів і <code>go install</code> не запускають
             інсталятор і не реєструють нічого. Попросіть самі - і заберіть назад
             так само:</span
           >

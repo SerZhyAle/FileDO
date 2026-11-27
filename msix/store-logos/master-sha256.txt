@@ -1,0 +1,1 @@
+bb1a09bc3e5c3fb23bd1d0b77a8bf15b7bcb53854a584c80857198111b53f59a  assets/identity/master/filedo-mark.svg

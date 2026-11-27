@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0a0f0a" />
+    <link rel="canonical" href="https://serzhyale.github.io/FileDO/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="x-default" href="https://serzhyale.github.io/FileDO/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="en" href="https://serzhyale.github.io/FileDO/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="de" href="https://serzhyale.github.io/FileDO/de/guides/cli-reference.html" />
+    <link rel="alternate" hreflang="fr" href="https://serzhyale.github.io/FileDO/fr/guides/cli-reference.html" />
+    <link rel="icon" type="image/png" href="../assets/filedo.png" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://serzhyale.github.io/FileDO/guides/cli-reference.html" />
+    <meta property="og:image" content="https://serzhyale.github.io/FileDO/assets/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FileDO logo and name with the slogan Know your storage before you trust it, on a dark green background" />
+    <meta property="og:title" content="FileDO command-line reference" />
+    <meta property="og:description" content="The FileDO command line on one page: target types, operations and short forms, modifiers, the read check, batch files, history and network paths." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "FileDO command-line reference",
+        "description": "The FileDO command line on one page: target types, operations and short forms, modifiers, the read check, batch files, history and network paths.",
+        "url": "https://serzhyale.github.io/FileDO/guides/cli-reference.html",
+        "inLanguage": ["en"],
+        "image": "https://serzhyale.github.io/FileDO/assets/social-card.png",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "FileDO",
+          "url": "https://serzhyale.github.io/FileDO/"
+        },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "FileDO",
+          "operatingSystem": "Windows 10, Windows 11",
+          "applicationCategory": "UtilitiesApplication"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Serhii Zhyhunenko"
+        }
+      }
+    </script>
+    <title>FileDO command-line reference</title>
+    <meta
+      name="description"
+      content="The FileDO command line on one page: target types, operations and short forms, modifiers, the read check, batch files, history and network paths."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("sza-theme");
+          if (t !== "dark" && t !== "light") t =
+            (matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark");
+          document.documentElement.dataset.theme = t;
+          var params = new URLSearchParams(location.search);
+          function queryLocale(value) {
+            if (value === "uk") value = "ua";
+            return (value === "ru" || value === "en" || value === "ua") ? value : null;
+          }
+          var p = queryLocale(params.get("lang")) || queryLocale(params.get("l"));
+          var l = (p === "ru" || p === "en" || p === "ua") ? p : localStorage.getItem("sza-lang");
+          if (l === "uk") l = "ua";
+          if (l !== "ru" && l !== "en" && l !== "ua") {
+            var n = (navigator.language || "en").toLowerCase();
+            l =
+              n.indexOf("ru") === 0
+                ? "ru"
+                : n.indexOf("uk") === 0
+                  ? "ua"
+                  : "en";
+          }
+          document.documentElement.dataset.lang = l;
+          document.documentElement.lang = l === "ua" ? "uk" : l;
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../kit/sza-kit.css" />
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main"><span data-l="en">Skip to content</span><span data-l="ru">К содержимому</span><span data-l="ua">До змісту</span></a>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <header class="site-header">
+      <a class="brand" href="../"
+        ><span class="mark" aria-hidden="true"></span>FileDO<span class="dot"
+          >.</span
+        ></a
+      >
+      <div class="seg" role="group" aria-label="Language">
+        <button data-set-lang="ru">RU</button
+        ><button data-set-lang="en">EN</button
+        ><button data-set-lang="ua">UA</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch theme"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-17.93c3.94.49 7 3.85 7 7.93s-3.05 7.44-7 7.93V4.07z" fill="currentColor"/></svg><span data-l="en">Theme</span><span data-l="ru">Тема</span><span data-l="ua">Тема</span></button
+      ><a class="btn btn-primary btn-sm" href="../#get"
+        ><span data-l="en">Install</span><span data-l="ru">Установить</span><span data-l="ua">Встановити</span></a
+      >
+    </header>
+    <nav class="lang-row" aria-label="Languages"><a href="../de/guides/cli-reference.html" hreflang="de" lang="de">DE</a><a href="../fr/guides/cli-reference.html" hreflang="fr" lang="fr">FR</a></nav>
+    <main id="main" class="container">
+      <section class="hero">
+        <p class="kicker">
+          <span data-l="en">Guide · Command line</span><span data-l="ru">Руководство · Командная строка</span><span data-l="ua">Посібник · Командний рядок</span>
+        </p>
+        <h1>
+          <span data-l="en">The FileDO command line: targets, operations, modifiers</span><span data-l="ru">Командная строка FileDO: цели, операции, модификаторы</span><span data-l="ua">Командний рядок FileDO: цілі, операції, модифікатори</span>
+        </h1>
+        <p class="lead">
+          <span data-l="en">The Command Reference of the FileDO README on one page: what FileDO accepts as a target, each operation and its short forms, the modifiers, the read check, batch files and exit codes, history and network paths. Secret files, backups and virtual disks have commands of their own, described in their <a href="index.html">guides</a>; the whole README is on <a href="https://github.com/SerZhyAle/FileDO#readme" target="_blank" rel="noopener">GitHub</a>.</span><span data-l="ru">Справочник команд из README FileDO на одной странице: что FileDO принимает как цель, каждая операция и её краткие формы, модификаторы, проверка чтения, пакетные файлы и коды завершения, история и сетевые пути. У секретных файлов, резервных копий и виртуальных дисков свои команды, они описаны в <a href="index.html">руководствах</a>; README целиком - на <a href="https://github.com/SerZhyAle/FileDO/blob/main/README.ru.md" target="_blank" rel="noopener">GitHub</a>.</span><span data-l="ua">Довідник команд із README FileDO на одній сторінці: що FileDO приймає як ціль, кожна операція та її короткі форми, модифікатори, перевірка читання, пакетні файли й коди завершення, історія та мережеві шляхи. У секретних файлів, резервних копій і віртуальних дисків свої команди, їх описано в <a href="index.html">посібниках</a>; README повністю - на <a href="https://github.com/SerZhyAle/FileDO/blob/main/README.ua.md" target="_blank" rel="noopener">GitHub</a>.</span>
+        </p>
+      </section>
+
+      <!-- cli-reference:begin - written by packaging/write-cli-reference.ps1 from the Command Reference, the read check of the Quick Start and the Advanced Features of README.md and its translations; never edit by hand -->
+      <section class="section" id="reference">
+        <div class="readme-render" data-l="en" lang="en">
+          <h2>Command Reference</h2>
+          <h3>Target Types (Auto-detected)</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Pattern</th><th>Type</th><th>Example</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>C:</code>, <code>D:</code></td><td>Device</td><td><code>filedo C: test</code></td></tr>
+                <tr><td><code>C:\folder</code></td><td>Folder</td><td><code>filedo C:\temp speed 100</code></td></tr>
+                <tr><td><code>\\server\share</code></td><td>Network</td><td><code>filedo \\nas\backup test</code></td></tr>
+                <tr><td><code>file.txt</code></td><td>File</td><td><code>filedo document.pdf info</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Operations</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>info</code></td><td>Show detailed information</td><td><code>filedo C: info</code></td></tr>
+                <tr><td><code>short</code></td><td>Brief summary</td><td><code>filedo D: short</code></td></tr>
+                <tr><td><code>test</code></td><td>Fake capacity detection</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>test N</code></td><td>Test with N files (default 100)</td><td><code>filedo D: test 1000</code></td></tr>
+                <tr><td><code>probe</code></td><td>Fast raw-I/O probe (~1 min, needs Admin)</td><td><code>filedo D: probe</code></td></tr>
+                <tr><td><code>speed &lt;size&gt;</code></td><td>Performance testing</td><td><code>filedo C: speed 500</code></td></tr>
+                <tr><td><code>fill [size]</code></td><td>Fill with test data</td><td><code>filedo D: fill 1000</code></td></tr>
+                <tr><td><code>clean</code></td><td>Remove test files</td><td><code>filedo C: clean</code></td></tr>
+                <tr><td><code>check-duplicates</code></td><td>Find duplicate files</td><td><code>filedo C: check-duplicates</code></td></tr>
+                <tr><td><code>cd [mode] [action]</code></td><td>Check duplicates (short)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+                <tr><td><code>copy &lt;target&gt;</code></td><td>Copy files with progress</td><td><code>filedo C: copy D:\backup</code></td></tr>
+                <tr><td><code>rehash &lt;path&gt;</code></td><td>Rewrite files in place with a new SHA-256, repeatable (PNG, JPEG incl. phone photos, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB)</td><td><code>filedo rehash D:\Photos</code></td></tr>
+                <tr><td><code>wipe</code></td><td>Delete everything inside a folder</td><td><code>filedo folder C:\temp wipe</code></td></tr>
+                <tr><td><code>from &lt;file&gt;</code></td><td>Execute batch commands</td><td><code>filedo from script.txt</code></td></tr>
+                <tr><td><code>hist</code></td><td>Show operation history</td><td><code>filedo hist</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Fill Command Shortcuts</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Command</th><th>Equivalent</th><th>Purpose</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo D: fill</code></td><td><code>filedo D: fill 100</code></td><td>Fill with 100MB default</td></tr>
+                <tr><td><code>filedo D: f</code></td><td><code>filedo D: fill 100</code></td><td>Short form</td></tr>
+                <tr><td><code>filedo D: f del</code></td><td><code>filedo D: fill 100 del</code></td><td>With auto-delete</td></tr>
+                <tr><td><code>filedo D: f d</code></td><td><code>filedo D: fill 100 delete</code></td><td>Short auto-delete</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Copy &amp; Wipe Shortcuts</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Command</th><th>Equivalent</th><th>Purpose</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo copy A B</code></td><td><code>filedo folder A copy B</code></td><td>Generic copy command</td></tr>
+                <tr><td><code>filedo A cp B</code></td><td><code>filedo A copy B</code></td><td>Short copy form</td></tr>
+                <tr><td><code>filedo A w</code></td><td><code>filedo A wipe</code></td><td>Short wipe form</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Modifiers</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Flag</th><th>Purpose</th><th>Example</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>del</code></td><td>Auto-delete after operation</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>nodel</code></td><td>Keep test files</td><td><code>filedo C: speed 100 nodel</code></td></tr>
+                <tr><td><code>short</code></td><td>Brief output only</td><td><code>filedo D: speed 100 short</code></td></tr>
+                <tr><td><code>max</code></td><td>Maximum size (10GB)</td><td><code>filedo C: speed max</code></td></tr>
+                <tr><td><code>old</code></td><td>Keep newest as original (for cd)</td><td><code>filedo D:\Photos cd old del</code></td></tr>
+                <tr><td><code>new</code></td><td>Keep oldest as original (for cd)</td><td><code>filedo E:\Photos cd new move F:\Dups</code></td></tr>
+                <tr><td><code>abc</code></td><td>Keep alphabetically last (for cd)</td><td><code>filedo C: cd abc</code></td></tr>
+                <tr><td><code>xyz</code></td><td>Keep alphabetically first (for cd)</td><td><code>filedo C: cd xyz list dups.lst</code></td></tr>
+                <tr><td><code>-y</code>, <code>--yes</code></td><td>Delete/move duplicates without asking per file (for cd; required with no console)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="readme-render" data-l="ru" lang="ru">
+          <h2>Справочник команд</h2>
+          <h3>Типы целей (Автоматическое определение)</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Шаблон</th><th>Тип</th><th>Пример</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>C:</code>, <code>D:</code></td><td>Устройство</td><td><code>filedo C: test</code></td></tr>
+                <tr><td><code>C:\folder</code></td><td>Папка</td><td><code>filedo C:\temp speed 100</code></td></tr>
+                <tr><td><code>\\server\share</code></td><td>Сеть</td><td><code>filedo \\nas\backup test</code></td></tr>
+                <tr><td><code>file.txt</code></td><td>Файл</td><td><code>filedo document.pdf info</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Операции</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Команда</th><th>Назначение</th><th>Пример</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>info</code></td><td>Показать подробную информацию</td><td><code>filedo C: info</code></td></tr>
+                <tr><td><code>short</code></td><td>Краткая сводка</td><td><code>filedo D: short</code></td></tr>
+                <tr><td><code>test</code></td><td>Обнаружение поддельной ёмкости</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>test N</code></td><td>Тест с N файлами (по умолчанию 100)</td><td><code>filedo D: test 1000</code></td></tr>
+                <tr><td><code>probe</code></td><td>Быстрое зондирование через сырой I/O (~1 мин, нужны права админа)</td><td><code>filedo D: probe</code></td></tr>
+                <tr><td><code>speed &lt;size&gt;</code></td><td>Тестирование производительности</td><td><code>filedo C: speed 500</code></td></tr>
+                <tr><td><code>fill [size]</code></td><td>Заполнить тестовыми данными</td><td><code>filedo D: fill 1000</code></td></tr>
+                <tr><td><code>clean</code></td><td>Удалить тестовые файлы</td><td><code>filedo C: clean</code></td></tr>
+                <tr><td><code>check-duplicates</code></td><td>Найти дубликаты файлов</td><td><code>filedo C: check-duplicates</code></td></tr>
+                <tr><td><code>cd [mode] [action]</code></td><td>Проверить дубликаты (короткая форма)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+                <tr><td><code>copy &lt;target&gt;</code></td><td>Копировать файлы с прогрессом</td><td><code>filedo C: copy D:\backup</code></td></tr>
+                <tr><td><code>rehash &lt;path&gt;</code></td><td>Перезаписать файлы на месте с новым SHA-256, повторяемо (PNG, JPEG с телефонов, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB)</td><td><code>filedo rehash D:\Photos</code></td></tr>
+                <tr><td><code>wipe</code></td><td>Удаление всего содержимого папки</td><td><code>filedo folder C:\temp wipe</code></td></tr>
+                <tr><td><code>from &lt;file&gt;</code></td><td>Выполнить пакетные команды</td><td><code>filedo from script.txt</code></td></tr>
+                <tr><td><code>hist</code></td><td>Показать историю операций</td><td><code>filedo hist</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Сокращения команды fill</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Команда</th><th>Эквивалент</th><th>Назначение</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo D: fill</code></td><td><code>filedo D: fill 100</code></td><td>Заполнить 100 МБ по умолчанию</td></tr>
+                <tr><td><code>filedo D: f</code></td><td><code>filedo D: fill 100</code></td><td>Краткая форма</td></tr>
+                <tr><td><code>filedo D: f del</code></td><td><code>filedo D: fill 100 del</code></td><td>С автоматическим удалением</td></tr>
+                <tr><td><code>filedo D: f d</code></td><td><code>filedo D: fill 100 delete</code></td><td>Краткая форма с автоматическим удалением</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Сокращения copy и wipe</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Команда</th><th>Эквивалент</th><th>Назначение</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo copy A B</code></td><td><code>filedo folder A copy B</code></td><td>Общая команда копирования</td></tr>
+                <tr><td><code>filedo A cp B</code></td><td><code>filedo A copy B</code></td><td>Краткая форма copy</td></tr>
+                <tr><td><code>filedo A w</code></td><td><code>filedo A wipe</code></td><td>Краткая форма wipe</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Модификаторы</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Флаг</th><th>Назначение</th><th>Пример</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>del</code></td><td>Автоудаление после операции</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>nodel</code></td><td>Сохранить тестовые файлы</td><td><code>filedo C: speed 100 nodel</code></td></tr>
+                <tr><td><code>short</code></td><td>Только краткий вывод</td><td><code>filedo D: speed 100 short</code></td></tr>
+                <tr><td><code>max</code></td><td>Максимальный размер (10ГБ)</td><td><code>filedo C: speed max</code></td></tr>
+                <tr><td><code>old</code></td><td>Оставить новейший как оригинал (для cd)</td><td><code>filedo D:\Photos cd old del</code></td></tr>
+                <tr><td><code>new</code></td><td>Оставить старейший как оригинал (для cd)</td><td><code>filedo E:\Photos cd new move F:\Dups</code></td></tr>
+                <tr><td><code>abc</code></td><td>Оставить алфавитно последний (для cd)</td><td><code>filedo C: cd abc</code></td></tr>
+                <tr><td><code>xyz</code></td><td>Оставить алфавитно первый (для cd)</td><td><code>filedo C: cd xyz list dups.lst</code></td></tr>
+                <tr><td><code>-y</code>, <code>--yes</code></td><td>Удалять/перемещать дубликаты без вопроса о каждом файле (для cd; обязателен без консоли)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="readme-render" data-l="ua" lang="uk">
+          <h2>Довідник команд</h2>
+          <h3>Типи цілей (Автоматичне визначення)</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Шаблон</th><th>Тип</th><th>Приклад</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>C:</code>, <code>D:</code></td><td>Пристрій</td><td><code>filedo C: test</code></td></tr>
+                <tr><td><code>C:\folder</code></td><td>Папка</td><td><code>filedo C:\temp speed 100</code></td></tr>
+                <tr><td><code>\\server\share</code></td><td>Мережа</td><td><code>filedo \\nas\backup test</code></td></tr>
+                <tr><td><code>file.txt</code></td><td>Файл</td><td><code>filedo document.pdf info</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Операції</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Команда</th><th>Призначення</th><th>Приклад</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>info</code></td><td>Показати детальну інформацію</td><td><code>filedo C: info</code></td></tr>
+                <tr><td><code>short</code></td><td>Короткий зведений звіт</td><td><code>filedo D: short</code></td></tr>
+                <tr><td><code>test</code></td><td>Виявлення підробленої ємності</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>test N</code></td><td>Тест з N файлами (за замовчуванням 100)</td><td><code>filedo D: test 1000</code></td></tr>
+                <tr><td><code>probe</code></td><td>Швидке зондування через сирий I/O (~1 хв, потрібен Адмін)</td><td><code>filedo D: probe</code></td></tr>
+                <tr><td><code>speed &lt;розмір&gt;</code></td><td>Тест продуктивності</td><td><code>filedo C: speed 500</code></td></tr>
+                <tr><td><code>fill [розмір]</code></td><td>Заповнити тестовими даними</td><td><code>filedo D: fill 1000</code></td></tr>
+                <tr><td><code>clean</code></td><td>Видалити тестові файли</td><td><code>filedo C: clean</code></td></tr>
+                <tr><td><code>check-duplicates</code></td><td>Знайти дублікати файлів</td><td><code>filedo C: check-duplicates</code></td></tr>
+                <tr><td><code>cd [режим] [дія]</code></td><td>Перевірити дублікати (коротка форма)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+                <tr><td><code>copy &lt;target&gt;</code></td><td>Копіювати файли з індикатором виконання</td><td><code>filedo C: copy D:\backup</code></td></tr>
+                <tr><td><code>rehash &lt;path&gt;</code></td><td>Перезаписати файли на місці з новим SHA-256, повторювано (PNG, JPEG з телефонів, HEIC/AVIF, WebP, GIF89a, BMP, TIFF/RAW, PDF, ZIP/Office/ODF/EPUB, RTF, TXT/Markdown/HTML/CSS/JS/INI, JSON, XML/SVG, WAV, FLAC, MP3, AIFF, MP4/MOV/3GP, MKV/WebM, AVI, MPEG-TS, MPG/VOB)</td><td><code>filedo rehash D:\Photos</code></td></tr>
+                <tr><td><code>wipe</code></td><td>Видалити весь вміст папки</td><td><code>filedo folder C:\temp wipe</code></td></tr>
+                <tr><td><code>from &lt;файл&gt;</code></td><td>Виконати пакетні команди</td><td><code>filedo from script.txt</code></td></tr>
+                <tr><td><code>hist</code></td><td>Показати історію операцій</td><td><code>filedo hist</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Скорочення команди fill</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Команда</th><th>Еквівалент</th><th>Призначення</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo D: fill</code></td><td><code>filedo D: fill 100</code></td><td>Заповнити 100 МБ за замовчуванням</td></tr>
+                <tr><td><code>filedo D: f</code></td><td><code>filedo D: fill 100</code></td><td>Коротка форма</td></tr>
+                <tr><td><code>filedo D: f del</code></td><td><code>filedo D: fill 100 del</code></td><td>З автоматичним видаленням</td></tr>
+                <tr><td><code>filedo D: f d</code></td><td><code>filedo D: fill 100 delete</code></td><td>Коротка форма з автоматичним видаленням</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4>Скорочення copy та wipe</h4>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Команда</th><th>Еквівалент</th><th>Призначення</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>filedo copy A B</code></td><td><code>filedo folder A copy B</code></td><td>Загальна команда копіювання</td></tr>
+                <tr><td><code>filedo A cp B</code></td><td><code>filedo A copy B</code></td><td>Коротка форма copy</td></tr>
+                <tr><td><code>filedo A w</code></td><td><code>filedo A wipe</code></td><td>Коротка форма wipe</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Модифікатори</h3>
+          <div class="tablewrap">
+            <table class="keytable">
+              <thead>
+                <tr><th>Прапор</th><th>Призначення</th><th>Приклад</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>del</code></td><td>Автовидалення після операції</td><td><code>filedo E: test del</code></td></tr>
+                <tr><td><code>nodel</code></td><td>Зберігати тестові файли</td><td><code>filedo C: speed 100 nodel</code></td></tr>
+                <tr><td><code>short</code></td><td>Тільки коротка видача</td><td><code>filedo D: speed 100 short</code></td></tr>
+                <tr><td><code>max</code></td><td>Максимальний розмір (10ГБ)</td><td><code>filedo C: speed max</code></td></tr>
+                <tr><td><code>old</code></td><td>Залишити найновіший як оригінал (для cd)</td><td><code>filedo D:\Photos cd old del</code></td></tr>
+                <tr><td><code>new</code></td><td>Залишити найстарший як оригінал (для cd)</td><td><code>filedo E:\Photos cd new move F:\Dups</code></td></tr>
+                <tr><td><code>abc</code></td><td>Залишити алфавітно останній (для cd)</td><td><code>filedo C: cd abc</code></td></tr>
+                <tr><td><code>xyz</code></td><td>Залишити алфавітно перший (для cd)</td><td><code>filedo C: cd xyz list dups.lst</code></td></tr>
+                <tr><td><code>-y</code>, <code>--yes</code></td><td>Видаляти/переміщувати дублікати без запитання про кожен файл (для cd; обов'язковий без консолі)</td><td><code>filedo D:\Photos cd old del -y</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section class="section" id="read-check">
+        <div class="readme-render" data-l="en" lang="en">
+          <h2>Health CHECK (fast read check)</h2>
+          <pre><code># Check folder by reading files; mark as damaged if initial read delay &gt; 2.0s
+filedo check F:\Mov</code></pre>
+          <ul>
+            <li>The damaged and good lists name a file by path, size, modification time and the volume and file it was recorded on: a changed file, or a copy at the same path on another card at the same drive letter, is read again. Entries written by older versions carry no volume and are not trusted</li>
+            <li>An online-only file (a OneDrive or other cloud placeholder, or an offline file) is never opened - not in a sweep and not when it is the one file you check - so nothing is downloaded. It is counted as <code>not-read(online-only)</code>, is never recorded as damaged, and makes the run "could not verify" (exit 2) unless a damaged file was found (exit 1)</li>
+          </ul>
+          <h2>CHECK: CLI flags (flags override env)</h2>
+          <p>Flags mirror FILEDO_CHECK_* environment variables and have precedence. Use them after <code>check &lt;path&gt;</code>.</p>
+          <ul>
+            <li>General
+              <ul>
+                <li><code>--threshold &lt;sec&gt;</code> (FILEDO_CHECK_THRESHOLD_SECONDS)</li>
+                <li><code>--warmup &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_SECONDS)</li>
+                <li><code>--warmup-idle &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)</li>
+                <li><code>--workers &lt;int&gt;</code> (FILEDO_CHECK_WORKERS)</li>
+                <li><code>--buf-kb &lt;int&gt;</code> (FILEDO_CHECK_BUF_KB)</li>
+                <li><code>--mode quick|balanced|deep</code> (FILEDO_CHECK_MODE)</li>
+                <li><code>--balanced-min-mb &lt;int&gt;</code> (FILEDO_CHECK_BALANCED_MIN_MB)</li>
+                <li><code>--min-mb &lt;float&gt;</code> / <code>--max-mb &lt;float&gt;</code> (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)</li>
+                <li><code>--include-ext ".jpg,.png"</code> / <code>--exclude-ext ".bak,.tmp"</code> (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)</li>
+              </ul>
+            </li>
+            <li>Limits
+              <ul>
+                <li><code>--max-files &lt;int&gt;</code> (FILEDO_CHECK_MAX_FILES)</li>
+                <li><code>--max-seconds &lt;float&gt;</code> (FILEDO_CHECK_MAX_DURATION_SEC)</li>
+                <li><code>--precount</code> / <code>--no-precount</code> (FILEDO_CHECK_PRECOUNT)</li>
+              </ul>
+            </li>
+            <li>Behavior &amp; output
+              <ul>
+                <li><code>--dry-run</code> (FILEDO_CHECK_DRYRUN)</li>
+                <li><code>--verbose</code> (FILEDO_CHECK_VERBOSE)</li>
+                <li><code>--quiet</code> (FILEDO_CHECK_QUIET)</li>
+                <li><code>--resume</code> (FILEDO_CHECK_RESUME) - carry on: skip the files an earlier run already read cleanly (the good list)</li>
+              </ul>
+            </li>
+            <li>Reporting
+              <ul>
+                <li><code>--report csv|json</code> (FILEDO_CHECK_REPORT)</li>
+                <li><code>--report-file &lt;path&gt;</code> (FILEDO_CHECK_REPORT_FILE)</li>
+              </ul>
+            </li>
+            <li>Good files cache
+              <ul>
+                <li><code>--good-list &lt;path&gt;</code> (FILEDO_CHECK_GOODLIST)</li>
+              </ul>
+            </li>
+            <li>HDD‑friendly I/O (single-reader + adaptive throttling)
+              <ul>
+                <li><code>--single-reader auto|on|off</code> (FILEDO_CHECK_SINGLE_READER)</li>
+                <li><code>--ewma-alpha &lt;float&gt;</code> (FILEDO_CHECK_EWMA_ALPHA)</li>
+                <li><code>--ewma-high-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_HIGH_FRAC)</li>
+                <li><code>--ewma-low-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_LOW_FRAC)</li>
+                <li><code>--max-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_MAX_SLEEP_MS)</li>
+                <li><code>--sleep-step-ms &lt;int&gt;</code> (FILEDO_CHECK_SLEEP_STEP_MS)</li>
+                <li><code>--hdd-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_HDD_SLEEP_MS) - a fixed pause after each file, per reader</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Examples:</p>
+          <pre><code># Balanced mode, worker override, ETA precount
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Force single-reader for HDD/USB with adaptive throttling
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Filter by extensions, cap files, save CSV report
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Use custom good files cache list and quiet output
+filedo check D:\Data --good-list D:\check_files.list --quiet</code></pre>
+          <ul>
+            <li>One-time warm-up allowance up to 10.0s before the first read (spin-up)</li>
+            <li>The damaged and good lists live in <code>%LOCALAPPDATA%\FileDO\state</code> (never beside your files) and name each file by path, size and modification time, so a changed file is read again; copy keeps its own skip list</li>
+            <li>A file already on the damaged list is reported again without being read (exit 1); a locked or unreadable file or folder is <em>could not verify</em> (exit 2), never <em>damaged</em>; parallel workers; Ctrl+C supported</li>
+          </ul>
+        </div>
+        <div class="readme-render" data-l="ru" lang="ru">
+          <h2>CHECK - быстрая проверка чтения</h2>
+          <pre><code># Проверка папки: читаем файлы; если задержка первого чтения &gt; 2.0с - файл помечается как повреждённый
+filedo check F:\Mov</code></pre>
+          <ul>
+            <li>Однократный «прогрев» до 10.0с перед первым чтением (пробуждение HDD)</li>
+            <li>Списки повреждённых и «хороших» файлов лежат в <code>%LOCALAPPDATA%\FileDO\state</code> (никогда не рядом с вашими файлами) и называют файл путём, размером, временем изменения, томом и самим файлом, на котором он был записан - изменённый файл или копия по тому же пути на другой карте под той же буквой диска читается снова; записи старых версий без тома не принимаются на веру; у copy свой, отдельный список пропуска</li>
+            <li>Файл из списка повреждённых снова считается повреждённым без повторного чтения (код 1); заблокированный или нечитаемый файл или папка - «не удалось проверить» (код 2), а не «повреждён»</li>
+            <li>Файл «только в сети» (заглушка OneDrive или другого облака, либо файл offline) никогда не открывается - ни при обходе, ни когда проверяется именно он, - поэтому ничего не скачивается. Он считается как <code>not-read(online-only)</code>, никогда не записывается в повреждённые и делает запуск «не удалось проверить» (код 2), если не найден повреждённый файл (код 1)</li>
+            <li>Параллельные воркеры; поддержка Ctrl+C</li>
+          </ul>
+          <h3>Флаги CHECK (флаги имеют приоритет над переменными окружения)</h3>
+          <p>Флаги дублируют FILEDO_CHECK_* и удобны для интерактивного запуска.</p>
+          <ul>
+            <li>Общие
+              <ul>
+                <li><code>--threshold &lt;sec&gt;</code> (FILEDO_CHECK_THRESHOLD_SECONDS)</li>
+                <li><code>--warmup &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_SECONDS)</li>
+                <li><code>--warmup-idle &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)</li>
+                <li><code>--workers &lt;int&gt;</code> (FILEDO_CHECK_WORKERS)</li>
+                <li><code>--buf-kb &lt;int&gt;</code> (FILEDO_CHECK_BUF_KB)</li>
+                <li><code>--mode quick|balanced|deep</code> (FILEDO_CHECK_MODE)</li>
+                <li><code>--balanced-min-mb &lt;int&gt;</code> (FILEDO_CHECK_BALANCED_MIN_MB)</li>
+                <li><code>--min-mb &lt;float&gt;</code> / <code>--max-mb &lt;float&gt;</code> (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)</li>
+                <li><code>--include-ext ".jpg,.png"</code> / <code>--exclude-ext ".bak,.tmp"</code> (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)</li>
+              </ul>
+            </li>
+            <li>Ограничения
+              <ul>
+                <li><code>--max-files &lt;int&gt;</code> (FILEDO_CHECK_MAX_FILES)</li>
+                <li><code>--max-seconds &lt;float&gt;</code> (FILEDO_CHECK_MAX_DURATION_SEC)</li>
+                <li><code>--precount</code> / <code>--no-precount</code> (FILEDO_CHECK_PRECOUNT)</li>
+              </ul>
+            </li>
+            <li>Поведение и вывод
+              <ul>
+                <li><code>--dry-run</code> (FILEDO_CHECK_DRYRUN)</li>
+                <li><code>--verbose</code> (FILEDO_CHECK_VERBOSE)</li>
+                <li><code>--quiet</code> (FILEDO_CHECK_QUIET)</li>
+                <li><code>--resume</code> (FILEDO_CHECK_RESUME) - продолжить: пропустить файлы, которые прошлый запуск уже прочитал без ошибок («хороший» список)</li>
+              </ul>
+            </li>
+            <li>Отчёты
+              <ul>
+                <li><code>--report csv|json</code> (FILEDO_CHECK_REPORT)</li>
+                <li><code>--report-file &lt;path&gt;</code> (FILEDO_CHECK_REPORT_FILE)</li>
+              </ul>
+            </li>
+            <li>Кэш «хороших» файлов
+              <ul>
+                <li><code>--good-list &lt;path&gt;</code> (FILEDO_CHECK_GOODLIST)</li>
+              </ul>
+            </li>
+            <li>Режим single-reader и адаптивная пауза (для HDD/USB)
+              <ul>
+                <li><code>--single-reader auto|on|off</code> (FILEDO_CHECK_SINGLE_READER)</li>
+                <li><code>--ewma-alpha &lt;float&gt;</code> (FILEDO_CHECK_EWMA_ALPHA)</li>
+                <li><code>--ewma-high-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_HIGH_FRAC)</li>
+                <li><code>--ewma-low-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_LOW_FRAC)</li>
+                <li><code>--max-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_MAX_SLEEP_MS)</li>
+                <li><code>--sleep-step-ms &lt;int&gt;</code> (FILEDO_CHECK_SLEEP_STEP_MS)</li>
+                <li><code>--hdd-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_HDD_SLEEP_MS) - постоянная пауза после каждого файла, у каждого читателя</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Примеры:</p>
+          <pre><code># Balanced-режим, фикс кол-ва потоков, подсчёт для стабильной ETA
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Принудительно один читатель + адаптивная пауза по EWMA
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Фильтрация по расширениям, лимит по кол-ву и CSV-отчёт
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Свой список «хороших» файлов и тихий вывод
+filedo check D:\Data --good-list D:\check_files.list --quiet</code></pre>
+        </div>
+        <div class="readme-render" data-l="ua" lang="uk">
+          <h2>Перевірка читання (check)</h2>
+          <p><code>filedo check &lt;тека&gt;</code> читає файли й позначає пошкодженим той, що читається повільно (&gt; 2.0с) або з помилкою пристрою. Списки пошкоджених і «добрих» файлів лежать у <code>%LOCALAPPDATA%\FileDO\state</code> і називають файл шляхом, розміром, часом зміни, томом і самим файлом, на якому його записано: змінений файл або копія за тим самим шляхом на іншій картці під тією ж літерою диска читається знову; записам старих версій без тому не довіряють. Файл «лише в мережі» (заглушка OneDrive чи іншої хмари або файл offline) ніколи не відкривається - ні під час обходу, ні коли перевіряють саме його, - тож нічого не завантажується. Він рахується як <code>not-read(online-only)</code>, ніколи не записується в пошкоджені й робить запуск «не вдалося перевірити» (код 2), якщо не знайдено пошкодженого файлу (код 1).</p>
+          <h2>CHECK: прапорці CLI (прапорці мають пріоритет над змінними середовища)</h2>
+          <p>Прапорці відповідають змінним середовища <code>FILEDO_CHECK_*</code> і мають вищий пріоритет. Додавайте їх після <code>check &lt;path&gt;</code>.</p>
+          <ul>
+            <li>Загальні
+              <ul>
+                <li><code>--threshold &lt;sec&gt;</code> (FILEDO_CHECK_THRESHOLD_SECONDS)</li>
+                <li><code>--warmup &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_SECONDS)</li>
+                <li><code>--warmup-idle &lt;sec&gt;</code> (FILEDO_CHECK_WARMUP_IDLE_RESET_SECONDS)</li>
+                <li><code>--workers &lt;int&gt;</code> (FILEDO_CHECK_WORKERS)</li>
+                <li><code>--buf-kb &lt;int&gt;</code> (FILEDO_CHECK_BUF_KB)</li>
+                <li><code>--mode quick|balanced|deep</code> (FILEDO_CHECK_MODE)</li>
+                <li><code>--balanced-min-mb &lt;int&gt;</code> (FILEDO_CHECK_BALANCED_MIN_MB)</li>
+                <li><code>--min-mb &lt;float&gt;</code> / <code>--max-mb &lt;float&gt;</code> (FILEDO_CHECK_MIN_MB / FILEDO_CHECK_MAX_MB)</li>
+                <li><code>--include-ext ".jpg,.png"</code> / <code>--exclude-ext ".bak,.tmp"</code> (FILEDO_CHECK_INCLUDE_EXT / FILEDO_CHECK_EXCLUDE_EXT)</li>
+              </ul>
+            </li>
+            <li>Обмеження
+              <ul>
+                <li><code>--max-files &lt;int&gt;</code> (FILEDO_CHECK_MAX_FILES)</li>
+                <li><code>--max-seconds &lt;float&gt;</code> (FILEDO_CHECK_MAX_DURATION_SEC)</li>
+                <li><code>--precount</code> / <code>--no-precount</code> (FILEDO_CHECK_PRECOUNT)</li>
+              </ul>
+            </li>
+            <li>Поведінка та вивід
+              <ul>
+                <li><code>--dry-run</code> (FILEDO_CHECK_DRYRUN)</li>
+                <li><code>--verbose</code> (FILEDO_CHECK_VERBOSE)</li>
+                <li><code>--quiet</code> (FILEDO_CHECK_QUIET)</li>
+                <li><code>--resume</code> (FILEDO_CHECK_RESUME) - продовжити: пропустити файли, які попередній запуск уже прочитав без помилок (список «добрих» файлів)</li>
+              </ul>
+            </li>
+            <li>Звіти
+              <ul>
+                <li><code>--report csv|json</code> (FILEDO_CHECK_REPORT)</li>
+                <li><code>--report-file &lt;path&gt;</code> (FILEDO_CHECK_REPORT_FILE)</li>
+              </ul>
+            </li>
+            <li>Кеш прочитаних файлів
+              <ul>
+                <li><code>--good-list &lt;path&gt;</code> (FILEDO_CHECK_GOODLIST)</li>
+              </ul>
+            </li>
+            <li>I/O для HDD (один читач + адаптивне регулювання)
+              <ul>
+                <li><code>--single-reader auto|on|off</code> (FILEDO_CHECK_SINGLE_READER)</li>
+                <li><code>--ewma-alpha &lt;float&gt;</code> (FILEDO_CHECK_EWMA_ALPHA)</li>
+                <li><code>--ewma-high-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_HIGH_FRAC)</li>
+                <li><code>--ewma-low-frac &lt;float&gt;</code> (FILEDO_CHECK_EWMA_LOW_FRAC)</li>
+                <li><code>--max-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_MAX_SLEEP_MS)</li>
+                <li><code>--sleep-step-ms &lt;int&gt;</code> (FILEDO_CHECK_SLEEP_STEP_MS)</li>
+                <li><code>--hdd-sleep-ms &lt;int&gt;</code> (FILEDO_CHECK_HDD_SLEEP_MS) - фіксована пауза після кожного файлу для кожного читача</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Приклади:</p>
+          <pre><code># Збалансований режим, кількість читачів і попередній підрахунок для ETA
+filedo check D:\Data --mode balanced --workers 6 --threshold 1.8 --precount
+
+# Один читач і адаптивне регулювання для HDD/USB
+filedo check F:\Photos --single-reader on --ewma-alpha 0.2 --max-sleep-ms 250
+
+# Фільтр за розширеннями, ліміт файлів і звіт CSV
+filedo check D:\Media --include-ext .jpg,.png --max-files 1000 --report csv --report-file D:\rep.csv
+
+# Власний список прочитаних файлів і тихий вивід
+filedo check D:\Data --good-list D:\check_files.list --quiet</code></pre>
+          <ul>
+            <li>Одноразовий час на підготовку до 10.0с перед першим читанням (розкручування диска)</li>
+            <li>Списки пошкоджених і прочитаних файлів лежать у <code>%LOCALAPPDATA%\FileDO\state</code> (ніколи поруч із вашими файлами) та ідентифікують кожен файл за шляхом, розміром і часом зміни, тому змінений файл читається знову; для copy є окремий список пропуску</li>
+            <li>Файл із пошкодженого списку знову позначається без читання (код 1); заблокований або недоступний файл чи папка означає «не вдалося перевірити» (код 2), а не «пошкоджений»; підтримуються паралельні читачі й Ctrl+C</li>
+            <li>Файл, доступний лише в мережі (заглушка OneDrive чи іншої хмари або автономний файл), не відкривається і не завантажується; <code>not-read(online-only)</code> рахується як результат «не вдалося перевірити» (код 2), якщо не знайдено пошкоджений файл (код 1)</li>
+          </ul>
+        </div>
+      </section>
+      <section class="section" id="advanced">
+        <div class="readme-render" data-l="en" lang="en">
+          <h2>Advanced Features</h2>
+          <h3>Batch Processing</h3>
+          <p>Create <code>commands.txt</code>:</p>
+          <pre><code># Multiple device check
+device C: info
+device D: test del
+device E: speed 100
+folder C:\temp clean</code></pre>
+          <p>Run: <code>filedo from commands.txt</code></p>
+          <p>Exit codes (all non-container verbs): <strong>0 passed or done, 1 ran and found a defect, 2 could not be verified (no more specific class), 10 usage error, 11 target not found or not ready, 12 permission or elevation refused, 13 not enough space or resources, 14 hardware or low-level I/O failure, 15 network or share failure, 16 stopped before the end.</strong> A defect found before a stop stays 1, and a script that tests for exactly 2 should test for 2 or higher. The container verbs and <code>vd</code> keep their own classes, listed with them.</p>
+          <h3>History Tracking</h3>
+          <pre><code>filedo hist              # Show last 10 operations
+filedo history           # Show command history
+# History automatically logged for all operations</code></pre>
+          <h3>Interruption Support</h3>
+          <pre><code># All long-running operations support Ctrl+C interruption
+# Graceful cancellation with cleanup
+# Context-aware interruption at optimal points</code></pre>
+          <h3>Network Operations</h3>
+          <pre><code># SMB shares and network drives
+filedo \\server\backup speed 100
+filedo \\nas\storage test del
+filedo network \\pc\share info</code></pre>
+        </div>
+        <div class="readme-render" data-l="ru" lang="ru">
+          <h2>Продвинутые возможности</h2>
+          <h3>Пакетная обработка</h3>
+          <p>Создайте <code>commands.txt</code>:</p>
+          <pre><code># Проверка нескольких устройств
+device C: info
+device D: test del
+device E: speed 100
+folder C:\temp clean</code></pre>
+          <p>Запустите: <code>filedo from commands.txt</code></p>
+          <p>Коды выхода (все команды, кроме контейнерных): <strong>0 пройдено или выполнено, 1 найден дефект, 2 проверить не удалось (нет более точного класса), 10 ошибка в команде, 11 цель не найдена или не готова, 12 отказано в доступе или нужны права администратора, 13 не хватает места или ресурсов, 14 сбой оборудования или ввода-вывода, 15 сбой сети или общего ресурса, 16 остановлено до конца.</strong> Дефект, найденный до остановки, остаётся кодом 1; скрипту, который проверяет ровно 2, стоит проверять 2 и выше. Команды над контейнерами и <code>vd</code> сохраняют свои классы, они перечислены рядом с ними.</p>
+          <h3>Отслеживание истории</h3>
+          <pre><code>filedo hist              # Показать последние 10 операций
+filedo history           # Показать историю команд
+# История автоматически ведётся для всех операций</code></pre>
+          <h3>Поддержка прерывания</h3>
+          <pre><code># Все долгие операции поддерживают прерывание Ctrl+C
+# Изящная отмена с очисткой
+# Контекстное прерывание в оптимальных точках</code></pre>
+          <h3>Сетевые операции</h3>
+          <pre><code># SMB ресурсы и сетевые диски
+filedo \\server\backup speed 100
+filedo \\nas\storage test del
+filedo network \\pc\share info</code></pre>
+        </div>
+        <div class="readme-render" data-l="ua" lang="uk">
+          <h2>Розширені можливості</h2>
+          <h3>Пакетна обробка</h3>
+          <p>Створіть <code>commands.txt</code>:</p>
+          <pre><code># Перевірка кількох пристроїв
+device C: info
+device D: test del
+device E: speed 100
+folder C:\temp clean</code></pre>
+          <p>Виконайте: <code>filedo from commands.txt</code></p>
+          <p>Коди виходу (усі команди, крім контейнерних): <strong>0 пройдено або виконано, 1 знайдено дефект, 2 перевірити не вдалося (немає точнішого класу), 10 помилка в команді, 11 ціль не знайдено або не готова, 12 відмовлено в доступі або потрібні права адміністратора, 13 не вистачає місця чи ресурсів, 14 збій обладнання або вводу-виводу, 15 збій мережі чи спільного ресурсу, 16 зупинено до кінця.</strong> Дефект, знайдений до зупинки, лишається кодом 1; скрипту, який перевіряє рівно 2, варто перевіряти 2 і вище. Команди над контейнерами та <code>vd</code> зберігають свої класи, вони перелічені поруч із ними.</p>
+          <h3>Відстеження історії</h3>
+          <pre><code>filedo hist              # Показати останні 10 операцій
+filedo history           # Показати історію команд
+# Історія автоматично ведеться для всіх операцій</code></pre>
+          <h3>Підтримка переривання</h3>
+          <pre><code># Всі довгі операції підтримують переривання Ctrl+C
+# Елегантне скасування з очищенням
+# Контекстне переривання в оптимальних точках</code></pre>
+          <h3>Мережеві операції</h3>
+          <pre><code># SMB ресурси та мережеві диски
+filedo \\server\backup speed 100
+filedo \\nas\storage test del
+filedo network \\pc\share info</code></pre>
+        </div>
+      </section>
+      <!-- cli-reference:end -->
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Serhii Zhyhunenko</span
+          ><nav aria-labelledby="footerLinksTitle"><span class="sr-only" id="footerLinksTitle"><span data-l="en">Site links</span><span data-l="ru">Ссылки сайта</span><span data-l="ua">Посилання сайту</span></span><a href="index.html"><span data-l="en">Guides</span><span data-l="ru">Руководства</span><span data-l="ua">Посібники</span></a> · <a href="../">FileDO</a> · <a href="support.html"><span data-l="en">Support</span><span data-l="ru">Поддержка</span><span data-l="ua">Підтримка</span></a> · <a href="https://sza.od.ua">sza.od.ua</a> ·
+            <a href="https://github.com/SerZhyAle/FileDO/issues">GitHub issues</a> ·
+            <a href="mailto:sza@ukr.net">sza@ukr.net</a></nav>
+        </div>
+      </div>
+    </footer>
+    <script>
+      window.guideMeta = {
+        ru: {
+          title: "Справочник командной строки FileDO",
+          description:
+            "Командная строка FileDO на одной странице: типы целей, операции и краткие формы, модификаторы, проверка чтения, пакетные файлы, история, сеть.",
+        },
+        en: {
+          title: "FileDO command-line reference",
+          description:
+            "The FileDO command line on one page: target types, operations and short forms, modifiers, the read check, batch files, history and network paths.",
+        },
+        ua: {
+          title: "Довідник командного рядка FileDO",
+          description:
+            "Командний рядок FileDO на одній сторінці: типи цілей, операції та короткі форми, модифікатори, перевірка читання, пакетні файли, історія, мережа.",
+        },
+      };
+    </script>
+    <script src="guide.js"></script>
+  </body>
+</html>

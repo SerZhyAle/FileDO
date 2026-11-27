@@ -71,9 +71,10 @@
   `_StopScopeOutsideTheManifestIsExit10`, `_StopPastTheBoundIsExit2`, `_QuitStopJobs`, `_ManifestRows`) and the
   self-test rows `appcmd:job-*` and `appcmd:quit-*`, group `appcmd`. The runs listed, stopped and waited for with a
   live first instance, and the process gone after `quit --stop-jobs`, are live checks at the release.
-- **The release-tooling verbs (SP-0219, SP-0223).** `selftest run`, `help-pages build`, `screens capture`, `menu-icons write` and
+- **The release-tooling verbs (SP-0219, SP-0223).** `selftest run`, `help-pages build`, 
+
   `ui-drive run` carry `exe: filedo_win.exe`, `audience: developer`, `forward: never` (item D, item Z) and the old switch
-  as their frozen `legacy` alias object (rule 2, item E). The four folder-only verbs refuse a missing `--out` folder
+  as their frozen `legacy` alias object (rule 2, item E). The five folder-only verbs refuse a missing `--out` folder
   with exit 11 without creating it (item V.2). The window program starts them from its own command line before it
   claims the first-instance mutex and never through the pipe; `filedo.exe` neither reserves nor forwards their words, so
   a folder named `screens` keeps the target-first reading. Tests that must stay:

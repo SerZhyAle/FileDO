@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `HARNESS-PROFILE` |
-| **Version** | 0.18, draft (wire 1.0 - `.sza-profile.json` schema for the shared canon harness) |
+| **Version** | 0.24, read 2026-11-26 (FILEDO-0245; rule 15 derives the three keys the profile omits to the old literals, rules 16-18 optional), draft (wire 1.0 - `.sza-profile.json` schema for the shared canon harness) |
 | **Role** | consumer - root `.sza-profile.json` read by the `sza` plugin tools (`tools/harness/`) |
 | **Home** | shared contracts catalog, folder `rule-adoption/`, document `README.md` section 3 |
 | **Owner** | sza-unified-rules. Amendments are written in the catalog first, by proposal |

@@ -186,6 +186,10 @@ html[data-lang="fr"] [data-l]:not([data-l="fr"]) {
 .tablewrap {
   overflow-x: auto;
 }
+/* The install guide's component and channel table follows the channel cards (SP-0166 F18). */
+.matrix-intro {
+  margin-top: 1.5rem;
+}
 .keytable {
   width: 100%;
   border-collapse: collapse;
@@ -211,6 +215,43 @@ html[data-lang="fr"] [data-l]:not([data-l="fr"]) {
   white-space: nowrap;
   color: var(--text);
 }
+/* The command reference shows the READMEs' sections as packaging/write-cli-reference.ps1 renders them (SP-0166 F12). */
+.readme-render h3 {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  margin: 1.4rem 0 0.5rem;
+}
+.readme-render h4 {
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  margin: 1.1rem 0 0.4rem;
+}
+.readme-render p,
+.readme-render li {
+  color: var(--text-2);
+}
+.readme-render p {
+  margin: 0.5rem 0;
+}
+.readme-render ul,
+.readme-render ol {
+  padding-left: 1.4rem;
+  margin: 0.5rem 0 0.9rem;
+}
+.readme-render li {
+  margin: 0.2rem 0;
+}
+.readme-render pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1rem;
+  margin: 0.6rem 0 1rem;
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--code-ink);
+}
 @media (min-width: 1360px) {
   .guide-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -220,10 +261,6 @@ html[data-lang="fr"] [data-l]:not([data-l="fr"]) {
   .site-header {
     max-width: calc(100% - 24px);
     margin: 10px auto;
-  }
-  .site-header .btn {
-    display: inline-flex;
-    padding: 0.5rem 0.7rem;
   }
   .brand {
     font-size: 14px;
@@ -258,25 +295,22 @@ html[data-lang="fr"] [data-l]:not([data-l="fr"]) {
 .skip-link{position:absolute;left:.75rem;top:-6rem;z-index:1000;display:inline-flex;align-items:center;min-height:44px;padding:0 1rem;border-radius:var(--radius-sm);background:var(--acc);color:var(--acc-ink);font-family:var(--font-heading);font-weight:700;text-decoration:none}
 .skip-link:focus,.skip-link:focus-visible{top:.75rem}
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-/* SITE-EXPERIENCE reach (SP-0156): every control that is not an inline link in running text is 44 x 44 px or larger,
-   under any pointer. The kit does this under a coarse pointer for some controls; this layer does it everywhere. */
+/* SITE-EXPERIENCE reach as amended 2026-10-29 item A (SP-0169 S6 re-vendor): controls covered by UI-SIZING
+   (buttons, segments, theme, copy) follow the vendored kit's 32/48 profile targets; other controls that are not
+   inline links in running text keep a 44 x 44 px hit target under any pointer. */
 .site-header{flex-wrap:wrap;row-gap:.25rem}
 .brand{display:inline-flex;align-items:center;min-height:44px}
 .seg{flex:none}
-.seg button{min-width:44px;min-height:44px}
-.theme-btn{flex:none;min-width:44px;min-height:44px}
-.btn,.copy,.tools-grid a{min-height:44px}
-.copy{min-width:44px}
+.theme-btn{flex:none}
+.tools-grid a{min-height:44px}
 /* SP-0162: the footer text links (author, site links, brand, mail) are separate links in a row, not inline in a sentence, so they get a 44 px target too. */
 .footer-bottom a{display:inline-flex;align-items:center;min-width:44px;min-height:44px}
-.copybox .copy{top:50%;transform:translateY(-50%)}
 .copy-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
 /* SITE-EXPERIENCE reach (SP-0156): light-theme tokens that reach 4.5 : 1 as text and under white ink; the code box stays dark in both themes. */
 html[data-theme="light"]{--acc:#237430;--acc-strong:#1f6b27;--gold:#8a5f10;--danger:#b42318}
 html[data-theme="light"] .pill{color:var(--acc-strong)}
 html[data-theme="light"] .pill.gold{color:var(--gold-strong)}
-/* Catalog kit e438fef2 sets .seg button to the code ink, a light ink: an unpressed language button is 1.2 : 1 on the light theme. The kit is not edited; this layer keeps the muted ink there. */
-html[data-theme="light"] .seg button:not([aria-pressed="true"]):not(.on){color:var(--muted)}
+/* PAGE-STYLE 3.5 item 5: kit 3.13 (8d49a8f0) draws .seg with the --text ink; the mute-ink override the old e438fef2 kit needed is gone with the SP-0169 S6 re-vendor. */
 
 /* Release notes page (SP-0158): one list per shipped release, newest first. */
 .release-list {

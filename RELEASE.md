@@ -67,7 +67,7 @@ the installer, or add the test gate.
 .\build.ps1 -SkipGui              # Go variants only (no MSBuild needed)
 .\build.ps1 -SkipInstaller        # no dist\ artifacts (fast inner loop)
 .\build.ps1 -Install              # build, then RUN the installer here
-.\build.ps1 -DeployTo C:\Tools    # ..and copy the programs there, last
+.\build.ps1 -DeployTo C:\Tools    # ..and copy the programs there, last (default: C:\GD\tc\SZA\_APP if present)
 ```
 
 It works from any directory, and `build.bat` passes its arguments to it
@@ -124,13 +124,15 @@ unchanged for a `cmd.exe` prompt.
   `fast-gate: PASS`, `FAIL` or `COULD NOT VERIFY` (exit 0, 1, 2). It refuses
   `-Test`, `-Commit`, `-Msi` and `-Install` (exit 2). The full build and every
   slower step stay in `-Test`, which the release gate runs whole; the measured
-  list is in `AGENTS.md` "Testing".
+  list is in `ENGINEERING.md` "The measured list".
 - `-Commit` implies `-Test` and commits the working tree only after the gate
   passes. It never tags and never pushes.
-- **Deploying is opt-in** - `-DeployTo <folder>`, or the `FILEDO_DEPLOY_DIR`
-  environment variable. It runs last, after the gate, the installer and
-  `-Install` all passed, and copies only the `*.exe`, `*.bat` and `*.config`
-  files. A plain run copies nothing anywhere.
+- **Deploying goes to the tools folder** - `-DeployTo <folder>`, else the
+  `FILEDO_DEPLOY_DIR` environment variable, else `C:\GD\tc\SZA\_APP` when that
+  folder exists; `-DeployTo ''` turns it off. It runs last, after the gate, the
+  installer and `-Install` all passed, and copies only the `*.exe`, `*.bat` and
+  `*.config` files. A file that is in use is reported and skipped. Without that
+  folder a plain run copies nothing anywhere.
 - The **installer step runs by default** and builds both artifacts from the
   same wxs files the release workflow uses, so an installer defect is found
   here rather than inside a tagged CI run:
@@ -182,9 +184,11 @@ Full pipeline. Cuts from `main` only, with a clean/committed tree.
 .\release.ps1 -DryRun         # everything EXCEPT push tag / submit / Store
 .\release.ps1 -SkipStore      # CLI + winget only
 .\release.ps1 -SkipWinget     # skip winget sync + submit
+.\release.ps1 -SkipScoop      # leave the own Scoop bucket at the release it carries
 .\release.ps1 -SkipOpsMount   # operations run without its mounted-disk tier (no UAC prompt)
 .\release.ps1 -OpsRebaseline  # accept this operations run as the new baseline (an intended change)
 .\release.ps1 -WingetInstallTest   # also install the synced manifest here, then uninstall
+.\release.ps1 -SkipDynamicAudit    # leave out the SP-0167 audit stand's self-test and control run
 .\release.ps1 -Resume -Version 2606271600 [-SkipStore]   # continue a release whose tag is out
 ```
 
@@ -193,9 +197,14 @@ What it does, in order:
 1. **Preflight** - first runs the shared contract catch-up check (unless
    `-Resume`): calls the `sza` plugin's `tools/contract-lag.ps1` and
    `tools/check-contracts.ps1` against the contracts catalog and stops
-   before anything is tagged if any FileDO row is `behind`, `pending`,
+   before anything is tagged if any row of the repository key `filedo` (the
+   registry's Product cell starts with it) is `behind`, `pending`,
    `unparsed`, `ahead`, `partial` without an active Section 3 dated reason,
-   or carries a FileDO error. Next checks tools present (`git`, `gh`, `go`, `wingetcreate`), `gh`
+   or carries a FileDO error, then runs the catalog's
+   `product-identity/reference/Test-ProductIdentity.ps1 -RepoRoot . -Release`
+   (`PRODUCT-IDENTITY` 0.4 rung 2 / rule 10, FILEDO-0243) so a rendition whose
+   `renderedFrom` differs from `master.sha256` (a `NOTE` between releases) stops
+   the release before the tag. Next checks tools present (`git`, `gh`, `go`, `wingetcreate`), `gh`
    authenticated, an interactive desktop session (required for the pre-release
    in-app help freshness check unless `-Resume`), on `main`, and **the tree clean**:
    `git status --porcelain --untracked-files=all` may list nothing outside
@@ -255,6 +264,16 @@ What it does, in order:
    status, `winget validate`, schema, one manifest, no other open PR; the
    install box only under `-WingetInstallTest`). A box left empty is named in
    the output and is not fatal; run the script again, or tick it by hand.
+
+   **7b. Scoop** - `packaging\update-scoop-bucket.ps1 -Version <version>` brings
+   `bucket/filedo.json` in the own bucket `SerZhyAle/scoop-bucket` to the release:
+   the zip's SHA256 is read from its `.sha256` and from GitHub's digest of the
+   asset and must agree, exactly `version` and the `64bit` `url` and `hash` are
+   rewritten (one commit `filedo: Update to version <version>` through the
+   contents API), and the manifest is read back. A manifest that already carries
+   the version is left alone, a newer one is never rolled back, and a failure is
+   recorded like the winget step's. The bucket's own Excavator schedule (from
+   the template) is not what keeps it current: GitHub never registered it.
 8. **Store** - builds the unsigned MSIX into `msix\out\`, **pinned to this
    release's stamp** (`filedo.exe` prints it; `filedo_win.exe` carries it as
    its PE version and `BuildStamp`), and **only from sources equal to the
@@ -278,12 +297,20 @@ What it does, in order:
 9. **Site** - runs `packaging\set-release-manifest.ps1 -Tag v<stamp>` (reads the
    published release and its `.sha256` sidecars into
    `packaging\release-manifest.json`), renders all five landing pages
-   (`docs/index.html`, `de`, `fr`, `ru`, `uk`) with
+   (`docs/index.html`, `de`, `fr`, `ru`, `uk`) and the copy commands of the
+   install guide (`docs/guides/install-and-explorer.html`, `de`, `fr`) with
    `packaging\render-site-release.ps1`, verifies `packaging\check-external-docs.ps1`,
    commits `Sync site to v<stamp>` and pushes `main`. Runs after Store MSIX so
    `Get-TagSourceDrift` continues checking exact tag equality outside `winget\`
    and `docs\releases\`. Just before it, what the channel steps wrote to the
    release ledger since the tag is committed as `Ledger: v<stamp>` and pushed.
+   After the site step the SP-0167 **dynamic audit stand** fixes the tagged build
+   by SHA-256 (`-LockBuild -Tag v<stamp>`, into `temp\evidence\build-lock.json`), then runs its self-test and its control run (`PLAN\SP-0167 dynamic-audit-five-properties\dynaudit.ps1
+   -SelfTest`, then `-Control`). Neither starts the product; both write their
+   evidence under `temp\evidence\dyn-*`. The checklist prints the three exit codes and
+   verdict lines for the owner to read (exit 2 means the stand itself is not
+   complete yet). Like the ledger it never fails a release; `-SkipDynamicAudit`
+   leaves it out.
 10. **Checklist** - prints what is done, what failed and why, and the one
     manual step left. A channel that failed after the tag (winget sync, push,
     submit, the MSIX, or site sync) does not stop the ones after it, is shown
@@ -430,7 +457,13 @@ the last leg is manual (Microsoft re-signs the unsigned package during
 certification - no paid cert needed): upload `msix\out\FileDO_<ver>.msix`; write this release's
 "What's new" into `msix\listing\<code>.txt` (`@@ReleaseNotes`), export the
 listing and run `.\msix\build-store-listing-csv.ps1 -Refresh ReleaseNotes`,
-import `msix\out\store-import`; submit. Then update over a **real prior
+import `msix\out\store-import`; submit. When `assets\make-product-icons.ps1 -Check` prints a `NOTE` for
+`store.ms.logo` (the Store logo set was rendered from another drawing than the master - true after FILEDO-0236
+until the first release re-renders it), run `.\assets\make-product-icons.ps1 -StoreLogos` (headless Edge, about a
+minute) before the submission, commit the set and the manifest, and upload the larger file of each pair from
+`msix\store-logos\<locale>\` in the listing's Store logos section (PRODUCT-IDENTITY rule 10: the listing changes in
+the same release as the picture). When `assets\social-preview.png` changed since the previous release (as after
+FILEDO-0240), upload it in the GitHub repository's **Settings > General > Social preview** at the release too. Then update over a **real prior
 install** and check the version and the notes. The full path - identity, build,
 listing, screenshots, click path - is `msix/README.md`. The read-only Store preflight
 runs before the tag (`release.ps1`). It checks, read-only, for a pending submission, a version not greater than the live one, a price that is not Free, a missing identity file and no live submission (rules 23 (a), (b), (d), 25). It does not test rule 22, rule 23 (c), (e) and (f), or the credential expiry unless `-StoreCredentialExpiry yyyy-MM-dd` is given. A refusal stops the release before the tag; an unavailable channel prints one manual line and the release goes on. Evidence: `temp\evidence\store-preflight.log`. It never writes to the
@@ -642,6 +675,9 @@ overwrite it anyway.
   (it may already be rewritten; `-Resume` allows changes there and nowhere
   else), checks it, commits and pushes if needed, and submits. When the push
   failed because `main` moved: `git pull --rebase origin main` first.
+- **Scoop step failed** - `pwsh -NoProfile -File .\packaging\update-scoop-bucket.ps1
+  -Version <stamp>` (add `-DryRun` to see the three lines it would change first).
+  It reads the bucket again, so a run after a partial one is safe.
 - **By hand**, when the script cannot run (steps 6-8):
   ```powershell
   $v = '<stamp>'; $tag = "v$v"; $zip = "FileDO-$v-windows-x64.zip"

@@ -1,15 +1,15 @@
 ICONOGRAPHY VENDORED ARTIFACT
 Do not hand-edit the files in this folder. Regenerate with assets/sync-icon-glyphs.ps1.
-Catalog versions: ICON-SET 0.41; ICON-RENDER 0.26; ICON-EXTERNAL 0.12
-Vocabulary SHA-256: 920937a2e9a7563a22a0253147a76dbf9cfe4766d441e64469e8bd58a75b3f5c
+Catalog versions: ICON-SET 0.46; ICON-RENDER 0.28; ICON-EXTERNAL 0.12
+Vocabulary SHA-256: 441510d44e9036b06db822103da8552db68d2c4709e56deacf07adcd9bacc548
 Source: iconography/glyphs/<id>.svg and iconography/palette.json in the shared contracts catalog
-Provisional (drawn by FileDO, masters in assets/glyph-sources/, proposed as PROPOSAL-2026-11-11-filedo-backup-meanings.md): action.unarchive
-Taken: 2026-11-16
+Taken: 2026-11-26
 Licence: the drawings are Material Icons (Apache-2.0) - see THIRD-PARTY-NOTICES.txt
 
 action.add.svg  98cece8c14e972a3a5b6b440d667a1caff32da7f75c0bee2a896a1d8da5ac011
 action.archive.svg  5b5c833be09ce768460efcea631910dac908d704d8cc238cebc58bdbf3c2dd6a
 action.auto-mount.svg  b46edf46c0b914585c833b1e9e96d7b4b161c143f44e6909a7d356c8f562067c
+action.autostart.svg  56f8929fa588d7cdddfc46f24de8d98154a482a1ca716c6d111cc356e91f5799
 action.cancel.svg  0b2ee602dece67950e801b3df344297e311e8bc33c592c7ae8cc9f5d4195c873
 action.change-password.svg  61de7244e2bd5c1422940b5a960ab236d175f0fb318f0d1d4c9ca05a20798b8c
 action.choose-file.svg  88a2296da6880558fae00528dc048dd15809ffcf4d60f506a6eaffbae4542647
@@ -42,6 +42,7 @@ action.seal.svg  037ec8ae9cbca637698849662324f5df3b57967b119e2ea3b9bc531d95a11fa
 action.secure.svg  1e19c2a11e1057037217bd5f27287d945d182ed609fe9245ed547c0e0019fe86
 action.share.svg  bd2d4c1601b79c8069fcc0dfaabed52784489a6783e0d62d950044331cbf9301
 action.sort.svg  0d779606218fcc8be52a5f19d18d62edea4dfdf83b219a44e657c41fa14b8af4
+action.unarchive.svg  2c373a6d41dc1c24c41f9f1c077a0112fcc790282b112b953b43914d8c0361cf
 action.unmount-disk.svg  46981f894b2b20d1025d4180af444f9a78d6165062d260c9321087bb4eda764f
 action.unsecure.svg  51ed2e088163d70d23de46f49c16ad7c9436c2ba90144cf896df4d9295391bf2
 action.verify.svg  d9862c96c4f05e425c3488f5e8654ad5903bd3e4f31bdba1449d8b82dd553f92
@@ -67,6 +68,7 @@ nav.close.svg  7512d856fa655619c7c9637cf107db289b7e023ca5e1435c951d0468923d1ccc
 nav.collapse.svg  e71fd439b4fd58bca57c5f29bc473ddc4ffd509023475c81d993a8ef1be0311c
 nav.expand.svg  69cc3c6cbb3279a510b3dac2a34924f2c913e9950217f71ed15d823c5248f1a2
 nav.go-to.svg  963fc4ef130b0c1c322cd36e75a58c8c13f302f7ac5bcf06d4c7c0fcd5eb7c3c
+nav.menu.svg  20e672572d242b8c95e684a9f3aa71e4778862ba230f86886cf403f35a11ada5
 nav.more.svg  c970673950ab4f255870e756060d2861aa36ef2f3570418fc7a203b9cc7cad8f
 nav.open-external.svg  182737de2ed77400472000905e4255e5ed70895462eb6e446756559326fd1cfd
 status.error.svg  c59d2db08ca690854f3dce659b8d952268c41606dc4e8754cf9059f057e13936
@@ -76,5 +78,4 @@ status.stopped.svg  34ac623ac6f9b971695927f85b4ac1167a95eb7453e84ef34ab730ef4276
 status.warning.svg  93a74458a1b340a7780d43ec3090e72d469991449d0627e87a37fe24f63a699e
 system.storage.svg  945b139e7d8ebfedfe8a243f7914028373f693c250ebc451618cca75390c0bd3
 view.table.svg  70e0f8bb93b31b0d9e51ad91c54f14140a62999032079f534d747a1fd8348cf3
-action.unarchive.svg  2c373a6d41dc1c24c41f9f1c077a0112fcc790282b112b953b43914d8c0361cf
 palette.json  88fc71f5b75cea1371727335b9ea793907c143daaf27fbdd53f9b00a091ffb1e

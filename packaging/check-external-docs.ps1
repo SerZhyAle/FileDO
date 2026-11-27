@@ -59,6 +59,8 @@
     screens    rule 6. A page whose <main> carries data-ui-steps shows at least one screenshot;
                every <img> on a public page has alt text, width and height, and a file under
                docs/assets/. The pictures are produced by packaging/capture-guide-screens.ps1.
+               One alt is empty by contract (PRODUCT-IDENTITY rule 11): the site.identity rendition of
+               assets/identity/identity-manifest.json, with the product's name as text right after it.
     addresses  SITE-STRUCTURE rule 8 (SP-0153). packaging/site-held-addresses.json lists every address
                of the site held outside it (the program, the READMEs, the Store listing source, the
                release workflow). Each entry resolves to a public page or a forwarder stub, its anchor
@@ -99,11 +101,17 @@
                hand from that history when the release's "What's new" is; this step is what stops the two
                drifting apart. "Unreleased" is not a release and never appears on the page. Each section's
                <time datetime> is the date its stamp's YYMMDD names (SITE-EXPERIENCE 0.5 item D, rule 13).
+               The history is held to the public release record (SP-0166 F16): every live github row of the
+               release ledger docs/releases/history.jsonl has its own entry, and an entry GitHub does not carry
+               is only the release being cut (newer than every GitHub release) or history from before the
+               first GitHub release.
     releasemanifest PAGE-STYLE 3.10 and SITE-EXPERIENCE 0.6 item E (SP-0225). packaging/release-manifest.json
                records the published release (version, date, asset URLs, size, SHA-256) and names a
                release recorded by README.md Version History (newest or previous during pre-publish).
                All five landing pages render those facts with scripts off while keeping /releases/latest
-               on #releaseLink beside them.
+               on #releaseLink beside them, and every release asset name in a copy command (a
+               <div class="copybox">) of the install guide and its de and fr pages names that release
+               (SP-0166 F8; both rendered by packaging/render-site-release.ps1).
     analytics SP-0166 criterion 9, no analytics and no tracker. Every docs/**/*.html and docs/**/*.js outside
                docs/contracts/ carries none of the analytics or tag-manager hosts and calls (googletagmanager,
                google-analytics, gtag, plausible, umami), no utm_ parameter, and no <script src> or <iframe src>
@@ -153,6 +161,7 @@ $printsPath = Join-Path $root 'docs\translation-fingerprints.json'
 $heldPath = Join-Path $root 'packaging\site-held-addresses.json'
 $positioningPath = Join-Path $root 'packaging\positioning-source.json'
 $manifestPath = Join-Path $root 'packaging\release-manifest.json'
+$identityPath = Join-Path $root 'assets\identity\identity-manifest.json'
 
 function Stop-Unverified([string]$why) {
     Write-Host "external-docs: COULD NOT VERIFY ($why)" -ForegroundColor Yellow
@@ -176,6 +185,16 @@ try { $termbase = [IO.File]::ReadAllText($termbasePath) | ConvertFrom-Json } cat
 try { [xml]$sitemap = [IO.File]::ReadAllText($sitemapPath) } catch { Stop-Unverified "docs/sitemap.xml cannot be read: $($_.Exception.Message)" }
 try { $held = [IO.File]::ReadAllText($heldPath) | ConvertFrom-Json } catch { Stop-Unverified "packaging/site-held-addresses.json cannot be read: $($_.Exception.Message)" }
 try { $positioning = [IO.File]::ReadAllText($positioningPath) | ConvertFrom-Json } catch { Stop-Unverified "packaging/positioning-source.json cannot be read: $($_.Exception.Message)" }
+# The product's name and the files that are its picture on the site (PRODUCT-IDENTITY section 5: the manifest lists
+# every rendition with its surface, and site.identity is the picture of the identity block). Rule 11 gives that
+# picture an empty alt where the name stands beside it as text; the screens step holds that one case.
+$identityMark = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$productName = ''
+try {
+    $identity = [IO.File]::ReadAllText($identityPath) | ConvertFrom-Json
+    $productName = [string]$identity.product
+    foreach ($rendition in @($identity.renditions)) { if ([string]$rendition.surface -ceq 'site.identity') { [void]$identityMark.Add(([string]$rendition.path -replace '\\', '/')) } }
+} catch { Stop-Unverified "assets/identity/identity-manifest.json cannot be read: $($_.Exception.Message)" }
 # The manifests the caller names (-ScoopManifest, -ChocoNuspec; SP-0166 P4). Nothing is looked for by default: the
 # drafts of a package channel live wherever the caller keeps them, and this script names no such place.
 function Read-NamedFile([string]$given, [string]$what) {
@@ -764,6 +783,23 @@ Add-Section 'terms' {
     }
 }
 
+# PRODUCT-IDENTITY rule 11: the product's picture has an empty alt where the product's name stands beside it as
+# text, and names the product where it stands alone. An empty alt is right for one picture only - a site.identity
+# rendition of the identity manifest - and only while the name is the first text after it: the name is reached
+# through opening tags alone, so it sits in the same element as the picture and no other text comes between.
+function Test-IdentityBesideName([string]$rel, [string]$text, [System.Text.RegularExpressions.Match]$m) {
+    if (-not $productName -or $m.Value -notmatch '(?is)\bsrc\s*=\s*"([^"]+)"') { return $false }
+    $src = $Matches[1]
+    if ($src -match '^[a-z]+:|^//') { return $false }
+    $target = [IO.Path]::GetRelativePath($root, [IO.Path]::GetFullPath((Join-Path $root (Join-Path (Split-Path $rel) $src)))) -replace '\\', '/'
+    if (-not $identityMark.Contains($target)) { return $false }
+    $after = $text.Substring($m.Index + $m.Length)
+    $next = $after.IndexOf('<img', [StringComparison]::OrdinalIgnoreCase)
+    if ($next -ge 0) { $after = $after.Substring(0, $next) }
+    $beside = $after -match ("(?is)^(?:\s|<[a-z][^>]*>)*(?-i:" + [regex]::Escape($productName) + ')(?![\p{L}\p{Nd}])')
+    return $beside
+}
+
 # ---- screens (rule 6) ------------------------------------------------------------------------
 $imgTotal = 0
 Add-Section 'screens' {
@@ -774,7 +810,9 @@ Add-Section 'screens' {
         if ($text -match '(?is)<main\b[^>]*\bdata-ui-steps\b' -and -not $imgs.Count) { $failures.Add("$rel is a multi-step UI guide (data-ui-steps) with no screenshot") }
         foreach ($m in $imgs) {
             $line = Get-LineAt $text $m.Index
-            if ($m.Value -notmatch '(?is)\balt\s*=\s*"[^"]*\S[^"]*"') { $failures.Add("${rel}:$line <img> has no alt text") }
+            $altText = if ($m.Value -match '(?is)\balt\s*=\s*"([^"]*)"') { $Matches[1] } else { $null }
+            if ($null -eq $altText) { $failures.Add("${rel}:$line <img> has no alt text") }
+            elseif ($altText -notmatch '\S' -and -not (Test-IdentityBesideName $rel $text $m)) { $failures.Add("${rel}:$line <img> has an empty alt - only the site.identity picture with the product's name as text beside it takes one (PRODUCT-IDENTITY rule 11)") }
             if ($m.Value -notmatch '(?is)\bwidth\s*=\s*"\d+"' -or $m.Value -notmatch '(?is)\bheight\s*=\s*"\d+"') { $failures.Add("${rel}:$line <img> has no width and height") }
             if ($m.Value -notmatch '(?is)\bsrc\s*=\s*"([^"]+)"') { $failures.Add("${rel}:$line <img> has no src"); continue }
             $src = $Matches[1]
@@ -829,6 +867,9 @@ Add-Section 'addresses' {
         $listed[$addr] = $true
         $script:heldTotal++
         $page, $anchor = if ($addr.Contains('#')) { $addr.Substring(0, $addr.IndexOf('#')), $addr.Substring($addr.IndexOf('#') + 1) } else { $addr, '' }
+        # A query picks the language of a trilingual guide (?lang=ru|uk|en, the SITE-STRUCTURE rule 11
+        # resolver, FILEDO-0247); the page that answers is the one before it.
+        if ($page.Contains('?')) { $page = $page.Substring(0, $page.IndexOf('?')) }
         $rel = $byUrl[$siteBase + $page]
         if (-not $rel) { $failures.Add("$label answers no public page and no forwarder stub") }
         elseif ($anchor) {
@@ -1252,6 +1293,31 @@ Add-Section 'releasenotes' {
         $shared = @($have | Where-Object { $_ -in $want })
         if (($shared -join ',') -ne ((@($want | Where-Object { $_ -in $have })) -join ',')) { $failures.Add("$rel lists the releases in a different order than README.md (newest first)") }
     }
+    # The public release record (SP-0166 F16): every release GitHub carries - a live github row of the release ledger
+    # docs/releases/history.jsonl, which release.ps1 writes - has its own entry. An entry with no GitHub release is the
+    # release being cut (newer than every GitHub release) or history from before the first GitHub release, which the
+    # page's lead names; anything between two GitHub releases is an entry no release carries.
+    $ledgerPath = Join-Path $root 'docs\releases\history.jsonl'
+    if (-not (Test-Path -LiteralPath $ledgerPath -PathType Leaf)) { $failures.Add('docs/releases/history.jsonl is missing - the release notes cannot be held to the public release record'); return }
+    $published = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in [IO.File]::ReadAllLines($ledgerPath)) {
+        if (-not $line.Trim()) { continue }
+        $row = $null
+        try { $row = $line | ConvertFrom-Json } catch { $failures.Add("docs/releases/history.jsonl has a line that does not parse: $($_.Exception.Message)"); continue }
+        if (-not $row -or -not $row.PSObject.Properties['key'] -or -not $row.PSObject.Properties['state'] -or -not $row.PSObject.Properties['version']) { continue }
+        if ([string]$row.key -ne 'github' -or [string]$row.state -ne 'live' -or [string]$row.version -notmatch '^\d{10}$') { continue }
+        $pv = 'v' + [string]$row.version
+        if ($pv -notin $published) { $published.Add($pv) }
+    }
+    if (-not $published.Count) { $failures.Add('docs/releases/history.jsonl records no live GitHub release'); return }
+    $byStamp = @($published | Sort-Object)
+    foreach ($pv in $published) { if ($pv -notin $want) { $failures.Add("README.md Version History has no entry for $pv, a release GitHub carries (docs/releases/history.jsonl)") } }
+    foreach ($v in $want) {
+        if ($v -in $published) { continue }
+        # A 10-digit stamp sorts as text in time order.
+        if ([string]::CompareOrdinal($v, $byStamp[-1]) -gt 0 -or [string]::CompareOrdinal($v, $byStamp[0]) -lt 0) { continue }
+        $failures.Add("README.md Version History lists $v, which falls between two GitHub releases but is not one itself (docs/releases/history.jsonl)")
+    }
 }
 
 # ---- release manifest (PAGE-STYLE 3.10 and SITE-EXPERIENCE 0.6 item E, SP-0225) ---------------
@@ -1343,6 +1409,22 @@ Add-Section 'releasemanifest' {
             }
         }
     }
+    # The install guide hands the visitor commands to copy (SP-0166 F8): every release asset name inside a copybox
+    # names the manifest's release, as packaging/render-site-release.ps1 renders it. Prose in data-l spans keeps
+    # the FileDO-<version> pattern and is not looked at here.
+    foreach ($rel in @('docs/guides/install-and-explorer.html', 'docs/de/guides/install-and-explorer.html', 'docs/fr/guides/install-and-explorer.html')) {
+        if (-not $pages.Contains($rel)) { $failures.Add("$rel is missing from the site page set"); continue }
+        $script:manifestChecked++
+        $html = $pages[$rel]
+        $named = 0
+        foreach ($box in [regex]::Matches($html, '(?s)<div class="copybox">.*?</div>')) {
+            foreach ($nm in [regex]::Matches($box.Value, 'FileDO-(&lt;version&gt;|\d{10})-(?:setup\.exe|windows-x64\.msi|windows-x64\.zip)')) {
+                $named++
+                if ($nm.Groups[1].Value -cne $mVer) { $failures.Add("${rel}:$(Get-LineAt $html ($box.Index + $nm.Index)) copy command names '$($nm.Value)', the manifest has $mTag (run packaging/render-site-release.ps1)") }
+            }
+        }
+        if (-not $named) { $failures.Add("$rel has no copy command that names a release asset (packaging/render-site-release.ps1 renders them)") }
+    }
 }
 # ---- analytics (SP-0166 criterion 9: no analytics, no tracker, no redirector) --------------------------
 # The site promises no telemetry. Every docs/**/*.html and docs/**/*.js (docs/contracts/ holds catalogue prose, not
@@ -1399,7 +1481,7 @@ Write-Host "  tags      $tagFieldCount tags and search terms ($($wingetLocales.C
 Write-Host "  claims    $claimTextCount descriptions held to the banned claims - $($counts['claims']) problems"
 Write-Host "  lead      $leadCount lead and tagline checks (5 README H1, README.md/.ru/.ua italic, winget ShortDescription) - $($counts['lead']) problems"
 Write-Host "  releasenotes $releaseNotesCount releases on 3 pages - $($counts['releasenotes']) problems"
-Write-Host "  releasemanifest $manifestChecked landing pages ($manifestTag) - $($counts['releasemanifest']) problems"
+Write-Host "  releasemanifest $manifestChecked pages: landings and install guides ($manifestTag) - $($counts['releasemanifest']) problems"
 Write-Host "  analytics $analyticsFiles pages and scripts read for trackers - $($counts['analytics']) problems"
 Write-Host "  hygiene   $($pages.Count + $readmes.Count) documents - $($counts['hygiene']) problems"
 if ($failures.Count) {

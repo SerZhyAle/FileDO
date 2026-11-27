@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Id** | `UI-SIZING` |
-| **Version** | 1.2, read 2026-11-16 (SP-0221); migration SP-0169 in progress (no wire - component size, input profile and scale composition) |
+| **Version** | 1.5, read 2026-11-26 (FILEDO-0245; 1.3-1.5 clarifications and allowances not taken); migration SP-0169 in progress (no wire - component size, input profile and scale composition) |
 | **Role** | consumer - every product-owned control of the GUI shell (`filedo_win_vb/`); migration ticket SP-0169 |
 | **Home** | shared contracts catalog, folder `ui-sizing/` |
 | **Owner** | shared (portfolio owner). An amendment is proposed in the catalog, not decided here |
@@ -23,7 +23,10 @@
 **Gates.** `filedo_win.exe --selftest`, group `ui-contracts` - `ui-sizing:*` rows (profile, tokens, floor, scale,
 clamp) and the scaled measurements of `buttons:scale`.
 
-**Status: not conformant - migration in progress (SP-0169, final deadline 2026-12-31).** Built so far (slice S1,
-2026-10-21): the resolver, the profile and the buttons and group headers that read it. Owed: the rest of the
-covered components (options, navigation rows); a user-visible size selector is a product decision not taken (D1);
-the font side of the interface scale; the showcase and measurements at compact to huge in five languages (S4).
+**Status: not conformant - migration in progress (SP-0169, final deadline 2026-12-31).** S1 (2026-10-21) built the
+resolver, the profile and the buttons and group headers; S2 (2026-10-29) the options, S3 (2026-10-29) the navigation
+rows. All shipped in `v2611110217` and `v2611171800`, and both release gates ran `--selftest` all-or-nothing green, so
+the `ui-sizing:*` and `buttons:scale` rows are measured on the release builds (no per-row log retained; the recorded
+proof is the green gates plus the all-or-nothing exit contract). Owed: a user-visible size selector is a product
+decision not taken (D1); the font side of the interface scale; the showcase and measurements at compact to huge in
+five languages and the final-width remeasurement (S4).

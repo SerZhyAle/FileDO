@@ -25,6 +25,14 @@
     generated docs/CLI.md is a render target of docs/cli-commands.json (APP-COMMANDS rule 20): packaging/
               write-cli-docs.ps1 -Check fails when it is stale, when the manifest and the copy filedo.exe
               embeds differ, or when a commands guide page (en, de, fr) leaves a command out (SP-0220).
+              The component and channel table of the install guide (en, de, fr) is a render target of
+              packaging/wix/FileDO.wxs, msix/AppxManifest.xml and the winget installer manifest:
+              packaging/write-install-matrix.ps1 -Check fails when it is stale (SP-0166 F18). The command reference
+              pages (en, de, fr) are a render target of the READMEs' Command Reference, read check and Advanced
+              Features: packaging/write-cli-reference.ps1 -Check fails when they are stale (SP-0166 F12).
+              The product's pictures - the master's SVG forms, every rendition and assets/identity/identity-
+              manifest.json - are a render target of the drawing in assets/make-product-icons.ps1
+              (PRODUCT-IDENTITY): its -Check fails on a file that differs or a retired second drawing (FILEDO-0236).
 
   Exit code (CHECK-VERDICT): 0 = pass, 1 = a defect was found, 2 = could not verify (git cannot
   list the tree, the registry cannot be read, or the manifest does not parse). The last line is the verdict.
@@ -269,12 +277,43 @@ foreach ($gl in ($generatedOut -split "`r?`n")) {
     if ($gl -match '^\s*FAIL\s+(.+)$') { $failures.Add($Matches[1]) }
 }
 if ($generatedCode -ne 0 -and $failures.Count -eq $beforeGenerated) { $failures.Add("write-cli-docs.ps1 -Check exited $generatedCode with no FAIL line") }
+# The install guide's component and channel table renders from the packaging files (SP-0166 F18); a change of
+# packaging/wix/FileDO.wxs, msix/AppxManifest.xml or the winget installer manifest fails here until it is re-rendered.
+$matrixOut = & "$PSScriptRoot\write-install-matrix.ps1" -Check *>&1 | Out-String
+$matrixCode = $LASTEXITCODE
+if ($matrixCode -eq 2) { Stop-Unverified "write-install-matrix.ps1 could not verify: $((($matrixOut.Trim() -split "`r?`n")[-1]))" }
+$beforeMatrix = $failures.Count
+foreach ($gl in ($matrixOut -split "`r?`n")) {
+    if ($gl -match '^\s*FAIL\s+(.+)$') { $failures.Add($Matches[1]) }
+}
+if ($matrixCode -ne 0 -and $failures.Count -eq $beforeMatrix) { $failures.Add("write-install-matrix.ps1 -Check exited $matrixCode with no FAIL line") }
+# The command reference pages (en, de, fr) render the READMEs' Command Reference, read check and Advanced Features
+# (SP-0166 F12); an edit of one of those README parts fails here until the pages are re-rendered.
+$referenceOut = & "$PSScriptRoot\write-cli-reference.ps1" -Check *>&1 | Out-String
+$referenceCode = $LASTEXITCODE
+if ($referenceCode -eq 2) { Stop-Unverified "write-cli-reference.ps1 could not verify: $((($referenceOut.Trim() -split "`r?`n")[-1]))" }
+$beforeReference = $failures.Count
+foreach ($gl in ($referenceOut -split "`r?`n")) {
+    if ($gl -match '^\s*FAIL\s+(.+)$') { $failures.Add($Matches[1]) }
+}
+if ($referenceCode -ne 0 -and $failures.Count -eq $beforeReference) { $failures.Add("write-cli-reference.ps1 -Check exited $referenceCode with no FAIL line") }
+# The product's pictures render from one drawing (PRODUCT-IDENTITY, FILEDO-0236): assets/make-product-icons.ps1 -Check
+# redraws every master form, rendition and the identity manifest into a scratch folder and fails on a file that
+# differs from what the drawing gives, or on a retired second drawing put back.
+$identityOut = & (Join-Path $root 'assets\make-product-icons.ps1') -Check *>&1 | Out-String
+$identityCode = $LASTEXITCODE
+if ($identityCode -eq 2) { Stop-Unverified "make-product-icons.ps1 could not verify: $((($identityOut.Trim() -split "`r?`n")[-1]))" }
+$beforeIdentity = $failures.Count
+foreach ($gl in ($identityOut -split "`r?`n")) {
+    if ($gl -match '^\s*FAIL\s+(.+)$') { $failures.Add($Matches[1]) }
+}
+if ($identityCode -ne 0 -and $failures.Count -eq $beforeIdentity) { $failures.Add("make-product-icons.ps1 -Check exited $identityCode with no FAIL line") }
 $generatedFailures = $failures.Count - $beforeGenerated
 
 Write-Host "  registry  $($docs.Count) documents, $($ignores.Count) ignore records - $registryFailures problems"
 Write-Host "  links     $linkCount relative links and anchors - $linkFailures problems"
 Write-Host "  style     $styleScanned internal documents - $styleFailures problems"
-Write-Host "  generated docs/CLI.md and the commands guide against the manifest - $generatedFailures problems"
+Write-Host "  generated docs/CLI.md and the commands guide against the manifest, the install matrix against the packaging files, the command reference against the READMEs, the product's pictures against their drawing - $generatedFailures problems"
 if ($failures.Count) {
     $failures | ForEach-Object { Write-Host "  FAIL  $_" -ForegroundColor Red }
     Write-Host "internal-docs: FAIL ($($failures.Count) problems)" -ForegroundColor Red

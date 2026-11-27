@@ -338,6 +338,12 @@ Module UiDrive
         CheckShot("08-shell-reopened-light", False)
         fresh.Close()
         Pump()
+
+        ' 10) The complete-frame timings of every page (SP-0169 S5, SETTINGS-NAVIGATION section 5):
+        ' page-timings.csv holds the raw samples and page-timings.txt the summary.
+        For Each v In PageTiming.Run(shotFolder)
+            Check(v.Name, v.Ok, v.Detail)
+        Next
     End Sub
 
 End Module

@@ -268,7 +268,7 @@ it at every step that says so.
    and shut the machine down. Before the screen goes dark, the "FileDO is saving your RAM disk.."
    block screen may appear - note whether it did and for how long. After the next logon:
    `filedo r.fdd info` says *Closed clean: yes*; the written file is on the volume; `filedo vd guard
-   status` shows the last run with every container closed cleanly; and the Autostart dialog of the
+   status` shows the last run with every container closed cleanly; and the *Start with Windows* dialog of the
    Disk manager tells the same in words. Note the per-row time the report carries for `r.fdd`.
 5. [ ] **The "Shut down anyway" path.** Mount `r.fdd`, write to it, and click Shut down; on the
    block screen click *Shut down anyway* within the first seconds. After the logon the container is
@@ -285,10 +285,10 @@ it at every step that says so.
    `filedo r.fdd` stays mounted; a shutdown now leaves it not closed cleanly - that is the guard
    being off. Turn it on again only if a later step needs it.
 8. [ ] **The Disk manager surface.** With the guard on, the strip at the bottom carries one word
-   (*shutdown guard on*); More actions > *Autostart..* opens the dialog: one row per registered
+   (*shutdown guard on*); More actions > *Start with Windows..* opens the dialog: one row per registered
    container with its logon switch (the `vault` row is disabled, the encrypted sentence beside it),
    the guard's state in words, its switch, and the last run in sentences. Turning the guard off and
-   on from the dialog works. In the Store build the whole *Autostart..* entry is absent (hidden,
+   on from the dialog works. In the Store build the whole *Start with Windows..* entry is absent (hidden,
    not greyed).
 9. [ ] **The measured grant.** From steps 4 and 5, compare the report's longest save and longest
    unmount against the caps: a save over 60 s or an unmount over 10 s that still finished is fine;
@@ -312,7 +312,7 @@ other FileDO:
    `destroy force`, `vd new`, `vd list`, `vd status`, `vd add` and `vd forget` all work (exit 0).
 4. [ ] The listing (Partner Center preview) promises no mounting in any language.
 5. [ ] **The Disk manager in this build.** It opens and lists the disks; *Mount*, *Mount read-only*, *Mount
-   as..*, *Mount image..*, *Unmount*, *Save now*, *Turn on/off auto-mount*, *Autostart..* and *Format..* are
+   as..*, *Mount image..*, *Unmount*, *Save now*, *Turn on/off auto-mount*, *Start with Windows..* and *Format..* are
    **absent** (hidden, not greyed) from the toolbar, the row menu, the More menu and the detail pane, while
    *New disk..*, *Add..*, *Info*, *Verify* and *Export..* remain. The first-steps window (Help > *First
    steps..*) says this build cannot mount and that the setup program from the website can.

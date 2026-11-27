@@ -79,6 +79,8 @@
     <Compile Include="UiTokens.vb" />
     <Compile Include="SelfTestUiContracts.vb" />
     <Compile Include="UiDrive.vb" />
+    <Compile Include="PageTiming.vb" />
+    <Compile Include="Showcase.vb" />
     <Compile Include="SettingsLayout.vb" />
     <Compile Include="NativeEditors.vb" />
     <Compile Include="LiveLanguage.vb" />
@@ -139,6 +141,9 @@
     </Compile>
     <Compile Include="JobView.vb">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="JobViewDrives.vb">
+      <DependentUpon>JobView.vb</DependentUpon>
     </Compile>
     <Compile Include="HistoryView.vb">
       <SubType>UserControl</SubType>
