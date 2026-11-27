@@ -30,3 +30,4 @@
 {"at":"2026-11-27T02:14:03+01:00","key":"installer","package":"filedo","version":"2611270100","state":"live","source":"release","ref":"v2611270100","url":"https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100","note":"the setup EXE and the MSI are assets of the Release"}
 {"at":"2026-11-27T02:14:23+01:00","key":"winget","package":"filedo","version":"2611270100","state":"pending","source":"release","note":"not submitted: wingetcreate submit failed (exit 1)"}
 {"at":"2026-11-27T02:14:33+01:00","key":"msstore","package":"filedo-msix","version":"26.1127.100.0","state":"pending","source":"release","note":"MSIX built from the tag, unsigned; upload and submission are manual"}
+{"at":"2026-11-27T02:15:41+01:00","key":"winget","package":"filedo","version":"2611270100","state":"submitted","source":"release","ref":"PR#490608","url":"https://github.com/microsoft/winget-pkgs/pull/490608","note":"opened by hand: wingetcreate could not sync the fork"}

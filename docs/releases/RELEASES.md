@@ -9,7 +9,7 @@ What each package was built as last, what each channel carries, and every public
 | Package | Channel | Kind | Live | Since | In flight | Ref |
 | --- | --- | --- | --- | --- | --- | --- |
 | filedo | github | github | 2611270100 | 2026-11-27 | - | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) |
-| filedo | winget | winget | 2611110217 | 2026-11-17 | 2611270100 pending (2026-11-27); 2611171800 submitted (2026-11-17) | - |
+| filedo | winget | winget | 2611110217 | 2026-11-17 | 2611270100 submitted (2026-11-27); 2611171800 submitted (2026-11-17) | [PR#490608](https://github.com/microsoft/winget-pkgs/pull/490608) |
 | filedo | installer (Setup installer (an asset of the GitHub Release)) | url | 2611270100 | 2026-11-27 | - | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) |
 | filedo-msix | msstore (Microsoft Store) | msstore | - | - | 26.1127.100.0 pending (2026-11-27); 26.1117.1800.0 blocked (2026-11-17); 26.1111.217.0 submitted (2026-11-17) | - |
 
@@ -26,6 +26,7 @@ What each package was built as last, what each channel carries, and every public
 
 | When | Package | Channel | Version | State | Source | Ref | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-27 02:15:41+01:00 | filedo | winget | 2611270100 | submitted | release | [PR#490608](https://github.com/microsoft/winget-pkgs/pull/490608) | opened by hand: wingetcreate could not sync the fork |
 | 2026-11-27 02:14:33+01:00 | filedo-msix | msstore | 26.1127.100.0 | pending | release | - | MSIX built from the tag, unsigned; upload and submission are manual |
 | 2026-11-27 02:14:23+01:00 | filedo | winget | 2611270100 | pending | release | - | not submitted: wingetcreate submit failed (exit 1) |
 | 2026-11-27 02:14:03+01:00 | filedo | installer | 2611270100 | live | release | [v2611270100](https://github.com/SerZhyAle/FileDO/releases/tag/v2611270100) | the setup EXE and the MSI are assets of the Release |
