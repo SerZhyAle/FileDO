@@ -900,7 +900,11 @@ try {
         'docs/de/index.html',
         'docs/fr/index.html',
         'docs/ru/index.html',
-        'docs/uk/index.html'
+        'docs/uk/index.html',
+        # render-site-release.ps1 also rewrites the copy commands of the install guide
+        'docs/guides/install-and-explorer.html',
+        'docs/de/guides/install-and-explorer.html',
+        'docs/fr/guides/install-and-explorer.html'
     )
     $manifestCode = Invoke-Native { pwsh -NoProfile -File "$root\packaging\set-release-manifest.ps1" -Tag $tag }
     if ($manifestCode -ne 0) {
