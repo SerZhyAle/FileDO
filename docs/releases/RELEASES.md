@@ -17,9 +17,16 @@ What each package was built as last, what each channel carries, and every public
 
 | Package | Flavor | Kind | Version | Built | Artifact |
 | --- | --- | --- | --- | --- | --- |
-| filedo | default | release | 2611171800 | 2026-11-17 19:03:57+01:00 | dist/FileDO-2611171800-setup.exe |
+| filedo | default | release | 2611270100 | 2026-11-27 02:03:28+01:00 | dist/FileDO-2611270100-setup.exe |
+| filedo | default | test | 2611270100 | 2026-11-27 01:02:08+01:00 | dist/FileDO-2611270100-setup.exe |
 | filedo-msix | default | release | 26.1117.1800.0 | 2026-11-17 19:56:38+01:00 | msix/out/FileDO_26.1117.1800.0.msix |
 | filedo-msix | default | test | 26.1117.1958.0 | 2026-11-17 19:58:16+01:00 | msix/out/FileDO_26.1117.1958.0.msix |
+
+## Built, not published
+
+| Package | Flavor | Version | Built | Days |
+| --- | --- | --- | --- | --- |
+| filedo | default | 2611270100 | 2026-11-27 | 0 |
 
 ## History
 
